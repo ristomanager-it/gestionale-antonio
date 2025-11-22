@@ -16,6 +16,7 @@
       <!-- Barra pulsanti (menu principale) -->
       <section class="buttons-grid">
         <button class="app-button" data-route="timbratura">Timbratura</button>
+        <button class="app-button" data-route="dipendenti">Dipendenti</button>
         <button class="app-button" data-route="vendite">Vendite</button>
         <button class="app-button" data-route="preventivi">Preventivi</button>
         <button class="app-button" data-route="fatture">Fatture</button>
@@ -27,6 +28,7 @@
 
       <!-- SCHERMATE -->
 
+      <!-- TIMBRATURA -->
       <section id="view-timbratura" class="view">
         <h2>Timbratura</h2>
         <p>Registra entrata, pausa e uscita per dipendente e canale.</p>
@@ -34,11 +36,32 @@
         <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
             <label>
+              Codice dipendente (PIN)
+              <input
+                type="password"
+                id="timbratura-codice"
+                placeholder="Inserisci codice (es. 1234)"
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
               Dipendente
+              <select id="timbratura-dipendente-select">
+                <option value="">-- seleziona dipendente --</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Nome (auto)
               <input
                 type="text"
                 id="timbratura-dipendente"
                 placeholder="Nome dipendente"
+                readonly
               />
             </label>
           </div>
@@ -118,6 +141,96 @@
         </table>
       </section>
 
+      <!-- DIPENDENTI / ANAGRAFICA -->
+      <section id="view-dipendenti" class="view" style="display: none;">
+        <h2>Dipendenti</h2>
+        <p>Anagrafica dipendenti con mansioni, costo orario e codice.</p>
+
+        <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
+          <div class="form-row">
+            <label>
+              Nome
+              <input type="text" id="dip-nome" placeholder="Es. Mario Rossi" />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Mansione
+              <input type="text" id="dip-mansione" placeholder="Es. Sala, Cucina..." />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Costo orario (€)
+              <input
+                type="number"
+                id="dip-costo"
+                placeholder="Es. 12.50"
+                step="0.01"
+                min="0"
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Codice accesso (PIN)
+              <input
+                type="text"
+                id="dip-codice"
+                placeholder="Es. 1234"
+                maxlength="10"
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Canale prevalente
+              <select id="dip-canale">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="dip-attivo" checked />
+              Dipendente attivo
+            </label>
+          </div>
+
+          <div class="form-row buttons-row">
+            <button type="button" id="btn-add-dip" class="app-button small green">
+              Aggiungi/aggiorna dipendente
+            </button>
+          </div>
+        </form>
+
+        <h3>Elenco dipendenti</h3>
+        <table class="table-timbrature">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Mansione</th>
+              <th>Canale</th>
+              <th>Costo €/h</th>
+              <th>Codice</th>
+              <th>Attivo</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="dipendenti-lista"></tbody>
+        </table>
+      </section>
+
+      <!-- LE ALTRE VISTE PER ORA SONO PLACEHOLDER -->
+
       <section id="view-vendite" class="view" style="display: none;">
         <h2>Vendite</h2>
         <p>Qui inseriremo le vendite giornaliere per NR, RA e CAT.</p>
@@ -157,3 +270,4 @@
     <script src="app.js"></script>
   </body>
 </html>
+
