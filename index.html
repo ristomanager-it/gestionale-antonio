@@ -253,7 +253,7 @@
         data-manager-only="true"
       >
         <h2>Dipendenti</h2>
-        <p>Anagrafica dipendenti con mansioni, costo orario e codice.</p>
+        <p>Anagrafica dipendenti con mansioni, contatti, costo orario, PIN e ruolo.</p>
 
         <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
@@ -267,6 +267,34 @@
             <label>
               Mansione
               <input type="text" id="dip-mansione" placeholder="Es. Sala, Cucina..." />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Telefono
+              <input type="tel" id="dip-telefono" placeholder="Es. 3331234567" />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Email
+              <input type="email" id="dip-email" placeholder="Es. nome@esempio.it" />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Ruolo
+              <select id="dip-ruolo">
+                <option value="">-- seleziona ruolo --</option>
+                <option value="admin">Admin</option>
+                <option value="manager_cucina">Manager cucina</option>
+                <option value="manager_sala">Manager sala</option>
+                <option value="addetto_cucina">Addetto cucina</option>
+                <option value="cameriere">Cameriere</option>
+              </select>
             </label>
           </div>
 
@@ -327,9 +355,12 @@
             <tr>
               <th>Nome</th>
               <th>Mansione</th>
+              <th>Telefono</th>
+              <th>Email</th>
+              <th>Ruolo</th>
               <th>Canale</th>
               <th>Costo €/h</th>
-              <th>Codice</th>
+              <th>PIN</th>
               <th>Attivo</th>
               <th>Azioni</th>
             </tr>
@@ -417,7 +448,7 @@
       const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
 
-      const { createClient } = window.supabase;
+      const { createClient } = supabase;
       window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     </script>
     <script src="app.js"></script>
