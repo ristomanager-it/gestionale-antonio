@@ -23,36 +23,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnModeManager = document.getElementById("btn-mode-manager");
   const btnModeExit = document.getElementById("btn-mode-exit");
 
- function applyMode() {
-  const managerElements = document.querySelectorAll(
-    "[data-manager-only='true'], .manager-only"
-  );
+   function applyMode() {
+    // Etichetta in alto
+    if (modeLabel) {
+      modeLabel.textContent =
+        modalita === "manager" ? "Modalità: Manager" : "Modalità: Dipendente";
+    }
 
-  if (modalita === "manager") {
-    managerElements.forEach((el) => {
-      // Le viste (le sezioni con class="view") le gestisce navigateTo,
-      // quindi NON tocchiamo il loro display qui.
-      if (el.classList.contains("view")) {
-        return;
-      }
+    // Bottoni entra / esci manager
+    if (btnModeManager) {
+      btnModeManager.style.display =
+        modalita === "manager" ? "none" : "inline-block";
+    }
+    if (btnModeExit) {
+      btnModeExit.style.display =
+        modalita === "manager" ? "inline-block" : "none";
+    }
 
-      if (!el.dataset.originalDisplay) {
-        el.dataset.originalDisplay = el.style.display || "";
-      }
-      el.style.display = el.dataset.originalDisplay || "";
+    // Mostra/nascondi SOLO i blocchi interni .manager-only (es. tabelle extra in timbratura)
+    document.querySelectorAll(".manager-only").forEach((el) => {
+      el.style.display = modalita === "manager" ? "" : "none";
     });
+  }
 
-    if (modeLabel) modeLabel.textContent = "Modalità: Manager";
-    if (btnModeManager) btnModeManager.style.display = "none";
-    if (btnModeExit) btnModeExit.style.display = "inline-block";
-  } else {
-    managerElements.forEach((el) => {
-      // In modalità dipendente va bene nascondere anche le viste manager-only
-      if (!el.dataset.originalDisplay) {
-        el.dataset.originalDisplay = el.style.display || "";
-      }
-      el.style.display = "none";
-    });
 
     if (modeLabel) modeLabel.textContent = "Modalità: Dipendente";
     if (btnModeManager) btnModeManager.style.display = "inline-block";
