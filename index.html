@@ -152,6 +152,7 @@
           </div>
         </form>
 
+        <!-- BLOCCO SOLO MANAGER -->
         <div class="manager-only">
           <h3>Timbrature (tutte)</h3>
           <table class="table-timbrature">
@@ -250,7 +251,7 @@
         data-manager-only="true"
       >
         <h2>Dipendenti</h2>
-        <p>Anagrafica completa: PIN, dati personali, contatti, ruolo e costo orario.</p>
+        <p>Anagrafica completa: PIN, dati personali, contatti, ruolo e compenso.</p>
 
         <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
@@ -309,15 +310,65 @@
             </label>
           </div>
 
+          <!-- TIPO COMPENSO -->
           <div class="form-row">
             <label>
-              Costo orario (€)
+              Tipo compenso
+              <select id="dip-tipo-compenso">
+                <option value="orario">A ore</option>
+                <option value="mensile">Mensile</option>
+                <option value="servizio">Per servizio</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label id="label-retribuzione-base">
+              Paga oraria lorda (€/h)
               <input
                 type="number"
-                id="dip-costo"
+                id="dip-retribuzione-base"
                 placeholder="Es. 12.50"
                 step="0.01"
                 min="0"
+              />
+            </label>
+          </div>
+
+          <div class="form-row" id="row-ore-mensili" style="display: none;">
+            <label>
+              Ore mensili contrattuali
+              <input
+                type="number"
+                id="dip-ore-mensili"
+                placeholder="Es. 173"
+                step="0.1"
+                min="0"
+              />
+            </label>
+          </div>
+
+          <div class="form-row" id="row-ore-servizio" style="display: none;">
+            <label>
+              Ore medie per servizio
+              <input
+                type="number"
+                id="dip-ore-servizio"
+                placeholder="Es. 5"
+                step="0.1"
+                min="0"
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Costo orario equivalente (calcolato)
+              <input
+                type="text"
+                id="dip-costo"
+                readonly
+                placeholder="Calcolato in base al tipo compenso"
               />
             </label>
           </div>
@@ -383,8 +434,9 @@
               <th>Telefono</th>
               <th>Email</th>
               <th>Ruolo</th>
-              <th>Canale</th>
+              <th>Tipo compenso</th>
               <th>Costo €/h</th>
+              <th>Canale</th>
               <th>PIN gen.</th>
               <th>PIN pers.</th>
               <th>Attivo</th>
