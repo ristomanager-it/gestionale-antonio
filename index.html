@@ -411,7 +411,15 @@
       </section>
     </main>
 
+    <!-- Supabase + app.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
+
+      const { createClient } = window.supabase;
+      window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
     <script src="app.js"></script>
   </body>
 </html>
-
