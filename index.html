@@ -89,8 +89,6 @@
         </button>
       </section>
 
-      <!-- SCHERMATE -->
-
       <!-- TIMBRATURA -->
       <section id="view-timbratura" class="view">
         <h2>Timbratura</h2>
@@ -99,11 +97,11 @@
         <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
             <label>
-              Codice dipendente (PIN)
+              Codice dipendente (PIN personale)
               <input
                 type="password"
                 id="timbratura-codice"
-                placeholder="Inserisci codice (es. 1234)"
+                placeholder="Inserisci PIN personale"
               />
             </label>
           </div>
@@ -154,7 +152,6 @@
           </div>
         </form>
 
-        <!-- TUTTO QUESTO BLOCCO È SOLO PER MANAGER -->
         <div class="manager-only">
           <h3>Timbrature (tutte)</h3>
           <table class="table-timbrature">
@@ -253,7 +250,7 @@
         data-manager-only="true"
       >
         <h2>Dipendenti</h2>
-        <p>Anagrafica dipendenti con mansioni, contatti, costo orario, PIN e ruolo.</p>
+        <p>Anagrafica completa: PIN, dati personali, contatti, ruolo e costo orario.</p>
 
         <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
@@ -267,6 +264,20 @@
             <label>
               Mansione
               <input type="text" id="dip-mansione" placeholder="Es. Sala, Cucina..." />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Data di nascita
+              <input type="date" id="dip-data-nascita" />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              Residenza
+              <input type="text" id="dip-residenza" placeholder="Via, città, CAP" />
             </label>
           </div>
 
@@ -313,7 +324,19 @@
 
           <div class="form-row">
             <label>
-              Codice accesso (PIN)
+              PIN generale (azienda)
+              <input
+                type="text"
+                id="dip-pin-generale"
+                placeholder="Es. 0000"
+                maxlength="10"
+              />
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              PIN personale (per timbratura)
               <input
                 type="text"
                 id="dip-codice"
@@ -355,12 +378,15 @@
             <tr>
               <th>Nome</th>
               <th>Mansione</th>
+              <th>Data nascita</th>
+              <th>Residenza</th>
               <th>Telefono</th>
               <th>Email</th>
               <th>Ruolo</th>
               <th>Canale</th>
               <th>Costo €/h</th>
-              <th>PIN</th>
+              <th>PIN gen.</th>
+              <th>PIN pers.</th>
               <th>Attivo</th>
               <th>Azioni</th>
             </tr>
@@ -369,8 +395,7 @@
         </table>
       </section>
 
-      <!-- LE ALTRE VISTE PER ORA SONO PLACEHOLDER (SOLO MANAGER) -->
-
+      <!-- ALTRE VISTE -->
       <section
         id="view-vendite"
         class="view"
