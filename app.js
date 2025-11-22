@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (active) {
       active.style.display = "block";
     }
+
+    // scroll in alto alla vista
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   buttons.forEach((btn) => {
@@ -35,12 +38,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const lista = document.getElementById("timbratura-lista");
 
   const btnEntra = document.getElementById("btn-entra");
+  const btnPausa = document.getElementById("btn-pausa");
   const btnEsci = document.getElementById("btn-esci");
 
   // Recupera dal localStorage
   let timbrature = JSON.parse(localStorage.getItem("timbrature")) || [];
 
-  // Aggiorna tabella
   function aggiornaTabella() {
     lista.innerHTML = "";
 
@@ -78,17 +81,16 @@ document.addEventListener("DOMContentLoaded", () => {
       ora,
       dip,
       canale,
-      tipo,
+      tipo, // "Entra", "Pausa", "Uscita"
     };
 
     timbrature.push(record);
-
     localStorage.setItem("timbrature", JSON.stringify(timbrature));
-
     aggiornaTabella();
   }
 
   btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 });
 
