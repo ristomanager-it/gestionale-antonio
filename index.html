@@ -8,22 +8,85 @@
   </head>
   <body>
     <header class="app-header">
-      <h1>Gestionale Antonio</h1>
-      <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+      <div class="header-top">
+        <div>
+          <h1>Gestionale Antonio</h1>
+          <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+        </div>
+        <div class="mode-switch">
+          <span id="mode-label">Modalità: Dipendente</span>
+          <button id="btn-mode-manager" class="app-button tiny">
+            Entra manager
+          </button>
+          <button
+            id="btn-mode-exit"
+            class="app-button tiny gray"
+            style="display: none"
+          >
+            Esci
+          </button>
+        </div>
+      </div>
     </header>
 
     <main class="app-main">
       <!-- Barra pulsanti (menu principale) -->
       <section class="buttons-grid">
-        <button class="app-button" data-route="timbratura">Timbratura</button>
-        <button class="app-button" data-route="dipendenti">Dipendenti</button>
-        <button class="app-button" data-route="vendite">Vendite</button>
-        <button class="app-button" data-route="preventivi">Preventivi</button>
-        <button class="app-button" data-route="fatture">Fatture</button>
-        <button class="app-button" data-route="cc">Centro Cottura</button>
-        <button class="app-button" data-route="reintegro">Reintegro</button>
-        <button class="app-button wide" data-route="report">Report</button>
-        <button class="app-button wide" data-route="parametri">Parametri</button>
+        <button class="app-button" data-route="timbratura">
+          Timbratura
+        </button>
+        <button
+          class="app-button"
+          data-route="dipendenti"
+          data-manager-only="true"
+        >
+          Dipendenti
+        </button>
+        <button
+          class="app-button"
+          data-route="vendite"
+          data-manager-only="true"
+        >
+          Vendite
+        </button>
+        <button
+          class="app-button"
+          data-route="preventivi"
+          data-manager-only="true"
+        >
+          Preventivi
+        </button>
+        <button
+          class="app-button"
+          data-route="fatture"
+          data-manager-only="true"
+        >
+          Fatture
+        </button>
+        <button class="app-button" data-route="cc" data-manager-only="true">
+          Centro Cottura
+        </button>
+        <button
+          class="app-button"
+          data-route="reintegro"
+          data-manager-only="true"
+        >
+          Reintegro
+        </button>
+        <button
+          class="app-button wide"
+          data-route="report"
+          data-manager-only="true"
+        >
+          Report
+        </button>
+        <button
+          class="app-button wide"
+          data-route="parametri"
+          data-manager-only="true"
+        >
+          Parametri
+        </button>
       </section>
 
       <!-- SCHERMATE -->
@@ -91,96 +154,104 @@
           </div>
         </form>
 
-        <h3>Timbrature (tutte)</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Ora</th>
-              <th>Dipendente</th>
-              <th>Canale</th>
-              <th>Azione</th>
-            </tr>
-          </thead>
-          <tbody id="timbratura-lista"></tbody>
-        </table>
+        <!-- TUTTO QUESTO BLOCCO È SOLO PER MANAGER -->
+        <div class="manager-only">
+          <h3>Timbrature (tutte)</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Ora</th>
+                <th>Dipendente</th>
+                <th>Canale</th>
+                <th>Azione</th>
+              </tr>
+            </thead>
+            <tbody id="timbratura-lista"></tbody>
+          </table>
 
-        <div class="timbratura-form" style="margin-top: 12px;">
-          <div class="form-row">
-            <label>
-              Periodo per riepilogo
-              <select id="timbratura-periodo">
-                <option value="oggi">Oggi</option>
-                <option value="settimana">Ultimi 7 giorni</option>
-                <option value="mese">Mese corrente</option>
-              </select>
-            </label>
+          <div class="timbratura-form" style="margin-top: 12px;">
+            <div class="form-row">
+              <label>
+                Periodo per riepilogo
+                <select id="timbratura-periodo">
+                  <option value="oggi">Oggi</option>
+                  <option value="settimana">Ultimi 7 giorni</option>
+                  <option value="mese">Mese corrente</option>
+                </select>
+              </label>
+            </div>
           </div>
+
+          <h3>Riepilogo ore (per dipendente)</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Dipendente</th>
+                <th>Canale</th>
+                <th>Ore lavorate</th>
+              </tr>
+            </thead>
+            <tbody id="riepilogo-dipendenti"></tbody>
+          </table>
+
+          <h3>Riepilogo ore (per canale)</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Canale</th>
+                <th>Ore lavorate</th>
+              </tr>
+            </thead>
+            <tbody id="riepilogo-canali"></tbody>
+          </table>
+
+          <h3>Costo lavoro (per dipendente)</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Dipendente</th>
+                <th>Canale</th>
+                <th>Ore</th>
+                <th>Costo €</th>
+              </tr>
+            </thead>
+            <tbody id="costo-dipendenti"></tbody>
+          </table>
+
+          <h3>Costo lavoro (per canale)</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Canale</th>
+                <th>Ore</th>
+                <th>Costo €</th>
+              </tr>
+            </thead>
+            <tbody id="costo-canali"></tbody>
+          </table>
+
+          <h3>Attivi adesso</h3>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Dipendente</th>
+                <th>Canale</th>
+                <th>Da quando</th>
+                <th>Durata attuale</th>
+              </tr>
+            </thead>
+            <tbody id="attivi-lista"></tbody>
+          </table>
         </div>
-
-        <h3>Riepilogo ore (per dipendente)</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Dipendente</th>
-              <th>Canale</th>
-              <th>Ore lavorate</th>
-            </tr>
-          </thead>
-          <tbody id="riepilogo-dipendenti"></tbody>
-        </table>
-
-        <h3>Riepilogo ore (per canale)</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Canale</th>
-              <th>Ore lavorate</th>
-            </tr>
-          </thead>
-          <tbody id="riepilogo-canali"></tbody>
-        </table>
-
-        <h3>Costo lavoro (per dipendente)</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Dipendente</th>
-              <th>Canale</th>
-              <th>Ore</th>
-              <th>Costo €</th>
-            </tr>
-          </thead>
-          <tbody id="costo-dipendenti"></tbody>
-        </table>
-
-        <h3>Costo lavoro (per canale)</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Canale</th>
-              <th>Ore</th>
-              <th>Costo €</th>
-            </tr>
-          </thead>
-          <tbody id="costo-canali"></tbody>
-        </table>
-
-        <h3>Attivi adesso</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Dipendente</th>
-              <th>Canale</th>
-              <th>Da quando</th>
-              <th>Durata attuale</th>
-            </tr>
-          </thead>
-          <tbody id="attivi-lista"></tbody>
-        </table>
       </section>
 
-      <!-- DIPENDENTI / ANAGRAFICA -->
-      <section id="view-dipendenti" class="view" style="display: none;">
+      <!-- DIPENDENTI / ANAGRAFICA (SOLO MANAGER) -->
+      <section
+        id="view-dipendenti"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Dipendenti</h2>
         <p>Anagrafica dipendenti con mansioni, costo orario e codice.</p>
 
@@ -267,39 +338,74 @@
         </table>
       </section>
 
-      <!-- LE ALTRE VISTE PER ORA SONO PLACEHOLDER -->
+      <!-- LE ALTRE VISTE PER ORA SONO PLACEHOLDER (SOLO MANAGER) -->
 
-      <section id="view-vendite" class="view" style="display: none;">
+      <section
+        id="view-vendite"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Vendite</h2>
         <p>Qui inseriremo le vendite giornaliere per NR, RA e CAT.</p>
       </section>
 
-      <section id="view-preventivi" class="view" style="display: none;">
+      <section
+        id="view-preventivi"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Preventivi Banchetti</h2>
         <p>Gestione preventivi, stati e trasformazione in eventi.</p>
       </section>
 
-      <section id="view-fatture" class="view" style="display: none;">
+      <section
+        id="view-fatture"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Fatture (Acquisti)</h2>
         <p>Inserimento fornitori, importi, mappatura PREP, aggiornamento costi.</p>
       </section>
 
-      <section id="view-cc" class="view" style="display: none;">
+      <section
+        id="view-cc"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Centro Cottura (CC)</h2>
         <p>Anagrafica PREP, costi medi, BOM piatti, COGS dinamico.</p>
       </section>
 
-      <section id="view-reintegro" class="view" style="display: none;">
+      <section
+        id="view-reintegro"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Reintegro & Magazzino</h2>
         <p>Livelli PAR, fabbisogni NR/RA, consegne CC → sale.</p>
       </section>
 
-      <section id="view-report" class="view" style="display: none;">
+      <section
+        id="view-report"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Report & KPI</h2>
         <p>Prime Cost %, Margine %, cruscotto Oggi.</p>
       </section>
 
-      <section id="view-parametri" class="view" style="display: none;">
+      <section
+        id="view-parametri"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
         <h2>Parametri</h2>
         <p>Gestione PIN, markup, Target Food Cost %, inclusioni Opex/POS/Lavoro CC.</p>
       </section>
