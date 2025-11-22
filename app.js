@@ -5,11 +5,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Supabase client non trovato. Controlla index.html.");
   }
 
-  // --- COSTANTI CHIAVI STORAGE (solo stato locale) ---
+  // --- COSTANTI CHIAVI STORAGE ---
   const CURRENT_DIP_KEY = "dipendente_corrente";
   const MODE_KEY = "modalita_utente"; // 'dipendente' | 'manager'
-
-  // PIN manager per il prototipo
   const MANAGER_PIN = "9999";
 
   // --- ROUTER SPA ---
@@ -23,14 +21,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnModeManager = document.getElementById("btn-mode-manager");
   const btnModeExit = document.getElementById("btn-mode-exit");
 
-   function applyMode() {
+  function applyMode() {
     // Etichetta in alto
     if (modeLabel) {
       modeLabel.textContent =
         modalita === "manager" ? "Modalità: Manager" : "Modalità: Dipendente";
     }
 
-    // Bottoni entra / esci manager
+    // Pulsanti entra/esci manager
     if (btnModeManager) {
       btnModeManager.style.display =
         modalita === "manager" ? "none" : "inline-block";
@@ -40,23 +38,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         modalita === "manager" ? "inline-block" : "none";
     }
 
-    // Mostra/nascondi SOLO i blocchi interni .manager-only (es. tabelle extra in timbratura)
+    // Blocchi interni solo manager (es. riepiloghi timbrature)
     document.querySelectorAll(".manager-only").forEach((el) => {
       el.style.display = modalita === "manager" ? "" : "none";
     });
-  }
-
-
-    if (modeLabel) modeLabel.textContent = "Modalità: Dipendente";
-    if (btnModeManager) btnModeManager.style.display = "inline-block";
-    if (btnModeExit) btnModeExit.style.display = "none";
-  }
-}
-
-      if (modeLabel) modeLabel.textContent = "Modalità: Dipendente";
-      if (btnModeManager) btnModeManager.style.display = "inline-block";
-      if (btnModeExit) btnModeExit.style.display = "none";
-    }
   }
 
   if (btnModeManager) {
@@ -82,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // --- FATTURE / MAGAZZINO ---
+  // --- FATTURE / ACQUISTI / MAGAZZINO ---
 
   const fattFornitoreSelect = document.getElementById("fatt-fornitore");
   const fattNuovoFornitoreInput = document.getElementById("fatt-nuovo-fornitore");
@@ -291,7 +276,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 1) eventuale creazione nuovo fornitore
+    // 1) eventuale nuovo fornitore
     let fornitoreIdFinal = fornitoreId;
     if (!fornitoreIdFinal && nuovoFornitoreNome) {
       const { data: fornIns, error: fornErr } = await supabase
@@ -316,7 +301,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         .slice(2)}.${estensione}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("fatture") // bucket
+        .from("fatture") // nome bucket
         .upload(filePath, file);
 
       if (uploadErr) {
@@ -353,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const fatturaId = fattIns.id;
 
-    // 4) righe + magazzino
+    // 4) righe + movimenti magazzino
     for (const r of righeFatturaCorrenti) {
       let prodottoId = r.prodotto_id;
 
@@ -410,7 +395,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    alert("Fattura salvata e magazzino aggiornato");
+    alert("Acquisto salvato e magazzino aggiornato");
 
     fattFornitoreSelect.value = "";
     fattNuovoFornitoreInput.value = "";
@@ -487,7 +472,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dipOreMensili = document.getElementById("dip-ore-mensili");
   const dipOreServizio = document.getElementById("dip-ore-servizio");
   const dipCosto = document.getElementById("dip-costo");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
   const rowOreMensili = document.getElementById("row-ore-mensili");
   const rowOreServizio = document.getElementById("row-ore-servizio");
 
@@ -560,20 +544,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   function aggiornaUICompenso() {
     const tipo = dipTipoCompenso.value || "orario";
 
-    if (tipo === "orario") {
-      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
-      rowOreMensili.style.display = "none";
-      rowOreServizio.style.display = "none";
-    } else if (tipo === "mensile") {
-      labelRetribuzione.firstChild.textContent =
-        "Stipendio lordo mensile (€/mese)";
-      rowOreMensili.style.display = "block";
-      rowOreServizio.style.display = "none";
-    } else if (tipo === "servizio") {
-      labelRetribuzione.firstChild.textContent =
-        "Paga lorda per servizio (€/servizio)";
-      rowOreMensili.style.display = "none";
-      rowOreServizio.style.display = "block";
+    if (rowOreMensili && rowOreServizio) {
+      rowOreMensili.style.display = tipo === "mensile" ? "block" : "none";
+      rowOreServizio.style.display = tipo === "servizio" ? "block" : "none";
     }
 
     const retribuzioneBase = parseFloat(dipRetribuzioneBase.value || "0") || 0;
@@ -1298,7 +1271,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await caricaDipendentiDaSupabase();
         break;
 
-      case "fatture":
+      case "fatture": // vista "Acquisti", ma id/route restano "fatture"
         await caricaFornitori();
         await caricaCategorieProdotto();
         await caricaProdotti();
@@ -1313,21 +1286,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function navigateTo(route) {
     views.forEach((v) => (v.style.display = "none"));
 
-    const active = document.getElementById(`view-${route}`);
+    let targetRoute = route;
+    let active = document.getElementById(`view-${route}`);
+
+    if (
+      active &&
+      modalita === "dipendente" &&
+      active.getAttribute("data-manager-only") === "true"
+    ) {
+      // se dipendente prova ad aprire vista manager, lo rimando a timbratura
+      targetRoute = "timbratura";
+      active = document.getElementById("view-timbratura");
+    }
+
     if (active) {
-      if (
-        modalita === "dipendente" &&
-        active.getAttribute("data-manager-only") === "true"
-      ) {
-        const fallback = document.getElementById("view-timbratura");
-        if (fallback) {
-          fallback.style.display = "block";
-          await onRouteEnter("timbratura");
-        }
-      } else {
-        active.style.display = "block";
-        await onRouteEnter(route);
-      }
+      active.style.display = "block";
+      await onRouteEnter(targetRoute);
     }
 
     applyMode();
@@ -1346,6 +1320,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const route = window.location.hash.replace("#", "");
     navigateTo(route);
   });
+
+  // --- AVVIO APP ---
 
   async function applicaTuttoAllAvvio() {
     applyMode();
