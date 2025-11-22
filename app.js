@@ -75,6 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Sei uscito dalla modalità manager");
     });
   }
+
   // --- FATTURE / MAGAZZINO ---
 
   const fattFornitoreSelect = document.getElementById("fatt-fornitore");
@@ -101,7 +102,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let fornitori = [];
   let categorieProdotto = [];
   let prodotti = [];
-  let righeFatturaCorrenti = []; // array di righe prima del salvataggio
+  let righeFatturaCorrenti = [];
+
   async function caricaFornitori() {
     if (!supabase || !fattFornitoreSelect) return;
 
@@ -170,6 +172,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       rigaProdottoSelect.appendChild(opt);
     });
   }
+
   function renderRigheFatturaCorrenti() {
     if (!fattRigheLista) return;
     fattRigheLista.innerHTML = "";
@@ -238,7 +241,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       righeFatturaCorrenti.push({
-        prodotto_id: prodottoId,     // può essere null, se nuovo prodotto
+        prodotto_id: prodottoId,
         nome_prodotto: nomeProdotto,
         categoria_id: categoriaId,
         unita_misura: unita,
@@ -247,7 +250,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         iva,
       });
 
-      // reset campi riga (tranne categoria per comodità)
       rigaProdottoSelect.value = "";
       rigaNuovoProdottoInput.value = "";
       rigaUnitaInput.value = "";
@@ -258,6 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderRigheFatturaCorrenti();
     });
   }
+
   async function salvaFatturaEScaricoMagazzino() {
     if (!supabase) return;
 
@@ -307,7 +310,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         .slice(2)}.${estensione}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("fatture") // assicurati che il bucket si chiami così
+        .from("fatture") // bucket
         .upload(filePath, file);
 
       if (uploadErr) {
@@ -344,11 +347,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const fatturaId = fattIns.id;
 
-    // 4) per ogni riga: creiamo (se serve) il prodotto, poi fatture_righe + carico magazzino
+    // 4) righe + magazzino
     for (const r of righeFatturaCorrenti) {
       let prodottoId = r.prodotto_id;
 
-      // se non esiste prodotto id ma ho un nome, creo rapidamente un prodotto base
       if (!prodottoId && r.nome_prodotto) {
         const { data: prodIns, error: prodErr } = await supabase
           .from("prodotti")
@@ -368,7 +370,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         prodottoId = prodIns.id;
       }
 
-      // inserisci riga fattura
       const totaleRiga = (r.quantita || 0) * (r.prezzo_unitario || 0);
 
       const { error: rigaErr } = await supabase.from("fatture_righe").insert({
@@ -386,7 +387,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Errore inserimento riga fattura:", rigaErr);
       }
 
-      // inserisci movimento di magazzino (carico)
       const { error: magErr } = await supabase
         .from("magazzino_movimenti")
         .insert({
@@ -406,7 +406,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     alert("Fattura salvata e magazzino aggiornato");
 
-    // reset form
     fattFornitoreSelect.value = "";
     fattNuovoFornitoreInput.value = "";
     fattDataInput.value = "";
@@ -424,6 +423,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnSalvaFattura) {
     btnSalvaFattura.addEventListener("click", salvaFatturaEScaricoMagazzino);
   }
+
   async function caricaStoricoFatture() {
     if (!supabase || !fattureLista) return;
 
@@ -465,58 +465,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       fattureLista.appendChild(tr);
     });
   }
-  async function applicaTuttoAllAvvio() {
-    applyMode();
-    await caricaDipendentiDaSupabase();
-    await caricaTimbratureDaSupabase();
-
-    // NUOVE:
-    await caricaFornitori();
-    await caricaCategorieProdotto();
-    await caricaProdotti();
-    await caricaStoricoFatture();
-
-    applicaDipendenteCorrente();
-    // ... eventuali altre cose
-  }
-
-  await applicaTuttoAllAvvio();
-
-  function navigateTo(route) {
-    views.forEach((v) => (v.style.display = "none"));
-
-    const active = document.getElementById(`view-${route}`);
-    if (active) {
-      if (
-        modalita === "dipendente" &&
-        active.getAttribute("data-manager-only") === "true"
-      ) {
-        const fallback = document.getElementById("view-timbratura");
-        if (fallback) fallback.style.display = "block";
-      } else {
-        active.style.display = "block";
-      }
-    }
-
-    applyMode();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const route = btn.getAttribute("data-route");
-      window.location.hash = route;
-      navigateTo(route);
-    });
-  });
-
-  window.addEventListener("hashchange", () => {
-    const route = window.location.hash.replace("#", "");
-    navigateTo(route);
-  });
-
-  const initialRoute = window.location.hash.replace("#", "") || "timbratura";
-  navigateTo(initialRoute);
 
   // --- ANAGRAFICA DIPENDENTI ---
 
@@ -544,7 +492,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  let dipendenti = []; // popolato da Supabase
+  let dipendenti = [];
 
   function formatRuolo(ruolo) {
     switch (ruolo) {
@@ -607,7 +555,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tipo = dipTipoCompenso.value || "orario";
 
     if (tipo === "orario") {
-      labelRetribuzione.querySelector("span")?.remove();
       labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
       rowOreMensili.style.display = "none";
       rowOreServizio.style.display = "none";
@@ -678,7 +625,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       oreServizio: row.ore_medie_per_servizio ?? null,
       costoOrario: row.costo_orario ?? 0,
       pinGenerale: row.pin_generale || "",
-      codice: row.codice || "", // PIN personale per timbratura
+      codice: row.codice || "",
       canalePrevalente: row.canale_prevalente,
       attivo: row.attivo,
     }));
@@ -933,7 +880,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  let timbrature = []; // popolato da Supabase
+  let timbrature = [];
   let periodoCorrente = "oggi";
 
   async function caricaTimbratureDaSupabase() {
@@ -1331,13 +1278,83 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 
+  // --- ROUTE HOOK: cosa ricaricare quando entro in una vista ---
+
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        aggiornaTabella();
+        aggiornaRiepilogo();
+        break;
+
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
+
+      case "fatture":
+        await caricaFornitori();
+        await caricaCategorieProdotto();
+        await caricaProdotti();
+        await caricaStoricoFatture();
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  async function navigateTo(route) {
+    views.forEach((v) => (v.style.display = "none"));
+
+    const active = document.getElementById(`view-${route}`);
+    if (active) {
+      if (
+        modalita === "dipendente" &&
+        active.getAttribute("data-manager-only") === "true"
+      ) {
+        const fallback = document.getElementById("view-timbratura");
+        if (fallback) {
+          fallback.style.display = "block";
+          await onRouteEnter("timbratura");
+        }
+      } else {
+        active.style.display = "block";
+        await onRouteEnter(route);
+      }
+    }
+
+    applyMode();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const route = btn.getAttribute("data-route");
+      window.location.hash = route;
+      navigateTo(route);
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    const route = window.location.hash.replace("#", "");
+    navigateTo(route);
+  });
+
   async function applicaTuttoAllAvvio() {
     applyMode();
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
+    await caricaFornitori();
+    await caricaCategorieProdotto();
+    await caricaProdotti();
+    await caricaStoricoFatture();
     applicaDipendenteCorrente();
     aggiornaUICompenso();
   }
 
   await applicaTuttoAllAvvio();
+
+  const initialRoute = window.location.hash.replace("#", "") || "timbratura";
+  navigateTo(initialRoute);
 });
