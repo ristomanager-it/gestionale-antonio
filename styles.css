@@ -64,3 +64,78 @@ body {
 .app-button.wide:hover {
   background: #222;
 }
+/* --- Timbratura --- */
+
+.timbratura-form {
+  margin: 15px 0 20px;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 4px;
+}
+
+.form-row input,
+.form-row select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.buttons-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.app-button.small {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.app-button.small.dark {
+  background: #444;
+}
+
+.app-button.small.dark:hover {
+  background: #222;
+}
+
+/* Tabella timbrature */
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.table-timbrature thead {
+  background: #f0f0f0;
+  font-weight: bold;
+}
+
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
