@@ -13,7 +13,7 @@
     </header>
 
     <main class="app-main">
-      <!-- Barra pulsanti principali -->
+      <!-- Barra pulsanti (menu principale) -->
       <section class="buttons-grid">
         <button class="app-button" data-route="timbratura">Timbratura</button>
         <button class="app-button" data-route="vendite">Vendite</button>
@@ -25,56 +25,66 @@
         <button class="app-button wide" data-route="parametri">Parametri</button>
       </section>
 
-      <!-- CONTENUTO DELLE “SCHERMATE” -->
+      <!-- SCHERMATE -->
 
-     <section id="view-timbratura" class="view">
-  <h2>Timbratura</h2>
+      <section id="view-timbratura" class="view">
+        <h2>Timbratura</h2>
+        <p>Registra entrata, pausa e uscita per dipendente e canale.</p>
 
-  <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
-    <div class="form-row">
-      <label>
-        Dipendente
-        <input type="text" id="timbratura-dipendente" placeholder="Nome dipendente" />
-      </label>
-    </div>
+        <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
+          <div class="form-row">
+            <label>
+              Dipendente
+              <input
+                type="text"
+                id="timbratura-dipendente"
+                placeholder="Nome dipendente"
+              />
+            </label>
+          </div>
 
-    <div class="form-row">
-      <label>
-        Canale
-        <select id="timbratura-canale">
-          <option value="NR">NR</option>
-          <option value="RA">RA</option>
-          <option value="CC">CC</option>
-          <option value="CAT">CAT</option>
-        </select>
-      </label>
-    </div>
+          <div class="form-row">
+            <label>
+              Canale
+              <select id="timbratura-canale">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </label>
+          </div>
 
-    <div class="form-row buttons-row">
-  <button type="button" id="btn-entra" class="app-button small green">Entra</button>
-  <button type="button" id="btn-pausa" class="app-button small gray">Pausa</button>
-  <button type="button" id="btn-esci" class="app-button small red">Uscita</button>
-</div>
+          <div class="form-row buttons-row">
+            <button type="button" id="btn-entra" class="app-button small green">
+              Entra
+            </button>
+            <button type="button" id="btn-pausa" class="app-button small gray">
+              Pausa
+            </button>
+            <button type="button" id="btn-esci" class="app-button small red">
+              Uscita
+            </button>
+          </div>
+        </form>
 
-
-  <h3>Timbrature di oggi</h3>
-  <table class="table-timbrature">
-    <thead>
-      <tr>
-        <th>Ora</th>
-        <th>Dipendente</th>
-        <th>Canale</th>
-        <th>Azione</th>
-      </tr>
-    </thead>
-    <tbody id="timbratura-lista"></tbody>
-  </table>
-</section>
-
+        <h3>Timbrature di oggi</h3>
+        <table class="table-timbrature">
+          <thead>
+            <tr>
+              <th>Ora</th>
+              <th>Dipendente</th>
+              <th>Canale</th>
+              <th>Azione</th>
+            </tr>
+          </thead>
+          <tbody id="timbratura-lista"></tbody>
+        </table>
+      </section>
 
       <section id="view-vendite" class="view" style="display: none;">
         <h2>Vendite</h2>
-        <p>Qui inseriremo le vendite giornaliere per NR/RA/CAT.</p>
+        <p>Qui inseriremo le vendite giornaliere per NR, RA e CAT.</p>
       </section>
 
       <section id="view-preventivi" class="view" style="display: none;">
