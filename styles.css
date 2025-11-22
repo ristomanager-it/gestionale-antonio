@@ -34,6 +34,13 @@ body {
   flex-direction: column;
   gap: 15px;
 }
+.view {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  flex: 1;
+  overflow: auto;
+}
 
 
 .buttons-grid {
