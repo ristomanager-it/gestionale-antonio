@@ -116,17 +116,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
+  const dipDataNascita = document.getElementById("dip-data-nascita");
+  const dipResidenza = document.getElementById("dip-residenza");
   const dipTelefono = document.getElementById("dip-telefono");
   const dipEmail = document.getElementById("dip-email");
   const dipRuolo = document.getElementById("dip-ruolo");
   const dipCosto = document.getElementById("dip-costo");
+  const dipPinGenerale = document.getElementById("dip-pin-generale");
   const dipCodice = document.getElementById("dip-codice");
   const dipCanale = document.getElementById("dip-canale");
   const dipAttivo = document.getElementById("dip-attivo");
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  let dipendenti = []; // verrà popolato da Supabase
+  let dipendenti = []; // popolato da Supabase
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
@@ -146,11 +149,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: row.id,
       nome: row.nome,
       mansione: row.mansione,
-      telefono: row.telefono,
-      email: row.email,
-      ruolo: row.ruolo,
+      dataNascita: row.data_nascita || null,
+      residenza: row.residenza || "",
+      telefono: row.telefono || "",
+      email: row.email || "",
+      ruolo: row.ruolo || "",
       costoOrario: row.costo_orario ?? 0,
-      codice: row.codice,
+      pinGenerale: row.pin_generale || "",
+      codice: row.codice || "", // PIN personale per timbratura
       canalePrevalente: row.canale_prevalente,
       attivo: row.attivo,
     }));
@@ -167,11 +173,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: dip.id || undefined,
       nome: dip.nome,
       mansione: dip.mansione,
-      telefono: dip.telefono,
-      email: dip.email,
-      ruolo: dip.ruolo,
+      data_nascita: dip.dataNascita || null,
+      residenza: dip.residenza || null,
+      telefono: dip.telefono || null,
+      email: dip.email || null,
+      ruolo: dip.ruolo || null,
       costo_orario: dip.costoOrario,
-      codice: dip.codice,
+      pin_generale: dip.pinGenerale || null,
+      codice: dip.codice || null, // PIN personale
       canale_prevalente: dip.canalePrevalente,
       attivo: dip.attivo,
     };
@@ -207,6 +216,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  function formatRuolo(ruolo) {
+    switch (ruolo) {
+      case "admin":
+        return "Admin";
+      case "manager_cucina":
+        return "Manager cucina";
+      case "manager_sala":
+        return "Manager sala";
+      case "addetto_cucina":
+        return "Addetto cucina";
+      case "cameriere":
+        return "Cameriere";
+      default:
+        return "";
+    }
+  }
+
+  function formatDataNascita(dataNascita) {
+    if (!dataNascita) return "";
+    const d = new Date(dataNascita);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("it-IT");
+  }
+
   function renderDipendenti() {
     if (!dipLista) return;
     dipLista.innerHTML = "";
@@ -217,6 +250,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       tr.innerHTML = `
         <td>${d.nome}</td>
         <td>${d.mansione || ""}</td>
+        <td>${formatDataNascita(d.dataNascita)}</td>
+        <td>${d.residenza || ""}</td>
         <td>${d.telefono || ""}</td>
         <td>${d.email || ""}</td>
         <td>${formatRuolo(d.ruolo)}</td>
@@ -224,6 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${
           d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : (d.costoOrario ?? "")
         }</td>
+        <td>${d.pinGenerale || ""}</td>
         <td>${d.codice || ""}</td>
         <td>${d.attivo ? "Sì" : "No"}</td>
         <td>
@@ -254,33 +290,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
-  }
-
   function caricaDipendenteInForm(index) {
     const d = dipendenti[index];
     if (!d) return;
 
     dipNome.value = d.nome || "";
     dipMansione.value = d.mansione || "";
+    dipDataNascita.value = d.dataNascita ? d.dataNascita.substring(0, 10) : "";
+    dipResidenza.value = d.residenza || "";
     dipTelefono.value = d.telefono || "";
     dipEmail.value = d.email || "";
     dipRuolo.value = d.ruolo || "";
     dipCosto.value = d.costoOrario != null ? d.costoOrario : "";
+    dipPinGenerale.value = d.pinGenerale || "";
     dipCodice.value = d.codice || "";
     dipCanale.value = d.canalePrevalente || "NR";
     dipAttivo.checked = !!d.attivo;
@@ -297,11 +319,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       const mansione = (dipMansione.value || "").trim();
+      const dataNascitaVal = dipDataNascita.value || "";
+      const residenza = (dipResidenza.value || "").trim();
       const telefono = (dipTelefono.value || "").trim();
       const email = (dipEmail.value || "").trim();
       const ruolo = dipRuolo.value || "";
       const costo = parseFloat(dipCosto.value || "0") || 0;
-      const codice = (dipCodice.value || "").trim();
+      const pinGenerale = (dipPinGenerale.value || "").trim();
+      const codice = (dipCodice.value || "").trim(); // PIN personale
       const canalePrevalente = dipCanale.value || "NR";
       const attivo = dipAttivo.checked;
 
@@ -309,10 +334,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       let dipObj = {
         nome,
         mansione,
+        dataNascita: dataNascitaVal || null,
+        residenza,
         telefono,
         email,
         ruolo,
         costoOrario: costo,
+        pinGenerale,
         codice,
         canalePrevalente,
         attivo,
@@ -332,10 +360,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       dipNome.value = "";
       dipMansione.value = "";
+      dipDataNascita.value = "";
+      dipResidenza.value = "";
       dipTelefono.value = "";
       dipEmail.value = "";
       dipRuolo.value = "";
       dipCosto.value = "";
+      dipPinGenerale.value = "";
       dipCodice.value = "";
       dipCanale.value = "NR";
       dipAttivo.checked = true;
@@ -364,7 +395,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  let timbrature = []; // verrà popolato da Supabase
+  let timbrature = []; // popolato da Supabase
   let periodoCorrente = "oggi";
 
   async function caricaTimbratureDaSupabase() {
@@ -490,7 +521,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         salvaDipendenteCorrente(d);
       } else {
-        alert("Nessun dipendente trovato per questo codice");
+        alert("Nessun dipendente trovato per questo PIN personale");
       }
     });
   }
