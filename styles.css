@@ -1,0 +1,66 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f4f4;
+  color: #333;
+}
+
+.app-header {
+  text-align: center;
+  padding: 20px 10px;
+  background: white;
+  border-bottom: 2px solid #eee;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.subtitle {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #888;
+}
+
+.app-main {
+  padding: 20px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.app-button {
+  padding: 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 12px;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.app-button:hover {
+  background: #005fcc;
+}
+
+.app-button:active {
+  transform: scale(0.97);
+}
+
+.app-button.wide {
+  grid-column: span 2;
+  background: #444;
+}
+
+.app-button.wide:hover {
+  background: #222;
+}
