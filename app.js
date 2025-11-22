@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", async () => {
   // --- SUPABASE ---
   const supabase = window.supabaseClient;
+  if (!supabase) {
+    console.error("Supabase client non trovato. Controlla index.html.");
+  }
 
   // --- COSTANTI CHIAVI STORAGE (solo stato locale) ---
   const CURRENT_DIP_KEY = "dipendente_corrente";
@@ -123,6 +126,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let dipendenti = []; // verrà popolato da Supabase
 
   async function caricaDipendentiDaSupabase() {
+    if (!supabase) return;
+
     const { data, error } = await supabase
       .from("dipendenti")
       .select("*")
@@ -150,6 +155,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function salvaDipendenteSupabase(dip) {
+    if (!supabase) return null;
+
     const payload = {
       id: dip.id || undefined,
       nome: dip.nome,
@@ -177,6 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function eliminaDipendenteSupabase(dip) {
+    if (!supabase) return;
     if (!dip.id) return;
 
     const { error } = await supabase
@@ -201,7 +209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${d.nome}</td>
         <td>${d.mansione || ""}</td>
         <td>${d.canalePrevalente || ""}</td>
-        <td>${d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : d.costoOrario || ""}</td>
+        <td>${d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : (d.costoOrario ?? "")}</td>
         <td>${d.codice || ""}</td>
         <td>${d.attivo ? "Sì" : "No"}</td>
         <td>
@@ -317,6 +325,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let periodoCorrente = "oggi";
 
   async function caricaTimbratureDaSupabase() {
+    if (!supabase) return;
+
     const { data, error } = await supabase
       .from("timbrature")
       .select("*")
@@ -484,7 +494,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     startGiorno.setHours(0, 0, 0, 0);
 
     const startSettimana = new Date(startGiorno);
-    const day = startSettimana.getDay() || 7; // lun=1...dom=7
+    const day = startSettimana.getDay() || 7;
     startSettimana.setDate(startSettimana.getDate() - (day - 1));
 
     const startMese = new Date(adessoDate.getFullYear(), adessoDate.getMonth(), 1);
@@ -539,7 +549,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
-    // --- Riepilogo ore per dipendente ---
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -552,7 +561,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoDipEl.appendChild(tr);
     });
 
-    // --- Riepilogo ore per canale ---
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
@@ -563,7 +571,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
-    // --- Costo del lavoro ---
     if (costoDipEl && costoCanaliEl) {
       costoDipEl.innerHTML = "";
       costoCanaliEl.innerHTML = "";
@@ -607,7 +614,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
-    // --- Attivi adesso ---
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
@@ -644,7 +650,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function salvaTimbraturaSupabase(record) {
-    // provo a collegare anche il dipendente_id se riesco a individuarlo
+    if (!supabase) return null;
+
     let dipendenteId = null;
     const dipNomeVal = record.dip;
     const d = dipendenti.find((x) => x.nome === dipNomeVal);
@@ -711,8 +718,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
-
-  // --- AVVIO COMPLETO ---
 
   async function applicaTuttoAllAvvio() {
     applyMode();
