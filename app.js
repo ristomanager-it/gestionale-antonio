@@ -27,13 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modalita === "manager") {
       // Mostra sezioni manager
       managerElements.forEach((el) => {
-        // Non forziamo uno specifico display, lasciamo al router gestire le view
-        if (el.dataset.originalDisplay) {
-          el.style.display = el.dataset.originalDisplay;
-        } else if (!el.closest(".view")) {
-          // per pulsanti ecc.
-          el.style.display = "";
+        if (!el.dataset.originalDisplay) {
+          el.dataset.originalDisplay = el.style.display || "";
         }
+        el.style.display = el.dataset.originalDisplay || "";
       });
 
       if (modeLabel) modeLabel.textContent = "Modalità: Manager";
@@ -87,7 +84,6 @@ document.addEventListener("DOMContentLoaded", () => {
         modalita === "dipendente" &&
         active.getAttribute("data-manager-only") === "true"
       ) {
-        // Forza timbratura
         const fallback = document.getElementById("view-timbratura");
         if (fallback) fallback.style.display = "block";
       } else {
@@ -484,7 +480,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- Costo del lavoro ---
-
     if (costoDipEl && costoCanaliEl) {
       costoDipEl.innerHTML = "";
       costoCanaliEl.innerHTML = "";
@@ -612,10 +607,3 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 });
-
-
-  if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
-});
-
