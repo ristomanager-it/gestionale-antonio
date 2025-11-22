@@ -1,16 +1,101 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // --- COSTANTI CHIAVI STORAGE ---
+  const DIP_KEY = "dipendenti";
+  const TIMB_KEY = "timbrature";
+  const CURRENT_DIP_KEY = "dipendente_corrente";
+  const MODE_KEY = "modalita_utente"; // 'dipendente' | 'manager'
+
+  // PIN manager per il prototipo (poi lo sposteremo nei parametri / Supabase)
+  const MANAGER_PIN = "9999";
+
   // --- ROUTER SPA ---
   const views = document.querySelectorAll(".view");
   const buttons = document.querySelectorAll("[data-route]");
+
+  // --- MODALITÀ MANAGER / DIPENDENTE ---
+  let modalita = localStorage.getItem(MODE_KEY) || "dipendente";
+
+  const modeLabel = document.getElementById("mode-label");
+  const btnModeManager = document.getElementById("btn-mode-manager");
+  const btnModeExit = document.getElementById("btn-mode-exit");
+
+  function applyMode() {
+    const managerElements = document.querySelectorAll(
+      "[data-manager-only='true'], .manager-only"
+    );
+
+    if (modalita === "manager") {
+      // Mostra sezioni manager
+      managerElements.forEach((el) => {
+        // Non forziamo uno specifico display, lasciamo al router gestire le view
+        if (el.dataset.originalDisplay) {
+          el.style.display = el.dataset.originalDisplay;
+        } else if (!el.closest(".view")) {
+          // per pulsanti ecc.
+          el.style.display = "";
+        }
+      });
+
+      if (modeLabel) modeLabel.textContent = "Modalità: Manager";
+      if (btnModeManager) btnModeManager.style.display = "none";
+      if (btnModeExit) btnModeExit.style.display = "inline-block";
+    } else {
+      // Nascondi tutto ciò che è solo per manager
+      managerElements.forEach((el) => {
+        if (!el.dataset.originalDisplay) {
+          el.dataset.originalDisplay = el.style.display || "";
+        }
+        el.style.display = "none";
+      });
+
+      if (modeLabel) modeLabel.textContent = "Modalità: Dipendente";
+      if (btnModeManager) btnModeManager.style.display = "inline-block";
+      if (btnModeExit) btnModeExit.style.display = "none";
+    }
+  }
+
+  if (btnModeManager) {
+    btnModeManager.addEventListener("click", () => {
+      const pin = prompt("Inserisci PIN manager");
+      if (pin === MANAGER_PIN) {
+        modalita = "manager";
+        localStorage.setItem(MODE_KEY, modalita);
+        applyMode();
+        alert("Accesso manager attivato");
+      } else if (pin !== null) {
+        alert("PIN errato");
+      }
+    });
+  }
+
+  if (btnModeExit) {
+    btnModeExit.addEventListener("click", () => {
+      modalita = "dipendente";
+      localStorage.setItem(MODE_KEY, modalita);
+      applyMode();
+      alert("Sei uscito dalla modalità manager");
+    });
+  }
 
   function navigateTo(route) {
     views.forEach((v) => (v.style.display = "none"));
 
     const active = document.getElementById(`view-${route}`);
     if (active) {
-      active.style.display = "block";
+      // Se è una vista solo manager e sei in modalità dipendente, non mostrarla
+      if (
+        modalita === "dipendente" &&
+        active.getAttribute("data-manager-only") === "true"
+      ) {
+        // Forza timbratura
+        const fallback = document.getElementById("view-timbratura");
+        if (fallback) fallback.style.display = "block";
+      } else {
+        active.style.display = "block";
+      }
     }
 
+    applyMode();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -41,17 +126,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  const DIP_KEY = "dipendenti";
-  const TIMB_KEY = "timbrature";
-  const CURRENT_DIP_KEY = "dipendente_corrente";
-
   let dipendenti = JSON.parse(localStorage.getItem(DIP_KEY)) || [];
 
   function salvaDipendenti() {
     localStorage.setItem(DIP_KEY, JSON.stringify(dipendenti));
     renderDipendenti();
     aggiornaSelectDipendenti();
-    applicaDipendenteCorrente(); // nel caso il corrente fosse stato cambiato
+    applicaDipendenteCorrente();
   }
 
   function renderDipendenti() {
@@ -495,6 +576,7 @@ document.addEventListener("DOMContentLoaded", () => {
     aggiornaTabella();
     aggiornaRiepilogo();
     applicaDipendenteCorrente();
+    applyMode();
   }
 
   applicaTuttoAllAvvio();
@@ -525,6 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
     timbrature.push(record);
     salvaTimbratureEaggiorna();
   }
+
+  if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
+  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+});
+
 
   if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
