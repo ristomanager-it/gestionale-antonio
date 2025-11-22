@@ -58,42 +58,91 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  if (btnModeExit) {
-    btnModeExit.addEventListener("click", () => {
-      modalita = "dipendente";
-      localStorage.setItem(MODE_KEY, modalita);
-      applyMode();
-      alert("Sei uscito dalla modalità manager");
+    if (btnAddRiga) {
+    btnAddRiga.addEventListener("click", async () => {
+      const prodottoId = rigaProdottoSelect.value || null;
+      const nomeNuovo = (rigaNuovoProdottoInput.value || "").trim();
+      let categoriaId = rigaCategoriaSelect.value || null;
+      const unita = (rigaUnitaInput.value || "").trim();
+      const quantita = parseFloat(rigaQuantitaInput.value || "0") || 0;
+      const prezzo = parseFloat(rigaPrezzoInput.value || "0") || 0;
+      const iva = parseFloat(rigaIvaInput.value || "0") || 0;
+
+      if (!prodottoId && !nomeNuovo) {
+        alert("Seleziona un prodotto o inserisci un nuovo prodotto");
+        return;
+      }
+
+      // Se non hai selezionato una categoria, ti faccio creare una categoria al volo
+      if (!categoriaId) {
+        const nomeCat = prompt(
+          "Non hai selezionato una categoria.\nInserisci il nome di una nuova categoria (es. Verdure, Carne, Bevande):"
+        );
+
+        if (!nomeCat) {
+          alert("Seleziona o crea una categoria per continuare");
+          return;
+        }
+
+        // Creo la categoria su Supabase
+        const { data: catIns, error: catErr } = await supabase
+          .from("categorie_prodotto")
+          .insert({ nome: nomeCat })
+          .select()
+          .single();
+
+        if (catErr) {
+          console.error("Errore inserimento categoria:", catErr);
+          alert("Errore nel creare la nuova categoria");
+          return;
+        }
+
+        // Aggiorno array locale e select
+        categoriaId = catIns.id;
+        categorieProdotto.push(catIns);
+        const opt = document.createElement("option");
+        opt.value = catIns.id;
+        opt.textContent = catIns.nome;
+        rigaCategoriaSelect.appendChild(opt);
+        rigaCategoriaSelect.value = categoriaId;
+      }
+
+      if (!unita) {
+        alert("Inserisci l'unità di misura (es. kg, lt, pz)");
+        return;
+      }
+      if (quantita <= 0) {
+        alert("Inserisci una quantità valida");
+        return;
+      }
+
+      let nomeProdotto = nomeNuovo;
+      if (!nomeProdotto && prodottoId) {
+        const p = prodotti.find((x) => x.id === prodottoId);
+        if (p) nomeProdotto = p.nome;
+      }
+
+      righeFatturaCorrenti.push({
+        prodotto_id: prodottoId,
+        nome_prodotto: nomeProdotto,
+        categoria_id: categoriaId,
+        unita_misura: unita,
+        quantita,
+        prezzo_unitario: prezzo,
+        iva,
+      });
+
+      // reset campi
+      rigaProdottoSelect.value = "";
+      rigaNuovoProdottoInput.value = "";
+      rigaUnitaInput.value = "";
+      rigaQuantitaInput.value = "";
+      rigaPrezzoInput.value = "";
+      rigaIvaInput.value = "";
+
+      renderRigheFatturaCorrenti();
     });
   }
-
-  // --- FATTURE / ACQUISTI / MAGAZZINO ---
-
-  const fattFornitoreSelect = document.getElementById("fatt-fornitore");
-  const fattNuovoFornitoreInput = document.getElementById("fatt-nuovo-fornitore");
-  const fattDataInput = document.getElementById("fatt-data");
-  const fattNumeroInput = document.getElementById("fatt-numero");
-  const fattTotaleInput = document.getElementById("fatt-totale");
-  const fattFileInput = document.getElementById("fatt-file");
-  const fattNoteInput = document.getElementById("fatt-note");
-
-  const rigaProdottoSelect = document.getElementById("riga-prodotto");
-  const rigaNuovoProdottoInput = document.getElementById("riga-nuovo-prodotto");
-  const rigaCategoriaSelect = document.getElementById("riga-categoria");
-  const rigaUnitaInput = document.getElementById("riga-unita");
-  const rigaQuantitaInput = document.getElementById("riga-quantita");
-  const rigaPrezzoInput = document.getElementById("riga-prezzo");
-  const rigaIvaInput = document.getElementById("riga-iva");
-
-  const btnAddRiga = document.getElementById("btn-add-riga");
-  const fattRigheLista = document.getElementById("fatt-righe-lista");
-  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
-  const fattureLista = document.getElementById("fatture-lista");
-
-  let fornitori = [];
-  let categorieProdotto = [];
-  let prodotti = [];
-  let righeFatturaCorrenti = [];
 
   async function caricaFornitori() {
     if (!supabase || !fattFornitoreSelect) return;
