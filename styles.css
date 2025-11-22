@@ -19,13 +19,22 @@ body {
 
 .app-header {
   text-align: center;
-  padding: 16px 10px;
+  padding: 12px 10px;
   background: white;
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.header-top {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .app-header h1 {
@@ -38,6 +47,23 @@ body {
   margin: 4px 0 0;
   font-size: 13px;
   color: #6b7280;
+}
+
+/* Modalità manager/dipendente */
+
+.mode-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 999px;
 }
 
 /* Contenuto principale */
@@ -116,7 +142,7 @@ body {
   font-size: 14px;
 }
 
-/* --- Timbratura --- */
+/* --- Timbratura / Form --- */
 
 .timbratura-form {
   margin: 8px 0 16px;
@@ -186,7 +212,7 @@ body {
   background: #b91c1c;
 }
 
-/* Tabella timbrature */
+/* Tabella generica */
 
 .table-timbrature {
   width: 100%;
