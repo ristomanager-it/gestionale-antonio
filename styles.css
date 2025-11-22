@@ -116,13 +116,30 @@ body {
   font-size: 14px;
 }
 
-.app-button.small.dark {
-  background: #444;
+/* Entra = verde */
+.app-button.small.green {
+  background: #16a34a;
+}
+.app-button.small.green:hover {
+  background: #15803d;
 }
 
-.app-button.small.dark:hover {
-  background: #222;
+/* Pausa = grigio */
+.app-button.small.gray {
+  background: #6b7280;
 }
+.app-button.small.gray:hover {
+  background: #4b5563;
+}
+
+/* Uscita = rosso */
+.app-button.small.red {
+  background: #dc2626;
+}
+.app-button.small.red:hover {
+  background: #b91c1c;
+}
+
 
 /* Tabella timbrature */
 
