@@ -13,19 +13,61 @@
     </header>
 
     <main class="app-main">
+      <!-- Barra pulsanti principali -->
       <section class="buttons-grid">
-        <button class="app-button">Timbratura</button>
-        <button class="app-button">Vendite</button>
-        <button class="app-button">Preventivi</button>
-        <button class="app-button">Fatture</button>
-        <button class="app-button">Centro Cottura</button>
-        <button class="app-button">Reintegro</button>
-        <button class="app-button wide">Report</button>
-        <button class="app-button wide">Parametri</button>
+        <button class="app-button" data-route="timbratura">Timbratura</button>
+        <button class="app-button" data-route="vendite">Vendite</button>
+        <button class="app-button" data-route="preventivi">Preventivi</button>
+        <button class="app-button" data-route="fatture">Fatture</button>
+        <button class="app-button" data-route="cc">Centro Cottura</button>
+        <button class="app-button" data-route="reintegro">Reintegro</button>
+        <button class="app-button wide" data-route="report">Report</button>
+        <button class="app-button wide" data-route="parametri">Parametri</button>
+      </section>
+
+      <!-- CONTENUTO DELLE “SCHERMATE” -->
+
+      <section id="view-timbratura" class="view">
+        <h2>Timbratura</h2>
+        <p>Qui inseriremo punch in/out per dipendente e canale (NR/RA/CAT/CC).</p>
+      </section>
+
+      <section id="view-vendite" class="view" style="display: none;">
+        <h2>Vendite</h2>
+        <p>Qui inseriremo le vendite giornaliere per NR/RA/CAT.</p>
+      </section>
+
+      <section id="view-preventivi" class="view" style="display: none;">
+        <h2>Preventivi Banchetti</h2>
+        <p>Gestione preventivi, stati e trasformazione in eventi.</p>
+      </section>
+
+      <section id="view-fatture" class="view" style="display: none;">
+        <h2>Fatture (Acquisti)</h2>
+        <p>Inserimento fornitori, importi, mappatura PREP, aggiornamento costi.</p>
+      </section>
+
+      <section id="view-cc" class="view" style="display: none;">
+        <h2>Centro Cottura (CC)</h2>
+        <p>Anagrafica PREP, costi medi, BOM piatti, COGS dinamico.</p>
+      </section>
+
+      <section id="view-reintegro" class="view" style="display: none;">
+        <h2>Reintegro & Magazzino</h2>
+        <p>Livelli PAR, fabbisogni NR/RA, consegne CC → sale.</p>
+      </section>
+
+      <section id="view-report" class="view" style="display: none;">
+        <h2>Report & KPI</h2>
+        <p>Prime Cost %, Margine %, cruscotto Oggi.</p>
+      </section>
+
+      <section id="view-parametri" class="view" style="display: none;">
+        <h2>Parametri</h2>
+        <p>Gestione PIN, markup, Target Food Cost %, inclusioni Opex/POS/Lavoro CC.</p>
       </section>
     </main>
-  </body>
-</html>
+
     <script src="app.js"></script>
   </body>
 </html>
