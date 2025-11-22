@@ -12,6 +12,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }document.addEventListener("DOMContentLoaded", () => {
+  // --- ROUTER SPA ---
+  const views = document.querySelectorAll(".view");
+  const buttons = document.querySelectorAll("[data-route]");
+
+  function navigateTo(route) {
+    views.forEach((v) => (v.style.display = "none"));
+
+    const active = document.getElementById(`view-${route}`);
+    if (active) {
+      active.style.display = "block";
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   buttons.forEach((btn) => {
@@ -74,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
       dipLista.appendChild(tr);
     });
 
-    // Azioni
     dipLista.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = parseInt(btn.getAttribute("data-edit"), 10);
@@ -104,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
     dipCanale.value = d.canalePrevalente || "NR";
     dipAttivo.checked = !!d.attivo;
 
-    // Salviamo l'indice in un attributo, così il prossimo "aggiungi" diventa "aggiorna"
     dipNome.dataset.editIndex = index.toString();
   }
 
@@ -166,9 +178,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
+  const periodoSelect = document.getElementById("timbratura-periodo");
 
   const TIMB_KEY = "timbrature";
-  let timbrature = JSON.parse(localStorage.getItem(TIMB_KEY)) || [];
+
+  let timbrature = (JSON.parse(localStorage.getItem(TIMB_KEY)) || []).map((t) =>
+    t.timestamp ? t : { ...t, timestamp: Date.now() }
+  );
+
+  let periodoCorrente = "oggi";
 
   function aggiornaSelectDipendenti() {
     if (!dipSelect) return;
@@ -226,6 +244,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (periodoSelect) {
+    periodoSelect.addEventListener("change", () => {
+      periodoCorrente = periodoSelect.value || "oggi";
+      aggiornaRiepilogo();
+    });
+  }
+
   function formatDurationMinutes(totalMinutes) {
     const ore = Math.floor(totalMinutes / 60);
     const min = Math.round(totalMinutes % 60);
@@ -253,11 +278,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const perDip = {}; // "dip|canale" -> minuti
     const perCanale = {}; // canale -> minuti
-    const ultimoEventoPerChiave = {}; // "dip|canale" -> ultimo evento
-    const adesso = Date.now();
 
+    const adessoDate = new Date();
+    const adesso = adessoDate.getTime();
+
+    // calcolo inizio periodo
+    const startGiorno = new Date(adessoDate);
+    startGiorno.setHours(0, 0, 0, 0);
+
+    const startSettimana = new Date(startGiorno);
+    const day = startSettimana.getDay() || 7; // lun=1...dom=7
+    startSettimana.setDate(startSettimana.getDate() - (day - 1)); // lunedì
+
+    const startMese = new Date(adessoDate.getFullYear(), adessoDate.getMonth(), 1);
+    startMese.setHours(0, 0, 0, 0);
+
+    let startPeriodoMs = startGiorno.getTime();
+    if (periodoCorrente === "settimana") startPeriodoMs = startSettimana.getTime();
+    if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
+
+    // Filtra eventi per il riepilogo in base al periodo
+    const eventiPeriodo = timbrature.filter((t) => {
+      if (!t.timestamp) return false;
+      const ts = t.timestamp;
+      return ts >= startPeriodoMs && ts <= adesso;
+    });
+
+    // --- Durate per dipendente e canale (solo eventi filtrati per periodo) ---
     const eventsByKey = {};
-    timbrature.forEach((t) => {
+    eventiPeriodo.forEach((t) => {
       const key = `${t.dip}|${t.canale}`;
       if (!eventsByKey[key]) eventsByKey[key] = [];
       eventsByKey[key].push(t);
@@ -270,8 +319,6 @@ document.addEventListener("DOMContentLoaded", () => {
       let aperto = null;
 
       events.forEach((ev) => {
-        ultimoEventoPerChiave[key] = ev;
-
         if (!ev.timestamp) return;
 
         if (ev.tipo === "Entrata") {
@@ -297,7 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Riepilogo per dipendente
+    // --- Riepilogo per dipendente ---
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -310,7 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoDipEl.appendChild(tr);
     });
 
-    // Riepilogo per canale
+    // --- Riepilogo per canale ---
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
@@ -321,8 +368,16 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
-    // Attivi adesso
+    // --- Attivi adesso (sempre in tempo reale, indipendente dal filtro periodo) ---
     attiviListaEl.innerHTML = "";
+    const ultimoEventoPerChiave = {};
+    timbrature.forEach((t) => {
+      const key = `${t.dip}|${t.canale}`;
+      if (!ultimoEventoPerChiave[key] || (t.timestamp || 0) > (ultimoEventoPerChiave[key].timestamp || 0)) {
+        ultimoEventoPerChiave[key] = t;
+      }
+    });
+
     Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
       if (ev.tipo === "Entrata" && ev.timestamp) {
         const [dip, canale] = key.split("|");
