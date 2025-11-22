@@ -30,9 +30,132 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialRoute = window.location.hash.replace("#", "") || "timbratura";
   navigateTo(initialRoute);
 
-  // --- TIMBRATURA ---
+  // --- ANAGRAFICA DIPENDENTI ---
+
+  const dipNome = document.getElementById("dip-nome");
+  const dipMansione = document.getElementById("dip-mansione");
+  const dipCosto = document.getElementById("dip-costo");
+  const dipCodice = document.getElementById("dip-codice");
+  const dipCanale = document.getElementById("dip-canale");
+  const dipAttivo = document.getElementById("dip-attivo");
+  const btnAddDip = document.getElementById("btn-add-dip");
+  const dipLista = document.getElementById("dipendenti-lista");
+
+  const DIP_KEY = "dipendenti";
+
+  let dipendenti = JSON.parse(localStorage.getItem(DIP_KEY)) || [];
+
+  function salvaDipendenti() {
+    localStorage.setItem(DIP_KEY, JSON.stringify(dipendenti));
+    renderDipendenti();
+    aggiornaSelectDipendenti();
+  }
+
+  function renderDipendenti() {
+    if (!dipLista) return;
+    dipLista.innerHTML = "";
+
+    dipendenti.forEach((d, index) => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${d.nome}</td>
+        <td>${d.mansione || ""}</td>
+        <td>${d.canalePrevalente || ""}</td>
+        <td>${d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : d.costoOrario || ""}</td>
+        <td>${d.codice || ""}</td>
+        <td>${d.attivo ? "Sì" : "No"}</td>
+        <td>
+          <button data-edit="${index}" class="app-button small gray">Modifica</button>
+          <button data-delete="${index}" class="app-button small red">Elimina</button>
+        </td>
+      `;
+
+      dipLista.appendChild(tr);
+    });
+
+    // Azioni
+    dipLista.querySelectorAll("[data-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.getAttribute("data-edit"), 10);
+        caricaDipendenteInForm(idx);
+      });
+    });
+
+    dipLista.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.getAttribute("data-delete"), 10);
+        if (confirm("Eliminare questo dipendente?")) {
+          dipendenti.splice(idx, 1);
+          salvaDipendenti();
+        }
+      });
+    });
+  }
+
+  function caricaDipendenteInForm(index) {
+    const d = dipendenti[index];
+    if (!d) return;
+
+    dipNome.value = d.nome || "";
+    dipMansione.value = d.mansione || "";
+    dipCosto.value = d.costoOrario != null ? d.costoOrario : "";
+    dipCodice.value = d.codice || "";
+    dipCanale.value = d.canalePrevalente || "NR";
+    dipAttivo.checked = !!d.attivo;
+
+    // Salviamo l'indice in un attributo, così il prossimo "aggiungi" diventa "aggiorna"
+    dipNome.dataset.editIndex = index.toString();
+  }
+
+  if (btnAddDip) {
+    btnAddDip.addEventListener("click", () => {
+      const nome = (dipNome.value || "").trim();
+      if (!nome) {
+        alert("Inserisci il nome del dipendente");
+        return;
+      }
+
+      const mansione = (dipMansione.value || "").trim();
+      const costo = parseFloat(dipCosto.value || "0") || 0;
+      const codice = (dipCodice.value || "").trim();
+      const canalePrevalente = dipCanale.value || "NR";
+      const attivo = dipAttivo.checked;
+
+      const nuovoDip = {
+        nome,
+        mansione,
+        costoOrario: costo,
+        codice,
+        canalePrevalente,
+        attivo,
+      };
+
+      const editIndex = dipNome.dataset.editIndex;
+
+      if (editIndex !== undefined && editIndex !== "") {
+        dipendenti[parseInt(editIndex, 10)] = nuovoDip;
+        delete dipNome.dataset.editIndex;
+      } else {
+        dipendenti.push(nuovoDip);
+      }
+
+      dipNome.value = "";
+      dipMansione.value = "";
+      dipCosto.value = "";
+      dipCodice.value = "";
+      dipCanale.value = "NR";
+      dipAttivo.checked = true;
+
+      salvaDipendenti();
+    });
+  }
+
+  // --- TIMBRATURA COLLEGATA AI DIPENDENTI ---
 
   const dipInput = document.getElementById("timbratura-dipendente");
+  const dipSelect = document.getElementById("timbratura-dipendente-select");
+  const codiceInput = document.getElementById("timbratura-codice");
   const canaleSelect = document.getElementById("timbratura-canale");
   const lista = document.getElementById("timbratura-lista");
 
@@ -44,16 +167,64 @@ document.addEventListener("DOMContentLoaded", () => {
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
 
-  // Carica timbrature dal localStorage e garantisce un timestamp per tutte
-  let timbratureRaw = JSON.parse(localStorage.getItem("timbrature")) || [];
-  let timbrature = timbratureRaw.map((t) => {
-    // Se manca il timestamp (vecchia versione), lo metto "adesso"
-    if (!t.timestamp) {
-      const now = Date.now();
-      return { ...t, timestamp: now };
-    }
-    return t;
-  });
+  const TIMB_KEY = "timbrature";
+  let timbrature = JSON.parse(localStorage.getItem(TIMB_KEY)) || [];
+
+  function aggiornaSelectDipendenti() {
+    if (!dipSelect) return;
+    dipSelect.innerHTML = `<option value="">-- seleziona dipendente --</option>`;
+
+    dipendenti
+      .filter((d) => d.attivo)
+      .forEach((d, index) => {
+        const opt = document.createElement("option");
+        opt.value = index.toString();
+        opt.textContent = d.nome;
+        dipSelect.appendChild(opt);
+      });
+  }
+
+  function trovaDipPerCodice(codice) {
+    return dipendenti.findIndex(
+      (d) => d.codice && d.codice.toString() === codice.toString()
+    );
+  }
+
+  if (dipSelect) {
+    dipSelect.addEventListener("change", () => {
+      const idx = dipSelect.value;
+      if (idx === "") {
+        dipInput.value = "";
+        return;
+      }
+      const d = dipendenti[parseInt(idx, 10)];
+      if (d) {
+        dipInput.value = d.nome;
+        if (canaleSelect && d.canalePrevalente) {
+          canaleSelect.value = d.canalePrevalente;
+        }
+      }
+    });
+  }
+
+  if (codiceInput) {
+    codiceInput.addEventListener("change", () => {
+      const codice = codiceInput.value.trim();
+      if (!codice) return;
+
+      const idx = trovaDipPerCodice(codice);
+      if (idx >= 0) {
+        dipSelect.value = idx.toString();
+        const d = dipendenti[idx];
+        dipInput.value = d.nome;
+        if (canaleSelect && d.canalePrevalente) {
+          canaleSelect.value = d.canalePrevalente;
+        }
+      } else {
+        alert("Nessun dipendente trovato per questo codice");
+      }
+    });
+  }
 
   function formatDurationMinutes(totalMinutes) {
     const ore = Math.floor(totalMinutes / 60);
@@ -62,6 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function aggiornaTabella() {
+    if (!lista) return;
     lista.innerHTML = "";
 
     timbrature.forEach((t) => {
@@ -84,7 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const ultimoEventoPerChiave = {}; // "dip|canale" -> ultimo evento
     const adesso = Date.now();
 
-    // Raggruppa eventi per dipendente+canale
     const eventsByKey = {};
     timbrature.forEach((t) => {
       const key = `${t.dip}|${t.canale}`;
@@ -94,8 +265,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     Object.entries(eventsByKey).forEach(([key, events]) => {
       const [dip, canale] = key.split("|");
-
-      // Ordina per timestamp
       events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       let aperto = null;
@@ -116,13 +285,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
           aperto = null;
-        } else if (ev.tipo === "Pausa") {
-          // per ora la pausa non incide sul conteggio,
-          // ma potremmo in futuro chiudere/riaprire il turno qui
         }
       });
 
-      // Se il turno è ancora aperto, aggiungo la durata fino ad ora
       if (aperto && aperto.timestamp) {
         const diffMin = (adesso - aperto.timestamp) / 60000;
         if (diffMin > 0) {
@@ -156,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
-    // Attivi adesso: ultimo evento = Entrata
+    // Attivi adesso
     attiviListaEl.innerHTML = "";
     Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
       if (ev.tipo === "Entrata" && ev.timestamp) {
@@ -181,22 +346,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function salvaEaggiorna() {
-    localStorage.setItem("timbrature", JSON.stringify(timbrature));
+  function salvaTimbratureEaggiorna() {
+    localStorage.setItem(TIMB_KEY, JSON.stringify(timbrature));
     aggiornaTabella();
     aggiornaRiepilogo();
   }
 
-  // Prima visualizzazione
+  aggiornaSelectDipendenti();
+  renderDipendenti();
   aggiornaTabella();
   aggiornaRiepilogo();
 
   function registraTimbratura(tipo) {
-    const dip = dipInput.value.trim();
-    const canale = canaleSelect.value;
+    const dipNomeVal = (dipInput.value || "").trim();
+    const canaleVal = canaleSelect.value;
 
-    if (!dip) {
-      alert("Inserisci il nome del dipendente");
+    if (!dipNomeVal) {
+      alert("Seleziona un dipendente (tramite codice o menu)");
       return;
     }
 
@@ -208,18 +374,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const record = {
       ora,
-      dip,
-      canale,
+      dip: dipNomeVal,
+      canale: canaleVal,
       tipo, // "Entrata", "Pausa", "Uscita"
       timestamp: now.getTime(),
     };
 
     timbrature.push(record);
-    salvaEaggiorna();
+    salvaTimbratureEaggiorna();
   }
 
-  btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+  if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
+  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 });
 
