@@ -1,67 +1,86 @@
+/* Layout generale */
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f4f4f4;
-  color: #333;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #e5e7eb, #f9fafb);
+  color: #111827;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Header */
 
 .app-header {
   text-align: center;
-  padding: 20px 10px;
+  padding: 16px 10px;
   background: white;
-  border-bottom: 2px solid #eee;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .subtitle {
-  margin: 5px 0 0;
-  font-size: 14px;
-  color: #888;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6b7280;
 }
+
+/* Contenuto principale */
 
 .app-main {
   flex: 1;
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto 20px;
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto 16px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-}
-.view {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  flex: 1;
-  overflow: auto;
+  gap: 16px;
 }
 
+/* Barra pulsanti (menu) */
 
 .buttons-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .buttons-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .app-button {
-  padding: 20px;
-  font-size: 18px;
+  padding: 10px;
+  font-size: 14px;
   border: none;
-  border-radius: 12px;
-  background: #007bff;
-  color: white;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
   cursor: pointer;
   transition: 0.15s;
+  font-weight: 500;
+  text-align: center;
 }
 
 .app-button:hover {
-  background: #005fcc;
+  background: #d1d5db;
 }
 
 .app-button:active {
@@ -70,20 +89,41 @@ body {
 
 .app-button.wide {
   grid-column: span 2;
-  background: #444;
 }
 
-.app-button.wide:hover {
-  background: #222;
+/* Vista a schermo pieno (sotto il menu) */
+
+.view {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  flex: 1;
+  min-height: 300px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
 }
+
+.view h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.view p {
+  margin-top: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 /* --- Timbratura --- */
 
 .timbratura-form {
-  margin: 15px 0 20px;
+  margin: 8px 0 16px;
   padding: 12px;
-  background: #ffffff;
-  border-radius: 10px;
-  border: 1px solid #ddd;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
 }
 
 .form-row {
@@ -93,27 +133,33 @@ body {
 .form-row label {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
+  font-size: 13px;
   gap: 4px;
+  color: #374151;
 }
 
 .form-row input,
 .form-row select {
   padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
   font-size: 14px;
 }
+
+/* Pulsanti timbratura */
 
 .buttons-row {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .app-button.small {
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+  color: white;
 }
 
 /* Entra = verde */
@@ -140,7 +186,6 @@ body {
   background: #b91c1c;
 }
 
-
 /* Tabella timbrature */
 
 .table-timbrature {
@@ -148,23 +193,29 @@ body {
   border-collapse: collapse;
   margin-top: 10px;
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .table-timbrature th,
 .table-timbrature td {
   padding: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
 }
 
 .table-timbrature thead {
-  background: #f0f0f0;
-  font-weight: bold;
+  background: #f3f4f6;
+  font-weight: 600;
 }
 
 .table-timbrature tr:last-child td {
   border-bottom: none;
+}
+
+/* Scroll morbido */
+
+html {
+  scroll-behavior: smooth;
 }
