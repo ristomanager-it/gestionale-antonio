@@ -116,6 +116,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
+  const dipTelefono = document.getElementById("dip-telefono");
+  const dipEmail = document.getElementById("dip-email");
+  const dipRuolo = document.getElementById("dip-ruolo");
   const dipCosto = document.getElementById("dip-costo");
   const dipCodice = document.getElementById("dip-codice");
   const dipCanale = document.getElementById("dip-canale");
@@ -143,6 +146,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: row.id,
       nome: row.nome,
       mansione: row.mansione,
+      telefono: row.telefono,
+      email: row.email,
+      ruolo: row.ruolo,
       costoOrario: row.costo_orario ?? 0,
       codice: row.codice,
       canalePrevalente: row.canale_prevalente,
@@ -161,6 +167,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: dip.id || undefined,
       nome: dip.nome,
       mansione: dip.mansione,
+      telefono: dip.telefono,
+      email: dip.email,
+      ruolo: dip.ruolo,
       costo_orario: dip.costoOrario,
       codice: dip.codice,
       canale_prevalente: dip.canalePrevalente,
@@ -208,8 +217,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       tr.innerHTML = `
         <td>${d.nome}</td>
         <td>${d.mansione || ""}</td>
+        <td>${d.telefono || ""}</td>
+        <td>${d.email || ""}</td>
+        <td>${formatRuolo(d.ruolo)}</td>
         <td>${d.canalePrevalente || ""}</td>
-        <td>${d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : (d.costoOrario ?? "")}</td>
+        <td>${
+          d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : (d.costoOrario ?? "")
+        }</td>
         <td>${d.codice || ""}</td>
         <td>${d.attivo ? "Sì" : "No"}</td>
         <td>
@@ -240,12 +254,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function formatRuolo(ruolo) {
+    switch (ruolo) {
+      case "admin":
+        return "Admin";
+      case "manager_cucina":
+        return "Manager cucina";
+      case "manager_sala":
+        return "Manager sala";
+      case "addetto_cucina":
+        return "Addetto cucina";
+      case "cameriere":
+        return "Cameriere";
+      default:
+        return "";
+    }
+  }
+
   function caricaDipendenteInForm(index) {
     const d = dipendenti[index];
     if (!d) return;
 
     dipNome.value = d.nome || "";
     dipMansione.value = d.mansione || "";
+    dipTelefono.value = d.telefono || "";
+    dipEmail.value = d.email || "";
+    dipRuolo.value = d.ruolo || "";
     dipCosto.value = d.costoOrario != null ? d.costoOrario : "";
     dipCodice.value = d.codice || "";
     dipCanale.value = d.canalePrevalente || "NR";
@@ -263,6 +297,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       const mansione = (dipMansione.value || "").trim();
+      const telefono = (dipTelefono.value || "").trim();
+      const email = (dipEmail.value || "").trim();
+      const ruolo = dipRuolo.value || "";
       const costo = parseFloat(dipCosto.value || "0") || 0;
       const codice = (dipCodice.value || "").trim();
       const canalePrevalente = dipCanale.value || "NR";
@@ -272,6 +309,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       let dipObj = {
         nome,
         mansione,
+        telefono,
+        email,
+        ruolo,
         costoOrario: costo,
         codice,
         canalePrevalente,
@@ -292,6 +332,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       dipNome.value = "";
       dipMansione.value = "";
+      dipTelefono.value = "";
+      dipEmail.value = "";
+      dipRuolo.value = "";
       dipCosto.value = "";
       dipCodice.value = "";
       dipCanale.value = "NR";
