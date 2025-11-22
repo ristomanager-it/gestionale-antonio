@@ -42,6 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   const DIP_KEY = "dipendenti";
+  const TIMB_KEY = "timbrature";
+  const CURRENT_DIP_KEY = "dipendente_corrente";
 
   let dipendenti = JSON.parse(localStorage.getItem(DIP_KEY)) || [];
 
@@ -49,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(DIP_KEY, JSON.stringify(dipendenti));
     renderDipendenti();
     aggiornaSelectDipendenti();
+    applicaDipendenteCorrente(); // nel caso il corrente fosse stato cambiato
   }
 
   function renderDipendenti() {
@@ -169,8 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  const TIMB_KEY = "timbrature";
-
   let timbrature = (JSON.parse(localStorage.getItem(TIMB_KEY)) || []).map((t) =>
     t.timestamp ? t : { ...t, timestamp: Date.now() }
   );
@@ -197,6 +198,48 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  function salvaDipendenteCorrente(d) {
+    if (!d) return;
+    const payload = {
+      codice: d.codice || null,
+      nome: d.nome || null,
+    };
+    localStorage.setItem(CURRENT_DIP_KEY, JSON.stringify(payload));
+  }
+
+  function applicaDipendenteCorrente() {
+    if (!dipSelect || !dipInput || !canaleSelect) return;
+
+    const raw = localStorage.getItem(CURRENT_DIP_KEY);
+    if (!raw) return;
+
+    let saved;
+    try {
+      saved = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!saved) return;
+
+    let idx = -1;
+    if (saved.codice) {
+      idx = trovaDipPerCodice(saved.codice);
+    }
+    if (idx < 0 && saved.nome) {
+      idx = dipendenti.findIndex((d) => d.nome === saved.nome);
+    }
+    if (idx < 0) return;
+
+    const d = dipendenti[idx];
+    if (!d || !d.attivo) return;
+
+    dipSelect.value = idx.toString();
+    dipInput.value = d.nome;
+    if (d.canalePrevalente) {
+      canaleSelect.value = d.canalePrevalente;
+    }
+  }
+
   if (dipSelect) {
     dipSelect.addEventListener("change", () => {
       const idx = dipSelect.value;
@@ -210,6 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (canaleSelect && d.canalePrevalente) {
           canaleSelect.value = d.canalePrevalente;
         }
+        salvaDipendenteCorrente(d);
       }
     });
   }
@@ -227,6 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (canaleSelect && d.canalePrevalente) {
           canaleSelect.value = d.canalePrevalente;
         }
+        salvaDipendenteCorrente(d);
       } else {
         alert("Nessun dipendente trovato per questo codice");
       }
@@ -333,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // --- Riepilogo per dipendente (ORE) ---
+    // --- Riepilogo ore per dipendente ---
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -346,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoDipEl.appendChild(tr);
     });
 
-    // --- Riepilogo per canale (ORE) ---
+    // --- Riepilogo ore per canale ---
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
@@ -363,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
       costoDipEl.innerHTML = "";
       costoCanaliEl.innerHTML = "";
 
-      // mappa nome dipendente -> costo orario
       const costoByNome = {};
       dipendenti.forEach((d) => {
         costoByNome[d.nome] = d.costoOrario || 0;
@@ -371,7 +415,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const costoPerCanale = {}; // canale -> costo €
 
-      // per dipendente
       Object.entries(perDip).forEach(([key, minuti]) => {
         const [dip, canale] = key.split("|");
         const ore = minuti / 60;
@@ -390,7 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
         costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
       });
 
-      // per canale
       Object.entries(perCanale).forEach(([canale, minuti]) => {
         const ore = minuti / 60;
         const costo = costoPerCanale[canale] || 0;
@@ -405,7 +447,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // --- Attivi adesso (sempre in tempo reale, indipendente dal filtro periodo) ---
+    // --- Attivi adesso ---
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
@@ -447,10 +489,15 @@ document.addEventListener("DOMContentLoaded", () => {
     aggiornaRiepilogo();
   }
 
-  aggiornaSelectDipendenti();
-  renderDipendenti();
-  aggiornaTabella();
-  aggiornaRiepilogo();
+  function applicaTuttoAllAvvio() {
+    aggiornaSelectDipendenti();
+    renderDipendenti();
+    aggiornaTabella();
+    aggiornaRiepilogo();
+    applicaDipendenteCorrente();
+  }
+
+  applicaTuttoAllAvvio();
 
   function registraTimbratura(tipo) {
     const dipNomeVal = (dipInput.value || "").trim();
@@ -480,10 +527,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
-});
-stener("click", () => registraTimbratura("Entrata"));
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 });
