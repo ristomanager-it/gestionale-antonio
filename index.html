@@ -27,10 +27,49 @@
 
       <!-- CONTENUTO DELLE “SCHERMATE” -->
 
-      <section id="view-timbratura" class="view">
-        <h2>Timbratura</h2>
-        <p>Qui inseriremo punch in/out per dipendente e canale (NR/RA/CAT/CC).</p>
-      </section>
+     <section id="view-timbratura" class="view">
+  <h2>Timbratura</h2>
+
+  <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
+    <div class="form-row">
+      <label>
+        Dipendente
+        <input type="text" id="timbratura-dipendente" placeholder="Nome dipendente" />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Canale
+        <select id="timbratura-canale">
+          <option value="NR">NR</option>
+          <option value="RA">RA</option>
+          <option value="CC">CC</option>
+          <option value="CAT">CAT</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="form-row buttons-row">
+      <button type="button" id="btn-entra" class="app-button small">Entra</button>
+      <button type="button" id="btn-esci" class="app-button small dark">Esci</button>
+    </div>
+  </form>
+
+  <h3>Timbrature di oggi</h3>
+  <table class="table-timbrature">
+    <thead>
+      <tr>
+        <th>Ora</th>
+        <th>Dipendente</th>
+        <th>Canale</th>
+        <th>Azione</th>
+      </tr>
+    </thead>
+    <tbody id="timbratura-lista"></tbody>
+  </table>
+</section>
+
 
       <section id="view-vendite" class="view" style="display: none;">
         <h2>Vendite</h2>
