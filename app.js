@@ -12,20 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }document.addEventListener("DOMContentLoaded", () => {
-  // --- ROUTER SPA ---
-  const views = document.querySelectorAll(".view");
-  const buttons = document.querySelectorAll("[data-route]");
-
-  function navigateTo(route) {
-    views.forEach((v) => (v.style.display = "none"));
-
-    const active = document.getElementById(`view-${route}`);
-    if (active) {
-      active.style.display = "block";
-    }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   buttons.forEach((btn) => {
@@ -179,6 +165,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
   const periodoSelect = document.getElementById("timbratura-periodo");
+
+  const costoDipEl = document.getElementById("costo-dipendenti");
+  const costoCanaliEl = document.getElementById("costo-canali");
 
   const TIMB_KEY = "timbrature";
 
@@ -344,7 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // --- Riepilogo per dipendente ---
+    // --- Riepilogo per dipendente (ORE) ---
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -357,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoDipEl.appendChild(tr);
     });
 
-    // --- Riepilogo per canale ---
+    // --- Riepilogo per canale (ORE) ---
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
@@ -368,12 +357,63 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
+    // --- Costo del lavoro ---
+
+    if (costoDipEl && costoCanaliEl) {
+      costoDipEl.innerHTML = "";
+      costoCanaliEl.innerHTML = "";
+
+      // mappa nome dipendente -> costo orario
+      const costoByNome = {};
+      dipendenti.forEach((d) => {
+        costoByNome[d.nome] = d.costoOrario || 0;
+      });
+
+      const costoPerCanale = {}; // canale -> costo €
+
+      // per dipendente
+      Object.entries(perDip).forEach(([key, minuti]) => {
+        const [dip, canale] = key.split("|");
+        const ore = minuti / 60;
+        const costoOrario = costoByNome[dip] || 0;
+        const costo = ore * costoOrario;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${dip}</td>
+          <td>${canale}</td>
+          <td>${ore.toFixed(2)}</td>
+          <td>${costo.toFixed(2)}</td>
+        `;
+        costoDipEl.appendChild(tr);
+
+        costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
+      });
+
+      // per canale
+      Object.entries(perCanale).forEach(([canale, minuti]) => {
+        const ore = minuti / 60;
+        const costo = costoPerCanale[canale] || 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${canale}</td>
+          <td>${ore.toFixed(2)}</td>
+          <td>${costo.toFixed(2)}</td>
+        `;
+        costoCanaliEl.appendChild(tr);
+      });
+    }
+
     // --- Attivi adesso (sempre in tempo reale, indipendente dal filtro periodo) ---
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
       const key = `${t.dip}|${t.canale}`;
-      if (!ultimoEventoPerChiave[key] || (t.timestamp || 0) > (ultimoEventoPerChiave[key].timestamp || 0)) {
+      if (
+        !ultimoEventoPerChiave[key] ||
+        (t.timestamp || 0) > (ultimoEventoPerChiave[key].timestamp || 0)
+      ) {
         ultimoEventoPerChiave[key] = t;
       }
     });
@@ -440,6 +480,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
+  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+});
+stener("click", () => registraTimbratura("Entrata"));
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 });
