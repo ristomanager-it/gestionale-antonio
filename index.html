@@ -468,15 +468,206 @@
         <p>Gestione preventivi, stati e trasformazione in eventi.</p>
       </section>
 
-      <section
-        id="view-fatture"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Fatture (Acquisti)</h2>
-        <p>Inserimento fornitori, importi, mappatura PREP, aggiornamento costi.</p>
-      </section>
+     <section
+  id="view-fatture"
+  class="view"
+  style="display: none"
+  data-manager-only="true"
+>
+  <h2>Fatture (Acquisti)</h2>
+  <p>Carica le fatture, inserisci le righe e genera il carico di magazzino.</p>
+
+  <!-- FORM TESTATA FATTURA -->
+  <form id="fattura-form" class="timbratura-form" onsubmit="return false;">
+    <div class="form-row">
+      <label>
+        Fornitore
+        <select id="fatt-fornitore">
+          <option value="">-- seleziona o crea --</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Nuovo fornitore (se non in lista)
+        <input
+          type="text"
+          id="fatt-nuovo-fornitore"
+          placeholder="Es. Fornitore Srl"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Data fattura
+        <input type="date" id="fatt-data" />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Numero fattura
+        <input type="text" id="fatt-numero" placeholder="Es. 123/2025" />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Totale fattura (€)
+        <input
+          type="number"
+          id="fatt-totale"
+          placeholder="Es. 350.00"
+          step="0.01"
+          min="0"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        File fattura (PDF/JPG/PNG)
+        <input type="file" id="fatt-file" accept=".pdf,image/*" />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Note
+        <input type="text" id="fatt-note" placeholder="Note interne" />
+      </label>
+    </div>
+  </form>
+
+  <!-- RIGHE FATTURA / PRODotti -->
+  <div class="timbratura-form">
+    <h3>Righe fattura / Prodotti</h3>
+
+    <div class="form-row">
+      <label>
+        Prodotto
+        <select id="riga-prodotto">
+          <option value="">-- seleziona o nuovo --</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Nuovo prodotto (se non in lista)
+        <input
+          type="text"
+          id="riga-nuovo-prodotto"
+          placeholder="Es. Petto di pollo"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Categoria prodotto
+        <select id="riga-categoria">
+          <option value="">-- seleziona categoria --</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Unità di misura
+        <input
+          type="text"
+          id="riga-unita"
+          placeholder="Es. kg, lt, pz"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Quantità
+        <input
+          type="number"
+          id="riga-quantita"
+          placeholder="Es. 10"
+          step="0.001"
+          min="0"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        Prezzo unitario (€)
+        <input
+          type="number"
+          id="riga-prezzo"
+          placeholder="Es. 5.20"
+          step="0.01"
+          min="0"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        IVA (%)
+        <input
+          type="number"
+          id="riga-iva"
+          placeholder="Es. 10"
+          step="0.1"
+          min="0"
+        />
+      </label>
+    </div>
+
+    <div class="form-row buttons-row">
+      <button type="button" id="btn-add-riga" class="app-button small green">
+        Aggiungi riga
+      </button>
+    </div>
+  </div>
+
+  <h3>Righe inserite</h3>
+  <table class="table-timbrature">
+    <thead>
+      <tr>
+        <th>Prodotto</th>
+        <th>Categoria</th>
+        <th>Q.tà</th>
+        <th>UM</th>
+        <th>Prezzo €</th>
+        <th>Totale €</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody id="fatt-righe-lista"></tbody>
+  </table>
+
+  <div class="form-row buttons-row" style="margin-top: 12px;">
+    <button type="button" id="btn-salva-fattura" class="app-button small green">
+      Salva fattura e carico magazzino
+    </button>
+  </div>
+
+  <h3>Storico fatture</h3>
+  <table class="table-timbrature">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Fornitore</th>
+        <th>Numero</th>
+        <th>Totale €</th>
+        <th>File</th>
+      </tr>
+    </thead>
+    <tbody id="fatture-lista"></tbody>
+  </table>
+</section>
+
 
       <section
         id="view-cc"
