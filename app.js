@@ -1,11 +1,12 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // --- COSTANTI CHIAVI STORAGE ---
-  const DIP_KEY = "dipendenti";
-  const TIMB_KEY = "timbrature";
+document.addEventListener("DOMContentLoaded", async () => {
+  // --- SUPABASE ---
+  const supabase = window.supabaseClient;
+
+  // --- COSTANTI CHIAVI STORAGE (solo stato locale) ---
   const CURRENT_DIP_KEY = "dipendente_corrente";
   const MODE_KEY = "modalita_utente"; // 'dipendente' | 'manager'
 
-  // PIN manager per il prototipo (poi lo sposteremo nei parametri / Supabase)
+  // PIN manager per il prototipo
   const MANAGER_PIN = "9999";
 
   // --- ROUTER SPA ---
@@ -25,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     if (modalita === "manager") {
-      // Mostra sezioni manager
       managerElements.forEach((el) => {
         if (!el.dataset.originalDisplay) {
           el.dataset.originalDisplay = el.style.display || "";
@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (btnModeManager) btnModeManager.style.display = "none";
       if (btnModeExit) btnModeExit.style.display = "inline-block";
     } else {
-      // Nascondi tutto ciò che è solo per manager
       managerElements.forEach((el) => {
         if (!el.dataset.originalDisplay) {
           el.dataset.originalDisplay = el.style.display || "";
@@ -79,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const active = document.getElementById(`view-${route}`);
     if (active) {
-      // Se è una vista solo manager e sei in modalità dipendente, non mostrarla
       if (
         modalita === "dipendente" &&
         active.getAttribute("data-manager-only") === "true"
@@ -122,13 +120,74 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  let dipendenti = JSON.parse(localStorage.getItem(DIP_KEY)) || [];
+  let dipendenti = []; // verrà popolato da Supabase
 
-  function salvaDipendenti() {
-    localStorage.setItem(DIP_KEY, JSON.stringify(dipendenti));
+  async function caricaDipendentiDaSupabase() {
+    const { data, error } = await supabase
+      .from("dipendenti")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento dipendenti:", error);
+      alert("Errore nel caricare i dipendenti da Supabase");
+      return;
+    }
+
+    dipendenti = data.map((row) => ({
+      id: row.id,
+      nome: row.nome,
+      mansione: row.mansione,
+      costoOrario: row.costo_orario ?? 0,
+      codice: row.codice,
+      canalePrevalente: row.canale_prevalente,
+      attivo: row.attivo,
+    }));
+
     renderDipendenti();
     aggiornaSelectDipendenti();
     applicaDipendenteCorrente();
+  }
+
+  async function salvaDipendenteSupabase(dip) {
+    const payload = {
+      id: dip.id || undefined,
+      nome: dip.nome,
+      mansione: dip.mansione,
+      costo_orario: dip.costoOrario,
+      codice: dip.codice,
+      canale_prevalente: dip.canalePrevalente,
+      attivo: dip.attivo,
+    };
+
+    const { data, error } = await supabase
+      .from("dipendenti")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio dipendente:", error);
+      alert("Errore nel salvare il dipendente");
+      return null;
+    }
+
+    dip.id = data.id;
+    return dip;
+  }
+
+  async function eliminaDipendenteSupabase(dip) {
+    if (!dip.id) return;
+
+    const { error } = await supabase
+      .from("dipendenti")
+      .delete()
+      .eq("id", dip.id);
+
+    if (error) {
+      console.error("Errore eliminazione dipendente:", error);
+      alert("Errore nell'eliminare il dipendente");
+    }
   }
 
   function renderDipendenti() {
@@ -162,11 +221,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     dipLista.querySelectorAll("[data-delete]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const idx = parseInt(btn.getAttribute("data-delete"), 10);
         if (confirm("Eliminare questo dipendente?")) {
-          dipendenti.splice(idx, 1);
-          salvaDipendenti();
+          const dip = dipendenti[idx];
+          await eliminaDipendenteSupabase(dip);
+          await caricaDipendentiDaSupabase();
         }
       });
     });
@@ -187,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnAddDip) {
-    btnAddDip.addEventListener("click", () => {
+    btnAddDip.addEventListener("click", async () => {
       const nome = (dipNome.value || "").trim();
       if (!nome) {
         alert("Inserisci il nome del dipendente");
@@ -200,7 +260,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const canalePrevalente = dipCanale.value || "NR";
       const attivo = dipAttivo.checked;
 
-      const nuovoDip = {
+      const editIndex = dipNome.dataset.editIndex;
+      let dipObj = {
         nome,
         mansione,
         costoOrario: costo,
@@ -209,14 +270,17 @@ document.addEventListener("DOMContentLoaded", () => {
         attivo,
       };
 
-      const editIndex = dipNome.dataset.editIndex;
-
       if (editIndex !== undefined && editIndex !== "") {
-        dipendenti[parseInt(editIndex, 10)] = nuovoDip;
+        const idx = parseInt(editIndex, 10);
+        dipObj.id = dipendenti[idx].id;
+        dipendenti[idx] = dipObj;
         delete dipNome.dataset.editIndex;
       } else {
-        dipendenti.push(nuovoDip);
+        dipendenti.push(dipObj);
       }
+
+      const salvato = await salvaDipendenteSupabase(dipObj);
+      if (!salvato) return;
 
       dipNome.value = "";
       dipMansione.value = "";
@@ -225,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dipCanale.value = "NR";
       dipAttivo.checked = true;
 
-      salvaDipendenti();
+      await caricaDipendentiDaSupabase();
     });
   }
 
@@ -249,11 +313,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  let timbrature = (JSON.parse(localStorage.getItem(TIMB_KEY)) || []).map((t) =>
-    t.timestamp ? t : { ...t, timestamp: Date.now() }
-  );
-
+  let timbrature = []; // verrà popolato da Supabase
   let periodoCorrente = "oggi";
+
+  async function caricaTimbratureDaSupabase() {
+    const { data, error } = await supabase
+      .from("timbrature")
+      .select("*")
+      .order("timestamp", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento timbrature:", error);
+      alert("Errore nel caricare le timbrature da Supabase");
+      return;
+    }
+
+    timbrature = data.map((row) => ({
+      id: row.id,
+      dipendente_id: row.dipendente_id || null,
+      dip: row.dip_nome,
+      canale: row.canale,
+      tipo: row.tipo,
+      ora: row.ora,
+      timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
+    }));
+
+    aggiornaTabella();
+    aggiornaRiepilogo();
+  }
 
   function aggiornaSelectDipendenti() {
     if (!dipSelect) return;
@@ -375,7 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
     timbrature.forEach((t) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${t.ora}</td>
+        <td>${t.ora || ""}</td>
         <td>${t.dip}</td>
         <td>${t.canale}</td>
         <td>${t.tipo}</td>
@@ -387,19 +474,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function aggiornaRiepilogo() {
     if (!riepilogoDipEl || !riepilogoCanaliEl || !attiviListaEl) return;
 
-    const perDip = {}; // "dip|canale" -> minuti
-    const perCanale = {}; // canale -> minuti
+    const perDip = {};
+    const perCanale = {};
 
     const adessoDate = new Date();
     const adesso = adessoDate.getTime();
 
-    // calcolo inizio periodo
     const startGiorno = new Date(adessoDate);
     startGiorno.setHours(0, 0, 0, 0);
 
     const startSettimana = new Date(startGiorno);
     const day = startSettimana.getDay() || 7; // lun=1...dom=7
-    startSettimana.setDate(startSettimana.getDate() - (day - 1)); // lunedì
+    startSettimana.setDate(startSettimana.getDate() - (day - 1));
 
     const startMese = new Date(adessoDate.getFullYear(), adessoDate.getMonth(), 1);
     startMese.setHours(0, 0, 0, 0);
@@ -408,14 +494,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (periodoCorrente === "settimana") startPeriodoMs = startSettimana.getTime();
     if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
 
-    // Filtra eventi per il riepilogo in base al periodo
     const eventiPeriodo = timbrature.filter((t) => {
       if (!t.timestamp) return false;
       const ts = t.timestamp;
       return ts >= startPeriodoMs && ts <= adesso;
     });
 
-    // --- Durate per dipendente e canale (solo eventi filtrati per periodo) ---
     const eventsByKey = {};
     eventiPeriodo.forEach((t) => {
       const key = `${t.dip}|${t.canale}`;
@@ -489,7 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
         costoByNome[d.nome] = d.costoOrario || 0;
       });
 
-      const costoPerCanale = {}; // canale -> costo €
+      const costoPerCanale = {};
 
       Object.entries(perDip).forEach(([key, minuti]) => {
         const [dip, canale] = key.split("|");
@@ -559,24 +643,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function salvaTimbratureEaggiorna() {
-    localStorage.setItem(TIMB_KEY, JSON.stringify(timbrature));
-    aggiornaTabella();
-    aggiornaRiepilogo();
+  async function salvaTimbraturaSupabase(record) {
+    // provo a collegare anche il dipendente_id se riesco a individuarlo
+    let dipendenteId = null;
+    const dipNomeVal = record.dip;
+    const d = dipendenti.find((x) => x.nome === dipNomeVal);
+    if (d && d.id) {
+      dipendenteId = d.id;
+    }
+
+    const payload = {
+      dipendente_id: dipendenteId,
+      dip_nome: record.dip,
+      canale: record.canale,
+      tipo: record.tipo,
+      ora: record.ora,
+      timestamp: new Date(record.timestamp).toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("timbrature")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio timbratura:", error);
+      alert("Errore nel registrare la timbratura");
+      return null;
+    }
+
+    record.id = data.id;
+    return record;
   }
 
-  function applicaTuttoAllAvvio() {
-    aggiornaSelectDipendenti();
-    renderDipendenti();
-    aggiornaTabella();
-    aggiornaRiepilogo();
-    applicaDipendenteCorrente();
-    applyMode();
-  }
-
-  applicaTuttoAllAvvio();
-
-  function registraTimbratura(tipo) {
+  async function registraTimbratura(tipo) {
     const dipNomeVal = (dipInput.value || "").trim();
     const canaleVal = canaleSelect.value;
 
@@ -595,15 +696,30 @@ document.addEventListener("DOMContentLoaded", () => {
       ora,
       dip: dipNomeVal,
       canale: canaleVal,
-      tipo, // "Entrata", "Pausa", "Uscita"
+      tipo,
       timestamp: now.getTime(),
     };
 
-    timbrature.push(record);
-    salvaTimbratureEaggiorna();
+    const salvato = await salvaTimbraturaSupabase(record);
+    if (!salvato) return;
+
+    timbrature.push(salvato);
+    aggiornaTabella();
+    aggiornaRiepilogo();
   }
 
   if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
   if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
   if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+
+  // --- AVVIO COMPLETO ---
+
+  async function applicaTuttoAllAvvio() {
+    applyMode();
+    await caricaDipendentiDaSupabase();
+    await caricaTimbratureDaSupabase();
+    applicaDipendenteCorrente();
+  }
+
+  await applicaTuttoAllAvvio();
 });
