@@ -121,7 +121,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dipTelefono = document.getElementById("dip-telefono");
   const dipEmail = document.getElementById("dip-email");
   const dipRuolo = document.getElementById("dip-ruolo");
+
+  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
+  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
+  const dipOreMensili = document.getElementById("dip-ore-mensili");
+  const dipOreServizio = document.getElementById("dip-ore-servizio");
   const dipCosto = document.getElementById("dip-costo");
+  const labelRetribuzione = document.getElementById("label-retribuzione-base");
+  const rowOreMensili = document.getElementById("row-ore-mensili");
+  const rowOreServizio = document.getElementById("row-ore-servizio");
+
   const dipPinGenerale = document.getElementById("dip-pin-generale");
   const dipCodice = document.getElementById("dip-codice");
   const dipCanale = document.getElementById("dip-canale");
@@ -130,6 +139,109 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   let dipendenti = []; // popolato da Supabase
+
+  function formatRuolo(ruolo) {
+    switch (ruolo) {
+      case "admin":
+        return "Admin";
+      case "manager_cucina":
+        return "Manager cucina";
+      case "manager_sala":
+        return "Manager sala";
+      case "addetto_cucina":
+        return "Addetto cucina";
+      case "cameriere":
+        return "Cameriere";
+      default:
+        return "";
+    }
+  }
+
+  function formatTipoCompenso(tipo) {
+    switch (tipo) {
+      case "orario":
+        return "A ore";
+      case "mensile":
+        return "Mensile";
+      case "servizio":
+        return "Per servizio";
+      default:
+        return "";
+    }
+  }
+
+  function formatDataNascita(dataNascita) {
+    if (!dataNascita) return "";
+    const d = new Date(dataNascita);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("it-IT");
+  }
+
+  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
+    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
+
+    if (tipo === "orario") {
+      return retribuzioneBase;
+    }
+
+    if (tipo === "mensile") {
+      if (!oreMensili || oreMensili <= 0) return 0;
+      return retribuzioneBase / oreMensili;
+    }
+
+    if (tipo === "servizio") {
+      if (!oreServizio || oreServizio <= 0) return 0;
+      return retribuzioneBase / oreServizio;
+    }
+
+    return 0;
+  }
+
+  function aggiornaUICompenso() {
+    const tipo = dipTipoCompenso.value || "orario";
+
+    if (tipo === "orario") {
+      labelRetribuzione.querySelector("span")?.remove();
+      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      rowOreMensili.style.display = "none";
+      rowOreServizio.style.display = "none";
+    } else if (tipo === "mensile") {
+      labelRetribuzione.firstChild.textContent =
+        "Stipendio lordo mensile (€/mese)";
+      rowOreMensili.style.display = "block";
+      rowOreServizio.style.display = "none";
+    } else if (tipo === "servizio") {
+      labelRetribuzione.firstChild.textContent =
+        "Paga lorda per servizio (€/servizio)";
+      rowOreMensili.style.display = "none";
+      rowOreServizio.style.display = "block";
+    }
+
+    const retribuzioneBase = parseFloat(dipRetribuzioneBase.value || "0") || 0;
+    const oreMensili = parseFloat(dipOreMensili.value || "0") || 0;
+    const oreServizio = parseFloat(dipOreServizio.value || "0") || 0;
+
+    const costo = calcolaCostoOrario(
+      tipo,
+      retribuzioneBase,
+      oreMensili,
+      oreServizio
+    );
+    dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
+  }
+
+  if (dipTipoCompenso) {
+    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
+  }
+  if (dipRetribuzioneBase) {
+    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
+  }
+  if (dipOreMensili) {
+    dipOreMensili.addEventListener("input", aggiornaUICompenso);
+  }
+  if (dipOreServizio) {
+    dipOreServizio.addEventListener("input", aggiornaUICompenso);
+  }
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
@@ -154,6 +266,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       telefono: row.telefono || "",
       email: row.email || "",
       ruolo: row.ruolo || "",
+      tipoCompenso: row.tipo_compenso || "orario",
+      retribuzioneBase: row.retribuzione_base ?? null,
+      oreMensili: row.ore_mensili_contrattuali ?? null,
+      oreServizio: row.ore_medie_per_servizio ?? null,
       costoOrario: row.costo_orario ?? 0,
       pinGenerale: row.pin_generale || "",
       codice: row.codice || "", // PIN personale per timbratura
@@ -178,9 +294,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       telefono: dip.telefono || null,
       email: dip.email || null,
       ruolo: dip.ruolo || null,
-      costo_orario: dip.costoOrario,
+      tipo_compenso: dip.tipoCompenso || "orario",
+      retribuzione_base: dip.retribuzioneBase ?? null,
+      ore_mensili_contrattuali: dip.oreMensili ?? null,
+      ore_medie_per_servizio: dip.oreServizio ?? null,
+      costo_orario: dip.costoOrario ?? null,
       pin_generale: dip.pinGenerale || null,
-      codice: dip.codice || null, // PIN personale
+      codice: dip.codice || null,
       canale_prevalente: dip.canalePrevalente,
       attivo: dip.attivo,
     };
@@ -216,30 +336,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
-  }
-
-  function formatDataNascita(dataNascita) {
-    if (!dataNascita) return "";
-    const d = new Date(dataNascita);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("it-IT");
-  }
-
   function renderDipendenti() {
     if (!dipLista) return;
     dipLista.innerHTML = "";
@@ -255,10 +351,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${d.telefono || ""}</td>
         <td>${d.email || ""}</td>
         <td>${formatRuolo(d.ruolo)}</td>
+        <td>${formatTipoCompenso(d.tipoCompenso)}</td>
+        <td>${d.costoOrario ? d.costoOrario.toFixed(2) : ""}</td>
         <td>${d.canalePrevalente || ""}</td>
-        <td>${
-          d.costoOrario?.toFixed ? d.costoOrario.toFixed(2) : (d.costoOrario ?? "")
-        }</td>
         <td>${d.pinGenerale || ""}</td>
         <td>${d.codice || ""}</td>
         <td>${d.attivo ? "Sì" : "No"}</td>
@@ -301,13 +396,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     dipTelefono.value = d.telefono || "";
     dipEmail.value = d.email || "";
     dipRuolo.value = d.ruolo || "";
-    dipCosto.value = d.costoOrario != null ? d.costoOrario : "";
+
+    dipTipoCompenso.value = d.tipoCompenso || "orario";
+    dipRetribuzioneBase.value =
+      d.retribuzioneBase != null ? d.retribuzioneBase : "";
+    dipOreMensili.value = d.oreMensili != null ? d.oreMensili : "";
+    dipOreServizio.value = d.oreServizio != null ? d.oreServizio : "";
+    dipCosto.value =
+      d.costoOrario != null && d.costoOrario > 0
+        ? d.costoOrario.toFixed(2)
+        : "";
+
     dipPinGenerale.value = d.pinGenerale || "";
     dipCodice.value = d.codice || "";
     dipCanale.value = d.canalePrevalente || "NR";
     dipAttivo.checked = !!d.attivo;
 
     dipNome.dataset.editIndex = index.toString();
+
+    aggiornaUICompenso();
   }
 
   if (btnAddDip) {
@@ -324,9 +431,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       const telefono = (dipTelefono.value || "").trim();
       const email = (dipEmail.value || "").trim();
       const ruolo = dipRuolo.value || "";
-      const costo = parseFloat(dipCosto.value || "0") || 0;
+
+      const tipoCompenso = dipTipoCompenso.value || "orario";
+      const retribuzioneBase =
+        parseFloat(dipRetribuzioneBase.value || "0") || 0;
+      const oreMensili = parseFloat(dipOreMensili.value || "0") || 0;
+      const oreServizio = parseFloat(dipOreServizio.value || "0") || 0;
+
+      const costoOrario = calcolaCostoOrario(
+        tipoCompenso,
+        retribuzioneBase,
+        oreMensili,
+        oreServizio
+      );
+
+      dipCosto.value = costoOrario ? costoOrario.toFixed(2) : "";
+
       const pinGenerale = (dipPinGenerale.value || "").trim();
-      const codice = (dipCodice.value || "").trim(); // PIN personale
+      const codice = (dipCodice.value || "").trim();
       const canalePrevalente = dipCanale.value || "NR";
       const attivo = dipAttivo.checked;
 
@@ -339,7 +461,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         telefono,
         email,
         ruolo,
-        costoOrario: costo,
+        tipoCompenso,
+        retribuzioneBase: retribuzioneBase || null,
+        oreMensili: oreMensili || null,
+        oreServizio: oreServizio || null,
+        costoOrario: costoOrario || null,
         pinGenerale,
         codice,
         canalePrevalente,
@@ -365,12 +491,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       dipTelefono.value = "";
       dipEmail.value = "";
       dipRuolo.value = "";
+      dipTipoCompenso.value = "orario";
+      dipRetribuzioneBase.value = "";
+      dipOreMensili.value = "";
+      dipOreServizio.value = "";
       dipCosto.value = "";
       dipPinGenerale.value = "";
       dipCodice.value = "";
       dipCanale.value = "NR";
       dipAttivo.checked = true;
+      delete dipNome.dataset.editIndex;
 
+      aggiornaUICompenso();
       await caricaDipendentiDaSupabase();
     });
   }
@@ -798,6 +930,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
     applicaDipendenteCorrente();
+    aggiornaUICompenso();
   }
 
   await applicaTuttoAllAvvio();
