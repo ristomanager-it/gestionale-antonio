@@ -44,16 +44,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
 
-  let timbrature = JSON.parse(localStorage.getItem("timbrature")) || [];
-
-  // Se ci sono vecchie timbrature senza timestamp, le lasciamo ma non le usiamo per i calcoli
-  function ensureTimestamp(record) {
-    if (!record.timestamp) {
-      // non possiamo sapere l'orario preciso, quindi saltiamo per i calcoli
-      return null;
+  // Carica timbrature dal localStorage e garantisce un timestamp per tutte
+  let timbratureRaw = JSON.parse(localStorage.getItem("timbrature")) || [];
+  let timbrature = timbratureRaw.map((t) => {
+    // Se manca il timestamp (vecchia versione), lo metto "adesso"
+    if (!t.timestamp) {
+      const now = Date.now();
+      return { ...t, timestamp: now };
     }
-    return record;
-  }
+    return t;
+  });
 
   function formatDurationMinutes(totalMinutes) {
     const ore = Math.floor(totalMinutes / 60);
@@ -79,41 +79,33 @@ document.addEventListener("DOMContentLoaded", () => {
   function aggiornaRiepilogo() {
     if (!riepilogoDipEl || !riepilogoCanaliEl || !attiviListaEl) return;
 
-    // Mappe per calcoli
-    const perDip = {}; // chiave: dip|canale -> minuti
-    const perCanale = {}; // chiave: canale -> minuti
-    const ultimoEventoPerChiave = {}; // per sapere chi è dentro
+    const perDip = {}; // "dip|canale" -> minuti
+    const perCanale = {}; // canale -> minuti
+    const ultimoEventoPerChiave = {}; // "dip|canale" -> ultimo evento
     const adesso = Date.now();
 
-    // Raggruppiamo per dipendente+canale
+    // Raggruppa eventi per dipendente+canale
     const eventsByKey = {};
     timbrature.forEach((t) => {
-      const rec = ensureTimestamp(t);
       const key = `${t.dip}|${t.canale}`;
       if (!eventsByKey[key]) eventsByKey[key] = [];
-      eventsByKey[key].push({ ...t, timestamp: rec ? rec.timestamp : null });
+      eventsByKey[key].push(t);
     });
 
     Object.entries(eventsByKey).forEach(([key, events]) => {
-      // Ordiniamo per timestamp (se manca, sta in fondo)
-      events.sort((a, b) => {
-        if (!a.timestamp) return 1;
-        if (!b.timestamp) return -1;
-        return a.timestamp - b.timestamp;
-      });
-
       const [dip, canale] = key.split("|");
+
+      // Ordina per timestamp
+      events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       let aperto = null;
 
       events.forEach((ev) => {
-        // memorizziamo ultimo evento per sapere chi è dentro
         ultimoEventoPerChiave[key] = ev;
 
-        if (!ev.timestamp) return; // saltiamo se non abbiamo timestamp
+        if (!ev.timestamp) return;
 
         if (ev.tipo === "Entrata") {
-          // apre turno
           aperto = ev;
         } else if (ev.tipo === "Uscita") {
           if (aperto && aperto.timestamp) {
@@ -125,12 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           aperto = null;
         } else if (ev.tipo === "Pausa") {
-          // se vuoi, potremmo chiudere il turno qui, per ora la ignoro per durata
+          // per ora la pausa non incide sul conteggio,
+          // ma potremmo in futuro chiudere/riaprire il turno qui
         }
       });
 
-      // Se c'è un turno aperto in questo momento (Entrata senza Uscita),
-      // possiamo anche considerare la durata "fino ad adesso" se vuoi.
+      // Se il turno è ancora aperto, aggiungo la durata fino ad ora
       if (aperto && aperto.timestamp) {
         const diffMin = (adesso - aperto.timestamp) / 60000;
         if (diffMin > 0) {
@@ -164,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
-    // Attivi adesso
+    // Attivi adesso: ultimo evento = Entrata
     attiviListaEl.innerHTML = "";
     Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
       if (ev.tipo === "Entrata" && ev.timestamp) {
@@ -195,6 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
     aggiornaRiepilogo();
   }
 
+  // Prima visualizzazione
   aggiornaTabella();
   aggiornaRiepilogo();
 
