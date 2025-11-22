@@ -75,6 +75,412 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Sei uscito dalla modalità manager");
     });
   }
+  // --- FATTURE / MAGAZZINO ---
+
+  const fattFornitoreSelect = document.getElementById("fatt-fornitore");
+  const fattNuovoFornitoreInput = document.getElementById("fatt-nuovo-fornitore");
+  const fattDataInput = document.getElementById("fatt-data");
+  const fattNumeroInput = document.getElementById("fatt-numero");
+  const fattTotaleInput = document.getElementById("fatt-totale");
+  const fattFileInput = document.getElementById("fatt-file");
+  const fattNoteInput = document.getElementById("fatt-note");
+
+  const rigaProdottoSelect = document.getElementById("riga-prodotto");
+  const rigaNuovoProdottoInput = document.getElementById("riga-nuovo-prodotto");
+  const rigaCategoriaSelect = document.getElementById("riga-categoria");
+  const rigaUnitaInput = document.getElementById("riga-unita");
+  const rigaQuantitaInput = document.getElementById("riga-quantita");
+  const rigaPrezzoInput = document.getElementById("riga-prezzo");
+  const rigaIvaInput = document.getElementById("riga-iva");
+
+  const btnAddRiga = document.getElementById("btn-add-riga");
+  const fattRigheLista = document.getElementById("fatt-righe-lista");
+  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
+  const fattureLista = document.getElementById("fatture-lista");
+
+  let fornitori = [];
+  let categorieProdotto = [];
+  let prodotti = [];
+  let righeFatturaCorrenti = []; // array di righe prima del salvataggio
+  async function caricaFornitori() {
+    if (!supabase || !fattFornitoreSelect) return;
+
+    const { data, error } = await supabase
+      .from("fornitori")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento fornitori:", error);
+      return;
+    }
+
+    fornitori = data;
+    fattFornitoreSelect.innerHTML = `<option value="">-- seleziona o crea --</option>`;
+    fornitori.forEach((f) => {
+      const opt = document.createElement("option");
+      opt.value = f.id;
+      opt.textContent = f.nome;
+      fattFornitoreSelect.appendChild(opt);
+    });
+  }
+
+  async function caricaCategorieProdotto() {
+    if (!supabase || !rigaCategoriaSelect) return;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie prodotto:", error);
+      return;
+    }
+
+    categorieProdotto = data;
+    rigaCategoriaSelect.innerHTML = `<option value="">-- seleziona categoria --</option>`;
+    categorieProdotto.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.nome;
+      rigaCategoriaSelect.appendChild(opt);
+    });
+  }
+
+  async function caricaProdotti() {
+    if (!supabase || !rigaProdottoSelect) return;
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento prodotti:", error);
+      return;
+    }
+
+    prodotti = data;
+    rigaProdottoSelect.innerHTML = `<option value="">-- seleziona o nuovo --</option>`;
+    prodotti.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.nome;
+      rigaProdottoSelect.appendChild(opt);
+    });
+  }
+  function renderRigheFatturaCorrenti() {
+    if (!fattRigheLista) return;
+    fattRigheLista.innerHTML = "";
+
+    righeFatturaCorrenti.forEach((r, index) => {
+      const cat = categorieProdotto.find((c) => c.id === r.categoria_id);
+      const totale = (r.quantita || 0) * (r.prezzo_unitario || 0);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.nome_prodotto}</td>
+        <td>${cat ? cat.nome : ""}</td>
+        <td>${r.quantita ?? ""}</td>
+        <td>${r.unita_misura || ""}</td>
+        <td>${r.prezzo_unitario ? r.prezzo_unitario.toFixed(2) : ""}</td>
+        <td>${totale ? totale.toFixed(2) : ""}</td>
+        <td>
+          <button data-index="${index}" class="app-button small red">
+            Rimuovi
+          </button>
+        </td>
+      `;
+      fattRigheLista.appendChild(tr);
+    });
+
+    fattRigheLista.querySelectorAll("button[data-index]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.getAttribute("data-index"), 10);
+        righeFatturaCorrenti.splice(idx, 1);
+        renderRigheFatturaCorrenti();
+      });
+    });
+  }
+
+  if (btnAddRiga) {
+    btnAddRiga.addEventListener("click", () => {
+      const prodottoId = rigaProdottoSelect.value || null;
+      const nomeNuovo = (rigaNuovoProdottoInput.value || "").trim();
+      const categoriaId = rigaCategoriaSelect.value || null;
+      const unita = (rigaUnitaInput.value || "").trim();
+      const quantita = parseFloat(rigaQuantitaInput.value || "0") || 0;
+      const prezzo = parseFloat(rigaPrezzoInput.value || "0") || 0;
+      const iva = parseFloat(rigaIvaInput.value || "0") || 0;
+
+      if (!prodottoId && !nomeNuovo) {
+        alert("Seleziona un prodotto o inserisci un nuovo prodotto");
+        return;
+      }
+      if (!categoriaId) {
+        alert("Seleziona una categoria");
+        return;
+      }
+      if (!unita) {
+        alert("Inserisci l'unità di misura (es. kg, lt, pz)");
+        return;
+      }
+      if (quantita <= 0) {
+        alert("Inserisci una quantità valida");
+        return;
+      }
+
+      let nomeProdotto = nomeNuovo;
+      if (!nomeProdotto && prodottoId) {
+        const p = prodotti.find((x) => x.id === prodottoId);
+        if (p) nomeProdotto = p.nome;
+      }
+
+      righeFatturaCorrenti.push({
+        prodotto_id: prodottoId,     // può essere null, se nuovo prodotto
+        nome_prodotto: nomeProdotto,
+        categoria_id: categoriaId,
+        unita_misura: unita,
+        quantita,
+        prezzo_unitario: prezzo,
+        iva,
+      });
+
+      // reset campi riga (tranne categoria per comodità)
+      rigaProdottoSelect.value = "";
+      rigaNuovoProdottoInput.value = "";
+      rigaUnitaInput.value = "";
+      rigaQuantitaInput.value = "";
+      rigaPrezzoInput.value = "";
+      rigaIvaInput.value = "";
+
+      renderRigheFatturaCorrenti();
+    });
+  }
+  async function salvaFatturaEScaricoMagazzino() {
+    if (!supabase) return;
+
+    const fornitoreId = fattFornitoreSelect.value || null;
+    const nuovoFornitoreNome = (fattNuovoFornitoreInput.value || "").trim();
+    const dataFattura = fattDataInput.value;
+    const numeroFattura = (fattNumeroInput.value || "").trim();
+    const totaleFattura = parseFloat(fattTotaleInput.value || "0") || null;
+    const note = (fattNoteInput.value || "").trim();
+    const file = fattFileInput.files[0] || null;
+
+    if (!dataFattura) {
+      alert("Inserisci la data della fattura");
+      return;
+    }
+    if (!fornitoreId && !nuovoFornitoreNome) {
+      alert("Seleziona un fornitore o inserisci un nuovo fornitore");
+      return;
+    }
+    if (righeFatturaCorrenti.length === 0) {
+      alert("Aggiungi almeno una riga di fattura");
+      return;
+    }
+
+    // 1) eventuale creazione nuovo fornitore
+    let fornitoreIdFinal = fornitoreId;
+    if (!fornitoreIdFinal && nuovoFornitoreNome) {
+      const { data: fornIns, error: fornErr } = await supabase
+        .from("fornitori")
+        .insert({ nome: nuovoFornitoreNome })
+        .select()
+        .single();
+      if (fornErr) {
+        console.error("Errore inserimento fornitore:", fornErr);
+        alert("Errore nel creare il nuovo fornitore");
+        return;
+      }
+      fornitoreIdFinal = fornIns.id;
+    }
+
+    // 2) upload file se presente
+    let fileUrl = null;
+    if (file) {
+      const estensione = file.name.split(".").pop();
+      const filePath = `fatture/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${estensione}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("fatture") // assicurati che il bucket si chiami così
+        .upload(filePath, file);
+
+      if (uploadErr) {
+        console.error("Errore upload file fattura:", uploadErr);
+        alert("Errore nel caricare il file della fattura");
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("fatture")
+        .getPublicUrl(filePath);
+      fileUrl = publicUrlData.publicUrl;
+    }
+
+    // 3) inserimento fattura
+    const { data: fattIns, error: fattErr } = await supabase
+      .from("fatture")
+      .insert({
+        fornitore_id: fornitoreIdFinal,
+        data_fattura: dataFattura,
+        numero_fattura: numeroFattura || null,
+        totale: totaleFattura,
+        file_url: fileUrl,
+        note: note || null,
+      })
+      .select()
+      .single();
+
+    if (fattErr) {
+      console.error("Errore inserimento fattura:", fattErr);
+      alert("Errore nel salvare la fattura");
+      return;
+    }
+
+    const fatturaId = fattIns.id;
+
+    // 4) per ogni riga: creiamo (se serve) il prodotto, poi fatture_righe + carico magazzino
+    for (const r of righeFatturaCorrenti) {
+      let prodottoId = r.prodotto_id;
+
+      // se non esiste prodotto id ma ho un nome, creo rapidamente un prodotto base
+      if (!prodottoId && r.nome_prodotto) {
+        const { data: prodIns, error: prodErr } = await supabase
+          .from("prodotti")
+          .insert({
+            nome: r.nome_prodotto,
+            categoria_id: r.categoria_id,
+            unita_misura: r.unita_misura,
+            attivo: true,
+          })
+          .select()
+          .single();
+        if (prodErr) {
+          console.error("Errore inserimento prodotto:", prodErr);
+          alert(`Errore nel creare il prodotto ${r.nome_prodotto}`);
+          continue;
+        }
+        prodottoId = prodIns.id;
+      }
+
+      // inserisci riga fattura
+      const totaleRiga = (r.quantita || 0) * (r.prezzo_unitario || 0);
+
+      const { error: rigaErr } = await supabase.from("fatture_righe").insert({
+        fattura_id: fatturaId,
+        prodotto_id: prodottoId,
+        descrizione: r.nome_prodotto,
+        quantita: r.quantita,
+        unita_misura: r.unita_misura,
+        prezzo_unitario: r.prezzo_unitario,
+        iva: r.iva,
+        categoria_id: r.categoria_id,
+      });
+
+      if (rigaErr) {
+        console.error("Errore inserimento riga fattura:", rigaErr);
+      }
+
+      // inserisci movimento di magazzino (carico)
+      const { error: magErr } = await supabase
+        .from("magazzino_movimenti")
+        .insert({
+          prodotto_id: prodottoId,
+          tipo: "carico",
+          quantita: r.quantita,
+          unita_misura: r.unita_misura,
+          costo_totale: totaleRiga,
+          riferimento_tipo: "fattura",
+          riferimento_id: fatturaId,
+        });
+
+      if (magErr) {
+        console.error("Errore inserimento movimento magazzino:", magErr);
+      }
+    }
+
+    alert("Fattura salvata e magazzino aggiornato");
+
+    // reset form
+    fattFornitoreSelect.value = "";
+    fattNuovoFornitoreInput.value = "";
+    fattDataInput.value = "";
+    fattNumeroInput.value = "";
+    fattTotaleInput.value = "";
+    fattFileInput.value = "";
+    fattNoteInput.value = "";
+    righeFatturaCorrenti = [];
+    renderRigheFatturaCorrenti();
+    await caricaFornitori();
+    await caricaProdotti();
+    await caricaStoricoFatture();
+  }
+
+  if (btnSalvaFattura) {
+    btnSalvaFattura.addEventListener("click", salvaFatturaEScaricoMagazzino);
+  }
+  async function caricaStoricoFatture() {
+    if (!supabase || !fattureLista) return;
+
+    const { data, error } = await supabase
+      .from("fatture")
+      .select(
+        `
+        id,
+        data_fattura,
+        numero_fattura,
+        totale,
+        file_url,
+        fornitori ( nome )
+      `
+      )
+      .order("data_fattura", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error("Errore caricamento fatture:", error);
+      return;
+    }
+
+    fattureLista.innerHTML = "";
+    data.forEach((f) => {
+      const tr = document.createElement("tr");
+      const nomeFornitore = f.fornitori ? f.fornitori.nome : "";
+      tr.innerHTML = `
+        <td>${f.data_fattura || ""}</td>
+        <td>${nomeFornitore}</td>
+        <td>${f.numero_fattura || ""}</td>
+        <td>${f.totale != null ? Number(f.totale).toFixed(2) : ""}</td>
+        <td>${
+          f.file_url
+            ? `<a href="${f.file_url}" target="_blank">Apri</a>`
+            : ""
+        }</td>
+      `;
+      fattureLista.appendChild(tr);
+    });
+  }
+  async function applicaTuttoAllAvvio() {
+    applyMode();
+    await caricaDipendentiDaSupabase();
+    await caricaTimbratureDaSupabase();
+
+    // NUOVE:
+    await caricaFornitori();
+    await caricaCategorieProdotto();
+    await caricaProdotti();
+    await caricaStoricoFatture();
+
+    applicaDipendenteCorrente();
+    // ... eventuali altre cose
+  }
+
+  await applicaTuttoAllAvvio();
 
   function navigateTo(route) {
     views.forEach((v) => (v.style.display = "none"));
