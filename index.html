@@ -91,7 +91,7 @@
           </div>
         </form>
 
-        <h3>Timbrature</h3>
+        <h3>Timbrature (tutte)</h3>
         <table class="table-timbrature">
           <thead>
             <tr>
@@ -103,6 +103,19 @@
           </thead>
           <tbody id="timbratura-lista"></tbody>
         </table>
+
+        <div class="timbratura-form" style="margin-top: 12px;">
+          <div class="form-row">
+            <label>
+              Periodo per riepilogo
+              <select id="timbratura-periodo">
+                <option value="oggi">Oggi</option>
+                <option value="settimana">Ultimi 7 giorni</option>
+                <option value="mese">Mese corrente</option>
+              </select>
+            </label>
+          </div>
+        </div>
 
         <h3>Riepilogo ore (per dipendente)</h3>
         <table class="table-timbrature">
