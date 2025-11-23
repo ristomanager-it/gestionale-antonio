@@ -126,7 +126,7 @@
           </div>
         </section>
 
-        <!-- MENU MANAGER -->
+        <!-- MENU MANAGER PULITO -->
         <section
           class="buttons-grid"
           id="manager-menu"
@@ -144,10 +144,10 @@
           </button>
           <button
             class="app-button menu-button"
-            data-route="vendite"
+            data-route="acquisti"
             data-manager-only="true"
           >
-            Vendite
+            Acquisti
           </button>
           <button
             class="app-button menu-button"
@@ -158,24 +158,10 @@
           </button>
           <button
             class="app-button menu-button"
-            data-route="acquisti"
-            data-manager-only="true"
-          >
-            Acquisti
-          </button>
-          <button
-            class="app-button menu-button"
-            data-route="cc"
-            data-manager-only="true"
-          >
-            Centro Cottura
-          </button>
-          <button
-            class="app-button menu-button"
             data-route="reintegro"
             data-manager-only="true"
           >
-            Reintegro
+            Magazzino
           </button>
           <button
             class="app-button menu-button wide"
@@ -552,48 +538,49 @@
             </div>
           </form>
 
-          <h3>Elenco dipendenti</h3>
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Mansione</th>
-                  <th>Data nascita</th>
-                  <th>Residenza</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Ruolo</th>
-                  <th>Tipo compenso</th>
-                  <th>Costo €/h</th>
-                  <th>Canale</th>
-                  <th>PIN</th>
-                  <th>Attivo</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody id="dipendenti-lista"></tbody>
-            </table>
+          <button
+            type="button"
+            id="btn-toggle-dipendenti"
+            class="app-button small gray"
+            style="margin-top: 12px; margin-bottom: 6px"
+          >
+            Mostra elenco dipendenti
+          </button>
+
+          <div id="sezione-dipendenti-elenco" style="display: none">
+            <h3>Elenco dipendenti</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Mansione</th>
+                    <th>Data nascita</th>
+                    <th>Residenza</th>
+                    <th>Telefono</th>
+                    <th>Email</th>
+                    <th>Ruolo</th>
+                    <th>Tipo compenso</th>
+                    <th>Costo €/h</th>
+                    <th>Canale</th>
+                    <th>PIN</th>
+                    <th>Attivo</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="dipendenti-lista"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
-        <!-- ALTRE VISTE PLACEHOLDER -->
-
+        <!-- ORDINE -->
         <section id="view-ordine" class="view" style="display: none">
           <h2>Ordine del giorno</h2>
           <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
         </section>
 
-        <section
-          id="view-vendite"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Vendite</h2>
-          <p>Placeholder vendite.</p>
-        </section>
-
+        <!-- VISTA PREVENTIVI (placeholder) -->
         <section
           id="view-preventivi"
           class="view"
@@ -601,10 +588,10 @@
           data-manager-only="true"
         >
           <h2>Preventivi</h2>
-          <p>Placeholder preventivi.</p>
+          <p>Placeholder preventivi (in futuro: eventi, menù, ecc.).</p>
         </section>
 
-        <!-- 🔹 NUOVA SEZIONE ACQUISTI -->
+        <!-- 🔹 SEZIONE ACQUISTI -->
         <section
           id="view-acquisti"
           class="view"
@@ -697,19 +684,30 @@
             </div>
           </form>
 
-          <div class="table-wrapper" style="margin-top: 8px">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>P.IVA</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody id="fornitori-lista"></tbody>
-            </table>
+          <button
+            type="button"
+            id="btn-toggle-fornitori"
+            class="app-button small gray"
+            style="margin-top: 8px; margin-bottom: 6px"
+          >
+            Mostra elenco fornitori
+          </button>
+
+          <div id="sezione-fornitori-elenco" style="display: none">
+            <div class="table-wrapper" style="margin-top: 8px">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>P.IVA</th>
+                    <th>Telefono</th>
+                    <th>Email</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="fornitori-lista"></tbody>
+              </table>
+            </div>
           </div>
 
           <hr style="margin: 18px 0" />
@@ -802,26 +800,125 @@
           </div>
         </section>
 
-        <section
-          id="view-cc"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Centro cottura</h2>
-          <p>Placeholder centro cottura.</p>
-        </section>
-
+        <!-- MAGAZZINO & PRODOTTI -->
         <section
           id="view-reintegro"
           class="view"
           style="display: none"
           data-manager-only="true"
         >
-          <h2>Reintegro & magazzino</h2>
-          <p>Placeholder reintegro.</p>
+          <h2>Magazzino & Prodotti</h2>
+          <p>
+            Gestisci l'anagrafica prodotti di magazzino (codice interno, nome, UM, categoria).
+          </p>
+
+          <form id="prodotto-form" class="timbratura-form" onsubmit="return false;">
+            <div class="form-row">
+              <label>
+                Codice interno
+                <input
+                  type="text"
+                  id="prodotto-codice"
+                  placeholder="Es. FAR001"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Nome prodotto
+                <input
+                  type="text"
+                  id="prodotto-nome"
+                  placeholder="Es. Farina 00 sacco 25kg"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Categoria (testo)
+                <input
+                  type="text"
+                  id="prodotto-categoria"
+                  placeholder="Es. Farinacei, Carni, Conserve..."
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Unità di misura
+                <input
+                  type="text"
+                  id="prodotto-um"
+                  placeholder="Es. kg, lt, pz, cartone"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label
+                style="flex-direction: row; align-items: center; gap: 8px"
+              >
+                <input type="checkbox" id="prodotto-attivo" checked />
+                Prodotto attivo
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="prodotto-note"
+                  placeholder="Note interne (es. solo CC)"
+                />
+              </label>
+            </div>
+
+            <div class="form-row buttons-row">
+              <button
+                type="button"
+                id="btn-add-prodotto"
+                class="app-button small green"
+              >
+                Aggiungi/aggiorna prodotto
+              </button>
+            </div>
+          </form>
+
+          <button
+            type="button"
+            id="btn-toggle-prodotti"
+            class="app-button small gray"
+            style="margin-top: 12px; margin-bottom: 6px"
+          >
+            Mostra elenco prodotti
+          </button>
+
+          <div id="sezione-prodotti-elenco" style="display: none">
+            <h3>Elenco prodotti di magazzino</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Codice</th>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>UM</th>
+                    <th>Attivo</th>
+                    <th>Note</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="prodotti-lista"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
+        <!-- REPORT -->
         <section
           id="view-report"
           class="view"
@@ -832,6 +929,7 @@
           <p>Placeholder report.</p>
         </section>
 
+        <!-- PARAMETRI -->
         <section
           id="view-parametri"
           class="view"
