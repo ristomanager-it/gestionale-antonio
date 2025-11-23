@@ -70,7 +70,26 @@
         </div>
       </section>
 
-      <!-- MENU PRINCIPALE (VISIBILE SOLO DOPO LOGIN) -->
+      <!-- HOME DIPENDENTE (solo per ruoli non manager) -->
+      <section
+        id="view-home-dip"
+        class="view"
+        style="display: none"
+      >
+        <h2>Cosa vuoi fare?</h2>
+        <p>Seleziona un'azione tra quelle disponibili per il tuo ruolo.</p>
+
+        <div class="home-buttons">
+          <button class="app-button big-home" data-route="timbratura">
+            Timbratura
+          </button>
+          <button class="app-button big-home" data-route="ordine">
+            Ordine del giorno
+          </button>
+        </div>
+      </section>
+
+      <!-- MENU PRINCIPALE (per ruoli manager/admin) -->
       <section class="buttons-grid" style="display: none">
         <button class="app-button" data-route="timbratura">
           Timbratura
@@ -213,7 +232,7 @@
           </div>
         </form>
 
-        <!-- BLOCCO SOLO MANAGER -->
+        <!-- BLOCCO SOLO MANAGER (riepiloghi, costi, ecc.) -->
         <div class="manager-only">
           <h3>Timbrature (tutte)</h3>
           <table class="table-timbrature">
@@ -302,6 +321,22 @@
             <tbody id="attivi-lista"></tbody>
           </table>
         </div>
+      </section>
+
+      <!-- ORDINE DEL GIORNO (tutti i ruoli) -->
+      <section
+        id="view-ordine"
+        class="view"
+        style="display: none"
+      >
+        <h2>Ordine del giorno</h2>
+        <p>
+          Qui inseriremo la lista delle attività giornaliere per il personale
+          (prep, pulizie, briefing, ecc.).
+        </p>
+        <p>
+          Per ora è solo una pagina di esempio, ma la colleghiamo già al menu.
+        </p>
       </section>
 
       <!-- DIPENDENTI / ANAGRAFICA (SOLO MANAGER) -->
@@ -591,7 +626,7 @@
       </section>
     </main>
 
-    <!-- SUPABASE CLIENT (IMPORTANTE PER POPOLARE I DIPENDENTI) -->
+    <!-- SUPABASE CLIENT -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
       const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
