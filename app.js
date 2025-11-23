@@ -4,36 +4,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Supabase client non trovato. Controlla index.html.");
   }
 
-  // STORAGE
+  // ----------------- COSTANTI STORAGE -----------------
   const CURRENT_USER_KEY = "utente_corrente";
 
-  // ELEMENTI BASE
+  // ----------------- ELEMENTI BASE DOM -----------------
   const views = document.querySelectorAll(".view");
   const routeButtons = document.querySelectorAll("[data-route]");
   const buttonsGrid = document.querySelector(".buttons-grid");
 
+  // login
   const loginView = document.getElementById("view-login");
   const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
+  // home dipendente
   const homeDipView = document.getElementById("view-home-dip");
 
+  // header utente
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
-  // Timbratura: etichette utente
+  // timbratura – info utente
   const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
-  const timbUtenteCanaleEl = document.getElementById("timbratura-utente-canale");
+  const timbCanaleSelect = document.getElementById("timbratura-canale-select");
 
-  // Stato
+  // timbratura – pulsanti
+  const btnEntra = document.getElementById("btn-entra");
+  const btnPausa = document.getElementById("btn-pausa");
+  const btnEsci = document.getElementById("btn-esci");
+
+  // timbratura – tabelle e filtri manager
+  const lista = document.getElementById("timbratura-lista");
+  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
+  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
+  const attiviListaEl = document.getElementById("attivi-lista");
+  const periodoSelect = document.getElementById("timbratura-periodo");
+  const costoDipEl = document.getElementById("costo-dipendenti");
+  const costoCanaliEl = document.getElementById("costo-canali");
+
+  // anagrafica dipendenti
+  const dipNome = document.getElementById("dip-nome");
+  const dipMansione = document.getElementById("dip-mansione");
+  const dipDataNascita = document.getElementById("dip-data-nascita");
+  const dipResidenza = document.getElementById("dip-residenza");
+  const dipTelefono = document.getElementById("dip-telefono");
+  const dipEmail = document.getElementById("dip-email");
+  const dipRuolo = document.getElementById("dip-ruolo");
+
+  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
+  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
+  const dipOreMensili = document.getElementById("dip-ore-mensili");
+  const dipOreServizio = document.getElementById("dip-ore-servizio");
+  const dipCosto = document.getElementById("dip-costo");
+  const rowOreMensili = document.getElementById("row-ore-mensili");
+  const rowOreServizio = document.getElementById("row-ore-servizio");
+  const labelRetribuzione = document.getElementById("label-retribuzione-base");
+
+  const dipCodice = document.getElementById("dip-codice");
+  const dipCanale = document.getElementById("dip-canale");
+  const dipAttivo = document.getElementById("dip-attivo");
+  const btnAddDip = document.getElementById("btn-add-dip");
+  const dipLista = document.getElementById("dipendenti-lista");
+
+  // ----------------- STATO -----------------
   let dipendenti = [];
   let timbrature = [];
   let currentUser = null;
   let periodoCorrente = "oggi";
 
-  // Utility ruoli
+  // ----------------- UTILITY RUOLI & FORMAT -----------------
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -99,6 +140,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return 0;
   }
 
+  // ----------------- HEADER & VISIBILITÀ -----------------
   function updateHeaderUser() {
     if (!currentUserLabel) return;
 
@@ -115,9 +157,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function applyRoleVisibility() {
-    const modalita = currentUser && isManagerRole(currentUser.ruolo)
-      ? "manager"
-      : "dipendente";
+    const modalita =
+      currentUser && isManagerRole(currentUser.ruolo)
+        ? "manager"
+        : "dipendente";
 
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
@@ -166,7 +209,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function showManagerMenu(initialRoute) {
     if (buttonsGrid) buttonsGrid.style.display = "grid";
-    showOnlyView("view-timbratura");
+    // view principale
+    showOnlyView(`view-${initialRoute || "timbratura"}`);
     applyRoleVisibility();
     navigateTo(initialRoute || "timbratura");
   }
@@ -197,27 +241,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       const saved = JSON.parse(raw);
       if (!saved) return;
 
+      // admin virtuale
       if (saved.virtualAdmin) {
         currentUser = saved;
         applyRoleVisibility();
         return;
       }
 
+      // prova match per id
       const found = dipendenti.find((d) => d.id === saved.id);
       if (found) {
         setCurrentUser(found, true);
         return;
       }
 
+      // prova match per nome
       const byName = dipendenti.find(
-        (d) => d.nome && d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
+        (d) =>
+          d.nome &&
+          d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
       );
       if (byName) {
         setCurrentUser(byName, true);
         return;
       }
     } catch {
-      // ignore
+      // ignore parse error
     }
   }
 
@@ -228,37 +277,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ----------------- ANAGRAFICA DIPENDENTI -----------------
-  const dipNome = document.getElementById("dip-nome");
-  const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
-
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
-  const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
-
-  const dipCodice = document.getElementById("dip-codice");
-  const dipCanale = document.getElementById("dip-canale");
-  const dipAttivo = document.getElementById("dip-attivo");
-  const btnAddDip = document.getElementById("btn-add-dip");
-  const dipLista = document.getElementById("dipendenti-lista");
-
   function aggiornaUICompenso() {
     if (!dipTipoCompenso || !labelRetribuzione) return;
 
     const tipo = dipTipoCompenso.value || "orario";
 
     if (tipo === "orario") {
-      labelRetribuzione.firstChild.textContent =
-        "Paga oraria lorda (€/h)";
+      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "mensile") {
@@ -275,10 +300,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const retribuzioneBase =
       parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-    const oreMensiliVal =
-      parseFloat(dipOreMensili?.value || "0") || 0;
-    const oreServizioVal =
-      parseFloat(dipOreServizio?.value || "0") || 0;
+    const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
+    const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
 
     const costo = calcolaCostoOrario(
       tipo,
@@ -498,10 +521,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tipoCompenso = dipTipoCompenso?.value || "orario";
       const retribuzioneBase =
         parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-      const oreMensiliVal =
-        parseFloat(dipOreMensili?.value || "0") || 0;
-      const oreServizioVal =
-        parseFloat(dipOreServizio?.value || "0") || 0;
+      const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
+      const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
 
       const costoOrario = calcolaCostoOrario(
         tipoCompenso,
@@ -575,13 +596,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
       if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
-      if (timbUtenteCanaleEl) timbUtenteCanaleEl.textContent = "-";
+      if (timbCanaleSelect) timbCanaleSelect.value = "NR";
       return;
     }
+
     if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = currentUser.nome;
-    if (timbUtenteCanaleEl) {
-      timbUtenteCanaleEl.textContent =
-        currentUser.canalePrevalente || "NR";
+
+    const defaultCanale = currentUser.canalePrevalente || "NR";
+    if (timbCanaleSelect) {
+      timbCanaleSelect.value = defaultCanale;
     }
   }
 
@@ -600,7 +623,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Admin di emergenza
+      // Admin di emergenza (non legato a dipendenti)
       if (nome.toLowerCase() === "admin" && pin === "9999") {
         setCurrentUser(
           {
@@ -643,18 +666,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ----------------- TIMBRATURE -----------------
-  const btnEntra = document.getElementById("btn-entra");
-  const btnPausa = document.getElementById("btn-pausa");
-  const btnEsci = document.getElementById("btn-esci");
-
-  const lista = document.getElementById("timbratura-lista");
-  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
-  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
-  const attiviListaEl = document.getElementById("attivi-lista");
-  const periodoSelect = document.getElementById("timbratura-periodo");
-  const costoDipEl = document.getElementById("costo-dipendenti");
-  const costoCanaliEl = document.getElementById("costo-canali");
-
   async function caricaTimbratureDaSupabase() {
     if (!supabase) return;
 
@@ -777,6 +788,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+    // riepilogo per dipendente
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -789,6 +801,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoDipEl.appendChild(tr);
     });
 
+    // riepilogo per canale
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
@@ -799,6 +812,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
+    // costi
     if (costoDipEl && costoCanaliEl) {
       costoDipEl.innerHTML = "";
       costoCanaliEl.innerHTML = "";
@@ -842,6 +856,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
+    // attivi adesso
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
@@ -922,7 +937,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const dipNomeVal = currentUser.nome;
-    const canaleVal = currentUser.canalePrevalente || "NR";
+    const canaleVal =
+      (timbCanaleSelect && timbCanaleSelect.value) ||
+      currentUser.canalePrevalente ||
+      "NR";
 
     const now = new Date();
     const ora = now.toLocaleTimeString("it-IT", {
@@ -984,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const isManager = isManagerRole(currentUser.ruolo);
 
     if (!isManager) {
-      // dipendenti normali possono vedere solo timbratura e ordine
+      // dipendenti semplici: solo timbratura e ordine
       if (route === "timbratura" || route === "ordine") {
         showOnlyView(`view-${route}`);
         await onRouteEnter(route);
