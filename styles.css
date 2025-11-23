@@ -10,16 +10,18 @@ body {
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #0f172a;
+  background: #0f172a; /* sfondo scuro dietro l'app */
   color: #0b1120;
 }
+
+/* CONTENITORE APP: LARGHEZZA MOBILE, CENTRATO */
 
 body {
   display: block;
 }
 
 .app-main-wrapper {
-  max-width: 480px;
+  max-width: 480px;          /* pensato per telefono verticale */
   margin: 0 auto;
   min-height: 100vh;
   background: #e5e7eb;
@@ -27,7 +29,17 @@ body {
   flex-direction: column;
 }
 
+/* Se non hai il wrapper .app-main-wrapper, puoi metterlo così:
+   <body>
+     <div class="app-main-wrapper">
+       <header class="app-header">...</header>
+       <main class="app-main">...</main>
+     </div>
+   </body>
+*/
+
 /* HEADER */
+
 .app-header {
   text-align: center;
   padding: 10px 12px;
@@ -58,7 +70,8 @@ body {
   color: #6b7280;
 }
 
-/* USER INFO */
+/* INFO UTENTE */
+
 .header-user {
   display: flex;
   flex-direction: column;
@@ -69,6 +82,7 @@ body {
 }
 
 /* MAIN */
+
 .app-main {
   flex: 1;
   padding: 10px;
@@ -77,10 +91,11 @@ body {
   gap: 10px;
 }
 
-/* GRID MANAGER */
+/* BOTTONI MENU MANAGER */
+
 .buttons-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* sempre 2 colonne su mobile */
   gap: 8px;
 }
 
@@ -114,7 +129,8 @@ body {
   font-size: 11px;
 }
 
-/* VIEWS */
+/* VISTE */
+
 .view {
   background: #ffffff;
   border-radius: 14px;
@@ -136,7 +152,8 @@ body {
   font-size: 13px;
 }
 
-/* LOGIN */
+/* --- LOGIN --- */
+
 .login-view {
   background: transparent;
   box-shadow: none;
@@ -169,6 +186,8 @@ body {
 .login-form {
   margin: 0;
   padding: 0;
+  background: transparent;
+  border: none;
 }
 
 .login-buttons-row {
@@ -183,6 +202,10 @@ body {
   background: #2563eb;
   color: white;
   border-radius: 999px;
+}
+
+.login-button:hover {
+  background: #1d4ed8;
 }
 
 .login-hint {
@@ -205,6 +228,7 @@ body {
 }
 
 /* HOME DIPENDENTE */
+
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -219,7 +243,8 @@ body {
   border-radius: 14px;
 }
 
-/* FORMS */
+/* FORM GENERICO */
+
 .timbratura-form {
   margin: 8px 0 12px;
   padding: 10px;
@@ -230,6 +255,10 @@ body {
 
 .form-row {
   margin-bottom: 8px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
 }
 
 .form-row label {
@@ -250,7 +279,12 @@ body {
   width: 100%;
 }
 
-/* SMALL BUTTONS */
+.form-row textarea {
+  resize: vertical;
+}
+
+/* BOTTONI PICCOLI */
+
 .app-button.small {
   padding: 6px 10px;
   font-size: 12px;
@@ -268,6 +302,7 @@ body {
 }
 
 /* TIMBRATURA */
+
 .timbratura-intro-card {
   margin: 8px 0 10px;
   padding: 10px;
@@ -281,6 +316,8 @@ body {
   font-size: 14px;
   color: #111827;
 }
+
+/* PULSANTI TIMBRATURA GRANDI (UNO SOTTO L’ALTRO SU TELEFONO) */
 
 .timbratura-buttons {
   display: flex;
@@ -298,19 +335,31 @@ body {
   color: #ffffff;
 }
 
+/* colori */
+
 .timb-button.green {
   background: #16a34a;
+}
+.timb-button.green:hover {
+  background: #15803d;
 }
 
 .timb-button.gray {
   background: #6b7280;
 }
+.timb-button.gray:hover {
+  background: #4b5563;
+}
 
 .timb-button.red {
   background: #dc2626;
 }
+.timb-button.red:hover {
+  background: #b91c1c;
+}
 
-/* TABLES */
+/* TABELLE (WRAPPER PER SCROLL ORIZZONTALE SOLO DENTRO LA TABELLA) */
+
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -330,6 +379,7 @@ body {
 .table-timbrature td {
   padding: 6px 8px;
   border-bottom: 1px solid #e5e7eb;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -338,11 +388,24 @@ body {
   font-weight: 600;
 }
 
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
+
+/* MANAGER-ONLY */
+
 .manager-only {
   margin-top: 12px;
 }
 
-/* DESKTOP */
+/* SCROLL MORBIDO */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* VERSIONE TABLET / DESKTOP (solo un po' più largo, la grafica desktop la facciamo dopo) */
+
 @media (min-width: 768px) {
   .app-main-wrapper {
     max-width: 900px;
