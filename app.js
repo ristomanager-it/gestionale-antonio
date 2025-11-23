@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --- COSTANTI CHIAVI STORAGE ---
   const CURRENT_DIP_KEY = "dipendente_corrente";
   const MODE_KEY = "modalita_utente"; // 'dipendente' | 'manager'
-  const MANAGER_PIN = "9999";
+  const MANAGER_PIN = "9999"; // PIN master per entrare come manager da pulsante
 
   // --- ROUTER SPA ---
   const views = document.querySelectorAll(".view");
@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- MODALITÀ MANAGER / DIPENDENTE ---
   let modalita = localStorage.getItem(MODE_KEY) || "dipendente";
+  let defaultRouteAfterLogin = "timbratura";
 
   const modeLabel = document.getElementById("mode-label");
   const btnModeManager = document.getElementById("btn-mode-manager");
@@ -58,91 +59,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-    if (btnAddRiga) {
-    btnAddRiga.addEventListener("click", async () => {
-      const prodottoId = rigaProdottoSelect.value || null;
-      const nomeNuovo = (rigaNuovoProdottoInput.value || "").trim();
-      let categoriaId = rigaCategoriaSelect.value || null;
-      const unita = (rigaUnitaInput.value || "").trim();
-      const quantita = parseFloat(rigaQuantitaInput.value || "0") || 0;
-      const prezzo = parseFloat(rigaPrezzoInput.value || "0") || 0;
-      const iva = parseFloat(rigaIvaInput.value || "0") || 0;
-
-      if (!prodottoId && !nomeNuovo) {
-        alert("Seleziona un prodotto o inserisci un nuovo prodotto");
-        return;
-      }
-
-      // Se non hai selezionato una categoria, ti faccio creare una categoria al volo
-      if (!categoriaId) {
-        const nomeCat = prompt(
-          "Non hai selezionato una categoria.\nInserisci il nome di una nuova categoria (es. Verdure, Carne, Bevande):"
-        );
-
-        if (!nomeCat) {
-          alert("Seleziona o crea una categoria per continuare");
-          return;
-        }
-
-        // Creo la categoria su Supabase
-        const { data: catIns, error: catErr } = await supabase
-          .from("categorie_prodotto")
-          .insert({ nome: nomeCat })
-          .select()
-          .single();
-
-        if (catErr) {
-          console.error("Errore inserimento categoria:", catErr);
-          alert("Errore nel creare la nuova categoria");
-          return;
-        }
-
-        // Aggiorno array locale e select
-        categoriaId = catIns.id;
-        categorieProdotto.push(catIns);
-        const opt = document.createElement("option");
-        opt.value = catIns.id;
-        opt.textContent = catIns.nome;
-        rigaCategoriaSelect.appendChild(opt);
-        rigaCategoriaSelect.value = categoriaId;
-      }
-
-      if (!unita) {
-        alert("Inserisci l'unità di misura (es. kg, lt, pz)");
-        return;
-      }
-      if (quantita <= 0) {
-        alert("Inserisci una quantità valida");
-        return;
-      }
-
-      let nomeProdotto = nomeNuovo;
-      if (!nomeProdotto && prodottoId) {
-        const p = prodotti.find((x) => x.id === prodottoId);
-        if (p) nomeProdotto = p.nome;
-      }
-
-      righeFatturaCorrenti.push({
-        prodotto_id: prodottoId,
-        nome_prodotto: nomeProdotto,
-        categoria_id: categoriaId,
-        unita_misura: unita,
-        quantita,
-        prezzo_unitario: prezzo,
-        iva,
-      });
-
-      // reset campi
-      rigaProdottoSelect.value = "";
-      rigaNuovoProdottoInput.value = "";
-      rigaUnitaInput.value = "";
-      rigaQuantitaInput.value = "";
-      rigaPrezzoInput.value = "";
-      rigaIvaInput.value = "";
-
-      renderRigheFatturaCorrenti();
+  if (btnModeExit) {
+    btnModeExit.addEventListener("click", () => {
+      modalita = "dipendente";
+      localStorage.setItem(MODE_KEY, modalita);
+      applyMode();
+      alert("Sei uscito dalla modalità manager");
     });
   }
+
+  function getDefaultRouteForRuolo(ruolo) {
+    switch (ruolo) {
+      case "admin":
+        return "timbratura";
+      case "manager_cucina":
+        return "fatture"; // la vista si chiama ancora view-fatture (Acquisti)
+      case "manager_sala":
+        return "vendite";
+      default:
+        return "timbratura";
+    }
+  }
+
+  // --- FATTURE / ACQUISTI / MAGAZZINO ---
+
+  const fattFornitoreSelect = document.getElementById("fatt-fornitore");
+  const fattNuovoFornitoreInput = document.getElementById(
+    "fatt-nuovo-fornitore"
+  );
+  const fattDataInput = document.getElementById("fatt-data");
+  const fattNumeroInput = document.getElementById("fatt-numero");
+  const fattTotaleInput = document.getElementById("fatt-totale");
+  const fattFileInput = document.getElementById("fatt-file");
+  const fattNoteInput = document.getElementById("fatt-note");
+
+  const rigaProdottoSelect = document.getElementById("riga-prodotto");
+  const rigaNuovoProdottoInput = document.getElementById("riga-nuovo-prodotto");
+  const rigaCategoriaSelect = document.getElementById("riga-categoria");
+  const rigaUnitaInput = document.getElementById("riga-unita");
+  const rigaQuantitaInput = document.getElementById("riga-quantita");
+  const rigaPrezzoInput = document.getElementById("riga-prezzo");
+  const rigaIvaInput = document.getElementById("riga-iva");
+
+  const btnAddRiga = document.getElementById("btn-add-riga");
+  const fattRigheLista = document.getElementById("fatt-righe-lista");
+  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
+  const fattureLista = document.getElementById("fatture-lista");
+
+  let fornitori = [];
+  let categorieProdotto = [];
+  let prodotti = [];
+  let righeFatturaCorrenti = [];
 
   async function caricaFornitori() {
     if (!supabase || !fattFornitoreSelect) return;
@@ -170,7 +137,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function caricaCategorieProdotto() {
     if (!supabase || !rigaCategoriaSelect) return;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("categorie_prodotto")
       .select("*")
       .order("nome", { ascending: true });
@@ -178,6 +145,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (error) {
       console.error("Errore caricamento categorie prodotto:", error);
       return;
+    }
+
+    // Se non esiste nessuna categoria, creiamo una categoria di default "Generico"
+    if (!data || data.length === 0) {
+      const { data: nuovaCat, error: err2 } = await supabase
+        .from("categorie_prodotto")
+        .insert({ nome: "Generico" })
+        .select()
+        .single();
+      if (err2) {
+        console.error("Errore creazione categoria Generico:", err2);
+        categorieProdotto = [];
+        return;
+      }
+      data = [nuovaCat];
     }
 
     categorieProdotto = data;
@@ -262,7 +244,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       if (!categoriaId) {
-        alert("Seleziona una categoria");
+        alert(
+          "Seleziona una categoria (seleziona 'Generico' se non hai ancora creato categorie specifiche)"
+        );
         return;
       }
       if (!unita) {
@@ -381,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (fattErr) {
       console.error("Errore inserimento fattura:", fattErr);
-      alert("Errore nel salvare la fattura");
+      alert("Errore nel salvare l'acquisto");
       return;
     }
 
@@ -591,6 +575,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function aggiornaUICompenso() {
+    if (!dipTipoCompenso) return;
     const tipo = dipTipoCompenso.value || "orario";
 
     if (rowOreMensili && rowOreServizio) {
@@ -1084,7 +1069,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const day = startSettimana.getDay() || 7;
     startSettimana.setDate(startSettimana.getDate() - (day - 1));
 
-    const startMese = new Date(adessoDate.getFullYear(), adessoDate.getMonth(), 1);
+    const startMese = new Date(
+      adessoDate.getFullYear(),
+      adessoDate.getMonth(),
+      1
+    );
     startMese.setHours(0, 0, 0, 0);
 
     let startPeriodoMs = startGiorno.getTime();
@@ -1302,9 +1291,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     aggiornaRiepilogo();
   }
 
-  if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+  if (btnEntra)
+    btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  if (btnPausa)
+    btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
+  if (btnEsci)
+    btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+
+  // --- LOGIN CON PIN ALL'AVVIO ---
+
+  async function loginConPinAllAvvio() {
+    const pin = prompt(
+      "Inserisci il tuo PIN personale per accedere (lascia vuoto per accesso base):"
+    );
+
+    if (!pin) {
+      // accesso generico dipendente
+      modalita = "dipendente";
+      localStorage.setItem(MODE_KEY, modalita);
+      defaultRouteAfterLogin = "timbratura";
+      return;
+    }
+
+    const dip = dipendenti.find(
+      (d) => d.codice && d.codice.toString() === pin.toString()
+    );
+    if (!dip) {
+      alert("PIN non riconosciuto. Accesso come dipendente base.");
+      modalita = "dipendente";
+      localStorage.setItem(MODE_KEY, modalita);
+      defaultRouteAfterLogin = "timbratura";
+      return;
+    }
+
+    // salvo come "dipendente corrente" (per la timbratura)
+    salvaDipendenteCorrente(dip);
+
+    if (dip.ruolo === "admin" || dip.ruolo === "manager_cucina" || dip.ruolo === "manager_sala") {
+      modalita = "manager";
+    } else {
+      modalita = "dipendente";
+    }
+    localStorage.setItem(MODE_KEY, modalita);
+
+    defaultRouteAfterLogin = getDefaultRouteForRuolo(dip.ruolo);
+  }
 
   // --- ROUTE HOOK: cosa ricaricare quando entro in una vista ---
 
@@ -1320,7 +1351,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await caricaDipendentiDaSupabase();
         break;
 
-      case "fatture": // vista "Acquisti", ma id/route restano "fatture"
+      case "fatture": // vista "Acquisti"
         await caricaFornitori();
         await caricaCategorieProdotto();
         await caricaProdotti();
@@ -1373,8 +1404,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --- AVVIO APP ---
 
   async function applicaTuttoAllAvvio() {
-    applyMode();
+    // 1) carico dipendenti per poter fare login
     await caricaDipendentiDaSupabase();
+
+    // 2) login con PIN → imposta modalita e defaultRouteAfterLogin
+    await loginConPinAllAvvio();
+
+    // 3) applico modalità (UI)
+    applyMode();
+
+    // 4) carico dati principali
     await caricaTimbratureDaSupabase();
     await caricaFornitori();
     await caricaCategorieProdotto();
@@ -1382,7 +1421,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     await caricaStoricoFatture();
     applicaDipendenteCorrente();
     aggiornaUICompenso();
+
+    // 5) route iniziale: hash se presente, altrimenti quella decisa dal ruolo
+    const routeFromHash = window.location.hash.replace("#", "");
+    const initialRoute = routeFromHash || defaultRouteAfterLogin || "timbratura";
+    await navigateTo(initialRoute);
   }
+
+  await applicaTuttoAllAvvio();
+});
 
   await applicaTuttoAllAvvio();
 
