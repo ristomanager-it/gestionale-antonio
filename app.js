@@ -7,6 +7,42 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CURRENT_USER_KEY = "utente_corrente";
   const THEME_KEY = "tema_app"; // "dark" | "light"
 
+  // Regole semplici per suggerire categorie da descrizione prodotto
+  const REGOLE_CATEGORIA = [
+    {
+      nome: "Farinacei",
+      match: ["farina", "semola", "grano", "riso", "pasta"],
+    },
+    {
+      nome: "Carni suine",
+      match: ["maiale", "suino", "coppa", "lonza", "salsiccia"],
+    },
+    {
+      nome: "Carni bovine",
+      match: ["vitello", "manzo", "bovino", "entrecote", "costata"],
+    },
+    {
+      nome: "Carni avicole",
+      match: ["pollo", "gallo", "tacchino", "coscia di pollo"],
+    },
+    {
+      nome: "Pesce",
+      match: ["merluzzo", "salmone", "tonno", "branzino", "orata"],
+    },
+    {
+      nome: "Conserve di pomodoro",
+      match: ["passata", "pelati", "pomodoro", "polpa di pomodoro"],
+    },
+    {
+      nome: "Latticini",
+      match: ["latte", "burro", "panna", "mozzarella", "formaggio"],
+    },
+    {
+      nome: "Ortaggi",
+      match: ["zucchine", "melanzane", "carote", "cipolle", "patate"],
+    },
+  ];
+
   // DOM base
   const views = document.querySelectorAll(".view");
   const routeButtons = document.querySelectorAll("[data-route]");
@@ -111,6 +147,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddFattura = document.getElementById("btn-add-fattura");
   const fattureListaEl = document.getElementById("fatture-lista");
 
+  // ACQUISTI – dettaglio fattura / righe
+  const fatturaDettaglioBox = document.getElementById("fattura-dettaglio");
+  const fatturaDettaglioIntestazione = document.getElementById(
+    "fattura-dettaglio-intestazione"
+  );
+  const fatturaRigaForm = document.getElementById("fattura-riga-form");
+  const fatturaRigaDescrizioneInput = document.getElementById(
+    "fattura-riga-descrizione"
+  );
+  const fatturaRigaQuantitaInput = document.getElementById(
+    "fattura-riga-quantita"
+  );
+  const fatturaRigaUmInput = document.getElementById("fattura-riga-um");
+  const fatturaRigaPrezzoInput = document.getElementById("fattura-riga-prezzo");
+  const fatturaRigaTotaleInput = document.getElementById("fattura-riga-totale");
+  const fatturaRigaSuggerimentiEl = document.getElementById(
+    "fattura-riga-suggerimenti"
+  );
+  const btnAddFatturaRiga = document.getElementById("btn-add-fattura-riga");
+  const fatturaRigheListaEl = document.getElementById("fattura-righe-lista");
+
   // MAGAZZINO – prodotti
   const prodottoForm = document.getElementById("prodotto-form");
   const prodottoCodiceInput = document.getElementById("prodotto-codice");
@@ -135,6 +192,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // stato acquisti
   let fornitori = [];
   let fatture = [];
+  let fatturaSelezionata = null;
+  let fatturaRighe = [];
 
   // stato magazzino
   let categorieProdotto = [];
@@ -172,6 +231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadTheme();
 
   // ---------- utility ruoli ----------
+  // In futuro possiamo mettere qui la matrice permessi per ruolo
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -1359,7 +1419,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!fattureListaEl) return;
     fattureListaEl.innerHTML = "";
 
-    fatture.forEach((f) => {
+    fatture.forEach((f, index) => {
       const fornitore = fornitori.find((x) => x.id === f.fornitore_id);
       const nomeFornitore = fornitore ? fornitore.nome : "-";
 
@@ -1368,6 +1428,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         : "";
 
       const tr = document.createElement("tr");
+      tr.setAttribute("data-fattura-index", index.toString());
+      tr.style.cursor = "pointer";
       tr.innerHTML = `
         <td>${dataStr}</td>
         <td>${f.numero}</td>
@@ -1383,6 +1445,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
       fattureListaEl.appendChild(tr);
     });
+
+    fattureListaEl
+      .querySelectorAll("tr[data-fattura-index]")
+      .forEach((tr) => {
+        tr.addEventListener("click", () => {
+          const idx = parseInt(tr.getAttribute("data-fattura-index"), 10);
+          const f = fatture[idx];
+          if (f) {
+            selezionaFattura(f);
+          }
+        });
+      });
   }
 
   if (btnAddFattura) {
@@ -1432,9 +1506,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         note: note || null,
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("fatture_acquisto")
-        .insert(payload);
+        .insert(payload)
+        .select()
+        .single();
 
       if (error) {
         console.error("Errore salvataggio fattura:", error);
@@ -1450,6 +1526,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       await caricaFattureDaSupabase();
       alert("Fattura registrata correttamente");
+
+      // Se vuoi, selezioniamo subito la nuova fattura
+      fatturaSelezionata = data;
+      selezionaFattura(data);
     });
   }
 
@@ -1656,6 +1736,315 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ---------- SUGGERIMENTI PRODOTTO/CATEGORIA DA DESCRIZIONE ----------
+  function normalizzaTesto(txt) {
+    return (txt || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function suggerisciCategoriaDaDescrizione(descrizione) {
+    const d = normalizzaTesto(descrizione);
+    if (!d) return null;
+
+    for (const regola of REGOLE_CATEGORIA) {
+      for (const parola of regola.match) {
+        if (d.includes(normalizzaTesto(parola))) {
+          return regola.nome;
+        }
+      }
+    }
+    return null;
+  }
+
+  function trovaProdottoEsistentePerDescrizione(descrizione) {
+    const d = normalizzaTesto(descrizione);
+    if (!d || !prodotti.length) return null;
+
+    // Match semplice: se nome prodotto contiene almeno una parola chiave della descrizione
+    const tokens = d.split(/\s+/).filter((t) => t.length > 3);
+    for (const p of prodotti) {
+      const nomeP = normalizzaTesto(p.nome);
+      if (tokens.some((t) => nomeP.includes(t))) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  function aggiornaSuggerimentiRigaFattura() {
+    if (!fatturaRigaSuggerimentiEl) return;
+    const descr = fatturaRigaDescrizioneInput?.value || "";
+    if (!descr.trim()) {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        delete fatturaRigaForm.dataset.categoriaSuggerita;
+      }
+      return;
+    }
+
+    const prodottoEsistente = trovaProdottoEsistentePerDescrizione(descr);
+    const catSuggerita = suggerisciCategoriaDaDescrizione(descr);
+
+    if (prodottoEsistente) {
+      const catNome = getNomeCategoriaById(prodottoEsistente.categoria_id);
+      fatturaRigaSuggerimentiEl.textContent =
+        "Prodotto esistente trovato: " +
+        prodottoEsistente.nome +
+        (catNome ? ` (categoria: ${catNome})` : "");
+      if (fatturaRigaForm) {
+        fatturaRigaForm.dataset.prodottoEsistenteId = prodottoEsistente.id;
+      }
+    } else if (catSuggerita) {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Nuovo prodotto, categoria suggerita: " + catSuggerita;
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        fatturaRigaForm.dataset.categoriaSuggerita = catSuggerita;
+      }
+    } else {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Nuovo prodotto (categoria da decidere).";
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        delete fatturaRigaForm.dataset.categoriaSuggerita;
+      }
+    }
+  }
+
+  if (fatturaRigaDescrizioneInput) {
+    fatturaRigaDescrizioneInput.addEventListener(
+      "input",
+      aggiornaSuggerimentiRigaFattura
+    );
+  }
+
+  function aggiornaTotaleRigaDaQuantitaPrezzo() {
+    if (!fatturaRigaQuantitaInput || !fatturaRigaPrezzoInput || !fatturaRigaTotaleInput) return;
+    const qta = parseFloat(fatturaRigaQuantitaInput.value || "0") || 0;
+    const prezzo = parseFloat(fatturaRigaPrezzoInput.value || "0") || 0;
+    const tot = qta * prezzo;
+    fatturaRigaTotaleInput.value = tot > 0 ? tot.toFixed(2) : "";
+  }
+
+  if (fatturaRigaQuantitaInput) {
+    fatturaRigaQuantitaInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+  }
+  if (fatturaRigaPrezzoInput) {
+    fatturaRigaPrezzoInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+  }
+
+  // ---------- RIGHE FATTURA + MAGAZZINO ----------
+  async function caricaRigheFatturaDaSupabase(fatturaId) {
+    if (!supabase || !fatturaId) return;
+    const { data, error } = await supabase
+      .from("fatture_righe")
+      .select("*")
+      .eq("fattura_id", fatturaId)
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento righe fattura:", error);
+      alert("Errore nel caricare le righe della fattura");
+      return;
+    }
+
+    fatturaRighe = data || [];
+    renderFatturaRighe();
+  }
+
+  function renderFatturaRighe() {
+    if (!fatturaRigheListaEl) return;
+    fatturaRigheListaEl.innerHTML = "";
+
+    fatturaRighe.forEach((r) => {
+      const prod = prodotti.find((p) => p.id === r.prodotto_id);
+      const nomeProd = prod ? prod.nome : "";
+      const catNome = prod ? getNomeCategoriaById(prod.categoria_id) : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.descrizione}</td>
+        <td>${Number(r.quantita).toFixed(3)}</td>
+        <td>${r.unita_misura}</td>
+        <td>${Number(r.prezzo_unitario).toFixed(4)}</td>
+        <td>${r.totale_riga != null ? Number(r.totale_riga).toFixed(2) : ""}</td>
+        <td>${nomeProd || ""}${catNome ? " (" + catNome + ")" : ""}</td>
+      `;
+      fatturaRigheListaEl.appendChild(tr);
+    });
+  }
+
+  function resetFatturaRigaForm() {
+    if (fatturaRigaDescrizioneInput) fatturaRigaDescrizioneInput.value = "";
+    if (fatturaRigaQuantitaInput) fatturaRigaQuantitaInput.value = "";
+    if (fatturaRigaUmInput) fatturaRigaUmInput.value = "";
+    if (fatturaRigaPrezzoInput) fatturaRigaPrezzoInput.value = "";
+    if (fatturaRigaTotaleInput) fatturaRigaTotaleInput.value = "";
+    if (fatturaRigaSuggerimentiEl)
+      fatturaRigaSuggerimentiEl.textContent =
+        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
+    if (fatturaRigaForm) {
+      delete fatturaRigaForm.dataset.prodottoEsistenteId;
+      delete fatturaRigaForm.dataset.categoriaSuggerita;
+    }
+  }
+
+  async function selezionaFattura(fattura) {
+    fatturaSelezionata = fattura;
+    if (!fatturaDettaglioBox || !fatturaDettaglioIntestazione) return;
+
+    const fornitore = fornitori.find((x) => x.id === fattura.fornitore_id);
+    const nomeFornitore = fornitore ? fornitore.nome : "-";
+    const dataStr = fattura.data
+      ? new Date(fattura.data).toLocaleDateString("it-IT")
+      : "";
+
+    fatturaDettaglioIntestazione.textContent = `Fornitore: ${nomeFornitore} • Data: ${dataStr} • Numero: ${fattura.numero}`;
+    fatturaDettaglioBox.style.display = "block";
+    resetFatturaRigaForm();
+
+    await caricaProdottiDaSupabase(); // così possiamo fare match sui prodotti
+    await caricaRigheFatturaDaSupabase(fattura.id);
+  }
+
+  async function inserisciMovimentoMagazzinoDaRiga(
+    prodottoId,
+    fattura,
+    rigaInserita
+  ) {
+    if (!supabase || !prodottoId || !fattura || !rigaInserita) return;
+
+    const qta = Number(rigaInserita.quantita) || 0;
+    const um = rigaInserita.unita_misura || "pz";
+    const prezzo = Number(rigaInserita.prezzo_unitario) || 0;
+    const tot = qta * prezzo;
+
+    const dataMovimento =
+      fattura.data ||
+      new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+
+    const riferimento = `Fattura ${fattura.numero || ""}`.trim();
+
+    const payload = {
+      prodotto_id: prodottoId,
+      tipo: "carico",
+      data_movimento: dataMovimento,
+      quantita: qta,
+      unita_misura: um,
+      costo_unitario: prezzo || null,
+      costo_totale: tot || null,
+      riferimento: riferimento || null,
+      fattura_id: fattura.id,
+      fattura_riga_id: rigaInserita.id,
+    };
+
+    const { error } = await supabase
+      .from("magazzino_movimenti")
+      .insert(payload);
+
+    if (error) {
+      console.error("Errore inserimento movimento magazzino:", error);
+      alert("Attenzione: riga fattura salvata ma errore nel movimento di magazzino");
+    }
+  }
+
+  if (btnAddFatturaRiga) {
+    btnAddFatturaRiga.addEventListener("click", async () => {
+      if (!fatturaSelezionata) {
+        alert("Seleziona prima una fattura cliccando sull'elenco.");
+        return;
+      }
+
+      const descr = (fatturaRigaDescrizioneInput?.value || "").trim();
+      const qta = parseFloat(fatturaRigaQuantitaInput?.value || "0") || 0;
+      const um = (fatturaRigaUmInput?.value || "").trim() || "pz";
+      const prezzo =
+        parseFloat(fatturaRigaPrezzoInput?.value || "0") || 0;
+      let tot =
+        parseFloat(fatturaRigaTotaleInput?.value || "0") || qta * prezzo;
+
+      if (!descr) {
+        alert("Inserisci la descrizione della riga");
+        return;
+      }
+      if (!qta || qta <= 0) {
+        alert("Inserisci una quantità valida");
+        return;
+      }
+      if (!prezzo || prezzo <= 0) {
+        alert("Inserisci un prezzo unitario valido");
+        return;
+      }
+      if (!tot || tot <= 0) {
+        tot = qta * prezzo;
+      }
+
+      // 1) individua o crea prodotto
+      let prodottoId = null;
+      if (fatturaRigaForm?.dataset.prodottoEsistenteId) {
+        prodottoId = parseInt(
+          fatturaRigaForm.dataset.prodottoEsistenteId,
+          10
+        );
+      } else {
+        const categoriaSuggerita =
+          fatturaRigaForm?.dataset.categoriaSuggerita || null;
+        const codiceInterno = "P-" + Date.now().toString(36);
+
+        const prodObj = {
+          id: null,
+          codice_interno: codiceInterno,
+          nome: descr,
+          categoriaNome: categoriaSuggerita,
+          unita_misura: um,
+          attivo: true,
+          note: null,
+        };
+
+        const nuovoProdotto = await salvaProdottoSupabase(prodObj);
+        if (!nuovoProdotto) {
+          alert("Errore nel creare il prodotto associato alla riga.");
+          return;
+        }
+        prodottoId = nuovoProdotto.id;
+        prodotti.push(nuovoProdotto);
+      }
+
+      // 2) inserisci riga fattura
+      const payloadRiga = {
+        fattura_id: fatturaSelezionata.id,
+        prodotto_id: prodottoId,
+        descrizione: descr,
+        quantita: qta,
+        unita_misura: um,
+        prezzo_unitario: prezzo,
+        totale_riga: tot,
+      };
+
+      const { data, error } = await supabase
+        .from("fatture_righe")
+        .insert(payloadRiga)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Errore salvataggio riga fattura:", error);
+        alert("Errore nel salvare la riga della fattura");
+        return;
+      }
+
+      fatturaRighe.push(data);
+      renderFatturaRighe();
+
+      // 3) movimento di magazzino
+      await inserisciMovimentoMagazzinoDaRiga(prodottoId, fatturaSelezionata, data);
+
+      resetFatturaRigaForm();
+      alert("Riga fattura e movimento di magazzino registrati correttamente");
+    });
+  }
+
   // ---------- routing ----------
   async function onRouteEnter(route) {
     switch (route) {
@@ -1668,6 +2057,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       case "acquisti":
         await caricaFornitoriDaSupabase();
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
         await caricaFattureDaSupabase();
         break;
       case "reintegro":
