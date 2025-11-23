@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loginPinInput = document.getElementById("login-pin");
   const btnLogin = document.getElementById("btn-login");
 
+  const homeDipView = document.getElementById("view-home-dip");
+
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
@@ -116,6 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function showLogin() {
     if (loginView) loginView.style.display = "block";
     if (buttonsGrid) buttonsGrid.style.display = "none";
+    if (homeDipView) homeDipView.style.display = "none";
 
     views.forEach((v) => {
       if (v.id !== "view-login") {
@@ -151,7 +154,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (found) {
         currentUser = found;
       } else {
-        // fallback per nome
         const byName = dipendenti.find((d) => d.nome === saved.nome);
         if (byName) currentUser = byName;
       }
@@ -245,16 +247,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const retribuzioneBase =
       parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-    const oreMensili =
+    const oreMensiliVal =
       parseFloat(dipOreMensili?.value || "0") || 0;
-    const oreServizio =
+    const oreServizioVal =
       parseFloat(dipOreServizio?.value || "0") || 0;
 
     const costo = calcolaCostoOrario(
       tipo,
       retribuzioneBase,
-      oreMensili,
-      oreServizio
+      oreMensiliVal,
+      oreServizioVal
     );
     if (dipCosto) {
       dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
@@ -470,16 +472,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tipoCompenso = dipTipoCompenso?.value || "orario";
       const retribuzioneBase =
         parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-      const oreMensili =
+      const oreMensiliVal =
         parseFloat(dipOreMensili?.value || "0") || 0;
-      const oreServizio =
+      const oreServizioVal =
         parseFloat(dipOreServizio?.value || "0") || 0;
 
       const costoOrario = calcolaCostoOrario(
         tipoCompenso,
         retribuzioneBase,
-        oreMensili,
-        oreServizio
+        oreMensiliVal,
+        oreServizioVal
       );
       if (dipCosto) {
         dipCosto.value = costoOrario ? costoOrario.toFixed(2) : "";
@@ -500,8 +502,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         ruolo,
         tipoCompenso,
         retribuzioneBase: retribuzioneBase || null,
-        oreMensili: oreMensili || null,
-        oreServizio: oreServizio || null,
+        oreMensili: oreMensiliVal || null,
+        oreServizio: oreServizioVal || null,
         costoOrario: costoOrario || null,
         codice,
         canalePrevalente,
@@ -588,11 +590,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       setCurrentUserFromDipendente(d);
 
       if (loginView) loginView.style.display = "none";
-      if (buttonsGrid) buttonsGrid.style.display = "grid";
 
-      const initialRoute =
-        window.location.hash.replace("#", "") || "timbratura";
-      navigateTo(initialRoute);
+      if (isManagerRole(d.ruolo)) {
+        // Manager / Admin -> menu completo
+        if (buttonsGrid) buttonsGrid.style.display = "grid";
+
+        const initialRoute =
+          window.location.hash.replace("#", "") || "timbratura";
+        navigateTo(initialRoute);
+      } else {
+        // Dipendenti normali -> home con pulsanti dedicati
+        if (buttonsGrid) buttonsGrid.style.display = "none";
+
+        views.forEach((v) => {
+          if (v.id !== "view-login") {
+            v.style.display = "none";
+          }
+        });
+
+        if (homeDipView) homeDipView.style.display = "block";
+        applyMode();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     });
   }
 
@@ -1039,7 +1058,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function navigateTo(route) {
     if (!currentUser) {
-      // Se non loggato, vai al login
       showLogin();
       return;
     }
@@ -1096,11 +1114,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
-      if (buttonsGrid) buttonsGrid.style.display = "grid";
 
-      const initialRoute =
-        window.location.hash.replace("#", "") || "timbratura";
-      await navigateTo(initialRoute);
+      if (isManagerRole(currentUser.ruolo)) {
+        if (buttonsGrid) buttonsGrid.style.display = "grid";
+        if (homeDipView) homeDipView.style.display = "none";
+
+        const initialRoute =
+          window.location.hash.replace("#", "") || "timbratura";
+        await navigateTo(initialRoute);
+      } else {
+        if (buttonsGrid) buttonsGrid.style.display = "none";
+        if (homeDipView) homeDipView.style.display = "block";
+        applyMode();
+      }
     } else {
       showLogin();
     }
@@ -1108,4 +1134,3 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await applicaTuttoAllAvvio();
 });
-
