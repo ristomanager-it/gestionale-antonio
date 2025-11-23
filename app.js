@@ -75,11 +75,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
+  // ACQUISTI – fornitori
+  const fornitoreForm = document.getElementById("fornitore-form");
+  const fornitoreNomeInput = document.getElementById("fornitore-nome");
+  const fornitorePivaInput = document.getElementById("fornitore-piva");
+  const fornitoreIndirizzoInput = document.getElementById("fornitore-indirizzo");
+  const fornitoreTelefonoInput = document.getElementById("fornitore-telefono");
+  const fornitoreEmailInput = document.getElementById("fornitore-email");
+  const fornitoreNoteInput = document.getElementById("fornitore-note");
+  const btnAddFornitore = document.getElementById("btn-add-fornitore");
+  const fornitoriListaEl = document.getElementById("fornitori-lista");
+
+  // ACQUISTI – fatture
+  const fatturaForm = document.getElementById("fattura-form");
+  const fatturaFornitoreSelect = document.getElementById(
+    "fattura-fornitore-select"
+  );
+  const fatturaNumeroInput = document.getElementById("fattura-numero");
+  const fatturaDataInput = document.getElementById("fattura-data");
+  const fatturaTotaleInput = document.getElementById("fattura-totale");
+  const fatturaFileInput = document.getElementById("fattura-file");
+  const fatturaNoteInput = document.getElementById("fattura-note");
+  const btnAddFattura = document.getElementById("btn-add-fattura");
+  const fattureListaEl = document.getElementById("fatture-lista");
+
   // stato
   let dipendenti = [];
   let timbrature = [];
   let currentUser = null;
   let periodoCorrente = "oggi";
+
+  // stato acquisti
+  let fornitori = [];
+  let fatture = [];
 
   // ---------- tema chiaro/scuro ----------
   function applyTheme(theme) {
@@ -772,7 +800,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     startMese.setHours(0, 0, 0, 0);
 
     let startPeriodoMs = startGiorno.getTime();
-    if (periodoCorrente === "settimana") startPeriodoMs = startSettimana.getTime();
+    if (periodoCorrente === "settimana")
+      startPeriodoMs = startSettimana.getTime();
     if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
 
     const eventiPeriodo = timbrature.filter((t) => {
@@ -1073,6 +1102,304 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ---------- ACQUISTI: FORNITORI ----------
+  async function caricaFornitoriDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("fornitori")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento fornitori:", error);
+      alert("Errore nel caricare i fornitori da Supabase");
+      return;
+    }
+
+    fornitori = data || [];
+    renderFornitori();
+    aggiornaSelectFornitori();
+  }
+
+  function renderFornitori() {
+    if (!fornitoriListaEl) return;
+    fornitoriListaEl.innerHTML = "";
+
+    fornitori.forEach((f, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${f.nome}</td>
+        <td>${f.piva || ""}</td>
+        <td>${f.telefono || ""}</td>
+        <td>${f.email || ""}</td>
+        <td>
+          <button class="app-button small gray" data-edit-fornitore="${index}">Modifica</button>
+          <button class="app-button small red" data-delete-fornitore="${index}">Elimina</button>
+        </td>
+      `;
+      fornitoriListaEl.appendChild(tr);
+    });
+
+    fornitoriListaEl
+      .querySelectorAll("[data-edit-fornitore]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-edit-fornitore"), 10);
+          caricaFornitoreInForm(idx);
+        });
+      });
+
+    fornitoriListaEl
+      .querySelectorAll("[data-delete-fornitore]")
+      .forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const idx = parseInt(btn.getAttribute("data-delete-fornitore"), 10);
+          const f = fornitori[idx];
+          if (!f) return;
+          if (!confirm("Eliminare questo fornitore?")) return;
+
+          const { error } = await supabase
+            .from("fornitori")
+            .delete()
+            .eq("id", f.id);
+          if (error) {
+            console.error("Errore eliminazione fornitore:", error);
+            alert("Errore nell'eliminare il fornitore (verifica se ha fatture collegate).");
+            return;
+          }
+          await caricaFornitoriDaSupabase();
+        });
+      });
+  }
+
+  function caricaFornitoreInForm(index) {
+    const f = fornitori[index];
+    if (!f) return;
+
+    if (fornitoreNomeInput) fornitoreNomeInput.value = f.nome || "";
+    if (fornitorePivaInput) fornitorePivaInput.value = f.piva || "";
+    if (fornitoreIndirizzoInput)
+      fornitoreIndirizzoInput.value = f.indirizzo || "";
+    if (fornitoreTelefonoInput)
+      fornitoreTelefonoInput.value = f.telefono || "";
+    if (fornitoreEmailInput) fornitoreEmailInput.value = f.email || "";
+    if (fornitoreNoteInput) fornitoreNoteInput.value = f.note || "";
+
+    if (fornitoreForm) fornitoreForm.dataset.editId = f.id;
+  }
+
+  function aggiornaSelectFornitori() {
+    if (!fatturaFornitoreSelect) return;
+    const current = fatturaFornitoreSelect.value;
+    fatturaFornitoreSelect.innerHTML =
+      '<option value="">-- seleziona fornitore --</option>';
+
+    fornitori.forEach((f) => {
+      const opt = document.createElement("option");
+      opt.value = f.id;
+      opt.textContent = f.nome;
+      fatturaFornitoreSelect.appendChild(opt);
+    });
+
+    if (current) {
+      fatturaFornitoreSelect.value = current;
+    }
+  }
+
+  if (btnAddFornitore) {
+    btnAddFornitore.addEventListener("click", async () => {
+      const nome = (fornitoreNomeInput?.value || "").trim();
+      if (!nome) {
+        alert("Inserisci il nome del fornitore");
+        return;
+      }
+
+      const piva = (fornitorePivaInput?.value || "").trim();
+      const indirizzo = (fornitoreIndirizzoInput?.value || "").trim();
+      const telefono = (fornitoreTelefonoInput?.value || "").trim();
+      const email = (fornitoreEmailInput?.value || "").trim();
+      const note = (fornitoreNoteInput?.value || "").trim();
+
+      const editId = fornitoreForm?.dataset.editId || null;
+
+      const payload = {
+        nome,
+        piva: piva || null,
+        indirizzo: indirizzo || null,
+        telefono: telefono || null,
+        email: email || null,
+        note: note || null,
+      };
+
+      let error = null;
+      if (editId) {
+        const res = await supabase
+          .from("fornitori")
+          .update(payload)
+          .eq("id", editId);
+        error = res.error;
+      } else {
+        const res = await supabase.from("fornitori").insert(payload);
+        error = res.error;
+      }
+
+      if (error) {
+        console.error("Errore salvataggio fornitore:", error);
+        alert("Errore nel salvare il fornitore");
+        return;
+      }
+
+      if (fornitoreNomeInput) fornitoreNomeInput.value = "";
+      if (fornitorePivaInput) fornitorePivaInput.value = "";
+      if (fornitoreIndirizzoInput) fornitoreIndirizzoInput.value = "";
+      if (fornitoreTelefonoInput) fornitoreTelefonoInput.value = "";
+      if (fornitoreEmailInput) fornitoreEmailInput.value = "";
+      if (fornitoreNoteInput) fornitoreNoteInput.value = "";
+      if (fornitoreForm) delete fornitoreForm.dataset.editId;
+
+      await caricaFornitoriDaSupabase();
+      alert("Fornitore salvato correttamente");
+    });
+  }
+
+  // ---------- ACQUISTI: FATTURE ----------
+  async function uploadFileFattura(file) {
+    if (!supabase || !file) return { path: null, tipo: null };
+
+    const estensione = file.name.split(".").pop() || "file";
+    const timestamp = Date.now();
+    const randomPart = Math.random().toString(36).substring(2, 8);
+    const path = `fattura_${timestamp}_${randomPart}.${estensione}`;
+
+    const { data, error } = await supabase.storage
+      .from("fatture")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Errore upload file fattura:", error);
+      alert("Errore nel caricare il file della fattura");
+      return { path: null, tipo: null };
+    }
+
+    return { path: data.path, tipo: file.type || null };
+  }
+
+  async function caricaFattureDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("fatture_acquisto")
+      .select("*")
+      .order("data", { ascending: false });
+
+    if (error) {
+      console.error("Errore caricamento fatture:", error);
+      alert("Errore nel caricare le fatture da Supabase");
+      return;
+    }
+
+    fatture = data || [];
+    renderFatture();
+  }
+
+  function renderFatture() {
+    if (!fattureListaEl) return;
+    fattureListaEl.innerHTML = "";
+
+    fatture.forEach((f) => {
+      const fornitore = fornitori.find((x) => x.id === f.fornitore_id);
+      const nomeFornitore = fornitore ? fornitore.nome : "-";
+
+      const dataStr = f.data
+        ? new Date(f.data).toLocaleDateString("it-IT")
+        : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${dataStr}</td>
+        <td>${f.numero}</td>
+        <td>${nomeFornitore}</td>
+        <td>${f.totale != null ? Number(f.totale).toFixed(2) : ""}</td>
+        <td>${
+          f.file_path
+            ? `<span style="font-size: 11px;">${f.file_tipo?.startsWith("image/") ? "Immagine" : "PDF"}</span>`
+            : ""
+        }</td>
+      `;
+      fattureListaEl.appendChild(tr);
+    });
+  }
+
+  if (btnAddFattura) {
+    btnAddFattura.addEventListener("click", async () => {
+      const fornitoreId = fatturaFornitoreSelect?.value || "";
+      const numero = (fatturaNumeroInput?.value || "").trim();
+      const dataVal = fatturaDataInput?.value || "";
+      const totaleValRaw = fatturaTotaleInput?.value || "";
+      const note = (fatturaNoteInput?.value || "").trim();
+      const file = fatturaFileInput?.files?.[0] || null;
+
+      if (!fornitoreId) {
+        alert("Seleziona un fornitore");
+        return;
+      }
+      if (!numero) {
+        alert("Inserisci il numero della fattura");
+        return;
+      }
+      if (!dataVal) {
+        alert("Inserisci la data della fattura");
+        return;
+      }
+
+      let filePath = null;
+      let fileTipo = null;
+
+      if (file) {
+        const uploaded = await uploadFileFattura(file);
+        if (!uploaded.path) {
+          return; // errore già mostrato
+        }
+        filePath = uploaded.path;
+        fileTipo = uploaded.tipo;
+      }
+
+      const totaleNum =
+        totaleValRaw !== "" ? parseFloat(totaleValRaw || "0") : null;
+
+      const payload = {
+        fornitore_id: fornitoreId,
+        numero,
+        data: dataVal,
+        totale: totaleNum,
+        file_path: filePath,
+        file_tipo: fileTipo,
+        note: note || null,
+      };
+
+      const { error } = await supabase
+        .from("fatture_acquisto")
+        .insert(payload);
+
+      if (error) {
+        console.error("Errore salvataggio fattura:", error);
+        alert("Errore nel salvare la fattura");
+        return;
+      }
+
+      if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+      if (fatturaDataInput) fatturaDataInput.value = "";
+      if (fatturaTotaleInput) fatturaTotaleInput.value = "";
+      if (fatturaNoteInput) fatturaNoteInput.value = "";
+      if (fatturaFileInput) fatturaFileInput.value = "";
+
+      await caricaFattureDaSupabase();
+      alert("Fattura registrata correttamente");
+    });
+  }
+
   // ---------- routing ----------
   async function onRouteEnter(route) {
     switch (route) {
@@ -1082,6 +1409,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       case "dipendenti":
         await caricaDipendentiDaSupabase();
+        break;
+      case "acquisti":
+        await caricaFornitoriDaSupabase();
+        await caricaFattureDaSupabase();
         break;
       default:
         break;
