@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestionale Antonio</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link relstylesheet" href="styles.css" />
   </head>
   <body>
     <header class="app-header">
@@ -13,13 +13,10 @@
           <h1>Gestionale Antonio</h1>
           <p class="subtitle">Suite per NR, RA, CC e Catering</p>
         </div>
-        <div class="mode-switch">
-          <span id="mode-label">Modalità: Dipendente</span>
-          <button id="btn-mode-manager" class="app-button tiny">
-            Entra manager
-          </button>
+        <div class="header-user">
+          <span id="current-user-label">Nessun utente</span>
           <button
-            id="btn-mode-exit"
+            id="btn-logout"
             class="app-button tiny gray"
             style="display: none"
           >
@@ -30,8 +27,43 @@
     </header>
 
     <main class="app-main">
-      <!-- Barra pulsanti (menu principale) -->
-      <section class="buttons-grid">
+      <!-- LOGIN INIZIALE -->
+      <section id="view-login" class="view">
+        <h2>Accesso</h2>
+        <p>Seleziona il tuo nome e inserisci il PIN personale.</p>
+
+        <form id="login-form" class="login-form" onsubmit="return false;">
+          <div class="form-row">
+            <label>
+              Dipendente
+              <select id="login-dipendente">
+                <option value="">-- seleziona dipendente --</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label>
+              PIN
+              <input
+                type="password"
+                id="login-pin"
+                placeholder="Inserisci PIN"
+                autocomplete="off"
+              />
+            </label>
+          </div>
+
+          <div class="form-row buttons-row">
+            <button id="btn-login" class="app-button">
+              Entra
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- MENU PRINCIPALE (VISIBILE SOLO DOPO LOGIN) -->
+      <section class="buttons-grid" style="display: none">
         <button class="app-button" data-route="timbratura">
           Timbratura
         </button>
@@ -61,7 +93,7 @@
           data-route="fatture"
           data-manager-only="true"
         >
-          Fatture
+          Acquisti
         </button>
         <button class="app-button" data-route="cc" data-manager-only="true">
           Centro Cottura
@@ -90,18 +122,27 @@
       </section>
 
       <!-- TIMBRATURA -->
-      <section id="view-timbratura" class="view">
+      <section
+        id="view-timbratura"
+        class="view"
+        style="display: none"
+      >
         <h2>Timbratura</h2>
         <p>Registra entrata, pausa e uscita per dipendente e canale.</p>
 
-        <form id="timbratura-form" class="timbratura-form" onsubmit="return false;">
+        <form
+          id="timbratura-form"
+          class="timbratura-form"
+          onsubmit="return false;"
+        >
           <div class="form-row">
             <label>
-              Codice dipendente (PIN personale)
+              Codice dipendente (PIN)
               <input
                 type="password"
                 id="timbratura-codice"
-                placeholder="Inserisci PIN personale"
+                placeholder="Inserisci codice (es. 1234)"
+                autocomplete="off"
               />
             </label>
           </div>
@@ -139,15 +180,27 @@
             </label>
           </div>
 
-          <div class="form-row buttons-row">
-            <button type="button" id="btn-entra" class="app-button small green">
-              Entra
+          <div class="form-row buttons-row timbratura-buttons">
+            <button
+              type="button"
+              id="btn-entra"
+              class="app-button timb-button green"
+            >
+              ENTRA
             </button>
-            <button type="button" id="btn-pausa" class="app-button small gray">
-              Pausa
+            <button
+              type="button"
+              id="btn-pausa"
+              class="app-button timb-button gray"
+            >
+              PAUSA
             </button>
-            <button type="button" id="btn-esci" class="app-button small red">
-              Uscita
+            <button
+              type="button"
+              id="btn-esci"
+              class="app-button timb-button red"
+            >
+              USCITA
             </button>
           </div>
         </form>
@@ -251,7 +304,7 @@
         data-manager-only="true"
       >
         <h2>Dipendenti</h2>
-        <p>Anagrafica completa: PIN, dati personali, contatti, ruolo e compenso.</p>
+        <p>Anagrafica completa dipendenti, ruoli e compensi.</p>
 
         <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
           <div class="form-row">
@@ -264,7 +317,11 @@
           <div class="form-row">
             <label>
               Mansione
-              <input type="text" id="dip-mansione" placeholder="Es. Sala, Cucina..." />
+              <input
+                type="text"
+                id="dip-mansione"
+                placeholder="Es. Sala, Cucina..."
+              />
             </label>
           </div>
 
@@ -278,21 +335,33 @@
           <div class="form-row">
             <label>
               Residenza
-              <input type="text" id="dip-residenza" placeholder="Via, città, CAP" />
+              <input
+                type="text"
+                id="dip-residenza"
+                placeholder="Es. Via Roma 10, Città"
+              />
             </label>
           </div>
 
           <div class="form-row">
             <label>
               Telefono
-              <input type="tel" id="dip-telefono" placeholder="Es. 3331234567" />
+              <input
+                type="tel"
+                id="dip-telefono"
+                placeholder="Es. 3331234567"
+              />
             </label>
           </div>
 
           <div class="form-row">
             <label>
               Email
-              <input type="email" id="dip-email" placeholder="Es. nome@esempio.it" />
+              <input
+                type="email"
+                id="dip-email"
+                placeholder="esempio@mail.com"
+              />
             </label>
           </div>
 
@@ -310,7 +379,6 @@
             </label>
           </div>
 
-          <!-- TIPO COMPENSO -->
           <div class="form-row">
             <label>
               Tipo compenso
@@ -322,7 +390,7 @@
             </label>
           </div>
 
-          <div class="form-row">
+          <div class="form-row" id="row-retribuzione-base">
             <label id="label-retribuzione-base">
               Paga oraria lorda (€/h)
               <input
@@ -342,7 +410,7 @@
                 type="number"
                 id="dip-ore-mensili"
                 placeholder="Es. 173"
-                step="0.1"
+                step="1"
                 min="0"
               />
             </label>
@@ -363,31 +431,19 @@
 
           <div class="form-row">
             <label>
-              Costo orario equivalente (calcolato)
+              Costo orario calcolato (€/h)
               <input
-                type="text"
+                type="number"
                 id="dip-costo"
                 readonly
-                placeholder="Calcolato in base al tipo compenso"
+                placeholder="Calcolato automaticamente"
               />
             </label>
           </div>
 
           <div class="form-row">
             <label>
-              PIN generale (azienda)
-              <input
-                type="text"
-                id="dip-pin-generale"
-                placeholder="Es. 0000"
-                maxlength="10"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              PIN personale (per timbratura)
+              PIN personale (per login e timbratura)
               <input
                 type="text"
                 id="dip-codice"
@@ -410,14 +466,20 @@
           </div>
 
           <div class="form-row">
-            <label style="flex-direction: row; align-items: center; gap: 8px;">
+            <label
+              style="flex-direction: row; align-items: center; gap: 8px;"
+            >
               <input type="checkbox" id="dip-attivo" checked />
               Dipendente attivo
             </label>
           </div>
 
           <div class="form-row buttons-row">
-            <button type="button" id="btn-add-dip" class="app-button small green">
+            <button
+              type="button"
+              id="btn-add-dip"
+              class="app-button small green"
+            >
               Aggiungi/aggiorna dipendente
             </button>
           </div>
@@ -437,8 +499,7 @@
               <th>Tipo compenso</th>
               <th>Costo €/h</th>
               <th>Canale</th>
-              <th>PIN gen.</th>
-              <th>PIN pers.</th>
+              <th>PIN</th>
               <th>Attivo</th>
               <th>Azioni</th>
             </tr>
@@ -447,7 +508,7 @@
         </table>
       </section>
 
-      <!-- ALTRE VISTE -->
+      <!-- ALTRE VISTE PLACEHOLDER (SOLO MANAGER) -->
       <section
         id="view-vendite"
         class="view"
@@ -468,206 +529,15 @@
         <p>Gestione preventivi, stati e trasformazione in eventi.</p>
       </section>
 
-     <section
-  id="view-fatture"
-  class="view"
-  style="display: none"
-  data-manager-only="true"
->
-  <h2>Fatture (Acquisti)</h2>
-  <p>Carica le fatture, inserisci le righe e genera il carico di magazzino.</p>
-
-  <!-- FORM TESTATA FATTURA -->
-  <form id="fattura-form" class="timbratura-form" onsubmit="return false;">
-    <div class="form-row">
-      <label>
-        Fornitore
-        <select id="fatt-fornitore">
-          <option value="">-- seleziona o crea --</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Nuovo fornitore (se non in lista)
-        <input
-          type="text"
-          id="fatt-nuovo-fornitore"
-          placeholder="Es. Fornitore Srl"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Data fattura
-        <input type="date" id="fatt-data" />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Numero fattura
-        <input type="text" id="fatt-numero" placeholder="Es. 123/2025" />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Totale fattura (€)
-        <input
-          type="number"
-          id="fatt-totale"
-          placeholder="Es. 350.00"
-          step="0.01"
-          min="0"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        File fattura (PDF/JPG/PNG)
-        <input type="file" id="fatt-file" accept=".pdf,image/*" />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Note
-        <input type="text" id="fatt-note" placeholder="Note interne" />
-      </label>
-    </div>
-  </form>
-
-  <!-- RIGHE FATTURA / PRODotti -->
-  <div class="timbratura-form">
-    <h3>Righe fattura / Prodotti</h3>
-
-    <div class="form-row">
-      <label>
-        Prodotto
-        <select id="riga-prodotto">
-          <option value="">-- seleziona o nuovo --</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Nuovo prodotto (se non in lista)
-        <input
-          type="text"
-          id="riga-nuovo-prodotto"
-          placeholder="Es. Petto di pollo"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Categoria prodotto
-        <select id="riga-categoria">
-          <option value="">-- seleziona categoria --</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Unità di misura
-        <input
-          type="text"
-          id="riga-unita"
-          placeholder="Es. kg, lt, pz"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Quantità
-        <input
-          type="number"
-          id="riga-quantita"
-          placeholder="Es. 10"
-          step="0.001"
-          min="0"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        Prezzo unitario (€)
-        <input
-          type="number"
-          id="riga-prezzo"
-          placeholder="Es. 5.20"
-          step="0.01"
-          min="0"
-        />
-      </label>
-    </div>
-
-    <div class="form-row">
-      <label>
-        IVA (%)
-        <input
-          type="number"
-          id="riga-iva"
-          placeholder="Es. 10"
-          step="0.1"
-          min="0"
-        />
-      </label>
-    </div>
-
-    <div class="form-row buttons-row">
-      <button type="button" id="btn-add-riga" class="app-button small green">
-        Aggiungi riga
-      </button>
-    </div>
-  </div>
-
-  <h3>Righe inserite</h3>
-  <table class="table-timbrature">
-    <thead>
-      <tr>
-        <th>Prodotto</th>
-        <th>Categoria</th>
-        <th>Q.tà</th>
-        <th>UM</th>
-        <th>Prezzo €</th>
-        <th>Totale €</th>
-        <th>Azioni</th>
-      </tr>
-    </thead>
-    <tbody id="fatt-righe-lista"></tbody>
-  </table>
-
-  <div class="form-row buttons-row" style="margin-top: 12px;">
-    <button type="button" id="btn-salva-fattura" class="app-button small green">
-      Salva fattura e carico magazzino
-    </button>
-  </div>
-
-  <h3>Storico fatture</h3>
-  <table class="table-timbrature">
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Fornitore</th>
-        <th>Numero</th>
-        <th>Totale €</th>
-        <th>File</th>
-      </tr>
-    </thead>
-    <tbody id="fatture-lista"></tbody>
-  </table>
-</section>
-
+      <section
+        id="view-fatture"
+        class="view"
+        style="display: none"
+        data-manager-only="true"
+      >
+        <h2>Acquisti</h2>
+        <p>Qui inseriremo l'inserimento fatture e magazzino.</p>
+      </section>
 
       <section
         id="view-cc"
@@ -706,19 +576,13 @@
         data-manager-only="true"
       >
         <h2>Parametri</h2>
-        <p>Gestione PIN, markup, Target Food Cost %, inclusioni Opex/POS/Lavoro CC.</p>
+        <p>
+          Gestione PIN, markup, Target Food Cost %, inclusioni
+          Opex/POS/Lavoro CC.
+        </p>
       </section>
     </main>
 
-    <!-- Supabase + app.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-      const SUPABASE_ANON_KEY = "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
-
-      const { createClient } = supabase;
-      window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    </script>
     <script src="app.js"></script>
   </body>
 </html>
