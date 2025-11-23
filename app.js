@@ -74,17 +74,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dipAttivo = document.getElementById("dip-attivo");
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
+  const btnToggleDipendenti = document.getElementById(
+    "btn-toggle-dipendenti"
+  );
+  const sezioneDipendentiElenco = document.getElementById(
+    "sezione-dipendenti-elenco"
+  );
 
   // ACQUISTI – fornitori
   const fornitoreForm = document.getElementById("fornitore-form");
   const fornitoreNomeInput = document.getElementById("fornitore-nome");
   const fornitorePivaInput = document.getElementById("fornitore-piva");
-  const fornitoreIndirizzoInput = document.getElementById("fornitore-indirizzo");
+  const fornitoreIndirizzoInput = document.getElementById(
+    "fornitore-indirizzo"
+  );
   const fornitoreTelefonoInput = document.getElementById("fornitore-telefono");
   const fornitoreEmailInput = document.getElementById("fornitore-email");
   const fornitoreNoteInput = document.getElementById("fornitore-note");
   const btnAddFornitore = document.getElementById("btn-add-fornitore");
   const fornitoriListaEl = document.getElementById("fornitori-lista");
+  const btnToggleFornitori = document.getElementById("btn-toggle-fornitori");
+  const sezioneFornitoriElenco = document.getElementById(
+    "sezione-fornitori-elenco"
+  );
 
   // ACQUISTI – fatture
   const fatturaForm = document.getElementById("fattura-form");
@@ -99,6 +111,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddFattura = document.getElementById("btn-add-fattura");
   const fattureListaEl = document.getElementById("fatture-lista");
 
+  // MAGAZZINO – prodotti
+  const prodottoForm = document.getElementById("prodotto-form");
+  const prodottoCodiceInput = document.getElementById("prodotto-codice");
+  const prodottoNomeInput = document.getElementById("prodotto-nome");
+  const prodottoCategoriaInput = document.getElementById("prodotto-categoria");
+  const prodottoUmInput = document.getElementById("prodotto-um");
+  const prodottoAttivoInput = document.getElementById("prodotto-attivo");
+  const prodottoNoteInput = document.getElementById("prodotto-note");
+  const btnAddProdotto = document.getElementById("btn-add-prodotto");
+  const btnToggleProdotti = document.getElementById("btn-toggle-prodotti");
+  const sezioneProdottiElenco = document.getElementById(
+    "sezione-prodotti-elenco"
+  );
+  const prodottiListaEl = document.getElementById("prodotti-lista");
+
   // stato
   let dipendenti = [];
   let timbrature = [];
@@ -108,6 +135,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // stato acquisti
   let fornitori = [];
   let fatture = [];
+
+  // stato magazzino
+  let categorieProdotto = [];
+  let prodotti = [];
 
   // ---------- tema chiaro/scuro ----------
   function applyTheme(theme) {
@@ -652,6 +683,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  if (btnToggleDipendenti && sezioneDipendentiElenco) {
+    btnToggleDipendenti.addEventListener("click", () => {
+      const visibile = sezioneDipendentiElenco.style.display !== "none";
+      sezioneDipendentiElenco.style.display = visibile ? "none" : "block";
+      btnToggleDipendenti.textContent = visibile
+        ? "Mostra elenco dipendenti"
+        : "Nascondi elenco dipendenti";
+    });
+  }
+
   // ---------- login & utente corrente ----------
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
@@ -683,7 +724,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // admin virtuale (non visibile a schermo)
+      // admin virtuale
       if (nome.toLowerCase() === "admin" && pin === "9999") {
         setCurrentUser(
           {
@@ -953,7 +994,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ---------- stato corrente dipendente (per bloccare cambio canale) ----------
+  // ---------- stato corrente dipendente ----------
   function getStatoCorrenteDipendente(nomeDip) {
     const eventiDip = timbrature
       .filter((t) => t.dip === nomeDip && t.timestamp)
@@ -1013,7 +1054,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return record;
   }
 
-  // ---------- registraTimbratura con blocco cambio canale ----------
   async function registraTimbratura(tipo) {
     if (!currentUser) {
       alert("Devi prima effettuare il login");
@@ -1088,7 +1128,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // toggle storico timbrature
   if (btnToggleTimbrature && sezioneTimbratureDettaglio) {
     btnToggleTimbrature.addEventListener("click", () => {
       const visibile = sezioneTimbratureDettaglio.style.display !== "none";
@@ -1164,7 +1203,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             .eq("id", f.id);
           if (error) {
             console.error("Errore eliminazione fornitore:", error);
-            alert("Errore nell'eliminare il fornitore (verifica se ha fatture collegate).");
+            alert(
+              "Errore nell'eliminare il fornitore (verifica se ha fatture collegate)."
+            );
             return;
           }
           await caricaFornitoriDaSupabase();
@@ -1262,6 +1303,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  if (btnToggleFornitori && sezioneFornitoriElenco) {
+    btnToggleFornitori.addEventListener("click", () => {
+      const visibile = sezioneFornitoriElenco.style.display !== "none";
+      sezioneFornitoriElenco.style.display = visibile ? "none" : "block";
+      btnToggleFornitori.textContent = visibile
+        ? "Mostra elenco fornitori"
+        : "Nascondi elenco fornitori";
+    });
+  }
+
   // ---------- ACQUISTI: FATTURE ----------
   async function uploadFileFattura(file) {
     if (!supabase || !file) return { path: null, tipo: null };
@@ -1269,7 +1320,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const estensione = file.name.split(".").pop() || "file";
     const timestamp = Date.now();
     const randomPart = Math.random().toString(36).substring(2, 8);
-    const path = `fattura_${timestamp}_${randomPart}.${estensione}`;
+    const path = `fatture/${timestamp}_${randomPart}.${estensione}`;
 
     const { data, error } = await supabase.storage
       .from("fatture")
@@ -1324,7 +1375,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${f.totale != null ? Number(f.totale).toFixed(2) : ""}</td>
         <td>${
           f.file_path
-            ? `<span style="font-size: 11px;">${f.file_tipo?.startsWith("image/") ? "Immagine" : "PDF"}</span>`
+            ? `<span style="font-size: 11px;">${
+                f.file_tipo?.startsWith("image/") ? "Immagine" : "PDF"
+              }</span>`
             : ""
         }</td>
       `;
@@ -1360,7 +1413,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (file) {
         const uploaded = await uploadFileFattura(file);
         if (!uploaded.path) {
-          return; // errore già mostrato
+          return;
         }
         filePath = uploaded.path;
         fileTipo = uploaded.tipo;
@@ -1400,6 +1453,209 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ---------- MAGAZZINO: CATEGORIE & PRODOTTI ----------
+  async function caricaCategorieProdottoDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie_prodotto:", error);
+      return;
+    }
+
+    categorieProdotto = data || [];
+  }
+
+  function getNomeCategoriaById(id) {
+    if (!id || !categorieProdotto) return "";
+    const cat = categorieProdotto.find((c) => c.id === id);
+    return cat ? cat.nome : "";
+  }
+
+  async function assicuratiCategoria(nomeCategoria) {
+    const nomeTrim = (nomeCategoria || "").trim();
+    if (!nomeTrim) return null;
+
+    let esistente = categorieProdotto.find(
+      (c) => c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (esistente) return esistente.id;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .insert({ nome: nomeTrim })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore creazione categoria_prodotto:", error);
+      return null;
+    }
+
+    categorieProdotto.push(data);
+    return data.id;
+  }
+
+  async function caricaProdottiDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento prodotti:", error);
+      alert("Errore nel caricare i prodotti da Supabase");
+      return;
+    }
+
+    prodotti = data || [];
+    renderProdotti();
+  }
+
+  function renderProdotti() {
+    if (!prodottiListaEl) return;
+    prodottiListaEl.innerHTML = "";
+
+    prodotti.forEach((p, index) => {
+      const nomeCat = getNomeCategoriaById(p.categoria_id);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.codice_interno}</td>
+        <td>${p.nome}</td>
+        <td>${nomeCat}</td>
+        <td>${p.unita_misura}</td>
+        <td>${p.attivo ? "Sì" : "No"}</td>
+        <td>${p.note || ""}</td>
+        <td>
+          <button class="app-button small gray" data-edit-prodotto="${index}">Modifica</button>
+        </td>
+      `;
+      prodottiListaEl.appendChild(tr);
+    });
+
+    prodottiListaEl
+      .querySelectorAll("[data-edit-prodotto]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-edit-prodotto"), 10);
+          caricaProdottoInForm(idx);
+        });
+      });
+  }
+
+  function caricaProdottoInForm(index) {
+    const p = prodotti[index];
+    if (!p) return;
+
+    if (prodottoCodiceInput) prodottoCodiceInput.value = p.codice_interno || "";
+    if (prodottoNomeInput) prodottoNomeInput.value = p.nome || "";
+    if (prodottoUmInput) prodottoUmInput.value = p.unita_misura || "";
+    if (prodottoAttivoInput)
+      prodottoAttivoInput.checked = p.attivo !== false;
+    if (prodottoNoteInput) prodottoNoteInput.value = p.note || "";
+
+    const catNome = getNomeCategoriaById(p.categoria_id);
+    if (prodottoCategoriaInput) prodottoCategoriaInput.value = catNome || "";
+
+    if (prodottoForm) prodottoForm.dataset.editId = p.id;
+  }
+
+  async function salvaProdottoSupabase(prodotto) {
+    if (!supabase) return null;
+
+    let categoriaId = null;
+    if (prodotto.categoriaNome) {
+      categoriaId = await assicuratiCategoria(prodotto.categoriaNome);
+    }
+
+    const payload = {
+      id: prodotto.id || undefined,
+      codice_interno: prodotto.codice_interno,
+      nome: prodotto.nome,
+      unita_misura: prodotto.unita_misura || "pz",
+      attivo: prodotto.attivo,
+      note: prodotto.note || null,
+      categoria_id: categoriaId,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio prodotto:", error);
+      alert("Errore nel salvare il prodotto");
+      return null;
+    }
+
+    return data;
+  }
+
+  if (btnAddProdotto) {
+    btnAddProdotto.addEventListener("click", async () => {
+      const codice = (prodottoCodiceInput?.value || "").trim();
+      const nome = (prodottoNomeInput?.value || "").trim();
+      const categoriaNome = (prodottoCategoriaInput?.value || "").trim();
+      const um = (prodottoUmInput?.value || "").trim() || "pz";
+      const attivo = prodottoAttivoInput ? prodottoAttivoInput.checked : true;
+      const note = (prodottoNoteInput?.value || "").trim();
+
+      if (!codice) {
+        alert("Inserisci il codice interno del prodotto");
+        return;
+      }
+      if (!nome) {
+        alert("Inserisci il nome del prodotto");
+        return;
+      }
+
+      const editId = prodottoForm?.dataset.editId || null;
+
+      const prodObj = {
+        id: editId || null,
+        codice_interno: codice,
+        nome,
+        categoriaNome,
+        unita_misura: um,
+        attivo,
+        note,
+      };
+
+      const salvato = await salvaProdottoSupabase(prodObj);
+      if (!salvato) return;
+
+      if (prodottoCodiceInput) prodottoCodiceInput.value = "";
+      if (prodottoNomeInput) prodottoNomeInput.value = "";
+      if (prodottoCategoriaInput) prodottoCategoriaInput.value = "";
+      if (prodottoUmInput) prodottoUmInput.value = "";
+      if (prodottoAttivoInput) prodottoAttivoInput.checked = true;
+      if (prodottoNoteInput) prodottoNoteInput.value = "";
+      if (prodottoForm) delete prodottoForm.dataset.editId;
+
+      await caricaCategorieProdottoDaSupabase();
+      await caricaProdottiDaSupabase();
+
+      alert("Prodotto salvato correttamente");
+    });
+  }
+
+  if (btnToggleProdotti && sezioneProdottiElenco) {
+    btnToggleProdotti.addEventListener("click", () => {
+      const visibile = sezioneProdottiElenco.style.display !== "none";
+      sezioneProdottiElenco.style.display = visibile ? "none" : "block";
+      btnToggleProdotti.textContent = visibile
+        ? "Mostra elenco prodotti"
+        : "Nascondi elenco prodotti";
+    });
+  }
+
   // ---------- routing ----------
   async function onRouteEnter(route) {
     switch (route) {
@@ -1414,6 +1670,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         await caricaFornitoriDaSupabase();
         await caricaFattureDaSupabase();
         break;
+      case "reintegro":
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
+        break;
+      case "preventivi":
+      case "report":
+      case "parametri":
+        // per ora nessun caricamento specifico
+        break;
       default:
         break;
     }
@@ -1425,6 +1690,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    console.log("Navigazione verso:", route);
+
     const isManager = isManagerRole(currentUser.ruolo);
 
     if (!isManager) {
@@ -1435,12 +1702,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         showHomeDipendente();
       }
     } else {
-      let active = document.getElementById(`view-${route}`);
+      const active = document.getElementById(`view-${route}`);
       if (!active) {
-        route = "timbratura";
-        active = document.getElementById("view-timbratura");
+        console.warn("Vista non trovata:", route);
+        return;
       }
-
       showOnlyView(`view-${route}`);
       await onRouteEnter(route);
     }
@@ -1459,7 +1725,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.addEventListener("hashchange", () => {
     const route = window.location.hash.replace("#", "");
-    navigateTo(route);
+    if (route) {
+      navigateTo(route);
+    }
   });
 
   // ---------- avvio ----------
@@ -1472,9 +1740,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
       if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenuAndRoute(
-          window.location.hash.replace("#", "") || "timbratura"
-        );
+        const initialRoute =
+          window.location.hash.replace("#", "") || "timbratura";
+        showManagerMenuAndRoute(initialRoute);
       } else {
         showHomeDipendente();
       }
