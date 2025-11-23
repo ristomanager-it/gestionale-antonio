@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const CURRENT_USER_KEY = "utente_corrente";
+  const THEME_KEY = "tema_app"; // "dark" | "light"
 
   // DOM base
   const views = document.querySelectorAll(".view");
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // header utente
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
+  const btnTheme = document.getElementById("btn-theme");
 
   // timbratura – info utente
   const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
@@ -78,6 +80,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   let timbrature = [];
   let currentUser = null;
   let periodoCorrente = "oggi";
+
+  // ---------- tema chiaro/scuro ----------
+  function applyTheme(theme) {
+    const body = document.body;
+    if (theme === "light") {
+      body.classList.add("theme-light");
+      if (btnTheme) btnTheme.textContent = "☀️";
+    } else {
+      body.classList.remove("theme-light");
+      if (btnTheme) btnTheme.textContent = "🌙";
+    }
+  }
+
+  function loadTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const theme = saved === "light" ? "light" : "dark";
+    applyTheme(theme);
+  }
+
+  function toggleTheme() {
+    const isLight = document.body.classList.contains("theme-light");
+    const next = isLight ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  }
+
+  if (btnTheme) {
+    btnTheme.addEventListener("click", toggleTheme);
+  }
+
+  loadTheme();
 
   // ---------- utility ruoli ----------
   function isManagerRole(ruolo) {
@@ -802,10 +835,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // riepilogo per canale
     riepilogoCanaliEl.innerHTML = "";
-    Object.entries(perCanale).forEach(([
-      canale,
-      minuti,
-    ]) => {
+    Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${canale}</td>
@@ -844,10 +874,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
       });
 
-      Object.entries(perCanale).forEach(([
-        canale,
-        minuti,
-      ]) => {
+      Object.entries(perCanale).forEach(([canale, minuti]) => {
         const ore = minuti / 60;
         const costo = costoPerCanale[canale] || 0;
 
@@ -914,7 +941,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         inside = false;
         canaleCorrente = null;
       }
-      // Pausa non chiude il turno
     }
 
     return { inside, canaleCorrente };
