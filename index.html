@@ -92,26 +92,16 @@
           </div>
         </section>
 
-        <!-- HOME DIPENDENTE (solo dipendente semplice) -->
-        <section
-          id="view-home-dip"
-          class="view"
-          style="display: none"
-        >
+        <!-- HOME DIPENDENTE (non manager) -->
+        <section id="view-home-dip" class="view" style="display: none">
           <h2>Cosa vuoi fare?</h2>
           <p>Seleziona una funzione.</p>
 
           <div class="home-buttons">
-            <button
-              class="app-button big-home"
-              data-route="timbratura"
-            >
+            <button class="app-button big-home" data-route="timbratura">
               Timbratura
             </button>
-            <button
-              class="app-button big-home"
-              data-route="ordine"
-            >
+            <button class="app-button big-home" data-route="ordine">
               Ordine del giorno
             </button>
           </div>
@@ -185,11 +175,7 @@
         </section>
 
         <!-- TIMBRATURA -->
-        <section
-          id="view-timbratura"
-          class="view"
-          style="display: none"
-        >
+        <section id="view-timbratura" class="view" style="display: none">
           <h2>Timbratura</h2>
           <p>Registra entrata, pausa e uscita.</p>
 
@@ -199,7 +185,7 @@
               <strong id="timbratura-utente-nome">-</strong>
             </p>
 
-            <div class="form-row" style="margin-top: 8px;">
+            <div class="form-row" style="margin-top: 8px">
               <label>
                 Luogo di lavoro (canale)
                 <select id="timbratura-canale-select">
@@ -243,16 +229,13 @@
               type="button"
               id="btn-toggle-timbrature"
               class="app-button small gray"
-              style="margin-top: 12px; margin-bottom: 6px;"
+              style="margin-top: 12px; margin-bottom: 6px"
             >
               Mostra storico timbrature
             </button>
 
             <!-- SEZIONE DETTAGLIO TIMBRATURE, NASCOSTA DI DEFAULT -->
-            <div
-              id="sezione-timbrature-dettaglio"
-              style="display: none;"
-            >
+            <div id="sezione-timbrature-dettaglio" style="display: none">
               <h3>Timbrature (tutte)</h3>
               <div class="table-wrapper">
                 <table class="table-timbrature">
@@ -269,7 +252,7 @@
               </div>
             </div>
 
-            <div class="timbratura-form" style="margin-top: 12px;">
+            <div class="timbratura-form" style="margin-top: 12px">
               <div class="form-row">
                 <label>
                   Periodo per riepilogo
@@ -470,7 +453,7 @@
               </label>
             </div>
 
-            <div class="form-row" id="row-ore-mensili" style="display: none;">
+            <div class="form-row" id="row-ore-mensili" style="display: none">
               <label>
                 Ore mensili contrattuali
                 <input
@@ -483,7 +466,7 @@
               </label>
             </div>
 
-            <div class="form-row" id="row-ore-servizio" style="display: none;">
+            <div class="form-row" id="row-ore-servizio" style="display: none">
               <label>
                 Ore medie per servizio
                 <input
@@ -534,11 +517,7 @@
 
             <div class="form-row">
               <label
-                style="
-                  flex-direction: row;
-                  align-items: center;
-                  gap: 8px;
-                "
+                style="flex-direction: row; align-items: center; gap: 8px"
               >
                 <input type="checkbox" id="dip-attivo" checked />
                 Dipendente attivo
@@ -581,13 +560,9 @@
           </div>
         </section>
 
-        <!-- ALTRE VISTE PLACEHOLDER (SOLO MANAGER) -->
+        <!-- ALTRE VISTE PLACEHOLDER -->
 
-        <section
-          id="view-ordine"
-          class="view"
-          style="display: none"
-        >
+        <section id="view-ordine" class="view" style="display: none">
           <h2>Ordine del giorno</h2>
           <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
         </section>
@@ -664,15 +639,17 @@
       </main>
     </div>
 
-    <!-- QUI LASCIA IL TUO SCRIPT DI INIZIALIZZAZIONE SUPABASE COME GIÀ LO HAI -->
-    <!--
+    <!-- SUPABASE: libreria + client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-      const supabaseClient = window.supabase.createClient("URL", "anon-key");
+      const supabaseClient = window.supabase.createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
+      );
       window.supabaseClient = supabaseClient;
     </script>
-    -->
 
+    <!-- APP JS -->
     <script src="app.js"></script>
   </body>
 </html>
