@@ -1,4 +1,61 @@
+/* GENERALE */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: linear-gradient(180deg, #e5e7eb, #f9fafb);
+  color: #111827;
+  min-height: 100vh;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+
+.app-header {
+  text-align: center;
+  padding: 10px 12px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-top {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 /* Header utente */
+
 .header-user {
   display: flex;
   flex-direction: column;
@@ -8,30 +65,120 @@
   color: #4b5563;
 }
 
-/* Form login */
-.login-form {
-  margin: 8px 0 16px;
+/* MAIN LAYOUT */
+
+.app-main {
+  flex: 1;
   padding: 12px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-
-/* Pulsanti timbratura più grandi */
-.timbratura-buttons {
-  justify-content: space-between;
-}
-/* Header utente */
-.header-user {
+  max-width: 960px;
+  margin: 0 auto 16px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  font-size: 12px;
-  color: #4b5563;
+  gap: 12px;
+}
+
+/* BOTTONI MENU PRINCIPALE */
+
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .buttons-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.app-button {
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  transition: 0.15s;
+  font-weight: 500;
+  text-align: center;
+}
+
+.app-button:hover {
+  background: #d1d5db;
+}
+
+.app-button:active {
+  transform: scale(0.97);
+}
+
+.app-button.wide {
+  grid-column: span 2;
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+
+.app-button.small {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+/* COLORI BOTTONI PICCOLI */
+
+.app-button.small.green {
+  background: #16a34a;
+  color: #fff;
+}
+.app-button.small.green:hover {
+  background: #15803d;
+}
+
+.app-button.small.gray {
+  background: #6b7280;
+  color: #fff;
+}
+.app-button.small.gray:hover {
+  background: #4b5563;
+}
+
+.app-button.small.red {
+  background: #dc2626;
+  color: #fff;
+}
+.app-button.small.red:hover {
+  background: #b91c1c;
+}
+
+/* VISTE / CARD */
+
+.view {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 260px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.view h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.view p {
+  margin-top: 0;
+  color: #6b7280;
+  font-size: 14px;
 }
 
 /* LOGIN VIEW */
+
 .login-view {
   background: transparent;
   box-shadow: none;
@@ -40,7 +187,7 @@
 
 .login-card {
   max-width: 420px;
-  margin: 32px auto;
+  margin: 24px auto;
   padding: 20px 18px;
   background: white;
   border-radius: 18px;
@@ -89,152 +236,25 @@
 
 .login-hint {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 11px;
   color: #9ca3af;
   text-align: center;
 }
 
-/* Pulsanti timbratura più grandi */
-.timbratura-buttons {
-  justify-content: space-between;
+.remember-row {
+  margin-top: 2px;
 }
 
-.timb-button {
-  flex: 1;
-  padding: 16px 10px;
-  font-size: 18px;
-  font-weight: 700;
-  border-radius: 16px;
-  color: #ffffff;
-}
-
-/* Colori per i tre pulsanti */
-.timb-button.green {
-  background: #16a34a;
-}
-.timb-button.green:hover {
-  background: #15803d;
-}
-
-.timb-button.gray {
-  background: #6b7280;
-}
-.timb-button.gray:hover {
-  background: #4b5563;
-}
-
-.timb-button.red {
-  background: #dc2626;
-}
-.timb-button.red:hover {
-  background: #b91c1c;
-}
-
-
-.timb-button {
-  flex: 1;
-  padding: 16px 10px;
-  font-size: 18px;
-  font-weight: 700;
-  border-radius: 16px;
-  color: #ffffff;
-}
-
-/* Colori per i tre pulsanti */
-.timb-button.green {
-  background: #16a34a;
-}
-.timb-button.green:hover {
-  background: #15803d;
-}
-
-.timb-button.gray {
-  background: #6b7280;
-}
-.timb-button.gray:hover {
-  background: #4b5563;
-}
-
-.timb-button.red {
-  background: #dc2626;
-}
-.timb-button.red:hover {
-  background: #b91c1c;
-}
-/* Header utente */
-.header-user {
+.remember-label {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: #4b5563;
-}
-
-/* LOGIN VIEW */
-.login-view {
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-}
-
-.login-card {
-  max-width: 420px;
-  margin: 32px auto;
-  padding: 20px 18px;
-  background: white;
-  border-radius: 18px;
-  box-shadow: 0 15px 40px rgba(15, 23, 42, 0.18);
-  border: 1px solid #e5e7eb;
-}
-
-.login-card h2 {
-  margin-top: 0;
-  margin-bottom: 4px;
-  text-align: center;
-  font-size: 22px;
-}
-
-.login-subtitle {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #6b7280;
-  text-align: center;
-}
-
-.login-form {
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
-}
-
-.login-buttons-row {
-  margin-top: 10px;
-}
-
-.login-button {
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 15px;
-  font-weight: 600;
-  background: #2563eb;
-  color: white;
-}
-
-.login-button:hover {
-  background: #1d4ed8;
-}
-
-.login-hint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #9ca3af;
-  text-align: center;
 }
 
 /* HOME DIPENDENTE */
+
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -256,9 +276,79 @@
   border-radius: 16px;
 }
 
-/* Pulsanti timbratura più grandi */
+/* FORM GENERICO */
+
+.timbratura-form {
+  margin: 8px 0 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 4px;
+  color: #374151;
+}
+
+.form-row input,
+.form-row select {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  width: 100%;
+}
+
+/* BOTTONI RIGA FORM */
+
+.buttons-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* TIMBRATURA */
+
+.timbratura-intro-card {
+  margin: 8px 0 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.timbratura-utente {
+  margin: 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Pulsanti timbratura grandi */
+
 .timbratura-buttons {
-  justify-content: space-between;
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-direction: row;
+}
+
+@media (max-width: 480px) {
+  .timbratura-buttons {
+    flex-direction: column;
+  }
 }
 
 .timb-button {
@@ -269,6 +359,8 @@
   border-radius: 16px;
   color: #ffffff;
 }
+
+/* Colori timbratura */
 
 .timb-button.green {
   background: #16a34a;
@@ -289,4 +381,65 @@
 }
 .timb-button.red:hover {
   background: #b91c1c;
+}
+
+/* TABELLE */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table-timbrature thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
+
+/* SCROLL MORBIDO */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* MOBILE OTTIMIZZATO 1080x1920 (logica verticale) */
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: 10px;
+  }
+
+  .view {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .app-header h1 {
+    font-size: 18px;
+  }
+
+  .subtitle {
+    font-size: 11px;
+  }
 }
