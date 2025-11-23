@@ -10,14 +10,25 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- CONTENITORE CENTRALE MOBILE-FIRST -->
+    <!-- CONTENITORE GENERALE -->
     <div class="app-main-wrapper">
+      <!-- HEADER -->
       <header class="app-header">
         <div class="header-top">
-          <div>
-            <h1>Gestionale Antonio</h1>
-            <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+          <div class="header-left">
+            <div class="header-logo-circle">
+              <img
+                src="Logo Gestionale Antonio.png"
+                alt="Logo Gestionale Antonio"
+                class="header-logo-img"
+              />
+            </div>
+            <div>
+              <h1>Gestionale Antonio</h1>
+              <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+            </div>
           </div>
+
           <div class="header-user">
             <span id="current-user-label">Nessun utente</span>
             <button
@@ -31,15 +42,15 @@
         </div>
       </header>
 
+      <!-- CONTENUTO PRINCIPALE -->
       <main class="app-main">
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
           <div class="login-card">
             <div class="login-logo">
-              <!-- Metti il tuo file logo al posto di logo.png -->
               <img
-                src="logo.png"
-                alt="Logo locale"
+                src="Logo Gestionale Antonio.png"
+                alt="Logo Gestionale Antonio"
                 class="login-logo-img"
               />
             </div>
@@ -227,7 +238,6 @@
 
           <!-- BLOCCO SOLO MANAGER -->
           <div class="manager-only">
-            <!-- PULSANTE PER MOSTRARE/NASCONDERE LO STORICO -->
             <button
               type="button"
               id="btn-toggle-timbrature"
@@ -237,7 +247,6 @@
               Mostra storico timbrature
             </button>
 
-            <!-- SEZIONE DETTAGLIO TIMBRATURE, NASCOSTA DI DEFAULT -->
             <div id="sezione-timbrature-dettaglio" style="display: none">
               <h3>Timbrature (tutte)</h3>
               <div class="table-wrapper">
