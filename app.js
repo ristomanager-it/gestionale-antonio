@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // DOM base
   const views = document.querySelectorAll(".view");
   const routeButtons = document.querySelectorAll("[data-route]");
-  const buttonsGrid = document.querySelector(".buttons-grid");
   const managerMenu = document.getElementById("manager-menu");
 
   // login
@@ -44,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  // nuovo: toggle storico timbrature
+  // toggle storico timbrature
   const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
   const sezioneTimbratureDettaglio = document.getElementById(
     "sezione-timbrature-dettaglio"
@@ -803,7 +802,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // riepilogo per canale
     riepilogoCanaliEl.innerHTML = "";
-    Object.entries(perCanale).forEach(([canale, minuti]) => {
+    Object.entries(perCanale).forEach(([
+      canale,
+      minuti,
+    ]) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${canale}</td>
@@ -842,7 +844,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
       });
 
-      Object.entries(perCanale).forEach(([canale, minuti]) => {
+      Object.entries(perCanale).forEach(([
+        canale,
+        minuti,
+      ]) => {
         const ore = minuti / 60;
         const costo = costoPerCanale[canale] || 0;
 
@@ -892,6 +897,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ---------- NUOVA FUNZIONE: stato corrente dipendente ----------
+  function getStatoCorrenteDipendente(nomeDip) {
+    const eventiDip = timbrature
+      .filter((t) => t.dip === nomeDip && t.timestamp)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    let inside = false;
+    let canaleCorrente = null;
+
+    for (const ev of eventiDip) {
+      if (ev.tipo === "Entrata") {
+        inside = true;
+        canaleCorrente = ev.canale;
+      } else if (ev.tipo === "Uscita") {
+        inside = false;
+        canaleCorrente = null;
+      }
+      // Pausa non chiude il turno
+    }
+
+    return { inside, canaleCorrente };
+  }
+
   async function salvaTimbraturaSupabase(record) {
     if (!supabase) return null;
 
@@ -930,6 +958,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return record;
   }
 
+  // ---------- NUOVA VERSIONE: registraTimbratura ----------
   async function registraTimbratura(tipo) {
     if (!currentUser) {
       alert("Devi prima effettuare il login");
@@ -937,10 +966,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const dipNomeVal = currentUser.nome;
-    const canaleVal =
+
+    // Stato attuale del dipendente: ha una Entrata aperta? Su quale canale?
+    const stato = getStatoCorrenteDipendente(dipNomeVal);
+
+    if (tipo === "Entrata") {
+      if (stato.inside) {
+        alert(
+          `Sei già timbrato sul canale ${stato.canaleCorrente || ""}. ` +
+            "Devi fare Uscita prima di una nuova Entrata."
+        );
+        if (timbCanaleSelect && stato.canaleCorrente) {
+          timbCanaleSelect.value = stato.canaleCorrente;
+        }
+        return;
+      }
+    } else if (tipo === "Pausa" || tipo === "Uscita") {
+      if (!stato.inside) {
+        alert("Non hai una timbratura di Entrata aperta.");
+        return;
+      }
+    }
+
+    let canaleVal =
       (timbCanaleSelect && timbCanaleSelect.value) ||
       currentUser.canalePrevalente ||
       "NR";
+
+    if (stato.inside && stato.canaleCorrente) {
+      canaleVal = stato.canaleCorrente;
+      if (timbCanaleSelect) timbCanaleSelect.value = stato.canaleCorrente;
+    }
 
     const now = new Date();
     const ora = now.toLocaleTimeString("it-IT", {
