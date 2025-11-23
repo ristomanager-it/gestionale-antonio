@@ -1,8 +1,379 @@
+/* Reset base */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* Sfondo generale */
+body {
+  background: #020617;
+  color: #0f172a;
+}
+
+/* Wrapper principale */
+.app-main-wrapper {
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 8px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+
+.app-header {
+  background: #020617;
+  color: #e5e7eb;
+  padding: 8px 4px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f97316;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+/* Contenuto principale */
+.app-main {
+  flex: 1;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Card vista */
+.view {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+}
+
+/* Login view */
+.login-view {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 18px 16px 20px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
 .login-logo-img {
   width: 90px;
   height: 90px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.5);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin: 4px 0;
+  font-size: 22px;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remember-row {
+  margin-top: -4px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.login-buttons-row {
+  margin-top: 4px;
+}
+
+/* Pulsanti generici */
+
+.app-button {
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+  font-weight: 600;
+  text-align: center;
+}
+
+.app-button:hover {
+  background: #d1d5db;
+}
+
+.app-button:active {
+  transform: scale(0.97);
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.app-button.login-button {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.app-button.login-button:hover {
+  background: #1d4ed8;
+}
+
+/* Home dipendente */
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.app-button.big-home {
+  padding: 14px;
+  font-size: 16px;
+  background: #e5e7eb;
+}
+
+/* Menu manager */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.app-button.wide {
+  grid-column: span 2;
+}
+
+/* Form generico */
+
+.form-row {
   margin-bottom: 10px;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.form-row input,
+.form-row select {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+/* Timbratura */
+
+.timbratura-intro-card {
+  background: #eef2ff;
+  border-radius: 12px;
+  padding: 10px 10px 6px;
+  border: 1px solid #c7d2fe;
+  margin-bottom: 10px;
+}
+
+.timbratura-utente {
+  margin: 0;
+  font-size: 13px;
+}
+
+.timbratura-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.timb-button {
+  width: 100%;
+  font-size: 16px;
+  padding: 14px 12px;
+  color: #ffffff;
+}
+
+/* Colori timbratura */
+.timb-button.green {
+  background: #16a34a;
+}
+
+.timb-button.green:hover {
+  background: #15803d;
+}
+
+.timb-button.gray {
+  background: #6b7280;
+}
+
+.timb-button.gray:hover {
+  background: #4b5563;
+}
+
+.timb-button.red {
+  background: #dc2626;
+}
+
+.timb-button.red:hover {
+  background: #b91c1c;
+}
+
+/* Tabelle */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table-timbrature thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
+
+/* Piccoli pulsanti */
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+/* Responsività */
+
+@media (min-width: 768px) {
+  .app-main-wrapper {
+    padding-top: 12px;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .login-card {
+    padding: 20px 22px 24px;
+  }
+
+  .timbratura-buttons {
+    flex-direction: row;
+  }
+
+  .timb-button {
+    font-size: 15px;
+  }
+
+  .buttons-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
