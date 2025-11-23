@@ -604,6 +604,7 @@
           <p>Placeholder preventivi.</p>
         </section>
 
+        <!-- 🔹 NUOVA SEZIONE ACQUISTI -->
         <section
           id="view-acquisti"
           class="view"
@@ -611,7 +612,194 @@
           data-manager-only="true"
         >
           <h2>Acquisti</h2>
-          <p>Placeholder acquisti.</p>
+          <p>
+            Gestisci fornitori e registra le fatture di acquisto con relativo file
+            (PDF o foto).
+          </p>
+
+          <!-- FORNITORI -->
+          <h3>Fornitori</h3>
+          <form id="fornitore-form" onsubmit="return false;" class="timbratura-form">
+            <div class="form-row">
+              <label>
+                Nome fornitore
+                <input
+                  type="text"
+                  id="fornitore-nome"
+                  placeholder="Es. Fornitore Srl"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Partita IVA
+                <input
+                  type="text"
+                  id="fornitore-piva"
+                  placeholder="Es. 01234567890"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Indirizzo
+                <input
+                  type="text"
+                  id="fornitore-indirizzo"
+                  placeholder="Indirizzo completo"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Telefono
+                <input
+                  type="tel"
+                  id="fornitore-telefono"
+                  placeholder="Es. 3331234567"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Email
+                <input
+                  type="email"
+                  id="fornitore-email"
+                  placeholder="esempio@mail.com"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="fornitore-note"
+                  placeholder="Note interne"
+                />
+              </label>
+            </div>
+
+            <div class="form-row buttons-row">
+              <button
+                type="button"
+                id="btn-add-fornitore"
+                class="app-button small green"
+              >
+                Aggiungi/aggiorna fornitore
+              </button>
+            </div>
+          </form>
+
+          <div class="table-wrapper" style="margin-top: 8px">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>P.IVA</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="fornitori-lista"></tbody>
+            </table>
+          </div>
+
+          <hr style="margin: 18px 0" />
+
+          <!-- FATTURE -->
+          <h3>Fatture di acquisto</h3>
+          <form id="fattura-form" onsubmit="return false;" class="timbratura-form">
+            <div class="form-row">
+              <label>
+                Fornitore
+                <select id="fattura-fornitore-select">
+                  <option value="">-- seleziona fornitore --</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Numero fattura
+                <input
+                  type="text"
+                  id="fattura-numero"
+                  placeholder="Es. 123/2025"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Data fattura
+                <input type="date" id="fattura-data" />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Totale (opzionale)
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  id="fattura-totale"
+                  placeholder="Es. 1234.56"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                File fattura (PDF o immagine)
+                <input type="file" id="fattura-file" accept="application/pdf,image/*" />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="fattura-note"
+                  placeholder="Note interne sulla fattura"
+                />
+              </label>
+            </div>
+
+            <div class="form-row buttons-row">
+              <button
+                type="button"
+                id="btn-add-fattura"
+                class="app-button small green"
+              >
+                Registra fattura
+              </button>
+            </div>
+          </form>
+
+          <div class="table-wrapper" style="margin-top: 8px">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Numero</th>
+                  <th>Fornitore</th>
+                  <th>Totale</th>
+                  <th>File</th>
+                </tr>
+              </thead>
+              <tbody id="fatture-lista"></tbody>
+            </table>
+          </div>
         </section>
 
         <section
