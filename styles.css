@@ -21,7 +21,7 @@ body {
 }
 
 .app-main-wrapper {
-  max-width: 480px; /* pensato per telefono verticale */
+  max-width: 480px;          /* pensato per telefono verticale */
   margin: 0 auto;
   min-height: 100vh;
   background: #e5e7eb;
@@ -48,6 +48,8 @@ body {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* NUOVO: logo e contenitore sinistro header */
 
 .header-left {
   display: flex;
@@ -158,14 +160,13 @@ body {
   font-size: 13px;
 }
 
-/* HERO IMAGE / LOGO NELLE VISTE */
-
+/* Immagine hero in una vista (usata per il logo sulla home dipendente) */
 .view-hero-image {
   width: 100%;
   border-radius: 12px;
   margin-bottom: 8px;
   object-fit: cover;
-  max-height: 200px;
+  max-height: 180px;
 }
 
 /* --- LOGIN --- */
@@ -185,6 +186,7 @@ body {
   border: 1px solid #e5e7eb;
 }
 
+/* nuovo: logo nella card di login */
 .login-logo-wrapper {
   display: flex;
   justify-content: center;
@@ -435,7 +437,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* VERSIONE TABLET / DESKTOP (solo un po' più largo, la grafica desktop la facciamo dopo) */
+/* VERSIONE TABLET / DESKTOP */
 
 @media (min-width: 768px) {
   .app-main-wrapper {
