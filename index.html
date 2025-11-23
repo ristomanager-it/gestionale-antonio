@@ -159,7 +159,7 @@
         </button>
       </section>
 
-      <!-- TIMBRATURA: per l’utente loggato -->
+           <!-- TIMBRATURA: per l’utente loggato -->
       <section
         id="view-timbratura"
         class="view"
@@ -172,9 +172,19 @@
           <p class="timbratura-utente">
             Stai timbrando come
             <strong id="timbratura-utente-nome">-</strong>
-            &nbsp;|&nbsp; Canale:
-            <strong id="timbratura-utente-canale">-</strong>
           </p>
+
+          <div class="form-row" style="margin-top: 8px;">
+            <label>
+              Luogo di lavoro (canale)
+              <select id="timbratura-canale-select">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">Catering</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div class="timbratura-buttons">
