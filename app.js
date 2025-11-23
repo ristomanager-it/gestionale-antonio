@@ -22,11 +22,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnModeExit = document.getElementById("btn-mode-exit");
 
   function applyMode() {
+    // Etichetta
     if (modeLabel) {
       modeLabel.textContent =
         modalita === "manager" ? "Modalità: Manager" : "Modalità: Dipendente";
     }
 
+    // Pulsanti
     if (btnModeManager) {
       btnModeManager.style.display =
         modalita === "manager" ? "none" : "inline-block";
@@ -36,6 +38,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         modalita === "manager" ? "inline-block" : "none";
     }
 
+    // Blocchi interni solo manager (riepiloghi timbrature dentro Timbratura)
     document.querySelectorAll(".manager-only").forEach((el) => {
       el.style.display = modalita === "manager" ? "" : "none";
     });
@@ -64,514 +67,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // --- FATTURE / ACQUISTI / MAGAZZINO ---
-
-  const fattFornitoreSelect = document.getElementById("fatt-fornitore");
-  const fattNuovoFornitoreInput = document.getElementById(
-    "fatt-nuovo-fornitore"
-  );
-  const fattDataInput = document.getElementById("fatt-data");
-  const fattNumeroInput = document.getElementById("fatt-numero");
-  const fattTotaleInput = document.getElementById("fatt-totale");
-  const fattFileInput = document.getElementById("fatt-file");
-  const fattNoteInput = document.getElementById("fatt-note");
-
-  const rigaProdottoSelect = document.getElementById("riga-prodotto");
-  const rigaNuovoProdottoInput = document.getElementById("riga-nuovo-prodotto");
-  const rigaCategoriaSelect = document.getElementById("riga-categoria");
-  const rigaUnitaInput = document.getElementById("riga-unita");
-  const rigaQuantitaInput = document.getElementById("riga-quantita");
-  const rigaPrezzoInput = document.getElementById("riga-prezzo");
-  const rigaIvaInput = document.getElementById("riga-iva");
-
-  const btnAddRiga = document.getElementById("btn-add-riga");
-  const fattRigheLista = document.getElementById("fatt-righe-lista");
-  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
-  const fattureLista = document.getElementById("fatture-lista");
-
-  let fornitori = [];
-  let categorieProdotto = [];
-  let prodotti = [];
-  let righeFatturaCorrenti = [];
-
-  async function caricaFornitori() {
-    if (!supabase || !fattFornitoreSelect) return;
-
-    const { data, error } = await supabase
-      .from("fornitori")
-      .select("*")
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento fornitori:", error);
-      return;
-    }
-
-    fornitori = data;
-    fattFornitoreSelect.innerHTML = `<option value="">-- seleziona o crea --</option>`;
-    fornitori.forEach((f) => {
-      const opt = document.createElement("option");
-      opt.value = f.id;
-      opt.textContent = f.nome;
-      fattFornitoreSelect.appendChild(opt);
-    });
-  }
-
-  async function caricaCategorieProdotto() {
-    if (!supabase || !rigaCategoriaSelect) return;
-
-    const { data, error } = await supabase
-      .from("categorie_prodotto")
-      .select("*")
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento categorie prodotto:", error);
-      return;
-    }
-
-    categorieProdotto = data || [];
-    rigaCategoriaSelect.innerHTML = `<option value="">-- seleziona categoria --</option>`;
-    categorieProdotto.forEach((c) => {
-      const opt = document.createElement("option");
-      opt.value = c.id;
-      opt.textContent = c.nome;
-      rigaCategoriaSelect.appendChild(opt);
-    });
-  }
-
-  async function caricaProdotti() {
-    if (!supabase || !rigaProdottoSelect) return;
-
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("*")
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento prodotti:", error);
-      return;
-    }
-
-    prodotti = data || [];
-    rigaProdottoSelect.innerHTML = `<option value="">-- seleziona o nuovo --</option>`;
-    prodotti.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.nome;
-      rigaProdottoSelect.appendChild(opt);
-    });
-  }
-
-  function renderRigheFatturaCorrenti() {
-    if (!fattRigheLista) return;
-    fattRigheLista.innerHTML = "";
-
-    righeFatturaCorrenti.forEach((r, index) => {
-      const cat = categorieProdotto.find((c) => c.id === r.categoria_id);
-      const totale = (r.quantita || 0) * (r.prezzo_unitario || 0);
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.nome_prodotto}</td>
-        <td>${cat ? cat.nome : ""}</td>
-        <td>${r.quantita ?? ""}</td>
-        <td>${r.unita_misura || ""}</td>
-        <td>${r.prezzo_unitario ? r.prezzo_unitario.toFixed(2) : ""}</td>
-        <td>${totale ? totale.toFixed(2) : ""}</td>
-        <td>
-          <button data-index="${index}" class="app-button small red">
-            Rimuovi
-          </button>
-        </td>
-      `;
-      fattRigheLista.appendChild(tr);
-    });
-
-    fattRigheLista.querySelectorAll("button[data-index]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.getAttribute("data-index"), 10);
-        righeFatturaCorrenti.splice(idx, 1);
-        renderRigheFatturaCorrenti();
-      });
-    });
-  }
-
-  if (btnAddRiga) {
-    btnAddRiga.addEventListener("click", () => {
-      const prodottoId = rigaProdottoSelect.value || null;
-      const nomeNuovo = (rigaNuovoProdottoInput.value || "").trim();
-      const categoriaId = rigaCategoriaSelect.value || null;
-      const unita = (rigaUnitaInput.value || "").trim();
-      const quantita = parseFloat(rigaQuantitaInput.value || "0") || 0;
-      const prezzo = parseFloat(rigaPrezzoInput.value || "0") || 0;
-      const iva = parseFloat(rigaIvaInput.value || "0") || 0;
-
-      if (!prodottoId && !nomeNuovo) {
-        alert("Seleziona un prodotto o inserisci un nuovo prodotto");
-        return;
-      }
-      if (!categoriaId) {
-        alert(
-          "Seleziona una categoria.\nSe il menu è vuoto, vai in Supabase → tabella 'categorie_prodotto' e aggiungi almeno una riga (es. 'Generico')."
-        );
-        return;
-      }
-      if (!unita) {
-        alert("Inserisci l'unità di misura (es. kg, lt, pz)");
-        return;
-      }
-      if (quantita <= 0) {
-        alert("Inserisci una quantità valida");
-        return;
-      }
-
-      let nomeProdotto = nomeNuovo;
-      if (!nomeProdotto && prodottoId) {
-        const p = prodotti.find((x) => x.id === prodottoId);
-        if (p) nomeProdotto = p.nome;
-      }
-
-      righeFatturaCorrenti.push({
-        prodotto_id: prodottoId,
-        nome_prodotto: nomeProdotto,
-        categoria_id: categoriaId,
-        unita_misura: unita,
-        quantita,
-        prezzo_unitario: prezzo,
-        iva,
-      });
-
-      rigaProdottoSelect.value = "";
-      rigaNuovoProdottoInput.value = "";
-      rigaUnitaInput.value = "";
-      rigaQuantitaInput.value = "";
-      rigaPrezzoInput.value = "";
-      rigaIvaInput.value = "";
-
-      renderRigheFatturaCorrenti();
-    });
-  }
-
-  async function salvaFatturaEScaricoMagazzino() {
-    if (!supabase) return;
-
-    const fornitoreId = fattFornitoreSelect.value || null;
-    const nuovoFornitoreNome = (fattNuovoFornitoreInput.value || "").trim();
-    const dataFattura = fattDataInput.value;
-    const numeroFattura = (fattNumeroInput.value || "").trim();
-    const totaleFattura = parseFloat(fattTotaleInput.value || "0") || null;
-    const note = (fattNoteInput.value || "").trim();
-    const file = fattFileInput.files[0] || null;
-
-    if (!dataFattura) {
-      alert("Inserisci la data della fattura");
-      return;
-    }
-    if (!fornitoreId && !nuovoFornitoreNome) {
-      alert("Seleziona un fornitore o inserisci un nuovo fornitore");
-      return;
-    }
-    if (righeFatturaCorrenti.length === 0) {
-      alert("Aggiungi almeno una riga di fattura");
-      return;
-    }
-
-    let fornitoreIdFinal = fornitoreId;
-    if (!fornitoreIdFinal && nuovoFornitoreNome) {
-      const { data: fornIns, error: fornErr } = await supabase
-        .from("fornitori")
-        .insert({ nome: nuovoFornitoreNome })
-        .select()
-        .single();
-      if (fornErr) {
-        console.error("Errore inserimento fornitore:", fornErr);
-        alert("Errore nel creare il nuovo fornitore");
-        return;
-      }
-      fornitoreIdFinal = fornIns.id;
-    }
-
-    let fileUrl = null;
-    if (file) {
-      const estensione = file.name.split(".").pop();
-      const filePath = `fatture/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.${estensione}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from("fatture")
-        .upload(filePath, file);
-
-      if (uploadErr) {
-        console.error("Errore upload file fattura:", uploadErr);
-        alert("Errore nel caricare il file della fattura");
-        return;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("fatture")
-        .getPublicUrl(filePath);
-      fileUrl = publicUrlData.publicUrl;
-    }
-
-    const { data: fattIns, error: fattErr } = await supabase
-      .from("fatture")
-      .insert({
-        fornitore_id: fornitoreIdFinal,
-        data_fattura: dataFattura,
-        numero_fattura: numeroFattura || null,
-        totale: totaleFattura,
-        file_url: fileUrl,
-        note: note || null,
-      })
-      .select()
-      .single();
-
-    if (fattErr) {
-      console.error("Errore inserimento fattura:", fattErr);
-      alert("Errore nel salvare l'acquisto");
-      return;
-    }
-
-    const fatturaId = fattIns.id;
-
-    for (const r of righeFatturaCorrenti) {
-      let prodottoId = r.prodotto_id;
-
-      if (!prodottoId && r.nome_prodotto) {
-        const { data: prodIns, error: prodErr } = await supabase
-          .from("prodotti")
-          .insert({
-            nome: r.nome_prodotto,
-            categoria_id: r.categoria_id,
-            unita_misura: r.unita_misura,
-            attivo: true,
-          })
-          .select()
-          .single();
-        if (prodErr) {
-          console.error("Errore inserimento prodotto:", prodErr);
-          alert(`Errore nel creare il prodotto ${r.nome_prodotto}`);
-          continue;
-        }
-        prodottoId = prodIns.id;
-      }
-
-      const totaleRiga = (r.quantita || 0) * (r.prezzo_unitario || 0);
-
-      const { error: rigaErr } = await supabase.from("fatture_righe").insert({
-        fattura_id: fatturaId,
-        prodotto_id: prodottoId,
-        descrizione: r.nome_prodotto,
-        quantita: r.quantita,
-        unita_misura: r.unita_misura,
-        prezzo_unitario: r.prezzo_unitario,
-        iva: r.iva,
-        categoria_id: r.categoria_id,
-      });
-
-      if (rigaErr) {
-        console.error("Errore inserimento riga fattura:", rigaErr);
-      }
-
-      const { error: magErr } = await supabase
-        .from("magazzino_movimenti")
-        .insert({
-          prodotto_id: prodottoId,
-          tipo: "carico",
-          quantita: r.quantita,
-          unita_misura: r.unita_misura,
-          costo_totale: totaleRiga,
-          riferimento_tipo: "fattura",
-          riferimento_id: fatturaId,
-        });
-
-      if (magErr) {
-        console.error("Errore inserimento movimento magazzino:", magErr);
-      }
-    }
-
-    alert("Acquisto salvato e magazzino aggiornato");
-
-    fattFornitoreSelect.value = "";
-    fattNuovoFornitoreInput.value = "";
-    fattDataInput.value = "";
-    fattNumeroInput.value = "";
-    fattTotaleInput.value = "";
-    fattFileInput.value = "";
-    fattNoteInput.value = "";
-    righeFatturaCorrenti = [];
-    renderRigheFatturaCorrenti();
-    await caricaFornitori();
-    await caricaProdotti();
-    await caricaStoricoFatture();
-  }
-
-  if (btnSalvaFattura) {
-    btnSalvaFattura.addEventListener("click", salvaFatturaEScaricoMagazzino);
-  }
-
-  async function caricaStoricoFatture() {
-    if (!supabase || !fattureLista) return;
-
-    const { data, error } = await supabase
-      .from("fatture")
-      .select(
-        `
-        id,
-        data_fattura,
-        numero_fattura,
-        totale,
-        file_url,
-        fornitori ( nome )
-      `
-      )
-      .order("data_fattura", { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error("Errore caricamento fatture:", error);
-      return;
-    }
-
-    fattureLista.innerHTML = "";
-    data.forEach((f) => {
-      const tr = document.createElement("tr");
-      const nomeFornitore = f.fornitori ? f.fornitori.nome : "";
-      tr.innerHTML = `
-        <td>${f.data_fattura || ""}</td>
-        <td>${nomeFornitore}</td>
-        <td>${f.numero_fattura || ""}</td>
-        <td>${f.totale != null ? Number(f.totale).toFixed(2) : ""}</td>
-        <td>${
-          f.file_url
-            ? `<a href="${f.file_url}" target="_blank">Apri</a>`
-            : ""
-        }</td>
-      `;
-      fattureLista.appendChild(tr);
-    });
-  }
-
-  // --- ANAGRAFICA DIPENDENTI ---
+  // ------------------------------------------------
+  //             ANAGRAFICA DIPENDENTI
+  // ------------------------------------------------
 
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
-
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
   const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-
-  const dipPinGenerale = document.getElementById("dip-pin-generale");
   const dipCodice = document.getElementById("dip-codice");
   const dipCanale = document.getElementById("dip-canale");
   const dipAttivo = document.getElementById("dip-attivo");
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  let dipendenti = [];
-
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
-  }
-
-  function formatTipoCompenso(tipo) {
-    switch (tipo) {
-      case "orario":
-        return "A ore";
-      case "mensile":
-        return "Mensile";
-      case "servizio":
-        return "Per servizio";
-      default:
-        return "";
-    }
-  }
-
-  function formatDataNascita(dataNascita) {
-    if (!dataNascita) return "";
-    const d = new Date(dataNascita);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("it-IT");
-  }
-
-  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
-    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
-
-    if (tipo === "orario") {
-      return retribuzioneBase;
-    }
-
-    if (tipo === "mensile") {
-      if (!oreMensili || oreMensili <= 0) return 0;
-      return retribuzioneBase / oreMensili;
-    }
-
-    if (tipo === "servizio") {
-      if (!oreServizio || oreServizio <= 0) return 0;
-      return retribuzioneBase / oreServizio;
-    }
-
-    return 0;
-  }
-
-  function aggiornaUICompenso() {
-    if (!dipTipoCompenso) return;
-    const tipo = dipTipoCompenso.value || "orario";
-
-    if (rowOreMensili && rowOreServizio) {
-      rowOreMensili.style.display = tipo === "mensile" ? "block" : "none";
-      rowOreServizio.style.display = tipo === "servizio" ? "block" : "none";
-    }
-
-    const retribuzioneBase = parseFloat(dipRetribuzioneBase.value || "0") || 0;
-    const oreMensili = parseFloat(dipOreMensili.value || "0") || 0;
-    const oreServizio = parseFloat(dipOreServizio.value || "0") || 0;
-
-    const costo = calcolaCostoOrario(
-      tipo,
-      retribuzioneBase,
-      oreMensili,
-      oreServizio
-    );
-    dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
-  }
-
-  if (dipTipoCompenso) {
-    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
-  }
-  if (dipRetribuzioneBase) {
-    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreMensili) {
-    dipOreMensili.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreServizio) {
-    dipOreServizio.addEventListener("input", aggiornaUICompenso);
-  }
+  let dipendenti = []; // popolato da Supabase
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
@@ -591,20 +100,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: row.id,
       nome: row.nome,
       mansione: row.mansione,
-      dataNascita: row.data_nascita || null,
-      residenza: row.residenza || "",
-      telefono: row.telefono || "",
-      email: row.email || "",
-      ruolo: row.ruolo || "",
-      tipoCompenso: row.tipo_compenso || "orario",
-      retribuzioneBase: row.retribuzione_base ?? null,
-      oreMensili: row.ore_mensili_contrattuali ?? null,
-      oreServizio: row.ore_medie_per_servizio ?? null,
       costoOrario: row.costo_orario ?? 0,
-      pinGenerale: row.pin_generale || "",
       codice: row.codice || "",
-      canalePrevalente: row.canale_prevalente,
-      attivo: row.attivo,
+      canalePrevalente: row.canale_prevalente || "NR",
+      attivo: row.attivo !== false, // default true
     }));
 
     renderDipendenti();
@@ -619,19 +118,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: dip.id || undefined,
       nome: dip.nome,
       mansione: dip.mansione,
-      data_nascita: dip.dataNascita || null,
-      residenza: dip.residenza || null,
-      telefono: dip.telefono || null,
-      email: dip.email || null,
-      ruolo: dip.ruolo || null,
-      tipo_compenso: dip.tipoCompenso || "orario",
-      retribuzione_base: dip.retribuzioneBase ?? null,
-      ore_mensili_contrattuali: dip.oreMensili ?? null,
-      ore_medie_per_servizio: dip.oreServizio ?? null,
       costo_orario: dip.costoOrario ?? null,
-      pin_generale: dip.pinGenerale || null,
       codice: dip.codice || null,
-      canale_prevalente: dip.canalePrevalente,
+      canale_prevalente: dip.canalePrevalente || null,
       attivo: dip.attivo,
     };
 
@@ -652,8 +141,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function eliminaDipendenteSupabase(dip) {
-    if (!supabase) return;
-    if (!dip.id) return;
+    if (!supabase || !dip.id) return;
 
     const { error } = await supabase
       .from("dipendenti")
@@ -676,15 +164,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       tr.innerHTML = `
         <td>${d.nome}</td>
         <td>${d.mansione || ""}</td>
-        <td>${formatDataNascita(d.dataNascita)}</td>
-        <td>${d.residenza || ""}</td>
-        <td>${d.telefono || ""}</td>
-        <td>${d.email || ""}</td>
-        <td>${formatRuolo(d.ruolo)}</td>
-        <td>${formatTipoCompenso(d.tipoCompenso)}</td>
-        <td>${d.costoOrario ? d.costoOrario.toFixed(2) : ""}</td>
         <td>${d.canalePrevalente || ""}</td>
-        <td>${d.pinGenerale || ""}</td>
+        <td>${d.costoOrario ? d.costoOrario.toFixed(2) : ""}</td>
         <td>${d.codice || ""}</td>
         <td>${d.attivo ? "Sì" : "No"}</td>
         <td>
@@ -696,6 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       dipLista.appendChild(tr);
     });
 
+    // pulsanti Modifica
     dipLista.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = parseInt(btn.getAttribute("data-edit"), 10);
@@ -703,6 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
 
+    // pulsanti Elimina
     dipLista.querySelectorAll("[data-delete]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const idx = parseInt(btn.getAttribute("data-delete"), 10);
@@ -719,84 +202,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     const d = dipendenti[index];
     if (!d) return;
 
-    dipNome.value = d.nome || "";
-    dipMansione.value = d.mansione || "";
-    dipDataNascita.value = d.dataNascita ? d.dataNascita.substring(0, 10) : "";
-    dipResidenza.value = d.residenza || "";
-    dipTelefono.value = d.telefono || "";
-    dipEmail.value = d.email || "";
-    dipRuolo.value = d.ruolo || "";
+    if (dipNome) dipNome.value = d.nome || "";
+    if (dipMansione) dipMansione.value = d.mansione || "";
+    if (dipCosto)
+      dipCosto.value =
+        d.costoOrario != null ? d.costoOrario.toString() : "";
+    if (dipCodice) dipCodice.value = d.codice || "";
+    if (dipCanale) dipCanale.value = d.canalePrevalente || "NR";
+    if (dipAttivo) dipAttivo.checked = !!d.attivo;
 
-    dipTipoCompenso.value = d.tipoCompenso || "orario";
-    dipRetribuzioneBase.value =
-      d.retribuzioneBase != null ? d.retribuzioneBase : "";
-    dipOreMensili.value = d.oreMensili != null ? d.oreMensili : "";
-    dipOreServizio.value = d.oreServizio != null ? d.oreServizio : "";
-    dipCosto.value =
-      d.costoOrario != null && d.costoOrario > 0
-        ? d.costoOrario.toFixed(2)
-        : "";
-
-    dipPinGenerale.value = d.pinGenerale || "";
-    dipCodice.value = d.codice || "";
-    dipCanale.value = d.canalePrevalente || "NR";
-    dipAttivo.checked = !!d.attivo;
-
-    dipNome.dataset.editIndex = index.toString();
-
-    aggiornaUICompenso();
+    if (dipNome) dipNome.dataset.editIndex = index.toString();
   }
 
   if (btnAddDip) {
     btnAddDip.addEventListener("click", async () => {
-      const nome = (dipNome.value || "").trim();
+      const nome = (dipNome?.value || "").trim();
       if (!nome) {
         alert("Inserisci il nome del dipendente");
         return;
       }
 
-      const mansione = (dipMansione.value || "").trim();
-      const dataNascitaVal = dipDataNascita.value || "";
-      const residenza = (dipResidenza.value || "").trim();
-      const telefono = (dipTelefono.value || "").trim();
-      const email = (dipEmail.value || "").trim();
-      const ruolo = dipRuolo.value || "";
+      const mansione = (dipMansione?.value || "").trim();
+      const costo = parseFloat(dipCosto?.value || "0") || 0;
+      const codice = (dipCodice?.value || "").trim();
+      const canalePrevalente = dipCanale?.value || "NR";
+      const attivo = dipAttivo ? dipAttivo.checked : true;
 
-      const tipoCompenso = dipTipoCompenso.value || "orario";
-      const retribuzioneBase =
-        parseFloat(dipRetribuzioneBase.value || "0") || 0;
-      const oreMensili = parseFloat(dipOreMensili.value || "0") || 0;
-      const oreServizio = parseFloat(dipOreServizio.value || "0") || 0;
-
-      const costoOrario = calcolaCostoOrario(
-        tipoCompenso,
-        retribuzioneBase,
-        oreMensili,
-        oreServizio
-      );
-
-      dipCosto.value = costoOrario ? costoOrario.toFixed(2) : "";
-
-      const pinGenerale = (dipPinGenerale.value || "").trim();
-      const codice = (dipCodice.value || "").trim();
-      const canalePrevalente = dipCanale.value || "NR";
-      const attivo = dipAttivo.checked;
-
-      const editIndex = dipNome.dataset.editIndex;
+      const editIndex = dipNome?.dataset.editIndex;
       let dipObj = {
         nome,
         mansione,
-        dataNascita: dataNascitaVal || null,
-        residenza,
-        telefono,
-        email,
-        ruolo,
-        tipoCompenso,
-        retribuzioneBase: retribuzioneBase || null,
-        oreMensili: oreMensili || null,
-        oreServizio: oreServizio || null,
-        costoOrario: costoOrario || null,
-        pinGenerale,
+        costoOrario: costo,
         codice,
         canalePrevalente,
         attivo,
@@ -814,30 +250,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       const salvato = await salvaDipendenteSupabase(dipObj);
       if (!salvato) return;
 
-      dipNome.value = "";
-      dipMansione.value = "";
-      dipDataNascita.value = "";
-      dipResidenza.value = "";
-      dipTelefono.value = "";
-      dipEmail.value = "";
-      dipRuolo.value = "";
-      dipTipoCompenso.value = "orario";
-      dipRetribuzioneBase.value = "";
-      dipOreMensili.value = "";
-      dipOreServizio.value = "";
-      dipCosto.value = "";
-      dipPinGenerale.value = "";
-      dipCodice.value = "";
-      dipCanale.value = "NR";
-      dipAttivo.checked = true;
-      delete dipNome.dataset.editIndex;
+      // pulizia form
+      if (dipNome) dipNome.value = "";
+      if (dipMansione) dipMansione.value = "";
+      if (dipCosto) dipCosto.value = "";
+      if (dipCodice) dipCodice.value = "";
+      if (dipCanale) dipCanale.value = "NR";
+      if (dipAttivo) dipAttivo.checked = true;
+      if (dipNome) delete dipNome.dataset.editIndex;
 
-      aggiornaUICompenso();
       await caricaDipendentiDaSupabase();
     });
   }
 
-  // --- TIMBRATURA COLLEGATA AI DIPENDENTI ---
+  // ------------------------------------------------
+  //                     TIMBRATURE
+  // ------------------------------------------------
 
   const dipInput = document.getElementById("timbratura-dipendente");
   const dipSelect = document.getElementById("timbratura-dipendente-select");
@@ -857,7 +285,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
-  let timbrature = [];
+  let timbrature = []; // popolato da Supabase
   let periodoCorrente = "oggi";
 
   async function caricaTimbratureDaSupabase() {
@@ -884,7 +312,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
     }));
 
-    aggiornaTabella();
+    aggiornaTabellaTimbrature();
     aggiornaRiepilogo();
   }
 
@@ -945,7 +373,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     dipSelect.value = idx.toString();
     dipInput.value = d.nome;
-    if (d.canalePrevalente) {
+    if (d.canalePrevalente && canaleSelect) {
       canaleSelect.value = d.canalePrevalente;
     }
   }
@@ -954,12 +382,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     dipSelect.addEventListener("change", () => {
       const idx = dipSelect.value;
       if (idx === "") {
-        dipInput.value = "";
+        if (dipInput) dipInput.value = "";
         return;
       }
       const d = dipendenti[parseInt(idx, 10)];
       if (d) {
-        dipInput.value = d.nome;
+        if (dipInput) dipInput.value = d.nome;
         if (canaleSelect && d.canalePrevalente) {
           canaleSelect.value = d.canalePrevalente;
         }
@@ -977,7 +405,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (idx >= 0) {
         dipSelect.value = idx.toString();
         const d = dipendenti[idx];
-        dipInput.value = d.nome;
+        if (dipInput) dipInput.value = d.nome;
         if (canaleSelect && d.canalePrevalente) {
           canaleSelect.value = d.canalePrevalente;
         }
@@ -1001,7 +429,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `${ore}h ${min.toString().padStart(2, "0")}m`;
   }
 
-  function aggiornaTabella() {
+  function aggiornaTabellaTimbrature() {
     if (!lista) return;
     lista.innerHTML = "";
 
@@ -1089,6 +517,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+    // Riepilogo per dipendente
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [dip, canale] = key.split("|");
@@ -1101,11 +530,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoDipEl.appendChild(tr);
     });
 
+    // Riepilogo per canale
     riepilogoCanaliEl.innerHTML = "";
-    Object.entries(perCanale).forEach(([
-      canale,
-      minuti,
-    ]) => {
+    Object.entries(perCanale).forEach(([canale, minuti]) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${canale}</td>
@@ -1114,6 +541,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
+    // Costo lavoro
     if (costoDipEl && costoCanaliEl) {
       costoDipEl.innerHTML = "";
       costoCanaliEl.innerHTML = "";
@@ -1157,6 +585,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
+    // Attivi adesso
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
@@ -1228,8 +657,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function registraTimbratura(tipo) {
-    const dipNomeVal = (dipInput.value || "").trim();
-    const canaleVal = canaleSelect.value;
+    const dipNomeVal = (dipInput?.value || "").trim();
+    const canaleVal = canaleSelect?.value || "NR";
 
     if (!dipNomeVal) {
       alert("Seleziona un dipendente (tramite codice o menu)");
@@ -1254,7 +683,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!salvato) return;
 
     timbrature.push(salvato);
-    aggiornaTabella();
+    aggiornaTabellaTimbrature();
     aggiornaRiepilogo();
   }
 
@@ -1265,7 +694,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnEsci)
     btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 
-  // --- ROUTING ---
+  // ------------------------------------------------
+  //                     ROUTING
+  // ------------------------------------------------
 
   async function onRouteEnter(route) {
     switch (route) {
@@ -1274,12 +705,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       case "dipendenti":
         await caricaDipendentiDaSupabase();
-        break;
-      case "fatture": // Acquisti
-        await caricaFornitori();
-        await caricaCategorieProdotto();
-        await caricaProdotti();
-        await caricaStoricoFatture();
         break;
       default:
         break;
@@ -1292,6 +717,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let targetRoute = route;
     let active = document.getElementById(`view-${route}`);
 
+    // Se in modalità dipendente e la vista è solo manager, rimando a timbratura
     if (
       active &&
       modalita === "dipendente" &&
@@ -1323,27 +749,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     navigateTo(route);
   });
 
-  // --- AVVIO APP ---
+  // ------------------------------------------------
+  //                     AVVIO
+  // ------------------------------------------------
 
   async function applicaTuttoAllAvvio() {
     applyMode();
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
-    await caricaFornitori();
-    await caricaCategorieProdotto();
-    await caricaProdotti();
-    await caricaStoricoFatture();
     applicaDipendenteCorrente();
-    aggiornaUICompenso();
 
     const initialRoute = window.location.hash.replace("#", "") || "timbratura";
     await navigateTo(initialRoute);
   }
 
   await applicaTuttoAllAvvio();
-});
-aTuttoAllAvvio();
-
-  const initialRoute = window.location.hash.replace("#", "") || "timbratura";
-  navigateTo(initialRoute);
 });
