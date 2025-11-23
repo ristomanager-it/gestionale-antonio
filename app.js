@@ -4,13 +4,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Supabase client non trovato. Controlla index.html.");
   }
 
-  // ----------------- COSTANTI STORAGE -----------------
   const CURRENT_USER_KEY = "utente_corrente";
 
-  // ----------------- ELEMENTI BASE DOM -----------------
+  // DOM base
   const views = document.querySelectorAll(".view");
   const routeButtons = document.querySelectorAll("[data-route]");
   const buttonsGrid = document.querySelector(".buttons-grid");
+  const managerMenu = document.getElementById("manager-menu");
 
   // login
   const loginView = document.getElementById("view-login");
@@ -44,6 +44,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
+  // nuovo: toggle storico timbrature
+  const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
+  const sezioneTimbratureDettaglio = document.getElementById(
+    "sezione-timbrature-dettaglio"
+  );
+
   // anagrafica dipendenti
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
@@ -68,13 +74,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  // ----------------- STATO -----------------
+  // stato
   let dipendenti = [];
   let timbrature = [];
   let currentUser = null;
   let periodoCorrente = "oggi";
 
-  // ----------------- UTILITY RUOLI & FORMAT -----------------
+  // ---------- utility ruoli ----------
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -123,9 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
     if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
 
-    if (tipo === "orario") {
-      return retribuzioneBase;
-    }
+    if (tipo === "orario") return retribuzioneBase;
 
     if (tipo === "mensile") {
       if (!oreMensili || oreMensili <= 0) return 0;
@@ -140,7 +144,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return 0;
   }
 
-  // ----------------- HEADER & VISIBILITÀ -----------------
+  // ---------- header & visibilità ----------
   function updateHeaderUser() {
     if (!currentUserLabel) return;
 
@@ -177,23 +181,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+    if (managerMenu) {
+      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
+    }
+
     updateHeaderUser();
     updateTimbraturaUserInfo();
   }
 
   function showOnlyView(viewId) {
     views.forEach((v) => {
-      if (v.id === viewId) {
-        v.style.display = "block";
-      } else {
-        v.style.display = "none";
-      }
+      v.style.display = v.id === viewId ? "block" : "none";
     });
   }
 
   function showLogin() {
-    if (buttonsGrid) buttonsGrid.style.display = "none";
     if (homeDipView) homeDipView.style.display = "none";
+    if (managerMenu) managerMenu.style.display = "none";
     showOnlyView("view-login");
     currentUser = null;
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -201,15 +205,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function showHomeDipendente() {
-    if (buttonsGrid) buttonsGrid.style.display = "none";
+    if (managerMenu) managerMenu.style.display = "none";
     showOnlyView("view-home-dip");
     applyRoleVisibility();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showManagerMenu(initialRoute) {
-    if (buttonsGrid) buttonsGrid.style.display = "grid";
-    // view principale
+  function showManagerMenuAndRoute(initialRoute) {
+    if (managerMenu) managerMenu.style.display = "grid";
     showOnlyView(`view-${initialRoute || "timbratura"}`);
     applyRoleVisibility();
     navigateTo(initialRoute || "timbratura");
@@ -241,21 +244,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       const saved = JSON.parse(raw);
       if (!saved) return;
 
-      // admin virtuale
       if (saved.virtualAdmin) {
         currentUser = saved;
         applyRoleVisibility();
         return;
       }
 
-      // prova match per id
       const found = dipendenti.find((d) => d.id === saved.id);
       if (found) {
         setCurrentUser(found, true);
         return;
       }
 
-      // prova match per nome
       const byName = dipendenti.find(
         (d) =>
           d.nome &&
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
     } catch {
-      // ignore parse error
+      /* ignore */
     }
   }
 
@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ----------------- ANAGRAFICA DIPENDENTI -----------------
+  // ---------- anagrafica dipendenti ----------
   function aggiornaUICompenso() {
     if (!dipTipoCompenso || !labelRetribuzione) return;
 
@@ -592,7 +592,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ----------------- LOGIN -----------------
+  // ---------- login & utente corrente ----------
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
       if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
@@ -623,7 +623,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Admin di emergenza (non legato a dipendenti)
+      // admin virtuale
       if (nome.toLowerCase() === "admin" && pin === "9999") {
         setCurrentUser(
           {
@@ -636,7 +636,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           remember
         );
         if (loginView) loginView.style.display = "none";
-        showManagerMenu("timbratura");
+        showManagerMenuAndRoute("timbratura");
         return;
       }
 
@@ -658,14 +658,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (loginView) loginView.style.display = "none";
 
       if (isManagerRole(dip.ruolo)) {
-        showManagerMenu("timbratura");
+        showManagerMenuAndRoute("timbratura");
       } else {
         showHomeDipendente();
       }
     });
   }
 
-  // ----------------- TIMBRATURE -----------------
+  // ---------- timbrature ----------
   async function caricaTimbratureDaSupabase() {
     if (!supabase) return;
 
@@ -978,7 +978,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ----------------- ROUTING -----------------
+  // toggle storico timbrature
+  if (btnToggleTimbrature && sezioneTimbratureDettaglio) {
+    btnToggleTimbrature.addEventListener("click", () => {
+      const visibile = sezioneTimbratureDettaglio.style.display !== "none";
+      if (visibile) {
+        sezioneTimbratureDettaglio.style.display = "none";
+        btnToggleTimbrature.textContent = "Mostra storico timbrature";
+      } else {
+        sezioneTimbratureDettaglio.style.display = "block";
+        btnToggleTimbrature.textContent = "Nascondi storico timbrature";
+      }
+    });
+  }
+
+  // ---------- routing ----------
   async function onRouteEnter(route) {
     switch (route) {
       case "timbratura":
@@ -1002,7 +1016,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const isManager = isManagerRole(currentUser.ruolo);
 
     if (!isManager) {
-      // dipendenti semplici: solo timbratura e ordine
       if (route === "timbratura" || route === "ordine") {
         showOnlyView(`view-${route}`);
         await onRouteEnter(route);
@@ -1014,13 +1027,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!active) {
         route = "timbratura";
         active = document.getElementById("view-timbratura");
-      }
-
-      const isManagerOnly =
-        active.getAttribute("data-manager-only") === "true";
-
-      if (isManagerOnly && !isManager) {
-        route = "timbratura";
       }
 
       showOnlyView(`view-${route}`);
@@ -1044,7 +1050,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     navigateTo(route);
   });
 
-  // ----------------- AVVIO -----------------
+  // ---------- avvio ----------
   async function init() {
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
@@ -1054,7 +1060,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
       if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenu(
+        showManagerMenuAndRoute(
           window.location.hash.replace("#", "") || "timbratura"
         );
       } else {
