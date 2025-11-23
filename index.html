@@ -27,21 +27,24 @@
     </header>
 
     <main class="app-main">
-      <!-- LOGIN INIZIALE -->
+      <!-- LOGIN INIZIALE: solo nome + PIN -->
       <section id="view-login" class="view login-view">
         <div class="login-card">
           <h2>Benvenuto</h2>
           <p class="login-subtitle">
-            Seleziona il tuo nome, inserisci il PIN personale e accedi alle tue funzioni.
+            Scrivi il tuo nome e il PIN personale per accedere.
           </p>
 
           <form id="login-form" class="login-form" onsubmit="return false;">
             <div class="form-row">
               <label>
-                Dipendente
-                <select id="login-dipendente">
-                  <option value="">-- seleziona dipendente --</option>
-                </select>
+                Nome
+                <input
+                  type="text"
+                  id="login-nome"
+                  placeholder="Es. Mario Rossi"
+                  autocomplete="off"
+                />
               </label>
             </div>
 
@@ -57,6 +60,13 @@
               </label>
             </div>
 
+            <div class="form-row remember-row">
+              <label class="remember-label">
+                <input type="checkbox" id="login-remember" />
+                Ricordami su questo dispositivo
+              </label>
+            </div>
+
             <div class="form-row buttons-row login-buttons-row">
               <button id="btn-login" class="app-button login-button">
                 Entra
@@ -64,13 +74,14 @@
             </div>
 
             <p class="login-hint">
-              Il PIN è quello impostato nella scheda dipendente.
+              Il PIN è quello impostato nella scheda dipendente.<br />
+              Accesso admin iniziale: <strong>nome: admin · PIN: 9999</strong>
             </p>
           </form>
         </div>
       </section>
 
-      <!-- HOME DIPENDENTE (solo per ruoli non manager) -->
+      <!-- HOME DIPENDENTE (per ruoli non manager) -->
       <section
         id="view-home-dip"
         class="view"
@@ -148,89 +159,47 @@
         </button>
       </section>
 
-      <!-- TIMBRATURA -->
+      <!-- TIMBRATURA: per l’utente loggato -->
       <section
         id="view-timbratura"
         class="view"
         style="display: none"
       >
         <h2>Timbratura</h2>
-        <p>Registra entrata, pausa e uscita per dipendente e canale.</p>
+        <p>Registra entrata, pausa e uscita.</p>
 
-        <form
-          id="timbratura-form"
-          class="timbratura-form"
-          onsubmit="return false;"
-        >
-          <div class="form-row">
-            <label>
-              Codice dipendente (PIN)
-              <input
-                type="password"
-                id="timbratura-codice"
-                placeholder="Inserisci codice (es. 1234)"
-                autocomplete="off"
-              />
-            </label>
-          </div>
+        <div class="timbratura-intro-card">
+          <p class="timbratura-utente">
+            Stai timbrando come
+            <strong id="timbratura-utente-nome">-</strong>
+            &nbsp;|&nbsp; Canale:
+            <strong id="timbratura-utente-canale">-</strong>
+          </p>
+        </div>
 
-          <div class="form-row">
-            <label>
-              Dipendente
-              <select id="timbratura-dipendente-select">
-                <option value="">-- seleziona dipendente --</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Nome (auto)
-              <input
-                type="text"
-                id="timbratura-dipendente"
-                placeholder="Nome dipendente"
-                readonly
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Canale
-              <select id="timbratura-canale">
-                <option value="NR">NR</option>
-                <option value="RA">RA</option>
-                <option value="CC">CC</option>
-                <option value="CAT">CAT</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-row buttons-row timbratura-buttons">
-            <button
-              type="button"
-              id="btn-entra"
-              class="app-button timb-button green"
-            >
-              ENTRA
-            </button>
-            <button
-              type="button"
-              id="btn-pausa"
-              class="app-button timb-button gray"
-            >
-              PAUSA
-            </button>
-            <button
-              type="button"
-              id="btn-esci"
-              class="app-button timb-button red"
-            >
-              USCITA
-            </button>
-          </div>
-        </form>
+        <div class="timbratura-buttons">
+          <button
+            type="button"
+            id="btn-entra"
+            class="app-button timb-button green"
+          >
+            ENTRA
+          </button>
+          <button
+            type="button"
+            id="btn-pausa"
+            class="app-button timb-button gray"
+          >
+            PAUSA
+          </button>
+          <button
+            type="button"
+            id="btn-esci"
+            class="app-button timb-button red"
+          >
+            USCITA
+          </button>
+        </div>
 
         <!-- BLOCCO SOLO MANAGER (riepiloghi, costi, ecc.) -->
         <div class="manager-only">
@@ -335,7 +304,7 @@
           (prep, pulizie, briefing, ecc.).
         </p>
         <p>
-          Per ora è solo una pagina di esempio, ma la colleghiamo già al menu.
+          Per ora è solo una pagina di esempio, ma è già collegata al menu.
         </p>
       </section>
 
@@ -529,26 +498,28 @@
         </form>
 
         <h3>Elenco dipendenti</h3>
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Mansione</th>
-              <th>Data nascita</th>
-              <th>Residenza</th>
-              <th>Telefono</th>
-              <th>Email</th>
-              <th>Ruolo</th>
-              <th>Tipo compenso</th>
-              <th>Costo €/h</th>
-              <th>Canale</th>
-              <th>PIN</th>
-              <th>Attivo</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="dipendenti-lista"></tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Mansione</th>
+                <th>Data nascita</th>
+                <th>Residenza</th>
+                <th>Telefono</th>
+                <th>Email</th>
+                <th>Ruolo</th>
+                <th>Tipo compenso</th>
+                <th>Costo €/h</th>
+                <th>Canale</th>
+                <th>PIN</th>
+                <th>Attivo</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="dipendenti-lista"></tbody>
+          </table>
+        </div>
       </section>
 
       <!-- ALTRE VISTE PLACEHOLDER (SOLO MANAGER) -->
