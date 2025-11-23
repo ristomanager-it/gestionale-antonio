@@ -2,623 +2,676 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
     <title>Gestionale Antonio</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="app-header">
-      <div class="header-top">
-        <div>
-          <h1>Gestionale Antonio</h1>
-          <p class="subtitle">Suite per NR, RA, CC e Catering</p>
-        </div>
-        <div class="header-user">
-          <span id="current-user-label">Nessun utente</span>
-          <button
-            id="btn-logout"
-            class="app-button tiny gray"
-            style="display: none"
-          >
-            Esci
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="app-main">
-      <!-- LOGIN INIZIALE: solo nome + PIN -->
-      <section id="view-login" class="view login-view">
-        <div class="login-card">
-          <h2>Benvenuto</h2>
-          <p class="login-subtitle">
-            Scrivi il tuo nome e il PIN personale per accedere.
-          </p>
-
-          <form id="login-form" class="login-form" onsubmit="return false;">
-            <div class="form-row">
-              <label>
-                Nome
-                <input
-                  type="text"
-                  id="login-nome"
-                  placeholder="Es. Mario Rossi"
-                  autocomplete="off"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                PIN
-                <input
-                  type="password"
-                  id="login-pin"
-                  placeholder="Inserisci PIN"
-                  autocomplete="off"
-                />
-              </label>
-            </div>
-
-            <div class="form-row remember-row">
-              <label class="remember-label">
-                <input type="checkbox" id="login-remember" />
-                Ricordami su questo dispositivo
-              </label>
-            </div>
-
-            <div class="form-row buttons-row login-buttons-row">
-              <button id="btn-login" class="app-button login-button">
-                Entra
-              </button>
-            </div>
-
-            <p class="login-hint">
-              Il PIN è quello impostato nella scheda dipendente.<br />
-              Accesso admin iniziale: <strong>nome: admin · PIN: 9999</strong>
-            </p>
-          </form>
-        </div>
-      </section>
-
-      <!-- HOME DIPENDENTE (per ruoli non manager) -->
-      <section
-        id="view-home-dip"
-        class="view"
-        style="display: none"
-      >
-        <h2>Cosa vuoi fare?</h2>
-        <p>Seleziona un'azione tra quelle disponibili per il tuo ruolo.</p>
-
-        <div class="home-buttons">
-          <button class="app-button big-home" data-route="timbratura">
-            Timbratura
-          </button>
-          <button class="app-button big-home" data-route="ordine">
-            Ordine del giorno
-          </button>
-        </div>
-      </section>
-
-      <!-- MENU PRINCIPALE (per ruoli manager/admin) -->
-      <section class="buttons-grid" style="display: none">
-        <button class="app-button" data-route="timbratura">
-          Timbratura
-        </button>
-        <button
-          class="app-button"
-          data-route="dipendenti"
-          data-manager-only="true"
-        >
-          Dipendenti
-        </button>
-        <button
-          class="app-button"
-          data-route="vendite"
-          data-manager-only="true"
-        >
-          Vendite
-        </button>
-        <button
-          class="app-button"
-          data-route="preventivi"
-          data-manager-only="true"
-        >
-          Preventivi
-        </button>
-        <button
-          class="app-button"
-          data-route="fatture"
-          data-manager-only="true"
-        >
-          Acquisti
-        </button>
-        <button class="app-button" data-route="cc" data-manager-only="true">
-          Centro Cottura
-        </button>
-        <button
-          class="app-button"
-          data-route="reintegro"
-          data-manager-only="true"
-        >
-          Reintegro
-        </button>
-        <button
-          class="app-button wide"
-          data-route="report"
-          data-manager-only="true"
-        >
-          Report
-        </button>
-        <button
-          class="app-button wide"
-          data-route="parametri"
-          data-manager-only="true"
-        >
-          Parametri
-        </button>
-      </section>
-
-           <!-- TIMBRATURA: per l’utente loggato -->
-      <section
-        id="view-timbratura"
-        class="view"
-        style="display: none"
-      >
-        <h2>Timbratura</h2>
-        <p>Registra entrata, pausa e uscita.</p>
-
-        <div class="timbratura-intro-card">
-          <p class="timbratura-utente">
-            Stai timbrando come
-            <strong id="timbratura-utente-nome">-</strong>
-          </p>
-
-          <div class="form-row" style="margin-top: 8px;">
-            <label>
-              Luogo di lavoro (canale)
-              <select id="timbratura-canale-select">
-                <option value="NR">NR</option>
-                <option value="RA">RA</option>
-                <option value="CC">CC</option>
-                <option value="CAT">Catering</option>
-              </select>
-            </label>
+    <!-- CONTENITORE CENTRALE MOBILE-FIRST -->
+    <div class="app-main-wrapper">
+      <header class="app-header">
+        <div class="header-top">
+          <div>
+            <h1>Gestionale Antonio</h1>
+            <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+          </div>
+          <div class="header-user">
+            <span id="current-user-label">Nessun utente</span>
+            <button
+              id="btn-logout"
+              class="app-button tiny"
+              style="display: none"
+            >
+              Esci
+            </button>
           </div>
         </div>
+      </header>
 
-        <div class="timbratura-buttons">
-          <button
-            type="button"
-            id="btn-entra"
-            class="app-button timb-button green"
-          >
-            ENTRA
+      <main class="app-main">
+        <!-- LOGIN -->
+        <section id="view-login" class="view login-view">
+          <div class="login-card">
+            <h2>Benvenuto</h2>
+            <p class="login-subtitle">
+              Scrivi il tuo nome e il PIN personale per accedere.
+            </p>
+
+            <form class="login-form" onsubmit="return false;">
+              <div class="form-row">
+                <label>
+                  Nome
+                  <input
+                    type="text"
+                    id="login-nome"
+                    placeholder="Es. Mario Rossi"
+                    autocomplete="name"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  PIN
+                  <input
+                    type="password"
+                    id="login-pin"
+                    placeholder="Inserisci PIN"
+                    inputmode="numeric"
+                    maxlength="10"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row remember-row">
+                <label class="remember-label">
+                  <input type="checkbox" id="login-remember" />
+                  Ricordami su questo dispositivo
+                </label>
+              </div>
+
+              <div class="login-buttons-row">
+                <button
+                  type="button"
+                  id="btn-login"
+                  class="app-button login-button"
+                >
+                  Entra
+                </button>
+              </div>
+
+              <p class="login-hint">
+                Il PIN è quello impostato nella scheda dipendente.<br />
+                Accesso admin iniziale:
+                <strong>nome: admin • PIN: 9999</strong>
+              </p>
+            </form>
+          </div>
+        </section>
+
+        <!-- HOME DIPENDENTE (solo dipendente semplice) -->
+        <section
+          id="view-home-dip"
+          class="view"
+          style="display: none"
+        >
+          <h2>Cosa vuoi fare?</h2>
+          <p>Seleziona una funzione.</p>
+
+          <div class="home-buttons">
+            <button
+              class="app-button big-home"
+              data-route="timbratura"
+            >
+              Timbratura
+            </button>
+            <button
+              class="app-button big-home"
+              data-route="ordine"
+            >
+              Ordine del giorno
+            </button>
+          </div>
+        </section>
+
+        <!-- MENU MANAGER -->
+        <section
+          class="buttons-grid"
+          id="manager-menu"
+          style="display: none"
+        >
+          <button class="app-button" data-route="timbratura">
+            Timbratura
           </button>
           <button
-            type="button"
-            id="btn-pausa"
-            class="app-button timb-button gray"
+            class="app-button"
+            data-route="dipendenti"
+            data-manager-only="true"
           >
-            PAUSA
+            Dipendenti
           </button>
           <button
-            type="button"
-            id="btn-esci"
-            class="app-button timb-button red"
+            class="app-button"
+            data-route="vendite"
+            data-manager-only="true"
           >
-            USCITA
+            Vendite
           </button>
-        </div>
+          <button
+            class="app-button"
+            data-route="preventivi"
+            data-manager-only="true"
+          >
+            Preventivi
+          </button>
+          <button
+            class="app-button"
+            data-route="acquisti"
+            data-manager-only="true"
+          >
+            Acquisti
+          </button>
+          <button
+            class="app-button"
+            data-route="cc"
+            data-manager-only="true"
+          >
+            Centro Cottura
+          </button>
+          <button
+            class="app-button"
+            data-route="reintegro"
+            data-manager-only="true"
+          >
+            Reintegro
+          </button>
+          <button
+            class="app-button wide"
+            data-route="report"
+            data-manager-only="true"
+          >
+            Report
+          </button>
+          <button
+            class="app-button wide"
+            data-route="parametri"
+            data-manager-only="true"
+          >
+            Parametri
+          </button>
+        </section>
 
-        <!-- BLOCCO SOLO MANAGER (riepiloghi, costi, ecc.) -->
-        <div class="manager-only">
-          <h3>Timbrature (tutte)</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Ora</th>
-                <th>Dipendente</th>
-                <th>Canale</th>
-                <th>Azione</th>
-              </tr>
-            </thead>
-            <tbody id="timbratura-lista"></tbody>
-          </table>
+        <!-- TIMBRATURA -->
+        <section
+          id="view-timbratura"
+          class="view"
+          style="display: none"
+        >
+          <h2>Timbratura</h2>
+          <p>Registra entrata, pausa e uscita.</p>
 
-          <div class="timbratura-form" style="margin-top: 12px;">
-            <div class="form-row">
+          <div class="timbratura-intro-card">
+            <p class="timbratura-utente">
+              Stai timbrando come
+              <strong id="timbratura-utente-nome">-</strong>
+            </p>
+
+            <div class="form-row" style="margin-top: 8px;">
               <label>
-                Periodo per riepilogo
-                <select id="timbratura-periodo">
-                  <option value="oggi">Oggi</option>
-                  <option value="settimana">Ultimi 7 giorni</option>
-                  <option value="mese">Mese corrente</option>
+                Luogo di lavoro (canale)
+                <select id="timbratura-canale-select">
+                  <option value="NR">NR</option>
+                  <option value="RA">RA</option>
+                  <option value="CC">CC</option>
+                  <option value="CAT">Catering</option>
                 </select>
               </label>
             </div>
           </div>
 
-          <h3>Riepilogo ore (per dipendente)</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Dipendente</th>
-                <th>Canale</th>
-                <th>Ore lavorate</th>
-              </tr>
-            </thead>
-            <tbody id="riepilogo-dipendenti"></tbody>
-          </table>
-
-          <h3>Riepilogo ore (per canale)</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Canale</th>
-                <th>Ore lavorate</th>
-              </tr>
-            </thead>
-            <tbody id="riepilogo-canali"></tbody>
-          </table>
-
-          <h3>Costo lavoro (per dipendente)</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Dipendente</th>
-                <th>Canale</th>
-                <th>Ore</th>
-                <th>Costo €</th>
-              </tr>
-            </thead>
-            <tbody id="costo-dipendenti"></tbody>
-          </table>
-
-          <h3>Costo lavoro (per canale)</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Canale</th>
-                <th>Ore</th>
-                <th>Costo €</th>
-              </tr>
-            </thead>
-            <tbody id="costo-canali"></tbody>
-          </table>
-
-          <h3>Attivi adesso</h3>
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Dipendente</th>
-                <th>Canale</th>
-                <th>Da quando</th>
-                <th>Durata attuale</th>
-              </tr>
-            </thead>
-            <tbody id="attivi-lista"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ORDINE DEL GIORNO (tutti i ruoli) -->
-      <section
-        id="view-ordine"
-        class="view"
-        style="display: none"
-      >
-        <h2>Ordine del giorno</h2>
-        <p>
-          Qui inseriremo la lista delle attività giornaliere per il personale
-          (prep, pulizie, briefing, ecc.).
-        </p>
-        <p>
-          Per ora è solo una pagina di esempio, ma è già collegata al menu.
-        </p>
-      </section>
-
-      <!-- DIPENDENTI / ANAGRAFICA (SOLO MANAGER) -->
-      <section
-        id="view-dipendenti"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Dipendenti</h2>
-        <p>Anagrafica completa dipendenti, ruoli e compensi.</p>
-
-        <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
-          <div class="form-row">
-            <label>
-              Nome
-              <input type="text" id="dip-nome" placeholder="Es. Mario Rossi" />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Mansione
-              <input
-                type="text"
-                id="dip-mansione"
-                placeholder="Es. Sala, Cucina..."
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Data di nascita
-              <input type="date" id="dip-data-nascita" />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Residenza
-              <input
-                type="text"
-                id="dip-residenza"
-                placeholder="Es. Via Roma 10, Città"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Telefono
-              <input
-                type="tel"
-                id="dip-telefono"
-                placeholder="Es. 3331234567"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Email
-              <input
-                type="email"
-                id="dip-email"
-                placeholder="esempio@mail.com"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Ruolo
-              <select id="dip-ruolo">
-                <option value="">-- seleziona ruolo --</option>
-                <option value="admin">Admin</option>
-                <option value="manager_cucina">Manager cucina</option>
-                <option value="manager_sala">Manager sala</option>
-                <option value="addetto_cucina">Addetto cucina</option>
-                <option value="cameriere">Cameriere</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Tipo compenso
-              <select id="dip-tipo-compenso">
-                <option value="orario">A ore</option>
-                <option value="mensile">Mensile</option>
-                <option value="servizio">Per servizio</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-row" id="row-retribuzione-base">
-            <label id="label-retribuzione-base">
-              Paga oraria lorda (€/h)
-              <input
-                type="number"
-                id="dip-retribuzione-base"
-                placeholder="Es. 12.50"
-                step="0.01"
-                min="0"
-              />
-            </label>
-          </div>
-
-          <div class="form-row" id="row-ore-mensili" style="display: none;">
-            <label>
-              Ore mensili contrattuali
-              <input
-                type="number"
-                id="dip-ore-mensili"
-                placeholder="Es. 173"
-                step="1"
-                min="0"
-              />
-            </label>
-          </div>
-
-          <div class="form-row" id="row-ore-servizio" style="display: none;">
-            <label>
-              Ore medie per servizio
-              <input
-                type="number"
-                id="dip-ore-servizio"
-                placeholder="Es. 5"
-                step="0.1"
-                min="0"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Costo orario calcolato (€/h)
-              <input
-                type="number"
-                id="dip-costo"
-                readonly
-                placeholder="Calcolato automaticamente"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              PIN personale (per login e timbratura)
-              <input
-                type="text"
-                id="dip-codice"
-                placeholder="Es. 1234"
-                maxlength="10"
-              />
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label>
-              Canale prevalente
-              <select id="dip-canale">
-                <option value="NR">NR</option>
-                <option value="RA">RA</option>
-                <option value="CC">CC</option>
-                <option value="CAT">CAT</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label
-              style="flex-direction: row; align-items: center; gap: 8px;"
-            >
-              <input type="checkbox" id="dip-attivo" checked />
-              Dipendente attivo
-            </label>
-          </div>
-
-          <div class="form-row buttons-row">
+          <div class="timbratura-buttons">
             <button
               type="button"
-              id="btn-add-dip"
-              class="app-button small green"
+              id="btn-entra"
+              class="app-button timb-button green"
             >
-              Aggiungi/aggiorna dipendente
+              ENTRA
+            </button>
+            <button
+              type="button"
+              id="btn-pausa"
+              class="app-button timb-button gray"
+            >
+              PAUSA
+            </button>
+            <button
+              type="button"
+              id="btn-esci"
+              class="app-button timb-button red"
+            >
+              USCITA
             </button>
           </div>
-        </form>
 
-        <h3>Elenco dipendenti</h3>
-        <div class="table-wrapper">
-          <table class="table-timbrature">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Mansione</th>
-                <th>Data nascita</th>
-                <th>Residenza</th>
-                <th>Telefono</th>
-                <th>Email</th>
-                <th>Ruolo</th>
-                <th>Tipo compenso</th>
-                <th>Costo €/h</th>
-                <th>Canale</th>
-                <th>PIN</th>
-                <th>Attivo</th>
-                <th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody id="dipendenti-lista"></tbody>
-          </table>
-        </div>
-      </section>
+          <!-- BLOCCO SOLO MANAGER -->
+          <div class="manager-only">
+            <!-- PULSANTE PER MOSTRARE/NASCONDERE LO STORICO -->
+            <button
+              type="button"
+              id="btn-toggle-timbrature"
+              class="app-button small gray"
+              style="margin-top: 12px; margin-bottom: 6px;"
+            >
+              Mostra storico timbrature
+            </button>
 
-      <!-- ALTRE VISTE PLACEHOLDER (SOLO MANAGER) -->
-      <section
-        id="view-vendite"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Vendite</h2>
-        <p>Qui inseriremo le vendite giornaliere per NR, RA e CAT.</p>
-      </section>
+            <!-- SEZIONE DETTAGLIO TIMBRATURE, NASCOSTA DI DEFAULT -->
+            <div
+              id="sezione-timbrature-dettaglio"
+              style="display: none;"
+            >
+              <h3>Timbrature (tutte)</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Ora</th>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Azione</th>
+                    </tr>
+                  </thead>
+                  <tbody id="timbratura-lista"></tbody>
+                </table>
+              </div>
+            </div>
 
-      <section
-        id="view-preventivi"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Preventivi Banchetti</h2>
-        <p>Gestione preventivi, stati e trasformazione in eventi.</p>
-      </section>
+            <div class="timbratura-form" style="margin-top: 12px;">
+              <div class="form-row">
+                <label>
+                  Periodo per riepilogo
+                  <select id="timbratura-periodo">
+                    <option value="oggi">Oggi</option>
+                    <option value="settimana">Ultimi 7 giorni</option>
+                    <option value="mese">Mese corrente</option>
+                  </select>
+                </label>
+              </div>
+            </div>
 
-      <section
-        id="view-fatture"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Acquisti</h2>
-        <p>Qui inseriremo l'inserimento fatture e magazzino.</p>
-      </section>
+            <h3>Riepilogo ore (per dipendente)</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Dipendente</th>
+                    <th>Canale</th>
+                    <th>Ore lavorate</th>
+                  </tr>
+                </thead>
+                <tbody id="riepilogo-dipendenti"></tbody>
+              </table>
+            </div>
 
-      <section
-        id="view-cc"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Centro Cottura (CC)</h2>
-        <p>Anagrafica PREP, costi medi, BOM piatti, COGS dinamico.</p>
-      </section>
+            <h3>Riepilogo ore (per canale)</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Canale</th>
+                    <th>Ore lavorate</th>
+                  </tr>
+                </thead>
+                <tbody id="riepilogo-canali"></tbody>
+              </table>
+            </div>
 
-      <section
-        id="view-reintegro"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Reintegro & Magazzino</h2>
-        <p>Livelli PAR, fabbisogni NR/RA, consegne CC → sale.</p>
-      </section>
+            <h3>Costo lavoro (per dipendente)</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Dipendente</th>
+                    <th>Canale</th>
+                    <th>Ore</th>
+                    <th>Costo €</th>
+                  </tr>
+                </thead>
+                <tbody id="costo-dipendenti"></tbody>
+              </table>
+            </div>
 
-      <section
-        id="view-report"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Report & KPI</h2>
-        <p>Prime Cost %, Margine %, cruscotto Oggi.</p>
-      </section>
+            <h3>Costo lavoro (per canale)</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Canale</th>
+                    <th>Ore</th>
+                    <th>Costo €</th>
+                  </tr>
+                </thead>
+                <tbody id="costo-canali"></tbody>
+              </table>
+            </div>
 
-      <section
-        id="view-parametri"
-        class="view"
-        style="display: none"
-        data-manager-only="true"
-      >
-        <h2>Parametri</h2>
-        <p>
-          Gestione PIN, markup, Target Food Cost %, inclusioni
-          Opex/POS/Lavoro CC.
-        </p>
-      </section>
-    </main>
+            <h3>Attivi adesso</h3>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Dipendente</th>
+                    <th>Canale</th>
+                    <th>Da quando</th>
+                    <th>Durata attuale</th>
+                  </tr>
+                </thead>
+                <tbody id="attivi-lista"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
-    <!-- SUPABASE CLIENT -->
+        <!-- ANAGRAFICA DIPENDENTI (SOLO MANAGER) -->
+        <section
+          id="view-dipendenti"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Dipendenti</h2>
+          <p>Anagrafica completa dipendenti.</p>
+
+          <form
+            id="dipendente-form"
+            class="timbratura-form"
+            onsubmit="return false;"
+          >
+            <div class="form-row">
+              <label>
+                Nome
+                <input
+                  type="text"
+                  id="dip-nome"
+                  placeholder="Es. Mario Rossi"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Mansione
+                <input
+                  type="text"
+                  id="dip-mansione"
+                  placeholder="Es. Sala, Cucina..."
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Data di nascita
+                <input type="date" id="dip-data-nascita" />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Residenza
+                <input
+                  type="text"
+                  id="dip-residenza"
+                  placeholder="Indirizzo completo"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Telefono
+                <input
+                  type="tel"
+                  id="dip-telefono"
+                  placeholder="Es. 3331234567"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Email
+                <input
+                  type="email"
+                  id="dip-email"
+                  placeholder="esempio@mail.com"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Ruolo
+                <select id="dip-ruolo">
+                  <option value="">-- seleziona ruolo --</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager_cucina">Manager cucina</option>
+                  <option value="manager_sala">Manager sala</option>
+                  <option value="addetto_cucina">Addetto cucina</option>
+                  <option value="cameriere">Cameriere</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label id="label-retribuzione-base">
+                Paga oraria lorda (€/h)
+                <input
+                  type="number"
+                  id="dip-retribuzione-base"
+                  placeholder="Es. 12.50"
+                  step="0.01"
+                  min="0"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Tipo di compenso
+                <select id="dip-tipo-compenso">
+                  <option value="orario">A ore</option>
+                  <option value="mensile">Mensile</option>
+                  <option value="servizio">Per servizio</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row" id="row-ore-mensili" style="display: none;">
+              <label>
+                Ore mensili contrattuali
+                <input
+                  type="number"
+                  id="dip-ore-mensili"
+                  placeholder="Es. 173"
+                  min="0"
+                  step="1"
+                />
+              </label>
+            </div>
+
+            <div class="form-row" id="row-ore-servizio" style="display: none;">
+              <label>
+                Ore medie per servizio
+                <input
+                  type="number"
+                  id="dip-ore-servizio"
+                  placeholder="Es. 6"
+                  min="0"
+                  step="0.5"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Costo orario calcolato (€/h)
+                <input
+                  type="number"
+                  id="dip-costo"
+                  readonly
+                  placeholder="Calcolato automaticamente"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                PIN personale (per login/timbratura)
+                <input
+                  type="text"
+                  id="dip-codice"
+                  placeholder="Es. 1234"
+                  maxlength="10"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Canale prevalente
+                <select id="dip-canale">
+                  <option value="NR">NR</option>
+                  <option value="RA">RA</option>
+                  <option value="CC">CC</option>
+                  <option value="CAT">CAT</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label
+                style="
+                  flex-direction: row;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                <input type="checkbox" id="dip-attivo" checked />
+                Dipendente attivo
+              </label>
+            </div>
+
+            <div class="form-row buttons-row">
+              <button
+                type="button"
+                id="btn-add-dip"
+                class="app-button small green"
+              >
+                Aggiungi/aggiorna dipendente
+              </button>
+            </div>
+          </form>
+
+          <h3>Elenco dipendenti</h3>
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Mansione</th>
+                  <th>Data nascita</th>
+                  <th>Residenza</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Ruolo</th>
+                  <th>Tipo compenso</th>
+                  <th>Costo €/h</th>
+                  <th>Canale</th>
+                  <th>PIN</th>
+                  <th>Attivo</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="dipendenti-lista"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ALTRE VISTE PLACEHOLDER (SOLO MANAGER) -->
+
+        <section
+          id="view-ordine"
+          class="view"
+          style="display: none"
+        >
+          <h2>Ordine del giorno</h2>
+          <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
+        </section>
+
+        <section
+          id="view-vendite"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Vendite</h2>
+          <p>Placeholder vendite.</p>
+        </section>
+
+        <section
+          id="view-preventivi"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Preventivi</h2>
+          <p>Placeholder preventivi.</p>
+        </section>
+
+        <section
+          id="view-acquisti"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Acquisti</h2>
+          <p>Placeholder acquisti.</p>
+        </section>
+
+        <section
+          id="view-cc"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Centro cottura</h2>
+          <p>Placeholder centro cottura.</p>
+        </section>
+
+        <section
+          id="view-reintegro"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Reintegro & magazzino</h2>
+          <p>Placeholder reintegro.</p>
+        </section>
+
+        <section
+          id="view-report"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Report & KPI</h2>
+          <p>Placeholder report.</p>
+        </section>
+
+        <section
+          id="view-parametri"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Parametri</h2>
+          <p>Placeholder parametri.</p>
+        </section>
+      </main>
+    </div>
+
+    <!-- QUI LASCIA IL TUO SCRIPT DI INIZIALIZZAZIONE SUPABASE COME GIÀ LO HAI -->
+    <!--
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-      const SUPABASE_ANON_KEY =
-        "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
-
-      window.supabaseClient = supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
+      const supabaseClient = window.supabase.createClient("URL", "anon-key");
+      window.supabaseClient = supabaseClient;
     </script>
+    -->
 
     <script src="app.js"></script>
   </body>
