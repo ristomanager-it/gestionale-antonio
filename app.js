@@ -622,7 +622,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // admin virtuale
+      // admin virtuale (non visibile a schermo)
       if (nome.toLowerCase() === "admin" && pin === "9999") {
         setCurrentUser(
           {
@@ -897,7 +897,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ---------- NUOVA FUNZIONE: stato corrente dipendente ----------
+  // ---------- stato corrente dipendente (per bloccare cambio canale) ----------
   function getStatoCorrenteDipendente(nomeDip) {
     const eventiDip = timbrature
       .filter((t) => t.dip === nomeDip && t.timestamp)
@@ -958,7 +958,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return record;
   }
 
-  // ---------- NUOVA VERSIONE: registraTimbratura ----------
+  // ---------- registraTimbratura con blocco cambio canale ----------
   async function registraTimbratura(tipo) {
     if (!currentUser) {
       alert("Devi prima effettuare il login");
@@ -967,7 +967,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const dipNomeVal = currentUser.nome;
 
-    // Stato attuale del dipendente: ha una Entrata aperta? Su quale canale?
     const stato = getStatoCorrenteDipendente(dipNomeVal);
 
     if (tipo === "Entrata") {
