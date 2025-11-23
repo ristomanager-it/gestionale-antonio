@@ -10,8 +10,8 @@ body {
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: linear-gradient(180deg, #e5e7eb, #f9fafb);
-  color: #111827;
+  background: #e5e7eb;
+  color: #0f172a;
   min-height: 100vh;
 }
 
@@ -24,10 +24,10 @@ body {
 
 .app-header {
   text-align: center;
-  padding: 10px 12px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  padding: 8px 10px;
+  background: #ffffff;
+  border-bottom: 1px solid #d1d5db;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -39,12 +39,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
 }
 
@@ -69,12 +69,12 @@ body {
 
 .app-main {
   flex: 1;
-  padding: 12px;
+  padding: 10px;
   max-width: 960px;
   margin: 0 auto 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* BOTTONI MENU PRINCIPALE */
@@ -154,26 +154,26 @@ body {
   background: #b91c1c;
 }
 
-/* VISTE / CARD */
+/* VISTE */
 
 .view {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  min-height: 260px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  min-height: 220px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
 }
 
 .view h2 {
-  margin: 0 0 8px;
-  font-size: 18px;
+  margin: 0 0 6px;
+  font-size: 17px;
 }
 
 .view p {
   margin-top: 0;
-  color: #6b7280;
+  color: #4b5563;
   font-size: 14px;
 }
 
@@ -187,11 +187,11 @@ body {
 
 .login-card {
   max-width: 420px;
-  margin: 24px auto;
-  padding: 20px 18px;
-  background: white;
-  border-radius: 18px;
-  box-shadow: 0 15px 40px rgba(15, 23, 42, 0.18);
+  margin: 20px auto;
+  padding: 18px 14px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
   border: 1px solid #e5e7eb;
 }
 
@@ -199,12 +199,12 @@ body {
   margin-top: 0;
   margin-bottom: 4px;
   text-align: center;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .login-subtitle {
   margin-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-size: 13px;
   color: #6b7280;
   text-align: center;
@@ -259,7 +259,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 @media (min-width: 600px) {
@@ -270,24 +270,24 @@ body {
 
 .big-home {
   flex: 1;
-  padding: 16px 10px;
-  font-size: 18px;
+  padding: 14px 10px;
+  font-size: 17px;
   font-weight: 600;
-  border-radius: 16px;
+  border-radius: 14px;
 }
 
 /* FORM GENERICO */
 
 .timbratura-form {
-  margin: 8px 0 16px;
-  padding: 12px;
+  margin: 8px 0 12px;
+  padding: 10px;
   background: #f9fafb;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
 }
 
 .form-row {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .form-row:last-child {
@@ -323,7 +323,7 @@ body {
 /* TIMBRATURA */
 
 .timbratura-intro-card {
-  margin: 8px 0 12px;
+  margin: 8px 0 10px;
   padding: 10px;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -331,9 +331,9 @@ body {
 }
 
 .timbratura-utente {
-  margin: 0;
+  margin: 0 0 4px;
   font-size: 14px;
-  color: #374151;
+  color: #111827;
 }
 
 /* Pulsanti timbratura grandi */
@@ -341,7 +341,7 @@ body {
 .timbratura-buttons {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 8px;
   flex-direction: row;
 }
 
@@ -353,7 +353,7 @@ body {
 
 .timb-button {
   flex: 1;
-  padding: 16px 10px;
+  padding: 14px 10px;
   font-size: 18px;
   font-weight: 700;
   border-radius: 16px;
@@ -393,7 +393,7 @@ body {
 .table-timbrature {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 8px;
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -423,23 +423,27 @@ html {
   scroll-behavior: smooth;
 }
 
-/* MOBILE OTTIMIZZATO 1080x1920 (logica verticale) */
+/* OTTIMIZZAZIONE MOBILE 1080x1920 (verticale) */
 
 @media (max-width: 480px) {
   .app-main {
-    padding: 10px;
+    padding: 8px;
   }
 
   .view {
-    padding: 14px;
-    border-radius: 14px;
+    padding: 12px;
+    border-radius: 12px;
   }
 
   .app-header h1 {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .subtitle {
     font-size: 11px;
+  }
+
+  body {
+    background: #e5e7eb;
   }
 }
