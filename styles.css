@@ -10,18 +10,16 @@ body {
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #0f172a; /* sfondo scuro dietro l'app */
+  background: #0f172a;
   color: #0b1120;
 }
-
-/* CONTENITORE APP: LARGHEZZA MOBILE, CENTRATO */
 
 body {
   display: block;
 }
 
 .app-main-wrapper {
-  max-width: 480px;          /* pensato per telefono verticale */
+  max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
   background: #e5e7eb;
@@ -30,7 +28,6 @@ body {
 }
 
 /* HEADER */
-
 .app-header {
   text-align: center;
   padding: 10px 12px;
@@ -49,23 +46,6 @@ body {
   gap: 8px;
 }
 
-/* NUOVO: logo e contenitore sinistro header */
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.app-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
 .app-header h1 {
   margin: 0;
   font-size: 20px;
@@ -78,8 +58,7 @@ body {
   color: #6b7280;
 }
 
-/* INFO UTENTE */
-
+/* USER INFO */
 .header-user {
   display: flex;
   flex-direction: column;
@@ -90,7 +69,6 @@ body {
 }
 
 /* MAIN */
-
 .app-main {
   flex: 1;
   padding: 10px;
@@ -99,11 +77,10 @@ body {
   gap: 10px;
 }
 
-/* BOTTONI MENU MANAGER */
-
+/* GRID MANAGER */
 .buttons-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* sempre 2 colonne su mobile */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -137,8 +114,7 @@ body {
   font-size: 11px;
 }
 
-/* VISTE */
-
+/* VIEWS */
 .view {
   background: #ffffff;
   border-radius: 14px;
@@ -160,17 +136,7 @@ body {
   font-size: 13px;
 }
 
-/* Immagine hero in una vista (usata per il logo sulla home dipendente) */
-.view-hero-image {
-  width: 100%;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  object-fit: cover;
-  max-height: 180px;
-}
-
-/* --- LOGIN --- */
-
+/* LOGIN */
 .login-view {
   background: transparent;
   box-shadow: none;
@@ -184,22 +150,6 @@ body {
   border-radius: 18px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
   border: 1px solid #e5e7eb;
-}
-
-/* nuovo: logo nella card di login */
-.login-logo-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.login-logo {
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  background: #f9fafb;
 }
 
 .login-card h2 {
@@ -219,8 +169,6 @@ body {
 .login-form {
   margin: 0;
   padding: 0;
-  background: transparent;
-  border: none;
 }
 
 .login-buttons-row {
@@ -235,10 +183,6 @@ body {
   background: #2563eb;
   color: white;
   border-radius: 999px;
-}
-
-.login-button:hover {
-  background: #1d4ed8;
 }
 
 .login-hint {
@@ -261,7 +205,6 @@ body {
 }
 
 /* HOME DIPENDENTE */
-
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -276,8 +219,7 @@ body {
   border-radius: 14px;
 }
 
-/* FORM GENERICO */
-
+/* FORMS */
 .timbratura-form {
   margin: 8px 0 12px;
   padding: 10px;
@@ -288,10 +230,6 @@ body {
 
 .form-row {
   margin-bottom: 8px;
-}
-
-.form-row:last-child {
-  margin-bottom: 0;
 }
 
 .form-row label {
@@ -312,12 +250,7 @@ body {
   width: 100%;
 }
 
-.form-row textarea {
-  resize: vertical;
-}
-
-/* BOTTONI PICCOLI */
-
+/* SMALL BUTTONS */
 .app-button.small {
   padding: 6px 10px;
   font-size: 12px;
@@ -335,7 +268,6 @@ body {
 }
 
 /* TIMBRATURA */
-
 .timbratura-intro-card {
   margin: 8px 0 10px;
   padding: 10px;
@@ -349,8 +281,6 @@ body {
   font-size: 14px;
   color: #111827;
 }
-
-/* PULSANTI TIMBRATURA GRANDI (UNO SOTTO L’ALTRO SU TELEFONO) */
 
 .timbratura-buttons {
   display: flex;
@@ -368,31 +298,19 @@ body {
   color: #ffffff;
 }
 
-/* colori */
-
 .timb-button.green {
   background: #16a34a;
-}
-.timb-button.green:hover {
-  background: #15803d;
 }
 
 .timb-button.gray {
   background: #6b7280;
 }
-.timb-button.gray:hover {
-  background: #4b5563;
-}
 
 .timb-button.red {
   background: #dc2626;
 }
-.timb-button.red:hover {
-  background: #b91c1c;
-}
 
-/* TABELLE (WRAPPER PER SCROLL ORIZZONTALE SOLO DENTRO LA TABELLA) */
-
+/* TABLES */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -412,7 +330,6 @@ body {
 .table-timbrature td {
   padding: 6px 8px;
   border-bottom: 1px solid #e5e7eb;
-  text-align: left;
   white-space: nowrap;
 }
 
@@ -421,24 +338,11 @@ body {
   font-weight: 600;
 }
 
-.table-timbrature tr:last-child td {
-  border-bottom: none;
-}
-
-/* MANAGER-ONLY */
-
 .manager-only {
   margin-top: 12px;
 }
 
-/* SCROLL MORBIDO */
-
-html {
-  scroll-behavior: smooth;
-}
-
-/* VERSIONE TABLET / DESKTOP */
-
+/* DESKTOP */
 @media (min-width: 768px) {
   .app-main-wrapper {
     max-width: 900px;
@@ -454,9 +358,5 @@ html {
 
   .timb-button {
     flex: 1;
-  }
-
-  .login-card {
-    max-width: 420px;
   }
 }
