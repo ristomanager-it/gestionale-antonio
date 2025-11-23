@@ -1,4 +1,4 @@
-/* GENERALE */
+/* RESET DI BASE */
 
 * {
   box-sizing: border-box;
@@ -10,12 +10,22 @@ body {
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #e5e7eb;
-  color: #0f172a;
-  min-height: 100vh;
+  background: #0f172a; /* sfondo scuro dietro la card */
+  color: #0b1120;
 }
 
+/* CONTENITORE CENTRALE (MOBILE FIRST: max 480px) */
+
 body {
+  display: flex;
+  justify-content: center;
+}
+
+.app-root {
+  width: 100%;
+  max-width: 480px; /* così su telefono non devi zoomare né scorrere in orizzontale */
+  min-height: 100vh;
+  background: #e5e7eb;
   display: flex;
   flex-direction: column;
 }
@@ -34,8 +44,6 @@ body {
 }
 
 .header-top {
-  max-width: 960px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -44,24 +52,24 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .subtitle {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
 }
 
-/* Header utente */
+/* INFO UTENTE + LOGOUT */
 
 .header-user {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11px;
   color: #4b5563;
 }
 
@@ -70,25 +78,18 @@ body {
 .app-main {
   flex: 1;
   padding: 10px;
-  max-width: 960px;
   margin: 0 auto 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* BOTTONI MENU PRINCIPALE */
+/* BOTTONI MENU PRINCIPALE (SOLO MANAGER) */
 
 .buttons-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 colonne su mobile */
   gap: 8px;
-}
-
-@media (max-width: 768px) {
-  .buttons-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .app-button {
@@ -122,59 +123,27 @@ body {
   border-radius: 999px;
 }
 
-.app-button.small {
-  padding: 8px 14px;
-  font-size: 13px;
-  border-radius: 999px;
-}
-
-/* COLORI BOTTONI PICCOLI */
-
-.app-button.small.green {
-  background: #16a34a;
-  color: #fff;
-}
-.app-button.small.green:hover {
-  background: #15803d;
-}
-
-.app-button.small.gray {
-  background: #6b7280;
-  color: #fff;
-}
-.app-button.small.gray:hover {
-  background: #4b5563;
-}
-
-.app-button.small.red {
-  background: #dc2626;
-  color: #fff;
-}
-.app-button.small.red:hover {
-  background: #b91c1c;
-}
-
-/* VISTE */
+/* VISTE / CARD PRINCIPALI */
 
 .view {
   background: #ffffff;
   border-radius: 14px;
-  padding: 14px;
-  min-height: 220px;
+  padding: 12px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
+  min-height: 200px;
 }
 
 .view h2 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: 17px;
 }
 
 .view p {
   margin-top: 0;
   color: #4b5563;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* LOGIN VIEW */
@@ -186,9 +155,8 @@ body {
 }
 
 .login-card {
-  max-width: 420px;
-  margin: 20px auto;
-  padding: 18px 14px;
+  margin: 20px auto 0;
+  padding: 16px 12px;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
@@ -203,9 +171,8 @@ body {
 }
 
 .login-subtitle {
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 13px;
+  margin: 0 0 12px;
+  font-size: 12px;
   color: #6b7280;
   text-align: center;
 }
@@ -228,6 +195,7 @@ body {
   font-weight: 600;
   background: #2563eb;
   color: white;
+  border-radius: 999px;
 }
 
 .login-button:hover {
@@ -242,7 +210,7 @@ body {
 }
 
 .remember-row {
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .remember-label {
@@ -258,20 +226,13 @@ body {
 .home-buttons {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-@media (min-width: 600px) {
-  .home-buttons {
-    flex-direction: row;
-  }
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .big-home {
-  flex: 1;
-  padding: 14px 10px;
-  font-size: 17px;
+  padding: 12px 10px;
+  font-size: 16px;
   font-weight: 600;
   border-radius: 14px;
 }
@@ -303,7 +264,8 @@ body {
 }
 
 .form-row input,
-.form-row select {
+.form-row select,
+.form-row textarea {
   padding: 8px;
   border-radius: 10px;
   border: 1px solid #d1d5db;
@@ -311,7 +273,11 @@ body {
   width: 100%;
 }
 
-/* BOTTONI RIGA FORM */
+.form-row textarea {
+  resize: vertical;
+}
+
+/* RIGHE BOTTONI FORM */
 
 .buttons-row {
   display: flex;
@@ -331,28 +297,22 @@ body {
 }
 
 .timbratura-utente {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 14px;
   color: #111827;
 }
 
-/* Pulsanti timbratura grandi */
+/* PULSANTI TIMBRATURA GRANDI */
 
 .timbratura-buttons {
   display: flex;
   gap: 10px;
   margin-top: 8px;
-  flex-direction: row;
-}
-
-@media (max-width: 480px) {
-  .timbratura-buttons {
-    flex-direction: column;
-  }
+  flex-direction: column; /* SU MOBILE UNO SOPRA L'ALTRO */
 }
 
 .timb-button {
-  flex: 1;
+  width: 100%;
   padding: 14px 10px;
   font-size: 18px;
   font-weight: 700;
@@ -360,7 +320,7 @@ body {
   color: #ffffff;
 }
 
-/* Colori timbratura */
+/* COLORI TIMBRATURA */
 
 .timb-button.green {
   background: #16a34a;
@@ -383,11 +343,28 @@ body {
   background: #b91c1c;
 }
 
-/* TABELLE */
+/* BOTTONI PICCOLI COLORATI (LISTE, AZIONI) */
+
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.app-button.small.gray {
+  background: #6b7280;
+  color: #fff;
+}
+.app-button.small.red {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* TABELLE - WRAPPER PER MOBILE */
 
 .table-wrapper {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto; /* se la tabella è larga, fai scroll orizzontale solo qui */
 }
 
 .table-timbrature {
@@ -397,12 +374,12 @@ body {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .table-timbrature th,
 .table-timbrature td {
-  padding: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
   white-space: nowrap;
@@ -417,33 +394,35 @@ body {
   border-bottom: none;
 }
 
+/* MANAGER-ONLY: LEGGERO MARGINE SOPRA */
+
+.manager-only {
+  margin-top: 12px;
+}
+
 /* SCROLL MORBIDO */
 
 html {
   scroll-behavior: smooth;
 }
 
-/* OTTIMIZZAZIONE MOBILE 1080x1920 (verticale) */
+/* BREAKPOINT PER SCHERMI PIÙ GRANDI (TABLET / DESKTOP) */
+/* Per ora facciamo solo un leggero respiro, la grafica desktop la curiamo dopo */
 
-@media (max-width: 480px) {
-  .app-main {
-    padding: 8px;
+@media (min-width: 768px) {
+  .app-root {
+    max-width: 900px;
   }
 
-  .view {
-    padding: 12px;
-    border-radius: 12px;
+  .buttons-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .app-header h1 {
-    font-size: 17px;
+  .timbratura-buttons {
+    flex-direction: row;
   }
 
-  .subtitle {
-    font-size: 11px;
-  }
-
-  body {
-    background: #e5e7eb;
+  .timb-button {
+    flex: 1;
   }
 }
