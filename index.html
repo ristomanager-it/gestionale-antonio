@@ -600,8 +600,8 @@
         >
           <h2>Acquisti</h2>
           <p>
-            Gestisci fornitori e registra le fatture di acquisto con relativo file
-            (PDF o foto).
+            Gestisci fornitori, registra le fatture di acquisto con il file (PDF o foto)
+            e dettaglia le righe per aggiornare automaticamente il magazzino.
           </p>
 
           <!-- FORNITORI -->
@@ -714,6 +714,10 @@
 
           <!-- FATTURE -->
           <h3>Fatture di acquisto</h3>
+          <p class="small-muted">
+            Clicca su una fattura nell'elenco per aprire il dettaglio righe e aggiornare il magazzino.
+          </p>
+
           <form id="fattura-form" onsubmit="return false;" class="timbratura-form">
             <div class="form-row">
               <label>
@@ -797,6 +801,113 @@
               </thead>
               <tbody id="fatture-lista"></tbody>
             </table>
+          </div>
+
+          <!-- DETTAGLIO FATTURA SELEZIONATA -->
+          <div
+            id="fattura-dettaglio"
+            style="margin-top: 18px; display: none"
+          >
+            <h3>Dettaglio fattura selezionata</h3>
+            <p id="fattura-dettaglio-intestazione" class="small-muted"></p>
+
+            <form
+              id="fattura-riga-form"
+              class="timbratura-form"
+              onsubmit="return false;"
+            >
+              <div class="form-row">
+                <label>
+                  Descrizione riga
+                  <input
+                    type="text"
+                    id="fattura-riga-descrizione"
+                    placeholder="Es. Filetto di maiale 2kg"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Quantità
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    id="fattura-riga-quantita"
+                    placeholder="Es. 2"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Unità di misura
+                  <input
+                    type="text"
+                    id="fattura-riga-um"
+                    placeholder="Es. kg, pz, cartone"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Prezzo unitario (€)
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    id="fattura-riga-prezzo"
+                    placeholder="Es. 8.50"
+                  />
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Totale riga (€)
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    id="fattura-riga-totale"
+                    placeholder="Calcolato"
+                    readonly
+                  />
+                </label>
+              </div>
+
+              <p class="small-muted" id="fattura-riga-suggerimenti">
+                Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.
+              </p>
+
+              <div class="form-row buttons-row">
+                <button
+                  type="button"
+                  id="btn-add-fattura-riga"
+                  class="app-button small green"
+                >
+                  Aggiungi riga fattura e aggiorna magazzino
+                </button>
+              </div>
+            </form>
+
+            <div class="table-wrapper" style="margin-top: 8px">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Descrizione</th>
+                    <th>Qta</th>
+                    <th>UM</th>
+                    <th>Prezzo</th>
+                    <th>Totale</th>
+                    <th>Prodotto</th>
+                  </tr>
+                </thead>
+                <tbody id="fattura-righe-lista"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
