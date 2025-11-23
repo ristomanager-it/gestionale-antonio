@@ -1,23 +1,21 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  // --- SUPABASE ---
   const supabase = window.supabaseClient;
   if (!supabase) {
     console.error("Supabase client non trovato. Controlla index.html.");
   }
 
-  // --- COSTANTI STORAGE ---
-  const CURRENT_DIP_KEY = "dipendente_corrente"; // per timbratura (ultimo usato)
-  const CURRENT_USER_KEY = "utente_corrente"; // per login
-  const MODE_KEY = "modalita_utente"; // 'dipendente' | 'manager'
+  // STORAGE
+  const CURRENT_USER_KEY = "utente_corrente";
 
-  // --- ELEMENTI BASE ---
+  // ELEMENTI BASE
   const views = document.querySelectorAll(".view");
-  const buttons = document.querySelectorAll("[data-route]");
+  const routeButtons = document.querySelectorAll("[data-route]");
   const buttonsGrid = document.querySelector(".buttons-grid");
 
   const loginView = document.getElementById("view-login");
-  const loginDipSelect = document.getElementById("login-dipendente");
+  const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
+  const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
   const homeDipView = document.getElementById("view-home-dip");
@@ -25,15 +23,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
-  // --- STATO ---
-  let dipendenti = []; // anagrafica
-  let timbrature = []; // timbrature
+  // Timbratura: etichette utente
+  const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
+  const timbUtenteCanaleEl = document.getElementById("timbratura-utente-canale");
+
+  // Stato
+  let dipendenti = [];
+  let timbrature = [];
+  let currentUser = null;
   let periodoCorrente = "oggi";
-  let modalita = "dipendente"; // vista generale
-  let currentUser = null; // {id, nome, ruolo, ...}
 
-  // --- FUNZIONI RUOLI / MODALITÀ ---
-
+  // Utility ruoli
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -72,130 +72,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function updateHeaderUser() {
-    if (!currentUserLabel) return;
-
-    if (!currentUser) {
-      currentUserLabel.textContent = "Nessun utente";
-    } else {
-      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
-      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
-    }
-
-    if (btnLogout) {
-      btnLogout.style.display = currentUser ? "inline-block" : "none";
-    }
-  }
-
-  function applyMode() {
-    // modalità basata sul ruolo corrente
-    if (currentUser && isManagerRole(currentUser.ruolo)) {
-      modalita = "manager";
-    } else {
-      modalita = "dipendente";
-    }
-
-    // sezioni interne solo manager (riepiloghi + viste con data-manager-only)
-    document
-      .querySelectorAll("[data-manager-only='true'], .manager-only")
-      .forEach((el) => {
-        el.style.display = modalita === "manager" ? "" : "none";
-      });
-
-    // pulsanti del menu principale (data-manager-only)
-    buttons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
-    });
-
-    updateHeaderUser();
-  }
-
-  function showLogin() {
-    if (loginView) loginView.style.display = "block";
-    if (buttonsGrid) buttonsGrid.style.display = "none";
-    if (homeDipView) homeDipView.style.display = "none";
-
-    views.forEach((v) => {
-      if (v.id !== "view-login") {
-        v.style.display = "none";
-      }
-    });
-
-    currentUser = null;
-    modalita = "dipendente";
-    localStorage.removeItem(CURRENT_USER_KEY);
-    updateHeaderUser();
-  }
-
-  function setCurrentUserFromDipendente(d) {
-    if (!d) return;
-    currentUser = {
-      id: d.id,
-      nome: d.nome,
-      ruolo: d.ruolo || "",
-    };
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    applyMode();
-  }
-
-  function restoreUserFromStorage() {
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    if (!raw) return;
-    try {
-      const saved = JSON.parse(raw);
-      if (!saved) return;
-
-      const found = dipendenti.find((d) => d.id === saved.id);
-      if (found) {
-        currentUser = found;
-      } else {
-        const byName = dipendenti.find((d) => d.nome === saved.nome);
-        if (byName) currentUser = byName;
-      }
-      applyMode();
-    } catch {
-      // niente
-    }
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      showLogin();
-    });
-  }
-
-  // ------------------------------------------------
-  //             ANAGRAFICA DIPENDENTI
-  // ------------------------------------------------
-
-  const dipNome = document.getElementById("dip-nome");
-  const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
-
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
-  const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
-
-  const dipCodice = document.getElementById("dip-codice");
-  const dipCanale = document.getElementById("dip-canale");
-  const dipAttivo = document.getElementById("dip-attivo");
-  const btnAddDip = document.getElementById("btn-add-dip");
-  const dipLista = document.getElementById("dipendenti-lista");
-
   function formatDataNascita(dataNascita) {
     if (!dataNascita) return "";
     const d = new Date(dataNascita);
@@ -222,6 +98,158 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     return 0;
   }
+
+  function updateHeaderUser() {
+    if (!currentUserLabel) return;
+
+    if (!currentUser) {
+      currentUserLabel.textContent = "Nessun utente";
+    } else {
+      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
+      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
+    }
+
+    if (btnLogout) {
+      btnLogout.style.display = currentUser ? "inline-block" : "none";
+    }
+  }
+
+  function applyRoleVisibility() {
+    const modalita = currentUser && isManagerRole(currentUser.ruolo)
+      ? "manager"
+      : "dipendente";
+
+    document
+      .querySelectorAll("[data-manager-only='true'], .manager-only")
+      .forEach((el) => {
+        el.style.display = modalita === "manager" ? "" : "none";
+      });
+
+    routeButtons.forEach((btn) => {
+      const managerOnly = btn.getAttribute("data-manager-only") === "true";
+      if (managerOnly && modalita !== "manager") {
+        btn.style.display = "none";
+      } else {
+        btn.style.display = "";
+      }
+    });
+
+    updateHeaderUser();
+    updateTimbraturaUserInfo();
+  }
+
+  function showOnlyView(viewId) {
+    views.forEach((v) => {
+      if (v.id === viewId) {
+        v.style.display = "block";
+      } else {
+        v.style.display = "none";
+      }
+    });
+  }
+
+  function showLogin() {
+    if (buttonsGrid) buttonsGrid.style.display = "none";
+    if (homeDipView) homeDipView.style.display = "none";
+    showOnlyView("view-login");
+    currentUser = null;
+    localStorage.removeItem(CURRENT_USER_KEY);
+    updateHeaderUser();
+  }
+
+  function showHomeDipendente() {
+    if (buttonsGrid) buttonsGrid.style.display = "none";
+    showOnlyView("view-home-dip");
+    applyRoleVisibility();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showManagerMenu(initialRoute) {
+    if (buttonsGrid) buttonsGrid.style.display = "grid";
+    showOnlyView("view-timbratura");
+    applyRoleVisibility();
+    navigateTo(initialRoute || "timbratura");
+  }
+
+  function setCurrentUser(user, persist) {
+    currentUser = {
+      id: user.id ?? null,
+      nome: user.nome,
+      ruolo: user.ruolo || "",
+      canalePrevalente: user.canalePrevalente || "NR",
+      virtualAdmin: !!user.virtualAdmin,
+    };
+
+    if (persist) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    }
+
+    updateHeaderUser();
+    applyRoleVisibility();
+  }
+
+  function restoreUserFromStorage() {
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      if (!saved) return;
+
+      if (saved.virtualAdmin) {
+        currentUser = saved;
+        applyRoleVisibility();
+        return;
+      }
+
+      const found = dipendenti.find((d) => d.id === saved.id);
+      if (found) {
+        setCurrentUser(found, true);
+        return;
+      }
+
+      const byName = dipendenti.find(
+        (d) => d.nome && d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
+      );
+      if (byName) {
+        setCurrentUser(byName, true);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      showLogin();
+    });
+  }
+
+  // ----------------- ANAGRAFICA DIPENDENTI -----------------
+  const dipNome = document.getElementById("dip-nome");
+  const dipMansione = document.getElementById("dip-mansione");
+  const dipDataNascita = document.getElementById("dip-data-nascita");
+  const dipResidenza = document.getElementById("dip-residenza");
+  const dipTelefono = document.getElementById("dip-telefono");
+  const dipEmail = document.getElementById("dip-email");
+  const dipRuolo = document.getElementById("dip-ruolo");
+
+  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
+  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
+  const dipOreMensili = document.getElementById("dip-ore-mensili");
+  const dipOreServizio = document.getElementById("dip-ore-servizio");
+  const dipCosto = document.getElementById("dip-costo");
+  const rowOreMensili = document.getElementById("row-ore-mensili");
+  const rowOreServizio = document.getElementById("row-ore-servizio");
+  const labelRetribuzione = document.getElementById("label-retribuzione-base");
+
+  const dipCodice = document.getElementById("dip-codice");
+  const dipCanale = document.getElementById("dip-canale");
+  const dipAttivo = document.getElementById("dip-attivo");
+  const btnAddDip = document.getElementById("btn-add-dip");
+  const dipLista = document.getElementById("dipendenti-lista");
 
   function aggiornaUICompenso() {
     if (!dipTipoCompenso || !labelRetribuzione) return;
@@ -310,9 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }));
 
     renderDipendenti();
-    aggiornaSelectDipendenti();
-    renderLoginDipendenti();
-    applicaDipendenteCorrente();
+    applyRoleVisibility();
   }
 
   async function salvaDipendenteSupabase(dip) {
@@ -541,34 +567,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       aggiornaUICompenso();
       await caricaDipendentiDaSupabase();
+      applyRoleVisibility();
     });
   }
 
-  // ------------------------------------------------
-  //                     LOGIN
-  // ------------------------------------------------
-
-  function renderLoginDipendenti() {
-    if (!loginDipSelect) return;
-    loginDipSelect.innerHTML = `<option value="">-- seleziona dipendente --</option>`;
-
-    dipendenti
-      .filter((d) => d.attivo)
-      .forEach((d) => {
-        const opt = document.createElement("option");
-        opt.value = d.id;
-        opt.textContent = d.nome;
-        loginDipSelect.appendChild(opt);
-      });
+  // ----------------- LOGIN -----------------
+  function updateTimbraturaUserInfo() {
+    if (!currentUser) {
+      if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
+      if (timbUtenteCanaleEl) timbUtenteCanaleEl.textContent = "-";
+      return;
+    }
+    if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = currentUser.nome;
+    if (timbUtenteCanaleEl) {
+      timbUtenteCanaleEl.textContent =
+        currentUser.canalePrevalente || "NR";
+    }
   }
 
   if (btnLogin) {
     btnLogin.addEventListener("click", () => {
-      const dipId = loginDipSelect?.value || "";
+      const nome = (loginNomeInput?.value || "").trim();
       const pin = (loginPinInput?.value || "").trim();
+      const remember = loginRememberInput?.checked || false;
 
-      if (!dipId) {
-        alert("Seleziona un dipendente");
+      if (!nome) {
+        alert("Inserisci il nome");
         return;
       }
       if (!pin) {
@@ -576,64 +600,58 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const d = dipendenti.find((x) => x.id === dipId);
-      if (!d) {
-        alert("Dipendente non trovato");
+      // Admin di emergenza
+      if (nome.toLowerCase() === "admin" && pin === "9999") {
+        setCurrentUser(
+          {
+            id: null,
+            nome: "Admin",
+            ruolo: "admin",
+            canalePrevalente: "NR",
+            virtualAdmin: true,
+          },
+          remember
+        );
+        if (loginView) loginView.style.display = "none";
+        showManagerMenu("timbratura");
         return;
       }
 
-      if (!d.codice || d.codice.toString() !== pin.toString()) {
-        alert("PIN errato");
+      const dip = dipendenti.find(
+        (d) =>
+          d.attivo &&
+          d.nome &&
+          d.nome.toLowerCase() === nome.toLowerCase() &&
+          d.codice &&
+          d.codice.toString() === pin.toString()
+      );
+
+      if (!dip) {
+        alert("Nome o PIN non corretti");
         return;
       }
 
-      setCurrentUserFromDipendente(d);
-
+      setCurrentUser(dip, remember);
       if (loginView) loginView.style.display = "none";
 
-      if (isManagerRole(d.ruolo)) {
-        // Manager / Admin -> menu completo
-        if (buttonsGrid) buttonsGrid.style.display = "grid";
-
-        const initialRoute =
-          window.location.hash.replace("#", "") || "timbratura";
-        navigateTo(initialRoute);
+      if (isManagerRole(dip.ruolo)) {
+        showManagerMenu("timbratura");
       } else {
-        // Dipendenti normali -> home con pulsanti dedicati
-        if (buttonsGrid) buttonsGrid.style.display = "none";
-
-        views.forEach((v) => {
-          if (v.id !== "view-login") {
-            v.style.display = "none";
-          }
-        });
-
-        if (homeDipView) homeDipView.style.display = "block";
-        applyMode();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        showHomeDipendente();
       }
     });
   }
 
-  // ------------------------------------------------
-  //                     TIMBRATURE
-  // ------------------------------------------------
-
-  const dipInput = document.getElementById("timbratura-dipendente");
-  const dipSelect = document.getElementById("timbratura-dipendente-select");
-  const codiceInput = document.getElementById("timbratura-codice");
-  const canaleSelect = document.getElementById("timbratura-canale");
-  const lista = document.getElementById("timbratura-lista");
-
+  // ----------------- TIMBRATURE -----------------
   const btnEntra = document.getElementById("btn-entra");
   const btnPausa = document.getElementById("btn-pausa");
   const btnEsci = document.getElementById("btn-esci");
 
+  const lista = document.getElementById("timbratura-lista");
   const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
   const periodoSelect = document.getElementById("timbratura-periodo");
-
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
 
@@ -663,113 +681,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     aggiornaTabellaTimbrature();
     aggiornaRiepilogo();
-  }
-
-  function aggiornaSelectDipendenti() {
-    if (!dipSelect) return;
-    dipSelect.innerHTML = `<option value="">-- seleziona dipendente --</option>`;
-
-    dipendenti
-      .filter((d) => d.attivo)
-      .forEach((d, index) => {
-        const opt = document.createElement("option");
-        opt.value = index.toString();
-        opt.textContent = d.nome;
-        dipSelect.appendChild(opt);
-      });
-  }
-
-  function trovaDipPerCodice(codice) {
-    return dipendenti.findIndex(
-      (d) => d.codice && d.codice.toString() === codice.toString()
-    );
-  }
-
-  function salvaDipendenteCorrente(d) {
-    if (!d) return;
-    const payload = {
-      codice: d.codice || null,
-      nome: d.nome || null,
-    };
-    localStorage.setItem(CURRENT_DIP_KEY, JSON.stringify(payload));
-  }
-
-  function applicaDipendenteCorrente() {
-    if (!dipSelect || !dipInput || !canaleSelect) return;
-
-    const raw = localStorage.getItem(CURRENT_DIP_KEY);
-    if (!raw) return;
-
-    let saved;
-    try {
-      saved = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    if (!saved) return;
-
-    let idx = -1;
-    if (saved.codice) {
-      idx = trovaDipPerCodice(saved.codice);
-    }
-    if (idx < 0 && saved.nome) {
-      idx = dipendenti.findIndex((d) => d.nome === saved.nome);
-    }
-    if (idx < 0) return;
-
-    const d = dipendenti[idx];
-    if (!d || !d.attivo) return;
-
-    dipSelect.value = idx.toString();
-    dipInput.value = d.nome;
-    if (d.canalePrevalente) {
-      canaleSelect.value = d.canalePrevalente;
-    }
-  }
-
-  if (dipSelect) {
-    dipSelect.addEventListener("change", () => {
-      const idx = dipSelect.value;
-      if (idx === "") {
-        if (dipInput) dipInput.value = "";
-        return;
-      }
-      const d = dipendenti[parseInt(idx, 10)];
-      if (d) {
-        dipInput.value = d.nome;
-        if (canaleSelect && d.canalePrevalente) {
-          canaleSelect.value = d.canalePrevalente;
-        }
-        salvaDipendenteCorrente(d);
-      }
-    });
-  }
-
-  if (codiceInput) {
-    codiceInput.addEventListener("change", () => {
-      const codice = codiceInput.value.trim();
-      if (!codice) return;
-
-      const idx = trovaDipPerCodice(codice);
-      if (idx >= 0) {
-        dipSelect.value = idx.toString();
-        const d = dipendenti[idx];
-        dipInput.value = d.nome;
-        if (canaleSelect && d.canalePrevalente) {
-          canaleSelect.value = d.canalePrevalente;
-        }
-        salvaDipendenteCorrente(d);
-      } else {
-        alert("Nessun dipendente trovato per questo PIN personale");
-      }
-    });
-  }
-
-  if (periodoSelect) {
-    periodoSelect.addEventListener("change", () => {
-      periodoCorrente = periodoSelect.value || "oggi";
-      aggiornaRiepilogo();
-    });
   }
 
   function formatDurationMinutes(totalMinutes) {
@@ -970,8 +881,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!supabase) return null;
 
     let dipendenteId = null;
-    const dipNomeVal = record.dip;
-    const d = dipendenti.find((x) => x.nome === dipNomeVal);
+    const d = dipendenti.find(
+      (x) =>
+        x.nome &&
+        x.nome.toLowerCase() === record.dip.toLowerCase()
+    );
     if (d && d.id) {
       dipendenteId = d.id;
     }
@@ -1002,13 +916,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function registraTimbratura(tipo) {
-    const dipNomeVal = (dipInput?.value || "").trim();
-    const canaleVal = canaleSelect?.value || "NR";
-
-    if (!dipNomeVal) {
-      alert("Seleziona un dipendente (tramite codice o menu)");
+    if (!currentUser) {
+      alert("Devi prima effettuare il login");
       return;
     }
+
+    const dipNomeVal = currentUser.nome;
+    const canaleVal = currentUser.canalePrevalente || "NR";
 
     const now = new Date();
     const ora = now.toLocaleTimeString("it-IT", {
@@ -1039,14 +953,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnEsci)
     btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 
-  // ------------------------------------------------
-  //                     ROUTING
-  // ------------------------------------------------
+  if (periodoSelect) {
+    periodoSelect.addEventListener("change", () => {
+      periodoCorrente = periodoSelect.value || "oggi";
+      aggiornaRiepilogo();
+    });
+  }
 
+  // ----------------- ROUTING -----------------
   async function onRouteEnter(route) {
     switch (route) {
       case "timbratura":
         await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
         break;
       case "dipendenti":
         await caricaDipendentiDaSupabase();
@@ -1062,34 +981,39 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    views.forEach((v) => {
-      if (v.id !== "view-login") {
-        v.style.display = "none";
+    const isManager = isManagerRole(currentUser.ruolo);
+
+    if (!isManager) {
+      // dipendenti normali possono vedere solo timbratura e ordine
+      if (route === "timbratura" || route === "ordine") {
+        showOnlyView(`view-${route}`);
+        await onRouteEnter(route);
+      } else {
+        showHomeDipendente();
       }
-    });
+    } else {
+      let active = document.getElementById(`view-${route}`);
+      if (!active) {
+        route = "timbratura";
+        active = document.getElementById("view-timbratura");
+      }
 
-    let targetRoute = route;
-    let active = document.getElementById(`view-${route}`);
+      const isManagerOnly =
+        active.getAttribute("data-manager-only") === "true";
 
-    if (
-      active &&
-      modalita === "dipendente" &&
-      active.getAttribute("data-manager-only") === "true"
-    ) {
-      targetRoute = "timbratura";
-      active = document.getElementById("view-timbratura");
+      if (isManagerOnly && !isManager) {
+        route = "timbratura";
+      }
+
+      showOnlyView(`view-${route}`);
+      await onRouteEnter(route);
     }
 
-    if (active) {
-      active.style.display = "block";
-      await onRouteEnter(targetRoute);
-    }
-
-    applyMode();
+    applyRoleVisibility();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  buttons.forEach((btn) => {
+  routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const route = btn.getAttribute("data-route");
       window.location.hash = route;
@@ -1102,11 +1026,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     navigateTo(route);
   });
 
-  // ------------------------------------------------
-  //                     AVVIO
-  // ------------------------------------------------
-
-  async function applicaTuttoAllAvvio() {
+  // ----------------- AVVIO -----------------
+  async function init() {
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
 
@@ -1114,23 +1035,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
-
       if (isManagerRole(currentUser.ruolo)) {
-        if (buttonsGrid) buttonsGrid.style.display = "grid";
-        if (homeDipView) homeDipView.style.display = "none";
-
-        const initialRoute =
-          window.location.hash.replace("#", "") || "timbratura";
-        await navigateTo(initialRoute);
+        showManagerMenu(
+          window.location.hash.replace("#", "") || "timbratura"
+        );
       } else {
-        if (buttonsGrid) buttonsGrid.style.display = "none";
-        if (homeDipView) homeDipView.style.display = "block";
-        applyMode();
+        showHomeDipendente();
       }
     } else {
       showLogin();
     }
+
+    aggiornaUICompenso();
   }
 
-  await applicaTuttoAllAvvio();
+  await init();
 });
