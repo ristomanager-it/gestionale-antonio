@@ -7,16 +7,23 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
     />
     <title>Gestionale Antonio</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="stili.css" />
   </head>
   <body>
     <!-- CONTENITORE CENTRALE MOBILE-FIRST -->
     <div class="app-main-wrapper">
       <header class="app-header">
         <div class="header-top">
-          <div>
-            <h1>Gestionale Antonio</h1>
-            <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+          <div class="header-left">
+            <img
+              src="logo.png"
+              alt="Logo Gestionale Antonio"
+              class="app-logo"
+            />
+            <div>
+              <h1>Gestionale Antonio</h1>
+              <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+            </div>
           </div>
           <div class="header-user">
             <span id="current-user-label">Nessun utente</span>
@@ -35,6 +42,14 @@
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
           <div class="login-card">
+            <div class="login-logo-wrapper">
+              <img
+                src="logo.png"
+                alt="Logo Gestionale Antonio"
+                class="login-logo"
+              />
+            </div>
+
             <h2>Benvenuto</h2>
             <p class="login-subtitle">
               Scrivi il tuo nome e il PIN personale per accedere.
@@ -94,6 +109,11 @@
 
         <!-- HOME DIPENDENTE (non manager) -->
         <section id="view-home-dip" class="view" style="display: none">
+          <img
+            src="logo.png"
+            alt="Logo Gestionale Antonio"
+            class="view-hero-image"
+          />
           <h2>Cosa vuoi fare?</h2>
           <p>Seleziona una funzione.</p>
 
