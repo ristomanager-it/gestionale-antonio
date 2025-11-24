@@ -76,7 +76,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // vista ricette
   const ricetteView = document.getElementById("view-ricette");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaDescrizioneInput = document.getElementById(
+    "ricetta-descrizione"
+  );
   const ricettaNoteInput = document.getElementById("ricetta-note");
   const ricettaFotoInput = document.getElementById("ricetta-foto");
   const containerIngredienti = document.getElementById(
@@ -85,7 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
-  // creati dinamicamente per lista + ricerca ricette
+  // elementi che creo dinamicamente per lista/ricerca ricette
   let ricetteSearchInput = null;
   let ricetteTableBody = null;
   let ricettaFotoPreview = null;
@@ -98,7 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let currentRicettaId = null; // null = nuova, numero = modifica
   let ricetteCache = [];
 
-  // ---------- UTILITA' ----------
+  // ---------- UTILITA' BASE ----------
 
   function formatDateTime(iso) {
     if (!iso) return "";
@@ -137,7 +139,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function applyRoleVisibility() {
-    const managerOnlyEls = document.querySelectorAll("[data-manager-only='true']");
+    const managerOnlyEls = document.querySelectorAll(
+      "[data-manager-only='true']"
+    );
     if (!currentUser || !isManager(currentUser)) {
       managerOnlyEls.forEach((el) => (el.style.display = "none"));
       if (managerMenu) managerMenu.style.display = "none";
@@ -153,7 +157,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (btnLogout) btnLogout.style.display = "none";
       return;
     }
-    currentUserLabel.textContent = `${currentUser.nome} (${currentUser.ruolo || "dipendente"})`;
+    currentUserLabel.textContent = `${currentUser.nome} (${
+      currentUser.ruolo || "dipendente"
+    })`;
     if (btnLogout) btnLogout.style.display = "inline-flex";
 
     if (timbUtenteNomeEl) {
@@ -166,7 +172,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       id: user.id ?? null,
       nome: user.nome,
       ruolo: user.ruolo || "",
-      canalePrevalente: user.canale_prevalente || user.canalePrevalente || "NR",
+      canalePrevalente:
+        user.canale_prevalente || user.canalePrevalente || "NR",
     };
 
     if (persist) {
@@ -222,9 +229,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (isManager(currentUser)) {
-      if (managerMenu) managerMenu.style.display = "grid";
-      managerMenu.style.display = "grid";
-      managerMenu.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (managerMenu) {
+        managerMenu.style.display = "grid";
+        managerMenu.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     } else {
       if (homeDipView) homeDipView.style.display = "block";
     }
@@ -288,7 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .select("*")
       .eq("nome", nome)
       .eq("pin_personale", pin)
-      .maybeSingle(); // se non trovi nulla, data = null
+      .maybeSingle();
 
     if (error) {
       console.error("Errore login", error);
@@ -316,22 +324,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnLogin.addEventListener("click", handleLogin);
   }
 
+  if (loginPinInput) {
+    loginPinInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleLogin();
+    });
+  }
+
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       showLogin();
     });
   }
 
-  // permetti invio con Enter
-  if (loginPinInput) {
-    loginPinInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        handleLogin();
-      }
-    });
-  }
-
-  // ---------- ROUTING GENERALE ----------
+  // ---------- ROUTING GENERALE (menu) ----------
 
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -344,7 +349,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Nasconde tutte le view
+      // Nascondi tutte le view
       views.forEach((v) => (v.style.display = "none"));
 
       // Mostra quella richiesta
@@ -353,7 +358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         viewToShow.style.display = "block";
       }
 
-      // azioni specifiche route
+      // Azioni specifiche per route
       if (route === "timbratura") {
         if (timbUtenteNomeEl && currentUser) {
           timbUtenteNomeEl.textContent = currentUser.nome;
@@ -376,13 +381,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (tipo === "orario") {
       costo = retribuzioneBase;
     } else if (tipo === "mensile") {
-      if (oreMensili > 0) {
-        costo = retribuzioneBase / oreMensili;
-      }
+      if (oreMensili > 0) costo = retribuzioneBase / oreMensili;
     } else if (tipo === "servizio") {
-      if (oreServizio > 0) {
-        costo = retribuzioneBase / oreServizio;
-      }
+      if (oreServizio > 0) costo = retribuzioneBase / oreServizio;
     }
     if (!Number.isFinite(costo)) return 0;
     return costo;
@@ -634,9 +635,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const canale = timbCanaleSelect?.value || currentUser.canalePrevalente || "NR";
+    const canale =
+      timbCanaleSelect?.value || currentUser.canalePrevalente || "NR";
 
-    // Qui facciamo un controllo semplice sull'ultima timbratura per impedire doppie ENTRA ecc.
+    // controllo ultima timbratura
     const { data: lastList, error: errLast } = await supabase
       .from("timbrature")
       .select("*")
@@ -664,7 +666,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       dipendente_id: currentUser.id,
       dipendente_nome: currentUser.nome,
       canale,
-      tipo, // oppure 'azione', adegua al nome colonna se necessario
+      tipo, // se la colonna si chiama 'azione' cambia qui
     };
 
     const { error } = await supabase.from("timbrature").insert(payload);
@@ -703,10 +705,31 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let start, end;
     if (periodo === "oggi") {
-      start = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate(), 0, 0, 0);
-      end = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate(), 23, 59, 59);
+      start = new Date(
+        oggi.getFullYear(),
+        oggi.getMonth(),
+        oggi.getDate(),
+        0,
+        0,
+        0
+      );
+      end = new Date(
+        oggi.getFullYear(),
+        oggi.getMonth(),
+        oggi.getDate(),
+        23,
+        59,
+        59
+      );
     } else if (periodo === "settimana") {
-      end = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate(), 23, 59, 59);
+      end = new Date(
+        oggi.getFullYear(),
+        oggi.getMonth(),
+        oggi.getDate(),
+        23,
+        59,
+        59
+      );
       start = new Date(end);
       start.setDate(start.getDate() - 6);
       start.setHours(0, 0, 0, 0);
@@ -772,14 +795,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function calcolaRiepiloghiDaTimbrature(timbrature) {
-    // Calcoliamo ore per dipendente/canale e costo lavoro usando dipendentiCache
     const perDip = {};
     const perCanale = {};
     const attivi = {};
 
     const byDip = {};
     timbrature.forEach((t) => {
-      const key = `${t.dipendente_id || t.dipendente_nome || ""}||${t.canale || ""}`;
+      const key = `${t.dipendente_id || t.dipendente_nome || ""}||${
+        t.canale || ""
+      }`;
       if (!byDip[key]) byDip[key] = [];
       byDip[key].push(t);
     });
@@ -809,7 +833,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       const [dipKey, canale] = key.split("||");
-      const dipId = arr[0].dipendente_id;
       const nomeDip = arr[0].dipendente_nome || dipKey;
 
       const kDip = `${nomeDip}||${canale}`;
@@ -817,7 +840,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       perCanale[canale] = (perCanale[canale] || 0) + totaleOre;
     });
 
-    // render riepilogo dipendenti
+    // riepilogo per dipendente
     if (riepilogoDipEl) {
       riepilogoDipEl.innerHTML = "";
       Object.entries(perDip).forEach(([key, ore]) => {
@@ -952,13 +975,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ---------- RICETTE: UI DINAMICA + LOGICA ----------
+  // ---------- RICETTE: UI + LOGICA ----------
 
+  // crea sezione lista + ricerca nella view ricette
   function ensureRicetteListUI() {
     if (!ricetteView) return;
     if (ricetteSearchInput && ricetteTableBody && ricettaFotoPreview) return;
 
-    // sezione elenco + ricerca
+    // blocco lista + ricerca
     const section = document.createElement("section");
     section.style.marginTop = "16px";
 
@@ -988,21 +1012,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     ricetteView.appendChild(section);
 
     ricetteSearchInput = ricetteView.querySelector("#ricette-search");
-    ricetteTableBody = ricetteView.querySelector("#ricettes-list-body") ||
+    ricetteTableBody =
+      ricetteView.querySelector("#ricettes-list-body") ||
       ricetteView.querySelector("#ricette-list-body");
 
     if (ricetteSearchInput) {
       ricetteSearchInput.addEventListener("input", () => {
         const term = ricetteSearchInput.value.toLowerCase();
-        renderRicetteList(
-          ricetteCache.filter((r) =>
-            (r.nome || "").toLowerCase().includes(term)
-          )
+        const filtrate = ricetteCache.filter((r) =>
+          (r.nome || "").toLowerCase().includes(term)
         );
+        renderRicetteList(filtrate);
       });
     }
 
-    // preview immagine sotto il campo file se non esiste
+    // preview immagine sotto il file input
     if (ricettaFotoInput && !ricettaFotoPreview) {
       ricettaFotoPreview = document.createElement("img");
       ricettaFotoPreview.style.marginTop = "6px";
@@ -1191,7 +1215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const descrizione = (ricettaDescrizioneInput?.value || "").trim();
     const note = (ricettaNoteInput?.value || "").trim();
 
-    // gestisci eventuale upload foto
+    // upload foto (se selezionata)
     let fotoUrl = null;
     const file = ricettaFotoInput?.files?.[0];
     if (file) {
@@ -1202,7 +1226,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         .upload(path, file, { upsert: true });
       if (upErr) {
         console.error("Errore upload immagine ricetta", upErr);
-        alert("Errore nel caricamento dell'immagine (ma salvo comunque la ricetta).");
+        alert(
+          "Errore nel caricamento dell'immagine (la ricetta viene salvata comunque)."
+        );
       } else {
         const { data: urlData } = supabase.storage
           .from("ricette_foto")
@@ -1230,7 +1256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // cancella ingredienti esistenti e reinserisci
+      // Cancella ingredienti esistenti e reinserisci
       const { error: delErr } = await supabase
         .from("ricetta_ingredienti")
         .delete()
@@ -1311,13 +1337,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- AVVIO APP ----------
 
-  // carica dipendenti per login / costi lavoro
+  // carica dipendenti per login / costo lavoro
   await caricaDipendenti();
-  // prova a ripristinare utente salvato
+  // prova a ripristinare utente ricordato
   restoreUserFromStorage();
 
   if (currentUser) {
-    // utente ricordato
     if (loginView) loginView.style.display = "none";
     showHomeAfterLogin();
   } else {
