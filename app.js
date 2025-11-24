@@ -1738,7 +1738,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- SUGGERIMENTI PRODOTTO/CATEGORIA DA DESCRIZIONE ----------
   function normalizzaTesto(txt) {
-    return (txt || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return (txt || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
   }
 
   function suggerisciCategoriaDaDescrizione(descrizione) {
@@ -1820,7 +1823,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function aggiornaTotaleRigaDaQuantitaPrezzo() {
-    if (!fatturaRigaQuantitaInput || !fatturaRigaPrezzoInput || !fatturaRigaTotaleInput) return;
+    if (
+      !fatturaRigaQuantitaInput ||
+      !fatturaRigaPrezzoInput ||
+      !fatturaRigaTotaleInput
+    )
+      return;
     const qta = parseFloat(fatturaRigaQuantitaInput.value || "0") || 0;
     const prezzo = parseFloat(fatturaRigaPrezzoInput.value || "0") || 0;
     const tot = qta * prezzo;
@@ -1828,10 +1836,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (fatturaRigaQuantitaInput) {
-    fatturaRigaQuantitaInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+    fatturaRigaQuantitaInput.addEventListener(
+      "input",
+      aggiornaTotaleRigaDaQuantitaPrezzo
+    );
   }
   if (fatturaRigaPrezzoInput) {
-    fatturaRigaPrezzoInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+    fatturaRigaPrezzoInput.addEventListener(
+      "input",
+      aggiornaTotaleRigaDaQuantitaPrezzo
+    );
   }
 
   // ---------- RIGHE FATTURA + MAGAZZINO ----------
@@ -1921,8 +1935,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tot = qta * prezzo;
 
     const dataMovimento =
-      fattura.data ||
-      new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      fattura.data || new Date().toISOString().slice(0, 10); // yyyy-mm-dd
 
     const riferimento = `Fattura ${fattura.numero || ""}`.trim();
 
@@ -1945,7 +1958,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (error) {
       console.error("Errore inserimento movimento magazzino:", error);
-      alert("Attenzione: riga fattura salvata ma errore nel movimento di magazzino");
+      alert(
+        "Attenzione: riga fattura salvata ma errore nel movimento di magazzino"
+      );
     }
   }
 
@@ -2038,7 +2053,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderFatturaRighe();
 
       // 3) movimento di magazzino
-      await inserisciMovimentoMagazzinoDaRiga(prodottoId, fatturaSelezionata, data);
+      await inserisciMovimentoMagazzinoDaRiga(
+        prodottoId,
+        fatturaSelezionata,
+        data
+      );
 
       resetFatturaRigaForm();
       alert("Riga fattura e movimento di magazzino registrati correttamente");
@@ -2106,19 +2125,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // routing semplice: nessun uso dell'hash nell'URL
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const route = btn.getAttribute("data-route");
-      window.location.hash = route;
-      navigateTo(route);
+      if (route) {
+        navigateTo(route);
+      }
     });
-  });
-
-  window.addEventListener("hashchange", () => {
-    const route = window.location.hash.replace("#", "");
-    if (route) {
-      navigateTo(route);
-    }
   });
 
   // ---------- avvio ----------
@@ -2131,9 +2145,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
       if (isManagerRole(currentUser.ruolo)) {
-        const initialRoute =
-          window.location.hash.replace("#", "") || "timbratura";
-        showManagerMenuAndRoute(initialRoute);
+        // partiamo sempre da timbratura per i manager
+        showManagerMenuAndRoute("timbratura");
       } else {
         showHomeDipendente();
       }
