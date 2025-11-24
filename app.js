@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
-  // elementi che creo dinamicamente per lista/ricerca ricette
+  // elementi dinamici per lista/ricerca ricette
   let ricetteSearchInput = null;
   let ricetteTableBody = null;
   let ricettaFotoPreview = null;
@@ -284,32 +284,53 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function handleLogin() {
     const nome = (loginNomeInput?.value || "").trim();
-    const pin = (loginPinInput?.value || "").trim();
+    const pinInserito = (loginPinInput?.value || "").trim();
 
-    if (!nome || !pin) {
+    if (!nome || !pinInserito) {
       alert("Inserisci nome e PIN.");
       return;
     }
 
+    // ⚠️ non filtriamo per PIN in SQL (così evitiamo errori se la colonna si chiama in modo diverso)
     const { data, error } = await supabase
       .from("dipendenti")
       .select("*")
-      .eq("nome", nome)
-      .eq("pin_personale", pin)
-      .maybeSingle();
+      .eq("nome", nome);
 
     if (error) {
-      console.error("Errore login", error);
+      console.error("Errore login (query dipendenti)", error);
       alert("Errore durante il login.");
       return;
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       alert("Nome o PIN non corretti.");
       return;
     }
 
-    const dip = data;
+    // Proviamo a trovare il PIN giusto su più colonne possibili
+    let dip = null;
+    for (const row of data) {
+      const possibiliPin = [
+        row.pin_personale,
+        row.pin,
+        row.codice,
+        row.codice_pin,
+      ]
+        .filter((v) => v != null)
+        .map((v) => String(v));
+
+      if (possibiliPin.includes(pinInserito)) {
+        dip = row;
+        break;
+      }
+    }
+
+    if (!dip) {
+      alert("Nome o PIN non corretti.");
+      return;
+    }
+
     if (dip.attivo === false) {
       alert("Dipendente non attivo.");
       return;
@@ -506,7 +527,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       tr.appendChild(tdCanale);
 
       const tdPin = document.createElement("td");
-      tdPin.textContent = d.pin_personale || "";
+      tdPin.textContent =
+        d.pin_personale || d.pin || d.codice || d.codice_pin || "";
       tr.appendChild(tdPin);
 
       const tdAttivo = document.createElement("td");
@@ -548,7 +570,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (dipCosto)
       dipCosto.value =
         d.costo_orario != null ? Number(d.costo_orario).toFixed(2) : "";
-    if (dipCodice) dipCodice.value = d.pin_personale || "";
+    if (dipCodice)
+      dipCodice.value =
+        d.pin_personale || d.pin || d.codice || d.codice_pin || "";
     if (dipCanale)
       dipCanale.value = d.canale_prevalente || d.canale || "NR";
     if (dipAttivo) dipAttivo.checked = d.attivo !== false;
@@ -598,6 +622,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ore_mensili: oreMensiliVal,
       ore_per_servizio: oreServizioVal,
       costo_orario: costo,
+      // se la tua colonna si chiama in modo diverso, sentirai solo qui (non rompe il login)
       pin_personale: pin,
       canale_prevalente: canalePrev,
       attivo,
@@ -666,7 +691,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       dipendente_id: currentUser.id,
       dipendente_nome: currentUser.nome,
       canale,
-      tipo, // se la colonna si chiama 'azione' cambia qui
+      tipo, // se la colonna si chiama 'azione' puoi duplicare lato DB con una view, per ora va bene così
     };
 
     const { error } = await supabase.from("timbrature").insert(payload);
@@ -977,12 +1002,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- RICETTE: UI + LOGICA ----------
 
-  // crea sezione lista + ricerca nella view ricette
   function ensureRicetteListUI() {
     if (!ricetteView) return;
     if (ricetteSearchInput && ricetteTableBody && ricettaFotoPreview) return;
 
-    // blocco lista + ricerca
     const section = document.createElement("section");
     section.style.marginTop = "16px";
 
@@ -1174,7 +1197,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (ricettaFotoInput) ricettaFotoInput.value = "";
 
-    // ingredienti
     const { data: ingredienti, error: errIng } = await supabase
       .from("ricetta_ingredienti")
       .select("*")
@@ -1215,7 +1237,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const descrizione = (ricettaDescrizioneInput?.value || "").trim();
     const note = (ricettaNoteInput?.value || "").trim();
 
-    // upload foto (se selezionata)
     let fotoUrl = null;
     const file = ricettaFotoInput?.files?.[0];
     if (file) {
@@ -1256,7 +1277,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Cancella ingredienti esistenti e reinserisci
       const { error: delErr } = await supabase
         .from("ricetta_ingredienti")
         .delete()
@@ -1279,7 +1299,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       currentRicettaId = ricettaId;
     }
 
-    // ingredienti
     if (containerIngredienti) {
       const rows = Array.from(
         containerIngredienti.querySelectorAll(".ingrediente-row")
@@ -1337,9 +1356,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- AVVIO APP ----------
 
-  // carica dipendenti per login / costo lavoro
   await caricaDipendenti();
-  // prova a ripristinare utente ricordato
   restoreUserFromStorage();
 
   if (currentUser) {
