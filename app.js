@@ -87,6 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "sezione-timbrature-dettaglio"
   );
 
+
   // anagrafica dipendenti
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
@@ -241,6 +242,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function formatRuolo(ruolo) {
     switch (ruolo) {
+      case "dashboard":
+  // qui in futuro calcoleremo i KPI reali (day/week/month)
+  break;
       case "admin":
         return "Admin";
       case "manager_cucina":
