@@ -374,6 +374,50 @@ body {
   border-radius: 999px;
 }
 
+/* Testo piccolo e attenuato */
+.small-muted {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* KPI dashboard */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.kpi-card-value {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kpi-card-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 /* Tema CHIARO (override) */
 
 body.theme-light {
@@ -444,5 +488,9 @@ body.theme-light .app-button.login-button:hover {
 
   .menu-button {
     font-size: 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
