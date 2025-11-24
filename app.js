@@ -743,6 +743,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderDipendenti();
     applyRoleVisibility();
   }
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
+        break;
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
+      case "acquisti":
+        await caricaFornitoriDaSupabase();
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
+        await caricaFattureDaSupabase();
+        break;
+      case "reintegro":
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
+        break;
+      case "ricette":
+        resetRicettaForm();
+        break;
+      case "dashboard":
+      case "preventivi":
+      case "report":
+      case "parametri":
+        // per ora nessun caricamento specifico
+        break;
+      default:
+        break;
+    }
+  }
 
   async function salvaDipendenteSupabase(dip) {
     if (!supabase) return null;
