@@ -560,6 +560,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!supabase) return;
   async function uploadFotoRicetta(file) {
     if (!supabase || !file) return null;
+  async function salvaRicettaSupabase(ricetta, ingredienti) {
+    if (!supabase) return null;
+
+    // 1) Inserisco la ricetta
+    const payloadRicetta = {
+      nome: ricetta.nome,
+      descrizione: ricetta.descrizione || null,
+      note_procedimento: ricetta.note || null,
+      foto_url: ricetta.foto_url || null,
+      attivo: true,
+    };
+
+    const { data: ricettaInserita, error: errRicetta } = await supabase
+      .from("ricette")
+      .insert(payloadRicetta)
+      .select()
+      .single();
+
+    if (errRicetta) {
+      console.error("Errore salvataggio ricetta:", errRicetta);
+      alert("Errore nel salvare la ricetta");
+      return null;
+    }
+
+    const ricettaId = ricettaInserita.id;
+
+    // 2) Inserisco gli ingredienti
+    if (ingredienti && ingredienti.length > 0) {
+      const payloadIngredienti = ingredienti.map((ing) => ({
+        ricetta_id: ricettaId,
+        prodotto_id: null, // in futuro collegheremo ai prodotti di magazzino
+        nome_prodotto: ing.nome,
+        quantita: ing.quantita,
+        unita_misura: ing.um,
+        note: ing.note || null,
+      }));
+
+      const { error: errIng } = await supabase
+        .from("ricetta_ingredienti")
+        .insert(payloadIngredienti);
+
+      if (errIng) {
+        console.error("Errore salvataggio ingredienti ricetta:", errIng);
+        alert("Ricetta salvata, ma errore nel salvare alcuni ingredienti");
+      }
+    }
+
+    return ricettaInserita;
+  }
 
     const estensione = file.name.split(".").pop() || "jpg";
     const timestamp = Date.now();
