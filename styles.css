@@ -494,3 +494,30 @@ body.theme-light .app-button.login-button:hover {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+  border: 1px solid #e5e7eb;
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
