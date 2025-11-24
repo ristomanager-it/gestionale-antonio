@@ -320,17 +320,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
       .forEach((el) => {
-        el.style.display = modalita === "manager" ? "" : "none";
+        const isView = el.classList.contains("view");
+        if (modalita === "manager") {
+          // Per i manager:
+          // - le VIEW (section.view) le lascia gestire a showOnlyView / navigateTo
+          // - gli elementi interni (bottoni, box ecc.) vengono mostrati
+          if (!isView) {
+            el.style.display = "";
+          }
+        } else {
+          // Per i non manager: tutto ciò che è "solo manager" viene nascosto
+          el.style.display = "none";
+        }
       });
-
-    routeButtons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
-    });
 
     if (managerMenu) {
       managerMenu.style.display = modalita === "manager" ? "grid" : "none";
@@ -1081,9 +1083,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let dipendenteId = null;
     const d = dipendenti.find(
-      (x) =>
-        x.nome &&
-        x.nome.toLowerCase() === record.dip.toLowerCase()
+      (x) => x.nome && x.nome.toLowerCase() === record.dip.toLowerCase()
     );
     if (d && d.id) {
       dipendenteId = d.id;
@@ -1527,7 +1527,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       await caricaFattureDaSupabase();
       alert("Fattura registrata correttamente");
 
-      // Se vuoi, selezioniamo subito la nuova fattura
       fatturaSelezionata = data;
       selezionaFattura(data);
     });
