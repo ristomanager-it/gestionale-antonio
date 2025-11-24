@@ -347,6 +347,54 @@
             </div>
           </div>
         </section>
+<!-- DASHBOARD KPI -->
+<section
+  id="view-dashboard"
+  class="view"
+  style="display: none"
+  data-manager-only="true"
+>
+  <h2>Dashboard KPI</h2>
+  <p class="small-muted">
+    Resoconto giorno / settimana / mese di costi e margini (per ora valori di esempio).
+  </p>
+
+  <!-- Selettore periodo -->
+  <div class="form-row">
+    <label>
+      Periodo
+      <select id="kpi-periodo">
+        <option value="day">Oggi</option>
+        <option value="week">Settimana</option>
+        <option value="month">Mese</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Box riassuntivi -->
+  <div class="kpi-cards">
+    <div class="kpi-card">
+      <h3>Costi lavoro</h3>
+      <p id="kpi-lavoro">0 €</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Food cost</h3>
+      <p id="kpi-foodcost">0 €</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Costi fissi</h3>
+      <p id="kpi-fissi">0 €</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Margine</h3>
+      <p id="kpi-margine">0 €</p>
+    </div>
+  </div>
+
+  <p class="small-muted">
+    In seguito collegheremo questi valori ai dati reali (timbrature, fatture, costi fissi, venduto).
+  </p>
+</section>
 
         <!-- ANAGRAFICA DIPENDENTI (SOLO MANAGER) -->
         <section
