@@ -183,34 +183,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   const prodottiListaEl = document.getElementById("prodotti-lista");
 
-  // KPI / Report
-  const kpiPeriodoSelect = document.getElementById("kpi-periodo");
-  const kpiCostoLavoroEl = document.getElementById("kpi-costo-lavoro");
-  const kpiFoodcostEl = document.getElementById("kpi-foodcost");
-  const kpiCostiFissiEl = document.getElementById("kpi-costi-fissi");
-  const kpiMargineEl = document.getElementById("kpi-margine");
-  const kpiDettaglioTbody = document.getElementById("kpi-dettaglio-tbody");
-
-  // Costi fissi (parametri)
-  const costoFissoForm = document.getElementById("costo-fisso-form");
-  const costoFissoDescrizioneInput = document.getElementById(
-    "costo-fisso-descrizione"
-  );
-  const costoFissoImportoInput =
-    document.getElementById("costo-fisso-importo");
-  const costoFissoCategoriaInput = document.getElementById(
-    "costo-fisso-categoria"
-  );
-  const costoFissoNoteInput = document.getElementById("costo-fisso-note");
-  const btnAddCostoFisso = document.getElementById("btn-add-costo-fisso");
-  const costiFissiListaEl = document.getElementById("costi-fissi-lista");
-  const btnToggleCostiFissi = document.getElementById(
-    "btn-toggle-costi-fissi"
-  );
-  const sezioneCostiFissiElenco = document.getElementById(
-    "sezione-costi-fissi-elenco"
-  );
-
   // stato
   let dipendenti = [];
   let timbrature = [];
@@ -226,9 +198,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // stato magazzino
   let categorieProdotto = [];
   let prodotti = [];
-
-  // stato costi fissi
-  let costiFissi = [];
 
   // ---------- tema chiaro/scuro ----------
   function applyTheme(theme) {
@@ -262,6 +231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadTheme();
 
   // ---------- utility ruoli ----------
+  // In futuro possiamo mettere qui la matrice permessi per ruolo
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -350,17 +320,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
       .forEach((el) => {
-        const isView = el.classList.contains("view");
-        if (modalita === "manager") {
-          // Per i manager non tocchiamo le section.view
-          if (!isView) {
-            el.style.display = "";
-          }
-        } else {
-          // Per i non manager: nascondiamo tutto ciò che è solo manager
-          el.style.display = "none";
-        }
+        el.style.display = modalita === "manager" ? "" : "none";
       });
+
+    routeButtons.forEach((btn) => {
+      const managerOnly = btn.getAttribute("data-manager-only") === "true";
+      if (managerOnly && modalita !== "manager") {
+        btn.style.display = "none";
+      } else {
+        btn.style.display = "";
+      }
+    });
 
     if (managerMenu) {
       managerMenu.style.display = modalita === "manager" ? "grid" : "none";
@@ -388,11 +358,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   function showHomeDipendente() {
     if (managerMenu) managerMenu.style.display = "none";
     showOnlyView("view-home-dip");
+    applyRoleVisibility();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showManagerMenu() {
+  function showManagerMenuAndRoute(initialRoute) {
     if (managerMenu) managerMenu.style.display = "grid";
+    showOnlyView(`view-${initialRoute || "timbratura"}`);
+    applyRoleVisibility();
+    navigateTo(initialRoute || "timbratura");
   }
 
   function setCurrentUser(user, persist) {
@@ -796,7 +770,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (btnLogin) {
-    btnLogin.addEventListener("click", async () => {
+    btnLogin.addEventListener("click", () => {
       const nome = (loginNomeInput?.value || "").trim();
       const pin = (loginPinInput?.value || "").trim();
       const remember = loginRememberInput?.checked || false;
@@ -823,8 +797,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           remember
         );
         if (loginView) loginView.style.display = "none";
-        showManagerMenu();
-        await navigateTo("report");
+        showManagerMenuAndRoute("timbratura");
         return;
       }
 
@@ -846,8 +819,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (loginView) loginView.style.display = "none";
 
       if (isManagerRole(dip.ruolo)) {
-        showManagerMenu();
-        await navigateTo("report");
+        showManagerMenuAndRoute("timbratura");
       } else {
         showHomeDipendente();
       }
@@ -1062,7 +1034,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
       if (ev.tipo === "Entrata" && ev.timestamp) {
         const [dip, canale] = key.split("|");
-        const durataMin = (Date.now() - ev.timestamp) / 60000;
+        const durataMin = (adesso - ev.timestamp) / 60000;
         const durataTxt = formatDurationMinutes(durataMin);
 
         const oraDa = new Date(ev.timestamp).toLocaleTimeString("it-IT", {
@@ -1109,7 +1081,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let dipendenteId = null;
     const d = dipendenti.find(
-      (x) => x.nome && x.nome.toLowerCase() === record.dip.toLowerCase()
+      (x) =>
+        x.nome &&
+        x.nome.toLowerCase() === record.dip.toLowerCase()
     );
     if (d && d.id) {
       dipendenteId = d.id;
@@ -1488,4 +1462,686 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnAddFattura) {
     btnAddFattura.addEventListener("click", async () => {
       const fornitoreId = fatturaFornitoreSelect?.value || "";
-      const numero = (fatturaNumeroInput?.value
+      const numero = (fatturaNumeroInput?.value || "").trim();
+      const dataVal = fatturaDataInput?.value || "";
+      const totaleValRaw = fatturaTotaleInput?.value || "";
+      const note = (fatturaNoteInput?.value || "").trim();
+      const file = fatturaFileInput?.files?.[0] || null;
+
+      if (!fornitoreId) {
+        alert("Seleziona un fornitore");
+        return;
+      }
+      if (!numero) {
+        alert("Inserisci il numero della fattura");
+        return;
+      }
+      if (!dataVal) {
+        alert("Inserisci la data della fattura");
+        return;
+      }
+
+      let filePath = null;
+      let fileTipo = null;
+
+      if (file) {
+        const uploaded = await uploadFileFattura(file);
+        if (!uploaded.path) {
+          return;
+        }
+        filePath = uploaded.path;
+        fileTipo = uploaded.tipo;
+      }
+
+      const totaleNum =
+        totaleValRaw !== "" ? parseFloat(totaleValRaw || "0") : null;
+
+      const payload = {
+        fornitore_id: fornitoreId,
+        numero,
+        data: dataVal,
+        totale: totaleNum,
+        file_path: filePath,
+        file_tipo: fileTipo,
+        note: note || null,
+      };
+
+      const { data, error } = await supabase
+        .from("fatture_acquisto")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Errore salvataggio fattura:", error);
+        alert("Errore nel salvare la fattura");
+        return;
+      }
+
+      if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+      if (fatturaDataInput) fatturaDataInput.value = "";
+      if (fatturaTotaleInput) fatturaTotaleInput.value = "";
+      if (fatturaNoteInput) fatturaNoteInput.value = "";
+      if (fatturaFileInput) fatturaFileInput.value = "";
+
+      await caricaFattureDaSupabase();
+      alert("Fattura registrata correttamente");
+
+      fatturaSelezionata = data;
+      selezionaFattura(data);
+    });
+  }
+
+  // ---------- MAGAZZINO: CATEGORIE & PRODOTTI ----------
+  async function caricaCategorieProdottoDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie_prodotto:", error);
+      return;
+    }
+
+    categorieProdotto = data || [];
+  }
+
+  function getNomeCategoriaById(id) {
+    if (!id || !categorieProdotto) return "";
+    const cat = categorieProdotto.find((c) => c.id === id);
+    return cat ? cat.nome : "";
+  }
+
+  async function assicuratiCategoria(nomeCategoria) {
+    const nomeTrim = (nomeCategoria || "").trim();
+    if (!nomeTrim) return null;
+
+    let esistente = categorieProdotto.find(
+      (c) => c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (esistente) return esistente.id;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .insert({ nome: nomeTrim })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore creazione categoria_prodotto:", error);
+      return null;
+    }
+
+    categorieProdotto.push(data);
+    return data.id;
+  }
+
+  async function caricaProdottiDaSupabase() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("*")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento prodotti:", error);
+      alert("Errore nel caricare i prodotti da Supabase");
+      return;
+    }
+
+    prodotti = data || [];
+    renderProdotti();
+  }
+
+  function renderProdotti() {
+    if (!prodottiListaEl) return;
+    prodottiListaEl.innerHTML = "";
+
+    prodotti.forEach((p, index) => {
+      const nomeCat = getNomeCategoriaById(p.categoria_id);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.codice_interno}</td>
+        <td>${p.nome}</td>
+        <td>${nomeCat}</td>
+        <td>${p.unita_misura}</td>
+        <td>${p.attivo ? "Sì" : "No"}</td>
+        <td>${p.note || ""}</td>
+        <td>
+          <button class="app-button small gray" data-edit-prodotto="${index}">Modifica</button>
+        </td>
+      `;
+      prodottiListaEl.appendChild(tr);
+    });
+
+    prodottiListaEl
+      .querySelectorAll("[data-edit-prodotto]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-edit-prodotto"), 10);
+          caricaProdottoInForm(idx);
+        });
+      });
+  }
+
+  function caricaProdottoInForm(index) {
+    const p = prodotti[index];
+    if (!p) return;
+
+    if (prodottoCodiceInput) prodottoCodiceInput.value = p.codice_interno || "";
+    if (prodottoNomeInput) prodottoNomeInput.value = p.nome || "";
+    if (prodottoUmInput) prodottoUmInput.value = p.unita_misura || "";
+    if (prodottoAttivoInput)
+      prodottoAttivoInput.checked = p.attivo !== false;
+    if (prodottoNoteInput) prodottoNoteInput.value = p.note || "";
+
+    const catNome = getNomeCategoriaById(p.categoria_id);
+    if (prodottoCategoriaInput) prodottoCategoriaInput.value = catNome || "";
+
+    if (prodottoForm) prodottoForm.dataset.editId = p.id;
+  }
+
+  async function salvaProdottoSupabase(prodotto) {
+    if (!supabase) return null;
+
+    let categoriaId = null;
+    if (prodotto.categoriaNome) {
+      categoriaId = await assicuratiCategoria(prodotto.categoriaNome);
+    }
+
+    const payload = {
+      id: prodotto.id || undefined,
+      codice_interno: prodotto.codice_interno,
+      nome: prodotto.nome,
+      unita_misura: prodotto.unita_misura || "pz",
+      attivo: prodotto.attivo,
+      note: prodotto.note || null,
+      categoria_id: categoriaId,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio prodotto:", error);
+      alert("Errore nel salvare il prodotto");
+      return null;
+    }
+
+    return data;
+  }
+
+  if (btnAddProdotto) {
+    btnAddProdotto.addEventListener("click", async () => {
+      const codice = (prodottoCodiceInput?.value || "").trim();
+      const nome = (prodottoNomeInput?.value || "").trim();
+      const categoriaNome = (prodottoCategoriaInput?.value || "").trim();
+      const um = (prodottoUmInput?.value || "").trim() || "pz";
+      const attivo = prodottoAttivoInput ? prodottoAttivoInput.checked : true;
+      const note = (prodottoNoteInput?.value || "").trim();
+
+      if (!codice) {
+        alert("Inserisci il codice interno del prodotto");
+        return;
+      }
+      if (!nome) {
+        alert("Inserisci il nome del prodotto");
+        return;
+      }
+
+      const editId = prodottoForm?.dataset.editId || null;
+
+      const prodObj = {
+        id: editId || null,
+        codice_interno: codice,
+        nome,
+        categoriaNome,
+        unita_misura: um,
+        attivo,
+        note,
+      };
+
+      const salvato = await salvaProdottoSupabase(prodObj);
+      if (!salvato) return;
+
+      if (prodottoCodiceInput) prodottoCodiceInput.value = "";
+      if (prodottoNomeInput) prodottoNomeInput.value = "";
+      if (prodottoCategoriaInput) prodottoCategoriaInput.value = "";
+      if (prodottoUmInput) prodottoUmInput.value = "";
+      if (prodottoAttivoInput) prodottoAttivoInput.checked = true;
+      if (prodottoNoteInput) prodottoNoteInput.value = "";
+      if (prodottoForm) delete prodottoForm.dataset.editId;
+
+      await caricaCategorieProdottoDaSupabase();
+      await caricaProdottiDaSupabase();
+
+      alert("Prodotto salvato correttamente");
+    });
+  }
+
+  if (btnToggleProdotti && sezioneProdottiElenco) {
+    btnToggleProdotti.addEventListener("click", () => {
+      const visibile = sezioneProdottiElenco.style.display !== "none";
+      sezioneProdottiElenco.style.display = visibile ? "none" : "block";
+      btnToggleProdotti.textContent = visibile
+        ? "Mostra elenco prodotti"
+        : "Nascondi elenco prodotti";
+    });
+  }
+
+  // ---------- SUGGERIMENTI PRODOTTO/CATEGORIA DA DESCRIZIONE ----------
+  function normalizzaTesto(txt) {
+    return (txt || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function suggerisciCategoriaDaDescrizione(descrizione) {
+    const d = normalizzaTesto(descrizione);
+    if (!d) return null;
+
+    for (const regola of REGOLE_CATEGORIA) {
+      for (const parola of regola.match) {
+        if (d.includes(normalizzaTesto(parola))) {
+          return regola.nome;
+        }
+      }
+    }
+    return null;
+  }
+
+  function trovaProdottoEsistentePerDescrizione(descrizione) {
+    const d = normalizzaTesto(descrizione);
+    if (!d || !prodotti.length) return null;
+
+    // Match semplice: se nome prodotto contiene almeno una parola chiave della descrizione
+    const tokens = d.split(/\s+/).filter((t) => t.length > 3);
+    for (const p of prodotti) {
+      const nomeP = normalizzaTesto(p.nome);
+      if (tokens.some((t) => nomeP.includes(t))) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  function aggiornaSuggerimentiRigaFattura() {
+    if (!fatturaRigaSuggerimentiEl) return;
+    const descr = fatturaRigaDescrizioneInput?.value || "";
+    if (!descr.trim()) {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        delete fatturaRigaForm.dataset.categoriaSuggerita;
+      }
+      return;
+    }
+
+    const prodottoEsistente = trovaProdottoEsistentePerDescrizione(descr);
+    const catSuggerita = suggerisciCategoriaDaDescrizione(descr);
+
+    if (prodottoEsistente) {
+      const catNome = getNomeCategoriaById(prodottoEsistente.categoria_id);
+      fatturaRigaSuggerimentiEl.textContent =
+        "Prodotto esistente trovato: " +
+        prodottoEsistente.nome +
+        (catNome ? ` (categoria: ${catNome})` : "");
+      if (fatturaRigaForm) {
+        fatturaRigaForm.dataset.prodottoEsistenteId = prodottoEsistente.id;
+      }
+    } else if (catSuggerita) {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Nuovo prodotto, categoria suggerita: " + catSuggerita;
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        fatturaRigaForm.dataset.categoriaSuggerita = catSuggerita;
+      }
+    } else {
+      fatturaRigaSuggerimentiEl.textContent =
+        "Nuovo prodotto (categoria da decidere).";
+      if (fatturaRigaForm) {
+        delete fatturaRigaForm.dataset.prodottoEsistenteId;
+        delete fatturaRigaForm.dataset.categoriaSuggerita;
+      }
+    }
+  }
+
+  if (fatturaRigaDescrizioneInput) {
+    fatturaRigaDescrizioneInput.addEventListener(
+      "input",
+      aggiornaSuggerimentiRigaFattura
+    );
+  }
+
+  function aggiornaTotaleRigaDaQuantitaPrezzo() {
+    if (!fatturaRigaQuantitaInput || !fatturaRigaPrezzoInput || !fatturaRigaTotaleInput) return;
+    const qta = parseFloat(fatturaRigaQuantitaInput.value || "0") || 0;
+    const prezzo = parseFloat(fatturaRigaPrezzoInput.value || "0") || 0;
+    const tot = qta * prezzo;
+    fatturaRigaTotaleInput.value = tot > 0 ? tot.toFixed(2) : "";
+  }
+
+  if (fatturaRigaQuantitaInput) {
+    fatturaRigaQuantitaInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+  }
+  if (fatturaRigaPrezzoInput) {
+    fatturaRigaPrezzoInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+  }
+
+  // ---------- RIGHE FATTURA + MAGAZZINO ----------
+  async function caricaRigheFatturaDaSupabase(fatturaId) {
+    if (!supabase || !fatturaId) return;
+    const { data, error } = await supabase
+      .from("fatture_righe")
+      .select("*")
+      .eq("fattura_id", fatturaId)
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento righe fattura:", error);
+      alert("Errore nel caricare le righe della fattura");
+      return;
+    }
+
+    fatturaRighe = data || [];
+    renderFatturaRighe();
+  }
+
+  function renderFatturaRighe() {
+    if (!fatturaRigheListaEl) return;
+    fatturaRigheListaEl.innerHTML = "";
+
+    fatturaRighe.forEach((r) => {
+      const prod = prodotti.find((p) => p.id === r.prodotto_id);
+      const nomeProd = prod ? prod.nome : "";
+      const catNome = prod ? getNomeCategoriaById(prod.categoria_id) : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.descrizione}</td>
+        <td>${Number(r.quantita).toFixed(3)}</td>
+        <td>${r.unita_misura}</td>
+        <td>${Number(r.prezzo_unitario).toFixed(4)}</td>
+        <td>${r.totale_riga != null ? Number(r.totale_riga).toFixed(2) : ""}</td>
+        <td>${nomeProd || ""}${catNome ? " (" + catNome + ")" : ""}</td>
+      `;
+      fatturaRigheListaEl.appendChild(tr);
+    });
+  }
+
+  function resetFatturaRigaForm() {
+    if (fatturaRigaDescrizioneInput) fatturaRigaDescrizioneInput.value = "";
+    if (fatturaRigaQuantitaInput) fatturaRigaQuantitaInput.value = "";
+    if (fatturaRigaUmInput) fatturaRigaUmInput.value = "";
+    if (fatturaRigaPrezzoInput) fatturaRigaPrezzoInput.value = "";
+    if (fatturaRigaTotaleInput) fatturaRigaTotaleInput.value = "";
+    if (fatturaRigaSuggerimentiEl)
+      fatturaRigaSuggerimentiEl.textContent =
+        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
+    if (fatturaRigaForm) {
+      delete fatturaRigaForm.dataset.prodottoEsistenteId;
+      delete fatturaRigaForm.dataset.categoriaSuggerita;
+    }
+  }
+
+  async function selezionaFattura(fattura) {
+    fatturaSelezionata = fattura;
+    if (!fatturaDettaglioBox || !fatturaDettaglioIntestazione) return;
+
+    const fornitore = fornitori.find((x) => x.id === fattura.fornitore_id);
+    const nomeFornitore = fornitore ? fornitore.nome : "-";
+    const dataStr = fattura.data
+      ? new Date(fattura.data).toLocaleDateString("it-IT")
+      : "";
+
+    fatturaDettaglioIntestazione.textContent = `Fornitore: ${nomeFornitore} • Data: ${dataStr} • Numero: ${fattura.numero}`;
+    fatturaDettaglioBox.style.display = "block";
+    resetFatturaRigaForm();
+
+    await caricaProdottiDaSupabase(); // così possiamo fare match sui prodotti
+    await caricaRigheFatturaDaSupabase(fattura.id);
+  }
+
+  async function inserisciMovimentoMagazzinoDaRiga(
+    prodottoId,
+    fattura,
+    rigaInserita
+  ) {
+    if (!supabase || !prodottoId || !fattura || !rigaInserita) return;
+
+    const qta = Number(rigaInserita.quantita) || 0;
+    const um = rigaInserita.unita_misura || "pz";
+    const prezzo = Number(rigaInserita.prezzo_unitario) || 0;
+    const tot = qta * prezzo;
+
+    const dataMovimento =
+      fattura.data ||
+      new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+
+    const riferimento = `Fattura ${fattura.numero || ""}`.trim();
+
+    const payload = {
+      prodotto_id: prodottoId,
+      tipo: "carico",
+      data_movimento: dataMovimento,
+      quantita: qta,
+      unita_misura: um,
+      costo_unitario: prezzo || null,
+      costo_totale: tot || null,
+      riferimento: riferimento || null,
+      fattura_id: fattura.id,
+      fattura_riga_id: rigaInserita.id,
+    };
+
+    const { error } = await supabase
+      .from("magazzino_movimenti")
+      .insert(payload);
+
+    if (error) {
+      console.error("Errore inserimento movimento magazzino:", error);
+      alert("Attenzione: riga fattura salvata ma errore nel movimento di magazzino");
+    }
+  }
+
+  if (btnAddFatturaRiga) {
+    btnAddFatturaRiga.addEventListener("click", async () => {
+      if (!fatturaSelezionata) {
+        alert("Seleziona prima una fattura cliccando sull'elenco.");
+        return;
+      }
+
+      const descr = (fatturaRigaDescrizioneInput?.value || "").trim();
+      const qta = parseFloat(fatturaRigaQuantitaInput?.value || "0") || 0;
+      const um = (fatturaRigaUmInput?.value || "").trim() || "pz";
+      const prezzo =
+        parseFloat(fatturaRigaPrezzoInput?.value || "0") || 0;
+      let tot =
+        parseFloat(fatturaRigaTotaleInput?.value || "0") || qta * prezzo;
+
+      if (!descr) {
+        alert("Inserisci la descrizione della riga");
+        return;
+      }
+      if (!qta || qta <= 0) {
+        alert("Inserisci una quantità valida");
+        return;
+      }
+      if (!prezzo || prezzo <= 0) {
+        alert("Inserisci un prezzo unitario valido");
+        return;
+      }
+      if (!tot || tot <= 0) {
+        tot = qta * prezzo;
+      }
+
+      // 1) individua o crea prodotto
+      let prodottoId = null;
+      if (fatturaRigaForm?.dataset.prodottoEsistenteId) {
+        prodottoId = parseInt(
+          fatturaRigaForm.dataset.prodottoEsistenteId,
+          10
+        );
+      } else {
+        const categoriaSuggerita =
+          fatturaRigaForm?.dataset.categoriaSuggerita || null;
+        const codiceInterno = "P-" + Date.now().toString(36);
+
+        const prodObj = {
+          id: null,
+          codice_interno: codiceInterno,
+          nome: descr,
+          categoriaNome: categoriaSuggerita,
+          unita_misura: um,
+          attivo: true,
+          note: null,
+        };
+
+        const nuovoProdotto = await salvaProdottoSupabase(prodObj);
+        if (!nuovoProdotto) {
+          alert("Errore nel creare il prodotto associato alla riga.");
+          return;
+        }
+        prodottoId = nuovoProdotto.id;
+        prodotti.push(nuovoProdotto);
+      }
+
+      // 2) inserisci riga fattura
+      const payloadRiga = {
+        fattura_id: fatturaSelezionata.id,
+        prodotto_id: prodottoId,
+        descrizione: descr,
+        quantita: qta,
+        unita_misura: um,
+        prezzo_unitario: prezzo,
+        totale_riga: tot,
+      };
+
+      const { data, error } = await supabase
+        .from("fatture_righe")
+        .insert(payloadRiga)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Errore salvataggio riga fattura:", error);
+        alert("Errore nel salvare la riga della fattura");
+        return;
+      }
+
+      fatturaRighe.push(data);
+      renderFatturaRighe();
+
+      // 3) movimento di magazzino
+      await inserisciMovimentoMagazzinoDaRiga(prodottoId, fatturaSelezionata, data);
+
+      resetFatturaRigaForm();
+      alert("Riga fattura e movimento di magazzino registrati correttamente");
+    });
+  }
+
+  // ---------- routing ----------
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
+        break;
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
+      case "acquisti":
+        await caricaFornitoriDaSupabase();
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
+        await caricaFattureDaSupabase();
+        break;
+      case "reintegro":
+        await caricaCategorieProdottoDaSupabase();
+        await caricaProdottiDaSupabase();
+        break;
+      case "preventivi":
+      case "report":
+      case "parametri":
+        // per ora nessun caricamento specifico
+        break;
+      default:
+        break;
+    }
+  }
+
+  async function navigateTo(route) {
+    if (!currentUser) {
+      showLogin();
+      return;
+    }
+
+    console.log("Navigazione verso:", route);
+
+    const isManager = isManagerRole(currentUser.ruolo);
+
+    if (!isManager) {
+      if (route === "timbratura" || route === "ordine") {
+        showOnlyView(`view-${route}`);
+        await onRouteEnter(route);
+      } else {
+        showHomeDipendente();
+      }
+    } else {
+      const active = document.getElementById(`view-${route}`);
+      if (!active) {
+        console.warn("Vista non trovata:", route);
+        return;
+      }
+      showOnlyView(`view-${route}`);
+      await onRouteEnter(route);
+    }
+
+    applyRoleVisibility();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  routeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const route = btn.getAttribute("data-route");
+      window.location.hash = route;
+      navigateTo(route);
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    const route = window.location.hash.replace("#", "");
+    if (route) {
+      navigateTo(route);
+    }
+  });
+
+  // ---------- avvio ----------
+  async function init() {
+    await caricaDipendentiDaSupabase();
+    await caricaTimbratureDaSupabase();
+
+    restoreUserFromStorage();
+
+    if (currentUser) {
+      if (loginView) loginView.style.display = "none";
+      if (isManagerRole(currentUser.ruolo)) {
+        const initialRoute =
+          window.location.hash.replace("#", "") || "timbratura";
+        showManagerMenuAndRoute(initialRoute);
+      } else {
+        showHomeDipendente();
+      }
+    } else {
+      showLogin();
+    }
+
+    aggiornaUICompenso();
+  }
+
+  await init();
+});
