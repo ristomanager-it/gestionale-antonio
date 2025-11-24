@@ -521,3 +521,15 @@ body.theme-light .app-button.login-button:hover {
   font-weight: 700;
   color: #111827;
 }
+.ingrediente-row input {
+  font-size: 13px;
+}
+
+.app-button.tiny.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.tiny.red:hover {
+  background: #b91c1c;
+}
