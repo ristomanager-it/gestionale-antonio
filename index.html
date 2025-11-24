@@ -126,12 +126,26 @@
           </div>
         </section>
 
-        <!-- MENU MANAGER PULITO -->
+        <!-- MENU MANAGER -->
         <section
           class="buttons-grid"
           id="manager-menu"
           style="display: none"
         >
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+            data-manager-only="true"
+          >
+            KPI / Cruscotto
+          </button>
+          <button
+            class="app-button menu-button"
+            data-route="prenotazioni"
+            data-manager-only="true"
+          >
+            Prenotazioni
+          </button>
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
@@ -162,13 +176,6 @@
             data-manager-only="true"
           >
             Magazzino
-          </button>
-          <button
-            class="app-button menu-button wide"
-            data-route="report"
-            data-manager-only="true"
-          >
-            Report
           </button>
           <button
             class="app-button menu-button wide"
@@ -580,6 +587,24 @@
           <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
         </section>
 
+        <!-- VISTA PRENOTAZIONI (nuova, placeholder) -->
+        <section
+          id="view-prenotazioni"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Prenotazioni</h2>
+          <p>
+            Qui gestiremo le prenotazioni (tavoli, eventi, numero persone per
+            data/servizio).
+          </p>
+          <p class="small-muted">
+            Per ora è solo una scheda di appoggio: quando sei pronto definiamo
+            struttura Supabase e UI completa.
+          </p>
+        </section>
+
         <!-- VISTA PREVENTIVI (placeholder) -->
         <section
           id="view-preventivi"
@@ -600,13 +625,18 @@
         >
           <h2>Acquisti</h2>
           <p>
-            Gestisci fornitori, registra le fatture di acquisto con il file (PDF o foto)
-            e dettaglia le righe per aggiornare automaticamente il magazzino.
+            Gestisci fornitori, registra le fatture di acquisto con il file
+            (PDF o foto) e dettaglia le righe per aggiornare automaticamente il
+            magazzino.
           </p>
 
           <!-- FORNITORI -->
           <h3>Fornitori</h3>
-          <form id="fornitore-form" onsubmit="return false;" class="timbratura-form">
+          <form
+            id="fornitore-form"
+            onsubmit="return false;"
+            class="timbratura-form"
+          >
             <div class="form-row">
               <label>
                 Nome fornitore
@@ -715,10 +745,15 @@
           <!-- FATTURE -->
           <h3>Fatture di acquisto</h3>
           <p class="small-muted">
-            Clicca su una fattura nell'elenco per aprire il dettaglio righe e aggiornare il magazzino.
+            Clicca su una fattura nell'elenco per aprire il dettaglio righe e
+            aggiornare il magazzino.
           </p>
 
-          <form id="fattura-form" onsubmit="return false;" class="timbratura-form">
+          <form
+            id="fattura-form"
+            onsubmit="return false;"
+            class="timbratura-form"
+          >
             <div class="form-row">
               <label>
                 Fornitore
@@ -762,7 +797,11 @@
             <div class="form-row">
               <label>
                 File fattura (PDF o immagine)
-                <input type="file" id="fattura-file" accept="application/pdf,image/*" />
+                <input
+                  type="file"
+                  id="fattura-file"
+                  accept="application/pdf,image/*"
+                />
               </label>
             </div>
 
@@ -879,7 +918,8 @@
               </div>
 
               <p class="small-muted" id="fattura-riga-suggerimenti">
-                Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.
+                Suggerimenti prodotto/categoria appariranno qui mentre scrivi
+                la descrizione.
               </p>
 
               <div class="form-row buttons-row">
@@ -920,10 +960,15 @@
         >
           <h2>Magazzino & Prodotti</h2>
           <p>
-            Gestisci l'anagrafica prodotti di magazzino (codice interno, nome, UM, categoria).
+            Gestisci l'anagrafica prodotti di magazzino (codice interno, nome,
+            UM, categoria).
           </p>
 
-          <form id="prodotto-form" class="timbratura-form" onsubmit="return false;">
+          <form
+            id="prodotto-form"
+            class="timbratura-form"
+            onsubmit="return false;"
+          >
             <div class="form-row">
               <label>
                 Codice interno
@@ -1029,15 +1074,67 @@
           </div>
         </section>
 
-        <!-- REPORT -->
+        <!-- REPORT / KPI -->
         <section
           id="view-report"
           class="view"
           style="display: none"
           data-manager-only="true"
         >
-          <h2>Report & KPI</h2>
-          <p>Placeholder report.</p>
+          <h2>Cruscotto KPI</h2>
+          <p>Riepilogo costi e margini per periodo.</p>
+
+          <form class="timbratura-form" onsubmit="return false;">
+            <div class="form-row">
+              <label>
+                Periodo
+                <select id="kpi-periodo">
+                  <option value="day">Oggi</option>
+                  <option value="week">Ultimi 7 giorni</option>
+                  <option value="month">Mese corrente</option>
+                </select>
+              </label>
+            </div>
+          </form>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <h3 class="kpi-card-title">Costo lavoro</h3>
+              <p class="kpi-card-value" id="kpi-costo-lavoro">-</p>
+              <p class="kpi-card-sub">
+                Basato sulle timbrature e costi orari.
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3 class="kpi-card-title">Food cost (acquisti)</h3>
+              <p class="kpi-card-value" id="kpi-foodcost">-</p>
+              <p class="kpi-card-sub">Somma delle fatture di acquisto.</p>
+            </div>
+            <div class="kpi-card">
+              <h3 class="kpi-card-title">Costi fissi allocati</h3>
+              <p class="kpi-card-value" id="kpi-costi-fissi">-</p>
+              <p class="kpi-card-sub">Quota dei costi fissi annuali.</p>
+            </div>
+            <div class="kpi-card">
+              <h3 class="kpi-card-title">Margine</h3>
+              <p class="kpi-card-value" id="kpi-margine">-</p>
+              <p class="kpi-card-sub" id="kpi-margine-note">
+                Sarà calcolato quando registreremo il venduto.
+              </p>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Voce</th>
+                  <th>Importo €</th>
+                </tr>
+              </thead>
+              <tbody id="kpi-dettaglio-tbody"></tbody>
+            </table>
+          </div>
         </section>
 
         <!-- PARAMETRI -->
@@ -1048,7 +1145,100 @@
           data-manager-only="true"
         >
           <h2>Parametri</h2>
-          <p>Placeholder parametri.</p>
+          <h3>Costi fissi annuali</h3>
+          <p class="small-muted">
+            Inserisci qui i costi fissi annuali (affitto, utenze, leasing,
+            assicurazioni, ecc.). Nel cruscotto KPI li ripartiremo per giorno /
+            settimana / mese.
+          </p>
+
+          <form
+            id="costo-fisso-form"
+            class="timbratura-form"
+            onsubmit="return false;"
+          >
+            <div class="form-row">
+              <label>
+                Descrizione
+                <input
+                  type="text"
+                  id="costo-fisso-descrizione"
+                  placeholder="Es. Affitto locale"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Importo annuo (€)
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  id="costo-fisso-importo"
+                  placeholder="Es. 24000"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Categoria (opzionale)
+                <input
+                  type="text"
+                  id="costo-fisso-categoria"
+                  placeholder="Es. Affitto, Utenze, Leasing..."
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="costo-fisso-note"
+                  placeholder="Note interne"
+                />
+              </label>
+            </div>
+
+            <div class="form-row buttons-row">
+              <button
+                type="button"
+                id="btn-add-costo-fisso"
+                class="app-button small green"
+              >
+                Aggiungi/aggiorna costo fisso
+              </button>
+            </div>
+          </form>
+
+          <button
+            type="button"
+            id="btn-toggle-costi-fissi"
+            class="app-button small gray"
+            style="margin-top: 12px; margin-bottom: 6px"
+          >
+            Mostra elenco costi fissi
+          </button>
+
+          <div id="sezione-costi-fissi-elenco" style="display: none">
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Descrizione</th>
+                    <th>Categoria</th>
+                    <th>Importo annuo</th>
+                    <th>Note</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="costi-fissi-lista"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </main>
     </div>
