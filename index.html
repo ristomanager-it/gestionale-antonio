@@ -163,6 +163,14 @@
           >
             Acquisti
           </button>
+          <!-- NUOVO: bottone Ricette -->
+          <button
+            class="app-button menu-button"
+            data-route="ricette"
+            data-manager-only="true"
+          >
+            Ricette
+          </button>
           <button
             class="app-button menu-button"
             data-route="cc"
@@ -612,6 +620,113 @@
         >
           <h2>Acquisti</h2>
           <p>Placeholder acquisti.</p>
+        </section>
+
+        <!-- NUOVA VISTA: RICETTE (EDITOR) -->
+        <section
+          id="view-ricette"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Ricette</h2>
+          <p>
+            Crea e modifica le ricette con ingredienti, procedimento e foto del
+            piatto finito.
+          </p>
+
+          <form id="ricetta-form" class="timbratura-form" onsubmit="return false;">
+            <div class="form-row">
+              <label>
+                Nome ricetta
+                <input
+                  type="text"
+                  id="ricetta-nome"
+                  placeholder="Es. Lasagna al ragù"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Descrizione breve (opzionale)
+                <input
+                  type="text"
+                  id="ricetta-descrizione"
+                  placeholder="Es. Piatto tipico della domenica..."
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Procedimento / Note
+                <textarea
+                  id="ricetta-note"
+                  rows="4"
+                  placeholder="Scrivi qui il procedimento completo..."
+                  style="
+                    border-radius: 12px;
+                    padding: 9px;
+                    border: 1px solid #d1d5db;
+                    font-size: 14px;
+                    resize: vertical;
+                  "
+                ></textarea>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Foto del piatto (opzionale)
+                <input type="file" id="ricetta-foto" accept="image/*" />
+              </label>
+            </div>
+
+            <h3>Ingredienti (per porzione o per ricetta)</h3>
+            <p class="small-muted">
+              Aggiungi gli ingredienti con quantità e unità di misura. Puoi
+              aggiungere tutte le righe che vuoi.
+            </p>
+
+            <div
+              id="ricetta-ingredienti-container"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 8px;
+              "
+            >
+              <!-- le righe ingredienti verranno inserite via JS -->
+            </div>
+
+            <div
+              class="form-row buttons-row"
+              style="margin-top: 8px;"
+            >
+              <button
+                type="button"
+                id="btn-add-ingrediente"
+                class="app-button small gray"
+              >
+                + Aggiungi ingrediente
+              </button>
+            </div>
+
+            <div
+              class="form-row buttons-row"
+              style="margin-top: 12px;"
+            >
+              <button
+                type="button"
+                id="btn-salva-ricetta"
+                class="app-button small green"
+              >
+                Salva ricetta
+              </button>
+            </div>
+          </form>
         </section>
 
         <section
