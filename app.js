@@ -231,7 +231,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadTheme();
 
   // ---------- utility ruoli ----------
-  // In futuro possiamo mettere qui la matrice permessi per ruolo
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -323,13 +322,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         const isView = el.classList.contains("view");
         if (modalita === "manager") {
           // Per i manager:
-          // - le VIEW (section.view) le lascia gestire a showOnlyView / navigateTo
-          // - gli elementi interni (bottoni, box ecc.) vengono mostrati
+          // - NON tocchiamo le section.view (gestite da showOnlyView/navigateTo)
+          // - per gli elementi interni li mostriamo
           if (!isView) {
             el.style.display = "";
           }
         } else {
-          // Per i non manager: tutto ciò che è "solo manager" viene nascosto
+          // Per i non manager: nascondiamo tutto ciò che è solo manager
           el.style.display = "none";
         }
       });
@@ -360,15 +359,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   function showHomeDipendente() {
     if (managerMenu) managerMenu.style.display = "none";
     showOnlyView("view-home-dip");
-    applyRoleVisibility();
+    // applyRoleVisibility NON serve qui per il problema che avevamo
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showManagerMenuAndRoute(initialRoute) {
+  function showManagerMenu() {
     if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
-    applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
   }
 
   function setCurrentUser(user, persist) {
@@ -772,7 +768,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
+    btnLogin.addEventListener("click", async () => {
       const nome = (loginNomeInput?.value || "").trim();
       const pin = (loginPinInput?.value || "").trim();
       const remember = loginRememberInput?.checked || false;
@@ -799,7 +795,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           remember
         );
         if (loginView) loginView.style.display = "none";
-        showManagerMenuAndRoute("timbratura");
+        showManagerMenu();
+        await navigateTo("timbratura");
         return;
       }
 
@@ -821,7 +818,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (loginView) loginView.style.display = "none";
 
       if (isManagerRole(dip.ruolo)) {
-        showManagerMenuAndRoute("timbratura");
+        showManagerMenu();
+        await navigateTo("timbratura");
       } else {
         showHomeDipendente();
       }
@@ -2120,11 +2118,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       await onRouteEnter(route);
     }
 
-    applyRoleVisibility();
+    // niente applyRoleVisibility qui, per evitare rimbalzi di vista
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // routing semplice: nessun uso dell'hash nell'URL
+  // routing semplice: senza hash in URL
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const route = btn.getAttribute("data-route");
@@ -2144,8 +2142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
       if (isManagerRole(currentUser.ruolo)) {
-        // partiamo sempre da timbratura per i manager
-        showManagerMenuAndRoute("timbratura");
+        showManagerMenu();
+        await navigateTo("timbratura");
       } else {
         showHomeDipendente();
       }
