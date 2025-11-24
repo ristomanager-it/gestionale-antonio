@@ -30,7 +30,9 @@
           </div>
 
           <div class="header-right">
-            <button id="btn-theme" class="app-button tiny ghost">🌙</button>
+            <button id="btn-theme" class="app-button tiny ghost">
+              🌙
+            </button>
             <div class="header-user">
               <span id="current-user-label">Nessun utente</span>
               <button
@@ -124,42 +126,15 @@
           </div>
         </section>
 
-        <!-- MENU MANAGER -->
+        <!-- MENU MANAGER PULITO -->
         <section
           class="buttons-grid"
           id="manager-menu"
           style="display: none"
         >
-
-          <!-- 🔥 KPI COME PRIMO PULSANTE -->
-          <button
-            class="app-button menu-button wide"
-            data-route="kpi"
-            data-manager-only="true"
-          >
-            🟣 KPI / Dashboard
-          </button>
-
-          <button
-            class="app-button menu-button"
-            data-route="ricette"
-            data-manager-only="true"
-          >
-            Ricette
-          </button>
-
-          <button
-            class="app-button menu-button"
-            data-route="prenotazioni"
-            data-manager-only="true"
-          >
-            Prenotazioni
-          </button>
-
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
-
           <button
             class="app-button menu-button"
             data-route="dipendenti"
@@ -167,7 +142,6 @@
           >
             Dipendenti
           </button>
-
           <button
             class="app-button menu-button"
             data-route="acquisti"
@@ -175,7 +149,6 @@
           >
             Acquisti
           </button>
-
           <button
             class="app-button menu-button"
             data-route="preventivi"
@@ -183,7 +156,6 @@
           >
             Preventivi
           </button>
-
           <button
             class="app-button menu-button"
             data-route="reintegro"
@@ -191,7 +163,13 @@
           >
             Magazzino
           </button>
-
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+            data-manager-only="true"
+          >
+            Report
+          </button>
           <button
             class="app-button menu-button wide"
             data-route="parametri"
@@ -200,6 +178,7 @@
             Parametri
           </button>
         </section>
+
         <!-- TIMBRATURA -->
         <section id="view-timbratura" class="view" style="display: none">
           <h2>Timbratura</h2>
@@ -362,76 +341,7 @@
           </div>
         </section>
 
-        <!-- VISTA RICETTE -->
-        <section
-          id="view-ricette"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Ricette</h2>
-          <p>
-            Crea e modifica le ricette con ingredienti, procedimento e foto del piatto finito.
-          </p>
-
-          <form id="ricetta-form" class="timbratura-form" onsubmit="return false;">
-            <div class="form-row">
-              <label>
-                Nome ricetta
-                <input type="text" id="ricetta-nome" placeholder="Es. Lasagna al ragù" />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Descrizione breve (opzionale)
-                <input type="text" id="ricetta-descrizione" placeholder="Es. piatto tipico..." />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Procedimento / Note
-                <textarea
-                  id="ricetta-note"
-                  rows="4"
-                  placeholder="Scrivi qui il procedimento..."
-                  style="border-radius: 12px; padding: 9px; border: 1px solid #d1d5db; font-size: 14px; resize: vertical;"
-                ></textarea>
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Foto del piatto (opzionale)
-                <input type="file" id="ricetta-foto" accept="image/*" />
-              </label>
-            </div>
-
-            <h3>Ingredienti</h3>
-            <p class="small-muted">
-              Aggiungi gli ingredienti con quantità e unità di misura.
-            </p>
-
-            <div id="ricetta-ingredienti-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-              <!-- RIGHE INSERITE VIA JS -->
-            </div>
-
-            <div class="form-row buttons-row" style="margin-top: 8px;">
-              <button type="button" id="btn-add-ingrediente" class="app-button small gray">
-                + Aggiungi ingrediente
-              </button>
-            </div>
-
-            <div class="form-row buttons-row" style="margin-top: 12px;">
-              <button type="button" id="btn-salva-ricetta" class="app-button small green">
-                Salva ricetta
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <!-- ANAGRAFICA DIPENDENTI -->
+        <!-- ANAGRAFICA DIPENDENTI (SOLO MANAGER) -->
         <section
           id="view-dipendenti"
           class="view"
@@ -441,45 +351,76 @@
           <h2>Dipendenti</h2>
           <p>Anagrafica completa dipendenti.</p>
 
-          <form id="dipendente-form" class="timbratura-form" onsubmit="return false;">
+          <form
+            id="dipendente-form"
+            class="timbratura-form"
+            onsubmit="return false;"
+          >
             <div class="form-row">
-              <label>Nome
-                <input type="text" id="dip-nome" placeholder="Es. Mario Rossi" />
+              <label>
+                Nome
+                <input
+                  type="text"
+                  id="dip-nome"
+                  placeholder="Es. Mario Rossi"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Mansione
-                <input type="text" id="dip-mansione" placeholder="Es. Sala, Cucina..." />
+              <label>
+                Mansione
+                <input
+                  type="text"
+                  id="dip-mansione"
+                  placeholder="Es. Sala, Cucina..."
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Data di nascita
+              <label>
+                Data di nascita
                 <input type="date" id="dip-data-nascita" />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Residenza
-                <input type="text" id="dip-residenza" placeholder="Indirizzo" />
+              <label>
+                Residenza
+                <input
+                  type="text"
+                  id="dip-residenza"
+                  placeholder="Indirizzo completo"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Telefono
-                <input type="tel" id="dip-telefono" placeholder="3331234567" />
+              <label>
+                Telefono
+                <input
+                  type="tel"
+                  id="dip-telefono"
+                  placeholder="Es. 3331234567"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Email
-                <input type="email" id="dip-email" placeholder="email@mail.com" />
+              <label>
+                Email
+                <input
+                  type="email"
+                  id="dip-email"
+                  placeholder="esempio@mail.com"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Ruolo
+              <label>
+                Ruolo
                 <select id="dip-ruolo">
                   <option value="">-- seleziona ruolo --</option>
                   <option value="admin">Admin</option>
@@ -492,13 +433,21 @@
             </div>
 
             <div class="form-row">
-              <label>Paga oraria (€)
-                <input type="number" id="dip-retribuzione-base" step="0.01" />
+              <label id="label-retribuzione-base">
+                Paga oraria lorda (€/h)
+                <input
+                  type="number"
+                  id="dip-retribuzione-base"
+                  placeholder="Es. 12.50"
+                  step="0.01"
+                  min="0"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Tipo compenso
+              <label>
+                Tipo di compenso
                 <select id="dip-tipo-compenso">
                   <option value="orario">A ore</option>
                   <option value="mensile">Mensile</option>
@@ -508,31 +457,58 @@
             </div>
 
             <div class="form-row" id="row-ore-mensili" style="display: none">
-              <label>Ore mensili
-                <input type="number" id="dip-ore-mensili" />
+              <label>
+                Ore mensili contrattuali
+                <input
+                  type="number"
+                  id="dip-ore-mensili"
+                  placeholder="Es. 173"
+                  min="0"
+                  step="1"
+                />
               </label>
             </div>
 
             <div class="form-row" id="row-ore-servizio" style="display: none">
-              <label>Ore per servizio
-                <input type="number" id="dip-ore-servizio" />
+              <label>
+                Ore medie per servizio
+                <input
+                  type="number"
+                  id="dip-ore-servizio"
+                  placeholder="Es. 6"
+                  min="0"
+                  step="0.5"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Costo orario calcolato
-                <input type="number" id="dip-costo" readonly />
+              <label>
+                Costo orario calcolato (€/h)
+                <input
+                  type="number"
+                  id="dip-costo"
+                  readonly
+                  placeholder="Calcolato automaticamente"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>PIN
-                <input type="text" id="dip-codice" maxlength="10" />
+              <label>
+                PIN personale (per login/timbratura)
+                <input
+                  type="text"
+                  id="dip-codice"
+                  placeholder="Es. 1234"
+                  maxlength="10"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Canale
+              <label>
+                Canale prevalente
                 <select id="dip-canale">
                   <option value="NR">NR</option>
                   <option value="RA">RA</option>
@@ -543,14 +519,20 @@
             </div>
 
             <div class="form-row">
-              <label style="flex-direction: row; gap: 8px">
+              <label
+                style="flex-direction: row; align-items: center; gap: 8px"
+              >
                 <input type="checkbox" id="dip-attivo" checked />
                 Dipendente attivo
               </label>
             </div>
 
             <div class="form-row buttons-row">
-              <button type="button" id="btn-add-dip" class="app-button small green">
+              <button
+                type="button"
+                id="btn-add-dip"
+                class="app-button small green"
+              >
                 Aggiungi/aggiorna dipendente
               </button>
             </div>
@@ -598,20 +580,7 @@
           <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
         </section>
 
-        <!-- PRENOTAZIONI -->
-        <section
-          id="view-prenotazioni"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Prenotazioni</h2>
-          <p>
-            Qui gestiremo le prenotazioni (tavoli, eventi, numero persone).
-          </p>
-        </section>
-
-        <!-- PREVENTIVI -->
+        <!-- VISTA PREVENTIVI (placeholder) -->
         <section
           id="view-preventivi"
           class="view"
@@ -619,10 +588,10 @@
           data-manager-only="true"
         >
           <h2>Preventivi</h2>
-          <p>Placeholder preventivi.</p>
+          <p>Placeholder preventivi (in futuro: eventi, menù, ecc.).</p>
         </section>
 
-        <!-- ACQUISTI -->
+        <!-- 🔹 SEZIONE ACQUISTI -->
         <section
           id="view-acquisti"
           class="view"
@@ -631,45 +600,76 @@
         >
           <h2>Acquisti</h2>
           <p>
-            Gestisci fornitori, registra fatture (PDF o foto) e aggiorna il magazzino.
+            Gestisci fornitori, registra le fatture di acquisto con il file (PDF o foto)
+            e dettaglia le righe per aggiornare automaticamente il magazzino.
           </p>
 
           <!-- FORNITORI -->
           <h3>Fornitori</h3>
-          <form id="fornitore-form" class="timbratura-form" onsubmit="return false;">
+          <form id="fornitore-form" onsubmit="return false;" class="timbratura-form">
             <div class="form-row">
-              <label>Nome fornitore
-                <input type="text" id="fornitore-nome" />
+              <label>
+                Nome fornitore
+                <input
+                  type="text"
+                  id="fornitore-nome"
+                  placeholder="Es. Fornitore Srl"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>P.IVA
-                <input type="text" id="fornitore-piva" />
+              <label>
+                Partita IVA
+                <input
+                  type="text"
+                  id="fornitore-piva"
+                  placeholder="Es. 01234567890"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Indirizzo
-                <input type="text" id="fornitore-indirizzo" />
+              <label>
+                Indirizzo
+                <input
+                  type="text"
+                  id="fornitore-indirizzo"
+                  placeholder="Indirizzo completo"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Telefono
-                <input type="tel" id="fornitore-telefono" />
+              <label>
+                Telefono
+                <input
+                  type="tel"
+                  id="fornitore-telefono"
+                  placeholder="Es. 3331234567"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Email
-                <input type="email" id="fornitore-email" />
+              <label>
+                Email
+                <input
+                  type="email"
+                  id="fornitore-email"
+                  placeholder="esempio@mail.com"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Note
-                <input type="text" id="fornitore-note" />
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="fornitore-note"
+                  placeholder="Note interne"
+                />
               </label>
             </div>
 
@@ -694,7 +694,7 @@
           </button>
 
           <div id="sezione-fornitori-elenco" style="display: none">
-            <div class="table-wrapper">
+            <div class="table-wrapper" style="margin-top: 8px">
               <table class="table-timbrature">
                 <thead>
                   <tr>
@@ -714,10 +714,14 @@
 
           <!-- FATTURE -->
           <h3>Fatture di acquisto</h3>
+          <p class="small-muted">
+            Clicca su una fattura nell'elenco per aprire il dettaglio righe e aggiornare il magazzino.
+          </p>
 
-          <form id="fattura-form" class="timbratura-form" onsubmit="return false;">
+          <form id="fattura-form" onsubmit="return false;" class="timbratura-form">
             <div class="form-row">
-              <label>Fornitore
+              <label>
+                Fornitore
                 <select id="fattura-fornitore-select">
                   <option value="">-- seleziona fornitore --</option>
                 </select>
@@ -725,33 +729,51 @@
             </div>
 
             <div class="form-row">
-              <label>Numero fattura
-                <input type="text" id="fattura-numero" />
+              <label>
+                Numero fattura
+                <input
+                  type="text"
+                  id="fattura-numero"
+                  placeholder="Es. 123/2025"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Data fattura
+              <label>
+                Data fattura
                 <input type="date" id="fattura-data" />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Totale (opzionale)
-                <input type="number" id="fattura-totale" step="0.01" />
+              <label>
+                Totale (opzionale)
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  id="fattura-totale"
+                  placeholder="Es. 1234.56"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>File fattura
-                <input type="file" id="fattura-file"
-                  accept="application/pdf,image/*" />
+              <label>
+                File fattura (PDF o immagine)
+                <input type="file" id="fattura-file" accept="application/pdf,image/*" />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Note
-                <input type="text" id="fattura-note" />
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="fattura-note"
+                  placeholder="Note interne sulla fattura"
+                />
               </label>
             </div>
 
@@ -781,49 +803,92 @@
             </table>
           </div>
 
-          <!-- DETTAGLIO FATTURA -->
-          <div id="fattura-dettaglio" style="margin-top: 18px; display: none">
+          <!-- DETTAGLIO FATTURA SELEZIONATA -->
+          <div
+            id="fattura-dettaglio"
+            style="margin-top: 18px; display: none"
+          >
             <h3>Dettaglio fattura selezionata</h3>
             <p id="fattura-dettaglio-intestazione" class="small-muted"></p>
 
-            <form id="fattura-riga-form" class="timbratura-form" onsubmit="return false;">
+            <form
+              id="fattura-riga-form"
+              class="timbratura-form"
+              onsubmit="return false;"
+            >
               <div class="form-row">
-                <label>Descrizione riga
-                  <input type="text" id="fattura-riga-descrizione" />
+                <label>
+                  Descrizione riga
+                  <input
+                    type="text"
+                    id="fattura-riga-descrizione"
+                    placeholder="Es. Filetto di maiale 2kg"
+                  />
                 </label>
               </div>
 
               <div class="form-row">
-                <label>Quantità
-                  <input type="number" id="fattura-riga-quantita" step="0.001" />
+                <label>
+                  Quantità
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    id="fattura-riga-quantita"
+                    placeholder="Es. 2"
+                  />
                 </label>
               </div>
 
               <div class="form-row">
-                <label>UM
-                  <input type="text" id="fattura-riga-um" />
+                <label>
+                  Unità di misura
+                  <input
+                    type="text"
+                    id="fattura-riga-um"
+                    placeholder="Es. kg, pz, cartone"
+                  />
                 </label>
               </div>
 
               <div class="form-row">
-                <label>Prezzo €
-                  <input type="number" id="fattura-riga-prezzo" step="0.0001" />
+                <label>
+                  Prezzo unitario (€)
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    id="fattura-riga-prezzo"
+                    placeholder="Es. 8.50"
+                  />
                 </label>
               </div>
 
               <div class="form-row">
-                <label>Totale €
-                  <input type="number" id="fattura-riga-totale" readonly />
+                <label>
+                  Totale riga (€)
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    id="fattura-riga-totale"
+                    placeholder="Calcolato"
+                    readonly
+                  />
                 </label>
               </div>
 
               <p class="small-muted" id="fattura-riga-suggerimenti">
-                Suggerimenti prodotto appariranno qui.
+                Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.
               </p>
 
               <div class="form-row buttons-row">
-                <button type="button" id="btn-add-fattura-riga" class="app-button small green">
-                  Aggiungi riga & aggiorna magazzino
+                <button
+                  type="button"
+                  id="btn-add-fattura-riga"
+                  class="app-button small green"
+                >
+                  Aggiungi riga fattura e aggiorna magazzino
                 </button>
               </div>
             </form>
@@ -846,7 +911,7 @@
           </div>
         </section>
 
-        <!-- MAGAZZINO -->
+        <!-- MAGAZZINO & PRODOTTI -->
         <section
           id="view-reintegro"
           class="view"
@@ -854,48 +919,81 @@
           data-manager-only="true"
         >
           <h2>Magazzino & Prodotti</h2>
-          <p>Gestisci i prodotti di magazzino e le categorie.</p>
+          <p>
+            Gestisci l'anagrafica prodotti di magazzino (codice interno, nome, UM, categoria).
+          </p>
 
           <form id="prodotto-form" class="timbratura-form" onsubmit="return false;">
             <div class="form-row">
-              <label>Codice interno
-                <input type="text" id="prodotto-codice" />
+              <label>
+                Codice interno
+                <input
+                  type="text"
+                  id="prodotto-codice"
+                  placeholder="Es. FAR001"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Nome prodotto
-                <input type="text" id="prodotto-nome" />
+              <label>
+                Nome prodotto
+                <input
+                  type="text"
+                  id="prodotto-nome"
+                  placeholder="Es. Farina 00 sacco 25kg"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>Categoria
-                <input type="text" id="prodotto-categoria" />
+              <label>
+                Categoria (testo)
+                <input
+                  type="text"
+                  id="prodotto-categoria"
+                  placeholder="Es. Farinacei, Carni, Conserve..."
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label>UM
-                <input type="text" id="prodotto-um" />
+              <label>
+                Unità di misura
+                <input
+                  type="text"
+                  id="prodotto-um"
+                  placeholder="Es. kg, lt, pz, cartone"
+                />
               </label>
             </div>
 
             <div class="form-row">
-              <label style="flex-direction: row; gap: 8px">
+              <label
+                style="flex-direction: row; align-items: center; gap: 8px"
+              >
                 <input type="checkbox" id="prodotto-attivo" checked />
-                Attivo
+                Prodotto attivo
               </label>
             </div>
 
             <div class="form-row">
-              <label>Note
-                <input type="text" id="prodotto-note" />
+              <label>
+                Note
+                <input
+                  type="text"
+                  id="prodotto-note"
+                  placeholder="Note interne (es. solo CC)"
+                />
               </label>
             </div>
 
             <div class="form-row buttons-row">
-              <button type="button" id="btn-add-prodotto" class="app-button small green">
+              <button
+                type="button"
+                id="btn-add-prodotto"
+                class="app-button small green"
+              >
                 Aggiungi/aggiorna prodotto
               </button>
             </div>
@@ -911,7 +1009,7 @@
           </button>
 
           <div id="sezione-prodotti-elenco" style="display: none">
-            <h3>Elenco prodotti</h3>
+            <h3>Elenco prodotti di magazzino</h3>
             <div class="table-wrapper">
               <table class="table-timbrature">
                 <thead>
@@ -930,79 +1028,32 @@
             </div>
           </div>
         </section>
-        <!-- 🔥 DASHBOARD KPI AVANZATA (NEON) -->
-        <section id="view-kpi" class="view" style="display:none" data-manager-only="true">
 
-          <h2 class="kpi-title">Dashboard KPI</h2>
-          <p class="kpi-subtitle">
-            Panoramica giornaliera in tempo reale: attività, costi e scorte critiche.
-          </p>
-
-          <!-- SELETTORE PERIODO -->
-          <div class="form-row">
-            <label>
-              Periodo
-              <select id="kpi-periodo-select">
-                <option value="today">Oggi</option>
-                <option value="week">Ultimi 7 giorni</option>
-                <option value="month">Mese corrente</option>
-              </select>
-            </label>
-          </div>
-
-          <!-- KPI GRID -->
-          <div class="kpi-grid-neo">
-
-            <!-- KPI 1 -->
-            <div class="kpi-card-neo">
-              <div class="kpi-card-header">
-                <span class="kpi-icon">👤</span>
-                <h3>Attivi ora</h3>
-              </div>
-              <p class="kpi-value" id="kpi-attivi-ora">0</p>
-              <div class="kpi-mini-bar"><div id="bar-attivi" class="bar-inner"></div></div>
-            </div>
-
-            <!-- KPI 2 -->
-            <div class="kpi-card-neo">
-              <div class="kpi-card-header">
-                <span class="kpi-icon">⏱️</span>
-                <h3>Ore oggi</h3>
-              </div>
-              <p class="kpi-value" id="kpi-ore-oggi">0h</p>
-              <div class="kpi-mini-bar"><div id="bar-ore" class="bar-inner"></div></div>
-            </div>
-
-            <!-- KPI 3 -->
-            <div class="kpi-card-neo">
-              <div class="kpi-card-header">
-                <span class="kpi-icon">💶</span>
-                <h3>Costo lavoro</h3>
-              </div>
-              <p class="kpi-value" id="kpi-costo-lavoro-neo">0 €</p>
-              <div class="kpi-mini-bar"><div id="bar-costo" class="bar-inner"></div></div>
-            </div>
-
-            <!-- KPI 4 -->
-            <div class="kpi-card-neo">
-              <div class="kpi-card-header">
-                <span class="kpi-icon">⚠️</span>
-                <h3>Scorte critiche</h3>
-              </div>
-              <p class="kpi-value" id="kpi-scorte">0</p>
-              <div class="kpi-mini-bar"><div id="bar-scorte" class="bar-inner"></div></div>
-            </div>
-          </div>
-
-          <p class="kpi-footer">
-            In arrivo: venduto del giorno, margini, previsioni personale e fabbisogni.
-          </p>
+        <!-- REPORT -->
+        <section
+          id="view-report"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Report & KPI</h2>
+          <p>Placeholder report.</p>
         </section>
 
+        <!-- PARAMETRI -->
+        <section
+          id="view-parametri"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Parametri</h2>
+          <p>Placeholder parametri.</p>
+        </section>
       </main>
     </div>
 
-    <!-- SUPABASE -->
+    <!-- SUPABASE: libreria + client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
       const supabaseClient = window.supabase.createClient(
