@@ -558,6 +558,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
+  async function uploadFotoRicetta(file) {
+    if (!supabase || !file) return null;
+
+    const estensione = file.name.split(".").pop() || "jpg";
+    const timestamp = Date.now();
+    const randomPart = Math.random().toString(36).substring(2, 8);
+    const path = `ricette/${timestamp}_${randomPart}.${estensione}`;
+
+    const { data, error } = await supabase.storage
+      .from("ricette_foto")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Errore upload foto ricetta:", error);
+      alert("Errore nel caricare la foto della ricetta");
+      return null;
+    }
+
+    const { data: publicData } = supabase.storage
+      .from("ricette_foto")
+      .getPublicUrl(data.path);
+
+    return publicData?.publicUrl || null;
+  }
 
     const { data, error } = await supabase
       .from("dipendenti")
