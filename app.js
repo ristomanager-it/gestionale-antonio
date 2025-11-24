@@ -99,6 +99,81 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function creaRigaIngrediente(initialValues = {}) {
     if (!ricettaIngredientiContainer) return;
+  if (btnAddIngrediente && ricettaIngredientiContainer) {
+    btnAddIngrediente.addEventListener("click", () => {
+      creaRigaIngrediente();
+    });
+  }
+
+  if (btnSalvaRicetta) {
+    btnSalvaRicetta.addEventListener("click", async () => {
+      const nome = (ricettaNomeInput?.value || "").trim();
+      const descrizione = (ricettaDescrizioneInput?.value || "").trim();
+      const note = (ricettaNoteInput?.value || "").trim();
+      const fileFoto = ricettaFotoInput?.files?.[0] || null;
+
+      if (!nome) {
+        alert("Inserisci il nome della ricetta");
+        return;
+      }
+
+      // leggo tutte le righe ingredienti
+      const ingredienti = [];
+      if (ricettaIngredientiContainer) {
+        const rows = ricettaIngredientiContainer.querySelectorAll(".ingrediente-row");
+        rows.forEach((row) => {
+          const nomeInput = row.querySelector(".ingrediente-nome");
+          const qtaInput = row.querySelector(".ingrediente-quantita");
+          const umInput = row.querySelector(".ingrediente-um");
+
+          const nomeIng = (nomeInput?.value || "").trim();
+          const qtaIng = parseFloat(qtaInput?.value || "0") || 0;
+          const umIng = (umInput?.value || "").trim() || "g";
+
+          if (nomeIng && qtaIng > 0) {
+            ingredienti.push({
+              nome: nomeIng,
+              quantita: qtaIng,
+              um: umIng,
+              note: null,
+            });
+          }
+        });
+      }
+
+      if (ingredienti.length === 0) {
+        if (
+          !confirm(
+            "Non hai inserito ingredienti. Vuoi salvare comunque la ricetta solo con nome e procedimento?"
+          )
+        ) {
+          return;
+        }
+      }
+
+      let fotoUrl = null;
+      if (fileFoto) {
+        fotoUrl = await uploadFotoRicetta(fileFoto);
+        if (!fotoUrl) {
+          // se upload fallisce, fermo tutto
+          return;
+        }
+      }
+
+      const ricettaObj = {
+        nome,
+        descrizione,
+        note,
+        foto_url: fotoUrl,
+      };
+
+      const salvata = await salvaRicettaSupabase(ricettaObj, ingredienti);
+      if (!salvata) return;
+
+      alert("Ricetta salvata correttamente");
+      resetRicettaForm();
+    });
+  }
 
     const row = document.createElement("div");
     row.className = "ingrediente-row";
