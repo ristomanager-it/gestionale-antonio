@@ -95,6 +95,70 @@ document.addEventListener("DOMContentLoaded", async () => {
   const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+  // ---------- RICETTE: GESTIONE INGREDIENTI DINAMICI ----------
+
+  function creaRigaIngrediente(initialValues = {}) {
+    if (!ricettaIngredientiContainer) return;
+
+    const row = document.createElement("div");
+    row.className = "ingrediente-row";
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "2fr 1fr 1fr auto";
+    row.style.gap = "6px";
+    row.style.alignItems = "center";
+
+    row.innerHTML = `
+      <input
+        type="text"
+        class="ingrediente-nome"
+        placeholder="Ingrediente"
+        style="padding: 7px 8px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 13px;"
+      />
+      <input
+        type="number"
+        class="ingrediente-quantita"
+        placeholder="Qta"
+        step="0.001"
+        min="0"
+        style="padding: 7px 8px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 13px;"
+      />
+      <input
+        type="text"
+        class="ingrediente-um"
+        placeholder="UM (es. g, kg, ml, pz)"
+        style="padding: 7px 8px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 13px;"
+      />
+      <button type="button" class="app-button tiny red btn-remove-ingrediente">
+        ✕
+      </button>
+    `;
+
+    const nomeInput = row.querySelector(".ingrediente-nome");
+    const qtaInput = row.querySelector(".ingrediente-quantita");
+    const umInput = row.querySelector(".ingrediente-um");
+    const btnRemove = row.querySelector(".btn-remove-ingrediente");
+
+    if (initialValues.nome) nomeInput.value = initialValues.nome;
+    if (initialValues.quantita != null) qtaInput.value = initialValues.quantita;
+    if (initialValues.um) umInput.value = initialValues.um;
+
+    btnRemove.addEventListener("click", () => {
+      ricettaIngredientiContainer.removeChild(row);
+    });
+
+    ricettaIngredientiContainer.appendChild(row);
+  }
+
+  function resetRicettaForm() {
+    if (ricettaNomeInput) ricettaNomeInput.value = "";
+    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
+    if (ricettaNoteInput) ricettaNoteInput.value = "";
+    if (ricettaFotoInput) ricettaFotoInput.value = "";
+    if (ricettaIngredientiContainer) ricettaIngredientiContainer.innerHTML = "";
+
+    // Aggiungo almeno una riga vuota
+    creaRigaIngrediente();
+  }
 
 
   // anagrafica dipendenti
