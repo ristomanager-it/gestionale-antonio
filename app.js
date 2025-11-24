@@ -110,9 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dipAttivo = document.getElementById("dip-attivo");
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
-  const btnToggleDipendenti = document.getElementById(
-    "btn-toggle-dipendenti"
-  );
+  const btnToggleDipendenti = document.getElementById("btn-toggle-dipendenti");
   const sezioneDipendentiElenco = document.getElementById(
     "sezione-dipendenti-elenco"
   );
@@ -2152,7 +2150,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (ricettaPorzioniInput) ricettaPorzioniInput.value = "";
     if (ricettaNoteInput) ricettaNoteInput.value = "";
     if (ricettaFotoFileInput) ricettaFotoFileInput.value = "";
-    if (ricettaIngredientiBody) ricettaIngredientiBody.innerHTML = "";
+    if (ricettaIngredientiBody) {
+      ricettaIngredientiBody.innerHTML = "";
+      // importante: almeno una riga vuota di ingrediente
+      aggiungiRigaIngrediente(null);
+    }
   }
 
   function aggiungiRigaIngrediente(initial) {
@@ -2196,7 +2198,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (btnAddIngrediente) {
-    // click funziona sia desktop che mobile
     btnAddIngrediente.addEventListener("click", () => {
       aggiungiRigaIngrediente(null);
     });
@@ -2251,7 +2252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ingredienti.forEach((ing) => aggiungiRigaIngrediente(ing));
     }
 
-    // (la foto non la ricarico nell'input file; eventuale anteprima si può gestire in futuro)
+    // (foto: anteprima in futuro)
   }
 
   if (btnSalvaRicetta) {
@@ -2455,12 +2456,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.addEventListener("click", () => {
       const route = btn.getAttribute("data-route");
       if (!route) return;
-      // aggiorno hash per poter usare back/forward del browser
+
+      // aggiorno hash (per back/forward)
       if (window.location.hash.replace("#", "") !== route) {
         window.location.hash = route;
-      } else {
-        navigateTo(route);
       }
+
+      // chiamo comunque navigateTo per sicurezza
+      navigateTo(route);
     });
   });
 
