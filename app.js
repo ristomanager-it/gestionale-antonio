@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnAddFattura = document.getElementById("btn-add-fattura");
   const fattureListaEl = document.getElementById("fatture-lista");
 
-  // ACQUISTI – dettaglio fattura / righe
+  // ACQUIISTI – dettaglio fattura / righe
   const fatturaDettaglioBox = document.getElementById("fattura-dettaglio");
   const fatturaDettaglioIntestazione = document.getElementById(
     "fattura-dettaglio-intestazione"
@@ -231,7 +231,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadTheme();
 
   // ---------- utility ruoli ----------
-  // In futuro possiamo mettere qui la matrice permessi per ruolo
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -362,11 +361,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // 🔹 qui la default route per MANAGER è "report" (KPI)
   function showManagerMenuAndRoute(initialRoute) {
+    const route = initialRoute || "report";
     if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
+    showOnlyView(`view-${route}`);
     applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
+    navigateTo(route);
   }
 
   function setCurrentUser(user, persist) {
@@ -797,7 +798,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           remember
         );
         if (loginView) loginView.style.display = "none";
-        showManagerMenuAndRoute("timbratura");
+        // 🔹 admin: prima vista = report (KPI)
+        showManagerMenuAndRoute("report");
         return;
       }
 
@@ -819,7 +821,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (loginView) loginView.style.display = "none";
 
       if (isManagerRole(dip.ruolo)) {
-        showManagerMenuAndRoute("timbratura");
+        // 🔹 manager: prima vista = report (KPI)
+        showManagerMenuAndRoute("report");
       } else {
         showHomeDipendente();
       }
@@ -1737,7 +1740,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- SUGGERIMENTI PRODOTTO/CATEGORIA DA DESCRIZIONE ----------
   function normalizzaTesto(txt) {
-    return (txt || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return (txt || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
   }
 
   function suggerisciCategoriaDaDescrizione(descrizione) {
@@ -1758,7 +1764,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const d = normalizzaTesto(descrizione);
     if (!d || !prodotti.length) return null;
 
-    // Match semplice: se nome prodotto contiene almeno una parola chiave della descrizione
     const tokens = d.split(/\s+/).filter((t) => t.length > 3);
     for (const p of prodotti) {
       const nomeP = normalizzaTesto(p.nome);
@@ -1819,7 +1824,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function aggiornaTotaleRigaDaQuantitaPrezzo() {
-    if (!fatturaRigaQuantitaInput || !fatturaRigaPrezzoInput || !fatturaRigaTotaleInput) return;
+    if (
+      !fatturaRigaQuantitaInput ||
+      !fatturaRigaPrezzoInput ||
+      !fatturaRigaTotaleInput
+    )
+      return;
     const qta = parseFloat(fatturaRigaQuantitaInput.value || "0") || 0;
     const prezzo = parseFloat(fatturaRigaPrezzoInput.value || "0") || 0;
     const tot = qta * prezzo;
@@ -1827,10 +1837,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (fatturaRigaQuantitaInput) {
-    fatturaRigaQuantitaInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+    fatturaRigaQuantitaInput.addEventListener(
+      "input",
+      aggiornaTotaleRigaDaQuantitaPrezzo
+    );
   }
   if (fatturaRigaPrezzoInput) {
-    fatturaRigaPrezzoInput.addEventListener("input", aggiornaTotaleRigaDaQuantitaPrezzo);
+    fatturaRigaPrezzoInput.addEventListener(
+      "input",
+      aggiornaTotaleRigaDaQuantitaPrezzo
+    );
   }
 
   // ---------- RIGHE FATTURA + MAGAZZINO ----------
@@ -1903,7 +1919,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fatturaDettaglioBox.style.display = "block";
     resetFatturaRigaForm();
 
-    await caricaProdottiDaSupabase(); // così possiamo fare match sui prodotti
+    await caricaProdottiDaSupabase();
     await caricaRigheFatturaDaSupabase(fattura.id);
   }
 
@@ -1920,8 +1936,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tot = qta * prezzo;
 
     const dataMovimento =
-      fattura.data ||
-      new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      fattura.data || new Date().toISOString().slice(0, 10);
 
     const riferimento = `Fattura ${fattura.numero || ""}`.trim();
 
@@ -1944,7 +1959,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (error) {
       console.error("Errore inserimento movimento magazzino:", error);
-      alert("Attenzione: riga fattura salvata ma errore nel movimento di magazzino");
+      alert(
+        "Attenzione: riga fattura salvata ma errore nel movimento di magazzino"
+      );
     }
   }
 
@@ -1979,7 +1996,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         tot = qta * prezzo;
       }
 
-      // 1) individua o crea prodotto
       let prodottoId = null;
       if (fatturaRigaForm?.dataset.prodottoEsistenteId) {
         prodottoId = parseInt(
@@ -2010,7 +2026,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         prodotti.push(nuovoProdotto);
       }
 
-      // 2) inserisci riga fattura
       const payloadRiga = {
         fattura_id: fatturaSelezionata.id,
         prodotto_id: prodottoId,
@@ -2036,8 +2051,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       fatturaRighe.push(data);
       renderFatturaRighe();
 
-      // 3) movimento di magazzino
-      await inserisciMovimentoMagazzinoDaRiga(prodottoId, fatturaSelezionata, data);
+      await inserisciMovimentoMagazzinoDaRiga(
+        prodottoId,
+        fatturaSelezionata,
+        data
+      );
 
       resetFatturaRigaForm();
       alert("Riga fattura e movimento di magazzino registrati correttamente");
@@ -2079,8 +2097,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       showLogin();
       return;
     }
-
-    console.log("Navigazione verso:", route);
 
     const isManager = isManagerRole(currentUser.ruolo);
 
@@ -2130,8 +2146,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentUser) {
       if (loginView) loginView.style.display = "none";
       if (isManagerRole(currentUser.ruolo)) {
-        const initialRoute =
-          window.location.hash.replace("#", "") || "timbratura";
+        const hashRoute = window.location.hash.replace("#", "");
+        const initialRoute = hashRoute || "report"; // 🔹 default KPI
         showManagerMenuAndRoute(initialRoute);
       } else {
         showHomeDipendente();
