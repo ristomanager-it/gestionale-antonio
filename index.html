@@ -163,7 +163,6 @@
           >
             Acquisti
           </button>
-          <!-- NUOVO: bottone Ricette -->
           <button
             class="app-button menu-button"
             data-route="ricette"
@@ -612,17 +611,184 @@
           <p>Placeholder preventivi.</p>
         </section>
 
+        <!-- VISTA ACQUISTI / FATTURE -->
         <section
           id="view-acquisti"
           class="view"
           style="display: none"
           data-manager-only="true"
         >
-          <h2>Acquisti</h2>
-          <p>Placeholder acquisti.</p>
+          <h2>Acquisti & Fatture</h2>
+          <p>
+            Registra le fatture di acquisto, crea automaticamente fornitori,
+            prodotti e movimenti di magazzino (carichi).
+          </p>
+
+          <!-- TESTATA FATTURA -->
+          <form id="fattura-form" class="timbratura-form" onsubmit="return false;">
+            <div class="form-row">
+              <label>
+                Numero fattura
+                <input
+                  type="text"
+                  id="fattura-numero"
+                  placeholder="Es. 123/2025"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Data fattura
+                <input type="date" id="fattura-data" />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Fornitore
+                <input
+                  type="text"
+                  id="fattura-fornitore"
+                  placeholder="Digita nome fornitore (se nuovo verrà creato)"
+                />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                Note (facoltative)
+                <textarea
+                  id="fattura-note"
+                  rows="2"
+                  placeholder="Note interne sulla fattura..."
+                  style="
+                    border-radius: 12px;
+                    padding: 9px;
+                    border: 1px solid #d1d5db;
+                    font-size: 14px;
+                    resize: vertical;
+                  "
+                ></textarea>
+              </label>
+            </div>
+
+            <div class="form-row buttons-row" style="margin-top: 6px;">
+              <button
+                type="button"
+                id="btn-nuova-fattura"
+                class="app-button small gray"
+              >
+                Nuova fattura
+              </button>
+              <button
+                type="button"
+                id="btn-salva-fattura"
+                class="app-button small green"
+              >
+                Salva fattura
+              </button>
+            </div>
+          </form>
+
+          <!-- RIGHE FATTURA -->
+          <h3 style="margin-top: 18px;">Righe fattura</h3>
+          <p class="small-muted">
+            Inserisci i prodotti acquistati: ogni riga genererà un carico di magazzino.
+          </p>
+
+          <div class="table-wrapper" style="margin-top: 8px;">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Cod. interno</th>
+                  <th>Descrizione</th>
+                  <th>Categoria</th>
+                  <th>UM</th>
+                  <th>Q.tà</th>
+                  <th>Prezzo</th>
+                  <th>IVA %</th>
+                  <th>Totale riga</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="fattura-righe-body"></tbody>
+            </table>
+          </div>
+
+          <div class="form-row buttons-row" style="margin-top: 8px;">
+            <button
+              type="button"
+              id="btn-add-riga-fattura"
+              class="app-button small gray"
+            >
+              + Aggiungi riga
+            </button>
+          </div>
+
+          <!-- TOTALI FATTURA -->
+          <h3 style="margin-top: 16px;">Totali fattura</h3>
+          <div class="timbratura-form">
+            <div class="form-row">
+              <label>
+                Imponibile totale €
+                <input
+                  type="number"
+                  id="fattura-imponibile-totale"
+                  readonly
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                IVA totale €
+                <input
+                  type="number"
+                  id="fattura-iva-totale"
+                  readonly
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Totale documento €
+                <input
+                  type="number"
+                  id="fattura-totale-documento"
+                  readonly
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </label>
+            </div>
+          </div>
+
+          <!-- ELENCO FATTURE -->
+          <h3 style="margin-top: 20px;">Fatture registrate</h3>
+          <p class="small-muted">
+            Elenco delle fatture già inserite. Clicca su "Apri" per ricaricare la fattura e le righe.
+          </p>
+          <div class="table-wrapper" style="margin-top: 6px;">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Numero</th>
+                  <th>Fornitore</th>
+                  <th>Totale €</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="fatture-lista"></tbody>
+            </table>
+          </div>
         </section>
 
-        <!-- NUOVA VISTA: RICETTE (EDITOR) -->
+        <!-- VISTA RICETTE (EDITOR) -->
         <section
           id="view-ricette"
           class="view"
