@@ -126,7 +126,7 @@
           </div>
         </section>
 
-        <!-- MENU MANAGER PULITO -->
+        <!-- MENU MANAGER -->
         <section
           class="buttons-grid"
           id="manager-menu"
@@ -144,10 +144,10 @@
           </button>
           <button
             class="app-button menu-button"
-            data-route="acquisti"
+            data-route="vendite"
             data-manager-only="true"
           >
-            Acquisti
+            Vendite
           </button>
           <button
             class="app-button menu-button"
@@ -158,10 +158,24 @@
           </button>
           <button
             class="app-button menu-button"
+            data-route="acquisti"
+            data-manager-only="true"
+          >
+            Acquisti
+          </button>
+          <button
+            class="app-button menu-button"
+            data-route="cc"
+            data-manager-only="true"
+          >
+            Centro Cottura
+          </button>
+          <button
+            class="app-button menu-button"
             data-route="reintegro"
             data-manager-only="true"
           >
-            Magazzino
+            Reintegro
           </button>
           <button
             class="app-button menu-button wide"
@@ -538,49 +552,48 @@
             </div>
           </form>
 
-          <button
-            type="button"
-            id="btn-toggle-dipendenti"
-            class="app-button small gray"
-            style="margin-top: 12px; margin-bottom: 6px"
-          >
-            Mostra elenco dipendenti
-          </button>
-
-          <div id="sezione-dipendenti-elenco" style="display: none">
-            <h3>Elenco dipendenti</h3>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Mansione</th>
-                    <th>Data nascita</th>
-                    <th>Residenza</th>
-                    <th>Telefono</th>
-                    <th>Email</th>
-                    <th>Ruolo</th>
-                    <th>Tipo compenso</th>
-                    <th>Costo €/h</th>
-                    <th>Canale</th>
-                    <th>PIN</th>
-                    <th>Attivo</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody id="dipendenti-lista"></tbody>
-              </table>
-            </div>
+          <h3>Elenco dipendenti</h3>
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Mansione</th>
+                  <th>Data nascita</th>
+                  <th>Residenza</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Ruolo</th>
+                  <th>Tipo compenso</th>
+                  <th>Costo €/h</th>
+                  <th>Canale</th>
+                  <th>PIN</th>
+                  <th>Attivo</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="dipendenti-lista"></tbody>
+            </table>
           </div>
         </section>
 
-        <!-- ORDINE -->
+        <!-- ALTRE VISTE PLACEHOLDER -->
+
         <section id="view-ordine" class="view" style="display: none">
           <h2>Ordine del giorno</h2>
           <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
         </section>
 
-        <!-- VISTA PREVENTIVI (placeholder) -->
+        <section
+          id="view-vendite"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Vendite</h2>
+          <p>Placeholder vendite.</p>
+        </section>
+
         <section
           id="view-preventivi"
           class="view"
@@ -588,10 +601,9 @@
           data-manager-only="true"
         >
           <h2>Preventivi</h2>
-          <p>Placeholder preventivi (in futuro: eventi, menù, ecc.).</p>
+          <p>Placeholder preventivi.</p>
         </section>
 
-        <!-- 🔹 SEZIONE ACQUISTI -->
         <section
           id="view-acquisti"
           class="view"
@@ -599,437 +611,29 @@
           data-manager-only="true"
         >
           <h2>Acquisti</h2>
-          <p>
-            Gestisci fornitori, registra le fatture di acquisto con il file (PDF o foto)
-            e dettaglia le righe per aggiornare automaticamente il magazzino.
-          </p>
-
-          <!-- FORNITORI -->
-          <h3>Fornitori</h3>
-          <form id="fornitore-form" onsubmit="return false;" class="timbratura-form">
-            <div class="form-row">
-              <label>
-                Nome fornitore
-                <input
-                  type="text"
-                  id="fornitore-nome"
-                  placeholder="Es. Fornitore Srl"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Partita IVA
-                <input
-                  type="text"
-                  id="fornitore-piva"
-                  placeholder="Es. 01234567890"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Indirizzo
-                <input
-                  type="text"
-                  id="fornitore-indirizzo"
-                  placeholder="Indirizzo completo"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Telefono
-                <input
-                  type="tel"
-                  id="fornitore-telefono"
-                  placeholder="Es. 3331234567"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Email
-                <input
-                  type="email"
-                  id="fornitore-email"
-                  placeholder="esempio@mail.com"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Note
-                <input
-                  type="text"
-                  id="fornitore-note"
-                  placeholder="Note interne"
-                />
-              </label>
-            </div>
-
-            <div class="form-row buttons-row">
-              <button
-                type="button"
-                id="btn-add-fornitore"
-                class="app-button small green"
-              >
-                Aggiungi/aggiorna fornitore
-              </button>
-            </div>
-          </form>
-
-          <button
-            type="button"
-            id="btn-toggle-fornitori"
-            class="app-button small gray"
-            style="margin-top: 8px; margin-bottom: 6px"
-          >
-            Mostra elenco fornitori
-          </button>
-
-          <div id="sezione-fornitori-elenco" style="display: none">
-            <div class="table-wrapper" style="margin-top: 8px">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>P.IVA</th>
-                    <th>Telefono</th>
-                    <th>Email</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody id="fornitori-lista"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <hr style="margin: 18px 0" />
-
-          <!-- FATTURE -->
-          <h3>Fatture di acquisto</h3>
-          <p class="small-muted">
-            Clicca su una fattura nell'elenco per aprire il dettaglio righe e aggiornare il magazzino.
-          </p>
-
-          <form id="fattura-form" onsubmit="return false;" class="timbratura-form">
-            <div class="form-row">
-              <label>
-                Fornitore
-                <select id="fattura-fornitore-select">
-                  <option value="">-- seleziona fornitore --</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Numero fattura
-                <input
-                  type="text"
-                  id="fattura-numero"
-                  placeholder="Es. 123/2025"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Data fattura
-                <input type="date" id="fattura-data" />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Totale (opzionale)
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  id="fattura-totale"
-                  placeholder="Es. 1234.56"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                File fattura (PDF o immagine)
-                <input type="file" id="fattura-file" accept="application/pdf,image/*" />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Note
-                <input
-                  type="text"
-                  id="fattura-note"
-                  placeholder="Note interne sulla fattura"
-                />
-              </label>
-            </div>
-
-            <div class="form-row buttons-row">
-              <button
-                type="button"
-                id="btn-add-fattura"
-                class="app-button small green"
-              >
-                Registra fattura
-              </button>
-            </div>
-          </form>
-
-          <div class="table-wrapper" style="margin-top: 8px">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Numero</th>
-                  <th>Fornitore</th>
-                  <th>Totale</th>
-                  <th>File</th>
-                </tr>
-              </thead>
-              <tbody id="fatture-lista"></tbody>
-            </table>
-          </div>
-
-          <!-- DETTAGLIO FATTURA SELEZIONATA -->
-          <div
-            id="fattura-dettaglio"
-            style="margin-top: 18px; display: none"
-          >
-            <h3>Dettaglio fattura selezionata</h3>
-            <p id="fattura-dettaglio-intestazione" class="small-muted"></p>
-
-            <form
-              id="fattura-riga-form"
-              class="timbratura-form"
-              onsubmit="return false;"
-            >
-              <div class="form-row">
-                <label>
-                  Descrizione riga
-                  <input
-                    type="text"
-                    id="fattura-riga-descrizione"
-                    placeholder="Es. Filetto di maiale 2kg"
-                  />
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  Quantità
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    id="fattura-riga-quantita"
-                    placeholder="Es. 2"
-                  />
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  Unità di misura
-                  <input
-                    type="text"
-                    id="fattura-riga-um"
-                    placeholder="Es. kg, pz, cartone"
-                  />
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  Prezzo unitario (€)
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    id="fattura-riga-prezzo"
-                    placeholder="Es. 8.50"
-                  />
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  Totale riga (€)
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    id="fattura-riga-totale"
-                    placeholder="Calcolato"
-                    readonly
-                  />
-                </label>
-              </div>
-
-              <p class="small-muted" id="fattura-riga-suggerimenti">
-                Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.
-              </p>
-
-              <div class="form-row buttons-row">
-                <button
-                  type="button"
-                  id="btn-add-fattura-riga"
-                  class="app-button small green"
-                >
-                  Aggiungi riga fattura e aggiorna magazzino
-                </button>
-              </div>
-            </form>
-
-            <div class="table-wrapper" style="margin-top: 8px">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Descrizione</th>
-                    <th>Qta</th>
-                    <th>UM</th>
-                    <th>Prezzo</th>
-                    <th>Totale</th>
-                    <th>Prodotto</th>
-                  </tr>
-                </thead>
-                <tbody id="fattura-righe-lista"></tbody>
-              </table>
-            </div>
-          </div>
+          <p>Placeholder acquisti.</p>
         </section>
 
-        <!-- MAGAZZINO & PRODOTTI -->
+        <section
+          id="view-cc"
+          class="view"
+          style="display: none"
+          data-manager-only="true"
+        >
+          <h2>Centro cottura</h2>
+          <p>Placeholder centro cottura.</p>
+        </section>
+
         <section
           id="view-reintegro"
           class="view"
           style="display: none"
           data-manager-only="true"
         >
-          <h2>Magazzino & Prodotti</h2>
-          <p>
-            Gestisci l'anagrafica prodotti di magazzino (codice interno, nome, UM, categoria).
-          </p>
-
-          <form id="prodotto-form" class="timbratura-form" onsubmit="return false;">
-            <div class="form-row">
-              <label>
-                Codice interno
-                <input
-                  type="text"
-                  id="prodotto-codice"
-                  placeholder="Es. FAR001"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Nome prodotto
-                <input
-                  type="text"
-                  id="prodotto-nome"
-                  placeholder="Es. Farina 00 sacco 25kg"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Categoria (testo)
-                <input
-                  type="text"
-                  id="prodotto-categoria"
-                  placeholder="Es. Farinacei, Carni, Conserve..."
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Unità di misura
-                <input
-                  type="text"
-                  id="prodotto-um"
-                  placeholder="Es. kg, lt, pz, cartone"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label
-                style="flex-direction: row; align-items: center; gap: 8px"
-              >
-                <input type="checkbox" id="prodotto-attivo" checked />
-                Prodotto attivo
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Note
-                <input
-                  type="text"
-                  id="prodotto-note"
-                  placeholder="Note interne (es. solo CC)"
-                />
-              </label>
-            </div>
-
-            <div class="form-row buttons-row">
-              <button
-                type="button"
-                id="btn-add-prodotto"
-                class="app-button small green"
-              >
-                Aggiungi/aggiorna prodotto
-              </button>
-            </div>
-          </form>
-
-          <button
-            type="button"
-            id="btn-toggle-prodotti"
-            class="app-button small gray"
-            style="margin-top: 12px; margin-bottom: 6px"
-          >
-            Mostra elenco prodotti
-          </button>
-
-          <div id="sezione-prodotti-elenco" style="display: none">
-            <h3>Elenco prodotti di magazzino</h3>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Codice</th>
-                    <th>Nome</th>
-                    <th>Categoria</th>
-                    <th>UM</th>
-                    <th>Attivo</th>
-                    <th>Note</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody id="prodotti-lista"></tbody>
-              </table>
-            </div>
-          </div>
+          <h2>Reintegro & magazzino</h2>
+          <p>Placeholder reintegro.</p>
         </section>
 
-        <!-- REPORT -->
         <section
           id="view-report"
           class="view"
@@ -1040,7 +644,6 @@
           <p>Placeholder report.</p>
         </section>
 
-        <!-- PARAMETRI -->
         <section
           id="view-parametri"
           class="view"
