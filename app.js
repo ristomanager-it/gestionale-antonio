@@ -71,7 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewRicette = document.getElementById("view-ricette");
   const ricettaForm = document.getElementById("ricetta-form");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaDescrizioneInput =
+    document.getElementById("ricetta-descrizione");
   const ricettaNoteInput = document.getElementById("ricetta-note");
   const ricettaFotoInput = document.getElementById("ricetta-foto");
   const ricettaIngredientiContainer = document.getElementById(
@@ -79,6 +80,26 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+  // ---------- ACQUISTI / FATTURE (DOM) ----------
+  const viewAcquisti = document.getElementById("view-acquisti");
+  const fatturaNumeroInput = document.getElementById("fattura-numero");
+  const fatturaDataInput = document.getElementById("fattura-data");
+  const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
+  const fatturaNoteInput = document.getElementById("fattura-note");
+  const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
+  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
+  const fatturaRigheBody = document.getElementById("fattura-righe-body");
+  const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
+  const fatturaImponibileTotaleInput = document.getElementById(
+    "fattura-imponibile-totale"
+  );
+  const fatturaIvaTotaleInput =
+    document.getElementById("fattura-iva-totale");
+  const fatturaTotaleDocumentoInput = document.getElementById(
+    "fattura-totale-documento"
+  );
+  const fattureListaBody = document.getElementById("fatture-lista");
 
   // stato
   let dipendenti = [];
@@ -89,6 +110,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // stato ricette
   let ricettaCorrenteId = null;
   let ricettaFotoCorrenteUrl = null; // per mantenere la vecchia foto se non la cambi
+
+  // stato acquisti/fatture
+  let currentFatturaId = null;
+  let fornitoriCache = [];
+  let categorieCache = [];
+
+  // ========= UTILITY GENERALI =========
+  function parseNumber(val) {
+    if (val == null) return 0;
+    const str = String(val).replace(",", ".");
+    const n = parseFloat(str);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
+  function formatDateInputToday(input) {
+    if (!input) return;
+    const oggi = new Date();
+    const yyyy = oggi.getFullYear();
+    const mm = String(oggi.getMonth() + 1).padStart(2, "0");
+    const dd = String(oggi.getDate()).padStart(2, "0");
+    input.value = `${yyyy}-${mm}-${dd}`;
+  }
 
   // ========= TEMA CHIARO/SCURO =========
   function applyTheme(theme) {
@@ -1136,7 +1179,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    `;
+    ";
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     btnDel.addEventListener("click", () => {
@@ -1200,7 +1243,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!supabase) return;
 
     // cancello ingredienti precedenti (se sto modificando)
-    await supabase.from("ricetta_ingredienti").delete().eq("ricetta_id", ricettaId);
+    await supabase
+      .from("ricetta_ingredienti")
+      .delete()
+      .eq("ricetta_id", ricettaId);
 
     if (!ingredienti.length) return;
 
@@ -1331,6 +1377,701 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========= ACQUISTI / FATTURE / MAGAZZINO =========
+
+  function getFornitoreById(id) {
+    return fornitoriCache.find((f) => f.id === id) || null;
+  }
+
+  function getCategoriaById(id) {
+    return categorieCache.find((c) => c.id === id) || null;
+  }
+
+  async function caricaFornitoriInCache() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("fornitori")
+      .select("id, ragione_sociale")
+      .order("ragione_sociale", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento fornitori:", error);
+      return;
+    }
+    fornitoriCache = data || [];
+  }
+
+  async function caricaCategorieInCache() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("id, nome")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie:", error);
+      return;
+    }
+    categorieCache = data || [];
+  }
+
+  async function findOrCreateFornitoreByName(nomeFornitore) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeFornitore || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = fornitoriCache.find(
+      (f) =>
+        f.ragione_sociale &&
+        f.ragione_sociale.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("fornitori")
+      .insert({
+        ragione_sociale: nomeTrim,
+        attivo: true,
+      })
+      .select("id, ragione_sociale")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione fornitore:", error);
+      alert("Errore nella creazione del fornitore");
+      return null;
+    }
+
+    fornitoriCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateCategoriaByNome(nomeCategoria) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeCategoria || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = categorieCache.find(
+      (c) =>
+        c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .insert({
+        nome: nomeTrim,
+        attivo: true,
+      })
+      .select("id, nome")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione categoria:", error);
+      alert("Errore nella creazione della categoria prodotto");
+      return null;
+    }
+
+    categorieCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateProdotto({ codice, descrizione, categoriaNome, um }) {
+    if (!supabase) return null;
+    const codiceTrim = (codice || "").trim();
+    const descTrim = (descrizione || "").trim();
+    const umTrim = (um || "").trim() || "pz";
+
+    if (!codiceTrim && !descTrim) return null;
+
+    // cerco per codice interno
+    let { data: existingList, error: selErr } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .ilike("codice_interno", codiceTrim || descTrim)
+      .limit(1);
+
+    if (selErr) {
+      console.error("Errore ricerca prodotto:", selErr);
+    }
+
+    if (existingList && existingList.length > 0) {
+      return existingList[0];
+    }
+
+    // categoria
+    let categoria = null;
+    if (categoriaNome) {
+      categoria = await findOrCreateCategoriaByNome(categoriaNome);
+    }
+
+    const payload = {
+      codice_interno: codiceTrim || descTrim,
+      descrizione: descTrim || codiceTrim,
+      categoria_id: categoria ? categoria.id : null,
+      um: umTrim,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .insert(payload)
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione prodotto:", error);
+      alert("Errore nella creazione del prodotto di magazzino");
+      return null;
+    }
+
+    return data;
+  }
+
+  function creaRigaFattura(initial = {}) {
+    if (!fatturaRigheBody) return;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <input
+          type="text"
+          class="fatt-riga-codice"
+          placeholder="Cod. interno"
+          value="${initial.codice_prodotto || ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          class="fatt-riga-descrizione"
+          placeholder="Descrizione prodotto"
+          value="${initial.descrizione_riga || ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          class="fatt-riga-categoria"
+          placeholder="Categoria"
+          value="${initial.categoria_nome || ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          class="fatt-riga-um"
+          placeholder="kg, l, pz..."
+          value="${initial.um || ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          class="fatt-riga-quantita"
+          placeholder="Q.tà"
+          min="0"
+          step="0.001"
+          value="${initial.quantita != null ? initial.quantita : ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          class="fatt-riga-prezzo"
+          placeholder="Prezzo"
+          min="0"
+          step="0.0001"
+          value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          class="fatt-riga-iva"
+          placeholder="%"
+          min="0"
+          step="1"
+          value="${
+            initial.iva_perc != null ? initial.iva_perc : ""
+          }"
+        />
+      </td>
+      <td class="fatt-riga-totale">0.00</td>
+      <td>
+        <button type="button" class="app-button tiny red btn-del-riga">
+          ✕
+        </button>
+      </td>
+    `;
+
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const btnDel = tr.querySelector(".btn-del-riga");
+
+    const handleChange = () => {
+      ricalcolaTotaleRiga(tr);
+      ricalcolaTotaliFattura();
+    };
+
+    if (qtaInput) qtaInput.addEventListener("input", handleChange);
+    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
+    if (ivaInput) ivaInput.addEventListener("input", handleChange);
+
+    if (btnDel) {
+      btnDel.addEventListener("click", () => {
+        tr.remove();
+        ricalcolaTotaliFattura();
+      });
+    }
+
+    fatturaRigheBody.appendChild(tr);
+    ricalcolaTotaleRiga(tr);
+  }
+
+  function ricalcolaTotaleRiga(tr) {
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const totaleCell = tr.querySelector(".fatt-riga-totale");
+
+    const qta = parseNumber(qtaInput?.value || "0");
+    const prezzo = parseNumber(prezzoInput?.value || "0");
+    const ivaPerc = parseNumber(ivaInput?.value || "0");
+
+    const imponibile = qta * prezzo;
+    const iva = imponibile * (ivaPerc / 100);
+    const totale = imponibile + iva;
+
+    if (totaleCell) {
+      totaleCell.textContent = totale.toFixed(2);
+    }
+
+    return { imponibile, iva, totale };
+  }
+
+  function ricalcolaTotaliFattura() {
+    if (!fatturaRigheBody) return;
+
+    let impTot = 0;
+    let ivaTot = 0;
+    let docTot = 0;
+
+    const rows = Array.from(fatturaRigheBody.querySelectorAll("tr"));
+    rows.forEach((tr) => {
+      const { imponibile, iva, totale } = ricalcolaTotaleRiga(tr);
+      impTot += imponibile;
+      ivaTot += iva;
+      docTot += totale;
+    });
+
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+  }
+
+  function resetFatturaForm() {
+    currentFatturaId = null;
+
+    if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+    if (fatturaDataInput) formatDateInputToday(fatturaDataInput);
+    if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
+    if (fatturaNoteInput) fatturaNoteInput.value = "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = "";
+    if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = "";
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      creaRigaFattura();
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  async function handleNuovaFattura() {
+    resetFatturaForm();
+  }
+
+  async function handleSalvaFattura() {
+    if (!supabase) return;
+
+    const numero = (fatturaNumeroInput?.value || "").trim();
+    const dataDoc = fatturaDataInput?.value || "";
+    const fornitoreNome = (fatturaFornitoreInput?.value || "").trim();
+    const note = (fatturaNoteInput?.value || "").trim();
+
+    if (!numero) {
+      alert("Inserisci il numero fattura");
+      return;
+    }
+    if (!dataDoc) {
+      alert("Inserisci la data fattura");
+      return;
+    }
+    if (!fornitoreNome) {
+      alert("Inserisci il fornitore");
+      return;
+    }
+
+    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
+    const righeForm = [];
+    rows.forEach((tr) => {
+      const codiceInput = tr.querySelector(".fatt-riga-codice");
+      const descrInput = tr.querySelector(".fatt-riga-descrizione");
+      const catInput = tr.querySelector(".fatt-riga-categoria");
+      const umInput = tr.querySelector(".fatt-riga-um");
+      const qtaInput = tr.querySelector(".fatt-riga-quantita");
+      const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+      const ivaInput = tr.querySelector(".fatt-riga-iva");
+
+      const codice = (codiceInput?.value || "").trim();
+      const descrizione = (descrInput?.value || "").trim();
+      const categoria = (catInput?.value || "").trim();
+      const um = (umInput?.value || "").trim();
+      const qta = parseNumber(qtaInput?.value || "0");
+      const prezzo = parseNumber(prezzoInput?.value || "0");
+      let ivaPerc = parseNumber(ivaInput?.value || "0");
+
+      if (!codice && !descrizione) return;
+      if (!qta || !prezzo) return;
+
+      if (![4, 10, 22].includes(ivaPerc)) {
+        if (!ivaPerc) ivaPerc = 22; // default
+      }
+
+      righeForm.push({
+        codice,
+        descrizione,
+        categoria,
+        um,
+        qta,
+        prezzo,
+        ivaPerc,
+      });
+    });
+
+    if (!righeForm.length) {
+      alert("Inserisci almeno una riga di fattura valida (q.tà e prezzo > 0)");
+      return;
+    }
+
+    // calcolo totali
+    let impTot = 0;
+    let ivaTot = 0;
+    let docTot = 0;
+    righeForm.forEach((r) => {
+      const imponibile = r.qta * r.prezzo;
+      const iva = imponibile * (r.ivaPerc / 100);
+      const totale = imponibile + iva;
+      impTot += imponibile;
+      ivaTot += iva;
+      docTot += totale;
+    });
+
+    // fornitore
+    const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
+    if (!fornitore) return;
+
+    // inserisco / aggiorno testata fattura
+    let fatturaData = null;
+    if (!currentFatturaId) {
+      const { data, error } = await supabase
+        .from("fatture_acquisto")
+        .insert({
+          numero_documento: numero,
+          data_documento: dataDoc,
+          fornitore_id: fornitore.id,
+          imponibile_totale: impTot,
+          iva_totale: ivaTot,
+          totale_documento: docTot,
+          note: note || null,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Errore salvataggio fattura:", error);
+        alert("Errore nel salvare la fattura di acquisto");
+        return;
+      }
+
+      fatturaData = data;
+      currentFatturaId = data.id;
+    } else {
+      const { data, error } = await supabase
+        .from("fatture_acquisto")
+        .update({
+          numero_documento: numero,
+          data_documento: dataDoc,
+          fornitore_id: fornitore.id,
+          imponibile_totale: impTot,
+          iva_totale: ivaTot,
+          totale_documento: docTot,
+          note: note || null,
+        })
+        .eq("id", currentFatturaId)
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Errore aggiornamento fattura:", error);
+        alert("Errore nell'aggiornare la fattura di acquisto");
+        return;
+      }
+
+      fatturaData = data;
+    }
+
+    // sincronizzo totali sui campi
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+
+    // cancello righe precedenti fattura
+    await supabase
+      .from("fatture_acquisto_righe")
+      .delete()
+      .eq("fattura_id", currentFatturaId);
+
+    // inserisco righe + movimenti magazzino
+    const righePayload = [];
+    for (const r of righeForm) {
+      // categoria
+      let categoria = null;
+      if (r.categoria) {
+        categoria = await findOrCreateCategoriaByNome(r.categoria);
+      }
+
+      // prodotto
+      const prodotto = await findOrCreateProdotto({
+        codice: r.codice,
+        descrizione: r.descrizione,
+        categoriaNome: r.categoria,
+        um: r.um,
+      });
+      if (!prodotto) continue;
+
+      const imponibile = r.qta * r.prezzo;
+      const iva = imponibile * (r.ivaPerc / 100);
+      const totale = imponibile + iva;
+
+      righePayload.push({
+        fattura_id: currentFatturaId,
+        prodotto_id: prodotto.id,
+        codice_prodotto: prodotto.codice_interno,
+        categoria_id: categoria ? categoria.id : prodotto.categoria_id || null,
+        descrizione_riga: r.descrizione || prodotto.descrizione,
+        um: r.um || prodotto.um || "pz",
+        quantita: r.qta,
+        prezzo_unitario: r.prezzo,
+        sconto_perc: null,
+        iva_perc: r.ivaPerc,
+        imponibile_riga: imponibile,
+        iva_riga: iva,
+        totale_riga: totale,
+      });
+    }
+
+    if (righePayload.length === 0) {
+      alert(
+        "Nessuna riga valida da salvare dopo la creazione dei prodotti. Controlla i dati."
+      );
+      return;
+    }
+
+    const { data: righeInserite, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .insert(righePayload)
+      .select("*");
+
+    if (righeError) {
+      console.error("Errore salvataggio righe fattura:", righeError);
+      alert("Errore nel salvare le righe della fattura");
+      return;
+    }
+
+    // movimenti di magazzino (CARICO)
+    const movimentiPayload = (righeInserite || []).map((r) => ({
+      prodotto_id: r.prodotto_id,
+      data_movimento: fatturaData.data_documento,
+      tipo_movimento: "CARICO",
+      quantita: r.quantita,
+      costo_unitario: r.prezzo_unitario,
+      riferimento_tipo: "FATTURA_ACQUISTO",
+      riferimento_id: fatturaData.id,
+      riferimento_riga_id: r.id,
+      note: null,
+    }));
+
+    if (movimentiPayload.length > 0) {
+      const { error: movErr } = await supabase
+        .from("magazzino_movimenti")
+        .insert(movimentiPayload);
+
+      if (movErr) {
+        console.error("Errore salvataggio movimenti magazzino:", movErr);
+        alert("Fattura salvata ma errore nel creare i movimenti di magazzino");
+      }
+    }
+
+    alert("Fattura salvata con successo e magazzino aggiornato.");
+    await caricaFornitoriInCache();
+    await caricaCategorieInCache();
+    await caricaListaFatture();
+  }
+
+  async function caricaListaFatture() {
+    if (!fattureListaBody || !supabase) return;
+
+    const { data, error } = await supabase
+      .from("fatture_acquisto")
+      .select("*")
+      .order("data_documento", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error("Errore caricamento fatture:", error);
+      return;
+    }
+
+    fattureListaBody.innerHTML = "";
+    (data || []).forEach((f) => {
+      const forn = getFornitoreById(f.fornitore_id);
+      const nomeForn = forn ? forn.ragione_sociale : "";
+
+      const tr = document.createElement("tr");
+      const dataStr = f.data_documento
+        ? new Date(f.data_documento).toLocaleDateString("it-IT")
+        : "";
+      tr.innerHTML = `
+        <td>${dataStr}</td>
+        <td>${f.numero_documento || ""}</td>
+        <td>${nomeForn}</td>
+        <td>${(f.totale_documento || 0).toFixed(2)}</td>
+        <td>
+          <button type="button" class="app-button tiny gray" data-open-fattura="${f.id}">
+            Apri
+          </button>
+        </td>
+      `;
+      fattureListaBody.appendChild(tr);
+    });
+
+    fattureListaBody
+      .querySelectorAll("[data-open-fattura]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
+          if (!Number.isNaN(id)) {
+            caricaFatturaDettaglio(id);
+          }
+        });
+      });
+  }
+
+  async function caricaFatturaDettaglio(fatturaId) {
+    if (!supabase) return;
+
+    // testata
+    const { data: fattura, error } = await supabase
+      .from("fatture_acquisto")
+      .select("*")
+      .eq("id", fatturaId)
+      .single();
+
+    if (error || !fattura) {
+      console.error("Errore caricamento fattura:", error);
+      alert("Errore nel caricare i dettagli della fattura");
+      return;
+    }
+
+    currentFatturaId = fattura.id;
+
+    const forn = getFornitoreById(fattura.fornitore_id);
+    const nomeForn = forn ? forn.ragione_sociale : "";
+
+    if (fatturaNumeroInput)
+      fatturaNumeroInput.value = fattura.numero_documento || "";
+    if (fatturaDataInput)
+      fatturaDataInput.value = fattura.data_documento || "";
+    if (fatturaFornitoreInput)
+      fatturaFornitoreInput.value = nomeForn || "";
+    if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = (fattura.imponibile_totale || 0).toFixed(2);
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value = (fattura.iva_totale || 0).toFixed(2);
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = (fattura.totale_documento || 0).toFixed(2);
+
+    // righe
+    const { data: righe, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("*")
+      .eq("fattura_id", fatturaId)
+      .order("id", { ascending: true });
+
+    if (righeError) {
+      console.error("Errore caricamento righe fattura:", righeError);
+      alert("Errore nel caricare le righe della fattura");
+      return;
+    }
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      (righe || []).forEach((r) => {
+        const categoria = r.categoria_id
+          ? getCategoriaById(r.categoria_id)?.nome || ""
+          : "";
+        creaRigaFattura({
+          codice_prodotto: r.codice_prodotto,
+          descrizione_riga: r.descrizione_riga,
+          categoria_nome: categoria,
+          um: r.um,
+          quantita: r.quantita,
+          prezzo_unitario: r.prezzo_unitario,
+          iva_perc: r.iva_perc,
+        });
+      });
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  async function initAcquistiView() {
+    await caricaFornitoriInCache();
+    await caricaCategorieInCache();
+    resetFatturaForm();
+    await caricaListaFatture();
+  }
+
+  if (btnAddRigaFattura) {
+    btnAddRigaFattura.addEventListener("click", () => {
+      creaRigaFattura();
+      ricalcolaTotaliFattura();
+    });
+  }
+
+  if (btnNuovaFattura) {
+    btnNuovaFattura.addEventListener("click", () => {
+      handleNuovaFattura();
+    });
+  }
+
+  if (btnSalvaFattura) {
+    btnSalvaFattura.addEventListener("click", () => {
+      handleSalvaFattura();
+    });
+  }
+
   // ========= ROUTING =========
   async function onRouteEnter(route) {
     switch (route) {
@@ -1344,6 +2085,9 @@ document.addEventListener("DOMContentLoaded", () => {
       case "ricette":
         // quando entri in ricette, resettiamo il form (nuova ricetta)
         resetFormRicetta();
+        break;
+      case "acquisti":
+        await initAcquistiView();
         break;
       default:
         break;
