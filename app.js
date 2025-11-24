@@ -5,217 +5,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const CURRENT_USER_KEY = "utente_corrente";
-  const THEME_KEY = "tema_app"; // "dark" | "light"
+  const THEME_KEY = "tema_app";
 
-  // Regole semplici per suggerire categorie da descrizione prodotto
+  // ---- REGOLE CATEGORIA ----
   const REGOLE_CATEGORIA = [
-    {
-      nome: "Farinacei",
-      match: ["farina", "semola", "grano", "riso", "pasta"],
-    },
-    {
-      nome: "Carni suine",
-      match: ["maiale", "suino", "coppa", "lonza", "salsiccia"],
-    },
-    {
-      nome: "Carni bovine",
-      match: ["vitello", "manzo", "bovino", "entrecote", "costata"],
-    },
-    {
-      nome: "Carni avicole",
-      match: ["pollo", "gallo", "tacchino", "coscia di pollo"],
-    },
-    {
-      nome: "Pesce",
-      match: ["merluzzo", "salmone", "tonno", "branzino", "orata"],
-    },
-    {
-      nome: "Conserve di pomodoro",
-      match: ["passata", "pelati", "pomodoro", "polpa di pomodoro"],
-    },
-    {
-      nome: "Latticini",
-      match: ["latte", "burro", "panna", "mozzarella", "formaggio"],
-    },
-    {
-      nome: "Ortaggi",
-      match: ["zucchine", "melanzane", "carote", "cipolle", "patate"],
-    },
+    { nome: "Farinacei", match: ["farina", "semola", "grano", "riso", "pasta"] },
+    { nome: "Carni suine", match: ["maiale", "suino", "coppa", "lonza", "salsiccia"] },
+    { nome: "Carni bovine", match: ["vitello", "manzo", "bovino", "entrecote", "costata"] },
+    { nome: "Carni avicole", match: ["pollo", "gallo", "tacchino", "coscia di pollo"] },
+    { nome: "Pesce", match: ["merluzzo", "salmone", "tonno", "branzino", "orata"] },
+    { nome: "Conserve di pomodoro", match: ["passata", "pelati", "pomodoro", "polpa"] },
+    { nome: "Latticini", match: ["latte", "burro", "panna", "mozzarella", "formaggio"] },
+    { nome: "Ortaggi", match: ["zucchine", "melanzane", "carote", "cipolle", "patate"] },
   ];
 
-  // ---------- DOM base ----------
+  // ---------- DOM ----------
   const views = document.querySelectorAll(".view");
   const routeButtons = document.querySelectorAll("[data-route]");
   const managerMenu = document.getElementById("manager-menu");
 
-  // login
+  // Login
   const loginView = document.getElementById("view-login");
   const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // home dipendente
   const homeDipView = document.getElementById("view-home-dip");
 
-  // header utente
+  // Header
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
   const btnTheme = document.getElementById("btn-theme");
 
-  // timbratura – info utente
-  const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
-  const timbCanaleSelect = document.getElementById("timbratura-canale-select");
-
-  // timbratura – pulsanti
-  const btnEntra = document.getElementById("btn-entra");
-  const btnPausa = document.getElementById("btn-pausa");
-  const btnEsci = document.getElementById("btn-esci");
-
-  // timbratura – tabelle e filtri manager
-  const lista = document.getElementById("timbratura-lista");
-  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
-  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
-  const attiviListaEl = document.getElementById("attivi-lista");
-  const periodoSelect = document.getElementById("timbratura-periodo");
-  const costoDipEl = document.getElementById("costo-dipendenti");
-  const costoCanaliEl = document.getElementById("costo-canali");
-
-  // toggle storico timbrature
-  const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
-  const sezioneTimbratureDettaglio = document.getElementById(
-    "sezione-timbrature-dettaglio"
-  );
-
-  // anagrafica dipendenti
-  const dipNome = document.getElementById("dip-nome");
-  const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
-
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
-  const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
-
-  const dipCodice = document.getElementById("dip-codice");
-  const dipCanale = document.getElementById("dip-canale");
-  const dipAttivo = document.getElementById("dip-attivo");
-  const btnAddDip = document.getElementById("btn-add-dip");
-  const dipLista = document.getElementById("dipendenti-lista");
-  const btnToggleDipendenti = document.getElementById("btn-toggle-dipendenti");
-  const sezioneDipendentiElenco = document.getElementById(
-    "sezione-dipendenti-elenco"
-  );
-
-  // ACQUISTI – fornitori
-  const fornitoreForm = document.getElementById("fornitore-form");
-  const fornitoreNomeInput = document.getElementById("fornitore-nome");
-  const fornitorePivaInput = document.getElementById("fornitore-piva");
-  const fornitoreIndirizzoInput = document.getElementById(
-    "fornitore-indirizzo"
-  );
-  const fornitoreTelefonoInput = document.getElementById("fornitore-telefono");
-  const fornitoreEmailInput = document.getElementById("fornitore-email");
-  const fornitoreNoteInput = document.getElementById("fornitore-note");
-  const btnAddFornitore = document.getElementById("btn-add-fornitore");
-  const fornitoriListaEl = document.getElementById("fornitori-lista");
-  const btnToggleFornitori = document.getElementById("btn-toggle-fornitori");
-  const sezioneFornitoriElenco = document.getElementById(
-    "sezione-fornitori-elenco"
-  );
-
-  // ACQUISTI – fatture
-  const fatturaForm = document.getElementById("fattura-form");
-  const fatturaFornitoreSelect = document.getElementById(
-    "fattura-fornitore-select"
-  );
-  const fatturaNumeroInput = document.getElementById("fattura-numero");
-  const fatturaDataInput = document.getElementById("fattura-data");
-  const fatturaTotaleInput = document.getElementById("fattura-totale");
-  const fatturaFileInput = document.getElementById("fattura-file");
-  const fatturaNoteInput = document.getElementById("fattura-note");
-  const btnAddFattura = document.getElementById("btn-add-fattura");
-  const fattureListaEl = document.getElementById("fatture-lista");
-
-  // ACQUISTI – dettaglio fattura / righe
-  const fatturaDettaglioBox = document.getElementById("fattura-dettaglio");
-  const fatturaDettaglioIntestazione = document.getElementById(
-    "fattura-dettaglio-intestazione"
-  );
-  const fatturaRigaForm = document.getElementById("fattura-riga-form");
-  const fatturaRigaDescrizioneInput = document.getElementById(
-    "fattura-riga-descrizione"
-  );
-  const fatturaRigaQuantitaInput = document.getElementById(
-    "fattura-riga-quantita"
-  );
-  const fatturaRigaUmInput = document.getElementById("fattura-riga-um");
-  const fatturaRigaPrezzoInput = document.getElementById("fattura-riga-prezzo");
-  const fatturaRigaTotaleInput = document.getElementById("fattura-riga-totale");
-  const fatturaRigaSuggerimentiEl = document.getElementById(
-    "fattura-riga-suggerimenti"
-  );
-  const btnAddFatturaRiga = document.getElementById("btn-add-fattura-riga");
-  const fatturaRigheListaEl = document.getElementById("fattura-righe-lista");
-
-  // MAGAZZINO – prodotti
-  const prodottoForm = document.getElementById("prodotto-form");
-  const prodottoCodiceInput = document.getElementById("prodotto-codice");
-  const prodottoNomeInput = document.getElementById("prodotto-nome");
-  const prodottoCategoriaInput = document.getElementById("prodotto-categoria");
-  const prodottoUmInput = document.getElementById("prodotto-um");
-  const prodottoAttivoInput = document.getElementById("prodotto-attivo");
-  const prodottoNoteInput = document.getElementById("prodotto-note");
-  const btnAddProdotto = document.getElementById("btn-add-prodotto");
-  const btnToggleProdotti = document.getElementById("btn-toggle-prodotti");
-  const sezioneProdottiElenco = document.getElementById(
-    "sezione-prodotti-elenco"
-  );
-  const prodottiListaEl = document.getElementById("prodotti-lista");
-
-  // RICETTE – editor
-  const ricettaForm = document.getElementById("ricetta-form");
-  const ricettaTitoloInput = document.getElementById("ricetta-titolo");
-  const ricettaCategoriaInput = document.getElementById("ricetta-categoria");
-  const ricettaPorzioniInput = document.getElementById("ricetta-porzioni");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoFileInput = document.getElementById("ricetta-foto-file");
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const ricettaIngredientiBody = document.getElementById(
-    "ricetta-ingredienti-body"
-  );
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-  const ricetteListaEl = document.getElementById("ricette-lista");
-
-  // ---------- stato ----------
+  // Stato
+  let currentUser = null;
   let dipendenti = [];
   let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
-
-  // stato acquisti
   let fornitori = [];
   let fatture = [];
-  let fatturaSelezionata = null;
-  let fatturaRighe = [];
-
-  // stato magazzino
-  let categorieProdotto = [];
   let prodotti = [];
-
-  // stato ricette
+  let categorieProdotto = [];
   let ricette = [];
-  let ricettaEditId = null; // se stai modificando una ricetta esistente
+  let ricettaEditId = null;
+  let periodoCorrente = "oggi";
 
-  // ---------- tema chiaro/scuro ----------
+  // ---- Tema ----
   function applyTheme(theme) {
     const body = document.body;
     if (theme === "light") {
@@ -229,141 +64,71 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function loadTheme() {
     const saved = localStorage.getItem(THEME_KEY);
-    const theme = saved === "light" ? "light" : "dark";
-    applyTheme(theme);
-  }
-
-  function toggleTheme() {
-    const isLight = document.body.classList.contains("theme-light");
-    const next = isLight ? "dark" : "light";
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
+    applyTheme(saved === "light" ? "light" : "dark");
   }
 
   if (btnTheme) {
-    btnTheme.addEventListener("click", toggleTheme);
+    btnTheme.addEventListener("click", () => {
+      const isLight = document.body.classList.contains("theme-light");
+      const next = isLight ? "dark" : "light";
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
   }
 
   loadTheme();
 
-  // ---------- utility ruoli ----------
+  // ---- Ruoli ----
   function isManagerRole(ruolo) {
-    return (
-      ruolo === "admin" ||
-      ruolo === "manager_cucina" ||
-      ruolo === "manager_sala"
-    );
+    return ruolo === "admin" || ruolo === "manager_cucina" || ruolo === "manager_sala";
   }
 
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
+  function formatRuolo(r) {
+    return {
+      admin: "Admin",
+      manager_cucina: "Manager cucina",
+      manager_sala: "Manager sala",
+      addetto_cucina: "Addetto cucina",
+      cameriere: "Cameriere",
+    }[r] || "";
   }
 
-  function formatTipoCompenso(tipo) {
-    switch (tipo) {
-      case "orario":
-        return "A ore";
-      case "mensile":
-        return "Mensile";
-      case "servizio":
-        return "Per servizio";
-      default:
-        return "";
-    }
-  }
-
-  function formatDataNascita(dataNascita) {
-    if (!dataNascita) return "";
-    const d = new Date(dataNascita);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("it-IT");
-  }
-
-  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
-    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
-
-    if (tipo === "orario") return retribuzioneBase;
-
-    if (tipo === "mensile") {
-      if (!oreMensili || oreMensili <= 0) return 0;
-      return retribuzioneBase / oreMensili;
-    }
-
-    if (tipo === "servizio") {
-      if (!oreServizio || oreServizio <= 0) return 0;
-      return retribuzioneBase / oreServizio;
-    }
-
-    return 0;
-  }
-
-  // ---------- header & visibilità ----------
+  // ---- Header ----
   function updateHeaderUser() {
     if (!currentUserLabel) return;
+    if (!currentUser) currentUserLabel.textContent = "Nessun utente";
+    else currentUserLabel.textContent = `${currentUser.nome} (${formatRuolo(currentUser.ruolo)})`;
 
-    if (!currentUser) {
-      currentUserLabel.textContent = "Nessun utente";
-    } else {
-      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
-      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
-    }
-
-    if (btnLogout) {
-      btnLogout.style.display = currentUser ? "inline-block" : "none";
-    }
+    btnLogout.style.display = currentUser ? "inline-block" : "none";
   }
 
+  // ---- Visibilità ----
   function applyRoleVisibility() {
-    const modalita =
-      currentUser && isManagerRole(currentUser.ruolo)
-        ? "manager"
-        : "dipendente";
+    const modo = currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dip";
 
-    document
-      .querySelectorAll("[data-manager-only='true'], .manager-only")
-      .forEach((el) => {
-        el.style.display = modalita === "manager" ? "" : "none";
-      });
-
-    routeButtons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
+    document.querySelectorAll("[data-manager-only='true']").forEach(el => {
+      el.style.display = modo === "manager" ? "" : "none";
     });
 
-    if (managerMenu) {
-      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
-    }
+    routeButtons.forEach(btn => {
+      const managerOnly = btn.getAttribute("data-manager-only") === "true";
+      btn.style.display = managerOnly && modo !== "manager" ? "none" : "";
+    });
 
+    managerMenu.style.display = modo === "manager" ? "grid" : "none";
     updateHeaderUser();
-    updateTimbraturaUserInfo();
   }
 
-  function showOnlyView(viewId) {
-    views.forEach((v) => {
-      v.style.display = v.id === viewId ? "block" : "none";
+  // ---- Mostra view ----
+  function showOnlyView(id) {
+    views.forEach(v => {
+      v.style.display = v.id === id ? "block" : "none";
     });
   }
 
   function showLogin() {
-    if (homeDipView) homeDipView.style.display = "none";
-    if (managerMenu) managerMenu.style.display = "none";
+    managerMenu.style.display = "none";
+    homeDipView.style.display = "none";
     showOnlyView("view-login");
     currentUser = null;
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -371,20 +136,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function showHomeDipendente() {
-    if (managerMenu) managerMenu.style.display = "none";
+    managerMenu.style.display = "none";
     showOnlyView("view-home-dip");
     applyRoleVisibility();
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showManagerMenuAndRoute(initialRoute) {
-    if (managerMenu) managerMenu.style.display = "grid";
-    const route = initialRoute || "timbratura";
-    showOnlyView(`view-${route}`);
-    applyRoleVisibility();
-    navigateTo(route);
+  function showManagerMenuAndRoute(route) {
+    managerMenu.style.display = "grid";
+    navigateTo(route || "timbratura");
   }
 
+  // ---- Utente corrente ----
   function setCurrentUser(user, persist) {
     currentUser = {
       id: user.id ?? null,
@@ -394,11 +156,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       virtualAdmin: !!user.virtualAdmin,
     };
 
-    if (persist) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
+    if (persist) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    else localStorage.removeItem(CURRENT_USER_KEY);
 
     updateHeaderUser();
     applyRoleVisibility();
@@ -417,2085 +176,743 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const found = dipendenti.find((d) => d.id === saved.id);
-      if (found) {
-        setCurrentUser(found, true);
-        return;
-      }
+      const byId = dipendenti.find(d => d.id === saved.id);
+      if (byId) return setCurrentUser(byId, true);
 
       const byName = dipendenti.find(
-        (d) =>
-          d.nome &&
-          d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
+        d => d.nome && d.nome.toLowerCase() === saved.nome.toLowerCase()
       );
-      if (byName) {
-        setCurrentUser(byName, true);
-        return;
-      }
-    } catch {
-      /* ignore */
-    }
+      if (byName) return setCurrentUser(byName, true);
+    } catch {}
   }
 
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      showLogin();
-    });
-  }
+  // ---- Login ----
+  btnLogin.addEventListener("click", () => {
+    const nome = loginNomeInput.value.trim();
+    const pin = loginPinInput.value.trim();
+    const remember = loginRememberInput.checked;
 
-  // ---------- anagrafica dipendenti ----------
-  function aggiornaUICompenso() {
-    if (!dipTipoCompenso || !labelRetribuzione) return;
+    if (!nome) return alert("Inserisci il nome");
+    if (!pin) return alert("Inserisci il PIN");
 
-    const tipo = dipTipoCompenso.value || "orario";
-
-    if (tipo === "orario") {
-      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
-      if (rowOreMensili) rowOreMensili.style.display = "none";
-      if (rowOreServizio) rowOreServizio.style.display = "none";
-    } else if (tipo === "mensile") {
-      labelRetribuzione.firstChild.textContent =
-        "Stipendio lordo mensile (€/mese)";
-      if (rowOreMensili) rowOreMensili.style.display = "block";
-      if (rowOreServizio) rowOreServizio.style.display = "none";
-    } else if (tipo === "servizio") {
-      labelRetribuzione.firstChild.textContent =
-        "Paga lorda per servizio (€/servizio)";
-      if (rowOreMensili) rowOreMensili.style.display = "none";
-      if (rowOreServizio) rowOreServizio.style.display = "block";
+    if (nome.toLowerCase() === "admin" && pin === "9999") {
+      setCurrentUser({ nome: "Admin", ruolo: "admin", virtualAdmin: true }, remember);
+      loginView.style.display = "none";
+      showManagerMenuAndRoute("timbratura");
+      return;
     }
 
-    const retribuzioneBase =
-      parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-    const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
-    const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
-
-    const costo = calcolaCostoOrario(
-      tipo,
-      retribuzioneBase,
-      oreMensiliVal,
-      oreServizioVal
+    const dip = dipendenti.find(
+      d =>
+        d.attivo &&
+        d.nome.toLowerCase() === nome.toLowerCase() &&
+        d.codice &&
+        d.codice.toString() === pin
     );
-    if (dipCosto) {
-      dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
-    }
-  }
 
-  if (dipTipoCompenso) {
-    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
-  }
-  if (dipRetribuzioneBase) {
-    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreMensili) {
-    dipOreMensili.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreServizio) {
-    dipOreServizio.addEventListener("input", aggiornaUICompenso);
-  }
+    if (!dip) return alert("Nome o PIN non corretti");
 
-  async function caricaDipendentiDaSupabase() {
-    if (!supabase) return;
+    setCurrentUser(dip, remember);
+    loginView.style.display = "none";
 
-    const { data, error } = await supabase
-      .from("dipendenti")
-      .select("*")
-      .order("nome", { ascending: true });
+    if (isManagerRole(dip.ruolo)) showManagerMenuAndRoute("timbratura");
+    else showHomeDipendente();
+  });
 
+  btnLogout.addEventListener("click", () => showLogin());
+  // -----------------------------------------------------------
+  // CARICAMENTO DATI PRINCIPALI ALL’AVVIO
+  // -----------------------------------------------------------
+
+  async function loadDipendenti() {
+    const { data, error } = await supabase.from("dipendenti").select("*").order("nome");
     if (error) {
       console.error("Errore caricamento dipendenti:", error);
-      alert("Errore nel caricare i dipendenti da Supabase");
       return;
     }
-
-    dipendenti = (data || []).map((row) => ({
-      id: row.id,
-      nome: row.nome,
-      mansione: row.mansione,
-      dataNascita: row.data_nascita || null,
-      residenza: row.residenza || "",
-      telefono: row.telefono || "",
-      email: row.email || "",
-      ruolo: row.ruolo || "",
-      tipoCompenso: row.tipo_compenso || "orario",
-      retribuzioneBase: row.retribuzione_base ?? null,
-      oreMensili: row.ore_mensili_contrattuali ?? null,
-      oreServizio: row.ore_medie_per_servizio ?? null,
-      costoOrario: row.costo_orario ?? 0,
-      codice: row.codice || "",
-      canalePrevalente: row.canale_prevalente || "NR",
-      attivo: row.attivo !== false,
-    }));
-
-    renderDipendenti();
-    applyRoleVisibility();
+    dipendenti = data || [];
   }
 
-  async function salvaDipendenteSupabase(dip) {
-    if (!supabase) return null;
-
-    const payload = {
-      id: dip.id || undefined,
-      nome: dip.nome,
-      mansione: dip.mansione,
-      data_nascita: dip.dataNascita || null,
-      residenza: dip.residenza || null,
-      telefono: dip.telefono || null,
-      email: dip.email || null,
-      ruolo: dip.ruolo || null,
-      tipo_compenso: dip.tipoCompenso || "orario",
-      retribuzione_base: dip.retribuzioneBase ?? null,
-      ore_mensili_contrattuali: dip.oreMensili ?? null,
-      ore_medie_per_servizio: dip.oreServizio ?? null,
-      costo_orario: dip.costoOrario ?? null,
-      codice: dip.codice || null,
-      canale_prevalente: dip.canalePrevalente || null,
-      attivo: dip.attivo,
-    };
-
-    const { data, error } = await supabase
-      .from("dipendenti")
-      .upsert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Errore salvataggio dipendente:", error);
-      alert("Errore nel salvare il dipendente");
-      return null;
-    }
-
-    dip.id = data.id;
-    return dip;
-  }
-
-  async function eliminaDipendenteSupabase(dip) {
-    if (!supabase || !dip.id) return;
-
-    const { error } = await supabase
-      .from("dipendenti")
-      .delete()
-      .eq("id", dip.id);
-
-    if (error) {
-      console.error("Errore eliminazione dipendente:", error);
-      alert("Errore nell'eliminare il dipendente");
-    }
-  }
-
-  function renderDipendenti() {
-    if (!dipLista) return;
-    dipLista.innerHTML = "";
-
-    dipendenti.forEach((d, index) => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${d.nome}</td>
-        <td>${d.mansione || ""}</td>
-        <td>${formatDataNascita(d.dataNascita)}</td>
-        <td>${d.residenza || ""}</td>
-        <td>${d.telefono || ""}</td>
-        <td>${d.email || ""}</td>
-        <td>${formatRuolo(d.ruolo)}</td>
-        <td>${formatTipoCompenso(d.tipoCompenso)}</td>
-        <td>${d.costoOrario ? d.costoOrario.toFixed(2) : ""}</td>
-        <td>${d.canalePrevalente || ""}</td>
-        <td>${d.codice || ""}</td>
-        <td>${d.attivo ? "Sì" : "No"}</td>
-        <td>
-          <button data-edit="${index}" class="app-button small gray">Modifica</button>
-          <button data-delete="${index}" class="app-button small red">Elimina</button>
-        </td>
-      `;
-
-      dipLista.appendChild(tr);
-    });
-
-    dipLista.querySelectorAll("[data-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.getAttribute("data-edit"), 10);
-        caricaDipendenteInForm(idx);
-      });
-    });
-
-    dipLista.querySelectorAll("[data-delete]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const idx = parseInt(btn.getAttribute("data-delete"), 10);
-        if (confirm("Eliminare questo dipendente?")) {
-          const dip = dipendenti[idx];
-          await eliminaDipendenteSupabase(dip);
-          await caricaDipendentiDaSupabase();
-        }
-      });
-    });
-  }
-
-  function caricaDipendenteInForm(index) {
-    const d = dipendenti[index];
-    if (!d) return;
-
-    if (dipNome) dipNome.value = d.nome || "";
-    if (dipMansione) dipMansione.value = d.mansione || "";
-    if (dipDataNascita)
-      dipDataNascita.value = d.dataNascita
-        ? d.dataNascita.substring(0, 10)
-        : "";
-    if (dipResidenza) dipResidenza.value = d.residenza || "";
-    if (dipTelefono) dipTelefono.value = d.telefono || "";
-    if (dipEmail) dipEmail.value = d.email || "";
-    if (dipRuolo) dipRuolo.value = d.ruolo || "";
-
-    if (dipTipoCompenso)
-      dipTipoCompenso.value = d.tipoCompenso || "orario";
-    if (dipRetribuzioneBase)
-      dipRetribuzioneBase.value =
-        d.retribuzioneBase != null ? d.retribuzioneBase : "";
-    if (dipOreMensili)
-      dipOreMensili.value = d.oreMensili != null ? d.oreMensili : "";
-    if (dipOreServizio)
-      dipOreServizio.value = d.oreServizio != null ? d.oreServizio : "";
-    if (dipCosto)
-      dipCosto.value =
-        d.costoOrario != null && d.costoOrario > 0
-          ? d.costoOrario.toFixed(2)
-          : "";
-
-    if (dipCodice) dipCodice.value = d.codice || "";
-    if (dipCanale) dipCanale.value = d.canalePrevalente || "NR";
-    if (dipAttivo) dipAttivo.checked = !!d.attivo;
-
-    if (dipNome) dipNome.dataset.editIndex = index.toString();
-
-    aggiornaUICompenso();
-  }
-
-  if (btnAddDip) {
-    btnAddDip.addEventListener("click", async () => {
-      const nome = (dipNome?.value || "").trim();
-      if (!nome) {
-        alert("Inserisci il nome del dipendente");
-        return;
-      }
-
-      const mansione = (dipMansione?.value || "").trim();
-      const dataNascitaVal = dipDataNascita?.value || "";
-      const residenza = (dipResidenza?.value || "").trim();
-      const telefono = (dipTelefono?.value || "").trim();
-      const email = (dipEmail?.value || "").trim();
-      const ruolo = dipRuolo?.value || "";
-
-      const tipoCompenso = dipTipoCompenso?.value || "orario";
-      const retribuzioneBase =
-        parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-      const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
-      const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
-
-      const costoOrario = calcolaCostoOrario(
-        tipoCompenso,
-        retribuzioneBase,
-        oreMensiliVal,
-        oreServizioVal
-      );
-      if (dipCosto) {
-        dipCosto.value = costoOrario ? costoOrario.toFixed(2) : "";
-      }
-
-      const codice = (dipCodice?.value || "").trim();
-      const canalePrevalente = dipCanale?.value || "NR";
-      const attivo = dipAttivo ? dipAttivo.checked : true;
-
-      const editIndex = dipNome?.dataset.editIndex;
-      let dipObj = {
-        nome,
-        mansione,
-        dataNascita: dataNascitaVal || null,
-        residenza,
-        telefono,
-        email,
-        ruolo,
-        tipoCompenso,
-        retribuzioneBase: retribuzioneBase || null,
-        oreMensili: oreMensiliVal || null,
-        oreServizio: oreServizioVal || null,
-        costoOrario: costoOrario || null,
-        codice,
-        canalePrevalente,
-        attivo,
-      };
-
-      if (editIndex !== undefined && editIndex !== "") {
-        const idx = parseInt(editIndex, 10);
-        dipObj.id = dipendenti[idx].id;
-        dipendenti[idx] = dipObj;
-        delete dipNome.dataset.editIndex;
-      } else {
-        dipendenti.push(dipObj);
-      }
-
-      const salvato = await salvaDipendenteSupabase(dipObj);
-      if (!salvato) return;
-
-      if (dipNome) dipNome.value = "";
-      if (dipMansione) dipMansione.value = "";
-      if (dipDataNascita) dipDataNascita.value = "";
-      if (dipResidenza) dipResidenza.value = "";
-      if (dipTelefono) dipTelefono.value = "";
-      if (dipEmail) dipEmail.value = "";
-      if (dipRuolo) dipRuolo.value = "";
-      if (dipTipoCompenso) dipTipoCompenso.value = "orario";
-      if (dipRetribuzioneBase) dipRetribuzioneBase.value = "";
-      if (dipOreMensili) dipOreMensili.value = "";
-      if (dipOreServizio) dipOreServizio.value = "";
-      if (dipCosto) dipCosto.value = "";
-      if (dipCodice) dipCodice.value = "";
-      if (dipCanale) dipCanale.value = "NR";
-      if (dipAttivo) dipAttivo.checked = true;
-      if (dipNome) delete dipNome.dataset.editIndex;
-
-      aggiornaUICompenso();
-      await caricaDipendentiDaSupabase();
-      applyRoleVisibility();
-    });
-  }
-
-  if (btnToggleDipendenti && sezioneDipendentiElenco) {
-    btnToggleDipendenti.addEventListener("click", () => {
-      const visibile = sezioneDipendentiElenco.style.display !== "none";
-      sezioneDipendentiElenco.style.display = visibile ? "none" : "block";
-      btnToggleDipendenti.textContent = visibile
-        ? "Mostra elenco dipendenti"
-        : "Nascondi elenco dipendenti";
-    });
-  }
-
-  // ---------- login & utente corrente ----------
-  function updateTimbraturaUserInfo() {
-    if (!currentUser) {
-      if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
-      if (timbCanaleSelect) timbCanaleSelect.value = "NR";
-      return;
-    }
-
-    if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = currentUser.nome;
-
-    const defaultCanale = currentUser.canalePrevalente || "NR";
-    if (timbCanaleSelect) {
-      timbCanaleSelect.value = defaultCanale;
-    }
-  }
-
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nome = (loginNomeInput?.value || "").trim();
-      const pin = (loginPinInput?.value || "").trim();
-      const remember = loginRememberInput?.checked || false;
-
-      if (!nome) {
-        alert("Inserisci il nome");
-        return;
-      }
-      if (!pin) {
-        alert("Inserisci il PIN");
-        return;
-      }
-
-      // admin virtuale
-      if (nome.toLowerCase() === "admin" && pin === "9999") {
-        setCurrentUser(
-          {
-            id: null,
-            nome: "Admin",
-            ruolo: "admin",
-            canalePrevalente: "NR",
-            virtualAdmin: true,
-          },
-          remember
-        );
-        if (loginView) loginView.style.display = "none";
-        showManagerMenuAndRoute("timbratura");
-        return;
-      }
-
-      const dip = dipendenti.find(
-        (d) =>
-          d.attivo &&
-          d.nome &&
-          d.nome.toLowerCase() === nome.toLowerCase() &&
-          d.codice &&
-          d.codice.toString() === pin.toString()
-      );
-
-      if (!dip) {
-        alert("Nome o PIN non corretti");
-        return;
-      }
-
-      setCurrentUser(dip, remember);
-      if (loginView) loginView.style.display = "none";
-
-      if (isManagerRole(dip.ruolo)) {
-        showManagerMenuAndRoute("timbratura");
-      } else {
-        showHomeDipendente();
-      }
-    });
-  }
-
-  // ---------- timbrature ----------
-  async function caricaTimbratureDaSupabase() {
-    if (!supabase) return;
-
+  async function loadTimbrature() {
     const { data, error } = await supabase
       .from("timbrature")
       .select("*")
-      .order("timestamp", { ascending: true });
+      .order("timestamp", { ascending: false });
 
     if (error) {
       console.error("Errore caricamento timbrature:", error);
-      alert("Errore nel caricare le timbrature da Supabase");
       return;
     }
-
-    timbrature = (data || []).map((row) => ({
-      id: row.id,
-      dipendente_id: row.dipendente_id || null,
-      dip: row.dip_nome,
-      canale: row.canale,
-      tipo: row.tipo,
-      ora: row.ora,
-      timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
-    }));
-
-    aggiornaTabellaTimbrature();
-    aggiornaRiepilogo();
+    timbrature = data || [];
   }
 
-  function formatDurationMinutes(totalMinutes) {
-    const ore = Math.floor(totalMinutes / 60);
-    const min = Math.round(totalMinutes % 60);
-    return `${ore}h ${min.toString().padStart(2, "0")}m`;
+  async function loadProdotti() {
+    const { data, error } = await supabase.from("prodotti").select("*").order("nome");
+    if (!error) prodotti = data || [];
   }
 
-  function aggiornaTabellaTimbrature() {
-    if (!lista) return;
-    lista.innerHTML = "";
-
-    timbrature.forEach((t) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${t.ora || ""}</td>
-        <td>${t.dip}</td>
-        <td>${t.canale}</td>
-        <td>${t.tipo}</td>
-      `;
-      lista.appendChild(tr);
-    });
+  async function loadFornitori() {
+    const { data, error } = await supabase.from("fornitori").select("*").order("nome");
+    if (!error) fornitori = data || [];
   }
 
-  function aggiornaRiepilogo() {
-    if (!riepilogoDipEl || !riepilogoCanaliEl || !attiviListaEl) return;
-
-    const perDip = {};
-    const perCanale = {};
-
-    const adessoDate = new Date();
-    const adesso = adessoDate.getTime();
-
-    const startGiorno = new Date(adessoDate);
-    startGiorno.setHours(0, 0, 0, 0);
-
-    const startSettimana = new Date(startGiorno);
-    const day = startSettimana.getDay() || 7;
-    startSettimana.setDate(startSettimana.getDate() - (day - 1));
-
-    const startMese = new Date(
-      adessoDate.getFullYear(),
-      adessoDate.getMonth(),
-      1
-    );
-    startMese.setHours(0, 0, 0, 0);
-
-    let startPeriodoMs = startGiorno.getTime();
-    if (periodoCorrente === "settimana")
-      startPeriodoMs = startSettimana.getTime();
-    if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
-
-    const eventiPeriodo = timbrature.filter((t) => {
-      if (!t.timestamp) return false;
-      const ts = t.timestamp;
-      return ts >= startPeriodoMs && ts <= adesso;
-    });
-
-    const eventsByKey = {};
-    eventiPeriodo.forEach((t) => {
-      const key = `${t.dip}|${t.canale}`;
-      if (!eventsByKey[key]) eventsByKey[key] = [];
-      eventsByKey[key].push(t);
-    });
-
-    Object.entries(eventsByKey).forEach(([key, events]) => {
-      const [dip, canale] = key.split("|");
-      events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-      let aperto = null;
-
-      events.forEach((ev) => {
-        if (!ev.timestamp) return;
-
-        if (ev.tipo === "Entrata") {
-          aperto = ev;
-        } else if (ev.tipo === "Uscita") {
-          if (aperto && aperto.timestamp) {
-            const diffMin = (ev.timestamp - aperto.timestamp) / 60000;
-            if (diffMin > 0) {
-              perDip[key] = (perDip[key] || 0) + diffMin;
-              perCanale[canale] = (perCanale[canale] || 0) + diffMin;
-            }
-          }
-          aperto = null;
-        }
-      });
-
-      if (aperto && aperto.timestamp) {
-        const diffMin = (adesso - aperto.timestamp) / 60000;
-        if (diffMin > 0) {
-          perDip[key] = (perDip[key] || 0) + diffMin;
-          perCanale[canale] = (perCanale[canale] || 0) + diffMin;
-        }
-      }
-    });
-
-    // riepilogo per dipendente
-    riepilogoDipEl.innerHTML = "";
-    Object.entries(perDip).forEach(([key, minuti]) => {
-      const [dip, canale] = key.split("|");
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${dip}</td>
-        <td>${canale}</td>
-        <td>${formatDurationMinutes(minuti)}</td>
-      `;
-      riepilogoDipEl.appendChild(tr);
-    });
-
-    // riepilogo per canale
-    riepilogoCanaliEl.innerHTML = "";
-    Object.entries(perCanale).forEach(([canale, minuti]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${canale}</td>
-        <td>${formatDurationMinutes(minuti)}</td>
-      `;
-      riepilogoCanaliEl.appendChild(tr);
-    });
-
-    // costi
-    if (costoDipEl && costoCanaliEl) {
-      costoDipEl.innerHTML = "";
-      costoCanaliEl.innerHTML = "";
-
-      const costoByNome = {};
-      dipendenti.forEach((d) => {
-        costoByNome[d.nome] = d.costoOrario || 0;
-      });
-
-      const costoPerCanale = {};
-
-      Object.entries(perDip).forEach(([key, minuti]) => {
-        const [dip, canale] = key.split("|");
-        const ore = minuti / 60;
-        const costoOrario = costoByNome[dip] || 0;
-        const costo = ore * costoOrario;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${dip}</td>
-          <td>${canale}</td>
-          <td>${ore.toFixed(2)}</td>
-          <td>${costo.toFixed(2)}</td>
-        `;
-        costoDipEl.appendChild(tr);
-
-        costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
-      });
-
-      Object.entries(perCanale).forEach(([canale, minuti]) => {
-        const ore = minuti / 60;
-        const costo = costoPerCanale[canale] || 0;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${canale}</td>
-          <td>${ore.toFixed(2)}</td>
-          <td>${costo.toFixed(2)}</td>
-        `;
-        costoCanaliEl.appendChild(tr);
-      });
-    }
-
-    // attivi adesso
-    attiviListaEl.innerHTML = "";
-    const ultimoEventoPerChiave = {};
-    timbrature.forEach((t) => {
-      const key = `${t.dip}|${t.canale}`;
-      if (
-        !ultimoEventoPerChiave[key] ||
-        (t.timestamp || 0) > (ultimoEventoPerChiave[key].timestamp || 0)
-      ) {
-        ultimoEventoPerChiave[key] = t;
-      }
-    });
-
-    Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
-      if (ev.tipo === "Entrata" && ev.timestamp) {
-        const [dip, canale] = key.split("|");
-        const durataMin = (adesso - ev.timestamp) / 60000;
-        const durataTxt = formatDurationMinutes(durataMin);
-
-        const oraDa = new Date(ev.timestamp).toLocaleTimeString("it-IT", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${dip}</td>
-          <td>${canale}</td>
-          <td>${oraDa}</td>
-          <td>${durataTxt}</td>
-        `;
-        attiviListaEl.appendChild(tr);
-      }
-    });
-  }
-
-  // ---------- stato corrente dipendente ----------
-  function getStatoCorrenteDipendente(nomeDip) {
-    const eventiDip = timbrature
-      .filter((t) => t.dip === nomeDip && t.timestamp)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    let inside = false;
-    let canaleCorrente = null;
-
-    for (const ev of eventiDip) {
-      if (ev.tipo === "Entrata") {
-        inside = true;
-        canaleCorrente = ev.canale;
-      } else if (ev.tipo === "Uscita") {
-        inside = false;
-        canaleCorrente = null;
-      }
-    }
-
-    return { inside, canaleCorrente };
-  }
-
-  async function salvaTimbraturaSupabase(record) {
-    if (!supabase) return null;
-
-    let dipendenteId = null;
-    const d = dipendenti.find(
-      (x) => x.nome && x.nome.toLowerCase() === record.dip.toLowerCase()
-    );
-    if (d && d.id) {
-      dipendenteId = d.id;
-    }
-
-    const payload = {
-      dipendente_id: dipendenteId,
-      dip_nome: record.dip,
-      canale: record.canale,
-      tipo: record.tipo,
-      ora: record.ora,
-      timestamp: new Date(record.timestamp).toISOString(),
-    };
-
+  async function loadFatture() {
     const { data, error } = await supabase
-      .from("timbrature")
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Errore salvataggio timbratura:", error);
-      alert("Errore nel registrare la timbratura");
-      return null;
-    }
-
-    record.id = data.id;
-    return record;
-  }
-
-  async function registraTimbratura(tipo) {
-    if (!currentUser) {
-      alert("Devi prima effettuare il login");
-      return;
-    }
-
-    const dipNomeVal = currentUser.nome;
-
-    const stato = getStatoCorrenteDipendente(dipNomeVal);
-
-    if (tipo === "Entrata") {
-      if (stato.inside) {
-        alert(
-          `Sei già timbrato sul canale ${stato.canaleCorrente || ""}. ` +
-            "Devi fare Uscita prima di una nuova Entrata."
-        );
-        if (timbCanaleSelect && stato.canaleCorrente) {
-          timbCanaleSelect.value = stato.canaleCorrente;
-        }
-        return;
-      }
-    } else if (tipo === "Pausa" || tipo === "Uscita") {
-      if (!stato.inside) {
-        alert("Non hai una timbratura di Entrata aperta.");
-        return;
-      }
-    }
-
-    let canaleVal =
-      (timbCanaleSelect && timbCanaleSelect.value) ||
-      currentUser.canalePrevalente ||
-      "NR";
-
-    if (stato.inside && stato.canaleCorrente) {
-      canaleVal = stato.canaleCorrente;
-      if (timbCanaleSelect) timbCanaleSelect.value = stato.canaleCorrente;
-    }
-
-    const now = new Date();
-    const ora = now.toLocaleTimeString("it-IT", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const record = {
-      ora,
-      dip: dipNomeVal,
-      canale: canaleVal,
-      tipo,
-      timestamp: now.getTime(),
-    };
-
-    const salvato = await salvaTimbraturaSupabase(record);
-    if (!salvato) return;
-
-    timbrature.push(salvato);
-    aggiornaTabellaTimbrature();
-    aggiornaRiepilogo();
-  }
-
-  if (btnEntra)
-    btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  if (btnPausa)
-    btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  if (btnEsci)
-    btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
-
-  if (periodoSelect) {
-    periodoSelect.addEventListener("change", () => {
-      periodoCorrente = periodoSelect.value || "oggi";
-      aggiornaRiepilogo();
-    });
-  }
-
-  if (btnToggleTimbrature && sezioneTimbratureDettaglio) {
-    btnToggleTimbrature.addEventListener("click", () => {
-      const visibile = sezioneTimbratureDettaglio.style.display !== "none";
-      if (visibile) {
-        sezioneTimbratureDettaglio.style.display = "none";
-        btnToggleTimbrature.textContent = "Mostra storico timbrature";
-      } else {
-        sezioneTimbratureDettaglio.style.display = "block";
-        btnToggleTimbrature.textContent = "Nascondi storico timbrature";
-      }
-    });
-  }
-
-  // ---------- ACQUISTI: FORNITORI ----------
-  async function caricaFornitoriDaSupabase() {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("fornitori")
-      .select("*")
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento fornitori:", error);
-      alert("Errore nel caricare i fornitori da Supabase");
-      return;
-    }
-
-    fornitori = data || [];
-    renderFornitori();
-    aggiornaSelectFornitori();
-  }
-
-  function renderFornitori() {
-    if (!fornitoriListaEl) return;
-    fornitoriListaEl.innerHTML = "";
-
-    fornitori.forEach((f, index) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${f.nome}</td>
-        <td>${f.piva || ""}</td>
-        <td>${f.telefono || ""}</td>
-        <td>${f.email || ""}</td>
-        <td>
-          <button class="app-button small gray" data-edit-fornitore="${index}">Modifica</button>
-          <button class="app-button small red" data-delete-fornitore="${index}">Elimina</button>
-        </td>
-      `;
-      fornitoriListaEl.appendChild(tr);
-    });
-
-    fornitoriListaEl
-      .querySelectorAll("[data-edit-fornitore]")
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-edit-fornitore"), 10);
-          caricaFornitoreInForm(idx);
-        });
-      });
-
-    fornitoriListaEl
-      .querySelectorAll("[data-delete-fornitore]")
-      .forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const idx = parseInt(btn.getAttribute("data-delete-fornitore"), 10);
-          const f = fornitori[idx];
-          if (!f) return;
-          if (!confirm("Eliminare questo fornitore?")) return;
-
-          const { error } = await supabase
-            .from("fornitori")
-            .delete()
-            .eq("id", f.id);
-          if (error) {
-            console.error("Errore eliminazione fornitore:", error);
-            alert(
-              "Errore nell'eliminare il fornitore (verifica se ha fatture collegate)."
-            );
-            return;
-          }
-          await caricaFornitoriDaSupabase();
-        });
-      });
-  }
-
-  function caricaFornitoreInForm(index) {
-    const f = fornitori[index];
-    if (!f) return;
-
-    if (fornitoreNomeInput) fornitoreNomeInput.value = f.nome || "";
-    if (fornitorePivaInput) fornitorePivaInput.value = f.piva || "";
-    if (fornitoreIndirizzoInput)
-      fornitoreIndirizzoInput.value = f.indirizzo || "";
-    if (fornitoreTelefonoInput)
-      fornitoreTelefonoInput.value = f.telefono || "";
-    if (fornitoreEmailInput) fornitoreEmailInput.value = f.email || "";
-    if (fornitoreNoteInput) fornitoreNoteInput.value = f.note || "";
-
-    if (fornitoreForm) fornitoreForm.dataset.editId = f.id;
-  }
-
-  function aggiornaSelectFornitori() {
-    if (!fatturaFornitoreSelect) return;
-    const current = fatturaFornitoreSelect.value;
-    fatturaFornitoreSelect.innerHTML =
-      '<option value="">-- seleziona fornitore --</option>';
-
-    fornitori.forEach((f) => {
-      const opt = document.createElement("option");
-      opt.value = f.id;
-      opt.textContent = f.nome;
-      fatturaFornitoreSelect.appendChild(opt);
-    });
-
-    if (current) {
-      fatturaFornitoreSelect.value = current;
-    }
-  }
-
-  if (btnAddFornitore) {
-    btnAddFornitore.addEventListener("click", async () => {
-      const nome = (fornitoreNomeInput?.value || "").trim();
-      if (!nome) {
-        alert("Inserisci il nome del fornitore");
-        return;
-      }
-
-      const piva = (fornitorePivaInput?.value || "").trim();
-      const indirizzo = (fornitoreIndirizzoInput?.value || "").trim();
-      const telefono = (fornitoreTelefonoInput?.value || "").trim();
-      const email = (fornitoreEmailInput?.value || "").trim();
-      const note = (fornitoreNoteInput?.value || "").trim();
-
-      const editId = fornitoreForm?.dataset.editId || null;
-
-      const payload = {
-        nome,
-        piva: piva || null,
-        indirizzo: indirizzo || null,
-        telefono: telefono || null,
-        email: email || null,
-        note: note || null,
-      };
-
-      let error = null;
-      if (editId) {
-        const res = await supabase
-          .from("fornitori")
-          .update(payload)
-          .eq("id", editId);
-        error = res.error;
-      } else {
-        const res = await supabase.from("fornitori").insert(payload);
-        error = res.error;
-      }
-
-      if (error) {
-        console.error("Errore salvataggio fornitore:", error);
-        alert("Errore nel salvare il fornitore");
-        return;
-      }
-
-      if (fornitoreNomeInput) fornitoreNomeInput.value = "";
-      if (fornitorePivaInput) fornitorePivaInput.value = "";
-      if (fornitoreIndirizzoInput) fornitoreIndirizzoInput.value = "";
-      if (fornitoreTelefonoInput) fornitoreTelefonoInput.value = "";
-      if (fornitoreEmailInput) fornitoreEmailInput.value = "";
-      if (fornitoreNoteInput) fornitoreNoteInput.value = "";
-      if (fornitoreForm) delete fornitoreForm.dataset.editId;
-
-      await caricaFornitoriDaSupabase();
-      alert("Fornitore salvato correttamente");
-    });
-  }
-
-  if (btnToggleFornitori && sezioneFornitoriElenco) {
-    btnToggleFornitori.addEventListener("click", () => {
-      const visibile = sezioneFornitoriElenco.style.display !== "none";
-      sezioneFornitoriElenco.style.display = visibile ? "none" : "block";
-      btnToggleFornitori.textContent = visibile
-        ? "Mostra elenco fornitori"
-        : "Nascondi elenco fornitori";
-    });
-  }
-
-  // ---------- ACQUISTI: FATTURE ----------
-  async function uploadFileFattura(file) {
-    if (!supabase || !file) return { path: null, tipo: null };
-
-    const estensione = file.name.split(".").pop() || "file";
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substring(2, 8);
-    const path = `fatture/${timestamp}_${randomPart}.${estensione}`;
-
-    const { data, error } = await supabase.storage
-      .from("fatture")
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("Errore upload file fattura:", error);
-      alert("Errore nel caricare il file della fattura");
-      return { path: null, tipo: null };
-    }
-
-    return { path: data.path, tipo: file.type || null };
-  }
-
-  async function caricaFattureDaSupabase() {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("fatture_acquisto")
+      .from("acquisti_fatture")
       .select("*")
       .order("data", { ascending: false });
 
-    if (error) {
-      console.error("Errore caricamento fatture:", error);
-      alert("Errore nel caricare le fatture da Supabase");
-      return;
-    }
-
-    fatture = data || [];
-    renderFatture();
+    if (!error) fatture = data || [];
   }
 
-  function renderFatture() {
-    if (!fattureListaEl) return;
-    fattureListaEl.innerHTML = "";
-
-    fatture.forEach((f, index) => {
-      const fornitore = fornitori.find((x) => x.id === f.fornitore_id);
-      const nomeFornitore = fornitore ? fornitore.nome : "-";
-
-      const dataStr = f.data
-        ? new Date(f.data).toLocaleDateString("it-IT")
-        : "";
-
-      const tr = document.createElement("tr");
-      tr.setAttribute("data-fattura-index", index.toString());
-      tr.style.cursor = "pointer";
-      tr.innerHTML = `
-        <td>${dataStr}</td>
-        <td>${f.numero}</td>
-        <td>${nomeFornitore}</td>
-        <td>${f.totale != null ? Number(f.totale).toFixed(2) : ""}</td>
-        <td>${
-          f.file_path
-            ? `<span style="font-size: 11px;">${
-                f.file_tipo?.startsWith("image/") ? "Immagine" : "PDF"
-              }</span>`
-            : ""
-        }</td>
-      `;
-      fattureListaEl.appendChild(tr);
-    });
-
-    fattureListaEl
-      .querySelectorAll("tr[data-fattura-index]")
-      .forEach((tr) => {
-        tr.addEventListener("click", () => {
-          const idx = parseInt(tr.getAttribute("data-fattura-index"), 10);
-          const f = fatture[idx];
-          if (f) {
-            selezionaFattura(f);
-          }
-        });
-      });
-  }
-
-  if (btnAddFattura) {
-    btnAddFattura.addEventListener("click", async () => {
-      const fornitoreId = fatturaFornitoreSelect?.value || "";
-      const numero = (fatturaNumeroInput?.value || "").trim();
-      const dataVal = fatturaDataInput?.value || "";
-      const totaleValRaw = fatturaTotaleInput?.value || "";
-      const note = (fatturaNoteInput?.value || "").trim();
-      const file = fatturaFileInput?.files?.[0] || null;
-
-      if (!fornitoreId) {
-        alert("Seleziona un fornitore");
-        return;
-      }
-      if (!numero) {
-        alert("Inserisci il numero della fattura");
-        return;
-      }
-      if (!dataVal) {
-        alert("Inserisci la data della fattura");
-        return;
-      }
-
-      let filePath = null;
-      let fileTipo = null;
-
-      if (file) {
-        const uploaded = await uploadFileFattura(file);
-        if (!uploaded.path) {
-          return;
-        }
-        filePath = uploaded.path;
-        fileTipo = uploaded.tipo;
-      }
-
-      const totaleNum =
-        totaleValRaw !== "" ? parseFloat(totaleValRaw || "0") : null;
-
-      const payload = {
-        fornitore_id: fornitoreId,
-        numero,
-        data: dataVal,
-        totale: totaleNum,
-        file_path: filePath,
-        file_tipo: fileTipo,
-        note: note || null,
-      };
-
-      const { data, error } = await supabase
-        .from("fatture_acquisto")
-        .insert(payload)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Errore salvataggio fattura:", error);
-        alert("Errore nel salvare la fattura");
-        return;
-      }
-
-      if (fatturaNumeroInput) fatturaNumeroInput.value = "";
-      if (fatturaDataInput) fatturaDataInput.value = "";
-      if (fatturaTotaleInput) fatturaTotaleInput.value = "";
-      if (fatturaNoteInput) fatturaNoteInput.value = "";
-      if (fatturaFileInput) fatturaFileInput.value = "";
-
-      await caricaFattureDaSupabase();
-      alert("Fattura registrata correttamente");
-
-      fatturaSelezionata = data;
-      selezionaFattura(data);
-    });
-  }
-
-  // ---------- MAGAZZINO: CATEGORIE & PRODOTTI ----------
-  async function caricaCategorieProdottoDaSupabase() {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("categorie_prodotto")
-      .select("*")
-      .order("nome", { ascending: true });
+  async function loadRicette() {
+    const { data, error } = await supabase.from("ricette").select("*").order("nome");
 
     if (error) {
-      console.error("Errore caricamento categorie_prodotto:", error);
-      return;
-    }
-
-    categorieProdotto = data || [];
-  }
-
-  function getNomeCategoriaById(id) {
-    if (!id || !categorieProdotto) return "";
-    const cat = categorieProdotto.find((c) => c.id === id);
-    return cat ? cat.nome : "";
-  }
-
-  async function assicuratiCategoria(nomeCategoria) {
-    const nomeTrim = (nomeCategoria || "").trim();
-    if (!nomeTrim) return null;
-
-    let esistente = categorieProdotto.find(
-      (c) => c.nome.toLowerCase() === nomeTrim.toLowerCase()
-    );
-    if (esistente) return esistente.id;
-
-    const { data, error } = await supabase
-      .from("categorie_prodotto")
-      .insert({ nome: nomeTrim })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Errore creazione categoria_prodotto:", error);
-      return null;
-    }
-
-    categorieProdotto.push(data);
-    return data.id;
-  }
-
-  async function caricaProdottiDaSupabase() {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("*")
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento prodotti:", error);
-      alert("Errore nel caricare i prodotti da Supabase");
-      return;
-    }
-
-    prodotti = data || [];
-    renderProdotti();
-  }
-
-  function renderProdotti() {
-    if (!prodottiListaEl) return;
-    prodottiListaEl.innerHTML = "";
-
-    prodotti.forEach((p, index) => {
-      const nomeCat = getNomeCategoriaById(p.categoria_id);
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${p.codice_interno}</td>
-        <td>${p.nome}</td>
-        <td>${nomeCat}</td>
-        <td>${p.unita_misura}</td>
-        <td>${p.attivo ? "Sì" : "No"}</td>
-        <td>${p.note || ""}</td>
-        <td>
-          <button class="app-button small gray" data-edit-prodotto="${index}">Modifica</button>
-        </td>
-      `;
-      prodottiListaEl.appendChild(tr);
-    });
-
-    prodottiListaEl
-      .querySelectorAll("[data-edit-prodotto]")
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-edit-prodotto"), 10);
-          caricaProdottoInForm(idx);
-        });
-      });
-  }
-
-  function caricaProdottoInForm(index) {
-    const p = prodotti[index];
-    if (!p) return;
-
-    if (prodottoCodiceInput) prodottoCodiceInput.value = p.codice_interno || "";
-    if (prodottoNomeInput) prodottoNomeInput.value = p.nome || "";
-    if (prodottoUmInput) prodottoUmInput.value = p.unita_misura || "";
-    if (prodottoAttivoInput)
-      prodottoAttivoInput.checked = p.attivo !== false;
-    if (prodottoNoteInput) prodottoNoteInput.value = p.note || "";
-
-    const catNome = getNomeCategoriaById(p.categoria_id);
-    if (prodottoCategoriaInput) prodottoCategoriaInput.value = catNome || "";
-
-    if (prodottoForm) prodottoForm.dataset.editId = p.id;
-  }
-
-  async function salvaProdottoSupabase(prodotto) {
-    if (!supabase) return null;
-
-    let categoriaId = null;
-    if (prodotto.categoriaNome) {
-      categoriaId = await assicuratiCategoria(prodotto.categoriaNome);
-    }
-
-    const payload = {
-      id: prodotto.id || undefined,
-      codice_interno: prodotto.codice_interno,
-      nome: prodotto.nome,
-      unita_misura: prodotto.unita_misura || "pz",
-      attivo: prodotto.attivo,
-      note: prodotto.note || null,
-      categoria_id: categoriaId,
-    };
-
-    const { data, error } = await supabase
-      .from("prodotti")
-      .upsert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Errore salvataggio prodotto:", error);
-      alert("Errore nel salvare il prodotto");
-      return null;
-    }
-
-    return data;
-  }
-
-  if (btnAddProdotto) {
-    btnAddProdotto.addEventListener("click", async () => {
-      const codice = (prodottoCodiceInput?.value || "").trim();
-      const nome = (prodottoNomeInput?.value || "").trim();
-      const categoriaNome = (prodottoCategoriaInput?.value || "").trim();
-      const um = (prodottoUmInput?.value || "").trim() || "pz";
-      const attivo = prodottoAttivoInput ? prodottoAttivoInput.checked : true;
-      const note = (prodottoNoteInput?.value || "").trim();
-
-      if (!codice) {
-        alert("Inserisci il codice interno del prodotto");
-        return;
-      }
-      if (!nome) {
-        alert("Inserisci il nome del prodotto");
-        return;
-      }
-
-      const editId = prodottoForm?.dataset.editId || null;
-
-      const prodObj = {
-        id: editId || null,
-        codice_interno: codice,
-        nome,
-        categoriaNome,
-        unita_misura: um,
-        attivo,
-        note,
-      };
-
-      const salvato = await salvaProdottoSupabase(prodObj);
-      if (!salvato) return;
-
-      if (prodottoCodiceInput) prodottoCodiceInput.value = "";
-      if (prodottoNomeInput) prodottoNomeInput.value = "";
-      if (prodottoCategoriaInput) prodottoCategoriaInput.value = "";
-      if (prodottoUmInput) prodottoUmInput.value = "";
-      if (prodottoAttivoInput) prodottoAttivoInput.checked = true;
-      if (prodottoNoteInput) prodottoNoteInput.value = "";
-      if (prodottoForm) delete prodottoForm.dataset.editId;
-
-      await caricaCategorieProdottoDaSupabase();
-      await caricaProdottiDaSupabase();
-
-      alert("Prodotto salvato correttamente");
-    });
-  }
-
-  if (btnToggleProdotti && sezioneProdottiElenco) {
-    btnToggleProdotti.addEventListener("click", () => {
-      const visibile = sezioneProdottiElenco.style.display !== "none";
-      sezioneProdottiElenco.style.display = visibile ? "none" : "block";
-      btnToggleProdotti.textContent = visibile
-        ? "Mostra elenco prodotti"
-        : "Nascondi elenco prodotti";
-    });
-  }
-
-  // ---------- SUGGERIMENTI PRODOTTO/CATEGORIA DA DESCRIZIONE ----------
-  function normalizzaTesto(txt) {
-    return (txt || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-  }
-
-  function suggerisciCategoriaDaDescrizione(descrizione) {
-    const d = normalizzaTesto(descrizione);
-    if (!d) return null;
-
-    for (const regola of REGOLE_CATEGORIA) {
-      for (const parola of regola.match) {
-        if (d.includes(normalizzaTesto(parola))) {
-          return regola.nome;
-        }
-      }
-    }
-    return null;
-  }
-
-  function trovaProdottoEsistentePerDescrizione(descrizione) {
-    const d = normalizzaTesto(descrizione);
-    if (!d || !prodotti.length) return null;
-
-    const tokens = d.split(/\s+/).filter((t) => t.length > 3);
-    for (const p of prodotti) {
-      const nomeP = normalizzaTesto(p.nome);
-      if (tokens.some((t) => nomeP.includes(t))) {
-        return p;
-      }
-    }
-    return null;
-  }
-
-  function aggiornaSuggerimentiRigaFattura() {
-    if (!fatturaRigaSuggerimentiEl) return;
-    const descr = fatturaRigaDescrizioneInput?.value || "";
-    if (!descr.trim()) {
-      fatturaRigaSuggerimentiEl.textContent =
-        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
-      if (fatturaRigaForm) {
-        delete fatturaRigaForm.dataset.prodottoEsistenteId;
-        delete fatturaRigaForm.dataset.categoriaSuggerita;
-      }
-      return;
-    }
-
-    const prodottoEsistente = trovaProdottoEsistentePerDescrizione(descr);
-    const catSuggerita = suggerisciCategoriaDaDescrizione(descr);
-
-    if (prodottoEsistente) {
-      const catNome = getNomeCategoriaById(prodottoEsistente.categoria_id);
-      fatturaRigaSuggerimentiEl.textContent =
-        "Prodotto esistente trovato: " +
-        prodottoEsistente.nome +
-        (catNome ? ` (categoria: ${catNome})` : "");
-      if (fatturaRigaForm) {
-        fatturaRigaForm.dataset.prodottoEsistenteId = prodottoEsistente.id;
-      }
-    } else if (catSuggerita) {
-      fatturaRigaSuggerimentiEl.textContent =
-        "Nuovo prodotto, categoria suggerita: " + catSuggerita;
-      if (fatturaRigaForm) {
-        delete fatturaRigaForm.dataset.prodottoEsistenteId;
-        fatturaRigaForm.dataset.categoriaSuggerita = catSuggerita;
-      }
-    } else {
-      fatturaRigaSuggerimentiEl.textContent =
-        "Nuovo prodotto (categoria da decidere).";
-      if (fatturaRigaForm) {
-        delete fatturaRigaForm.dataset.prodottoEsistenteId;
-        delete fatturaRigaForm.dataset.categoriaSuggerita;
-      }
-    }
-  }
-
-  if (fatturaRigaDescrizioneInput) {
-    fatturaRigaDescrizioneInput.addEventListener(
-      "input",
-      aggiornaSuggerimentiRigaFattura
-    );
-  }
-
-  function aggiornaTotaleRigaDaQuantitaPrezzo() {
-    if (
-      !fatturaRigaQuantitaInput ||
-      !fatturaRigaPrezzoInput ||
-      !fatturaRigaTotaleInput
-    )
-      return;
-    const qta = parseFloat(fatturaRigaQuantitaInput.value || "0") || 0;
-    const prezzo = parseFloat(fatturaRigaPrezzoInput.value || "0") || 0;
-    const tot = qta * prezzo;
-    fatturaRigaTotaleInput.value = tot > 0 ? tot.toFixed(2) : "";
-  }
-
-  if (fatturaRigaQuantitaInput) {
-    fatturaRigaQuantitaInput.addEventListener(
-      "input",
-      aggiornaTotaleRigaDaQuantitaPrezzo
-    );
-  }
-  if (fatturaRigaPrezzoInput) {
-    fatturaRigaPrezzoInput.addEventListener(
-      "input",
-      aggiornaTotaleRigaDaQuantitaPrezzo
-    );
-  }
-
-  // ---------- RIGHE FATTURA + MAGAZZINO ----------
-  async function caricaRigheFatturaDaSupabase(fatturaId) {
-    if (!supabase || !fatturaId) return;
-    const { data, error } = await supabase
-      .from("fatture_righe")
-      .select("*")
-      .eq("fattura_id", fatturaId)
-      .order("id", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento righe fattura:", error);
-      alert("Errore nel caricare le righe della fattura");
-      return;
-    }
-
-    fatturaRighe = data || [];
-    renderFatturaRighe();
-  }
-
-  function renderFatturaRighe() {
-    if (!fatturaRigheListaEl) return;
-    fatturaRigheListaEl.innerHTML = "";
-
-    fatturaRighe.forEach((r) => {
-      const prod = prodotti.find((p) => p.id === r.prodotto_id);
-      const nomeProd = prod ? prod.nome : "";
-      const catNome = prod ? getNomeCategoriaById(prod.categoria_id) : "";
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.descrizione}</td>
-        <td>${Number(r.quantita).toFixed(3)}</td>
-        <td>${r.unita_misura}</td>
-        <td>${Number(r.prezzo_unitario).toFixed(4)}</td>
-        <td>${r.totale_riga != null ? Number(r.totale_riga).toFixed(2) : ""}</td>
-        <td>${nomeProd || ""}${catNome ? " (" + catNome + ")" : ""}</td>
-      `;
-      fatturaRigheListaEl.appendChild(tr);
-    });
-  }
-
-  function resetFatturaRigaForm() {
-    if (fatturaRigaDescrizioneInput) fatturaRigaDescrizioneInput.value = "";
-    if (fatturaRigaQuantitaInput) fatturaRigaQuantitaInput.value = "";
-    if (fatturaRigaUmInput) fatturaRigaUmInput.value = "";
-    if (fatturaRigaPrezzoInput) fatturaRigaPrezzoInput.value = "";
-    if (fatturaRigaTotaleInput) fatturaRigaTotaleInput.value = "";
-    if (fatturaRigaSuggerimentiEl)
-      fatturaRigaSuggerimentiEl.textContent =
-        "Suggerimenti prodotto/categoria appariranno qui mentre scrivi la descrizione.";
-    if (fatturaRigaForm) {
-      delete fatturaRigaForm.dataset.prodottoEsistenteId;
-      delete fatturaRigaForm.dataset.categoriaSuggerita;
-    }
-  }
-
-  async function selezionaFattura(fattura) {
-    fatturaSelezionata = fattura;
-    if (!fatturaDettaglioBox || !fatturaDettaglioIntestazione) return;
-
-    const fornitore = fornitori.find((x) => x.id === fattura.fornitore_id);
-    const nomeFornitore = fornitore ? fornitore.nome : "-";
-    const dataStr = fattura.data
-      ? new Date(fattura.data).toLocaleDateString("it-IT")
-      : "";
-
-    fatturaDettaglioIntestazione.textContent = `Fornitore: ${nomeFornitore} • Data: ${dataStr} • Numero: ${fattura.numero}`;
-    fatturaDettaglioBox.style.display = "block";
-    resetFatturaRigaForm();
-
-    await caricaProdottiDaSupabase();
-    await caricaRigheFatturaDaSupabase(fattura.id);
-  }
-
-  async function inserisciMovimentoMagazzinoDaRiga(
-    prodottoId,
-    fattura,
-    rigaInserita
-  ) {
-    if (!supabase || !prodottoId || !fattura || !rigaInserita) return;
-
-    const qta = Number(rigaInserita.quantita) || 0;
-    const um = rigaInserita.unita_misura || "pz";
-    const prezzo = Number(rigaInserita.prezzo_unitario) || 0;
-    const tot = qta * prezzo;
-
-    const dataMovimento =
-      fattura.data || new Date().toISOString().slice(0, 10);
-
-    const riferimento = `Fattura ${fattura.numero || ""}`.trim();
-
-    const payload = {
-      prodotto_id: prodottoId,
-      tipo: "carico",
-      data_movimento: dataMovimento,
-      quantita: qta,
-      unita_misura: um,
-      costo_unitario: prezzo || null,
-      costo_totale: tot || null,
-      riferimento: riferimento || null,
-      fattura_id: fattura.id,
-      fattura_riga_id: rigaInserita.id,
-    };
-
-    const { error } = await supabase
-      .from("magazzino_movimenti")
-      .insert(payload);
-
-    if (error) {
-      console.error("Errore inserimento movimento magazzino:", error);
-      alert(
-        "Attenzione: riga fattura salvata ma errore nel movimento di magazzino"
-      );
-    }
-  }
-
-  if (btnAddFatturaRiga) {
-    btnAddFatturaRiga.addEventListener("click", async () => {
-      if (!fatturaSelezionata) {
-        alert("Seleziona prima una fattura cliccando sull'elenco.");
-        return;
-      }
-
-      const descr = (fatturaRigaDescrizioneInput?.value || "").trim();
-      const qta = parseFloat(fatturaRigaQuantitaInput?.value || "0") || 0;
-      const um = (fatturaRigaUmInput?.value || "").trim() || "pz";
-      const prezzo = parseFloat(fatturaRigaPrezzoInput?.value || "0") || 0;
-      let tot =
-        parseFloat(fatturaRigaTotaleInput?.value || "0") || qta * prezzo;
-
-      if (!descr) {
-        alert("Inserisci la descrizione della riga");
-        return;
-      }
-      if (!qta || qta <= 0) {
-        alert("Inserisci una quantità valida");
-        return;
-      }
-      if (!prezzo || prezzo <= 0) {
-        alert("Inserisci un prezzo unitario valido");
-        return;
-      }
-      if (!tot || tot <= 0) {
-        tot = qta * prezzo;
-      }
-
-      // 1) individua o crea prodotto
-      let prodottoId = null;
-      if (fatturaRigaForm?.dataset.prodottoEsistenteId) {
-        prodottoId = parseInt(
-          fatturaRigaForm.dataset.prodottoEsistenteId,
-          10
-        );
-      } else {
-        const categoriaSuggerita =
-          fatturaRigaForm?.dataset.categoriaSuggerita || null;
-        const codiceInterno = "P-" + Date.now().toString(36);
-
-        const prodObj = {
-          id: null,
-          codice_interno: codiceInterno,
-          nome: descr,
-          categoriaNome: categoriaSuggerita,
-          unita_misura: um,
-          attivo: true,
-          note: null,
-        };
-
-        const nuovoProdotto = await salvaProdottoSupabase(prodObj);
-        if (!nuovoProdotto) {
-          alert("Errore nel creare il prodotto associato alla riga.");
-          return;
-        }
-        prodottoId = nuovoProdotto.id;
-        prodotti.push(nuovoProdotto);
-      }
-
-      // 2) inserisci riga fattura
-      const payloadRiga = {
-        fattura_id: fatturaSelezionata.id,
-        prodotto_id: prodottoId,
-        descrizione: descr,
-        quantita: qta,
-        unita_misura: um,
-        prezzo_unitario: prezzo,
-        totale_riga: tot,
-      };
-
-      const { data, error } = await supabase
-        .from("fatture_righe")
-        .insert(payloadRiga)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Errore salvataggio riga fattura:", error);
-        alert("Errore nel salvare la riga della fattura");
-        return;
-      }
-
-      fatturaRighe.push(data);
-      renderFatturaRighe();
-
-      // 3) movimento di magazzino
-      await inserisciMovimentoMagazzinoDaRiga(
-        prodottoId,
-        fatturaSelezionata,
-        data
-      );
-
-      resetFatturaRigaForm();
-      alert("Riga fattura e movimento di magazzino registrati correttamente");
-    });
-  }
-
-  // ---------- RICETTE ----------
-  async function uploadFotoRicetta(file) {
-    if (!supabase || !file) return null;
-
-    const estensione = file.name.split(".").pop() || "jpg";
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substring(2, 8);
-    const path = `ricette/${timestamp}_${randomPart}.${estensione}`;
-
-    const { data, error } = await supabase.storage
-      .from("ricette_foto")
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("Errore upload foto ricetta:", error);
-      alert("Errore nel caricare la foto della ricetta");
-      return null;
-    }
-
-    const { data: publicData } = supabase.storage
-      .from("ricette_foto")
-      .getPublicUrl(data.path);
-
-    return publicData?.publicUrl || null;
-  }
-
-  async function caricaRicetteDaSupabase() {
-    if (!supabase) return;
-
-    const { data, error } = await supabase
-      .from("ricette")
-      .select("*")
-      .order("titolo", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento ricette:", error);
-      alert("Errore nel caricare le ricette");
+      console.error("Errore caricamento ricette:", error.message);
+      alert("Errore nel caricare ricette");
       return;
     }
 
     ricette = data || [];
-    renderRicetteLista();
   }
 
-  async function caricaIngredientiRicetta(ricettaId) {
-    if (!supabase || !ricettaId) return [];
-
-    const { data, error } = await supabase
-      .from("ricette_ingredienti")
-      .select("*")
-      .eq("ricetta_id", ricettaId)
-      .order("id", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento ingredienti ricetta:", error);
-      alert("Errore nel caricare gli ingredienti della ricetta");
-      return [];
-    }
-
-    return data || [];
-  }
-
-  function resetRicettaForm() {
-    if (!ricettaForm) return;
-
-    ricettaEditId = null;
-
-    if (ricettaTitoloInput) ricettaTitoloInput.value = "";
-    if (ricettaCategoriaInput) ricettaCategoriaInput.value = "";
-    if (ricettaPorzioniInput) ricettaPorzioniInput.value = "";
-    if (ricettaNoteInput) ricettaNoteInput.value = "";
-    if (ricettaFotoFileInput) ricettaFotoFileInput.value = "";
-    if (ricettaIngredientiBody) {
-      ricettaIngredientiBody.innerHTML = "";
-      // importante: almeno una riga vuota di ingrediente
-      aggiungiRigaIngrediente(null);
-    }
-  }
-
-  function aggiungiRigaIngrediente(initial) {
-    if (!ricettaIngredientiBody) return;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <input type="text" class="inp-ingrediente-nome" placeholder="Ingrediente" value="${
-          initial?.nome_ingrediente || ""
-        }" />
-      </td>
-      <td>
-        <input type="number" class="inp-ingrediente-qta" step="0.01" min="0" value="${
-          initial?.quantita != null ? initial.quantita : ""
-        }" />
-      </td>
-      <td>
-        <input type="text" class="inp-ingrediente-um" placeholder="es. kg, g, pz" value="${
-          initial?.unita_misura || ""
-        }" />
-      </td>
-      <td>
-        <input type="text" class="inp-ingrediente-note" placeholder="Note" value="${
-          initial?.note || ""
-        }" />
-      </td>
-      <td style="text-align:right;">
-        <button type="button" class="app-button tiny red btn-remove-ingrediente">X</button>
-      </td>
-    `;
-
-    ricettaIngredientiBody.appendChild(tr);
-
-    const removeBtn = tr.querySelector(".btn-remove-ingrediente");
-    if (removeBtn) {
-      removeBtn.addEventListener("click", () => {
-        tr.remove();
-      });
-    }
-  }
-
-  if (btnAddIngrediente) {
-    btnAddIngrediente.addEventListener("click", () => {
-      aggiungiRigaIngrediente(null);
-    });
-  }
-
-  function renderRicetteLista() {
-    if (!ricetteListaEl) return;
-
-    ricetteListaEl.innerHTML = "";
-
-    ricette.forEach((r) => {
-      const tr = document.createElement("tr");
-      const dataStr = r.created_at
-        ? new Date(r.created_at).toLocaleDateString("it-IT")
-        : "";
-      tr.innerHTML = `
-        <td>${r.titolo}</td>
-        <td>${r.categoria || ""}</td>
-        <td>${r.porzioni || ""}</td>
-        <td>${dataStr}</td>
-      `;
-      tr.style.cursor = "pointer";
-      tr.addEventListener("click", async () => {
-        await caricaRicettaInForm(r.id);
-      });
-      ricetteListaEl.appendChild(tr);
-    });
-  }
-
-  async function caricaRicettaInForm(ricettaId) {
-    if (!supabase || !ricettaForm) return;
-
-    const ricetta = ricette.find((r) => r.id === ricettaId);
-    if (!ricetta) return;
-
-    ricettaEditId = ricetta.id;
-
-    if (ricettaTitoloInput) ricettaTitoloInput.value = ricetta.titolo || "";
-    if (ricettaCategoriaInput)
-      ricettaCategoriaInput.value = ricetta.categoria || "";
-    if (ricettaPorzioniInput)
-      ricettaPorzioniInput.value = ricetta.porzioni || "";
-    if (ricettaNoteInput) ricettaNoteInput.value = ricetta.note || "";
-
-    if (ricettaIngredientiBody) ricettaIngredientiBody.innerHTML = "";
-
-    const ingredienti = await caricaIngredientiRicetta(ricetta.id);
-    if (ingredienti.length === 0) {
-      // almeno una riga vuota
-      aggiungiRigaIngrediente(null);
-    } else {
-      ingredienti.forEach((ing) => aggiungiRigaIngrediente(ing));
-    }
-
-    // (foto: anteprima in futuro)
-  }
-
-  if (btnSalvaRicetta) {
-    btnSalvaRicetta.addEventListener("click", async () => {
-      if (!supabase) return;
-
-      const titolo = (ricettaTitoloInput?.value || "").trim();
-      if (!titolo) {
-        alert("Inserisci il titolo della ricetta");
-        return;
-      }
-
-      const categoria = (ricettaCategoriaInput?.value || "").trim() || null;
-      const porzioniRaw = ricettaPorzioniInput?.value || "";
-      const porzioni =
-        porzioniRaw !== "" ? parseInt(porzioniRaw, 10) || null : null;
-      const note = (ricettaNoteInput?.value || "").trim() || null;
-
-      let fotoUrl = null;
-      const fileFoto = ricettaFotoFileInput?.files?.[0] || null;
-      if (fileFoto) {
-        fotoUrl = await uploadFotoRicetta(fileFoto);
-        if (!fotoUrl) {
-          // errore già gestito nell'upload
-          return;
-        }
-      }
-
-      let payloadRicetta = {
-        titolo,
-        categoria,
-        porzioni,
-        note,
-      };
-
-      if (fotoUrl) {
-        payloadRicetta.foto_url = fotoUrl;
-      }
-
-      let ricettaId = ricettaEditId;
-
-      if (ricettaId) {
-        // update
-        payloadRicetta.id = ricettaId;
-        const { error } = await supabase
-          .from("ricette")
-          .update(payloadRicetta)
-          .eq("id", ricettaId);
-
-        if (error) {
-          console.error("Errore aggiornamento ricetta:", error);
-          alert("Errore nell'aggiornare la ricetta");
-          return;
-        }
-      } else {
-        // insert
-        const { data, error } = await supabase
-          .from("ricette")
-          .insert(payloadRicetta)
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Errore inserimento ricetta:", error);
-          alert("Errore nel salvare la ricetta");
-          return;
-        }
-        ricettaId = data.id;
-      }
-
-      // ingredienti
-      if (ricettaIngredientiBody) {
-        const rows = Array.from(
-          ricettaIngredientiBody.querySelectorAll("tr")
-        );
-
-        // prima cancello ingredienti esistenti
-        await supabase
-          .from("ricette_ingredienti")
-          .delete()
-          .eq("ricetta_id", ricettaId);
-
-        const ingredientiDaInserire = [];
-
-        rows.forEach((row) => {
-          const nomeEl = row.querySelector(".inp-ingrediente-nome");
-          const qtaEl = row.querySelector(".inp-ingrediente-qta");
-          const umEl = row.querySelector(".inp-ingrediente-um");
-          const noteEl = row.querySelector(".inp-ingrediente-note");
-
-          const nomeIng = (nomeEl?.value || "").trim();
-          const qtaRaw = qtaEl?.value || "";
-          const qta =
-            qtaRaw !== "" ? parseFloat(qtaRaw.replace(",", ".")) || 0 : 0;
-          const um = (umEl?.value || "").trim() || null;
-          const noteIng = (noteEl?.value || "").trim() || null;
-
-          if (!nomeIng || !qta || qta <= 0) {
-            return; // salta righe vuote
-          }
-
-          ingredientiDaInserire.push({
-            ricetta_id: ricettaId,
-            nome_ingrediente: nomeIng,
-            quantita: qta,
-            unita_misura: um,
-            note: noteIng,
-          });
-        });
-
-        if (ingredientiDaInserire.length > 0) {
-          const { error: errIng } = await supabase
-            .from("ricette_ingredienti")
-            .insert(ingredientiDaInserire);
-
-          if (errIng) {
-            console.error("Errore inserimento ingredienti:", errIng);
-            alert(
-              "Ricetta salvata, ma c'è stato un errore nel salvare gli ingredienti."
-            );
-            await caricaRicetteDaSupabase();
-            return;
-          }
-        }
-      }
-
-      alert("Ricetta salvata correttamente");
-      resetRicettaForm();
-      await caricaRicetteDaSupabase();
-    });
-  }
-
-  // ---------- routing ----------
-  async function onRouteEnter(route) {
-    switch (route) {
-      case "timbratura":
-        await caricaTimbratureDaSupabase();
-        updateTimbraturaUserInfo();
-        break;
-      case "dipendenti":
-        await caricaDipendentiDaSupabase();
-        break;
-      case "acquisti":
-        await caricaFornitoriDaSupabase();
-        await caricaCategorieProdottoDaSupabase();
-        await caricaProdottiDaSupabase();
-        await caricaFattureDaSupabase();
-        break;
-      case "reintegro":
-        await caricaCategorieProdottoDaSupabase();
-        await caricaProdottiDaSupabase();
-        break;
-      case "ricette":
-        await caricaRicetteDaSupabase();
-        resetRicettaForm();
-        break;
-      case "preventivi":
-      case "report":
-      case "parametri":
-      case "vendite":
-      case "ordine":
-        // per ora nessun caricamento specifico
-        break;
-      default:
-        break;
-    }
-  }
-
-  async function navigateTo(route) {
-    if (!currentUser) {
-      showLogin();
-      return;
-    }
-
-    const isManager = isManagerRole(currentUser.ruolo);
-
-    if (!isManager) {
-      if (route === "timbratura" || route === "ordine") {
-        showOnlyView(`view-${route}`);
-        await onRouteEnter(route);
-      } else {
-        showHomeDipendente();
-      }
-    } else {
-      let active = document.getElementById(`view-${route}`);
-      if (!active) {
-        // fallback manager
-        route = "timbratura";
-        active = document.getElementById("view-timbratura");
-      }
-
-      showOnlyView(`view-${route}`);
-      await onRouteEnter(route);
-    }
-
-    applyRoleVisibility();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  // -----------------------------------------------------------
+  // NAVIGAZIONE (ROUTER)
+  // -----------------------------------------------------------
 
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const route = btn.getAttribute("data-route");
-      if (!route) return;
-
-      // aggiorno hash (per back/forward)
-      if (window.location.hash.replace("#", "") !== route) {
-        window.location.hash = route;
-      }
-
-      // chiamo comunque navigateTo per sicurezza
-      navigateTo(route);
+      const r = btn.getAttribute("data-route");
+      navigateTo(r);
     });
   });
 
-  window.addEventListener("hashchange", () => {
-    const route = window.location.hash.replace("#", "");
-    if (route) {
-      navigateTo(route);
+  async function navigateTo(route) {
+    if (!currentUser) return showLogin();
+
+    switch (route) {
+      case "timbratura":
+        await loadTimbrature();
+        updateTimbraturaView();
+        showOnlyView("view-timbratura");
+        break;
+
+      case "dipendenti":
+        updateDipendentiView();
+        showOnlyView("view-dipendenti");
+        break;
+
+      case "ricette":
+        await loadRicette();
+        prepareRicetteEditor();
+        showOnlyView("view-ricette");
+        break;
+
+      case "acquisti":
+        await loadFornitori();
+        await loadFatture();
+        updateAcquistiView();
+        showOnlyView("view-acquisti");
+        break;
+
+      case "reintegro":
+        await loadProdotti();
+        updateProdottiView();
+        showOnlyView("view-reintegro");
+        break;
+
+      case "kpi":
+        await caricaKPI();        // ⭐ SARÀ DEFINITO NELLA PARTE 3
+        showOnlyView("view-kpi");
+        break;
+
+      default:
+        showHomeDipendente();
+        break;
+    }
+  }
+
+  // -----------------------------------------------------------
+  // TIMBRATURE — FUNZIONI PRINCIPALI
+  // -----------------------------------------------------------
+
+  function getLastTimbraturaOpen(dipId) {
+    return timbrature.find(
+      (t) => t.dipendente_id === dipId && t.azione === "ENTRATA" && !t.chiusura
+    );
+  }
+
+  async function timbraAzione(azione) {
+    if (!currentUser) return alert("Non sei loggato");
+
+    const dipId = currentUser.id;
+    const canale = document.getElementById("timbratura-canale-select").value;
+    const lastOpen = getLastTimbraturaOpen(dipId);
+
+    if (azione === "ENTRATA") {
+      if (lastOpen) return alert("Hai già una entrata aperta.");
+    }
+
+    if (azione === "PAUSA" || azione === "USCITA") {
+      if (!lastOpen) return alert("Non hai una entrata aperta.");
+    }
+
+    const timestamp = new Date().toISOString();
+
+    if (azione === "ENTRATA") {
+      const { error } = await supabase.from("timbrature").insert({
+        dipendente_id: dipId,
+        canale,
+        azione: "ENTRATA",
+        timestamp,
+      });
+      if (error) {
+        console.error(error);
+        return alert("Errore registrazione entrata");
+      }
+    }
+
+    if (azione === "PAUSA" || azione === "USCITA") {
+      const { error } = await supabase
+        .from("timbrature")
+        .update({
+          chiusura: timestamp,
+          azione_chiusura: azione === "PAUSA" ? "PAUSA" : "USCITA",
+        })
+        .eq("id", lastOpen.id);
+
+      if (error) {
+        console.error(error);
+        return alert("Errore salvataggio uscita/pausa");
+      }
+    }
+
+    await loadTimbrature();
+    updateTimbraturaView();
+  }
+
+  document.getElementById("btn-entra").onclick = () => timbraAzione("ENTRATA");
+  document.getElementById("btn-pausa").onclick = () => timbraAzione("PAUSA");
+  document.getElementById("btn-esci").onclick = () => timbraAzione("USCITA");
+
+  function updateTimbraturaView() {
+    if (!currentUser) return;
+    document.getElementById("timbratura-utente-nome").textContent =
+      currentUser.nome;
+
+    const tbody = document.getElementById("timbratura-lista");
+    tbody.innerHTML = "";
+
+    for (const t of timbrature.slice(0, 50)) {
+      const dip = dipendenti.find((d) => d.id === t.dipendente_id);
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${new Date(t.timestamp).toLocaleString()}</td>
+        <td>${dip ? dip.nome : "-"}</td>
+        <td>${t.canale}</td>
+        <td>${t.azione}${t.chiusura ? " / " + t.azione_chiusura : ""}</td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  // -----------------------------------------------------------
+  // DIPENDENTI — SALVATAGGIO & LISTA
+  // -----------------------------------------------------------
+
+  const btnAddDip = document.getElementById("btn-add-dip");
+  const btnToggleDip = document.getElementById("btn-toggle-dipendenti");
+
+  btnAddDip.onclick = async () => {
+    const nome = document.getElementById("dip-nome").value.trim();
+    const mansione = document.getElementById("dip-mansione").value.trim();
+    const dataNascita = document.getElementById("dip-data-nascita").value || null;
+    const residenza = document.getElementById("dip-residenza").value.trim();
+    const telefono = document.getElementById("dip-telefono").value.trim();
+    const email = document.getElementById("dip-email").value.trim();
+    const ruolo = document.getElementById("dip-ruolo").value;
+    const tipoComp = document.getElementById("dip-tipo-compenso").value;
+    const paga = parseFloat(document.getElementById("dip-retribuzione-base").value) || 0;
+    const oreMensili = parseFloat(document.getElementById("dip-ore-mensili").value) || null;
+    const oreServizio = parseFloat(document.getElementById("dip-ore-servizio").value) || null;
+    const costo = parseFloat(document.getElementById("dip-costo").value) || null;
+    const pin = document.getElementById("dip-codice").value.trim();
+    const canale = document.getElementById("dip-canale").value;
+    const attivo = document.getElementById("dip-attivo").checked;
+
+    if (!nome || !ruolo) return alert("Nome e ruolo obbligatori.");
+
+    const { error } = await supabase.from("dipendenti").insert({
+      nome,
+      mansione,
+      data_nascita: dataNascita,
+      residenza,
+      telefono,
+      email,
+      ruolo,
+      tipo_compenso: tipoComp,
+      retribuzione_base: paga,
+      ore_mensili: oreMensili,
+      ore_servizio: oreServizio,
+      costo_orario: costo,
+      codice: pin,
+      canale_prevalente: canale,
+      attivo,
+    });
+
+    if (error) {
+      console.error(error);
+      return alert("Errore salvataggio dipendente");
+    }
+
+    await loadDipendenti();
+    updateDipendentiView();
+    alert("Dipendente salvato");
+  };
+
+  btnToggleDip.onclick = () => {
+    const div = document.getElementById("sezione-dipendenti-elenco");
+    div.style.display = div.style.display === "none" ? "block" : "none";
+  };
+
+  function updateDipendentiView() {
+    const tbody = document.getElementById("dipendenti-lista");
+    tbody.innerHTML = "";
+
+    for (const d of dipendenti) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.nome}</td>
+        <td>${d.mansione || ""}</td>
+        <td>${d.data_nascita || ""}</td>
+        <td>${d.residenza || ""}</td>
+        <td>${d.telefono || ""}</td>
+        <td>${d.email || ""}</td>
+        <td>${formatRuolo(d.ruolo)}</td>
+        <td>${d.tipo_compenso}</td>
+        <td>${d.costo_orario || "-"}</td>
+        <td>${d.canale_prevalente}</td>
+        <td>${d.codice}</td>
+        <td>${d.attivo ? "Sì" : "No"}</td>
+        <td><button class="app-button tiny" data-id="${d.id}">Modifica</button></td>
+      `;
+      tr.querySelector("button").onclick = () => loadDipendenteForm(d.id);
+      tbody.appendChild(tr);
+    }
+  }
+
+  function loadDipendenteForm(id) {
+    const d = dipendenti.find((x) => x.id === id);
+    if (!d) return;
+
+    document.getElementById("dip-nome").value = d.nome;
+    document.getElementById("dip-mansione").value = d.mansione || "";
+    document.getElementById("dip-data-nascita").value = d.data_nascita || "";
+    document.getElementById("dip-residenza").value = d.residenza || "";
+    document.getElementById("dip-telefono").value = d.telefono || "";
+    document.getElementById("dip-email").value = d.email || "";
+    document.getElementById("dip-ruolo").value = d.ruolo;
+    document.getElementById("dip-tipo-compenso").value = d.tipo_compenso;
+    document.getElementById("dip-retribuzione-base").value = d.retribuzione_base || "";
+    document.getElementById("dip-ore-mensili").value = d.ore_mensili || "";
+    document.getElementById("dip-ore-servizio").value = d.ore_servizio || "";
+    document.getElementById("dip-costo").value = d.costo_orario || "";
+    document.getElementById("dip-codice").value = d.codice || "";
+    document.getElementById("dip-canale").value = d.canale_prevalente;
+    document.getElementById("dip-attivo").checked = d.attivo;
+  }
+
+  // -----------------------------------------------------------
+  // PRODOTTI / MAGAZZINO
+  // -----------------------------------------------------------
+
+  document.getElementById("btn-add-prodotto").onclick = async () => {
+    const codice = document.getElementById("prodotto-codice").value.trim();
+    const nome = document.getElementById("prodotto-nome").value.trim();
+    const cat = document.getElementById("prodotto-categoria").value.trim();
+    const um = document.getElementById("prodotto-um").value.trim();
+    const attivo = document.getElementById("prodotto-attivo").checked;
+    const note = document.getElementById("prodotto-note").value.trim();
+
+    if (!nome) return alert("Nome obbligatorio.");
+
+    const { error } = await supabase.from("prodotti").insert({
+      codice,
+      nome,
+      categoria: cat,
+      um,
+      attivo,
+      note,
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Errore salvataggio prodotto");
+    }
+
+    await loadProdotti();
+    updateProdottiView();
+  };
+
+  function updateProdottiView() {
+    const tbody = document.getElementById("prodotti-lista");
+    tbody.innerHTML = "";
+
+    for (const p of prodotti) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.codice || ""}</td>
+        <td>${p.nome}</td>
+        <td>${p.categoria || ""}</td>
+        <td>${p.um}</td>
+        <td>${p.attivo ? "Sì" : "No"}</td>
+        <td>${p.note || ""}</td>
+        <td><button class="app-button tiny">Modifica</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // -----------------------------------------------------------
+  // FORNITORI
+  // -----------------------------------------------------------
+
+  document.getElementById("btn-add-fornitore").onclick = async () => {
+    const nome = document.getElementById("fornitore-nome").value.trim();
+    const piva = document.getElementById("fornitore-piva").value.trim();
+    const ind = document.getElementById("fornitore-indirizzo").value.trim();
+    const tel = document.getElementById("fornitore-telefono").value.trim();
+    const mail = document.getElementById("fornitore-email").value.trim();
+    const note = document.getElementById("fornitore-note").value.trim();
+
+    if (!nome) return alert("Nome obbligatorio");
+
+    const { error } = await supabase.from("fornitori").insert({
+      nome,
+      partita_iva: piva,
+      indirizzo: ind,
+      telefono: tel,
+      email: mail,
+      note,
+    });
+
+    if (error) return alert("Errore salvataggio fornitore");
+
+    await loadFornitori();
+    updateAcquistiView();
+  };
+
+  function updateAcquistiView() {
+    const sel = document.getElementById("fattura-fornitore-select");
+    sel.innerHTML = `<option value="">-- seleziona fornitore --</option>`;
+    fornitori.forEach((f) => {
+      sel.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
+    });
+
+    const tbody = document.getElementById("fornitori-lista");
+    tbody.innerHTML = "";
+    fornitori.forEach((f) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${f.nome}</td>
+        <td>${f.partita_iva || ""}</td>
+        <td>${f.telefono || ""}</td>
+        <td>${f.email || ""}</td>
+        <td><button class="app-button tiny">Modifica</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateFattureList();
+  }
+
+  // -----------------------------------------------------------
+  // FATTURE + RIGHE
+  // -----------------------------------------------------------
+
+  document.getElementById("btn-add-fattura").onclick = async () => {
+    const fornitoreId = document.getElementById("fattura-fornitore-select").value;
+    const numero = document.getElementById("fattura-numero").value.trim();
+    const data = document.getElementById("fattura-data").value;
+    const totale = parseFloat(document.getElementById("fattura-totale").value) || null;
+    const note = document.getElementById("fattura-note").value.trim();
+    const file = document.getElementById("fattura-file").files[0] || null;
+
+    if (!fornitoreId || !numero || !data) {
+      return alert("Fornitore, numero e data obbligatori");
+    }
+
+    let fileUrl = null;
+
+    if (file) {
+      const path = `fatture/${Date.now()}_${file.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("files")
+        .upload(path, file, { upsert: false });
+
+      if (uploadErr) {
+        console.error(uploadErr);
+        return alert("Errore caricamento file");
+      }
+
+      const { data: pubblica } = supabase.storage
+        .from("files")
+        .getPublicUrl(path);
+
+      fileUrl = pubblica.publicUrl;
+    }
+
+    const { error } = await supabase.from("acquisti_fatture").insert({
+      fornitore_id: fornitoreId,
+      numero,
+      data,
+      totale,
+      file_url: fileUrl,
+      note,
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Errore registrazione fattura");
+      return;
+    }
+
+    await loadFatture();
+    updateFattureList();
+    alert("Fattura registrata con successo!");
+  };
+
+  function updateFattureList() {
+    const tbody = document.getElementById("fatture-lista");
+    tbody.innerHTML = "";
+
+    fatture.forEach((f) => {
+      const fornitore = fornitori.find((x) => x.id === f.fornitore_id);
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${f.data}</td>
+        <td>${f.numero}</td>
+        <td>${fornitore ? fornitore.nome : "-"}</td>
+        <td>${f.totale || "-"}</td>
+        <td>${f.file_url ? `<a href="${f.file_url}" target="_blank">Apri</a>` : "-"}</td>
+      `;
+
+      tr.onclick = () => openFatturaDetail(f.id);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function openFatturaDetail(id) {
+    const fatt = fatture.find((x) => x.id === id);
+    if (!fatt) return;
+
+    document.getElementById("fattura-dettaglio").style.display = "block";
+
+    const forn = fornitori.find((x) => x.id === fatt.fornitore_id);
+    const intest = `${forn ? forn.nome : ""} — ${fatt.numero} (${fatt.data})`;
+    document.getElementById("fattura-dettaglio-intestazione").textContent =
+      intest;
+
+    const { data: righe, error } = await supabase
+      .from("acquisti_fatture_righe")
+      .select("*")
+      .eq("fattura_id", id);
+
+    if (error) console.error(error);
+
+    const tbody = document.getElementById("fattura-righe-lista");
+    tbody.innerHTML = "";
+
+    righe.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.descrizione}</td>
+        <td>${r.quantita}</td>
+        <td>${r.um}</td>
+        <td>${r.prezzo || ""}</td>
+        <td>${r.totale || ""}</td>
+        <td>${r.prodotto_nome || "-"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // -----------------------------------------------------------
+  // RICETTE
+  // -----------------------------------------------------------
+
+  function prepareRicetteEditor() {
+    document.getElementById("ricetta-ingredienti-container").innerHTML = "";
+    document.getElementById("ricetta-nome").value = "";
+    document.getElementById("ricetta-descrizione").value = "";
+    document.getElementById("ricetta-note").value = "";
+  }
+
+  document.getElementById("btn-add-ingrediente").onclick = () => {
+    const cont = document.getElementById("ricetta-ingredienti-container");
+    const row = document.createElement("div");
+    row.className = "ingrediente-row";
+    row.innerHTML = `
+      <input type="text" placeholder="Ingrediente">
+      <input type="number" step="0.01" placeholder="Qta">
+      <input type="text" placeholder="UM">
+      <button type="button" class="app-button tiny red">X</button>
+    `;
+    row.querySelector("button").onclick = () => row.remove();
+    cont.appendChild(row);
+  };
+// -----------------------------------------------------------
+// KPI AVANZATI — DASHBOARD
+// -----------------------------------------------------------
+
+// Elementi DOM KPI
+const kpiAttiviEl      = document.getElementById("kpi-attivi");
+const kpiOreOggiEl     = document.getElementById("kpi-ore-oggi");
+const kpiCostoOggiEl   = document.getElementById("kpi-costo-oggi");
+const kpiOreSettimana  = document.getElementById("kpi-ore-settimana");
+const kpiOreMese       = document.getElementById("kpi-ore-mese");
+const kpiScorteCriticheEl = document.getElementById("kpi-scorte-critiche");
+
+// Grafici
+const graficoOreCanvas = document.getElementById("grafico-ore");
+const graficoCostiCanvas = document.getElementById("grafico-costi");
+
+// Funzione principale
+async function caricaKPI() {
+  await loadDipendenti();
+  await loadTimbrature();
+  await loadProdotti();
+  await calcolaKPI();
+  await aggiornaGraficiKPI();
+}
+
+// -----------------------------------------------------------
+// CALCOLO KPI
+// -----------------------------------------------------------
+
+async function calcolaKPI() {
+  if (!timbrature.length) return;
+
+  const now = new Date();
+  const inizioGiorno = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const inizioSettimana = new Date(inizioGiorno);
+  inizioSettimana.setDate(inizioGiorno.getDate() - (inizioGiorno.getDay() || 7) + 1);
+  const inizioMese = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let attivi = 0;
+  let oreOggi = 0;
+  let oreSettimana = 0;
+  let oreMese = 0;
+  let costoOggi = 0;
+
+  // controlla stato aperto
+  const lastEvent = {};
+  timbrature.forEach((t) => {
+    if (!lastEvent[t.dipendente_id] || t.timestamp > lastEvent[t.dipendente_id].timestamp) {
+      lastEvent[t.dipendente_id] = t;
     }
   });
 
-  // ---------- avvio ----------
-  async function init() {
-    await caricaDipendentiDaSupabase();
-    await caricaTimbratureDaSupabase();
-
-    restoreUserFromStorage();
-
-    if (currentUser) {
-      if (loginView) loginView.style.display = "none";
-      if (isManagerRole(currentUser.ruolo)) {
-        const initialRoute =
-          window.location.hash.replace("#", "") || "timbratura";
-        showManagerMenuAndRoute(initialRoute);
-      } else {
-        showHomeDipendente();
-      }
-    } else {
-      showLogin();
+  // Attivi ora
+  Object.values(lastEvent).forEach((ev) => {
+    if (ev.azione === "ENTRATA" && !ev.chiusura) {
+      attivi++;
     }
+  });
 
-    aggiornaUICompenso();
+  // Ore e costi
+  for (const t of timbrature) {
+    if (!t.timestamp) continue;
+
+    const start = new Date(t.timestamp);
+    const dip = dipendenti.find((d) => d.id === t.dipendente_id);
+    if (!dip || dip.costo_orario == null) continue;
+
+    if (t.chiusura) {
+      const end = new Date(t.chiusura);
+      const diffH = (end - start) / 1000 / 3600;
+
+      if (start >= inizioGiorno) {
+        oreOggi += diffH;
+        costoOggi += diffH * dip.costo_orario;
+      }
+      if (start >= inizioSettimana) oreSettimana += diffH;
+      if (start >= inizioMese) oreMese += diffH;
+    }
   }
 
-  await init();
-});
+  // Scorte critiche = prodotti con "scorta_attuale < scorta_minima"
+  const scorteCritiche = prodotti.filter((p) => p.scorta_attuale != null && p.scorta_minima != null && p.scorta_attuale < p.scorta_minima);
+
+  // Aggiorna UI
+  kpiAttiviEl.textContent = attivi;
+  kpiOreOggiEl.textContent = oreOggi.toFixed(2) + " h";
+  kpiCostoOggiEl.textContent = costoOggi.toFixed(2) + " €";
+  kpiOreSettimana.textContent = oreSettimana.toFixed(2) + " h";
+  kpiOreMese.textContent = oreMese.toFixed(2) + " h";
+  kpiScorteCriticheEl.textContent = scorteCritiche.length + " prodotti";
+}
+
+// -----------------------------------------------------------
+// GRAFICI NEON KPI
+// -----------------------------------------------------------
+
+function aggiornaGraficiKPI() {
+  if (typeof Chart === "undefined") return;
+
+  // Grafico ore (oggi / settimana / mese)
+  new Chart(graficoOreCanvas, {
+    type: "bar",
+    data: {
+      labels: ["Oggi", "Settimana", "Mese"],
+      datasets: [
+        {
+          label: "Ore lavorate",
+          backgroundColor: "#00d1ff88",
+          borderColor: "#00d1ff",
+          borderWidth: 2,
+          data: [
+            parseFloat(kpiOreOggiEl.textContent),
+            parseFloat(kpiOreSettimana.textContent),
+            parseFloat(kpiOreMese.textContent),
+          ],
+        },
+      ],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { color: "#fff" } }, x: { ticks: { color: "#fff" } } },
+    },
+  });
+
+  // Grafico costi
+  new Chart(graficoCostiCanvas, {
+    type: "line",
+    data: {
+      labels: ["Oggi", "Settimana", "Mese"],
+      datasets: [
+        {
+          label: "Costi",
+          borderColor: "#ff006e",
+          backgroundColor: "#ff006e55",
+          borderWidth: 3,
+          tension: 0.3,
+          data: [
+            parseFloat(kpiCostoOggiEl.textContent),
+            parseFloat(kpiOreSettimana.textContent) * 12, // stima media
+            parseFloat(kpiOreMese.textContent) * 12, // stima
+          ],
+        },
+      ],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { color: "#fff" } }, x: { ticks: { color: "#fff" } } },
+    },
+  });
+}
