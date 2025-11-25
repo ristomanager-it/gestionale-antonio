@@ -1,43 +1,3 @@
-/********************************************************************
- *  GESTIONALE ANTONIO - APP.JS COMPLETO
- *  Include:
- *  - Login + Ruoli
- *  - Navigazione
- *  - Timbratura
- *  - Dipendenti CRUD
- *  - Acquisti (fatture + righe)
- *  - Magazzino (ricerca + scorte)
- *  - Ricette (ingredienti + autocomplete + food cost)
- *  - Autocomplete personalizzato
- *  - Miglior uso mobile
- ********************************************************************/
-
-// === SUPABASE ======================================================
-const supabase = window.supabaseClient;
-
-// ==================================================================
-// ======================= UTILITÀ GLOBALI ===========================
-// ==================================================================
-
-function qs(sel) {
-  return document.querySelector(sel);
-}
-function qsa(sel) {
-  return document.querySelectorAll(sel);
-}
-
-// Mostra una vista
-function showView(id) {
-  qsa(".view").forEach(v => v.style.display = "none");
-  const v = qs(`#view-${id}`);
-  if (v) v.style.display = "block";
-}
-
-// Toast piccolo
-function toast(msg) {
-  alert(msg);
-}
-
 // ==================================================================
 // =========================== LOGIN ================================
 // ==================================================================
@@ -57,11 +17,26 @@ async function loginUser() {
     return;
   }
 
+  // --- LOGIN SPECIALE ADMIN ---
+  if (nome.toLowerCase() === "admin" && pin === "9999") {
+    window.currentUser = {
+      nome: "Admin",
+      ruolo: "admin"
+    };
+
+    qs("#current-user-label").textContent = "Admin";
+    qs("#btn-logout").style.display = "inline-block";
+    qs("#manager-menu").style.display = "grid";
+    showView("timbratura");
+    return;
+  }
+
+  // --- LOGIN DIPENDENTE SUPABASE ---
   const { data, error } = await supabase
     .from("dipendenti")
     .select("*")
     .eq("nome", nome)
-    .eq("pin", pin)
+    .eq("codice", pin)   //  ⬅⬅⬅  CORRETTO!
     .eq("attivo", true)
     .single();
 
@@ -92,6 +67,7 @@ function logoutUser() {
   qs("#login-nome").value = "";
   qs("#login-pin").value = "";
 }
+
 
 // Auto focus sul PIN
 qs("#login-pin").addEventListener("focus", () => {
