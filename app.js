@@ -99,6 +99,10 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const fattureListaBody = document.getElementById("fatture-lista");
 
+  // ---------- MAGAZZINO (DOM) ----------
+  const magazzinoSearchInput = document.getElementById("magazzino-search");
+  const magazzinoListaEl = document.getElementById("magazzino-lista");
+
   // stato
   let dipendenti = [];
   let timbrature = [];
@@ -113,6 +117,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentFatturaId = null;
   let fornitoriCache = [];
   let categorieCache = [];
+
+  // stato magazzino (prodotti + giacenze)
+  let magazzinoDati = [];
+
+  // cache per food cost ricette
+  const prodottoByNomeCache = {};
+  const costoMedioProdottoCache = {};
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
@@ -411,17 +422,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const tipo = dipTipoCompenso.value || "orario";
 
     if (tipo === "orario") {
-      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "mensile") {
-      labelRetribuzione.firstChild.textContent =
-        "Stipendio lordo mensile (€/mese)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Stipendio lordo mensile (€/mese)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "block";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "servizio") {
-      labelRetribuzione.firstChild.textContent =
-        "Paga lorda per servizio (€/servizio)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Paga lorda per servizio (€/servizio)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "block";
     }
@@ -1199,7 +1216,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <input
         type="text"
         class="ingrediente-nome"
-        placeholder="Ingrediente"
+        placeholder="Ingrediente (come in magazzino)"
         style="flex: 2; min-width: 0;"
         value="${initial.nome_prodotto || ""}"
       />
@@ -1222,7 +1239,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    `;
+    ";
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     btnDel.addEventListener("click", () => {
@@ -1295,7 +1312,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const payload = ingredienti.map((ing) => ({
       ricetta_id: ricettaId,
-      prodotto_id: null, // in futuro collegheremo ai prodotti
+      prodotto_id: ing.prodottoId || null, // collegamento a prodotto di magazzino se trovato
       nome_prodotto: ing.nome,
       quantita: ing.quantita,
       unita_misura: ing.unita,
@@ -1340,6 +1357,152 @@ document.addEventListener("DOMContentLoaded", () => {
       .getPublicUrl(filePath);
 
     return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
+  }
+
+  // ======= FOOD COST: utility ricette <-> magazzino =======
+
+  function normalizzaStringaUnita(um) {
+    return (um || "").trim().toLowerCase();
+  }
+
+  function convertiQuantitaInUmProdotto(quantita, unitaIngrediente, umProdotto) {
+    const q = Number(quantita) || 0;
+    if (!q) return 0;
+
+    const uIng = normalizzaStringaUnita(unitaIngrediente);
+    const uProd = normalizzaStringaUnita(umProdotto);
+
+    if (!uIng || !uProd || uIng === uProd) {
+      return q;
+    }
+
+    // conversioni base g/kg
+    if (uProd === "kg" && (uIng === "g" || uIng === "grammi")) {
+      return q / 1000;
+    }
+    if (uProd === "g" && uIng === "kg") {
+      return q * 1000;
+    }
+
+    // conversioni base ml/l
+    if (uProd === "l" && (uIng === "ml" || uIng === "millilitri")) {
+      return q / 1000;
+    }
+    if (uProd === "ml" && uIng === "l") {
+      return q * 1000;
+    }
+
+    // fallback: nessuna conversione
+    return q;
+  }
+
+  async function trovaProdottoPerNomeDaMagazzino(nomeIngrediente) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeIngrediente || "").trim();
+    if (!nomeTrim) return null;
+
+    const key = nomeTrim.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(prodottoByNomeCache, key)) {
+      return prodottoByNomeCache[key];
+    }
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, um")
+      .ilike("descrizione", `%${nomeTrim}%`)
+      .order("descrizione", { ascending: true })
+      .limit(1);
+
+    if (error) {
+      console.error("Errore ricerca prodotto per ricetta:", error);
+      prodottoByNomeCache[key] = null;
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      prodottoByNomeCache[key] = null;
+      return null;
+    }
+
+    prodottoByNomeCache[key] = data[0];
+    return data[0];
+  }
+
+  async function calcolaCostoMedioProdotto(prodottoId) {
+    if (!supabase || !prodottoId) return 0;
+    if (Object.prototype.hasOwnProperty.call(costoMedioProdottoCache, prodottoId)) {
+      return costoMedioProdottoCache[prodottoId];
+    }
+
+    const { data, error } = await supabase
+      .from("magazzino_movimenti")
+      .select("tipo_movimento, quantita, costo_unitario")
+      .eq("prodotto_id", prodottoId);
+
+    if (error) {
+      console.error("Errore lettura movimenti magazzino:", error);
+      costoMedioProdottoCache[prodottoId] = 0;
+      return 0;
+    }
+
+    if (!data || !data.length) {
+      costoMedioProdottoCache[prodottoId] = 0;
+      return 0;
+    }
+
+    let totaleQCarico = 0;
+    let totaleValoreCarico = 0;
+
+    data.forEach((m) => {
+      const q = Number(m.quantita) || 0;
+      if (!q) return;
+      if (m.tipo_movimento === "CARICO") {
+        const costoUnit = Number(m.costo_unitario) || 0;
+        totaleQCarico += q;
+        totaleValoreCarico += q * costoUnit;
+      }
+      // eventuali SCARICO non influiscono sul costo medio
+    });
+
+    if (!totaleQCarico || !totaleValoreCarico) {
+      costoMedioProdottoCache[prodottoId] = 0;
+      return 0;
+    }
+
+    const costoMedio = totaleValoreCarico / totaleQCarico;
+    costoMedioProdottoCache[prodottoId] = costoMedio;
+    return costoMedio;
+  }
+
+  async function collegaIngredientiECalcolaCosti(ingredientiBase) {
+    const ingredientiArricchiti = [];
+    let costoTotale = 0;
+
+    for (const ing of ingredientiBase) {
+      const nuovoIng = { ...ing, prodottoId: null };
+
+      const prodotto = await trovaProdottoPerNomeDaMagazzino(ing.nome);
+      if (prodotto) {
+        nuovoIng.prodottoId = prodotto.id;
+
+        const costoMedio = await calcolaCostoMedioProdotto(prodotto.id);
+        if (costoMedio > 0) {
+          const quantitaInUmProd = convertiQuantitaInUmProdotto(
+            ing.quantita,
+            ing.unita,
+            prodotto.um
+          );
+          const costoIng = quantitaInUmProd * costoMedio;
+          if (costoIng > 0) {
+            costoTotale += costoIng;
+          }
+        }
+      }
+
+      ingredientiArricchiti.push(nuovoIng);
+    }
+
+    return { ingredientiArricchiti, costoTotale };
   }
 
   async function handleSalvaRicetta() {
@@ -1388,7 +1551,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fotoUrl = await uploadFotoRicettaSePresente();
     ricettaFotoCorrenteUrl = fotoUrl;
 
-    // salvo ricetta
+    // salvo ricetta base
     const ricettaSalvata = await salvaRicettaSupabaseBase({
       id: ricettaCorrenteId,
       nome,
@@ -1401,10 +1564,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ricettaCorrenteId = ricettaSalvata.id;
 
-    // salvo ingredienti collegati
-    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+    // collego ingredienti a prodotti di magazzino + calcolo food cost
+    let ingredientiArricchiti = ingredienti;
+    let costoTotale = 0;
 
-    alert("Ricetta salvata correttamente");
+    try {
+      const risultato = await collegaIngredientiECalcolaCosti(ingredienti);
+      ingredientiArricchiti = risultato.ingredientiArricchiti;
+      costoTotale = risultato.costoTotale;
+    } catch (err) {
+      console.error("Errore nel calcolo del food cost:", err);
+    }
+
+    // salvo ingredienti collegati
+    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredientiArricchiti);
+
+    if (costoTotale && costoTotale > 0) {
+      alert(
+        `Ricetta salvata correttamente.\nFood cost stimato: € ${costoTotale.toFixed(
+          2
+        )}`
+      );
+    } else {
+      alert(
+        "Ricetta salvata correttamente.\n(Nessun food cost calcolabile: prodotti non trovati in magazzino o senza movimenti di acquisto.)"
+      );
+    }
   }
 
   if (btnAddIngrediente) {
@@ -1420,8 +1605,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========= ACQUISTI / FATTURE / MAGAZZINO =========
-
-    // ========= ACQUISTI / FATTURE / MAGAZZINO =========
 
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
@@ -2190,6 +2373,113 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========= MAGAZZINO: prodotti + giacenze + cerca =========
+
+  function renderMagazzinoLista(lista) {
+    if (!magazzinoListaEl) return;
+    magazzinoListaEl.innerHTML = "";
+
+    lista.forEach((p) => {
+      const tr = document.createElement("tr");
+      const stock = p.stock != null ? p.stock.toFixed(2) : "";
+      tr.innerHTML = `
+        <td>${p.codice || ""}</td>
+        <td>${p.descrizione || ""}</td>
+        <td>${p.categoriaNome || ""}</td>
+        <td>${stock}</td>
+      `;
+      magazzinoListaEl.appendChild(tr);
+    });
+  }
+
+  async function caricaMagazzinoDati() {
+    if (!supabase) return;
+
+    // prodotti
+    const { data: prodotti, error: prodErr } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .order("descrizione", { ascending: true });
+
+    if (prodErr) {
+      console.error("Errore caricamento prodotti magazzino:", prodErr);
+      alert("Errore nel caricare i prodotti di magazzino: " + prodErr.message);
+      return;
+    }
+
+    // movimenti magazzino per calcolare giacenza (e costo medio, se ci servirà in futuro)
+    const { data: movimenti, error: movErr } = await supabase
+      .from("magazzino_movimenti")
+      .select("prodotto_id, tipo_movimento, quantita");
+
+    if (movErr) {
+      console.error("Errore caricamento movimenti magazzino:", movErr);
+      alert(
+        "Errore nel caricare i movimenti di magazzino: " + movErr.message
+      );
+      return;
+    }
+
+    const statsByProd = {};
+    (movimenti || []).forEach((m) => {
+      const pid = m.prodotto_id;
+      if (!pid) return;
+      if (!statsByProd[pid]) {
+        statsByProd[pid] = { stock: 0 };
+      }
+      const q = Number(m.quantita) || 0;
+      if (!q) return;
+
+      if (m.tipo_movimento === "CARICO") {
+        statsByProd[pid].stock += q;
+      } else if (m.tipo_movimento === "SCARICO") {
+        statsByProd[pid].stock -= q;
+      }
+    });
+
+    magazzinoDati = (prodotti || []).map((p) => {
+      const stat = statsByProd[p.id] || { stock: 0 };
+      const cat =
+        p.categoria_id != null ? getCategoriaById(p.categoria_id) : null;
+
+      return {
+        id: p.id,
+        codice: p.codice_interno,
+        descrizione: p.descrizione,
+        um: p.um,
+        categoriaNome: cat ? cat.nome : "",
+        stock: stat.stock,
+      };
+    });
+
+    renderMagazzinoLista(magazzinoDati);
+  }
+
+  async function initMagazzinoView() {
+    await caricaCategorieInCache();
+    await caricaMagazzinoDati();
+    if (magazzinoSearchInput) magazzinoSearchInput.value = "";
+  }
+
+  if (magazzinoSearchInput) {
+    magazzinoSearchInput.addEventListener("input", () => {
+      const term = magazzinoSearchInput.value.trim().toLowerCase();
+      if (!term) {
+        renderMagazzinoLista(magazzinoDati);
+        return;
+      }
+
+      const filtrati = magazzinoDati.filter((p) => {
+        return (
+          (p.codice && p.codice.toLowerCase().includes(term)) ||
+          (p.descrizione && p.descrizione.toLowerCase().includes(term)) ||
+          (p.categoriaNome && p.categoriaNome.toLowerCase().includes(term))
+        );
+      });
+
+      renderMagazzinoLista(filtrati);
+    });
+  }
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
@@ -2206,6 +2496,9 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case "acquisti":
         await initAcquistiView();
+        break;
+      case "magazzino":
+        await initMagazzinoView();
         break;
       default:
         break;
