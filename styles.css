@@ -281,6 +281,22 @@ body {
   font-size: 14px;
 }
 
+/* 🔎 IMPORTANTE: inputs più grandi su mobile per evitare zoom automatico */
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
 /* Timbratura */
 
 .timbratura-intro-card {
@@ -418,6 +434,151 @@ body {
   color: #9ca3af;
 }
 
+/* ========= ACQUISTI / FATTURE ========= */
+
+/* Campi testata fattura più grandi e comodi */
+#view-acquisti form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#view-acquisti form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+#view-acquisti form input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+/* Input nelle righe fattura più grandi */
+#view-acquisti .table-timbrature input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* ========= RICETTE ========= */
+
+/* Form ricette con campi più grandi */
+#view-ricette form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#view-ricette form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+#view-ricette input,
+#view-ricette textarea {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+/* Righe ingredienti ricetta più comode */
+.ricetta-ingrediente-row {
+  margin-bottom: 6px;
+}
+
+.ingrediente-row input,
+.ricetta-ingrediente-row input {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+}
+
+/* Pulsante elimina ingrediente evidenziato */
+.app-button.tiny.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.tiny.red:hover {
+  background: #b91c1c;
+}
+
+/* ========= MAGAZZINO ========= */
+
+#view-magazzino #magazzino-search {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+#view-magazzino table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#view-magazzino th,
+#view-magazzino td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-magazzino thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.magazzino-low {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* KPI cards alternative layout */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
 /* Tema CHIARO (override) */
 
 body.theme-light {
@@ -493,52 +654,4 @@ body.theme-light .app-button.login-button:hover {
   .kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-}
-.kpi-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.kpi-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 10px 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
-  border: 1px solid #e5e7eb;
-}
-
-.kpi-card h3 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: #374151;
-}
-
-.kpi-card p {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-.ingrediente-row input {
-  font-size: 13px;
-}
-
-.app-button.tiny.red {
-  background: #dc2626;
-  color: #ffffff;
-}
-
-.app-button.tiny.red:hover {
-  background: #b91c1c;
-}
-.magazzino-low {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background-color: #fee2e2;
-  color: #b91c1c;
-  font-size: 12px;
-  font-weight: 600;
 }
