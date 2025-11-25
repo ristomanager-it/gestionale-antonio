@@ -111,6 +111,11 @@ body {
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
 }
 
+/* Utility nascondi */
+.hidden {
+  display: none !important;
+}
+
 /* Login view */
 .login-view {
   flex: 1;
@@ -436,11 +441,6 @@ textarea {
 
 /* ========= ACQUISTI / FATTURE ========= */
 
-/* Contenitore vista con scroll orizzontale se serve */
-#view-acquisti {
-  overflow-x: auto;
-}
-
 /* Campi testata fattura più grandi e comodi */
 #view-acquisti form {
   display: flex;
@@ -464,33 +464,20 @@ textarea {
   background: #ffffff;
 }
 
-/* Tabelle fatture: scrollabili orizzontalmente su mobile */
+/* Tabelle fatture: layout standard (desktop/tablet) */
 #view-acquisti table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  display: block;
-  overflow-x: auto;
-}
-
-#view-acquisti thead,
-#view-acquisti tbody {
-  display: table;
-  width: 100%;
-}
-
-#view-acquisti tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
+  margin-top: 6px;
 }
 
 #view-acquisti th,
 #view-acquisti td {
-  white-space: nowrap;
   padding: 7px 8px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
+  white-space: normal;
 }
 
 #view-acquisti thead {
@@ -505,6 +492,39 @@ textarea {
   border-radius: 10px;
   border: 1px solid #e5e7eb;
   background: #f9fafb;
+}
+
+/* 🧱 Layout VERTICALE per righe fattura su schermi piccoli */
+@media (max-width: 640px) {
+  #view-acquisti table,
+  #view-acquisti thead,
+  #view-acquisti tbody,
+  #view-acquisti th,
+  #view-acquisti td,
+  #view-acquisti tr {
+    display: block;
+  }
+
+  #view-acquisti thead {
+    display: none;
+  }
+
+  #view-acquisti tbody tr {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    padding: 6px 8px;
+  }
+
+  #view-acquisti tbody td {
+    border-bottom: none;
+    padding: 4px 0;
+  }
+
+  #view-acquisti tbody td:last-child {
+    margin-top: 4px;
+  }
 }
 
 /* ========= RICETTE ========= */
@@ -564,6 +584,11 @@ textarea {
   border-radius: 12px;
   border: 1px solid #d1d5db;
   background: #ffffff;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
 }
 
 #view-magazzino table {
