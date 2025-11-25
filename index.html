@@ -9,6 +9,7 @@
 
   <body>
     <div class="app-main-wrapper">
+
       <!-- HEADER -->
       <header class="app-header">
         <div class="header-top">
@@ -54,13 +55,11 @@
               </label>
 
               <label>PIN
-                <!-- tastierino numerico -->
                 <input
-                  type="tel"
+                  type="number"
                   id="login-pin"
                   maxlength="10"
                   inputmode="numeric"
-                  pattern="[0-9]*"
                 />
               </label>
 
@@ -140,42 +139,6 @@
             <button id="btn-entra" class="app-button timb-button green">ENTRA</button>
             <button id="btn-pausa" class="app-button timb-button gray">PAUSA</button>
             <button id="btn-esci" class="app-button timb-button red">USCITA</button>
-          </div>
-
-          <!-- MANAGER: STORICO + REPORT -->
-          <div class="manager-only">
-
-            <button id="btn-toggle-timbrature" class="app-button small gray">
-              Mostra storico timbrature
-            </button>
-
-            <div id="sezione-timbrature-dettaglio" style="display:none">
-              <h3>Storico timbrature</h3>
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr><th>Ora</th><th>Dipendente</th><th>Canale</th><th>Azione</th></tr>
-                  </thead>
-                  <tbody id="timbratura-lista"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <h3>Riepilogo ore (dipendenti)</h3>
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Dipendente</th><th>Canale</th><th>Ore</th></tr></thead>
-                <tbody id="riepilogo-dipendenti"></tbody>
-              </table>
-            </div>
-
-            <h3>Riepilogo ore (canali)</h3>
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Canale</th><th>Ore</th></tr></thead>
-                <tbody id="riepilogo-canali"></tbody>
-              </table>
-            </div>
           </div>
         </section>
 
@@ -286,7 +249,12 @@
           </button>
 
           <h3>Fatture registrate</h3>
-          <table>
+
+          <button id="btn-toggle-fatture" class="app-button small gray">
+            Mostra / Nascondi
+          </button>
+
+          <table id="fatture-table" style="display:none">
             <thead>
               <tr>
                 <th>Data</th><th>Numero</th><th>Fornitore</th><th>Totale</th><th></th>
@@ -316,9 +284,6 @@
             <h3>Ingredienti</h3>
             <div id="ricetta-ingredienti-container"></div>
 
-            <!-- suggerimenti prodotti per ingredienti -->
-            <datalist id="ingredienti-suggestions"></datalist>
-
             <button id="btn-add-ingrediente" class="app-button small gray">
               + Aggiungi ingrediente
             </button>
@@ -334,17 +299,20 @@
           <h2>Magazzino</h2>
           <p>Ricerca prodotti, scorte e movimenti.</p>
 
-          <input
-            id="magazzino-search"
-            type="text"
-            placeholder="Cerca prodotto..."
-            list="magazzino-suggestions"
-          />
-          <datalist id="magazzino-suggestions"></datalist>
+          <div style="position:relative">
+            <input
+              id="magazzino-search"
+              type="text"
+              placeholder="Cerca prodotto..."
+              autocomplete="off"
+            />
+          </div>
 
           <h3>Prodotti</h3>
           <table>
-            <thead><tr><th>Codice</th><th>Descrizione</th><th>Categoria</th><th>Stock</th></tr></thead>
+            <thead>
+              <tr><th>Codice</th><th>Descrizione</th><th>Categoria</th><th>Stock</th></tr>
+            </thead>
             <tbody id="magazzino-lista"></tbody>
           </table>
         </section>
