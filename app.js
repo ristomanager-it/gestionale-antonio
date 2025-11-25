@@ -68,11 +68,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (DOM) ----------
-  const viewRicette = document.getElementById("view-ricette");
   const ricettaForm = document.getElementById("ricetta-form");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput =
-    document.getElementById("ricetta-descrizione");
+  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
   const ricettaNoteInput = document.getElementById("ricetta-note");
   const ricettaFotoInput = document.getElementById("ricetta-foto");
   const ricettaIngredientiContainer = document.getElementById(
@@ -82,7 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
-  const viewAcquisti = document.getElementById("view-acquisti");
   const fatturaNumeroInput = document.getElementById("fattura-numero");
   const fatturaDataInput = document.getElementById("fattura-data");
   const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
@@ -94,27 +91,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const fatturaImponibileTotaleInput = document.getElementById(
     "fattura-imponibile-totale"
   );
-  const fatturaIvaTotaleInput =
-    document.getElementById("fattura-iva-totale");
+  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
   const fatturaTotaleDocumentoInput = document.getElementById(
     "fattura-totale-documento"
   );
   const fattureListaBody = document.getElementById("fatture-lista");
 
-  // stato
+  // ---------- STATO ----------
   let dipendenti = [];
   let timbrature = [];
   let currentUser = null;
   let periodoCorrente = "oggi";
 
-  // stato ricette
+  // ricette
   let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null; // per mantenere la vecchia foto se non la cambi
+  let ricettaFotoCorrenteUrl = null;
 
-  // stato acquisti/fatture
+  // acquisti
   let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
+  let fornitoriCache = []; // {id, nome}
+  let categorieCache = []; // {id, nome, codice}
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
@@ -133,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     input.value = `${yyyy}-${mm}-${dd}`;
   }
 
-  // ========= TEMA CHIARO/SCURO =========
+  // ========= TEMA =========
   function applyTheme(theme) {
     const body = document.body;
     if (theme === "light") {
@@ -158,12 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyTheme(next);
   }
 
-  if (btnTheme) {
-    btnTheme.addEventListener("click", toggleTheme);
-  }
+  if (btnTheme) btnTheme.addEventListener("click", toggleTheme);
   loadTheme();
 
-  // ========= UTILITY RUOLI / FORMATI =========
+  // ========= RUOLI / FORMATI =========
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
@@ -211,33 +205,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
     if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
-
     if (tipo === "orario") return retribuzioneBase;
-
     if (tipo === "mensile") {
       if (!oreMensili || oreMensili <= 0) return 0;
       return retribuzioneBase / oreMensili;
     }
-
     if (tipo === "servizio") {
       if (!oreServizio || oreServizio <= 0) return 0;
       return retribuzioneBase / oreServizio;
     }
-
     return 0;
   }
 
   // ========= HEADER & VISIBILITÀ =========
   function updateHeaderUser() {
     if (!currentUserLabel) return;
-
     if (!currentUser) {
       currentUserLabel.textContent = "Nessun utente";
     } else {
       const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
       currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
     }
-
     if (btnLogout) {
       btnLogout.style.display = currentUser ? "inline-block" : "none";
     }
@@ -257,11 +245,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     routeButtons.forEach((btn) => {
       const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
+      if (managerOnly && modalita !== "manager") btn.style.display = "none";
+      else btn.style.display = "";
     });
 
     if (managerMenu) {
@@ -309,13 +294,9 @@ document.addEventListener("DOMContentLoaded", () => {
       canalePrevalente: user.canalePrevalente || "NR",
       virtualAdmin: !!user.virtualAdmin,
     };
-
-    if (persist) {
+    if (persist)
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
-
+    else localStorage.removeItem(CURRENT_USER_KEY);
     updateHeaderUser();
     applyRoleVisibility();
   }
@@ -327,7 +308,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const saved = JSON.parse(raw);
       if (!saved) return;
 
-      // admin virtuale
       if (saved.virtualAdmin) {
         currentUser = saved;
         applyRoleVisibility();
@@ -350,15 +330,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
     } catch {
-      // ignora
+      // ignore
     }
   }
 
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      showLogin();
-    });
-  }
+  if (btnLogout) btnLogout.addEventListener("click", showLogin);
 
   // ========= ANAGRAFICA DIPENDENTI =========
   function aggiornaUICompenso() {
@@ -393,23 +369,17 @@ document.addEventListener("DOMContentLoaded", () => {
       oreMensiliVal,
       oreServizioVal
     );
-    if (dipCosto) {
-      dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
-    }
+    if (dipCosto) dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
   }
 
-  if (dipTipoCompenso) {
+  if (dipTipoCompenso)
     dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
-  }
-  if (dipRetribuzioneBase) {
+  if (dipRetribuzioneBase)
     dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreMensili) {
+  if (dipOreMensili)
     dipOreMensili.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreServizio) {
+  if (dipOreServizio)
     dipOreServizio.addEventListener("input", aggiornaUICompenso);
-  }
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
@@ -653,7 +623,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const salvato = await salvaDipendenteSupabase(dipObj);
       if (!salvato) return;
 
-      // reset form
       if (dipNome) dipNome.value = "";
       if (dipMansione) dipMansione.value = "";
       if (dipDataNascita) dipDataNascita.value = "";
@@ -677,20 +646,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= LOGIN & UTENTE CORRENTE =========
+  // ========= LOGIN =========
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
       if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
       if (timbCanaleSelect) timbCanaleSelect.value = "NR";
       return;
     }
-
     if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = currentUser.nome;
-
     const defaultCanale = currentUser.canalePrevalente || "NR";
-    if (timbCanaleSelect) {
-      timbCanaleSelect.value = defaultCanale;
-    }
+    if (timbCanaleSelect) timbCanaleSelect.value = defaultCanale;
   }
 
   if (btnLogin) {
@@ -708,7 +673,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // se l'array dipendenti è vuoto, provo a ricaricarlo prima del login
       if (dipendenti.length === 0) {
         await caricaDipendentiDaSupabase();
       }
@@ -747,11 +711,8 @@ document.addEventListener("DOMContentLoaded", () => {
       setCurrentUser(dip, remember);
       if (loginView) loginView.style.display = "none";
 
-      if (isManagerRole(dip.ruolo)) {
-        showManagerMenuAndRoute("timbratura");
-      } else {
-        showHomeDipendente();
-      }
+      if (isManagerRole(dip.ruolo)) showManagerMenuAndRoute("timbratura");
+      else showHomeDipendente();
     });
   }
 
@@ -793,7 +754,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function aggiornaTabellaTimbrature() {
     if (!lista) return;
     lista.innerHTML = "";
-
     timbrature.forEach((t) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -877,7 +837,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // se c'è ancora una entrata aperta, conteggiamo fino ad adesso
       if (aperto && aperto.timestamp) {
         const diffMin = (adesso - aperto.timestamp) / 60000;
         if (diffMin > 0) {
@@ -887,7 +846,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // calcolo costi
     const costoPerDip = {};
     const costoPerCanale = {};
 
@@ -901,12 +859,10 @@ document.addEventListener("DOMContentLoaded", () => {
       costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
     });
 
-    // riepilogo per dip
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [nome, canale] = key.split("|");
       const ore = minuti / 60;
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${nome}</td>
@@ -916,7 +872,6 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoDipEl.appendChild(tr);
     });
 
-    // riepilogo per canale
     riepilogoCanaliEl.innerHTML = "";
     Object.entries(perCanale).forEach(([canale, minuti]) => {
       const ore = minuti / 60;
@@ -928,13 +883,11 @@ document.addEventListener("DOMContentLoaded", () => {
       riepilogoCanaliEl.appendChild(tr);
     });
 
-    // costo per dipendente
     costoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [nome, canale] = key.split("|");
       const ore = minuti / 60;
       const costo = costoPerDip[key] || 0;
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${nome}</td>
@@ -945,12 +898,10 @@ document.addEventListener("DOMContentLoaded", () => {
       costoDipEl.appendChild(tr);
     });
 
-    // costo per canale
     costoCanaliEl.innerHTML = "";
     Object.entries(costoPerCanale).forEach(([canale, costo]) => {
       const minuti = perCanale[canale] || 0;
       const ore = minuti / 60;
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${canale}</td>
@@ -960,7 +911,6 @@ document.addEventListener("DOMContentLoaded", () => {
       costoCanaliEl.appendChild(tr);
     });
 
-    // attivi adesso
     attiviListaEl.innerHTML = "";
     const ultimoEventoPerChiave = {};
     timbrature.forEach((t) => {
@@ -978,7 +928,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const [dip, canale] = key.split("|");
         const durataMin = (adesso - ev.timestamp) / 60000;
         const durataTxt = formatDurationMinutes(durataMin);
-
         const oraDa = new Date(ev.timestamp).toLocaleTimeString("it-IT", {
           hour: "2-digit",
           minute: "2-digit",
@@ -996,7 +945,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // stato corrente dipendente per blocco cambio canale
   function getStatoCorrenteDipendente(nomeDip) {
     const eventiDip = timbrature
       .filter((t) => t.dip === nomeDip && t.timestamp)
@@ -1014,7 +962,6 @@ document.addEventListener("DOMContentLoaded", () => {
         canaleCorrente = null;
       }
     }
-
     return { inside, canaleCorrente };
   }
 
@@ -1023,12 +970,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let dipendenteId = null;
     const d = dipendenti.find(
-      (x) =>
-        x.nome && x.nome.toLowerCase() === record.dip.toLowerCase()
+      (x) => x.nome && x.nome.toLowerCase() === record.dip.toLowerCase()
     );
-    if (d && d.id) {
-      dipendenteId = d.id;
-    }
+    if (d && d.id) dipendenteId = d.id;
 
     const payload = {
       dipendente_id: dipendenteId,
@@ -1067,8 +1011,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tipo === "Entrata") {
       if (stato.inside) {
         alert(
-          `Sei già timbrato sul canale ${stato.canaleCorrente || ""}. ` +
-            "Devi fare Uscita prima di una nuova Entrata."
+          `Sei già timbrato sul canale ${stato.canaleCorrente || ""}. Devi fare Uscita prima di una nuova Entrata.`
         );
         if (timbCanaleSelect && stato.canaleCorrente) {
           timbCanaleSelect.value = stato.canaleCorrente;
@@ -1142,7 +1085,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========= RICETTE =========
-
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
 
@@ -1182,9 +1124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
-    btnDel.addEventListener("click", () => {
-      row.remove();
-    });
+    btnDel.addEventListener("click", () => row.remove());
 
     ricettaIngredientiContainer.appendChild(row);
   }
@@ -1192,17 +1132,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function resetFormRicetta() {
     ricettaCorrenteId = null;
     ricettaFotoCorrenteUrl = null;
-
     if (ricettaNomeInput) ricettaNomeInput.value = "";
     if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
     if (ricettaNoteInput) ricettaNoteInput.value = "";
     if (ricettaFotoInput) ricettaFotoInput.value = "";
-
-    if (ricettaIngredientiContainer) {
+    if (ricettaIngredientiContainer)
       ricettaIngredientiContainer.innerHTML = "";
-    }
-
-    // aggiungo almeno una riga di default
     creaRigaIngrediente();
   }
 
@@ -1242,7 +1177,6 @@ document.addEventListener("DOMContentLoaded", () => {
   async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
     if (!supabase) return;
 
-    // cancello ingredienti precedenti (se sto modificando)
     await supabase
       .from("ricetta_ingredienti")
       .delete()
@@ -1252,7 +1186,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const payload = ingredienti.map((ing) => ({
       ricetta_id: ricettaId,
-      prodotto_id: null, // in futuro collegheremo ai prodotti
+      prodotto_id: null,
       nome_prodotto: ing.nome,
       quantita: ing.quantita,
       unita_misura: ing.unita,
@@ -1309,7 +1243,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // raccolgo ingredienti
     const ingredienti = [];
     if (ricettaIngredientiContainer) {
       const rows = Array.from(
@@ -1341,11 +1274,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!conferma) return;
     }
 
-    // upload foto (se presente)
     const fotoUrl = await uploadFotoRicettaSePresente();
     ricettaFotoCorrenteUrl = fotoUrl;
 
-    // salvo ricetta
     const ricettaSalvata = await salvaRicettaSupabaseBase({
       id: ricettaCorrenteId,
       nome,
@@ -1357,12 +1288,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!ricettaSalvata) return;
 
     ricettaCorrenteId = ricettaSalvata.id;
-
-    // salvo ingredienti collegati
     await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
 
     alert("Ricetta salvata correttamente");
-    // per ora NON resetto il form, così puoi continuare a modificarla
   }
 
   if (btnAddIngrediente) {
@@ -1377,35 +1305,61 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= ACQUISTI / FATTURE / MAGAZZINO =========
-
+  // ========= ACQUISTI / FATTURE =========
+  // fornitoriCache: [{id, nome}]
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
 
+  // categorieCache: [{id, nome, codice}]
   function getCategoriaById(id) {
     return categorieCache.find((c) => c.id === id) || null;
   }
 
+  // caricamento fornitori: prova sia ragione_sociale che nome
   async function caricaFornitoriInCache() {
     if (!supabase) return;
-    const { data, error } = await supabase
-      .from("fornitori")
-      .select("id, ragione_sociale")
-      .order("ragione_sociale", { ascending: true });
+    try {
+      let { data, error } = await supabase
+        .from("fornitori")
+        .select("id, ragione_sociale")
+        .order("ragione_sociale", { ascending: true });
 
-    if (error) {
-      console.error("Errore caricamento fornitori:", error);
-      return;
+      if (!error && data) {
+        fornitoriCache = data.map((f) => ({
+          id: f.id,
+          nome: f.ragione_sociale,
+        }));
+        return;
+      }
+
+      // fallback: colonna 'nome'
+      let { data: data2, error: error2 } = await supabase
+        .from("fornitori")
+        .select("id, nome")
+        .order("nome", { ascending: true });
+
+      if (!error2 && data2) {
+        fornitoriCache = data2.map((f) => ({
+          id: f.id,
+          nome: f.nome,
+        }));
+        return;
+      }
+
+      console.error("Errore caricamento fornitori:", error || error2);
+      fornitoriCache = [];
+    } catch (e) {
+      console.error("Eccezione caricamento fornitori:", e);
+      fornitoriCache = [];
     }
-    fornitoriCache = data || [];
   }
 
   async function caricaCategorieInCache() {
     if (!supabase) return;
     const { data, error } = await supabase
       .from("categorie_prodotto")
-      .select("id, nome")
+      .select("id, nome, codice")
       .order("nome", { ascending: true });
 
     if (error) {
@@ -1415,35 +1369,52 @@ document.addEventListener("DOMContentLoaded", () => {
     categorieCache = data || [];
   }
 
+  // crea o trova fornitore indipendentemente dal nome colonna
   async function findOrCreateFornitoreByName(nomeFornitore) {
     if (!supabase) return null;
     const nomeTrim = (nomeFornitore || "").trim();
     if (!nomeTrim) return null;
 
     const existing = fornitoriCache.find(
-      (f) =>
-        f.ragione_sociale &&
-        f.ragione_sociale.toLowerCase() === nomeTrim.toLowerCase()
+      (f) => f.nome && f.nome.toLowerCase() === nomeTrim.toLowerCase()
     );
     if (existing) return existing;
 
-    const { data, error } = await supabase
-      .from("fornitori")
-      .insert({
-        ragione_sociale: nomeTrim,
-        attivo: true,
-      })
-      .select("id, ragione_sociale")
-      .single();
+    // provo ad inserire su ragione_sociale, se fallisce riprovo su nome
+    try {
+      let { data, error } = await supabase
+        .from("fornitori")
+        .insert({ ragione_sociale: nomeTrim, attivo: true })
+        .select("id, ragione_sociale")
+        .single();
 
-    if (error) {
-      console.error("Errore creazione fornitore:", error);
+      if (!error && data) {
+        const f = { id: data.id, nome: data.ragione_sociale };
+        fornitoriCache.push(f);
+        return f;
+      }
+
+      // fallback colonna nome
+      let { data: data2, error: error2 } = await supabase
+        .from("fornitori")
+        .insert({ nome: nomeTrim, attivo: true })
+        .select("id, nome")
+        .single();
+
+      if (error2) {
+        console.error("Errore creazione fornitore:", error, error2);
+        alert("Errore nella creazione del fornitore");
+        return null;
+      }
+
+      const f2 = { id: data2.id, nome: data2.nome };
+      fornitoriCache.push(f2);
+      return f2;
+    } catch (e) {
+      console.error("Eccezione creazione fornitore:", e);
       alert("Errore nella creazione del fornitore");
       return null;
     }
-
-    fornitoriCache.push(data);
-    return data;
   }
 
   async function findOrCreateCategoriaByNome(nomeCategoria) {
@@ -1451,86 +1422,176 @@ document.addEventListener("DOMContentLoaded", () => {
     const nomeTrim = (nomeCategoria || "").trim();
     if (!nomeTrim) return null;
 
-    const existing = categorieCache.find(
-      (c) =>
-        c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    let existing = categorieCache.find(
+      (c) => c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
     );
     if (existing) return existing;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("id, nome, codice")
+      .ilike("nome", nomeTrim)
+      .maybeSingle();
+
+    if (!error && data) {
+      const cat = { id: data.id, nome: data.nome, codice: data.codice };
+      categorieCache.push(cat);
+      return cat;
+    }
+
+    const codiceBase =
+      nomeTrim
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .match(/[A-Z]/gi)
+        ?.join("")
+        .slice(0, 3)
+        .toUpperCase() || "CAT";
+
+    const { data: created, error: insErr } = await supabase
       .from("categorie_prodotto")
       .insert({
         nome: nomeTrim,
+        codice: codiceBase,
         attivo: true,
       })
-      .select("id, nome")
+      .select("id, nome, codice")
       .single();
 
-    if (error) {
-      console.error("Errore creazione categoria prodotto:", error);
+    if (insErr) {
+      console.error("Errore creazione categoria prodotto:", insErr);
       alert("Errore nella creazione della categoria prodotto");
       return null;
     }
 
-    categorieCache.push(data);
-    return data;
+    const cat = {
+      id: created.id,
+      nome: created.nome,
+      codice: created.codice,
+    };
+    categorieCache.push(cat);
+    return cat;
   }
 
+  // trova o crea prodotto con codice interno auto
   async function findOrCreateProdotto({
-    codice,
+    codiceManuale,
     descrizione,
     categoriaNome,
     um,
   }) {
     if (!supabase) return null;
-    const codiceTrim = (codice || "").trim();
+
     const descTrim = (descrizione || "").trim();
     const umTrim = (um || "").trim() || "pz";
+    const codiceTrim = (codiceManuale || "").trim();
 
-    if (!codiceTrim && !descTrim) return null;
+    if (!descTrim && !codiceTrim) return null;
 
-    // cerco per codice interno
-    let { data: existingList, error: selErr } = await supabase
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, categoria_id, um")
-      .ilike("codice_interno", codiceTrim || descTrim)
-      .limit(1);
+    // se l'utente ha messo un codice interno, provo quello
+    if (codiceTrim) {
+      let { data, error } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .ilike("codice_interno", codiceTrim)
+        .limit(1);
 
-    if (selErr) {
-      console.error("Errore ricerca prodotto:", selErr);
+      if (!error && data && data.length > 0) return data[0];
     }
 
-    if (existingList && existingList.length > 0) {
-      return existingList[0];
+    // cerco per descrizione
+    if (descTrim) {
+      let { data, error } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .ilike("descrizione", descTrim)
+        .limit(1);
+
+      if (!error && data && data.length > 0) return data[0];
     }
 
-    // categoria
+    // categoria/specie
     let categoria = null;
     if (categoriaNome) {
       categoria = await findOrCreateCategoriaByNome(categoriaNome);
     }
 
+    const catCode = categoria?.codice || "GEN";
+    const descrCode =
+      descTrim
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .match(/[A-Z]/gi)
+        ?.join("")
+        .slice(0, 3)
+        .toUpperCase() || "PRD";
+
+    const prefix = `${catCode}${descrCode}`;
+
+    let { data: existingList, error: selErr } = await supabase
+      .from("prodotti")
+      .select("codice_interno")
+      .ilike("codice_interno", `${prefix}%`)
+      .order("codice_interno", { ascending: false })
+      .limit(1);
+
+    let nextNumber = 1;
+    if (!selErr && existingList && existingList.length > 0) {
+      const lastCode = existingList[0].codice_interno || "";
+      const match = lastCode.match(/(\d+)$/);
+      if (match && match[1]) {
+        const lastNum = parseInt(match[1], 10);
+        if (!Number.isNaN(lastNum)) nextNumber = lastNum + 1;
+      }
+    }
+
+    const newCode = `${prefix}${String(nextNumber).padStart(3, "0")}`;
+
     const payload = {
-      codice_interno: codiceTrim || descTrim,
-      descrizione: descTrim || codiceTrim,
+      codice_interno: newCode,
+      descrizione: descTrim || newCode,
       categoria_id: categoria ? categoria.id : null,
       um: umTrim,
       attivo: true,
     };
 
-    const { data, error } = await supabase
+    const { data: created, error: insErr } = await supabase
       .from("prodotti")
       .insert(payload)
       .select("id, codice_interno, descrizione, categoria_id, um")
       .single();
 
-    if (error) {
-      console.error("Errore creazione prodotto:", error);
+    if (insErr) {
+      console.error("Errore creazione prodotto:", insErr);
       alert("Errore nella creazione del prodotto di magazzino");
       return null;
     }
 
-    return data;
+    return created;
+  }
+
+  // ultimo costo CARICO del prodotto (per alert prezzo)
+  async function getUltimoCostoProdotto(prodottoId) {
+    if (!supabase || !prodottoId) return null;
+
+    const { data, error } = await supabase
+      .from("magazzino_movimenti")
+      .select("costo_unitario")
+      .eq("prodotto_id", prodottoId)
+      .eq("tipo_movimento", "CARICO")
+      .not("costo_unitario", "is", null)
+      .order("data_movimento", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("Errore lettura ultimo costo prodotto:", error);
+      return null;
+    }
+
+    if (!data || data.length === 0) return null;
+    const costo = parseFloat(data[0].costo_unitario);
+    return Number.isNaN(costo) ? null : costo;
   }
 
   function creaRigaFattura(initial = {}) {
@@ -1558,7 +1619,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <input
           type="text"
           class="fatt-riga-categoria"
-          placeholder="Categoria"
+          placeholder="Categoria (es. Vitello)"
           value="${initial.categoria_nome || ""}"
         />
       </td>
@@ -1649,9 +1710,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const iva = imponibile * (ivaPerc / 100);
     const totale = imponibile + iva;
 
-    if (totaleCell) {
-      totaleCell.textContent = totale.toFixed(2);
-    }
+    if (totaleCell) totaleCell.textContent = totale.toFixed(2);
 
     return { imponibile, iva, totale };
   }
@@ -1726,6 +1785,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
     const righeForm = [];
+
     rows.forEach((tr) => {
       const codiceInput = tr.querySelector(".fatt-riga-codice");
       const descrInput = tr.querySelector(".fatt-riga-descrizione");
@@ -1743,11 +1803,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const prezzo = parseNumber(prezzoInput?.value || "0");
       let ivaPerc = parseNumber(ivaInput?.value || "0");
 
-      if (!codice && !descrizione) return;
+      if (!descrizione && !codice) return;
       if (!qta || !prezzo) return;
 
       if (![4, 10, 22].includes(ivaPerc)) {
-        if (!ivaPerc) ivaPerc = 22; // default
+        if (!ivaPerc) ivaPerc = 22;
       }
 
       righeForm.push({
@@ -1762,11 +1822,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (!righeForm.length) {
-      alert("Inserisci almeno una riga di fattura valida (q.tà e prezzo > 0)");
+      alert(
+        "Inserisci almeno una riga di fattura valida (descrizione/codice + q.tà e prezzo > 0)"
+      );
       return;
     }
 
-    // calcolo totali
     let impTot = 0;
     let ivaTot = 0;
     let docTot = 0;
@@ -1779,11 +1840,9 @@ document.addEventListener("DOMContentLoaded", () => {
       docTot += totale;
     });
 
-    // fornitore
     const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
     if (!fornitore) return;
 
-    // inserisco / aggiorno testata fattura
     let fatturaData = null;
     if (!currentFatturaId) {
       const { data, error } = await supabase
@@ -1833,7 +1892,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fatturaData = data;
     }
 
-    // sincronizzo totali sui campi
     if (fatturaImponibileTotaleInput)
       fatturaImponibileTotaleInput.value = impTot.toFixed(2);
     if (fatturaIvaTotaleInput)
@@ -1841,29 +1899,42 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fatturaTotaleDocumentoInput)
       fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
 
-    // cancello righe precedenti fattura
     await supabase
       .from("fatture_acquisto_righe")
       .delete()
       .eq("fattura_id", currentFatturaId);
 
-    // inserisco righe + movimenti magazzino
     const righePayload = [];
+    const priceAlerts = [];
+
     for (const r of righeForm) {
-      // categoria
       let categoria = null;
       if (r.categoria) {
         categoria = await findOrCreateCategoriaByNome(r.categoria);
       }
 
-      // prodotto
       const prodotto = await findOrCreateProdotto({
-        codice: r.codice,
+        codiceManuale: r.codice,
         descrizione: r.descrizione,
         categoriaNome: r.categoria,
         um: r.um,
       });
       if (!prodotto) continue;
+
+      const costoPrecedente = await getUltimoCostoProdotto(prodotto.id);
+      if (costoPrecedente && costoPrecedente > 0) {
+        const diff = r.prezzo - costoPrecedente;
+        const diffPerc = (diff / costoPrecedente) * 100;
+        const soglia = 10;
+        if (Math.abs(diffPerc) >= soglia) {
+          priceAlerts.push({
+            prodotto,
+            costoPrecedente,
+            costoNuovo: r.prezzo,
+            diffPerc,
+          });
+        }
+      }
 
       const imponibile = r.qta * r.prezzo;
       const iva = imponibile * (r.ivaPerc / 100);
@@ -1904,16 +1975,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // movimenti di magazzino (CARICO)
-    const movimentiPayload = (righeInserite || []).map((r) => ({
-      prodotto_id: r.prodotto_id,
+    const movimentiPayload = (righeInserite || []).map((riga) => ({
+      prodotto_id: riga.prodotto_id,
       data_movimento: fatturaData.data_documento,
       tipo_movimento: "CARICO",
-      quantita: r.quantita,
-      costo_unitario: r.prezzo_unitario,
+      quantita: riga.quantita,
+      costo_unitario: riga.prezzo_unitario,
       riferimento_tipo: "FATTURA_ACQUISTO",
       riferimento_id: fatturaData.id,
-      riferimento_riga_id: r.id,
+      riferimento_riga_id: riga.id,
       note: null,
     }));
 
@@ -1924,11 +1994,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (movErr) {
         console.error("Errore salvataggio movimenti magazzino:", movErr);
-        alert("Fattura salvata ma errore nel creare i movimenti di magazzino");
+        alert(
+          "Fattura salvata ma errore nel creare i movimenti di magazzino"
+        );
       }
     }
 
-    alert("Fattura salvata con successo e magazzino aggiornato.");
+    let msg = "Fattura salvata con successo e magazzino aggiornato.";
+    if (priceAlerts.length > 0) {
+      msg += "\n\nAttenzione, variazioni di prezzo rilevanti:\n";
+      priceAlerts.forEach((a) => {
+        msg += `\n- ${a.prodotto.codice_interno} – ${
+          a.prodotto.descrizione
+        }\n  Prima: ${a.costoPrecedente.toFixed(
+          4
+        )} €/u — Ora: ${a.costoNuovo.toFixed(4)} €/u (${a.diffPerc.toFixed(
+          1
+        )}% )`;
+      });
+    }
+    alert(msg);
+
     await caricaFornitoriInCache();
     await caricaCategorieInCache();
     await caricaListaFatture();
@@ -1951,7 +2037,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fattureListaBody.innerHTML = "";
     (data || []).forEach((f) => {
       const forn = getFornitoreById(f.fornitore_id);
-      const nomeForn = forn ? forn.ragione_sociale : "";
+      const nomeForn = forn ? forn.nome : "";
 
       const tr = document.createElement("tr");
       const dataStr = f.data_documento
@@ -1976,9 +2062,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
-          if (!Number.isNaN(id)) {
-            caricaFatturaDettaglio(id);
-          }
+          if (!Number.isNaN(id)) caricaFatturaDettaglio(id);
         });
       });
   }
@@ -1986,7 +2070,6 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaFatturaDettaglio(fatturaId) {
     if (!supabase) return;
 
-    // testata
     const { data: fattura, error } = await supabase
       .from("fatture_acquisto")
       .select("*")
@@ -2000,16 +2083,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     currentFatturaId = fattura.id;
-
     const forn = getFornitoreById(fattura.fornitore_id);
-    const nomeForn = forn ? forn.ragione_sociale : "";
+    const nomeForn = forn ? forn.nome : "";
 
     if (fatturaNumeroInput)
       fatturaNumeroInput.value = fattura.numero_documento || "";
     if (fatturaDataInput)
       fatturaDataInput.value = fattura.data_documento || "";
-    if (fatturaFornitoreInput)
-      fatturaFornitoreInput.value = nomeForn || "";
+    if (fatturaFornitoreInput) fatturaFornitoreInput.value = nomeForn || "";
     if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
     if (fatturaImponibileTotaleInput)
       fatturaImponibileTotaleInput.value = (
@@ -2022,7 +2103,6 @@ document.addEventListener("DOMContentLoaded", () => {
         fattura.totale_documento || 0
       ).toFixed(2);
 
-    // righe
     const { data: righe, error: righeError } = await supabase
       .from("fatture_acquisto_righe")
       .select("*")
@@ -2092,7 +2172,6 @@ document.addEventListener("DOMContentLoaded", () => {
         await caricaDipendentiDaSupabase();
         break;
       case "ricette":
-        // quando entri in ricette, resettiamo il form (nuova ricetta)
         resetFormRicetta();
         break;
       case "acquisti":
@@ -2150,6 +2229,8 @@ document.addEventListener("DOMContentLoaded", () => {
   async function init() {
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
+    await caricaFornitoriInCache();
+    await caricaCategorieInCache();
 
     restoreUserFromStorage();
 
