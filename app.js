@@ -1,3 +1,26 @@
+/********************************************************************
+ *  GESTIONALE ANTONIO - APP.JS COMPLETO (VERSIONE STABILE)
+ ********************************************************************/
+
+// === SUPABASE ======================================================
+const supabase = window.supabaseClient;
+
+// === SHORTCUT DOM =================================================
+const qs = s => document.querySelector(s);
+const qsa = s => document.querySelectorAll(s);
+
+// === NAVIGAZIONE DELLE VISTE ======================================
+function showView(id) {
+  qsa(".view").forEach(v => v.style.display = "none");
+  const v = qs(`#view-${id}`);
+  if (v) v.style.display = "block";
+}
+
+// === TOAST =========================================================
+function toast(msg) {
+  alert(msg);
+}
+
 // ==================================================================
 // =========================== LOGIN ================================
 // ==================================================================
@@ -17,13 +40,12 @@ async function loginUser() {
     return;
   }
 
-  // --- LOGIN SPECIALE ADMIN ---
+  // LOGIN ADMIN VIRTUALE
   if (nome.toLowerCase() === "admin" && pin === "9999") {
     window.currentUser = {
       nome: "Admin",
       ruolo: "admin"
     };
-
     qs("#current-user-label").textContent = "Admin";
     qs("#btn-logout").style.display = "inline-block";
     qs("#manager-menu").style.display = "grid";
@@ -31,14 +53,14 @@ async function loginUser() {
     return;
   }
 
-  // --- LOGIN DIPENDENTE SUPABASE ---
+  // LOGIN DIPENDENTE SUPABASE
   const { data, error } = await supabase
     .from("dipendenti")
     .select("*")
     .eq("nome", nome)
-    .eq("codice", pin)   //  ⬅⬅⬅  CORRETTO!
+    .eq("codice", pin)
     .eq("attivo", true)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     toast("Credenziali errate.");
@@ -63,312 +85,349 @@ function logoutUser() {
   window.currentUser = null;
   qs("#current-user-label").textContent = "Nessun utente";
   qs("#btn-logout").style.display = "none";
-  showView("login");
   qs("#login-nome").value = "";
   qs("#login-pin").value = "";
+  showView("login");
 }
-
-
-// Auto focus sul PIN
-qs("#login-pin").addEventListener("focus", () => {
-  qs("#login-pin").setAttribute("inputmode", "numeric");
-});
-
-// ==================================================================
-// ====================== NAVIGAZIONE MANAGER ========================
-// ==================================================================
-
-qsa("[data-route]").forEach(btn => {
-  btn.onclick = () => showView(btn.dataset.route);
-});
 
 // ==================================================================
 // =========================== TIMBRATURA ============================
 // ==================================================================
 
-qs("#btn-entra").onclick = () => timbra("ENTRATA");
-qs("#btn-pausa").onclick = () => timbra("PAUSA");
-qs("#btn-esci").onclick = () => timbra("USCITA");
+qs("#btn-entra").onclick = () => registraTimbratura("ENTRATA");
+qs("#btn-pausa").onclick = () => registraTimbratura("PAUSA");
+qs("#btn-esci").onclick = () => registraTimbratura("USCITA");
 
-async function timbra(tipo) {
-  const ut = window.currentUser;
-  if (!ut) return alert("Non sei loggato.");
+async function registraTimbratura(tipo) {
+  if (!window.currentUser) {
+    toast("Devi essere loggato.");
+    return;
+  }
 
   const canale = qs("#timbratura-canale-select").value;
 
-  await supabase.from("timbrature").insert({
-    dipendente_id: ut.id,
-    tipo,
+  const { error } = await supabase.from("timbrature").insert({
+    dipendente: currentUser.nome,
+    azione: tipo,
     canale,
     timestamp: new Date().toISOString()
   });
 
-  toast("Timbratura registrata.");
-}
+  if (error) {
+    toast("Errore durante la timbratura.");
+    return;
+  }
 
+  toast(tipo + " registrata.");
+}
 // ==================================================================
 // =========================== DIPENDENTI ============================
 // ==================================================================
 
-qs("#btn-add-dip").onclick = salvaDipendente;
+const dipAddBtn = qs("#btn-add-dip");
+dipAddBtn.onclick = salvaDipendente;
 
 async function salvaDipendente() {
-  const payload = {
-    nome: qs("#dip-nome").value,
-    mansione: qs("#dip-mansione").value,
-    data_nascita: qs("#dip-data-nascita").value,
-    telefono: qs("#dip-telefono").value,
-    email: qs("#dip-email").value,
+  const obj = {
+    nome: qs("#dip-nome").value.trim(),
+    mansione: qs("#dip-mansione").value.trim(),
+    data_nascita: qs("#dip-data-nascita").value || null,
+    telefono: qs("#dip-telefono").value.trim(),
+    email: qs("#dip-email").value.trim(),
     ruolo: qs("#dip-ruolo").value,
-    retribuzione_base: qs("#dip-retribuzione-base").value,
-    pin: qs("#dip-codice").value,
+    retribuzione_base: parseFloat(qs("#dip-retribuzione-base").value) || 0,
+    codice: qs("#dip-codice").value.trim(),
     attivo: qs("#dip-attivo").checked
   };
 
-  await supabase.from("dipendenti").insert(payload);
-  toast("Dipendente salvato.");
+  const { error } = await supabase.from("dipendenti").insert(obj);
 
+  if (error) {
+    toast("Errore nel salvataggio dipendente.");
+    return;
+  }
+
+  toast("Dipendente inserito.");
   caricaDipendenti();
 }
 
 async function caricaDipendenti() {
-  const { data } = await supabase.from("dipendenti").select("*");
   const tbody = qs("#dipendenti-lista");
   tbody.innerHTML = "";
+
+  const { data, error } = await supabase.from("dipendenti").select("*");
+
+  if (error) return;
 
   data.forEach(d => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${d.nome}</td>
-      <td>${d.mansione}</td>
-      <td>${d.telefono}</td>
-      <td>${d.email}</td>
+      <td>${d.mansione || ""}</td>
+      <td>${d.telefono || ""}</td>
+      <td>${d.email || ""}</td>
       <td>${d.ruolo}</td>
-      <td>${d.retribuzione_base}</td>
-      <td>${d.pin}</td>
-      <td>${d.attivo ? "✔" : "✘"}</td>
-      <td><button class="app-button tiny red">X</button></td>
+      <td>${d.retribuzione_base || "0"}</td>
+      <td>${d.codice}</td>
+      <td>${d.attivo ? "✔" : "✖"}</td>
+      <td>
+        <button class="app-button tiny red" onclick="eliminaDipendente(${d.id})">
+          Elimina
+        </button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
 }
 
+async function eliminaDipendente(id) {
+  const { error } = await supabase.from("dipendenti").delete().eq("id", id);
+  if (!error) caricaDipendenti();
+}
+
 // ==================================================================
-// ====================== FATTURE / ACQUISTI =========================
+// =========================== ACQUISTI ==============================
 // ==================================================================
 
 qs("#btn-add-riga-fattura").onclick = aggiungiRigaFattura;
+qs("#btn-salva-fattura").onclick = salvaFattura;
 
 function aggiungiRigaFattura() {
   const tbody = qs("#fattura-righe-body");
 
   const tr = document.createElement("tr");
+  tr.classList.add("riga-fattura");
+
   tr.innerHTML = `
-    <td><input class="fr-codice"></td>
-    <td><input class="fr-descrizione"></td>
-    <td><input class="fr-categoria"></td>
-    <td><input class="fr-um"></td>
-    <td><input type="number" step="0.01" class="fr-qty"></td>
-    <td><input type="number" step="0.01" class="fr-prezzo"></td>
-    <td><input type="number" step="1" class="fr-iva"></td>
-    <td class="fr-totale">0</td>
-    <td><button class="app-button tiny red fr-del">X</button></td>
+    <td><input class="rf-codice" type="text"/></td>
+    <td><input class="rf-desc" type="text"/></td>
+    <td><input class="rf-cat" type="text"/></td>
+    <td><input class="rf-um" type="text"/></td>
+    <td><input class="rf-qty" type="number" step="0.01"/></td>
+    <td><input class="rf-price" type="number" step="0.01"/></td>
+    <td><input class="rf-iva" type="number" step="1" value="10"/></td>
+    <td class="rf-tot">0.00</td>
+    <td><button class="app-button tiny red" onclick="this.closest('tr').remove()">X</button></td>
   `;
 
   tbody.appendChild(tr);
-
-  tr.querySelector(".fr-del").onclick = () => tr.remove();
-
-  tr.querySelectorAll("input").forEach(inp => {
-    inp.oninput = () => aggiornaTotaleRiga(tr);
-  });
 }
-
-function aggiornaTotaleRiga(tr) {
-  const qty = Number(tr.querySelector(".fr-qty").value || 0);
-  const pr = Number(tr.querySelector(".fr-prezzo").value || 0);
-  tr.querySelector(".fr-totale").textContent = (qty * pr).toFixed(2);
-}
-
-qs("#btn-salva-fattura").onclick = salvaFattura;
 
 async function salvaFattura() {
-  const numero = qs("#fattura-numero").value;
-  const dataF = qs("#fattura-data").value;
-  const forn = qs("#fattura-fornitore").value;
+  const numero = qs("#fattura-numero").value.trim();
+  const data = qs("#fattura-data").value;
+  const fornitore = qs("#fattura-fornitore").value.trim();
 
-  const { data: fattura } = await supabase.from("fatture").insert({
-    numero, data: dataF, fornitore: forn
-  }).select().single();
+  if (!numero || !data || !fornitore) {
+    toast("Compila tutti i campi della fattura.");
+    return;
+  }
 
-  // Salva righe
-  const righe = [...qsa("#fattura-righe-body tr")].map(tr => ({
-    codice: tr.querySelector(".fr-codice").value,
-    descrizione: tr.querySelector(".fr-descrizione").value,
-    categoria: tr.querySelector(".fr-categoria").value,
-    um: tr.querySelector(".fr-um").value,
-    quantita: Number(tr.querySelector(".fr-qty").value),
-    prezzo: Number(tr.querySelector(".fr-prezzo").value),
-    iva: Number(tr.querySelector(".fr-iva").value),
-    fattura_id: fattura.id
-  }));
+  const { data: fattura, error } = await supabase
+    .from("fatture")
+    .insert({ numero, data, fornitore })
+    .select()
+    .single();
 
-  for (let r of righe) {
-    await supabase.from("fatture_righe").insert(r);
+  if (error) {
+    toast("Errore salvataggio fattura.");
+    return;
+  }
+
+  const righe = qsa(".riga-fattura");
+  for (const r of righe) {
+    const obj = {
+      fattura_id: fattura.id,
+      codice: r.querySelector(".rf-codice").value.trim(),
+      descrizione: r.querySelector(".rf-desc").value.trim(),
+      categoria: r.querySelector(".rf-cat").value.trim(),
+      um: r.querySelector(".rf-um").value.trim(),
+      quantita: parseFloat(r.querySelector(".rf-qty").value) || 0,
+      prezzo: parseFloat(r.querySelector(".rf-price").value) || 0,
+      iva: parseFloat(r.querySelector(".rf-iva").value) || 10
+    };
+
+    await supabase.from("fatture_righe").insert(obj);
+
+    // CREAZIONE / AGGIORNAMENTO PRODOTTO
+    let { data: prod } = await supabase
+      .from("prodotti")
+      .select("*")
+      .eq("codice_interno", obj.codice)
+      .maybeSingle();
+
+    if (!prod) {
+      const { data: nuovo } = await supabase
+        .from("prodotti")
+        .insert({
+          codice_interno: obj.codice,
+          descrizione: obj.descrizione,
+          categoria: obj.categoria,
+          um: obj.um
+        })
+        .select()
+        .single();
+      prod = nuovo;
+    }
 
     // MOVIMENTO MAGAZZINO
     await supabase.from("magazzino_movimenti").insert({
-      prodotto_codice: r.codice,
-      tipo: "carico",
-      quantita: r.quantita,
-      costo: r.prezzo,
+      prodotto_id: prod.id,
+      tipo: "CARICO",
+      quantita: obj.quantita,
+      costo: obj.prezzo,
       fattura_id: fattura.id
     });
   }
 
-  toast("Fattura registrata.");
-  qs("#fattura-righe-body").innerHTML = "";
+  toast("Fattura salvata.");
 }
-
 // ==================================================================
-// ========================= MAGAZZINO ===============================
+// =========================== MAGAZZINO =============================
 // ==================================================================
 
-async function caricaProdotti() {
-  const { data } = await supabase.from("prodotti").select("*");
-  window.PRODOTTI = data;
-  aggiornaListaMagazzino(data);
-}
+async function caricaMagazzino() {
+  const { data, error } = await supabase
+    .from("prodotti")
+    .select(`
+      id,
+      codice_interno,
+      descrizione,
+      categoria,
+      um,
+      magazzino_movimenti ( quantita, tipo )
+    `);
 
-function aggiornaListaMagazzino(mag) {
+  if (error) return;
+
   const tbody = qs("#magazzino-lista");
-  tbody.innerHTML = "";
+  const dl = qs("#magazzino-suggestions");
 
-  mag.forEach(p => {
+  tbody.innerHTML = "";
+  dl.innerHTML = "";
+
+  data.forEach(p => {
+    let stock = 0;
+    (p.magazzino_movimenti || []).forEach(m => {
+      stock += m.tipo === "CARICO" ? m.quantita : -m.quantita;
+    });
+
+    // suggerimenti ricerca
+    const opt = document.createElement("option");
+    opt.value = p.descrizione;
+    dl.appendChild(opt);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.codice_interno}</td>
       <td>${p.descrizione}</td>
-      <td>${p.categoria_id}</td>
-      <td>${p.stock || 0}</td>
+      <td>${p.categoria}</td>
+      <td>${stock.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-// === Ricerca istantanea + autocomplete ==================================
-
-const magInput = qs("#magazzino-search");
-const magSuggestBox = document.createElement("div");
-magSuggestBox.className = "autocomplete-box";
-magSuggestBox.style.display = "none";
-magInput.parentElement.appendChild(magSuggestBox);
-
-magInput.addEventListener("input", () => {
-  const q = magInput.value.toLowerCase();
-
-  let results = window.PRODOTTI.filter(p =>
-    p.descrizione.toLowerCase().includes(q)
-  );
-
-  mostraSuggerimenti(results, magSuggestBox, item => {
-    magInput.value = item.descrizione;
-    aggiornaListaMagazzino([item]);
-    magSuggestBox.style.display = "none";
+// RICERCA ISTANTANEA
+qs("#magazzino-search").addEventListener("input", function () {
+  const filtro = this.value.toLowerCase();
+  qsa("#magazzino-lista tr").forEach(tr => {
+    tr.style.display = tr.innerText.toLowerCase().includes(filtro)
+      ? ""
+      : "none";
   });
 });
-
-function mostraSuggerimenti(lista, box, onClick) {
-  if (!lista.length) {
-    box.style.display = "none";
-    return;
-  }
-
-  box.innerHTML = "";
-  lista.forEach(el => {
-    const div = document.createElement("div");
-    div.className = "autocomplete-item";
-    div.textContent = el.descrizione;
-    div.onclick = () => onClick(el);
-    box.appendChild(div);
-  });
-
-  box.style.display = "block";
-}
 
 // ==================================================================
 // ============================ RICETTE ==============================
 // ==================================================================
 
-qs("#btn-add-ingrediente").onclick = addIngrediente;
+qs("#btn-add-ingrediente").onclick = aggiungiIngrediente;
 
-function addIngrediente() {
-  const cont = qs("#ricetta-ingredienti-container");
+function aggiungiIngrediente() {
+  const container = qs("#ricetta-ingredienti-container");
 
-  const div = document.createElement("div");
-  div.className = "ingrediente-row";
+  const row = document.createElement("div");
+  row.classList.add("ingrediente-row");
 
-  div.innerHTML = `
-    <input class="ing-nome" placeholder="Prodotto..." autocomplete="off">
-    <input class="ing-qty" type="number" step="0.01" placeholder="Quantità">
-    <button class="app-button tiny red ing-del">X</button>
+  row.innerHTML = `
+    <input class="ing-desc" list="ingredienti-suggestions" placeholder="Ingrediente"/>
+    <input class="ing-qty" type="number" step="0.01" placeholder="Q.ta"/>
+    <input class="ing-um" type="text" placeholder="UM"/>
+    <button class="app-button tiny red" onclick="this.parentNode.remove()">X</button>
   `;
 
-  cont.appendChild(div);
-
-  // Autocomplete ingredienti
-  const nomeInput = div.querySelector(".ing-nome");
-
-  const sugg = document.createElement("div");
-  sugg.className = "autocomplete-box";
-  sugg.style.display = "none";
-  div.appendChild(sugg);
-
-  nomeInput.addEventListener("input", () => {
-    const q = nomeInput.value.toLowerCase();
-
-    const results = window.PRODOTTI.filter(p =>
-      p.descrizione.toLowerCase().includes(q)
-    );
-
-    mostraSuggerimenti(results, sugg, prod => {
-      nomeInput.value = prod.descrizione;
-      nomeInput.dataset.prodottoId = prod.id;
-      sugg.style.display = "none";
-    });
-  });
-
-  div.querySelector(".ing-del").onclick = () => div.remove();
+  container.appendChild(row);
 }
 
-// Salva ricetta
+async function aggiornaSuggerimentiIngredienti() {
+  const { data } = await supabase.from("prodotti").select("*");
+
+  const dl = qs("#ingredienti-suggestions");
+  dl.innerHTML = "";
+
+  data.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.descrizione;
+    dl.appendChild(opt);
+  });
+}
+
 qs("#btn-salva-ricetta").onclick = salvaRicetta;
 
 async function salvaRicetta() {
-  const nome = qs("#ricetta-nome").value;
-  const descr = qs("#ricetta-descrizione").value;
-  const note = qs("#ricetta-note").value;
+  const nome = qs("#ricetta-nome").value.trim();
+  const descrizione = qs("#ricetta-descrizione").value.trim();
+  const note = qs("#ricetta-note").value.trim();
 
-  const { data: ricetta } = await supabase.from("ricette")
-    .insert({ nome, descrizione: descr, note })
-    .select().single();
+  if (!nome) {
+    toast("Inserisci nome ricetta.");
+    return;
+  }
 
-  const righe = [...qsa(".ingrediente-row")].map(div => ({
-    ricetta_id: ricetta.id,
-    prodotto_id: div.querySelector(".ing-nome").dataset.prodottoId,
-    quantita: Number(div.querySelector(".ing-qty").value)
-  }));
+  const { data: ricetta } = await supabase
+    .from("ricette")
+    .insert({ nome, descrizione, note })
+    .select()
+    .single();
 
-  for (let r of righe) {
-    await supabase.from("ricette_ingredienti").insert(r);
+  const righe = qsa(".ingrediente-row");
+
+  for (const r of righe) {
+    const desc = r.querySelector(".ing-desc").value.trim();
+    const qty = parseFloat(r.querySelector(".ing-qty").value) || 0;
+    const um = r.querySelector(".ing-um").value.trim();
+
+    if (!desc) continue;
+
+    // trova prodotto
+    const { data: prod } = await supabase
+      .from("prodotti")
+      .select("*")
+      .eq("descrizione", desc)
+      .maybeSingle();
+
+    await supabase.from("ricette_ingredienti").insert({
+      ricetta_id: ricetta.id,
+      prodotto_id: prod ? prod.id : null,
+      descrizione: desc,
+      quantita: qty,
+      um
+    });
   }
 
   toast("Ricetta salvata.");
 }
 
 // ==================================================================
-// ===================== AVVIO INIZIALE =============================
+// ========================= INIZIALIZZAZIONE ========================
 // ==================================================================
 
-caricaProdotti();
-caricaDipendenti();
+async function init() {
+  await caricaDipendenti();
+  await caricaMagazzino();
+  await aggiornaSuggerimentiIngredienti();
+  showView("login");
+}
+
+document.addEventListener("DOMContentLoaded", init);
