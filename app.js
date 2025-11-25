@@ -1521,7 +1521,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  async function findOrCreateProdotto({
+   async function findOrCreateProdotto({
     codice,
     descrizione,
     categoriaNome,
@@ -1619,7 +1619,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-     function creaRigaFattura(initial = {}) {
+  // ========= FATTURE: RIGHE E TOTALI =========
+
+  function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
     const tr = document.createElement("tr");
@@ -1694,58 +1696,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ✕
         </button>
       </td>
-    `;  // 👈 QUI: chiuso con backtick + ;
-
-    const qtaInput = tr.querySelector(".fatt-riga-quantita");
-    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-    const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const btnDel = tr.querySelector(".btn-del-riga");
-
-    const handleChange = () => {
-      ricalcolaTotaleRiga(tr);
-      ricalcolaTotaliFattura();
-    };
-
-    if (qtaInput) qtaInput.addEventListener("input", handleChange);
-    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
-    if (ivaInput) ivaInput.addEventListener("input", handleChange);
-
-    if (btnDel) {
-      btnDel.addEventListener("click", () => {
-        tr.remove();
-        ricalcolaTotaliFattura();
-      });
-    }
-
-    fatturaRigheBody.appendChild(tr);
-    ricalcolaTotaleRiga(tr);
-  }
-
-    const qtaInput = tr.querySelector(".fatt-riga-quantita");
-    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-    const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const btnDel = tr.querySelector(".btn-del-riga");
-
-    const handleChange = () => {
-      ricalcolaTotaleRiga(tr);
-      ricalcolaTotaliFattura();
-    };
-
-    if (qtaInput) qtaInput.addEventListener("input", handleChange);
-    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
-    if (ivaInput) ivaInput.addEventListener("input", handleChange);
-
-    if (btnDel) {
-      btnDel.addEventListener("click", () => {
-        tr.remove();
-        ricalcolaTotaliFattura();
-      });
-    }
-
-    fatturaRigheBody.appendChild(tr);
-    ricalcolaTotaleRiga(tr);
-  }
-
+    `;
 
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
@@ -1815,6 +1766,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fatturaTotaleDocumentoInput)
       fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
   }
+
 
   function resetFatturaForm() {
     currentFatturaId = null;
