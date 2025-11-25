@@ -1,7 +1,4 @@
-/* =========================
-   RESET & BASE
-   ========================= */
-
+/* Reset base */
 * {
   box-sizing: border-box;
 }
@@ -10,14 +7,14 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 }
 
-/* Tema base: SCURO (come da logica esistente). Il brand è arancione */
+/* Tema base: SCURO. Per il chiaro usiamo body.theme-light con override */
 body {
   background: #020617;
-  color: #e5e7eb;
+  color: #0f172a;
 }
 
 /* Wrapper principale */
@@ -25,24 +22,17 @@ body {
   min-height: 100vh;
   max-width: 960px;
   margin: 0 auto;
-  padding: 10px 10px 24px;
+  padding: 8px 8px 24px;
   display: flex;
   flex-direction: column;
 }
 
-/* Utility per nascondere */
-.hidden {
-  display: none !important;
-}
-
-/* =========================
-   HEADER
-   ========================= */
+/* HEADER */
 
 .app-header {
   background: #020617;
   color: #e5e7eb;
-  padding: 8px 6px 6px;
+  padding: 8px 4px 4px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -58,18 +48,18 @@ body {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .header-logo-circle {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   overflow: hidden;
   background: #f97316;
@@ -88,7 +78,6 @@ body {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.02em;
 }
 
 .subtitle {
@@ -105,50 +94,24 @@ body {
   color: #e5e7eb;
 }
 
-/* =========================
-   CONTENUTO PRINCIPALE
-   ========================= */
-
+/* Contenuto principale */
 .app-main {
   flex: 1;
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* Card vista */
 .view {
-  background: #020617;
+  background: #f9fafb;
   border-radius: 20px;
-  padding: 14px 14px 18px;
-  box-shadow: 0 14px 45px rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
 }
 
-/* Titoli interni */
-.view h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
-  color: #f9fafb;
-}
-
-.view h3 {
-  margin: 12px 0 6px;
-  font-size: 14px;
-  color: #e5e7eb;
-}
-
-.view p {
-  margin: 0 0 6px;
-  font-size: 13px;
-  color: #cbd5f5;
-}
-
-/* =========================
-   LOGIN
-   ========================= */
-
+/* Login view */
 .login-view {
   flex: 1;
   display: flex;
@@ -160,11 +123,10 @@ body {
   width: 100%;
   max-width: 380px;
   margin: 0 auto;
-  background: radial-gradient(circle at top, #111827, #020617);
+  background: #ffffff;
   border-radius: 22px;
-  padding: 22px 18px 24px;
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
 }
 
 .login-logo {
@@ -178,21 +140,20 @@ body {
   height: 96px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
 }
 
 .login-card h2 {
   text-align: center;
   margin: 6px 0 4px;
-  font-size: 22px;
-  color: #f9fafb;
+  font-size: 24px;
 }
 
 .login-subtitle {
   text-align: center;
   margin: 0 0 14px;
   font-size: 13px;
-  color: #9ca3af;
+  color: #4b5563;
 }
 
 .login-form {
@@ -210,30 +171,31 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #e5e7eb;
+  color: #4b5563;
 }
 
-/* =========================
-   PULSANTI
-   ========================= */
+.login-buttons-row {
+  margin-top: 4px;
+}
+
+/* Pulsanti generici */
 
 .app-button {
   padding: 11px 12px;
   font-size: 14px;
   border: none;
   border-radius: 999px;
-  background: #111827;
-  color: #e5e7eb;
+  background: #e5e7eb;
+  color: #111827;
   cursor: pointer;
-  transition: transform 0.12s ease, background 0.12s ease,
-    box-shadow 0.12s ease;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
   font-weight: 600;
   text-align: center;
 }
 
 .app-button:hover {
-  background: #0b1120;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.7);
+  background: #d1d5db;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
 }
 
 .app-button:active {
@@ -246,11 +208,6 @@ body {
   font-size: 11px;
 }
 
-.app-button.small {
-  padding: 7px 11px;
-  font-size: 12px;
-}
-
 .app-button.ghost {
   background: transparent;
   color: #e5e7eb;
@@ -258,79 +215,32 @@ body {
 }
 
 .app-button.ghost:hover {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.3);
 }
 
 .app-button.login-button {
   width: 100%;
-  background: #f97316;
-  color: #111827;
+  background: #2563eb;
+  color: #ffffff;
   font-size: 16px;
 }
 
 .app-button.login-button:hover {
-  background: #fb923c;
+  background: #1d4ed8;
 }
 
-/* Varianti colori timbratura e azioni */
-.app-button.green,
-.timb-button.green {
-  background: #22c55e;
-  color: #022c22;
-}
-
-.app-button.green:hover,
-.timb-button.green:hover {
-  background: #4ade80;
-}
-
-.app-button.gray,
-.timb-button.gray {
-  background: #4b5563;
-  color: #f9fafb;
-}
-
-.app-button.gray:hover,
-.timb-button.gray:hover {
-  background: #6b7280;
-}
-
-.app-button.red,
-.timb-button.red {
-  background: #ef4444;
-  color: #fee2e2;
-}
-
-.app-button.red:hover,
-.timb-button.red:hover {
-  background: #f97373;
-}
-
-/* =========================
-   HOME DIPENDENTE & MENU
-   ========================= */
-
+/* Home dipendente */
 .home-buttons {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .app-button.big-home {
   padding: 16px 14px;
-  font-size: 15px;
-  background: #111827;
-  color: #f9fafb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.app-button.big-home::after {
-  content: "›";
-  font-size: 18px;
-  opacity: 0.6;
+  font-size: 17px;
+  background: #e5e7eb;
 }
 
 /* Menu manager */
@@ -343,22 +253,13 @@ body {
 .menu-button {
   font-size: 13px;
   padding: 10px 8px;
-  background: #020617;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: #e5e7eb;
-}
-
-.menu-button:hover {
-  background: #0b1120;
 }
 
 .app-button.wide {
   grid-column: span 2;
 }
 
-/* =========================
-   FORM GENERICI
-   ========================= */
+/* Form generico */
 
 .form-row {
   margin-bottom: 10px;
@@ -369,79 +270,32 @@ body {
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
-  color: #e5e7eb;
+  color: #374151;
 }
 
 .form-row input,
 .form-row select {
   padding: 9px;
   border-radius: 12px;
-  border: 1px solid #4b5563;
+  border: 1px solid #d1d5db;
   font-size: 14px;
-  background: #020617;
-  color: #e5e7eb;
 }
 
-/* Per evitare zoom fastidioso su mobile */
-input,
-select,
-textarea {
-  font-size: 16px;
-  background: #020617;
-  color: #e5e7eb;
-  border-radius: 12px;
-  border: 1px solid #4b5563;
-  padding: 9px 10px;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #6b7280;
-}
-
-@media (min-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 14px;
-  }
-}
-
-/* =========================
-   TIMBRATURA
-   ========================= */
+/* Timbratura */
 
 .timbratura-intro-card {
-  background: radial-gradient(circle at top left, #1e293b, #020617);
-  border-radius: 16px;
-  padding: 10px 12px 10px;
-  border: 1px solid rgba(129, 140, 248, 0.5);
+  background: #eef2ff;
+  border-radius: 14px;
+  padding: 10px 12px 8px;
+  border: 1px solid #c7d2fe;
   margin-bottom: 12px;
 }
 
 .timbratura-utente {
   margin: 0;
   font-size: 13px;
-  color: #e5e7eb;
 }
 
-.timbratura-intro-card label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-  font-size: 12px;
-  color: #c7d2fe;
-}
-
-.timbratura-intro-card select {
-  background: #020617;
-  border-radius: 12px;
-  border: 1px solid #4f46e5;
-  padding: 7px 9px;
-}
-
-/* Pulsanti timbratura */
 .timbratura-buttons {
   display: flex;
   flex-direction: column;
@@ -451,61 +305,83 @@ textarea::placeholder {
 
 .timb-button {
   width: 100%;
-  font-size: 16px;
-  padding: 14px 12px;
+  font-size: 17px;
+  padding: 15px 12px;
+  color: #ffffff;
 }
 
-/* =========================
-   TABELLE GENERICHE
-   ========================= */
+/* Colori timbratura */
+.timb-button.green {
+  background: #16a34a;
+}
+
+.timb-button.green:hover {
+  background: #15803d;
+}
+
+.timb-button.gray {
+  background: #6b7280;
+}
+
+.timb-button.gray:hover {
+  background: #4b5563;
+}
+
+.timb-button.red {
+  background: #dc2626;
+}
+
+.timb-button.red:hover {
+  background: #b91c1c;
+}
+
+/* Tabelle */
 
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
-  border-radius: 16px;
-  border: 1px solid rgba(30, 64, 175, 0.7);
-  background: #020617;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.8);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
-.table-timbrature,
-.table-generic {
+.table-timbrature {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
 }
 
 .table-timbrature th,
-.table-timbrature td,
-.table-generic th,
-.table-generic td {
+.table-timbrature td {
   padding: 7px 8px;
-  border-bottom: 1px solid rgba(30, 64, 175, 0.5);
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
-  color: #e5e7eb;
 }
 
-.table-timbrature thead,
-.table-generic thead {
-  background: #020617;
+.table-timbrature thead {
+  background: #f3f4f6;
   font-weight: 600;
 }
 
-.table-timbrature tr:last-child td,
-.table-generic tr:last-child td {
+.table-timbrature tr:last-child td {
   border-bottom: none;
+}
+
+/* Piccoli pulsanti */
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
 }
 
 /* Testo piccolo e attenuato */
 .small-muted {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
   margin-top: 4px;
 }
 
-/* =========================
-   KPI / DASHBOARD
-   ========================= */
+/* KPI dashboard */
 
 .kpi-grid {
   display: grid;
@@ -516,237 +392,36 @@ textarea::placeholder {
 }
 
 .kpi-card {
-  background: #020617;
+  background: #ffffff;
   border-radius: 14px;
   padding: 10px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
 .kpi-card-title {
   margin: 0 0 4px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .kpi-card-value {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: #f9fafb;
+  color: #111827;
 }
 
 .kpi-card-sub {
   margin: 2px 0 0;
   font-size: 11px;
-  color: #6b7280;
+  color: #9ca3af;
 }
 
-.kpi-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.kpi-card h3 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-.kpi-card p {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #f9fafb;
-}
-
-/* =========================
-   ACQUISTI / FATTURE
-   ========================= */
-
-#view-acquisti form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-#view-acquisti form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-#view-acquisti form input {
-  background: #020617;
-  border: 1px solid #4b5563;
-}
-
-/* Tabella righe fattura (desktop / tablet) */
-#view-acquisti .table-timbrature {
-  margin-top: 6px;
-}
-
-#view-acquisti .table-timbrature input {
-  width: 100%;
-  padding: 7px 8px;
-  border-radius: 10px;
-  border: 1px solid #4b5563;
-  background: #020617;
-  color: #e5e7eb;
-  font-size: 13px;
-}
-
-/* Layout VERTICALE per righe fattura su schermi piccoli */
-@media (max-width: 640px) {
-  #view-acquisti .table-timbrature,
-  #view-acquisti .table-timbrature thead,
-  #view-acquisti .table-timbrature tbody,
-  #view-acquisti .table-timbrature th,
-  #view-acquisti .table-timbrature td,
-  #view-acquisti .table-timbrature tr {
-    display: block;
-  }
-
-  #view-acquisti .table-timbrature thead {
-    display: none;
-  }
-
-  #view-acquisti .table-timbrature tbody tr {
-    margin-bottom: 10px;
-    border-radius: 14px;
-    background: #020617;
-    border: 1px solid #4b5563;
-    padding: 8px 10px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
-  }
-
-  #view-acquisti .table-timbrature tbody td {
-    border-bottom: none;
-    padding: 3px 0;
-  }
-
-  #view-acquisti .table-timbrature tbody td:last-child {
-    margin-top: 4px;
-  }
-}
-
-/* Tabella “Fatture registrate” (usa stile generico) */
-#view-acquisti table:not(.table-timbrature) {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-#view-acquisti table:not(.table-timbrature) th,
-#view-acquisti table:not(.table-timbrature) td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #4b5563;
-  text-align: left;
-}
-
-/* =========================
-   RICETTE
-   ========================= */
-
-#view-ricette form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-#view-ricette form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-#view-ricette input,
-#view-ricette textarea {
-  background: #020617;
-  border: 1px solid #4b5563;
-}
-
-/* Righe ingredienti */
-.ricetta-ingrediente-row {
-  margin-bottom: 6px;
-}
-
-.ricetta-ingrediente-row input {
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid #4b5563;
-  background: #020617;
-  color: #e5e7eb;
-}
-
-/* =========================
-   MAGAZZINO
-   ========================= */
-
-#view-magazzino #magazzino-search {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #4b5563;
-  background: #020617;
-  color: #e5e7eb;
-  padding-right: 36px;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px 16px;
-}
-
-#view-magazzino table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  background: #020617;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid #4b5563;
-}
-
-#view-magazzino th,
-#view-magazzino td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #4b5563;
-  text-align: left;
-  color: #e5e7eb;
-}
-
-#view-magazzino thead {
-  background: #020617;
-  font-weight: 600;
-}
-
-.magazzino-low {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background-color: #fee2e2;
-  color: #b91c1c;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* =========================
-   TEMA CHIARO (OVERRIDE)
-   ========================= */
+/* Tema CHIARO (override) */
 
 body.theme-light {
-  background: #f3f4f6;
-  color: #111827;
+  background: #e5e7eb;
 }
 
 body.theme-light .app-header {
@@ -765,53 +440,26 @@ body.theme-light .header-user {
 
 body.theme-light .view {
   background: #ffffff;
-  box-shadow: 0 14px 40px rgba(148, 163, 184, 0.4);
-  border-color: #e5e7eb;
+  box-shadow: 0 10px 25px rgba(148, 163, 184, 0.45);
 }
 
 body.theme-light .login-card {
-  background: #ffffff;
-  border-color: #e5e7eb;
+  background: #f9fafb;
 }
 
-body.theme-light input,
-body.theme-light select,
-body.theme-light textarea {
-  background: #ffffff;
+body.theme-light .app-button.ghost {
   color: #111827;
-  border-color: #d1d5db;
 }
 
 body.theme-light .app-button.login-button {
   background: #f97316;
-  color: #111827;
 }
 
 body.theme-light .app-button.login-button:hover {
-  background: #fb923c;
+  background: #ea580c;
 }
 
-body.theme-light .table-wrapper,
-body.theme-light .table-timbrature,
-body.theme-light .table-generic,
-body.theme-light #view-magazzino table {
-  background: #ffffff;
-  border-color: #e5e7eb;
-}
-
-body.theme-light .table-timbrature th,
-body.theme-light .table-timbrature td,
-body.theme-light .table-generic th,
-body.theme-light .table-generic td,
-body.theme-light #view-magazzino th,
-body.theme-light #view-magazzino td {
-  color: #111827;
-  border-color: #e5e7eb;
-}
-
-/* =========================
-   RESPONSIVITÀ
-   ========================= */
+/* Responsività */
 
 @media (min-width: 768px) {
   .app-main-wrapper {
@@ -823,7 +471,7 @@ body.theme-light #view-magazzino td {
   }
 
   .login-card {
-    padding: 24px 24px 26px;
+    padding: 22px 24px 26px;
   }
 
   .timbratura-buttons {
@@ -831,7 +479,7 @@ body.theme-light #view-magazzino td {
   }
 
   .timb-button {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .buttons-grid {
@@ -845,4 +493,52 @@ body.theme-light #view-magazzino td {
   .kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+  border: 1px solid #e5e7eb;
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+.ingrediente-row input {
+  font-size: 13px;
+}
+
+.app-button.tiny.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.tiny.red:hover {
+  background: #b91c1c;
+}
+.magazzino-low {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
 }
