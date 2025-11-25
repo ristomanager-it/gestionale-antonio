@@ -436,6 +436,11 @@ textarea {
 
 /* ========= ACQUISTI / FATTURE ========= */
 
+/* Contenitore vista con scroll orizzontale se serve */
+#view-acquisti {
+  overflow-x: auto;
+}
+
 /* Campi testata fattura più grandi e comodi */
 #view-acquisti form {
   display: flex;
@@ -457,6 +462,40 @@ textarea {
   border-radius: 12px;
   border: 1px solid #d1d5db;
   background: #ffffff;
+}
+
+/* Tabelle fatture: scrollabili orizzontalmente su mobile */
+#view-acquisti table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  display: block;
+  overflow-x: auto;
+}
+
+#view-acquisti thead,
+#view-acquisti tbody {
+  display: table;
+  width: 100%;
+}
+
+#view-acquisti tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+#view-acquisti th,
+#view-acquisti td {
+  white-space: nowrap;
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-acquisti thead {
+  background: #f3f4f6;
+  font-weight: 600;
 }
 
 /* Input nelle righe fattura più grandi */
