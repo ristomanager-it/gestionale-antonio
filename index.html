@@ -2,26 +2,19 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestionale Antonio</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
+
   <body>
-    <!-- CONTENITORE GENERALE -->
     <div class="app-main-wrapper">
       <!-- HEADER -->
       <header class="app-header">
         <div class="header-top">
           <div class="header-left">
             <div class="header-logo-circle">
-              <img
-                src="Logo Gestionale Antonio.png"
-                alt="Logo Gestionale Antonio"
-                class="header-logo-img"
-              />
+              <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
             </div>
             <div>
               <h1>Gestionale Antonio</h1>
@@ -30,16 +23,11 @@
           </div>
 
           <div class="header-right">
-            <button id="btn-theme" class="app-button tiny ghost">
-              🌙
-            </button>
+            <button id="btn-theme" class="app-button tiny ghost">🌙</button>
+
             <div class="header-user">
               <span id="current-user-label">Nessun utente</span>
-              <button
-                id="btn-logout"
-                class="app-button tiny"
-                style="display: none"
-              >
+              <button id="btn-logout" class="app-button tiny" style="display:none">
                 Esci
               </button>
             </div>
@@ -49,77 +37,47 @@
 
       <!-- CONTENUTO PRINCIPALE -->
       <main class="app-main">
+
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
           <div class="login-card">
             <div class="login-logo">
-              <img
-                src="Logo Gestionale Antonio.png"
-                alt="Logo Gestionale Antonio"
-                class="login-logo-img"
-              />
+              <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
             </div>
 
             <h2>Benvenuto</h2>
-            <p class="login-subtitle">
-              Scrivi il tuo nome e il PIN personale per accedere.
-            </p>
+            <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
 
             <form class="login-form" onsubmit="return false;">
-              <div class="form-row">
-                <label>
-                  Nome
-                  <input
-                    type="text"
-                    id="login-nome"
-                    placeholder="Es. Mario Rossi"
-                    autocomplete="name"
-                  />
-                </label>
-              </div>
+              <label>Nome
+                <input type="text" id="login-nome" placeholder="Es. Mario Rossi" />
+              </label>
 
-              <div class="form-row">
-                <label>
-                  PIN
-                  <input
-                    type="password"
-                    id="login-pin"
-                    placeholder="Inserisci PIN"
-                    inputmode="numeric"
-                    maxlength="10"
-                  />
-                </label>
-              </div>
+              <label>PIN
+                <input type="password" id="login-pin" maxlength="10" />
+              </label>
 
-              <div class="form-row remember-row">
-                <label class="remember-label">
-                  <input type="checkbox" id="login-remember" />
-                  Ricordami su questo dispositivo
-                </label>
-              </div>
+              <label class="remember-label">
+                <input type="checkbox" id="login-remember" />
+                Ricordami su questo dispositivo
+              </label>
 
-              <div class="login-buttons-row">
-                <button
-                  type="button"
-                  id="btn-login"
-                  class="app-button login-button"
-                >
-                  Entra
-                </button>
-              </div>
+              <button type="button" id="btn-login" class="app-button login-button">
+                Entra
+              </button>
             </form>
           </div>
         </section>
 
-        <!-- HOME DIPENDENTE (non manager) -->
-        <section id="view-home-dip" class="view" style="display: none">
+        <!-- HOME DIPENDENTE -->
+        <section id="view-home-dip" class="view" style="display:none">
           <h2>Cosa vuoi fare?</h2>
-          <p>Seleziona una funzione.</p>
 
           <div class="home-buttons">
             <button class="app-button big-home" data-route="timbratura">
               Timbratura
             </button>
+
             <button class="app-button big-home" data-route="ordine">
               Ordine del giorno
             </button>
@@ -127,456 +85,153 @@
         </section>
 
         <!-- MENU MANAGER -->
-        <section
-          class="buttons-grid"
-          id="manager-menu"
-          style="display: none"
-        >
+        <section id="manager-menu" class="buttons-grid" style="display:none">
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
-          <button
-            class="app-button menu-button"
-            data-route="dipendenti"
-            data-manager-only="true"
-          >
+
+          <button class="app-button menu-button" data-route="dipendenti">
             Dipendenti
           </button>
-          <button
-            class="app-button menu-button"
-            data-route="vendite"
-            data-manager-only="true"
-          >
-            Vendite
+
+          <button class="app-button menu-button" data-route="acquisti">
+            Acquisti / Fatture
           </button>
-          <button
-            class="app-button menu-button"
-            data-route="preventivi"
-            data-manager-only="true"
-          >
-            Preventivi
-          </button>
-          <button
-            class="app-button menu-button"
-            data-route="acquisti"
-            data-manager-only="true"
-          >
-            Acquisti
-          </button>
-          <button
-            class="app-button menu-button"
-            data-route="ricette"
-            data-manager-only="true"
-          >
+
+          <button class="app-button menu-button" data-route="ricette">
             Ricette
           </button>
-          <button
-            class="app-button menu-button"
-            data-route="cc"
-            data-manager-only="true"
-          >
-            Centro Cottura
+
+          <button class="app-button menu-button" data-route="magazzino">
+            Magazzino
           </button>
-          <button
-            class="app-button menu-button"
-            data-route="reintegro"
-            data-manager-only="true"
-          >
-            Reintegro
-          </button>
-          <button
-            class="app-button menu-button wide"
-            data-route="report"
-            data-manager-only="true"
-          >
+
+          <button class="app-button menu-button wide" data-route="report">
             Report
-          </button>
-          <button
-            class="app-button menu-button wide"
-            data-route="parametri"
-            data-manager-only="true"
-          >
-            Parametri
           </button>
         </section>
 
         <!-- TIMBRATURA -->
-        <section id="view-timbratura" class="view" style="display: none">
+        <section id="view-timbratura" class="view" style="display:none">
           <h2>Timbratura</h2>
           <p>Registra entrata, pausa e uscita.</p>
 
           <div class="timbratura-intro-card">
-            <p class="timbratura-utente">
-              Stai timbrando come
-              <strong id="timbratura-utente-nome">-</strong>
-            </p>
+            <p>Stai timbrando come <strong id="timbratura-utente-nome">-</strong></p>
 
-            <div class="form-row" style="margin-top: 8px">
-              <label>
-                Luogo di lavoro (canale)
-                <select id="timbratura-canale-select">
-                  <option value="NR">NR</option>
-                  <option value="RA">RA</option>
-                  <option value="CC">CC</option>
-                  <option value="CAT">Catering</option>
-                </select>
-              </label>
-            </div>
+            <label>Luogo di lavoro
+              <select id="timbratura-canale-select">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">Catering</option>
+              </select>
+            </label>
           </div>
 
           <div class="timbratura-buttons">
-            <button
-              type="button"
-              id="btn-entra"
-              class="app-button timb-button green"
-            >
-              ENTRA
-            </button>
-            <button
-              type="button"
-              id="btn-pausa"
-              class="app-button timb-button gray"
-            >
-              PAUSA
-            </button>
-            <button
-              type="button"
-              id="btn-esci"
-              class="app-button timb-button red"
-            >
-              USCITA
-            </button>
+            <button id="btn-entra" class="app-button timb-button green">ENTRA</button>
+            <button id="btn-pausa" class="app-button timb-button gray">PAUSA</button>
+            <button id="btn-esci" class="app-button timb-button red">USCITA</button>
           </div>
 
-          <!-- BLOCCO SOLO MANAGER -->
+          <!-- MANAGER: STORICO + REPORT -->
           <div class="manager-only">
-            <button
-              type="button"
-              id="btn-toggle-timbrature"
-              class="app-button small gray"
-              style="margin-top: 12px; margin-bottom: 6px"
-            >
+
+            <button id="btn-toggle-timbrature" class="app-button small gray">
               Mostra storico timbrature
             </button>
 
-            <div id="sezione-timbrature-dettaglio" style="display: none">
-              <h3>Timbrature (tutte)</h3>
+            <div id="sezione-timbrature-dettaglio" style="display:none">
+              <h3>Storico timbrature</h3>
               <div class="table-wrapper">
-                <table class="table-timbrature">
+                <table>
                   <thead>
-                    <tr>
-                      <th>Ora</th>
-                      <th>Dipendente</th>
-                      <th>Canale</th>
-                      <th>Azione</th>
-                    </tr>
+                    <tr><th>Ora</th><th>Dipendente</th><th>Canale</th><th>Azione</th></tr>
                   </thead>
                   <tbody id="timbratura-lista"></tbody>
                 </table>
               </div>
             </div>
 
-            <div class="timbratura-form" style="margin-top: 12px">
-              <div class="form-row">
-                <label>
-                  Periodo per riepilogo
-                  <select id="timbratura-periodo">
-                    <option value="oggi">Oggi</option>
-                    <option value="settimana">Ultimi 7 giorni</option>
-                    <option value="mese">Mese corrente</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <h3>Riepilogo ore (per dipendente)</h3>
+            <h3>Riepilogo ore (dipendenti)</h3>
             <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Dipendente</th>
-                    <th>Canale</th>
-                    <th>Ore lavorate</th>
-                  </tr>
-                </thead>
+              <table>
+                <thead><tr><th>Dipendente</th><th>Canale</th><th>Ore</th></tr></thead>
                 <tbody id="riepilogo-dipendenti"></tbody>
               </table>
             </div>
 
-            <h3>Riepilogo ore (per canale)</h3>
+            <h3>Riepilogo ore (canali)</h3>
             <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Canale</th>
-                    <th>Ore lavorate</th>
-                  </tr>
-                </thead>
+              <table>
+                <thead><tr><th>Canale</th><th>Ore</th></tr></thead>
                 <tbody id="riepilogo-canali"></tbody>
-              </table>
-            </div>
-
-            <h3>Costo lavoro (per dipendente)</h3>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Dipendente</th>
-                    <th>Canale</th>
-                    <th>Ore</th>
-                    <th>Costo €</th>
-                  </tr>
-                </thead>
-                <tbody id="costo-dipendenti"></tbody>
-              </table>
-            </div>
-
-            <h3>Costo lavoro (per canale)</h3>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Canale</th>
-                    <th>Ore</th>
-                    <th>Costo €</th>
-                  </tr>
-                </thead>
-                <tbody id="costo-canali"></tbody>
-              </table>
-            </div>
-
-            <h3>Attivi adesso</h3>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Dipendente</th>
-                    <th>Canale</th>
-                    <th>Da quando</th>
-                    <th>Durata attuale</th>
-                  </tr>
-                </thead>
-                <tbody id="attivi-lista"></tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ANAGRAFICA DIPENDENTI (SOLO MANAGER) -->
-        <section
-          id="view-dipendenti"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
+        <!-- DIPENDENTI -->
+        <section id="view-dipendenti" class="view" style="display:none">
           <h2>Dipendenti</h2>
-          <p>Anagrafica completa dipendenti.</p>
+          <p>Gestione completa dipendenti.</p>
 
-          <form
-            id="dipendente-form"
-            class="timbratura-form"
-            onsubmit="return false;"
-          >
-            <div class="form-row">
-              <label>
-                Nome
-                <input
-                  type="text"
-                  id="dip-nome"
-                  placeholder="Es. Mario Rossi"
-                />
-              </label>
-            </div>
+          <form id="dipendente-form" onsubmit="return false;">
+            <label>Nome
+              <input type="text" id="dip-nome" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Mansione
-                <input
-                  type="text"
-                  id="dip-mansione"
-                  placeholder="Es. Sala, Cucina..."
-                />
-              </label>
-            </div>
+            <label>Mansione
+              <input type="text" id="dip-mansione" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Data di nascita
-                <input type="date" id="dip-data-nascita" />
-              </label>
-            </div>
+            <label>Data nascita
+              <input type="date" id="dip-data-nascita" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Residenza
-                <input
-                  type="text"
-                  id="dip-residenza"
-                  placeholder="Indirizzo completo"
-                />
-              </label>
-            </div>
+            <label>Telefono
+              <input type="tel" id="dip-telefono" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Telefono
-                <input
-                  type="tel"
-                  id="dip-telefono"
-                  placeholder="Es. 3331234567"
-                />
-              </label>
-            </div>
+            <label>Email
+              <input type="email" id="dip-email" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Email
-                <input
-                  type="email"
-                  id="dip-email"
-                  placeholder="esempio@mail.com"
-                />
-              </label>
-            </div>
+            <label>Ruolo
+              <select id="dip-ruolo">
+                <option value="admin">Admin</option>
+                <option value="manager_cucina">Manager cucina</option>
+                <option value="manager_sala">Manager sala</option>
+                <option value="addetto_cucina">Addetto cucina</option>
+                <option value="cameriere">Cameriere</option>
+              </select>
+            </label>
 
-            <div class="form-row">
-              <label>
-                Ruolo
-                <select id="dip-ruolo">
-                  <option value="">-- seleziona ruolo --</option>
-                  <option value="admin">Admin</option>
-                  <option value="manager_cucina">Manager cucina</option>
-                  <option value="manager_sala">Manager sala</option>
-                  <option value="addetto_cucina">Addetto cucina</option>
-                  <option value="cameriere">Cameriere</option>
-                </select>
-              </label>
-            </div>
+            <label>Paga oraria (€)
+              <input type="number" id="dip-retribuzione-base" step="0.01" />
+            </label>
 
-            <div class="form-row">
-              <label id="label-retribuzione-base">
-                Paga oraria lorda (€/h)
-                <input
-                  type="number"
-                  id="dip-retribuzione-base"
-                  placeholder="Es. 12.50"
-                  step="0.01"
-                  min="0"
-                />
-              </label>
-            </div>
+            <label>PIN
+              <input type="text" id="dip-codice" maxlength="10" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Tipo di compenso
-                <select id="dip-tipo-compenso">
-                  <option value="orario">A ore</option>
-                  <option value="mensile">Mensile</option>
-                  <option value="servizio">Per servizio</option>
-                </select>
-              </label>
-            </div>
+            <label>
+              <input type="checkbox" id="dip-attivo" checked /> Attivo
+            </label>
 
-            <div class="form-row" id="row-ore-mensili" style="display: none">
-              <label>
-                Ore mensili contrattuali
-                <input
-                  type="number"
-                  id="dip-ore-mensili"
-                  placeholder="Es. 173"
-                  min="0"
-                  step="1"
-                />
-              </label>
-            </div>
-
-            <div class="form-row" id="row-ore-servizio" style="display: none">
-              <label>
-                Ore medie per servizio
-                <input
-                  type="number"
-                  id="dip-ore-servizio"
-                  placeholder="Es. 6"
-                  min="0"
-                  step="0.5"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Costo orario calcolato (€/h)
-                <input
-                  type="number"
-                  id="dip-costo"
-                  readonly
-                  placeholder="Calcolato automaticamente"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                PIN personale (per login/timbratura)
-                <input
-                  type="text"
-                  id="dip-codice"
-                  placeholder="Es. 1234"
-                  maxlength="10"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Canale prevalente
-                <select id="dip-canale">
-                  <option value="NR">NR</option>
-                  <option value="RA">RA</option>
-                  <option value="CC">CC</option>
-                  <option value="CAT">CAT</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label
-                style="flex-direction: row; align-items: center; gap: 8px"
-              >
-                <input type="checkbox" id="dip-attivo" checked />
-                Dipendente attivo
-              </label>
-            </div>
-
-            <div class="form-row buttons-row">
-              <button
-                type="button"
-                id="btn-add-dip"
-                class="app-button small green"
-              >
-                Aggiungi/aggiorna dipendente
-              </button>
-            </div>
+            <button id="btn-add-dip" class="app-button small green">
+              Salva dipendente
+            </button>
           </form>
 
-          <h3>Elenco dipendenti</h3>
+          <h3>Elenco</h3>
           <div class="table-wrapper">
-            <table class="table-timbrature">
+            <table>
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Mansione</th>
-                  <th>Data nascita</th>
-                  <th>Residenza</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Ruolo</th>
-                  <th>Tipo compenso</th>
-                  <th>Costo €/h</th>
-                  <th>Canale</th>
-                  <th>PIN</th>
-                  <th>Attivo</th>
-                  <th>Azioni</th>
+                  <th>Nome</th><th>Mansione</th><th>Telefono</th><th>Email</th>
+                  <th>Ruolo</th><th>Paga</th><th>PIN</th><th>Attivo</th><th>Azioni</th>
                 </tr>
               </thead>
               <tbody id="dipendenti-lista"></tbody>
@@ -584,360 +239,104 @@
           </div>
         </section>
 
-        <!-- ALTRE VISTE PLACEHOLDER -->
+        <!-- ACQUISTI / FATTURE -->
+        <section id="view-acquisti" class="view" style="display:none">
+          <h2>Fatture di acquisto</h2>
+          <p>Registra fatture, prodotti e movimenti di magazzino.</p>
 
-        <section id="view-ordine" class="view" style="display: none">
-          <h2>Ordine del giorno</h2>
-          <p>Qui in futuro inseriremo la gestione ordini giornalieri.</p>
-        </section>
+          <form id="fattura-form" onsubmit="return false;">
+            <label>Numero fattura
+              <input id="fattura-numero" type="text" />
+            </label>
 
-        <section
-          id="view-vendite"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Vendite</h2>
-          <p>Placeholder vendite.</p>
-        </section>
+            <label>Data
+              <input id="fattura-data" type="date" />
+            </label>
 
-        <section
-          id="view-preventivi"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Preventivi</h2>
-          <p>Placeholder preventivi.</p>
-        </section>
+            <label>Fornitore
+              <input id="fattura-fornitore" type="text" />
+            </label>
 
-        <!-- VISTA ACQUISTI / FATTURE -->
-        <section
-          id="view-acquisti"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Acquisti & Fatture</h2>
-          <p>
-            Registra le fatture di acquisto, crea automaticamente fornitori,
-            prodotti e movimenti di magazzino (carichi).
-          </p>
-
-          <!-- TESTATA FATTURA -->
-          <form id="fattura-form" class="timbratura-form" onsubmit="return false;">
-            <div class="form-row">
-              <label>
-                Numero fattura
-                <input
-                  type="text"
-                  id="fattura-numero"
-                  placeholder="Es. 123/2025"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Data fattura
-                <input type="date" id="fattura-data" />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Fornitore
-                <input
-                  type="text"
-                  id="fattura-fornitore"
-                  placeholder="Digita nome fornitore (se nuovo verrà creato)"
-                />
-              </label>
-            </div>
-
-            <div class="form-row">
-              <label>
-                Note (facoltative)
-                <textarea
-                  id="fattura-note"
-                  rows="2"
-                  placeholder="Note interne sulla fattura..."
-                  style="
-                    border-radius: 12px;
-                    padding: 9px;
-                    border: 1px solid #d1d5db;
-                    font-size: 14px;
-                    resize: vertical;
-                  "
-                ></textarea>
-              </label>
-            </div>
-
-            <div class="form-row buttons-row" style="margin-top: 6px;">
-              <button
-                type="button"
-                id="btn-nuova-fattura"
-                class="app-button small gray"
-              >
-                Nuova fattura
-              </button>
-              <button
-                type="button"
-                id="btn-salva-fattura"
-                class="app-button small green"
-              >
-                Salva fattura
-              </button>
-            </div>
-          </form>
-
-          <!-- RIGHE FATTURA -->
-          <h3 style="margin-top: 18px;">Righe fattura</h3>
-          <p class="small-muted">
-            Inserisci i prodotti acquistati: ogni riga genererà un carico di magazzino.
-          </p>
-
-          <div class="table-wrapper" style="margin-top: 8px;">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Cod. interno</th>
-                  <th>Descrizione</th>
-                  <th>Categoria</th>
-                  <th>UM</th>
-                  <th>Q.tà</th>
-                  <th>Prezzo</th>
-                  <th>IVA %</th>
-                  <th>Totale riga</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody id="fattura-righe-body"></tbody>
-            </table>
-          </div>
-
-          <div class="form-row buttons-row" style="margin-top: 8px;">
-            <button
-              type="button"
-              id="btn-add-riga-fattura"
-              class="app-button small gray"
-            >
-              + Aggiungi riga
+            <button id="btn-salva-fattura" class="app-button small green">
+              Salva fattura
             </button>
-          </div>
+          </form>
 
-          <!-- TOTALI FATTURA -->
-          <h3 style="margin-top: 16px;">Totali fattura</h3>
-          <div class="timbratura-form">
-            <div class="form-row">
-              <label>
-                Imponibile totale €
-                <input
-                  type="number"
-                  id="fattura-imponibile-totale"
-                  readonly
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </label>
-            </div>
-            <div class="form-row">
-              <label>
-                IVA totale €
-                <input
-                  type="number"
-                  id="fattura-iva-totale"
-                  readonly
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </label>
-            </div>
-            <div class="form-row">
-              <label>
-                Totale documento €
-                <input
-                  type="number"
-                  id="fattura-totale-documento"
-                  readonly
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </label>
-            </div>
-          </div>
+          <h3>Righe fattura</h3>
 
-          <!-- ELENCO FATTURE -->
-          <h3 style="margin-top: 20px;">Fatture registrate</h3>
-          <p class="small-muted">
-            Elenco delle fatture già inserite. Clicca su "Apri" per ricaricare la fattura e le righe.
-          </p>
-          <div class="table-wrapper" style="margin-top: 6px;">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Numero</th>
-                  <th>Fornitore</th>
-                  <th>Totale €</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody id="fatture-lista"></tbody>
-            </table>
-          </div>
+          <table class="table-timbrature">
+            <thead>
+              <tr>
+                <th>Codice</th><th>Descrizione</th><th>Categoria</th><th>UM</th>
+                <th>Q.tà</th><th>Prezzo</th><th>IVA</th><th>Totale</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="fattura-righe-body"></tbody>
+          </table>
+
+          <button id="btn-add-riga-fattura" class="app-button small gray">
+            + Aggiungi riga
+          </button>
+
+          <h3>Fatture registrate</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Numero</th><th>Fornitore</th><th>Totale</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="fatture-lista"></tbody>
+          </table>
         </section>
 
-        <!-- VISTA RICETTE (EDITOR) -->
-        <section
-          id="view-ricette"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
+        <!-- RICETTE -->
+        <section id="view-ricette" class="view" style="display:none">
           <h2>Ricette</h2>
-          <p>
-            Crea e modifica le ricette con ingredienti, procedimento e foto del
-            piatto finito.
-          </p>
 
-          <form id="ricetta-form" class="timbratura-form" onsubmit="return false;">
-            <div class="form-row">
-              <label>
-                Nome ricetta
-                <input
-                  type="text"
-                  id="ricetta-nome"
-                  placeholder="Es. Lasagna al ragù"
-                />
-              </label>
-            </div>
+          <form id="ricetta-form" onsubmit="return false;">
+            <label>Nome ricetta
+              <input type="text" id="ricetta-nome" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Descrizione breve (opzionale)
-                <input
-                  type="text"
-                  id="ricetta-descrizione"
-                  placeholder="Es. Piatto tipico della domenica..."
-                />
-              </label>
-            </div>
+            <label>Descrizione breve
+              <input type="text" id="ricetta-descrizione" />
+            </label>
 
-            <div class="form-row">
-              <label>
-                Procedimento / Note
-                <textarea
-                  id="ricetta-note"
-                  rows="4"
-                  placeholder="Scrivi qui il procedimento completo..."
-                  style="
-                    border-radius: 12px;
-                    padding: 9px;
-                    border: 1px solid #d1d5db;
-                    font-size: 14px;
-                    resize: vertical;
-                  "
-                ></textarea>
-              </label>
-            </div>
+            <label>Note / Procedimento
+              <textarea id="ricetta-note" rows="4"></textarea>
+            </label>
 
-            <div class="form-row">
-              <label>
-                Foto del piatto (opzionale)
-                <input type="file" id="ricetta-foto" accept="image/*" />
-              </label>
-            </div>
+            <h3>Ingredienti</h3>
+            <div id="ricetta-ingredienti-container"></div>
 
-            <h3>Ingredienti (per porzione o per ricetta)</h3>
-            <p class="small-muted">
-              Aggiungi gli ingredienti con quantità e unità di misura. Puoi
-              aggiungere tutte le righe che vuoi.
-            </p>
+            <button id="btn-add-ingrediente" class="app-button small gray">
+              + Aggiungi ingrediente
+            </button>
 
-            <div
-              id="ricetta-ingredienti-container"
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                margin-top: 8px;
-              "
-            >
-              <!-- le righe ingredienti verranno inserite via JS -->
-            </div>
-
-            <div
-              class="form-row buttons-row"
-              style="margin-top: 8px;"
-            >
-              <button
-                type="button"
-                id="btn-add-ingrediente"
-                class="app-button small gray"
-              >
-                + Aggiungi ingrediente
-              </button>
-            </div>
-
-            <div
-              class="form-row buttons-row"
-              style="margin-top: 12px;"
-            >
-              <button
-                type="button"
-                id="btn-salva-ricetta"
-                class="app-button small green"
-              >
-                Salva ricetta
-              </button>
-            </div>
+            <button id="btn-salva-ricetta" class="app-button small green">
+              Salva ricetta
+            </button>
           </form>
         </section>
 
-        <section
-          id="view-cc"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Centro cottura</h2>
-          <p>Placeholder centro cottura.</p>
+        <!-- MAGAZZINO -->
+        <section id="view-magazzino" class="view" style="display:none">
+          <h2>Magazzino</h2>
+          <p>Ricerca prodotti, scorte e movimenti.</p>
+
+          <input id="magazzino-search" type="text" placeholder="Cerca prodotto..." />
+
+          <h3>Prodotti</h3>
+          <table>
+            <thead><tr><th>Codice</th><th>Descrizione</th><th>Categoria</th><th>Stock</th></tr></thead>
+            <tbody id="magazzino-lista"></tbody>
+          </table>
         </section>
 
-        <section
-          id="view-reintegro"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Reintegro & magazzino</h2>
-          <p>Placeholder reintegro.</p>
-        </section>
-
-        <section
-          id="view-report"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Report & KPI</h2>
-          <p>Placeholder report.</p>
-        </section>
-
-        <section
-          id="view-parametri"
-          class="view"
-          style="display: none"
-          data-manager-only="true"
-        >
-          <h2>Parametri</h2>
-          <p>Placeholder parametri.</p>
-        </section>
       </main>
     </div>
 
-    <!-- SUPABASE: libreria + client -->
+    <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
       const supabaseClient = window.supabase.createClient(
@@ -947,7 +346,7 @@
       window.supabaseClient = supabaseClient;
     </script>
 
-    <!-- APP JS -->
+    <!-- SCRIPT APP -->
     <script src="app.js"></script>
   </body>
 </html>
