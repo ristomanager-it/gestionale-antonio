@@ -54,7 +54,14 @@
               </label>
 
               <label>PIN
-                <input type="password" id="login-pin" maxlength="10" />
+                <!-- tastierino numerico -->
+                <input
+                  type="tel"
+                  id="login-pin"
+                  maxlength="10"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                />
               </label>
 
               <label class="remember-label">
@@ -309,6 +316,9 @@
             <h3>Ingredienti</h3>
             <div id="ricetta-ingredienti-container"></div>
 
+            <!-- suggerimenti prodotti per ingredienti -->
+            <datalist id="ingredienti-suggestions"></datalist>
+
             <button id="btn-add-ingrediente" class="app-button small gray">
               + Aggiungi ingrediente
             </button>
@@ -324,7 +334,13 @@
           <h2>Magazzino</h2>
           <p>Ricerca prodotti, scorte e movimenti.</p>
 
-          <input id="magazzino-search" type="text" placeholder="Cerca prodotto..." />
+          <input
+            id="magazzino-search"
+            type="text"
+            placeholder="Cerca prodotto..."
+            list="magazzino-suggestions"
+          />
+          <datalist id="magazzino-suggestions"></datalist>
 
           <h3>Prodotti</h3>
           <table>
