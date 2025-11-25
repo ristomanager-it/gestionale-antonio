@@ -1423,6 +1423,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ========= ACQUISTI / FATTURE / MAGAZZINO =========
 
+    // ========= ACQUISTI / FATTURE / MAGAZZINO =========
+
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -1521,7 +1523,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-   async function findOrCreateProdotto({
+  async function findOrCreateProdotto({
     codice,
     descrizione,
     categoriaNome,
@@ -1619,7 +1621,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  // ========= FATTURE: RIGHE E TOTALI =========
+  // ====== RIGHE FATTURA + TOTALI ======
 
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
@@ -1766,7 +1768,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fatturaTotaleDocumentoInput)
       fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
   }
-
 
   function resetFatturaForm() {
     currentFatturaId = null;
@@ -2190,6 +2191,7 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaFattura();
     });
   }
+
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
