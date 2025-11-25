@@ -1619,7 +1619,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  function creaRigaFattura(initial = {}) {
+    function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
     const tr = document.createElement("tr");
@@ -1673,7 +1673,9 @@ document.addEventListener("DOMContentLoaded", () => {
           placeholder="Prezzo"
           min="0"
           step="0.0001"
-          value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
+          value="${
+            initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+          }"
         />
       </td>
       <td>
@@ -1692,7 +1694,33 @@ document.addEventListener("DOMContentLoaded", () => {
           ✕
         </button>
       </td>
-    ";
+    `;
+
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const btnDel = tr.querySelector(".btn-del-riga");
+
+    const handleChange = () => {
+      ricalcolaTotaleRiga(tr);
+      ricalcolaTotaliFattura();
+    };
+
+    if (qtaInput) qtaInput.addEventListener("input", handleChange);
+    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
+    if (ivaInput) ivaInput.addEventListener("input", handleChange);
+
+    if (btnDel) {
+      btnDel.addEventListener("click", () => {
+        tr.remove();
+        ricalcolaTotaliFattura();
+      });
+    }
+
+    fatturaRigheBody.appendChild(tr);
+    ricalcolaTotaleRiga(tr);
+  }
+
 
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
