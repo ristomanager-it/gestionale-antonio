@@ -1179,7 +1179,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    ";
+    `;
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     btnDel.addEventListener("click", () => {
@@ -1467,7 +1467,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .single();
 
     if (error) {
-      console.error("Errore creazione categoria:", error);
+      console.error("Errore creazione categoria prodotto:", error);
       alert("Errore nella creazione della categoria prodotto");
       return null;
     }
@@ -1476,7 +1476,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  async function findOrCreateProdotto({ codice, descrizione, categoriaNome, um }) {
+  async function findOrCreateProdotto({
+    codice,
+    descrizione,
+    categoriaNome,
+    um,
+  }) {
     if (!supabase) return null;
     const codiceTrim = (codice || "").trim();
     const descTrim = (descrizione || "").trim();
@@ -1582,7 +1587,9 @@ document.addEventListener("DOMContentLoaded", () => {
           placeholder="Prezzo"
           min="0"
           step="0.0001"
-          value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
+          value="${
+            initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+          }"
         />
       </td>
       <td>
@@ -1592,9 +1599,7 @@ document.addEventListener("DOMContentLoaded", () => {
           placeholder="%"
           min="0"
           step="1"
-          value="${
-            initial.iva_perc != null ? initial.iva_perc : ""
-          }"
+          value="${initial.iva_perc != null ? initial.iva_perc : ""}"
         />
       </td>
       <td class="fatt-riga-totale">0.00</td>
@@ -2007,11 +2012,15 @@ document.addEventListener("DOMContentLoaded", () => {
       fatturaFornitoreInput.value = nomeForn || "";
     if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
     if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value = (fattura.imponibile_totale || 0).toFixed(2);
+      fatturaImponibileTotaleInput.value = (
+        fattura.imponibile_totale || 0
+      ).toFixed(2);
     if (fatturaIvaTotaleInput)
       fatturaIvaTotaleInput.value = (fattura.iva_totale || 0).toFixed(2);
     if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value = (fattura.totale_documento || 0).toFixed(2);
+      fatturaTotaleDocumentoInput.value = (
+        fattura.totale_documento || 0
+      ).toFixed(2);
 
     // righe
     const { data: righe, error: righeError } = await supabase
