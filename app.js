@@ -1618,89 +1618,105 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function creaRigaFattura(initial = {}) {
-    if (!fatturaRigheBody) return;
+  if (!fatturaRigheBody) return;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-codice"
-          placeholder="Cod. interno"
-          value="${initial.codice_prodotto || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-descrizione"
-          placeholder="Descrizione prodotto"
-          value="${initial.descrizione_riga || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-categoria"
-          placeholder="Categoria"
-          value="${initial.categoria_nome || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-um"
-          placeholder="kg, l, pz..."
-          value="${initial.um || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-quantita"
-          placeholder="Q.tà"
-          min="0"
-          step="0.001"
-          value="${initial.quantita != null ? initial.quantita : ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-prezzo"
-          placeholder="Prezzo"
-          min="0"
-          step="0.0001"
-          value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-iva"
-          placeholder="%"
-          min="0"
-          step="1"
-          value="${initial.iva_perc != null ? initial.iva_perc : ""}"
-        />
-      </td>
-      <td class="fatt-riga-totale">0.00</td>
-      <td>
-        <button type="button" class="app-button tiny red btn-del-riga">
-          ✕
-        </button>
-      </td>
-    ";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>
+      <input
+        type="text"
+        class="fatt-riga-codice"
+        placeholder="Cod. interno"
+        value="${initial.codice_prodotto || ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="text"
+        class="fatt-riga-descrizione"
+        placeholder="Descrizione prodotto"
+        value="${initial.descrizione_riga || ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="text"
+        class="fatt-riga-categoria"
+        placeholder="Categoria"
+        value="${initial.categoria_nome || ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="text"
+        class="fatt-riga-um"
+        placeholder="kg, l, pz..."
+        value="${initial.um || ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="number"
+        class="fatt-riga-quantita"
+        placeholder="Q.tà"
+        min="0"
+        step="0.001"
+        value="${initial.quantita != null ? initial.quantita : ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="number"
+        class="fatt-riga-prezzo"
+        placeholder="Prezzo"
+        min="0"
+        step="0.0001"
+        value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
+      />
+    </td>
+    <td>
+      <input
+        type="number"
+        class="fatt-riga-iva"
+        placeholder="%"
+        min="0"
+        step="1"
+        value="${initial.iva_perc != null ? initial.iva_perc : ""}"
+      />
+    </td>
+    <td class="fatt-riga-totale">0.00</td>
+    <td>
+      <button type="button" class="app-button tiny red btn-del-riga">
+        ✕
+      </button>
+    </td>
+  `;
 
-    const qtaInput = tr.querySelector(".fatt-riga-quantita");
-    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-    const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const btnDel = tr.querySelector(".btn-del-riga");
+  const qtaInput = tr.querySelector(".fatt-riga-quantita");
+  const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+  const ivaInput = tr.querySelector(".fatt-riga-iva");
+  const btnDel = tr.querySelector(".btn-del-riga");
 
-    const handleChange = () => {
-      ricalcolaTotaleRiga(tr);
+  const handleChange = () => {
+    ricalcolaTotaleRiga(tr);
+    ricalcolaTotaliFattura();
+  };
+
+  if (qtaInput) qtaInput.addEventListener("input", handleChange);
+  if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
+  if (ivaInput) ivaInput.addEventListener("input", handleChange);
+
+  if (btnDel) {
+    btnDel.addEventListener("click", () => {
+      tr.remove();
       ricalcolaTotaliFattura();
-    };
+    });
+  }
+
+  fatturaRigheBody.appendChild(tr);
+  ricalcolaTotaleRiga(tr);
+}
+
 
     if (qtaInput) qtaInput.addEventListener("input", handleChange);
     if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
