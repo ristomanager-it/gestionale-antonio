@@ -1,5 +1,3 @@
-App.js
-
 // app.js
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
