@@ -43,6 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
     "sezione-timbrature-dettaglio"
   );
 
+  // --- nuova sezione PRESENZE (stato dipendenti) ---
+  const presenzeListaEl = document.getElementById("presenze-lista");
+  const btnTogglePresenze = document.getElementById("btn-toggle-presenze");
+  const sezionePresenzeEl = document.getElementById("sezione-presenze");
+
   // anagrafica dipendenti
   const dipNome = document.getElementById("dip-nome");
   const dipMansione = document.getElementById("dip-mansione");
@@ -81,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
-    const viewAcquisti = document.getElementById("view-acquisti");
+  const viewAcquisti = document.getElementById("view-acquisti");
   const fatturaNumeroInput = document.getElementById("fattura-numero");
   const fatturaDataInput = document.getElementById("fattura-data");
   const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
@@ -98,18 +103,23 @@ document.addEventListener("DOMContentLoaded", () => {
     "fattura-totale-documento"
   );
   const fattureListaBody = document.getElementById("fatture-lista");
+  const fattureTable = document.getElementById("fatture-table");
+  const btnToggleFatture = document.getElementById("btn-toggle-fatture");
 
   // ---------- MAGAZZINO (DOM) ----------
   const magazzinoSearchInput = document.getElementById("magazzino-search");
   const magazzinoListaEl = document.getElementById("magazzino-lista");
   const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
 
+  const magazzinoTable = document.getElementById("magazzino-table"); // nuova ref
   const magazzinoForm = document.getElementById("magazzino-form");
   const magazzinoIdInput = document.getElementById("magazzino-id");
   const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
   const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
   const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
+  const magazzinoScortaMinimaInput = document.getElementById(
+    "magazzino-scorta-minima"
+  );
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
 
   // stato magazzino
@@ -117,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // suggerimenti ingredienti (ricette) collegati a prodotti
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
-    // ========= AUTOCOMPLETE INGREDIENTI DA MAGAZZINO =========
+
+  // ========= AUTOCOMPLETE INGREDIENTI DA MAGAZZINO =========
   async function caricaProdottiMagazzinoPerAutocomplete() {
     if (!supabase) return;
 
@@ -146,7 +157,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   }
-
 
   // stato
   let dipendenti = [];
@@ -338,9 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyRoleVisibility() {
     const modalita =
-      currentUser && isManagerRole(currentUser.ruolo)
-        ? "manager"
-        : "dipendente";
+      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
 
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
@@ -905,6 +913,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- funzione presenze (chi è dentro/chi è fuori) ---
+  function aggiornaPresenzeDipendenti() {
+    if (!presenzeListaEl) return;
+
+    presenzeListaEl.innerHTML = "";
+
+    dipendenti.forEach((d) => {
+      if (!d || !d.nome) return;
+      const stato = getStatoCorrenteDipendente(d.nome);
+      const inside = stato.inside;
+      const canale = inside ? stato.canaleCorrente || "-" : "-";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.nome}</td>
+        <td>${canale}</td>
+        <td>${inside ? "Dentro" : "Fuori"}</td>
+      `;
+      presenzeListaEl.appendChild(tr);
+    });
+  }
+
   function aggiornaRiepilogo() {
     if (
       !riepilogoDipEl ||
@@ -1000,7 +1030,7 @@ document.addEventListener("DOMContentLoaded", () => {
       costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
     });
 
-    // riepilogo per dip
+    // riepilogo per dipendente
     riepilogoDipEl.innerHTML = "";
     Object.entries(perDip).forEach(([key, minuti]) => {
       const [nome, canale] = key.split("|");
@@ -1093,6 +1123,9 @@ document.addEventListener("DOMContentLoaded", () => {
         attiviListaEl.appendChild(tr);
       }
     });
+
+    // aggiorna la tabella presenze (dentro/fuori)
+    aggiornaPresenzeDipendenti();
   }
 
   // stato corrente dipendente per blocco cambio canale
@@ -1165,8 +1198,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tipo === "Entrata") {
       if (stato.inside) {
         alert(
-          `Sei già timbrato sul canale ${stato.canaleCorrente || ""}. ` +
-            "Devi fare Uscita prima di una nuova Entrata."
+          `Sei già timbrato sul canale ${
+            stato.canaleCorrente || ""
+          }. Devi fare Uscita prima di una nuova Entrata.`
         );
         if (timbCanaleSelect && stato.canaleCorrente) {
           timbCanaleSelect.value = stato.canaleCorrente;
@@ -1239,6 +1273,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- toggle sezione PRESENZE (solo manager/admin) ---
+  if (btnTogglePresenze && sezionePresenzeEl) {
+    btnTogglePresenze.addEventListener("click", () => {
+      const visibile = sezionePresenzeEl.style.display !== "none";
+
+      if (visibile) {
+        sezionePresenzeEl.style.display = "none";
+        btnTogglePresenze.textContent = "Mostra stato presenze";
+      } else {
+        aggiornaPresenzeDipendenti();
+        sezionePresenzeEl.style.display = "block";
+        btnTogglePresenze.textContent = "Nascondi stato presenze";
+      }
+    });
+  }
+
   // ========= RICETTE =========
 
   function creaRigaIngrediente(initial = {}) {
@@ -1251,7 +1301,7 @@ document.addEventListener("DOMContentLoaded", () => {
     row.style.alignItems = "center";
 
     row.innerHTML = `
-            <input
+      <input
         type="text"
         class="ingrediente-nome"
         placeholder="Ingrediente (come in magazzino)"
@@ -1279,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    `;
+    ";
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     btnDel.addEventListener("click", () => {
@@ -1398,29 +1448,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
   }
-  // ======= SUGGERIMENTI INGREDIENTI COLLEGATI A PRODOTTI (MAGAZZINO) =======
-
-  async function caricaProdottiSuggerimentiIngredienti() {
-    if (!supabase || !ingredientiSuggestions) return;
-
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("descrizione")
-      .order("descrizione", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento suggerimenti ingredienti:", error);
-      return;
-    }
-
-    ingredientiSuggestions.innerHTML = "";
-    (data || []).forEach((p) => {
-      if (!p.descrizione) return;
-      const opt = document.createElement("option");
-      opt.value = p.descrizione;
-      ingredientiSuggestions.appendChild(opt);
-    });
-  }
 
   async function handleSalvaRicetta() {
     const nome = (ricettaNomeInput?.value || "").trim();
@@ -1436,7 +1463,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const ingredienti = [];
     if (ricettaIngredientiContainer) {
       const rows = Array.from(
-        ricettaIngredientiContainer.querySelectorAll(".ricetta-ingrediente-row")
+        ricettaIngredientiContainer.querySelectorAll(
+          ".ricetta-ingrediente-row"
+        )
       );
       rows.forEach((row) => {
         const nomeEl = row.querySelector(".ingrediente-nome");
@@ -1616,7 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
 
-    // 1) SE MI DAI UN CODICE → CERCO PER CODICE (funziona se un giorno vuoi usarlo)
+    // 1) SE MI DAI UN CODICE → CERCO PER CODICE
     if (codiceTrim) {
       const { data: existingByCodice, error: errFindCodice } = await supabase
         .from("prodotti")
@@ -1637,19 +1666,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 2) SE NON HO CODICE → CERCO PER DESCRIZIONE (COME VUOI TU)
+    // 2) SE NON HO CODICE → CERCO PER DESCRIZIONE
     if (descTrim) {
       const { data: existingByDesc, error: errFindDesc } = await supabase
         .from("prodotti")
         .select("id, codice_interno, descrizione, categoria_id, um")
-        // match "esatto" (ma case-insensitive); se vuoi più permissivo si può usare %...%
         .ilike("descrizione", descTrim)
         .limit(1);
 
       if (errFindDesc) {
-        console.error("Errore ricerca prodotto per descrizione:", errFindDesc);
+        console.error(
+          "Errore ricerca prodotto per descrizione:",
+          errFindDesc
+        );
       } else if (existingByDesc && existingByDesc.length > 0) {
-        // 🔁 prodotto già esistente → riuso quello (stesso codice interno)
+        // prodotto già esistente → riuso quello
         return existingByDesc[0];
       }
     }
@@ -1665,7 +1696,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 4) SE NON HAI DATO UN CODICE → LO GENERO AUTOMATICO (codifica prodotto)
+    // 4) SE NON HAI DATO UN CODICE → LO GENERO AUTOMATICO
     let codiceInternoFinale = codiceTrim;
     if (!codiceInternoFinale) {
       codiceInternoFinale = await generaCodiceInternoAutomatico(
@@ -1730,7 +1761,7 @@ document.addEventListener("DOMContentLoaded", () => {
           value="${initial.codice_prodotto || ""}"
         />
       </td>
-            <td>
+      <td>
         <input
           type="text"
           class="fatt-riga-descrizione"
@@ -1739,7 +1770,6 @@ document.addEventListener("DOMContentLoaded", () => {
           value="${initial.descrizione_riga || ""}"
         />
       </td>
-
 
       <td>
         <input
@@ -1899,11 +1929,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const note = (fatturaNoteInput?.value || "").trim();
 
     if (!numero) {
-      alert("Inserisci il numero fattura");
+      alert("Inserisci il numero della fattura");
       return;
     }
     if (!dataDoc) {
-      alert("Inserisci la data fattura");
+      alert("Inserisci la data della fattura");
       return;
     }
     if (!fornitoreNome) {
@@ -1911,268 +1941,154 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
-    const righeForm = [];
-    rows.forEach((tr) => {
-      const codiceInput = tr.querySelector(".fatt-riga-codice");
-      const descrInput = tr.querySelector(".fatt-riga-descrizione");
-      const catInput = tr.querySelector(".fatt-riga-categoria");
-      const umInput = tr.querySelector(".fatt-riga-um");
-      const qtaInput = tr.querySelector(".fatt-riga-quantita");
-      const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-      const ivaInput = tr.querySelector(".fatt-riga-iva");
-
-      const codice = (codiceInput?.value || "").trim();
-      const descrizione = (descrInput?.value || "").trim();
-      const categoria = (catInput?.value || "").trim();
-      const um = (umInput?.value || "").trim();
-      const qta = parseNumber(qtaInput?.value || "0");
-      const prezzo = parseNumber(prezzoInput?.value || "0");
-      let ivaPerc = parseNumber(ivaInput?.value || "0");
-
-      if (!codice && !descrizione) return;
-      if (!qta || !prezzo) return;
-
-      if (![4, 10, 22].includes(ivaPerc)) {
-        if (!ivaPerc) ivaPerc = 22; // default
-      }
-
-      righeForm.push({
-        codice,
-        descrizione,
-        categoria,
-        um,
-        qta,
-        prezzo,
-        ivaPerc,
-      });
-    });
-
-    if (!righeForm.length) {
-      alert("Inserisci almeno una riga di fattura valida (q.tà e prezzo > 0)");
-      return;
-    }
-
-    // calcolo totali
-    let impTot = 0;
-    let ivaTot = 0;
-    let docTot = 0;
-    righeForm.forEach((r) => {
-      const imponibile = r.qta * r.prezzo;
-      const iva = imponibile * (r.ivaPerc / 100);
-      const totale = imponibile + iva;
-      impTot += imponibile;
-      ivaTot += iva;
-      docTot += totale;
-    });
-
     // fornitore
+    await caricaFornitoriInCache();
     const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
     if (!fornitore) return;
 
-    // testata fattura
-    let fatturaData = null;
-    if (!currentFatturaId) {
-      const { data, error } = await supabase
-        .from("fatture_acquisto")
-        .insert({
-          numero_documento: numero,
-          data_documento: dataDoc,
-          fornitore_id: fornitore.id,
-          imponibile_totale: impTot,
-          iva_totale: ivaTot,
-          totale_documento: docTot,
-          note: note || null,
-        })
-        .select("*")
-        .single();
+    const imponibileTot = parseNumber(
+      fatturaImponibileTotaleInput?.value || "0"
+    );
+    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "0");
+    const docTot = parseNumber(
+      fatturaTotaleDocumentoInput?.value || "0"
+    );
 
-      if (error) {
-        console.error("Errore salvataggio fattura:", error);
-        alert("Errore nel salvare la fattura di acquisto: " + error.message);
-        return;
-      }
+    const fatturaPayload = {
+      id: currentFatturaId || undefined,
+      numero_documento: numero,
+      data_documento: dataDoc,
+      fornitore_id: fornitore.id,
+      note: note || null,
+      imponibile_totale: imponibileTot,
+      iva_totale: ivaTot,
+      totale_documento: docTot,
+    };
 
-      fatturaData = data;
-      currentFatturaId = data.id;
-    } else {
-      const { data, error } = await supabase
-        .from("fatture_acquisto")
-        .update({
-          numero_documento: numero,
-          data_documento: dataDoc,
-          fornitore_id: fornitore.id,
-          imponibile_totale: impTot,
-          iva_totale: ivaTot,
-          totale_documento: docTot,
-          note: note || null,
-        })
-        .eq("id", currentFatturaId)
-        .select("*")
-        .single();
+    const { data: fatturaData, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .upsert(fatturaPayload)
+      .select()
+      .single();
 
-      if (error) {
-        console.error("Errore aggiornamento fattura:", error);
-        alert(
-          "Errore nell'aggiornare la fattura di acquisto: " + error.message
-        );
-        return;
-      }
-
-      fatturaData = data;
+    if (fatturaError) {
+      console.error("Errore salvataggio fattura:", fatturaError);
+      alert("Errore nel salvare la fattura");
+      return;
     }
 
-    // sincronizzo totali sui campi
-    if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
-    if (fatturaIvaTotaleInput)
-      fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
-    if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+    currentFatturaId = fatturaData.id;
 
-    // cancello righe precedenti fattura
-    const { error: delRigheErr } = await supabase
+    // cancello righe precedenti
+    await supabase
       .from("fatture_acquisto_righe")
       .delete()
       .eq("fattura_id", currentFatturaId);
 
-    if (delRigheErr) {
-      console.error("Errore cancellazione righe fattura:", delRigheErr);
-      alert(
-        "Errore nel cancellare le righe precedenti: " +
-          delRigheErr.message
-      );
-      return;
-    }
-
-    // inserisco righe + movimenti magazzino
+    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
     const righePayload = [];
-    for (const r of righeForm) {
-      // categoria
-      let categoria = null;
-      if (r.categoria) {
-        categoria = await findOrCreateCategoriaByNome(r.categoria);
-      }
 
-      // prodotto
-      const prodotto = await findOrCreateProdotto({
-        codice: r.codice,
-        descrizione: r.descrizione,
-        categoriaNome: r.categoria,
-        um: r.um,
-      });
-      if (!prodotto) {
-        console.warn("Prodotto non creato per riga:", r);
+    for (const tr of rows) {
+      const codiceEl = tr.querySelector(".fatt-riga-codice");
+      const descrEl = tr.querySelector(".fatt-riga-descrizione");
+      const catEl = tr.querySelector(".fatt-riga-categoria");
+      const umEl = tr.querySelector(".fatt-riga-um");
+      const qtaEl = tr.querySelector(".fatt-riga-quantita");
+      const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
+      const ivaEl = tr.querySelector(".fatt-riga-iva");
+
+      const codiceVal = (codiceEl?.value || "").trim();
+      const descrVal = (descrEl?.value || "").trim();
+      const catVal = (catEl?.value || "").trim();
+      const umVal = (umEl?.value || "").trim();
+      const qtaVal = parseNumber(qtaEl?.value || "0");
+      const prezzoVal = parseNumber(prezzoEl?.value || "0");
+      const ivaPercVal = parseNumber(ivaEl?.value || "0");
+
+      if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) {
         continue;
       }
 
-      const imponibile = r.qta * r.prezzo;
-      const iva = imponibile * (r.ivaPerc / 100);
-      const totale = imponibile + iva;
+      // associo/creo prodotto
+      await caricaCategorieInCache();
+      const prodotto = await findOrCreateProdotto({
+        codice: codiceVal,
+        descrizione: descrVal,
+        categoriaNome: catVal,
+        um: umVal,
+      });
+      if (!prodotto) continue;
+
+      const imponibile = qtaVal * prezzoVal;
+      const ivaVal = imponibile * (ivaPercVal / 100);
+      const totale = imponibile + ivaVal;
 
       righePayload.push({
         fattura_id: currentFatturaId,
         prodotto_id: prodotto.id,
         codice_prodotto: prodotto.codice_interno,
-        categoria_id: categoria
-          ? categoria.id
-          : prodotto.categoria_id || null,
-        descrizione_riga: r.descrizione || prodotto.descrizione,
-        um: r.um || prodotto.um || "pz",
-        quantita: r.qta,
-        prezzo_unitario: r.prezzo,
-        sconto_perc: null,
-        iva_perc: r.ivaPerc,
-        imponibile_riga: imponibile,
-        iva_riga: iva,
-        totale_riga: totale,
+        descrizione_riga: descrVal,
+        quantita: qtaVal,
+        um: prodotto.um,
+        prezzo_unitario: prezzoVal,
+        iva_perc: ivaPercVal,
+        imponibile,
+        iva: ivaVal,
+        totale,
+        categoria_id: prodotto.categoria_id || null,
       });
+
+      // qui in futuro: inserimento movimento di magazzino (carico)
+      // tabella magazzino_movimenti
     }
 
-    if (righePayload.length === 0) {
-      alert(
-        "Nessuna riga valida da salvare dopo la creazione dei prodotti. Controlla i dati."
-      );
-      return;
-    }
+    if (righePayload.length) {
+      const { error: righeError } = await supabase
+        .from("fatture_acquisto_righe")
+        .insert(righePayload);
 
-    const { data: righeInserite, error: righeError } = await supabase
-      .from("fatture_acquisto_righe")
-      .insert(righePayload)
-      .select("*");
-
-    if (righeError) {
-      console.error("Errore salvataggio righe fattura:", righeError);
-      alert("Errore nel salvare le righe della fattura: " + righeError.message);
-      return;
-    }
-
-    // movimenti di magazzino (CARICO)
-    const movimentiPayload = (righeInserite || []).map((r) => ({
-      prodotto_id: r.prodotto_id,
-      data_movimento: fatturaData.data_documento,
-      tipo_movimento: "CARICO",
-      quantita: r.quantita,
-      costo_unitario: r.prezzo_unitario,
-      riferimento_tipo: "FATTURA_ACQUISTO",
-      riferimento_id: fatturaData.id,
-      riferimento_riga_id: r.id,
-      note: null,
-    }));
-
-    if (movimentiPayload.length > 0) {
-      const { error: movErr } = await supabase
-        .from("magazzino_movimenti")
-        .insert(movimentiPayload);
-
-      if (movErr) {
-        console.error("Errore salvataggio movimenti magazzino:", movErr);
-        alert(
-          "Fattura salvata ma errore nel creare i movimenti di magazzino: " +
-            movErr.message
-        );
+      if (righeError) {
+        console.error("Errore salvataggio righe fattura:", righeError);
+        alert("Errore nel salvare le righe della fattura");
+        return;
       }
     }
 
-    alert("Fattura salvata con successo e magazzino aggiornato.");
-    await caricaFornitoriInCache();
-    await caricaCategorieInCache();
-    await caricaListaFatture();
+    alert("Fattura salvata correttamente");
+    await caricaElencoFatture();
   }
 
-  async function caricaListaFatture() {
-    if (!fattureListaBody || !supabase) return;
+  async function caricaElencoFatture() {
+    if (!supabase || !fattureListaBody) return;
 
     const { data, error } = await supabase
       .from("fatture_acquisto")
-      .select("*")
+      .select("id, numero_documento, data_documento, fornitore_id, totale_documento")
       .order("data_documento", { ascending: false })
-      .limit(100);
+      .limit(200);
 
     if (error) {
       console.error("Errore caricamento fatture:", error);
-      alert("Errore nel caricare l'elenco fatture: " + error.message);
+      alert("Errore nel caricare le fatture");
       return;
     }
 
+    await caricaFornitoriInCache();
+
     fattureListaBody.innerHTML = "";
     (data || []).forEach((f) => {
-      const forn = getFornitoreById(f.fornitore_id);
-      const nomeForn = forn ? forn.ragione_sociale : "";
-
+      const fornitore = getFornitoreById(f.fornitore_id);
       const tr = document.createElement("tr");
       const dataStr = f.data_documento
         ? new Date(f.data_documento).toLocaleDateString("it-IT")
         : "";
-      const totDoc = Number(f.totale_documento || 0);
-
       tr.innerHTML = `
         <td>${dataStr}</td>
         <td>${f.numero_documento || ""}</td>
-        <td>${nomeForn}</td>
-        <td>${totDoc.toFixed(2)}</td>
+        <td>${fornitore?.ragione_sociale || ""}</td>
+        <td>${f.totale_documento != null ? f.totale_documento.toFixed(2) : ""}</td>
         <td>
-          <button type="button" class="app-button tiny gray" data-open-fattura="${f.id}">
+          <button class="app-button tiny gray" data-open-fattura="${f.id}">
             Apri
           </button>
         </td>
@@ -2185,52 +2101,54 @@ document.addEventListener("DOMContentLoaded", () => {
       .forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
-          if (!Number.isNaN(id)) {
-            caricaFatturaDettaglio(id);
-          }
+          apriFatturaEsistente(id);
         });
       });
   }
 
-  async function caricaFatturaDettaglio(fatturaId) {
+  async function apriFatturaEsistente(fatturaId) {
     if (!supabase) return;
 
-    // testata
-    const { data: fattura, error } = await supabase
+    const { data: fattura, error: fatturaError } = await supabase
       .from("fatture_acquisto")
       .select("*")
       .eq("id", fatturaId)
       .single();
 
-    if (error || !fattura) {
-      console.error("Errore caricamento fattura:", error);
-      alert("Errore nel caricare i dettagli della fattura");
+    if (fatturaError) {
+      console.error("Errore lettura fattura:", fatturaError);
+      alert("Errore nel caricare la fattura");
       return;
     }
 
     currentFatturaId = fattura.id;
 
-    const forn = getFornitoreById(fattura.fornitore_id);
-    const nomeForn = forn ? forn.ragione_sociale : "";
-
     if (fatturaNumeroInput)
       fatturaNumeroInput.value = fattura.numero_documento || "";
     if (fatturaDataInput)
-      fatturaDataInput.value = fattura.data_documento || "";
-    if (fatturaFornitoreInput) fatturaFornitoreInput.value = nomeForn || "";
+      fatturaDataInput.value = fattura.data_documento
+        ? fattura.data_documento.substring(0, 10)
+        : "";
+    if (fatturaFornitoreInput) {
+      await caricaFornitoriInCache();
+      const forn = getFornitoreById(fattura.fornitore_id);
+      fatturaFornitoreInput.value = forn?.ragione_sociale || "";
+    }
     if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
     if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value = Number(
-        fattura.imponibile_totale || 0
-      ).toFixed(2);
+      fatturaImponibileTotaleInput.value =
+        fattura.imponibile_totale != null
+          ? fattura.imponibile_totale.toFixed(2)
+          : "";
     if (fatturaIvaTotaleInput)
-      fatturaIvaTotaleInput.value = Number(fattura.iva_totale || 0).toFixed(2);
+      fatturaIvaTotaleInput.value =
+        fattura.iva_totale != null ? fattura.iva_totale.toFixed(2) : "";
     if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value = Number(
-        fattura.totale_documento || 0
-      ).toFixed(2);
+      fatturaTotaleDocumentoInput.value =
+        fattura.totale_documento != null
+          ? fattura.totale_documento.toFixed(2)
+          : "";
 
-    // righe
     const { data: righe, error: righeError } = await supabase
       .from("fatture_acquisto_righe")
       .select("*")
@@ -2263,19 +2181,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-async function caricaProdottiSuggerimentiIngredienti() {
-  // se magazzinoDati è vuoto, carico da Supabase
-  if (!magazzinoDati.length) {
-    await caricaCategorieInCache();
-    await caricaMagazzinoDati();
-  } else {
-    // se è già carico, aggiorno solo la datalist ingredienti
-    aggiornaIngredientiSuggestionsDaMagazzino();
-  }
-}
-
-
-
   if (btnAddRigaFattura) {
     btnAddRigaFattura.addEventListener("click", () => {
       creaRigaFattura();
@@ -2294,7 +2199,15 @@ async function caricaProdottiSuggerimentiIngredienti() {
       handleSalvaFattura();
     });
   }
-   // ========= MAGAZZINO: prodotti + giacenze + cerca =========
+
+  if (btnToggleFatture && fattureTable) {
+    btnToggleFatture.addEventListener("click", () => {
+      const vis = fattureTable.style.display !== "none";
+      fattureTable.style.display = vis ? "none" : "table";
+    });
+  }
+
+  // ========= MAGAZZINO: prodotti + giacenze + cerca =========
 
   function renderMagazzinoLista(lista) {
     if (!magazzinoListaEl) return;
@@ -2322,7 +2235,6 @@ async function caricaProdottiSuggerimentiIngredienti() {
     });
   }
 
-  // datalist usata nel campo CERCA del magazzino
   function aggiornaMagazzinoSuggestions() {
     if (!magazzinoSuggestions) return;
     magazzinoSuggestions.innerHTML = "";
@@ -2330,12 +2242,11 @@ async function caricaProdottiSuggerimentiIngredienti() {
     magazzinoDati.forEach((p) => {
       if (!p.descrizione) return;
       const opt = document.createElement("option");
-      opt.value = p.descrizione; // testo che vedi nel suggerimento
+      opt.value = p.descrizione;
       magazzinoSuggestions.appendChild(opt);
     });
   }
 
-  // datalist usata negli INGREDIENTI (ricette), prelevata dal magazzino
   function aggiornaIngredientiSuggestionsDaMagazzino() {
     if (!ingredientiSuggestions) return;
     ingredientiSuggestions.innerHTML = "";
@@ -2358,7 +2269,8 @@ async function caricaProdottiSuggerimentiIngredienti() {
       if (magazzinoDescrInput) magazzinoDescrInput.value = "";
       if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
       if (magazzinoUmInput) magazzinoUmInput.value = "";
-      if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
+      if (magazzinoScortaMinimaInput)
+        magazzinoScortaMinimaInput.value = "";
       return;
     }
 
@@ -2382,111 +2294,36 @@ async function caricaProdottiSuggerimentiIngredienti() {
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
-    // prodotti
-    const { data: prodotti, error: prodErr } = await supabase
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima")
+    const { data, error } = await supabase
+      .from("prodotti_view_magazzino")
+      .select("id, codice_interno, descrizione, um, categoria_nome, scorta_minima, stock_attuale")
       .order("descrizione", { ascending: true });
 
-    if (prodErr) {
-      console.error("Errore caricamento prodotti magazzino:", prodErr);
-      alert("Errore nel caricare i prodotti di magazzino: " + prodErr.message);
+    if (error) {
+      console.error("Errore caricamento magazzino:", error);
+      alert("Errore nel caricare i prodotti di magazzino");
       return;
     }
 
-    // movimenti per stock
-    const { data: movimenti, error: movErr } = await supabase
-      .from("magazzino_movimenti")
-      .select("prodotto_id, tipo_movimento, quantita");
+    magazzinoDati = (data || []).map((r) => ({
+      id: r.id,
+      codice: r.codice_interno,
+      descrizione: r.descrizione,
+      um: r.um,
+      categoriaNome: r.categoria_nome || "",
+      scortaMinima: r.scorta_minima,
+      stock: r.stock_attuale ?? 0,
+    }));
 
-    if (movErr) {
-      console.error("Errore caricamento movimenti magazzino:", movErr);
-      alert(
-        "Errore nel caricare i movimenti di magazzino: " + movErr.message
-      );
-      return;
-    }
-
-    const statsByProd = {};
-    (movimenti || []).forEach((m) => {
-      const pid = m.prodotto_id;
-      if (!pid) return;
-      if (!statsByProd[pid]) {
-        statsByProd[pid] = { stock: 0 };
-      }
-      const q = Number(m.quantita) || 0;
-      if (!q) return;
-
-      if (m.tipo_movimento === "CARICO") {
-        statsByProd[pid].stock += q;
-      } else if (m.tipo_movimento === "SCARICO") {
-        statsByProd[pid].stock -= q;
-      }
-    });
-
-    magazzinoDati = (prodotti || []).map((p) => {
-      const stat = statsByProd[p.id] || { stock: 0 };
-      const cat =
-        p.categoria_id != null ? getCategoriaById(p.categoria_id) : null;
-
-      return {
-        id: p.id,
-        codice: p.codice_interno,
-        descrizione: p.descrizione,
-        um: p.um,
-        categoriaNome: cat ? cat.nome : "",
-        scortaMinima: p.scorta_minima,
-        stock: stat.stock,
-      };
-    });
-
-    // aggiorno tabella magazzino
-    renderMagazzinoLista(magazzinoDati);
-    // aggiorno datalist per il campo CERCA
     aggiornaMagazzinoSuggestions();
-    // aggiorno anche datalist ingredienti ricette
     aggiornaIngredientiSuggestionsDaMagazzino();
-  }
-
-  async function initMagazzinoView() {
-    await caricaCategorieInCache();
-    await caricaMagazzinoDati();
-    if (magazzinoSearchInput) magazzinoSearchInput.value = "";
-    popolaMagazzinoForm(null);
-  }
-
-  if (magazzinoSearchInput) {
-    magazzinoSearchInput.addEventListener("input", () => {
-      const term = magazzinoSearchInput.value.trim().toLowerCase();
-      if (!term) {
-        renderMagazzinoLista(magazzinoDati);
-        return;
-      }
-
-      const filtrati = magazzinoDati.filter((p) => {
-        return (
-          (p.codice && p.codice.toLowerCase().includes(term)) ||
-          (p.descrizione && p.descrizione.toLowerCase().includes(term)) ||
-          (p.categoriaNome && p.categoriaNome.toLowerCase().includes(term))
-        );
-      });
-
-      renderMagazzinoLista(filtrati);
-    });
   }
 
   async function salvaProdottoDaMagazzinoForm() {
     if (!supabase) return;
 
-    const id = magazzinoIdInput
-      ? parseInt(magazzinoIdInput.value, 10)
-      : NaN;
-
-    if (!id) {
-      alert("Seleziona prima un prodotto dalla tabella.");
-      return;
-    }
-
+    const idVal = magazzinoIdInput?.value || "";
+    const id = idVal ? parseInt(idVal, 10) : null;
     const descr = (magazzinoDescrInput?.value || "").trim();
     const catNome = (magazzinoCategoriaInput?.value || "").trim();
     const umVal = (magazzinoUmInput?.value || "").trim();
@@ -2505,50 +2342,100 @@ async function caricaProdottiSuggerimentiIngredienti() {
       if (cat) categoriaId = cat.id;
     }
 
-    const { data, error } = await supabase
-      .from("prodotti")
-      .update({
-        descrizione: descr,
-        categoria_id: categoriaId,
-        um: umVal || null,
-        scorta_minima: scortaVal != null ? scortaVal : null,
-      })
-      .eq("id", id)
-      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima")
-      .single();
+    if (!id) {
+      // nuovo prodotto
+      const codice = await generaCodiceInternoAutomatico(
+        catNome || descr || "GEN"
+      );
+      const { data, error } = await supabase
+        .from("prodotti")
+        .insert({
+          codice_interno: codice,
+          descrizione: descr,
+          categoria_id: categoriaId,
+          um: umVal || null,
+          scorta_minima: scortaVal != null ? scortaVal : null,
+          attivo: true,
+        })
+        .select(
+          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
+        )
+        .single();
 
-    if (error) {
-      console.error("Errore aggiornamento prodotto magazzino:", error);
-      alert("Errore nel salvare il prodotto di magazzino: " + error.message);
-      return;
-    }
+      if (error) {
+        console.error("Errore creazione prodotto magazzino:", error);
+        alert("Errore nel salvare il prodotto di magazzino: " + error.message);
+        return;
+      }
 
-    const cat =
-      data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
-    const idx = magazzinoDati.findIndex((p) => p.id === id);
-    const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
-
-    const nuovo = {
-      id: data.id,
-      codice: data.codice_interno,
-      descrizione: data.descrizione,
-      um: data.um,
-      categoriaNome: cat ? cat.nome : "",
-      scortaMinima: data.scorta_minima,
-      stock: stockAttuale,
-    };
-
-    if (idx >= 0) {
-      magazzinoDati[idx] = nuovo;
-    } else {
+      const cat =
+        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+      const nuovo = {
+        id: data.id,
+        codice: data.codice_interno,
+        descrizione: data.descrizione,
+        um: data.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: data.scorta_minima,
+        stock: 0,
+      };
       magazzinoDati.push(nuovo);
-    }
+      popolaMagazzinoForm(nuovo);
+      renderMagazzinoLista(magazzinoDati);
+      aggiornaMagazzinoSuggestions();
+      aggiornaIngredientiSuggestionsDaMagazzino();
+      alert("Prodotto creato.");
+    } else {
+      // update
+      const { data, error } = await supabase
+        .from("prodotti")
+        .update({
+          descrizione: descr,
+          categoria_id: categoriaId,
+          um: umVal || null,
+          scorta_minima: scortaVal != null ? scortaVal : null,
+        })
+        .eq("id", id)
+        .select(
+          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
+        )
+        .single();
 
-    renderMagazzinoLista(magazzinoDati);
-    aggiornaMagazzinoSuggestions();
-    aggiornaIngredientiSuggestionsDaMagazzino();
-    popolaMagazzinoForm(nuovo);
-    alert("Prodotto aggiornato.");
+      if (error) {
+        console.error("Errore aggiornamento prodotto magazzino:", error);
+        alert(
+          "Errore nel salvare il prodotto di magazzino: " + error.message
+        );
+        return;
+      }
+
+      const cat =
+        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+      const idx = magazzinoDati.findIndex((p) => p.id === id);
+      const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
+
+      const nuovo = {
+        id: data.id,
+        codice: data.codice_interno,
+        descrizione: data.descrizione,
+        um: data.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: data.scorta_minima,
+        stock: stockAttuale,
+      };
+
+      if (idx >= 0) {
+        magazzinoDati[idx] = nuovo;
+      } else {
+        magazzinoDati.push(nuovo);
+      }
+
+      renderMagazzinoLista(magazzinoDati);
+      aggiornaMagazzinoSuggestions();
+      aggiornaIngredientiSuggestionsDaMagazzino();
+      popolaMagazzinoForm(nuovo);
+      alert("Prodotto aggiornato.");
+    }
   }
 
   if (btnMagazzinoSalva) {
@@ -2558,31 +2445,41 @@ async function caricaProdottiSuggerimentiIngredienti() {
     });
   }
 
-  // carica suggerimenti ingredienti usando i dati del magazzino
+  // --- MAGAZZINO: mostra tabella solo quando cerco qualcosa ---
+  if (magazzinoSearchInput && magazzinoTable) {
+    magazzinoTable.style.display = "none";
+
+    magazzinoSearchInput.addEventListener("input", () => {
+      const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
+
+      if (!q) {
+        magazzinoTable.style.display = "none";
+        if (magazzinoListaEl) magazzinoListaEl.innerHTML = "";
+        return;
+      }
+
+      const filtrati = magazzinoDati.filter((p) => {
+        const desc = (p.descrizione || "").toLowerCase();
+        const cod = (p.codice || "").toLowerCase();
+        return desc.includes(q) || cod.includes(q);
+      });
+
+      renderMagazzinoLista(filtrati);
+      magazzinoTable.style.display = "table";
+    });
+  }
+
+  // ========= SUGGERIMENTI INGREDIENTI PER RICETTE =========
   async function caricaProdottiSuggerimentiIngredienti() {
-    // se magazzinoDati è vuoto, carico da Supabase
+    // se magazzinoDati è vuoto, prima carico il magazzino
     if (!magazzinoDati.length) {
       await caricaCategorieInCache();
       await caricaMagazzinoDati();
     } else {
-      // se è già carico, aggiorno solo la datalist ingredienti
+      // altrimenti aggiorno solo la datalist ingredienti
       aggiornaIngredientiSuggestionsDaMagazzino();
     }
   }
-
-
-// ========= SUGGERIMENTI INGREDIENTI PER RICETTE =========
-// usata quando entri nella vista "ricette"
-async function caricaProdottiSuggerimentiIngredienti() {
-  // se magazzinoDati è vuoto, prima carico il magazzino
-  if (!magazzinoDati.length) {
-    await caricaCategorieInCache();
-    await caricaMagazzinoDati();
-  } else {
-    // altrimenti aggiorno solo la datalist ingredienti
-    aggiornaIngredientiSuggestionsDaMagazzino();
-  }
-}
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
@@ -2595,19 +2492,23 @@ async function caricaProdottiSuggerimentiIngredienti() {
         await caricaDipendentiDaSupabase();
         break;
       case "ricette":
-    await caricaProdottiSuggerimentiIngredienti(); // prima carico i prodotti
-    resetFormRicetta();                            // poi preparo il form
-    break;
-
+        await caricaProdottiSuggerimentiIngredienti();
+        resetFormRicetta();
+        break;
       case "acquisti":
-        await initAcquistiView();
+        await caricaCategorieInCache();
+        await caricaFornitoriInCache();
+        resetFatturaForm();
+        await caricaElencoFatture();
+        break;
+      case "magazzino":
+        await caricaCategorieInCache();
+        await caricaMagazzinoDati();
+        popolaMagazzinoForm(null);
+        // la lista non viene mostrata finché non si digita in cerca
         break;
       default:
         break;
-      case "magazzino":
-        await initMagazzinoView();
-        break;
-
     }
   }
 
@@ -2662,19 +2563,20 @@ async function caricaProdottiSuggerimentiIngredienti() {
     restoreUserFromStorage();
 
     if (currentUser) {
-      if (loginView) loginView.style.display = "none";
+      const hashRoute = window.location.hash.replace("#", "") || "timbratura";
       if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenuAndRoute(
-          window.location.hash.replace("#", "") || "timbratura"
-        );
+        showManagerMenuAndRoute(hashRoute);
       } else {
-        showHomeDipendente();
+        if (hashRoute === "timbratura") {
+          showOnlyView("view-timbratura");
+          await onRouteEnter("timbratura");
+        } else {
+          showHomeDipendente();
+        }
       }
     } else {
       showLogin();
     }
-
-    aggiornaUICompenso();
   }
 
   init();
