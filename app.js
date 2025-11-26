@@ -1522,11 +1522,121 @@ const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
   }
 
   async function findOrCreateProdotto({
-    codice,
-    descrizione,
-    categoriaNome,
-    um,
-  }) {
+  codice,
+  descrizione,
+  categoriaNome,
+  um,
+}) {
+  if (!supabase) return null;
+  const codiceTrim = (codice || "").trim();
+  const descTrim = (descrizione || "").trim();
+  const umTrim = (um || "").trim() || "pz";
+
+  // se non c'è né codice né descrizione, non posso creare nulla
+  if (!codiceTrim && !descTrim) {
+    return null;
+  }
+
+  // 1) SE MI DAI UN CODICE → CERCO PER CODICE (funziona ancora se un giorno vuoi usarlo)
+  if (codiceTrim) {
+    const { data: existingByCodice, error: errFindCodice } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .eq("codice_interno", codiceTrim)
+      .limit(1);
+
+    if (errFindCodice) {
+      console.error("Errore ricerca prodotto per codice:", errFindCodice);
+      alert(
+        "Errore Supabase (ricerca prodotto per codice): " +
+          errFindCodice.message
+      );
+    }
+
+    if (existingByCodice && existingByCodice.length > 0) {
+      return existingByCodice[0];
+    }
+  }
+
+  // 2) SE NON HO CODICE → CERCO PER DESCRIZIONE (QUELLO CHE VUOI TU)
+  if (descTrim) {
+    const { data: existingByDesc, error: errFindDesc } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      // match "esatto" ma senza distinzione maiuscole/minuscole
+      .ilike("descrizione", descTrim)
+      .limit(1);
+
+    if (errFindDesc) {
+      console.error("Errore ricerca prodotto per descrizione:", errFindDesc);
+    } else if (existingByDesc && existingByDesc.length > 0) {
+      // 🔁 prodotto già esistente → riuso quello (stesso codice interno)
+      return existingByDesc[0];
+    }
+  }
+
+  // 3) CATEGORIA (se la scrivi in fattura)
+  let categoria = null;
+  if (categoriaNome) {
+    categoria = await findOrCreateCategoriaByNome(categoriaNome);
+    if (!categoria) {
+      alert(
+        "Attenzione: categoria prodotto non creata/cercata correttamente, creo comunque il prodotto."
+      );
+    }
+  }
+
+  // 4) SE NON HAI DATO UN CODICE → LO GENERO AUTOMATICO (codifica prodotto)
+  let codiceInternoFinale = codiceTrim;
+  if (!codiceInternoFinale) {
+    codiceInternoFinale = await generaCodiceInternoAutomatico(
+      categoriaNome || descTrim || "GEN"
+    );
+  }
+
+  // 5) ULTIMO CONTROLLO: ESISTE GIÀ QUESTO CODICE?
+  const { data: existingFinal, error: errFindFinal } = await supabase
+    .from("prodotti")
+    .select("id, codice_interno, descrizione, categoria_id, um")
+    .eq("codice_interno", codiceInternoFinale)
+    .limit(1);
+
+  if (errFindFinal) {
+    console.error("Errore ricerca prodotto finale:", errFindFinal);
+    alert(
+      "Errore Supabase (ricerca prodotto finale): " +
+        errFindFinal.message
+    );
+  }
+
+  if (existingFinal && existingFinal.length > 0) {
+    return existingFinal[0];
+  }
+
+  // 6) SE ARRIVO QUI → CREO UN NUOVO PRODOTTO
+  const payload = {
+    codice_interno: codiceInternoFinale,
+    descrizione: descTrim || codiceInternoFinale,
+    categoria_id: categoria ? categoria.id : null,
+    um: umTrim,
+    attivo: true,
+  };
+
+  const { data, error } = await supabase
+    .from("prodotti")
+    .insert(payload)
+    .select("id, codice_interno, descrizione, categoria_id, um")
+    .single();
+
+  if (error) {
+    console.error("Errore creazione prodotto:", error);
+    alert("Errore Supabase (creazione prodotto): " + error.message);
+    return null;
+  }
+
+  return data;
+}
+
     if (!supabase) return null;
     const codiceTrim = (codice || "").trim();
     const descTrim = (descrizione || "").trim();
