@@ -98,12 +98,30 @@ document.addEventListener("DOMContentLoaded", () => {
     "fattura-totale-documento"
   );
   const fattureListaBody = document.getElementById("fatture-lista");
+    // ---------- MAGAZZINO (DOM) ----------
   const magazzinoSearchInput = document.getElementById("magazzino-search");
   const magazzinoListaEl = document.getElementById("magazzino-lista");
   const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
 
+  const magazzinoForm = document.getElementById("magazzino-form");
+  const magazzinoIdInput = document.getElementById("magazzino-id");
+  const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
+  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
+  const magazzinoUmInput = document.getElementById("magazzino-um");
+  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
+  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
+
   // stato magazzino
   let magazzinoDati = [];
+
+  // suggerimenti ingredienti (ricette) collegati a prodotti
+  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+
+  const magazzinoSearchInput = document.getElementById("magazzino-search");
+  const magazzinoListaEl = document.getElementById("magazzino-lista");
+  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
+
+
 
   // stato
   let dipendenti = [];
@@ -1208,13 +1226,15 @@ document.addEventListener("DOMContentLoaded", () => {
     row.style.alignItems = "center";
 
     row.innerHTML = `
-      <input
+            <input
         type="text"
         class="ingrediente-nome"
-        placeholder="Ingrediente"
+        placeholder="Ingrediente (come in magazzino)"
         style="flex: 2; min-width: 0;"
+        list="ingredienti-suggestions"
         value="${initial.nome_prodotto || ""}"
       />
+
       <input
         type="number"
         class="ingrediente-quantita"
@@ -1352,6 +1372,29 @@ document.addEventListener("DOMContentLoaded", () => {
       .getPublicUrl(filePath);
 
     return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
+  }
+  // ======= SUGGERIMENTI INGREDIENTI COLLEGATI A PRODOTTI (MAGAZZINO) =======
+
+  async function caricaProdottiSuggerimentiIngredienti() {
+    if (!supabase || !ingredientiSuggestions) return;
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("descrizione")
+      .order("descrizione", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento suggerimenti ingredienti:", error);
+      return;
+    }
+
+    ingredientiSuggestions.innerHTML = "";
+    (data || []).forEach((p) => {
+      if (!p.descrizione) return;
+      const opt = document.createElement("option");
+      opt.value = p.descrizione;
+      ingredientiSuggestions.appendChild(opt);
+    });
   }
 
   async function handleSalvaRicetta() {
@@ -2219,12 +2262,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // ========= MAGAZZINO: prodotti + giacenze + cerca =========
 
+    // ========= MAGAZZINO: prodotti + giacenze + cerca =========
+
   function renderMagazzinoLista(lista) {
     if (!magazzinoListaEl) return;
     magazzinoListaEl.innerHTML = "";
 
     lista.forEach((p) => {
       const tr = document.createElement("tr");
+      tr.dataset.prodottoId = p.id;
+
       const stockTxt =
         p.stock != null ? p.stock.toFixed(2) + " " + (p.um || "") : "";
 
@@ -2234,6 +2281,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${p.categoriaNome || ""}</td>
         <td>${stockTxt}</td>
       `;
+
+      tr.addEventListener("click", () => {
+        selezionaProdottoMagazzino(p.id);
+      });
+
       magazzinoListaEl.appendChild(tr);
     });
   }
@@ -2249,10 +2301,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function trovaProdottoInMagazzinoById(id) {
+    return magazzinoDati.find((p) => p.id === id) || null;
+  }
+
+  function popolaMagazzinoForm(prod) {
+    if (!prod) {
+      if (magazzinoIdInput) magazzinoIdInput.value = "";
+      if (magazzinoDescrInput) magazzinoDescrInput.value = "";
+      if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
+      if (magazzinoUmInput) magazzinoUmInput.value = "";
+      if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
+      return;
+    }
+
+    if (magazzinoIdInput) magazzinoIdInput.value = prod.id;
+    if (magazzinoDescrInput)
+      magazzinoDescrInput.value = prod.descrizione || "";
+    if (magazzinoCategoriaInput)
+      magazzinoCategoriaInput.value = prod.categoriaNome || "";
+    if (magazzinoUmInput) magazzinoUmInput.value = prod.um || "";
+    if (magazzinoScortaMinimaInput) {
+      magazzinoScortaMinimaInput.value =
+        prod.scortaMinima != null ? prod.scortaMinima : "";
+    }
+  }
+
+  function selezionaProdottoMagazzino(id) {
+    const prod = trovaProdottoInMagazzinoById(id);
+    popolaMagazzinoForm(prod);
+  }
+
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
-    // 1) leggo i prodotti
+    // prodotti
     const { data: prodotti, error: prodErr } = await supabase
       .from("prodotti")
       .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima")
@@ -2264,7 +2347,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 2) leggo movimenti per calcolare stock
+    // movimenti per stock
     const { data: movimenti, error: movErr } = await supabase
       .from("magazzino_movimenti")
       .select("prodotto_id, tipo_movimento, quantita");
@@ -2294,7 +2377,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // 3) costruisco array magazzinoDati
     magazzinoDati = (prodotti || []).map((p) => {
       const stat = statsByProd[p.id] || { stock: 0 };
       const cat =
@@ -2319,6 +2401,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await caricaCategorieInCache();
     await caricaMagazzinoDati();
     if (magazzinoSearchInput) magazzinoSearchInput.value = "";
+    popolaMagazzinoForm(null);
   }
 
   if (magazzinoSearchInput) {
@@ -2340,6 +2423,87 @@ document.addEventListener("DOMContentLoaded", () => {
       renderMagazzinoLista(filtrati);
     });
   }
+  async function salvaProdottoDaMagazzinoForm() {
+    if (!supabase) return;
+
+    const id = magazzinoIdInput
+      ? parseInt(magazzinoIdInput.value, 10)
+      : NaN;
+
+    if (!id) {
+      alert("Seleziona prima un prodotto dalla tabella.");
+      return;
+    }
+
+    const descr = (magazzinoDescrInput?.value || "").trim();
+    const catNome = (magazzinoCategoriaInput?.value || "").trim();
+    const umVal = (magazzinoUmInput?.value || "").trim();
+    const scortaVal = magazzinoScortaMinimaInput
+      ? parseNumber(magazzinoScortaMinimaInput.value)
+      : null;
+
+    if (!descr) {
+      alert("La descrizione non può essere vuota.");
+      return;
+    }
+
+    let categoriaId = null;
+    if (catNome) {
+      const cat = await findOrCreateCategoriaByNome(catNome);
+      if (cat) categoriaId = cat.id;
+    }
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .update({
+        descrizione: descr,
+        categoria_id: categoriaId,
+        um: umVal || null,
+        scorta_minima: scortaVal != null ? scortaVal : null,
+      })
+      .eq("id", id)
+      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima")
+      .single();
+
+    if (error) {
+      console.error("Errore aggiornamento prodotto magazzino:", error);
+      alert("Errore nel salvare il prodotto di magazzino: " + error.message);
+      return;
+    }
+
+    const cat =
+      data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+    const idx = magazzinoDati.findIndex((p) => p.id === id);
+    const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
+
+    const nuovo = {
+      id: data.id,
+      codice: data.codice_interno,
+      descrizione: data.descrizione,
+      um: data.um,
+      categoriaNome: cat ? cat.nome : "",
+      scortaMinima: data.scorta_minima,
+      stock: stockAttuale,
+    };
+
+    if (idx >= 0) {
+      magazzinoDati[idx] = nuovo;
+    } else {
+      magazzinoDati.push(nuovo);
+    }
+
+    renderMagazzinoLista(magazzinoDati);
+    popolaMagazzinoForm(nuovo);
+    alert("Prodotto aggiornato.");
+  }
+
+  if (btnMagazzinoSalva) {
+    btnMagazzinoSalva.addEventListener("click", (e) => {
+      e.preventDefault();
+      salvaProdottoDaMagazzinoForm();
+    });
+  }
+
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
@@ -2353,6 +2517,7 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case "ricette":
         resetFormRicetta();
+        await caricaProdottiSuggerimentiIngredienti();
         break;
       case "acquisti":
         await initAcquistiView();
