@@ -1,5 +1,703 @@
+/* ========== RESET BASE ========== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* Tema base: SCURO; il chiaro è gestito con body.theme-light */
+body {
+  background: #020617;
+  color: #0f172a;
+}
+
+/* ========== LAYOUT APP ========== */
+
+.app-main-wrapper {
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 8px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+
+.app-header {
+  background: #020617;
+  color: #e5e7eb;
+  padding: 8px 4px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f97316;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+/* CONTENUTO PRINCIPALE */
+
+.app-main {
+  flex: 1;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* CARD GENERICA VISTA */
+
+.view {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
+}
+
+/* Utility */
+
+.hidden {
+  display: none !important;
+}
+
+/* ========== LOGIN ========== */
+
+.login-view {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin: 6px 0 4px;
+  font-size: 24px;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+/* ========== PULSANTI GENERICI ========== */
+
+.app-button {
+  padding: 11px 12px;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease,
+    box-shadow 0.12s ease;
+  font-weight: 600;
+  text-align: center;
+}
+
+.app-button:hover {
+  background: #d1d5db;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
+
+.app-button:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.app-button.ghost {
+  background: transparent;
+  color: #e5e7eb;
+  box-shadow: none;
+}
+
+.app-button.ghost:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.app-button.login-button {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.app-button.login-button:hover {
+  background: #1d4ed8;
+}
+
+.app-button.green {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.app-button.green:hover {
+  background: #15803d;
+}
+
+.app-button.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.red:hover {
+  background: #b91c1c;
+}
+
+.app-button.gray {
+  background: #6b7280;
+  color: #ffffff;
+}
+
+.app-button.gray:hover {
+  background: #4b5563;
+}
+
+/* ========== CAMPI A PIGLIO (PILLS) ========== */
+
+/* classe da usare su input/select che vuoi belli stondati */
+.input-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px; /* pillola */
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* per eventuali textarea stile "card" */
+.textarea-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  resize: vertical;
+}
+
+/* Riduzione zoom automatico su mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
+/* ========== HOME DIPENDENTE / MENU MANAGER ========== */
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.app-button.big-home {
+  padding: 16px 14px;
+  font-size: 17px;
+  background: #e5e7eb;
+}
+
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu-button {
+  font-size: 13px;
+  padding: 10px 8px;
+}
+
+.app-button.wide {
+  grid-column: span 2;
+}
+
+/* ========== FORM GENERICI (LABEL IN COLONNA) ========== */
+
+.view form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* ========== TIMBRATURA ========== */
+
+.timbratura-intro-card {
+  background: #eef2ff;
+  border-radius: 14px;
+  padding: 10px 12px 8px;
+  border: 1px solid #c7d2fe;
+  margin-bottom: 12px;
+}
+
+.timbratura-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.timb-button {
+  width: 100%;
+  font-size: 17px;
+  padding: 15px 12px;
+  color: #ffffff;
+}
+
+/* ========== TABELLE ========== */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table-timbrature thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
+
+/* ========== TESTO PICCOLO ========== */
+
+.small-muted {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
 /* ========== KPI / CARDS VALORI ========== */
 
 .kpi-cards {
-  ...
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ========== ACQUISTI / FATTURE ========== */
+
+#view-acquisti form {
+  margin-bottom: 12px;
+}
+
+/* input della testata fattura a pillola (già in index con class input-pill) */
+#view-acquisti input[type="text"],
+#view-acquisti input[type="date"],
+#view-acquisti input[type="number"] {
+  /* se hanno class input-pill la regola .input-pill vince */
+}
+
+/* tabella righe fattura */
+#view-acquisti table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+#view-acquisti th,
+#view-acquisti td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: normal;
+}
+
+#view-acquisti thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Input nelle righe fattura */
+#view-acquisti .table-timbrature input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* layout verticale righe fattura su schermi piccoli */
+@media (max-width: 640px) {
+  #view-acquisti table,
+  #view-acquisti thead,
+  #view-acquisti tbody,
+  #view-acquisti th,
+  #view-acquisti td,
+  #view-acquisti tr {
+    display: block;
+  }
+
+  #view-acquisti thead {
+    display: none;
+  }
+
+  #view-acquisti tbody tr {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    padding: 6px 8px;
+  }
+
+  #view-acquisti tbody td {
+    border-bottom: none;
+    padding: 4px 0;
+  }
+
+  #view-acquisti tbody td:last-child {
+    margin-top: 4px;
+  }
+}
+
+/* ========== RICETTE ========== */
+
+#view-ricette form {
+  margin-top: 4px;
+}
+
+#view-ricette input.input-pill {
+  /* già gestito dalla classe globale */
+}
+
+#view-ricette textarea {
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* righe ingredienti */
+.ricetta-ingrediente-row {
+  margin-bottom: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ricetta-ingrediente-row input {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+}
+
+/* ========== DIPENDENTI ========== */
+
+#view-dipendenti form {
+  margin-top: 8px;
+}
+
+/* i campi hanno class input-pill in index, qui basta eventualmente regolare checkbox */
+#view-dipendenti label input[type="checkbox"] {
+  width: auto;
+  margin-right: 6px;
+}
+
+/* un po' di spazio prima dell'elenco */
+#view-dipendenti h3 {
+  margin-top: 16px;
+}
+
+/* ========== MAGAZZINO ========== */
+
+/* campo ricerca a pillola, con icona lente */
+#view-magazzino #magazzino-search.input-pill {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+}
+
+/* form dettaglio prodotto: i campi sono già a pillola via class input-pill */
+#view-magazzino form {
+  margin: 10px 0 12px;
+}
+
+/* tabella prodotti (mostrata solo "a comando" via JS) */
+#view-magazzino table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#view-magazzino th,
+#view-magazzino td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-magazzino thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.magazzino-low {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ========== MANAGER-ONLY ========== */
+
+.manager-only {
+  /* niente di speciale, ma puoi usare se vuoi marcarli in futuro */
+}
+
+/* ========== TEMA CHIARO ========== */
+
+body.theme-light {
+  background: #e5e7eb;
+}
+
+body.theme-light .app-header {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+body.theme-light .subtitle {
+  color: #6b7280;
+}
+
+body.theme-light .header-user {
+  color: #111827;
+}
+
+body.theme-light .view {
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(148, 163, 184, 0.45);
+}
+
+body.theme-light .login-card {
+  background: #f9fafb;
+}
+
+body.theme-light .app-button.ghost {
+  color: #111827;
+}
+
+body.theme-light .app-button.login-button {
+  background: #f97316;
+}
+
+body.theme-light .app-button.login-button:hover {
+  background: #ea580c;
+}
+
+/* ========== RESPONSIVITÀ ========== */
+
+@media (min-width: 768px) {
+  .app-main-wrapper {
+    padding-top: 12px;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .login-card {
+    padding: 22px 24px 26px;
+  }
+
+  .timbratura-buttons {
+    flex-direction: row;
+  }
+
+  .timb-button {
+    font-size: 16px;
+  }
+
+  .buttons-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .menu-button {
+    font-size: 14px;
+  }
+
+  .kpi-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
