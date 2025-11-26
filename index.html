@@ -264,41 +264,43 @@
           </table>
         </section>
 
-        <!-- RICETTE -->
-        <section id="view-ricette" class="view" style="display:none">
-          <h2>Ricette</h2>
+      <!-- RICETTE -->
+<section id="view-ricette" class="view" style="display:none">
+  <h2>Ricette</h2>
 
-          <form id="ricetta-form" onsubmit="return false;">
-            <label>Nome ricetta
-              <input type="text" id="ricetta-nome" />
-            </label>
-
-            <label>Descrizione breve
-              <input type="text" id="ricetta-descrizione" />
-            </label>
-
-            <label>Note / Procedimento
-              <textarea id="ricetta-note" rows="4"></textarea>
-            </label>
-<label>Foto ricetta
-      <input
-        type="file"
-        id="ricetta-foto"
-        accept="image/*"
-      />
+  <form id="ricetta-form" onsubmit="return false;">
+    <label>Nome ricetta
+      <input type="text" id="ricetta-nome" />
     </label>
-            <h3>Ingredienti</h3>
-            <div id="ricetta-ingredienti-container"></div>
 
-            <button id="btn-add-ingrediente" class="app-button small gray">
-              + Aggiungi ingrediente
-            </button>
+    <label>Descrizione breve
+      <input type="text" id="ricetta-descrizione" />
+    </label>
 
-            <button id="btn-salva-ricetta" class="app-button small green">
-              Salva ricetta
-            </button>
-          </form>
-        </section>
+    <label>Note / Procedimento
+      <textarea id="ricetta-note" rows="4"></textarea>
+    </label>
+
+    <label>Foto ricetta
+      <input type="file" id="ricetta-foto" accept="image/*" />
+    </label>
+
+    <h3>Ingredienti</h3>
+
+    <div id="ricetta-ingredienti-container"></div>
+
+    <!-- 🔥 DATALIST PER AUTOCOMPLETE INGREDIENTI -->
+    <datalist id="ingredienti-suggestions"></datalist>
+
+    <button id="btn-add-ingrediente" class="app-button small gray">
+      + Aggiungi ingrediente
+    </button>
+
+    <button id="btn-salva-ricetta" class="app-button small green">
+      Salva ricetta
+    </button>
+  </form>
+</section>
 
         <!-- MAGAZZINO -->
         <section id="view-magazzino" class="view" style="display:none">
