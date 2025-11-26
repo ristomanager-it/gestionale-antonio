@@ -122,7 +122,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
   // datalist ingredienti per ricette (autocomplete da magazzino)
-  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+  const ingredientiSuggestions = document.getElementById(
+    "ingredienti-suggestions"
+  );
+
+  // ---------- REPORT / KPI (DOM) ----------
+  const kpiPeriodoSelect = document.getElementById("kpi-periodo");
+  const kpiCostiFissiEl = document.getElementById("kpi-costi-fissi");
+  const kpiCostoLavoroEl = document.getElementById("kpi-costo-lavoro");
+  const kpiFoodCostEl = document.getElementById("kpi-food-cost");
+  const kpiMargineEl = document.getElementById("kpi-margine");
+
+  const costiFissiForm = document.getElementById("costi-fissi-form");
+  const costiFissiCategoriaInput = document.getElementById(
+    "costi-fissi-categoria"
+  );
+  const costiFissiDescrizioneInput = document.getElementById(
+    "costi-fissi-descrizione"
+  );
+  const costiFissiAnnoInput = document.getElementById("costi-fissi-anno");
+  const costiFissiImportoInput = document.getElementById("costi-fissi-importo");
+  const costiFissiListaBody = document.getElementById("costi-fissi-lista");
+  const btnCostiFissiSalva = document.getElementById("btn-costi-fissi-salva");
 
   // ---------- STATO ----------
   let dipendenti = [];
@@ -137,6 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let fornitoriCache = [];
   let categorieCache = [];
   let magazzinoDati = [];
+
+  // KPI / costi fissi
+  let costiFissi = [];
+  let kpiPeriodoCorrente = "day"; // day | week | month | year
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
@@ -197,6 +222,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextNum = Number.isNaN(lastNum) ? 1 : lastNum + 1;
 
     return `${prefix}-${String(nextNum).padStart(4, "0")}`;
+  }
+
+  // ========= KPI / PERIODI =========
+  function getDateRangeForKpi(periodo) {
+    const now = new Date();
+    const end = now.getTime();
+
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+
+    switch (periodo) {
+      case "day":
+        break; // oggi
+      case "week": {
+        const day = start.getDay() || 7; // lun=1..dom=7
+        start.setDate(start.getDate() - (day - 1));
+        break;
+      }
+      case "month":
+        start.setDate(1);
+        break;
+      case "year":
+        start.setMonth(0, 1);
+        break;
+      default:
+        break;
+    }
+
+    return { startMs: start.getTime(), endMs: end };
   }
 
   // ========= TEMA CHIARO/SCURO =========
@@ -311,7 +365,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyRoleVisibility() {
     const modalita =
-      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
+      currentUser && isManagerRole(currentUser.ruolo)
+        ? "manager"
+        : "dipendente";
 
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
@@ -629,8 +685,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dipEmail) dipEmail.value = d.email || "";
     if (dipRuolo) dipRuolo.value = d.ruolo || "";
 
-    if (dipTipoCompenso)
-      dipTipoCompenso.value = d.tipoCompenso || "orario";
+    if (dipTipoCompenso) dipTipoCompenso.value = d.tipoCompenso || "orario";
     if (dipRetribuzioneBase)
       dipRetribuzioneBase.value =
         d.retribuzioneBase != null ? d.retribuzioneBase : "";
@@ -946,8 +1001,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startMese.setHours(0, 0, 0, 0);
 
     let startPeriodoMs = startGiorno.getTime();
-    if (periodoCorrente === "settimana")
-      startPeriodoMs = startSettimana.getTime();
+    if (periodoCorrente === "settimana") startPeriodoMs = startSettimana.getTime();
     if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
 
     const eventiPeriodo = timbrature.filter((t) => {
@@ -1195,6 +1249,7 @@ document.addEventListener("DOMContentLoaded", () => {
     timbrature.push(salvato);
     aggiornaTabellaTimbrature();
     aggiornaRiepilogo();
+    aggiornaKpi(); // aggiorno anche i KPI perché il costo lavoro cambia
   }
 
   if (btnEntra)
@@ -1338,10 +1393,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
     if (!supabase) return;
 
-    await supabase
-      .from("ricetta_ingredienti")
-      .delete()
-      .eq("ricetta_id", ricettaId);
+    await supabase.from("ricetta_ingredienti").delete().eq("ricetta_id", ricettaId);
 
     if (!ingredienti.length) return;
 
@@ -1749,100 +1801,85 @@ document.addEventListener("DOMContentLoaded", () => {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const totaleCell = tr.querySelector(".fatt-riga-totale");
     const btnDel = tr.querySelector(".btn-del-riga");
 
-    const handleChange = () => {
-      ricalcolaTotaleRiga(tr);
-      ricalcolaTotaliFattura();
-    };
+    function updateTotaleRiga() {
+      const qta = parseNumber(qtaInput?.value || 0);
+      const prezzo = parseNumber(prezzoInput?.value || 0);
+      const iva = parseNumber(ivaInput?.value || 0);
+      const imponibile = qta * prezzo;
+      const totale = imponibile * (1 + iva / 100);
+      if (totaleCell) {
+        totaleCell.textContent = totale.toFixed(2);
+      }
+      calcolaTotaliFattura();
+    }
 
-    if (qtaInput) qtaInput.addEventListener("input", handleChange);
-    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
-    if (ivaInput) ivaInput.addEventListener("input", handleChange);
+    if (qtaInput) qtaInput.addEventListener("input", updateTotaleRiga);
+    if (prezzoInput) prezzoInput.addEventListener("input", updateTotaleRiga);
+    if (ivaInput) ivaInput.addEventListener("input", updateTotaleRiga);
 
     if (btnDel) {
       btnDel.addEventListener("click", () => {
         tr.remove();
-        ricalcolaTotaliFattura();
+        calcolaTotaliFattura();
       });
     }
 
     fatturaRigheBody.appendChild(tr);
-    ricalcolaTotaleRiga(tr);
+    updateTotaleRiga();
   }
 
-  function ricalcolaTotaleRiga(tr) {
-    const qtaInput = tr.querySelector(".fatt-riga-quantita");
-    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-    const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const totaleCell = tr.querySelector(".fatt-riga-totale");
-    const qta = parseNumber(qtaInput?.value || "0");
-    const prezzo = parseNumber(prezzoInput?.value || "0");
-    const ivaPerc = parseNumber(ivaInput?.value || "0");
-
-    const imponibile = qta * prezzo;
-    const iva = imponibile * (ivaPerc / 100);
-    const totale = imponibile + iva;
-
-    if (totaleCell) {
-      totaleCell.textContent = totale.toFixed(2);
-    }
-
-    return { imponibile, iva, totale };
-  }
-
-  function ricalcolaTotaliFattura() {
+  function calcolaTotaliFattura() {
     if (!fatturaRigheBody) return;
 
-    let impTot = 0;
+    let imponibileTot = 0;
     let ivaTot = 0;
-    let docTot = 0;
 
     const rows = Array.from(fatturaRigheBody.querySelectorAll("tr"));
-    rows.forEach((tr) => {
-      const { imponibile, iva, totale } = ricalcolaTotaleRiga(tr);
-      impTot += imponibile;
+    rows.forEach((row) => {
+      const qtaInput = row.querySelector(".fatt-riga-quantita");
+      const prezzoInput = row.querySelector(".fatt-riga-prezzo");
+      const ivaInput = row.querySelector(".fatt-riga-iva");
+
+      const qta = parseNumber(qtaInput?.value || 0);
+      const prezzo = parseNumber(prezzoInput?.value || 0);
+      const ivaPerc = parseNumber(ivaInput?.value || 0);
+
+      const imponibile = qta * prezzo;
+      const iva = imponibile * (ivaPerc / 100);
+
+      imponibileTot += imponibile;
       ivaTot += iva;
-      docTot += totale;
     });
 
+    const totale = imponibileTot + ivaTot;
+
     if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
+      fatturaImponibileTotaleInput.value = imponibileTot.toFixed(2);
     if (fatturaIvaTotaleInput)
       fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
     if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+      fatturaTotaleDocumentoInput.value = totale.toFixed(2);
   }
 
   function resetFatturaForm() {
     currentFatturaId = null;
-
     if (fatturaNumeroInput) fatturaNumeroInput.value = "";
     if (fatturaDataInput) formatDateInputToday(fatturaDataInput);
     if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
     if (fatturaNoteInput) fatturaNoteInput.value = "";
-    if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value = "";
-    if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
-    if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value = "";
-
-    if (fatturaRigheBody) {
-      fatturaRigheBody.innerHTML = "";
-      creaRigaFattura();
-      ricalcolaTotaliFattura();
-    }
+    if (fatturaRigheBody) fatturaRigheBody.innerHTML = "";
+    creaRigaFattura();
+    calcolaTotaliFattura();
   }
 
-  async function handleNuovaFattura() {
-    resetFatturaForm();
-  }
-
-  async function handleSalvaFattura() {
+  async function salvaFatturaSupabase() {
     if (!supabase) return;
 
     const numero = (fatturaNumeroInput?.value || "").trim();
-    const dataDoc = fatturaDataInput?.value || "";
+    const dataVal = fatturaDataInput?.value || "";
     const fornitoreNome = (fatturaFornitoreInput?.value || "").trim();
     const note = (fatturaNoteInput?.value || "").trim();
 
@@ -1850,126 +1887,137 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Inserisci il numero della fattura");
       return;
     }
-    if (!dataDoc) {
-      alert("Inserisci la data della fattura");
-      return;
-    }
-    if (!fornitoreNome) {
-      alert("Inserisci il fornitore");
-      return;
-    }
 
-    await caricaFornitoriInCache();
     const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
-    if (!fornitore) return;
+    const fornitoreId = fornitore?.id || null;
 
     const imponibileTot = parseNumber(
-      fatturaImponibileTotaleInput?.value || "0"
+      fatturaImponibileTotaleInput?.value || 0
     );
-    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "0");
-    const docTot = parseNumber(
-      fatturaTotaleDocumentoInput?.value || "0"
-    );
+    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || 0);
+    const totale = parseNumber(fatturaTotaleDocumentoInput?.value || 0);
 
-    const fatturaPayload = {
+    const payloadFattura = {
       id: currentFatturaId || undefined,
-      numero_documento: numero,
-      data_documento: dataDoc,
-      fornitore_id: fornitore.id,
+      numero,
+      data: dataVal || null,
+      fornitore_id: fornitoreId,
+      fornitore_nome: fornitoreNome || null,
       note: note || null,
       imponibile_totale: imponibileTot,
       iva_totale: ivaTot,
-      totale_documento: docTot,
+      totale_documento: totale,
     };
 
-    const { data: fatturaData, error: fatturaError } = await supabase
+    const { data: fatturaSalvata, error: errFatt } = await supabase
       .from("fatture_acquisto")
-      .upsert(fatturaPayload)
+      .upsert(payloadFattura)
       .select()
       .single();
 
-    if (fatturaError) {
-      console.error("Errore salvataggio fattura:", fatturaError);
-      alert("Errore nel salvare la fattura");
+    if (errFatt) {
+      console.error("Errore salvataggio fattura:", errFatt);
+      alert("Errore Supabase (fattura): " + errFatt.message);
       return;
     }
 
-    currentFatturaId = fatturaData.id;
+    currentFatturaId = fatturaSalvata.id;
 
     await supabase
-      .from("fatture_acquisto_righe")
+      .from("fatture_righe")
       .delete()
       .eq("fattura_id", currentFatturaId);
 
-    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
+    if (!fatturaRigheBody) return;
+
+    const rows = Array.from(fatturaRigheBody.querySelectorAll("tr"));
+
     const righePayload = [];
+    const movimentiMagazzino = [];
 
-    for (const tr of rows) {
-      const codiceEl = tr.querySelector(".fatt-riga-codice");
-      const descrEl = tr.querySelector(".fatt-riga-descrizione");
-      const catEl = tr.querySelector(".fatt-riga-categoria");
-      const umEl = tr.querySelector(".fatt-riga-um");
-      const qtaEl = tr.querySelector(".fatt-riga-quantita");
-      const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
-      const ivaEl = tr.querySelector(".fatt-riga-iva");
+    for (const row of rows) {
+      const codiceInput = row.querySelector(".fatt-riga-codice");
+      const descrInput = row.querySelector(".fatt-riga-descrizione");
+      const catInput = row.querySelector(".fatt-riga-categoria");
+      const umInput = row.querySelector(".fatt-riga-um");
+      const qtaInput = row.querySelector(".fatt-riga-quantita");
+      const prezzoInput = row.querySelector(".fatt-riga-prezzo");
+      const ivaInput = row.querySelector(".fatt-riga-iva");
 
-      const codiceVal = (codiceEl?.value || "").trim();
-      const descrVal = (descrEl?.value || "").trim();
-      const catVal = (catEl?.value || "").trim();
-      const umVal = (umEl?.value || "").trim();
-      const qtaVal = parseNumber(qtaEl?.value || "0");
-      const prezzoVal = parseNumber(prezzoEl?.value || "0");
-      const ivaPercVal = parseNumber(ivaEl?.value || "0");
+      const codice = (codiceInput?.value || "").trim();
+      const descrizione = (descrInput?.value || "").trim();
+      const categoriaNome = (catInput?.value || "").trim();
+      const um = (umInput?.value || "").trim();
+      const quantita = parseNumber(qtaInput?.value || 0);
+      const prezzoUnitario = parseNumber(prezzoInput?.value || 0);
+      const ivaPerc = parseNumber(ivaInput?.value || 0);
 
-      if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) {
-        continue;
-      }
+      if (!descrizione && !codice) continue;
+      if (!quantita || quantita <= 0) continue;
 
-      await caricaCategorieInCache();
       const prodotto = await findOrCreateProdotto({
-        codice: codiceVal,
-        descrizione: descrVal,
-        categoriaNome: catVal,
-        um: umVal,
+        codice,
+        descrizione,
+        categoriaNome,
+        um,
       });
-      if (!prodotto) continue;
 
-      const imponibile = qtaVal * prezzoVal;
-      const ivaVal = imponibile * (ivaPercVal / 100);
-      const totale = imponibile + ivaVal;
+      const prodottoId = prodotto?.id || null;
+
+      const imponibile = quantita * prezzoUnitario;
+      const iva = imponibile * (ivaPerc / 100);
+      const totaleRiga = imponibile + iva;
 
       righePayload.push({
         fattura_id: currentFatturaId,
-        prodotto_id: prodotto.id,
-        codice_prodotto: prodotto.codice_interno,
-        descrizione_riga: descrVal,
-        quantita: qtaVal,
-        um: prodotto.um,
-        prezzo_unitario: prezzoVal,
-        iva_perc: ivaPercVal,
+        prodotto_id: prodottoId,
+        codice_prodotto: prodotto?.codice_interno || codice || null,
+        descrizione_riga: descrizione || prodotto?.descrizione || null,
+        categoria_nome: categoriaNome || null,
+        um: um || prodotto?.um || null,
+        quantita,
+        prezzo_unitario: prezzoUnitario,
+        iva_perc: ivaPerc,
         imponibile,
-        iva: ivaVal,
-        totale,
-        categoria_id: prodotto.categoria_id || null,
+        iva_importo: iva,
+        totale: totaleRiga,
       });
 
-      // futuro: inserire movimento di magazzino (carico)
+      if (prodottoId) {
+        movimentiMagazzino.push({
+          prodotto_id: prodottoId,
+          tipo: "carico",
+          quantita,
+          costo_unitario: prezzoUnitario,
+          riferimento: `Fattura ${numero}`,
+          data: dataVal || null,
+        });
+      }
     }
 
     if (righePayload.length) {
-      const { error: righeError } = await supabase
-        .from("fatture_acquisto_righe")
+      const { error: errRighe } = await supabase
+        .from("fatture_righe")
         .insert(righePayload);
+      if (errRighe) {
+        console.error("Errore salvataggio righe fattura:", errRighe);
+        alert("Errore Supabase (righe fattura): " + errRighe.message);
+      }
+    }
 
-      if (righeError) {
-        console.error("Errore salvataggio righe fattura:", righeError);
-        alert("Errore nel salvare le righe della fattura");
-        return;
+    if (movimentiMagazzino.length) {
+      const { error: errMov } = await supabase
+        .from("magazzino_movimenti")
+        .insert(movimentiMagazzino);
+      if (errMov) {
+        console.error("Errore salvataggio movimenti magazzino:", errMov);
+        alert("Errore Supabase (magazzino movimenti): " + errMov.message);
       }
     }
 
     alert("Fattura salvata correttamente");
     await caricaElencoFatture();
+    await caricaMagazzinoDati();
   }
 
   async function caricaElencoFatture() {
@@ -1977,34 +2025,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const { data, error } = await supabase
       .from("fatture_acquisto")
-      .select(
-        "id, numero_documento, data_documento, fornitore_id, totale_documento"
-      )
-      .order("data_documento", { ascending: false })
+      .select("*")
+      .order("data", { ascending: false })
       .limit(200);
 
     if (error) {
       console.error("Errore caricamento fatture:", error);
-      alert("Errore nel caricare le fatture");
+      alert("Errore Supabase (fatture): " + error.message);
       return;
     }
 
-    await caricaFornitoriInCache();
-
     fattureListaBody.innerHTML = "";
+
     (data || []).forEach((f) => {
-      const fornitore = getFornitoreById(f.fornitore_id);
       const tr = document.createElement("tr");
-      const dataStr = f.data_documento
-        ? new Date(f.data_documento).toLocaleDateString("it-IT")
+      const dataTxt = f.data
+        ? new Date(f.data).toLocaleDateString("it-IT")
         : "";
       tr.innerHTML = `
-        <td>${dataStr}</td>
-        <td>${f.numero_documento || ""}</td>
-        <td>${fornitore?.ragione_sociale || ""}</td>
+        <td>${dataTxt}</td>
+        <td>${f.numero || ""}</td>
+        <td>${f.fornitore_nome || ""}</td>
         <td>${f.totale_documento != null ? f.totale_documento.toFixed(2) : ""}</td>
         <td>
-          <button class="app-button tiny gray" data-open-fattura="${f.id}">
+          <button
+            type="button"
+            class="app-button tiny gray"
+            data-open-fattura="${f.id}"
+          >
             Apri
           </button>
         </td>
@@ -2015,135 +2063,121 @@ document.addEventListener("DOMContentLoaded", () => {
     fattureListaBody
       .querySelectorAll("[data-open-fattura]")
       .forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
-          apriFatturaEsistente(id);
+          if (!id) return;
+
+          const { data: fatt, error: errF } = await supabase
+            .from("fatture_acquisto")
+            .select("*")
+            .eq("id", id)
+            .single();
+          if (errF) {
+            console.error("Errore lettura fattura:", errF);
+            alert("Errore nel caricamento della fattura");
+            return;
+          }
+
+          const { data: righe, error: errR } = await supabase
+            .from("fatture_righe")
+            .select("*")
+            .eq("fattura_id", id);
+
+          if (errR) {
+            console.error("Errore lettura righe fattura:", errR);
+            alert("Errore nel caricamento delle righe fattura");
+            return;
+          }
+
+          currentFatturaId = fatt.id;
+          if (fatturaNumeroInput) fatturaNumeroInput.value = fatt.numero || "";
+          if (fatturaDataInput)
+            fatturaDataInput.value = fatt.data
+              ? fatt.data.substring(0, 10)
+              : "";
+          if (fatturaFornitoreInput)
+            fatturaFornitoreInput.value = fatt.fornitore_nome || "";
+          if (fatturaNoteInput) fatturaNoteInput.value = fatt.note || "";
+
+          if (fatturaRigheBody) fatturaRigheBody.innerHTML = "";
+
+          (righe || []).forEach((r) => {
+            creaRigaFattura(r);
+          });
+
+          calcolaTotaliFattura();
         });
       });
-  }
-
-  async function apriFatturaEsistente(fatturaId) {
-    if (!supabase) return;
-
-    const { data: fattura, error: fatturaError } = await supabase
-      .from("fatture_acquisto")
-      .select("*")
-      .eq("id", fatturaId)
-      .single();
-
-    if (fatturaError) {
-      console.error("Errore lettura fattura:", fatturaError);
-      alert("Errore nel caricare la fattura");
-      return;
-    }
-
-    currentFatturaId = fattura.id;
-
-    if (fatturaNumeroInput)
-      fatturaNumeroInput.value = fattura.numero_documento || "";
-    if (fatturaDataInput)
-      fatturaDataInput.value = fattura.data_documento
-        ? fattura.data_documento.substring(0, 10)
-        : "";
-    if (fatturaFornitoreInput) {
-      await caricaFornitoriInCache();
-      const forn = getFornitoreById(fattura.fornitore_id);
-      fatturaFornitoreInput.value = forn?.ragione_sociale || "";
-    }
-    if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
-    if (fatturaImponibileTotaleInput)
-      fatturaImponibileTotaleInput.value =
-        fattura.imponibile_totale != null
-          ? fattura.imponibile_totale.toFixed(2)
-          : "";
-    if (fatturaIvaTotaleInput)
-      fatturaIvaTotaleInput.value =
-        fattura.iva_totale != null ? fattura.iva_totale.toFixed(2) : "";
-    if (fatturaTotaleDocumentoInput)
-      fatturaTotaleDocumentoInput.value =
-        fattura.totale_documento != null
-          ? fattura.totale_documento.toFixed(2)
-          : "";
-
-    const { data: righe, error: righeError } = await supabase
-      .from("fatture_acquisto_righe")
-      .select("*")
-      .eq("fattura_id", fatturaId)
-      .order("id", { ascending: true });
-
-    if (righeError) {
-      console.error("Errore caricamento righe fattura:", righeError);
-      alert("Errore nel caricare le righe della fattura");
-      return;
-    }
-
-    if (fatturaRigheBody) {
-      fatturaRigheBody.innerHTML = "";
-      (righe || []).forEach((r) => {
-        const categoria = r.categoria_id
-          ? getCategoriaById(r.categoria_id)?.nome || ""
-          : "";
-        creaRigaFattura({
-          codice_prodotto: r.codice_prodotto,
-          descrizione_riga: r.descrizione_riga,
-          categoria_nome: categoria,
-          um: r.um,
-          quantita: r.quantita,
-          prezzo_unitario: r.prezzo_unitario,
-          iva_perc: r.iva_perc,
-        });
-      });
-      ricalcolaTotaliFattura();
-    }
-  }
-
-  if (btnAddRigaFattura) {
-    btnAddRigaFattura.addEventListener("click", () => {
-      creaRigaFattura();
-      ricalcolaTotaliFattura();
-    });
   }
 
   if (btnNuovaFattura) {
     btnNuovaFattura.addEventListener("click", () => {
-      handleNuovaFattura();
+      resetFatturaForm();
     });
   }
 
   if (btnSalvaFattura) {
     btnSalvaFattura.addEventListener("click", () => {
-      handleSalvaFattura();
+      salvaFatturaSupabase();
+    });
+  }
+
+  if (btnAddRigaFattura) {
+    btnAddRigaFattura.addEventListener("click", () => {
+      creaRigaFattura();
     });
   }
 
   if (btnToggleFatture && fattureTable) {
     btnToggleFatture.addEventListener("click", () => {
-      const vis = fattureTable.style.display !== "none";
-      fattureTable.style.display = vis ? "none" : "table";
+      const visibile = fattureTable.style.display !== "none";
+      fattureTable.style.display = visibile ? "none" : "table";
     });
   }
 
   // ========= MAGAZZINO =========
-  function renderMagazzinoLista(lista) {
+  async function caricaMagazzinoDati() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("magazzino_view_prodotti")
+      .select("*")
+      .order("descrizione", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento magazzino:", error);
+      alert("Errore nel caricare il magazzino");
+      return;
+    }
+
+    magazzinoDati = data || [];
+    renderMagazzinoLista(magazzinoDati);
+    aggiornaMagazzinoSuggestions();
+    aggiornaIngredientiSuggestionsDaMagazzino();
+  }
+
+  function renderMagazzinoLista(listaProdotti) {
     if (!magazzinoListaEl) return;
     magazzinoListaEl.innerHTML = "";
 
-    lista.forEach((p) => {
+    listaProdotti.forEach((p) => {
       const tr = document.createElement("tr");
-      tr.dataset.prodottoId = p.id;
-
-      const stockTxt =
-        p.stock != null ? p.stock.toFixed(2) + " " + (p.um || "") : "";
+      const giac = p.giacenza_attuale ?? 0;
+      const scortaMin = p.scorta_minima ?? 0;
+      const low = scortaMin > 0 && giac < scortaMin;
 
       tr.innerHTML = `
-        <td>${p.codice || ""}</td>
+        <td>${p.codice_interno || ""}</td>
         <td>${p.descrizione || ""}</td>
-        <td>${p.categoriaNome || ""}</td>
-        <td>${stockTxt}</td>
+        <td>${p.categoria_nome || ""}</td>
+        <td>
+          ${giac.toFixed(3)} ${
+        low ? '<span class="magazzino-low">Sotto scorta</span>' : ""
+      }
+        </td>
       `;
-
       tr.addEventListener("click", () => {
-        selezionaProdottoMagazzino(p.id);
+        popolaMagazzinoForm(p);
       });
 
       magazzinoListaEl.appendChild(tr);
@@ -2155,9 +2189,8 @@ document.addEventListener("DOMContentLoaded", () => {
     magazzinoSuggestions.innerHTML = "";
 
     magazzinoDati.forEach((p) => {
-      if (!p.descrizione) return;
       const opt = document.createElement("option");
-      opt.value = p.descrizione;
+      opt.value = p.descrizione || "";
       magazzinoSuggestions.appendChild(opt);
     });
   }
@@ -2167,19 +2200,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ingredientiSuggestions.innerHTML = "";
 
     magazzinoDati.forEach((p) => {
-      if (!p.descrizione) return;
       const opt = document.createElement("option");
-      opt.value = p.descrizione;
+      opt.value = p.descrizione || "";
       ingredientiSuggestions.appendChild(opt);
     });
   }
 
-  function trovaProdottoInMagazzinoById(id) {
-    return magazzinoDati.find((p) => p.id === id) || null;
-  }
+  function popolaMagazzinoForm(prodotto) {
+    if (!magazzinoForm) return;
 
-  function popolaMagazzinoForm(prod) {
-    if (!prod) {
+    if (!prodotto) {
       if (magazzinoIdInput) magazzinoIdInput.value = "";
       if (magazzinoDescrInput) magazzinoDescrInput.value = "";
       if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
@@ -2189,174 +2219,96 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (magazzinoIdInput) magazzinoIdInput.value = prod.id;
+    if (magazzinoIdInput) magazzinoIdInput.value = prodotto.id || "";
     if (magazzinoDescrInput)
-      magazzinoDescrInput.value = prod.descrizione || "";
+      magazzinoDescrInput.value = prodotto.descrizione || "";
     if (magazzinoCategoriaInput)
-      magazzinoCategoriaInput.value = prod.categoriaNome || "";
-    if (magazzinoUmInput) magazzinoUmInput.value = prod.um || "";
-    if (magazzinoScortaMinimaInput) {
+      magazzinoCategoriaInput.value = prodotto.categoria_nome || "";
+    if (magazzinoUmInput) magazzinoUmInput.value = prodotto.um || "";
+    if (magazzinoScortaMinimaInput)
       magazzinoScortaMinimaInput.value =
-        prod.scortaMinima != null ? prod.scortaMinima : "";
-    }
-    if (magazzinoGiacenzaInput) {
+        prodotto.scorta_minima != null ? prodotto.scorta_minima : "";
+    if (magazzinoGiacenzaInput)
       magazzinoGiacenzaInput.value =
-        prod.stock != null ? prod.stock.toFixed(3) : "";
-    }
-  }
-
-  function selezionaProdottoMagazzino(id) {
-    const prod = trovaProdottoInMagazzinoById(id);
-    popolaMagazzinoForm(prod);
-  }
-
-  async function caricaMagazzinoDati() {
-    if (!supabase) return;
-
-    // leggo direttamente la tabella prodotti, niente view
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, um, categoria_id, scorta_minima")
-      .order("descrizione", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento magazzino:", error);
-      alert("Errore nel caricare i prodotti di magazzino");
-      return;
-    }
-
-    magazzinoDati = (data || []).map((r) => {
-      const cat = r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
-      return {
-        id: r.id,
-        codice: r.codice_interno,
-        descrizione: r.descrizione,
-        um: r.um,
-        categoriaNome: cat ? cat.nome : "",
-        scortaMinima: r.scorta_minima,
-        stock: 0, // per ora 0, in futuro calcolato da movimenti di magazzino
-      };
-    });
-
-    aggiornaMagazzinoSuggestions();
-    aggiornaIngredientiSuggestionsDaMagazzino();
+        prodotto.giacenza_attuale != null
+          ? Number(prodotto.giacenza_attuale).toFixed(3)
+          : "";
   }
 
   async function salvaProdottoDaMagazzinoForm() {
     if (!supabase) return;
 
-    const idVal = magazzinoIdInput?.value || "";
-    const id = idVal ? parseInt(idVal, 10) : null;
-    const descr = (magazzinoDescrInput?.value || "").trim();
-    const catNome = (magazzinoCategoriaInput?.value || "").trim();
-    const umVal = (magazzinoUmInput?.value || "").trim();
-    const scortaVal = magazzinoScortaMinimaInput
-      ? parseNumber(magazzinoScortaMinimaInput.value)
-      : null;
+    const id = magazzinoIdInput?.value || null;
+    const descrizione = (magazzinoDescrInput?.value || "").trim();
+    const categoriaNome = (magazzinoCategoriaInput?.value || "").trim();
+    const um = (magazzinoUmInput?.value || "").trim() || "pz";
+    const scortaMin = parseNumber(magazzinoScortaMinimaInput?.value || 0);
 
-    if (!descr) {
-      alert("La descrizione non può essere vuota.");
+    if (!descrizione) {
+      alert("Inserisci una descrizione prodotto");
       return;
     }
 
-    let categoriaId = null;
-    if (catNome) {
-      const cat = await findOrCreateCategoriaByNome(catNome);
-      if (cat) categoriaId = cat.id;
+    let categoria = null;
+    if (categoriaNome) {
+      categoria = await findOrCreateCategoriaByNome(categoriaNome);
     }
 
-    if (!id) {
-      const codice = await generaCodiceInternoAutomatico(
-        catNome || descr || "GEN"
+    let codiceInterno = null;
+    if (id) {
+      const existing = magazzinoDati.find((p) => String(p.id) === String(id));
+      if (existing) {
+        codiceInterno = existing.codice_interno;
+      }
+    }
+    if (!codiceInterno) {
+      codiceInterno = await generaCodiceInternoAutomatico(
+        categoriaNome || descrizione
       );
-      const { data, error } = await supabase
-        .from("prodotti")
-        .insert({
-          codice_interno: codice,
-          descrizione: descr,
-          categoria_id: categoriaId,
-          um: umVal || null,
-          scorta_minima: scortaVal != null ? scortaVal : null,
-          attivo: true,
-        })
-        .select(
-          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
-        )
-        .single();
-
-      if (error) {
-        console.error("Errore creazione prodotto magazzino:", error);
-        alert("Errore nel salvare il prodotto di magazzino: " + error.message);
-        return;
-      }
-
-      const cat =
-        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
-      const nuovo = {
-        id: data.id,
-        codice: data.codice_interno,
-        descrizione: data.descrizione,
-        um: data.um,
-        categoriaNome: cat ? cat.nome : "",
-        scortaMinima: data.scorta_minima,
-        stock: 0,
-      };
-      magazzinoDati.push(nuovo);
-      popolaMagazzinoForm(nuovo);
-      renderMagazzinoLista(magazzinoDati);
-      aggiornaMagazzinoSuggestions();
-      aggiornaIngredientiSuggestionsDaMagazzino();
-      alert("Prodotto creato.");
-    } else {
-      const { data, error } = await supabase
-        .from("prodotti")
-        .update({
-          descrizione: descr,
-          categoria_id: categoriaId,
-          um: umVal || null,
-          scorta_minima: scortaVal != null ? scortaVal : null,
-        })
-        .eq("id", id)
-        .select(
-          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
-        )
-        .single();
-
-      if (error) {
-        console.error("Errore aggiornamento prodotto magazzino:", error);
-        alert(
-          "Errore nel salvare il prodotto di magazzino: " + error.message
-        );
-        return;
-      }
-
-      const cat =
-        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
-      const idx = magazzinoDati.findIndex((p) => p.id === id);
-      const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
-
-      const nuovo = {
-        id: data.id,
-        codice: data.codice_interno,
-        descrizione: data.descrizione,
-        um: data.um,
-        categoriaNome: cat ? cat.nome : "",
-        scortaMinima: data.scorta_minima,
-        stock: stockAttuale,
-      };
-
-      if (idx >= 0) {
-        magazzinoDati[idx] = nuovo;
-      } else {
-        magazzinoDati.push(nuovo);
-      }
-
-      renderMagazzinoLista(magazzinoDati);
-      aggiornaMagazzinoSuggestions();
-      aggiornaIngredientiSuggestionsDaMagazzino();
-      popolaMagazzinoForm(nuovo);
-      alert("Prodotto aggiornato.");
     }
+
+    const payload = {
+      id: id ? parseInt(id, 10) : undefined,
+      codice_interno: codiceInterno,
+      descrizione,
+      categoria_id: categoria ? categoria.id : null,
+      um,
+      scorta_minima: scortaMin || null,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio prodotto magazzino:", error);
+      alert("Errore Supabase (magazzino): " + error.message);
+      return;
+    }
+
+    const nuovo = data;
+
+    const idx = magazzinoDati.findIndex((p) => p.id === nuovo.id);
+    if (idx >= 0) {
+      magazzinoDati[idx] = {
+        ...magazzinoDati[idx],
+        ...nuovo,
+      };
+    } else {
+      magazzinoDati.push({
+        ...nuovo,
+        giacenza_attuale: 0,
+      });
+    }
+
+    renderMagazzinoLista(magazzinoDati);
+    aggiornaMagazzinoSuggestions();
+    aggiornaIngredientiSuggestionsDaMagazzino();
+    popolaMagazzinoForm(nuovo);
+    alert("Prodotto aggiornato.");
   }
 
   if (btnMagazzinoSalva) {
@@ -2366,14 +2318,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // bottone "Nuovo prodotto" in magazzino
   if (btnMagazzinoNuovo) {
     btnMagazzinoNuovo.addEventListener("click", () => {
       popolaMagazzinoForm(null);
     });
   }
 
-  // mostra la tabella magazzino solo quando c'è una ricerca
   if (magazzinoSearchInput && magazzinoTable) {
     magazzinoTable.style.display = "none";
 
@@ -2388,12 +2338,225 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const filtrati = magazzinoDati.filter((p) => {
         const desc = (p.descrizione || "").toLowerCase();
-        const cod = (p.codice || "").toLowerCase();
+        const cod = (p.codice_interno || "").toLowerCase();
         return desc.includes(q) || cod.includes(q);
       });
 
       renderMagazzinoLista(filtrati);
       magazzinoTable.style.display = "table";
+    });
+  }
+
+  // ========= KPI / COSTI FISSI =========
+  async function caricaCostiFissiDaSupabase() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("costi_fissi")
+      .select("*")
+      .order("categoria", { ascending: true })
+      .order("descrizione", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento costi fissi:", error);
+      alert("Errore nel caricare i costi fissi da Supabase");
+      return;
+    }
+
+    costiFissi = (data || []).map((row) => ({
+      id: row.id,
+      categoria: row.categoria || "",
+      descrizione: row.descrizione || "",
+      anno_riferimento: row.anno_riferimento || null,
+      importo_annuo: row.importo_annuo ? Number(row.importo_annuo) : 0,
+    }));
+
+    renderCostiFissi();
+    aggiornaKpi();
+  }
+
+  async function eliminaCostoFissoDaSupabase(id) {
+    if (!supabase || !id) return;
+
+    const { error } = await supabase
+      .from("costi_fissi")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Errore eliminazione costo fisso:", error);
+      alert("Errore nell'eliminare il costo fisso");
+    }
+  }
+
+  function renderCostiFissi() {
+    if (!costiFissiListaBody) return;
+
+    costiFissiListaBody.innerHTML = "";
+
+    costiFissi.forEach((c) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${c.categoria || "-"}</td>
+        <td>${c.descrizione || ""}</td>
+        <td>${c.anno_riferimento || ""}</td>
+        <td>${c.importo_annuo.toFixed(2)}</td>
+        <td>
+          <button
+            type="button"
+            class="app-button tiny red"
+            data-del-costo="${c.id}"
+          >
+            ✕
+          </button>
+        </td>
+      `;
+      costiFissiListaBody.appendChild(tr);
+    });
+
+    costiFissiListaBody.querySelectorAll("[data-del-costo]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = parseInt(btn.getAttribute("data-del-costo"), 10);
+        if (!id) return;
+        if (!confirm("Eliminare questa voce di costo fisso?")) return;
+        await eliminaCostoFissoDaSupabase(id);
+        await caricaCostiFissiDaSupabase();
+      });
+    });
+  }
+
+  async function salvaCostoFissoDaForm() {
+    if (!supabase) return;
+
+    const categoria = (costiFissiCategoriaInput?.value || "").trim();
+    const descrizione = (costiFissiDescrizioneInput?.value || "").trim();
+    const annoVal = parseInt(costiFissiAnnoInput?.value || "", 10) || null;
+    const importo = parseNumber(costiFissiImportoInput?.value || 0);
+
+    if (!descrizione || !importo) {
+      alert("Inserisci almeno descrizione e importo annuo");
+      return;
+    }
+
+    const payload = {
+      categoria: categoria || null,
+      descrizione,
+      anno_riferimento: annoVal,
+      importo_annuo: importo,
+    };
+
+    const { error } = await supabase.from("costi_fissi").insert(payload);
+
+    if (error) {
+      console.error("Errore salvataggio costo fisso:", error);
+      alert("Errore nel salvare il costo fisso");
+      return;
+    }
+
+    if (costiFissiCategoriaInput) costiFissiCategoriaInput.value = "";
+    if (costiFissiDescrizioneInput) costiFissiDescrizioneInput.value = "";
+    if (costiFissiAnnoInput) costiFissiAnnoInput.value = "";
+    if (costiFissiImportoInput) costiFissiImportoInput.value = "";
+
+    await caricaCostiFissiDaSupabase();
+  }
+
+  function calcolaQuotaCostiFissiPeriodo() {
+    const totaleAnnuo = costiFissi.reduce(
+      (sum, c) => sum + (c.importo_annuo || 0),
+      0
+    );
+    if (!totaleAnnuo) return 0;
+
+    switch (kpiPeriodoCorrente) {
+      case "day":
+        return totaleAnnuo / 365;
+      case "week":
+        return totaleAnnuo / 52;
+      case "month":
+        return totaleAnnuo / 12;
+      case "year":
+        return totaleAnnuo;
+      default:
+        return totaleAnnuo;
+    }
+  }
+
+  function calcolaCostoLavoroPeriodo(startMs, endMs) {
+    if (!timbrature.length || !dipendenti.length) return 0;
+
+    const eventiPeriodo = timbrature.filter(
+      (t) =>
+        t.timestamp &&
+        t.timestamp >= startMs &&
+        t.timestamp <= endMs
+    );
+
+    const eventiPerDip = {};
+    eventiPeriodo.forEach((t) => {
+      if (!t.dip) return;
+      if (!eventiPerDip[t.dip]) eventiPerDip[t.dip] = [];
+      eventiPerDip[t.dip].push(t);
+    });
+
+    let costoTotale = 0;
+
+    Object.entries(eventiPerDip).forEach(([nome, events]) => {
+      events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      let aperto = null;
+      let minuti = 0;
+
+      events.forEach((ev) => {
+        if (!ev.timestamp) return;
+        if (ev.tipo === "Entrata") {
+          aperto = ev;
+        } else if (ev.tipo === "Uscita" && aperto && aperto.timestamp) {
+          const diffMin = (ev.timestamp - aperto.timestamp) / 60000;
+          if (diffMin > 0) minuti += diffMin;
+          aperto = null;
+        }
+      });
+
+      const dip = dipendenti.find((d) => d.nome === nome);
+      const costoOrario = dip?.costoOrario || 0;
+      const ore = minuti / 60;
+      costoTotale += ore * costoOrario;
+    });
+
+    return costoTotale;
+  }
+
+  function aggiornaKpi() {
+    if (
+      !kpiCostiFissiEl ||
+      !kpiCostoLavoroEl ||
+      !kpiFoodCostEl ||
+      !kpiMargineEl
+    )
+      return;
+
+    const quotaCosti = calcolaQuotaCostiFissiPeriodo();
+    kpiCostiFissiEl.textContent = quotaCosti.toFixed(2).replace(".", ",");
+
+    const { startMs, endMs } = getDateRangeForKpi(kpiPeriodoCorrente);
+    const costoLavoro = calcolaCostoLavoroPeriodo(startMs, endMs);
+    kpiCostoLavoroEl.textContent = costoLavoro.toFixed(2).replace(".", ",");
+
+    // per ora placeholder - verranno collegati al CSV vendite
+    kpiFoodCostEl.textContent = "0";
+    kpiMargineEl.textContent = "0";
+  }
+
+  if (kpiPeriodoSelect) {
+    kpiPeriodoSelect.addEventListener("change", () => {
+      kpiPeriodoCorrente = kpiPeriodoSelect.value || "day";
+      aggiornaKpi();
+    });
+  }
+
+  if (btnCostiFissiSalva) {
+    btnCostiFissiSalva.addEventListener("click", () => {
+      salvaCostoFissoDaForm();
     });
   }
 
@@ -2430,6 +2593,15 @@ document.addEventListener("DOMContentLoaded", () => {
         await caricaCategorieInCache();
         await caricaMagazzinoDati();
         popolaMagazzinoForm(null);
+        break;
+      case "report":
+        await caricaDipendentiDaSupabase();
+        await caricaTimbratureDaSupabase();
+        await caricaCostiFissiDaSupabase();
+        if (kpiPeriodoSelect) {
+          kpiPeriodoSelect.value = kpiPeriodoCorrente;
+        }
+        aggiornaKpi();
         break;
       default:
         break;
