@@ -14,7 +14,11 @@
         <div class="header-top">
           <div class="header-left">
             <div class="header-logo-circle">
-              <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
+              <img
+                src="Logo Gestionale Antonio.png"
+                class="header-logo-img"
+                alt="Logo Gestionale Antonio"
+              />
             </div>
             <div>
               <h1>Gestionale Antonio</h1>
@@ -23,13 +27,16 @@
           </div>
 
           <div class="header-right">
-            <button id="btn-theme" class="app-button tiny ghost">🌙</button>
+            <button id="btn-theme" class="app-button tiny ghost" type="button">
+              🌙
+            </button>
 
             <div class="header-user">
               <span id="current-user-label">Nessun utente</span>
               <button
                 id="btn-logout"
                 class="app-button tiny"
+                type="button"
                 style="display: none"
               >
                 Esci
@@ -48,6 +55,7 @@
               <img
                 src="Logo Gestionale Antonio.png"
                 class="login-logo-img"
+                alt="Logo Gestionale Antonio"
               />
             </div>
 
@@ -133,7 +141,7 @@
             class="app-button menu-button wide"
             data-route="report"
           >
-            Report
+            Report / KPI
           </button>
         </section>
 
@@ -180,6 +188,7 @@
             <button
               id="btn-toggle-presenze"
               class="app-button small gray"
+              type="button"
             >
               Mostra stato presenze
             </button>
@@ -199,6 +208,122 @@
                     </tr>
                   </thead>
                   <tbody id="presenze-lista"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- STORICO TIMBRATURE + RIEPILOGO (SOLO MANAGER/ADMIN) -->
+          <div
+            class="manager-only"
+            data-manager-only="true"
+            style="margin-top: 24px;"
+          >
+            <button
+              id="btn-toggle-timbrature"
+              class="app-button small gray"
+              type="button"
+            >
+              Mostra storico timbrature
+            </button>
+
+            <div
+              id="sezione-timbrature-dettaglio"
+              style="display: none; margin-top: 12px;"
+            >
+              <h3>Storico timbrature</h3>
+
+              <label>
+                Periodo
+                <select id="timbratura-periodo" class="input-pill">
+                  <option value="oggi">Oggi</option>
+                  <option value="settimana">Settimana</option>
+                  <option value="mese">Mese</option>
+                </select>
+              </label>
+
+              <div class="table-wrapper" style="margin-top: 8px;">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Ora</th>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="timbratura-lista"></tbody>
+                </table>
+              </div>
+
+              <h3 style="margin-top: 16px;">Riepilogo ore per dipendente</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Ore</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riepilogo-dipendenti"></tbody>
+                </table>
+              </div>
+
+              <h3 style="margin-top: 16px;">Riepilogo ore per canale</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Canale</th>
+                      <th>Ore</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riepilogo-canali"></tbody>
+                </table>
+              </div>
+
+              <h3 style="margin-top: 16px;">Costo lavoro per dipendente</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Ore</th>
+                      <th>Costo (€)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="costo-dipendenti"></tbody>
+                </table>
+              </div>
+
+              <h3 style="margin-top: 16px;">Costo lavoro per canale</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Canale</th>
+                      <th>Ore</th>
+                      <th>Costo (€)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="costo-canali"></tbody>
+                </table>
+              </div>
+
+              <h3 style="margin-top: 16px;">Attivi adesso</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Da quando</th>
+                      <th>Durata</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attivi-lista"></tbody>
                 </table>
               </div>
             </div>
@@ -357,6 +482,7 @@
             <button
               id="btn-add-dip"
               class="app-button small green"
+              type="button"
             >
               Salva dipendente
             </button>
@@ -720,6 +846,120 @@
             vedere i prodotti e le quantità, poi clicca sulla riga per
             caricare il dettaglio.
           </p>
+        </section>
+
+        <!-- REPORT / KPI -->
+        <section id="view-report" class="view" style="display: none">
+          <h2>KPI Ristorante</h2>
+          <p>Panoramica costi e margini sul periodo selezionato.</p>
+
+          <!-- Selettore periodo KPI -->
+          <label>
+            Periodo
+            <select id="kpi-periodo" class="input-pill">
+              <option value="day">Oggi</option>
+              <option value="week">Settimana</option>
+              <option value="month">Mese</option>
+              <option value="year">Anno</option>
+            </select>
+          </label>
+
+          <!-- CARDS KPI PRINCIPALI -->
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Costi fissi periodo</h3>
+              <p><span id="kpi-costi-fissi">0,00</span> €</p>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Costo lavoro periodo</h3>
+              <p><span id="kpi-costo-lavoro">0,00</span> €</p>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Food cost</h3>
+              <p><span id="kpi-food-cost">0</span> %</p>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Margine</h3>
+              <p><span id="kpi-margine">0</span> %</p>
+            </div>
+          </div>
+
+          <h3 style="margin-top: 16px;">Spese fisse annue</h3>
+          <p class="small-muted">
+            Inserisci qui i costi fissi annui (es. anno precedente). Il sistema
+            li ripartisce automaticamente su giorno, settimana, mese e anno nei
+            KPI.
+          </p>
+
+          <!-- FORM NUOVA VOCE COSTO FISSO -->
+          <form id="costi-fissi-form" onsubmit="return false;">
+            <label>
+              Categoria
+              <input
+                type="text"
+                id="costi-fissi-categoria"
+                class="input-pill"
+                placeholder="Es. Affitto, Utenze..."
+              />
+            </label>
+
+            <label>
+              Descrizione
+              <input
+                type="text"
+                id="costi-fissi-descrizione"
+                class="input-pill"
+                placeholder="Es. Affitto locale via Roma"
+              />
+            </label>
+
+            <label>
+              Anno riferimento
+              <input
+                type="number"
+                id="costi-fissi-anno"
+                class="input-pill"
+                placeholder="Es. 2024"
+              />
+            </label>
+
+            <label>
+              Importo annuo (€)
+              <input
+                type="number"
+                step="0.01"
+                id="costi-fissi-importo"
+                class="input-pill"
+              />
+            </label>
+
+            <button
+              id="btn-costi-fissi-salva"
+              class="app-button small green"
+              type="button"
+            >
+              Aggiungi costo fisso
+            </button>
+          </form>
+
+          <!-- ELENCO COSTI FISSI -->
+          <div class="table-wrapper" style="margin-top: 12px;">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Descrizione</th>
+                  <th>Anno</th>
+                  <th>Importo annuo (€)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="costi-fissi-lista"></tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>
