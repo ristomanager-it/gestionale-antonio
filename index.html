@@ -321,6 +321,36 @@
             </thead>
             <tbody id="magazzino-lista"></tbody>
           </table>
+         <h3>Dettaglio prodotto</h3>
+
+  <form id="magazzino-form" onsubmit="return false;">
+    <input type="hidden" id="magazzino-id" />
+
+    <label>Descrizione
+      <input type="text" id="magazzino-descrizione" />
+    </label>
+
+    <label>Categoria
+      <input type="text" id="magazzino-categoria" />
+    </label>
+
+    <label>UM
+      <input type="text" id="magazzino-um" placeholder="kg, l, pz..." />
+    </label>
+
+    <label>Scorta minima
+      <input type="number" id="magazzino-scorta-minima" step="0.001" />
+    </label>
+
+    <button id="btn-magazzino-salva" class="app-button small green">
+      Salva prodotto
+    </button>
+  </form>
+
+  <p class="small-muted">
+    Seleziona una riga sopra per caricare i dati del prodotto e modificarli.
+  </p>
+
         </section>
 
       </main>
