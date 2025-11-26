@@ -2495,6 +2495,22 @@ async function salvaProdottoDaMagazzinoForm() {
   }
 
   renderMagazzinoLista(magazzinoDati);
+  // ======================================================
+// AUTOCOMPLETE: datalist per ricerca magazzino
+// ======================================================
+function aggiornaMagazzinoSuggestions() {
+  if (!magazzinoSuggestions) return;
+
+  magazzinoSuggestions.innerHTML = "";
+
+  magazzinoDati.forEach((p) => {
+    if (!p.descrizione) return;
+    const opt = document.createElement("option");
+    opt.value = p.descrizione;
+    magazzinoSuggestions.appendChild(opt);
+  });
+}
+
   aggiornaMagazzinoSuggestions();
   aggiornaIngredientiSuggestionsDaMagazzino();
   popolaMagazzinoForm(magazzinoDati[idx]);
