@@ -1731,13 +1731,15 @@ document.addEventListener("DOMContentLoaded", () => {
         />
       </td>
       <td>
-        <input
-          type="text"
-          class="fatt-riga-descrizione"
-          placeholder="Descrizione prodotto"
-          value="${initial.descrizione_riga || ""}"
-        />
-      </td>
+  <input
+    type="text"
+    class="fatt-riga-descrizione"
+    placeholder="Descrizione prodotto"
+    list="ingredienti-suggestions"
+    value="${initial.descrizione_riga || ""}"
+  />
+</td>
+
       <td>
         <input
           type="text"
@@ -2260,12 +2262,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function initAcquistiView() {
-    await caricaFornitoriInCache();
-    await caricaCategorieInCache();
-    resetFatturaForm();
-    await caricaListaFatture();
-  }
+ async function initAcquistiView() {
+  await caricaFornitoriInCache();
+  await caricaCategorieInCache();
+  resetFatturaForm();
+  await caricaListaFatture();
+  // 👉 riempiamo anche la datalist dei prodotti
+  await caricaProdottiSuggerimentiIngredienti();
+}
+
 
   if (btnAddRigaFattura) {
     btnAddRigaFattura.addEventListener("click", () => {
