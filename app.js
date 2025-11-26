@@ -2499,8 +2499,9 @@ if (btnStampaRicetta) {
         await caricaDipendentiDaSupabase();
         break;
       case "ricette":
-        resetFormRicetta();
-        break;
+  resetFormRicetta();
+  await caricaArchivioRicette();
+  break;
       case "acquisti":
         await initAcquistiView();
         break;
