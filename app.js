@@ -117,6 +117,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // suggerimenti ingredienti (ricette) collegati a prodotti
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+    // ========= AUTOCOMPLETE INGREDIENTI DA MAGAZZINO =========
+  async function caricaProdottiMagazzinoPerAutocomplete() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione")
+      .order("descrizione", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento prodotti per autocomplete:", error);
+      return;
+    }
+
+    // salvo i prodotti in memoria
+    magazzinoDati = data || [];
+
+    // popolo la datalist per gli ingredienti nelle ricette
+    if (ingredientiSuggestions) {
+      ingredientiSuggestions.innerHTML = "";
+      magazzinoDati.forEach((p) => {
+        if (!p.descrizione) return;
+
+        const opt = document.createElement("option");
+        opt.value = p.descrizione;
+        ingredientiSuggestions.appendChild(opt);
+      });
+    }
+  }
+
 
   // stato
   let dipendenti = [];
