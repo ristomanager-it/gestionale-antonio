@@ -1776,7 +1776,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
     const totaleCell = tr.querySelector(".fatt-riga-totale");
-
     const qta = parseNumber(qtaInput?.value || "0");
     const prezzo = parseNumber(prezzoInput?.value || "0");
     const ivaPerc = parseNumber(ivaInput?.value || "0");
