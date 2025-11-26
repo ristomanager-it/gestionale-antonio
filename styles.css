@@ -11,7 +11,7 @@ body {
     sans-serif;
 }
 
-/* Tema base: SCURO */
+/* Tema base: SCURO. Per il chiaro usiamo body.theme-light con override */
 body {
   background: #020617;
   color: #0f172a;
@@ -162,7 +162,23 @@ body {
   gap: 10px;
 }
 
-/* Pulsanti */
+.remember-row {
+  margin-top: -4px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.login-buttons-row {
+  margin-top: 4px;
+}
+
+/* Pulsanti generici */
 
 .app-button {
   padding: 11px 12px;
@@ -184,6 +200,7 @@ body {
 
 .app-button:active {
   transform: scale(0.97);
+  box-shadow: none;
 }
 
 .app-button.tiny {
@@ -191,14 +208,14 @@ body {
   font-size: 11px;
 }
 
-.app-button.small {
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
 .app-button.ghost {
   background: transparent;
   color: #e5e7eb;
+  box-shadow: none;
+}
+
+.app-button.ghost:hover {
+  background: rgba(148, 163, 184, 0.3);
 }
 
 .app-button.login-button {
@@ -208,7 +225,80 @@ body {
   font-size: 16px;
 }
 
+.app-button.login-button:hover {
+  background: #1d4ed8;
+}
+
+/* Home dipendente */
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.app-button.big-home {
+  padding: 16px 14px;
+  font-size: 17px;
+  background: #e5e7eb;
+}
+
+/* Menu manager */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu-button {
+  font-size: 13px;
+  padding: 10px 8px;
+}
+
+.app-button.wide {
+  grid-column: span 2;
+}
+
+/* Form generico */
+
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.form-row input,
+.form-row select {
+  padding: 9px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+/* 🔎 IMPORTANTE: inputs più grandi su mobile per evitare zoom automatico */
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
 /* Timbratura */
+
 .timbratura-intro-card {
   background: #eef2ff;
   border-radius: 14px;
@@ -217,10 +307,16 @@ body {
   margin-bottom: 12px;
 }
 
+.timbratura-utente {
+  margin: 0;
+  font-size: 13px;
+}
+
 .timbratura-buttons {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 4px;
 }
 
 .timb-button {
@@ -230,11 +326,33 @@ body {
   color: #ffffff;
 }
 
-.timb-button.green { background: #16a34a; }
-.timb-button.gray  { background: #6b7280; }
-.timb-button.red   { background: #dc2626; }
+/* Colori timbratura */
+.timb-button.green {
+  background: #16a34a;
+}
+
+.timb-button.green:hover {
+  background: #15803d;
+}
+
+.timb-button.gray {
+  background: #6b7280;
+}
+
+.timb-button.gray:hover {
+  background: #4b5563;
+}
+
+.timb-button.red {
+  background: #dc2626;
+}
+
+.timb-button.red:hover {
+  background: #b91c1c;
+}
 
 /* Tabelle */
+
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -253,82 +371,222 @@ body {
 .table-timbrature td {
   padding: 7px 8px;
   border-bottom: 1px solid #e5e7eb;
+  text-align: left;
 }
 
-/* AUTOCOMPLETE BOX (magazzino + ricette) */
-.autocomplete-box {
-  position: absolute;
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-  width: 100%;
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 30;
-}
-
-.autocomplete-item {
-  padding: 8px 10px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.autocomplete-item:hover {
+.table-timbrature thead {
   background: #f3f4f6;
+  font-weight: 600;
 }
 
-/* FATTURA — CARD STYLE MOBILE */
-.fattura-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 12px;
+.table-timbrature tr:last-child td {
+  border-bottom: none;
+}
+
+/* Piccoli pulsanti */
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+/* Testo piccolo e attenuato */
+.small-muted {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* KPI dashboard */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
   margin-bottom: 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
-.fattura-card label {
+.kpi-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.kpi-card-value {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kpi-card-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ========= ACQUISTI / FATTURE ========= */
+
+/* Contenitore vista con scroll orizzontale se serve */
+#view-acquisti {
+  overflow-x: auto;
+}
+
+/* Campi testata fattura più grandi e comodi */
+#view-acquisti form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#view-acquisti form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 13px;
   color: #374151;
 }
 
-.fattura-card input,
-.fattura-card select {
+#view-acquisti form input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+/* Tabelle fatture: scrollabili orizzontalmente su mobile */
+#view-acquisti table {
   width: 100%;
-  margin-top: 3px;
+  border-collapse: collapse;
+  font-size: 12px;
+  display: block;
+  overflow-x: auto;
+}
+
+#view-acquisti thead,
+#view-acquisti tbody {
+  display: table;
+  width: 100%;
+}
+
+#view-acquisti tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+#view-acquisti th,
+#view-acquisti td {
+  white-space: nowrap;
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-acquisti thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Input nelle righe fattura più grandi */
+#view-acquisti .table-timbrature input {
+  width: 100%;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-}
-
-.fattura-remove-btn {
-  margin-top: 8px;
-  background: #dc2626;
-  color: white;
-}
-
-/* Ingredienti ricette */
-.ingrediente-row {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 10px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 10px;
-  position: relative;
+  background: #f9fafb;
 }
 
-.ingrediente-row input {
-  width: 100%;
-  margin-bottom: 6px;
-  padding: 8px;
-  border-radius: 10px;
+/* ========= RICETTE ========= */
+
+/* Form ricette con campi più grandi */
+#view-ricette form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#view-ricette form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+#view-ricette input,
+#view-ricette textarea {
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px solid #d1d5db;
-  font-size: 14px;
+  background: #ffffff;
 }
 
-/* Magazzino low stock */
+/* Righe ingredienti ricetta più comode */
+.ricetta-ingrediente-row {
+  margin-bottom: 6px;
+}
+
+.ingrediente-row input,
+.ricetta-ingrediente-row input {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+}
+
+/* Pulsante elimina ingrediente evidenziato */
+.app-button.tiny.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.tiny.red:hover {
+  background: #b91c1c;
+}
+
+/* ========= MAGAZZINO ========= */
+
+#view-magazzino #magazzino-search {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+#view-magazzino table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#view-magazzino th,
+#view-magazzino td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-magazzino thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
 .magazzino-low {
   display: inline-block;
   padding: 2px 6px;
@@ -339,7 +597,100 @@ body {
   font-weight: 600;
 }
 
-/* RESPONSIVE */
+/* KPI cards alternative layout */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Tema CHIARO (override) */
+
+body.theme-light {
+  background: #e5e7eb;
+}
+
+body.theme-light .app-header {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+body.theme-light .subtitle {
+  color: #6b7280;
+}
+
+body.theme-light .header-user {
+  color: #111827;
+}
+
+body.theme-light .view {
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(148, 163, 184, 0.45);
+}
+
+body.theme-light .login-card {
+  background: #f9fafb;
+}
+
+body.theme-light .app-button.ghost {
+  color: #111827;
+}
+
+body.theme-light .app-button.login-button {
+  background: #f97316;
+}
+
+body.theme-light .app-button.login-button:hover {
+  background: #ea580c;
+}
+
+/* Responsività */
+
 @media (min-width: 768px) {
-  .timbratura-buttons { flex-direction: row; }
+  .app-main-wrapper {
+    padding-top: 12px;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .login-card {
+    padding: 22px 24px 26px;
+  }
+
+  .timbratura-buttons {
+    flex-direction: row;
+  }
+
+  .timb-button {
+    font-size: 16px;
+  }
+
+  .buttons-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .menu-button {
+    font-size: 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
