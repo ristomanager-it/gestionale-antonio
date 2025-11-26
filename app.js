@@ -21,11 +21,106 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
-  // LOGIN
-  const loginNomeInput = document.getElementById("login-nome");
-  const loginPinInput = document.getElementById("login-pin");
-  const loginRememberCheckbox = document.getElementById("login-remember");
-  const btnLogin = document.getElementById("btn-login");
+  // ========= LOGIN =========
+async function login(nome, pin) {
+  const nomeTrim = (nome || "").trim();
+  const pinTrim = (pin || "").trim();
+
+  if (!nomeTrim || !pinTrim) {
+    alert("Inserisci nome e PIN");
+    return null;
+  }
+
+  // 1) ADMIN "MANUALE": se scrivi admin come nome, entri sempre come admin
+  if (nomeTrim.toLowerCase() === "admin") {
+    const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+    const user = {
+      id: null,
+      nome: "Admin",
+      ruolo: "admin",
+      canalePrevalente: "NR",
+      virtualAdmin: true,
+    };
+    setCurrentUser(user, persist);
+    return user;
+  }
+
+  // 2) LOGIN DIPENDENTE DA SUPABASE (come prima)
+  if (!supabase) {
+    alert("Supabase non inizializzato");
+    return null;
+  }
+
+  let match = null;
+
+  // prima provo per PIN (codice)
+  let { data: byPin, error: errPin } = await supabase
+    .from("dipendenti")
+    .select(
+      "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
+    )
+    .eq("codice", pinTrim);
+
+  if (errPin) {
+    console.error("Errore login (ricerca per PIN):", errPin);
+    alert("Errore durante il login (PIN)");
+    return null;
+  }
+
+  byPin = byPin || [];
+
+  if (byPin.length === 1) {
+    match = byPin[0];
+  } else if (byPin.length > 1) {
+    match = byPin.find(
+      (d) =>
+        String(d.nome || "").toLowerCase() === nomeTrim.toLowerCase()
+    );
+  }
+
+  // se non ho ancora trovato, provo per nome e poi controllo il PIN
+  if (!match) {
+    let { data: byName, error: errName } = await supabase
+      .from("dipendenti")
+      .select(
+        "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
+      )
+      .eq("nome", nomeTrim);
+
+    if (errName) {
+      console.error("Errore login (ricerca per nome):", errName);
+      alert("Errore durante il login (nome)");
+      return null;
+    }
+
+    byName = byName || [];
+    match = byName.find(
+      (d) => String(d.codice || "") === pinTrim
+    );
+  }
+
+  if (!match) {
+    alert("Credenziali non valide (nome o PIN errati)");
+    return null;
+  }
+
+  if (match.attivo === false) {
+    alert("Dipendente non attivo");
+    return null;
+  }
+
+  const user = {
+    id: match.id,
+    nome: match.nome,
+    ruolo: match.ruolo,
+    canalePrevalente: match.canale_prevalente || "NR",
+  };
+
+  const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+  setCurrentUser(user, persist);
+  return user;
+}
+
 
   // ========= TIMBRATURA (DOM) =========
   const viewTimbratura = document.getElementById("view-timbratura");
