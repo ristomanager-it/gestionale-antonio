@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaIngredientiContainer = document.getElementById(
     "ricetta-ingredienti-container"
   );
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+  
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
