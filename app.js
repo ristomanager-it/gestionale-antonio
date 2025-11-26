@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
-  const viewAcquisti = document.getElementById("view-acquisti");
+    const viewAcquisti = document.getElementById("view-acquisti");
   const fatturaNumeroInput = document.getElementById("fattura-numero");
   const fatturaDataInput = document.getElementById("fattura-data");
   const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
@@ -98,7 +98,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "fattura-totale-documento"
   );
   const fattureListaBody = document.getElementById("fatture-lista");
-    // ---------- MAGAZZINO (DOM) ----------
+
+  // ---------- MAGAZZINO (DOM) ----------
   const magazzinoSearchInput = document.getElementById("magazzino-search");
   const magazzinoListaEl = document.getElementById("magazzino-lista");
   const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
@@ -116,9 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // suggerimenti ingredienti (ricette) collegati a prodotti
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
-
-  const magazzinoListaEl = document.getElementById("magazzino-lista");
-  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
 
 
 
