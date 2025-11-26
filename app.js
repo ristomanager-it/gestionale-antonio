@@ -2315,16 +2315,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function aggiornaMagazzinoSuggestions() {
-    if (!magazzinoSuggestions) return;
-    magazzinoSuggestions.innerHTML = "";
+  function aggiornaIngredientiSuggestionsDaMagazzino() {
+  if (!ingredientiSuggestions) return;
+  ingredientiSuggestions.innerHTML = "";
 
-    magazzinoDati.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.descrizione || "";
-      magazzinoSuggestions.appendChild(opt);
-    });
-  }
+  magazzinoDati.forEach((p) => {
+    if (!p.descrizione) return;
+    const opt = document.createElement("option");
+    // metto tutto in minuscolo per far funzionare "fil"
+    opt.value = p.descrizione.toLowerCase();
+    ingredientiSuggestions.appendChild(opt);
+  });
+
+  // debug: vedi in console quante opzioni sono state create
+  console.log(
+    "Ingredienti suggestions caricate:",
+    ingredientiSuggestions.children.length
+  );
+}
+
 
   // 🔥 NUOVO: alimenta anche la datalist degli INGREDIENTI (RICETTE)
   function aggiornaIngredientiSuggestionsDaMagazzino() {
