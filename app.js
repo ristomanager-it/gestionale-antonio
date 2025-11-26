@@ -68,17 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (DOM) ----------
-const viewRicette = document.getElementById("view-ricette");
-const ricettaForm = document.getElementById("ricetta-form");
-const ricettaNomeInput = document.getElementById("ricetta-nome");
-const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-const ricettaNoteInput = document.getElementById("ricetta-note");
-const ricettaFotoInput = document.getElementById("ricetta-foto"); // può anche non esistere in HTML, gestito lato JS
-const ricettaTempoInput = document.getElementById("ricetta-tempo-minuti"); // tempo medio lavorazione (minuti)
 
-const ricettaIngredientiContainer = document.getElementById(
-  "ricetta-ingredienti-container"
-);
 
 // archivio ricette (lista/tabella opzionale)
 const ricettaArchivioBody = document.getElementById("ricette-archivio-body");
