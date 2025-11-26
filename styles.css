@@ -1,4 +1,4 @@
-/* Reset base */
+/* ========== RESET BASE ========== */
 * {
   box-sizing: border-box;
 }
@@ -11,13 +11,14 @@ body {
     sans-serif;
 }
 
-/* Tema base: SCURO. Per il chiaro usiamo body.theme-light con override */
+/* Tema base: SCURO; il chiaro è gestito con body.theme-light */
 body {
   background: #020617;
   color: #0f172a;
 }
 
-/* Wrapper principale */
+/* ========== LAYOUT APP ========== */
+
 .app-main-wrapper {
   min-height: 100vh;
   max-width: 960px;
@@ -94,7 +95,8 @@ body {
   color: #e5e7eb;
 }
 
-/* Contenuto principale */
+/* CONTENUTO PRINCIPALE */
+
 .app-main {
   flex: 1;
   margin-top: 8px;
@@ -103,7 +105,8 @@ body {
   gap: 10px;
 }
 
-/* Card vista */
+/* CARD GENERICA VISTA */
+
 .view {
   background: #f9fafb;
   border-radius: 20px;
@@ -111,12 +114,14 @@ body {
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
 }
 
-/* Utility nascondi */
+/* Utility */
+
 .hidden {
   display: none !important;
 }
 
-/* Login view */
+/* ========== LOGIN ========== */
+
 .login-view {
   flex: 1;
   display: flex;
@@ -167,10 +172,6 @@ body {
   gap: 10px;
 }
 
-.remember-row {
-  margin-top: -4px;
-}
-
 .remember-label {
   display: flex;
   align-items: center;
@@ -179,11 +180,7 @@ body {
   color: #4b5563;
 }
 
-.login-buttons-row {
-  margin-top: 4px;
-}
-
-/* Pulsanti generici */
+/* ========== PULSANTI GENERICI ========== */
 
 .app-button {
   padding: 11px 12px;
@@ -214,6 +211,12 @@ body {
   font-size: 11px;
 }
 
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
 .app-button.ghost {
   background: transparent;
   color: #e5e7eb;
@@ -235,7 +238,75 @@ body {
   background: #1d4ed8;
 }
 
-/* Home dipendente */
+.app-button.green {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.app-button.green:hover {
+  background: #15803d;
+}
+
+.app-button.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.red:hover {
+  background: #b91c1c;
+}
+
+.app-button.gray {
+  background: #6b7280;
+  color: #ffffff;
+}
+
+.app-button.gray:hover {
+  background: #4b5563;
+}
+
+/* ========== CAMPI A PIGLIO (PILLS) ========== */
+
+/* classe da usare su input/select che vuoi belli stondati */
+.input-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px; /* pillola */
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* per eventuali textarea stile "card" */
+.textarea-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  resize: vertical;
+}
+
+/* Riduzione zoom automatico su mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
+/* ========== HOME DIPENDENTE / MENU MANAGER ========== */
+
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -249,7 +320,6 @@ body {
   background: #e5e7eb;
 }
 
-/* Menu manager */
 .buttons-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -265,13 +335,15 @@ body {
   grid-column: span 2;
 }
 
-/* Form generico */
+/* ========== FORM GENERICI (LABEL IN COLONNA) ========== */
 
-.form-row {
-  margin-bottom: 10px;
+.view form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.form-row label {
+.view form label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -279,31 +351,7 @@ body {
   color: #374151;
 }
 
-.form-row input,
-.form-row select {
-  padding: 9px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-}
-
-/* 🔎 IMPORTANTE: inputs più grandi su mobile per evitare zoom automatico */
-
-input,
-select,
-textarea {
-  font-size: 16px;
-}
-
-@media (min-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 14px;
-  }
-}
-
-/* Timbratura */
+/* ========== TIMBRATURA ========== */
 
 .timbratura-intro-card {
   background: #eef2ff;
@@ -311,11 +359,6 @@ textarea {
   padding: 10px 12px 8px;
   border: 1px solid #c7d2fe;
   margin-bottom: 12px;
-}
-
-.timbratura-utente {
-  margin: 0;
-  font-size: 13px;
 }
 
 .timbratura-buttons {
@@ -332,32 +375,7 @@ textarea {
   color: #ffffff;
 }
 
-/* Colori timbratura */
-.timb-button.green {
-  background: #16a34a;
-}
-
-.timb-button.green:hover {
-  background: #15803d;
-}
-
-.timb-button.gray {
-  background: #6b7280;
-}
-
-.timb-button.gray:hover {
-  background: #4b5563;
-}
-
-.timb-button.red {
-  background: #dc2626;
-}
-
-.timb-button.red:hover {
-  background: #b91c1c;
-}
-
-/* Tabelle */
+/* ========== TABELLE ========== */
 
 .table-wrapper {
   width: 100%;
@@ -389,28 +407,21 @@ textarea {
   border-bottom: none;
 }
 
-/* Piccoli pulsanti */
-.app-button.small {
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 999px;
-}
+/* ========== TESTO PICCOLO ========== */
 
-/* Testo piccolo e attenuato */
 .small-muted {
   font-size: 11px;
   color: #6b7280;
   margin-top: 4px;
 }
 
-/* KPI dashboard */
+/* ========== KPI / CARDS VALORI ========== */
 
-.kpi-grid {
+.kpi-cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
-  margin-top: 8px;
-  margin-bottom: 12px;
+  margin-top: 10px;
 }
 
 .kpi-card {
@@ -421,51 +432,33 @@ textarea {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
-.kpi-card-title {
+.kpi-card h3 {
   margin: 0 0 4px;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 13px;
+  color: #374151;
 }
 
-.kpi-card-value {
+.kpi-card p {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
   color: #111827;
 }
 
-.kpi-card-sub {
-  margin: 2px 0 0;
-  font-size: 11px;
-  color: #9ca3af;
-}
+/* ========== ACQUISTI / FATTURE ========== */
 
-/* ========= ACQUISTI / FATTURE ========= */
-
-/* Campi testata fattura più grandi e comodi */
 #view-acquisti form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   margin-bottom: 12px;
 }
 
-#view-acquisti form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #374151;
+/* input della testata fattura a pillola (già in index con class input-pill) */
+#view-acquisti input[type="text"],
+#view-acquisti input[type="date"],
+#view-acquisti input[type="number"] {
+  /* se hanno class input-pill la regola .input-pill vince */
 }
 
-#view-acquisti form input {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-}
-
-/* Tabelle fatture: layout standard (desktop/tablet) */
+/* tabella righe fattura */
 #view-acquisti table {
   width: 100%;
   border-collapse: collapse;
@@ -486,16 +479,16 @@ textarea {
   font-weight: 600;
 }
 
-/* Input nelle righe fattura più grandi */
+/* Input nelle righe fattura */
 #view-acquisti .table-timbrature input {
   width: 100%;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
   background: #f9fafb;
 }
 
-/* 🧱 Layout VERTICALE per righe fattura su schermi piccoli */
+/* layout verticale righe fattura su schermi piccoli */
 @media (max-width: 640px) {
   #view-acquisti table,
   #view-acquisti thead,
@@ -528,37 +521,32 @@ textarea {
   }
 }
 
-/* ========= RICETTE ========= */
+/* ========== RICETTE ========== */
 
-/* Form ricette con campi più grandi */
 #view-ricette form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  margin-top: 4px;
 }
 
-#view-ricette form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #374151;
+#view-ricette input.input-pill {
+  /* già gestito dalla classe globale */
 }
 
-#view-ricette input,
 #view-ricette textarea {
-  padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 18px;
   border: 1px solid #d1d5db;
-  background: #ffffff;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
 }
 
-/* Righe ingredienti ricetta più comode */
+/* righe ingredienti */
 .ricetta-ingrediente-row {
   margin-bottom: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
-.ingrediente-row input,
 .ricetta-ingrediente-row input {
   font-size: 13px;
   padding: 8px 10px;
@@ -566,94 +554,40 @@ textarea {
   border: 1px solid #d1d5db;
 }
 
-/* Pulsante elimina ingrediente evidenziato */
-.app-button.tiny.red {
-  background: #dc2626;
-  color: #ffffff;
-}
+/* ========== DIPENDENTI ========== */
 
-.app-button.tiny.red:hover {
-  background: #b91c1c;
-}
-
-/* ========= DIPENDENTI ========= */
-
-/* Layout verticale ordinato come Acquisti/Ricette */
 #view-dipendenti form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   margin-top: 8px;
 }
 
-#view-dipendenti form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #374151;
-}
-
-/* tutti i campi della scheda dipendenti coerenti graficamente */
-#view-dipendenti input,
-#view-dipendenti select {
-  padding: 9px 11px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-}
-
-/* checkbox "Attivo" un filo distanziata */
+/* i campi hanno class input-pill in index, qui basta eventualmente regolare checkbox */
 #view-dipendenti label input[type="checkbox"] {
   width: auto;
   margin-right: 6px;
 }
 
-/* un po' di respiro prima della tabella elenco */
+/* un po' di spazio prima dell'elenco */
 #view-dipendenti h3 {
   margin-top: 16px;
 }
 
-/* ========= MAGAZZINO ========= */
+/* ========== MAGAZZINO ========== */
 
-#view-magazzino #magazzino-search {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
+/* campo ricerca a pillola, con icona lente */
+#view-magazzino #magazzino-search.input-pill {
   padding-right: 36px;
   background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
   background-size: 16px 16px;
 }
 
-/* eventuale form magazzino (prodotti, movimenti) con layout come acquisti */
+/* form dettaglio prodotto: i campi sono già a pillola via class input-pill */
 #view-magazzino form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   margin: 10px 0 12px;
 }
 
-#view-magazzino form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #374151;
-}
-
-#view-magazzino form input,
-#view-magazzino form select {
-  padding: 9px 11px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-}
-
+/* tabella prodotti (mostrata solo "a comando" via JS) */
 #view-magazzino table {
   width: 100%;
   border-collapse: collapse;
@@ -685,28 +619,13 @@ textarea {
   font-weight: 600;
 }
 
-/* KPI cards alternative layout */
-.kpi-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+/* ========== MANAGER-ONLY ========== */
+
+.manager-only {
+  /* niente di speciale, ma puoi usare se vuoi marcarli in futuro */
 }
 
-.kpi-card h3 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: #374151;
-}
-
-.kpi-card p {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
-/* Tema CHIARO (override) */
+/* ========== TEMA CHIARO ========== */
 
 body.theme-light {
   background: #e5e7eb;
@@ -747,7 +666,7 @@ body.theme-light .app-button.login-button:hover {
   background: #ea580c;
 }
 
-/* Responsività */
+/* ========== RESPONSIVITÀ ========== */
 
 @media (min-width: 768px) {
   .app-main-wrapper {
@@ -778,7 +697,7 @@ body.theme-light .app-button.login-button:hover {
     font-size: 14px;
   }
 
-  .kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .kpi-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
