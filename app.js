@@ -98,6 +98,12 @@ document.addEventListener("DOMContentLoaded", () => {
     "fattura-totale-documento"
   );
   const fattureListaBody = document.getElementById("fatture-lista");
+  const magazzinoSearchInput = document.getElementById("magazzino-search");
+  const magazzinoListaEl = document.getElementById("magazzino-lista");
+  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
+
+  // stato magazzino
+  let magazzinoDati = [];
 
   // stato
   let dipendenti = [];
