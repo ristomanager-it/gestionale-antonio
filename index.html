@@ -9,7 +9,6 @@
 
   <body>
     <div class="app-main-wrapper">
-
       <!-- HEADER -->
       <header class="app-header">
         <div class="header-top">
@@ -28,7 +27,11 @@
 
             <div class="header-user">
               <span id="current-user-label">Nessun utente</span>
-              <button id="btn-logout" class="app-button tiny" style="display:none">
+              <button
+                id="btn-logout"
+                class="app-button tiny"
+                style="display: none"
+              >
                 Esci
               </button>
             </div>
@@ -38,23 +41,33 @@
 
       <!-- CONTENUTO PRINCIPALE -->
       <main class="app-main">
-
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
           <div class="login-card">
             <div class="login-logo">
-              <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
+              <img
+                src="Logo Gestionale Antonio.png"
+                class="login-logo-img"
+              />
             </div>
 
             <h2>Benvenuto</h2>
-            <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
+            <p class="login-subtitle">
+              Accedi con Nome + PIN personale.
+            </p>
 
             <form class="login-form" onsubmit="return false;">
-              <label>Nome
-                <input type="text" id="login-nome" placeholder="Es. Mario Rossi" />
+              <label>
+                Nome
+                <input
+                  type="text"
+                  id="login-nome"
+                  placeholder="Es. Mario Rossi"
+                />
               </label>
 
-              <label>PIN
+              <label>
+                PIN
                 <input
                   type="number"
                   id="login-pin"
@@ -68,7 +81,11 @@
                 Ricordami su questo dispositivo
               </label>
 
-              <button type="button" id="btn-login" class="app-button login-button">
+              <button
+                type="button"
+                id="btn-login"
+                class="app-button login-button"
+              >
                 Entra
               </button>
             </form>
@@ -76,7 +93,7 @@
         </section>
 
         <!-- HOME DIPENDENTE -->
-        <section id="view-home-dip" class="view" style="display:none">
+        <section id="view-home-dip" class="view" style="display: none">
           <h2>Cosa vuoi fare?</h2>
 
           <div class="home-buttons">
@@ -91,7 +108,7 @@
         </section>
 
         <!-- MENU MANAGER -->
-        <section id="manager-menu" class="buttons-grid" style="display:none">
+        <section id="manager-menu" class="buttons-grid" style="display: none">
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
@@ -112,20 +129,27 @@
             Magazzino
           </button>
 
-          <button class="app-button menu-button wide" data-route="report">
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+          >
             Report
           </button>
         </section>
 
         <!-- TIMBRATURA -->
-        <section id="view-timbratura" class="view" style="display:none">
+        <section id="view-timbratura" class="view" style="display: none">
           <h2>Timbratura</h2>
           <p>Registra entrata, pausa e uscita.</p>
 
           <div class="timbratura-intro-card">
-            <p>Stai timbrando come <strong id="timbratura-utente-nome">-</strong></p>
+            <p>
+              Stai timbrando come
+              <strong id="timbratura-utente-nome">-</strong>
+            </p>
 
-            <label>Luogo di lavoro
+            <label>
+              Luogo di lavoro
               <select id="timbratura-canale-select">
                 <option value="NR">NR</option>
                 <option value="RA">RA</option>
@@ -136,40 +160,110 @@
           </div>
 
           <div class="timbratura-buttons">
-            <button id="btn-entra" class="app-button timb-button green">ENTRA</button>
-            <button id="btn-pausa" class="app-button timb-button gray">PAUSA</button>
-            <button id="btn-esci" class="app-button timb-button red">USCITA</button>
+            <button id="btn-entra" class="app-button timb-button green">
+              ENTRA
+            </button>
+            <button id="btn-pausa" class="app-button timb-button gray">
+              PAUSA
+            </button>
+            <button id="btn-esci" class="app-button timb-button red">
+              USCITA
+            </button>
+          </div>
+
+          <!-- SEZIONE PRESENZE (SOLO MANAGER/ADMIN, A COMANDO) -->
+          <div
+            class="manager-only"
+            data-manager-only="true"
+            style="margin-top: 16px;"
+          >
+            <button
+              id="btn-toggle-presenze"
+              class="app-button small gray"
+            >
+              Mostra stato presenze
+            </button>
+
+            <div
+              id="sezione-presenze"
+              style="display: none; margin-top: 10px;"
+            >
+              <h3>Stato dipendenti</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Stato</th>
+                    </tr>
+                  </thead>
+                  <tbody id="presenze-lista"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
         <!-- DIPENDENTI -->
-        <section id="view-dipendenti" class="view" style="display:none">
+        <section id="view-dipendenti" class="view" style="display: none">
           <h2>Dipendenti</h2>
           <p>Gestione completa dipendenti.</p>
 
           <form id="dipendente-form" onsubmit="return false;">
-            <label>Nome
-              <input type="text" id="dip-nome" />
+            <label>
+              Nome
+              <input type="text" id="dip-nome" class="input-pill" />
             </label>
 
-            <label>Mansione
-              <input type="text" id="dip-mansione" />
+            <label>
+              Mansione
+              <input
+                type="text"
+                id="dip-mansione"
+                class="input-pill"
+              />
             </label>
 
-            <label>Data nascita
-              <input type="date" id="dip-data-nascita" />
+            <label>
+              Data nascita
+              <input
+                type="date"
+                id="dip-data-nascita"
+                class="input-pill"
+              />
             </label>
 
-            <label>Telefono
-              <input type="tel" id="dip-telefono" />
+            <label>
+              Residenza
+              <input
+                type="text"
+                id="dip-residenza"
+                class="input-pill"
+              />
             </label>
 
-            <label>Email
-              <input type="email" id="dip-email" />
+            <label>
+              Telefono
+              <input
+                type="tel"
+                id="dip-telefono"
+                class="input-pill"
+              />
             </label>
 
-            <label>Ruolo
-              <select id="dip-ruolo">
+            <label>
+              Email
+              <input
+                type="email"
+                id="dip-email"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Ruolo
+              <select id="dip-ruolo" class="input-pill">
                 <option value="admin">Admin</option>
                 <option value="manager_cucina">Manager cucina</option>
                 <option value="manager_sala">Manager sala</option>
@@ -178,30 +272,114 @@
               </select>
             </label>
 
-            <label>Paga oraria (€)
-              <input type="number" id="dip-retribuzione-base" step="0.01" />
+            <label>
+              Tipo compenso
+              <select
+                id="dip-tipo-compenso"
+                class="input-pill"
+              >
+                <option value="orario">A ore</option>
+                <option value="mensile">Mensile</option>
+                <option value="servizio">Per servizio</option>
+              </select>
             </label>
 
-            <label>PIN
-              <input type="text" id="dip-codice" maxlength="10" />
+            <label id="label-retribuzione-base">
+              Paga oraria lorda (€/h)
+              <input
+                type="number"
+                id="dip-retribuzione-base"
+                step="0.01"
+                class="input-pill"
+              />
+            </label>
+
+            <div id="row-ore-mensili" style="display: none;">
+              <label>
+                Ore mensili contrattuali
+                <input
+                  type="number"
+                  id="dip-ore-mensili"
+                  step="0.1"
+                  class="input-pill"
+                />
+              </label>
+            </div>
+
+            <div id="row-ore-servizio" style="display: none;">
+              <label>
+                Ore medie per servizio
+                <input
+                  type="number"
+                  id="dip-ore-servizio"
+                  step="0.1"
+                  class="input-pill"
+                />
+              </label>
+            </div>
+
+            <label>
+              Costo orario calcolato
+              <input
+                type="number"
+                id="dip-costo"
+                step="0.01"
+                class="input-pill"
+                readonly
+              />
             </label>
 
             <label>
-              <input type="checkbox" id="dip-attivo" checked /> Attivo
+              PIN
+              <input
+                type="text"
+                id="dip-codice"
+                maxlength="10"
+                class="input-pill"
+              />
             </label>
 
-            <button id="btn-add-dip" class="app-button small green">
+            <label>
+              Canale prevalente
+              <select id="dip-canale" class="input-pill">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">Catering</option>
+              </select>
+            </label>
+
+            <label>
+              <input type="checkbox" id="dip-attivo" checked />
+              Attivo
+            </label>
+
+            <button
+              id="btn-add-dip"
+              class="app-button small green"
+            >
               Salva dipendente
             </button>
           </form>
 
           <h3>Elenco</h3>
           <div class="table-wrapper">
-            <table>
+            <table class="table-timbrature">
               <thead>
                 <tr>
-                  <th>Nome</th><th>Mansione</th><th>Telefono</th><th>Email</th>
-                  <th>Ruolo</th><th>Paga</th><th>PIN</th><th>Attivo</th><th>Azioni</th>
+                  <th>Nome</th>
+                  <th>Mansione</th>
+                  <th>Data nascita</th>
+                  <th>Residenza</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Ruolo</th>
+                  <th>Tipo compenso</th>
+                  <th>Costo orario</th>
+                  <th>Canale</th>
+                  <th>PIN</th>
+                  <th>Attivo</th>
+                  <th>Azioni</th>
                 </tr>
               </thead>
               <tbody id="dipendenti-lista"></tbody>
@@ -210,26 +388,63 @@
         </section>
 
         <!-- ACQUISTI / FATTURE -->
-        <section id="view-acquisti" class="view" style="display:none">
+        <section id="view-acquisti" class="view" style="display: none">
           <h2>Fatture di acquisto</h2>
           <p>Registra fatture, prodotti e movimenti di magazzino.</p>
 
           <form id="fattura-form" onsubmit="return false;">
-            <label>Numero fattura
-              <input id="fattura-numero" type="text" />
+            <label>
+              Numero fattura
+              <input
+                id="fattura-numero"
+                type="text"
+                class="input-pill"
+              />
             </label>
 
-            <label>Data
-              <input id="fattura-data" type="date" />
+            <label>
+              Data
+              <input
+                id="fattura-data"
+                type="date"
+                class="input-pill"
+              />
             </label>
 
-            <label>Fornitore
-              <input id="fattura-fornitore" type="text" />
+            <label>
+              Fornitore
+              <input
+                id="fattura-fornitore"
+                type="text"
+                class="input-pill"
+              />
             </label>
 
-            <button id="btn-salva-fattura" class="app-button small green">
-              Salva fattura
-            </button>
+            <label>
+              Note
+              <input
+                id="fattura-note"
+                type="text"
+                class="input-pill"
+              />
+            </label>
+
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button
+                id="btn-nuova-fattura"
+                class="app-button small gray"
+                type="button"
+              >
+                Nuova fattura
+              </button>
+              <button
+                id="btn-salva-fattura"
+                class="app-button small green"
+                type="button"
+              >
+                Salva fattura
+              </button>
+            </div>
           </form>
 
           <h3>Righe fattura</h3>
@@ -237,132 +452,254 @@
           <table class="table-timbrature">
             <thead>
               <tr>
-                <th>Codice</th><th>Descrizione</th><th>Categoria</th><th>UM</th>
-                <th>Q.tà</th><th>Prezzo</th><th>IVA</th><th>Totale</th><th></th>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th>Categoria</th>
+                <th>UM</th>
+                <th>Q.tà</th>
+                <th>Prezzo</th>
+                <th>IVA</th>
+                <th>Totale</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="fattura-righe-body"></tbody>
           </table>
 
-          <button id="btn-add-riga-fattura" class="app-button small gray">
+          <button
+            id="btn-add-riga-fattura"
+            class="app-button small gray"
+            type="button"
+          >
             + Aggiungi riga
           </button>
 
+          <h3>Totali</h3>
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Imponibile</h3>
+              <p>
+                <input
+                  id="fattura-imponibile-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>IVA</h3>
+              <p>
+                <input
+                  id="fattura-iva-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>Totale documento</h3>
+              <p>
+                <input
+                  id="fattura-totale-documento"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+          </div>
+
           <h3>Fatture registrate</h3>
 
-          <button id="btn-toggle-fatture" class="app-button small gray">
+          <button
+            id="btn-toggle-fatture"
+            class="app-button small gray"
+            type="button"
+          >
             Mostra / Nascondi
           </button>
 
-          <table id="fatture-table" style="display:none">
+          <table
+            id="fatture-table"
+            class="table-timbrature"
+            style="display: none;"
+          >
             <thead>
               <tr>
-                <th>Data</th><th>Numero</th><th>Fornitore</th><th>Totale</th><th></th>
+                <th>Data</th>
+                <th>Numero</th>
+                <th>Fornitore</th>
+                <th>Totale</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="fatture-lista"></tbody>
           </table>
         </section>
 
-      <!-- RICETTE -->
-<section id="view-ricette" class="view" style="display:none">
-  <h2>Ricette</h2>
+        <!-- RICETTE -->
+        <section id="view-ricette" class="view" style="display: none">
+          <h2>Ricette</h2>
 
-  <form id="ricetta-form" onsubmit="return false;">
-    <label>Nome ricetta
-      <input type="text" id="ricetta-nome" />
-    </label>
+          <form id="ricetta-form" onsubmit="return false;">
+            <label>
+              Nome ricetta
+              <input
+                type="text"
+                id="ricetta-nome"
+                class="input-pill"
+              />
+            </label>
 
-    <label>Descrizione breve
-      <input type="text" id="ricetta-descrizione" />
-    </label>
+            <label>
+              Descrizione breve
+              <input
+                type="text"
+                id="ricetta-descrizione"
+                class="input-pill"
+              />
+            </label>
 
-    <label>Note / Procedimento
-      <textarea id="ricetta-note" rows="4"></textarea>
-    </label>
+            <label>
+              Note / Procedimento
+              <textarea
+                id="ricetta-note"
+                rows="4"
+              ></textarea>
+            </label>
 
-    <label>Foto ricetta
-      <input type="file" id="ricetta-foto" accept="image/*" />
-    </label>
+            <label>
+              Foto ricetta
+              <input
+                type="file"
+                id="ricetta-foto"
+                accept="image/*"
+              />
+            </label>
 
-    <h3>Ingredienti</h3>
+            <h3>Ingredienti</h3>
 
-    <div id="ricetta-ingredienti-container"></div>
+            <div id="ricetta-ingredienti-container"></div>
 
-    <!-- 🔥 DATALIST PER AUTOCOMPLETE INGREDIENTI -->
-    <datalist id="ingredienti-suggestions"></datalist>
+            <!-- DATALIST PER AUTOCOMPLETE INGREDIENTI -->
+            <datalist id="ingredienti-suggestions"></datalist>
 
-    <button id="btn-add-ingrediente" class="app-button small gray">
-      + Aggiungi ingrediente
-    </button>
+            <button
+              id="btn-add-ingrediente"
+              class="app-button small gray"
+              type="button"
+            >
+              + Aggiungi ingrediente
+            </button>
 
-    <button id="btn-salva-ricetta" class="app-button small green">
-      Salva ricetta
-    </button>
-  </form>
-</section>
+            <button
+              id="btn-salva-ricetta"
+              class="app-button small green"
+              type="button"
+            >
+              Salva ricetta
+            </button>
+          </form>
+        </section>
 
         <!-- MAGAZZINO -->
-        <section id="view-magazzino" class="view" style="display:none">
+        <section id="view-magazzino" class="view" style="display: none">
           <h2>Magazzino</h2>
           <p>Ricerca prodotti, scorte e movimenti.</p>
 
-          <div style="position:relative">
+          <div style="position: relative;">
             <input
-  id="magazzino-search"
-  type="text"
-  placeholder="Cerca prodotto..."
-  autocomplete="off"
-  list="magazzino-suggestions"
-/>
-<datalist id="magazzino-suggestions"></datalist>
-
+              id="magazzino-search"
+              type="text"
+              placeholder="Cerca prodotto..."
+              autocomplete="off"
+              list="magazzino-suggestions"
+              class="input-pill"
+            />
+            <datalist id="magazzino-suggestions"></datalist>
           </div>
 
           <h3>Prodotti</h3>
-          <table>
+          <!-- Tabella nascosta di default: si mostra solo quando si cerca -->
+          <table
+            id="magazzino-table"
+            class="table-timbrature"
+            style="display: none;"
+          >
             <thead>
-              <tr><th>Codice</th><th>Descrizione</th><th>Categoria</th><th>Stock</th></tr>
+              <tr>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th>Categoria</th>
+                <th>Stock</th>
+              </tr>
             </thead>
             <tbody id="magazzino-lista"></tbody>
           </table>
-         <h3>Dettaglio prodotto</h3>
 
-  <form id="magazzino-form" onsubmit="return false;">
-    <input type="hidden" id="magazzino-id" />
+          <h3>Dettaglio prodotto</h3>
 
-    <label>Descrizione
-  <input
-    type="text"
-    id="magazzino-descrizione"
-    list="ingredienti-suggestions"
-  />
-</label>
+          <form id="magazzino-form" onsubmit="return false;">
+            <input type="hidden" id="magazzino-id" />
 
+            <label>
+              Descrizione
+              <input
+                type="text"
+                id="magazzino-descrizione"
+                list="ingredienti-suggestions"
+                class="input-pill"
+              />
+            </label>
 
-    <label>Categoria
-      <input type="text" id="magazzino-categoria" />
-    </label>
+            <label>
+              Categoria
+              <input
+                type="text"
+                id="magazzino-categoria"
+                class="input-pill"
+              />
+            </label>
 
-    <label>UM
-      <input type="text" id="magazzino-um" placeholder="kg, l, pz..." />
-    </label>
+            <label>
+              UM
+              <input
+                type="text"
+                id="magazzino-um"
+                placeholder="kg, l, pz..."
+                class="input-pill"
+              />
+            </label>
 
-    <label>Scorta minima
-      <input type="number" id="magazzino-scorta-minima" step="0.001" />
-    </label>
+            <label>
+              Scorta minima
+              <input
+                type="number"
+                id="magazzino-scorta-minima"
+                step="0.001"
+                class="input-pill"
+              />
+            </label>
 
-    <button id="btn-magazzino-salva" class="app-button small green">
-      Salva prodotto
-    </button>
-  </form>
+            <button
+              id="btn-magazzino-salva"
+              class="app-button small green"
+              type="button"
+            >
+              Salva prodotto
+            </button>
+          </form>
 
-  <p class="small-muted">
-    Seleziona una riga sopra per caricare i dati del prodotto e modificarli.
-  </p>
-
+          <p class="small-muted">
+            Seleziona una riga sopra per caricare i dati del prodotto
+            e modificarli.
+          </p>
         </section>
-
       </main>
     </div>
 
