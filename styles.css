@@ -444,6 +444,175 @@ textarea {
   font-weight: 700;
   color: #111827;
 }
+/* ========== KPI REPORT VIEW ========== */
+
+.kpi-period-switch {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.kpi-period-btn {
+  flex: 1;
+  padding-inline: 0;
+}
+
+.kpi-period-btn.kpi-period-active {
+  background: #6366f1;
+  color: #ffffff;
+}
+
+.kpi-date-label-wrapper {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.kpi-incasso-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 14px;
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.kpi-incasso-row strong {
+  font-size: 16px;
+}
+
+/* badge margine */
+.kpi-margin-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  margin: 4px auto 10px;
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+.kpi-margin-badge.pos {
+  background: #bbf7d0;
+  color: #166534;
+}
+
+.kpi-margin-badge.neg {
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+/* gauge semicircolare */
+.kpi-gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kpi-gauge-dial {
+  position: relative;
+  width: 220px;
+  height: 110px;
+  border-radius: 110px 110px 0 0;
+  overflow: hidden;
+  background: conic-gradient(
+    from 180deg,
+    #22c55e 0deg,
+    #22c55e 60deg,
+    #facc15 60deg,
+    #f97316 120deg,
+    #ef4444 180deg
+  );
+}
+
+/* "svuota" la metà inferiore per fare l'effetto arco */
+.kpi-gauge-dial::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -2px;
+  top: 50%;
+  background: #f9fafb;
+  border-radius: 999px 999px 0 0;
+}
+
+/* lancetta */
+.kpi-gauge-needle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 2px;
+  height: 100%;
+  background: #111827;
+  transform-origin: bottom center;
+  transform: rotate(0deg);
+  transition: transform 0.35s ease-out;
+  z-index: 2;
+}
+
+/* per non coprire la lancetta */
+.kpi-gauge-center {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fbbf24;
+  border: 3px solid #f59e0b;
+  transform: translate(-50%, 50%);
+  z-index: 3;
+}
+
+.kpi-gauge-captions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 260px;
+  font-size: 11px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  color: #6b7280;
+}
+
+.kpi-gauge-bep {
+  margin-top: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* testo piccolo dentro le card KPI */
+.kpi-card small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* separatore nella view report */
+.report-section-divider {
+  border: none;
+  border-top: 1px dashed #e5e7eb;
+  margin: 12px 0;
+}
+
+/* un po' di spazio nella sezione costi fissi */
+#costi-fissi-section h3 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+#costi-fissi-section h4 {
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
 
 /* ========== ACQUISTI / FATTURE ========== */
 
