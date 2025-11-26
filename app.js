@@ -1774,7 +1774,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function ricalcolaTotaleRiga(tr) {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
-    the ivaInput = tr.querySelector(".fatt-riga-iva");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
     const totaleCell = tr.querySelector(".fatt-riga-totale");
 
     const qta = parseNumber(qtaInput?.value || "0");
@@ -2214,11 +2214,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
+    // leggo direttamente la tabella prodotti, niente view
     const { data, error } = await supabase
-      .from("prodotti_view_magazzino")
-      .select(
-        "id, codice_interno, descrizione, um, categoria_nome, scorta_minima, stock_attuale"
-      )
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, um, categoria_id, scorta_minima")
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -2227,15 +2226,18 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    magazzinoDati = (data || []).map((r) => ({
-      id: r.id,
-      codice: r.codice_interno,
-      descrizione: r.descrizione,
-      um: r.um,
-      categoriaNome: r.categoria_nome || "",
-      scortaMinima: r.scorta_minima,
-      stock: r.stock_attuale ?? 0,
-    }));
+    magazzinoDati = (data || []).map((r) => {
+      const cat = r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
+      return {
+        id: r.id,
+        codice: r.codice_interno,
+        descrizione: r.descrizione,
+        um: r.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: r.scorta_minima,
+        stock: 0, // per ora 0, in futuro calcolato da movimenti di magazzino
+      };
+    });
 
     aggiornaMagazzinoSuggestions();
     aggiornaIngredientiSuggestionsDaMagazzino();
