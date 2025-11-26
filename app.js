@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ========= COSTANTI / STORAGE =========
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
+  const VIRTUAL_ADMIN_PIN = "0000"; // admin virtuale: nome "admin" + PIN 0000
 
   // ========= DOM BASE =========
   const body = document.body;
@@ -51,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sezioneTimbratureDettaglio = document.getElementById(
     "sezione-timbrature"
   );
+
   const listaTimbratureEl = document.getElementById("timbrature-lista");
 
   // ========= DIPENDENTI (DOM) =========
@@ -185,7 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
     if (val === null || val === undefined) return 0;
-    const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+    const num =
+      typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
     return Number.isFinite(num) ? num : 0;
   }
 
@@ -238,11 +241,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let end = new Date(d);
 
     if (periodo === "giorno") {
-      // già impostato
       end.setDate(start.getDate() + 1);
     } else if (periodo === "settimana") {
-      const day = start.getDay() || 7; // lun=1..dom=7
-      start.setDate(start.getDate() - (day - 1)); // lunedì
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - (day - 1));
       end = new Date(start);
       end.setDate(start.getDate() + 7);
     } else if (periodo === "mese") {
@@ -427,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const saved = JSON.parse(raw);
       if (!saved) return;
 
+      // se era l'admin virtuale, lo ripristino così com'è
       if (saved.virtualAdmin) {
         currentUser = saved;
         applyRoleVisibility();
@@ -461,7 +464,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ========= LOGIN =========
   async function login(nome, pin) {
-    if (!supabase) return null;
     const nomeTrim = (nome || "").trim();
     const pinTrim = (pin || "").trim();
 
@@ -470,24 +472,77 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
 
-    const { data, error } = await supabase
+    // 1) ADMIN VIRTUALE
+    if (nomeTrim.toLowerCase() === "admin" && pinTrim === VIRTUAL_ADMIN_PIN) {
+      const user = {
+        id: null,
+        nome: "Admin",
+        ruolo: "admin",
+        canalePrevalente: "NR",
+        virtualAdmin: true,
+      };
+      const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+      setCurrentUser(user, persist);
+      return user;
+    }
+
+    if (!supabase) {
+      alert("Supabase non inizializzato");
+      return null;
+    }
+
+    // 2) PRIMA PROVA: PIN (codice) -> è il più affidabile
+    let match = null;
+
+    let { data: byPin, error: errPin } = await supabase
       .from("dipendenti")
       .select(
         "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
       )
-      .eq("nome", nomeTrim);
+      .eq("codice", pinTrim);
 
-    if (error) {
-      console.error("Errore login:", error);
-      alert("Errore durante il login");
+    if (errPin) {
+      console.error("Errore login (ricerca per PIN):", errPin);
+      alert("Errore durante il login (PIN)");
       return null;
     }
 
-    const lista = data || [];
-    const match = lista.find((d) => String(d.codice || "") === pinTrim);
+    byPin = byPin || [];
+
+    if (byPin.length === 1) {
+      // 1 solo pin: lo prendiamo
+      match = byPin[0];
+    } else if (byPin.length > 1) {
+      // se ci sono più PIN uguali (non dovrebbe!), filtro per nome
+      match = byPin.find(
+        (d) =>
+          String(d.nome || "").toLowerCase() === nomeTrim.toLowerCase()
+      );
+    }
+
+    // 3) Se ancora niente, provo per nome e poi controllo il PIN
+    if (!match) {
+      let { data: byName, error: errName } = await supabase
+        .from("dipendenti")
+        .select(
+          "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
+        )
+        .eq("nome", nomeTrim);
+
+      if (errName) {
+        console.error("Errore login (ricerca per nome):", errName);
+        alert("Errore durante il login (nome)");
+        return null;
+      }
+
+      byName = byName || [];
+      match = byName.find(
+        (d) => String(d.codice || "") === pinTrim
+      );
+    }
 
     if (!match) {
-      alert("Credenziali non valide");
+      alert("Credenziali non valide (nome o PIN errati)");
       return null;
     }
 
@@ -549,9 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const { data, error } = await supabase
       .from("timbrature")
-      .select(
-        "id, dipendente_id, dip_nome, canale, tipo, ora, timestamp"
-      )
+      .select("id, dipendente_id, dip_nome, canale, tipo, ora, timestamp")
       .order("timestamp", { ascending: true });
 
     if (error) {
@@ -775,7 +828,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const canale = timbraturaCanaleSelect?.value || currentUser.canalePrevalente || "NR";
+    const canale =
+      timbraturaCanaleSelect?.value ||
+      currentUser.canalePrevalente ||
+      "NR";
 
     // Regole di base
     const eventiDip = timbrature
@@ -1296,18 +1352,23 @@ document.addEventListener("DOMContentLoaded", () => {
       aggiornaTotaliFattura();
     }
 
-    [quantitaInput, prezzoInput, ivaInput, codiceInput, descrizioneInput, categoriaInput, umInput].forEach(
-      (el) => {
-        if (el) el.addEventListener("input", updateFromInputs);
-      }
-    );
+    [
+      quantitaInput,
+      prezzoInput,
+      ivaInput,
+      codiceInput,
+      descrizioneInput,
+      categoriaInput,
+      umInput,
+    ].forEach((el) => {
+      if (el) el.addEventListener("input", updateFromInputs);
+    });
 
     if (btnDel) {
       btnDel.addEventListener("click", () => {
         const index = parseInt(tr.dataset.index || "0", 10);
         fatturaRighe.splice(index, 1);
         tr.remove();
-        // ricalcola gli indici
         Array.from(fatturaRigheBody.querySelectorAll("tr")).forEach(
           (rowEl, i) => {
             rowEl.dataset.index = String(i);
@@ -1389,7 +1450,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fatturaCorrenteId = fatturaSalvata.id;
 
-    // per semplicità: cancelliamo e reinseriamo le righe
     await supabase.from("fatture_righe").delete().eq("fattura_id", fatturaCorrenteId);
 
     const righePayload = fatturaRighe.map((r) => ({
@@ -1936,9 +1996,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const lavoroVal = calcolaCostoLavoroPeriodo(start, end);
 
     const totaleCosti = lavoroVal + foodVal + fissiVal;
-    const nettoVal = incassoVal - foodVal; // incasso - food
-    const margineVal = incassoVal - totaleCosti; // incasso - (lavoro+food+fissi)
-    const bepVal = totaleCosti; // BEP = somma costi
+    const nettoVal = incassoVal - foodVal;
+    const margineVal = incassoVal - totaleCosti;
+    const bepVal = totaleCosti;
 
     if (kpiIncassoValueEl)
       kpiIncassoValueEl.textContent = formatEuro(incassoVal);
@@ -1985,7 +2045,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function aggiornaKpiLavoroSeServe() {
-    // quando sei nella view report e aggiorni timbrature/dipendenti
     const currentVisible = views.find(
       (v) => v.style.display === "block" && v.id === "view-report"
     );
