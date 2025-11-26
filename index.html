@@ -644,6 +644,15 @@
 
           <h3>Dettaglio prodotto</h3>
 
+          <button
+            id="btn-magazzino-nuovo"
+            class="app-button small gray"
+            type="button"
+            style="margin-bottom: 8px;"
+          >
+            Nuovo prodotto
+          </button>
+
           <form id="magazzino-form" onsubmit="return false;">
             <input type="hidden" id="magazzino-id" />
 
@@ -686,6 +695,17 @@
               />
             </label>
 
+            <label>
+              Giacenza attuale
+              <input
+                type="number"
+                id="magazzino-giacenza"
+                step="0.001"
+                class="input-pill"
+                readonly
+              />
+            </label>
+
             <button
               id="btn-magazzino-salva"
               class="app-button small green"
@@ -696,8 +716,9 @@
           </form>
 
           <p class="small-muted">
-            Seleziona una riga sopra per caricare i dati del prodotto
-            e modificarli.
+            Scrivi il nome (es. "pomodori") nel campo di ricerca sopra per
+            vedere i prodotti e le quantità, poi clicca sulla riga per
+            caricare il dettaglio.
           </p>
         </section>
       </main>
