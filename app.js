@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaIngredientiContainer = document.getElementById(
     "ricetta-ingredienti-container"
   );
-  
+  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
@@ -411,17 +411,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const tipo = dipTipoCompenso.value || "orario";
 
     if (tipo === "orario") {
-      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "mensile") {
-      labelRetribuzione.firstChild.textContent =
-        "Stipendio lordo mensile (€/mese)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Stipendio lordo mensile (€/mese)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "block";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "servizio") {
-      labelRetribuzione.firstChild.textContent =
-        "Paga lorda per servizio (€/servizio)";
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Paga lorda per servizio (€/servizio)";
+      }
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "block";
     }
@@ -1408,20 +1414,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnAddIngrediente) {
-  addEventListener("click", () => {
+    btnAddIngrediente.addEventListener("click", () => {
       creaRigaIngrediente();
     });
   }
 
   if (btnSalvaRicetta) {
-  addEventListener("click", () => {
+    btnSalvaRicetta.addEventListener("click", () => {
       handleSalvaRicetta();
     });
   }
 
   // ========= ACQUISTI / FATTURE / MAGAZZINO =========
-
-    // ========= ACQUISTI / FATTURE / MAGAZZINO =========
 
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
@@ -1521,6 +1525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
+  // 🔑 FUNZIONE CHIAVE: CERCA / CREA PRODOTTO, USANDO LA DESCRIZIONE
   async function findOrCreateProdotto({
     codice,
     descrizione,
@@ -1532,11 +1537,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const descTrim = (descrizione || "").trim();
     const umTrim = (um || "").trim() || "pz";
 
+    // se non c'è né codice né descrizione, non posso creare nulla
     if (!codiceTrim && !descTrim) {
       return null;
     }
 
-    // 1) se mi hai scritto un codice interno a mano, provo a usarlo
+    // 1) SE MI DAI UN CODICE → CERCO PER CODICE (funziona se un giorno vuoi usarlo)
     if (codiceTrim) {
       const { data: existingByCodice, error: errFindCodice } = await supabase
         .from("prodotti")
@@ -1557,7 +1563,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 2) categoria
+    // 2) SE NON HO CODICE → CERCO PER DESCRIZIONE (COME VUOI TU)
+    if (descTrim) {
+      const { data: existingByDesc, error: errFindDesc } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        // match "esatto" (ma case-insensitive); se vuoi più permissivo si può usare %...%
+        .ilike("descrizione", descTrim)
+        .limit(1);
+
+      if (errFindDesc) {
+        console.error("Errore ricerca prodotto per descrizione:", errFindDesc);
+      } else if (existingByDesc && existingByDesc.length > 0) {
+        // 🔁 prodotto già esistente → riuso quello (stesso codice interno)
+        return existingByDesc[0];
+      }
+    }
+
+    // 3) CATEGORIA (se la scrivi in fattura)
     let categoria = null;
     if (categoriaNome) {
       categoria = await findOrCreateCategoriaByNome(categoriaNome);
@@ -1568,7 +1591,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 3) creo codice interno automatico se non fornito
+    // 4) SE NON HAI DATO UN CODICE → LO GENERO AUTOMATICO (codifica prodotto)
     let codiceInternoFinale = codiceTrim;
     if (!codiceInternoFinale) {
       codiceInternoFinale = await generaCodiceInternoAutomatico(
@@ -1576,7 +1599,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    // 4) controllo se esiste già
+    // 5) ULTIMO CONTROLLO: ESISTE GIÀ QUESTO CODICE?
     const { data: existingFinal, error: errFindFinal } = await supabase
       .from("prodotti")
       .select("id, codice_interno, descrizione, categoria_id, um")
@@ -1586,8 +1609,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (errFindFinal) {
       console.error("Errore ricerca prodotto finale:", errFindFinal);
       alert(
-        "Errore Supabase (ricerca prodotto finale): " +
-          errFindFinal.message
+        "Errore Supabase (ricerca prodotto finale): " + errFindFinal.message
       );
     }
 
@@ -1595,7 +1617,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return existingFinal[0];
     }
 
-    // 5) inserimento nuovo prodotto
+    // 6) SE ARRIVO QUI → CREO UN NUOVO PRODOTTO
     const payload = {
       codice_interno: codiceInternoFinale,
       descrizione: descTrim || codiceInternoFinale,
@@ -2189,7 +2211,6 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaFattura();
     });
   }
-
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
