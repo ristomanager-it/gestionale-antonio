@@ -117,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // suggerimenti ingredienti (ricette) collegati a prodotti
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
   const magazzinoListaEl = document.getElementById("magazzino-lista");
   const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
 
