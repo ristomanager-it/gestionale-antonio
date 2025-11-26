@@ -1730,15 +1730,16 @@ document.addEventListener("DOMContentLoaded", () => {
           value="${initial.codice_prodotto || ""}"
         />
       </td>
-      <td>
-  <input
-    type="text"
-    class="fatt-riga-descrizione"
-    placeholder="Descrizione prodotto"
-    list="ingredienti-suggestions"
-    value="${initial.descrizione_riga || ""}"
-  />
-</td>
+            <td>
+        <input
+          type="text"
+          class="fatt-riga-descrizione"
+          placeholder="Descrizione prodotto"
+          list="ingredienti-suggestions"
+          value="${initial.descrizione_riga || ""}"
+        />
+      </td>
+
 
       <td>
         <input
@@ -2262,14 +2263,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
- async function initAcquistiView() {
-  await caricaFornitoriInCache();
-  await caricaCategorieInCache();
-  resetFatturaForm();
-  await caricaListaFatture();
-  // 👉 riempiamo anche la datalist dei prodotti
-  await caricaProdottiSuggerimentiIngredienti();
+async function caricaProdottiSuggerimentiIngredienti() {
+  // se magazzinoDati è vuoto, carico da Supabase
+  if (!magazzinoDati.length) {
+    await caricaCategorieInCache();
+    await caricaMagazzinoDati();
+  } else {
+    // se è già carico, aggiorno solo la datalist ingredienti
+    aggiornaIngredientiSuggestionsDaMagazzino();
+  }
 }
+
 
 
   if (btnAddRigaFattura) {
