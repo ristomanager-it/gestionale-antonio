@@ -2217,6 +2217,129 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaFattura();
     });
   }
+  // ========= MAGAZZINO: prodotti + giacenze + cerca =========
+
+  function renderMagazzinoLista(lista) {
+    if (!magazzinoListaEl) return;
+    magazzinoListaEl.innerHTML = "";
+
+    lista.forEach((p) => {
+      const tr = document.createElement("tr");
+      const stockTxt =
+        p.stock != null ? p.stock.toFixed(2) + " " + (p.um || "") : "";
+
+      tr.innerHTML = `
+        <td>${p.codice || ""}</td>
+        <td>${p.descrizione || ""}</td>
+        <td>${p.categoriaNome || ""}</td>
+        <td>${stockTxt}</td>
+      `;
+      magazzinoListaEl.appendChild(tr);
+    });
+  }
+
+  function aggiornaMagazzinoSuggestions() {
+    if (!magazzinoSuggestions) return;
+    magazzinoSuggestions.innerHTML = "";
+
+    magazzinoDati.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.descrizione || "";
+      magazzinoSuggestions.appendChild(opt);
+    });
+  }
+
+  async function caricaMagazzinoDati() {
+    if (!supabase) return;
+
+    // 1) leggo i prodotti
+    const { data: prodotti, error: prodErr } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima")
+      .order("descrizione", { ascending: true });
+
+    if (prodErr) {
+      console.error("Errore caricamento prodotti magazzino:", prodErr);
+      alert("Errore nel caricare i prodotti di magazzino: " + prodErr.message);
+      return;
+    }
+
+    // 2) leggo movimenti per calcolare stock
+    const { data: movimenti, error: movErr } = await supabase
+      .from("magazzino_movimenti")
+      .select("prodotto_id, tipo_movimento, quantita");
+
+    if (movErr) {
+      console.error("Errore caricamento movimenti magazzino:", movErr);
+      alert(
+        "Errore nel caricare i movimenti di magazzino: " + movErr.message
+      );
+      return;
+    }
+
+    const statsByProd = {};
+    (movimenti || []).forEach((m) => {
+      const pid = m.prodotto_id;
+      if (!pid) return;
+      if (!statsByProd[pid]) {
+        statsByProd[pid] = { stock: 0 };
+      }
+      const q = Number(m.quantita) || 0;
+      if (!q) return;
+
+      if (m.tipo_movimento === "CARICO") {
+        statsByProd[pid].stock += q;
+      } else if (m.tipo_movimento === "SCARICO") {
+        statsByProd[pid].stock -= q;
+      }
+    });
+
+    // 3) costruisco array magazzinoDati
+    magazzinoDati = (prodotti || []).map((p) => {
+      const stat = statsByProd[p.id] || { stock: 0 };
+      const cat =
+        p.categoria_id != null ? getCategoriaById(p.categoria_id) : null;
+
+      return {
+        id: p.id,
+        codice: p.codice_interno,
+        descrizione: p.descrizione,
+        um: p.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: p.scorta_minima,
+        stock: stat.stock,
+      };
+    });
+
+    renderMagazzinoLista(magazzinoDati);
+    aggiornaMagazzinoSuggestions();
+  }
+
+  async function initMagazzinoView() {
+    await caricaCategorieInCache();
+    await caricaMagazzinoDati();
+    if (magazzinoSearchInput) magazzinoSearchInput.value = "";
+  }
+
+  if (magazzinoSearchInput) {
+    magazzinoSearchInput.addEventListener("input", () => {
+      const term = magazzinoSearchInput.value.trim().toLowerCase();
+      if (!term) {
+        renderMagazzinoLista(magazzinoDati);
+        return;
+      }
+
+      const filtrati = magazzinoDati.filter((p) => {
+        return (
+          (p.codice && p.codice.toLowerCase().includes(term)) ||
+          (p.descrizione && p.descrizione.toLowerCase().includes(term)) ||
+          (p.categoriaNome && p.categoriaNome.toLowerCase().includes(term))
+        );
+      });
+
+      renderMagazzinoLista(filtrati);
+    });
+  }
 
   // ========= ROUTING =========
   async function onRouteEnter(route) {
@@ -2236,6 +2359,10 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       default:
         break;
+      case "magazzino":
+        await initMagazzinoView();
+        break;
+
     }
   }
 
