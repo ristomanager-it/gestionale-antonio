@@ -2287,7 +2287,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // ========= MAGAZZINO: prodotti + giacenze + cerca =========
 
-    // ========= MAGAZZINO: prodotti + giacenze + cerca =========
+     // ========= MAGAZZINO: prodotti + giacenze + cerca =========
 
   function renderMagazzinoLista(lista) {
     if (!magazzinoListaEl) return;
@@ -2323,6 +2323,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const opt = document.createElement("option");
       opt.value = p.descrizione || "";
       magazzinoSuggestions.appendChild(opt);
+    });
+  }
+
+  // 🔥 NUOVO: alimenta anche la datalist degli INGREDIENTI (RICETTE)
+  function aggiornaIngredientiSuggestionsDaMagazzino() {
+    if (!ingredientiSuggestions) return;
+    ingredientiSuggestions.innerHTML = "";
+
+    magazzinoDati.forEach((p) => {
+      if (!p.descrizione) return;
+      const opt = document.createElement("option");
+      opt.value = p.descrizione;
+      ingredientiSuggestions.appendChild(opt);
     });
   }
 
@@ -2418,8 +2431,12 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     });
 
+    // aggiorno tabella magazzino
     renderMagazzinoLista(magazzinoDati);
+    // aggiorno datalist di magazzino
     aggiornaMagazzinoSuggestions();
+    // 🔥 aggiorno anche datalist ingredienti ricette
+    aggiornaIngredientiSuggestionsDaMagazzino();
   }
 
   async function initMagazzinoView() {
@@ -2448,6 +2465,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderMagazzinoLista(filtrati);
     });
   }
+
   async function salvaProdottoDaMagazzinoForm() {
     if (!supabase) return;
 
@@ -2518,6 +2536,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderMagazzinoLista(magazzinoDati);
+    aggiornaMagazzinoSuggestions();
+    aggiornaIngredientiSuggestionsDaMagazzino();
     popolaMagazzinoForm(nuovo);
     alert("Prodotto aggiornato.");
   }
@@ -2528,6 +2548,17 @@ document.addEventListener("DOMContentLoaded", () => {
       salvaProdottoDaMagazzinoForm();
     });
   }
+async function caricaProdottiSuggerimentiIngredienti() {
+  // se magazzinoDati è vuoto, carico da Supabase
+  if (!magazzinoDati.length) {
+    await caricaCategorieInCache();
+    await caricaMagazzinoDati();
+  } else {
+    // se è già carico, aggiorno solo la datalist ingredienti
+    aggiornaIngredientiSuggestionsDaMagazzino();
+  }
+}
+
 
 
   // ========= ROUTING =========
@@ -2541,9 +2572,10 @@ document.addEventListener("DOMContentLoaded", () => {
         await caricaDipendentiDaSupabase();
         break;
       case "ricette":
-        resetFormRicetta();
-        await caricaProdottiSuggerimentiIngredienti();
-        break;
+    await caricaProdottiSuggerimentiIngredienti(); // prima carico i prodotti
+    resetFormRicetta();                            // poi preparo il form
+    break;
+
       case "acquisti":
         await initAcquistiView();
         break;
