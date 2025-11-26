@@ -118,8 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // suggerimenti ingredienti (ricette) collegati a prodotti
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-
-
   // stato
   let dipendenti = [];
   let timbrature = [];
