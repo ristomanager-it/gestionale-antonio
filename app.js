@@ -1408,13 +1408,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnAddIngrediente) {
-    btnAddIngrediente.addEventListener("click", () => {
+  addEventListener("click", () => {
       creaRigaIngrediente();
     });
   }
 
   if (btnSalvaRicetta) {
-    btnSalvaRicetta.addEventListener("click", () => {
+  addEventListener("click", () => {
       handleSalvaRicetta();
     });
   }
