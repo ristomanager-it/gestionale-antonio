@@ -1197,7 +1197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= ACQUISTI / FATTURE =========
+    // ========= ACQUISTI / FATTURE =========
   function resetFatturaForm() {
     fatturaCorrenteId = null;
     fatturaRighe = [];
@@ -1236,14 +1236,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <td><input type="text" class="input-pill riga-descrizione" value="${row.descrizione}"/></td>
       <td><input type="text" class="input-pill riga-categoria" value="${row.categoria}"/></td>
       <td><input type="text" class="input-pill riga-um" value="${row.um}"/></td>
-      <td><input type="number" step="0.001" class="input-pill riga-quantita" value="${row.quantita ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-prezzo" value="${row.prezzo ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-iva" value="${row.iva ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-totale" value="${row.totale ||
-        ""}" readonly/></td>
+      <td><input type="number" step="0.001" class="input-pill riga-quantita" value="${row.quantita || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-prezzo" value="${row.prezzo || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-iva" value="${row.iva || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-totale" value="${row.totale || ""}" readonly/></td>
       <td>
         <button type="button" class="app-button tiny red btn-del-riga">✕</button>
       </td>
@@ -1272,6 +1268,7 @@ document.addEventListener("DOMContentLoaded", () => {
       r.quantita = parseNumber(quantitaInput.value);
       r.prezzo = parseNumber(prezzoInput.value);
       r.iva = parseNumber(ivaInput.value);
+
       const imponibile = r.quantita * r.prezzo;
       const ivaVal = (imponibile * r.iva) / 100;
       r.totale = imponibile + ivaVal;
@@ -1364,8 +1361,9 @@ document.addEventListener("DOMContentLoaded", () => {
       totale_documento: totale,
     };
 
+    // USA LA TABELLA fatture_acquisto
     const { data: fatturaSalvata, error } = await supabase
-      .from("fatture")
+      .from("fatture_acquisto")
       .upsert(fatturaPayload)
       .select()
       .single();
@@ -1378,7 +1376,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fatturaCorrenteId = fatturaSalvata.id;
 
-    await supabase.from("fatture_righe").delete().eq("fattura_id", fatturaCorrenteId);
+    // cancello righe esistenti su fatture_acquisto_righe
+    await supabase
+      .from("fatture_acquisto_righe")
+      .delete()
+      .eq("fattura_id", fatturaCorrenteId);
 
     const righePayload = fatturaRighe.map((r) => ({
       fattura_id: fatturaCorrenteId,
@@ -1394,7 +1396,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (righePayload.length) {
       const { error: errRighe } = await supabase
-        .from("fatture_righe")
+        .from("fatture_acquisto_righe")
         .insert(righePayload);
 
       if (errRighe) {
@@ -1410,8 +1412,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaElencoFatture() {
     if (!supabase || !fattureLista) return;
 
+    // USA LA TABELLA fatture_acquisto
     const { data, error } = await supabase
-      .from("fatture")
+      .from("fatture_acquisto")
       .select("id, numero, data, fornitore, totale_documento")
       .order("data", { ascending: false });
 
@@ -1451,7 +1454,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!supabase) return;
 
     const { data: fattura, error } = await supabase
-      .from("fatture")
+      .from("fatture_acquisto")
       .select("*")
       .eq("id", id)
       .single();
@@ -1487,7 +1490,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "";
 
     const { data: righe, error: errRighe } = await supabase
-      .from("fatture_righe")
+      .from("fatture_acquisto_righe")
       .select("*")
       .eq("fattura_id", id);
 
@@ -1531,6 +1534,7 @@ document.addEventListener("DOMContentLoaded", () => {
         : "Nascondi elenco";
     });
   }
+
 
   // ========= RICETTE (placeholder) =========
   function creaRigaIngrediente(initial = {}) {
@@ -1627,13 +1631,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= MAGAZZINO =========
+   // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
     const { data, error } = await supabase
       .from("prodotti")
-      .select("id, codice, descrizione, categoria, um, scorta_minima, giacenza")
+      .select("id, codice_interno, descrizione, categoria, um, scorta_minima, giacenza")
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -1643,7 +1647,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     magazzinoDati = (data || []).map((p) => ({
       id: p.id,
-      codice: p.codice,
+      codice: p.codice_interno || "",   // <-- uso codice_interno dal DB
       descrizione: p.descrizione,
       categoria: p.categoria,
       um: p.um,
@@ -1739,6 +1743,7 @@ document.addEventListener("DOMContentLoaded", () => {
       um: um || null,
       scorta_minima: scortaMinima || null,
       giacenza,
+      // codice_interno lo lascia gestire al DB (default/trigger)
     };
 
     const { data, error } = await supabase
@@ -1755,12 +1760,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const nuovo = {
       id: data.id,
+      codice: data.codice_interno || "",
       descrizione: data.descrizione,
       categoria: data.categoria,
       um: data.um,
       scortaMinima: data.scorta_minima ?? null,
       giacenza: data.giacenza ?? 0,
-      codice: data.codice || null,
     };
 
     const idx = magazzinoDati.findIndex((p) => p.id === nuovo.id);
