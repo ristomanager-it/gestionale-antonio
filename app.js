@@ -20,6 +20,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
+    // ========= LOGIN (DOM) =========
+  const loginNomeInput = document.getElementById("login-nome");
+  const loginPinInput = document.getElementById("login-pin");
+  const loginRememberCheckbox = document.getElementById("login-remember");
+  const btnLogin = document.getElementById("btn-login");
+
 
   // ========= LOGIN =========
 async function login(nome, pin) {
