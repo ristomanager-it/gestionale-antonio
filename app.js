@@ -397,70 +397,86 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 🔑 LOGIN SEMPLIFICATO: CERCA SOLO PER PIN (CODICE)
-  async function login(nomeRaw, pinRaw) {
-    const nomeTrim = (nomeRaw || "").trim();
-    const pinTrim = (pinRaw || "").trim();
+ // 🔑 LOGIN con ADMIN VIRTUALE (admin / 0000)
+async function login(nomeRaw, pinRaw) {
+  const nomeTrim = (nomeRaw || "").trim();
+  const pinTrim = (pinRaw || "").trim();
 
-    if (!nomeTrim || !pinTrim) {
-      alert("Inserisci nome e PIN");
-      return null;
-    }
+  if (!nomeTrim || !pinTrim) {
+    alert("Inserisci nome e PIN");
+    return null;
+  }
 
-    if (!supabase) {
-      alert("Supabase non inizializzato");
-      return null;
-    }
-
-    let { data: byPin, error } = await supabase
-      .from("dipendenti")
-      .select(
-        "id, nome, ruolo, canale_prevalente, codice, attivo"
-      )
-      .eq("codice", pinTrim);
-
-    if (error) {
-      console.error("Errore login (PIN):", error);
-      alert("Errore durante il login");
-      return null;
-    }
-
-    byPin = byPin || [];
-
-    if (!byPin.length) {
-      alert("Credenziali non valide (nome o PIN errati)");
-      return null;
-    }
-
-    // se più di uno con lo stesso PIN → provo col nome (case-insensitive),
-    // altrimenti prendo il primo comunque
-    const nomeLower = nomeTrim.toLowerCase();
-    let match =
-      byPin.find(
-        (d) => String(d.nome || "").toLowerCase() === nomeLower
-      ) || byPin[0];
-
-    if (!match) {
-      alert("Credenziali non valide (nome o PIN errati)");
-      return null;
-    }
-
-    if (match.attivo === false) {
-      alert("Dipendente non attivo");
-      return null;
-    }
-
-    const user = {
-      id: match.id,
-      nome: match.nome,
-      ruolo: match.ruolo,
-      canalePrevalente: match.canale_prevalente || "NR",
-    };
-
+  // 1) ADMIN VIRTUALE: nome "admin" + PIN "0000"
+  if (nomeTrim.toLowerCase() === "admin" && pinTrim === "0000") {
     const persist =
       !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+
+    const user = {
+      id: null,                  // nessun id in tabella dipendenti
+      nome: "Admin",
+      ruolo: "admin",
+      canalePrevalente: "NR",
+      virtualAdmin: true,
+    };
+
     setCurrentUser(user, persist);
     return user;
   }
+
+  // 2) Normale login via Supabase
+  if (!supabase) {
+    alert("Supabase non inizializzato");
+    return null;
+  }
+
+  let { data: byPin, error } = await supabase
+    .from("dipendenti")
+    .select("id, nome, ruolo, canale_prevalente, codice, attivo")
+    .eq("codice", pinTrim);
+
+  if (error) {
+    console.error("Errore login (PIN):", error);
+    alert("Errore durante il login");
+    return null;
+  }
+
+  byPin = byPin || [];
+
+  if (!byPin.length) {
+    alert("Credenziali non valide (nome o PIN errati)");
+    return null;
+  }
+
+  const nomeLower = nomeTrim.toLowerCase();
+  let match =
+    byPin.find(
+      (d) => String(d.nome || "").toLowerCase() === nomeLower
+    ) || byPin[0];
+
+  if (!match) {
+    alert("Credenziali non valide (nome o PIN errati)");
+    return null;
+  }
+
+  if (match.attivo === false) {
+    alert("Dipendente non attivo");
+    return null;
+  }
+
+  const user = {
+    id: match.id,
+    nome: match.nome,
+    ruolo: match.ruolo,
+    canalePrevalente: match.canale_prevalente || "NR",
+  };
+
+  const persist =
+    !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+  setCurrentUser(user, persist);
+  return user;
+}
+
 
   if (btnLogin) {
     btnLogin.addEventListener("click", async () => {
