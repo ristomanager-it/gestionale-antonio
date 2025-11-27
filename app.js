@@ -374,30 +374,32 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --------------------------------------------------
-  // 5. LOGIN / UTENTE CORRENTE
-  // --------------------------------------------------
+// 5. LOGIN / UTENTE CORRENTE
+// --------------------------------------------------
 
-  function setCurrentUser(user, persist) {
-    currentUser = user;
-    if (currentUserLabel) {
-      currentUserLabel.textContent = user ? user.nome : "Nessun utente";
-    }
-    if (btnLogout) {
-      btnLogout.style.display = user ? "inline-flex" : "none";
-    }
+function setCurrentUser(user, persist) {
+  currentUser = user;
 
-    if (persist) {
-      saveToLocalStorage("ga_user", user);
-    } else {
-      saveToLocalStorage("ga_user", null);
-    }
-
-    applyRoleVisibility();
-    updateTimbraturaUserInfo();
+  if (currentUserLabel) {
+    currentUserLabel.textContent = user ? user.nome : "Nessun utente";
   }
 
-  // 🔑 LOGIN SEMPLIFICATO: CERCA SOLO PER PIN (CODICE)
- // 🔑 LOGIN con ADMIN VIRTUALE (admin / 0000)
+  if (btnLogout) {
+    btnLogout.style.display = user ? "inline-flex" : "none";
+  }
+
+  if (persist) {
+    saveToLocalStorage("ga_user", user);
+  } else {
+    saveToLocalStorage("ga_user", null);
+  }
+
+  applyRoleVisibility();
+  updateTimbraturaUserInfo();
+}
+
+
+// 🔑 LOGIN con ADMIN VIRTUALE (admin / 0000)
 async function login(nomeRaw, pinRaw) {
   const nomeTrim = (nomeRaw || "").trim();
   const pinTrim = (pinRaw || "").trim();
@@ -407,13 +409,16 @@ async function login(nomeRaw, pinRaw) {
     return null;
   }
 
-  // 1) ADMIN VIRTUALE: nome "admin" + PIN "0000"
-  if (nomeTrim.toLowerCase() === "admin" && pinTrim === "0000") {
-    const persist =
-      !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+  // ----- 1) ADMIN VIRTUALE -----
+  // Perché: type="number" spesso converte "0000" in "0"
+  const isAdminName = nomeTrim.toLowerCase() === "admin";
+  const isAdminPin = pinTrim === "0000" || pinTrim === "0";
+
+  if (isAdminName && isAdminPin) {
+    const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
 
     const user = {
-      id: null,                  // nessun id in tabella dipendenti
+      id: null,                 // nessun id in Supabase
       nome: "Admin",
       ruolo: "admin",
       canalePrevalente: "NR",
@@ -424,7 +429,7 @@ async function login(nomeRaw, pinRaw) {
     return user;
   }
 
-  // 2) Normale login via Supabase
+  // ----- 2) LOGIN NORMALE VIA SUPABASE -----
   if (!supabase) {
     alert("Supabase non inizializzato");
     return null;
@@ -449,10 +454,10 @@ async function login(nomeRaw, pinRaw) {
   }
 
   const nomeLower = nomeTrim.toLowerCase();
+
   let match =
-    byPin.find(
-      (d) => String(d.nome || "").toLowerCase() === nomeLower
-    ) || byPin[0];
+    byPin.find(d => String(d.nome || "").toLowerCase() === nomeLower) ||
+    byPin[0];
 
   if (!match) {
     alert("Credenziali non valide (nome o PIN errati)");
@@ -471,56 +476,68 @@ async function login(nomeRaw, pinRaw) {
     canalePrevalente: match.canale_prevalente || "NR",
   };
 
-  const persist =
-    !!(loginRememberCheckbox && loginRememberCheckbox.checked);
+  const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
   setCurrentUser(user, persist);
   return user;
 }
 
 
-  if (btnLogin) {
-    btnLogin.addEventListener("click", async () => {
-      const nome = loginNomeInput?.value || "";
-      const pin = loginPinInput?.value || "";
-      const user = await login(nome, pin);
-      if (!user) return;
+// ----- CLICK LOGIN -----
+if (btnLogin) {
+  btnLogin.addEventListener("click", async () => {
+    const nome = loginNomeInput?.value || "";
+    const pin = loginPinInput?.value || "";
 
-      const isManager = isManagerRole(user.ruolo);
-      const routeFromHash =
-        window.location.hash.replace("#", "") || "timbratura";
+    const user = await login(nome, pin);
+    if (!user) return;
 
-      if (isManager) {
-        // manager: va direttamente alla route (es. timbratura, report, ecc.)
-        await onRouteEnter(routeFromHash);
-      } else {
-        // dipendente: va SEMPRE alla home dipendente (Timbratura + Ordine)
-        showHomeDipendente();
-      }
-    });
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      setCurrentUser(null, false);
-      showOnlyView(viewLogin);
-    });
-  }
-
-  // Ripristino user da localStorage
-  const savedUser = loadFromLocalStorage("ga_user");
-  if (savedUser && savedUser.id) {
-    setCurrentUser(savedUser, true);
+    const isManager = isManagerRole(user.ruolo);
     const routeFromHash =
       window.location.hash.replace("#", "") || "timbratura";
-    // Se è manager rientra nella route, se è dipendente in home-dip
+
+    if (isManager) {
+      // manager: va direttamente alla route scelta
+      await onRouteEnter(routeFromHash);
+    } else {
+      // dipendente: sempre home dedicata
+      showHomeDipendente();
+    }
+  });
+}
+
+
+// ----- CLICK LOGOUT -----
+if (btnLogout) {
+  btnLogout.addEventListener("click", () => {
+    setCurrentUser(null, false);
+    showOnlyView(viewLogin);
+  });
+}
+
+
+// ----- AUTO LOGIN DA LOCALSTORAGE -----
+const savedUser = loadFromLocalStorage("ga_user");
+
+if (savedUser && savedUser.nome) {
+  // admin virtuale
+  if (savedUser.virtualAdmin) {
+    setCurrentUser(savedUser, true);
+    onRouteEnter("timbratura");
+  } else {
+    setCurrentUser(savedUser, true);
+
+    const routeFromHash =
+      window.location.hash.replace("#", "") || "timbratura";
+
     if (isManagerRole(savedUser.ruolo)) {
       onRouteEnter(routeFromHash);
     } else {
       showHomeDipendente();
     }
-  } else {
-    showOnlyView(viewLogin);
   }
+} else {
+  showOnlyView(viewLogin);
+}
 
   // --------------------------------------------------
   // 6. TIMBRATURE
