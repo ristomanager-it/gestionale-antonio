@@ -109,7 +109,6 @@ function initRoutingButtons() {
           initReportView();
           break;
         case "ordine":
-          // al momento solo placeholder
           alert("Funzione 'Ordine del giorno' in sviluppo.");
           break;
         default:
@@ -163,16 +162,22 @@ function initLogin() {
   if (!btnLogin) return;
 
   btnLogin.addEventListener("click", async () => {
-    const nome = (loginNome.value || "").trim();
-    const pin = (loginPin.value || "").trim();
+    const nomeRaw = (loginNome.value || "").trim();
+    const pinRaw = (loginPin.value || "").trim();
 
-    if (!nome || !pin) {
+    if (!nomeRaw || !pinRaw) {
       alert("Inserisci Nome e PIN.");
       return;
     }
 
+    const nome = nomeRaw.toLowerCase();
+    const pinStr = pinRaw;
+    const pinNum = parseInt(pinRaw, 10);
+
+    console.log("Tentativo login:", { nomeRaw, pinRaw, nome, pinStr, pinNum });
+
     // ✅ FALLBACK: utente admin locale, senza Supabase
-    if (nome.toLowerCase() === "admin" && pin === "9999") {
+    if (nome === "admin" && (pinStr === "9999" || pinNum === 9999)) {
       currentUser = {
         id: "local-admin",
         nome: "admin",
@@ -195,12 +200,11 @@ function initLogin() {
 
     // 🔁 Login normale via Supabase
     try {
-      // Supponiamo tabella "dipendenti" con colonne: nome, codice (PIN), ruolo, canale_prevalente, ...
       const { data, error } = await sb
         .from("dipendenti")
         .select("*")
-        .eq("nome", nome)
-        .eq("codice", pin)
+        .eq("nome", nomeRaw)
+        .eq("codice", pinRaw)
         .eq("attivo", true)
         .maybeSingle();
 
@@ -243,8 +247,7 @@ function initLogin() {
 // ======== [2] HOME DIPENDENTE / MENU MANAGER (UI) =========
 // =========================================================
 
-// Tutto il routing è già gestito via data-route e updateMenuForRole,
-// quindi non servono funzioni aggiuntive qui.
+// Tutto il routing è già gestito via data-route e updateMenuForRole.
 
 // =========================================================
 // ================== [3] TIMBRATURA & PRESENZE =============
@@ -372,11 +375,6 @@ async function caricaPresenzeAttuali() {
   if (!presenzeLista) return;
 
   presenzeLista.innerHTML = "...";
-
-  // Se hai una funzione RPC in Supabase, usala così:
-  // const { data, error } = await sb.rpc("dipendenti_presenti_ora");
-  // Altrimenti qui andrebbe fatta una join manuale fra timbrature e dipendenti.
-  // Per ora usiamo un placeholder vuoto.
 
   const { data, error } = await sb
     .from("timbrature")
@@ -640,7 +638,6 @@ async function salvaDipendenteSupabase() {
     attivo: dipAttivo.checked,
   };
 
-  // upsert basato su nome+codice (semplificato)
   const { error } = await sb.from("dipendenti").upsert(payload, {
     onConflict: "nome,codice",
   });
@@ -712,9 +709,6 @@ const btnToggleFatture = $("#btn-toggle-fatture");
 const fattureTable = $("#fatture-table");
 const fattureLista = $("#fatture-lista");
 
-// Struttura righe fattura in memoria
-// fatturaCorrente = { id, numero, data, fornitore, note, righe: [ {codice, descrizione, categoria, um, quantita, prezzo, iva, totale} ] }
-
 function nuovaFatturaVuota() {
   fatturaCorrente = {
     id: null,
@@ -734,7 +728,6 @@ function aggiornaFatturaUI() {
   fatturaFornitore.value = fatturaCorrente.fornitore || "";
   fatturaNote.value = fatturaCorrente.note || "";
 
-  // Righe
   fatturaRigheBody.innerHTML = "";
   fatturaCorrente.righe.forEach((riga, index) => {
     const tr = document.createElement("tr");
@@ -758,7 +751,6 @@ function aggiornaFatturaUI() {
     fatturaRigheBody.appendChild(tr);
   });
 
-  // Gestione input righe
   fatturaRigheBody
     .querySelectorAll("input[data-field]")
     .forEach((input) => {
@@ -783,7 +775,6 @@ function aggiornaFatturaUI() {
       });
     });
 
-  // Delete
   fatturaRigheBody
     .querySelectorAll("[data-delete-riga]")
     .forEach((btn) => {
@@ -855,7 +846,6 @@ async function salvaFatturaSupabase() {
   let fatturaId = fatturaCorrente.id;
 
   if (!fatturaId) {
-    // insert
     const { data, error } = await sb
       .from("fatture_acquisto")
       .insert(fattPayload)
@@ -869,7 +859,6 @@ async function salvaFatturaSupabase() {
     fatturaId = data.id;
     fatturaCorrente.id = fatturaId;
   } else {
-    // update
     const { error } = await sb
       .from("fatture_acquisto")
       .update(fattPayload)
@@ -881,7 +870,6 @@ async function salvaFatturaSupabase() {
     }
   }
 
-  // Salva righe
   await sb.from("fatture_righe").delete().eq("fattura_id", fatturaId);
 
   const righePayload = fatturaCorrente.righe.map((r) => ({
@@ -906,7 +894,6 @@ async function salvaFatturaSupabase() {
     return;
   }
 
-  // Genera movimenti di magazzino (carico)
   const movimenti = fatturaCorrente.righe.map((r) => ({
     prodotto_codice: r.codice,
     descrizione: r.descrizione,
@@ -1127,7 +1114,6 @@ async function salvaRicettaSupabase() {
 
   const ricettaId = ricetta.id;
 
-  // Ingredienti
   const ingredientiRows = Array.from(
     ricettaIngredientiContainer.querySelectorAll(".ricetta-ingrediente-row")
   );
@@ -1158,7 +1144,6 @@ async function salvaRicettaSupabase() {
     }
   }
 
-  // Foto: opzionale - per ora solo placeholder
   if (ricettaFoto.files && ricettaFoto.files[0]) {
     // TODO: upload su Supabase Storage
   }
@@ -1223,7 +1208,6 @@ function aggiornaKpiLayout() {
     (sum, c) => sum + (c.importo_annuo || c.importo || 0),
     0
   );
-  // stima fissi periodo: semplifichiamo (anno/365 * 1 giorno, per ora)
   const fissi = fissiAnnui / 365;
 
   const netto = incasso - food - lavoro - fissi;
@@ -1243,19 +1227,16 @@ function aggiornaKpiLayout() {
   kpiFoodPercent.textContent = formatPercent(percFood);
   kpiFissiPercent.textContent = formatPercent(percFissi);
 
-  // Margine operativo
   kpiMargineBadge.textContent = formatEuro(netto);
   kpiMargineBadge.classList.toggle("neg", netto < 0);
   kpiMargineBadge.classList.toggle("pos", netto >= 0);
 
-  // Ago gauge: 0-100+ %
   const marginePerc = incasso ? (netto / incasso) * 100 : 0;
-  let angle = Math.max(0, Math.min(180, 90 + marginePerc)); // 0% = 90deg, 100% = 190deg -> limitiamo 0..180
+  let angle = Math.max(0, Math.min(180, 90 + marginePerc));
   if (kpiGaugeNeedle) {
     kpiGaugeNeedle.style.transform = `rotate(${angle}deg)`;
   }
 
-  // BEP semplificato: incasso necessario per coprire food + fissi (lavoro = 0)
   const bep = food + fissi;
   kpiBepLabel.textContent = `BEP ${formatEuro(bep)}`;
 }
@@ -1588,5 +1569,4 @@ function initApp() {
   restoreUserFromStorage();
 }
 
-// Avvio
 document.addEventListener("DOMContentLoaded", initApp);
