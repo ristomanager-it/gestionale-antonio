@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const rowOreMensili = document.getElementById("row-ore-mensili");
   const rowOreServizio = document.getElementById("row-ore-servizio");
 
-   // ========= ACQUISTI / FATTURE =========
+     // ========= ACQUISTI / FATTURE =========
   function resetFatturaForm() {
     fatturaCorrenteId = null;
     fatturaRighe = [];
@@ -230,8 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fatturaTotaleDocumentoInput?.value || ""
     );
 
-    // ATTENZIONE: uso la tabella 'fatture_acquisto' e
-    // le colonne 'numero_documento' e 'data_documento'
     const fatturaPayload = {
       id: fatturaCorrenteId || undefined,
       numero_documento: numero,
@@ -424,14 +422,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-    // ========= MAGAZZINO =========
+     // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
-    // ATTENZIONE: qui NON chiediamo più colonne inesistenti (codice, categoria)
     const { data, error } = await supabase
       .from("prodotti")
-      .select("id, descrizione, um, scorta_minima, giacenza")
+      .select("id, codice, descrizione, categoria, um, scorta_minima, giacenza")
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -441,10 +438,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     magazzinoDati = (data || []).map((p) => ({
       id: p.id,
-      // nel DB non abbiamo codice/categoria: li teniamo solo lato client
-      codice: null,
+      codice: p.codice,
       descrizione: p.descrizione,
-      categoria: null,
+      categoria: p.categoria,
       um: p.um,
       scortaMinima: p.scorta_minima ?? null,
       giacenza: p.giacenza ?? 0,
@@ -456,161 +452,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderMagazzinoLista(lista) {
-    if (!magazzinoListaEl) return;
-
-    magazzinoListaEl.innerHTML = "";
-
-    (lista || []).forEach((p) => {
-      const tr = document.createElement("tr");
-      const low = p.scortaMinima != null && p.giacenza <= p.scortaMinima;
-      tr.innerHTML = `
-        <td>${p.codice || ""}</td>
-        <td>${p.descrizione || ""}</td>
-        <td>${p.categoria || ""}</td>
-        <td>
-          ${low ? `<span class="magazzino-low">${p.giacenza}</span>` : p.giacenza}
-        </td>
-      `;
-      tr.addEventListener("click", () => {
-        popolaMagazzinoForm(p);
-      });
-      magazzinoListaEl.appendChild(tr);
-    });
+    ...
   }
 
   function aggiornaMagazzinoSuggestions() {
-    if (!magazzinoSuggestions) return;
-    magazzinoSuggestions.innerHTML = "";
-
-    magazzinoDati.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.descrizione || "";
-      magazzinoSuggestions.appendChild(opt);
-    });
+    ...
   }
 
   function popolaMagazzinoForm(p) {
-    if (!p) {
-      if (magazzinoIdInput) magazzinoIdInput.value = "";
-      if (magazzinoDescrizioneInput) magazzinoDescrizioneInput.value = "";
-      if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
-      if (magazzinoUmInput) magazzinoUmInput.value = "";
-      if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
-      if (magazzinoGiacenzaInput) magazzinoGiacenzaInput.value = "";
-      return;
-    }
-
-    if (magazzinoIdInput) magazzinoIdInput.value = p.id || "";
-    if (magazzinoDescrizioneInput)
-      magazzinoDescrizioneInput.value = p.descrizione || "";
-    if (magazzinoCategoriaInput)
-      magazzinoCategoriaInput.value = p.categoria || "";
-    if (magazzinoUmInput) magazzinoUmInput.value = p.um || "";
-    if (magazzinoScortaMinimaInput)
-      magazzinoScortaMinimaInput.value =
-        p.scortaMinima != null ? p.scortaMinima : "";
-    if (magazzinoGiacenzaInput)
-      magazzinoGiacenzaInput.value =
-        p.giacenza != null ? p.giacenza : "";
+    ...
   }
 
   async function salvaProdottoDaMagazzinoForm() {
-    if (!supabase) return;
-
-    const id = magazzinoIdInput?.value || null;
-    const descrizione = (magazzinoDescrizioneInput?.value || "").trim();
-    const categoria = (magazzinoCategoriaInput?.value || "").trim(); // solo lato client
-    const um = (magazzinoUmInput?.value || "").trim();
-    const scortaMinima = parseNumber(
-      magazzinoScortaMinimaInput?.value || ""
-    );
-    const giacenza = parseNumber(magazzinoGiacenzaInput?.value || "");
-
-    if (!descrizione) {
-      alert("Inserisci la descrizione del prodotto");
-      return;
-    }
-
-    // ATTENZIONE: nel payload verso Supabase NON mando 'categoria'
-    const payload = {
-      id: id || undefined,
-      descrizione,
-      um: um || null,
-      scorta_minima: scortaMinima || null,
-      giacenza,
-    };
-
-    const { data, error } = await supabase
-      .from("prodotti")
-      .upsert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Errore salvataggio prodotto:", error);
-      alert("Errore nel salvare il prodotto");
-      return;
-    }
-
-    const nuovo = {
-      id: data.id,
-      descrizione: data.descrizione,
-      categoria: categoria || null, // tenuta solo lato client
-      um: data.um,
-      scortaMinima: data.scorta_minima ?? null,
-      giacenza: data.giacenza ?? 0,
-      codice: null,
-    };
-
-    const idx = magazzinoDati.findIndex((p) => p.id === nuovo.id);
-    if (idx >= 0) {
-      magazzinoDati[idx] = nuovo;
-    } else {
-      magazzinoDati.push(nuovo);
-    }
-
-    renderMagazzinoLista(magazzinoDati);
-    aggiornaMagazzinoSuggestions();
-    aggiornaIngredientiSuggestionsDaMagazzino();
-    popolaMagazzinoForm(nuovo);
-    alert("Prodotto aggiornato.");
+    ...
   }
 
-  if (btnMagazzinoSalva) {
-    btnMagazzinoSalva.addEventListener("click", (e) => {
-      e.preventDefault();
-      salvaProdottoDaMagazzinoForm();
-    });
-  }
+  if (btnMagazzinoSalva) { ... }
+  if (btnMagazzinoNuovo) { ... }
+  if (magazzinoSearchInput && magazzinoTable) { ... }
 
-  if (btnMagazzinoNuovo) {
-    btnMagazzinoNuovo.addEventListener("click", () => {
-      popolaMagazzinoForm(null);
-    });
-  }
-
-  if (magazzinoSearchInput && magazzinoTable) {
-    magazzinoTable.style.display = "none";
-
-    magazzinoSearchInput.addEventListener("input", () => {
-      const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
-
-      if (!q) {
-        magazzinoTable.style.display = "none";
-        if (magazzinoListaEl) magazzinoListaEl.innerHTML = "";
-        return;
-      }
-
-      const filtrati = magazzinoDati.filter((p) => {
-        const desc = (p.descrizione || "").toLowerCase();
-        const cod = (p.codice || "").toLowerCase();
-        return desc.includes(q) || cod.includes(q);
-      });
-
-      renderMagazzinoLista(filtrati);
-      magazzinoTable.style.display = "table";
-    });
-  }
 
   // ========= REPORT KPI (DOM) =========
   const reportPeriodButtons = Array.from(document.querySelectorAll(".report-period-btn"));
