@@ -139,25 +139,356 @@ document.addEventListener("DOMContentLoaded", () => {
   const rowOreMensili = document.getElementById("row-ore-mensili");
   const rowOreServizio = document.getElementById("row-ore-servizio");
 
-  // ACQUISTI / FATTURE
-  const fatturaNumeroInput = document.getElementById("fattura-numero");
-  const fatturaDataInput = document.getElementById("fattura-data");
-  const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
-  const fatturaNoteInput = document.getElementById("fattura-note");
-  const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
-  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
-  const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
-  const fatturaRigheBody = document.getElementById("fattura-righe-body");
-  const fatturaImponibileTotaleInput = document.getElementById(
-    "fattura-imponibile-totale"
+ // --------------------------------------------------
+// 8. ACQUISTI / FATTURE
+// --------------------------------------------------
+
+function resetFatturaForm() {
+  fatturaCorrenteId = null;
+  fatturaRighe = [];
+
+  if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+  if (fatturaDataInput) setTodayOnDateInput(fatturaDataInput);
+  if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
+  if (fatturaNoteInput) fatturaNoteInput.value = "";
+  if (fatturaRigheBody) fatturaRigheBody.innerHTML = "";
+  aggiornaTotaliFattura();
+}
+
+function creaRigaFattura(initial = {}) {
+  if (!fatturaRigheBody) return;
+
+  const idx = fatturaRighe.length;
+  const row = {
+    id: initial.id || null,
+    codice: initial.codice || "",
+    descrizione: initial.descrizione || "",
+    categoria: initial.categoria || "",
+    um: initial.um || "",
+    quantita: initial.quantita || 0,
+    prezzo: initial.prezzo || 0,
+    iva: initial.iva || 22,
+    totale: initial.totale || 0,
+  };
+
+  fatturaRighe.push(row);
+
+  const tr = document.createElement("tr");
+  tr.dataset.index = String(idx);
+
+  tr.innerHTML = `
+    <td><input type="text" class="input-pill riga-codice" value="${row.codice}"/></td>
+    <td><input type="text" class="input-pill riga-descrizione" value="${row.descrizione}"/></td>
+    <td><input type="text" class="input-pill riga-categoria" value="${row.categoria}"/></td>
+    <td><input type="text" class="input-pill riga-um" value="${row.um}"/></td>
+    <td><input type="number" step="0.001" class="input-pill riga-quantita" value="${row.quantita || ""}"/></td>
+    <td><input type="number" step="0.01" class="input-pill riga-prezzo" value="${row.prezzo || ""}"/></td>
+    <td><input type="number" step="0.01" class="input-pill riga-iva" value="${row.iva || ""}"/></td>
+    <td><input type="number" step="0.01" class="input-pill riga-totale" value="${row.totale || ""}" readonly/></td>
+    <td>
+      <button type="button" class="app-button tiny red btn-del-riga">✕</button>
+    </td>
+  `;
+
+  fatturaRigheBody.appendChild(tr);
+
+  const quantitaInput = tr.querySelector(".riga-quantita");
+  const prezzoInput = tr.querySelector(".riga-prezzo");
+  const ivaInput = tr.querySelector(".riga-iva");
+  const codiceInput = tr.querySelector(".riga-codice");
+  const descrizioneInput = tr.querySelector(".riga-descrizione");
+  const categoriaInput = tr.querySelector(".riga-categoria");
+  const umInput = tr.querySelector(".riga-um");
+  const totaleInput = tr.querySelector(".riga-totale");
+  const btnDel = tr.querySelector(".btn-del-riga");
+
+  function updateFromInputs() {
+    const index = parseInt(tr.dataset.index || "0", 10);
+    const r = fatturaRighe[index];
+    if (!r) return;
+
+    r.codice = codiceInput.value;
+    r.descrizione = descrizioneInput.value;
+    r.categoria = categoriaInput.value;
+    r.um = umInput.value;
+    r.quantita = parseNumber(quantitaInput.value);
+    r.prezzo = parseNumber(prezzoInput.value);
+    r.iva = parseNumber(ivaInput.value);
+
+    const imponibile = r.quantita * r.prezzo;
+    const ivaVal = (imponibile * r.iva) / 100;
+    const totale = imponibile + ivaVal;
+
+    r.totale = totale;
+    totaleInput.value = totale ? totale.toFixed(2) : "";
+
+    aggiornaTotaliFattura();
+  }
+
+  if (quantitaInput) quantitaInput.addEventListener("input", updateFromInputs);
+  if (prezzoInput) prezzoInput.addEventListener("input", updateFromInputs);
+  if (ivaInput) ivaInput.addEventListener("input", updateFromInputs);
+  if (codiceInput) codiceInput.addEventListener("input", updateFromInputs);
+  if (descrizioneInput) descrizioneInput.addEventListener("input", updateFromInputs);
+  if (categoriaInput) categoriaInput.addEventListener("input", updateFromInputs);
+  if (umInput) umInput.addEventListener("input", updateFromInputs);
+
+  if (btnDel) {
+    btnDel.addEventListener("click", () => {
+      const index = parseInt(tr.dataset.index || "0", 10);
+      fatturaRighe.splice(index, 1);
+      Array.from(fatturaRigheBody.children).forEach((rowEl, newIdx) => {
+        rowEl.dataset.index = String(newIdx);
+      });
+      tr.remove();
+      aggiornaTotaliFattura();
+    });
+  }
+}
+
+function aggiornaTotaliFattura() {
+  let imponibileTot = 0;
+  let ivaTot = 0;
+
+  fatturaRighe.forEach((r) => {
+    const imp = r.quantita * r.prezzo;
+    const ivaVal = (imp * r.iva) / 100;
+    imponibileTot += imp;
+    ivaTot += ivaVal;
+  });
+
+  const totaleDoc = imponibileTot + ivaTot;
+
+  if (fatturaImponibileTotaleInput)
+    fatturaImponibileTotaleInput.value = imponibileTot
+      ? imponibileTot.toFixed(2)
+      : "";
+  if (fatturaIvaTotaleInput)
+    fatturaIvaTotaleInput.value = ivaTot ? ivaTot.toFixed(2) : "";
+  if (fatturaTotaleDocumentoInput)
+    fatturaTotaleDocumentoInput.value = totaleDoc
+      ? totaleDoc.toFixed(2)
+      : "";
+}
+
+async function salvaFatturaSupabase() {
+  if (!supabase) {
+    alert("Supabase non inizializzato");
+    return;
+  }
+
+  const numero = fatturaNumeroInput?.value.trim() || "";
+  const data = fatturaDataInput?.value || "";
+  const fornitore = fatturaFornitoreInput?.value.trim() || "";
+  const note = fatturaNoteInput?.value.trim() || "";
+
+  if (!numero || !data || !fornitore) {
+    alert("Compila numero, data e fornitore");
+    return;
+  }
+
+  if (!fatturaRighe.length) {
+    alert("Inserisci almeno una riga di fattura");
+    return;
+  }
+
+  const imponibile = parseNumber(
+    fatturaImponibileTotaleInput?.value || ""
   );
-  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
-  const fatturaTotaleDocumentoInput = document.getElementById(
-    "fattura-totale-documento"
+  const ivaVal = parseNumber(fatturaIvaTotaleInput?.value || "");
+  const totale = parseNumber(
+    fatturaTotaleDocumentoInput?.value || ""
   );
-  const btnToggleFatture = document.getElementById("btn-toggle-fatture");
-  const fattureTable = document.getElementById("fatture-table");
-  const fattureLista = document.getElementById("fatture-lista");
+
+  const payloadTestata = {
+    id: fatturaCorrenteId || undefined,
+    numero,
+    data,
+    fornitore,
+    note: note || null,
+    totale_imponibile: imponibile,
+    totale_iva: ivaVal,
+    totale_documento: totale,
+  };
+
+  let fatturaId = fatturaCorrenteId;
+  // 🔁 NOME TABELLA CORRETTO: fatture_acquisto (SINGOLARE)
+  const { data: testataData, error: testataError } = await supabase
+    .from("fatture_acquisto")
+    .upsert(payloadTestata)
+    .select("id")
+    .single();
+
+  if (testataError) {
+    console.error("Errore salvataggio fattura:", testataError);
+    alert("Errore nel salvataggio della fattura");
+    return;
+  }
+
+  fatturaId = testataData.id;
+  fatturaCorrenteId = fatturaId;
+
+  // cancello righe esistenti
+  await supabase
+    .from("fatture_acquisto_righe")
+    .delete()
+    .eq("fattura_id", fatturaId);
+
+  const righePayload = fatturaRighe.map((r) => ({
+    fattura_id: fatturaId,
+    codice: r.codice || null,
+    descrizione: r.descrizione || null,
+    categoria: r.categoria || null,
+    um: r.um || null,
+    quantita: r.quantita || 0,
+    prezzo_unitario: r.prezzo || 0,
+    iva_percentuale: r.iva || 0,
+    totale_riga: r.totale || 0,
+  }));
+
+  const { error: righeError } = await supabase
+    .from("fatture_acquisto_righe")
+    .insert(righePayload);
+
+  if (righeError) {
+    console.error("Errore salvataggio righe fattura:", righeError);
+    alert("Errore nel salvataggio delle righe fattura");
+    return;
+  }
+
+  alert("Fattura salvata correttamente");
+  await caricaElencoFatture();
+}
+
+async function caricaElencoFatture() {
+  if (!supabase || !fattureLista) return;
+
+  const { data, error } = await supabase
+    .from("fatture_acquisto")
+    .select("id, data, numero, fornitore, totale_documento")
+    .order("data", { ascending: false });
+
+  if (error) {
+    console.error("Errore caricamento fatture:", error);
+    return;
+  }
+
+  fattureLista.innerHTML = "";
+
+  (data || []).forEach((f) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${f.data || ""}</td>
+      <td>${f.numero || ""}</td>
+      <td>${f.fornitore || ""}</td>
+      <td>${formatEuro(f.totale_documento || 0)}</td>
+      <td>
+        <button type="button" class="app-button tiny" data-id="${f.id}">Apri</button>
+      </td>
+    `;
+    fattureLista.appendChild(tr);
+  });
+
+  fattureLista.querySelectorAll("button[data-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-id");
+      if (id) caricaDettaglioFattura(id);
+    });
+  });
+}
+
+async function caricaDettaglioFattura(id) {
+  if (!supabase) return;
+
+  const { data: fattura, error: errorFatt } = await supabase
+    .from("fatture_acquisto")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (errorFatt || !fattura) {
+    console.error("Errore caricamento fattura:", errorFatt);
+    alert("Impossibile caricare la fattura");
+    return;
+  }
+
+  const { data: righe, error: errorRighe } = await supabase
+    .from("fatture_acquisto_righe")
+    .select("*")
+    .eq("fattura_id", id)
+    .order("id", { ascending: true });
+
+  if (errorRighe) {
+    console.error("Errore caricamento righe fattura:", errorRighe);
+    alert("Impossibile caricare le righe della fattura");
+    return;
+  }
+
+  fatturaCorrenteId = id;
+
+  if (fatturaNumeroInput) fatturaNumeroInput.value = fattura.numero || "";
+  if (fatturaDataInput) fatturaDataInput.value = fattura.data || "";
+  if (fatturaFornitoreInput)
+    fatturaFornitoreInput.value = fattura.fornitore || "";
+  if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
+
+  if (fatturaImponibileTotaleInput)
+    fatturaImponibileTotaleInput.value = formatNumber(
+      fattura.totale_imponibile || 0
+    );
+  if (fatturaIvaTotaleInput)
+    fatturaIvaTotaleInput.value = formatNumber(
+      fattura.totale_iva || 0
+    );
+  if (fatturaTotaleDocumentoInput)
+    fatturaTotaleDocumentoInput.value = formatNumber(
+      fattura.totale_documento || 0
+    );
+
+  fatturaRighe = [];
+  if (fatturaRigheBody) fatturaRigheBody.innerHTML = "";
+
+  (righe || []).forEach((r) => {
+    creaRigaFattura({
+      id: r.id,
+      codice: r.codice,
+      descrizione: r.descrizione,
+      categoria: r.categoria,
+      um: r.um,
+      quantita: r.quantita,
+      prezzo: r.prezzo_unitario,
+      iva: r.iva_percentuale,
+      totale: r.totale_riga,
+    });
+  });
+
+  aggiornaTotaliFattura();
+}
+
+// pulsanti fatture
+if (btnNuovaFattura) {
+  btnNuovaFattura.addEventListener("click", () => {
+    resetFatturaForm();
+  });
+}
+if (btnAddRigaFattura) {
+  btnAddRigaFattura.addEventListener("click", () => {
+    creaRigaFattura();
+  });
+}
+if (btnSalvaFattura) {
+  btnSalvaFattura.addEventListener("click", () => {
+    salvaFatturaSupabase();
+  });
+}
+if (btnToggleFatture && fattureTable) {
+  btnToggleFatture.addEventListener("click", () => {
+    const isHidden =
+      fattureTable.style.display === "none" ||
+      !fattureTable.style.display;
+    fattureTable.style.display = isHidden ? "table" : "none";
+  });
+}
 
   // RICETTE
   const ricettaForm = document.getElementById("ricetta-form");
