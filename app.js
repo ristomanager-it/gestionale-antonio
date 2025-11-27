@@ -505,24 +505,167 @@ if (btnToggleFatture && fattureTable) {
     "ingredienti-suggestions"
   );
 
-  // MAGAZZINO
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
-  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
-  const magazzinoTable = document.getElementById("magazzino-table");
-  const magazzinoLista = document.getElementById("magazzino-lista");
-  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
-  const magazzinoForm = document.getElementById("magazzino-form");
-  const magazzinoIdInput = document.getElementById("magazzino-id");
-  const magazzinoDescrizioneInput = document.getElementById(
-    "magazzino-descrizione"
+ // --------------------------------------------------
+// 10. MAGAZZINO
+// --------------------------------------------------
+
+async function caricaProdottiMagazzino() {
+  if (!supabase) return;
+
+  // 🔁 ATTENZIONE: la colonna "codice" NON esiste nella tabella prodotti,
+  // quindi la togliamo dal select per evitare il 400 / column does not exist
+  const { data, error } = await supabase
+    .from("prodotti")
+    .select("id, descrizione, categoria, um, scorta_minima");
+
+  if (error) {
+    console.error("Errore caricamento prodotti magazzino:", error);
+    return;
+  }
+
+  prodottiMagazzino = data || [];
+  popolaSuggerimentiMagazzino();
+}
+
+function popolaSuggerimentiMagazzino() {
+  if (!magazzinoSuggestions) return;
+  magazzinoSuggestions.innerHTML = "";
+  prodottiMagazzino.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.descrizione || "";
+    magazzinoSuggestions.appendChild(opt);
+  });
+}
+
+async function cercaProdottoMagazzino(term) {
+  if (!supabase || !magazzinoLista || !magazzinoTable) return;
+
+  const termLike = `%${term.toLowerCase()}%`;
+
+  const { data, error } = await supabase.rpc(
+    "magazzino_ricerca_prodotti",
+    { term: termLike }
   );
-  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
-  const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById(
-    "magazzino-scorta-minima"
+
+  if (error) {
+    console.error("Errore ricerca magazzino:", error);
+    return;
+  }
+
+  magazzinoLista.innerHTML = "";
+
+  (data || []).forEach((p) => {
+    const tr = document.createElement("tr");
+    const stock = p.giacenza_attuale ?? 0;
+    const sottoScorta =
+      p.scorta_minima != null && stock < p.scorta_minima;
+
+    tr.innerHTML = `
+      <td>${p.codice || ""}</td>
+      <td>${p.descrizione || ""}</td>
+      <td>${p.categoria || ""}</td>
+      <td>
+        ${stock.toFixed(3)}
+        ${sottoScorta ? '<span class="magazzino-low">Sotto scorta</span>' : ""}
+      </td>
+    `;
+
+    tr.addEventListener("click", () => {
+      caricaProdottoInForm(p);
+    });
+
+    magazzinoLista.appendChild(tr);
+  });
+
+  magazzinoTable.style.display = (data || []).length ? "table" : "none";
+}
+
+function caricaProdottoInForm(p) {
+  if (!magazzinoForm) return;
+
+  if (magazzinoIdInput) magazzinoIdInput.value = p.id || "";
+  if (magazzinoDescrizioneInput)
+    magazzinoDescrizioneInput.value = p.descrizione || "";
+  if (magazzinoCategoriaInput)
+    magazzinoCategoriaInput.value = p.categoria || "";
+  if (magazzinoUmInput) magazzinoUmInput.value = p.um || "";
+  if (magazzinoScortaMinimaInput)
+    magazzinoScortaMinimaInput.value =
+      p.scorta_minima != null ? p.scorta_minima : "";
+  if (magazzinoGiacenzaInput)
+    magazzinoGiacenzaInput.value =
+      p.giacenza_attuale != null ? p.giacenza_attuale : "";
+}
+
+async function salvaProdottoMagazzino() {
+  if (!supabase) return;
+
+  const id = magazzinoIdInput?.value || null;
+  const descrizione = magazzinoDescrizioneInput?.value.trim() || "";
+  const categoria = magazzinoCategoriaInput?.value.trim() || "";
+  const um = magazzinoUmInput?.value.trim() || "";
+  const scortaMinima = parseNumber(
+    magazzinoScortaMinimaInput?.value || ""
   );
-  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
-  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
+
+  if (!descrizione) {
+    alert("Inserisci la descrizione del prodotto");
+    return;
+  }
+
+  const payload = {
+    id: id || undefined,
+    descrizione,
+    categoria: categoria || null,
+    um: um || null,
+    scorta_minima: scortaMinima || null,
+  };
+
+  const { error } = await supabase
+    .from("prodotti")
+    .upsert(payload);
+
+  if (error) {
+    console.error("Errore salvataggio prodotto magazzino:", error);
+    alert("Errore nel salvataggio del prodotto");
+    return;
+  }
+
+  alert("Prodotto salvato");
+  await caricaProdottiMagazzino();
+}
+
+// ricerca live
+if (magazzinoSearchInput) {
+  magazzinoSearchInput.addEventListener("input", (e) => {
+    const term = e.target.value.trim();
+    if (term.length >= 2) {
+      cercaProdottoMagazzino(term);
+    } else {
+      if (magazzinoTable) magazzinoTable.style.display = "none";
+    }
+  });
+}
+
+// nuovo prodotto
+if (btnMagazzinoNuovo) {
+  btnMagazzinoNuovo.addEventListener("click", () => {
+    if (magazzinoIdInput) magazzinoIdInput.value = "";
+    if (magazzinoDescrizioneInput) magazzinoDescrizioneInput.value = "";
+    if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
+    if (magazzinoUmInput) magazzinoUmInput.value = "";
+    if (magazzinoScortaMinimaInput)
+      magazzinoScortaMinimaInput.value = "";
+    if (magazzinoGiacenzaInput) magazzinoGiacenzaInput.value = "";
+  });
+}
+
+// salva prodotto
+if (btnMagazzinoSalva) {
+  btnMagazzinoSalva.addEventListener("click", () => {
+    salvaProdottoMagazzino();
+  });
+}
 
   // REPORT / KPI
   const reportPeriodButtons = document.querySelectorAll(
