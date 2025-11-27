@@ -1,7 +1,4 @@
-/* ========================================================= */
-/* ==================== [0] RESET & BASE =================== */
-/* ========================================================= */
-
+/* ========== RESET BASE ========== */
 * {
   box-sizing: border-box;
 }
@@ -20,7 +17,8 @@ body {
   color: #0f172a;
 }
 
-/* Layout app principale */
+/* ========== LAYOUT APP ========== */
+
 .app-main-wrapper {
   min-height: 100vh;
   max-width: 960px;
@@ -30,48 +28,7 @@ body {
   flex-direction: column;
 }
 
-/* Utility */
-.hidden {
-  display: none !important;
-}
-
-/* Contenuto principale */
-.app-main {
-  flex: 1;
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Card generica vista */
-.view {
-  background: #f9fafb;
-  border-radius: 20px;
-  padding: 16px 14px 18px;
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
-}
-
-/* Riduzione zoom automatico su mobile */
-input,
-select,
-textarea {
-  font-size: 16px;
-}
-
-@media (min-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 14px;
-  }
-}
-
-
-
-/* ========================================================= */
-/* ===================== [1] HEADER TOP ==================== */
-/* ========================================================= */
+/* HEADER */
 
 .app-header {
   background: #020617;
@@ -138,11 +95,92 @@ textarea {
   color: #e5e7eb;
 }
 
+/* CONTENUTO PRINCIPALE */
 
+.app-main {
+  flex: 1;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-/* ========================================================= */
-/* ==================== [2] BOTTONI BASE =================== */
-/* ========================================================= */
+/* CARD GENERICA VISTA */
+
+.view {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
+}
+
+/* Utility */
+
+.hidden {
+  display: none !important;
+}
+
+/* ========== LOGIN ========== */
+
+.login-view {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin: 6px 0 4px;
+  font-size: 24px;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+/* ========== PULSANTI GENERICI ========== */
 
 .app-button {
   padding: 11px 12px;
@@ -227,24 +265,20 @@ textarea {
   background: #4b5563;
 }
 
+/* ========== CAMPI A PIGLIO (PILLS) ========== */
 
-
-/* ========================================================= */
-/* ============== [3] INPUT A PILLOLA / TEXTAREA =========== */
-/* ========================================================= */
-
-/* Input / select stondati */
+/* classe da usare su input/select che vuoi belli stondati */
 .input-pill {
   width: 100%;
   padding: 10px 14px;
-  border-radius: 999px;
+  border-radius: 999px; /* pillola */
   border: 1px solid #d1d5db;
   background: #ffffff;
   font-size: 14px;
   color: #111827;
 }
 
-/* Textarea stile card */
+/* per eventuali textarea stile "card" */
 .textarea-pill {
   width: 100%;
   padding: 10px 14px;
@@ -256,75 +290,22 @@ textarea {
   resize: vertical;
 }
 
-
-
-/* ========================================================= */
-/* ===================== [4] LOGIN VIEW ==================== */
-/* ========================================================= */
-
-.login-view {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Riduzione zoom automatico su mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
 }
 
-.login-card {
-  width: 100%;
-  max-width: 380px;
-  margin: 0 auto;
-  background: #ffffff;
-  border-radius: 22px;
-  padding: 20px 18px 22px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
 }
 
-.login-logo {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.login-logo-img {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
-}
-
-.login-card h2 {
-  text-align: center;
-  margin: 6px 0 4px;
-  font-size: 24px;
-}
-
-.login-subtitle {
-  text-align: center;
-  margin: 0 0 14px;
-  font-size: 13px;
-  color: #4b5563;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.remember-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #4b5563;
-}
-
-
-
-/* ========================================================= */
-/* ============ [5] HOME DIPENDENTE / MENU MANAGER ========= */
-/* ========================================================= */
+/* ========== HOME DIPENDENTE / MENU MANAGER ========== */
 
 .home-buttons {
   display: flex;
@@ -339,80 +320,75 @@ textarea {
   background: #e5e7eb;
 }
 
-/* Griglia menu manager */
 .buttons-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .menu-button {
-  padding: 14px 10px;
-  font-size: 14px;
-  background: #111827;
-  color: #f9fafb;
+  font-size: 13px;
+  padding: 10px 8px;
 }
 
-.menu-button.wide {
-  grid-column: 1 / -1;
+.app-button.wide {
+  grid-column: span 2;
 }
 
+/* ========== FORM GENERICI (LABEL IN COLONNA) ========== */
 
-
-/* ========================================================= */
-/* ================= [6] TIMBRATURA & BOTTONI ============== */
-/* ========================================================= */
-
-#view-timbratura h2 {
-  margin-top: 0;
+.view form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+.view form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* ========== TIMBRATURA ========== */
 
 .timbratura-intro-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 10px 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
-  margin-bottom: 10px;
-}
-
-.timbratura-intro-card p {
-  margin: 0 0 6px;
-  font-size: 14px;
+  background: #eef2ff;
+  border-radius: 14px;
+  padding: 10px 12px 8px;
+  border: 1px solid #c7d2fe;
+  margin-bottom: 12px;
 }
 
 .timbratura-buttons {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .timb-button {
-  flex: 1;
-  font-size: 15px;
+  width: 100%;
+  font-size: 17px;
+  padding: 15px 12px;
+  color: #ffffff;
 }
 
-
-
-/* ========================================================= */
-/* ===================== [7] TABELLE BASE ================== */
-/* ========================================================= */
+/* ========== TABELLE ========== */
 
 .table-wrapper {
-  margin-top: 8px;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.3);
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
 .table-timbrature {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  background: #ffffff;
-}
-
-.table-timbrature thead {
-  background: #f3f4f6;
 }
 
 .table-timbrature th,
@@ -422,381 +398,180 @@ textarea {
   text-align: left;
 }
 
-.table-timbrature th {
+.table-timbrature thead {
+  background: #f3f4f6;
   font-weight: 600;
 }
 
-
-
-/* ========================================================= */
-/* ================== [8] DIPENDENTI VIEW ================== */
-/* ========================================================= */
-
-#view-dipendenti form {
-  margin-top: 8px;
+.table-timbrature tr:last-child td {
+  border-bottom: none;
 }
 
-/* solo per la checkbox 'attivo' */
-#view-dipendenti label input[type="checkbox"] {
-  width: auto;
-  margin-right: 6px;
+/* ========== TESTO PICCOLO ========== */
+
+.small-muted {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
 }
 
-#view-dipendenti h3 {
-  margin-top: 16px;
-}
+/* ========== KPI / CARDS VALORI ========== */
 
-
-
-/* ========================================================= */
-/* ================== [9] ACQUISTI / FATTURE =============== */
-/* ========================================================= */
-
-/* Riuso tabella base + kpi-cards generiche */
 .kpi-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 10px 0;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .kpi-card {
   background: #ffffff;
-  border-radius: 16px;
-  padding: 8px 10px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
 .kpi-card h3 {
   margin: 0 0 4px;
   font-size: 13px;
+  color: #374151;
 }
 
 .kpi-card p {
   margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
 }
 
+/* ========== ACQUISTI / FATTURE ========== */
 
-
-/* ========================================================= */
-/* ====================== [10] RICETTE ===================== */
-/* ========================================================= */
-
-#view-ricette h2 {
-  margin-top: 0;
+#view-acquisti form {
+  margin-bottom: 12px;
 }
+
+/* input della testata fattura a pillola (già in index con class input-pill) */
+#view-acquisti input[type="text"],
+#view-acquisti input[type="date"],
+#view-acquisti input[type="number"] {
+  /* se hanno class input-pill la regola .input-pill vince */
+}
+
+/* tabella righe fattura */
+#view-acquisti table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+#view-acquisti th,
+#view-acquisti td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: normal;
+}
+
+#view-acquisti thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Input nelle righe fattura */
+#view-acquisti .table-timbrature input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* layout verticale righe fattura su schermi piccoli */
+@media (max-width: 640px) {
+  #view-acquisti table,
+  #view-acquisti thead,
+  #view-acquisti tbody,
+  #view-acquisti th,
+  #view-acquisti td,
+  #view-acquisti tr {
+    display: block;
+  }
+
+  #view-acquisti thead {
+    display: none;
+  }
+
+  #view-acquisti tbody tr {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    padding: 6px 8px;
+  }
+
+  #view-acquisti tbody td {
+    border-bottom: none;
+    padding: 4px 0;
+  }
+
+  #view-acquisti tbody td:last-child {
+    margin-top: 4px;
+  }
+}
+
+/* ========== RICETTE ========== */
 
 #view-ricette form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  margin-top: 4px;
 }
 
-#ricetta-note {
-  width: 100%;
-  min-height: 90px;
-  border-radius: 16px;
+#view-ricette input.input-pill {
+  /* già gestito dalla classe globale */
+}
+
+#view-ricette textarea {
+  border-radius: 18px;
   border: 1px solid #d1d5db;
   padding: 10px 12px;
   font-size: 14px;
   resize: vertical;
 }
 
-#ricetta-ingredienti-container {
+/* righe ingredienti */
+.ricetta-ingrediente-row {
+  margin-bottom: 6px;
   display: flex;
-  flex-direction: column;
   gap: 6px;
+  align-items: center;
 }
 
-
-
-/* ========================================================= */
-/* =================== [11] REPORT KPI VIEW ================= */
-/* ========================================================= */
-
-.kpi-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.kpi-subtitle {
-  margin: 2px 0 0;
+.ricetta-ingrediente-row input {
   font-size: 13px;
-  color: #6b7280;
-}
-
-.kpi-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
-}
-
-.kpi-period-buttons {
-  display: flex;
-  gap: 4px;
-}
-
-.kpi-period-buttons .app-button.tiny {
-  padding-inline: 8px;
-}
-
-.kpi-date-filter label {
-  font-size: 11px;
-  color: #6b7280;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-/* Riga input incasso/food */
-.kpi-input-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.kpi-input-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 9px 10px;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.25);
-}
-
-.kpi-input-card label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-}
-
-.kpi-input-display {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-}
-
-.kpi-input-display strong {
-  font-size: 15px;
-}
-
-/* Layout principale gauge + KPI */
-.kpi-main-layout {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.kpi-main-card {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 10px 12px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.3);
-}
-
-.kpi-main-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.kpi-margine-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.kpi-margine-label {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.kpi-margine-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.kpi-margine-badge.neg {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
-
-.kpi-margine-badge.pos {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.kpi-main-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: #6b7280;
-}
-
-.kpi-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  margin-right: 4px;
-}
-
-.kpi-dot.green {
-  background: #22c55e;
-}
-
-.kpi-dot.yellow {
-  background: #facc15;
-}
-
-.kpi-dot.red {
-  background: #ef4444;
-}
-
-/* Gauge */
-.kpi-gauge-wrapper {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.kpi-gauge-dial {
-  position: relative;
-  width: 180px;
-  height: 90px;
-  border-radius: 180px 180px 0 0;
-  background: conic-gradient(
-    from 180deg,
-    #22c55e 0deg,
-    #22c55e 70deg,
-    #eab308 70deg,
-    #eab308 135deg,
-    #ef4444 135deg,
-    #ef4444 180deg
-  );
-  overflow: hidden;
-}
-
-.kpi-gauge-dial::before {
-  content: "";
-  position: absolute;
-  inset: 30%;
-  background: #f9fafb;
-  border-radius: 999px;
-}
-
-.kpi-gauge-ticks {
-  position: absolute;
-  inset: 8px;
-  border-radius: 999px 999px 0 0;
-  border-top: 1px dashed rgba(15, 23, 42, 0.35);
-}
-
-.kpi-gauge-needle {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 2px;
-  height: 80%;
-  background: #111827;
-  transform-origin: bottom center;
-  transform: rotate(0deg);
-  transition: transform 0.3s ease-out;
-}
-
-.kpi-gauge-center {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  background: #111827;
-  border-radius: 999px;
-  transform: translateX(-50%);
-}
-
-.kpi-gauge-labels {
-  width: 180px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #6b7280;
-}
-
-.kpi-gauge-bep {
-  font-size: 12px;
-  color: #374151;
-}
-
-.kpi-bep-label {
-  font-weight: 600;
-}
-
-/* KPI numerici laterali */
-.kpi-side-column {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.kpi-side-card {
-  background: #ffffff;
-  border-radius: 18px;
   padding: 8px 10px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.3);
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
 }
 
-.kpi-side-title {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
+/* ========== DIPENDENTI ========== */
 
-.kpi-side-value-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 14px;
-}
-
-.kpi-side-percent {
-  font-size: 13px;
-  color: #4b5563;
-}
-
-.kpi-divider {
-  margin: 14px 0 10px;
-  border: none;
-  border-top: 1px dashed #d1d5db;
-}
-
-/* Costi fissi */
-.costi-fissi-form {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
+#view-dipendenti form {
   margin-top: 8px;
 }
 
+/* i campi hanno class input-pill in index, qui basta eventualmente regolare checkbox */
+#view-dipendenti label input[type="checkbox"] {
+  width: auto;
+  margin-right: 6px;
+}
 
+/* un po' di spazio prima dell'elenco */
+#view-dipendenti h3 {
+  margin-top: 16px;
+}
 
-/* ========================================================= */
-/* ===================== [12] MAGAZZINO ===================== */
-/* ========================================================= */
+/* ========== MAGAZZINO ========== */
 
 /* campo ricerca a pillola, con icona lente */
 #view-magazzino #magazzino-search.input-pill {
@@ -807,7 +582,7 @@ textarea {
   background-size: 16px 16px;
 }
 
-/* form dettaglio prodotto */
+/* form dettaglio prodotto: i campi sono già a pillola via class input-pill */
 #view-magazzino form {
   margin: 10px 0 12px;
 }
@@ -834,7 +609,6 @@ textarea {
   font-weight: 600;
 }
 
-/* badge scorta minima */
 .magazzino-low {
   display: inline-block;
   padding: 2px 6px;
@@ -845,21 +619,13 @@ textarea {
   font-weight: 600;
 }
 
-
-
-/* ========================================================= */
-/* ==================== [13] MANAGER-ONLY ================== */
-/* ========================================================= */
+/* ========== MANAGER-ONLY ========== */
 
 .manager-only {
-  /* per ora nessuno stile speciale, solo hook eventuale */
+  /* niente di speciale, ma puoi usare se vuoi marcarli in futuro */
 }
 
-
-
-/* ========================================================= */
-/* =================== [14] TEMA CHIARO ==================== */
-/* ========================================================= */
+/* ========== TEMA CHIARO ========== */
 
 body.theme-light {
   background: #e5e7eb;
@@ -885,27 +651,72 @@ body.theme-light .view {
 }
 
 body.theme-light .login-card {
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(148, 163, 184, 0.7);
-}
-
-body.theme-light .app-button {
-  background: #e5e7eb;
-  color: #111827;
+  background: #f9fafb;
 }
 
 body.theme-light .app-button.ghost {
-  background: transparent;
   color: #111827;
 }
 
-body.theme-light .table-timbrature {
-  background: #ffffff;
+body.theme-light .app-button.login-button {
+  background: #f97316;
 }
 
-body.theme-light .kpi-main-card,
-body.theme-light .kpi-side-card,
-body.theme-light .kpi-input-card {
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgba(148, 163, 184, 0.55);
+body.theme-light .app-button.login-button:hover {
+  background: #ea580c;
 }
+
+/* ========== RESPONSIVITÀ ========== */
+
+@media (min-width: 768px) {
+  .app-main-wrapper {
+    padding-top: 12px;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .login-card {
+    padding: 22px 24px 26px;
+  }
+
+  .timbratura-buttons {
+    flex-direction: row;
+  }
+
+  .timb-button {
+    font-size: 16px;
+  }
+
+  .buttons-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .menu-button {
+    font-size: 14px;
+  }
+
+  .kpi-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.kpi-gauge-dial {
+  position: relative;
+  width: 260px;
+  height: 130px;
+  border-radius: 260px 260px 0 0;
+  overflow: hidden;
+
+  background: conic-gradient(
+    from 180deg,
+    #22c55e 0deg,
+    #22c55e 90deg,
+    #facc15 90deg,
+    #facc15 150deg,
+    #ef4444 150deg,
+    #ef4444 180deg
+  );
+  z-index: 1;
+}
+
