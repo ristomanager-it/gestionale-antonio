@@ -1739,6 +1739,26 @@ if (magazzinoSearchInput && magazzinoTable) {
   }
 
   // ========= ACQUISTI / FATTURE =========
+    // ========= ACQUISTI / FATTURE (DOM) =========
+  const fatturaNumeroInput = document.getElementById("fattura-numero");
+  const fatturaDataInput = document.getElementById("fattura-data");
+  const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
+  const fatturaNoteInput = document.getElementById("fattura-note");
+
+  const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
+  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
+  const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
+
+  const fatturaRigheBody = document.getElementById("fattura-righe-body");
+
+  const fatturaImponibileTotaleInput = document.getElementById("fattura-imponibile-totale");
+  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
+  const fatturaTotaleDocumentoInput = document.getElementById("fattura-totale-documento");
+
+  const btnToggleFatture = document.getElementById("btn-toggle-fatture");
+  const fattureTable = document.getElementById("fatture-table");
+  const fattureLista = document.getElementById("fatture-lista");
+
   function resetFatturaForm() {
     fatturaCorrenteId = null;
     fatturaRighe = [];
