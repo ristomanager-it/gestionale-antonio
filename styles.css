@@ -265,18 +265,20 @@ body {
   background: #4b5563;
 }
 
-/* ========== CAMPI A PILL ========== */
+/* ========== CAMPI A PIGLIO (PILLS) ========== */
 
+/* classe da usare su input/select che vuoi belli stondati */
 .input-pill {
   width: 100%;
   padding: 10px 14px;
-  border-radius: 999px;
+  border-radius: 999px; /* pillola */
   border: 1px solid #d1d5db;
   background: #ffffff;
   font-size: 14px;
   color: #111827;
 }
 
+/* per eventuali textarea stile "card" */
 .textarea-pill {
   width: 100%;
   padding: 10px 14px;
@@ -443,144 +445,17 @@ textarea {
   color: #111827;
 }
 
-/* testo piccolo dentro le card KPI */
-.kpi-card small {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-  color: #6b7280;
-}
-
-/* ========== KPI REPORT VIEW ========== */
-
-.kpi-period-switch {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-
-.kpi-period-btn {
-  flex: 1;
-  padding-inline: 0;
-}
-
-.kpi-period-btn.kpi-period-active {
-  background: #6366f1;
-  color: #ffffff;
-}
-
-.kpi-date-label-wrapper {
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.kpi-incasso-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f3f4f6;
-  border-radius: 14px;
-  padding: 6px 10px;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.kpi-incasso-row input {
-  max-width: 160px;
-}
-
-/* Gauge semicircolare */
-
-.kpi-gauge-block {
-  margin-top: 10px;
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.kpi-gauge-wrapper {
-  width: 260px;
-  max-width: 100%;
-  position: relative;
-}
-
-.kpi-gauge-arc {
-  width: 100%;
-  padding-top: 50%;
-  border-radius: 999px 999px 0 0;
-  background: radial-gradient(circle at 50% 120%, #e5e7eb, #fee2e2, #bbf7d0);
-  position: relative;
-  overflow: hidden;
-}
-
-.kpi-gauge-needle {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 2px;
-  height: 100%;
-  background: #111827;
-  transform-origin: bottom center;
-  transform: rotate(0deg);
-  z-index: 2;
-}
-
-/* per non coprire la lancetta */
-.kpi-gauge-center {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: #fbbf24;
-  border: 3px solid #f59e0b;
-  transform: translate(-50%, 50%);
-  z-index: 3;
-}
-
-.kpi-gauge-captions {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 260px;
-  font-size: 11px;
-  text-transform: uppercase;
-  margin-top: 6px;
-  color: #6b7280;
-}
-
-.kpi-gauge-bep {
-  margin-top: 4px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-/* separatore nella view report */
-.report-section-divider,
-.report-divider {
-  border: none;
-  border-top: 1px dashed #e5e7eb;
-  margin: 12px 0;
-}
-
-/* margine badge positivo/negativo */
-#kpi-margine-badge.pos {
-  color: #16a34a;
-}
-
-#kpi-margine-badge.neg {
-  color: #dc2626;
-}
-
 /* ========== ACQUISTI / FATTURE ========== */
 
 #view-acquisti form {
   margin-bottom: 12px;
+}
+
+/* input della testata fattura a pillola (già in index con class input-pill) */
+#view-acquisti input[type="text"],
+#view-acquisti input[type="date"],
+#view-acquisti input[type="number"] {
+  /* se hanno class input-pill la regola .input-pill vince */
 }
 
 /* tabella righe fattura */
@@ -652,6 +527,10 @@ textarea {
   margin-top: 4px;
 }
 
+#view-ricette input.input-pill {
+  /* già gestito dalla classe globale */
+}
+
 #view-ricette textarea {
   border-radius: 18px;
   border: 1px solid #d1d5db;
@@ -681,6 +560,7 @@ textarea {
   margin-top: 8px;
 }
 
+/* i campi hanno class input-pill in index, qui basta eventualmente regolare checkbox */
 #view-dipendenti label input[type="checkbox"] {
   width: auto;
   margin-right: 6px;
@@ -702,12 +582,12 @@ textarea {
   background-size: 16px 16px;
 }
 
-/* form dettaglio prodotto */
+/* form dettaglio prodotto: i campi sono già a pillola via class input-pill */
 #view-magazzino form {
   margin: 10px 0 12px;
 }
 
-/* tabella prodotti */
+/* tabella prodotti (mostrata solo "a comando" via JS) */
 #view-magazzino table {
   width: 100%;
   border-collapse: collapse;
@@ -742,7 +622,7 @@ textarea {
 /* ========== MANAGER-ONLY ========== */
 
 .manager-only {
-  /* per ora niente di speciale */
+  /* niente di speciale, ma puoi usare se vuoi marcarli in futuro */
 }
 
 /* ========== TEMA CHIARO ========== */
