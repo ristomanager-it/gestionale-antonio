@@ -606,6 +606,253 @@
             </button>
           </form>
         </section>
+<!-- REPORT KPI -->
+<section id="view-report" class="view" style="display: none">
+  <!-- Header + toolbar -->
+  <div class="kpi-header-row">
+    <div>
+      <h2>Cruscotto KPI</h2>
+      <p class="kpi-subtitle">Panoramica veloce di incassi e costi.</p>
+    </div>
+
+    <div class="kpi-toolbar">
+      <!-- Bottoni periodo -->
+      <div class="kpi-period-buttons">
+        <button
+          type="button"
+          class="app-button tiny report-period-btn active"
+          data-period="giorno"
+        >
+          Giorno
+        </button>
+        <button
+          type="button"
+          class="app-button tiny report-period-btn"
+          data-period="settimana"
+        >
+          Sett.
+        </button>
+        <button
+          type="button"
+          class="app-button tiny report-period-btn"
+          data-period="mese"
+        >
+          Mese
+        </button>
+        <button
+          type="button"
+          class="app-button tiny report-period-btn"
+          data-period="anno"
+        >
+          Anno
+        </button>
+      </div>
+
+      <!-- Filtro data -->
+      <div class="kpi-date-filter">
+        <label>
+          Data di riferimento
+          <input
+            id="report-data"
+            type="date"
+            class="input-pill"
+          />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incasso / Food input -->
+  <div class="kpi-input-row">
+    <!-- Incasso -->
+    <div class="kpi-input-card">
+      <label>
+        Incasso lordo periodo (€)
+        <input
+          id="kpi-incasso-input"
+          type="number"
+          step="0.01"
+          class="input-pill"
+          placeholder="0,00"
+        />
+      </label>
+      <div class="kpi-input-display">
+        <span>Incasso</span>
+        <strong id="kpi-incasso-value">0,00 €</strong>
+      </div>
+    </div>
+
+    <!-- Food cost -->
+    <div class="kpi-input-card">
+      <label>
+        Food cost periodo (€)
+        <input
+          id="kpi-foodcost-input"
+          type="number"
+          step="0.01"
+          class="input-pill"
+          placeholder="0,00"
+        />
+      </label>
+      <div class="kpi-input-display">
+        <span>Netto (incasso - food)</span>
+        <strong id="kpi-netto-value">0,00 €</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout principale: tachimetro + colonna KPI -->
+  <div class="kpi-main-layout">
+    <!-- Card tachimetro -->
+    <div class="kpi-main-card">
+      <div class="kpi-main-top">
+        <div class="kpi-margine-block">
+          <span class="kpi-margine-label">Margine operativo</span>
+          <div
+            id="kpi-margine-badge"
+            class="kpi-margine-badge neg"
+          >
+            0,00 €
+          </div>
+        </div>
+
+        <div class="kpi-main-legend">
+          <span><span class="kpi-dot green"></span>Lavoro</span>
+          <span><span class="kpi-dot yellow"></span>Food cost</span>
+          <span><span class="kpi-dot red"></span>Fissi</span>
+        </div>
+      </div>
+
+      <!-- Gauge -->
+      <div class="kpi-gauge-wrapper">
+        <div class="kpi-gauge-dial">
+          <div class="kpi-gauge-ticks"></div>
+          <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
+          <div class="kpi-gauge-center"></div>
+        </div>
+        <div class="kpi-gauge-labels">
+          <span>0%</span>
+          <span>50%</span>
+          <span>100%+</span>
+        </div>
+        <div class="kpi-gauge-bep">
+          <span id="kpi-bep-label" class="kpi-bep-label">BEP 0,00 €</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colonna KPI numerici -->
+    <div class="kpi-side-column">
+      <div class="kpi-side-card">
+        <div class="kpi-side-title">Lavoro</div>
+        <div class="kpi-side-value-row">
+          <span id="kpi-lavoro-importo">0,00 €</span>
+          <span id="kpi-lavoro-percent" class="kpi-side-percent">0%</span>
+        </div>
+      </div>
+
+      <div class="kpi-side-card">
+        <div class="kpi-side-title">Food cost</div>
+        <div class="kpi-side-value-row">
+          <span id="kpi-food-importo">0,00 €</span>
+          <span id="kpi-food-percent" class="kpi-side-percent">0%</span>
+        </div>
+      </div>
+
+      <div class="kpi-side-card">
+        <div class="kpi-side-title">Costi fissi</div>
+        <div class="kpi-side-value-row">
+          <span id="kpi-fissi-importo">0,00 €</span>
+          <span id="kpi-fissi-percent" class="kpi-side-percent">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="kpi-divider" />
+
+  <!-- COSTI FISSI -->
+  <button
+    id="btn-toggle-costi-fissi"
+    class="app-button small gray"
+    type="button"
+  >
+    Gestisci costi fissi
+  </button>
+
+  <div id="costi-fissi-panel" style="display: none; margin-top: 10px;">
+    <h3>Costi fissi annuali</h3>
+
+    <form
+      id="costi-fissi-form"
+      class="costi-fissi-form"
+      onsubmit="return false;"
+    >
+      <label>
+        Categoria
+        <input
+          id="costi-fissi-categoria"
+          type="text"
+          class="input-pill"
+          placeholder="Affitto, utenze, personale fisso..."
+        />
+      </label>
+
+      <label>
+        Descrizione
+        <input
+          id="costi-fissi-descrizione"
+          type="text"
+          class="input-pill"
+          placeholder="Descrizione voce di costo"
+        />
+      </label>
+
+      <label>
+        Anno di riferimento
+        <input
+          id="costi-fissi-anno"
+          type="number"
+          class="input-pill"
+          placeholder="Es. 2024"
+        />
+      </label>
+
+      <label>
+        Importo annuo (€)
+        <input
+          id="costi-fissi-importo"
+          type="number"
+          step="0.01"
+          class="input-pill"
+        />
+      </label>
+
+      <button
+        id="btn-salva-costo-fisso"
+        class="app-button small green"
+        type="button"
+      >
+        Salva costo fisso
+      </button>
+    </form>
+
+    <h4>Elenco costi fissi</h4>
+    <div class="table-wrapper">
+      <table class="table-timbrature">
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Descrizione</th>
+            <th>Anno</th>
+            <th>Importo annuo</th>
+          </tr>
+        </thead>
+        <tbody id="costi-fissi-lista"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
         <!-- MAGAZZINO -->
         <section id="view-magazzino" class="view" style="display: none">
