@@ -459,20 +459,204 @@ if (btnToggleFatture && fattureTable) {
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-  // ========= MAGAZZINO (DOM) =========
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
-  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
-  const magazzinoTable = document.getElementById("magazzino-table");
-  const magazzinoListaEl = document.getElementById("magazzino-lista");
+ // ========= MAGAZZINO =========
+// Usa tabella "prodotti" con colonne:
+// id, codice, descrizione, categoria_id, um, scorta_minima
 
-  const magazzinoIdInput = document.getElementById("magazzino-id");
-  const magazzinoDescrizioneInput = document.getElementById("magazzino-descrizione");
-  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
-  const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
-  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
-  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
-  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
+async function caricaMagazzinoDati() {
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from("prodotti")
+    .select("id, codice, descrizione, categoria_id, um, scorta_minima")
+    .order("descrizione", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento magazzino:", error);
+    return;
+  }
+
+  magazzinoDati = (data || []).map((p) => ({
+    id: p.id,
+    codice: p.codice || "",
+    descrizione: p.descrizione || "",
+    categoriaId: p.categoria_id ?? null,
+    // per ora mostriamo l'id categoria; in futuro faremo join con tabella categorie
+    categoria: p.categoria_id != null ? String(p.categoria_id) : "",
+    um: p.um || "",
+    scortaMinima: p.scorta_minima ?? null,
+    giacenza: 0, // giacenza reale la calcoleremo dai movimenti in seguito
+  }));
+
+  renderMagazzinoLista(magazzinoDati);
+  aggiornaMagazzinoSuggestions();
+  aggiornaIngredientiSuggestionsDaMagazzino();
+}
+
+function renderMagazzinoLista(lista) {
+  if (!magazzinoListaEl) return;
+
+  magazzinoListaEl.innerHTML = "";
+
+  (lista || []).forEach((p) => {
+    const low = p.scortaMinima != null && p.giacenza <= p.scortaMinima;
+    const giacenzaText = low
+      ? `<span class="magazzino-low">${p.giacenza}</span>`
+      : p.giacenza;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.codice || ""}</td>
+      <td>${p.descrizione || ""}</td>
+      <td>${p.categoria || ""}</td>
+      <td>${giacenzaText}</td>
+    `;
+    tr.addEventListener("click", () => {
+      popolaMagazzinoForm(p);
+    });
+    magazzinoListaEl.appendChild(tr);
+  });
+}
+
+function aggiornaMagazzinoSuggestions() {
+  if (!magazzinoSuggestions) return;
+  magazzinoSuggestions.innerHTML = "";
+
+  magazzinoDati.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.descrizione || "";
+    magazzinoSuggestions.appendChild(opt);
+  });
+}
+
+function popolaMagazzinoForm(p) {
+  if (!p) {
+    if (magazzinoIdInput) magazzinoIdInput.value = "";
+    if (magazzinoDescrizioneInput) magazzinoDescrizioneInput.value = "";
+    if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
+    if (magazzinoUmInput) magazzinoUmInput.value = "";
+    if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
+    if (magazzinoGiacenzaInput) magazzinoGiacenzaInput.value = "";
+    return;
+  }
+
+  if (magazzinoIdInput) magazzinoIdInput.value = p.id || "";
+  if (magazzinoDescrizioneInput)
+    magazzinoDescrizioneInput.value = p.descrizione || "";
+  if (magazzinoCategoriaInput)
+    // nel form inserisci l'id categoria (in attesa di implementare le categorie)
+    magazzinoCategoriaInput.value =
+      p.categoriaId != null ? String(p.categoriaId) : "";
+  if (magazzinoUmInput) magazzinoUmInput.value = p.um || "";
+  if (magazzinoScortaMinimaInput)
+    magazzinoScortaMinimaInput.value =
+      p.scortaMinima != null ? p.scortaMinima : "";
+  if (magazzinoGiacenzaInput)
+    magazzinoGiacenzaInput.value =
+      p.giacenza != null ? p.giacenza : "";
+}
+
+async function salvaProdottoDaMagazzinoForm() {
+  if (!supabase) return;
+
+  const id = magazzinoIdInput?.value || null;
+  const descrizione = (magazzinoDescrizioneInput?.value || "").trim();
+  const categoriaIdRaw = (magazzinoCategoriaInput?.value || "").trim();
+  const um = (magazzinoUmInput?.value || "").trim();
+  const scortaMinima = parseNumber(
+    magazzinoScortaMinimaInput?.value || ""
+  );
+
+  if (!descrizione) {
+    alert("Inserisci la descrizione del prodotto");
+    return;
+  }
+
+  const categoria_id =
+    categoriaIdRaw !== "" ? parseInt(categoriaIdRaw, 10) || null : null;
+
+  const payload = {
+    id: id || undefined,
+    descrizione,
+    categoria_id,
+    um: um || null,
+    scorta_minima: scortaMinima || null,
+    // niente colonna "giacenza" sul DB: la gestiremo con i movimenti
+  };
+
+  const { data, error } = await supabase
+    .from("prodotti")
+    .upsert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Errore salvataggio prodotto:", error);
+    alert("Errore nel salvare il prodotto");
+    return;
+  }
+
+  const nuovo = {
+    id: data.id,
+    codice: data.codice || "",
+    descrizione: data.descrizione || "",
+    categoriaId: data.categoria_id ?? null,
+    categoria:
+      data.categoria_id != null ? String(data.categoria_id) : "",
+    um: data.um || "",
+    scortaMinima: data.scorta_minima ?? null,
+    giacenza: 0,
+  };
+
+  const idx = magazzinoDati.findIndex((p) => p.id === nuovo.id);
+  if (idx >= 0) {
+    magazzinoDati[idx] = nuovo;
+  } else {
+    magazzinoDati.push(nuovo);
+  }
+
+  renderMagazzinoLista(magazzinoDati);
+  aggiornaMagazzinoSuggestions();
+  aggiornaIngredientiSuggestionsDaMagazzino();
+  popolaMagazzinoForm(nuovo);
+  alert("Prodotto aggiornato.");
+}
+
+if (btnMagazzinoSalva) {
+  btnMagazzinoSalva.addEventListener("click", (e) => {
+    e.preventDefault();
+    salvaProdottoDaMagazzinoForm();
+  });
+}
+
+if (btnMagazzinoNuovo) {
+  btnMagazzinoNuovo.addEventListener("click", () => {
+    popolaMagazzinoForm(null);
+  });
+}
+
+if (magazzinoSearchInput && magazzinoTable) {
+  magazzinoTable.style.display = "none";
+
+  magazzinoSearchInput.addEventListener("input", () => {
+    const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
+
+    if (!q) {
+      magazzinoTable.style.display = "none";
+      if (magazzinoListaEl) magazzinoListaEl.innerHTML = "";
+      return;
+    }
+
+    const filtrati = magazzinoDati.filter((p) => {
+      const desc = (p.descrizione || "").toLowerCase();
+      const cod = (p.codice || "").toLowerCase();
+      return desc.includes(q) || cod.includes(q);
+    });
+
+    renderMagazzinoLista(filtrati);
+    magazzinoTable.style.display = "table";
+  });
+}
 
   // ========= REPORT KPI (DOM) =========
   const reportPeriodButtons = Array.from(document.querySelectorAll(".report-period-btn"));
