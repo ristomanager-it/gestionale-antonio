@@ -2166,116 +2166,109 @@ const fattureLista = document.getElementById("fatture-lista");
         : "Nascondi elenco";
     });
   }
+    // ========= RICETTE =========
+  const ricettaNomeInput = document.getElementById("ricetta-nome");
+  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaNoteInput = document.getElementById("ricetta-note");
+  const ricettaFotoInput = document.getElementById("ricetta-foto");
+  const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
+  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-  // ========= RICETTE (DOM + LOGICA BASE) =========
-const ricettaNomeInput = document.getElementById("ricetta-nome");
-const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-const ricettaNoteInput = document.getElementById("ricetta-note");
-const ricettaFotoInput = document.getElementById("ricetta-foto");
-const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
-const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+  function creaRigaIngrediente(initial = {}) {
+    if (!ricettaIngredientiContainer) return;
 
-// Crea una riga ingrediente nella ricetta
-function creaRigaIngrediente(initial = {}) {
-  if (!ricettaIngredientiContainer) return;
+    const row = document.createElement("div");
+    row.className = "ricetta-ingrediente-row";
 
-  const row = document.createElement("div");
-  row.className = "ricetta-ingrediente-row";
+    row.innerHTML = `
+      <input
+        type="text"
+        class="ingrediente-nome"
+        placeholder="Ingrediente (come in magazzino)"
+        style="flex: 2; min-width: 0;"
+        list="ingredienti-suggestions"
+        value="${initial.nome_prodotto || ""}"
+      />
+      <input
+        type="number"
+        class="ingrediente-quantita"
+        placeholder="Q.tà"
+        step="0.001"
+        min="0"
+        style="flex: 1; min-width: 0;"
+        value="${initial.quantita != null ? initial.quantita : ""}"
+      />
+      <input
+        type="text"
+        class="ingrediente-unita"
+        placeholder="g, kg, ml, u"
+        style="flex: 1; min-width: 0;"
+        value="${initial.unita_misura || ""}"
+      />
+      <button type="button" class="app-button tiny red btn-del-ingrediente">
+        ✕
+      </button>
+    `;
 
-  row.innerHTML = `
-    <input
-      type="text"
-      class="ingrediente-nome"
-      placeholder="Ingrediente (come in magazzino)"
-      style="flex: 2; min-width: 0;"
-      list="ingredienti-suggestions"
-      value="${initial.nome_prodotto || ""}"
-    />
-    <input
-      type="number"
-      class="ingrediente-quantita"
-      placeholder="Q.tà"
-      step="0.001"
-      min="0"
-      style="flex: 1; min-width: 0;"
-      value="${initial.quantita != null ? initial.quantita : ""}"
-    />
-    <input
-      type="text"
-      class="ingrediente-unita"
-      placeholder="g, kg, ml, u"
-      style="flex: 1; min-width: 0;"
-      value="${initial.unita_misura || ""}"
-    />
-    <button type="button" class="app-button tiny red btn-del-ingrediente">
-      ✕
-    </button>
-  `;
+    const btnDel = row.querySelector(".btn-del-ingrediente");
+    if (btnDel) {
+      btnDel.addEventListener("click", () => {
+        row.remove();
+      });
+    }
 
-  const btnDel = row.querySelector(".btn-del-ingrediente");
-  if (btnDel) {
-    btnDel.addEventListener("click", () => {
-      row.remove();
+    ricettaIngredientiContainer.appendChild(row);
+  }
+
+  function resetFormRicetta() {
+    ricettaCorrenteId = null;
+    ricettaFotoCorrenteUrl = null;
+
+    if (ricettaNomeInput) ricettaNomeInput.value = "";
+    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
+    if (ricettaNoteInput) ricettaNoteInput.value = "";
+    if (ricettaFotoInput) ricettaFotoInput.value = "";
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+    }
+
+    creaRigaIngrediente();
+  }
+
+  if (btnAddIngrediente) {
+    btnAddIngrediente.addEventListener("click", (e) => {
+      e.preventDefault();
+      creaRigaIngrediente();
     });
   }
 
-  ricettaIngredientiContainer.appendChild(row);
-}
-
-// Reset del form ricetta
-function resetFormRicetta() {
-  ricettaCorrenteId = null;
-  ricettaFotoCorrenteUrl = null;
-
-  if (ricettaNomeInput) ricettaNomeInput.value = "";
-  if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
-  if (ricettaNoteInput) ricettaNoteInput.value = "";
-  if (ricettaFotoInput) ricettaFotoInput.value = "";
-
-  if (ricettaIngredientiContainer) {
-    ricettaIngredientiContainer.innerHTML = "";
+  async function caricaProdottiSuggerimentiIngredienti() {
+    if (!magazzinoDati.length) {
+      await caricaMagazzinoDati();
+    }
+    aggiornaIngredientiSuggestionsDaMagazzino();
   }
 
-  creaRigaIngrediente();
-}
+  function aggiornaIngredientiSuggestionsDaMagazzino() {
+    if (!ingredientiSuggestions) return;
 
-// Click su "Aggiungi ingrediente"
-if (btnAddIngrediente) {
-  btnAddIngrediente.addEventListener("click", (e) => {
-    e.preventDefault();
-    creaRigaIngrediente();
-  });
-}
-
-// Carica suggerimenti ingredienti (dal magazzino)
-async function caricaProdottiSuggerimentiIngredienti() {
-  if (!magazzinoDati.length) {
-    await caricaMagazzinoDati();
+    ingredientiSuggestions.innerHTML = "";
+    magazzinoDati.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.descrizione || "";
+      ingredientiSuggestions.appendChild(opt);
+    });
   }
-  aggiornaIngredientiSuggestionsDaMagazzino();
-}
 
-// Aggiorna datalist con i prodotti di magazzino
-function aggiornaIngredientiSuggestionsDaMagazzino() {
-  if (!ingredientiSuggestions) return;
-
-  ingredientiSuggestions.innerHTML = "";
-  magazzinoDati.forEach((p) => {
-    const opt = document.createElement("option");
-    opt.value = p.descrizione || "";
-    ingredientiSuggestions.appendChild(opt);
-  });
-}
-
-// Click su "Salva ricetta" (placeholder)
-if (btnSalvaRicetta) {
-  btnSalvaRicetta.addEventListener("click", (e) => {
-    e.preventDefault();
-    alert("Salvataggio ricette da completare in una fase successiva 😊");
-  });
-}
+  if (btnSalvaRicetta) {
+    btnSalvaRicetta.addEventListener("click", (e) => {
+      e.preventDefault();
+      alert("Salvataggio ricette da completare in una fase successiva 😊");
+    });
+  }
 
   // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
