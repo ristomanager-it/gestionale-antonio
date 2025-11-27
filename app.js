@@ -8,6 +8,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
   const VIRTUAL_ADMIN_PIN = "0000"; // admin virtuale: nome "admin" + PIN 0000
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ===== DOM ELEMENTS =====
+
+  const body = document.body;
+
+  const themeBtn = document.getElementById("btn-theme");
+  const currentUserLabel = document.getElementById("current-user-label");
+  const btnLogout = document.getElementById("btn-logout");
+
+  const views = Array.from(document.querySelectorAll(".view"));
+  const homeDipView = document.getElementById("view-home-dip");
+  const managerMenu = document.getElementById("manager-menu");
+  const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
+
+  // LOGIN
+  const loginNomeInput = document.getElementById("login-nome");
+  const loginPinInput = document.getElementById("login-pin");
+  const loginRememberCheckbox = document.getElementById("login-remember");
+  const btnLogin = document.getElementById("btn-login");
+
+  // (QUI continuano tutti gli altri tuoi DOM element, quelli che avevi già)
 
   // ========= DOM BASE =========
   const body = document.body;
