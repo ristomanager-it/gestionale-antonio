@@ -265,20 +265,18 @@ body {
   background: #4b5563;
 }
 
-/* ========== CAMPI A PIGLIO (PILLS) ========== */
+/* ========== CAMPI A PILL ========== */
 
-/* classe da usare su input/select che vuoi belli stondati */
 .input-pill {
   width: 100%;
   padding: 10px 14px;
-  border-radius: 999px; /* pillola */
+  border-radius: 999px;
   border: 1px solid #d1d5db;
   background: #ffffff;
   font-size: 14px;
   color: #111827;
 }
 
-/* per eventuali textarea stile "card" */
 .textarea-pill {
   width: 100%;
   padding: 10px 14px;
@@ -444,6 +442,15 @@ textarea {
   font-weight: 700;
   color: #111827;
 }
+
+/* testo piccolo dentro le card KPI */
+.kpi-card small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
 /* ========== KPI REPORT VIEW ========== */
 
 .kpi-period-switch {
@@ -481,69 +488,35 @@ textarea {
   margin-bottom: 8px;
 }
 
-.kpi-incasso-row strong {
-  font-size: 16px;
+.kpi-incasso-row input {
+  max-width: 160px;
 }
 
-/* badge margine */
-.kpi-margin-badge {
-  display: inline-block;
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 15px;
-  margin: 4px auto 10px;
-  background: #fecaca;
-  color: #b91c1c;
-}
+/* Gauge semicircolare */
 
-.kpi-margin-badge.pos {
-  background: #bbf7d0;
-  color: #166534;
-}
-
-.kpi-margin-badge.neg {
-  background: #fecaca;
-  color: #b91c1c;
-}
-
-/* gauge semicircolare */
-.kpi-gauge-wrapper {
+.kpi-gauge-block {
+  margin-top: 10px;
+  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 12px;
 }
 
-.kpi-gauge-dial {
+.kpi-gauge-wrapper {
+  width: 260px;
+  max-width: 100%;
   position: relative;
-  width: 220px;
-  height: 110px;
-  border-radius: 110px 110px 0 0;
-  overflow: hidden;
-  background: conic-gradient(
-    from 180deg,
-    #22c55e 0deg,
-    #22c55e 60deg,
-    #facc15 60deg,
-    #f97316 120deg,
-    #ef4444 180deg
-  );
 }
 
-/* "svuota" la metà inferiore per fare l'effetto arco */
-.kpi-gauge-dial::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: -2px;
-  top: 50%;
-  background: #f9fafb;
+.kpi-gauge-arc {
+  width: 100%;
+  padding-top: 50%;
   border-radius: 999px 999px 0 0;
+  background: radial-gradient(circle at 50% 120%, #e5e7eb, #fee2e2, #bbf7d0);
+  position: relative;
+  overflow: hidden;
 }
 
-/* lancetta */
 .kpi-gauge-needle {
   position: absolute;
   left: 50%;
@@ -553,7 +526,6 @@ textarea {
   background: #111827;
   transform-origin: bottom center;
   transform: rotate(0deg);
-  transition: transform 0.35s ease-out;
   z-index: 2;
 }
 
@@ -588,43 +560,27 @@ textarea {
   font-size: 13px;
 }
 
-/* testo piccolo dentro le card KPI */
-.kpi-card small {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-  color: #6b7280;
-}
-
 /* separatore nella view report */
-.report-section-divider {
+.report-section-divider,
+.report-divider {
   border: none;
   border-top: 1px dashed #e5e7eb;
   margin: 12px 0;
 }
 
-/* un po' di spazio nella sezione costi fissi */
-#costi-fissi-section h3 {
-  margin-top: 8px;
-  margin-bottom: 8px;
+/* margine badge positivo/negativo */
+#kpi-margine-badge.pos {
+  color: #16a34a;
 }
 
-#costi-fissi-section h4 {
-  margin-top: 14px;
-  margin-bottom: 6px;
+#kpi-margine-badge.neg {
+  color: #dc2626;
 }
 
 /* ========== ACQUISTI / FATTURE ========== */
 
 #view-acquisti form {
   margin-bottom: 12px;
-}
-
-/* input della testata fattura a pillola (già in index con class input-pill) */
-#view-acquisti input[type="text"],
-#view-acquisti input[type="date"],
-#view-acquisti input[type="number"] {
-  /* se hanno class input-pill la regola .input-pill vince */
 }
 
 /* tabella righe fattura */
@@ -696,10 +652,6 @@ textarea {
   margin-top: 4px;
 }
 
-#view-ricette input.input-pill {
-  /* già gestito dalla classe globale */
-}
-
 #view-ricette textarea {
   border-radius: 18px;
   border: 1px solid #d1d5db;
@@ -729,7 +681,6 @@ textarea {
   margin-top: 8px;
 }
 
-/* i campi hanno class input-pill in index, qui basta eventualmente regolare checkbox */
 #view-dipendenti label input[type="checkbox"] {
   width: auto;
   margin-right: 6px;
@@ -751,12 +702,12 @@ textarea {
   background-size: 16px 16px;
 }
 
-/* form dettaglio prodotto: i campi sono già a pillola via class input-pill */
+/* form dettaglio prodotto */
 #view-magazzino form {
   margin: 10px 0 12px;
 }
 
-/* tabella prodotti (mostrata solo "a comando" via JS) */
+/* tabella prodotti */
 #view-magazzino table {
   width: 100%;
   border-collapse: collapse;
@@ -791,7 +742,7 @@ textarea {
 /* ========== MANAGER-ONLY ========== */
 
 .manager-only {
-  /* niente di speciale, ma puoi usare se vuoi marcarli in futuro */
+  /* per ora niente di speciale */
 }
 
 /* ========== TEMA CHIARO ========== */
