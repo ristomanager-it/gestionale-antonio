@@ -2158,100 +2158,115 @@ const fattureLista = document.getElementById("fatture-lista");
     });
   }
 
-  // ========= RICETTE (placeholder) =========
-  function creaRigaIngrediente(initial = {}) {
-    if (!ricettaIngredientiContainer) return;
+  // ========= RICETTE (DOM + LOGICA BASE) =========
+const ricettaNomeInput = document.getElementById("ricetta-nome");
+const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+const ricettaNoteInput = document.getElementById("ricetta-note");
+const ricettaFotoInput = document.getElementById("ricetta-foto");
+const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
+const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-    const row = document.createElement("div");
-    row.className = "ricetta-ingrediente-row";
+// Crea una riga ingrediente nella ricetta
+function creaRigaIngrediente(initial = {}) {
+  if (!ricettaIngredientiContainer) return;
 
-    row.innerHTML = `
-      <input
-        type="text"
-        class="ingrediente-nome"
-        placeholder="Ingrediente (come in magazzino)"
-        style="flex: 2; min-width: 0;"
-        list="ingredienti-suggestions"
-        value="${initial.nome_prodotto || ""}"
-      />
-      <input
-        type="number"
-        class="ingrediente-quantita"
-        placeholder="Q.tà"
-        step="0.001"
-        min="0"
-        style="flex: 1; min-width: 0;"
-        value="${initial.quantita != null ? initial.quantita : ""}"
-      />
-      <input
-        type="text"
-        class="ingrediente-unita"
-        placeholder="g, kg, ml, u"
-        style="flex: 1; min-width: 0;"
-        value="${initial.unita_misura || ""}"
-      />
-      <button type="button" class="app-button tiny red btn-del-ingrediente">
-        ✕
-      </button>
-    `;
+  const row = document.createElement("div");
+  row.className = "ricetta-ingrediente-row";
 
-    const btnDel = row.querySelector(".btn-del-ingrediente");
-    if (btnDel) {
-      btnDel.addEventListener("click", () => {
-        row.remove();
-      });
-    }
+  row.innerHTML = `
+    <input
+      type="text"
+      class="ingrediente-nome"
+      placeholder="Ingrediente (come in magazzino)"
+      style="flex: 2; min-width: 0;"
+      list="ingredienti-suggestions"
+      value="${initial.nome_prodotto || ""}"
+    />
+    <input
+      type="number"
+      class="ingrediente-quantita"
+      placeholder="Q.tà"
+      step="0.001"
+      min="0"
+      style="flex: 1; min-width: 0;"
+      value="${initial.quantita != null ? initial.quantita : ""}"
+    />
+    <input
+      type="text"
+      class="ingrediente-unita"
+      placeholder="g, kg, ml, u"
+      style="flex: 1; min-width: 0;"
+      value="${initial.unita_misura || ""}"
+    />
+    <button type="button" class="app-button tiny red btn-del-ingrediente">
+      ✕
+    </button>
+  `;
 
-    ricettaIngredientiContainer.appendChild(row);
+  const btnDel = row.querySelector(".btn-del-ingrediente");
+  if (btnDel) {
+    btnDel.addEventListener("click", () => {
+      row.remove();
+    });
   }
 
-  function resetFormRicetta() {
-    ricettaCorrenteId = null;
-    ricettaFotoCorrenteUrl = null;
+  ricettaIngredientiContainer.appendChild(row);
+}
 
-    if (ricettaNomeInput) ricettaNomeInput.value = "";
-    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
-    if (ricettaNoteInput) ricettaNoteInput.value = "";
-    if (ricettaFotoInput) ricettaFotoInput.value = "";
+// Reset del form ricetta
+function resetFormRicetta() {
+  ricettaCorrenteId = null;
+  ricettaFotoCorrenteUrl = null;
 
-    if (ricettaIngredientiContainer) {
-      ricettaIngredientiContainer.innerHTML = "";
-    }
+  if (ricettaNomeInput) ricettaNomeInput.value = "";
+  if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
+  if (ricettaNoteInput) ricettaNoteInput.value = "";
+  if (ricettaFotoInput) ricettaFotoInput.value = "";
 
+  if (ricettaIngredientiContainer) {
+    ricettaIngredientiContainer.innerHTML = "";
+  }
+
+  creaRigaIngrediente();
+}
+
+// Click su "Aggiungi ingrediente"
+if (btnAddIngrediente) {
+  btnAddIngrediente.addEventListener("click", (e) => {
+    e.preventDefault();
     creaRigaIngrediente();
-  }
+  });
+}
 
-  if (btnAddIngrediente) {
-    btnAddIngrediente.addEventListener("click", (e) => {
-      e.preventDefault();
-      creaRigaIngrediente();
-    });
+// Carica suggerimenti ingredienti (dal magazzino)
+async function caricaProdottiSuggerimentiIngredienti() {
+  if (!magazzinoDati.length) {
+    await caricaMagazzinoDati();
   }
+  aggiornaIngredientiSuggestionsDaMagazzino();
+}
 
-  async function caricaProdottiSuggerimentiIngredienti() {
-    if (!magazzinoDati.length) {
-      await caricaMagazzinoDati();
-    }
-    aggiornaIngredientiSuggestionsDaMagazzino();
-  }
+// Aggiorna datalist con i prodotti di magazzino
+function aggiornaIngredientiSuggestionsDaMagazzino() {
+  if (!ingredientiSuggestions) return;
 
-  function aggiornaIngredientiSuggestionsDaMagazzino() {
-    if (!ingredientiSuggestions) return;
+  ingredientiSuggestions.innerHTML = "";
+  magazzinoDati.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.descrizione || "";
+    ingredientiSuggestions.appendChild(opt);
+  });
+}
 
-    ingredientiSuggestions.innerHTML = "";
-    magazzinoDati.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.descrizione || "";
-      ingredientiSuggestions.appendChild(opt);
-    });
-  }
-
-  if (btnSalvaRicetta) {
-    btnSalvaRicetta.addEventListener("click", (e) => {
-      e.preventDefault();
-      alert("Salvataggio ricette da completare in una fase successiva 😊");
-    });
-  }
+// Click su "Salva ricetta" (placeholder)
+if (btnSalvaRicetta) {
+  btnSalvaRicetta.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Salvataggio ricette da completare in una fase successiva 😊");
+  });
+}
 
   // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
