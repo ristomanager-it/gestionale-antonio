@@ -1197,7 +1197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-    // ========= ACQUISTI / FATTURE =========
+     // ========= ACQUISTI / FATTURE =========
   function resetFatturaForm() {
     fatturaCorrenteId = null;
     fatturaRighe = [];
@@ -1361,7 +1361,7 @@ document.addEventListener("DOMContentLoaded", () => {
       totale_documento: totale,
     };
 
-    // USA LA TABELLA fatture_acquisto
+    // TABELLA CORRETTA: fatture_acquisto
     const { data: fatturaSalvata, error } = await supabase
       .from("fatture_acquisto")
       .upsert(fatturaPayload)
@@ -1376,7 +1376,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fatturaCorrenteId = fatturaSalvata.id;
 
-    // cancello righe esistenti su fatture_acquisto_righe
+    // cancello righe esistenti da fatture_acquisto_righe
     await supabase
       .from("fatture_acquisto_righe")
       .delete()
@@ -1412,7 +1412,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaElencoFatture() {
     if (!supabase || !fattureLista) return;
 
-    // USA LA TABELLA fatture_acquisto
+    // TABELLA CORRETTA: fatture_acquisto
     const { data, error } = await supabase
       .from("fatture_acquisto")
       .select("id, numero, data, fornitore, totale_documento")
@@ -1536,6 +1536,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
+
   // ========= RICETTE (placeholder) =========
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
@@ -1631,7 +1632,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-   // ========= MAGAZZINO =========
+     // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
@@ -1647,7 +1648,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     magazzinoDati = (data || []).map((p) => ({
       id: p.id,
-      codice: p.codice_interno || "",   // <-- uso codice_interno dal DB
+      codice: p.codice_interno || "",     // <-- da codice_interno
       descrizione: p.descrizione,
       categoria: p.categoria,
       um: p.um,
@@ -1743,7 +1744,7 @@ document.addEventListener("DOMContentLoaded", () => {
       um: um || null,
       scorta_minima: scortaMinima || null,
       giacenza,
-      // codice_interno lo lascia gestire al DB (default/trigger)
+      // codice_interno gestito dal DB (default / trigger)
     };
 
     const { data, error } = await supabase
