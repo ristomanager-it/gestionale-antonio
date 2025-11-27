@@ -312,6 +312,28 @@ textarea {
   gap: 10px;
 }
 
+/* allineamento pulito label + input */
+.login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* campi Nome + PIN con angoli smussati e stessa larghezza */
+.login-form input[type="text"],
+.login-form input[type="number"] {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;       /* effetto pillola */
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  box-sizing: border-box;
+}
+
 .remember-label {
   display: flex;
   align-items: center;
