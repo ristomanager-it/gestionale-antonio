@@ -2186,7 +2186,7 @@ const fattureLista = document.getElementById("fatture-lista");
       <input
         type="text"
         class="ingrediente-unita"
-        placeholder="g, kg, ml, u..."
+        placeholder="g, kg, ml, u"
         style="flex: 1; min-width: 0;"
         value="${initial.unita_misura || ""}"
       />
