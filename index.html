@@ -27,7 +27,11 @@
 
             <div class="header-user">
               <span id="current-user-label">Nessun utente</span>
-              <button id="btn-logout" class="app-button tiny" style="display: none">
+              <button
+                id="btn-logout"
+                class="app-button tiny"
+                style="display: none"
+              >
                 Esci
               </button>
             </div>
@@ -55,6 +59,7 @@
                 <input
                   type="text"
                   id="login-nome"
+                  class="input-pill"
                   placeholder="Es. Mario Rossi"
                 />
               </label>
@@ -66,6 +71,7 @@
                   id="login-pin"
                   maxlength="10"
                   inputmode="numeric"
+                  class="input-pill"
                 />
               </label>
 
@@ -85,7 +91,7 @@
           </div>
         </section>
 
-        <!-- HOME DIPENDENTE -->
+        <!-- HOME DIPENDENTE (non manager) -->
         <section id="view-home-dip" class="view" style="display: none">
           <h2>Cosa vuoi fare?</h2>
 
@@ -140,7 +146,7 @@
 
             <label>
               Luogo di lavoro
-              <select id="timbratura-canale-select">
+              <select id="timbratura-canale-select" class="input-pill">
                 <option value="NR">NR</option>
                 <option value="RA">RA</option>
                 <option value="CC">CC</option>
@@ -161,11 +167,11 @@
             </button>
           </div>
 
-          <!-- SEZIONE PRESENZE (SOLO MANAGER/ADMIN, A COMANDO) -->
+          <!-- SEZIONE PRESENZE (solo manager/admin, a comando) -->
           <div
             class="manager-only"
             data-manager-only="true"
-            style="margin-top: 16px;"
+            style="margin-top: 16px"
           >
             <button id="btn-toggle-presenze" class="app-button small gray">
               Mostra stato presenze
@@ -173,7 +179,7 @@
 
             <div
               id="sezione-presenze"
-              style="display: none; margin-top: 10px;"
+              style="display: none; margin-top: 10px"
             >
               <h3>Stato dipendenti</h3>
               <div class="table-wrapper">
@@ -210,7 +216,11 @@
 
             <label>
               Data nascita
-              <input type="date" id="dip-data-nascita" class="input-pill" />
+              <input
+                type="date"
+                id="dip-data-nascita"
+                class="input-pill"
+              />
             </label>
 
             <label>
@@ -231,12 +241,22 @@
             <label>
               Ruolo
               <select id="dip-ruolo" class="input-pill">
-                <option value="admin">Admin</option>
-                <option value="manager_cucina">Manager cucina</option>
-                <option value="manager_sala">Manager sala</option>
-                <option value="addetto_cucina">Addetto cucina</option>
                 <option value="cameriere">Cameriere</option>
+                <option value="addetto_cucina">Addetto cucina</option>
+                <option value="manager_sala">Manager sala</option>
+                <option value="manager_cucina">Manager cucina</option>
+                <option value="admin">Admin</option>
               </select>
+            </label>
+
+            <label id="label-retribuzione-base">
+              <span>Paga oraria lorda (€/h)</span>
+              <input
+                type="number"
+                step="0.01"
+                id="dip-retribuzione-base"
+                class="input-pill"
+              />
             </label>
 
             <label>
@@ -248,35 +268,23 @@
               </select>
             </label>
 
-            <label id="label-retribuzione-base">
-              Paga oraria lorda (€/h)
-              <input
-                type="number"
-                id="dip-retribuzione-base"
-                step="0.01"
-                class="input-pill"
-              />
-            </label>
-
-            <div id="row-ore-mensili" style="display: none;">
+            <div id="row-ore-mensili" style="display: none">
               <label>
                 Ore mensili contrattuali
                 <input
                   type="number"
                   id="dip-ore-mensili"
-                  step="0.1"
                   class="input-pill"
                 />
               </label>
             </div>
 
-            <div id="row-ore-servizio" style="display: none;">
+            <div id="row-ore-servizio" style="display: none">
               <label>
                 Ore medie per servizio
                 <input
                   type="number"
                   id="dip-ore-servizio"
-                  step="0.1"
                   class="input-pill"
                 />
               </label>
@@ -286,21 +294,16 @@
               Costo orario calcolato
               <input
                 type="number"
-                id="dip-costo"
                 step="0.01"
+                id="dip-costo"
                 class="input-pill"
                 readonly
               />
             </label>
 
             <label>
-              PIN
-              <input
-                type="text"
-                id="dip-codice"
-                maxlength="10"
-                class="input-pill"
-              />
+              PIN personale
+              <input type="text" id="dip-codice" class="input-pill" />
             </label>
 
             <label>
@@ -315,15 +318,19 @@
 
             <label>
               <input type="checkbox" id="dip-attivo" checked />
-              Attivo
+              Dipendente attivo
             </label>
 
-            <button id="btn-add-dip" class="app-button small green">
+            <button
+              id="btn-add-dip"
+              type="button"
+              class="app-button small green"
+            >
               Salva dipendente
             </button>
           </form>
 
-          <h3>Elenco</h3>
+          <h3>Elenco dipendenti</h3>
           <div class="table-wrapper">
             <table class="table-timbrature">
               <thead>
@@ -335,12 +342,12 @@
                   <th>Telefono</th>
                   <th>Email</th>
                   <th>Ruolo</th>
-                  <th>Tipo compenso</th>
+                  <th>Tipo</th>
                   <th>Costo orario</th>
                   <th>Canale</th>
                   <th>PIN</th>
                   <th>Attivo</th>
-                  <th>Azioni</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="dipendenti-lista"></tbody>
@@ -350,8 +357,8 @@
 
         <!-- ACQUISTI / FATTURE -->
         <section id="view-acquisti" class="view" style="display: none">
-          <h2>Fatture di acquisto</h2>
-          <p>Registra fatture, prodotti e movimenti di magazzino.</p>
+          <h2>Acquisti / Fatture</h2>
+          <p>Registra fatture di acquisto e righe collegate al magazzino.</p>
 
           <form id="fattura-form" onsubmit="return false;">
             <label>
@@ -374,7 +381,7 @@
               <input id="fattura-note" type="text" class="input-pill" />
             </label>
 
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <div style="display: flex; gap: 8px; margin-top: 8px">
               <button
                 id="btn-nuova-fattura"
                 class="app-button small gray"
@@ -472,7 +479,7 @@
           <table
             id="fatture-table"
             class="table-timbrature"
-            style="display: none;"
+            style="display: none"
           >
             <thead>
               <tr>
@@ -546,7 +553,7 @@
           <h2>Magazzino</h2>
           <p>Ricerca prodotti, scorte e movimenti.</p>
 
-          <div style="position: relative;">
+          <div style="position: relative">
             <input
               id="magazzino-search"
               type="text"
@@ -558,44 +565,22 @@
             <datalist id="magazzino-suggestions"></datalist>
           </div>
 
-          <h3>Prodotti</h3>
-          <!-- Tabella nascosta di default: si mostra solo quando si cerca -->
-          <table
-            id="magazzino-table"
-            class="table-timbrature"
-            style="display: none;"
-          >
-            <thead>
-              <tr>
-                <th>Codice</th>
-                <th>Descrizione</th>
-                <th>Categoria</th>
-                <th>Stock</th>
-              </tr>
-            </thead>
-            <tbody id="magazzino-lista"></tbody>
-          </table>
-
-          <h3>Dettaglio prodotto</h3>
-
-          <button
-            id="btn-magazzino-nuovo"
-            class="app-button small gray"
-            type="button"
-            style="margin-bottom: 8px;"
-          >
-            Nuovo prodotto
-          </button>
-
           <form id="magazzino-form" onsubmit="return false;">
-            <input type="hidden" id="magazzino-id" />
+            <label>
+              ID interno
+              <input
+                id="magazzino-id"
+                type="text"
+                class="input-pill"
+                readonly
+              />
+            </label>
 
             <label>
-              Descrizione
+              Descrizione prodotto
               <input
-                type="text"
                 id="magazzino-descrizione"
-                list="ingredienti-suggestions"
+                type="text"
                 class="input-pill"
               />
             </label>
@@ -603,266 +588,286 @@
             <label>
               Categoria
               <input
-                type="text"
                 id="magazzino-categoria"
+                type="text"
                 class="input-pill"
               />
             </label>
 
             <label>
-              UM
-              <input
-                type="text"
-                id="magazzino-um"
-                placeholder="kg, l, pz..."
-                class="input-pill"
-              />
+              Unità di misura (UM)
+              <input id="magazzino-um" type="text" class="input-pill" />
             </label>
 
             <label>
               Scorta minima
               <input
-                type="number"
                 id="magazzino-scorta-minima"
+                type="number"
                 step="0.001"
                 class="input-pill"
               />
             </label>
 
             <label>
-              Giacenza attuale
+              Giacenza attuale (solo lettura)
               <input
-                type="number"
                 id="magazzino-giacenza"
+                type="number"
                 step="0.001"
                 class="input-pill"
                 readonly
               />
             </label>
 
-            <button
-              id="btn-magazzino-salva"
-              class="app-button small green"
-              type="button"
-            >
-              Salva prodotto
-            </button>
+            <div style="display: flex; gap: 8px; margin-top: 8px">
+              <button
+                id="btn-magazzino-nuovo"
+                type="button"
+                class="app-button small gray"
+              >
+                Nuovo prodotto
+              </button>
+
+              <button
+                id="btn-magazzino-salva"
+                type="button"
+                class="app-button small green"
+              >
+                Salva prodotto
+              </button>
+            </div>
           </form>
 
-          <p class="small-muted">
-            Scrivi il nome (es. "pomodori") nel campo di ricerca sopra per
-            vedere i prodotti e le quantità, poi clicca sulla riga per
-            caricare il dettaglio.
-          </p>
+          <h3>Risultati ricerca</h3>
+          <div class="table-wrapper">
+            <table
+              id="magazzino-table"
+              class="table-timbrature"
+              style="display: none"
+            >
+              <thead>
+                <tr>
+                  <th>Codice</th>
+                  <th>Descrizione</th>
+                  <th>Categoria</th>
+                  <th>Giacenza</th>
+                </tr>
+              </thead>
+              <tbody id="magazzino-lista"></tbody>
+            </table>
+          </div>
         </section>
 
         <!-- REPORT / KPI -->
-       <section id="view-report" class="view" style="display: none">
-  <h2>Cruscotto KPI</h2>
+        <section id="view-report" class="view" style="display: none">
+          <h2>Report & KPI</h2>
+          <p>Analisi sintetica di incassi, costi e margini.</p>
 
-  <!-- Toolbar: periodi + data -->
-  <div class="report-toolbar">
-    <div class="report-periods">
-      <button
-        type="button"
-        class="app-button tiny report-period-btn active"
-        data-period="giorno"
-      >
-        Giorno
-      </button>
-      <button
-        type="button"
-        class="app-button tiny report-period-btn"
-        data-period="settimana"
-      >
-        Settimana
-      </button>
-      <button
-        type="button"
-        class="app-button tiny report-period-btn"
-        data-period="mese"
-      >
-        Mese
-      </button>
-      <button
-        type="button"
-        class="app-button tiny report-period-btn"
-        data-period="anno"
-      >
-        Anno
-      </button>
+          <div class="kpi-date-label-wrapper">
+            <label>
+              Data / giorno di riferimento
+              <input
+                id="report-data"
+                type="date"
+                class="input-pill"
+              />
+            </label>
+          </div>
+
+          <div class="kpi-period-switch">
+            <button
+              type="button"
+              class="app-button small kpi-period-btn kpi-period-active report-period-btn"
+              data-period="giorno"
+            >
+              Giorno
+            </button>
+            <button
+              type="button"
+              class="app-button small kpi-period-btn report-period-btn"
+              data-period="settimana"
+            >
+              Settimana
+            </button>
+            <button
+              type="button"
+              class="app-button small kpi-period-btn report-period-btn"
+              data-period="mese"
+            >
+              Mese
+            </button>
+          </div>
+
+          <div class="kpi-incasso-row">
+            <span>Incasso del periodo</span>
+            <input
+              id="kpi-incasso-input"
+              type="number"
+              step="0.01"
+              class="input-pill"
+              placeholder="0,00"
+            />
+          </div>
+
+          <div class="kpi-incasso-row">
+            <span>Food cost del periodo</span>
+            <input
+              id="kpi-foodcost-input"
+              type="number"
+              step="0.01"
+              class="input-pill"
+              placeholder="0,00"
+            />
+          </div>
+
+          <!-- Gauge margine -->
+          <div class="kpi-gauge-block">
+            <div class="kpi-gauge-wrapper">
+              <div class="kpi-gauge-arc">
+                <div
+                  id="kpi-gauge-needle"
+                  class="kpi-gauge-needle"
+                ></div>
+                <div class="kpi-gauge-center"></div>
+              </div>
+              <div class="kpi-gauge-captions">
+                <span>Perdita</span>
+                <span>Margine</span>
+                <span>Ottimo</span>
+              </div>
+            </div>
+            <div class="kpi-gauge-bep" id="kpi-bep-label">
+              BEP € 0,00
+            </div>
+          </div>
+
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Incasso</h3>
+              <p id="kpi-incasso-value">€ 0,00</p>
+              <small>fatturato lordo</small>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Risultato netto</h3>
+              <p id="kpi-netto-value">€ 0,00</p>
+              <small>prima di imposte</small>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Margine</h3>
+              <p id="kpi-margine-badge">€ 0,00</p>
+              <small>badge positivo/negativo</small>
+            </div>
+          </div>
+
+          <hr class="report-section-divider" />
+
+          <!-- Card Lavoro / Food / Fissi -->
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Lavoro</h3>
+              <p id="kpi-lavoro-importo">€ 0,00</p>
+              <small id="kpi-lavoro-percent">0%</small>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Food cost</h3>
+              <p id="kpi-food-importo">€ 0,00</p>
+              <small id="kpi-food-percent">0%</small>
+            </div>
+
+            <div class="kpi-card">
+              <h3>Costi fissi</h3>
+              <p id="kpi-fissi-importo">€ 0,00</p>
+              <small id="kpi-fissi-percent">0%</small>
+            </div>
+          </div>
+
+          <hr class="report-divider" />
+
+          <!-- COSTI FISSI: pannello separato, chiuso di default -->
+          <button
+            id="btn-toggle-costi-fissi"
+            type="button"
+            class="app-button small gray"
+          >
+            Mostra / Nascondi costi fissi
+          </button>
+
+          <div id="costi-fissi-panel" style="display: none">
+            <h3>Costi fissi annuali</h3>
+
+            <form onsubmit="return false;" class="costi-fissi-form">
+              <label>
+                Categoria
+                <input
+                  id="costi-fissi-categoria"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Affitto, utenze, leasing..."
+                />
+              </label>
+
+              <label>
+                Descrizione
+                <input
+                  id="costi-fissi-descrizione"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Dettaglio (facoltativo)"
+                />
+              </label>
+
+              <label>
+                Anno riferimento
+                <input
+                  id="costi-fissi-anno"
+                  type="number"
+                  class="input-pill"
+                  placeholder="2025"
+                />
+              </label>
+
+              <label>
+                Importo annuo (€)
+                <input
+                  id="costi-fissi-importo"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  placeholder="0,00"
+                />
+              </label>
+
+              <button
+                id="btn-salva-costo-fisso"
+                type="button"
+                class="app-button small green"
+              >
+                Salva costo fisso
+              </button>
+            </form>
+
+            <h4>Elenco costi fissi</h4>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Descrizione</th>
+                    <th>Anno</th>
+                    <th>Importo annuo</th>
+                  </tr>
+                </thead>
+                <tbody id="costi-fissi-lista"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
-
-    <div class="report-date">
-      <label>
-        Data riferimento
-        <input
-          id="report-data"
-          type="date"
-          class="input-pill"
-        />
-      </label>
-    </div>
-  </div>
-
-  <!-- Riga input incasso / food -->
-  <div class="report-input-row">
-    <div class="report-input-card">
-      <label>
-        Incasso periodo (€)
-        <input
-          id="kpi-incasso-input"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          placeholder="0,00"
-        />
-      </label>
-      <div class="report-input-value">
-        <span>Incasso</span>
-        <strong id="kpi-incasso-value">€ 0,00</strong>
-      </div>
-    </div>
-
-    <div class="report-input-card">
-      <label>
-        Food cost periodo (€)
-        <input
-          id="kpi-foodcost-input"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          placeholder="0,00"
-        />
-      </label>
-      <div class="report-input-value">
-        <span>Netto (incasso - food)</span>
-        <strong id="kpi-netto-value">€ 0,00</strong>
-      </div>
-    </div>
-  </div>
-
-  <!-- Riga gauge + margine -->
-  <div class="report-gauge-row">
-    <div class="report-margine-box">
-      <span class="report-margine-label">Margine</span>
-      <div id="kpi-margine-badge" class="kpi-margine-badge neg">
-        € 0,00
-      </div>
-      <div id="kpi-bep-label" class="kpi-bep-label">BEP € 0,00</div>
-    </div>
-
-    <div class="kpi-gauge">
-      <div class="kpi-gauge-dial">
-        <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
-        <div class="kpi-gauge-center"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card Lavoro / Food / Fissi -->
-  <div class="kpi-cards">
-    <div class="kpi-card">
-      <h3>Lavoro</h3>
-      <p id="kpi-lavoro-importo">€ 0,00</p>
-      <small id="kpi-lavoro-percent">0%</small>
-    </div>
-
-    <div class="kpi-card">
-      <h3>Food cost</h3>
-      <p id="kpi-food-importo">€ 0,00</p>
-      <small id="kpi-food-percent">0%</small>
-    </div>
-
-    <div class="kpi-card">
-      <h3>Costi fissi</h3>
-      <p id="kpi-fissi-importo">€ 0,00</p>
-      <small id="kpi-fissi-percent">0%</small>
-    </div>
-  </div>
-
-  <hr class="report-divider" />
-
-  <!-- COSTI FISSI: pannello separato, chiuso di default -->
-  <button
-    id="btn-toggle-costi-fissi"
-    type="button"
-    class="app-button small gray"
-  >
-    Mostra / Nascondi costi fissi
-  </button>
-
-  <div id="costi-fissi-panel" style="display: none">
-    <h3>Costi fissi annuali</h3>
-
-    <form onsubmit="return false;" class="costi-fissi-form">
-      <label>
-        Categoria
-        <input
-          id="costi-fissi-categoria"
-          type="text"
-          class="input-pill"
-          placeholder="Affitto, utenze, leasing..."
-        />
-      </label>
-
-      <label>
-        Descrizione
-        <input
-          id="costi-fissi-descrizione"
-          type="text"
-          class="input-pill"
-          placeholder="Dettaglio (facoltativo)"
-        />
-      </label>
-
-      <label>
-        Anno riferimento
-        <input
-          id="costi-fissi-anno"
-          type="number"
-          class="input-pill"
-          placeholder="2024"
-        />
-      </label>
-
-      <label>
-        Importo annuo (€)
-        <input
-          id="costi-fissi-importo"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          placeholder="0,00"
-        />
-      </label>
-
-      <button
-        id="btn-salva-costo-fisso"
-        type="button"
-        class="app-button small green"
-      >
-        Salva costo fisso
-      </button>
-    </form>
-
-    <h4>Elenco costi fissi</h4>
-    <div class="table-wrapper">
-      <table class="table-timbrature">
-        <thead>
-          <tr>
-            <th>Categoria</th>
-            <th>Descrizione</th>
-            <th>Anno</th>
-            <th>Importo annuo</th>
-          </tr>
-        </thead>
-        <tbody id="costi-fissi-lista"></tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
 
     <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
