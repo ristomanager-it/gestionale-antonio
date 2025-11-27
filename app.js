@@ -107,8 +107,9 @@ const fattureLista = document.getElementById("fatture-lista");
     aggiornaTotaliFattura();
   }
 
-  function creaRigaFattura(initial = {}) {
+  function creaRigaFattura(initial) {
     if (!fatturaRigheBody) return;
+    initial = initial || {};
 
     const idx = fatturaRighe.length;
     const row = {
@@ -120,7 +121,7 @@ const fattureLista = document.getElementById("fatture-lista");
       quantita: initial.quantita || 0,
       prezzo: initial.prezzo || 0,
       iva: initial.iva || 22,
-      totale: initial.totale || 0,
+      totale: initial.totale || 0
     };
 
     fatturaRighe.push(row);
@@ -133,14 +134,10 @@ const fattureLista = document.getElementById("fatture-lista");
       <td><input type="text" class="input-pill riga-descrizione" value="${row.descrizione}"/></td>
       <td><input type="text" class="input-pill riga-categoria" value="${row.categoria}"/></td>
       <td><input type="text" class="input-pill riga-um" value="${row.um}"/></td>
-      <td><input type="number" step="0.001" class="input-pill riga-quantita" value="${row.quantita ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-prezzo" value="${row.prezzo ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-iva" value="${row.iva ||
-        ""}"/></td>
-      <td><input type="number" step="0.01" class="input-pill riga-totale" value="${row.totale ||
-        ""}" readonly/></td>
+      <td><input type="number" step="0.001" class="input-pill riga-quantita" value="${row.quantita || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-prezzo" value="${row.prezzo || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-iva" value="${row.iva || ""}"/></td>
+      <td><input type="number" step="0.01" class="input-pill riga-totale" value="${row.totale || ""}" readonly/></td>
       <td>
         <button type="button" class="app-button tiny red btn-del-riga">✕</button>
       </td>
@@ -162,13 +159,14 @@ const fattureLista = document.getElementById("fatture-lista");
       const index = parseInt(tr.dataset.index || "0", 10);
       const r = fatturaRighe[index];
 
-      r.codice = codiceInput.value;
-      r.descrizione = descrizioneInput.value;
-      r.categoria = categoriaInput.value;
-      r.um = umInput.value;
-      r.quantita = parseNumber(quantitaInput.value);
-      r.prezzo = parseNumber(prezzoInput.value);
-      r.iva = parseNumber(ivaInput.value);
+      r.codice = codiceInput ? codiceInput.value : "";
+      r.descrizione = descrizioneInput ? descrizioneInput.value : "";
+      r.categoria = categoriaInput ? categoriaInput.value : "";
+      r.um = umInput ? umInput.value : "";
+      r.quantita = quantitaInput ? parseNumber(quantitaInput.value) : 0;
+      r.prezzo = prezzoInput ? parseNumber(prezzoInput.value) : 0;
+      r.iva = ivaInput ? parseNumber(ivaInput.value) : 0;
+
       const imponibile = r.quantita * r.prezzo;
       const ivaVal = (imponibile * r.iva) / 100;
       r.totale = imponibile + ivaVal;
@@ -184,18 +182,19 @@ const fattureLista = document.getElementById("fatture-lista");
       codiceInput,
       descrizioneInput,
       categoriaInput,
-      umInput,
-    ].forEach((el) => {
+      umInput
+    ].forEach(function (el) {
       if (el) el.addEventListener("input", updateFromInputs);
     });
 
     if (btnDel) {
-      btnDel.addEventListener("click", () => {
+      btnDel.addEventListener("click", function () {
         const index = parseInt(tr.dataset.index || "0", 10);
         fatturaRighe.splice(index, 1);
         tr.remove();
-        Array.from(fatturaRigheBody.querySelectorAll("tr")).forEach(
-          (rowEl, i) => {
+        Array.prototype.forEach.call(
+          fatturaRigheBody.querySelectorAll("tr"),
+          function (rowEl, i) {
             rowEl.dataset.index = String(i);
           }
         );
@@ -208,7 +207,7 @@ const fattureLista = document.getElementById("fatture-lista");
     let imponibileTot = 0;
     let ivaTot = 0;
 
-    fatturaRighe.forEach((r) => {
+    fatturaRighe.forEach(function (r) {
       const q = parseNumber(r.quantita);
       const p = parseNumber(r.prezzo);
       const ivaPerc = parseNumber(r.iva);
@@ -231,10 +230,10 @@ const fattureLista = document.getElementById("fatture-lista");
   async function salvaFatturaSupabase() {
     if (!supabase) return;
 
-    const numero = (fatturaNumeroInput?.value || "").trim();
-    const dataStr = fatturaDataInput?.value || "";
-    const fornitore = (fatturaFornitoreInput?.value || "").trim();
-    const note = fatturaNoteInput?.value || "";
+    const numero = (fatturaNumeroInput && fatturaNumeroInput.value || "").trim();
+    const dataStr = fatturaDataInput ? fatturaDataInput.value : "";
+    const fornitore = (fatturaFornitoreInput && fatturaFornitoreInput.value || "").trim();
+    const note = fatturaNoteInput ? fatturaNoteInput.value : "";
 
     if (!numero) {
       alert("Inserisci il numero fattura");
@@ -243,24 +242,30 @@ const fattureLista = document.getElementById("fatture-lista");
 
     const data = dataStr ? new Date(dataStr).toISOString() : null;
     const imponibileTot = parseNumber(
-      fatturaImponibileTotaleInput?.value || ""
+      fatturaImponibileTotaleInput && fatturaImponibileTotaleInput.value || ""
     );
-    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "");
+    const ivaTot = parseNumber(
+      fatturaIvaTotaleInput && fatturaIvaTotaleInput.value || ""
+    );
     const totale = parseNumber(
-      fatturaTotaleDocumentoInput?.value || ""
+      fatturaTotaleDocumentoInput && fatturaTotaleDocumentoInput.value || ""
     );
 
     const fatturaPayload = {
       id: fatturaCorrenteId || undefined,
-      numero_documento: numero,
+      numero: numero,
+      // ATTENZIONE: qui uso "data_documento" perché in Supabase
+      // la colonna "data" ha dato errore. Se la tua colonna si chiama diversamente,
+      // andrà cambiato questo nome.
       data_documento: data,
-      fornitore,
-      note,
+      fornitore: fornitore,
+      note: note || null,
       imponibile_totale: imponibileTot,
       iva_totale: ivaTot,
-      totale_documento: totale,
+      totale_documento: totale
     };
 
+    // tabella: fatture_acquisto (quella che Supabase suggeriva)
     const { data: fatturaSalvata, error } = await supabase
       .from("fatture_acquisto")
       .upsert(fatturaPayload)
@@ -275,22 +280,25 @@ const fattureLista = document.getElementById("fatture-lista");
 
     fatturaCorrenteId = fatturaSalvata.id;
 
+    // Righe collegate: uso tabella "fatture_righe" (supposta)
     await supabase
       .from("fatture_righe")
       .delete()
       .eq("fattura_id", fatturaCorrenteId);
 
-    const righePayload = fatturaRighe.map((r) => ({
-      fattura_id: fatturaCorrenteId,
-      codice: r.codice || null,
-      descrizione: r.descrizione || null,
-      categoria: r.categoria || null,
-      um: r.um || null,
-      quantita: parseNumber(r.quantita),
-      prezzo: parseNumber(r.prezzo),
-      iva: parseNumber(r.iva),
-      totale: parseNumber(r.totale),
-    }));
+    const righePayload = fatturaRighe.map(function (r) {
+      return {
+        fattura_id: fatturaCorrenteId,
+        codice: r.codice || null,
+        descrizione: r.descrizione || null,
+        categoria: r.categoria || null,
+        um: r.um || null,
+        quantita: parseNumber(r.quantita),
+        prezzo: parseNumber(r.prezzo),
+        iva: parseNumber(r.iva),
+        totale: parseNumber(r.totale)
+      };
+    });
 
     if (righePayload.length) {
       const { error: errRighe } = await supabase
@@ -312,7 +320,7 @@ const fattureLista = document.getElementById("fatture-lista");
 
     const { data, error } = await supabase
       .from("fatture_acquisto")
-      .select("id, numero_documento, data_documento, fornitore, totale_documento")
+      .select("*")
       .order("data_documento", { ascending: false });
 
     if (error) {
@@ -322,14 +330,14 @@ const fattureLista = document.getElementById("fatture-lista");
 
     fattureLista.innerHTML = "";
 
-    (data || []).forEach((f) => {
+    (data || []).forEach(function (f) {
       const d = f.data_documento ? new Date(f.data_documento) : null;
       const day = d ? d.toLocaleDateString("it-IT") : "";
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${day}</td>
-        <td>${f.numero_documento}</td>
+        <td>${f.numero || ""}</td>
         <td>${f.fornitore || ""}</td>
         <td>${formatEuro(f.totale_documento || 0)}</td>
         <td>
@@ -339,8 +347,8 @@ const fattureLista = document.getElementById("fatture-lista");
       fattureLista.appendChild(tr);
     });
 
-    fattureLista.querySelectorAll("[data-open-fattura]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+    fattureLista.querySelectorAll("[data-open-fattura]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
         const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
         await apriFattura(id);
       });
@@ -363,7 +371,7 @@ const fattureLista = document.getElementById("fatture-lista");
 
     fatturaCorrenteId = fattura.id;
 
-    if (fatturaNumeroInput) fatturaNumeroInput.value = fattura.numero_documento || "";
+    if (fatturaNumeroInput) fatturaNumeroInput.value = fattura.numero || "";
     if (fatturaDataInput)
       fatturaDataInput.value = fattura.data_documento
         ? fattura.data_documento.substring(0, 10)
@@ -398,32 +406,34 @@ const fattureLista = document.getElementById("fatture-lista");
 
     fatturaRighe = [];
     if (fatturaRigheBody) fatturaRigheBody.innerHTML = "";
-    (righe || []).forEach((r) => creaRigaFattura(r));
+    (righe || []).forEach(function (r) {
+      creaRigaFattura(r);
+    });
   }
 
   if (btnNuovaFattura) {
-    btnNuovaFattura.addEventListener("click", (e) => {
+    btnNuovaFattura.addEventListener("click", function (e) {
       e.preventDefault();
       resetFatturaForm();
     });
   }
 
   if (btnSalvaFattura) {
-    btnSalvaFattura.addEventListener("click", (e) => {
+    btnSalvaFattura.addEventListener("click", function (e) {
       e.preventDefault();
       salvaFatturaSupabase();
     });
   }
 
   if (btnAddRigaFattura) {
-    btnAddRigaFattura.addEventListener("click", (e) => {
+    btnAddRigaFattura.addEventListener("click", function (e) {
       e.preventDefault();
       creaRigaFattura();
     });
   }
 
   if (btnToggleFatture && fattureTable) {
-    btnToggleFatture.addEventListener("click", () => {
+    btnToggleFatture.addEventListener("click", function () {
       const visibile = fattureTable.style.display !== "none";
       fattureTable.style.display = visibile ? "none" : "table";
       btnToggleFatture.textContent = visibile
@@ -432,23 +442,111 @@ const fattureLista = document.getElementById("fatture-lista");
     });
   }
 
-  // ========= RICETTE (DOM) =========
-  const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+  // ========= RICETTE (placeholder) =========
+  function creaRigaIngrediente(initial) {
+    if (!ricettaIngredientiContainer) return;
+    initial = initial || {};
 
-     // ========= MAGAZZINO =========
+    const row = document.createElement("div");
+    row.className = "ricetta-ingrediente-row";
+
+    row.innerHTML = `
+      <input
+        type="text"
+        class="ingrediente-nome"
+        placeholder="Ingrediente (come in magazzino)"
+        style="flex: 2; min-width: 0;"
+        list="ingredienti-suggestions"
+        value="${initial.nome_prodotto || ""}"
+      />
+      <input
+        type="number"
+        class="ingrediente-quantita"
+        placeholder="Q.tà"
+        step="0.001"
+        min="0"
+        style="flex: 1; min-width: 0;"
+        value="${initial.quantita != null ? initial.quantita : ""}"
+      />
+      <input
+        type="text"
+        class="ingrediente-unita"
+        placeholder="g, kg, ml, u..."
+        style="flex: 1; min-width: 0;"
+        value="${initial.unita_misura || ""}"
+      />
+      <button type="button" class="app-button tiny red btn-del-ingrediente">
+        ✕
+      </button>
+    `;
+
+    const btnDel = row.querySelector(".btn-del-ingrediente");
+    if (btnDel) {
+      btnDel.addEventListener("click", function () {
+        row.remove();
+      });
+    }
+
+    ricettaIngredientiContainer.appendChild(row);
+  }
+
+  function resetFormRicetta() {
+    ricettaCorrenteId = null;
+    ricettaFotoCorrenteUrl = null;
+
+    if (ricettaNomeInput) ricettaNomeInput.value = "";
+    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
+    if (ricettaNoteInput) ricettaNoteInput.value = "";
+    if (ricettaFotoInput) ricettaFotoInput.value = "";
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+    }
+
+    creaRigaIngrediente();
+  }
+
+  if (btnAddIngrediente) {
+    btnAddIngrediente.addEventListener("click", function (e) {
+      e.preventDefault();
+      creaRigaIngrediente();
+    });
+  }
+
+  async function caricaProdottiSuggerimentiIngredienti() {
+    if (!magazzinoDati.length) {
+      await caricaMagazzinoDati();
+    }
+    aggiornaIngredientiSuggestionsDaMagazzino();
+  }
+
+  function aggiornaIngredientiSuggestionsDaMagazzino() {
+    if (!ingredientiSuggestions) return;
+
+    ingredientiSuggestions.innerHTML = "";
+    magazzinoDati.forEach(function (p) {
+      const opt = document.createElement("option");
+      opt.value = p.descrizione || "";
+      ingredientiSuggestions.appendChild(opt);
+    });
+  }
+
+  if (btnSalvaRicetta) {
+    btnSalvaRicetta.addEventListener("click", function (e) {
+      e.preventDefault();
+      alert("Salvataggio ricette da completare in una fase successiva 😊");
+    });
+  }
+
+  // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
     const { data, error } = await supabase
       .from("prodotti")
-      .select("id, codice, descrizione, categoria, um, scorta_minima, giacenza")
+      // tolgo "codice" perché la colonna non esiste in Supabase
+      // e uso "categoria_id" al posto di "categoria"
+      .select("id, descrizione, categoria_id, um, scorta_minima, giacenza")
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -456,15 +554,17 @@ const fattureLista = document.getElementById("fatture-lista");
       return;
     }
 
-    magazzinoDati = (data || []).map((p) => ({
-      id: p.id,
-      codice: p.codice,
-      descrizione: p.descrizione,
-      categoria: p.categoria,
-      um: p.um,
-      scortaMinima: p.scorta_minima ?? null,
-      giacenza: p.giacenza ?? 0,
-    }));
+    magazzinoDati = (data || []).map(function (p) {
+      return {
+        id: p.id,
+        descrizione: p.descrizione,
+        categoriaId: p.categoria_id,
+        um: p.um,
+        scortaMinima:
+          p.scorta_minima != null ? p.scorta_minima : null,
+        giacenza: p.giacenza != null ? p.giacenza : 0
+      };
+    });
 
     renderMagazzinoLista(magazzinoDati);
     aggiornaMagazzinoSuggestions();
@@ -472,24 +572,175 @@ const fattureLista = document.getElementById("fatture-lista");
   }
 
   function renderMagazzinoLista(lista) {
-    ...
+    if (!magazzinoListaEl) return;
+
+    magazzinoListaEl.innerHTML = "";
+
+    (lista || []).forEach(function (p) {
+      const tr = document.createElement("tr");
+      const low =
+        p.scortaMinima != null && p.giacenza <= p.scortaMinima;
+      tr.innerHTML = `
+        <td>${p.id != null ? p.id : ""}</td>
+        <td>${p.descrizione || ""}</td>
+        <td>${p.categoriaId != null ? p.categoriaId : ""}</td>
+        <td>
+          ${
+            low
+              ? '<span class="magazzino-low">' + p.giacenza + "</span>"
+              : p.giacenza
+          }
+        </td>
+      `;
+      tr.addEventListener("click", function () {
+        popolaMagazzinoForm(p);
+      });
+      magazzinoListaEl.appendChild(tr);
+    });
   }
 
   function aggiornaMagazzinoSuggestions() {
-    ...
+    if (!magazzinoSuggestions) return;
+    magazzinoSuggestions.innerHTML = "";
+
+    magazzinoDati.forEach(function (p) {
+      const opt = document.createElement("option");
+      opt.value = p.descrizione || "";
+      magazzinoSuggestions.appendChild(opt);
+    });
   }
 
   function popolaMagazzinoForm(p) {
-    ...
+    if (!p) {
+      if (magazzinoIdInput) magazzinoIdInput.value = "";
+      if (magazzinoDescrizioneInput) magazzinoDescrizioneInput.value = "";
+      if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
+      if (magazzinoUmInput) magazzinoUmInput.value = "";
+      if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
+      if (magazzinoGiacenzaInput) magazzinoGiacenzaInput.value = "";
+      return;
+    }
+
+    if (magazzinoIdInput) magazzinoIdInput.value = p.id || "";
+    if (magazzinoDescrizioneInput)
+      magazzinoDescrizioneInput.value = p.descrizione || "";
+    if (magazzinoCategoriaInput)
+      magazzinoCategoriaInput.value =
+        p.categoriaId != null ? p.categoriaId : "";
+    if (magazzinoUmInput) magazzinoUmInput.value = p.um || "";
+    if (magazzinoScortaMinimaInput)
+      magazzinoScortaMinimaInput.value =
+        p.scortaMinima != null ? p.scortaMinima : "";
+    if (magazzinoGiacenzaInput)
+      magazzinoGiacenzaInput.value =
+        p.giacenza != null ? p.giacenza : "";
   }
 
   async function salvaProdottoDaMagazzinoForm() {
-    ...
+    if (!supabase) return;
+
+    const id = magazzinoIdInput ? magazzinoIdInput.value : null;
+    const descrizione = (magazzinoDescrizioneInput && magazzinoDescrizioneInput.value || "").trim();
+    const categoriaIdStr = (magazzinoCategoriaInput && magazzinoCategoriaInput.value || "").trim();
+    const um = (magazzinoUmInput && magazzinoUmInput.value || "").trim();
+    const scortaMinima = parseNumber(
+      magazzinoScortaMinimaInput && magazzinoScortaMinimaInput.value || ""
+    );
+    const giacenza = parseNumber(
+      magazzinoGiacenzaInput && magazzinoGiacenzaInput.value || ""
+    );
+
+    if (!descrizione) {
+      alert("Inserisci la descrizione del prodotto");
+      return;
+    }
+
+    const categoriaId = categoriaIdStr
+      ? parseInt(categoriaIdStr, 10)
+      : null;
+
+    const payload = {
+      id: id || undefined,
+      descrizione: descrizione,
+      categoria_id: categoriaId,
+      um: um || null,
+      scorta_minima: scortaMinima || null,
+      giacenza: giacenza
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio prodotto:", error);
+      alert("Errore nel salvare il prodotto");
+      return;
+    }
+
+    const nuovo = {
+      id: data.id,
+      descrizione: data.descrizione,
+      categoriaId: data.categoria_id,
+      um: data.um,
+      scortaMinima:
+        data.scorta_minima != null ? data.scorta_minima : null,
+      giacenza: data.giacenza != null ? data.giacenza : 0
+    };
+
+    const idx = magazzinoDati.findIndex(function (p) {
+      return p.id === nuovo.id;
+    });
+    if (idx >= 0) {
+      magazzinoDati[idx] = nuovo;
+    } else {
+      magazzinoDati.push(nuovo);
+    }
+
+    renderMagazzinoLista(magazzinoDati);
+    aggiornaMagazzinoSuggestions();
+    aggiornaIngredientiSuggestionsDaMagazzino();
+    popolaMagazzinoForm(nuovo);
+    alert("Prodotto aggiornato.");
   }
 
-  if (btnMagazzinoSalva) { ... }
-  if (btnMagazzinoNuovo) { ... }
-  if (magazzinoSearchInput && magazzinoTable) { ... }
+  if (btnMagazzinoSalva) {
+    btnMagazzinoSalva.addEventListener("click", function (e) {
+      e.preventDefault();
+      salvaProdottoDaMagazzinoForm();
+    });
+  }
+
+  if (btnMagazzinoNuovo) {
+    btnMagazzinoNuovo.addEventListener("click", function () {
+      popolaMagazzinoForm(null);
+    });
+  }
+
+  if (magazzinoSearchInput && magazzinoTable) {
+    magazzinoTable.style.display = "none";
+
+    magazzinoSearchInput.addEventListener("input", function () {
+      const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
+
+      if (!q) {
+        magazzinoTable.style.display = "none";
+        if (magazzinoListaEl) magazzinoListaEl.innerHTML = "";
+        return;
+      }
+
+      const filtrati = magazzinoDati.filter(function (p) {
+        const desc = (p.descrizione || "").toLowerCase();
+        const idStr = p.id != null ? String(p.id).toLowerCase() : "";
+        return desc.includes(q) || idStr.includes(q);
+      });
+
+      renderMagazzinoLista(filtrati);
+      magazzinoTable.style.display = "table";
+    });
+  }
 
 
   // ========= REPORT KPI (DOM) =========
