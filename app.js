@@ -1197,7 +1197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-     // ========= ACQUISTI / FATTURE =========
+       // ========= ACQUISTI / FATTURE =========
   function resetFatturaForm() {
     fatturaCorrenteId = null;
     fatturaRighe = [];
@@ -1331,15 +1331,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function salvaFatturaSupabase() {
     if (!supabase) return;
 
-    const numero = (fatturaNumeroInput?.value || "").trim();
+    // per ora numero resta solo in UI, non sul DB
     const dataStr = fatturaDataInput?.value || "";
     const fornitore = (fatturaFornitoreInput?.value || "").trim();
     const note = fatturaNoteInput?.value || "";
-
-    if (!numero) {
-      alert("Inserisci il numero fattura");
-      return;
-    }
 
     const data = dataStr ? new Date(dataStr).toISOString() : null;
     const imponibileTot = parseNumber(
@@ -1352,7 +1347,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fatturaPayload = {
       id: fatturaCorrenteId || undefined,
-      numero,
       data,
       fornitore,
       note,
@@ -1361,7 +1355,6 @@ document.addEventListener("DOMContentLoaded", () => {
       totale_documento: totale,
     };
 
-    // TABELLA CORRETTA: fatture_acquisto
     const { data: fatturaSalvata, error } = await supabase
       .from("fatture_acquisto")
       .upsert(fatturaPayload)
@@ -1376,7 +1369,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fatturaCorrenteId = fatturaSalvata.id;
 
-    // cancello righe esistenti da fatture_acquisto_righe
     await supabase
       .from("fatture_acquisto_righe")
       .delete()
@@ -1412,10 +1404,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaElencoFatture() {
     if (!supabase || !fattureLista) return;
 
-    // TABELLA CORRETTA: fatture_acquisto
     const { data, error } = await supabase
       .from("fatture_acquisto")
-      .select("id, numero, data, fornitore, totale_documento")
+      .select("id, data, fornitore, totale_documento")   // <-- niente numero
       .order("data", { ascending: false });
 
     if (error) {
@@ -1432,7 +1423,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${day}</td>
-        <td>${f.numero}</td>
+        <td></td> <!-- colonna numero lasciata vuota per ora -->
         <td>${f.fornitore || ""}</td>
         <td>${formatEuro(f.totale_documento || 0)}</td>
         <td>
@@ -1466,7 +1457,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fatturaCorrenteId = fattura.id;
 
-    if (fatturaNumeroInput) fatturaNumeroInput.value = fattura.numero || "";
+    if (fatturaNumeroInput) fatturaNumeroInput.value = ""; // non collegato al DB
     if (fatturaDataInput)
       fatturaDataInput.value = fattura.data
         ? fattura.data.substring(0, 10)
@@ -1534,7 +1525,6 @@ document.addEventListener("DOMContentLoaded", () => {
         : "Nascondi elenco";
     });
   }
-
 
 
   // ========= RICETTE (placeholder) =========
@@ -1632,13 +1622,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-     // ========= MAGAZZINO =========
+      // ========= MAGAZZINO =========
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
     const { data, error } = await supabase
       .from("prodotti")
-      .select("id, codice_interno, descrizione, categoria, um, scorta_minima, giacenza")
+      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima, giacenza")
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -1648,9 +1638,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     magazzinoDati = (data || []).map((p) => ({
       id: p.id,
-      codice: p.codice_interno || "",     // <-- da codice_interno
+      codice: p.codice_interno || "",
       descrizione: p.descrizione,
-      categoria: p.categoria,
+      categoria: p.categoria_id,          // <-- ora legge categoria_id
       um: p.um,
       scortaMinima: p.scorta_minima ?? null,
       giacenza: p.giacenza ?? 0,
@@ -1740,11 +1730,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const payload = {
       id: id || undefined,
       descrizione,
-      categoria: categoria || null,
+      categoria_id: categoria || null,   // <-- salviamo su categoria_id
       um: um || null,
       scorta_minima: scortaMinima || null,
       giacenza,
-      // codice_interno gestito dal DB (default / trigger)
     };
 
     const { data, error } = await supabase
@@ -1763,7 +1752,7 @@ document.addEventListener("DOMContentLoaded", () => {
       id: data.id,
       codice: data.codice_interno || "",
       descrizione: data.descrizione,
-      categoria: data.categoria,
+      categoria: data.categoria_id,
       um: data.um,
       scortaMinima: data.scorta_minima ?? null,
       giacenza: data.giacenza ?? 0,
@@ -1818,6 +1807,7 @@ document.addEventListener("DOMContentLoaded", () => {
       magazzinoTable.style.display = "table";
     });
   }
+
 
   // ========= KPI / REPORT =========
   function calcolaQuotaCostiFissiPeriodo(periodo) {
