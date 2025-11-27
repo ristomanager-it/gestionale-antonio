@@ -3,32 +3,6 @@
 // ======================================================
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ====== DOM ELEMENTS - ZERO DOPPIONI ======
-
-  // Tema
-  const body = document.body;
-  const themeBtn = document.getElementById("btn-theme");
-
-  // User info
-  const currentUserLabel = document.getElementById("current-user-label");
-  const btnLogout = document.getElementById("btn-logout");
-
-  // Views
-  const views = Array.from(document.querySelectorAll(".view"));
-  const homeDipView = document.getElementById("view-home-dip");
-  const managerMenu = document.getElementById("manager-menu");
-
-  // Routing
-  const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
-
-  // LOGIN
-  const loginNomeInput = document.getElementById("login-nome");
-  const loginPinInput = document.getElementById("login-pin");
-  const loginRememberCheckbox = document.getElementById("login-remember");
-  const btnLogin = document.getElementById("btn-login");
-
-  // ====== FINE BLOCCO DOM ======
-
   // ========= DOM BASE =========
   const body = document.body;
 
@@ -40,24 +14,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
-    // ========= LOGIN (DOM) =========
+
+  // ========= LOGIN (DOM) =========
   const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
   const loginRememberCheckbox = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-
   // ========= LOGIN =========
-async function login(nome, pin) {
-  const nomeTrim = (nome || "").trim();
-  const pinTrim = (pin || "").trim();
+  async function login(nome, pin) {
+    const nomeTrim = (nome || "").trim();
+    const pinTrim = (pin || "").trim();
 
-  if (!nomeTrim || !pinTrim) {
-    alert("Inserisci nome e PIN");
-    return null;
-  }
+    if (!nomeTrim || !pinTrim) {
+      alert("Inserisci nome e PIN");
+      return null;
+    }
 
-  // 1) ADMIN "MANUALE": se scrivi admin come nome, entri sempre come admin
+    // 1) ADMIN "MANUALE": se scrivi admin come nome, entri sempre come admin
+    // ... qui continua il codice che avevi già per il login ...
+
   if (nomeTrim.toLowerCase() === "admin") {
     const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
     const user = {
