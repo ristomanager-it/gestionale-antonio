@@ -171,6 +171,29 @@ function initLogin() {
       return;
     }
 
+    // ✅ FALLBACK: utente admin locale, senza Supabase
+    if (nome.toLowerCase() === "admin" && pin === "9999") {
+      currentUser = {
+        id: "local-admin",
+        nome: "admin",
+        ruolo: "admin",
+        canalePrevalente: "NR",
+        costoOrario: null,
+      };
+
+      currentUserLabel.textContent = currentUser.nome;
+      btnLogout.style.display = "inline-block";
+
+      if (loginRemember.checked) {
+        localStorage.setItem("ga_current_user", JSON.stringify(currentUser));
+      }
+
+      updateMenuForRole();
+      showView("view-home-dip");
+      return;
+    }
+
+    // 🔁 Login normale via Supabase
     try {
       // Supponiamo tabella "dipendenti" con colonne: nome, codice (PIN), ruolo, canale_prevalente, ...
       const { data, error } = await sb
@@ -349,8 +372,16 @@ async function caricaPresenzeAttuali() {
   if (!presenzeLista) return;
 
   presenzeLista.innerHTML = "...";
+
+  // Se hai una funzione RPC in Supabase, usala così:
+  // const { data, error } = await sb.rpc("dipendenti_presenti_ora");
+  // Altrimenti qui andrebbe fatta una join manuale fra timbrature e dipendenti.
+  // Per ora usiamo un placeholder vuoto.
+
   const { data, error } = await sb
-    .rpc("dipendenti_presenti_ora"); // se hai una funzione; altrimenti si fa join a mano
+    .from("timbrature")
+    .select("*, dipendenti ( nome )")
+    .is("uscita", null);
 
   if (error) {
     console.error(error);
@@ -368,9 +399,9 @@ async function caricaPresenzeAttuali() {
   data.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.nome || ""}</td>
+      <td>${row.dipendenti?.nome || ""}</td>
       <td>${row.canale || ""}</td>
-      <td>${row.stato || ""}</td>
+      <td>${row.uscita ? "Fuori" : "Dentro"}</td>
     `;
     presenzeLista.appendChild(tr);
   });
