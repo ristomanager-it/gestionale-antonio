@@ -2,6 +2,11 @@
 //  INIZIALIZZAZIONE SICURA DOMCONTENTLOADED
 // ======================================================
 document.addEventListener("DOMContentLoaded", () => {
+  const supabase = window.supabaseClient;
+
+  // ========= COSTANTI / STORAGE =========
+  const CURRENT_USER_KEY = "ga_current_user_v1";
+  const THEME_KEY = "ga_theme_v1";
 
   // ========= DOM BASE =========
   const body = document.body;
@@ -21,115 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginRememberCheckbox = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // ========= LOGIN =========
-  async function login(nome, pin) {
-    const nomeTrim = (nome || "").trim();
-    const pinTrim = (pin || "").trim();
-
-    if (!nomeTrim || !pinTrim) {
-      alert("Inserisci nome e PIN");
-      return null;
-    }
-
-    // 1) ADMIN "MANUALE": se scrivi admin come nome, entri sempre come admin
-    // ... qui continua il codice che avevi già per il login ...
-
-  if (nomeTrim.toLowerCase() === "admin") {
-    const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
-    const user = {
-      id: null,
-      nome: "Admin",
-      ruolo: "admin",
-      canalePrevalente: "NR",
-      virtualAdmin: true,
-    };
-    setCurrentUser(user, persist);
-    return user;
-  }
-
-  // 2) LOGIN DIPENDENTE DA SUPABASE (come prima)
-  if (!supabase) {
-    alert("Supabase non inizializzato");
-    return null;
-  }
-
-  let match = null;
-
-  // prima provo per PIN (codice)
-  let { data: byPin, error: errPin } = await supabase
-    .from("dipendenti")
-    .select(
-      "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
-    )
-    .eq("codice", pinTrim);
-
-  if (errPin) {
-    console.error("Errore login (ricerca per PIN):", errPin);
-    alert("Errore durante il login (PIN)");
-    return null;
-  }
-
-  byPin = byPin || [];
-
-  if (byPin.length === 1) {
-    match = byPin[0];
-  } else if (byPin.length > 1) {
-    match = byPin.find(
-      (d) =>
-        String(d.nome || "").toLowerCase() === nomeTrim.toLowerCase()
-    );
-  }
-
-  // se non ho ancora trovato, provo per nome e poi controllo il PIN
-  if (!match) {
-    let { data: byName, error: errName } = await supabase
-      .from("dipendenti")
-      .select(
-        "id, nome, ruolo, canale_prevalente, codice, attivo, tipo_compenso, retribuzione_base, ore_mensili_contrattuali, ore_medie_per_servizio, costo_orario"
-      )
-      .eq("nome", nomeTrim);
-
-    if (errName) {
-      console.error("Errore login (ricerca per nome):", errName);
-      alert("Errore durante il login (nome)");
-      return null;
-    }
-
-    byName = byName || [];
-    match = byName.find(
-      (d) => String(d.codice || "") === pinTrim
-    );
-  }
-
-  if (!match) {
-    alert("Credenziali non valide (nome o PIN errati)");
-    return null;
-  }
-
-  if (match.attivo === false) {
-    alert("Dipendente non attivo");
-    return null;
-  }
-
-  const user = {
-    id: match.id,
-    nome: match.nome,
-    ruolo: match.ruolo,
-    canalePrevalente: match.canale_prevalente || "NR",
-  };
-
-  const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
-  setCurrentUser(user, persist);
-  return user;
-}
-
-
   // ========= TIMBRATURA (DOM) =========
   const viewTimbratura = document.getElementById("view-timbratura");
   const timbraturaUtenteNome = document.getElementById("timbratura-utente-nome");
-  const timbraturaCanaleSelect = document.getElementById(
-    "timbratura-canale-select"
-  );
+  const timbraturaCanaleSelect = document.getElementById("timbratura-canale-select");
   const btnEntra = document.getElementById("btn-entra");
   const btnPausa = document.getElementById("btn-pausa");
   const btnEsci = document.getElementById("btn-esci");
@@ -138,7 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const sezionePresenzeEl = document.getElementById("sezione-presenze");
   const presenzeListaEl = document.getElementById("presenze-lista");
 
-  // Riepiloghi timbrature (se presenti in index)
   const riepilogoDipEl = document.getElementById("riepilogo-dip");
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const attiviListaEl = document.getElementById("attivi-lista");
@@ -146,10 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const costoCanaliEl = document.getElementById("costo-canali");
   const periodoSelect = document.getElementById("periodo-select");
   const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
-  const sezioneTimbratureDettaglio = document.getElementById(
-    "sezione-timbrature"
-  );
-
+  const sezioneTimbratureDettaglio = document.getElementById("sezione-timbrature");
   const listaTimbratureEl = document.getElementById("timbrature-lista");
 
   // ========= DIPENDENTI (DOM) =========
@@ -184,14 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const fatturaRigheBody = document.getElementById("fattura-righe-body");
   const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
-  const fatturaImponibileTotaleInput = document.getElementById(
-    "fattura-imponibile-totale"
-  );
-  const fatturaIvaTotaleInput =
-    document.getElementById("fattura-iva-totale");
-  const fatturaTotaleDocumentoInput = document.getElementById(
-    "fattura-totale-documento"
-  );
+  const fatturaImponibileTotaleInput = document.getElementById("fattura-imponibile-totale");
+  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
+  const fatturaTotaleDocumentoInput = document.getElementById("fattura-totale-documento");
 
   const btnToggleFatture = document.getElementById("btn-toggle-fatture");
   const fattureTable = document.getElementById("fatture-table");
@@ -202,14 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
   const ricettaNoteInput = document.getElementById("ricetta-note");
   const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById(
-    "ricetta-ingredienti-container"
-  );
+  const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-  const ingredientiSuggestions = document.getElementById(
-    "ingredienti-suggestions"
-  );
+  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
   // ========= MAGAZZINO (DOM) =========
   const magazzinoSearchInput = document.getElementById("magazzino-search");
@@ -218,22 +105,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const magazzinoListaEl = document.getElementById("magazzino-lista");
 
   const magazzinoIdInput = document.getElementById("magazzino-id");
-  const magazzinoDescrizioneInput = document.getElementById(
-    "magazzino-descrizione"
-  );
+  const magazzinoDescrizioneInput = document.getElementById("magazzino-descrizione");
   const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
   const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById(
-    "magazzino-scorta-minima"
-  );
+  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
   const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
   // ========= REPORT KPI (DOM) =========
-  const reportPeriodButtons = Array.from(
-    document.querySelectorAll(".report-period-btn")
-  );
+  const reportPeriodButtons = Array.from(document.querySelectorAll(".report-period-btn"));
   const reportDateInput = document.getElementById("report-data");
 
   const kpiIncassoInput = document.getElementById("kpi-incasso-input");
@@ -242,9 +123,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const kpiIncassoValueEl = document.getElementById("kpi-incasso-value");
   const kpiNettoValueEl = document.getElementById("kpi-netto-value");
   const kpiMargineBadgeEl = document.getElementById("kpi-margine-badge");
-
-  const kpiGaugeNeedleEl = document.getElementById("kpi-gauge-needle");
   const kpiBepLabelEl = document.getElementById("kpi-bep-label");
+  const kpiGaugeNeedleEl = document.getElementById("kpi-gauge-needle");
 
   const kpiLavoroImportoEl = document.getElementById("kpi-lavoro-importo");
   const kpiLavoroPercentEl = document.getElementById("kpi-lavoro-percent");
@@ -256,13 +136,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnToggleCostiFissi = document.getElementById("btn-toggle-costi-fissi");
   const costiFissiPanel = document.getElementById("costi-fissi-panel");
 
-  const costiFissiIdInput = document.getElementById("costi-fissi-id");
-  const costiFissiCategoriaInput = document.getElementById(
-    "costi-fissi-categoria"
-  );
-  const costiFissiDescrizioneInput = document.getElementById(
-    "costi-fissi-descrizione"
-  );
+  const costiFissiCategoriaInput = document.getElementById("costi-fissi-categoria");
+  const costiFissiDescrizioneInput = document.getElementById("costi-fissi-descrizione");
   const costiFissiAnnoInput = document.getElementById("costi-fissi-anno");
   const costiFissiImportoInput = document.getElementById("costi-fissi-importo");
   const btnSalvaCostoFisso = document.getElementById("btn-salva-costo-fisso");
@@ -281,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let kpiPeriodoCorrente = "giorno"; // giorno/settimana/mese/anno
   let costiFissi = [];
 
-  // ========= UTILITY GENERALI =========
+  // ========= UTILITY =========
   function parseNumber(val) {
     if (val === null || val === undefined) return 0;
     const num =
@@ -362,19 +237,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!base) return 0;
 
     if (tipo === "orario") return base;
-
     if (tipo === "mensile") {
       const ore = parseNumber(oreMensili);
       if (!ore) return 0;
       return base / ore;
     }
-
     if (tipo === "servizio") {
       const ore = parseNumber(oreServizio);
       if (!ore) return 0;
       return base / ore;
     }
-
     return 0;
   }
 
@@ -401,13 +273,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyTheme(newTheme);
   }
 
-  if (themeBtn) {
-    themeBtn.addEventListener("click", toggleTheme);
-  }
-
+  if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
   loadTheme();
 
-  // ========= HEADER & VISIBILITÀ =========
+  // ========= HEADER / ROLE =========
   function formatRuolo(ruolo) {
     switch (ruolo) {
       case "admin":
@@ -427,7 +296,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHeaderUser() {
     if (!currentUserLabel) return;
-
     if (!currentUser) {
       currentUserLabel.textContent = "Nessun utente";
     } else {
@@ -435,17 +303,12 @@ document.addEventListener("DOMContentLoaded", () => {
         currentUser.ruolo
       )})`;
     }
-
-    if (btnLogout) {
-      btnLogout.style.display = currentUser ? "inline-block" : "none";
-    }
+    if (btnLogout) btnLogout.style.display = currentUser ? "inline-block" : "none";
   }
 
   function applyRoleVisibility() {
     const modalita =
-      currentUser && isManagerRole(currentUser.ruolo)
-        ? "manager"
-        : "dipendente";
+      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
 
     document
       .querySelectorAll("[data-manager-only='true'], .manager-only")
@@ -462,10 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    if (managerMenu) {
-      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
-    }
-
+    if (managerMenu) managerMenu.style.display = modalita === "manager" ? "grid" : "none";
     updateHeaderUser();
     updateTimbraturaUserInfo();
   }
@@ -521,12 +381,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function restoreUserFromStorage() {
     const raw = localStorage.getItem(CURRENT_USER_KEY);
     if (!raw) return;
-
     try {
       const saved = JSON.parse(raw);
       if (!saved) return;
 
-      // se era l'admin virtuale, lo ripristino così com'è
       if (saved.virtualAdmin) {
         currentUser = saved;
         applyRoleVisibility();
@@ -538,18 +396,14 @@ document.addEventListener("DOMContentLoaded", () => {
         setCurrentUser(found, true);
         return;
       }
-
       const byName = dipendenti.find(
         (d) =>
           d.nome &&
           d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
       );
-      if (byName) {
-        setCurrentUser(byName, true);
-        return;
-      }
+      if (byName) setCurrentUser(byName, true);
     } catch {
-      // ignora
+      // ignore
     }
   }
 
@@ -569,8 +423,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
 
-    // 1) ADMIN VIRTUALE
-    if (nomeTrim.toLowerCase() === "admin" && pinTrim === VIRTUAL_ADMIN_PIN) {
+    // 1) ADMIN MANUALE: nome "admin" → entro sempre come admin
+    if (nomeTrim.toLowerCase() === "admin") {
+      const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
       const user = {
         id: null,
         nome: "Admin",
@@ -578,7 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
         canalePrevalente: "NR",
         virtualAdmin: true,
       };
-      const persist = !!(loginRememberCheckbox && loginRememberCheckbox.checked);
       setCurrentUser(user, persist);
       return user;
     }
@@ -588,9 +442,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
 
-    // 2) PRIMA PROVA: PIN (codice) -> è il più affidabile
     let match = null;
 
+    // Prima per PIN (codice)
     let { data: byPin, error: errPin } = await supabase
       .from("dipendenti")
       .select(
@@ -599,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .eq("codice", pinTrim);
 
     if (errPin) {
-      console.error("Errore login (ricerca per PIN):", errPin);
+      console.error("Errore login (PIN):", errPin);
       alert("Errore durante il login (PIN)");
       return null;
     }
@@ -607,17 +461,15 @@ document.addEventListener("DOMContentLoaded", () => {
     byPin = byPin || [];
 
     if (byPin.length === 1) {
-      // 1 solo pin: lo prendiamo
       match = byPin[0];
     } else if (byPin.length > 1) {
-      // se ci sono più PIN uguali (non dovrebbe!), filtro per nome
       match = byPin.find(
         (d) =>
           String(d.nome || "").toLowerCase() === nomeTrim.toLowerCase()
       );
     }
 
-    // 3) Se ancora niente, provo per nome e poi controllo il PIN
+    // Se ancora niente, provo per nome e controllo PIN
     if (!match) {
       let { data: byName, error: errName } = await supabase
         .from("dipendenti")
@@ -627,15 +479,13 @@ document.addEventListener("DOMContentLoaded", () => {
         .eq("nome", nomeTrim);
 
       if (errName) {
-        console.error("Errore login (ricerca per nome):", errName);
+        console.error("Errore login (nome):", errName);
         alert("Errore durante il login (nome)");
         return null;
       }
 
       byName = byName || [];
-      match = byName.find(
-        (d) => String(d.codice || "") === pinTrim
-      );
+      match = byName.find((d) => String(d.codice || "") === pinTrim);
     }
 
     if (!match) {
@@ -668,7 +518,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!user) return;
 
       const isManager = isManagerRole(user.ruolo);
-      const routeFromHash = window.location.hash.replace("#", "") || "timbratura";
+      const routeFromHash =
+        window.location.hash.replace("#", "") || "timbratura";
 
       if (isManager) {
         showManagerMenuAndRoute(routeFromHash);
@@ -732,7 +583,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function aggiornaTabellaTimbrature() {
     if (!listaTimbratureEl) return;
     listaTimbratureEl.innerHTML = "";
-
     timbrature.forEach((t) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -768,9 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function aggiornaPresenzeDipendenti() {
     if (!presenzeListaEl) return;
-
     presenzeListaEl.innerHTML = "";
-
     dipendenti.forEach((d) => {
       if (!d || !d.nome) return;
       const stato = getStatoCorrenteDipendente(d.nome);
@@ -850,7 +698,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Attivi adesso
     attiviListaEl.innerHTML = "";
     const attiviOra = {};
-
     timbrature.forEach((t) => {
       if (!t.timestamp) return;
       if (t.tipo === "Entrata") {
@@ -870,7 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
       attiviListaEl.appendChild(tr);
     });
 
-    // riepilogo ore/costi
+    // Riepilogo ore/costi
     riepilogoDipEl.innerHTML = "";
     riepilogoCanaliEl.innerHTML = "";
 
@@ -926,11 +773,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const canale =
-      timbraturaCanaleSelect?.value ||
-      currentUser.canalePrevalente ||
-      "NR";
+      timbraturaCanaleSelect?.value || currentUser.canalePrevalente || "NR";
 
-    // Regole di base
     const eventiDip = timbrature
       .filter((t) => t.dip === currentUser.nome)
       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
@@ -994,12 +838,9 @@ document.addEventListener("DOMContentLoaded", () => {
     aggiornaKpiLavoroSeServe();
   }
 
-  if (btnEntra)
-    btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
-  if (btnPausa)
-    btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
-  if (btnEsci)
-    btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
+  if (btnEntra) btnEntra.addEventListener("click", () => registraTimbratura("Entrata"));
+  if (btnPausa) btnPausa.addEventListener("click", () => registraTimbratura("Pausa"));
+  if (btnEsci) btnEsci.addEventListener("click", () => registraTimbratura("Uscita"));
 
   if (periodoSelect) {
     periodoSelect.addEventListener("change", () => {
@@ -1024,7 +865,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnTogglePresenze && sezionePresenzeEl) {
     btnTogglePresenze.addEventListener("click", () => {
       const visibile = sezionePresenzeEl.style.display !== "none";
-
       if (visibile) {
         sezionePresenzeEl.style.display = "none";
         btnTogglePresenze.textContent = "Mostra stato presenze";
@@ -1093,18 +933,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  if (dipTipoCompenso) {
-    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
-  }
-  if (dipRetribuzioneBase) {
-    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreMensili) {
-    dipOreMensili.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreServizio) {
-    dipOreServizio.addEventListener("input", aggiornaUICompenso);
-  }
+  if (dipTipoCompenso) dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
+  if (dipRetribuzioneBase) dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
+  if (dipOreMensili) dipOreMensili.addEventListener("input", aggiornaUICompenso);
+  if (dipOreServizio) dipOreServizio.addEventListener("input", aggiornaUICompenso);
 
   async function caricaDipendentiDaSupabase() {
     if (!supabase) return;
@@ -1185,9 +1017,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function eliminaDipendenteSupabase(dip) {
     if (!supabase || !dip.id) return;
-
     const { error } = await supabase.from("dipendenti").delete().eq("id", dip.id);
-
     if (error) {
       console.error("Errore eliminazione dipendente:", error);
       alert("Errore nell'eliminare il dipendente");
@@ -1200,7 +1030,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     dipendenti.forEach((d, index) => {
       const tr = document.createElement("tr");
-
       tr.innerHTML = `
         <td>${d.nome}</td>
         <td>${d.mansione || ""}</td>
@@ -1219,7 +1048,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <button data-delete="${index}" class="app-button small red">Elimina</button>
         </td>
       `;
-
       dipLista.appendChild(tr);
     });
 
@@ -1257,8 +1085,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dipEmail) dipEmail.value = d.email || "";
     if (dipRuolo) dipRuolo.value = d.ruolo || "";
 
-    if (dipTipoCompenso)
-      dipTipoCompenso.value = d.tipoCompenso || "orario";
+    if (dipTipoCompenso) dipTipoCompenso.value = d.tipoCompenso || "orario";
     if (dipRetribuzioneBase)
       dipRetribuzioneBase.value =
         d.retribuzioneBase != null ? d.retribuzioneBase : "";
@@ -1701,7 +1528,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= RICETTE =========
+  // ========= RICETTE (placeholder) =========
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
 
@@ -1790,11 +1617,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnSalvaRicetta) {
-    btnSalvaRicetta.addEventListener("click", async (e) => {
+    btnSalvaRicetta.addEventListener("click", (e) => {
       e.preventDefault();
-      alert(
-        "Per ora il salvataggio ricette è solo placeholder. Possiamo completarlo dopo."
-      );
+      alert("Salvataggio ricette da completare in una fase successiva 😊");
     });
   }
 
@@ -1985,7 +1810,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========= KPI / REPORT =========
-
   function calcolaQuotaCostiFissiPeriodo(periodo) {
     const totaleAnnuale = (costiFissi || []).reduce((sum, row) => {
       const v = parseNumber(row.importo_annuo);
@@ -2020,7 +1844,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!timbrature.length || !dipendenti.length) return 0;
 
     const byDip = {};
-
     const events = timbrature
       .filter((t) => t.timestamp)
       .sort((a, b) => a.timestamp - b.timestamp);
@@ -2182,7 +2005,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${riga.descrizione || ""}</td>
         <td>${riga.anno_riferimento || ""}</td>
         <td>${formatEuro(riga.importo_annuo || 0)}</td>
-        <td></td>
       `;
       costiFissiListaBody.appendChild(tr);
     });
@@ -2240,7 +2062,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (costiFissiImportoInput) costiFissiImportoInput.value = "";
   }
 
-  // Eventi KPI / REPORT
   if (btnToggleCostiFissi && costiFissiPanel) {
     btnToggleCostiFissi.addEventListener("click", () => {
       const hidden =
@@ -2263,9 +2084,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (reportPeriodButtons.length) {
     reportPeriodButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        reportPeriodButtons.forEach((b) =>
-          b.classList.remove("active")
-        );
+        reportPeriodButtons.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         const p = btn.getAttribute("data-period") || "giorno";
         kpiPeriodoCorrente = p;
@@ -2393,4 +2212,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   init();
-});
+}); // fine DOMContentLoaded
