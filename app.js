@@ -1,23 +1,24 @@
-// app.js - Gestionale Antonio
-// Tutta la logica front-end (SPA) con Supabase come backend.
-
-  // ========= COSTANTI / STORAGE =========
-  const CURRENT_USER_KEY = "ga_current_user_v1";
-  const THEME_KEY = "ga_theme_v1";
-  const VIRTUAL_ADMIN_PIN = "0000"; // admin virtuale: nome "admin" + PIN 0000
+// ======================================================
+//  INIZIALIZZAZIONE SICURA DOMCONTENTLOADED
+// ======================================================
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ===== DOM ELEMENTS =====
+  // ====== DOM ELEMENTS - ZERO DOPPIONI ======
 
+  // Tema
   const body = document.body;
-
   const themeBtn = document.getElementById("btn-theme");
+
+  // User info
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
+  // Views
   const views = Array.from(document.querySelectorAll(".view"));
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
+
+  // Routing
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
   // LOGIN
@@ -26,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginRememberCheckbox = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // (QUI continuano tutti gli altri tuoi DOM element, quelli che avevi già)
+  // ====== FINE BLOCCO DOM ======
 
   // ========= DOM BASE =========
   const body = document.body;
