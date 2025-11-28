@@ -1,40 +1,966 @@
 /* ========================================================= */
-/* ======================= RESET BASE ======================= */
+/* ==================== [0] RESET & BASE =================== */
 /* ========================================================= */
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* Tema base: SCURO; il chiaro è gestito con body.theme-light */
+body {
+  background: #020617;
+  color: #0f172a;
+}
+
+/* Layout app principale */
+.app-main-wrapper {
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 8px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Utility */
+.hidden {
+  display: none !important;
+}
+
+/* Contenuto principale */
+.app-main {
+  flex: 1;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Card generica vista */
+.view {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
+}
+
+/* Riduzione zoom automatico su mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
+
+
+/* ========================================================= */
+/* ===================== [1] HEADER TOP ==================== */
+/* ========================================================= */
+
+.app-header {
+  background: #020617;
+  color: #e5e7eb;
+  padding: 8px 4px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f97316;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo-img {
+  width: 100%;
   height: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg, #f3f4f6);
-  color: var(--text, #111);
+  object-fit: cover;
 }
 
-:root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-
-  --card-bg-light: #ffffff;
-  --card-bg-dark: #1f2937;
-
-  --input-bg-light: #f9fafb;
-  --input-bg-dark: #111827;
-
-  --text-light: #111;
-  --text-dark: #f3f4f6;
-
-  --border-light: #d1d5db;
-  --border-dark: #374151;
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
 }
 
-/* Tema chiaro/scuro */
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+
+
+/* ========================================================= */
+/* ==================== [2] BOTTONI BASE =================== */
+/* ========================================================= */
+
+.app-button {
+  padding: 11px 12px;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease,
+    box-shadow 0.12s ease;
+  font-weight: 600;
+  text-align: center;
+}
+
+.app-button:hover {
+  background: #d1d5db;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
+
+.app-button:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.app-button.ghost {
+  background: transparent;
+  color: #e5e7eb;
+  box-shadow: none;
+}
+
+.app-button.ghost:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.app-button.login-button {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.app-button.login-button:hover {
+  background: #1d4ed8;
+}
+
+.app-button.green {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.app-button.green:hover {
+  background: #15803d;
+}
+
+.app-button.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.red:hover {
+  background: #b91c1c;
+}
+
+.app-button.gray {
+  background: #6b7280;
+  color: #ffffff;
+}
+
+.app-button.gray:hover {
+  background: #4b5563;
+}
+
+
+
+/* ========================================================= */
+/* ============== [3] INPUT A PILLOLA / TEXTAREA =========== */
+/* ========================================================= */
+
+/* Input / select stondati */
+.input-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* Textarea stile card */
+.textarea-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  resize: vertical;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [4] LOGIN VIEW ==================== */
+/* ========================================================= */
+
+.login-view {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin: 6px 0 4px;
+  font-size: 24px;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+
+
+/* ========================================================= */
+/* ============ [5] HOME DIPENDENTE / MENU MANAGER ========= */
+/* ========================================================= */
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.app-button.big-home {
+  padding: 16px 14px;
+  font-size: 17px;
+  background: #e5e7eb;
+}
+
+/* Griglia menu manager */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.menu-button {
+  padding: 14px 10px;
+  font-size: 14px;
+  background: #111827;
+  color: #f9fafb;
+}
+
+.menu-button.wide {
+  grid-column: 1 / -1;
+}
+
+
+
+/* ========================================================= */
+/* ================= [6] TIMBRATURA & BOTTONI ============== */
+/* ========================================================= */
+
+#view-timbratura h2 {
+  margin-top: 0;
+}
+
+.timbratura-intro-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+  margin-bottom: 10px;
+}
+
+.timbratura-intro-card p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.timbratura-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.timb-button {
+  flex: 1;
+  font-size: 15px;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [7] TABELLE BASE ================== */
+/* ========================================================= */
+
+.table-wrapper {
+  margin-top: 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.3);
+}
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+}
+
+.table-timbrature thead {
+  background: #f3f4f6;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table-timbrature th {
+  font-weight: 600;
+}
+
+
+
+/* ========================================================= */
+/* ================== [8] DIPENDENTI VIEW ================== */
+/* ========================================================= */
+
+#view-dipendenti form {
+  margin-top: 8px;
+}
+
+/* solo per la checkbox 'attivo' */
+#view-dipendenti label input[type="checkbox"] {
+  width: auto;
+  margin-right: 6px;
+}
+
+#view-dipendenti h3 {
+  margin-top: 16px;
+}
+
+
+
+/* ========================================================= */
+/* ================== [9] ACQUISTI / FATTURE =============== */
+/* ========================================================= */
+
+/* Riuso tabella base + kpi-cards generiche */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.kpi-card p {
+  margin: 0;
+}
+
+
+
+/* ========================================================= */
+/* ====================== [10] RICETTE ===================== */
+/* ========================================================= */
+
+#view-ricette h2 {
+  margin-top: 0;
+}
+
+#view-ricette form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#ricetta-note {
+  width: 100%;
+  min-height: 90px;
+  border-radius: 16px;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+#ricetta-ingredienti-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+
+
+/* ========================================================= */
+/* =================== [11] REPORT KPI VIEW ================= */
+/* ========================================================= */
+
+.kpi-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kpi-subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.kpi-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.kpi-period-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.kpi-period-buttons .app-button.tiny {
+  padding-inline: 8px;
+}
+
+.kpi-date-filter label {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Riga input incasso/food */
+.kpi-input-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kpi-input-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 9px 10px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.25);
+}
+
+.kpi-input-card label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.kpi-input-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.kpi-input-display strong {
+  font-size: 15px;
+}
+
+/* Layout principale gauge + KPI */
+.kpi-main-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.kpi-main-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.3);
+}
+
+.kpi-main-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.kpi-margine-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi-margine-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.kpi-margine-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kpi-margine-badge.neg {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.kpi-margine-badge.pos {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.kpi-main-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.kpi-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 4px;
+}
+
+.kpi-dot.green {
+  background: #22c55e;
+}
+
+.kpi-dot.yellow {
+  background: #facc15;
+}
+
+.kpi-dot.red {
+  background: #ef4444;
+}
+
+/* Gauge */
+.kpi-gauge-wrapper {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-gauge-dial {
+  position: relative;
+  width: 180px;
+  height: 90px;
+  border-radius: 180px 180px 0 0;
+  background: conic-gradient(
+    from 180deg,
+    #22c55e 0deg,
+    #22c55e 70deg,
+    #eab308 70deg,
+    #eab308 135deg,
+    #ef4444 135deg,
+    #ef4444 180deg
+  );
+  overflow: hidden;
+}
+
+.kpi-gauge-dial::before {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  background: #f9fafb;
+  border-radius: 999px;
+}
+
+.kpi-gauge-ticks {
+  position: absolute;
+  inset: 8px;
+  border-radius: 999px 999px 0 0;
+  border-top: 1px dashed rgba(15, 23, 42, 0.35);
+}
+
+.kpi-gauge-needle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 2px;
+  height: 80%;
+  background: #111827;
+  transform-origin: bottom center;
+  transform: rotate(0deg);
+  transition: transform 0.3s ease-out;
+}
+
+.kpi-gauge-center {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  background: #111827;
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.kpi-gauge-labels {
+  width: 180px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.kpi-gauge-bep {
+  font-size: 12px;
+  color: #374151;
+}
+
+.kpi-bep-label {
+  font-weight: 600;
+}
+
+/* KPI numerici laterali */
+.kpi-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-side-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 8px 10px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.3);
+}
+
+.kpi-side-title {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.kpi-side-value-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.kpi-side-percent {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.kpi-divider {
+  margin: 14px 0 10px;
+  border: none;
+  border-top: 1px dashed #d1d5db;
+}
+
+/* Costi fissi */
+.costi-fissi-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [12] MAGAZZINO ===================== */
+/* ========================================================= */
+
+/* campo ricerca a pillola, con icona lente */
+#view-magazzino #magazzino-search.input-pill {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+}
+
+/* form dettaglio prodotto */
+#view-magazzino form {
+  margin: 10px 0 12px;
+}
+
+/* tabella prodotti (mostrata solo "a comando" via JS) */
+#view-magazzino table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#view-magazzino th,
+#view-magazzino td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-magazzino thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+/* badge scorta minima */
+.magazzino-low {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+
+/* ========================================================= */
+/* ==================== [13] MANAGER-ONLY ================== */
+/* ========================================================= */
+
+.manager-only {
+  /* per ora nessuno stile speciale, solo hook eventuale */
+}
+
+
+
+/* ========================================================= */
+/* =================== [14] TEMA CHIARO ==================== */
+/* ========================================================= */
+
 body.theme-light {
-  --bg: #f3f4f6;
-  --text: #111;
-  --card-bg: var(--card-bg-light);
-  --input-bg
+  background: #e5e7eb;
+}
+
+body.theme-light .app-header {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+body.theme-light .subtitle {
+  color: #6b7280;
+}
+
+body.theme-light .header-user {
+  color: #111827;
+}
+
+body.theme-light .view {
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(148, 163, 184, 0.45);
+}
+
+body.theme-light .login-card {
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(148, 163, 184, 0.7);
+}
+
+body.theme-light .app-button {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+body.theme-light .app-button.ghost {
+  background: transparent;
+  color: #111827;
+}
+
+body.theme-light .table-timbrature {
+  background: #ffffff;
+}
+
+body.theme-light .kpi-main-card,
+body.theme-light .kpi-side-card,
+body.theme-light .kpi-input-card {
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(148, 163, 184, 0.55);
+}
+
+/* ========== ACQUISTI: RIGHE FATTURA VERTICALI ========== */
+
+.fattura-righe-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fattura-riga-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--card-bg, #111827);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fattura-riga-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.fattura-riga-title {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.fattura-riga-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .fattura-riga-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fattura-riga-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9rem;
+}
+
+.fattura-riga-footer .fatt-riga-totale {
+  font-weight: 600;
+}
