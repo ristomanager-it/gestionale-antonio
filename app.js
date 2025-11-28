@@ -1239,7 +1239,42 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= RICETTE =========
+   // ========= RICETTE =========
+  // DOM ricette già esistenti
+  const ricettaNomeInput = document.getElementById("ricetta-nome");
+  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaNoteInput = document.getElementById("ricetta-note");
+  const ricettaFotoInput = document.getElementById("ricetta-foto");
+  const ricettaIngredientiContainer = document.getElementById(
+    "ricetta-ingredienti-container"
+  );
+  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+  // 🔹 NUOVI DOM per resa ricetta
+  const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
+  const ricettaFormato1LabelInput = document.getElementById(
+    "ricetta-formato1-label"
+  );
+  const ricettaFormato1PercInput = document.getElementById(
+    "ricetta-formato1-percent"
+  );
+  const ricettaFormato2LabelInput = document.getElementById(
+    "ricetta-formato2-label"
+  );
+  const ricettaFormato2PercInput = document.getElementById(
+    "ricetta-formato2-percent"
+  );
+  const ricettaFormato1PezziOut = document.getElementById(
+    "ricetta-formato1-pezzi"
+  );
+  const ricettaFormato2PezziOut = document.getElementById(
+    "ricetta-formato2-pezzi"
+  );
+
+  let ricettaCorrenteId = null;
+  let ricettaFotoCorrenteUrl = null;
+
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
 
@@ -1249,7 +1284,7 @@ document.addEventListener("DOMContentLoaded", () => {
     row.innerHTML = `
       <input
         type="text"
-        class="ingrediente-nome input-pill"
+        class="ingrediente-nome"
         placeholder="Ingrediente (come in magazzino)"
         style="flex: 2; min-width: 0;"
         list="ingredienti-suggestions"
@@ -1257,7 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
       />
       <input
         type="number"
-        class="ingrediente-quantita input-pill"
+        class="ingrediente-quantita"
         placeholder="Q.tà"
         step="0.001"
         min="0"
@@ -1266,7 +1301,7 @@ document.addEventListener("DOMContentLoaded", () => {
       />
       <input
         type="text"
-        class="ingrediente-unita input-pill"
+        class="ingrediente-unita"
         placeholder="g, kg, ml, u..."
         style="flex: 1; min-width: 0;"
         value="${initial.unita_misura || ""}"
@@ -1274,7 +1309,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    `;
+    ";
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     if (btnDel) {
@@ -1295,11 +1330,62 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ricettaNoteInput) ricettaNoteInput.value = "";
     if (ricettaFotoInput) ricettaFotoInput.value = "";
 
+    // reset resa ricetta
+    if (ricettaPezziBaseInput) ricettaPezziBaseInput.value = "";
+    if (ricettaFormato1LabelInput) ricettaFormato1LabelInput.value = "Ristorante";
+    if (ricettaFormato1PercInput) ricettaFormato1PercInput.value = "100";
+    if (ricettaFormato2LabelInput)
+      ricettaFormato2LabelInput.value = "Ricevimento / Buffet";
+    if (ricettaFormato2PercInput) ricettaFormato2PercInput.value = "60";
+    if (ricettaFormato1PezziOut) ricettaFormato1PezziOut.textContent = "-";
+    if (ricettaFormato2PezziOut) ricettaFormato2PezziOut.textContent = "-";
+
     if (ricettaIngredientiContainer) {
       ricettaIngredientiContainer.innerHTML = "";
     }
 
     creaRigaIngrediente();
+  }
+
+  // 🔹 Calcolo resa pezzi per i due formati
+  function aggiornaResaRicetta() {
+    if (!ricettaPezziBaseInput) return;
+
+    const base = parseFloat(ricettaPezziBaseInput.value || "0") || 0;
+    const perc1 =
+      parseFloat(ricettaFormato1PercInput?.value || "0") || 0;
+    const perc2 =
+      parseFloat(ricettaFormato2PercInput?.value || "0") || 0;
+
+    let pezzi1 = null;
+    let pezzi2 = null;
+
+    if (base > 0 && perc1 > 0) {
+      pezzi1 = base * (100 / perc1);
+    }
+    if (base > 0 && perc2 > 0) {
+      pezzi2 = base * (100 / perc2);
+    }
+
+    if (ricettaFormato1PezziOut) {
+      ricettaFormato1PezziOut.textContent =
+        pezzi1 != null ? pezzi1.toFixed(1) : "-";
+    }
+    if (ricettaFormato2PezziOut) {
+      ricettaFormato2PezziOut.textContent =
+        pezzi2 != null ? pezzi2.toFixed(1) : "-";
+    }
+  }
+
+  // Eventi per aggiornare le card in tempo reale
+  if (ricettaPezziBaseInput) {
+    ricettaPezziBaseInput.addEventListener("input", aggiornaResaRicetta);
+  }
+  if (ricettaFormato1PercInput) {
+    ricettaFormato1PercInput.addEventListener("input", aggiornaResaRicetta);
+  }
+  if (ricettaFormato2PercInput) {
+    ricettaFormato2PercInput.addEventListener("input", aggiornaResaRicetta);
   }
 
   async function salvaRicettaSupabaseBase({
@@ -1308,6 +1394,11 @@ document.addEventListener("DOMContentLoaded", () => {
     descrizione,
     note,
     fotoUrl,
+    pezziBase,
+    formato1Label,
+    formato1Perc,
+    formato2Label,
+    formato2Perc,
   }) {
     if (!supabase) return null;
 
@@ -1318,6 +1409,12 @@ document.addEventListener("DOMContentLoaded", () => {
       note_procedimento: note || null,
       foto_url: fotoUrl || null,
       attivo: true,
+      // 🔹 nuovi campi resa
+      pezzi_base: pezziBase || null,
+      formato1_label: formato1Label || null,
+      formato1_percent: formato1Perc != null ? formato1Perc : null,
+      formato2_label: formato2Label || null,
+      formato2_percent: formato2Perc != null ? formato2Perc : null,
     };
 
     const { data, error } = await supabase
@@ -1437,6 +1534,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!conferma) return;
     }
 
+    // 🔹 leggo i nuovi dati di resa
+    const pezziBase = ricettaPezziBaseInput
+      ? parseFloat(ricettaPezziBaseInput.value || "0") || 0
+      : 0;
+    const formato1Label = (ricettaFormato1LabelInput?.value || "").trim() || null;
+    const formato1Perc = ricettaFormato1PercInput
+      ? parseFloat(ricettaFormato1PercInput.value || "0") || 0
+      : 0;
+    const formato2Label = (ricettaFormato2LabelInput?.value || "").trim() || null;
+    const formato2Perc = ricettaFormato2PercInput
+      ? parseFloat(ricettaFormato2PercInput.value || "0") || 0
+      : 0;
+
     const fotoUrl = await uploadFotoRicettaSePresente();
     ricettaFotoCorrenteUrl = fotoUrl;
 
@@ -1446,6 +1556,11 @@ document.addEventListener("DOMContentLoaded", () => {
       descrizione,
       note,
       fotoUrl,
+      pezziBase,
+      formato1Label,
+      formato1Perc,
+      formato2Label,
+      formato2Perc,
     });
 
     if (!ricettaSalvata) return;
@@ -1455,6 +1570,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
 
     alert("Ricetta salvata correttamente");
+    aggiornaResaRicetta();
   }
 
   if (btnAddIngrediente) {
@@ -1468,6 +1584,7 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaRicetta();
     });
   }
+
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
