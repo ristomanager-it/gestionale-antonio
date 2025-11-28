@@ -1241,7 +1241,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
    // ========= RICETTE =========
   // DOM ricette già esistenti
-
   // 🔹 NUOVI DOM per resa ricetta
   const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
   const ricettaFormato1LabelInput = document.getElementById(
@@ -1264,7 +1263,6 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
 
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
