@@ -2913,6 +2913,38 @@ if (ricetteSearchInput) {
       aggiornaIngredientiSuggestionsDaMagazzino();
     }
   }
+async function onRouteEnter(route) {
+  switch (route) {
+    case "timbratura":
+      await caricaTimbratureDaSupabase();
+      updateTimbraturaUserInfo();
+      break;
+    case "dipendenti":
+      await caricaDipendentiDaSupabase();
+      break;
+    case "ricette":
+      await caricaProdottiSuggerimentiIngredienti();
+      resetFormRicetta();
+      break;
+    case "ricette-viewer":            // 👈 AGGIUNTO
+      await caricaRicetteDaSupabase();
+      break;
+    case "acquisti":
+      await caricaCategorieInCache();
+      await caricaFornitoriInCache();
+      await caricaMagazzinoDati();
+      resetFatturaForm();
+      await caricaElencoFatture();
+      break;
+    case "magazzino":
+      await caricaCategorieInCache();
+      await caricaMagazzinoDati();
+      popolaMagazzinoForm(null);
+      break;
+    default:
+      break;
+  }
+}
 
   async function onRouteEnter(route) {
     switch (route) {
