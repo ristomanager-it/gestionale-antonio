@@ -141,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let fornitoriCache = [];
   let categorieCache = [];
   let magazzinoDati = [];
+let ricetteCache = [];
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
