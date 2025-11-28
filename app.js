@@ -2410,6 +2410,437 @@ document.addEventListener("DOMContentLoaded", () => {
       magazzinoTable.style.display = "table";
     });
   }
+    // ========= KPI / REPORT (BLOCCO 6) =========
+  // --- DOM KPI ---
+  const kpiPeriodButtons = Array.from(
+    document.querySelectorAll(".kpi-period-btn")
+  );
+  const kpiDateLabelEl = document.getElementById("kpi-date-label");
+
+  // eventuali input manuali (se li aggiungerai in futuro)
+  const kpiIncassoInput = document.getElementById("kpi-incasso-input");
+  const kpiFoodInput = document.getElementById("kpi-foodcost-input");
+
+  // valori mostrati in alto
+  const kpiIncassoValueEl = document.getElementById("kpi-incasso");
+  const kpiMargineValueEl = document.getElementById("kpi-margine");
+
+  // badge & gauge
+  const kpiMarginBadgeEl = document.getElementById("kpi-margin-badge");
+  const kpiBepLabelEl = document.getElementById("kpi-bep-label");
+  const kpiGaugeNeedleEl = document.getElementById("kpi-gauge-needle");
+
+  // card Lavoro / Food / Fissi
+  const kpiLavoroImportoEl = document.getElementById("kpi-lavoro-val");
+  const kpiLavoroPercentEl = document.getElementById("kpi-lavoro-perc");
+  const kpiFoodImportoEl = document.getElementById("kpi-food-val");
+  const kpiFoodPercentEl = document.getElementById("kpi-food-perc");
+  const kpiFissiImportoEl = document.getElementById("kpi-fissi-val");
+  const kpiFissiPercentEl = document.getElementById("kpi-fissi-perc");
+
+  // costi fissi
+  const btnToggleCostiFissi = document.getElementById("btn-toggle-costi-fissi");
+  const costiFissiSection = document.getElementById("costi-fissi-section");
+
+  const costiFissiCategoriaInput = document.getElementById("costi-categoria");
+  const costiFissiDescrizioneInput = document.getElementById("costi-descrizione");
+  const costiFissiAnnoInput = document.getElementById("costi-anno");
+  const costiFissiImportoInput = document.getElementById("costi-importo-annuo");
+  const btnSalvaCostoFisso = document.getElementById("btn-costi-salva");
+  const costiFissiListaBody = document.getElementById("costi-fissi-lista");
+
+  // --- STATO KPI ---
+  // periodo KPI: day / week / month / year
+  let kpiPeriodoCorrente = "day";
+  let costiFissi = [];
+
+  // --- UTILITY KPI ---
+  function formatEuro(val) {
+    const num = parseNumber(val);
+    return num.toLocaleString("it-IT", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function getBaseDateForKpi() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function getPeriodRangeFromBase(baseDate, periodo) {
+    const start = new Date(baseDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+
+    switch (periodo) {
+      case "week": {
+        const day = start.getDay() || 7; // lun=1..dom=7
+        start.setDate(start.getDate() - (day - 1));
+        end.setTime(start.getTime());
+        end.setDate(start.getDate() + 7);
+        break;
+      }
+      case "month": {
+        start.setDate(1);
+        end.setMonth(start.getMonth() + 1);
+        break;
+      }
+      case "year": {
+        start.setMonth(0, 1);
+        end.setFullYear(start.getFullYear() + 1, 0, 1);
+        break;
+      }
+      case "day":
+      default: {
+        end.setDate(start.getDate() + 1);
+        break;
+      }
+    }
+
+    return { start, end };
+  }
+
+  function formatKpiDateLabel(baseDate, periodo, start, end) {
+    const fmt = (d) =>
+      d.toLocaleDateString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+    switch (periodo) {
+      case "week":
+        return `Settimana ${fmt(start)} – ${fmt(new Date(end.getTime() - 1))}`;
+      case "month": {
+        const mese = start.toLocaleDateString("it-IT", { month: "long" });
+        return `Mese di ${mese} ${start.getFullYear()}`;
+      }
+      case "year":
+        return `Anno ${start.getFullYear()}`;
+      case "day":
+      default:
+        return `Giorno ${fmt(start)}`;
+    }
+  }
+
+  function calcolaQuotaCostiFissiPeriodo(periodo) {
+    const totaleAnnuale = (costiFissi || []).reduce((sum, row) => {
+      const v = parseNumber(row.importo_annuo);
+      return sum + v;
+    }, 0);
+
+    if (totaleAnnuale <= 0) {
+      return { quota: 0, totaleAnnuale: 0 };
+    }
+
+    let quota = 0;
+    switch (periodo) {
+      case "day":
+        quota = totaleAnnuale / 365;
+        break;
+      case "week":
+        quota = totaleAnnuale / 52;
+        break;
+      case "month":
+        quota = totaleAnnuale / 12;
+        break;
+      case "year":
+      default:
+        quota = totaleAnnuale;
+        break;
+    }
+
+    return { quota, totaleAnnuale };
+  }
+
+  function calcolaCostoLavoroPeriodo(start, end) {
+    if (!timbrature.length || !dipendenti.length) return 0;
+
+    const events = timbrature
+      .filter((t) => t.timestamp)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    const lastEntrata = {};
+    const byDip = {};
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+
+    events.forEach((t) => {
+      if (t.tipo === "Entrata") {
+        lastEntrata[t.dip] = t;
+      } else if (t.tipo === "Uscita") {
+        const inEv = lastEntrata[t.dip];
+        if (!inEv || !inEv.timestamp || !t.timestamp) return;
+
+        const inTs = inEv.timestamp;
+        const outTs = t.timestamp;
+
+        // intersezione con [start,end)
+        if (outTs <= startMs || inTs >= endMs) {
+          delete lastEntrata[t.dip];
+          return;
+        }
+
+        const from = Math.max(inTs, startMs);
+        const to = Math.min(outTs, endMs);
+        if (to > from) {
+          const min = (to - from) / 60000;
+          if (!byDip[t.dip]) byDip[t.dip] = 0;
+          byDip[t.dip] += min;
+        }
+
+        delete lastEntrata[t.dip];
+      }
+    });
+
+    let costoTotale = 0;
+    Object.entries(byDip).forEach(([nomeDip, min]) => {
+      const d = dipendenti.find((x) => x.nome === nomeDip);
+      if (!d) return;
+      const costoOra = d.costoOrario || 0;
+      const ore = min / 60;
+      costoTotale += ore * costoOra;
+    });
+
+    return costoTotale;
+  }
+
+  function aggiornaGauge(incassoVal, bepVal) {
+    if (!kpiGaugeNeedleEl) return;
+
+    if (bepVal <= 0) {
+      kpiGaugeNeedleEl.style.transform = "rotate(-90deg)";
+      return;
+    }
+
+    const ratio = incassoVal / bepVal;
+    const clamped = Math.max(0, Math.min(ratio, 2)); // 0..2
+    const angle = -90 + clamped * 90; // -90..+90
+
+    kpiGaugeNeedleEl.style.transform = `rotate(${angle}deg)`;
+  }
+
+  function aggiornaKpiReport() {
+    // data di riferimento (oggi)
+    const baseDate = getBaseDateForKpi();
+    const { start, end } = getPeriodRangeFromBase(baseDate, kpiPeriodoCorrente);
+
+    if (kpiDateLabelEl) {
+      kpiDateLabelEl.textContent = formatKpiDateLabel(
+        baseDate,
+        kpiPeriodoCorrente,
+        start,
+        end
+      );
+    }
+
+    // se non esistono gli input, li consideriamo 0
+    const incassoVal = kpiIncassoInput
+      ? parseNumber(kpiIncassoInput.value)
+      : 0;
+    const foodVal = kpiFoodInput ? parseNumber(kpiFoodInput.value) : 0;
+    const { quota: fissiVal } = calcolaQuotaCostiFissiPeriodo(
+      kpiPeriodoCorrente
+    );
+    const lavoroVal = calcolaCostoLavoroPeriodo(start, end);
+
+    const totaleCosti = lavoroVal + foodVal + fissiVal;
+    const margineVal = incassoVal - totaleCosti;
+    const bepVal = totaleCosti;
+
+    // valori top
+    if (kpiIncassoValueEl)
+      kpiIncassoValueEl.textContent = formatEuro(incassoVal);
+    if (kpiMargineValueEl)
+      kpiMargineValueEl.textContent = formatEuro(margineVal);
+
+    // badge margine (verde/rosso)
+    if (kpiMarginBadgeEl) {
+      kpiMarginBadgeEl.textContent = formatEuro(margineVal);
+      kpiMarginBadgeEl.classList.remove("pos", "neg");
+      kpiMarginBadgeEl.classList.add(margineVal >= 0 ? "pos" : "neg");
+    }
+
+    if (kpiBepLabelEl) {
+      kpiBepLabelEl.textContent = `BEP ${formatEuro(bepVal)}`;
+    }
+
+    // card importi
+    if (kpiLavoroImportoEl)
+      kpiLavoroImportoEl.textContent = formatEuro(lavoroVal);
+    if (kpiFoodImportoEl)
+      kpiFoodImportoEl.textContent = formatEuro(foodVal);
+    if (kpiFissiImportoEl)
+      kpiFissiImportoEl.textContent = formatEuro(fissiVal);
+
+    // percentuali: uso come base l'incasso se >0, altrimenti il totale costi
+    const basePerc = incassoVal > 0 ? incassoVal : totaleCosti || 1;
+    const lavoroPerc = (lavoroVal / basePerc) * 100;
+    const foodPerc = (foodVal / basePerc) * 100;
+    const fissiPerc = (fissiVal / basePerc) * 100;
+
+    if (kpiLavoroPercentEl)
+      kpiLavoroPercentEl.textContent =
+        totaleCosti > 0 ? `${lavoroPerc.toFixed(0)}%` : "0%";
+    if (kpiFoodPercentEl)
+      kpiFoodPercentEl.textContent =
+        totaleCosti > 0 ? `${foodPerc.toFixed(0)}%` : "0%";
+    if (kpiFissiPercentEl)
+      kpiFissiPercentEl.textContent =
+        totaleCosti > 0 ? `${fissiPerc.toFixed(0)}%` : "0%";
+
+    aggiornaGauge(incassoVal, bepVal);
+  }
+
+  function aggiornaKpiLavoroSeServe() {
+    const reportView = document.getElementById("view-report");
+    if (reportView && reportView.style.display !== "none") {
+      aggiornaKpiReport();
+    }
+  }
+
+  // --- COSTI FISSI (Supabase) ---
+  async function caricaCostiFissiDaSupabase() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("costi_fissi")
+      .select("*")
+      .order("anno_riferimento", { ascending: false })
+      .order("categoria", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento costi_fissi:", error);
+      alert("Errore Supabase costi fissi");
+      return;
+    }
+
+    costiFissi = data || [];
+    renderCostiFissi();
+    aggiornaKpiReport();
+  }
+
+  function renderCostiFissi() {
+    if (!costiFissiListaBody) return;
+    costiFissiListaBody.innerHTML = "";
+
+    costiFissi.forEach((riga) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${riga.categoria || ""}</td>
+        <td>${riga.descrizione || ""}</td>
+        <td>${riga.anno_riferimento || ""}</td>
+        <td>${formatEuro(riga.importo_annuo || 0)}</td>
+      `;
+      costiFissiListaBody.appendChild(tr);
+    });
+  }
+
+  async function salvaCostoFissoSupabase() {
+    if (!supabase) return;
+
+    const categoria = (costiFissiCategoriaInput?.value || "").trim();
+    const descrizione = (costiFissiDescrizioneInput?.value || "").trim();
+    const annoVal = costiFissiAnnoInput?.value || "";
+    const importoVal = costiFissiImportoInput?.value || "";
+
+    if (!categoria) {
+      alert("Inserisci la categoria del costo fisso");
+      return;
+    }
+    if (!annoVal) {
+      alert("Inserisci l'anno di riferimento");
+      return;
+    }
+    if (!importoVal) {
+      alert("Inserisci l'importo annuo");
+      return;
+    }
+
+    const anno = parseInt(annoVal, 10) || new Date().getFullYear();
+    const importoAnnuo = parseNumber(importoVal);
+
+    const payload = {
+      categoria,
+      descrizione: descrizione || null,
+      anno_riferimento: anno,
+      importo_annuo: importoAnnuo,
+    };
+
+    const { data, error } = await supabase
+      .from("costi_fissi")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio costo fisso:", error);
+      alert("Errore Supabase costo fisso");
+      return;
+    }
+
+    costiFissi.unshift(data);
+    renderCostiFissi();
+    aggiornaKpiReport();
+
+    if (costiFissiCategoriaInput) costiFissiCategoriaInput.value = "";
+    if (costiFissiDescrizioneInput) costiFissiDescrizioneInput.value = "";
+    if (costiFissiAnnoInput) costiFissiAnnoInput.value = "";
+    if (costiFissiImportoInput) costiFissiImportoInput.value = "";
+  }
+
+  // --- LISTENER KPI / COSTI FISSI ---
+  if (btnToggleCostiFissi && costiFissiSection) {
+    costiFissiSection.style.display = "none";
+    btnToggleCostiFissi.addEventListener("click", () => {
+      const hidden =
+        costiFissiSection.style.display === "none" ||
+        costiFissiSection.style.display === "";
+      costiFissiSection.style.display = hidden ? "block" : "none";
+      btnToggleCostiFissi.textContent = hidden
+        ? "Nascondi costi fissi"
+        : "Gestisci costi fissi";
+    });
+  }
+
+  if (btnSalvaCostoFisso) {
+    btnSalvaCostoFisso.addEventListener("click", (e) => {
+      e.preventDefault();
+      salvaCostoFissoSupabase();
+    });
+  }
+
+  if (kpiPeriodButtons.length) {
+    kpiPeriodButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        kpiPeriodButtons.forEach((b) =>
+          b.classList.remove("kpi-period-active")
+        );
+        btn.classList.add("kpi-period-active");
+
+        const p = btn.getAttribute("data-kpi-period") || "day";
+        // normalizzo sui 4 valori ammessi
+        if (["day", "week", "month", "year"].includes(p)) {
+          kpiPeriodoCorrente = p;
+        } else {
+          kpiPeriodoCorrente = "day";
+        }
+        aggiornaKpiReport();
+      });
+    });
+  }
+
+  if (kpiIncassoInput) {
+    kpiIncassoInput.addEventListener("input", aggiornaKpiReport);
+  }
+  if (kpiFoodInput) {
+    kpiFoodInput.addEventListener("input", aggiornaKpiReport);
+  }
+
 
   // ========== BLOCCO A8 - ROUTING ==========
 
