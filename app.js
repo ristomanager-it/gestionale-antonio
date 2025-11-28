@@ -1479,327 +1479,257 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
- // ---------- ACQUISTI / FATTURE (DOM) ----------
-const fatturaNumeroInput = document.getElementById("fattura-numero");
-const fatturaDataInput = document.getElementById("fattura-data");
-const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
-const fatturaNoteInput = document.getElementById("fattura-note");
-const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
-const btnSalvaFattura = document.getElementById("btn-salva-fattura");
-const fatturaRigheBody = document.getElementById("fattura-righe-body");
-const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
-const fatturaImponibileTotaleInput = document.getElementById(
-  "fattura-imponibile-totale"
-);
-const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
-const fatturaTotaleDocumentoInput = document.getElementById(
-  "fattura-totale-documento"
-);
-const fattureListaBody = document.getElementById("fatture-lista");
-const fattureTable = document.getElementById("fatture-table");
-const btnToggleFatture = document.getElementById("btn-toggle-fatture");
-
-// stato
-let currentFatturaId = null;
-let fornitoriCache = [];
-let categorieCache = [];
-
-// ---------- FUNZIONI DI SUPPORTO (FORNITORI / CATEGORIE / PRODOTTI) ----------
-function getFornitoreById(id) {
-  return fornitoriCache.find((f) => f.id === id) || null;
-}
-
-function getCategoriaById(id) {
-  return categorieCache.find((c) => c.id === id) || null;
-}
-
-async function caricaFornitoriInCache() {
-  if (!supabase) return;
-  const { data, error } = await supabase
-    .from("fornitori")
-    .select("id, ragione_sociale")
-    .order("ragione_sociale", { ascending: true });
-
-  if (error) {
-    console.error("Errore caricamento fornitori:", error);
-    alert("Errore Supabase (caricamento fornitori): " + error.message);
-    return;
-  }
-  fornitoriCache = data || [];
-}
-
-async function caricaCategorieInCache() {
-  if (!supabase) return;
-  const { data, error } = await supabase
-    .from("categorie_prodotto")
-    .select("id, nome")
-    .order("nome", { ascending: true });
-
-  if (error) {
-    console.error("Errore caricamento categorie:", error);
-    alert("Errore Supabase (caricamento categorie): " + error.message);
-    return;
-  }
-  categorieCache = data || [];
-}
-
-async function findOrCreateFornitoreByName(nomeFornitore) {
-  if (!supabase) return null;
-  const nomeTrim = (nomeFornitore || "").trim();
-  if (!nomeTrim) return null;
-
-  const existing = fornitoriCache.find(
-    (f) =>
-      f.ragione_sociale &&
-      f.ragione_sociale.toLowerCase() === nomeTrim.toLowerCase()
-  );
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from("fornitori")
-    .insert({
-      ragione_sociale: nomeTrim,
-      attivo: true,
-    })
-    .select("id, ragione_sociale")
-    .single();
-
-  if (error) {
-    console.error("Errore creazione fornitore:", error);
-    alert("Errore Supabase (fornitore): " + error.message);
-    return null;
+   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+  function getFornitoreById(id) {
+    return fornitoriCache.find((f) => f.id === id) || null;
   }
 
-  fornitoriCache.push(data);
-  return data;
-}
-
-async function findOrCreateCategoriaByNome(nomeCategoria) {
-  if (!supabase) return null;
-  const nomeTrim = (nomeCategoria || "").trim();
-  if (!nomeTrim) return null;
-
-  const existing = categorieCache.find(
-    (c) => c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
-  );
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from("categorie_prodotto")
-    .insert({
-      nome: nomeTrim,
-      attivo: true,
-    })
-    .select("id, nome")
-    .single();
-
-  if (error) {
-    console.error("Errore creazione categoria prodotto:", error);
-    alert("Errore Supabase (categoria prodotto): " + error.message);
-    return null;
+  function getCategoriaById(id) {
+    return categorieCache.find((c) => c.id === id) || null;
   }
 
-  categorieCache.push(data);
-  return data;
-}
-
-async function findOrCreateProdotto({ codice, descrizione, categoriaNome, um }) {
-  if (!supabase) return null;
-  const codiceTrim = (codice || "").trim();
-  const descTrim = (descrizione || "").trim();
-  const umTrim = (um || "").trim() || "pz";
-
-  if (!codiceTrim && !descTrim) return null;
-
-  // per codice
-  if (codiceTrim) {
+  async function caricaFornitoriInCache() {
+    if (!supabase) return;
     const { data, error } = await supabase
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, categoria_id, um")
-      .eq("codice_interno", codiceTrim)
-      .limit(1);
+      .from("fornitori")
+      .select("id, ragione_sociale")
+      .order("ragione_sociale", { ascending: true });
 
-    if (!error && data && data.length > 0) return data[0];
+    if (error) {
+      console.error("Errore caricamento fornitori:", error);
+      alert("Errore Supabase (caricamento fornitori): " + error.message);
+      return;
+    }
+    fornitoriCache = data || [];
   }
 
-  // per descrizione
-  if (descTrim) {
+  async function caricaCategorieInCache() {
+    if (!supabase) return;
     const { data, error } = await supabase
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, categoria_id, um")
-      .ilike("descrizione", descTrim)
-      .limit(1);
+      .from("categorie_prodotto")
+      .select("id, nome")
+      .order("nome", { ascending: true });
 
-    if (!error && data && data.length > 0) return data[0];
+    if (error) {
+      console.error("Errore caricamento categorie:", error);
+      alert("Errore Supabase (caricamento categorie): " + error.message);
+      return;
+    }
+    categorieCache = data || [];
   }
 
-  // categoria
-  let categoria = null;
-  if (categoriaNome) {
-    categoria = await findOrCreateCategoriaByNome(categoriaNome);
-    if (!categoria) {
-      alert(
-        "Attenzione: categoria prodotto non creata/cercata correttamente, creo comunque il prodotto."
+  async function findOrCreateFornitoreByName(nomeFornitore) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeFornitore || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = fornitoriCache.find(
+      (f) =>
+        f.ragione_sociale &&
+        f.ragione_sociale.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("fornitori")
+      .insert({
+        ragione_sociale: nomeTrim,
+        attivo: true,
+      })
+      .select("id, ragione_sociale")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione fornitore:", error);
+      alert("Errore Supabase (fornitore): " + error.message);
+      return null;
+    }
+
+    fornitoriCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateCategoriaByNome(nomeCategoria) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeCategoria || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = categorieCache.find(
+      (c) => c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .insert({
+        nome: nomeTrim,
+        attivo: true,
+      })
+      .select("id, nome")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione categoria prodotto:", error);
+      alert("Errore Supabase (categoria prodotto): " + error.message);
+      return null;
+    }
+
+    categorieCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateProdotto({
+    codice,
+    descrizione,
+    categoriaNome,
+    um,
+  }) {
+    if (!supabase) return null;
+    const codiceTrim = (codice || "").trim();
+    const descTrim = (descrizione || "").trim();
+    const umTrim = (um || "").trim() || "pz";
+
+    if (!codiceTrim && !descTrim) {
+      return null;
+    }
+
+    if (codiceTrim) {
+      const { data: existingByCodice, error: errFindCodice } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .eq("codice_interno", codiceTrim)
+        .limit(1);
+
+      if (errFindCodice) {
+        console.error("Errore ricerca prodotto per codice:", errFindCodice);
+      }
+
+      if (existingByCodice && existingByCodice.length > 0) {
+        return existingByCodice[0];
+      }
+    }
+
+    if (descTrim) {
+      const { data: existingByDesc, error: errFindDesc } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .ilike("descrizione", descTrim)
+        .limit(1);
+
+      if (errFindDesc) {
+        console.error("Errore ricerca prodotto per descrizione:", errFindDesc);
+      } else if (existingByDesc && existingByDesc.length > 0) {
+        return existingByDesc[0];
+      }
+    }
+
+    let categoria = null;
+    if (categoriaNome) {
+      categoria = await findOrCreateCategoriaByNome(categoriaNome);
+      if (!categoria) {
+        alert(
+          "Attenzione: categoria prodotto non creata/cercata correttamente, creo comunque il prodotto."
+        );
+      }
+    }
+
+    let codiceInternoFinale = codiceTrim;
+    if (!codiceInternoFinale) {
+      codiceInternoFinale = await generaCodiceInternoAutomatico(
+        categoriaNome || descTrim || "GEN"
       );
     }
+
+    const { data: existingFinal, error: errFindFinal } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .eq("codice_interno", codiceInternoFinale)
+      .limit(1);
+
+    if (errFindFinal) {
+      console.error("Errore ricerca prodotto finale:", errFindFinal);
+    }
+
+    if (existingFinal && existingFinal.length > 0) {
+      return existingFinal[0];
+    }
+
+    const payload = {
+      codice_interno: codiceInternoFinale,
+      descrizione: descTrim || codiceInternoFinale,
+      categoria_id: categoria ? categoria.id : null,
+      um: umTrim,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .insert(payload)
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione prodotto:", error);
+      alert("Errore Supabase (creazione prodotto): " + error.message);
+      return null;
+    }
+
+    return data;
   }
 
-  // generazione codice interno
-  const codiceInternoFinale =
-    codiceTrim ||
-    (await generaCodiceInternoAutomatico(categoriaNome || descTrim || "GEN"));
+  // --- righe fattura ---
+  function creaRigaFattura(initial = {}) {
+    if (!fatturaRigheBody) return;
 
-  // evito collisioni
-  const { data: existingFinal, error: errFindFinal } = await supabase
-    .from("prodotti")
-    .select("id, codice_interno, descrizione, categoria_id, um")
-    .eq("codice_interno", codiceInternoFinale)
-    .limit(1);
-
-  if (!errFindFinal && existingFinal && existingFinal.length > 0) {
-    return existingFinal[0];
-  }
-
-  const payload = {
-    codice_interno: codiceInternoFinale,
-    descrizione: descTrim || codiceInternoFinale,
-    categoria_id: categoria ? categoria.id : null,
-    um: umTrim,
-    attivo: true,
-  };
-
-  const { data, error } = await supabase
-    .from("prodotti")
-    .insert(payload)
-    .select("id, codice_interno, descrizione, categoria_id, um")
-    .single();
-
-  if (error) {
-    console.error("Errore creazione prodotto:", error);
-    alert("Errore Supabase (creazione prodotto): " + error.message);
-    return null;
-  }
-
-  return data;
-}
-
-// ---------- RIGHE FATTURA: LAYOUT VERTICALE ----------
-function ricalcolaTotaleRiga(cardEl) {
-  const qtaInput = cardEl.querySelector(".fatt-riga-quantita");
-  const prezzoInput = cardEl.querySelector(".fatt-riga-prezzo");
-  const ivaInput = cardEl.querySelector(".fatt-riga-iva");
-  const totaleEl = cardEl.querySelector(".fatt-riga-totale");
-
-  const qta = parseNumber(qtaInput?.value || "0");
-  const prezzo = parseNumber(prezzoInput?.value || "0");
-  const ivaPerc = parseNumber(ivaInput?.value || "0");
-
-  const imponibile = qta * prezzo;
-  const iva = imponibile * (ivaPerc / 100);
-  const totale = imponibile + iva;
-
-  if (totaleEl) totaleEl.textContent = totale.toFixed(2);
-
-  return { imponibile, iva, totale };
-}
-
-function ricalcolaTotaliFattura() {
-  if (!fatturaRigheBody) return;
-
-  let impTot = 0;
-  let ivaTot = 0;
-  let docTot = 0;
-
-  const cards = Array.from(
-    fatturaRigheBody.querySelectorAll(".fattura-riga-card")
-  );
-
-  cards.forEach((card) => {
-    const { imponibile, iva, totale } = ricalcolaTotaleRiga(card);
-    impTot += imponibile;
-    ivaTot += iva;
-    docTot += totale;
-  });
-
-  if (fatturaImponibileTotaleInput)
-    fatturaImponibileTotaleInput.value = impTot.toFixed(2);
-  if (fatturaIvaTotaleInput)
-    fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
-  if (fatturaTotaleDocumentoInput)
-    fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
-}
-
-function creaRigaFattura(initial = {}) {
-  if (!fatturaRigheBody) return;
-
-  const card = document.createElement("div");
-  card.className = "fattura-riga-card";
-
-  card.innerHTML = `
-    <div class="fattura-riga-header">
-      <span class="fattura-riga-title">Riga fattura</span>
-      <button type="button" class="app-button tiny red btn-del-riga">✕</button>
-    </div>
-
-    <div class="fattura-riga-grid">
-      <label>
-        Codice interno
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
         <input
           type="text"
-          class="input-pill fatt-riga-codice"
+          class="fatt-riga-codice"
           placeholder="Cod. interno"
           value="${initial.codice_prodotto || ""}"
         />
-      </label>
-
-      <label>
-        Descrizione
+      </td>
+      <td>
         <input
           type="text"
-          class="input-pill fatt-riga-descrizione"
+          class="fatt-riga-descrizione"
           placeholder="Descrizione prodotto"
           list="ingredienti-suggestions"
           value="${initial.descrizione_riga || ""}"
         />
-      </label>
-
-      <label>
-        Categoria
+      </td>
+      <td>
         <input
           type="text"
-          class="input-pill fatt-riga-categoria"
+          class="fatt-riga-categoria"
           placeholder="Categoria"
           value="${initial.categoria_nome || ""}"
         />
-      </label>
-
-      <label>
-        UM
+      </td>
+      <td>
         <input
           type="text"
-          class="input-pill fatt-riga-um"
+          class="fatt-riga-um"
           placeholder="kg, l, pz..."
           value="${initial.um || ""}"
         />
-      </label>
-
-      <label>
-        Quantità
+      </td>
+      <td>
         <input
           type="number"
-          class="input-pill fatt-riga-quantita"
+          class="fatt-riga-quantita"
           placeholder="Q.tà"
           min="0"
           step="0.001"
           value="${initial.quantita != null ? initial.quantita : ""}"
         />
-      </label>
-
-      <label>
-        Prezzo unitario
+      </td>
+      <td>
         <input
           type="number"
-          class="input-pill fatt-riga-prezzo"
+          class="fatt-riga-prezzo"
           placeholder="Prezzo"
           min="0"
           step="0.0001"
@@ -1807,362 +1737,403 @@ function creaRigaFattura(initial = {}) {
             initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
           }"
         />
-      </label>
-
-      <label>
-        IVA (%)
+      </td>
+      <td>
         <input
           type="number"
-          class="input-pill fatt-riga-iva"
+          class="fatt-riga-iva"
           placeholder="%"
           min="0"
           step="1"
           value="${initial.iva_perc != null ? initial.iva_perc : ""}"
         />
-      </label>
-    </div>
+      </td>
+      <td class="fatt-riga-totale">0.00</td>
+      <td>
+        <button type="button" class="app-button tiny red btn-del-riga">
+          ✕
+        </button>
+      </td>
+    `;
 
-    <div class="fattura-riga-footer">
-      <span>Totale riga</span>
-      <strong class="fatt-riga-totale">0.00</strong>
-    </div>
-  `;
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const btnDel = tr.querySelector(".btn-del-riga");
 
-  const qtaInput = card.querySelector(".fatt-riga-quantita");
-  const prezzoInput = card.querySelector(".fatt-riga-prezzo");
-  const ivaInput = card.querySelector(".fatt-riga-iva");
-  const btnDel = card.querySelector(".btn-del-riga");
+    const handleChange = () => {
+      ricalcolaTotaleRiga(tr);
+      ricalcolaTotaliFattura();
+    };
 
-  const handleChange = () => {
-    ricalcolaTotaleRiga(card);
-    ricalcolaTotaliFattura();
-  };
+    if (qtaInput) qtaInput.addEventListener("input", handleChange);
+    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
+    if (ivaInput) ivaInput.addEventListener("input", handleChange);
 
-  if (qtaInput) qtaInput.addEventListener("input", handleChange);
-  if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
-  if (ivaInput) ivaInput.addEventListener("input", handleChange);
+    if (btnDel) {
+      btnDel.addEventListener("click", () => {
+        tr.remove();
+        ricalcolaTotaliFattura();
+      });
+    }
 
-  if (btnDel) {
-    btnDel.addEventListener("click", () => {
-      card.remove();
+    fatturaRigheBody.appendChild(tr);
+    ricalcolaTotaleRiga(tr);
+  }
+
+  function ricalcolaTotaleRiga(tr) {
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const totaleCell = tr.querySelector(".fatt-riga-totale");
+    const qta = parseNumber(qtaInput?.value || "0");
+    const prezzo = parseNumber(prezzoInput?.value || "0");
+    const ivaPerc = parseNumber(ivaInput?.value || "0");
+
+    const imponibile = qta * prezzo;
+    const iva = imponibile * (ivaPerc / 100);
+    const totale = imponibile + iva;
+
+    if (totaleCell) {
+      totaleCell.textContent = totale.toFixed(2);
+    }
+
+    return { imponibile, iva, totale };
+  }
+
+  function ricalcolaTotaliFattura() {
+    if (!fatturaRigheBody) return;
+
+    let impTot = 0;
+    let ivaTot = 0;
+    let docTot = 0;
+
+    const rows = Array.from(fatturaRigheBody.querySelectorAll("tr"));
+    rows.forEach((tr) => {
+      const { imponibile, iva, totale } = ricalcolaTotaleRiga(tr);
+      impTot += imponibile;
+      ivaTot += iva;
+      docTot += totale;
+    });
+
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+  }
+
+  function resetFatturaForm() {
+    currentFatturaId = null;
+
+    if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+    if (fatturaDataInput) formatDateInputToday(fatturaDataInput);
+    if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
+    if (fatturaNoteInput) fatturaNoteInput.value = "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = "";
+    if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = "";
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      creaRigaFattura();
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  async function handleNuovaFattura() {
+    resetFatturaForm();
+  }
+
+  async function handleSalvaFattura() {
+    if (!supabase) return;
+
+    const numero = (fatturaNumeroInput?.value || "").trim();
+    const dataDoc = fatturaDataInput?.value || "";
+    const fornitoreNome = (fatturaFornitoreInput?.value || "").trim();
+    const note = (fatturaNoteInput?.value || "").trim();
+
+    if (!numero) {
+      alert("Inserisci il numero della fattura");
+      return;
+    }
+    if (!dataDoc) {
+      alert("Inserisci la data della fattura");
+      return;
+    }
+    if (!fornitoreNome) {
+      alert("Inserisci il fornitore");
+      return;
+    }
+
+    await caricaFornitoriInCache();
+    const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
+    if (!fornitore) return;
+
+    const imponibileTot = parseNumber(
+      fatturaImponibileTotaleInput?.value || "0"
+    );
+    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "0");
+    const docTot = parseNumber(
+      fatturaTotaleDocumentoInput?.value || "0"
+    );
+
+    const fatturaPayload = {
+      id: currentFatturaId || undefined,
+      numero_documento: numero,
+      data_documento: dataDoc,
+      fornitore_id: fornitore.id,
+      note: note || null,
+      imponibile_totale: imponibileTot,
+      iva_totale: ivaTot,
+      totale_documento: docTot,
+    };
+
+    const { data: fatturaData, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .upsert(fatturaPayload)
+      .select()
+      .single();
+
+    if (fatturaError) {
+      console.error("Errore salvataggio fattura:", fatturaError);
+      alert("Errore nel salvare la fattura");
+      return;
+    }
+
+    currentFatturaId = fatturaData.id;
+
+    await supabase
+      .from("fatture_acquisto_righe")
+      .delete()
+      .eq("fattura_id", currentFatturaId);
+
+    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
+    const righePayload = [];
+
+    for (const tr of rows) {
+      const codiceEl = tr.querySelector(".fatt-riga-codice");
+      const descrEl = tr.querySelector(".fatt-riga-descrizione");
+      const catEl = tr.querySelector(".fatt-riga-categoria");
+      const umEl = tr.querySelector(".fatt-riga-um");
+      const qtaEl = tr.querySelector(".fatt-riga-quantita");
+      const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
+      const ivaEl = tr.querySelector(".fatt-riga-iva");
+
+      const codiceVal = (codiceEl?.value || "").trim();
+      const descrVal = (descrEl?.value || "").trim();
+      const catVal = (catEl?.value || "").trim();
+      const umVal = (umEl?.value || "").trim();
+      const qtaVal = parseNumber(qtaEl?.value || "0");
+      const prezzoVal = parseNumber(prezzoEl?.value || "0");
+      const ivaPercVal = parseNumber(ivaEl?.value || "0");
+
+      if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) {
+        continue;
+      }
+
+      await caricaCategorieInCache();
+      const prodotto = await findOrCreateProdotto({
+        codice: codiceVal,
+        descrizione: descrVal,
+        categoriaNome: catVal,
+        um: umVal,
+      });
+      if (!prodotto) continue;
+
+      const imponibile = qtaVal * prezzoVal;
+      const ivaVal = imponibile * (ivaPercVal / 100);
+      const totale = imponibile + ivaVal;
+
+      righePayload.push({
+        fattura_id: currentFatturaId,
+        prodotto_id: prodotto.id,
+        codice_prodotto: prodotto.codice_interno,
+        descrizione_riga: descrVal,
+        quantita: qtaVal,
+        um: prodotto.um,
+        prezzo_unitario: prezzoVal,
+        iva_perc: ivaPercVal,
+        imponibile,
+        iva: ivaVal,
+        totale,
+        categoria_id: prodotto.categoria_id || null,
+      });
+
+      // futuro: inserire movimento di magazzino (carico)
+    }
+
+    if (righePayload.length) {
+      const { error: righeError } = await supabase
+        .from("fatture_acquisto_righe")
+        .insert(righePayload);
+
+      if (righeError) {
+        console.error("Errore salvataggio righe fattura:", righeError);
+        alert("Errore nel salvare le righe della fattura");
+        return;
+      }
+    }
+
+    alert("Fattura salvata correttamente");
+    await caricaElencoFatture();
+  }
+
+  async function caricaElencoFatture() {
+    if (!supabase || !fattureListaBody) return;
+
+    const { data, error } = await supabase
+      .from("fatture_acquisto")
+      .select(
+        "id, numero_documento, data_documento, fornitore_id, totale_documento"
+      )
+      .order("data_documento", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.error("Errore caricamento fatture:", error);
+      alert("Errore nel caricare le fatture");
+      return;
+    }
+
+    await caricaFornitoriInCache();
+
+    fattureListaBody.innerHTML = "";
+    (data || []).forEach((f) => {
+      const fornitore = getFornitoreById(f.fornitore_id);
+      const tr = document.createElement("tr");
+      const dataStr = f.data_documento
+        ? new Date(f.data_documento).toLocaleDateString("it-IT")
+        : "";
+      tr.innerHTML = `
+        <td>${dataStr}</td>
+        <td>${f.numero_documento || ""}</td>
+        <td>${fornitore?.ragione_sociale || ""}</td>
+        <td>${f.totale_documento != null ? f.totale_documento.toFixed(2) : ""}</td>
+        <td>
+          <button class="app-button tiny gray" data-open-fattura="${f.id}">
+            Apri
+          </button>
+        </td>
+      `;
+      fattureListaBody.appendChild(tr);
+    });
+
+    fattureListaBody
+      .querySelectorAll("[data-open-fattura]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
+          apriFatturaEsistente(id);
+        });
+      });
+  }
+
+  async function apriFatturaEsistente(fatturaId) {
+    if (!supabase) return;
+
+    const { data: fattura, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .select("*")
+      .eq("id", fatturaId)
+      .single();
+
+    if (fatturaError) {
+      console.error("Errore lettura fattura:", fatturaError);
+      alert("Errore nel caricare la fattura");
+      return;
+    }
+
+    currentFatturaId = fattura.id;
+
+    if (fatturaNumeroInput)
+      fatturaNumeroInput.value = fattura.numero_documento || "";
+    if (fatturaDataInput)
+      fatturaDataInput.value = fattura.data_documento
+        ? fattura.data_documento.substring(0, 10)
+        : "";
+    if (fatturaFornitoreInput) {
+      await caricaFornitoriInCache();
+      const forn = getFornitoreById(fattura.fornitore_id);
+      fatturaFornitoreInput.value = forn?.ragione_sociale || "";
+    }
+    if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value =
+        fattura.imponibile_totale != null
+          ? fattura.imponibile_totale.toFixed(2)
+          : "";
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value =
+        fattura.iva_totale != null ? fattura.iva_totale.toFixed(2) : "";
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value =
+        fattura.totale_documento != null
+          ? fattura.totale_documento.toFixed(2)
+          : "";
+
+    const { data: righe, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("*")
+      .eq("fattura_id", fatturaId)
+      .order("id", { ascending: true });
+
+    if (righeError) {
+      console.error("Errore caricamento righe fattura:", righeError);
+      alert("Errore nel caricare le righe della fattura");
+      return;
+    }
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      (righe || []).forEach((r) => {
+        const categoria = r.categoria_id
+          ? getCategoriaById(r.categoria_id)?.nome || ""
+          : "";
+        creaRigaFattura({
+          codice_prodotto: r.codice_prodotto,
+          descrizione_riga: r.descrizione_riga,
+          categoria_nome: categoria,
+          um: r.um,
+          quantita: r.quantita,
+          prezzo_unitario: r.prezzo_unitario,
+          iva_perc: r.iva_perc,
+        });
+      });
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  if (btnAddRigaFattura) {
+    btnAddRigaFattura.addEventListener("click", () => {
+      creaRigaFattura();
       ricalcolaTotaliFattura();
     });
   }
 
-  fatturaRigheBody.appendChild(card);
-  ricalcolaTotaleRiga(card);
-}
-
-// ---------- GESTIONE FATTURA ----------
-function resetFatturaForm() {
-  currentFatturaId = null;
-
-  if (fatturaNumeroInput) fatturaNumeroInput.value = "";
-  if (fatturaDataInput) formatDateInputToday(fatturaDataInput);
-  if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
-  if (fatturaNoteInput) fatturaNoteInput.value = "";
-  if (fatturaImponibileTotaleInput)
-    fatturaImponibileTotaleInput.value = "";
-  if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
-  if (fatturaTotaleDocumentoInput)
-    fatturaTotaleDocumentoInput.value = "";
-
-  if (fatturaRigheBody) {
-    fatturaRigheBody.innerHTML = "";
-    creaRigaFattura();
-    ricalcolaTotaliFattura();
-  }
-}
-
-async function handleNuovaFattura() {
-  resetFatturaForm();
-}
-
-async function handleSalvaFattura() {
-  if (!supabase) return;
-
-  const numero = (fatturaNumeroInput?.value || "").trim();
-  const dataDoc = fatturaDataInput?.value || "";
-  const fornitoreNome = (fatturaFornitoreInput?.value || "").trim();
-  const note = (fatturaNoteInput?.value || "").trim();
-
-  if (!numero) {
-    alert("Inserisci il numero della fattura");
-    return;
-  }
-  if (!dataDoc) {
-    alert("Inserisci la data della fattura");
-    return;
-  }
-  if (!fornitoreNome) {
-    alert("Inserisci il fornitore");
-    return;
-  }
-
-  await caricaFornitoriInCache();
-  const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
-  if (!fornitore) return;
-
-  const imponibileTot = parseNumber(
-    fatturaImponibileTotaleInput?.value || "0"
-  );
-  const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "0");
-  const docTot = parseNumber(
-    fatturaTotaleDocumentoInput?.value || "0"
-  );
-
-  const fatturaPayload = {
-    id: currentFatturaId || undefined,
-    numero_documento: numero,
-    data_documento: dataDoc,
-    fornitore_id: fornitore.id,
-    note: note || null,
-    imponibile_totale: imponibileTot,
-    iva_totale: ivaTot,
-    totale_documento: docTot,
-  };
-
-  const { data: fatturaData, error: fatturaError } = await supabase
-    .from("fatture_acquisto")
-    .upsert(fatturaPayload)
-    .select()
-    .single();
-
-  if (fatturaError) {
-    console.error("Errore salvataggio fattura:", fatturaError);
-    alert("Errore nel salvare la fattura");
-    return;
-  }
-
-  currentFatturaId = fatturaData.id;
-
-  // cancello righe vecchie
-  await supabase
-    .from("fatture_acquisto_righe")
-    .delete()
-    .eq("fattura_id", currentFatturaId);
-
-  const cards = Array.from(
-    fatturaRigheBody?.querySelectorAll(".fattura-riga-card") || []
-  );
-  const righePayload = [];
-
-  for (const card of cards) {
-    const codiceEl = card.querySelector(".fatt-riga-codice");
-    const descrEl = card.querySelector(".fatt-riga-descrizione");
-    const catEl = card.querySelector(".fatt-riga-categoria");
-    const umEl = card.querySelector(".fatt-riga-um");
-    const qtaEl = card.querySelector(".fatt-riga-quantita");
-    const prezzoEl = card.querySelector(".fatt-riga-prezzo");
-    const ivaEl = card.querySelector(".fatt-riga-iva");
-
-    const codiceVal = (codiceEl?.value || "").trim();
-    const descrVal = (descrEl?.value || "").trim();
-    const catVal = (catEl?.value || "").trim();
-    const umVal = (umEl?.value || "").trim();
-    const qtaVal = parseNumber(qtaEl?.value || "0");
-    const prezzoVal = parseNumber(prezzoEl?.value || "0");
-    const ivaPercVal = parseNumber(ivaEl?.value || "0");
-
-    if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) continue;
-
-    await caricaCategorieInCache();
-    const prodotto = await findOrCreateProdotto({
-      codice: codiceVal,
-      descrizione: descrVal,
-      categoriaNome: catVal,
-      um: umVal,
-    });
-    if (!prodotto) continue;
-
-    const imponibile = qtaVal * prezzoVal;
-    const ivaVal = imponibile * (ivaPercVal / 100);
-    const totale = imponibile + ivaVal;
-
-    righePayload.push({
-      fattura_id: currentFatturaId,
-      prodotto_id: prodotto.id,
-      codice_prodotto: prodotto.codice_interno,
-      descrizione_riga: descrVal,
-      quantita: qtaVal,
-      um: prodotto.um,
-      prezzo_unitario: prezzoVal,
-      iva_perc: ivaPercVal,
-      imponibile,
-      iva: ivaVal,
-      totale,
-      categoria_id: prodotto.categoria_id || null,
+  if (btnNuovaFattura) {
+    btnNuovaFattura.addEventListener("click", () => {
+      handleNuovaFattura();
     });
   }
 
-  if (righePayload.length) {
-    const { error: righeError } = await supabase
-      .from("fatture_acquisto_righe")
-      .insert(righePayload);
-
-    if (righeError) {
-      console.error("Errore salvataggio righe fattura:", righeError);
-      alert("Errore nel salvare le righe della fattura");
-      return;
-    }
-  }
-
-  alert("Fattura salvata correttamente");
-  await caricaElencoFatture();
-}
-
-async function caricaElencoFatture() {
-  if (!supabase || !fattureListaBody) return;
-
-  const { data, error } = await supabase
-    .from("fatture_acquisto")
-    .select(
-      "id, numero_documento, data_documento, fornitore_id, totale_documento"
-    )
-    .order("data_documento", { ascending: false })
-    .limit(200);
-
-  if (error) {
-    console.error("Errore caricamento fatture:", error);
-    alert("Errore nel caricare le fatture");
-    return;
-  }
-
-  await caricaFornitoriInCache();
-
-  fattureListaBody.innerHTML = "";
-  (data || []).forEach((f) => {
-    const forn = getFornitoreById(f.fornitore_id);
-    const dataStr = f.data_documento
-      ? new Date(f.data_documento).toLocaleDateString("it-IT")
-      : "";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${dataStr}</td>
-      <td>${f.numero_documento || ""}</td>
-      <td>${forn?.ragione_sociale || ""}</td>
-      <td>${f.totale_documento != null ? f.totale_documento.toFixed(2) : ""}</td>
-      <td>
-        <button class="app-button tiny gray" data-open-fattura="${f.id}">
-          Apri
-        </button>
-      </td>
-    `;
-    fattureListaBody.appendChild(tr);
-  });
-
-  fattureListaBody
-    .querySelectorAll("[data-open-fattura]")
-    .forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
-        apriFatturaEsistente(id);
-      });
+  if (btnSalvaFattura) {
+    btnSalvaFattura.addEventListener("click", () => {
+      handleSalvaFattura();
     });
-}
-
-async function apriFatturaEsistente(fatturaId) {
-  if (!supabase) return;
-
-  const { data: fattura, error: fatturaError } = await supabase
-    .from("fatture_acquisto")
-    .select("*")
-    .eq("id", fatturaId)
-    .single();
-
-  if (fatturaError) {
-    console.error("Errore lettura fattura:", fatturaError);
-    alert("Errore nel caricare la fattura");
-    return;
   }
 
-  currentFatturaId = fattura.id;
-
-  if (fatturaNumeroInput)
-    fatturaNumeroInput.value = fattura.numero_documento || "";
-  if (fatturaDataInput)
-    fatturaDataInput.value = fattura.data_documento
-      ? fattura.data_documento.substring(0, 10)
-      : "";
-  if (fatturaFornitoreInput) {
-    await caricaFornitoriInCache();
-    const forn = getFornitoreById(fattura.fornitore_id);
-    fatturaFornitoreInput.value = forn?.ragione_sociale || "";
-  }
-  if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
-  if (fatturaImponibileTotaleInput)
-    fatturaImponibileTotaleInput.value =
-      fattura.imponibile_totale != null
-        ? fattura.imponibile_totale.toFixed(2)
-        : "";
-  if (fatturaIvaTotaleInput)
-    fatturaIvaTotaleInput.value =
-      fattura.iva_totale != null ? fattura.iva_totale.toFixed(2) : "";
-  if (fatturaTotaleDocumentoInput)
-    fatturaTotaleDocumentoInput.value =
-      fattura.totale_documento != null
-        ? fattura.totale_documento.toFixed(2)
-        : "";
-
-  const { data: righe, error: righeError } = await supabase
-    .from("fatture_acquisto_righe")
-    .select("*")
-    .eq("fattura_id", fatturaId)
-    .order("id", { ascending: true });
-
-  if (righeError) {
-    console.error("Errore caricamento righe fattura:", righeError);
-    alert("Errore nel caricare le righe della fattura");
-    return;
-  }
-
-  if (fatturaRigheBody) {
-    fatturaRigheBody.innerHTML = "";
-    (righe || []).forEach((r) => {
-      const categoria = r.categoria_id
-        ? getCategoriaById(r.categoria_id)?.nome || ""
-        : "";
-      creaRigaFattura({
-        codice_prodotto: r.codice_prodotto,
-        descrizione_riga: r.descrizione_riga,
-        categoria_nome: categoria,
-        um: r.um,
-        quantita: r.quantita,
-        prezzo_unitario: r.prezzo_unitario,
-        iva_perc: r.iva_perc,
-      });
+  if (btnToggleFatture && fattureTable) {
+    btnToggleFatture.addEventListener("click", () => {
+      const vis = fattureTable.style.display !== "none";
+      fattureTable.style.display = vis ? "none" : "table";
     });
-    ricalcolaTotaliFattura();
   }
-}
 
-// ---------- LISTENER ACQUISTI ----------
-if (btnAddRigaFattura) {
-  btnAddRigaFattura.addEventListener("click", () => {
-    creaRigaFattura();
-    ricalcolaTotaliFattura();
-  });
-}
 
-if (btnNuovaFattura) {
-  btnNuovaFattura.addEventListener("click", () => {
-    handleNuovaFattura();
-  });
-}
-
-if (btnSalvaFattura) {
-  btnSalvaFattura.addEventListener("click", () => {
-    handleSalvaFattura();
-  });
-}
-
-if (btnToggleFatture && fattureTable) {
-  btnToggleFatture.addEventListener("click", () => {
-    const vis = fattureTable.style.display !== "none";
-    fattureTable.style.display = vis ? "none" : "table";
-  });
-}
 
 
   // ========== BLOCCO A7 - MAGAZZINO ==========
