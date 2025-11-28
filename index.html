@@ -789,6 +789,32 @@
 
   <div id="ricette-lista-viewer"></div>
 </section>
+<!-- RICETTARIO (SOLO LETTURA) -->
+<section
+  id="view-ricette-viewer"
+  class="view"
+  style="display: none"
+>
+  <h2>Ricettario</h2>
+  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+    Visualizza le ricette registrate, senza possibilità di modificarle.
+  </p>
+
+  <label style="display:block; margin-top:10px; font-size:13px;">
+    Cerca ricetta
+    <input
+      id="ricette-search"
+      type="text"
+      class="input-pill"
+      placeholder="Es. Flan di patate, Tiramisù..."
+    />
+  </label>
+
+  <div
+    id="ricette-lista-viewer"
+    style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
+  ></div>
+</section>
 
             <!-- REPORT KPI -->
     <section id="view-report" class="view" style="display: none">
