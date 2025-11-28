@@ -1480,7 +1480,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
-  function getFornitoreById(id) {
+ 
     return fornitoriCache.find((f) => f.id === id) || null;
   }
 
