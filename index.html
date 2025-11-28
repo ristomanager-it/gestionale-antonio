@@ -710,6 +710,62 @@
         </button>
       </form>
     </section>
+<!-- RICETTARIO SOLO LETTURA -->
+<section id="view-ricettario" class="view" style="display: none">
+  <h2>Ricettario</h2>
+  <p>Consulta le ricette già inserite (solo lettura).</p>
+
+  <label>
+    Cerca ricetta
+    <input
+      id="ricette-search"
+      type="text"
+      class="input-pill"
+      placeholder="Cerca per nome o descrizione..."
+    />
+  </label>
+
+  <div class="table-wrapper" style="margin-top: 10px;">
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Descrizione</th>
+          <th>Formato 1</th>
+          <th>Formato 2</th>
+        </tr>
+      </thead>
+      <tbody id="ricette-lista-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Dettaglio ricetta selezionata -->
+  <div id="ricetta-dettaglio-card" class="ricetta-dettaglio-card" style="display: none; margin-top: 12px;">
+    <div class="ricetta-dettaglio-header">
+      <h3 id="ricetta-view-nome"></h3>
+      <span id="ricetta-view-pezzi-base" class="ricetta-badge"></span>
+    </div>
+
+    <p id="ricetta-view-descrizione" class="ricetta-view-descrizione"></p>
+
+    <div class="ricetta-dettaglio-formati">
+      <div class="ricetta-formato">
+        <h4 id="ricetta-view-formato1-label"></h4>
+        <p id="ricetta-view-formato1-info" class="ricetta-formato-info"></p>
+      </div>
+      <div class="ricetta-formato">
+        <h4 id="ricetta-view-formato2-label"></h4>
+        <p id="ricetta-view-formato2-info" class="ricetta-formato-info"></p>
+      </div>
+    </div>
+
+    <h4>Ingredienti</h4>
+    <ul id="ricetta-view-ingredienti" class="ricetta-ingredienti-list"></ul>
+
+    <h4>Note / Procedimento</h4>
+    <p id="ricetta-view-note" class="ricetta-view-note"></p>
+  </div>
+</section>
 
             <!-- REPORT KPI -->
     <section id="view-report" class="view" style="display: none">
