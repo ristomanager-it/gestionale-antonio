@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
-  // datalist ingredienti per ricette (autocomplete da magazzino)
+  // datalist ingredienti per ricette + prodotti fatture
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
   // ---------- STATO ----------
@@ -1693,82 +1693,119 @@ document.addEventListener("DOMContentLoaded", () => {
     tr.dataset.prodottoId = String(prodotto.id);
   }
 
-  // --- righe fattura ---
+  // --- righe fattura (VERTICALI) ---
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
     const tr = document.createElement("tr");
+    tr.className = "fatt-riga-row";
+
     tr.innerHTML = `
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-codice input-pill"
-          placeholder="Cod. interno"
-          value="${initial.codice_prodotto || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-descrizione input-pill"
-          placeholder="Descrizione prodotto"
-          list="ingredienti-suggestions"
-          value="${initial.descrizione_riga || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-categoria input-pill"
-          placeholder="Categoria"
-          value="${initial.categoria_nome || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-um input-pill"
-          placeholder="kg, l, pz..."
-          value="${initial.um || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-quantita input-pill"
-          placeholder="Q.tà"
-          min="0"
-          step="0.001"
-          value="${initial.quantita != null ? initial.quantita : ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-prezzo input-pill"
-          placeholder="Prezzo"
-          min="0"
-          step="0.0001"
-          value="${
-            initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
-          }"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-iva input-pill"
-          placeholder="%"
-          min="0"
-          step="1"
-          value="${initial.iva_perc != null ? initial.iva_perc : ""}"
-        />
-      </td>
-      <td class="fatt-riga-totale">0.00</td>
-      <td>
-        <button type="button" class="app-button tiny red btn-del-riga">
-          ✕
-        </button>
+      <td colspan="9">
+        <div class="fatt-riga-vertical">
+          <div class="fatt-field">
+            <label>
+              Codice interno
+              <input
+                type="text"
+                class="fatt-riga-codice input-pill"
+                placeholder="Cod. interno"
+                value="${initial.codice_prodotto || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Descrizione prodotto
+              <input
+                type="text"
+                class="fatt-riga-descrizione input-pill"
+                placeholder="Cerca/Seleziona prodotto"
+                list="ingredienti-suggestions"
+                value="${initial.descrizione_riga || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Categoria
+              <input
+                type="text"
+                class="fatt-riga-categoria input-pill"
+                placeholder="Categoria"
+                value="${initial.categoria_nome || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Unità di misura
+              <input
+                type="text"
+                class="fatt-riga-um input-pill"
+                placeholder="kg, l, pz..."
+                value="${initial.um || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Quantità
+              <input
+                type="number"
+                class="fatt-riga-quantita input-pill"
+                placeholder="Q.tà"
+                min="0"
+                step="0.001"
+                value="${initial.quantita != null ? initial.quantita : ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Prezzo unitario
+              <input
+                type="number"
+                class="fatt-riga-prezzo input-pill"
+                placeholder="Prezzo"
+                min="0"
+                step="0.0001"
+                value="${
+                  initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+                }"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              IVA %
+              <input
+                type="number"
+                class="fatt-riga-iva input-pill"
+                placeholder="%"
+                min="0"
+                step="1"
+                value="${initial.iva_perc != null ? initial.iva_perc : ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-riga-footer">
+            <span class="fatt-riga-totale-label">
+              Totale riga:
+              <span class="fatt-riga-totale">0.00</span>
+            </span>
+            <button type="button" class="app-button tiny red btn-del-riga">
+              ✕
+            </button>
+          </div>
+        </div>
       </td>
     `;
 
@@ -1811,7 +1848,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const totaleCell = tr.querySelector(".fatt-riga-totale");
+    const totaleEl = tr.querySelector(".fatt-riga-totale");
+
     const qta = parseNumber(qtaInput?.value || "0");
     const prezzo = parseNumber(prezzoInput?.value || "0");
     const ivaPerc = parseNumber(ivaInput?.value || "0");
@@ -1820,8 +1858,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const iva = imponibile * (ivaPerc / 100);
     const totale = imponibile + iva;
 
-    if (totaleCell) {
-      totaleCell.textContent = totale.toFixed(2);
+    if (totaleEl) {
+      totaleEl.textContent = totale.toFixed(2);
     }
 
     return { imponibile, iva, totale };
@@ -2466,6 +2504,8 @@ document.addEventListener("DOMContentLoaded", () => {
       case "acquisti":
         await caricaCategorieInCache();
         await caricaFornitoriInCache();
+        // qui carichiamo anche il magazzino, così l'autocomplete descrizione funziona
+        await caricaMagazzinoDati();
         resetFatturaForm();
         await caricaElencoFatture();
         break;
