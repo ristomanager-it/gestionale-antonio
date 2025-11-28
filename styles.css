@@ -190,11 +190,22 @@ textarea {
 }
 
 .app-button.login-button {
-  width: 100%;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 16px;
+  background: #2563eb;      /* blu vivo */
+  color: #ffffff;           /* testo bianco */
+  font-size: 16px;          /* un filo più grande del default */
+  padding: 12px 20px;       /* leggermente più alto/largo */
+  border-radius: 999px;
+  display: block;           /* per poter centrare col margin auto */
+  margin: 10px auto 0;      /* CENTRATO nella card */
+  min-width: 60%;           /* non troppo piccolo */
+  max-width: 260px;         /* non enorme su desktop */
+  text-align: center;
 }
+
+.app-button.login-button:hover {
+  background: #1d4ed8;      /* blu più scuro in hover */
+}
+
 
 .app-button.login-button:hover {
   background: #1d4ed8;
