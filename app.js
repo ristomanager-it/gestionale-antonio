@@ -2197,7 +2197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= MAGAZZINO =========
+   // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
     if (!magazzinoListaEl) return;
     magazzinoListaEl.innerHTML = "";
@@ -2297,7 +2297,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1) leggo la tabella prodotti
     const { data, error } = await supabase
       .from("prodotti")
-      .select("id, codice_interno, descrizione, um, categoria_id, scorta_minima")
+      .select(
+        "id, codice_interno, descrizione, um, categoria_id, scorta_minima"
+      )
       .order("descrizione", { ascending: true });
 
     if (error) {
@@ -2306,41 +2308,31 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 2) leggo i movimenti di magazzino per calcolare la giacenza
-    // tabella attesa: magazzino_movimenti
-    // colonne minime: prodotto_id, tipo_movimento ('carico'/'scarico'), quantita
-    const { data: movimenti, error: movError } = await supabase
-      .from("magazzino_movimenti")
-      .select("prodotto_id, tipo_movimento, quantita");
+    // 2) leggo le righe delle fatture di acquisto per calcolare la giacenza (carichi)
+    //    tabella: fatture_acquisto_righe
+    //    colonne usate: prodotto_id, quantita
+    const { data: righe, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("prodotto_id, quantita");
 
-    if (movError) {
-      console.error("Errore caricamento movimenti magazzino:", movError);
+    if (righeError) {
+      console.error(
+        "Errore caricamento righe fatture per giacenze:",
+        righeError
+      );
       // non blocco: se fallisce, le giacenze restano 0
     }
 
-    // 3) mappa prodotto_id -> giacenza totale
+    // 3) mappa prodotto_id -> somma quantità (solo carichi da fatture)
     const giacenzeMap = {};
-    (movimenti || []).forEach((m) => {
-      const pid = m.prodotto_id;
+    (righe || []).forEach((r) => {
+      const pid = r.prodotto_id;
       if (!pid) return;
-
-      let q = Number(m.quantita) || 0;
-      const tipo = (m.tipo_movimento || "").toLowerCase();
-
-      // convenzione: carico = +, scarico/uscita/vendita/consumo = -
-      if (
-        tipo === "scarico" ||
-        tipo === "uscita" ||
-        tipo === "vendita" ||
-        tipo === "consumo"
-      ) {
-        q = -q;
-      }
-
+      const q = Number(r.quantita) || 0;
       giacenzeMap[pid] = (giacenzeMap[pid] || 0) + q;
     });
 
-    // 4) popolo magazzinoDati con giacenza reale
+    // 4) popolo magazzinoDati con giacenza totale
     magazzinoDati = (data || []).map((r) => {
       const cat =
         r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
@@ -2353,7 +2345,7 @@ document.addEventListener("DOMContentLoaded", () => {
         um: r.um,
         categoriaNome: cat ? cat.nome : "",
         scortaMinima: r.scorta_minima,
-        stock, // 🔹 giacenza calcolata
+        stock, // 🔹 giacenza dalle righe fatture
       };
     });
 
@@ -2418,7 +2410,7 @@ document.addEventListener("DOMContentLoaded", () => {
         um: data.um,
         categoriaNome: cat ? cat.nome : "",
         scortaMinima: data.scorta_minima,
-        stock: 0, // nuovo prodotto: nessun movimento ancora
+        stock: 0, // nuovo prodotto: nessun carico ancora
       };
       magazzinoDati.push(nuovo);
       popolaMagazzinoForm(nuovo);
@@ -2516,8 +2508,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🔹 Quando nella CARD descrizione metto un prodotto esistente,
-  //    auto-compilo tutti i campi, inclusa la giacenza
+  // Quando nella card descrizione scrivo un prodotto esistente,
+  // auto-compilo tutti i campi (inclusa giacenza)
   if (magazzinoDescrInput) {
     magazzinoDescrInput.addEventListener("change", () => {
       const val = (magazzinoDescrInput.value || "").trim().toLowerCase();
@@ -2531,6 +2523,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
 
 
   // ========= ROUTING =========
