@@ -1479,8 +1479,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
- 
+     // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+  function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
 
@@ -1593,6 +1593,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
 
+    // 1) Cerca per codice interno
     if (codiceTrim) {
       const { data: existingByCodice, error: errFindCodice } = await supabase
         .from("prodotti")
@@ -1609,6 +1610,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // 2) Cerca per descrizione
     if (descTrim) {
       const { data: existingByDesc, error: errFindDesc } = await supabase
         .from("prodotti")
@@ -1623,6 +1625,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // 3) Categoria
     let categoria = null;
     if (categoriaNome) {
       categoria = await findOrCreateCategoriaByNome(categoriaNome);
@@ -1633,6 +1636,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // 4) Generazione codice interno se non fornito
     let codiceInternoFinale = codiceTrim;
     if (!codiceInternoFinale) {
       codiceInternoFinale = await generaCodiceInternoAutomatico(
@@ -1640,6 +1644,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
+    // 5) Controllo finale
     const { data: existingFinal, error: errFindFinal } = await supabase
       .from("prodotti")
       .select("id, codice_interno, descrizione, categoria_id, um")
@@ -1654,6 +1659,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return existingFinal[0];
     }
 
+    // 6) Creazione prodotto
     const payload = {
       codice_interno: codiceInternoFinale,
       descrizione: descTrim || codiceInternoFinale,
@@ -1677,7 +1683,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  // --- righe fattura ---
+  // --- RIGHE FATTURA (TABELLARE) ---
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
@@ -1963,7 +1969,7 @@ document.addEventListener("DOMContentLoaded", () => {
         categoria_id: prodotto.categoria_id || null,
       });
 
-      // futuro: inserire movimento di magazzino (carico)
+      // TODO: in futuro inserire movimento di magazzino (carico)
     }
 
     if (righePayload.length) {
@@ -2107,6 +2113,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // --- EVENT LISTENERS ACQUISTI ---
   if (btnAddRigaFattura) {
     btnAddRigaFattura.addEventListener("click", () => {
       creaRigaFattura();
@@ -2132,9 +2139,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
-
-
-
 
   // ========== BLOCCO A7 - MAGAZZINO ==========
 
