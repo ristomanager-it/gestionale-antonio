@@ -1249,7 +1249,7 @@ document.addEventListener("DOMContentLoaded", () => {
     row.innerHTML = `
       <input
         type="text"
-        class="ingrediente-nome"
+        class="ingrediente-nome input-pill"
         placeholder="Ingrediente (come in magazzino)"
         style="flex: 2; min-width: 0;"
         list="ingredienti-suggestions"
@@ -1257,7 +1257,7 @@ document.addEventListener("DOMContentLoaded", () => {
       />
       <input
         type="number"
-        class="ingrediente-quantita"
+        class="ingrediente-quantita input-pill"
         placeholder="Q.tà"
         step="0.001"
         min="0"
@@ -1266,7 +1266,7 @@ document.addEventListener("DOMContentLoaded", () => {
       />
       <input
         type="text"
-        class="ingrediente-unita"
+        class="ingrediente-unita input-pill"
         placeholder="g, kg, ml, u..."
         style="flex: 1; min-width: 0;"
         value="${initial.unita_misura || ""}"
@@ -1667,6 +1667,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
+  // --- supporto: quando cambia la descrizione prodotto in riga fattura,
+  // cerco il prodotto esistente in magazzino e auto-compilo codice, UM, categoria
+  function onDescrizioneProdottoChange(tr) {
+    if (!tr) return;
+    const descrInput = tr.querySelector(".fatt-riga-descrizione");
+    if (!descrInput) return;
+
+    const descrVal = (descrInput.value || "").trim().toLowerCase();
+    if (!descrVal) return;
+
+    const prodotto = magazzinoDati.find(
+      (p) => (p.descrizione || "").toLowerCase() === descrVal
+    );
+    if (!prodotto) return;
+
+    const codiceInput = tr.querySelector(".fatt-riga-codice");
+    const umInput = tr.querySelector(".fatt-riga-um");
+    const catInput = tr.querySelector(".fatt-riga-categoria");
+
+    if (codiceInput) codiceInput.value = prodotto.codice || "";
+    if (umInput) umInput.value = prodotto.um || "";
+    if (catInput) catInput.value = prodotto.categoriaNome || "";
+
+    tr.dataset.prodottoId = String(prodotto.id);
+  }
+
   // --- righe fattura ---
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
@@ -1676,7 +1702,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="text"
-          class="fatt-riga-codice"
+          class="fatt-riga-codice input-pill"
           placeholder="Cod. interno"
           value="${initial.codice_prodotto || ""}"
         />
@@ -1684,7 +1710,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="text"
-          class="fatt-riga-descrizione"
+          class="fatt-riga-descrizione input-pill"
           placeholder="Descrizione prodotto"
           list="ingredienti-suggestions"
           value="${initial.descrizione_riga || ""}"
@@ -1693,7 +1719,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="text"
-          class="fatt-riga-categoria"
+          class="fatt-riga-categoria input-pill"
           placeholder="Categoria"
           value="${initial.categoria_nome || ""}"
         />
@@ -1701,7 +1727,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="text"
-          class="fatt-riga-um"
+          class="fatt-riga-um input-pill"
           placeholder="kg, l, pz..."
           value="${initial.um || ""}"
         />
@@ -1709,7 +1735,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="number"
-          class="fatt-riga-quantita"
+          class="fatt-riga-quantita input-pill"
           placeholder="Q.tà"
           min="0"
           step="0.001"
@@ -1719,7 +1745,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="number"
-          class="fatt-riga-prezzo"
+          class="fatt-riga-prezzo input-pill"
           placeholder="Prezzo"
           min="0"
           step="0.0001"
@@ -1731,7 +1757,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <td>
         <input
           type="number"
-          class="fatt-riga-iva"
+          class="fatt-riga-iva input-pill"
           placeholder="%"
           min="0"
           step="1"
@@ -1750,6 +1776,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
     const btnDel = tr.querySelector(".btn-del-riga");
+    const descrInput = tr.querySelector(".fatt-riga-descrizione");
 
     const handleChange = () => {
       ricalcolaTotaleRiga(tr);
@@ -1759,6 +1786,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (qtaInput) qtaInput.addEventListener("input", handleChange);
     if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
     if (ivaInput) ivaInput.addEventListener("input", handleChange);
+
+    // quando cambia la descrizione, provo ad agganciare un prodotto di magazzino
+    if (descrInput) {
+      const handlerDescr = () => {
+        onDescrizioneProdottoChange(tr);
+      };
+      descrInput.addEventListener("change", handlerDescr);
+      descrInput.addEventListener("blur", handlerDescr);
+    }
 
     if (btnDel) {
       btnDel.addEventListener("click", () => {
@@ -2158,6 +2194,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!p.descrizione) return;
       const opt = document.createElement("option");
       opt.value = p.descrizione;
+      if (p.codice) {
+        // mostra descrizione + codice nel menu, ma mantiene solo la descrizione come value
+        opt.label = `${p.descrizione} (${p.codice})`;
+      }
       magazzinoSuggestions.appendChild(opt);
     });
   }
@@ -2170,6 +2210,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!p.descrizione) return;
       const opt = document.createElement("option");
       opt.value = p.descrizione;
+      if (p.codice) {
+        opt.label = `${p.descrizione} (${p.codice})`;
+      }
       ingredientiSuggestions.appendChild(opt);
     });
   }
