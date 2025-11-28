@@ -1543,6 +1543,163 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaRicetta();
     });
   }
+  // ========= RICETTARIO (SOLO LETTURA) =========
+
+  async function caricaRicetteDaSupabase() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("ricette")
+      .select(
+        "id, nome, descrizione, note_procedimento, foto_url, pezzi_base, formato1_label, formato1_percent, formato2_label, formato2_percent"
+      )
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento ricette:", error);
+      alert("Errore nel caricare le ricette");
+      return;
+    }
+
+    ricetteCache = data || [];
+    renderRicetteLista(ricetteCache);
+  }
+
+  function renderRicetteLista(lista) {
+    if (!ricetteListaBody) return;
+    ricetteListaBody.innerHTML = "";
+
+    lista.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.dataset.ricettaId = r.id;
+
+      const formato1 =
+        r.formato1_label && r.formato1_percent != null
+          ? `${r.formato1_label} (${r.formato1_percent}%)`
+          : "";
+      const formato2 =
+        r.formato2_label && r.formato2_percent != null
+          ? `${r.formato2_label} (${r.formato2_percent}%)`
+          : "";
+
+      tr.innerHTML = `
+        <td>${r.nome || ""}</td>
+        <td>${r.descrizione || ""}</td>
+        <td>${formato1}</td>
+        <td>${formato2}</td>
+      `;
+
+      tr.addEventListener("click", () => {
+        apriRicettaSoloLettura(r.id);
+      });
+
+      ricetteListaBody.appendChild(tr);
+    });
+  }
+
+  async function apriRicettaSoloLettura(ricettaId) {
+    if (!supabase || !ricettaDettaglioCard) return;
+
+    // 1) ricarico ricetta singola (così ho dati aggiornati)
+    const { data: ricetta, error } = await supabase
+      .from("ricette")
+      .select(
+        "id, nome, descrizione, note_procedimento, foto_url, pezzi_base, formato1_label, formato1_percent, formato2_label, formato2_percent"
+      )
+      .eq("id", ricettaId)
+      .single();
+
+    if (error || !ricetta) {
+      console.error("Errore lettura ricetta:", error);
+      alert("Errore nel caricare la ricetta selezionata");
+      return;
+    }
+
+    // 2) ingredienti
+    const { data: ingredienti, error: ingError } = await supabase
+      .from("ricetta_ingredienti")
+      .select("nome_prodotto, quantita, unita_misura")
+      .eq("ricetta_id", ricettaId)
+      .order("id", { ascending: true });
+
+    if (ingError) {
+      console.error("Errore lettura ingredienti ricetta:", ingError);
+    }
+
+    // 3) popolo la card
+    if (ricettaViewNome) ricettaViewNome.textContent = ricetta.nome || "";
+    if (ricettaViewPezziBase) {
+      ricettaViewPezziBase.textContent = ricetta.pezzi_base
+        ? `${ricetta.pezzi_base} pz base`
+        : "";
+    }
+    if (ricettaViewDescrizione) {
+      ricettaViewDescrizione.textContent = ricetta.descrizione || "";
+    }
+
+    const f1Label = ricetta.formato1_label || "Formato 1";
+    const f1Perc = ricetta.formato1_percent || 0;
+    const f2Label = ricetta.formato2_label || "Formato 2";
+    const f2Perc = ricetta.formato2_percent || 0;
+
+    if (ricettaViewFormato1Label) ricettaViewFormato1Label.textContent = f1Label;
+    if (ricettaViewFormato2Label) ricettaViewFormato2Label.textContent = f2Label;
+
+    const pezziBase = ricetta.pezzi_base || 0;
+    const pezzi1 =
+      pezziBase > 0 && f1Perc > 0 ? pezziBase * (100 / f1Perc) : null;
+    const pezzi2 =
+      pezziBase > 0 && f2Perc > 0 ? pezziBase * (100 / f2Perc) : null;
+
+    if (ricettaViewFormato1Info) {
+      ricettaViewFormato1Info.textContent =
+        pezzi1 != null
+          ? `${f1Perc}% ⇒ circa ${pezzi1.toFixed(1)} pz`
+          : `${f1Perc}%`;
+    }
+
+    if (ricettaViewFormato2Info) {
+      ricettaViewFormato2Info.textContent =
+        pezzi2 != null
+          ? `${f2Perc}% ⇒ circa ${pezzi2.toFixed(1)} pz`
+          : `${f2Perc}%`;
+    }
+
+    if (ricettaViewNote) {
+      ricettaViewNote.textContent = ricetta.note_procedimento || "";
+    }
+
+    if (ricettaViewIngredienti) {
+      ricettaViewIngredienti.innerHTML = "";
+      (ingredienti || []).forEach((ing) => {
+        const li = document.createElement("li");
+        const q = ing.quantita != null ? ing.quantita : "";
+        const u = ing.unita_misura || "";
+        li.textContent = `${ing.nome_prodotto || ""} – ${q} ${u}`;
+        ricettaViewIngredienti.appendChild(li);
+      });
+    }
+
+    ricettaDettaglioCard.style.display = "block";
+  }
+
+  // filtro ricerca ricette
+  if (ricetteSearchInput) {
+    ricetteSearchInput.addEventListener("input", () => {
+      const q = (ricetteSearchInput.value || "").trim().toLowerCase();
+      if (!q) {
+        renderRicetteLista(ricetteCache);
+        return;
+      }
+
+      const filtrate = ricetteCache.filter((r) => {
+        const nome = (r.nome || "").toLowerCase();
+        const desc = (r.descrizione || "").toLowerCase();
+        return nome.includes(q) || desc.includes(q);
+      });
+      renderRicetteLista(filtrate);
+    });
+  }
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
