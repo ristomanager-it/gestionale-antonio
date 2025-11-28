@@ -10,7 +10,6 @@
   <body>
     <div class="app-main-wrapper">
       <!-- BLOCCO 1 - HEADER -->
-      <!-- HEADER -->
       <header class="app-header">
         <div class="header-top">
           <div class="header-left">
@@ -42,66 +41,62 @@
 
       <!-- CONTENUTO PRINCIPALE -->
       <main class="app-main">
-       <section id="view-login" class="view login-view">
-  <div class="login-wrapper">
-    <div class="form-card login-card">
+        <!-- LOGIN -->
+        <section id="view-login" class="view login-view">
+          <div class="login-wrapper">
+            <div class="form-card login-card">
+              <div class="login-logo">
+                <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
+              </div>
 
-      <div class="login-logo">
-        <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
-      </div>
+              <h2 class="login-title">Benvenuto</h2>
+              <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
 
-      <h2 class="login-title">Benvenuto</h2>
-      <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
+              <form class="login-form" onsubmit="return false;">
+                <div class="form-row">
+                  <label for="login-nome" class="input-label">Nome</label>
+                  <input
+                    type="text"
+                    id="login-nome"
+                    class="input-pill"
+                    placeholder="Es. Mario Rossi"
+                    autocomplete="off"
+                  />
+                </div>
 
-      <form class="login-form" onsubmit="return false;">
+                <div class="form-row">
+                  <label for="login-pin" class="input-label">PIN</label>
+                  <input
+                    type="password"
+                    id="login-pin"
+                    class="input-pill"
+                    maxlength="10"
+                    inputmode="numeric"
+                    placeholder="PIN personale"
+                  />
+                </div>
 
-        <div class="form-row">
-          <label for="login-nome" class="input-label">Nome</label>
-          <input
-            type="text"
-            id="login-nome"
-            class="input-pill"
-            placeholder="Es. Mario Rossi"
-            autocomplete="off"
-          />
-        </div>
+                <div class="form-row form-row-inline">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="login-remember" />
+                    <span>Ricordami su questo dispositivo</span>
+                  </label>
+                </div>
 
-        <div class="form-row">
-          <label for="login-pin" class="input-label">PIN</label>
-          <input
-            type="password"
-            id="login-pin"
-            class="input-pill"
-            maxlength="10"
-            inputmode="numeric"
-            placeholder="PIN personale"
-          />
-        </div>
+                <div class="form-row">
+                  <button
+                    type="button"
+                    id="btn-login"
+                    class="app-button primary full-width"
+                  >
+                    Entra
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
 
-        <div class="form-row form-row-inline">
-          <label class="checkbox-label">
-            <input type="checkbox" id="login-remember" />
-            <span>Ricordami su questo dispositivo</span>
-          </label>
-        </div>
-
-        <div class="form-row">
-          <button
-            type="button"
-            id="btn-login"
-            class="app-button primary full-width"
-          >
-            Entra
-          </button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-</section>
-
-
-        <!-- BLOCCO 3 - HOME DIPENDENTE -->
         <!-- HOME DIPENDENTE -->
         <section id="view-home-dip" class="view" style="display: none">
           <h2>Cosa vuoi fare?</h2>
@@ -114,17 +109,17 @@
             <button class="app-button big-home" data-route="ordine">
               Ordine del giorno
             </button>
+
+            <!-- opzionale: ricettario anche per dipendenti -->
+            <button
+              class="app-button big-home"
+              data-route="ricette-viewer"
+            >
+              Ricettario
+            </button>
           </div>
         </section>
-<button
-  type="button"
-  class="app-button menu-button"
-  data-route="ricette-viewer"
->
-  📖 Ricettario
-</button>
 
-        <!-- BLOCCO 4 - MENU MANAGER -->
         <!-- MENU MANAGER -->
         <section id="manager-menu" class="buttons-grid" style="display: none">
           <button class="app-button menu-button" data-route="timbratura">
@@ -148,23 +143,21 @@
           </button>
 
           <button
+            class="app-button menu-button"
+            data-route="ricette-viewer"
+            data-manager-only="false"
+          >
+            Ricettario
+          </button>
+
+          <button
             class="app-button menu-button wide"
             data-route="report"
           >
-            <button
-  type="button"
-  class="app-button menu-button"
-  data-route="ricette-viewer"
-  data-manager-only="false"
->
-  Ricettario
-</button>
-
             Report
           </button>
         </section>
 
-        <!-- BLOCCO 5 - TIMBRATURA -->
         <!-- TIMBRATURA -->
         <section id="view-timbratura" class="view" style="display: none">
           <h2>Timbratura</h2>
@@ -233,7 +226,6 @@
           </div>
         </section>
 
-        <!-- BLOCCO 6 - DIPENDENTI -->
         <!-- DIPENDENTI -->
         <section id="view-dipendenti" class="view" style="display: none">
           <h2>Dipendenti</h2>
@@ -416,610 +408,531 @@
           </div>
         </section>
 
-       <!-- ACQUISTI / FATTURE -->
-<section id="view-acquisti" class="view" style="display: none">
-  <h2>Fatture di acquisto</h2>
-  <p>Registra fatture, prodotti e movimenti di magazzino.</p>
+        <!-- ACQUISTI / FATTURE -->
+        <section id="view-acquisti" class="view" style="display: none">
+          <h2>Fatture di acquisto</h2>
+          <p>Registra fatture, prodotti e movimenti di magazzino.</p>
 
-  <!-- DATI TESTATA FATTURA -->
-  <form id="fattura-form" onsubmit="return false;">
-    <div class="form-grid-2">
-      <label>
-        Numero fattura
-        <input
-          id="fattura-numero"
-          type="text"
-          class="input-pill"
-        />
-      </label>
-
-      <label>
-        Data
-        <input
-          id="fattura-data"
-          type="date"
-          class="input-pill"
-        />
-      </label>
-    </div>
-
-    <div class="form-grid-2">
-      <label>
-        Fornitore
-        <input
-          id="fattura-fornitore"
-          type="text"
-          class="input-pill"
-          placeholder="Es. Fornitore Srl"
-        />
-      </label>
-
-      <label>
-        Note
-        <input
-          id="fattura-note"
-          type="text"
-          class="input-pill"
-          placeholder="Note documento"
-        />
-      </label>
-    </div>
-
-    <div style="display: flex; gap: 8px; margin-top: 8px;">
-      <button
-        id="btn-nuova-fattura"
-        class="app-button small gray"
-        type="button"
-      >
-        Nuova fattura
-      </button>
-      <button
-        id="btn-salva-fattura"
-        class="app-button small green"
-        type="button"
-      >
-        Salva fattura
-      </button>
-    </div>
-  </form>
-
-  <!-- RIGHE FATTURA IN VERTICALE -->
-  <h3 style="margin-top: 16px;">Righe fattura</h3>
-
-  <div id="fattura-righe-body" class="fattura-righe-container"></div>
-
-  <button
-    id="btn-add-riga-fattura"
-    class="app-button small gray"
-    type="button"
-    style="margin-top: 8px;"
-  >
-    + Aggiungi riga
-  </button>
-
-  <!-- TOTALI -->
-  <h3 style="margin-top: 16px;">Totali</h3>
-  <div class="kpi-cards">
-    <div class="kpi-card">
-      <h3>Imponibile</h3>
-      <p>
-        <input
-          id="fattura-imponibile-totale"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          readonly
-        />
-      </p>
-    </div>
-    <div class="kpi-card">
-      <h3>IVA</h3>
-      <p>
-        <input
-          id="fattura-iva-totale"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          readonly
-        />
-      </p>
-    </div>
-    <div class="kpi-card">
-      <h3>Totale documento</h3>
-      <p>
-        <input
-          id="fattura-totale-documento"
-          type="number"
-          step="0.01"
-          class="input-pill"
-          readonly
-        />
-      </p>
-    </div>
-  </div>
-
-  <!-- ELENCO FATTURE REGISTRATE -->
-  <h3 style="margin-top: 16px;">Fatture registrate</h3>
-
-  <button
-    id="btn-toggle-fatture"
-    class="app-button small gray"
-    type="button"
-  >
-    Mostra / Nascondi
-  </button>
-
-  <table
-    id="fatture-table"
-    class="table-timbrature"
-    style="display: none; margin-top: 8px;"
-  >
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Numero</th>
-        <th>Fornitore</th>
-        <th>Totale</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="fatture-lista"></tbody>
-  </table>
-</section>
-
-
-        <!-- BLOCCO 8 - RICETTE -->
-            <!-- RICETTE -->
-    <section id="view-ricette" class="view" style="display: none">
-      <h2>Ricette</h2>
-
-      <form onsubmit="return false;">
-        <label>
-          Nome ricetta
-          <input
-            type="text"
-            id="ricetta-nome"
-            class="input-pill"
-            placeholder="Es. Flan di patate"
-          />
-        </label>
-
-        <label>
-          Descrizione breve
-          <input
-            type="text"
-            id="ricetta-descrizione"
-            class="input-pill"
-            placeholder="Es. Antipasto al piatto o da buffet"
-          />
-        </label>
-
-        <label>
-          Note / Procedimento
-          <textarea
-            id="ricetta-note"
-            rows="4"
-            class="textarea-pill"
-          ></textarea>
-        </label>
-
-        <label>
-          Foto ricetta
-          <input
-            type="file"
-            id="ricetta-foto"
-            accept="image/*"
-          />
-        </label>
-
-        <!-- 🔹 RESE RICETTA: PEZZI BASE + 2 FORMATI -->
-        <h3>Resa ricetta</h3>
-
-        <div class="kpi-cards">
-          <!-- Card pezzi base -->
-          <div class="kpi-card">
-            <h3>Resa base</h3>
-            <label>
-              Pezzi base (porzione 100%)
-              <input
-                type="number"
-                id="ricetta-pezzi-base"
-                class="input-pill"
-                min="0"
-                step="1"
-                placeholder="Es. 10"
-              />
-            </label>
-            <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
-              Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
-            </p>
-          </div>
-
-          <!-- Card formato 1 -->
-          <div class="kpi-card">
-            <h3>Formato 1</h3>
-            <label>
-              Nome formato
-              <input
-                type="text"
-                id="ricetta-formato1-label"
-                class="input-pill"
-                placeholder="Es. Ristorante"
-              />
-            </label>
-            <label>
-              Percentuale porzione
-              <div style="display:flex; align-items:center; gap:6px;">
+          <!-- DATI TESTATA FATTURA -->
+          <form id="fattura-form" onsubmit="return false;">
+            <div class="form-grid-2">
+              <label>
+                Numero fattura
                 <input
-                  type="number"
-                  id="ricetta-formato1-percent"
+                  id="fattura-numero"
+                  type="text"
                   class="input-pill"
-                  min="1"
-                  max="500"
-                  step="1"
-                  placeholder="Es. 100"
-                  style="max-width:120px;"
                 />
-                <span style="font-size:13px;">%</span>
-              </div>
-            </label>
-            <p style="margin-top:6px; font-size:13px;">
-              Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
-            </p>
-          </div>
+              </label>
 
-          <!-- Card formato 2 -->
-          <div class="kpi-card">
-            <h3>Formato 2</h3>
-            <label>
-              Nome formato
-              <input
-                type="text"
-                id="ricetta-formato2-label"
-                class="input-pill"
-                placeholder="Es. Ricevimento / Buffet"
-              />
-            </label>
-            <label>
-              Percentuale porzione
-              <div style="display:flex; align-items:center; gap:6px;">
+              <label>
+                Data
                 <input
-                  type="number"
-                  id="ricetta-formato2-percent"
+                  id="fattura-data"
+                  type="date"
                   class="input-pill"
-                  min="1"
-                  max="500"
-                  step="1"
-                  placeholder="Es. 60 o 25"
-                  style="max-width:120px;"
                 />
-                <span style="font-size:13px;">%</span>
-              </div>
-            </label>
-            <p style="margin-top:6px; font-size:13px;">
-              Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
-            </p>
-          </div>
-        </div>
+              </label>
+            </div>
 
-        <h3>Ingredienti</h3>
+            <div class="form-grid-2">
+              <label>
+                Fornitore
+                <input
+                  id="fattura-fornitore"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Es. Fornitore Srl"
+                />
+              </label>
 
-        <div id="ricetta-ingredienti-container"></div>
+              <label>
+                Note
+                <input
+                  id="fattura-note"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Note documento"
+                />
+              </label>
+            </div>
 
-        <!-- DATALIST PER AUTOCOMPLETE INGREDIENTI -->
-        <datalist id="ingredienti-suggestions"></datalist>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button
+                id="btn-nuova-fattura"
+                class="app-button small gray"
+                type="button"
+              >
+                Nuova fattura
+              </button>
+              <button
+                id="btn-salva-fattura"
+                class="app-button small green"
+                type="button"
+              >
+                Salva fattura
+              </button>
+            </div>
+          </form>
 
-        <button
-          id="btn-add-ingrediente"
-          class="app-button small gray"
-          type="button"
-        >
-          + Aggiungi ingrediente
-        </button>
+          <!-- RIGHE FATTURA IN VERTICALE -->
+          <h3 style="margin-top: 16px;">Righe fattura</h3>
 
-        <button
-          id="btn-salva-ricetta"
-          class="app-button small green"
-          type="button"
-        >
-          Salva ricetta
-        </button>
-      </form>
-    </section>
-<!-- RICETTARIO SOLO LETTURA -->
-<section id="view-ricettario" class="view" style="display: none">
-  <h2>Ricettario</h2>
-  <p>Consulta le ricette già inserite (solo lettura).</p>
-
-  <label>
-    Cerca ricetta
-    <input
-      id="ricette-search"
-      type="text"
-      class="input-pill"
-      placeholder="Cerca per nome o descrizione..."
-    />
-  </label>
-
-  <div class="table-wrapper" style="margin-top: 10px;">
-    <table class="table-timbrature">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Descrizione</th>
-          <th>Formato 1</th>
-          <th>Formato 2</th>
-        </tr>
-      </thead>
-      <tbody id="ricette-lista-body"></tbody>
-    </table>
-  </div>
-
-  <!-- Dettaglio ricetta selezionata -->
-  <div id="ricetta-dettaglio-card" class="ricetta-dettaglio-card" style="display: none; margin-top: 12px;">
-    <div class="ricetta-dettaglio-header">
-      <h3 id="ricetta-view-nome"></h3>
-      <span id="ricetta-view-pezzi-base" class="ricetta-badge"></span>
-    </div>
-
-    <p id="ricetta-view-descrizione" class="ricetta-view-descrizione"></p>
-
-    <div class="ricetta-dettaglio-formati">
-      <div class="ricetta-formato">
-        <h4 id="ricetta-view-formato1-label"></h4>
-        <p id="ricetta-view-formato1-info" class="ricetta-formato-info"></p>
-      </div>
-      <div class="ricetta-formato">
-        <h4 id="ricetta-view-formato2-label"></h4>
-        <p id="ricetta-view-formato2-info" class="ricetta-formato-info"></p>
-      </div>
-    </div>
-
-    <h4>Ingredienti</h4>
-    <ul id="ricetta-view-ingredienti" class="ricetta-ingredienti-list"></ul>
-
-    <h4>Note / Procedimento</h4>
-    <p id="ricetta-view-note" class="ricetta-view-note"></p>
-  </div>
-</section>
-<!-- RICETTE - SOLO LETTURA / RICETTARIO -->
-<section id="view-ricette-viewer" class="view" style="display: none">
-  <h2>Ricettario</h2>
-  <p>Elenco ricette consultabile, senza possibilità di modifiche.</p>
-
-  <div style="margin: 10px 0">
-    <input
-      id="ricette-search"
-      type="text"
-      class="input-pill"
-      placeholder="Cerca per nome o descrizione..."
-    />
-  </div>
-
-  <div id="ricette-lista-viewer"></div>
-</section>
-<!-- RICETTARIO (SOLO LETTURA) -->
-<section
-  id="view-ricette-viewer"
-  class="view"
-  style="display: none"
->
-  <h2>Ricettario</h2>
-  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-    Visualizza le ricette registrate, senza possibilità di modificarle.
-  </p>
-
-  <label style="display:block; margin-top:10px; font-size:13px;">
-    Cerca ricetta
-    <input
-      id="ricette-search"
-      type="text"
-      class="input-pill"
-      placeholder="Es. Flan di patate, Tiramisù..."
-    />
-  </label>
-
-  <div
-    id="ricette-lista-viewer"
-    style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
-  ></div>
-</section>
-
-            <!-- REPORT KPI -->
-    <section id="view-report" class="view" style="display: none">
-      <h2>Cruscotto KPI</h2>
-      <p>Panoramica veloce di incassi e costi sul periodo selezionato.</p>
-
-      <div class="kpi-filters">
-        <label>
-          Data di riferimento
-          <input id="report-data" type="date" class="input-pill" />
-        </label>
-      </div>
-
-      <div class="kpi-period-switch">
-        <button
-          type="button"
-          class="app-button tiny report-period-btn active"
-          data-period="giorno"
-        >
-          Giorno
-        </button>
-        <button
-          type="button"
-          class="app-button tiny report-period-btn"
-          data-period="settimana"
-        >
-          Settimana
-        </button>
-        <button
-          type="button"
-          class="app-button tiny report-period-btn"
-          data-period="mese"
-        >
-          Mese
-        </button>
-        <button
-          type="button"
-          class="app-button tiny report-period-btn"
-          data-period="anno"
-        >
-          Anno
-        </button>
-      </div>
-
-      <div class="kpi-inputs">
-        <label>
-          Incasso periodo (€)
-          <input
-            id="kpi-incasso-input"
-            type="number"
-            step="0.01"
-            class="input-pill"
-            placeholder="Es. 1500"
-          />
-        </label>
-
-        <label>
-          Food cost periodo (€)
-          <input
-            id="kpi-foodcost-input"
-            type="number"
-            step="0.01"
-            class="input-pill"
-            placeholder="Es. 450"
-          />
-        </label>
-      </div>
-
-      <div class="kpi-incasso-row">
-        <span>
-          Incasso:
-          <strong id="kpi-incasso-value">0,00&nbsp;€</strong>
-        </span>
-        <span>
-          Netto (Incasso - Food):
-          <strong id="kpi-netto-value">0,00&nbsp;€</strong>
-        </span>
-      </div>
-
-      <div id="kpi-margine-badge" class="kpi-margin-badge neg">
-        Margine 0,00&nbsp;€
-      </div>
-
-      <div class="kpi-gauge-wrapper">
-        <div class="kpi-gauge-dial">
-          <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
-          <div class="kpi-gauge-center"></div>
-        </div>
-        <div class="kpi-gauge-bep">
-          <span id="kpi-bep-label">BEP 0,00&nbsp;€</span>
-        </div>
-      </div>
-
-      <div class="kpi-cards">
-        <div class="kpi-card">
-          <h3>Lavoro</h3>
-          <p id="kpi-lavoro-importo">0,00&nbsp;€</p>
-          <small id="kpi-lavoro-percent">0%</small>
-        </div>
-        <div class="kpi-card">
-          <h3>Food cost</h3>
-          <p id="kpi-food-importo">0,00&nbsp;€</p>
-          <small id="kpi-food-percent">0%</small>
-        </div>
-        <div class="kpi-card">
-          <h3>Costi fissi</h3>
-          <p id="kpi-fissi-importo">0,00&nbsp;€</p>
-          <small id="kpi-fissi-percent">0%</small>
-        </div>
-      </div>
-
-      <hr class="report-section-divider" />
-
-      <button
-        id="btn-toggle-costi-fissi"
-        class="app-button small gray"
-        type="button"
-      >
-        Gestisci costi fissi
-      </button>
-
-      <div
-        id="costi-fissi-panel"
-        style="display: none; margin-top: 10px;"
-      >
-        <h3>Costi fissi annuali</h3>
-
-        <form id="costi-fissi-form" onsubmit="return false;">
-          <label>
-            Categoria
-            <input
-              id="costi-fissi-categoria"
-              type="text"
-              class="input-pill"
-              placeholder="Affitto, utenze, personale fisso..."
-            />
-          </label>
-
-          <label>
-            Descrizione
-            <input
-              id="costi-fissi-descrizione"
-              type="text"
-              class="input-pill"
-              placeholder="Descrizione voce di costo"
-            />
-          </label>
-
-          <label>
-            Anno di riferimento
-            <input
-              id="costi-fissi-anno"
-              type="number"
-              class="input-pill"
-              placeholder="Es. 2024"
-            />
-          </label>
-
-          <label>
-            Importo annuo (€)
-            <input
-              id="costi-fissi-importo"
-              type="number"
-              step="0.01"
-              class="input-pill"
-            />
-          </label>
+          <div id="fattura-righe-body" class="fattura-righe-container"></div>
 
           <button
-            id="btn-salva-costo-fisso"
-            class="app-button small green"
+            id="btn-add-riga-fattura"
+            class="app-button small gray"
+            type="button"
+            style="margin-top: 8px;"
+          >
+            + Aggiungi riga
+          </button>
+
+          <!-- TOTALI -->
+          <h3 style="margin-top: 16px;">Totali</h3>
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Imponibile</h3>
+              <p>
+                <input
+                  id="fattura-imponibile-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>IVA</h3>
+              <p>
+                <input
+                  id="fattura-iva-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>Totale documento</h3>
+              <p>
+                <input
+                  id="fattura-totale-documento"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+          </div>
+
+          <!-- ELENCO FATTURE REGISTRATE -->
+          <h3 style="margin-top: 16px;">Fatture registrate</h3>
+
+          <button
+            id="btn-toggle-fatture"
+            class="app-button small gray"
             type="button"
           >
-            Salva costo fisso
+            Mostra / Nascondi
           </button>
-        </form>
 
-        <h4>Elenco costi fissi</h4>
-        <div class="table-wrapper">
-          <table class="table-timbrature">
+          <table
+            id="fatture-table"
+            class="table-timbrature"
+            style="display: none; margin-top: 8px;"
+          >
             <thead>
               <tr>
-                <th>Categoria</th>
-                <th>Descrizione</th>
-                <th>Anno</th>
-                <th>Importo annuo</th>
+                <th>Data</th>
+                <th>Numero</th>
+                <th>Fornitore</th>
+                <th>Totale</th>
+                <th></th>
               </tr>
             </thead>
-            <tbody id="costi-fissi-lista"></tbody>
+            <tbody id="fatture-lista"></tbody>
           </table>
-        </div>
-      </div>
-    </section>
+        </section>
 
+        <!-- RICETTE (MODIFICA) -->
+        <section id="view-ricette" class="view" style="display: none">
+          <h2>Ricette</h2>
 
-        <!-- BLOCCO 9 - MAGAZZINO -->
+          <form onsubmit="return false;">
+            <label>
+              Nome ricetta
+              <input
+                type="text"
+                id="ricetta-nome"
+                class="input-pill"
+                placeholder="Es. Flan di patate"
+              />
+            </label>
+
+            <label>
+              Descrizione breve
+              <input
+                type="text"
+                id="ricetta-descrizione"
+                class="input-pill"
+                placeholder="Es. Antipasto al piatto o da buffet"
+              />
+            </label>
+
+            <label>
+              Note / Procedimento
+              <textarea
+                id="ricetta-note"
+                rows="4"
+                class="textarea-pill"
+              ></textarea>
+            </label>
+
+            <label>
+              Foto ricetta
+              <input
+                type="file"
+                id="ricetta-foto"
+                accept="image/*"
+              />
+            </label>
+
+            <!-- RESE RICETTA -->
+            <h3>Resa ricetta</h3>
+
+            <div class="kpi-cards">
+              <div class="kpi-card">
+                <h3>Resa base</h3>
+                <label>
+                  Pezzi base (porzione 100%)
+                  <input
+                    type="number"
+                    id="ricetta-pezzi-base"
+                    class="input-pill"
+                    min="0"
+                    step="1"
+                    placeholder="Es. 10"
+                  />
+                </label>
+                <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
+                  Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
+                </p>
+              </div>
+
+              <div class="kpi-card">
+                <h3>Formato 1</h3>
+                <label>
+                  Nome formato
+                  <input
+                    type="text"
+                    id="ricetta-formato1-label"
+                    class="input-pill"
+                    placeholder="Es. Ristorante"
+                  />
+                </label>
+                <label>
+                  Percentuale porzione
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <input
+                      type="number"
+                      id="ricetta-formato1-percent"
+                      class="input-pill"
+                      min="1"
+                      max="500"
+                      step="1"
+                      placeholder="Es. 100"
+                      style="max-width:120px;"
+                    />
+                    <span style="font-size:13px;">%</span>
+                  </div>
+                </label>
+                <p style="margin-top:6px; font-size:13px;">
+                  Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
+                </p>
+              </div>
+
+              <div class="kpi-card">
+                <h3>Formato 2</h3>
+                <label>
+                  Nome formato
+                  <input
+                    type="text"
+                    id="ricetta-formato2-label"
+                    class="input-pill"
+                    placeholder="Es. Ricevimento / Buffet"
+                  />
+                </label>
+                <label>
+                  Percentuale porzione
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <input
+                      type="number"
+                      id="ricetta-formato2-percent"
+                      class="input-pill"
+                      min="1"
+                      max="500"
+                      step="1"
+                      placeholder="Es. 60 o 25"
+                      style="max-width:120px;"
+                    />
+                    <span style="font-size:13px;">%</span>
+                  </div>
+                </label>
+                <p style="margin-top:6px; font-size:13px;">
+                  Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
+                </p>
+              </div>
+            </div>
+
+            <h3>Ingredienti</h3>
+
+            <div id="ricetta-ingredienti-container"></div>
+
+            <datalist id="ingredienti-suggestions"></datalist>
+
+            <button
+              id="btn-add-ingrediente"
+              class="app-button small gray"
+              type="button"
+            >
+              + Aggiungi ingrediente
+            </button>
+
+            <button
+              id="btn-salva-ricetta"
+              class="app-button small green"
+              type="button"
+            >
+              Salva ricetta
+            </button>
+          </form>
+        </section>
+
+        <!-- RICETTE - SOLO LETTURA / RICETTARIO -->
+        <section
+          id="view-ricette-viewer"
+          class="view"
+          style="display: none"
+        >
+          <h2>Ricettario</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Visualizza le ricette registrate, senza possibilità di modificarle.
+          </p>
+
+          <label style="display:block; margin-top:10px; font-size:13px;">
+            Cerca ricetta
+            <input
+              id="ricette-search"
+              type="text"
+              class="input-pill"
+              placeholder="Es. Flan di patate, Tiramisù..."
+            />
+          </label>
+
+          <div
+            id="ricette-lista-viewer"
+            style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
+          ></div>
+        </section>
+
+        <!-- REPORT KPI -->
+        <section id="view-report" class="view" style="display: none">
+          <h2>Cruscotto KPI</h2>
+          <p>Panoramica veloce di incassi e costi sul periodo selezionato.</p>
+
+          <div class="kpi-filters">
+            <label>
+              Data di riferimento
+              <input id="report-data" type="date" class="input-pill" />
+            </label>
+          </div>
+
+          <div class="kpi-period-switch">
+            <button
+              type="button"
+              class="app-button tiny report-period-btn active"
+              data-period="giorno"
+            >
+              Giorno
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="settimana"
+            >
+              Settimana
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="mese"
+            >
+              Mese
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="anno"
+            >
+              Anno
+            </button>
+          </div>
+
+          <div class="kpi-inputs">
+            <label>
+              Incasso periodo (€)
+              <input
+                id="kpi-incasso-input"
+                type="number"
+                step="0.01"
+                class="input-pill"
+                placeholder="Es. 1500"
+              />
+            </label>
+
+            <label>
+              Food cost periodo (€)
+              <input
+                id="kpi-foodcost-input"
+                type="number"
+                step="0.01"
+                class="input-pill"
+                placeholder="Es. 450"
+              />
+            </label>
+          </div>
+
+          <div class="kpi-incasso-row">
+            <span>
+              Incasso:
+              <strong id="kpi-incasso-value">0,00&nbsp;€</strong>
+            </span>
+            <span>
+              Netto (Incasso - Food):
+              <strong id="kpi-netto-value">0,00&nbsp;€</strong>
+            </span>
+          </div>
+
+          <div id="kpi-margine-badge" class="kpi-margin-badge neg">
+            Margine 0,00&nbsp;€
+          </div>
+
+          <div class="kpi-gauge-wrapper">
+            <div class="kpi-gauge-dial">
+              <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
+              <div class="kpi-gauge-center"></div>
+            </div>
+            <div class="kpi-gauge-bep">
+              <span id="kpi-bep-label">BEP 0,00&nbsp;€</span>
+            </div>
+          </div>
+
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Lavoro</h3>
+              <p id="kpi-lavoro-importo">0,00&nbsp;€</p>
+              <small id="kpi-lavoro-percent">0%</small>
+            </div>
+            <div class="kpi-card">
+              <h3>Food cost</h3>
+              <p id="kpi-food-importo">0,00&nbsp;€</p>
+              <small id="kpi-food-percent">0%</small>
+            </div>
+            <div class="kpi-card">
+              <h3>Costi fissi</h3>
+              <p id="kpi-fissi-importo">0,00&nbsp;€</p>
+              <small id="kpi-fissi-percent">0%</small>
+            </div>
+          </div>
+
+          <hr class="report-section-divider" />
+
+          <button
+            id="btn-toggle-costi-fissi"
+            class="app-button small gray"
+            type="button"
+          >
+            Gestisci costi fissi
+          </button>
+
+          <div
+            id="costi-fissi-panel"
+            style="display: none; margin-top: 10px;"
+          >
+            <h3>Costi fissi annuali</h3>
+
+            <form id="costi-fissi-form" onsubmit="return false;">
+              <label>
+                Categoria
+                <input
+                  id="costi-fissi-categoria"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Affitto, utenze, personale fisso..."
+                />
+              </label>
+
+              <label>
+                Descrizione
+                <input
+                  id="costi-fissi-descrizione"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Descrizione voce di costo"
+                />
+              </label>
+
+              <label>
+                Anno di riferimento
+                <input
+                  id="costi-fissi-anno"
+                  type="number"
+                  class="input-pill"
+                  placeholder="Es. 2024"
+                />
+              </label>
+
+              <label>
+                Importo annuo (€)
+                <input
+                  id="costi-fissi-importo"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                />
+              </label>
+
+              <button
+                id="btn-salva-costo-fisso"
+                class="app-button small green"
+                type="button"
+              >
+                Salva costo fisso
+              </button>
+            </form>
+
+            <h4>Elenco costi fissi</h4>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Descrizione</th>
+                    <th>Anno</th>
+                    <th>Importo annuo</th>
+                  </tr>
+                </thead>
+                <tbody id="costi-fissi-lista"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- MAGAZZINO -->
         <section id="view-magazzino" class="view" style="display: none">
           <h2>Magazzino</h2>
@@ -1038,7 +951,6 @@
           </div>
 
           <h3>Prodotti</h3>
-          <!-- Tabella nascosta di default: si mostra solo quando si cerca -->
           <table
             id="magazzino-table"
             class="table-timbrature"
@@ -1137,7 +1049,6 @@
       </main>
     </div>
 
-    <!-- BLOCCO 10 - SUPABASE + SCRIPT APP -->
     <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
