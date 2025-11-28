@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
 
+  // ========== BLOCCO A1 - RIFERIMENTI DOM COMUNI & STATO BASE ==========
+
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
   const loginView = document.getElementById("view-login");
@@ -423,6 +425,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========== BLOCCO A2 - DIPENDENTI (LOGICA & CRUD) ==========
+
   // ========= DIPENDENTI =========
   function aggiornaUICompenso() {
     if (!dipTipoCompenso || !labelRetribuzione) return;
@@ -743,6 +747,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========== BLOCCO A3 - LOGIN & UTENTE CORRENTE ==========
+
   // ========= LOGIN & UTENTE CORRENTE =========
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
@@ -819,6 +825,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // ========== BLOCCO A4 - TIMBRATURE (LOGICA COMPLETA) ==========
 
   // ========= TIMBRATURE =========
   async function caricaTimbratureDaSupabase() {
@@ -1239,6 +1247,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========== BLOCCO A5 - RICETTE ==========
+
   // ========= RICETTE =========
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
@@ -1468,6 +1478,8 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSalvaRicetta();
     });
   }
+
+  // ========== BLOCCO A6 - ACQUISTI / FATTURE ==========
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
@@ -2123,6 +2135,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========== BLOCCO A7 - MAGAZZINO ==========
+
   // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
     if (!magazzinoListaEl) return;
@@ -2397,6 +2411,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ========== BLOCCO A8 - ROUTING ==========
+
   // ========= ROUTING =========
   async function caricaProdottiSuggerimentiIngredienti() {
     if (!magazzinoDati.length) {
@@ -2478,6 +2494,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const route = window.location.hash.replace("#", "");
     navigateTo(route);
   });
+
+  // ========== BLOCCO A9 - AVVIO APP (INIT) ==========
 
   // ========= AVVIO =========
   async function init() {
