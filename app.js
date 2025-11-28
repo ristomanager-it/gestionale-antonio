@@ -1241,8 +1241,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
    // ========= RICETTE =========
   // DOM ricette già esistenti
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
   // 🔹 NUOVI DOM per resa ricetta
   const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
