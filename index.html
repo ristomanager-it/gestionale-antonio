@@ -553,70 +553,164 @@
 
 
         <!-- BLOCCO 8 - RICETTE -->
-        <!-- RICETTE -->
-        <section id="view-ricette" class="view" style="display: none">
-          <h2>Ricette</h2>
+            <!-- RICETTE -->
+    <section id="view-ricette" class="view" style="display: none">
+      <h2>Ricette</h2>
 
-          <form id="ricetta-form" onsubmit="return false;">
+      <form onsubmit="return false;">
+        <label>
+          Nome ricetta
+          <input
+            type="text"
+            id="ricetta-nome"
+            class="input-pill"
+            placeholder="Es. Flan di patate"
+          />
+        </label>
+
+        <label>
+          Descrizione breve
+          <input
+            type="text"
+            id="ricetta-descrizione"
+            class="input-pill"
+            placeholder="Es. Antipasto al piatto o da buffet"
+          />
+        </label>
+
+        <label>
+          Note / Procedimento
+          <textarea
+            id="ricetta-note"
+            rows="4"
+            class="textarea-pill"
+          ></textarea>
+        </label>
+
+        <label>
+          Foto ricetta
+          <input
+            type="file"
+            id="ricetta-foto"
+            accept="image/*"
+          />
+        </label>
+
+        <!-- 🔹 RESE RICETTA: PEZZI BASE + 2 FORMATI -->
+        <h3>Resa ricetta</h3>
+
+        <div class="kpi-cards">
+          <!-- Card pezzi base -->
+          <div class="kpi-card">
+            <h3>Resa base</h3>
             <label>
-              Nome ricetta
+              Pezzi base (porzione 100%)
+              <input
+                type="number"
+                id="ricetta-pezzi-base"
+                class="input-pill"
+                min="0"
+                step="1"
+                placeholder="Es. 10"
+              />
+            </label>
+            <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
+              Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
+            </p>
+          </div>
+
+          <!-- Card formato 1 -->
+          <div class="kpi-card">
+            <h3>Formato 1</h3>
+            <label>
+              Nome formato
               <input
                 type="text"
-                id="ricetta-nome"
+                id="ricetta-formato1-label"
                 class="input-pill"
+                placeholder="Es. Ristorante"
               />
             </label>
-
             <label>
-              Descrizione breve
+              Percentuale porzione
+              <div style="display:flex; align-items:center; gap:6px;">
+                <input
+                  type="number"
+                  id="ricetta-formato1-percent"
+                  class="input-pill"
+                  min="1"
+                  max="500"
+                  step="1"
+                  placeholder="Es. 100"
+                  style="max-width:120px;"
+                />
+                <span style="font-size:13px;">%</span>
+              </div>
+            </label>
+            <p style="margin-top:6px; font-size:13px;">
+              Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
+            </p>
+          </div>
+
+          <!-- Card formato 2 -->
+          <div class="kpi-card">
+            <h3>Formato 2</h3>
+            <label>
+              Nome formato
               <input
                 type="text"
-                id="ricetta-descrizione"
+                id="ricetta-formato2-label"
                 class="input-pill"
+                placeholder="Es. Ricevimento / Buffet"
               />
             </label>
-
             <label>
-              Note / Procedimento
-              <textarea
-                id="ricetta-note"
-                rows="4"
-              ></textarea>
+              Percentuale porzione
+              <div style="display:flex; align-items:center; gap:6px;">
+                <input
+                  type="number"
+                  id="ricetta-formato2-percent"
+                  class="input-pill"
+                  min="1"
+                  max="500"
+                  step="1"
+                  placeholder="Es. 60 o 25"
+                  style="max-width:120px;"
+                />
+                <span style="font-size:13px;">%</span>
+              </div>
             </label>
+            <p style="margin-top:6px; font-size:13px;">
+              Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
+            </p>
+          </div>
+        </div>
 
-            <label>
-              Foto ricetta
-              <input
-                type="file"
-                id="ricetta-foto"
-                accept="image/*"
-              />
-            </label>
+        <h3>Ingredienti</h3>
 
-            <h3>Ingredienti</h3>
+        <div id="ricetta-ingredienti-container"></div>
 
-            <div id="ricetta-ingredienti-container"></div>
+        <!-- DATALIST PER AUTOCOMPLETE INGREDIENTI -->
+        <datalist id="ingredienti-suggestions"></datalist>
 
-            <!-- DATALIST PER AUTOCOMPLETE INGREDIENTI -->
-            <datalist id="ingredienti-suggestions"></datalist>
+        <button
+          id="btn-add-ingrediente"
+          class="app-button small gray"
+          type="button"
+        >
+          + Aggiungi ingrediente
+        </button>
 
-            <button
-              id="btn-add-ingrediente"
-              class="app-button small gray"
-              type="button"
-            >
-              + Aggiungi ingrediente
-            </button>
+        <button
+          id="btn-salva-ricetta"
+          class="app-button small green"
+          type="button"
+        >
+          Salva ricetta
+        </button>
+      </form>
+    </section>
 
-            <button
-              id="btn-salva-ricetta"
-              class="app-button small green"
-              type="button"
-            >
-              Salva ricetta
-            </button>
-          </form>
-        </section>
             <!-- REPORT KPI -->
     <section id="view-report" class="view" style="display: none">
       <h2>Cruscotto KPI</h2>
