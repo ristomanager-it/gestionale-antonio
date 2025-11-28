@@ -2444,6 +2444,136 @@ let magazzinoDati = [];
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
+// ===========================================================
+// ========== RICETTARIO - SOLO LETTURA =======================
+// ===========================================================
+
+// Cache ricette caricata una volta sola
+// ⚠️ Assicurati di avere in alto: let ricetteCache = [];
+
+
+// ---------- 4.1 CARICA RICETTE DA SUPABASE ----------
+async function caricaRicetteDaSupabase() {
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from("ricette")
+    .select(`
+      id,
+      nome,
+      descrizione,
+      note_procedimento,
+      foto_url,
+      pezzi_base,
+      formato1_label,
+      formato1_percent,
+      formato2_label,
+      formato2_percent
+    `)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento ricette:", error);
+    alert("Errore nel caricare le ricette");
+    return;
+  }
+
+  ricetteCache = data || [];
+  renderRicetteViewer(ricetteCache);
+}
+
+
+
+// ---------- 4.2 RENDER CARD RICETTE ----------
+function renderRicetteViewer(lista) {
+  const container = document.getElementById("ricette-lista-viewer");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!lista.length) {
+    container.innerHTML = "<p>Nessuna ricetta trovata.</p>";
+    return;
+  }
+
+  lista.forEach((r) => {
+    const card = document.createElement("div");
+    card.className = "timbratura-intro-card";
+
+    // Calcolo rese
+    const base = r.pezzi_base || 0;
+    const f1Perc = r.formato1_percent || 100;
+    const f2Perc = r.formato2_percent || 0;
+
+    const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
+    const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
+
+    card.innerHTML = `
+      <h3 style="margin:0 0 4px">${r.nome}</h3>
+
+      <p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
+        ${r.descrizione || ""}
+      </p>
+
+      ${
+        base
+          ? `
+          <div style="font-size:12px; margin-bottom:4px;">
+            <strong>Quantità base:</strong> ${base} pezzi equivalenti
+          </div>
+          <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
+            <span><strong>${r.formato1_label || "Formato 1"}:</strong>
+              ${pezzi1 ? pezzi1.toFixed(1) : "-"} pz
+            </span>
+            ${
+              f2Perc
+                ? `<span><strong>${r.formato2_label || "Formato 2"}:</strong>
+                    ${pezzi2 ? pezzi2.toFixed(1) : "-"} pz
+                  </span>`
+                : ""
+            }
+          </div>
+        `
+          : ""
+      }
+
+      ${
+        r.note_procedimento
+          ? `
+        <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+          <strong>Note:</strong> ${r.note_procedimento}
+        </p>`
+          : ""
+      }
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+
+
+// ---------- 4.3 RICERCA NEL RICETTARIO ----------
+const ricetteSearchInput = document.getElementById("ricette-search");
+
+if (ricetteSearchInput) {
+  ricetteSearchInput.addEventListener("input", () => {
+    const q = (ricetteSearchInput.value || "").toLowerCase().trim();
+
+    if (!q) {
+      renderRicetteViewer(ricetteCache);
+      return;
+    }
+
+    const filtrate = ricetteCache.filter((r) => {
+      const nome = (r.nome || "").toLowerCase();
+      const desc = (r.descrizione || "").toLowerCase();
+      return nome.includes(q) || desc.includes(q);
+    });
+
+    renderRicetteViewer(filtrate);
+  });
+}
 
    // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
