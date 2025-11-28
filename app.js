@@ -2294,7 +2294,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function caricaMagazzinoDati() {
     if (!supabase) return;
 
-    // leggo direttamente la tabella prodotti, niente view
+    // 1) leggo la tabella prodotti
     const { data, error } = await supabase
       .from("prodotti")
       .select("id, codice_interno, descrizione, um, categoria_id, scorta_minima")
@@ -2306,8 +2306,46 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // 2) leggo i movimenti di magazzino per calcolare la giacenza
+    // tabella attesa: magazzino_movimenti
+    // colonne minime: prodotto_id, tipo_movimento ('carico'/'scarico'), quantita
+    const { data: movimenti, error: movError } = await supabase
+      .from("magazzino_movimenti")
+      .select("prodotto_id, tipo_movimento, quantita");
+
+    if (movError) {
+      console.error("Errore caricamento movimenti magazzino:", movError);
+      // non blocco: se fallisce, le giacenze restano 0
+    }
+
+    // 3) mappa prodotto_id -> giacenza totale
+    const giacenzeMap = {};
+    (movimenti || []).forEach((m) => {
+      const pid = m.prodotto_id;
+      if (!pid) return;
+
+      let q = Number(m.quantita) || 0;
+      const tipo = (m.tipo_movimento || "").toLowerCase();
+
+      // convenzione: carico = +, scarico/uscita/vendita/consumo = -
+      if (
+        tipo === "scarico" ||
+        tipo === "uscita" ||
+        tipo === "vendita" ||
+        tipo === "consumo"
+      ) {
+        q = -q;
+      }
+
+      giacenzeMap[pid] = (giacenzeMap[pid] || 0) + q;
+    });
+
+    // 4) popolo magazzinoDati con giacenza reale
     magazzinoDati = (data || []).map((r) => {
-      const cat = r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
+      const cat =
+        r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
+      const stock = giacenzeMap[r.id] || 0;
+
       return {
         id: r.id,
         codice: r.codice_interno,
@@ -2315,7 +2353,7 @@ document.addEventListener("DOMContentLoaded", () => {
         um: r.um,
         categoriaNome: cat ? cat.nome : "",
         scortaMinima: r.scorta_minima,
-        stock: 0, // per ora 0, in futuro calcolato da movimenti di magazzino
+        stock, // 🔹 giacenza calcolata
       };
     });
 
@@ -2380,7 +2418,7 @@ document.addEventListener("DOMContentLoaded", () => {
         um: data.um,
         categoriaNome: cat ? cat.nome : "",
         scortaMinima: data.scorta_minima,
-        stock: 0,
+        stock: 0, // nuovo prodotto: nessun movimento ancora
       };
       magazzinoDati.push(nuovo);
       popolaMagazzinoForm(nuovo);
@@ -2477,6 +2515,23 @@ document.addEventListener("DOMContentLoaded", () => {
       magazzinoTable.style.display = "table";
     });
   }
+
+  // 🔹 Quando nella CARD descrizione metto un prodotto esistente,
+  //    auto-compilo tutti i campi, inclusa la giacenza
+  if (magazzinoDescrInput) {
+    magazzinoDescrInput.addEventListener("change", () => {
+      const val = (magazzinoDescrInput.value || "").trim().toLowerCase();
+      if (!val) return;
+
+      const prod = magazzinoDati.find(
+        (p) => (p.descrizione || "").toLowerCase() === val
+      );
+      if (prod) {
+        popolaMagazzinoForm(prod);
+      }
+    });
+  }
+
 
   // ========= ROUTING =========
   async function caricaProdottiSuggerimentiIngredienti() {
