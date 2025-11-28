@@ -267,18 +267,30 @@ textarea {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 1.5rem 1rem;
 }
 
+/* Wrapper per centrare la card */
+.login-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Card stile "form-card" (coerente con dipendenti / acquisti) */
+.form-card.login-card,
 .login-card {
   width: 100%;
   max-width: 380px;
   margin: 0 auto;
-  background: #ffffff;
-  border-radius: 22px;
-  padding: 20px 18px 22px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+  background: var(--card-bg, #111827);
+  border-radius: 18px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* Logo */
 .login-logo {
   display: flex;
   justify-content: center;
@@ -286,41 +298,96 @@ textarea {
 }
 
 .login-logo-img {
-  width: 96px;
-  height: 96px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
 }
 
+/* Titolo e sottotitolo */
+.login-title,
 .login-card h2 {
   text-align: center;
   margin: 6px 0 4px;
-  font-size: 24px;
+  font-size: 1.4rem;
+  font-weight: 600;
 }
 
 .login-subtitle {
   text-align: center;
   margin: 0 0 14px;
   font-size: 13px;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.7);
 }
 
+/* Struttura form verticale */
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.remember-label {
+/* Riga di form generica */
+.form-row {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+/* Riga inline per checkbox */
+.form-row-inline {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Label sopra agli input */
+.input-label {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+/* Input stile “pill” (uguale agli altri form) */
+.input-pill {
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.input-pill::placeholder {
+  opacity: 0.55;
+}
+
+.input-pill:focus {
+  border-color: var(--accent, #ffb347);
+  box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.6);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Checkbox "Ricordami" */
+.remember-label,
+.checkbox-label {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.75);
 }
 
-
+/* Bottone login a tutta larghezza */
+.app-button.full-width,
+.login-button {
+  width: 100%;
+  margin-top: 4px;
+}
 
 /* ========================================================= */
 /* ============ [5] HOME DIPENDENTE / MENU MANAGER ========= */
