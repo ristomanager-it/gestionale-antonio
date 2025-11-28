@@ -71,6 +71,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipAttivo = document.getElementById("dip-attivo");
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
+  
+  // ---------- RICETTARIO (SOLO LETTURA) ----------
+  const ricetteSearchInput = document.getElementById("ricette-search");
+  const ricetteListaBody = document.getElementById("ricette-lista-body");
+  const ricettaDettaglioCard = document.getElementById("ricetta-dettaglio-card");
+  const ricettaViewNome = document.getElementById("ricetta-view-nome");
+  const ricettaViewPezziBase = document.getElementById("ricetta-view-pezzi-base");
+  const ricettaViewDescrizione = document.getElementById("ricetta-view-descrizione");
+  const ricettaViewFormato1Label = document.getElementById("ricetta-view-formato1-label");
+  const ricettaViewFormato1Info = document.getElementById("ricetta-view-formato1-info");
+  const ricettaViewFormato2Label = document.getElementById("ricetta-view-formato2-label");
+  const ricettaViewFormato2Info = document.getElementById("ricetta-view-formato2-info");
+  const ricettaViewIngredienti = document.getElementById("ricetta-view-ingredienti");
+  const ricettaViewNote = document.getElementById("ricetta-view-note");
 
   
   // ---------- ACQUISTI / FATTURE (DOM) ----------
