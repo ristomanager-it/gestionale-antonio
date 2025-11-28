@@ -1479,7 +1479,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-     // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+      // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -1683,82 +1683,100 @@ document.addEventListener("DOMContentLoaded", () => {
     return data;
   }
 
-  // --- RIGHE FATTURA (TABELLARE) ---
+  // --- RIGHE FATTURA: LAYOUT VERTICALE TIPO "CARD" ---
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-codice"
-          placeholder="Cod. interno"
-          value="${initial.codice_prodotto || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-descrizione"
-          placeholder="Descrizione prodotto"
-          list="ingredienti-suggestions"
-          value="${initial.descrizione_riga || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-categoria"
-          placeholder="Categoria"
-          value="${initial.categoria_nome || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="text"
-          class="fatt-riga-um"
-          placeholder="kg, l, pz..."
-          value="${initial.um || ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-quantita"
-          placeholder="Q.tà"
-          min="0"
-          step="0.001"
-          value="${initial.quantita != null ? initial.quantita : ""}"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-prezzo"
-          placeholder="Prezzo"
-          min="0"
-          step="0.0001"
-          value="${
-            initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
-          }"
-        />
-      </td>
-      <td>
-        <input
-          type="number"
-          class="fatt-riga-iva"
-          placeholder="%"
-          min="0"
-          step="1"
-          value="${initial.iva_perc != null ? initial.iva_perc : ""}"
-        />
-      </td>
-      <td class="fatt-riga-totale">0.00</td>
-      <td>
-        <button type="button" class="app-button tiny red btn-del-riga">
-          ✕
-        </button>
+      <td colspan="9">
+        <div class="fatt-riga-card">
+          <label>
+            Codice interno
+            <input
+              type="text"
+              class="fatt-riga-codice"
+              placeholder="Cod. interno"
+              value="${initial.codice_prodotto || ""}"
+            />
+          </label>
+
+          <label>
+            Descrizione prodotto
+            <input
+              type="text"
+              class="fatt-riga-descrizione"
+              placeholder="Descrizione prodotto"
+              list="ingredienti-suggestions"
+              value="${initial.descrizione_riga || ""}"
+            />
+          </label>
+
+          <label>
+            Categoria
+            <input
+              type="text"
+              class="fatt-riga-categoria"
+              placeholder="Categoria"
+              value="${initial.categoria_nome || ""}"
+            />
+          </label>
+
+          <label>
+            Unità di misura
+            <input
+              type="text"
+              class="fatt-riga-um"
+              placeholder="kg, l, pz..."
+              value="${initial.um || ""}"
+            />
+          </label>
+
+          <label>
+            Quantità
+            <input
+              type="number"
+              class="fatt-riga-quantita"
+              placeholder="Q.tà"
+              min="0"
+              step="0.001"
+              value="${initial.quantita != null ? initial.quantita : ""}"
+            />
+          </label>
+
+          <label>
+            Prezzo unitario
+            <input
+              type="number"
+              class="fatt-riga-prezzo"
+              placeholder="Prezzo"
+              min="0"
+              step="0.0001"
+              value="${
+                initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+              }"
+            />
+          </label>
+
+          <label>
+            IVA %
+            <input
+              type="number"
+              class="fatt-riga-iva"
+              placeholder="%"
+              min="0"
+              step="1"
+              value="${initial.iva_perc != null ? initial.iva_perc : ""}"
+            />
+          </label>
+
+          <div class="fatt-riga-footer">
+            <span>Totale riga: <strong class="fatt-riga-totale">0.00</strong></span>
+            <button type="button" class="app-button tiny red btn-del-riga">
+              ✕
+            </button>
+          </div>
+        </div>
       </td>
     `;
 
@@ -1791,7 +1809,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
-    const totaleCell = tr.querySelector(".fatt-riga-totale");
+    const totaleEl = tr.querySelector(".fatt-riga-totale");
+
     const qta = parseNumber(qtaInput?.value || "0");
     const prezzo = parseNumber(prezzoInput?.value || "0");
     const ivaPerc = parseNumber(ivaInput?.value || "0");
@@ -1800,8 +1819,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const iva = imponibile * (ivaPerc / 100);
     const totale = imponibile + iva;
 
-    if (totaleCell) {
-      totaleCell.textContent = totale.toFixed(2);
+    if (totaleEl) {
+      totaleEl.textContent = totale.toFixed(2);
     }
 
     return { imponibile, iva, totale };
@@ -1839,7 +1858,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fatturaNoteInput) fatturaNoteInput.value = "";
     if (fatturaImponibileTotaleInput)
       fatturaImponibileTotaleInput.value = "";
-    if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
+    if (fatturaIvaTotaleInput) fatturaIvaTotaleTotaleInput.value = "";
     if (fatturaTotaleDocumentoInput)
       fatturaTotaleDocumentoInput.value = "";
 
@@ -1968,8 +1987,6 @@ document.addEventListener("DOMContentLoaded", () => {
         totale,
         categoria_id: prodotto.categoria_id || null,
       });
-
-      // TODO: in futuro inserire movimento di magazzino (carico)
     }
 
     if (righePayload.length) {
