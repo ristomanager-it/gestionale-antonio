@@ -72,17 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  // ---------- RICETTE (DOM) ----------
-  const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById(
-    "ricetta-ingredienti-container"
-  );
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-
+  
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
   const fatturaDataInput = document.getElementById("fattura-data");
@@ -1239,7 +1229,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-   // ========= RICETTE =========
+ // ========= RICETTE =========
 
 // DOM ricette già presenti
 const ricettaNomeInput = document.getElementById("ricetta-nome");
@@ -1478,6 +1468,19 @@ async function handleSalvaRicetta() {
   alert("Ricetta salvata!");
   aggiornaResaRicetta();
 }
+
+
+// ======================= EVENTI ==========================
+
+btnAddIngrediente.addEventListener("click", () => creaRigaIngrediente());
+btnSalvaRicetta.addEventListener("click", () => handleSalvaRicetta());
+
+
+
+// ======================= EVENTI ==========================
+
+btnAddIngrediente.addEventListener("click", () => creaRigaIngrediente());
+btnSalvaRicetta.addEventListener("click", () => handleSalvaRicetta());
 
 
 // ======================= EVENTI ==========================
