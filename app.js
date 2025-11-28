@@ -129,19 +129,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
   // ---------- STATO ----------
-  let dipendenti = [];
-  let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
+let dipendenti = [];
+let timbrature = [];
+let currentUser = null;
+let periodoCorrente = "oggi";
 
-  let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+let ricetteCache = [];     // 👈 QUI
 
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
-  let magazzinoDati = [];
-let ricetteCache = [];
+let currentFatturaId = null;
+let fornitoriCache = [];
+let categorieCache = [];
+let magazzinoDati = [];
+
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
