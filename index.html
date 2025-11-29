@@ -110,7 +110,6 @@
               Ordine del giorno
             </button>
 
-            <!-- Ricettario accessibile ai dipendenti -->
             <button
               class="app-button big-home"
               data-route="ricette-viewer"
@@ -192,7 +191,7 @@
             </button>
           </div>
 
-          <!-- SEZIONE PRESENZE (SOLO MANAGER/ADMIN, A COMANDO) -->
+          <!-- PRESENZE MANAGER -->
           <div
             class="manager-only"
             data-manager-only="true"
@@ -413,7 +412,6 @@
           <h2>Fatture di acquisto</h2>
           <p>Registra fatture, prodotti e movimenti di magazzino.</p>
 
-          <!-- DATI TESTATA FATTURA -->
           <form id="fattura-form" onsubmit="return false;">
             <div class="form-grid-2">
               <label>
@@ -475,7 +473,6 @@
             </div>
           </form>
 
-          <!-- RIGHE FATTURA IN VERTICALE -->
           <h3 style="margin-top: 16px;">Righe fattura</h3>
 
           <div id="fattura-righe-body" class="fattura-righe-container"></div>
@@ -489,7 +486,6 @@
             + Aggiungi riga
           </button>
 
-          <!-- TOTALI -->
           <h3 style="margin-top: 16px;">Totali</h3>
           <div class="kpi-cards">
             <div class="kpi-card">
@@ -530,7 +526,6 @@
             </div>
           </div>
 
-          <!-- ELENCO FATTURE REGISTRATE -->
           <h3 style="margin-top: 16px;">Fatture registrate</h3>
 
           <button
@@ -602,7 +597,6 @@
               />
             </label>
 
-            <!-- RESE RICETTA -->
             <h3>Resa ricetta</h3>
 
             <div class="kpi-cards">
@@ -713,7 +707,7 @@
           </form>
         </section>
 
-        <!-- RICETTARIO - SOLO LETTURA -->
+        <!-- RICETTARIO (SOLO LETTURA) -->
         <section
           id="view-ricette-viewer"
           class="view"
@@ -724,15 +718,17 @@
             Visualizza le ricette registrate, senza possibilità di modificarle.
           </p>
 
-          <label style="display:block; margin-top:10px; font-size:13px;">
-            Cerca ricetta
+          <div style="margin-top:10px; margin-bottom:8px;">
+            <label style="display:block; font-size:13px; margin-bottom:4px;">
+              Cerca ricetta
+            </label>
             <input
               id="ricette-search"
               type="text"
               class="input-pill"
               placeholder="Es. Flan di patate, Tiramisù..."
             />
-          </label>
+          </div>
 
           <div
             id="ricette-lista-viewer"
