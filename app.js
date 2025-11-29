@@ -1435,6 +1435,86 @@ async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
     alert("Errore nel salvare gli ingredienti della ricetta");
   }
 }
+  // ========= RICETTE: CARICA IN FORM PER MODIFICA =========
+  async function apriRicettaInEdit(ricettaId) {
+    if (!supabase || !ricettaId) return;
+    if (!currentUser || !isManagerRole(currentUser.ruolo)) {
+      alert("Non hai i permessi per modificare le ricette.");
+      return;
+    }
+
+    // Vai alla vista Ricette
+    window.location.hash = "#ricette";
+    showOnlyView("view-ricette");
+    applyRoleVisibility();
+    await caricaProdottiSuggerimentiIngredienti();
+    resetFormRicetta();
+
+    const { data, error } = await supabase
+      .from("ricette")
+      .select(
+        `
+        id,
+        nome,
+        descrizione,
+        note_procedimento,
+        foto_url,
+        pezzi_base,
+        formato1_label,
+        formato1_percent,
+        formato2_label,
+        formato2_percent,
+        ricetta_ingredienti (
+          id,
+          nome_prodotto,
+          quantita,
+          unita_misura
+        )
+      `
+      )
+      .eq("id", ricettaId)
+      .single();
+
+    if (error) {
+      console.error("Errore lettura ricetta:", error);
+      alert("Errore nel caricare la ricetta da modificare");
+      return;
+    }
+
+    ricettaCorrenteId = data.id;
+    ricettaFotoCorrenteUrl = data.foto_url || null;
+
+    if (ricettaNomeInput) ricettaNomeInput.value = data.nome || "";
+    if (ricettaDescrizioneInput)
+      ricettaDescrizioneInput.value = data.descrizione || "";
+    if (ricettaNoteInput)
+      ricettaNoteInput.value = data.note_procedimento || "";
+
+    if (ricettaPezziBaseInput)
+      ricettaPezziBaseInput.value = data.pezzi_base || "";
+    if (ricettaFormato1LabelInput)
+      ricettaFormato1LabelInput.value = data.formato1_label || "";
+    if (ricettaFormato1PercInput)
+      ricettaFormato1PercInput.value =
+        data.formato1_percent != null ? data.formato1_percent : "";
+    if (ricettaFormato2LabelInput)
+      ricettaFormato2LabelInput.value = data.formato2_label || "";
+    if (ricettaFormato2PercInput)
+      ricettaFormato2PercInput.value =
+        data.formato2_percent != null ? data.formato2_percent : "";
+
+    aggiornaResaRicetta();
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+      const ingredienti = data.ricetta_ingredienti || [];
+      if (ingredienti.length) {
+        ingredienti.forEach((ing) => creaRigaIngrediente(ing));
+      } else {
+        creaRigaIngrediente();
+      }
+    }
+  }
 
 // ========= RICETTE: UPLOAD FOTO =========
 async function uploadFotoRicettaSePresente() {
