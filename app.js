@@ -1549,7 +1549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===========================================================
+ // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA =======================
 // ===========================================================
 
@@ -1583,10 +1583,10 @@ async function caricaRicetteViewerDaSupabase() {
 
   ricetteCache = data || [];
 
-  // messaggio iniziale: nessuna ricetta, solo istruzione di ricerca
+  // messaggio iniziale: nessuna ricetta mostrata, solo istruzione di ricerca
   if (ricetteListaViewer) {
     ricetteListaViewer.innerHTML =
-      '<p class="small-muted">Digita almeno 2 lettere per cercare una ricetta.</p>';
+      '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
   }
 }
 
@@ -1616,20 +1616,11 @@ function renderRicetteViewer(lista) {
     const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
 
     card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <h3 style="margin:0;">${r.nome || ""}</h3>
-        ${
-          base
-            ? `<span style="font-size:11px; background:#e5e7eb; padding:2px 8px; border-radius:999px;">
-                 ${base} pz base
-               </span>`
-            : ""
-        }
-      </div>
+      <h3 style="margin:0 0 4px;">${r.nome || ""}</h3>
 
       ${
         r.descrizione
-          ? `<p style="margin:4px 0 6px; font-size:13px; color:#4b5563;">
+          ? `<p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
                ${r.descrizione}
              </p>`
           : ""
@@ -1638,22 +1629,22 @@ function renderRicetteViewer(lista) {
       ${
         base
           ? `
-          <div style="font-size:12px; margin-bottom:4px;">
-            <strong>Rese calcolate:</strong>
-          </div>
-          <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
-            <span><strong>${f1Label}:</strong> ${
+            <div style="font-size:12px; margin-bottom:4px;">
+              <strong>Resa base:</strong> ${base} pz equivalenti
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px;">
+              <span><strong>${f1Label}:</strong> ${
               pezzi1 ? pezzi1.toFixed(1) : "-"
             } pz (${f1Perc || 100}%)</span>
-            ${
-              f2Perc
-                ? `<span><strong>${f2Label}:</strong> ${
-                    pezzi2 ? pezzi2.toFixed(1) : "-"
-                  } pz (${f2Perc}%)</span>`
-                : ""
-            }
-          </div>
-        `
+              ${
+                f2Perc
+                  ? `<span><strong>${f2Label}:</strong> ${
+                      pezzi2 ? pezzi2.toFixed(1) : "-"
+                    } pz (${f2Perc}%)</span>`
+                  : ""
+              }
+            </div>
+          `
           : ""
       }
 
