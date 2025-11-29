@@ -103,10 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "ricetta-formato2-pezzi"
   );
 
-  // ---------- RICETTARIO (VIEWER) ----------
-  const ricetteSearchInput = document.getElementById("ricette-search");
-  // il container verrà preso direttamente nella render function:
-  // document.getElementById("ricette-lista-viewer")
+ // ---------- RICETTARIO (VIEWER) ----------
+const ricetteSearchInput = document.getElementById("ricette-search");
+const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
