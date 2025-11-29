@@ -1609,8 +1609,11 @@ if (btnSalvaRicetta) {
 // ===========================================================
 
 // Usa la variabile globale: let ricetteCache = [];
+// E il DOM:
+//   const ricetteSearchInput = document.getElementById("ricette-search");
+//   const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
 
-// Carica tutte le ricette in cache, ma NON le mostra all'avvio
+// Carica tutte le ricette (con ingredienti) in cache, ma NON le mostra all'avvio
 async function caricaRicetteViewerDaSupabase() {
   if (!supabase) return;
 
@@ -1622,11 +1625,12 @@ async function caricaRicetteViewerDaSupabase() {
       descrizione,
       note_procedimento,
       foto_url,
-      pezzi_base,
-      formato1_label,
-      formato1_percent,
-      formato2_label,
-      formato2_percent
+      ricetta_ingredienti (
+        id,
+        nome_prodotto,
+        quantita,
+        unita_misura
+      )
     `)
     .order("nome", { ascending: true });
 
@@ -1636,7 +1640,11 @@ async function caricaRicetteViewerDaSupabase() {
     return;
   }
 
-  ricetteCache = data || [];
+  // Normalizzo: metto gli ingredienti in r.ingredienti per comodità
+  ricetteCache = (data || []).map((r) => ({
+    ...r,
+    ingredienti: r.ricetta_ingredienti || [],
+  }));
 
   // messaggio iniziale: nessuna ricetta mostrata, solo istruzione di ricerca
   if (ricetteListaViewer) {
@@ -1658,59 +1666,82 @@ function renderRicetteViewer(lista) {
   }
 
   lista.forEach((r) => {
-    const card = document.createElement("div");
-    card.className = "timbratura-intro-card"; // riuso lo stile card
+    const card = document.createElement("article");
+    card.className = "timbratura-intro-card"; // riuso stile esistente
 
-    const base = r.pezzi_base || 0;
-    const f1Label = r.formato1_label || "Formato 1";
-    const f1Perc = r.formato1_percent || 100;
-    const f2Label = r.formato2_label || "Formato 2";
-    const f2Perc = r.formato2_percent || 0;
+    const baseNome = r.nome || "";
+    const descr = r.descrizione || "";
+    const note = r.note_procedimento || "";
+    const fotoUrl = r.foto_url || null;
 
-    const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
-    const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
+    // Ingredienti (da ricetta_ingredienti)
+    let ingredientiHtml = "";
+    if (r.ingredienti && r.ingredienti.length) {
+      const righeIng = r.ingredienti
+        .map((ing) => {
+          const qta =
+            ing.quantita != null && !Number.isNaN(Number(ing.quantita))
+              ? Number(ing.quantita).toFixed(3).replace(/\.?0+$/, "")
+              : "";
+          const um = ing.unita_misura || "";
+          const nomeIng = ing.nome_prodotto || "";
+          return `<li>${qta} ${um} – ${nomeIng}</li>`;
+        })
+        .join("");
+
+      ingredientiHtml = `
+        <div style="margin-top:6px;">
+          <strong style="font-size:13px;">Ingredienti:</strong>
+          <ul style="margin:4px 0 0; padding-left:18px; font-size:12px;">
+            ${righeIng}
+          </ul>
+        </div>
+      `;
+    } else {
+      ingredientiHtml = `
+        <p class="small-muted" style="margin-top:6px; font-size:12px;">
+          Nessun ingrediente registrato per questa ricetta.
+        </p>
+      `;
+    }
+
+    // Foto (se presente)
+    const fotoHtml = fotoUrl
+      ? `
+      <div style="margin-top:6px;">
+        <img
+          src="${fotoUrl}"
+          alt="Foto ${baseNome}"
+          style="max-width:100%; border-radius:8px; object-fit:cover;"
+        />
+      </div>
+    `
+      : "";
 
     card.innerHTML = `
-      <h3 style="margin:0 0 4px;">${r.nome || ""}</h3>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <h3 style="margin:0;">${baseNome}</h3>
 
-      ${
-        r.descrizione
-          ? `<p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
-               ${r.descrizione}
-             </p>`
-          : ""
-      }
+        ${
+          descr
+            ? `<p style="margin:0; font-size:13px; color:#4b5563;">
+                 ${descr}
+               </p>`
+            : ""
+        }
 
-      ${
-        base
-          ? `
-            <div style="font-size:12px; margin-bottom:4px;">
-              <strong>Resa base:</strong> ${base} pz equivalenti
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px;">
-              <span><strong>${f1Label}:</strong> ${
-              pezzi1 ? pezzi1.toFixed(1) : "-"
-            } pz (${f1Perc || 100}%)</span>
-              ${
-                f2Perc
-                  ? `<span><strong>${f2Label}:</strong> ${
-                      pezzi2 ? pezzi2.toFixed(1) : "-"
-                    } pz (${f2Perc}%)</span>`
-                  : ""
-              }
-            </div>
-          `
-          : ""
-      }
+        ${ingredientiHtml}
 
-      ${
-        r.note_procedimento
-          ? `
-        <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
-          <strong>Note:</strong> ${r.note_procedimento}
-        </p>`
-          : ""
-      }
+        ${
+          note
+            ? `<p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+                 <strong>Note / Procedimento:</strong> ${note}
+               </p>`
+            : ""
+        }
+
+        ${fotoHtml}
+      </div>
     `;
 
     ricetteListaViewer.appendChild(card);
@@ -1743,6 +1774,7 @@ function filtraRicetteViewer() {
 if (ricetteSearchInput) {
   ricetteSearchInput.addEventListener("input", filtraRicetteViewer);
 }
+
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
