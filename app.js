@@ -2784,6 +2784,44 @@ if (ricetteSearchInput) {
       break;
   }
 }
+// ========= ROUTING (menu manager + pulsanti home dipendente) =========
+function navigateTo(route) {
+  if (!route) return;
+
+  // aggiorna hash nell'URL
+  window.location.hash = `#${route}`;
+
+  // mostra la view giusta
+  showOnlyView(`view-${route}`);
+
+  // esegui logica di caricamento per quella view
+  onRouteEnter(route);
+}
+
+// collega tutti i bottoni con data-route
+routeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const route = btn.getAttribute("data-route");
+    if (!route) return;
+
+    if (!currentUser) {
+      alert("Devi prima effettuare il login");
+      return;
+    }
+
+    if (isManagerRole(currentUser.ruolo)) {
+      // manager/admin possono vedere tutto
+      navigateTo(route);
+    } else {
+      // dipendenti semplici: solo timbratura e ricettario
+      if (route === "timbratura" || route === "ricette-viewer") {
+        navigateTo(route);
+      } else {
+        alert("Accesso non consentito a questa sezione");
+      }
+    }
+  });
+});
 
   // ========= AVVIO =========
   async function init() {
