@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "ricetta-formato2-pezzi"
   );
 
- // ---------- RICETTARIO (VIEWER) ----------
+// ---------- RICETTARIO (VIEWER) ----------
 const ricetteSearchInput = document.getElementById("ricette-search");
 const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
 
