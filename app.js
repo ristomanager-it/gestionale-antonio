@@ -2753,17 +2753,11 @@ if (ricetteSearchInput) {
       break;
 
     case "ricette-viewer":
-      // carica ricette in cache
       await caricaRicetteViewerDaSupabase();
-      // reset campo cerca
       if (ricetteSearchInput) {
         ricetteSearchInput.value = "";
       }
-      // messaggio iniziale
-      if (ricetteListaViewer) {
-        ricetteListaViewer.innerHTML =
-          '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
-      }
+      // il messaggio iniziale lo mette già caricaRicetteViewerDaSupabase
       break;
 
     case "acquisti":
@@ -2784,6 +2778,7 @@ if (ricetteSearchInput) {
       break;
   }
 }
+
 // ========= ROUTING (menu manager + pulsanti home dipendente) =========
 function navigateTo(route) {
   if (!route) return;
