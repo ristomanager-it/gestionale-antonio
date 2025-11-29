@@ -2736,7 +2736,7 @@ if (ricetteSearchInput) {
     }
   }
 
-  async function onRouteEnter(route) {
+ async function onRouteEnter(route) {
   switch (route) {
     case "timbratura":
       await caricaTimbratureDaSupabase();
@@ -2752,10 +2752,17 @@ if (ricetteSearchInput) {
       resetFormRicetta();
       break;
 
-    case "ricette-viewer":   // 👈 QUI ORA USIAMO LA FUNZIONE NUOVA
+    case "ricette-viewer":
+      // carica ricette in cache
       await caricaRicetteViewerDaSupabase();
+      // reset campo cerca
       if (ricetteSearchInput) {
-        ricetteSearchInput.value = "";  // svuota campo cerca
+        ricetteSearchInput.value = "";
+      }
+      // messaggio iniziale
+      if (ricetteListaViewer) {
+        ricetteListaViewer.innerHTML =
+          '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
       }
       break;
 
