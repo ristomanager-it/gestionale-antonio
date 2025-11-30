@@ -127,21 +127,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const fattureTable = document.getElementById("fatture-table");
   const btnToggleFatture = document.getElementById("btn-toggle-fatture");
 
-  // ---------- MAGAZZINO (DOM) ----------
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
-  const magazzinoListaEl = document.getElementById("magazzino-lista");
-  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
-  const magazzinoTable = document.getElementById("magazzino-table");
-
-  const magazzinoForm = document.getElementById("magazzino-form");
+    const magazzinoForm = document.getElementById("magazzino-form");
   const magazzinoIdInput = document.getElementById("magazzino-id");
   const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
   const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
   const magazzinoUmInput = document.getElementById("magazzino-um");
+  const magazzinoIvaInput = document.getElementById("magazzino-iva");
   const magazzinoScortaMinimaInput = document.getElementById(
     "magazzino-scorta-minima"
   );
   const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
+
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
