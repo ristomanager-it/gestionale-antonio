@@ -93,23 +93,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaFormato2LabelInput = document.getElementById(
     "ricetta-formato2-label"
   );
-  const ricettaFormato2PercInput = document.getElementById(
-    "ricetta-formato2-percent"
-  );
+  const ricettaFormato2PercInput = document.getElementElementById
+    ? document.getElementById("ricetta-formato2-percent")
+    : document.querySelector("#ricetta-formato2-percent");
   const ricettaFormato1PezziOut = document.getElementById(
     "ricetta-formato1-pezzi"
   );
   const ricettaFormato2PezziOut = document.getElementById(
     "ricetta-formato2-pezzi"
-  );
-
-  // nuovi elementi per il costo ricetta
-  const ricettaCostoTotaleInput = document.getElementById(
-    "ricetta-costo-totale"
-  );
-  const ricettaCostoPezziInput = document.getElementById("ricetta-costo-pezzi");
-  const ricettaCostoPerPezzoOut = document.getElementById(
-    "ricetta-costo-per-pezzo"
   );
 
   // ---------- RICETTARIO (VIEWER) ----------
@@ -1412,10 +1403,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ricettaFormato1PezziOut) ricettaFormato1PezziOut.textContent = "-";
     if (ricettaFormato2PezziOut) ricettaFormato2PezziOut.textContent = "-";
 
-    if (ricettaCostoTotaleInput) ricettaCostoTotaleInput.value = "";
-    if (ricettaCostoPezziInput) ricettaCostoPezziInput.value = "";
-    if (ricettaCostoPerPezzoOut) ricettaCostoPerPezzoOut.textContent = "-";
-
     if (ricettaIngredientiContainer) {
       ricettaIngredientiContainer.innerHTML = "";
       creaRigaIngrediente();
@@ -1439,63 +1426,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ricettaFormato2PezziOut) {
       ricettaFormato2PezziOut.textContent = pezzi2 ? pezzi2.toFixed(1) : "-";
     }
-
-    // se il campo pezzi costo è vuoto o zero, allinealo alla resa base
-    if (ricettaCostoPezziInput) {
-      const pezziCorrenti =
-        parseFloat(ricettaCostoPezziInput.value || "0") || 0;
-      if (!pezziCorrenti && base > 0) {
-        ricettaCostoPezziInput.value = base.toString();
-      }
-    }
-
-    aggiornaCostoRicetta();
-  }
-
-  // ========= RICETTE: CALCOLO COSTO RICETTA =========
-  function aggiornaCostoRicetta() {
-    if (!ricettaCostoPerPezzoOut) return;
-
-    const costoTot = parseNumber(ricettaCostoTotaleInput?.value || "0");
-    let pezzi = parseNumber(ricettaCostoPezziInput?.value || "0");
-
-    // se pezzi non impostati, prova ad usare i pezzi base
-    if (!pezzi && ricettaPezziBaseInput) {
-      pezzi = parseNumber(ricettaPezziBaseInput.value || "0");
-      if (ricettaCostoPezziInput && pezzi) {
-        ricettaCostoPezziInput.value = pezzi.toString();
-      }
-    }
-
-    if (costoTot > 0 && pezzi > 0) {
-      const perPezzo = costoTot / pezzi;
-      ricettaCostoPerPezzoOut.textContent = perPezzo.toFixed(2) + " €";
-    } else {
-      ricettaCostoPerPezzoOut.textContent = "-";
-    }
   }
 
   if (ricettaPezziBaseInput) {
-    ricettaPezziBaseInput.addEventListener("input", () => {
-      aggiornaResaRicetta();
-    });
+    ricettaPezziBaseInput.addEventListener("input", aggiornaResaRicetta);
   }
   if (ricettaFormato1PercInput) {
-    ricettaFormato1PercInput.addEventListener("input", () => {
-      aggiornaResaRicetta();
-    });
+    ricettaFormato1PercInput.addEventListener("input", aggiornaResaRicetta);
   }
   if (ricettaFormato2PercInput) {
-    ricettaFormato2PercInput.addEventListener("input", () => {
-      aggiornaResaRicetta();
-    });
-  }
-
-  if (ricettaCostoTotaleInput) {
-    ricettaCostoTotaleInput.addEventListener("input", aggiornaCostoRicetta);
-  }
-  if (ricettaCostoPezziInput) {
-    ricettaCostoPezziInput.addEventListener("input", aggiornaCostoRicetta);
+    ricettaFormato2PercInput.addEventListener("input", aggiornaResaRicetta);
   }
 
   // ========= RICETTE: SALVATAGGIO BASE (con MODIFICA per nome) =========
@@ -1515,4 +1455,1578 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let finalId = id || null;
 
-    // se non ho id, provo a vedere se esiste già una
+    // se non ho id, provo a vedere se esiste già una ricetta con lo stesso nome -> MODIFICA
+    if (!finalId && nome) {
+      const { data: existing, error: errExisting } = await supabase
+        .from("ricette")
+        .select("id")
+        .ilike("nome", nome)
+        .limit(1);
+
+      if (!errExisting && existing && existing.length > 0) {
+        finalId = existing[0].id;
+      }
+    }
+
+    const payload = {
+      id: finalId || undefined,
+      nome,
+      descrizione: descrizione || null,
+      note_procedimento: note || null,
+      foto_url: fotoUrl || null,
+      pezzi_base: pezziBase || null,
+      formato1_label: formato1Label || null,
+      formato1_percent: formato1Perc || null,
+      formato2_label: formato2Label || null,
+      formato2_percent: formato2Perc || null,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
+      .from("ricette")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Errore salvataggio ricetta:", error);
+      alert("Errore nel salvare la ricetta");
+      return null;
+    }
+
+    return data;
+  }
+
+  // ========= RICETTE: SALVATAGGIO INGREDIENTI =========
+  async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
+    if (!supabase || !ricettaId) return;
+
+    await supabase
+      .from("ricetta_ingredienti")
+      .delete()
+      .eq("ricetta_id", ricettaId);
+
+    if (!ingredienti.length) return;
+
+    const payload = ingredienti.map((ing) => ({
+      ricetta_id: ricettaId,
+      prodotto_id: null,
+      nome_prodotto: ing.nome,
+      quantita: ing.quantita,
+      unita_misura: ing.unita,
+      note: null,
+    }));
+
+    const { error } = await supabase
+      .from("ricetta_ingredienti")
+      .insert(payload);
+
+    if (error) {
+      console.error("Errore salvataggio ingredienti:", error);
+      alert("Errore nel salvare gli ingredienti della ricetta");
+    }
+  }
+
+  // ========= RICETTE: UPLOAD FOTO =========
+  async function uploadFotoRicettaSePresente() {
+    if (!supabase) return ricettaFotoCorrenteUrl;
+    if (!ricettaFotoInput || !ricettaFotoInput.files?.length) {
+      return ricettaFotoCorrenteUrl || null;
+    }
+
+    const file = ricettaFotoInput.files[0];
+    if (!file) return ricettaFotoCorrenteUrl || null;
+
+    const estensione = file.name.includes(".")
+      ? file.name.split(".").pop()
+      : "jpg";
+    const filePath = `ricetta_${Date.now()}.${estensione}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("ricette_foto")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Errore upload foto ricetta:", uploadError);
+      alert("Errore nel caricare la foto della ricetta");
+      return ricettaFotoCorrenteUrl || null;
+    }
+
+    const { data: publicData } = supabase.storage
+      .from("ricette_foto")
+      .getPublicUrl(filePath);
+
+    return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
+  }
+
+  // ========= RICETTE: CARICA RICETTA ESISTENTE IN FORM (MODIFICA) =========
+  async function caricaRicettaInForm(ricettaId) {
+    if (!supabase || !ricettaId) return;
+
+    const { data: r, error } = await supabase
+      .from("ricette")
+      .select(
+        "id, nome, descrizione, note_procedimento, foto_url, pezzi_base, formato1_label, formato1_percent, formato2_label, formato2_percent"
+      )
+      .eq("id", ricettaId)
+      .single();
+
+    if (error) {
+      console.error("Errore caricamento ricetta:", error);
+      alert("Errore nel caricare la ricetta per modifica");
+      return;
+    }
+
+    ricettaCorrenteId = r.id;
+    ricettaFotoCorrenteUrl = r.foto_url || null;
+
+    if (ricettaNomeInput) ricettaNomeInput.value = r.nome || "";
+    if (ricettaDescrizioneInput)
+      ricettaDescrizioneInput.value = r.descrizione || "";
+    if (ricettaNoteInput)
+      ricettaNoteInput.value = r.note_procedimento || "";
+
+    if (ricettaPezziBaseInput)
+      ricettaPezziBaseInput.value = r.pezzi_base != null ? r.pezzi_base : "";
+
+    if (ricettaFormato1LabelInput)
+      ricettaFormato1LabelInput.value = r.formato1_label || "Ristorante";
+    if (ricettaFormato1PercInput)
+      ricettaFormato1PercInput.value =
+        r.formato1_percent != null ? r.formato1_percent : 100;
+
+    if (ricettaFormato2LabelInput)
+      ricettaFormato2LabelInput.value = r.formato2_label || "Buffet";
+    if (ricettaFormato2PercInput)
+      ricettaFormato2PercInput.value =
+        r.formato2_percent != null ? r.formato2_percent : 25;
+
+    aggiornaResaRicetta();
+
+    const ingredienti = await caricaIngredientiRicettaDaSupabase(ricettaId);
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+      if (ingredienti && ingredienti.length) {
+        ingredienti.forEach((ing) => {
+          creaRigaIngrediente({
+            nome_prodotto: ing.nome_prodotto,
+            quantita: ing.quantita,
+            unita_misura: ing.unita_misura,
+          });
+        });
+      } else {
+        creaRigaIngrediente();
+      }
+    }
+  }
+
+  // ========= RICETTE: SALVATAGGIO COMPLETO =========
+  async function handleSalvaRicetta() {
+    if (!ricettaNomeInput) return;
+
+    const nome = ricettaNomeInput.value.trim();
+    if (!nome) {
+      alert("Inserisci il nome della ricetta");
+      return;
+    }
+
+    const descrizione = ricettaDescrizioneInput?.value.trim() || "";
+    const note = ricettaNoteInput?.value.trim() || "";
+
+    // ---- Lettura ingredienti con controllo righe parziali ----
+    const ingredienti = [];
+    let rigaParziale = false;
+
+    if (ricettaIngredientiContainer) {
+      const rows = Array.from(
+        ricettaIngredientiContainer.querySelectorAll(".ricetta-ingrediente-row")
+      );
+      rows.forEach((row) => {
+        const nomeEl = row.querySelector(".ingrediente-nome");
+        const qtaEl = row.querySelector(".ingrediente-quantita");
+        const unitaEl = row.querySelector(".ingrediente-unita");
+
+        const nomeIng = (nomeEl?.value || "").trim();
+        const qtaRaw = (qtaEl?.value || "").trim();
+        const qtaVal = parseFloat(qtaRaw || "0") || 0;
+        const unitaVal = (unitaEl?.value || "").trim();
+
+        // riga completamente vuota -> ignora
+        if (!nomeIng && !qtaRaw && !unitaVal) {
+          return;
+        }
+
+        // riga parzialmente compilata -> ERRORE
+        if (!nomeIng || !unitaVal || qtaVal <= 0) {
+          rigaParziale = true;
+          return;
+        }
+
+        ingredienti.push({
+          nome: nomeIng,
+          quantita: qtaVal,
+          unita: unitaVal,
+        });
+      });
+    }
+
+    if (rigaParziale) {
+      alert(
+        "Controlla gli ingredienti: ogni riga compilata deve avere NOME, Q.TÀ > 0 e UNITA di misura."
+      );
+      return;
+    }
+
+    const pezziBase = parseFloat(ricettaPezziBaseInput?.value || "0") || 0;
+    const formato1Label = ricettaFormato1LabelInput?.value.trim() || "";
+    const formato1Perc =
+      parseFloat(ricettaFormato1PercInput?.value || "0") || 0;
+    const formato2Label = ricettaFormato2LabelInput?.value.trim() || "";
+    const formato2Perc =
+      parseFloat(ricettaFormato2PercInput?.value || "0") || 0;
+
+    const fotoUrl = await uploadFotoRicettaSePresente();
+    ricettaFotoCorrenteUrl = fotoUrl;
+
+    const ricettaSalvata = await salvaRicettaSupabaseBase({
+      id: ricettaCorrenteId,
+      nome,
+      descrizione,
+      note,
+      fotoUrl,
+      pezziBase,
+      formato1Label,
+      formato1Perc,
+      formato2Label,
+      formato2Perc,
+    });
+
+    if (!ricettaSalvata) return;
+
+    ricettaCorrenteId = ricettaSalvata.id;
+    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+
+    alert("Ricetta salvata correttamente");
+    aggiornaResaRicetta();
+  }
+
+  if (btnAddIngrediente) {
+    btnAddIngrediente.addEventListener("click", () => {
+      creaRigaIngrediente();
+    });
+  }
+
+  if (btnSalvaRicetta) {
+    btnSalvaRicetta.addEventListener("click", () => {
+      handleSalvaRicetta();
+    });
+  }
+
+  // ===========================================================
+  // ========== RICETTARIO - SOLO LETTURA ======================
+  // ===========================================================
+
+  // Carica tutte le ricette in cache, ma NON le mostra all'avvio
+  async function caricaRicetteViewerDaSupabase() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("ricette")
+      .select(`
+        id,
+        nome,
+        descrizione,
+        note_procedimento,
+        foto_url,
+        pezzi_base,
+        formato1_label,
+        formato1_percent,
+        formato2_label,
+        formato2_percent
+      `)
+      .eq("attivo", true)
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento ricette:", error);
+      alert("Errore nel caricare le ricette");
+      return;
+    }
+
+    ricetteCache = data || [];
+
+    if (ricetteListaViewer) {
+      ricetteListaViewer.innerHTML =
+        '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
+    }
+  }
+
+  // Carica ingredienti di una singola ricetta
+  async function caricaIngredientiRicettaDaSupabase(ricettaId) {
+    if (!supabase || !ricettaId) return [];
+
+    const { data, error } = await supabase
+      .from("ricetta_ingredienti")
+      .select("nome_prodotto, quantita, unita_misura, note")
+      .eq("ricetta_id", ricettaId)
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento ingredienti ricetta:", error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  // Disegna le card ricette nel viewer (con ingredienti)
+  async function renderRicetteViewer(lista) {
+    if (!ricetteListaViewer) return;
+
+    ricetteListaViewer.innerHTML = "";
+
+    if (!lista.length) {
+      ricetteListaViewer.innerHTML =
+        '<p>Nessuna ricetta trovata per questa ricerca.</p>';
+      return;
+    }
+
+    for (const r of lista) {
+      const card = document.createElement("div");
+      card.className = "timbratura-intro-card";
+
+      const base = r.pezzi_base || 0;
+      const f1Label = r.formato1_label || "Formato 1";
+      const f1Perc = r.formato1_percent || 100;
+      const f2Label = r.formato2_label || "Formato 2";
+      const f2Perc = r.formato2_percent || 0;
+
+      const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
+      const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <h3 style="margin:0;">${r.nome || ""}</h3>
+          ${
+            base
+              ? `<span style="font-size:11px; background:#e5e7eb; padding:2px 8px; border-radius:999px;">
+                   ${base} pz base
+                 </span>`
+              : ""
+          }
+        </div>
+
+        ${
+          r.descrizione
+            ? `<p style="margin:4px 0 6px; font-size:13px; color:#4b5563;">
+                 ${r.descrizione}
+               </p>`
+            : ""
+        }
+
+        ${
+          r.foto_url
+            ? `<img src="${r.foto_url}" alt="Foto ricetta" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin:4px 0;">`
+            : ""
+        }
+
+        ${
+          base
+            ? `
+            <div style="font-size:12px; margin-bottom:4px;">
+              <strong>Rese calcolate:</strong>
+            </div>
+            <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
+              <span><strong>${f1Label}:</strong> ${
+                pezzi1 ? pezzi1.toFixed(1) : "-"
+              } pz (${f1Perc || 100}%)</span>
+              ${
+                f2Perc
+                  ? `<span><strong>${f2Label}:</strong> ${
+                      pezzi2 ? pezzi2.toFixed(1) : "-"
+                    } pz (${f2Perc}%)</span>`
+                  : ""
+              }
+            </div>
+          `
+            : ""
+        }
+
+        <div class="ricetta-ingredienti-view" style="margin-top:8px;">
+          <p style="margin:0; font-size:12px; color:#6b7280;">
+            Caricamento ingredienti...
+          </p>
+        </div>
+
+        ${
+          r.note_procedimento
+            ? `
+          <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+            <strong>Note:</strong> ${r.note_procedimento}
+          </p>`
+            : ""
+        }
+      `;
+
+      ricetteListaViewer.appendChild(card);
+
+      // carico ingredienti e li inserisco nella card
+      const ingrContainer = card.querySelector(".ricetta-ingredienti-view");
+      const ingredienti = await caricaIngredientiRicettaDaSupabase(r.id);
+
+      if (ingrContainer) {
+        if (!ingredienti.length) {
+          ingrContainer.innerHTML =
+            '<p style="margin:0; font-size:12px; color:#6b7280;">Nessun ingrediente registrato.</p>';
+        } else {
+          const title = document.createElement("p");
+          title.style.margin = "0 0 4px 0";
+          title.style.fontSize = "12px";
+          title.style.fontWeight = "bold";
+          title.textContent = "Ingredienti:";
+
+          const ul = document.createElement("ul");
+          ul.style.margin = "0";
+          ul.style.paddingLeft = "18px";
+          ul.style.fontSize = "12px";
+
+          ingredienti.forEach((ing) => {
+            const li = document.createElement("li");
+            const nomeIng = ing.nome_prodotto || "";
+            const qta = ing.quantita != null ? ing.quantita : "";
+            const um = ing.unita_misura || "";
+            li.textContent = `${nomeIng} – ${qta} ${um}`;
+            ul.appendChild(li);
+          });
+
+          ingrContainer.innerHTML = "";
+          ingrContainer.appendChild(title);
+          ingrContainer.appendChild(ul);
+        }
+      }
+
+      // Bottone MODIFICA visibile solo a admin/manager
+      if (currentUser && isManagerRole(currentUser.ruolo)) {
+        const footer = document.createElement("div");
+        footer.style.marginTop = "8px";
+        footer.style.display = "flex";
+        footer.style.justifyContent = "flex-end";
+
+        const btnMod = document.createElement("button");
+        btnMod.type = "button";
+        btnMod.textContent = "Modifica questa ricetta";
+        btnMod.className = "app-button tiny gray";
+
+        btnMod.addEventListener("click", async () => {
+          await navigateTo("ricette");
+          await caricaRicettaInForm(r.id);
+        });
+
+        footer.appendChild(btnMod);
+        card.appendChild(footer);
+      }
+    }
+  }
+
+  // Filtro in base al testo inserito
+  async function filtraRicetteViewer() {
+    if (!ricetteSearchInput || !ricetteListaViewer) return;
+
+    const q = (ricetteSearchInput.value || "").trim().toLowerCase();
+
+    if (q.length < 2) {
+      ricetteListaViewer.innerHTML =
+        '<p class="small-muted">Digita almeno 2 lettere per cercare una ricetta.</p>';
+      return;
+    }
+
+    const filtrate = ricetteCache.filter((r) => {
+      const nome = (r.nome || "").toLowerCase();
+      const desc = (r.descrizione || "").toLowerCase();
+      return nome.includes(q) || desc.includes(q);
+    });
+
+    await renderRicetteViewer(filtrate);
+  }
+
+  // evento sull'input cerca ricetta
+  if (ricetteSearchInput) {
+    ricetteSearchInput.addEventListener("input", () => {
+      filtraRicetteViewer();
+    });
+  }
+
+  // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+  function getFornitoreById(id) {
+    return fornitoriCache.find((f) => f.id === id) || null;
+  }
+
+  function getCategoriaById(id) {
+    return categorieCache.find((c) => c.id === id) || null;
+  }
+
+  async function caricaFornitoriInCache() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("fornitori")
+      .select("id, ragione_sociale")
+      .order("ragione_sociale", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento fornitori:", error);
+      alert("Errore Supabase (caricamento fornitori): " + error.message);
+      return;
+    }
+    fornitoriCache = data || [];
+  }
+
+  async function caricaCategorieInCache() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("id, nome")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie:", error);
+      alert("Errore Supabase (caricamento categorie): " + error.message);
+      return;
+    }
+    categorieCache = data || [];
+  }
+
+  async function findOrCreateFornitoreByName(nomeFornitore) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeFornitore || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = fornitoriCache.find(
+      (f) =>
+        f.ragione_sociale &&
+        f.ragione_sociale.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("fornitori")
+      .insert({
+        ragione_sociale: nomeTrim,
+        attivo: true,
+      })
+      .select("id, ragione_sociale")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione fornitore:", error);
+      alert("Errore Supabase (fornitore): " + error.message);
+      return null;
+    }
+
+    fornitoriCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateCategoriaByNome(nomeCategoria) {
+    if (!supabase) return null;
+    const nomeTrim = (nomeCategoria || "").trim();
+    if (!nomeTrim) return null;
+
+    const existing = categorieCache.find(
+      (c) => c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .insert({
+        nome: nomeTrim,
+        attivo: true,
+      })
+      .select("id, nome")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione categoria prodotto:", error);
+      alert("Errore Supabase (categoria prodotto): " + error.message);
+      return null;
+    }
+
+    categorieCache.push(data);
+    return data;
+  }
+
+  async function findOrCreateProdotto({
+    codice,
+    descrizione,
+    categoriaNome,
+    um,
+  }) {
+    if (!supabase) return null;
+    const codiceTrim = (codice || "").trim();
+    const descTrim = (descrizione || "").trim();
+    const umTrim = (um || "").trim() || "pz";
+
+    if (!codiceTrim && !descTrim) {
+      return null;
+    }
+
+    if (codiceTrim) {
+      const { data: existingByCodice, error: errFindCodice } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .eq("codice_interno", codiceTrim)
+        .limit(1);
+
+      if (errFindCodice) {
+        console.error("Errore ricerca prodotto per codice:", errFindCodice);
+      }
+
+      if (existingByCodice && existingByCodice.length > 0) {
+        return existingByCodice[0];
+      }
+    }
+
+    if (descTrim) {
+      const { data: existingByDesc, error: errFindDesc } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .ilike("descrizione", descTrim)
+        .limit(1);
+
+      if (errFindDesc) {
+        console.error("Errore ricerca prodotto per descrizione:", errFindDesc);
+      } else if (existingByDesc && existingByDesc.length > 0) {
+        return existingByDesc[0];
+      }
+    }
+
+    let categoria = null;
+    if (categoriaNome) {
+      categoria = await findOrCreateCategoriaByNome(categoriaNome);
+      if (!categoria) {
+        alert(
+          "Attenzione: categoria prodotto non creata/cercata correttamente, creo comunque il prodotto."
+        );
+      }
+    }
+
+    let codiceInternoFinale = codiceTrim;
+    if (!codiceInternoFinale) {
+      codiceInternoFinale = await generaCodiceInternoAutomatico(
+        categoriaNome || descTrim || "GEN"
+      );
+    }
+
+    const { data: existingFinal, error: errFindFinal } = await supabase
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .eq("codice_interno", codiceInternoFinale)
+      .limit(1);
+
+    if (errFindFinal) {
+      console.error("Errore ricerca prodotto finale:", errFindFinal);
+    }
+
+    if (existingFinal && existingFinal.length > 0) {
+      return existingFinal[0];
+    }
+
+    const payload = {
+      codice_interno: codiceInternoFinale,
+      descrizione: descTrim || codiceInternoFinale,
+      categoria_id: categoria ? categoria.id : null,
+      um: umTrim,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .insert(payload)
+      .select("id, codice_interno, descrizione, categoria_id, um")
+      .single();
+
+    if (error) {
+      console.error("Errore creazione prodotto:", error);
+      alert("Errore Supabase (creazione prodotto): " + error.message);
+      return null;
+    }
+
+    return data;
+  }
+
+  function onDescrizioneProdottoChange(tr) {
+    if (!tr) return;
+    const descrInput = tr.querySelector(".fatt-riga-descrizione");
+    if (!descrInput) return;
+
+    const descrVal = (descrInput.value || "").trim().toLowerCase();
+    if (!descrVal) return;
+
+    const prodotto = magazzinoDati.find(
+      (p) => (p.descrizione || "").toLowerCase() === descrVal
+    );
+    if (!prodotto) return;
+
+    const codiceInput = tr.querySelector(".fatt-riga-codice");
+    const umInput = tr.querySelector(".fatt-riga-um");
+    const catInput = tr.querySelector(".fatt-riga-categoria");
+
+    if (codiceInput) codiceInput.value = prodotto.codice || "";
+    if (umInput) umInput.value = prodotto.um || "";
+    if (catInput) catInput.value = prodotto.categoriaNome || "";
+
+    tr.dataset.prodottoId = String(prodotto.id);
+  }
+
+  function creaRigaFattura(initial = {}) {
+    if (!fatturaRigheBody) return;
+
+    const tr = document.createElement("tr");
+    tr.className = "fatt-riga-row";
+
+    tr.innerHTML = `
+      <td colspan="9">
+        <div class="fatt-riga-vertical">
+          <div class="fatt-field">
+            <label>
+              Codice interno
+              <input
+                type="text"
+                class="fatt-riga-codice input-pill"
+                placeholder="Cod. interno"
+                value="${initial.codice_prodotto || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Descrizione prodotto
+              <input
+                type="text"
+                class="fatt-riga-descrizione input-pill"
+                placeholder="Cerca/Seleziona prodotto"
+                list="ingredienti-suggestions"
+                value="${initial.descrizione_riga || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Categoria
+              <input
+                type="text"
+                class="fatt-riga-categoria input-pill"
+                placeholder="Categoria"
+                value="${initial.categoria_nome || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Unità di misura
+              <input
+                type="text"
+                class="fatt-riga-um input-pill"
+                placeholder="kg, l, pz..."
+                value="${initial.um || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Quantità
+              <input
+                type="number"
+                class="fatt-riga-quantita input-pill"
+                placeholder="Q.tà"
+                min="0"
+                step="0.001"
+                value="${initial.quantita != null ? initial.quantita : ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              Prezzo unitario
+              <input
+                type="number"
+                class="fatt-riga-prezzo input-pill"
+                placeholder="Prezzo"
+                min="0"
+                step="0.0001"
+                value="${
+                  initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+                }"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
+              IVA %
+              <input
+                type="number"
+                class="fatt-riga-iva input-pill"
+                placeholder="%"
+                min="0"
+                step="1"
+                value="${initial.iva_perc != null ? initial.iva_perc : ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-riga-footer">
+            <span class="fatt-riga-totale-label">
+              Totale riga:
+              <span class="fatt-riga-totale">0.00</span>
+            </span>
+            <button type="button" class="app-button tiny red btn-del-riga">
+              ✕
+            </button>
+          </div>
+        </div>
+      </td>
+    `;
+
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const btnDel = tr.querySelector(".btn-del-riga");
+    const descrInput = tr.querySelector(".fatt-riga-descrizione");
+
+    const handleChange = () => {
+      ricalcolaTotaleRiga(tr);
+      ricalcolaTotaliFattura();
+    };
+
+    if (qtaInput) qtaInput.addEventListener("input", handleChange);
+    if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
+    if (ivaInput) ivaInput.addEventListener("input", handleChange);
+
+    if (descrInput) {
+      const handlerDescr = () => {
+        onDescrizioneProdottoChange(tr);
+      };
+      descrInput.addEventListener("change", handlerDescr);
+      descrInput.addEventListener("blur", handlerDescr);
+    }
+
+    if (btnDel) {
+      btnDel.addEventListener("click", () => {
+        tr.remove();
+        ricalcolaTotaliFattura();
+      });
+    }
+
+    fatturaRigheBody.appendChild(tr);
+    ricalcolaTotaleRiga(tr);
+  }
+
+  function ricalcolaTotaleRiga(tr) {
+    const qtaInput = tr.querySelector(".fatt-riga-quantita");
+    const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
+    const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const totaleEl = tr.querySelector(".fatt-riga-totale");
+
+    const qta = parseNumber(qtaInput?.value || "0");
+    const prezzo = parseNumber(prezzoInput?.value || "0");
+    const ivaPerc = parseNumber(ivaInput?.value || "0");
+
+    const imponibile = qta * prezzo;
+    const iva = imponibile * (ivaPerc / 100);
+    const totale = imponibile + iva;
+
+    if (totaleEl) {
+      totaleEl.textContent = totale.toFixed(2);
+    }
+
+    return { imponibile, iva, totale };
+  }
+
+  function ricalcolaTotaliFattura() {
+    if (!fatturaRigheBody) return;
+
+    let impTot = 0;
+    let ivaTot = 0;
+    let docTot = 0;
+
+    const rows = Array.from(fatturaRigheBody.querySelectorAll("tr"));
+    rows.forEach((tr) => {
+      const { imponibile, iva, totale } = ricalcolaTotaleRiga(tr);
+      impTot += imponibile;
+      ivaTot += iva;
+      docTot += totale;
+    });
+
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = impTot.toFixed(2);
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value = ivaTot.toFixed(2);
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = docTot.toFixed(2);
+  }
+
+  function resetFatturaForm() {
+    currentFatturaId = null;
+
+    if (fatturaNumeroInput) fatturaNumeroInput.value = "";
+    if (fatturaDataInput) formatDateInputToday(fatturaDataInput);
+    if (fatturaFornitoreInput) fatturaFornitoreInput.value = "";
+    if (fatturaNoteInput) fatturaNoteInput.value = "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value = "";
+    if (fatturaIvaTotaleInput) fatturaIvaTotaleInput.value = "";
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value = "";
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      creaRigaFattura();
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  async function handleNuovaFattura() {
+    resetFatturaForm();
+  }
+
+  async function handleSalvaFattura() {
+    if (!supabase) return;
+
+    const numero = (fatturaNumeroInput?.value || "").trim();
+    const dataDoc = fatturaDataInput?.value || "";
+    const fornitoreNome = (fatturaFornitoreInput?.value || "").trim();
+    const note = (fatturaNoteInput?.value || "").trim();
+
+    if (!numero) {
+      alert("Inserisci il numero della fattura");
+      return;
+    }
+    if (!dataDoc) {
+      alert("Inserisci la data della fattura");
+      return;
+    }
+    if (!fornitoreNome) {
+      alert("Inserisci il fornitore");
+      return;
+    }
+
+    await caricaFornitoriInCache();
+    const fornitore = await findOrCreateFornitoreByName(fornitoreNome);
+    if (!fornitore) return;
+
+    const imponibileTot = parseNumber(
+      fatturaImponibileTotaleInput?.value || "0"
+    );
+    const ivaTot = parseNumber(fatturaIvaTotaleInput?.value || "0");
+    const docTot = parseNumber(
+      fatturaTotaleDocumentoInput?.value || "0"
+    );
+
+    const fatturaPayload = {
+      id: currentFatturaId || undefined,
+      numero_documento: numero,
+      data_documento: dataDoc,
+      fornitore_id: fornitore.id,
+      note: note || null,
+      imponibile_totale: imponibileTot,
+      iva_totale: ivaTot,
+      totale_documento: docTot,
+    };
+
+    const { data: fatturaData, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .upsert(fatturaPayload)
+      .select()
+      .single();
+
+    if (fatturaError) {
+      console.error("Errore salvataggio fattura:", fatturaError);
+      alert("Errore nel salvare la fattura");
+      return;
+    }
+
+    currentFatturaId = fatturaData.id;
+
+    await supabase
+      .from("fatture_acquisto_righe")
+      .delete()
+      .eq("fattura_id", currentFatturaId);
+
+    const rows = Array.from(fatturaRigheBody?.querySelectorAll("tr") || []);
+    const righePayload = [];
+
+    for (const tr of rows) {
+      const codiceEl = tr.querySelector(".fatt-riga-codice");
+      const descrEl = tr.querySelector(".fatt-riga-descrizione");
+      const catEl = tr.querySelector(".fatt-riga-categoria");
+      const umEl = tr.querySelector(".fatt-riga-um");
+      const qtaEl = tr.querySelector(".fatt-riga-quantita");
+      const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
+      const ivaEl = tr.querySelector(".fatt-riga-iva");
+
+      const codiceVal = (codiceEl?.value || "").trim();
+      const descrVal = (descrEl?.value || "").trim();
+      const catVal = (catEl?.value || "").trim();
+      const umVal = (umEl?.value || "").trim();
+      const qtaVal = parseNumber(qtaEl?.value || "0");
+      const prezzoVal = parseNumber(prezzoEl?.value || "0");
+      const ivaPercVal = parseNumber(ivaEl?.value || "0");
+
+      if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) {
+        continue;
+      }
+
+      await caricaCategorieInCache();
+      const prodotto = await findOrCreateProdotto({
+        codice: codiceVal,
+        descrizione: descrVal,
+        categoriaNome: catVal,
+        um: umVal,
+      });
+      if (!prodotto) continue;
+
+      const imponibile = qtaVal * prezzoVal;
+      const ivaVal = imponibile * (ivaPercVal / 100);
+      const totale = imponibile + ivaVal;
+
+      righePayload.push({
+        fattura_id: currentFatturaId,
+        prodotto_id: prodotto.id,
+        codice_prodotto: prodotto.codice_interno,
+        descrizione_riga: descrVal,
+        quantita: qtaVal,
+        um: prodotto.um,
+        prezzo_unitario: prezzoVal,
+        iva_perc: ivaPercVal,
+        imponibile,
+        iva: ivaVal,
+        totale,
+        categoria_id: prodotto.categoria_id || null,
+      });
+    }
+
+    if (righePayload.length) {
+      const { error: righeError } = await supabase
+        .from("fatture_acquisto_righe")
+        .insert(righePayload);
+
+      if (righeError) {
+        console.error("Errore salvataggio righe fattura:", righeError);
+        alert("Errore nel salvare le righe della fattura");
+        return;
+      }
+    }
+
+    alert("Fattura salvata correttamente");
+    await caricaElencoFatture();
+  }
+
+  async function caricaElencoFatture() {
+    if (!supabase || !fattureListaBody) return;
+
+    const { data, error } = await supabase
+      .from("fatture_acquisto")
+      .select(
+        "id, numero_documento, data_documento, fornitore_id, totale_documento"
+      )
+      .order("data_documento", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.error("Errore caricamento fatture:", error);
+      alert("Errore nel caricare le fatture");
+      return;
+    }
+
+    await caricaFornitoriInCache();
+
+    fattureListaBody.innerHTML = "";
+    (data || []).forEach((f) => {
+      const fornitore = getFornitoreById(f.fornitore_id);
+      const tr = document.createElement("tr");
+      const dataStr = f.data_documento
+        ? new Date(f.data_documento).toLocaleDateString("it-IT")
+        : "";
+      tr.innerHTML = `
+        <td>${dataStr}</td>
+        <td>${f.numero_documento || ""}</td>
+        <td>${fornitore?.ragione_sociale || ""}</td>
+        <td>${f.totale_documento != null ? f.totale_documento.toFixed(2) : ""}</td>
+        <td>
+          <button class="app-button tiny gray" data-open-fattura="${f.id}">
+            Apri
+          </button>
+        </td>
+      `;
+      fattureListaBody.appendChild(tr);
+    });
+
+    fattureListaBody
+      .querySelectorAll("[data-open-fattura]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = parseInt(btn.getAttribute("data-open-fattura"), 10);
+          apriFatturaEsistente(id);
+        });
+      });
+  }
+
+  async function apriFatturaEsistente(fatturaId) {
+    if (!supabase) return;
+
+    const { data: fattura, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .select("*")
+      .eq("id", fatturaId)
+      .single();
+
+    if (fatturaError) {
+      console.error("Errore lettura fattura:", fatturaError);
+      alert("Errore nel caricare la fattura");
+      return;
+    }
+
+    currentFatturaId = fattura.id;
+
+    if (fatturaNumeroInput)
+      fatturaNumeroInput.value = fattura.numero_documento || "";
+    if (fatturaDataInput)
+      fatturaDataInput.value = fattura.data_documento
+        ? fattura.data_documento.substring(0, 10)
+        : "";
+    if (fatturaFornitoreInput) {
+      await caricaFornitoriInCache();
+      const forn = getFornitoreById(fattura.fornitore_id);
+      fatturaFornitoreInput.value = forn?.ragione_sociale || "";
+    }
+    if (fatturaNoteInput) fatturaNoteInput.value = fattura.note || "";
+    if (fatturaImponibileTotaleInput)
+      fatturaImponibileTotaleInput.value =
+        fattura.imponibile_totale != null
+          ? fattura.imponibile_totale.toFixed(2)
+          : "";
+    if (fatturaIvaTotaleInput)
+      fatturaIvaTotaleInput.value =
+        fattura.iva_totale != null ? fattura.iva_totale.toFixed(2) : "";
+    if (fatturaTotaleDocumentoInput)
+      fatturaTotaleDocumentoInput.value =
+        fattura.totale_documento != null
+          ? fattura.totale_documento.toFixed(2)
+          : "";
+
+    const { data: righe, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("*")
+      .eq("fattura_id", fatturaId)
+      .order("id", { ascending: true });
+
+    if (righeError) {
+      console.error("Errore caricamento righe fattura:", righeError);
+      alert("Errore nel caricare le righe della fattura");
+      return;
+    }
+
+    if (fatturaRigheBody) {
+      fatturaRigheBody.innerHTML = "";
+      (righe || []).forEach((r) => {
+        const categoria = r.categoria_id
+          ? getCategoriaById(r.categoria_id)?.nome || ""
+          : "";
+        creaRigaFattura({
+          codice_prodotto: r.codice_prodotto,
+          descrizione_riga: r.descrizione_riga,
+          categoria_nome: categoria,
+          um: r.um,
+          quantita: r.quantita,
+          prezzo_unitario: r.prezzo_unitario,
+          iva_perc: r.iva_perc,
+        });
+      });
+      ricalcolaTotaliFattura();
+    }
+  }
+
+  if (btnAddRigaFattura) {
+    btnAddRigaFattura.addEventListener("click", () => {
+      creaRigaFattura();
+      ricalcolaTotaliFattura();
+    });
+  }
+
+  if (btnNuovaFattura) {
+    btnNuovaFattura.addEventListener("click", () => {
+      handleNuovaFattura();
+    });
+  }
+
+  if (btnSalvaFattura) {
+    btnSalvaFattura.addEventListener("click", () => {
+      handleSalvaFattura();
+    });
+  }
+
+  if (btnToggleFatture && fattureTable) {
+    btnToggleFatture.addEventListener("click", () => {
+      const vis = fattureTable.style.display !== "none";
+      fattureTable.style.display = vis ? "none" : "table";
+    });
+  }
+
+  // ========= MAGAZZINO =========
+  function renderMagazzinoLista(lista) {
+    if (!magazzinoListaEl) return;
+    magazzinoListaEl.innerHTML = "";
+
+    lista.forEach((p) => {
+      const tr = document.createElement("tr");
+      tr.dataset.prodottoId = p.id;
+
+      const stockTxt =
+        p.stock != null ? p.stock.toFixed(2) + " " + (p.um || "") : "";
+
+      tr.innerHTML = `
+        <td>${p.codice || ""}</td>
+        <td>${p.descrizione || ""}</td>
+        <td>${p.categoriaNome || ""}</td>
+        <td>${stockTxt}</td>
+      `;
+
+      tr.addEventListener("click", () => {
+        selezionaProdottoMagazzino(p.id);
+      });
+
+      magazzinoListaEl.appendChild(tr);
+    });
+  }
+
+  function aggiornaMagazzinoSuggestions() {
+    if (!magazzinoSuggestions) return;
+    magazzinoSuggestions.innerHTML = "";
+
+    magazzinoDati.forEach((p) => {
+      if (!p.descrizione) return;
+      const opt = document.createElement("option");
+      opt.value = p.descrizione;
+      if (p.codice) {
+        opt.label = `${p.descrizione} (${p.codice})`;
+      }
+      magazzinoSuggestions.appendChild(opt);
+    });
+  }
+
+  function aggiornaIngredientiSuggestionsDaMagazzino() {
+    if (!ingredientiSuggestions) return;
+    ingredientiSuggestions.innerHTML = "";
+
+    magazzinoDati.forEach((p) => {
+      if (!p.descrizione) return;
+      const opt = document.createElement("option");
+      opt.value = p.descrizione;
+      if (p.codice) {
+        opt.label = `${p.descrizione} (${p.codice})`;
+      }
+      ingredientiSuggestions.appendChild(opt);
+    });
+  }
+
+  function trovaProdottoInMagazzinoById(id) {
+    return magazzinoDati.find((p) => p.id === id) || null;
+  }
+
+  function popolaMagazzinoForm(prod) {
+    if (!prod) {
+      if (magazzinoIdInput) magazzinoIdInput.value = "";
+      if (magazzinoDescrInput) magazzinoDescrInput.value = "";
+      if (magazzinoCategoriaInput) magazzinoCategoriaInput.value = "";
+      if (magazzinoUmInput) magazzinoUmInput.value = "";
+      if (magazzinoScortaMinimaInput) magazzinoScortaMinimaInput.value = "";
+      if (magazzinoGiacenzaInput) magazzinoGiacenzaInput.value = "";
+      return;
+    }
+
+    if (magazzinoIdInput) magazzinoIdInput.value = prod.id;
+    if (magazzinoDescrInput)
+      magazzinoDescrInput.value = prod.descrizione || "";
+    if (magazzinoCategoriaInput)
+      magazzinoCategoriaInput.value = prod.categoriaNome || "";
+    if (magazzinoUmInput) magazzinoUmInput.value = prod.um || "";
+    if (magazzinoScortaMinimaInput) {
+      magazzinoScortaMinimaInput.value =
+        prod.scortaMinima != null ? prod.scortaMinima : "";
+    }
+    if (magazzinoGiacenzaInput) {
+      magazzinoGiacenzaInput.value =
+        prod.stock != null ? prod.stock.toFixed(3) : "";
+    }
+  }
+
+  function selezionaProdottoMagazzino(id) {
+    const prod = trovaProdottoInMagazzinoById(id);
+    popolaMagazzinoForm(prod);
+  }
+
+  async function caricaMagazzinoDati() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select(
+        "id, codice_interno, descrizione, um, categoria_id, scorta_minima"
+      )
+      .order("descrizione", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento magazzino:", error);
+      alert("Errore nel caricare i prodotti di magazzino");
+      return;
+    }
+
+    const { data: righe, error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("prodotto_id, quantita");
+
+    if (righeError) {
+      console.error(
+        "Errore caricamento righe fatture per giacenze:",
+        righeError
+      );
+    }
+
+    const giacenzeMap = {};
+    (righe || []).forEach((r) => {
+      const pid = r.prodotto_id;
+      if (!pid) return;
+      const q = Number(r.quantita) || 0;
+      giacenzeMap[pid] = (giacenzeMap[pid] || 0) + q;
+    });
+
+    magazzinoDati = (data || []).map((r) => {
+      const cat =
+        r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
+      const stock = giacenzeMap[r.id] || 0;
+
+      return {
+        id: r.id,
+        codice: r.codice_interno,
+        descrizione: r.descrizione,
+        um: r.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: r.scorta_minima,
+        stock,
+      };
+    });
+
+    aggiornaMagazzinoSuggestions();
+    aggiornaIngredientiSuggestionsDaMagazzino();
+  }
+
+  async function salvaProdottoDaMagazzinoForm() {
+    if (!supabase) return;
+
+    const idVal = magazzinoIdInput?.value || "";
+    const id = idVal ? parseInt(idVal, 10) : null;
+    const descr = (magazzinoDescrInput?.value || "").trim();
+    const catNome = (magazzinoCategoriaInput?.value || "").trim();
+    const umVal = (magazzinoUmInput?.value || "").trim();
+    const scortaVal = magazzinoScortaMinimaInput
+      ? parseNumber(magazzinoScortaMinimaInput.value)
+      : null;
+
+    if (!descr) {
+      alert("La descrizione non può essere vuota.");
+      return;
+    }
+
+    let categoriaId = null;
+    if (catNome) {
+      const cat = await findOrCreateCategoriaByNome(catNome);
+      if (cat) categoriaId = cat.id;
+    }
+
+    if (!id) {
+      const codice = await generaCodiceInternoAutomatico(
+        catNome || descr || "GEN"
+      );
+      const { data, error } = await supabase
+        .from("prodotti")
+        .insert({
+          codice_interno: codice,
+          descrizione: descr,
+          categoria_id: categoriaId,
+          um: umVal || null,
+          scorta_minima: scortaVal != null ? scortaVal : null,
+          attivo: true,
+        })
+        .select(
+          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
+        )
+        .single();
+
+      if (error) {
+        console.error("Errore creazione prodotto magazzino:", error);
+        alert("Errore nel salvare il prodotto di magazzino: " + error.message);
+        return;
+      }
+
+      const cat =
+        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+      const nuovo = {
+        id: data.id,
+        codice: data.codice_interno,
+        descrizione: data.descrizione,
+        um: data.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: data.scorta_minima,
+        stock: 0,
+      };
+      magazzinoDati.push(nuovo);
+      popolaMagazzinoForm(nuovo);
+      renderMagazzinoLista(magazzinoDati);
+      aggiornaMagazzinoSuggestions();
+      aggiornaIngredientiSuggestionsDaMagazzino();
+      alert("Prodotto creato.");
+    } else {
+      const { data, error } = await supabase
+        .from("prodotti")
+        .update({
+          descrizione: descr,
+          categoria_id: categoriaId,
+          um: umVal || null,
+          scorta_minima: scortaVal != null ? scortaVal : null,
+        })
+        .eq("id", id)
+        .select(
+          "id, codice_interno, descrizione, categoria_id, um, scorta_minima"
+        )
+        .single();
+
+      if (error) {
+        console.error("Errore aggiornamento prodotto magazzino:", error);
+        alert(
+          "Errore nel salvare il prodotto di magazzino: " + error.message
+        );
+        return;
+      }
+
+      const cat =
+        data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+      const idx = magazzinoDati.findIndex((p) => p.id === id);
+      const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
+
+      const nuovo = {
+        id: data.id,
+        codice: data.codice_interno,
+        descrizione: data.descrizione,
+        um: data.um,
+        categoriaNome: cat ? cat.nome : "",
+        scortaMinima: data.scorta_minima,
+        stock: stockAttuale,
+      };
+
+      if (idx >= 0) {
+        magazzinoDati[idx] = nuovo;
+      } else {
+        magazzinoDati.push(nuovo);
+      }
+
+      renderMagazzinoLista(magazzinoDati);
+      aggiornaMagazzinoSuggestions();
+      aggiornaIngredientiSuggestionsDaMagazzino();
+      popolaMagazzinoForm(nuovo);
+      alert("Prodotto aggiornato.");
+    }
+  }
+
+  if (btnMagazzinoSalva) {
+    btnMagazzinoSalva.addEventListener("click", (e) => {
+      e.preventDefault();
+      salvaProdottoDaMagazzinoForm();
+    });
+  }
+
+  if (btnMagazzinoNuovo) {
+    btnMagazzinoNuovo.addEventListener("click", () => {
+      popolaMagazzinoForm(null);
+    });
+  }
+
+  if (magazzinoSearchInput && magazzinoTable) {
+    magazzinoTable.style.display = "none";
+
+    magazzinoSearchInput.addEventListener("input", () => {
+      const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
+
+      if (!q) {
+        magazzinoTable.style.display = "none";
+        if (magazzinoListaEl) magazzinoListaEl.innerHTML = "";
+        return;
+      }
+
+      const filtrati = magazzinoDati.filter((p) => {
+        const desc = (p.descrizione || "").toLowerCase();
+        const cod = (p.codice || "").toLowerCase();
+        return desc.includes(q) || cod.includes(q);
+      });
+
+      renderMagazzinoLista(filtrati);
+      magazzinoTable.style.display = "table";
+    });
+  }
+
+  if (magazzinoDescrInput) {
+    magazzinoDescrInput.addEventListener("change", () => {
+      const val = (magazzinoDescrInput.value || "").trim().toLowerCase();
+      if (!val) return;
+
+      const prod = magazzinoDati.find(
+        (p) => (p.descrizione || "").toLowerCase() === val
+      );
+      if (prod) {
+        popolaMagazzinoForm(prod);
+      }
+    });
+  }
+
+  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI DA MAGAZZINO =========
+  async function caricaProdottiSuggerimentiIngredienti() {
+    if (!magazzinoDati.length) {
+      await caricaCategorieInCache();
+      await caricaMagazzinoDati();
+    } else {
+      aggiornaIngredientiSuggestionsDaMagazzino();
+    }
+  }
+
+  // ========= AVVIO =========
+  async function init() {
+    await caricaDipendentiDaSupabase();
+    await caricaTimbratureDaSupabase();
+
+    restoreUserFromStorage();
+
+    if (currentUser) {
+      const hashRoute = window.location.hash.replace("#", "") || "timbratura";
+      if (isManagerRole(currentUser.ruolo)) {
+        showManagerMenuAndRoute(hashRoute);
+      } else {
+        if (hashRoute === "timbratura" || hashRoute === "ricette-viewer") {
+          showOnlyView(`view-${hashRoute}`);
+          await onRouteEnter(hashRoute);
+        } else {
+          showHomeDipendente();
+        }
+      }
+    } else {
+      showLogin();
+    }
+  }
+
+  init();
+});
