@@ -963,7 +963,7 @@
           </div>
         </section>
 
-        <!-- MAGAZZINO -->
+               <!-- MAGAZZINO -->
         <section id="view-magazzino" class="view" style="display: none">
           <h2>Magazzino</h2>
           <p>Ricerca prodotti, scorte e movimenti.</p>
@@ -1041,6 +1041,17 @@
             </label>
 
             <label>
+              IVA %
+              <input
+                type="number"
+                id="magazzino-iva"
+                step="0.1"
+                class="input-pill"
+                placeholder="Es. 10 o 22"
+              />
+            </label>
+
+            <label>
               Scorta minima
               <input
                 type="number"
@@ -1076,8 +1087,7 @@
             caricare il dettaglio.
           </p>
         </section>
-      </main>
-    </div>
+
 
     <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
