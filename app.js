@@ -1,4 +1,4 @@
-// app.js - versione pulita
+// app.js - versione pulita e aggiornata
 
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
@@ -2649,11 +2649,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const { data, error } = await supabase
       .from("costi_fissi")
-      .select("*")
-      .order("anno", { ascending: true });
+      .select("*"); // niente order su 'anno' per evitare l'errore 42703
 
     if (error) {
       console.error("Errore caricamento costi fissi:", error);
+      // non blocchiamo l'app, semplicemente nessun costo fisso
+      costiFissi = [];
+      renderCostiFissi();
+      aggiornaKpi();
       return;
     }
 
