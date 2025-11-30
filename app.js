@@ -2689,67 +2689,69 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ======================= MAGAZZINO ======================== */
 /* ========================================================= */
 
-/* --- Utility IVA --- */
-function calcolaImponibileEIVA(totaleLordo, ivaPerc) {
-  const lordo = parseNumber(totaleLordo);
-  const iva = parseNumber(ivaPerc);
-  if (lordo <= 0 || iva <= 0) {
-    return { imponibile: lordo, iva: 0 };
-  }
-  const imponibile = lordo / (1 + iva / 100);
-  const ivaImporto = lordo - imponibile;
-  return { imponibile, iva: ivaImporto };
-}
+// DOM già dichiarati sopra:
+// const magazzinoForm = document.getElementById("magazzino-form");
+// const magazzinoIdInput = document.getElementById("magazzino-id");
+// const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
+// const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
+// const magazzinoUmInput = document.getElementById("magazzino-um");
+// const magazzinoIvaInput = document.getElementById("magazzino-iva");
+// const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
+// const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
+// const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
+// const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
-/* --- Carica categorie (serve per link id→nome) --- */
-function getCategoriaById(id) {
-  return categorieProdotti.find((c) => c.id === id) || null;
-}
+const magazzinoTable = document.getElementById("magazzino-table");
+const magazzinoListaBody = document.getElementById("magazzino-lista");
+const magazzinoSearchInput = document.getElementById("magazzino-search");
+const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
 
-/* --- SUGGERIMENTI --- */
+// Usa gia' magazzinoDati globale
+// let magazzinoDati = [];
+
+// --------- SUGGERIMENTI ---------
 function aggiornaMagazzinoSuggestions() {
-  const wrapper = document.getElementById("magazzino-suggestions");
-  if (!wrapper) return;
+  if (!magazzinoSuggestions) return;
 
-  wrapper.innerHTML = magazzinoDati
+  magazzinoSuggestions.innerHTML = magazzinoDati
     .map(
       (p) =>
-        `<option value="${p.descrizione.replace(/"/g, "&quot;")}"></option>`
+        `<option value="${(p.descrizione || "")
+          .replace(/"/g, "&quot;")}"></option>`
     )
     .join("");
 }
 
 function aggiornaIngredientiSuggestionsDaMagazzino() {
-  const wrap = document.getElementById("ingredienti-suggestions");
-  if (!wrap) return;
+  if (!ingredientiSuggestions) return;
 
-  wrap.innerHTML = magazzinoDati
+  ingredientiSuggestions.innerHTML = magazzinoDati
     .map(
       (p) =>
-        `<option value="${p.descrizione.replace(/"/g, "&quot;")}"></option>`
+        `<option value="${(p.descrizione || "")
+          .replace(/"/g, "&quot;")}"></option>`
     )
     .join("");
 }
 
-/* --- Render tabella prodotti --- */
+// --------- RENDER TABELLA ---------
 function renderMagazzinoLista(lista) {
-  const tbody = document.getElementById("magazzino-lista");
-  const table = document.getElementById("magazzino-table");
-  if (!tbody || !table) return;
+  if (!magazzinoListaBody || !magazzinoTable) return;
 
-  if (!lista.length) {
-    table.style.display = "none";
-    tbody.innerHTML = "";
+  if (!lista || !lista.length) {
+    magazzinoTable.style.display = "none";
+    magazzinoListaBody.innerHTML = "";
     return;
   }
 
-  table.style.display = "table";
-  tbody.innerHTML = lista
+  magazzinoTable.style.display = "table";
+
+  magazzinoListaBody.innerHTML = lista
     .map(
       (p) => `
       <tr data-id="${p.id}">
         <td>${p.codice || ""}</td>
-        <td>${p.descrizione}</td>
+        <td>${p.descrizione || ""}</td>
         <td>${p.categoriaNome || ""}</td>
         <td>${(p.stock || 0).toFixed(3)}</td>
       </tr>
@@ -2757,17 +2759,19 @@ function renderMagazzinoLista(lista) {
     )
     .join("");
 
-  tbody.querySelectorAll("tr").forEach((row) => {
+  magazzinoListaBody.querySelectorAll("tr").forEach((row) => {
     row.addEventListener("click", () => {
       const id = parseInt(row.dataset.id, 10);
       const prod = magazzinoDati.find((p) => p.id === id);
-      popolaMagazzinoForm(prod);
+      popolaMagazzinoForm(prod || null);
     });
   });
 }
 
-/* --- Popola form prodotto --- */
+// --------- POPOLA FORM ---------
 function popolaMagazzinoForm(prod) {
+  if (!magazzinoForm) return;
+
   if (!prod) {
     magazzinoIdInput.value = "";
     magazzinoDescrInput.value = "";
@@ -2783,50 +2787,19 @@ function popolaMagazzinoForm(prod) {
   magazzinoDescrInput.value = prod.descrizione || "";
   magazzinoCategoriaInput.value = prod.categoriaNome || "";
   magazzinoUmInput.value = prod.um || "";
-  magazzinoIvaInput.value = prod.iva ?? "";
+  magazzinoIvaInput.value = prod.iva != null ? prod.iva : "";
   magazzinoScortaMinimaInput.value =
     prod.scortaMinima != null ? prod.scortaMinima : "";
-  magazzinoGiacenzaInput.value = prod.stock?.toFixed(3) ?? "";
+  magazzinoGiacenzaInput.value =
+    prod.stock != null ? prod.stock.toFixed(3) : "";
 }
 
-/* --- Codice interno automatico --- */
-async function generaCodiceInternoAutomatico(base) {
-  const prefix = base
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 3);
-
-  const rnd = Math.floor(100 + Math.random() * 900);
-  return `${prefix}-${rnd}`;
-}
-
-/* --- Crea categoria se non esiste --- */
-async function findOrCreateCategoriaByNome(nome) {
-  if (!nome.trim()) return null;
-
-  const esiste = categorieProdotti.find(
-    (c) => c.nome.toLowerCase() === nome.toLowerCase()
-  );
-  if (esiste) return esiste;
-
-  const { data, error } = await supabase
-    .from("categorie_prodotto")
-    .insert({ nome })
-    .select("id, nome")
-    .single();
-
-  if (error) {
-    console.error("Errore creazione categoria:", error);
-    return null;
-  }
-
-  categorieProdotti.push(data);
-  return data;
-}
-
-/* --- Carica magazzino completo --- */
+// --------- CARICA MAGAZZINO COMPLETO ---------
 async function caricaMagazzinoDati() {
   if (!supabase) return;
+
+  // assicuro cache categorie piena
+  await caricaCategorieInCache();
 
   const { data, error } = await supabase
     .from("prodotti")
@@ -2837,23 +2810,28 @@ async function caricaMagazzinoDati() {
 
   if (error) {
     console.error("Errore caricamento magazzino:", error);
-    alert("Errore nel caricare i prodotti");
+    alert("Errore nel caricare i prodotti di magazzino");
     return;
   }
 
-  const { data: righe } = await supabase
+  // Giacenze da righe fatture (solo carichi, per ora)
+  const { data: righe, error: righeError } = await supabase
     .from("fatture_acquisto_righe")
     .select("prodotto_id, quantita");
+
+  if (righeError) {
+    console.error("Errore lettura movimenti magazzino:", righeError);
+  }
 
   const giacenzeMap = {};
   (righe || []).forEach((r) => {
     if (!r.prodotto_id) return;
-    giacenzeMap[r.prodotto_id] =
-      (giacenzeMap[r.prodotto_id] || 0) + Number(r.quantita || 0);
+    const q = parseNumber(r.quantita);
+    giacenzeMap[r.prodotto_id] = (giacenzeMap[r.prodotto_id] || 0) + q;
   });
 
   magazzinoDati = (data || []).map((r) => {
-    const cat = getCategoriaById(r.categoria_id);
+    const cat = categorieCache.find((c) => c.id === r.categoria_id) || null;
 
     return {
       id: r.id,
@@ -2872,12 +2850,13 @@ async function caricaMagazzinoDati() {
   aggiornaIngredientiSuggestionsDaMagazzino();
 }
 
-/* --- Salva prodotto (insert/update) --- */
+// --------- SALVA PRODOTTO DA FORM ---------
 async function salvaProdottoDaMagazzinoForm() {
   if (!supabase) return;
 
-  const id = magazzinoIdInput.value ? Number(magazzinoIdInput.value) : null;
-
+  const id = magazzinoIdInput.value
+    ? parseInt(magazzinoIdInput.value, 10)
+    : null;
   const descr = (magazzinoDescrInput.value || "").trim();
   const catNome = (magazzinoCategoriaInput.value || "").trim();
   const umVal = (magazzinoUmInput.value || "").trim();
@@ -2885,7 +2864,7 @@ async function salvaProdottoDaMagazzinoForm() {
   const ivaVal = parseNumber(magazzinoIvaInput.value);
 
   if (!descr) {
-    alert("La descrizione non può essere vuota.");
+    alert("Inserisci la descrizione del prodotto.");
     return;
   }
 
@@ -2895,9 +2874,11 @@ async function salvaProdottoDaMagazzinoForm() {
     if (cat) categoriaId = cat.id;
   }
 
-  /* --- NUOVO prodotto --- */
+  // --- NUOVO PRODOTTO ---
   if (!id) {
-    const codice = await generaCodiceInternoAutomatico(descr);
+    const codice = await generaCodiceInternoAutomatico(
+      catNome || descr || "GEN"
+    );
 
     const { data, error } = await supabase
       .from("prodotti")
@@ -2910,40 +2891,41 @@ async function salvaProdottoDaMagazzinoForm() {
         iva_perc: ivaVal || null,
         attivo: true,
       })
-      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc")
+      .select(
+        "id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc"
+      )
       .single();
 
     if (error) {
       console.error("Errore creazione prodotto:", error);
-      alert("Errore nel salvataggio: " + error.message);
+      alert("Errore nel salvataggio prodotto: " + error.message);
       return;
     }
 
-    const cat = getCategoriaById(data.categoria_id);
+    const cat = categorieCache.find((c) => c.id === data.categoria_id) || null;
 
-    magazzinoDati.push({
+    const nuovo = {
       id: data.id,
       codice: data.codice_interno,
       descrizione: data.descrizione,
       um: data.um,
-      categoriaNome: cat?.nome || "",
+      categoriaNome: cat ? cat.nome : "",
       scortaMinima: data.scorta_minima,
       iva: data.iva_perc,
       stock: 0,
-    });
+    };
 
+    magazzinoDati.push(nuovo);
     renderMagazzinoLista(magazzinoDati);
     aggiornaMagazzinoSuggestions();
     aggiornaIngredientiSuggestionsDaMagazzino();
-    popolaMagazzinoForm(
-      magazzinoDati.find((p) => p.id === data.id)
-    );
+    popolaMagazzinoForm(nuovo);
 
     alert("Prodotto creato.");
     return;
   }
 
-  /* --- UPDATE prodotto --- */
+  // --- UPDATE PRODOTTO ---
   const { data, error } = await supabase
     .from("prodotti")
     .update({
@@ -2954,39 +2936,48 @@ async function salvaProdottoDaMagazzinoForm() {
       iva_perc: ivaVal || null,
     })
     .eq("id", id)
-    .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc")
+    .select(
+      "id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc"
+    )
     .single();
 
   if (error) {
-    console.error("Errore update prodotto:", error);
-    alert("Errore nel salvataggio: " + error.message);
+    console.error("Errore aggiornamento prodotto:", error);
+    alert("Errore nel salvataggio prodotto: " + error.message);
     return;
   }
 
-  const cat = getCategoriaById(data.categoria_id);
-  const idx = magazzinoDati.findIndex((p) => p.id === id);
-  const stockAttuale = magazzinoDati[idx]?.stock || 0;
+  const cat = categorieCache.find((c) => c.id === data.categoria_id) || null;
 
-  magazzinoDati[idx] = {
+  const idx = magazzinoDati.findIndex((p) => p.id === id);
+  const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock || 0 : 0;
+
+  const aggiornato = {
     id: data.id,
     codice: data.codice_interno,
     descrizione: data.descrizione,
     um: data.um,
-    categoriaNome: cat?.nome || "",
+    categoriaNome: cat ? cat.nome : "",
     scortaMinima: data.scorta_minima,
     iva: data.iva_perc,
     stock: stockAttuale,
   };
 
+  if (idx >= 0) {
+    magazzinoDati[idx] = aggiornato;
+  } else {
+    magazzinoDati.push(aggiornato);
+  }
+
   renderMagazzinoLista(magazzinoDati);
   aggiornaMagazzinoSuggestions();
   aggiornaIngredientiSuggestionsDaMagazzino();
-  popolaMagazzinoForm(magazzinoDati[idx]);
+  popolaMagazzinoForm(aggiornato);
 
   alert("Prodotto aggiornato.");
 }
 
-/* --- Eventi UI --- */
+// --------- EVENTI UI MAGAZZINO ---------
 if (btnMagazzinoNuovo) {
   btnMagazzinoNuovo.addEventListener("click", () => {
     popolaMagazzinoForm(null);
@@ -2994,9 +2985,292 @@ if (btnMagazzinoNuovo) {
 }
 
 if (btnMagazzinoSalva) {
-  btnMagazzinoSalva.addEventListener("click", salvaProdottoDaMagazzinoForm);
+  btnMagazzinoSalva.addEventListener("click", () => {
+    salvaProdottoDaMagazzinoForm();
+  });
 }
 
+// Filtro ricerca tabella
+if (magazzinoSearchInput) {
+  magazzinoSearchInput.addEventListener("input", () => {
+    const q = (magazzinoSearchInput.value || "").trim().toLowerCase();
+    if (!q) {
+      renderMagazzinoLista(magazzinoDati);
+      return;
+    }
+    const filtrati = magazzinoDati.filter((p) =>
+      (p.descrizione || "").toLowerCase().includes(q)
+    );
+    renderMagazzinoLista(filtrati);
+  });
+}
+/* ========================================================= */
+/* ======================= REPORT KPI ======================= */
+/* ========================================================= */
+
+const reportDataInput = document.getElementById("report-data");
+const reportPeriodButtons = document.querySelectorAll(".report-period-btn");
+
+const kpiIncassoInput = document.getElementById("kpi-incasso-input");
+const kpiFoodcostInput = document.getElementById("kpi-foodcost-input");
+
+const kpiIncassoValueEl = document.getElementById("kpi-incasso-value");
+const kpiNettoValueEl = document.getElementById("kpi-netto-value");
+const kpiMargineBadge = document.getElementById("kpi-margine-badge");
+const kpiGaugeNeedle = document.getElementById("kpi-gauge-needle");
+const kpiBepLabel = document.getElementById("kpi-bep-label");
+
+const kpiLavoroImportoEl = document.getElementById("kpi-lavoro-importo");
+const kpiLavoroPercentEl = document.getElementById("kpi-lavoro-percent");
+const kpiFoodImportoEl = document.getElementById("kpi-food-importo");
+const kpiFoodPercentEl = document.getElementById("kpi-food-percent");
+const kpiFissiImportoEl = document.getElementById("kpi-fissi-importo");
+const kpiFissiPercentEl = document.getElementById("kpi-fissi-percent");
+
+const btnToggleCostiFissi = document.getElementById("btn-toggle-costi-fissi");
+const costiFissiPanel = document.getElementById("costi-fissi-panel");
+
+const costiFissiCategoriaInput = document.getElementById(
+  "costi-fissi-categoria"
+);
+const costiFissiDescrizioneInput = document.getElementById(
+  "costi-fissi-descrizione"
+);
+const costiFissiAnnoInput = document.getElementById("costi-fissi-anno");
+const costiFissiImportoInput = document.getElementById("costi-fissi-importo");
+const btnSalvaCostoFisso = document.getElementById("btn-salva-costo-fisso");
+const costiFissiListaBody = document.getElementById("costi-fissi-lista");
+
+let kpiPeriodoCorrente = "giorno"; // giorno | settimana | mese | anno
+let costiFissiCache = [];
+
+// --------- Utility formato € ---------
+function formatEuro(val) {
+  const n = parseNumber(val);
+  return (
+    n.toLocaleString("it-IT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + "\u00A0€"
+  );
+}
+
+// --------- COSTI FISSI ---------
+async function caricaCostiFissiDaSupabase() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("costi_fissi")
+    .select("id, categoria, descrizione, anno, importo_annuo")
+    .order("anno", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento costi fissi:", error);
+    // niente alert: non blocco l'app
+    return;
+  }
+
+  costiFissiCache = data || [];
+  renderCostiFissiLista();
+}
+
+function renderCostiFissiLista() {
+  if (!costiFissiListaBody) return;
+
+  if (!costiFissiCache.length) {
+    costiFissiListaBody.innerHTML = `
+      <tr>
+        <td colspan="4">Nessun costo fisso registrato.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  costiFissiListaBody.innerHTML = costiFissiCache
+    .map(
+      (c) => `
+      <tr>
+        <td>${c.categoria || ""}</td>
+        <td>${c.descrizione || ""}</td>
+        <td>${c.anno || ""}</td>
+        <td>${c.importo_annuo != null ? formatEuro(c.importo_annuo) : ""}</td>
+      </tr>
+    `
+    )
+    .join("");
+}
+
+async function salvaCostoFisso() {
+  if (!supabase) return;
+
+  const categoria = (costiFissiCategoriaInput?.value || "").trim();
+  const descrizione = (costiFissiDescrizioneInput?.value || "").trim();
+  const anno = parseInt(costiFissiAnnoInput?.value || "0", 10);
+  const importo = parseNumber(costiFissiImportoInput?.value || "0");
+
+  if (!categoria || !anno || !importo) {
+    alert("Compila categoria, anno e importo annuo.");
+    return;
+  }
+
+  const payload = {
+    categoria,
+    descrizione: descrizione || null,
+    anno,
+    importo_annuo: importo,
+  };
+
+  const { error } = await supabase.from("costi_fissi").insert(payload);
+
+  if (error) {
+    console.error("Errore salvataggio costo fisso:", error);
+    alert("Errore nel salvare il costo fisso");
+    return;
+  }
+
+  // reset form
+  if (costiFissiCategoriaInput) costiFissiCategoriaInput.value = "";
+  if (costiFissiDescrizioneInput) costiFissiDescrizioneInput.value = "";
+  if (costiFissiAnnoInput) costiFissiAnnoInput.value = "";
+  if (costiFissiImportoInput) costiFissiImportoInput.value = "";
+
+  await caricaCostiFissiDaSupabase();
+  alert("Costo fisso salvato.");
+}
+
+function calcolaQuotaCostiFissi(periodo, annoRif) {
+  if (!annoRif) return 0;
+  const totaleAnnuo = costiFissiCache
+    .filter((c) => parseInt(c.anno, 10) === annoRif)
+    .reduce((sum, c) => sum + parseNumber(c.importo_annuo), 0);
+
+  if (!totaleAnnuo) return 0;
+
+  switch (periodo) {
+    case "giorno":
+      return totaleAnnuo / 365;
+    case "settimana":
+      return totaleAnnuo / 52;
+    case "mese":
+      return totaleAnnuo / 12;
+    case "anno":
+      return totaleAnnuo;
+    default:
+      return totaleAnnuo;
+  }
+}
+
+// --------- KPI (incasso / food / fissi) ---------
+// Per ora il "lavoro" è messo a 0 (potrai in futuro agganciarlo alle timbrature)
+
+function aggiornaKpi() {
+  if (!kpiIncassoInput || !kpiFoodcostInput) return;
+
+  const incasso = parseNumber(kpiIncassoInput.value || "0");
+  const food = parseNumber(kpiFoodcostInput.value || "0");
+  const lavoro = 0; // TODO: aggancio futuro alle timbrature
+  const dataRifStr = reportDataInput?.value;
+  const dataRif = dataRifStr ? new Date(dataRifStr) : new Date();
+  const annoRif = dataRif.getFullYear();
+
+  const fissi = calcolaQuotaCostiFissi(kpiPeriodoCorrente, annoRif);
+  const costiTotali = lavoro + food + fissi;
+  const netto = incasso - costiTotali;
+
+  // valori principali
+  if (kpiIncassoValueEl) kpiIncassoValueEl.textContent = formatEuro(incasso);
+  if (kpiNettoValueEl) kpiNettoValueEl.textContent = formatEuro(netto);
+
+  // badge margine
+  if (kpiMargineBadge) {
+    kpiMargineBadge.classList.add("kpi-margine-badge");
+    kpiMargineBadge.classList.remove("pos", "neg");
+
+    if (netto >= 0) {
+      kpiMargineBadge.classList.add("pos");
+    } else {
+      kpiMargineBadge.classList.add("neg");
+    }
+    kpiMargineBadge.textContent = `Margine ${formatEuro(netto)}`;
+  }
+
+  // BEP = somma costi (lavoro + food + fissi)
+  const bep = costiTotali > 0 ? costiTotali : 0;
+  if (kpiBepLabel) {
+    kpiBepLabel.textContent = `BEP ${formatEuro(bep)}`;
+  }
+
+  // Ago della "mezza luna"
+  if (kpiGaugeNeedle) {
+    if (bep <= 0 || incasso <= 0) {
+      kpiGaugeNeedle.style.transform = "rotate(-90deg)";
+    } else {
+      const ratio = incasso / bep; // 1 = BEP
+      const clamped = Math.max(0, Math.min(2, ratio)); // 0..2
+      // -90° (0) -> 0° (BEP) -> +90° (2x BEP)
+      const angle = -90 + clamped * 90;
+      kpiGaugeNeedle.style.transform = `rotate(${angle}deg)`;
+    }
+  }
+
+  // Breakdown % sul totale incasso (se > 0)
+  const base = incasso > 0 ? incasso : 1;
+
+  const percLavoro = (lavoro / base) * 100;
+  const percFood = (food / base) * 100;
+  const percFissi = (fissi / base) * 100;
+
+  if (kpiLavoroImportoEl)
+    kpiLavoroImportoEl.textContent = formatEuro(lavoro);
+  if (kpiLavoroPercentEl)
+    kpiLavoroPercentEl.textContent = `${percLavoro.toFixed(1)}%`;
+
+  if (kpiFoodImportoEl) kpiFoodImportoEl.textContent = formatEuro(food);
+  if (kpiFoodPercentEl)
+    kpiFoodPercentEl.textContent = `${percFood.toFixed(1)}%`;
+
+  if (kpiFissiImportoEl) kpiFissiImportoEl.textContent = formatEuro(fissi);
+  if (kpiFissiPercentEl)
+    kpiFissiPercentEl.textContent = `${percFissi.toFixed(1)}%`;
+}
+
+// --------- EVENTI REPORT ---------
+if (btnToggleCostiFissi && costiFissiPanel) {
+  btnToggleCostiFissi.addEventListener("click", () => {
+    const vis = costiFissiPanel.style.display !== "none";
+    costiFissiPanel.style.display = vis ? "none" : "block";
+  });
+}
+
+if (btnSalvaCostoFisso) {
+  btnSalvaCostoFisso.addEventListener("click", () => {
+    salvaCostoFisso();
+  });
+}
+
+if (kpiIncassoInput) {
+  kpiIncassoInput.addEventListener("input", aggiornaKpi);
+}
+if (kpiFoodcostInput) {
+  kpiFoodcostInput.addEventListener("input", aggiornaKpi);
+}
+if (reportDataInput) {
+  reportDataInput.addEventListener("change", aggiornaKpi);
+}
+
+if (reportPeriodButtons && reportPeriodButtons.length) {
+  reportPeriodButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const period = btn.getAttribute("data-period") || "giorno";
+      kpiPeriodoCorrente = period;
+
+      // toggle classe active
+      reportPeriodButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      aggiornaKpi();
+    });
+  });
+}
 
   // ========= AVVIO =========
   async function init() {
