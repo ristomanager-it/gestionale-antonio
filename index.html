@@ -407,7 +407,7 @@
           </div>
         </section>
 
-        <!-- ACQUISTI / FATTURE -->
+        <!-- ACQUIISTI / FATTURE -->
         <section id="view-acquisti" class="view" style="display: none">
           <h2>Fatture di acquisto</h2>
           <p>Registra fatture, prodotti e movimenti di magazzino.</p>
@@ -681,6 +681,39 @@
                   Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
                 </p>
               </div>
+
+              <div class="kpi-card">
+                <h3>Costo ricetta</h3>
+                <label>
+                  Costo totale ingredienti (€)
+                  <input
+                    type="number"
+                    id="ricetta-costo-totale"
+                    class="input-pill"
+                    min="0"
+                    step="0.01"
+                    placeholder="Es. 35"
+                  />
+                </label>
+                <label>
+                  Pezzi totali (dose intera)
+                  <input
+                    type="number"
+                    id="ricetta-costo-pezzi"
+                    class="input-pill"
+                    min="1"
+                    step="1"
+                    placeholder="Es. 10"
+                  />
+                </label>
+                <p style="margin-top: 4px; font-size: 13px;">
+                  Costo per pezzo:
+                  <strong id="ricetta-costo-per-pezzo">-</strong>
+                </p>
+                <p style="margin: 2px 0 0; font-size: 11px; color: #6b7280;">
+                  Se lasci vuoto il campo pezzi, usa i pezzi base.
+                </p>
+              </div>
             </div>
 
             <h3>Ingredienti</h3>
@@ -816,6 +849,7 @@
 
           <div id="kpi-margine-badge" class="kpi-margin-badge neg">
             Margine 0,00&nbsp;€
+
           </div>
 
           <div class="kpi-gauge-wrapper">
