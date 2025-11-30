@@ -2685,11 +2685,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
- /* ========================================================= */
+/* ========================================================= */
 /* ======================= MAGAZZINO ======================== */
 /* ========================================================= */
-
-let magazzinoDati = [];
 
 /* --- Utility IVA --- */
 function calcolaImponibileEIVA(totaleLordo, ivaPerc) {
@@ -2703,7 +2701,7 @@ function calcolaImponibileEIVA(totaleLordo, ivaPerc) {
   return { imponibile, iva: ivaImporto };
 }
 
-/* --- Carica categorie (serve per match categoria_id → nome) --- */
+/* --- Carica categorie (serve per link id→nome) --- */
 function getCategoriaById(id) {
   return categorieProdotti.find((c) => c.id === id) || null;
 }
@@ -2721,7 +2719,6 @@ function aggiornaMagazzinoSuggestions() {
     .join("");
 }
 
-/* Ingredienti suggestions (per ricette) */
 function aggiornaIngredientiSuggestionsDaMagazzino() {
   const wrap = document.getElementById("ingredienti-suggestions");
   if (!wrap) return;
@@ -2734,7 +2731,7 @@ function aggiornaIngredientiSuggestionsDaMagazzino() {
     .join("");
 }
 
-/* --- Rendering tabella --- */
+/* --- Render tabella prodotti --- */
 function renderMagazzinoLista(lista) {
   const tbody = document.getElementById("magazzino-lista");
   const table = document.getElementById("magazzino-table");
@@ -2769,7 +2766,7 @@ function renderMagazzinoLista(lista) {
   });
 }
 
-/* --- Popola form --- */
+/* --- Popola form prodotto --- */
 function popolaMagazzinoForm(prod) {
   if (!prod) {
     magazzinoIdInput.value = "";
@@ -2786,15 +2783,13 @@ function popolaMagazzinoForm(prod) {
   magazzinoDescrInput.value = prod.descrizione || "";
   magazzinoCategoriaInput.value = prod.categoriaNome || "";
   magazzinoUmInput.value = prod.um || "";
-  magazzinoIvaInput.value =
-    prod.iva != null && prod.iva !== undefined ? prod.iva : "";
+  magazzinoIvaInput.value = prod.iva ?? "";
   magazzinoScortaMinimaInput.value =
     prod.scortaMinima != null ? prod.scortaMinima : "";
-  magazzinoGiacenzaInput.value =
-    prod.stock != null ? prod.stock.toFixed(3) : "";
+  magazzinoGiacenzaInput.value = prod.stock?.toFixed(3) ?? "";
 }
 
-/* --- Genera codice interno automatico --- */
+/* --- Codice interno automatico --- */
 async function generaCodiceInternoAutomatico(base) {
   const prefix = base
     .toUpperCase()
@@ -2805,7 +2800,7 @@ async function generaCodiceInternoAutomatico(base) {
   return `${prefix}-${rnd}`;
 }
 
-/* --- Find or create categoria --- */
+/* --- Crea categoria se non esiste --- */
 async function findOrCreateCategoriaByNome(nome) {
   if (!nome.trim()) return null;
 
@@ -2829,10 +2824,7 @@ async function findOrCreateCategoriaByNome(nome) {
   return data;
 }
 
-/* ========================================================= */
-/* =========== CARICAMENTO COMPLETO MAGAZZINO ============== */
-/* ========================================================= */
-
+/* --- Carica magazzino completo --- */
 async function caricaMagazzinoDati() {
   if (!supabase) return;
 
@@ -2845,30 +2837,23 @@ async function caricaMagazzinoDati() {
 
   if (error) {
     console.error("Errore caricamento magazzino:", error);
-    alert("Errore nel caricare i prodotti di magazzino");
+    alert("Errore nel caricare i prodotti");
     return;
   }
 
-  /* Carico le entrate (fatture) */
-  const { data: righe, error: righeError } = await supabase
+  const { data: righe } = await supabase
     .from("fatture_acquisto_righe")
     .select("prodotto_id, quantita");
 
-  if (righeError) {
-    console.error("Errore righe fatture:", righeError);
-  }
-
   const giacenzeMap = {};
   (righe || []).forEach((r) => {
-    const pid = r.prodotto_id;
-    if (!pid) return;
-    giacenzeMap[pid] = (giacenzeMap[pid] || 0) + Number(r.quantita || 0);
+    if (!r.prodotto_id) return;
+    giacenzeMap[r.prodotto_id] =
+      (giacenzeMap[r.prodotto_id] || 0) + Number(r.quantita || 0);
   });
 
-  /* CREO lista magazzino */
   magazzinoDati = (data || []).map((r) => {
-    const cat =
-      r.categoria_id != null ? getCategoriaById(r.categoria_id) : null;
+    const cat = getCategoriaById(r.categoria_id);
 
     return {
       id: r.id,
@@ -2877,7 +2862,7 @@ async function caricaMagazzinoDati() {
       um: r.um,
       categoriaNome: cat ? cat.nome : "",
       scortaMinima: r.scorta_minima,
-      iva: r.iva_perc != null ? r.iva_perc : null,
+      iva: r.iva_perc,
       stock: giacenzeMap[r.id] || 0,
     };
   });
@@ -2887,15 +2872,11 @@ async function caricaMagazzinoDati() {
   aggiornaIngredientiSuggestionsDaMagazzino();
 }
 
-/* ========================================================= */
-/* ================ SALVATAGGIO PRODOTTO =================== */
-/* ========================================================= */
-
+/* --- Salva prodotto (insert/update) --- */
 async function salvaProdottoDaMagazzinoForm() {
   if (!supabase) return;
 
-  const idVal = magazzinoIdInput.value || "";
-  const id = idVal ? parseInt(idVal, 10) : null;
+  const id = magazzinoIdInput.value ? Number(magazzinoIdInput.value) : null;
 
   const descr = (magazzinoDescrInput.value || "").trim();
   const catNome = (magazzinoCategoriaInput.value || "").trim();
@@ -2914,11 +2895,9 @@ async function salvaProdottoDaMagazzinoForm() {
     if (cat) categoriaId = cat.id;
   }
 
-  /* --- CREA PRODOTTO --- */
+  /* --- NUOVO prodotto --- */
   if (!id) {
-    const codice = await generaCodiceInternoAutomatico(
-      catNome || descr || "GEN"
-    );
+    const codice = await generaCodiceInternoAutomatico(descr);
 
     const { data, error } = await supabase
       .from("prodotti")
@@ -2931,42 +2910,40 @@ async function salvaProdottoDaMagazzinoForm() {
         iva_perc: ivaVal || null,
         attivo: true,
       })
-      .select(
-        "id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc"
-      )
+      .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc")
       .single();
 
     if (error) {
       console.error("Errore creazione prodotto:", error);
-      alert("Errore nel salvare il prodotto: " + error.message);
+      alert("Errore nel salvataggio: " + error.message);
       return;
     }
 
-    const cat =
-      data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
+    const cat = getCategoriaById(data.categoria_id);
 
-    const nuovo = {
+    magazzinoDati.push({
       id: data.id,
       codice: data.codice_interno,
       descrizione: data.descrizione,
       um: data.um,
-      categoriaNome: cat ? cat.nome : "",
+      categoriaNome: cat?.nome || "",
       scortaMinima: data.scorta_minima,
-      iva: data.iva_perc != null ? data.iva_perc : null,
+      iva: data.iva_perc,
       stock: 0,
-    };
+    });
 
-    magazzinoDati.push(nuovo);
     renderMagazzinoLista(magazzinoDati);
     aggiornaMagazzinoSuggestions();
     aggiornaIngredientiSuggestionsDaMagazzino();
-    popolaMagazzinoForm(nuovo);
-    alert("Prodotto creato.");
+    popolaMagazzinoForm(
+      magazzinoDati.find((p) => p.id === data.id)
+    );
 
+    alert("Prodotto creato.");
     return;
   }
 
-  /* --- UPDATE PRODOTTO --- */
+  /* --- UPDATE prodotto --- */
   const { data, error } = await supabase
     .from("prodotti")
     .update({
@@ -2977,47 +2954,39 @@ async function salvaProdottoDaMagazzinoForm() {
       iva_perc: ivaVal || null,
     })
     .eq("id", id)
-    .select(
-      "id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc"
-    )
+    .select("id, codice_interno, descrizione, categoria_id, um, scorta_minima, iva_perc")
     .single();
 
   if (error) {
     console.error("Errore update prodotto:", error);
-    alert("Errore nel salvare il prodotto: " + error.message);
+    alert("Errore nel salvataggio: " + error.message);
     return;
   }
 
-  const cat =
-    data.categoria_id != null ? getCategoriaById(data.categoria_id) : null;
-
+  const cat = getCategoriaById(data.categoria_id);
   const idx = magazzinoDati.findIndex((p) => p.id === id);
-  const stockAttuale = idx >= 0 ? magazzinoDati[idx].stock : 0;
+  const stockAttuale = magazzinoDati[idx]?.stock || 0;
 
-  const nuovo = {
+  magazzinoDati[idx] = {
     id: data.id,
     codice: data.codice_interno,
     descrizione: data.descrizione,
     um: data.um,
-    categoriaNome: cat ? cat.nome : "",
+    categoriaNome: cat?.nome || "",
     scortaMinima: data.scorta_minima,
-    iva: data.iva_perc != null ? data.iva_perc : null,
+    iva: data.iva_perc,
     stock: stockAttuale,
   };
-
-  if (idx >= 0) magazzinoDati[idx] = nuovo;
 
   renderMagazzinoLista(magazzinoDati);
   aggiornaMagazzinoSuggestions();
   aggiornaIngredientiSuggestionsDaMagazzino();
-  popolaMagazzinoForm(nuovo);
+  popolaMagazzinoForm(magazzinoDati[idx]);
+
   alert("Prodotto aggiornato.");
 }
 
-/* ========================================================= */
-/* ====================== EVENTI UI ========================= */
-/* ========================================================= */
-
+/* --- Eventi UI --- */
 if (btnMagazzinoNuovo) {
   btnMagazzinoNuovo.addEventListener("click", () => {
     popolaMagazzinoForm(null);
@@ -3028,15 +2997,6 @@ if (btnMagazzinoSalva) {
   btnMagazzinoSalva.addEventListener("click", salvaProdottoDaMagazzinoForm);
 }
 
-  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI DA MAGAZZINO =========
-  async function caricaProdottiSuggerimentiIngredienti() {
-    if (!magazzinoDati.length) {
-      await caricaCategorieInCache();
-      await caricaMagazzinoDati();
-    } else {
-      aggiornaIngredientiSuggestionsDaMagazzino();
-    }
-  }
 
   // ========= AVVIO =========
   async function init() {
