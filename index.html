@@ -87,7 +87,7 @@
                   <button
                     type="button"
                     id="btn-login"
-                    class="app-button primary full-width"
+                    class="app-button login-button"
                   >
                     Entra
                   </button>
@@ -708,34 +708,33 @@
         </section>
 
         <!-- RICETTARIO (SOLO LETTURA) -->
-<section
-  id="view-ricette-viewer"
-  class="view"
-  style="display: none"
->
-  <h2>Ricettario</h2>
-  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-    Visualizza le ricette registrate, cercandole per nome o descrizione.
-  </p>
+        <section
+          id="view-ricette-viewer"
+          class="view"
+          style="display: none"
+        >
+          <h2>Ricettario</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Visualizza le ricette registrate, cercandole per nome o descrizione.
+          </p>
 
-  <div style="margin-top:10px; margin-bottom:8px;">
-    <label style="display:block; font-size:13px; margin-bottom:4px;">
-      Cerca ricetta
-    </label>
-    <input
-      id="ricette-search"
-      type="text"
-      class="input-pill"
-      placeholder="Es. Flan di patate, Tiramisù..."
-    />
-  </div>
+          <div style="margin-top:10px; margin-bottom:8px;">
+            <label style="display:block; font-size:13px; margin-bottom:4px;">
+              Cerca ricetta
+            </label>
+            <input
+              id="ricette-search"
+              type="text"
+              class="input-pill"
+              placeholder="Es. Flan di patate, Tiramisù..."
+            />
+          </div>
 
-  <div
-    id="ricette-lista-viewer"
-    style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
-  ></div>
-</section>
-
+          <div
+            id="ricette-lista-viewer"
+            style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
+          ></div>
+        </section>
 
         <!-- REPORT KPI -->
         <section id="view-report" class="view" style="display: none">
