@@ -401,7 +401,6 @@ document.addEventListener("DOMContentLoaded", () => {
           '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
       }
       break;
-
     case "acquisti":
       await caricaCategorieInCache();
       await caricaFornitoriInCache();
