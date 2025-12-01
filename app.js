@@ -1271,46 +1271,48 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========= RICETTE: INGREDIENTI =========
-  function creaRigaIngrediente(initial = {}) {
-    if (!ricettaIngredientiContainer) return;
+  // ========= RICETTE: INGREDIENTI =========
+function creaRigaIngrediente(initial = {}) {
+  if (!ricettaIngredientiContainer) return;
 
-    const row = document.createElement("div");
-    row.className = "ricetta-ingrediente-row";
+  const row = document.createElement("div");
+  row.className = "ricetta-ingrediente-row";
 
-    row.innerHTML = `
-      <input
-        type="text"
-        class="ingrediente-nome"
-        placeholder="Ingrediente (come in magazzino)"
-        list="ingredienti-suggestions"
-        value="${initial.nome_prodotto || ""}"
-      />
-      <input
-        type="number"
-        class="ingrediente-quantita"
-        placeholder="Q.tà"
-        step="0.001"
-        min="0"
-        value="${initial.quantita != null ? initial.quantita : ""}"
-      />
-      <input
-        type="text"
-        class="ingrediente-unita"
-        placeholder="g, kg, ml, u..."
-        value="${initial.unita_misura || ""}"
-      />
-      <button type="button" class="app-button tiny red btn-del-ingrediente">
-        ✕
-      </button>
-    ";
+  row.innerHTML = `
+    <input
+      type="text"
+      class="ingrediente-nome"
+      placeholder="Ingrediente (come in magazzino)"
+      list="ingredienti-suggestions"
+      value="${initial.nome_prodotto || ""}"
+    />
+    <input
+      type="number"
+      class="ingrediente-quantita"
+      placeholder="Q.tà"
+      step="0.001"
+      min="0"
+      value="${initial.quantita != null ? initial.quantita : ""}"
+    />
+    <input
+      type="text"
+      class="ingrediente-unita"
+      placeholder="g, kg, ml, u..."
+      value="${initial.unita_misura || ""}"
+    />
+    <button type="button" class="app-button tiny red btn-del-ingrediente">
+      ✕
+    </button>
+  `;
 
-    const btnDel = row.querySelector(".btn-del-ingrediente");
-    if (btnDel) {
-      btnDel.addEventListener("click", () => row.remove());
-    }
-
-    ricettaIngredientiContainer.appendChild(row);
+  const btnDel = row.querySelector(".btn-del-ingrediente");
+  if (btnDel) {
+    btnDel.addEventListener("click", () => row.remove());
   }
+
+  ricettaIngredientiContainer.appendChild(row);
+}
+
 
   // ========= RICETTE: RESET FORM =========
   function resetFormRicetta() {
