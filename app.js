@@ -1444,20 +1444,25 @@ function creaRigaIngrediente(initial = {}) {
   }
 
   // ========= RICETTE: UPLOAD FOTO =========
-  async function uploadFotoRicettaSePresente() {
+async function uploadFotoRicettaSePresente() {
+  try {
     if (!supabase) return ricettaFotoCorrenteUrl;
-    if (!ricettaFotoInput || !ricettaFotoInput.files?.length) {
+    if (!ricettaFotoInput || !ricettaFotoInput.files || ricettaFotoInput.files.length === 0) {
       return ricettaFotoCorrenteUrl || null;
     }
 
     const file = ricettaFotoInput.files[0];
     if (!file) return ricettaFotoCorrenteUrl || null;
 
+    // Estensione sicura
     const estensione = file.name.includes(".")
-      ? file.name.split(".").pop()
+      ? file.name.split(".").pop().toLowerCase()
       : "jpg";
+
+    // Nome file sicuro
     const filePath = `ricetta_${Date.now()}.${estensione}`;
 
+    // Upload a Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from("ricette_foto")
       .upload(filePath, file);
@@ -1468,12 +1473,18 @@ function creaRigaIngrediente(initial = {}) {
       return ricettaFotoCorrenteUrl || null;
     }
 
+    // Ottieni URL pubblico
     const { data: publicData } = supabase.storage
       .from("ricette_foto")
       .getPublicUrl(filePath);
 
     return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
+
+  } catch (err) {
+    console.error("Eccezione upload foto ricetta:", err);
+    return ricettaFotoCorrenteUrl || null;
   }
+}
 
   // ========= RICETTE: SALVATAGGIO COMPLETO =========
   async function handleSalvaRicetta() {
