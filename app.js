@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
+  
 
   // ========= DOM COMUNE / ROUTING =========
   const views = Array.from(document.querySelectorAll(".view"));
@@ -422,22 +423,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function navigateTo(route) {
+ routeButtons.forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const route = btn.getAttribute("data-route");
     if (!route) return;
-    window.location.hash = route;
-    showOnlyView(`view-${route}`);
-    await onRouteEnter(route);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
 
-  // >>> niente più blocchi sulla base del ruolo: apre sempre la vista
-  routeButtons.forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const route = btn.getAttribute("data-route");
-      if (!route) return;
-      await navigateTo(route);
-    });
+    if (!currentUser) {
+      alert("Devi prima effettuare il login");
+      return;
+    }
+
+    await navigateTo(route);
   });
+});
+
 
   // ========= DIPENDENTI =========
   function aggiornaUICompenso() {
