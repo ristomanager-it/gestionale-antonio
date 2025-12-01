@@ -422,6 +422,10 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
     }
   }
+    case "report":
+      // per ora non fa niente di speciale, ma almeno la vista si apre
+      // qui in futuro potrai aggiungere caricaCostiFissiDaSupabase(), aggiornaKpi(), ecc.
+      break;
 
  routeButtons.forEach((btn) => {
   btn.addEventListener("click", async () => {
