@@ -376,71 +376,55 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ========= NAVIGAZIONE =========
-  async function onRouteEnter(route) {
-    switch (route) {
-      case "timbratura":
-        await caricaTimbratureDaSupabase();
-        updateTimbraturaUserInfo();
-        aggiornaPresenzeDipendenti();
-        break;
+ async function onRouteEnter(route) {
+  switch (route) {
 
-      case "dipendenti":
-        await caricaDipendentiDaSupabase();
-        break;
-
-      case "ricette":
-        await caricaProdottiSuggerimentiIngredienti();
-        resetFormRicetta();
-        break;
-
-      case "ricette-viewer":
-        await caricaRicetteViewerDaSupabase();
-        if (ricetteSearchInput) ricetteSearchInput.value = "";
-        break;
-
-      case "acquisti":
-        await caricaCategorieInCache();
-        await caricaFornitoriInCache();
-        await caricaMagazzinoDati();
-        resetFatturaForm();
-        await caricaElencoFatture();
-        break;
-
-      case "magazzino":
-        await caricaCategorieInCache();
-        await caricaMagazzinoDati();
-        popolaMagazzinoForm(null);
-        break;
-
-      case "report":
-        initReportDefaults();
-        await caricaCostiFissiDaSupabase();
-        aggiornaKpi();
-        break;
-
-      default:
-        break;
-    }
-  }
-    case "report":
-      // per ora non fa niente di speciale, ma almeno la vista si apre
-      // qui in futuro potrai aggiungere caricaCostiFissiDaSupabase(), aggiornaKpi(), ecc.
+    case "timbratura":
+      await caricaTimbratureDaSupabase();
+      updateTimbraturaUserInfo();
       break;
 
- routeButtons.forEach((btn) => {
-  btn.addEventListener("click", async () => {
-    const route = btn.getAttribute("data-route");
-    if (!route) return;
+    case "dipendenti":
+      await caricaDipendentiDaSupabase();
+      break;
 
-    if (!currentUser) {
-      alert("Devi prima effettuare il login");
-      return;
-    }
+    case "ricette":
+      await caricaProdottiSuggerimentiIngredienti();
+      resetFormRicetta();
+      break;
 
-    await navigateTo(route);
-  });
-});
+    case "ricette-viewer":
+      await caricaRicetteViewerDaSupabase();
+      if (ricetteSearchInput) ricetteSearchInput.value = "";
+      if (ricetteListaViewer) {
+        ricetteListaViewer.innerHTML =
+          '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
+      }
+      break;
 
+    case "acquisti":
+      await caricaCategorieInCache();
+      await caricaFornitoriInCache();
+      await caricaMagazzinoDati();
+      resetFatturaForm();
+      await caricaElencoFatture();
+      break;
+
+    case "magazzino":
+      await caricaCategorieInCache();
+      await caricaMagazzinoDati();
+      popolaMagazzinoForm(null);
+      break;
+
+    case "report":
+      // Al momento non carichiamo nulla, serve solo per aprire la vista
+      // Aggiungeremo funzioni KPI qui in futuro
+      break;
+
+    default:
+      break;
+  }
+}
 
   // ========= DIPENDENTI =========
   function aggiornaUICompenso() {
