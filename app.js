@@ -1,4 +1,4 @@
-// app.js - versione pulita e aggiornata
+// app.js - versione ripulita
 
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEntra = document.getElementById("btn-entra");
   const btnPausa = document.getElementById("btn-pausa");
   const btnEsci = document.getElementById("btn-esci");
+
   const presenzeListaEl = document.getElementById("presenze-lista");
   const btnTogglePresenze = document.getElementById("btn-toggle-presenze");
   const sezionePresenzeEl = document.getElementById("sezione-presenze");
@@ -96,7 +97,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const fattureTable = document.getElementById("fatture-table");
   const btnToggleFatture = document.getElementById("btn-toggle-fatture");
 
-  // REPORT KPI
+  // MAGAZZINO
+  const magazzinoSearchInput = document.getElementById("magazzino-search");
+  const magazzinoIdInput = document.getElementById("magazzino-id");
+  const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
+  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
+  const magazzinoUmInput = document.getElementById("magazzino-um");
+  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
+  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
+  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
+  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
+  const magazzinoListaBody = document.getElementById("magazzino-lista");
+  const magazzinoTable = document.getElementById("magazzino-table");
+
+  // REPORT KPI / COSTI FISSI
   const reportDataInput = document.getElementById("report-data");
   const reportPeriodButtons = Array.from(document.querySelectorAll(".report-period-btn"));
   const kpiIncassoInput = document.getElementById("kpi-incasso-input");
@@ -120,19 +134,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const costiFissiImportoInput = document.getElementById("costi-fissi-importo");
   const btnSalvaCostoFisso = document.getElementById("btn-salva-costo-fisso");
   const costiFissiListaBody = document.getElementById("costi-fissi-lista");
-
-  // MAGAZZINO
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
-  const magazzinoIdInput = document.getElementById("magazzino-id");
-  const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
-  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
-  const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById("magazzino-scorta-minima");
-  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
-  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
-  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
-  const magazzinoListaBody = document.getElementById("magazzino-lista");
-  const magazzinoTable = document.getElementById("magazzino-table");
 
   // ========= STATO =========
   let dipendenti = [];
@@ -281,15 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
         el.style.display = modalita === "manager" ? "" : "none";
       });
 
-    routeButtons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
-    });
-
     if (managerMenu) {
       managerMenu.style.display = modalita === "manager" ? "grid" : "none";
     }
@@ -425,10 +417,6 @@ document.addEventListener("DOMContentLoaded", () => {
         aggiornaKpi();
         break;
 
-      case "ordine":
-        alert("Funzione 'Ordine del giorno' non ancora implementata.");
-        break;
-
       default:
         break;
     }
@@ -442,20 +430,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // >>> niente più blocchi sulla base del ruolo: apre sempre la vista
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
       const route = btn.getAttribute("data-route");
       if (!route) return;
-
-      if (
-        !currentUser ||
-        (!isManagerRole(currentUser.ruolo) &&
-          route !== "timbratura" &&
-          route !== "ricette-viewer")
-      ) {
-        return;
-      }
-
       await navigateTo(route);
     });
   });
@@ -465,18 +444,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!dipTipoCompenso || !labelRetribuzione) return;
 
     const tipo = dipTipoCompenso.value || "orario";
-
     if (tipo === "orario") {
-      labelRetribuzione.childNodes[0].textContent = "Paga oraria lorda (€/h)";
+      labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "mensile") {
-      labelRetribuzione.childNodes[0].textContent =
+      labelRetribuzione.firstChild.textContent =
         "Stipendio lordo mensile (€/mese)";
       if (rowOreMensili) rowOreMensili.style.display = "block";
       if (rowOreServizio) rowOreServizio.style.display = "none";
     } else if (tipo === "servizio") {
-      labelRetribuzione.childNodes[0].textContent =
+      labelRetribuzione.firstChild.textContent =
         "Paga lorda per servizio (€/servizio)";
       if (rowOreMensili) rowOreMensili.style.display = "none";
       if (rowOreServizio) rowOreServizio.style.display = "block";
@@ -1010,10 +988,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const row = document.createElement("div");
     row.className = "ricetta-ingrediente-row";
-    row.style.display = "flex";
-    row.style.gap = "6px";
-    row.style.alignItems = "center";
-
     row.innerHTML = `
       <input
         type="text"
@@ -1578,7 +1552,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // bottone modifica per manager/admin
       if (currentUser && isManagerRole(currentUser.ruolo)) {
         const footer = document.createElement("div");
         footer.style.marginTop = "8px";
@@ -1608,7 +1581,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (q.length < 2) {
       ricetteListaViewer.innerHTML =
-        '<p class="small-muted">Digita almeno 2 lettere per cercare una ricetta.</p>';
+        '<p class="small-muted">Digita almeno 2 lettere nel campo sopra per cercare una ricetta.</p>';
       return;
     }
 
@@ -1868,12 +1841,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tr.className = "fattura-riga-card";
 
     tr.innerHTML = `
-      <div class="fattura-riga-header">
-        <span class="fattura-riga-title">${
-          initial.descrizione_riga || "Nuovo prodotto"
-        }</span>
-      </div>
-
       <div class="fattura-riga-grid">
         <label>
           Codice interno
@@ -2491,7 +2458,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!magazzinoIdInput) return;
 
     const id = magazzinoIdInput.value ? Number(magazzinoIdInput.value) : null;
-
     const descr = (magazzinoDescrInput.value || "").trim();
     const catNome = (magazzinoCategoriaInput.value || "").trim();
     const umVal = (magazzinoUmInput.value || "").trim();
@@ -2631,7 +2597,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ========= REPORT KPI =========
+  // ========= REPORT KPI / COSTI FISSI =========
   function initReportDefaults() {
     if (reportDataInput && !reportDataInput.value) {
       formatDateInputToday(reportDataInput);
@@ -2653,7 +2619,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (error) {
       console.error("Errore caricamento costi fissi:", error);
-      // non blocchiamo l'app, semplicemente nessun costo fisso
       costiFissi = [];
       renderCostiFissi();
       aggiornaKpi();
@@ -2752,7 +2717,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (kpiFissiImporto)
       kpiFissiImporto.textContent = formatCurrency(fissiPeriodo);
 
-    const totCosti = lavoro + food + fissiPeriodo;
     const lavoroPerc = incasso ? (lavoro / incasso) * 100 : 0;
     const foodPerc = incasso ? (food / incasso) * 100 : 0;
     const fissiPerc = incasso ? (fissiPeriodo / incasso) * 100 : 0;
@@ -2771,6 +2735,7 @@ document.addEventListener("DOMContentLoaded", () => {
       else kpiMargineBadge.classList.add("neg");
     }
 
+    const totCosti = lavoro + food + fissiPeriodo;
     if (kpiBepLabel) {
       const bep = totCosti;
       kpiBepLabel.textContent = `BEP ${formatCurrency(bep)}`;
@@ -2824,16 +2789,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (currentUser) {
       const hashRoute = window.location.hash.replace("#", "") || "timbratura";
-      if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenuAndRoute(hashRoute);
-      } else {
-        if (hashRoute === "timbratura" || hashRoute === "ricette-viewer") {
-          showOnlyView(`view-${hashRoute}`);
-          await onRouteEnter(hashRoute);
-        } else {
-          showHomeDipendente();
-        }
-      }
+      showOnlyView(`view-${hashRoute}`);
+      await onRouteEnter(hashRoute);
     } else {
       showLogin();
     }
