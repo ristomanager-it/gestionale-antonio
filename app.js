@@ -105,8 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- RICETTARIO (VIEWER) ----------
   const ricetteSearchInput = document.getElementById("ricette-search");
-  // il container verrà preso direttamente nella render function:
-  // document.getElementById("ricette-lista-viewer")
+  // lista ricette viewer presa a runtime
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
@@ -146,7 +145,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
-  // datalist ingredienti per ricette + prodotti fatture
+  // ---------- VENDUTO DEL GIORNO (DOM) ----------
+  const vendutoFileInput = document.getElementById("venduto-file");
+  const btnCaricaVenduto = document.getElementById("btn-carica-venduto");
+  const vendutoTable = document.getElementById("venduto-table");
+  const vendutoTableBody = document.getElementById("venduto-table-body");
+
+  // datalist ingredienti per ricette + prodotti fatture + magazzino
   const ingredientiSuggestions = document.getElementById(
     "ingredienti-suggestions"
   );
@@ -388,9 +393,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showManagerMenuAndRoute(initialRoute) {
     if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
+    const route = initialRoute || "timbratura";
+    showOnlyView(`view-${route}`);
     applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
+    navigateTo(route);
   }
 
   function setCurrentUser(user, persist) {
@@ -1296,7 +1302,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button type="button" class="app-button tiny red btn-del-ingrediente">
         ✕
       </button>
-    `;
+    ";
 
     const btnDel = row.querySelector(".btn-del-ingrediente");
     if (btnDel) {
@@ -2714,6 +2720,109 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ========= VENDUTO DEL GIORNO =========
+  function resetVendutoPreview() {
+    if (vendutoTableBody) vendutoTableBody.innerHTML = "";
+    if (vendutoTable) vendutoTable.style.display = "none";
+    if (vendutoFileInput) vendutoFileInput.value = "";
+  }
+
+  function parseVendutoCSV(text) {
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    if (lines.length === 0) return [];
+
+    // rilevo separatore principale
+    const first = lines[0];
+    let sep = ",";
+    const countSemicolon = (first.match(/;/g) || []).length;
+    const countComma = (first.match(/,/g) || []).length;
+    if (countSemicolon > countComma) sep = ";";
+
+    // se c'è header, lo salto (cerco una delle parole tipiche)
+    let startIndex = 0;
+    const headerLower = first.toLowerCase();
+    if (
+      headerLower.includes("prodotto") ||
+      headerLower.includes("descr") ||
+      headerLower.includes("quant") ||
+      headerLower.includes("qta") ||
+      headerLower.includes("totale")
+    ) {
+      startIndex = 1;
+    }
+
+    const rows = [];
+    for (let i = startIndex; i < lines.length; i++) {
+      const cols = lines[i].split(sep).map((c) => c.trim());
+      if (!cols.length || !cols[0]) continue;
+
+      const prodotto = cols[0] || "";
+      const qta = parseNumber(cols[1] || "0");
+      const lordo = parseNumber(cols[2] || "0");
+      const netto = parseNumber(cols[3] || "0");
+
+      rows.push({
+        prodotto,
+        quantita: qta,
+        lordo,
+        netto,
+      });
+    }
+
+    return rows;
+  }
+
+  async function handleImportaVenduto() {
+    if (!vendutoFileInput || !vendutoTable || !vendutoTableBody) return;
+
+    const file = vendutoFileInput.files?.[0];
+    if (!file) {
+      alert("Seleziona un file CSV prima di importare.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result || "";
+      const rows = parseVendutoCSV(String(text));
+
+      vendutoTableBody.innerHTML = "";
+
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.prodotto}</td>
+          <td>${r.quantita || 0}</td>
+          <td>${r.lordo.toFixed(2)}</td>
+          <td>${r.netto.toFixed(2)}</td>
+        `;
+        vendutoTableBody.appendChild(tr);
+      });
+
+      vendutoTable.style.display = rows.length ? "table" : "none";
+
+      if (!rows.length) {
+        alert("Il file è stato letto ma non sono state trovate righe valide.");
+      }
+    };
+
+    reader.onerror = () => {
+      alert("Errore nella lettura del file CSV.");
+    };
+
+    reader.readAsText(file, "utf-8");
+  }
+
+  if (btnCaricaVenduto) {
+    btnCaricaVenduto.addEventListener("click", () => {
+      handleImportaVenduto();
+    });
+  }
+
   // ========= ROUTING =========
   async function onRouteEnter(route) {
     switch (route) {
@@ -2739,6 +2848,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await caricaCategorieInCache();
         await caricaFornitoriInCache();
         await caricaMagazzinoDati();
+        aggiornaIngredientiSuggestionsDaMagazzino();
         resetFatturaForm();
         await caricaElencoFatture();
         break;
@@ -2746,11 +2856,16 @@ document.addEventListener("DOMContentLoaded", () => {
       case "magazzino":
         await caricaCategorieInCache();
         await caricaMagazzinoDati();
+        aggiornaIngredientiSuggestionsDaMagazzino();
         popolaMagazzinoForm(null);
         break;
 
+      case "venduto":
+        resetVendutoPreview();
+        break;
+
       case "report":
-        // se servirà logica specifica per il report, mettila qui
+        // logica report futura
         break;
 
       default:
@@ -2797,6 +2912,7 @@ document.addEventListener("DOMContentLoaded", () => {
   routeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const route = btn.getAttribute("data-route");
+      if (!route) return;
       window.location.hash = route;
       navigateTo(route);
     });
@@ -2804,6 +2920,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("hashchange", () => {
     const route = window.location.hash.replace("#", "");
+    if (!route) return;
     navigateTo(route);
   });
 
