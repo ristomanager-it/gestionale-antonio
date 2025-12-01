@@ -1270,7 +1270,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const row = document.createElement("div");
     row.className = "ricetta-ingrediente-row";
-
     row.innerHTML = `
       <input
         type="text"
