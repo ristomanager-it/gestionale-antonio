@@ -1741,7 +1741,7 @@ async function apriRicettaInEditor(ricettaId) {
 }
 
   // Render ricette nel viewer (lista di card cliccabili)
- function renderRicetteViewer(lista, filtroTesto) {
+function renderRicetteViewer(lista, filtroTesto) {
   const container = document.getElementById("ricette-lista-viewer");
   if (!container) return;
 
@@ -1762,7 +1762,6 @@ async function apriRicettaInEditor(ricettaId) {
   lista.forEach((r) => {
     const card = document.createElement("div");
     card.className = "timbratura-intro-card";
-    card.style.cursor = "pointer";
 
     const base = r.pezzi_base || 0;
     const f1Perc = r.formato1_percent || 100;
@@ -1771,7 +1770,7 @@ async function apriRicettaInEditor(ricettaId) {
     const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
     const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
 
-    // Contenuto principale
+    // Contenuto principale card
     card.innerHTML = `
       <h3 style="margin:0 0 4px">${r.nome}</h3>
 
@@ -1811,7 +1810,7 @@ async function apriRicettaInEditor(ricettaId) {
       }
     `;
 
-    // 🔹 Se è manager/admin, aggiungo pulsante "Modifica"
+    // 🔹 Bottone "Modifica" SOLO per admin / manager
     if (currentUser && isManagerRole(currentUser.ruolo)) {
       const footer = document.createElement("div");
       footer.style.marginTop = "8px";
@@ -1824,13 +1823,22 @@ async function apriRicettaInEditor(ricettaId) {
       btnMod.textContent = "Modifica";
 
       btnMod.addEventListener("click", (e) => {
-        e.stopPropagation(); // evita di far scattare l'espansione ingredienti
-        apriRicettaInEditor(r.id);
+        e.stopPropagation(); // così non interferisce con altri click sulla card
+
+        // memorizzo l'id da aprire
+        ricettaDaAprireId = r.id;
+
+        // cambio route: partirà navigateTo("ricette") da hashchange
+        window.location.hash = "ricette";
       });
 
       footer.appendChild(btnMod);
       card.appendChild(footer);
     }
+
+    container.appendChild(card);
+  });
+}
 
     // click sulla card: mostra / nasconde ingredienti (solo lettura)
     card.addEventListener("click", async () => {
