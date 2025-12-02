@@ -1661,6 +1661,25 @@ document.addEventListener("DOMContentLoaded", () => {
     ricetteSuggestionsList.innerHTML = "";
 
     ricetteCache.forEach((r) => {
+      if (!r.nome) return;  // ===========================================================
+  // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
+  // ===========================================================
+  let ricetteSuggestionsList = null;
+
+  // creo il datalist per l'autocompletamento del ricettario
+  if (ricetteSearchInput) {
+    ricetteSuggestionsList = document.createElement("datalist");
+    ricetteSuggestionsList.id = "ricette-suggestions";
+    document.body.appendChild(ricetteSuggestionsList);
+    ricetteSearchInput.setAttribute("list", "ricette-suggestions");
+  }
+
+  // aggiorna le opzioni del datalist con i nomi delle ricette
+  function aggiornaRicetteSuggestions() {
+    if (!ricetteSuggestionsList) return;
+    ricetteSuggestionsList.innerHTML = "";
+
+    ricetteCache.forEach((r) => {
       if (!r.nome) return;
       const opt = document.createElement("option");
       opt.value = r.nome;
@@ -1668,6 +1687,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // carica elenco ricette (solo dati base, non ingredienti)
   async function caricaRicetteDaSupabase() {
     if (!supabase) return;
 
@@ -1701,7 +1721,25 @@ document.addEventListener("DOMContentLoaded", () => {
     applicaFiltroRicettario(); // render iniziale
   }
 
-  // Render semplice del ricettario (solo lettura)
+  // carica ingredienti di UNA ricetta (per il viewer)
+  async function caricaIngredientiRicettaViewer(ricettaId) {
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("ricetta_ingredienti")
+      .select("nome_prodotto, quantita, unita_misura")
+      .eq("ricetta_id", ricettaId)
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento ingredienti (viewer):", error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  // Render ricette nel viewer (lista di card cliccabili)
   function renderRicetteViewer(lista) {
     const container = document.getElementById("ricette-lista-viewer");
     if (!container) return;
@@ -1716,6 +1754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     lista.forEach((r) => {
       const card = document.createElement("div");
       card.className = "timbratura-intro-card";
+      card.style.cursor = "pointer";
 
       const base = r.pezzi_base || 0;
       const f1Perc = r.formato1_percent || 100;
@@ -1763,11 +1802,52 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       `;
 
+      // click sulla card: mostra / nasconde ingredienti (solo lettura)
+      card.addEventListener("click", async () => {
+        let ingBox = card.querySelector(".ricetta-ingredienti-viewer");
+
+        // se già aperti → chiudi
+        if (ingBox) {
+          ingBox.remove();
+          return;
+        }
+
+        // placeholder "caricamento..."
+        ingBox = document.createElement("div");
+        ingBox.className = "ricetta-ingredienti-viewer";
+        ingBox.style.marginTop = "8px";
+        ingBox.style.fontSize = "12px";
+        ingBox.innerHTML = "<em>Caricamento ingredienti...</em>";
+        card.appendChild(ingBox);
+
+        const ingredienti = await caricaIngredientiRicettaViewer(r.id);
+
+        if (!ingredienti.length) {
+          ingBox.innerHTML = "<em>Nessun ingrediente registrato.</em>";
+          return;
+        }
+
+        const listaEl = document.createElement("ul");
+        listaEl.style.margin = "4px 0 0";
+        listaEl.style.paddingLeft = "18px";
+
+        ingredienti.forEach((ing) => {
+          const li = document.createElement("li");
+          li.textContent = `${ing.nome_prodotto || ""} - ${ing.quantita || 0} ${
+            ing.unita_misura || ""
+          }`;
+          listaEl.appendChild(li);
+        });
+
+        ingBox.innerHTML = "<strong>Ingredienti:</strong>";
+        ingBox.appendChild(listaEl);
+      });
+
       container.appendChild(card);
     });
   }
 
-  // Applica filtro di ricerca (solo per nome, per ora)
+  // Applica filtro di ricerca (per ora solo per nome)
   function applicaFiltroRicettario() {
     let lista = ricetteCache;
 
