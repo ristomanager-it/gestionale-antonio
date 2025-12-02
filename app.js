@@ -1889,6 +1889,597 @@ document.addEventListener("DOMContentLoaded", () => {
       applicaFiltroRicettario();
     });
   }
+// =========================================================
+// ===================== PREVENTIVI ========================
+// =========================================================
+
+// ==== RIFERIMENTI DOM ====
+const prevClienteNome = document.getElementById("prev-cliente-nome");
+const prevContattiList = document.getElementById("prev-contatti-list");
+const prevClienteEmail = document.getElementById("prev-cliente-email");
+const prevClienteTelefono = document.getElementById("prev-cliente-telefono");
+const prevAddContattoBtn = document.getElementById("prev-add-contatto");
+
+const prevTitolo = document.getElementById("prev-titolo");
+const prevTipoServizio = document.getElementById("prev-tipo-servizio");
+const prevDataEvento = document.getElementById("prev-data-evento");
+const prevNInvitati = document.getElementById("prev-n-invitati");
+const prevLocation = document.getElementById("prev-location");
+const prevNote = document.getElementById("prev-note");
+
+const prevPiattiContainer = document.getElementById("prev-piatti-container");
+const prevPiattiSuggestions = document.getElementById("prev-piatti-suggestions");
+const prevAddPiattoBtn = document.getElementById("prev-add-piatto");
+
+const prevExtraContainer = document.getElementById("prev-extra-container");
+const prevExtraSuggestions = document.getElementById("prev-extra-suggestions");
+const prevAddExtraBtn = document.getElementById("prev-add-extra");
+
+const prevTotalePiatti = document.getElementById("prev-totale-piatti");
+const prevTotaleExtra = document.getElementById("prev-totale-extra");
+const prevTotale = document.getElementById("prev-totale");
+
+const prevStato = document.getElementById("prev-stato");
+const prevAccontoCard = document.getElementById("prev-acconto-card");
+const prevAcconto = document.getElementById("prev-acconto");
+const prevSaldo = document.getElementById("prev-saldo");
+const prevGeneraPrenotazione = document.getElementById("prev-genera-prenotazione");
+
+const prevSalvaBtn = document.getElementById("prev-salva");
+const prevStampaBtn = document.getElementById("prev-stampa");
+const prevEmailBtn = document.getElementById("prev-email");
+const prevApriPrenotazioneBtn = document.getElementById("prev-apri-prenotazione");
+
+const prevLista = document.getElementById("prev-lista");
+
+let preventivoCorrenteId = null;
+let contattiCache = [];
+let ricetteCachePreventivi = [];
+let serviziExtraCatalogo = [];
+
+// =========================================================
+// =============== CARICAMENTO DATI INIZIALI ================
+// =========================================================
+
+async function caricaContatti() {
+  const { data, error } = await supabase
+    .from("contatti")
+    .select("*")
+    .order("nome");
+
+  if (error) {
+    console.error("Errore caricando contatti:", error);
+    return;
+  }
+
+  contattiCache = data || [];
+  prevContattiList.innerHTML = "";
+
+  contattiCache.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = `${c.nome} ${c.cognome || ""}`.trim();
+    prevContattiList.appendChild(opt);
+  });
+}
+
+async function caricaRicettePreventivi() {
+  const { data, error } = await supabase
+    .from("ricette")
+    .select("id, nome");
+
+  if (!error && data) {
+    ricetteCachePreventivi = data;
+    prevPiattiSuggestions.innerHTML = "";
+    data.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.nome;
+      prevPiattiSuggestions.appendChild(opt);
+    });
+  }
+}
+
+async function caricaCatalogoExtra() {
+  const { data, error } = await supabase
+    .from("extra_servizi_catalogo")
+    .select("*");
+
+  if (!error && data) {
+    serviziExtraCatalogo = data;
+    prevExtraSuggestions.innerHTML = "";
+    data.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.nome;
+      prevExtraSuggestions.appendChild(opt);
+    });
+  }
+}
+
+async function caricaPreventiviEsistenti() {
+  const { data, error } = await supabase
+    .from("preventivi")
+    .select(`
+      *,
+      contatti:cliente_id (nome, cognome)
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Errore caricando preventivi:", error);
+    return;
+  }
+
+  prevLista.innerHTML = "";
+
+  data.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.data_evento || "-"}</td>
+      <td>${p.contatti?.nome || ""} ${p.contatti?.cognome || ""}</td>
+      <td>${p.titolo_evento || "-"}</td>
+      <td>${p.n_invitati || "-"}</td>
+      <td>${p.totale?.toFixed(2) || "0.00"}</td>
+      <td>${p.stato}</td>
+      <td>
+        <button class="app-button tiny gray" data-edit-prev="${p.id}">Apri</button>
+      </td>
+    `;
+    prevLista.appendChild(tr);
+  });
+
+  prevLista.querySelectorAll("[data-edit-prev]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      caricaPreventivoInModifica(parseInt(btn.dataset.editPrev));
+    });
+  });
+}
+
+// =========================================================
+// ======================= PIATTI ===========================
+// =========================================================
+
+function aggiungiRigaPiatto(piatto = null) {
+  const div = document.createElement("div");
+  div.className = "form-grid-2";
+  div.style.marginTop = "8px";
+
+  const id = Date.now() + Math.random();
+
+  div.innerHTML = `
+    <label>
+      Piatto
+      <input class="input-pill prev-piatto-nome" data-id="${id}" list="prev-piatti-suggestions"
+             value="${piatto?.nome_piatto || ""}">
+    </label>
+
+    <label>
+      Quantità
+      <input type="number" class="input-pill prev-piatto-qty" min="1"
+             value="${piatto?.quantita || (prevNInvitati.value || 1)}">
+    </label>
+
+    <label>
+      Costo unitario (€)
+      <input class="input-pill prev-piatto-costo" readonly value="${piatto?.costo_unitario || ""}">
+    </label>
+
+    <label>
+      Totale (€)
+      <input class="input-pill prev-piatto-tot" readonly value="${piatto?.costo_totale || ""}">
+    </label>
+
+    <button class="app-button tiny red prev-del-piatto" type="button">X</button>
+  `;
+
+  prevPiattiContainer.appendChild(div);
+
+  div.querySelector(".prev-del-piatto").addEventListener("click", () => {
+    div.remove();
+    calcolaTotaliPreventivo();
+  });
+
+  div.querySelector(".prev-piatto-nome").addEventListener("change", async (e) => {
+    await aggiornaCostoPiatto(div);
+    calcolaTotaliPreventivo();
+  });
+
+  div.querySelector(".prev-piatto-qty").addEventListener("input", () => {
+    aggiornaCostoPiatto(div, false);
+    calcolaTotaliPreventivo();
+  });
+}
+
+async function aggiornaCostoPiatto(div, force = true) {
+  const nome = div.querySelector(".prev-piatto-nome").value.trim();
+  const qty = parseFloat(div.querySelector(".prev-piatto-qty").value || "1");
+
+  if (!nome) return;
+
+  // Cerca ricetta esistente
+  let ric = ricetteCachePreventivi.find(r => r.nome.toLowerCase() === nome.toLowerCase());
+  let ricettaId = null;
+  let costoUnitario = 0;
+
+  if (ric) {
+    ricettaId = ric.id;
+
+    // --- calcolo food cost medio
+    const { data: ingredienti } = await supabase
+      .from("ricette_ingredienti")
+      .select(`
+        *,
+        prodotto:prodotto_id (id, costo_medio)
+      `)
+      .eq("ricetta_id", ric.id);
+
+    if (ingredienti) {
+      ingredienti.forEach(i => {
+        costoUnitario += (i.quantita || 0) * (i.prodotto?.costo_medio || 0);
+      });
+    }
+  } else {
+    // CREAZIONE AUTOMATICA RICETTA INCOMPLETA
+    const { data: nuovaRicetta, error } = await supabase
+      .from("ricette")
+      .insert({
+        nome,
+        descrizione: "Ricetta da completare",
+        tipo: "piatto"
+      })
+      .select()
+      .single();
+
+    if (!error && nuovaRicetta) {
+      ricettaId = nuovaRicetta.id;
+
+      ricetteCachePreventivi.push({
+        id: nuovaRicetta.id,
+        nome
+      });
+
+      const opt = document.createElement("option");
+      opt.value = nome;
+      prevPiattiSuggestions.appendChild(opt);
+    }
+  }
+
+  div.dataset.ricettaId = ricettaId;
+  div.querySelector(".prev-piatto-costo").value = costoUnitario.toFixed(2);
+  div.querySelector(".prev-piatto-tot").value = (costoUnitario * qty).toFixed(2);
+}
+
+// =========================================================
+// ======================= EXTRA ============================
+// =========================================================
+
+function aggiungiRigaExtra(extra = null) {
+  const div = document.createElement("div");
+  div.className = "form-grid-2";
+  div.style.marginTop = "8px";
+
+  div.innerHTML = `
+    <label>
+      Servizio
+      <input class="input-pill prev-extra-desc" list="prev-extra-suggestions"
+             value="${extra?.descrizione || ""}">
+    </label>
+
+    <label>
+      Quantità
+      <input type="number" class="input-pill prev-extra-qty" min="1"
+             value="${extra?.quantita || 1}">
+    </label>
+
+    <label>
+      Prezzo unitario (€)
+      <input type="number" class="input-pill prev-extra-prezzo" step="0.01"
+             value="${extra?.prezzo_unitario || 0}">
+    </label>
+
+    <label>
+      Totale (€)
+      <input class="input-pill prev-extra-tot" readonly value="${extra?.prezzo_totale || 0}">
+    </label>
+
+    <button class="app-button tiny red prev-del-extra" type="button">X</button>
+  `;
+
+  prevExtraContainer.appendChild(div);
+
+  const upd = () => {
+    const q = parseFloat(div.querySelector(".prev-extra-qty").value || "1");
+    const p = parseFloat(div.querySelector(".prev-extra-prezzo").value || "0");
+    div.querySelector(".prev-extra-tot").value = (q * p).toFixed(2);
+    calcolaTotaliPreventivo();
+  };
+
+  div.querySelector(".prev-extra-qty").addEventListener("input", upd);
+  div.querySelector(".prev-extra-prezzo").addEventListener("input", upd);
+
+  div.querySelector(".prev-del-extra").addEventListener("click", () => {
+    div.remove();
+    calcolaTotaliPreventivo();
+  });
+}
+
+// =========================================================
+// ================== CALCOLO TOTALI ========================
+// =========================================================
+
+function calcolaTotaliPreventivo() {
+  let totPiatti = 0;
+  let totExtra = 0;
+
+  prevPiattiContainer.querySelectorAll(".prev-piatto-tot").forEach(el => {
+    totPiatti += parseFloat(el.value || "0");
+  });
+
+  prevExtraContainer.querySelectorAll(".prev-extra-tot").forEach(el => {
+    totExtra += parseFloat(el.value || "0");
+  });
+
+  prevTotalePiatti.value = totPiatti.toFixed(2);
+  prevTotaleExtra.value = totExtra.toFixed(2);
+  prevTotale.value = (totPiatti + totExtra).toFixed(2);
+
+  if (prevStato.value === "accettato") {
+    const ac = parseFloat(prevAcconto.value || "0");
+    prevSaldo.value = ((totPiatti + totExtra) - ac).toFixed(2);
+  }
+}
+
+// =========================================================
+// ===================== SALVATAGGIO ========================
+// =========================================================
+
+async function salvaPreventivo() {
+  const cliente = prevClienteNome.value.trim();
+  if (!cliente) {
+    alert("Seleziona un cliente.");
+    return;
+  }
+
+  // TROVA O CREA CONTATTO
+  let contattoId = null;
+  let contatto = contattiCache.find(
+    c => `${c.nome} ${c.cognome}`.trim().toLowerCase() === cliente.toLowerCase()
+  );
+
+  if (contatto) {
+    contattoId = contatto.id;
+  } else {
+    // CREA NUOVO CONTATTO
+    const parti = cliente.split(" ");
+    const nome = parti.shift();
+    const cognome = parti.join(" ");
+
+    const { data, error } = await supabase
+      .from("contatti")
+      .insert({
+        nome,
+        cognome,
+        email: prevClienteEmail.value || null,
+        telefono: prevClienteTelefono.value || null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Errore creando contatto");
+      return;
+    }
+
+    contattoId = data.id;
+    contattiCache.push(data);
+  }
+
+  const payload = {
+    cliente_id: contattoId,
+    titolo_evento: prevTitolo.value,
+    tipo_servizio: prevTipoServizio.value,
+    data_evento: prevDataEvento.value || null,
+    n_invitati: parseInt(prevNInvitati.value || "0"),
+    location: prevLocation.value,
+    note: prevNote.value,
+    stato: prevStato.value,
+    acconto: parseFloat(prevAcconto.value || "0"),
+    totale: parseFloat(prevTotale.value || "0")
+  };
+
+  let id = preventivoCorrenteId;
+
+  if (id) {
+    // UPDATE
+    const { error } = await supabase
+      .from("preventivi")
+      .update(payload)
+      .eq("id", id);
+
+    if (error) {
+      alert("Errore salvando preventivo");
+      return;
+    }
+  } else {
+    // INSERT
+    const { data, error } = await supabase
+      .from("preventivi")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      alert("Errore creando preventivo");
+      return;
+    }
+
+    id = data.id;
+    preventivoCorrenteId = id;
+  }
+
+  // SALVA RIGHE PIATTI
+  await supabase.from("preventivi_ricette").delete().eq("preventivo_id", id);
+
+  for (const div of prevPiattiContainer.children) {
+    const nome = div.querySelector(".prev-piatto-nome").value;
+    const qty = div.querySelector(".prev-piatto-qty").value;
+    const cu = div.querySelector(".prev-piatto-costo").value;
+    const tot = div.querySelector(".prev-piatto-tot").value;
+
+    await supabase.from("preventivi_ricette").insert({
+      preventivo_id: id,
+      ricetta_id: div.dataset.ricettaId || null,
+      nome_piatto: nome,
+      quantita: qty,
+      costo_unitario: cu,
+      costo_totale: tot,
+      ricetta_completa: !!div.dataset.ricettaId
+    });
+  }
+
+  // SALVA EXTRA
+  await supabase.from("preventivi_extra").delete().eq("preventivo_id", id);
+
+  for (const div of prevExtraContainer.children) {
+    const desc = div.querySelector(".prev-extra-desc").value;
+    const qty = div.querySelector(".prev-extra-qty").value;
+    const p = div.querySelector(".prev-extra-prezzo").value;
+
+    await supabase.from("preventivi_extra").insert({
+      preventivo_id: id,
+      descrizione: desc,
+      quantita: qty,
+      prezzo_unitario: p
+    });
+  }
+
+  // GENERA PRENOTAZIONE SOLO SE ACCETTATO
+  if (prevStato.value === "accettato") {
+    await generaPrenotazione(id);
+  }
+
+  alert("Preventivo salvato.");
+  await caricaPreventiviEsistenti();
+}
+
+// =========================================================
+// ================= PRENOTAZIONE ===========================
+// =========================================================
+
+async function generaPrenotazione(id) {
+  const ac = parseFloat(prevAcconto.value || "0");
+  const tot = parseFloat(prevTotale.value || "0");
+
+  const { data: prev, error: ep } = await supabase
+    .from("preventivi")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (ep) return;
+
+  const { error } = await supabase
+    .from("prenotazioni")
+    .upsert({
+      preventivo_id: id,
+      cliente_id: prev.cliente_id,
+      data_evento: prev.data_evento,
+      acconto: ac,
+      saldo_residuo: tot - ac
+    });
+
+  if (error) console.error("Errore creando prenotazione:", error);
+}
+
+// =========================================================
+// =================== CARICA IN MODIFICA ===================
+// =========================================================
+
+async function caricaPreventivoInModifica(id) {
+  preventivoCorrenteId = id;
+
+  const { data: p, error } = await supabase
+    .from("preventivi")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !p) {
+    alert("Errore caricando preventivo");
+    return;
+  }
+
+  // CARICA CONTATTO
+  const contatto = contattiCache.find(c => c.id === p.cliente_id);
+
+  if (contatto) {
+    prevClienteNome.value = `${contatto.nome} ${contatto.cognome || ""}`;
+    prevClienteEmail.value = contatto.email || "";
+    prevClienteTelefono.value = contatto.telefono || "";
+  }
+
+  prevTitolo.value = p.titolo_evento || "";
+  prevTipoServizio.value = p.tipo_servizio || "buffet";
+  prevDataEvento.value = p.data_evento || "";
+  prevNInvitati.value = p.n_invitati || "";
+  prevLocation.value = p.location || "";
+  prevNote.value = p.note || "";
+  prevStato.value = p.stato || "bozza";
+  prevAcconto.value = p.acconto || "0";
+
+  // PULISCI CONTENITORI
+  prevPiattiContainer.innerHTML = "";
+  prevExtraContainer.innerHTML = "";
+
+  // CARICA PIATTI
+  const { data: piatti } = await supabase
+    .from("preventivi_ricette")
+    .select("*")
+    .eq("preventivo_id", id);
+
+  piatti?.forEach(r => aggiungiRigaPiatto(r));
+
+  // CARICA EXTRA
+  const { data: extra } = await supabase
+    .from("preventivi_extra")
+    .select("*")
+    .eq("preventivo_id", id);
+
+  extra?.forEach(e => aggiungiRigaExtra(e));
+
+  calcolaTotaliPreventivo();
+
+  // SE ACCETTATO → MOSTRA CARD
+  prevAccontoCard.style.display = p.stato === "accettato" ? "block" : "none";
+  prevApriPrenotazioneBtn.style.display = p.stato === "accettato" ? "block" : "none";
+
+  // VISUALIZZA SEZIONE
+  showOnlyView("view-preventivi");
+  applyRoleVisibility();
+}
+
+// =========================================================
+// =================== EVENT LISTENERS ======================
+// =========================================================
+
+prevAddPiattoBtn?.addEventListener("click", () => aggiungiRigaPiatto());
+prevAddExtraBtn?.addEventListener("click", () => aggiungiRigaExtra());
+prevSalvaBtn?.addEventListener("click", salvaPreventivo);
+
+prevStato?.addEventListener("change", () => {
+  prevAccontoCard.style.display = prevStato.value === "accettato" ? "block" : "none";
+  prevApriPrenotazioneBtn.style.display = prevStato.value === "accettato" ? "block" : "none";
+  calcolaTotaliPreventivo();
+});
+
+prevAcconto?.addEventListener("input", calcolaTotaliPreventivo);
+
+// === Caricamento iniziale dei dati preventivi
+(async () => {
+  await caricaContatti();
+  await caricaRicettePreventivi();
+  await caricaCatalogoExtra();
+  await caricaPreventiviEsistenti();
+})();
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
