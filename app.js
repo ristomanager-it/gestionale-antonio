@@ -2181,56 +2181,9 @@ async function aggiornaCostoPiatto(div, force = true) {
 // =========================================================
 
 function aggiungiRigaExtra(extra = null) {
-  if (!prevExtraContainer) return;
-
-  const div = document.createElement("div");
-  div.className = "form-grid-2";
-  div.style.marginTop = "8px";
-
-  div.innerHTML = `
-    <label>
-      Servizio
-      <input class="input-pill prev-extra-desc" list="prev-extra-suggestions"
-             value="${extra?.descrizione || ""}">
-    </label>
-
-    <label>
-      Quantità
-      <input type="number" class="input-pill prev-extra-qty" min="1"
-             value="${extra?.quantita || 1}">
-    </label>
-
-    <label>
-      Prezzo unitario (€)
-      <input type="number" class="input-pill prev-extra-prezzo" step="0.01"
-             value="${extra?.prezzo_unitario || 0}">
-    </label>
-
-    <label>
-      Totale (€)
-      <input class="input-pill prev-extra-tot" readonly value="${extra?.prezzo_totale || 0}">
-    </label>
-
-    <button class="app-button tiny red prev-del-extra" type="button">X</button>
-  `;
-
-  prevExtraContainer.appendChild(div);
-
-  const upd = () => {
-    const q = parseFloat(div.querySelector(".prev-extra-qty").value || "1");
-    const p = parseFloat(div.querySelector(".prev-extra-prezzo").value || "0");
-    div.querySelector(".prev-extra-tot").value = (q * p).toFixed(2);
-    calcolaTotaliPreventivo();
-  };
-
-  div.querySelector(".prev-extra-qty").addEventListener("input", upd);
-  div.querySelector(".prev-extra-prezzo").addEventListener("input", upd);
-
-  div.querySelector(".prev-del-extra").addEventListener("click", () => {
-    div.remove();
-    calcolaTotaliPreventivo();
-  });
+  ...
 }
+
 
 // =========================================================
 // ================== CALCOLO TOTALI ========================
