@@ -1645,7 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===========================================================
+   // ===========================================================
   // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
   // ===========================================================
   let ricetteSuggestionsList = null;
@@ -1671,7 +1671,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // carica elenco ricette (solo dati base, non ingredienti)
+  // carica ricette da Supabase (solo per viewer)
   async function caricaRicetteDaSupabase() {
     if (!supabase) return;
 
@@ -1702,10 +1702,10 @@ document.addEventListener("DOMContentLoaded", () => {
     ricetteCache = data || [];
 
     aggiornaRicetteSuggestions();
-    applicaFiltroRicettario(); // render iniziale
+    applicaFiltroRicettario(); // all'ingresso mostra messaggio "digita il nome..."
   }
 
-  // carica ingredienti di UNA ricetta (per il viewer)
+  // carica ingredienti per una ricetta (solo lettura, viewer)
   async function caricaIngredientiRicettaViewer(ricettaId) {
     if (!supabase) return [];
 
@@ -1716,208 +1716,177 @@ document.addEventListener("DOMContentLoaded", () => {
       .order("id", { ascending: true });
 
     if (error) {
-      console.error("Errore caricamento ingredienti (viewer):", error);
+      console.error("Errore caricamento ingredienti ricetta (viewer):", error);
       return [];
     }
 
     return data || [];
   }
-async function apriRicettaInEditor(ricettaId) {
-  // sicurezza: solo manager/admin possono modificare
-  if (!currentUser || !isManagerRole(currentUser.ruolo)) return;
 
-  // Cambia route a "ricette" e mostra la view dell'editor
-  window.location.hash = "ricette";
-  showOnlyView("view-ricette");
+  // render delle card ricette nel ricettario
+  function renderRicetteViewer(lista, filtroTesto) {
+    const container = document.getElementById("ricette-lista-viewer");
+    if (!container) return;
 
-  // Inizializza l'editor (carica suggerimenti, reset form)
-  await onRouteEnter("ricette");
+    container.innerHTML = "";
 
-  // Sovrascrive il form con i dati della ricetta scelta
-  await caricaRicettaInForm(ricettaId);
-
-  applyRoleVisibility();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-  // Render ricette nel viewer (lista di card cliccabili)
-function renderRicetteViewer(lista, filtroTesto) {
-  const container = document.getElementById("ricette-lista-viewer");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  // Nessuna ricetta da mostrare
-  if (!lista.length) {
-    if (filtroTesto) {
-      container.innerHTML =
-        `<p>Nessuna ricetta trovata per "<strong>${filtroTesto}</strong>".</p>`;
-    } else {
-      container.innerHTML =
-        `<p>Digita il nome della ricetta nella casella sopra.</p>`;
-    }
-    return;
-  }
-
-  lista.forEach((r) => {
-    const card = document.createElement("div");
-    card.className = "timbratura-intro-card";
-
-    const base = r.pezzi_base || 0;
-    const f1Perc = r.formato1_percent || 100;
-    const f2Perc = r.formato2_percent || 0;
-
-    const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
-    const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
-
-    // Contenuto principale card
-    card.innerHTML = `
-      <h3 style="margin:0 0 4px">${r.nome}</h3>
-
-      <p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
-        ${r.descrizione || ""}
-      </p>
-
-      ${
-        base
-          ? `
-          <div style="font-size:12px; margin-bottom:4px;">
-            <strong>Quantità base:</strong> ${base} pezzi equivalenti
-          </div>
-          <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
-            <span><strong>${r.formato1_label || "Formato 1"}:</strong>
-              ${pezzi1 ? pezzi1.toFixed(1) : "-"} pz
-            </span>
-            ${
-              f2Perc
-                ? `<span><strong>${r.formato2_label || "Formato 2"}:</strong>
-                    ${pezzi2 ? pezzi2.toFixed(1) : "-"} pz
-                  </span>`
-                : ""
-            }
-          </div>
-        `
-          : ""
+    // Nessuna ricetta da mostrare
+    if (!lista.length) {
+      if (filtroTesto) {
+        container.innerHTML =
+          `<p>Nessuna ricetta trovata per "<strong>${filtroTesto}</strong>".</p>`;
+      } else {
+        container.innerHTML =
+          `<p>Digita il nome della ricetta nella casella sopra.</p>`;
       }
-
-      ${
-        r.note_procedimento
-          ? `
-        <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
-          <strong>Note:</strong> ${r.note_procedimento}
-        </p>`
-          : ""
-      }
-    `;
-
-    // 🔹 Bottone "Modifica" SOLO per admin / manager
-    if (currentUser && isManagerRole(currentUser.ruolo)) {
-      const footer = document.createElement("div");
-      footer.style.marginTop = "8px";
-      footer.style.display = "flex";
-      footer.style.justifyContent = "flex-end";
-
-      const btnMod = document.createElement("button");
-      btnMod.type = "button";
-      btnMod.className = "app-button tiny gray";
-      btnMod.textContent = "Modifica";
-
-      btnMod.addEventListener("click", (e) => {
-        e.stopPropagation(); // così non interferisce con altri click sulla card
-
-        // memorizzo l'id da aprire
-        ricettaDaAprireId = r.id;
-
-        // cambio route: partirà navigateTo("ricette") da hashchange
-        window.location.hash = "ricette";
-      });
-
-      footer.appendChild(btnMod);
-      card.appendChild(footer);
+      return;
     }
 
-    container.appendChild(card);
-  });
-}
+    lista.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "timbratura-intro-card";
+      card.style.cursor = "pointer";
 
-    // click sulla card: mostra / nasconde ingredienti (solo lettura)
-    card.addEventListener("click", async () => {
-      let ingBox = card.querySelector(".ricetta-ingredienti-viewer");
+      const base = r.pezzi_base || 0;
+      const f1Perc = r.formato1_percent || 100;
+      const f2Perc = r.formato2_percent || 0;
 
-      // se già aperti → chiudi
-      if (ingBox) {
-        ingBox.remove();
-        return;
+      const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
+      const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
+
+      // Contenuto principale card
+      card.innerHTML = `
+        <h3 style="margin:0 0 4px">${r.nome}</h3>
+
+        <p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
+          ${r.descrizione || ""}
+        </p>
+
+        ${
+          base
+            ? `
+            <div style="font-size:12px; margin-bottom:4px;">
+              <strong>Quantità base:</strong> ${base} pezzi equivalenti
+            </div>
+            <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
+              <span><strong>${r.formato1_label || "Formato 1"}:</strong>
+                ${pezzi1 ? pezzi1.toFixed(1) : "-"} pz
+              </span>
+              ${
+                f2Perc
+                  ? `<span><strong>${r.formato2_label || "Formato 2"}:</strong>
+                      ${pezzi2 ? pezzi2.toFixed(1) : "-"} pz
+                    </span>`
+                  : ""
+              }
+            </div>
+          `
+            : ""
+        }
+
+        ${
+          r.note_procedimento
+            ? `
+          <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+            <strong>Note:</strong> ${r.note_procedimento}
+          </p>`
+            : ""
+        }
+      `;
+
+      // 🔹 Bottone "Modifica" SOLO per admin / manager
+      if (currentUser && isManagerRole(currentUser.ruolo)) {
+        const footer = document.createElement("div");
+        footer.style.marginTop = "8px";
+        footer.style.display = "flex";
+        footer.style.justifyContent = "flex-end";
+
+        const btnMod = document.createElement("button");
+        btnMod.type = "button";
+        btnMod.className = "app-button tiny gray";
+        btnMod.textContent = "Modifica";
+
+        btnMod.addEventListener("click", (e) => {
+          e.stopPropagation(); // non triggera il click della card
+
+          // memorizzo l'id da aprire nell'editor
+          ricettaDaAprireId = r.id;
+
+          // cambio route: navigateTo("ricette") verrà invocato da hashchange
+          window.location.hash = "ricette";
+        });
+
+        footer.appendChild(btnMod);
+        card.appendChild(footer);
       }
 
-      // placeholder "caricamento..."
-      ingBox = document.createElement("div");
-      ingBox.className = "ricetta-ingredienti-viewer";
-      ingBox.style.marginTop = "8px";
-      ingBox.style.fontSize = "12px";
-      ingBox.innerHTML = "<em>Caricamento ingredienti...</em>";
-      card.appendChild(ingBox);
+      // click sulla card: mostra / nasconde ingredienti (solo lettura)
+      card.addEventListener("click", async () => {
+        let ingBox = card.querySelector(".ricetta-ingredienti-viewer");
 
-      const ingredienti = await caricaIngredientiRicettaViewer(r.id);
+        // se già aperti → chiudi
+        if (ingBox) {
+          ingBox.remove();
+          return;
+        }
 
-      if (!ingredienti.length) {
-        ingBox.innerHTML = "<em>Nessun ingrediente registrato.</em>";
-        return;
-      }
+        // placeholder "caricamento..."
+        ingBox = document.createElement("div");
+        ingBox.className = "ricetta-ingredienti-viewer";
+        ingBox.style.marginTop = "8px";
+        ingBox.style.fontSize = "12px";
+        ingBox.innerHTML = "<em>Caricamento ingredienti...</em>";
+        card.appendChild(ingBox);
 
-      const listaEl = document.createElement("ul");
-      listaEl.style.margin = "4px 0 0";
-      listaEl.style.paddingLeft = "18px";
+        const ingredienti = await caricaIngredientiRicettaViewer(r.id);
 
-      ingredienti.forEach((ing) => {
-        const li = document.createElement("li");
-        li.textContent = `${ing.nome_prodotto || ""} - ${ing.quantita || 0} ${
-          ing.unita_misura || ""
-        }`;
-        listaEl.appendChild(li);
+        if (!ingredienti.length) {
+          ingBox.innerHTML = "<em>Nessun ingrediente registrato.</em>";
+          return;
+        }
+
+        const listaEl = document.createElement("ul");
+        listaEl.style.margin = "4px 0 0";
+        listaEl.style.paddingLeft = "18px";
+
+        ingredienti.forEach((ing) => {
+          const li = document.createElement("li");
+          li.textContent = `${ing.nome_prodotto || ""} - ${ing.quantita || 0} ${
+            ing.unita_misura || ""
+          }`;
+          listaEl.appendChild(li);
+        });
+
+        ingBox.innerHTML = "<strong>Ingredienti:</strong>";
+        ingBox.appendChild(listaEl);
       });
 
-      ingBox.innerHTML = "<strong>Ingredienti:</strong>";
-      ingBox.appendChild(listaEl);
+      container.appendChild(card);
     });
-
-    container.appendChild(card);
-  });
+  }
 
   // Applica filtro di ricerca (per ora solo per nome)
   function applicaFiltroRicettario() {
-  const qRaw = ricetteSearchInput?.value || "";
-  const q = qRaw.toLowerCase().trim();
+    const qRaw = ricetteSearchInput?.value || "";
+    const q = qRaw.toLowerCase().trim();
 
-  // Se non c'è testo di ricerca → non mostrare ricette, solo un messaggio
-  if (!q) {
-    renderRicetteViewer([], "");
-    return;
+    // Se non c'è testo di ricerca → non mostrare ricette, solo un messaggio
+    if (!q) {
+      renderRicetteViewer([], "");
+      return;
+    }
+
+    const lista = ricetteCache.filter((r) =>
+      (r.nome || "").toLowerCase().includes(q)
+    );
+
+    renderRicetteViewer(lista, qRaw.trim());
   }
 
-  let lista = ricetteCache.filter((r) =>
-    (r.nome || "").toLowerCase().includes(q)
-  );
-
-  renderRicetteViewer(lista, qRaw.trim());
-}
-
-
-  // Ricerca ricette: FILTRA SOLO NEL VIEWER, NON APRE L'EDITOR
+  // Eventi sulla casella di ricerca ricette (viewer)
   if (ricetteSearchInput) {
     ricetteSearchInput.addEventListener("input", () => {
       applicaFiltroRicettario();
-    });
-
-    ricetteSearchInput.addEventListener("change", () => {
-      applicaFiltroRicettario();
-    });
-
-    ricetteSearchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        // niente invio / niente cambio pagina
-        e.preventDefault();
-      }
     });
   }
 
