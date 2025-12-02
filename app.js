@@ -3051,6 +3051,3 @@ document.addEventListener("DOMContentLoaded", () => {
       showLogin();
     }
   }
-
-  init();
-});
