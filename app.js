@@ -4068,23 +4068,22 @@ if (prevNInvitati) {
     }
   }
 
-  // ========= ROUTING =========
-  async function onRouteEnter(route) {
-    switch (route) {
-      case "timbratura":
-        await caricaTimbratureDaSupabase();
-        updateTimbraturaUserInfo();
-        break;
+ async function onRouteEnter(route) {
+  switch (route) {
+    case "timbratura":
+      await caricaTimbratureDaSupabase();
+      updateTimbraturaUserInfo();
+      break;
 
-      case "dipendenti":
-        await caricaDipendentiDaSupabase();
-        break;
+    case "dipendenti":
+      await caricaDipendentiDaSupabase();
+      break;
 
-        case "ricette":
-        await caricaProdottiPerRicette();
-        await caricaElencoRicette();
-        nuovaRicetta();
-        break;
+    case "ricette":
+      // Nuova logica: ricette con food cost
+      await caricaProdottiPerRicette();
+      await caricaElencoRicette();
+
       if (ricettaDaAprireId) {
         // se arrivo dal Ricettario con "Modifica"
         const idToOpen = ricettaDaAprireId;
@@ -4092,88 +4091,41 @@ if (prevNInvitati) {
         await caricaRicettaInForm(idToOpen);
       } else {
         // apertura normale: form vuoto
-        resetFormRicetta();
+        nuovaRicetta();
       }
       break;
 
+    case "ricette-viewer":
+      // schermata Ricettario (solo lettura)
+      await caricaRicetteDaSupabase();
+      break;
 
-      case "ricette-viewer":
-        await caricaRicetteDaSupabase();
-        break;
+    case "acquisti":
+      await caricaCategorieInCache();
+      await caricaFornitoriInCache();
+      await caricaMagazzinoDati();
+      resetFatturaForm();
+      await caricaElencoFatture();
+      break;
 
-      case "acquisti":
-        await caricaCategorieInCache();
-        await caricaFornitoriInCache();
-        await caricaMagazzinoDati();
-        resetFatturaForm();
-        await caricaElencoFatture();
-        break;
+    case "magazzino":
+      await caricaCategorieInCache();
+      await caricaMagazzinoDati();
+      popolaMagazzinoForm(null);
+      break;
 
-      case "magazzino":
-        await caricaCategorieInCache();
-        await caricaMagazzinoDati();
-        popolaMagazzinoForm(null);
-        break;
+    case "report":
+      // per ora non fa nulla, ma la view si apre
+      break;
 
-      case "report":
-        // logica futura per report
-        break;
+    case "venduto":
+      // logica futura per venduto del giorno
+      break;
 
-      case "venduto":
-        // logica futura per venduto del giorno
-        break;
-
-      default:
-        break;
-    }
+    default:
+      break;
   }
-
-  async function navigateTo(route) {
-    if (!currentUser) {
-      showLogin();
-      return;
-    }
-
-    const isManager = isManagerRole(currentUser.ruolo);
-
-    if (!isManager) {
-      if (
-        route === "timbratura" ||
-        route === "ordine" ||
-        route === "ricette-viewer"
-      ) {
-        showOnlyView(`view-${route}`);
-        await onRouteEnter(route);
-      } else {
-        showHomeDipendente();
-      }
-    } else {
-      let active = document.getElementById(`view-${route}`);
-      if (!active) {
-        route = "timbratura";
-        active = document.getElementById("view-timbratura");
-      }
-
-      showOnlyView(`view-${route}`);
-      await onRouteEnter(route);
-    }
-
-    applyRoleVisibility();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  routeButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const route = btn.getAttribute("data-route");
-      window.location.hash = route;
-      navigateTo(route);
-    });
-  });
-
-  window.addEventListener("hashchange", () => {
-    const route = window.location.hash.replace("#", "");
-    navigateTo(route);
-  });
+}
 
   // ========= AVVIO =========
   async function init() {
