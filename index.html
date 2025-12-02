@@ -1107,8 +1107,16 @@
     <h3>Dati evento</h3>
 
     <label>
-      Titolo evento
-      <input id="prev-titolo" class="input-pill" placeholder="Matrimonio, Compleanno…" />
+      Tipologia evento
+      <select id="prev-titolo" class="input-pill">
+        <option value="">Seleziona...</option>
+        <option value="Matrimonio">Matrimonio</option>
+        <option value="Compleanno">Compleanno</option>
+        <option value="Battesimo">Battesimo</option>
+        <option value="Comunione">Comunione</option>
+        <option value="Cresima">Cresima</option>
+        <option value="Altro">Altro</option>
+      </select>
     </label>
 
     <label>
@@ -1142,16 +1150,16 @@
     </label>
   </div>
 
-  <!-- MENU / PIATTI -->
+  <!-- MENÙ -->
   <div class="form-card" style="margin-top: 14px;">
-    <h3>Menù / Piatti</h3>
+    <h3>Menù</h3>
 
     <div id="prev-piatti-container"></div>
 
     <datalist id="prev-piatti-suggestions"></datalist>
 
     <button id="prev-add-piatto" class="app-button small gray" type="button" style="margin-top: 6px;">
-      + Aggiungi piatto
+      + Aggiungi portata
     </button>
   </div>
 
@@ -1172,18 +1180,23 @@
     <h3>Totali</h3>
 
     <label>
-      Totale piatti (€)
+      Totale menù (€)
       <input id="prev-totale-piatti" class="input-pill" readonly />
     </label>
 
     <label>
-      Totale extra (€)
+      Totale servizi extra (€)
       <input id="prev-totale-extra" class="input-pill" readonly />
     </label>
 
     <label>
       Totale preventivo (€)
       <input id="prev-totale" class="input-pill" readonly />
+    </label>
+
+    <label>
+      Prezzo a persona (€)
+      <input id="prev-totale-pp" class="input-pill" readonly />
     </label>
   </div>
 
