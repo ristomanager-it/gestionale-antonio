@@ -1889,10 +1889,6 @@ document.addEventListener("DOMContentLoaded", () => {
       applicaFiltroRicettario();
     });
   }
-// =========================================================
-// ===================== PREVENTIVI ========================
-// =========================================================
-
 // ==== RIFERIMENTI DOM ====
 const prevClienteNome = document.getElementById("prev-cliente-nome");
 const prevContattiList = document.getElementById("prev-contatti-list");
@@ -1943,37 +1939,42 @@ let serviziExtraCatalogo = [];
 // =========================================================
 
 async function caricaContatti() {
-  const { data, error } = await supabase
+  if (!supabase) return;
+
+  const res = await supabase
     .from("contatti")
     .select("*")
     .order("nome");
 
-  if (error) {
-    console.error("Errore caricando contatti:", error);
+  if (res.error) {
+    console.error("Errore caricando contatti:", res.error);
     return;
   }
 
-  contattiCache = data || [];
+  contattiCache = res.data || [];
   if (!prevContattiList) return;
   prevContattiList.innerHTML = "";
 
-  contattiCache.forEach((c) => {
+  contattiCache.forEach(function (c) {
     const opt = document.createElement("option");
-    opt.value = `${c.nome} ${c.cognome || ""}`.trim();
+    const nomeCompleto = (c.nome || "") + " " + (c.cognome || "");
+    opt.value = nomeCompleto.trim();
     prevContattiList.appendChild(opt);
   });
 }
 
 async function caricaRicettePreventivi() {
-  const { data, error } = await supabase
+  if (!supabase) return;
+
+  const res = await supabase
     .from("ricette")
     .select("id, nome");
 
-  if (!error && data) {
-    ricetteCachePreventivi = data;
+  if (!res.error && res.data) {
+    ricetteCachePreventivi = res.data;
     if (!prevPiattiSuggestions) return;
     prevPiattiSuggestions.innerHTML = "";
-    data.forEach((r) => {
+    res.data.forEach(function (r) {
       const opt = document.createElement("option");
       opt.value = r.nome;
       prevPiattiSuggestions.appendChild(opt);
@@ -1982,15 +1983,17 @@ async function caricaRicettePreventivi() {
 }
 
 async function caricaCatalogoExtra() {
-  const { data, error } = await supabase
+  if (!supabase) return;
+
+  const res = await supabase
     .from("extra_servizi_catalogo")
     .select("*");
 
-  if (!error && data) {
-    serviziExtraCatalogo = data;
+  if (!res.error && res.data) {
+    serviziExtraCatalogo = res.data;
     if (!prevExtraSuggestions) return;
     prevExtraSuggestions.innerHTML = "";
-    data.forEach((s) => {
+    res.data.forEach(function (s) {
       const opt = document.createElement("option");
       opt.value = s.nome;
       prevExtraSuggestions.appendChild(opt);
@@ -1999,50 +2002,50 @@ async function caricaCatalogoExtra() {
 }
 
 async function caricaPreventiviEsistenti() {
-  if (!prevLista) return;
+  if (!supabase || !prevLista) return;
 
-  const { data, error } = await supabase
+  const res = await supabase
     .from("preventivi")
-    .select(
-      `
-      *,
-      contatti:cliente_id (nome, cognome)
-    `
-    )
+    .select("*, contatti:cliente_id (nome, cognome)")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Errore caricando preventivi:", error);
+  if (res.error) {
+    console.error("Errore caricando preventivi:", res.error);
     return;
   }
 
   prevLista.innerHTML = "";
 
-  (data || []).forEach((p) => {
+  (res.data || []).forEach(function (p) {
     const tr = document.createElement("tr");
-    const clienteNome = p.contatti
-      ? `${p.contatti.nome || ""} ${p.contatti.cognome || ""}`.trim()
-      : "";
+    const cont = p.contatti || {};
+    const clienteNome = ((cont.nome || "") + " " + (cont.cognome || "")).trim();
+    const dataEvento = p.data_evento || "-";
+    const titolo = p.titolo_evento || "-";
+    const invitati = (p.n_invitati != null ? p.n_invitati : "-");
+    const totaleStr = (p.totale != null ? Number(p.totale).toFixed(2) : "0.00");
+    const stato = p.stato || "-";
 
-    tr.innerHTML = `
-      <td>${p.data_evento || "-"}</td>
-      <td>${clienteNome || "-"}</td>
-      <td>${p.titolo_evento || "-"}</td>
-      <td>${p.n_invitati || "-"}</td>
-      <td>${p.totale != null ? Number(p.totale).toFixed(2) : "0.00"}</td>
-      <td>${p.stato || "-"}</td>
-      <td>
-        <button class="app-button tiny gray" data-edit-prev="${p.id}">Apri</button>
-      </td>
-    `;
+    var html =
+      "<td>" + dataEvento + "</td>" +
+      "<td>" + (clienteNome || "-") + "</td>" +
+      "<td>" + titolo + "</td>" +
+      "<td>" + invitati + "</td>" +
+      "<td>" + totaleStr + "</td>" +
+      "<td>" + stato + "</td>" +
+      '<td><button class="app-button tiny gray" data-edit-prev="' + p.id + '">Apri</button></td>';
+
+    tr.innerHTML = html;
     prevLista.appendChild(tr);
   });
 
-  prevLista.querySelectorAll("[data-edit-prev]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = parseInt(btn.dataset.editPrev, 10);
-      if (Number.isNaN(id)) return;
-      caricaPreventivoInModifica(id);
+  const buttons = prevLista.querySelectorAll("[data-edit-prev]");
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const id = parseInt(btn.getAttribute("data-edit-prev"), 10);
+      if (!isNaN(id)) {
+        caricaPreventivoInModifica(id);
+      }
     });
   });
 }
@@ -2209,17 +2212,17 @@ async function aggiornaCostoPiatto(div, force) {
       .insert({
         nome: nome,
         descrizione: "Ricetta da completare",
-        tipo: "piatto",
+        tipo: "piatto"
       })
       .select()
       .single();
 
-    if (!inserimento.error && inserimento.data) {
+  if (!inserimento.error && inserimento.data) {
       ricettaId = inserimento.data.id;
 
       ricetteCachePreventivi.push({
         id: inserimento.data.id,
-        nome: nome,
+        nome: nome
       });
 
       if (prevPiattiSuggestions) {
@@ -2242,14 +2245,14 @@ async function aggiornaCostoPiatto(div, force) {
 // ======================= EXTRA ============================
 // =========================================================
 
-function aggiungiRigaExtra(extra = null) {
+function aggiungiRigaExtra(extra) {
   if (!prevExtraContainer) return;
 
   const div = document.createElement("div");
   div.className = "form-grid-2";
   div.style.marginTop = "8px";
 
-  // gestisco i valori in modo sicuro, senza ?.
+  // Valori iniziali sicuri
   const descVal =
     extra && typeof extra.descrizione !== "undefined"
       ? extra.descrizione
@@ -2259,82 +2262,99 @@ function aggiungiRigaExtra(extra = null) {
       ? extra.quantita
       : 1;
   const prezzoUnitVal =
-    extra && typeof extra.prezzo_unitario !== "undefined" && extra.prezzo_unitario !== null
+    extra &&
+    typeof extra.prezzo_unitario !== "undefined" &&
+    extra.prezzo_unitario !== null
       ? extra.prezzo_unitario
       : 0;
   const prezzoTotVal =
-    extra && typeof extra.prezzo_totale !== "undefined" && extra.prezzo_totale !== null
+    extra &&
+    typeof extra.prezzo_totale !== "undefined" &&
+    extra.prezzo_totale !== null
       ? extra.prezzo_totale
       : 0;
 
-  div.innerHTML = `
-    <label>
-      Servizio
-      <input
-        class="input-pill prev-extra-desc"
-        list="prev-extra-suggestions"
-        value="${descVal}"
-      >
-    </label>
+  // ====== Servizio ======
+  const labelServ = document.createElement("label");
+  const textServ = document.createTextNode("Servizio");
+  const inputServ = document.createElement("input");
+  inputServ.className = "input-pill prev-extra-desc";
+  inputServ.setAttribute("list", "prev-extra-suggestions");
+  inputServ.value = descVal;
 
-    <label>
-      Quantità
-      <input
-        type="number"
-        class="input-pill prev-extra-qty"
-        min="1"
-        value="${qtyVal}"
-      >
-    </label>
+  labelServ.appendChild(textServ);
+  labelServ.appendChild(document.createElement("br"));
+  labelServ.appendChild(inputServ);
 
-    <label>
-      Prezzo unitario (€)
-      <input
-        type="number"
-        class="input-pill prev-extra-prezzo"
-        step="0.01"
-        value="${prezzoUnitVal}"
-      >
-    </label>
+  // ====== Quantità ======
+  const labelQty = document.createElement("label");
+  const textQty = document.createTextNode("Quantità");
+  const inputQty = document.createElement("input");
+  inputQty.type = "number";
+  inputQty.className = "input-pill prev-extra-qty";
+  inputQty.min = "1";
+  inputQty.value = qtyVal;
 
-    <label>
-      Totale (€)
-      <input
-        class="input-pill prev-extra-tot"
-        readonly
-        value="${prezzoTotVal}"
-      >
-    </label>
+  labelQty.appendChild(textQty);
+  labelQty.appendChild(document.createElement("br"));
+  labelQty.appendChild(inputQty);
 
-    <button class="app-button tiny red prev-del-extra" type="button">X</button>
-  `;
+  // ====== Prezzo unitario ======
+  const labelPrezzo = document.createElement("label");
+  const textPrezzo = document.createTextNode("Prezzo unitario (€)");
+  const inputPrezzo = document.createElement("input");
+  inputPrezzo.type = "number";
+  inputPrezzo.className = "input-pill prev-extra-prezzo";
+  inputPrezzo.step = "0.01";
+  inputPrezzo.value = prezzoUnitVal;
+
+  labelPrezzo.appendChild(textPrezzo);
+  labelPrezzo.appendChild(document.createElement("br"));
+  labelPrezzo.appendChild(inputPrezzo);
+
+  // ====== Totale ======
+  const labelTot = document.createElement("label");
+  const textTot = document.createTextNode("Totale (€)");
+  const inputTot = document.createElement("input");
+  inputTot.className = "input-pill prev-extra-tot";
+  inputTot.readOnly = true;
+  inputTot.value = prezzoTotVal;
+
+  labelTot.appendChild(textTot);
+  labelTot.appendChild(document.createElement("br"));
+  labelTot.appendChild(inputTot);
+
+  // ====== Bottone elimina ======
+  const btnDel = document.createElement("button");
+  btnDel.type = "button";
+  btnDel.className = "app-button tiny red prev-del-extra";
+  btnDel.textContent = "X";
+
+  // Append a div
+  div.appendChild(labelServ);
+  div.appendChild(labelQty);
+  div.appendChild(labelPrezzo);
+  div.appendChild(labelTot);
+  div.appendChild(btnDel);
 
   prevExtraContainer.appendChild(div);
 
-  const qtyInput = div.querySelector(".prev-extra-qty");
-  const prezzoInput = div.querySelector(".prev-extra-prezzo");
-  const totInput = div.querySelector(".prev-extra-tot");
-  const btnDel = div.querySelector(".prev-del-extra");
-
-  const upd = () => {
-    const q = parseFloat(qtyInput.value || "1");
-    const p = parseFloat(prezzoInput.value || "0");
-    totInput.value = (q * p).toFixed(2);
+  // Funzione di aggiornamento totale
+  const aggiornaExtra = () => {
+    const q = parseFloat(inputQty.value || "1");
+    const p = parseFloat(inputPrezzo.value || "0");
+    inputTot.value = (q * p).toFixed(2);
     calcolaTotaliPreventivo();
   };
 
-  if (qtyInput) qtyInput.addEventListener("input", upd);
-  if (prezzoInput) prezzoInput.addEventListener("input", upd);
+  inputQty.addEventListener("input", aggiornaExtra);
+  inputPrezzo.addEventListener("input", aggiornaExtra);
 
-  if (btnDel) {
-    btnDel.addEventListener("click", () => {
-      div.remove();
-      calcolaTotaliPreventivo();
-    });
-  }
+  btnDel.addEventListener("click", () => {
+    div.remove();
+    calcolaTotaliPreventivo();
+  });
 }
-
-
 
 // =========================================================
 // ================== CALCOLO TOTALI ========================
@@ -2345,13 +2365,15 @@ function calcolaTotaliPreventivo() {
   let totExtra = 0;
 
   if (prevPiattiContainer) {
-    prevPiattiContainer.querySelectorAll(".prev-piatto-tot").forEach((el) => {
+    const righePiatti = prevPiattiContainer.querySelectorAll(".prev-piatto-tot");
+    righePiatti.forEach(function (el) {
       totPiatti += parseFloat(el.value || "0");
     });
   }
 
   if (prevExtraContainer) {
-    prevExtraContainer.querySelectorAll(".prev-extra-tot").forEach((el) => {
+    const righeExtra = prevExtraContainer.querySelectorAll(".prev-extra-tot");
+    righeExtra.forEach(function (el) {
       totExtra += parseFloat(el.value || "0");
     });
   }
@@ -2364,7 +2386,10 @@ function calcolaTotaliPreventivo() {
 
   // Prezzo a persona = (menù + extra) / n_invitati
   if (prevTotalePP) {
-    const nInv = parseFloat(prevNInvitati?.value || "0");
+    let nInv = 0;
+    if (prevNInvitati && prevNInvitati.value) {
+      nInv = parseFloat(prevNInvitati.value);
+    }
     if (nInv > 0) {
       prevTotalePP.value = (totale / nInv).toFixed(2);
     } else {
@@ -2373,7 +2398,10 @@ function calcolaTotaliPreventivo() {
   }
 
   if (prevStato && prevStato.value === "accettato" && prevSaldo) {
-    const ac = parseFloat(prevAcconto?.value || "0");
+    let ac = 0;
+    if (prevAcconto && prevAcconto.value) {
+      ac = parseFloat(prevAcconto.value || "0");
+    }
     prevSaldo.value = (totale - ac).toFixed(2);
   }
 }
@@ -2385,7 +2413,7 @@ function calcolaTotaliPreventivo() {
 async function salvaPreventivo() {
   if (!supabase) return;
 
-  const cliente = (prevClienteNome?.value || "").trim();
+  const cliente = prevClienteNome ? (prevClienteNome.value || "").trim() : "";
   if (!cliente) {
     alert("Seleziona un cliente.");
     return;
@@ -2393,11 +2421,10 @@ async function salvaPreventivo() {
 
   // TROVA O CREA CONTATTO
   let contattoId = null;
-  let contatto = contattiCache.find(
-    (c) =>
-      `${c.nome} ${c.cognome || ""}`.trim().toLowerCase() ===
-      cliente.toLowerCase()
-  );
+  let contatto = contattiCache.find(function (c) {
+    const nomeCompleto = (c.nome || "") + " " + (c.cognome || "");
+    return nomeCompleto.trim().toLowerCase() === cliente.toLowerCase();
+  });
 
   if (contatto) {
     contattoId = contatto.id;
@@ -2406,70 +2433,75 @@ async function salvaPreventivo() {
     const nome = parti.shift() || cliente;
     const cognome = parti.join(" ");
 
-    const { data, error } = await supabase
+    const resIns = await supabase
       .from("contatti")
       .insert({
-        nome,
+        nome: nome,
         cognome: cognome || null,
-        email: prevClienteEmail?.value || null,
-        telefono: prevClienteTelefono?.value || null,
+        email: prevClienteEmail ? (prevClienteEmail.value || null) : null,
+        telefono: prevClienteTelefono ? (prevClienteTelefono.value || null) : null
       })
       .select()
       .single();
 
-    if (error) {
-      console.error(error);
+    if (resIns.error) {
+      console.error(resIns.error);
       alert("Errore creando contatto");
       return;
     }
 
-    contattoId = data.id;
-    contattiCache.push(data);
+    contattoId = resIns.data.id;
+    contattiCache.push(resIns.data);
   }
 
   const payload = {
     cliente_id: contattoId,
-    titolo_evento: prevTitolo?.value || null,
-    tipo_servizio: prevTipoServizio?.value || null,
-    data_evento: prevDataEvento?.value || null,
-    n_invitati: prevNInvitati?.value ? parseInt(prevNInvitati.value, 10) : null,
-    location: prevLocation?.value || null,
-    note: prevNote?.value || null,
-    stato: prevStato?.value || "bozza",
-    acconto: prevAcconto?.value
-      ? parseFloat(prevAcconto.value || "0")
-      : 0,
-    totale: prevTotale?.value
-      ? parseFloat(prevTotale.value || "0")
-      : 0,
+    titolo_evento: prevTitolo ? (prevTitolo.value || null) : null,
+    tipo_servizio: prevTipoServizio ? (prevTipoServizio.value || null) : null,
+    data_evento: prevDataEvento ? (prevDataEvento.value || null) : null,
+    n_invitati:
+      prevNInvitati && prevNInvitati.value
+        ? parseInt(prevNInvitati.value, 10)
+        : null,
+    location: prevLocation ? (prevLocation.value || null) : null,
+    note: prevNote ? (prevNote.value || null) : null,
+    stato: prevStato ? (prevStato.value || "bozza") : "bozza",
+    acconto:
+      prevAcconto && prevAcconto.value
+        ? parseFloat(prevAcconto.value || "0")
+        : 0,
+    totale:
+      prevTotale && prevTotale.value
+        ? parseFloat(prevTotale.value || "0")
+        : 0
   };
 
   let id = preventivoCorrenteId;
 
   if (id) {
-    const { error } = await supabase
+    const resUpd = await supabase
       .from("preventivi")
       .update(payload)
       .eq("id", id);
 
-    if (error) {
-      console.error(error);
+    if (resUpd.error) {
+      console.error(resUpd.error);
       alert("Errore salvando preventivo");
       return;
     }
   } else {
-    const { data, error } = await supabase
+    const resNew = await supabase
       .from("preventivi")
       .insert(payload)
       .select()
       .single();
 
-    if (error) {
-      console.error(error);
+    if (resNew.error) {
+      console.error(resNew.error);
       alert("Errore creando preventivo");
       return;
     }
-    id = data.id;
+    id = resNew.data.id;
     preventivoCorrenteId = id;
   }
 
@@ -2477,22 +2509,25 @@ async function salvaPreventivo() {
   await supabase.from("preventivi_ricette").delete().eq("preventivo_id", id);
 
   if (prevPiattiContainer) {
-    for (const div of prevPiattiContainer.children) {
-      const nome = div.querySelector(".prev-piatto-nome")?.value || "";
-      const qty = div.querySelector(".prev-piatto-qty")?.value || 0;
-      const cu = div.querySelector(".prev-piatto-costo")?.value || 0;
-      const tot = div.querySelector(".prev-piatto-tot")?.value || 0;
+    const righe = prevPiattiContainer.children;
+    for (let i = 0; i < righe.length; i++) {
+      const div = righe[i];
+      const inputNome = div.querySelector(".prev-piatto-nome");
+      const inputQty = div.querySelector(".prev-piatto-qty");
+      const inputCU = div.querySelector(".prev-piatto-costo");
+      const inputTot = div.querySelector(".prev-piatto-tot");
 
-      if (!nome) continue;
+      const nomePiatto = inputNome ? (inputNome.value || "") : "";
+      if (!nomePiatto) continue;
 
       await supabase.from("preventivi_ricette").insert({
         preventivo_id: id,
         ricetta_id: div.dataset.ricettaId || null,
-        nome_piatto: nome,
-        quantita: qty,
-        costo_unitario: cu,
-        costo_totale: tot,
-        ricetta_completa: !!div.dataset.ricettaId,
+        nome_piatto: nomePiatto,
+        quantita: inputQty ? inputQty.value : 0,
+        costo_unitario: inputCU ? inputCU.value : 0,
+        costo_totale: inputTot ? inputTot.value : 0,
+        ricetta_completa: !!div.dataset.ricettaId
       });
     }
   }
@@ -2501,24 +2536,27 @@ async function salvaPreventivo() {
   await supabase.from("preventivi_extra").delete().eq("preventivo_id", id);
 
   if (prevExtraContainer) {
-    for (const div of prevExtraContainer.children) {
-      const desc = div.querySelector(".prev-extra-desc")?.value || "";
-      const qty = div.querySelector(".prev-extra-qty")?.value || 0;
-      const p = div.querySelector(".prev-extra-prezzo")?.value || 0;
+    const righeE = prevExtraContainer.children;
+    for (let i = 0; i < righeE.length; i++) {
+      const div = righeE[i];
+      const inputDesc = div.querySelector(".prev-extra-desc");
+      const inputQty = div.querySelector(".prev-extra-qty");
+      const inputPU = div.querySelector(".prev-extra-prezzo");
 
+      const desc = inputDesc ? (inputDesc.value || "") : "";
       if (!desc) continue;
 
       await supabase.from("preventivi_extra").insert({
         preventivo_id: id,
         descrizione: desc,
-        quantita: qty,
-        prezzo_unitario: p,
+        quantita: inputQty ? inputQty.value : 0,
+        prezzo_unitario: inputPU ? inputPU.value : 0
       });
     }
   }
 
   // GENERA PRENOTAZIONE SOLO SE ACCETTATO
-  if (prevStato?.value === "accettato") {
+  if (prevStato && prevStato.value === "accettato") {
     await generaPrenotazione(id);
   }
 
@@ -2533,31 +2571,34 @@ async function salvaPreventivo() {
 async function generaPrenotazione(id) {
   if (!supabase) return;
 
-  const ac = prevAcconto?.value
-    ? parseFloat(prevAcconto.value || "0")
-    : 0;
-  const tot = prevTotale?.value
-    ? parseFloat(prevTotale.value || "0")
-    : 0;
+  let ac = 0;
+  let tot = 0;
 
-  const { data: prev, error: ep } = await supabase
+  if (prevAcconto && prevAcconto.value) {
+    ac = parseFloat(prevAcconto.value || "0");
+  }
+  if (prevTotale && prevTotale.value) {
+    tot = parseFloat(prevTotale.value || "0");
+  }
+
+  const resPrev = await supabase
     .from("preventivi")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (ep || !prev) return;
+  if (resPrev.error || !resPrev.data) return;
 
-  const { error } = await supabase.from("prenotazioni").upsert({
+  const resPren = await supabase.from("prenotazioni").upsert({
     preventivo_id: id,
-    cliente_id: prev.cliente_id,
-    data_evento: prev.data_evento,
+    cliente_id: resPrev.data.cliente_id,
+    data_evento: resPrev.data.data_evento,
     acconto: ac,
-    saldo_residuo: tot - ac,
+    saldo_residuo: tot - ac
   });
 
-  if (error) {
-    console.error("Errore creando prenotazione:", error);
+  if (resPren.error) {
+    console.error("Errore creando prenotazione:", resPren.error);
   }
 }
 
@@ -2570,28 +2611,30 @@ async function caricaPreventivoInModifica(id) {
 
   preventivoCorrenteId = id;
 
-  const { data: p, error } = await supabase
+  const res = await supabase
     .from("preventivi")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error || !p) {
-    console.error(error);
+  if (res.error || !res.data) {
+    console.error(res.error);
     alert("Errore caricando preventivo");
     return;
   }
 
-  const contatto = contattiCache.find((c) => c.id === p.cliente_id);
+  const p = res.data;
+  const contatto = contattiCache.find(function (c) {
+    return c.id === p.cliente_id;
+  });
 
   if (contatto) {
-    if (prevClienteNome)
-      prevClienteNome.value = `${contatto.nome || ""} ${
-        contatto.cognome || ""
-      }`.trim();
+    if (prevClienteNome) {
+      const nomeCompleto = (contatto.nome || "") + " " + (contatto.cognome || "");
+      prevClienteNome.value = nomeCompleto.trim();
+    }
     if (prevClienteEmail) prevClienteEmail.value = contatto.email || "";
-    if (prevClienteTelefono)
-      prevClienteTelefono.value = contatto.telefono || "";
+    if (prevClienteTelefono) prevClienteTelefono.value = contatto.telefono || "";
   }
 
   if (prevTitolo) prevTitolo.value = p.titolo_evento || "";
@@ -2606,27 +2649,37 @@ async function caricaPreventivoInModifica(id) {
   if (prevPiattiContainer) prevPiattiContainer.innerHTML = "";
   if (prevExtraContainer) prevExtraContainer.innerHTML = "";
 
-  const { data: piatti } = await supabase
+  const resPiatti = await supabase
     .from("preventivi_ricette")
     .select("*")
     .eq("preventivo_id", id);
 
-  (piatti || []).forEach((r) => aggiungiRigaPiatto(r));
+  if (!resPiatti.error && resPiatti.data) {
+    resPiatti.data.forEach(function (riga) {
+      aggiungiRigaPiatto(riga);
+    });
+  }
 
-  const { data: extra } = await supabase
+  const resExtra = await supabase
     .from("preventivi_extra")
     .select("*")
     .eq("preventivo_id", id);
 
-  (extra || []).forEach((e) => aggiungiRigaExtra(e));
+  if (!resExtra.error && resExtra.data) {
+    resExtra.data.forEach(function (e) {
+      aggiungiRigaExtra(e);
+    });
+  }
 
   calcolaTotaliPreventivo();
 
-  if (prevAccontoCard)
+  if (prevAccontoCard) {
     prevAccontoCard.style.display = p.stato === "accettato" ? "block" : "none";
-  if (prevApriPrenotazioneBtn)
+  }
+  if (prevApriPrenotazioneBtn) {
     prevApriPrenotazioneBtn.style.display =
       p.stato === "accettato" ? "block" : "none";
+  }
 
   showOnlyView("view-preventivi");
   applyRoleVisibility();
@@ -2636,31 +2689,57 @@ async function caricaPreventivoInModifica(id) {
 // =================== EVENT LISTENERS ======================
 // =========================================================
 
-prevAddPiattoBtn?.addEventListener("click", () => aggiungiRigaPiatto());
-prevAddExtraBtn?.addEventListener("click", () => aggiungiRigaExtra());
-prevSalvaBtn?.addEventListener("click", salvaPreventivo);
+if (prevAddPiattoBtn) {
+  prevAddPiattoBtn.addEventListener("click", function () {
+    aggiungiRigaPiatto();
+  });
+}
 
-prevStato?.addEventListener("change", () => {
-  if (prevAccontoCard)
-    prevAccontoCard.style.display =
-      prevStato.value === "accettato" ? "block" : "none";
-  if (prevApriPrenotazioneBtn)
-    prevApriPrenotazioneBtn.style.display =
-      prevStato.value === "accettato" ? "block" : "none";
-  calcolaTotaliPreventivo();
-});
+if (prevAddExtraBtn) {
+  prevAddExtraBtn.addEventListener("click", function () {
+    aggiungiRigaExtra();
+  });
+}
 
-prevAcconto?.addEventListener("input", calcolaTotaliPreventivo);
-prevNInvitati?.addEventListener("input", calcolaTotaliPreventivo);
+if (prevSalvaBtn) {
+  prevSalvaBtn.addEventListener("click", function () {
+    salvaPreventivo();
+  });
+}
+
+if (prevStato) {
+  prevStato.addEventListener("change", function () {
+    if (prevAccontoCard) {
+      prevAccontoCard.style.display =
+        prevStato.value === "accettato" ? "block" : "none";
+    }
+    if (prevApriPrenotazioneBtn) {
+      prevApriPrenotazioneBtn.style.display =
+        prevStato.value === "accettato" ? "block" : "none";
+    }
+    calcolaTotaliPreventivo();
+  });
+}
+
+if (prevAcconto) {
+  prevAcconto.addEventListener("input", function () {
+    calcolaTotaliPreventivo();
+  });
+}
+
+if (prevNInvitati) {
+  prevNInvitati.addEventListener("input", function () {
+    calcolaTotaliPreventivo();
+  });
+}
 
 // === Caricamento iniziale dei dati preventivi
-(async () => {
+(async function () {
   await caricaContatti();
   await caricaRicettePreventivi();
   await caricaCatalogoExtra();
   await caricaPreventiviEsistenti();
 })();
-
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
