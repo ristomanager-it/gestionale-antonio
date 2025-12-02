@@ -594,152 +594,166 @@
             </label>
 
             <label>
-              Foto ricetta
-              <input
-                type="file"
-                id="ricetta-foto"
-                accept="image/*"
-              />
-            </label>
+              Foto <!-- RICETTE (MODIFICA) -->
+<section id="view-ricette" class="view" style="display: none">
+  <h2>Ricette</h2>
 
-            <h3>Resa ricetta</h3>
+  <form onsubmit="return false;">
+    
+    <!-- TIPO RICETTA -->
+    <label>
+      Tipo ricetta
+      <select id="ricetta-tipo" class="input-pill">
+        <option value="piatto">Ricetta (piatto finito)</option>
+        <option value="base">Ricetta base (preparazione)</option>
+      </select>
+    </label>
 
-            <div class="kpi-cards">
-              <div class="kpi-card">
-                <h3>Resa base</h3>
-                <label>
-                  Pezzi base (porzione 100%)
-                  <input
-                    type="number"
-                    id="ricetta-pezzi-base"
-                    class="input-pill"
-                    min="0"
-                    step="1"
-                    placeholder="Es. 10"
-                  />
-                </label>
-                <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
-                  Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
-                </p>
-              </div>
+    <label>
+      Nome ricetta
+      <input
+        type="text"
+        id="ricetta-nome"
+        class="input-pill"
+        placeholder="Es. Flan di patate"
+      />
+    </label>
 
-              <div class="kpi-card">
-                <h3>Formato 1</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato1-label"
-                    class="input-pill"
-                    placeholder="Es. Ristorante"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato1-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 100"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
-                </p>
-              </div>
+    <label>
+      Descrizione breve
+      <input
+        type="text"
+        id="ricetta-descrizione"
+        class="input-pill"
+        placeholder="Es. Antipasto al piatto o da buffet"
+      />
+    </label>
 
-              <div class="kpi-card">
-                <h3>Formato 2</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato2-label"
-                    class="input-pill"
-                    placeholder="Es. Ricevimento / Buffet"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato2-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 60 o 25"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
-                </p>
-              </div>
-            </div>
+    <label>
+      Note / Procedimento
+      <textarea
+        id="ricetta-note"
+        rows="4"
+        class="textarea-pill"
+      ></textarea>
+    </label>
 
-            <h3>Ingredienti</h3>
+    <label>
+      Foto ricetta
+      <input
+        type="file"
+        id="ricetta-foto"
+        accept="image/*"
+      />
+    </label>
 
-            <div id="ricetta-ingredienti-container"></div>
+    <h3>Resa ricetta</h3>
 
-            <datalist id="ingredienti-suggestions"></datalist>
+    <div class="kpi-cards">
+      <div class="kpi-card">
+        <h3>Resa base</h3>
+        <label>
+          Pezzi base (porzione 100%)
+          <input
+            type="number"
+            id="ricetta-pezzi-base"
+            class="input-pill"
+            min="0"
+            step="1"
+            placeholder="Es. 10"
+          />
+        </label>
+      </div>
 
-            <button
-              id="btn-add-ingrediente"
-              class="app-button small gray"
-              type="button"
-            >
-              + Aggiungi ingrediente
-            </button>
-
-            <button
-              id="btn-salva-ricetta"
-              class="app-button small green"
-              type="button"
-            >
-              Salva ricetta
-            </button>
-          </form>
-        </section>
-
-        <!-- RICETTARIO (SOLO LETTURA) -->
-        <section
-          id="view-ricette-viewer"
-          class="view"
-          style="display: none"
-        >
-          <h2>Ricettario</h2>
-          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-            Visualizza le ricette registrate, senza possibilità di modificarle.
-          </p>
-
-          <div style="margin-top:10px; margin-bottom:8px;">
-            <label style="display:block; font-size:13px; margin-bottom:4px;">
-              Cerca ricetta
-            </label>
+      <div class="kpi-card">
+        <h3>Formato 1</h3>
+        <label>
+          Nome formato
+          <input
+            type="text"
+            id="ricetta-formato1-label"
+            class="input-pill"
+            placeholder="Es. Ristorante"
+          />
+        </label>
+        <label>
+          Percentuale porzione
+          <div style="display:flex; align-items:center; gap:6px;">
             <input
-              id="ricette-search"
-              type="text"
+              type="number"
+              id="ricetta-formato1-percent"
               class="input-pill"
-              placeholder="Es. Flan di patate, Tiramisù..."
+              min="1"
+              max="500"
+              step="1"
+              placeholder="Es. 100"
+              style="max-width:120px;"
             />
+            <span style="font-size:13px;">%</span>
           </div>
+        </label>
+        <p style="margin-top:6px; font-size:13px;">
+          Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
+        </p>
+      </div>
 
-          <div
-            id="ricette-lista-viewer"
-            style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
-          ></div>
-        </section>
+      <div class="kpi-card">
+        <h3>Formato 2</h3>
+        <label>
+          Nome formato
+          <input
+            type="text"
+            id="ricetta-formato2-label"
+            class="input-pill"
+            placeholder="Es. Ricevimento / Buffet"
+          />
+        </label>
+        <label>
+          Percentuale porzione
+          <div style="display:flex; align-items:center; gap:6px;">
+            <input
+              type="number"
+              id="ricetta-formato2-percent"
+              class="input-pill"
+              min="1"
+              max="500"
+              step="1"
+              placeholder="Es. 60 o 25"
+              style="max-width:120px;"
+            />
+            <span style="font-size:13px;">%</span>
+          </div>
+        </label>
+        <p style="margin-top:6px; font-size:13px;">
+          Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
+        </p>
+      </div>
+    </div>
+
+    <h3>Ingredienti</h3>
+
+    <div id="ricetta-ingredienti-container"></div>
+
+    <datalist id="ingredienti-suggestions"></datalist>
+
+    <button
+      id="btn-add-ingrediente"
+      class="app-button small gray"
+      type="button"
+    >
+      + Aggiungi ingrediente
+    </button>
+
+    <button
+      id="btn-salva-ricetta"
+      class="app-button small green"
+      type="button"
+    >
+      Salva ricetta
+    </button>
+  </form>
+</section>
+
 
         <!-- REPORT KPI -->
         <section id="view-report" class="view" style="display: none">
