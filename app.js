@@ -1833,17 +1833,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Applica filtro di ricerca (per ora solo per nome)
   function applicaFiltroRicettario() {
-    let lista = ricetteCache;
+  const qRaw = ricetteSearchInput?.value || "";
+  const q = qRaw.toLowerCase().trim();
 
-    const q = (ricetteSearchInput?.value || "").toLowerCase().trim();
-    if (q) {
-      lista = lista.filter((r) =>
-        (r.nome || "").toLowerCase().includes(q)
-      );
-    }
-
-    renderRicetteViewer(lista);
+  // Se non c'è testo di ricerca → non mostrare ricette, solo un messaggio
+  if (!q) {
+    renderRicetteViewer([], "");
+    return;
   }
+
+  let lista = ricetteCache.filter((r) =>
+    (r.nome || "").toLowerCase().includes(q)
+  );
+
+  renderRicetteViewer(lista, qRaw.trim());
+}
+
 
   // Ricerca ricette: FILTRA SOLO NEL VIEWER, NON APRE L'EDITOR
   if (ricetteSearchInput) {
