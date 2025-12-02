@@ -1062,6 +1062,192 @@
             caricare il dettaglio.
           </p>
         </section>
+        <!-- ========================================================= -->
+<!-- ======================= PREVENTIVI ======================= -->
+<!-- ========================================================= -->
+<section id="view-preventivi" class="view" style="display: none;">
+
+  <h2>Preventivi</h2>
+  <p>Gestisci preventivi per eventi e cerimonie.</p>
+
+  <!-- DATI CLIENTE -->
+  <div class="form-card" style="margin-top: 12px;">
+    <h3>Dati cliente</h3>
+
+    <label>
+      Cliente
+      <input id="prev-cliente-nome" class="input-pill" list="prev-contatti-list" placeholder="Nome e cognome" />
+      <datalist id="prev-contatti-list"></datalist>
+    </label>
+
+    <div class="form-grid-2" style="margin-top: 8px;">
+      <label>
+        Email
+        <input id="prev-cliente-email" type="email" class="input-pill" readonly />
+      </label>
+
+      <label>
+        Telefono
+        <input id="prev-cliente-telefono" type="tel" class="input-pill" readonly />
+      </label>
+    </div>
+
+    <button id="prev-add-contatto" class="app-button small gray" type="button" style="margin-top: 8px;">
+      + Nuovo contatto
+    </button>
+  </div>
+
+  <!-- DATI EVENTO -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Dati evento</h3>
+
+    <label>
+      Titolo evento
+      <input id="prev-titolo" class="input-pill" placeholder="Matrimonio, Compleanno…" />
+    </label>
+
+    <label>
+      Tipo servizio
+      <select id="prev-tipo-servizio" class="input-pill">
+        <option value="buffet">A buffet</option>
+        <option value="servito">Servito al tavolo</option>
+      </select>
+    </label>
+
+    <div class="form-grid-2" style="margin-top: 8px;">
+      <label>
+        Data evento
+        <input id="prev-data-evento" type="date" class="input-pill" />
+      </label>
+
+      <label>
+        N. invitati
+        <input id="prev-n-invitati" type="number" class="input-pill" min="1" />
+      </label>
+    </div>
+
+    <label style="margin-top: 8px;">
+      Location
+      <input id="prev-location" class="input-pill" placeholder="Villa, Sala ricevimenti…" />
+    </label>
+
+    <label>
+      Note
+      <textarea id="prev-note" rows="3" class="textarea-pill"></textarea>
+    </label>
+  </div>
+
+  <!-- MENU / PIATTI -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Menù / Piatti</h3>
+
+    <div id="prev-piatti-container"></div>
+
+    <datalist id="prev-piatti-suggestions"></datalist>
+
+    <button id="prev-add-piatto" class="app-button small gray" type="button" style="margin-top: 6px;">
+      + Aggiungi piatto
+    </button>
+  </div>
+
+  <!-- SERVIZI EXTRA -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Servizi extra</h3>
+
+    <div id="prev-extra-container"></div>
+    <datalist id="prev-extra-suggestions"></datalist>
+
+    <button id="prev-add-extra" class="app-button small gray" type="button" style="margin-top: 6px;">
+      + Aggiungi servizio
+    </button>
+  </div>
+
+  <!-- TOTALI -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Totali</h3>
+
+    <label>
+      Totale piatti (€)
+      <input id="prev-totale-piatti" class="input-pill" readonly />
+    </label>
+
+    <label>
+      Totale extra (€)
+      <input id="prev-totale-extra" class="input-pill" readonly />
+    </label>
+
+    <label>
+      Totale preventivo (€)
+      <input id="prev-totale" class="input-pill" readonly />
+    </label>
+  </div>
+
+  <!-- STATO PREVENTIVO -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Stato preventivo</h3>
+
+    <label>
+      Stato
+      <select id="prev-stato" class="input-pill">
+        <option value="bozza">Bozza</option>
+        <option value="inviato">Inviato</option>
+        <option value="accettato">Accettato</option>
+        <option value="rifiutato">Rifiutato</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- ACCONTO (VISIBILE SOLO SE ACCETTATO) -->
+  <div id="prev-acconto-card" class="form-card" style="margin-top: 14px; display: none;">
+    <h3>Acconto</h3>
+
+    <label>
+      Importo acconto (€)
+      <input id="prev-acconto" type="number" step="0.01" class="input-pill" />
+    </label>
+
+    <label>
+      Saldo rimanente (€)
+      <input id="prev-saldo" class="input-pill" readonly />
+    </label>
+
+    <button id="prev-genera-prenotazione" class="app-button small green" type="button" style="margin-top: 8px;">
+      Genera prenotazione
+    </button>
+  </div>
+
+  <!-- BOTTONI FINALI -->
+  <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 8px;">
+    <button id="prev-salva" class="app-button green">Salva preventivo</button>
+    <button id="prev-stampa" class="app-button gray">Stampa</button>
+    <button id="prev-email" class="app-button gray">Invia email</button>
+
+    <button id="prev-apri-prenotazione" class="app-button gray" style="display: none;">
+      Vai alla prenotazione
+    </button>
+  </div>
+
+  <!-- ELENCO PREVENTIVI -->
+  <h3 style="margin-top: 20px;">Preventivi salvati</h3>
+  <div class="table-wrapper">
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Evento</th>
+          <th>Invitati</th>
+          <th>Totale</th>
+          <th>Stato</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="prev-lista"></tbody>
+    </table>
+  </div>
+
+</section>
+
 
         <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
         <section id="view-venduto" class="view" style="display: none">
