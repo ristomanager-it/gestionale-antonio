@@ -564,164 +564,116 @@
           </table>
         </section>
 
-        <!-- RICETTE (MODIFICA) -->
-        <section id="view-ricette" class="view" style="display: none">
-          <h2>Ricette</h2>
+       <!-- ========================================================= -->
+<!-- ======================= RICETTE ========================= -->
+<!-- ========================================================= -->
+<section id="view-ricette" class="view" style="display: none;">
+  <h2>Ricette e Food Cost</h2>
+  <p>Gestisci ingredienti, food cost e prezzi per ristorante ed eventi.</p>
 
-          <form onsubmit="return false;">
-            <!-- TIPO RICETTA -->
-            <label>
-              Tipo ricetta
-              <select id="ricetta-tipo" class="input-pill">
-                <option value="piatto">Ricetta (piatto finito)</option>
-                <option value="base">Ricetta base (preparazione)</option>
-              </select>
-            </label>
+  <!-- FORM RICETTA -->
+  <div class="form-card" style="margin-top: 12px;">
+    <h3>Dati ricetta</h3>
 
-            <label>
-              Nome ricetta
-              <input
-                type="text"
-                id="ricetta-nome"
-                class="input-pill"
-                placeholder="Es. Flan di patate"
-              />
-            </label>
+    <label>
+      Nome ricetta
+      <input id="ric-nome" class="input-pill" placeholder="Es. Risotto ai funghi" />
+    </label>
 
-            <label>
-              Descrizione breve
-              <input
-                type="text"
-                id="ricetta-descrizione"
-                class="input-pill"
-                placeholder="Es. Antipasto al piatto o da buffet"
-              />
-            </label>
+    <label>
+      Descrizione
+      <textarea id="ric-descrizione" rows="2" class="textarea-pill"></textarea>
+    </label>
 
-            <label>
-              Note / Procedimento
-              <textarea
-                id="ricetta-note"
-                rows="4"
-                class="textarea-pill"
-              ></textarea>
-            </label>
+    <label>
+      Note porzione base
+      <input id="ric-porzione-note" class="input-pill" placeholder="Es. per 1 porzione ristorante" />
+    </label>
+  </div>
 
-            <label>
-              Foto ricetta
-              <input
-                type="file"
-                id="ricetta-foto"
-                accept="image/*"
-              />
-            </label>
+  <!-- INGREDIENTI -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Ingredienti</h3>
 
-            <h3>Resa ricetta</h3>
+    <div id="ric-ingredienti-container"></div>
 
-            <div class="kpi-cards">
-              <div class="kpi-card">
-                <h3>Resa base</h3>
-                <label>
-                  Pezzi base (porzione 100%)
-                  <input
-                    type="number"
-                    id="ricetta-pezzi-base"
-                    class="input-pill"
-                    min="0"
-                    step="1"
-                    placeholder="Es. 10"
-                  />
-                </label>
-              </div>
+    <datalist id="ric-prodotti-suggestions"></datalist>
 
-              <div class="kpi-card">
-                <h3>Formato 1</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato1-label"
-                    class="input-pill"
-                    placeholder="Es. Ristorante"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato1-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 100"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
-                </p>
-              </div>
+    <button id="ric-add-ingrediente" class="app-button small gray" type="button" style="margin-top: 8px;">
+      + Aggiungi ingrediente
+    </button>
+  </div>
 
-              <div class="kpi-card">
-                <h3>Formato 2</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato2-label"
-                    class="input-pill"
-                    placeholder="Es. Ricevimento / Buffet"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato2-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 60 o 25"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
-                </p>
-              </div>
-            </div>
+  <!-- FOOD COST E PREZZI -->
+  <div class="form-card" style="margin-top: 14px;">
+    <h3>Food cost e prezzi</h3>
 
-            <h3>Ingredienti</h3>
+    <div class="form-grid-2">
+      <label>
+        Food cost base (senza sfrido) €
+        <input id="ric-costo-base" class="input-pill" readonly />
+      </label>
 
-            <div id="ricetta-ingredienti-container"></div>
+      <label>
+        Percentuale sfrido (%)
+        <input id="ric-sfrido" type="number" class="input-pill" min="0" max="100" step="0.1" value="15" />
+      </label>
+    </div>
 
-            <datalist id="ingredienti-suggestions"></datalist>
+    <label style="margin-top: 8px;">
+      Food cost con sfrido (€)
+      <input id="ric-costo-sfrido" class="input-pill" readonly />
+    </label>
 
-            <button
-              id="btn-add-ingrediente"
-              class="app-button small gray"
-              type="button"
-            >
-              + Aggiungi ingrediente
-            </button>
+    <div class="form-grid-2" style="margin-top: 8px;">
+      <label>
+        Coefficiente (markup)
+        <input id="ric-coefficiente" type="number" step="0.1" class="input-pill" value="3" />
+      </label>
 
-            <button
-              id="btn-salva-ricetta"
-              class="app-button small green"
-              type="button"
-            >
-              Salva ricetta
-            </button>
-          </form>
-        </section>
+      <label>
+        Fattore porzione evento
+        <input id="ric-fattore-evento" type="number" step="0.05" class="input-pill" value="0.6" />
+      </label>
+    </div>
+
+    <div class="form-grid-2" style="margin-top: 8px;">
+      <label>
+        Prezzo ristorante (€)
+        <input id="ric-prezzo-ristorante" class="input-pill" readonly />
+      </label>
+
+      <label>
+        Prezzo evento (€)
+        <input id="ric-prezzo-evento" class="input-pill" readonly />
+      </label>
+    </div>
+  </div>
+
+  <!-- BOTTONI -->
+  <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+    <button id="ric-salva" class="app-button green">Salva ricetta</button>
+    <button id="ric-nuova" class="app-button gray">Nuova ricetta</button>
+  </div>
+
+  <!-- ELENCO RICETTE -->
+  <h3 style="margin-top: 20px;">Ricette salvate</h3>
+  <div class="table-wrapper">
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Food cost (con sfrido)</th>
+          <th>Prezzo ristorante</th>
+          <th>Prezzo evento</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ricette-lista"></tbody>
+    </table>
+  </div>
+</section>
+
 
         <!-- RICETTARIO (SOLO LETTURA) -->
         <section
