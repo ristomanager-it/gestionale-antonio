@@ -322,70 +322,73 @@ document.addEventListener("DOMContentLoaded", () => {
     return 0;
   }
 
-  // ========= HEADER & VISIBILITÀ =========
-  function updateHeaderUser() {
-    if (!currentUserLabel) return;
+    // ========= ROUTING =========
 
-    if (!currentUser) {
-      currentUserLabel.textContent = "Nessun utente";
-    } else {
-      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
-      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
+  // variabile usata quando si arriva dal ricettario con "modifica"
+  let ricettaDaAprireId = null;
+
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
+        break;
+
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
+
+      case "ricette":
+        // nuova schermata ricette (food cost)
+        await caricaProdottiPerRicette();
+        await caricaElencoRicette();
+
+        if (ricettaDaAprireId) {
+          const idToOpen = ricettaDaAprireId;
+          ricettaDaAprireId = null;
+          await caricaRicettaInForm(idToOpen);
+        } else {
+          // form vuoto
+          if (typeof nuovaRicetta === "function") {
+            nuovaRicetta();
+          }
+        }
+        break;
+
+      case "ricette-viewer":
+        // ricettario solo lettura
+        if (typeof caricaRicetteDaSupabase === "function") {
+          await caricaRicetteDaSupabase();
+        }
+        break;
+
+      case "acquisti":
+        await caricaCategorieInCache();
+        await caricaFornitoriInCache();
+        await caricaMagazzinoDati();
+        resetFatturaForm();
+        await caricaElencoFatture();
+        break;
+
+      case "magazzino":
+        await caricaCategorieInCache();
+        await caricaMagazzinoDati();
+        popolaMagazzinoForm(null);
+        break;
+
+      case "report":
+        // per ora non carichiamo niente, ma la view si apre
+        break;
+
+      case "venduto":
+        // logica futura per venduto del giorno
+        break;
+
+      default:
+        break;
     }
-
-    if (btnLogout) {
-      btnLogout.style.display = currentUser ? "inline-block" : "none";
-    }
   }
 
-  function applyRoleVisibility() {
-    const modalita =
-      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
-
-    document
-      .querySelectorAll("[data-manager-only='true'], .manager-only")
-      .forEach((el) => {
-        el.style.display = modalita === "manager" ? "" : "none";
-      });
-
-    routeButtons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
-    });
-
-    if (managerMenu) {
-      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
-    }
-
-    updateHeaderUser();
-    updateTimbraturaUserInfo();
-  }
-
-  function showOnlyView(viewId) {
-    views.forEach((v) => {
-      v.style.display = v.id === viewId ? "block" : "none";
-    });
-  }
-
-  function showLogin() {
-    if (homeDipView) homeDipView.style.display = "none";
-    if (managerMenu) managerMenu.style.display = "none";
-    showOnlyView("view-login");
-    currentUser = null;
-    localStorage.removeItem(CURRENT_USER_KEY);
-    updateHeaderUser();
-  }
-
-  function showHomeDipendente() {
-    if (managerMenu) managerMenu.style.display = "none";
-    showOnlyView("view-home-dip");
-    applyRoleVisibility();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
   async function navigateTo(route) {
     if (!currentUser) {
       showLogin();
@@ -395,7 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isManager = isManagerRole(currentUser.ruolo);
 
     if (!isManager) {
-      // dipendenti "normali" possono vedere solo alcune view
+      // dipendenti "semplici": poche view ammesse
       if (
         route === "timbratura" ||
         route === "ordine" ||
@@ -424,75 +427,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showManagerMenuAndRoute(initialRoute) {
     if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
-    applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
+    const route = initialRoute || "timbratura";
+    // aggiorno hash e uso sempre navigateTo
+    window.location.hash = route;
+    navigateTo(route);
   }
 
-  function showManagerMenuAndRoute(initialRoute) {
-    if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
-    applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
-  }
-
-  function setCurrentUser(user, persist) {
-    currentUser = {
-      id: user.id ?? null,
-      nome: user.nome,
-      ruolo: user.ruolo || "",
-      canalePrevalente: user.canalePrevalente || "NR",
-      virtualAdmin: !!user.virtualAdmin,
-    };
-
-    if (persist) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
-
-    updateHeaderUser();
-    applyRoleVisibility();
-  }
-
-  function restoreUserFromStorage() {
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    if (!raw) return;
-    try {
-      const saved = JSON.parse(raw);
-      if (!saved) return;
-
-      if (saved.virtualAdmin) {
-        currentUser = saved;
-        applyRoleVisibility();
-        return;
-      }
-
-      const found = dipendenti.find((d) => d.id === saved.id);
-      if (found) {
-        setCurrentUser(found, true);
-        return;
-      }
-
-      const byName = dipendenti.find(
-        (d) =>
-          d.nome &&
-          d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
-      );
-      if (byName) {
-        setCurrentUser(byName, true);
-        return;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      showLogin();
+  // click sui pulsanti di menu
+  routeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const route = btn.getAttribute("data-route");
+      window.location.hash = route;
+      navigateTo(route);
     });
-  }
+  });
+
+  // supporto cambio hash manuale / refresh
+  window.addEventListener("hashchange", () => {
+    const route = window.location.hash.replace("#", "") || "timbratura";
+    navigateTo(route);
+  });
 
   // ========= DIPENDENTI =========
   function aggiornaUICompenso() {
