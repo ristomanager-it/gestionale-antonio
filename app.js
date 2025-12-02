@@ -2130,12 +2130,7 @@ async function aggiornaCostoPiatto(div, force = true) {
     // Food cost: somma quantità * costo_medio del prodotto
     const { data: ingredienti, error } = await supabase
       .from("ricette_ingredienti")
-      .select(
-        `
-        quantita,
-        prodotto:prodotto_id (costo_medio)
-      `
-      )
+      .select("quantita, prodotto:prodotto_id (costo_medio)")
       .eq("ricetta_id", ric.id);
 
     if (!error && ingredienti) {
@@ -2173,7 +2168,10 @@ async function aggiornaCostoPiatto(div, force = true) {
     }
   }
 
+  // Salvo l'id ricetta sulla riga per il salvataggio
   div.dataset.ricettaId = ricettaId;
+
+  // Aggiorno i campi costo unitario e totale riga
   costoInput.value = prezzoUnitario.toFixed(2);
   totInput.value = (prezzoUnitario * qty).toFixed(2);
 }
