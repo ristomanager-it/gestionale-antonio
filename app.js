@@ -1642,7 +1642,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===========================================================
+   // ===========================================================
   // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
   // ===========================================================
   let ricetteSuggestionsList = null;
@@ -1698,14 +1698,10 @@ document.addEventListener("DOMContentLoaded", () => {
     ricetteCache = data || [];
 
     aggiornaRicetteSuggestions();
-
-    const container = document.getElementById("ricette-lista-viewer");
-    if (container) {
-      container.innerHTML = "";
-    }
+    applicaFiltroRicettario(); // render iniziale
   }
 
-  // funzione di render opzionale (se un giorno vorrai rivedere la lista sotto)
+  // Render semplice del ricettario (solo lettura)
   function renderRicetteViewer(lista) {
     const container = document.getElementById("ricette-lista-viewer");
     if (!container) return;
@@ -1771,45 +1767,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Ricerca ricette: selezione dal datalist → apre schermata Ricette (modifica)
-  if (ricetteSearchInput) {
-    function apriRicettaDaSearch() {
-      const q = (ricetteSearchInput.value || "").toLowerCase().trim();
-      if (!q) return;
+  // Applica filtro di ricerca (solo per nome, per ora)
+  function applicaFiltroRicettario() {
+    let lista = ricetteCache;
 
-      const found = ricetteCache.find(
-        (r) => (r.nome || "").toLowerCase() === q
+    const q = (ricetteSearchInput?.value || "").toLowerCase().trim();
+    if (q) {
+      lista = lista.filter((r) =>
+        (r.nome || "").toLowerCase().includes(q)
       );
-
-      if (!found) {
-        alert("Ricetta non trovata");
-        return;
-      }
-
-      ricettaDaAprireId = found.id;
-      window.location.hash = "ricette";
     }
 
-    ricetteSearchInput.addEventListener("change", apriRicettaDaSearch);
+    renderRicetteViewer(lista);
+  }
+
+  // Ricerca ricette: FILTRA SOLO NEL VIEWER, NON APRE L'EDITOR
+  if (ricetteSearchInput) {
+    ricetteSearchInput.addEventListener("input", () => {
+      applicaFiltroRicettario();
+    });
+
+    ricetteSearchInput.addEventListener("change", () => {
+      applicaFiltroRicettario();
+    });
 
     ricetteSearchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
+        // niente invio / niente cambio pagina
         e.preventDefault();
-        apriRicettaDaSearch();
-      }
-    });
-
-    ricetteSearchInput.addEventListener("input", () => {
-      const q = (ricetteSearchInput.value || "").trim();
-      const found = ricetteCache.find(
-        (r) => (r.nome || "").toLowerCase() === q.toLowerCase()
-      );
-      if (found) {
-        ricettaDaAprireId = found.id;
-        window.location.hash = "ricette";
       }
     });
   }
+
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
