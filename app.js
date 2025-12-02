@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUser = null;
   let periodoCorrente = "oggi";
 
-  let ricettaCorrenteId = null;
+  
   let ricettaFotoCorrenteUrl = null;
   let ricetteCache = [];
   // ricettaDaAprireId NON più usata dal viewer (solo da eventuale logica futura)
