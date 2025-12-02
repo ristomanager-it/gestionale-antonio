@@ -2181,8 +2181,97 @@ async function aggiornaCostoPiatto(div, force = true) {
 // =========================================================
 
 function aggiungiRigaExtra(extra = null) {
-  ...
+  if (!prevExtraContainer) return;
+
+  const div = document.createElement("div");
+  div.className = "form-grid-2";
+  div.style.marginTop = "8px";
+
+  // gestisco i valori in modo sicuro, senza ?.
+  const descVal =
+    extra && typeof extra.descrizione !== "undefined"
+      ? extra.descrizione
+      : "";
+  const qtyVal =
+    extra && typeof extra.quantita !== "undefined" && extra.quantita !== null
+      ? extra.quantita
+      : 1;
+  const prezzoUnitVal =
+    extra && typeof extra.prezzo_unitario !== "undefined" && extra.prezzo_unitario !== null
+      ? extra.prezzo_unitario
+      : 0;
+  const prezzoTotVal =
+    extra && typeof extra.prezzo_totale !== "undefined" && extra.prezzo_totale !== null
+      ? extra.prezzo_totale
+      : 0;
+
+  div.innerHTML = `
+    <label>
+      Servizio
+      <input
+        class="input-pill prev-extra-desc"
+        list="prev-extra-suggestions"
+        value="${descVal}"
+      >
+    </label>
+
+    <label>
+      Quantità
+      <input
+        type="number"
+        class="input-pill prev-extra-qty"
+        min="1"
+        value="${qtyVal}"
+      >
+    </label>
+
+    <label>
+      Prezzo unitario (€)
+      <input
+        type="number"
+        class="input-pill prev-extra-prezzo"
+        step="0.01"
+        value="${prezzoUnitVal}"
+      >
+    </label>
+
+    <label>
+      Totale (€)
+      <input
+        class="input-pill prev-extra-tot"
+        readonly
+        value="${prezzoTotVal}"
+      >
+    </label>
+
+    <button class="app-button tiny red prev-del-extra" type="button">X</button>
+  `;
+
+  prevExtraContainer.appendChild(div);
+
+  const qtyInput = div.querySelector(".prev-extra-qty");
+  const prezzoInput = div.querySelector(".prev-extra-prezzo");
+  const totInput = div.querySelector(".prev-extra-tot");
+  const btnDel = div.querySelector(".prev-del-extra");
+
+  const upd = () => {
+    const q = parseFloat(qtyInput.value || "1");
+    const p = parseFloat(prezzoInput.value || "0");
+    totInput.value = (q * p).toFixed(2);
+    calcolaTotaliPreventivo();
+  };
+
+  if (qtyInput) qtyInput.addEventListener("input", upd);
+  if (prezzoInput) prezzoInput.addEventListener("input", upd);
+
+  if (btnDel) {
+    btnDel.addEventListener("click", () => {
+      div.remove();
+      calcolaTotaliPreventivo();
+    });
+  }
 }
+
 
 
 // =========================================================
