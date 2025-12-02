@@ -4080,10 +4080,11 @@ if (prevNInvitati) {
         await caricaDipendentiDaSupabase();
         break;
 
-         case "ricette":
-      // carico suggerimenti ingredienti da magazzino
-      await caricaProdottiSuggerimentiIngredienti();
-
+        case "ricette":
+        await caricaProdottiPerRicette();
+        await caricaElencoRicette();
+        nuovaRicetta();
+        break;
       if (ricettaDaAprireId) {
         // se arrivo dal Ricettario con "Modifica"
         const idToOpen = ricettaDaAprireId;
