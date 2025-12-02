@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (EDIT) ----------
+  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
   const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
   const ricettaNoteInput = document.getElementById("ricetta-note");
@@ -159,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let ricettaCorrenteId = null;
   let ricettaFotoCorrenteUrl = null;
   let ricetteCache = [];
-  let ricettaDaAprireId = null; // per aprire la ricetta scelta dal ricettario
+  // ricettaDaAprireId NON più usata dal viewer (solo da eventuale logica futura)
 
   let currentFatturaId = null;
   let fornitoriCache = [];
@@ -1312,6 +1313,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ricettaCorrenteId = null;
     ricettaFotoCorrenteUrl = null;
 
+    if (ricettaTipoSelect) ricettaTipoSelect.value = "piatto";
+
     ricettaNomeInput.value = "";
     if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
     if (ricettaNoteInput) ricettaNoteInput.value = "";
@@ -1642,26 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-   // ===========================================================
-  // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
   // ===========================================================
-  let ricetteSuggestionsList = null;
-
-  // creo il datalist per l'autocompletamento del ricettario
-  if (ricetteSearchInput) {
-    ricetteSuggestionsList = document.createElement("datalist");
-    ricetteSuggestionsList.id = "ricette-suggestions";
-    document.body.appendChild(ricetteSuggestionsList);
-    ricetteSearchInput.setAttribute("list", "ricette-suggestions");
-  }
-
-  // aggiorna le opzioni del datalist con i nomi delle ricette
-  function aggiornaRicetteSuggestions() {
-    if (!ricetteSuggestionsList) return;
-    ricetteSuggestionsList.innerHTML = "";
-
-    ricetteCache.forEach((r) => {
-      if (!r.nome) return;  // ===========================================================
   // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
   // ===========================================================
   let ricetteSuggestionsList = null;
@@ -1878,7 +1862,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
@@ -2941,13 +2924,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       case "ricette":
         await caricaProdottiSuggerimentiIngredienti();
-        if (ricettaDaAprireId) {
-          const idToOpen = ricettaDaAprireId;
-          ricettaDaAprireId = null;
-          await caricaRicettaInForm(idToOpen);
-        } else {
-          resetFormRicetta();
-        }
+        resetFormRicetta();
         break;
 
       case "ricette-viewer":
@@ -3051,3 +3028,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showLogin();
     }
   }
+
+  init();
+});
