@@ -2563,6 +2563,318 @@ async function salvaPreventivo() {
   alert("Preventivo salvato.");
   await caricaPreventiviEsistenti();
 }
+// =========================================================
+// ============ STAMPA & EMAIL PREVENTIVO ==================
+// =========================================================
+
+function raccogliDatiPreventivoCorrente() {
+  // Cliente
+  var clienteNome = prevClienteNome ? (prevClienteNome.value || "") : "";
+  var clienteEmail = prevClienteEmail ? (prevClienteEmail.value || "") : "";
+  var clienteTelefono = prevClienteTelefono ? (prevClienteTelefono.value || "") : "";
+
+  // Evento
+  var titoloEvento = prevTitolo ? (prevTitolo.value || "") : "";
+  var tipoServizio = prevTipoServizio ? (prevTipoServizio.value || "") : "";
+  var dataEvento = prevDataEvento ? (prevDataEvento.value || "") : "";
+  var nInvitati = prevNInvitati && prevNInvitati.value ? parseInt(prevNInvitati.value, 10) : 0;
+  var locationEvento = prevLocation ? (prevLocation.value || "") : "";
+  var note = prevNote ? (prevNote.value || "") : "";
+
+  // Totali
+  var totMenù = prevTotalePiatti ? (prevTotalePiatti.value || "0") : "0";
+  var totExtra = prevTotaleExtra ? (prevTotaleExtra.value || "0") : "0";
+  var totPreventivo = prevTotale ? (prevTotale.value || "0") : "0";
+  var totPP = prevTotalePP ? (prevTotalePP.value || "") : "";
+
+  var accontoVal = prevAcconto && prevAcconto.value ? prevAcconto.value : "";
+  var saldoVal = prevSaldo && prevSaldo.value ? prevSaldo.value : "";
+
+  // Righe menù
+  var righeMenu = [];
+  if (prevPiattiContainer) {
+    var righeP = prevPiattiContainer.children;
+    for (var i = 0; i < righeP.length; i++) {
+      var div = righeP[i];
+      var nome = div.querySelector(".prev-piatto-nome");
+      var qty = div.querySelector(".prev-piatto-qty");
+      var cu = div.querySelector(".prev-piatto-costo");
+      var tot = div.querySelector(".prev-piatto-tot");
+
+      var riga = {
+        nome: nome ? (nome.value || "") : "",
+        quantita: qty ? (qty.value || "") : "",
+        costoUnitario: cu ? (cu.value || "") : "",
+        totale: tot ? (tot.value || "") : ""
+      };
+      if (riga.nome) {
+        righeMenu.push(riga);
+      }
+    }
+  }
+
+  // Righe extra
+  var righeExtra = [];
+  if (prevExtraContainer) {
+    var righeE = prevExtraContainer.children;
+    for (var j = 0; j < righeE.length; j++) {
+      var d = righeE[j];
+      var desc = d.querySelector(".prev-extra-desc");
+      var q = d.querySelector(".prev-extra-qty");
+      var pu = d.querySelector(".prev-extra-prezzo");
+      var totE = d.querySelector(".prev-extra-tot");
+
+      var rigaE = {
+        descrizione: desc ? (desc.value || "") : "",
+        quantita: q ? (q.value || "") : "",
+        prezzoUnitario: pu ? (pu.value || "") : "",
+        totale: totE ? (totE.value || "") : ""
+      };
+      if (rigaE.descrizione) {
+        righeExtra.push(rigaE);
+      }
+    }
+  }
+
+  return {
+    clienteNome: clienteNome,
+    clienteEmail: clienteEmail,
+    clienteTelefono: clienteTelefono,
+    titoloEvento: titoloEvento,
+    tipoServizio: tipoServizio,
+    dataEvento: dataEvento,
+    nInvitati: nInvitati,
+    locationEvento: locationEvento,
+    note: note,
+    totMenù: totMenù,
+    totExtra: totExtra,
+    totPreventivo: totPreventivo,
+    totPP: totPP,
+    acconto: accontoVal,
+    saldo: saldoVal,
+    righeMenu: righeMenu,
+    righeExtra: righeExtra
+  };
+}
+
+function stampaPreventivoCorrente() {
+  var dati = raccogliDatiPreventivoCorrente();
+
+  var titolo = "Preventivo " + (dati.titoloEvento || "");
+  var win = window.open("", "_blank");
+
+  if (!win) {
+    alert("Blocca pop-up attivo: consenti la finestra di stampa.");
+    return;
+  }
+
+  var html = "";
+  html += "<!DOCTYPE html><html><head><meta charset='utf-8'>";
+  html += "<title>" + titolo + "</title>";
+  html += "<style>";
+  html += "body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; color: #222; }";
+  html += "h1,h2,h3 { margin: 0 0 8px; }";
+  html += ".header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }";
+  html += ".logo { font-size: 20px; font-weight: bold; }";
+  html += ".azienda-contatti { font-size: 12px; text-align: right; }";
+  html += ".box { border: 1px solid #ccc; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }";
+  html += ".titolo-box { font-weight: 600; margin-bottom: 6px; font-size: 14px; }";
+  html += "table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }";
+  html += "th, td { border: 1px solid #ccc; padding: 4px 6px; }";
+  html += "th { background: #f2f2f2; text-align: left; }";
+  html += "td.num { text-align: right; }";
+  html += ".totale-row td { font-weight: bold; }";
+  html += ".note { font-size: 12px; white-space: pre-wrap; }";
+  html += "@media print { body { margin: 10mm; } }";
+  html += "</style></head><body>";
+
+  // intestazione con logo + dati azienda
+  html += "<div class='header'>";
+  html += "<div class='logo'>LOGO / Nome Ristorante</div>";
+  html += "<div class='azienda-contatti'>";
+  html += "Indirizzo azienda<br>";
+  html += "Telefono / Email<br>";
+  html += "</div>";
+  html += "</div>";
+
+  // titolo preventivo
+  html += "<h1>Preventivo evento</h1>";
+
+  // dati cliente
+  html += "<div class='box'>";
+  html += "<div class='titolo-box'>Cliente</div>";
+  html += "<div>" + (dati.clienteNome || "-") + "</div>";
+  if (dati.clienteEmail) {
+    html += "<div>Email: " + dati.clienteEmail + "</div>";
+  }
+  if (dati.clienteTelefono) {
+    html += "<div>Telefono: " + dati.clienteTelefono + "</div>";
+  }
+  html += "</div>";
+
+  // dati evento
+  html += "<div class='box'>";
+  html += "<div class='titolo-box'>Dettagli evento</div>";
+  html += "<div>Tipologia evento: " + (dati.titoloEvento || "-") + "</div>";
+  html += "<div>Tipo servizio: " + (dati.tipoServizio || "-") + "</div>";
+  html += "<div>Data evento: " + (dati.dataEvento || "-") + "</div>";
+  html += "<div>Numero invitati: " + (dati.nInvitati || "-") + "</div>";
+  if (dati.locationEvento) {
+    html += "<div>Location: " + dati.locationEvento + "</div>";
+  }
+  html += "</div>";
+
+  // Menù
+  html += "<div class='box'>";
+  html += "<div class='titolo-box'>Menù</div>";
+  if (dati.righeMenu.length === 0) {
+    html += "<div>Nessuna portata inserita.</div>";
+  } else {
+    html += "<table>";
+    html += "<thead><tr><th>Portata</th><th>Quantità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead>";
+    html += "<tbody>";
+    for (var i = 0; i < dati.righeMenu.length; i++) {
+      var r = dati.righeMenu[i];
+      html += "<tr>";
+      html += "<td>" + r.nome + "</td>";
+      html += "<td class='num'>" + (r.quantita || "") + "</td>";
+      html += "<td class='num'>" + (r.costoUnitario || "") + "</td>";
+      html += "<td class='num'>" + (r.totale || "") + "</td>";
+      html += "</tr>";
+    }
+    html += "</tbody>";
+    html += "</table>";
+  }
+  html += "</div>";
+
+  // Servizi extra
+  html += "<div class='box'>";
+  html += "<div class='titolo-box'>Servizi extra</div>";
+  if (dati.righeExtra.length === 0) {
+    html += "<div>Nessun servizio extra.</div>";
+  } else {
+    html += "<table>";
+    html += "<thead><tr><th>Servizio</th><th>Quantità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead>";
+    html += "<tbody>";
+    for (var j = 0; j < dati.righeExtra.length; j++) {
+      var e = dati.righeExtra[j];
+      html += "<tr>";
+      html += "<td>" + e.descrizione + "</td>";
+      html += "<td class='num'>" + (e.quantita || "") + "</td>";
+      html += "<td class='num'>" + (e.prezzoUnitario || "") + "</td>";
+      html += "<td class='num'>" + (e.totale || "") + "</td>";
+      html += "</tr>";
+    }
+    html += "</tbody>";
+    html += "</table>";
+  }
+  html += "</div>";
+
+  // Totali
+  html += "<div class='box'>";
+  html += "<div class='titolo-box'>Riepilogo economico</div>";
+  html += "<table>";
+  html += "<tbody>";
+  html += "<tr><td>Totale menù</td><td class='num'>" + (dati.totMenù || "0") + " €</td></tr>";
+  html += "<tr><td>Totale servizi extra</td><td class='num'>" + (dati.totExtra || "0") + " €</td></tr>";
+  html += "<tr class='totale-row'><td>Totale preventivo</td><td class='num'>" + (dati.totPreventivo || "0") + " €</td></tr>";
+  if (dati.totPP) {
+    html += "<tr><td>Prezzo a persona</td><td class='num'>" + dati.totPP + " €</td></tr>";
+  }
+  if (dati.acconto) {
+    html += "<tr><td>Acconto</td><td class='num'>-" + dati.acconto + " €</td></tr>";
+  }
+  if (dati.saldo) {
+    html += "<tr><td>Saldo da versare</td><td class='num'>" + dati.saldo + " €</td></tr>";
+  }
+  html += "</tbody>";
+  html += "</table>";
+  html += "</div>";
+
+  // Note
+  if (dati.note) {
+    html += "<div class='box'>";
+    html += "<div class='titolo-box'>Note</div>";
+    html += "<div class='note'>" + dati.note.replace(/\n/g, "<br>") + "</div>";
+    html += "</div>";
+  }
+
+  // footer
+  html += "<div style='margin-top:20px; font-size:11px; color:#777;'>Questo documento è un preventivo non fiscale.</div>";
+
+  html += "</body></html>";
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+function inviaEmailPreventivoCorrente() {
+  var dati = raccogliDatiPreventivoCorrente();
+
+  var emailDest = dati.clienteEmail || "";
+  if (!emailDest) {
+    alert("Il cliente non ha un'email. Compilala prima.");
+    return;
+  }
+
+  var oggetto = "Preventivo " + (dati.titoloEvento || "evento");
+
+  var body = "";
+  body += "Gentile " + (dati.clienteNome || "") + ",%0D%0A%0D%0A";
+  body += "Le inoltriamo il preventivo per il seguente evento:%0D%0A";
+  body += "- Tipologia evento: " + (dati.titoloEvento || "-") + "%0D%0A";
+  body += "- Tipo servizio: " + (dati.tipoServizio || "-") + "%0D%0A";
+  body += "- Data evento: " + (dati.dataEvento || "-") + "%0D%0A";
+  body += "- Numero invitati: " + (dati.nInvitati || "-") + "%0D%0A";
+  if (dati.locationEvento) {
+    body += "- Location: " + dati.locationEvento + "%0D%0A";
+  }
+  body += "%0D%0A";
+
+  body += "Riepilogo economico:%0D%0A";
+  body += "- Totale menù: " + (dati.totMenù || "0") + " €%0D%0A";
+  body += "- Totale servizi extra: " + (dati.totExtra || "0") + " €%0D%0A";
+  body += "- Totale preventivo: " + (dati.totPreventivo || "0") + " €%0D%0A";
+  if (dati.totPP) {
+    body += "- Prezzo a persona: " + dati.totPP + " €%0D%0A";
+  }
+  if (dati.acconto) {
+    body += "- Acconto: " + dati.acconto + " €%0D%0A";
+  }
+  if (dati.saldo) {
+    body += "- Saldo da versare: " + dati.saldo + " €%0D%0A";
+  }
+
+  if (dati.note) {
+    body += "%0D%0ANote:%0D%0A" + dati.note.replace(/\n/g, "%0D%0A") + "%0D%0A";
+  }
+
+  body += "%0D%0ACordiali saluti,%0D%0A";
+  body += "Nome Ristorante";
+
+  var mailtoLink =
+    "mailto:" +
+    encodeURIComponent(emailDest) +
+    "?subject=" +
+    encodeURIComponent(oggetto) +
+    "&body=" +
+    body;
+
+  window.location.href = mailtoLink;
+}
+if (prevStampaBtn) {
+  prevStampaBtn.addEventListener("click", function () {
+    stampaPreventivoCorrente();
+  });
+}
+
+if (prevEmailBtn) {
+  prevEmailBtn.addEventListener("click", function () {
+    inviaEmailPreventivoCorrente();
+  });
+}
 
 // =========================================================
 // ================= PRENOTAZIONE ===========================
