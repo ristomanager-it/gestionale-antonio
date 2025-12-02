@@ -2949,10 +2949,21 @@ document.addEventListener("DOMContentLoaded", () => {
         await caricaDipendentiDaSupabase();
         break;
 
-      case "ricette":
-        await caricaProdottiSuggerimentiIngredienti();
+         case "ricette":
+      // carico suggerimenti ingredienti da magazzino
+      await caricaProdottiSuggerimentiIngredienti();
+
+      if (ricettaDaAprireId) {
+        // se arrivo dal Ricettario con "Modifica"
+        const idToOpen = ricettaDaAprireId;
+        ricettaDaAprireId = null; // lo consumo subito
+        await caricaRicettaInForm(idToOpen);
+      } else {
+        // apertura normale: form vuoto
         resetFormRicetta();
-        break;
+      }
+      break;
+
 
       case "ricette-viewer":
         await caricaRicetteDaSupabase();
