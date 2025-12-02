@@ -1883,7 +1883,6 @@ function renderRicetteViewer(lista, filtroTesto) {
 
     container.appendChild(card);
   });
-}
 
 
   // Applica filtro di ricerca (per ora solo per nome)
