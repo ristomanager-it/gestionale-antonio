@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
-
+  
   // header
   const btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
@@ -385,6 +385,48 @@ document.addEventListener("DOMContentLoaded", () => {
     showOnlyView("view-home-dip");
     applyRoleVisibility();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  async function navigateTo(route) {
+    if (!currentUser) {
+      showLogin();
+      return;
+    }
+
+    const isManager = isManagerRole(currentUser.ruolo);
+
+    if (!isManager) {
+      // dipendenti "normali" possono vedere solo alcune view
+      if (
+        route === "timbratura" ||
+        route === "ordine" ||
+        route === "ricette-viewer"
+      ) {
+        showOnlyView(`view-${route}`);
+        await onRouteEnter(route);
+      } else {
+        showHomeDipendente();
+      }
+    } else {
+      // manager / admin
+      let active = document.getElementById(`view-${route}`);
+      if (!active) {
+        route = "timbratura";
+        active = document.getElementById("view-timbratura");
+      }
+
+      showOnlyView(`view-${route}`);
+      await onRouteEnter(route);
+    }
+
+    applyRoleVisibility();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showManagerMenuAndRoute(initialRoute) {
+    if (managerMenu) managerMenu.style.display = "grid";
+    showOnlyView(`view-${initialRoute || "timbratura"}`);
+    applyRoleVisibility();
+    navigateTo(initialRoute || "timbratura");
   }
 
   function showManagerMenuAndRoute(initialRoute) {
