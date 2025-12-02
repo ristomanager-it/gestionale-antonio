@@ -502,6 +502,60 @@ document.addEventListener("DOMContentLoaded", () => {
     dipOreMensili.addEventListener("input", aggiornaUICompenso);
   }
   if (dipOreServizio) {
+  // ========= DIPENDENTI =========
+  function aggiornaUICompenso() {
+    if (!dipTipoCompenso || !labelRetribuzione) return;
+
+    const tipo = dipTipoCompenso.value || "orario";
+
+    if (tipo === "orario") {
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
+      }
+      if (rowOreMensili) rowOreMensili.style.display = "none";
+      if (rowOreServizio) rowOreServizio.style.display = "none";
+    } else if (tipo === "mensile") {
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Stipendio lordo mensile (€/mese)";
+      }
+      if (rowOreMensili) rowOreMensili.style.display = "block";
+      if (rowOreServizio) rowOreServizio.style.display = "none";
+    } else if (tipo === "servizio") {
+      if (labelRetribuzione.firstChild) {
+        labelRetribuzione.firstChild.textContent =
+          "Paga lorda per servizio (€/servizio)";
+      }
+      if (rowOreMensili) rowOreMensili.style.display = "none";
+      if (rowOreServizio) rowOreServizio.style.display = "block";
+    }
+
+    const retribuzioneBase =
+      parseFloat(dipRetribuzioneBase?.value || "0") || 0;
+    const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
+    const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
+
+    const costo = calcolaCostoOrario(
+      tipo,
+      retribuzioneBase,
+      oreMensiliVal,
+      oreServizioVal
+    );
+    if (dipCosto) {
+      dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
+    }
+  }
+
+  if (dipTipoCompenso) {
+    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
+  }
+  if (dipRetribuzioneBase) {
+    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
+  }
+  if (dipOreMensili) {
+    dipOreMensili.addEventListener("input", aggiornaUICompenso);
+  }
+  if (dipOreServizio) {
     dipOreServizio.addEventListener("input", aggiornaUICompenso);
   }
 
@@ -539,7 +593,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }));
 
     renderDipendenti();
-    applyRoleVisibility();
+
+    // chiamata sicura: se esiste applyRoleVisibility la usiamo, altrimenti niente errore
+    if (typeof applyRoleVisibility === "function") {
+      applyRoleVisibility();
+    }
   }
 
   async function salvaDipendenteSupabase(dip) {
@@ -763,14 +821,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dipNome) delete dipNome.dataset.editIndex;
 
       aggiornaUICompenso();
-     async function caricaDipendentiDaSupabase() {
-  // ... tutto quello che hai già ...
 
-  if (typeof applyRoleVisibility === "function") {
-    applyRoleVisibility();
+      // ricarico elenco da Supabase
+      await caricaDipendentiDaSupabase();
+    });
   }
-}
-
   // ========= LOGIN & UTENTE CORRENTE =========
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
