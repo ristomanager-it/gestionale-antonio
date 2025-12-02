@@ -2051,127 +2051,189 @@ async function caricaPreventiviEsistenti() {
 // ======================= PIATTI / MENÙ ====================
 // =========================================================
 
-function aggiungiRigaPiatto(piatto = null) {
+function aggiungiRigaPiatto(piatto) {
   if (!prevPiattiContainer) return;
 
-  const div = document.createElement("div");
+  var div = document.createElement("div");
   div.className = "form-grid-2";
   div.style.marginTop = "8px";
 
-  const id = Date.now() + Math.random();
+  // valori di default
+  var defaultQty = 1;
+  if (prevNInvitati && prevNInvitati.value) {
+    var parsed = parseInt(prevNInvitati.value, 10);
+    if (!isNaN(parsed) && parsed > 0) defaultQty = parsed;
+  }
 
-  div.innerHTML = `
-    <label>
-      Portata
-      <input class="input-pill prev-piatto-nome" data-id="${id}" list="prev-piatti-suggestions"
-             value="${piatto?.nome_piatto || ""}">
-    </label>
+  var nomeVal =
+    piatto && typeof piatto.nome_piatto !== "undefined"
+      ? piatto.nome_piatto
+      : "";
+  var qtyVal =
+    piatto && typeof piatto.quantita !== "undefined" && piatto.quantita !== null
+      ? piatto.quantita
+      : defaultQty;
+  var costoUnitVal =
+    piatto &&
+    typeof piatto.costo_unitario !== "undefined" &&
+    piatto.costo_unitario !== null
+      ? piatto.costo_unitario
+      : "";
+  var costoTotVal =
+    piatto &&
+    typeof piatto.costo_totale !== "undefined" &&
+    piatto.costo_totale !== null
+      ? piatto.costo_totale
+      : "";
 
-    <label>
-      Quantità
-      <input type="number" class="input-pill prev-piatto-qty" min="1"
-             value="${piatto?.quantita || (prevNInvitati?.value || 1)}">
-    </label>
+  div.innerHTML =
+    '<label>' +
+      'Portata' +
+      '<input ' +
+        'class="input-pill prev-piatto-nome" ' +
+        'list="prev-piatti-suggestions" ' +
+        'value="' + nomeVal + '"' +
+      '>' +
+    '</label>' +
 
-    <label>
-      Prezzo unitario (€)
-      <input class="input-pill prev-piatto-costo" readonly value="${piatto?.costo_unitario || ""}">
-    </label>
+    '<label>' +
+      'Quantità' +
+      '<input ' +
+        'type="number" ' +
+        'class="input-pill prev-piatto-qty" ' +
+        'min="1" ' +
+        'value="' + qtyVal + '"' +
+      '>' +
+    '</label>' +
 
-    <label>
-      Totale (€)
-      <input class="input-pill prev-piatto-tot" readonly value="${piatto?.costo_totale || ""}">
-    </label>
+    '<label>' +
+      'Prezzo unitario (€)' +
+      '<input ' +
+        'class="input-pill prev-piatto-costo" ' +
+        'readonly ' +
+        'value="' + costoUnitVal + '"' +
+      '>' +
+    '</label>' +
 
-    <button class="app-button tiny red prev-del-piatto" type="button">X</button>
-  """
+    '<label>' +
+      'Totale (€)' +
+      '<input ' +
+        'class="input-pill prev-piatto-tot" ' +
+        'readonly ' +
+        'value="' + costoTotVal + '"' +
+      '>' +
+    '</label>' +
+
+    '<button class="app-button tiny red prev-del-piatto" type="button">X</button>';
 
   prevPiattiContainer.appendChild(div);
 
-  div.querySelector(".prev-del-piatto").addEventListener("click", () => {
-    div.remove();
-    calcolaTotaliPreventivo();
-  });
+  var btnDel = div.querySelector(".prev-del-piatto");
+  var inputNome = div.querySelector(".prev-piatto-nome");
+  var inputQty = div.querySelector(".prev-piatto-qty");
 
-  div.querySelector(".prev-piatto-nome").addEventListener("change", async () => {
-    await aggiornaCostoPiatto(div);
-    calcolaTotaliPreventivo();
-  });
+  if (btnDel) {
+    btnDel.addEventListener("click", function () {
+      div.remove();
+      calcolaTotaliPreventivo();
+    });
+  }
 
-  div.querySelector(".prev-piatto-qty").addEventListener("input", () => {
-    aggiornaCostoPiatto(div, false);
-    calcolaTotaliPreventivo();
-  });
+  if (inputNome) {
+    inputNome.addEventListener("change", function () {
+      aggiornaCostoPiatto(div, true).then(function () {
+        calcolaTotaliPreventivo();
+      });
+    });
+  }
+
+  if (inputQty) {
+    inputQty.addEventListener("input", function () {
+      aggiornaCostoPiatto(div, false).then(function () {
+        calcolaTotaliPreventivo();
+      });
+    });
+  }
 }
 
-// Logica prezzo portata: legge il prezzo dalla scheda ricetta (food cost / prezzo calcolato)
-async function aggiornaCostoPiatto(div, force = true) {
-  const nomeInput = div.querySelector(".prev-piatto-nome");
-  const qtyInput = div.querySelector(".prev-piatto-qty");
-  const costoInput = div.querySelector(".prev-piatto-costo");
-  const totInput = div.querySelector(".prev-piatto-tot");
+// logica prezzo portata: food cost dai prodotti
+async function aggiornaCostoPiatto(div, force) {
+  if (!supabase) return;
+
+  var nomeInput = div.querySelector(".prev-piatto-nome");
+  var qtyInput = div.querySelector(".prev-piatto-qty");
+  var costoInput = div.querySelector(".prev-piatto-costo");
+  var totInput = div.querySelector(".prev-piatto-tot");
 
   if (!nomeInput || !qtyInput || !costoInput || !totInput) return;
 
-  const nome = nomeInput.value.trim();
-  const qty = parseFloat(qtyInput.value || "1");
+  var nome = (nomeInput.value || "").trim();
+  var qty = parseFloat(qtyInput.value || "1");
 
   if (!nome) return;
 
-  let ric = ricetteCachePreventivi.find(
-    (r) => r.nome && r.nome.toLowerCase() === nome.toLowerCase()
-  );
-  let ricettaId = null;
-  let prezzoUnitario = 0;
+  var ric = null;
+  for (var i = 0; i < ricetteCachePreventivi.length; i++) {
+    var r = ricetteCachePreventivi[i];
+    if (r.nome && r.nome.toLowerCase() === nome.toLowerCase()) {
+      ric = r;
+      break;
+    }
+  }
+
+  var ricettaId = null;
+  var prezzoUnitario = 0;
 
   if (ric) {
     ricettaId = ric.id;
 
-    // Food cost: somma quantità * costo_medio del prodotto
-    const { data: ingredienti, error } = await supabase
+    var res = await supabase
       .from("ricette_ingredienti")
       .select("quantita, prodotto:prodotto_id (costo_medio)")
       .eq("ricetta_id", ric.id);
 
-    if (!error && ingredienti) {
-      ingredienti.forEach((i) => {
-        const q = parseFloat(i.quantita || "0");
-        const costoMedio = parseFloat(i.prodotto?.costo_medio || "0");
+    if (!res.error && res.data) {
+      res.data.forEach(function (ing) {
+        var q = parseFloat(ing.quantita || "0");
+        var costoMedio = 0;
+        if (ing.prodotto && typeof ing.prodotto.costo_medio !== "undefined") {
+          costoMedio = parseFloat(ing.prodotto.costo_medio || "0");
+        }
         prezzoUnitario += q * costoMedio;
       });
     }
   } else {
-    // Ricetta non esiste: creiamo scheda "da completare"
-    const { data: nuovaRicetta, error: errIns } = await supabase
+    // ricetta non esiste: creiamo scheda "da completare"
+    var inserimento = await supabase
       .from("ricette")
       .insert({
-        nome,
+        nome: nome,
         descrizione: "Ricetta da completare",
         tipo: "piatto",
       })
       .select()
       .single();
 
-    if (!errIns && nuovaRicetta) {
-      ricettaId = nuovaRicetta.id;
+    if (!inserimento.error && inserimento.data) {
+      ricettaId = inserimento.data.id;
 
       ricetteCachePreventivi.push({
-        id: nuovaRicetta.id,
-        nome,
+        id: inserimento.data.id,
+        nome: nome,
       });
 
       if (prevPiattiSuggestions) {
-        const opt = document.createElement("option");
+        var opt = document.createElement("option");
         opt.value = nome;
         prevPiattiSuggestions.appendChild(opt);
       }
     }
   }
 
-  // Salvo l'id ricetta sulla riga per il salvataggio
+  // salva id ricetta sulla riga
   div.dataset.ricettaId = ricettaId;
 
-  // Aggiorno i campi costo unitario e totale riga
+  // aggiorna campi costo e totale
   costoInput.value = prezzoUnitario.toFixed(2);
   totInput.value = (prezzoUnitario * qty).toFixed(2);
 }
