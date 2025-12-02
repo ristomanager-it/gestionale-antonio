@@ -763,10 +763,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dipNome) delete dipNome.dataset.editIndex;
 
       aggiornaUICompenso();
-      await caricaDipendentiDaSupabase();
-      applyRoleVisibility();
-    });
+     async function caricaDipendentiDaSupabase() {
+  // ... tutto quello che hai già ...
+
+  if (typeof applyRoleVisibility === "function") {
+    applyRoleVisibility();
   }
+}
 
   // ========= LOGIN & UTENTE CORRENTE =========
   function updateTimbraturaUserInfo() {
