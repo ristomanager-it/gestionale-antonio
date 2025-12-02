@@ -2443,6 +2443,8 @@ async function salvaPreventivo() {
   };
 
   let id = preventivoCorrenteId;
+  let ricettaDaAprireId = null;
+
 
   if (id) {
     const resUpd = await supabase
