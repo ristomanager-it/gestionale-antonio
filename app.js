@@ -5,7 +5,6 @@
 
 /* ==========================================================
    [0] RIFERIMENTI DOM (principali / comuni)
-   Mantieni qui i selettori principali. Aggiungi altri sotto il blocco della singola sezione.
    ========================================================== */
 
 const views = Array.from(document.querySelectorAll('.view'));
@@ -126,7 +125,7 @@ function isManagerRole(ruolo) {
 const supabase = window.supabaseClient || null;
 
 /* ==========================================================
-   [4] ROUTING E VISIBILITA' (header/user) 
+   [4] ROUTING E VISIBILITA' (header/user)
    ========================================================== */
 function updateHeaderUser() {
   if (!currentUserLabel) return;
