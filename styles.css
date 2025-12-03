@@ -785,3 +785,33 @@ body.theme-light .view {
   color: #b91c1c;
   font-size: 13px;
 }
+/* Layout area preventivi */
+.preventivi-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Lista con scroll verticale, utile su mobile */
+.preventivi-list-panel {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Colonne affiancate su schermi grandi */
+@media (min-width: 900px) {
+  .preventivi-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .preventivi-list-panel {
+    flex: 0 0 32%;
+    max-width: 340px;
+    max-height: none;
+  }
+
+  .preventivi-detail-panel {
+    flex: 1 1 auto;
+  }
+}
