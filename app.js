@@ -151,21 +151,21 @@ document.addEventListener("DOMContentLoaded", () => {
     "ingredienti-suggestions"
   );
 
-  // ---------- STATO ----------
-  let dipendenti = [];
-  let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
+ // ---------- STATO ----------
+let dipendenti = [];
+let timbrature = [];
+let currentUser = null;
+let periodoCorrente = "oggi";
 
-  let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
-  let ricetteCache = [];
-  // ricettaDaAprireId NON più usata dal viewer (solo da eventuale logica futura)
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+let ricetteCache = [];
+let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
 
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
-  let magazzinoDati = [];
+let currentFatturaId = null;
+let fornitoriCache = [];
+let categorieCache = [];
+let magazzinoDati = [];
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
