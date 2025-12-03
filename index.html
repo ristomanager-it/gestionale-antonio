@@ -1068,287 +1068,421 @@
           </p>
         </section>
 
-        <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
-<section id="view-preventivi" class="view" style="display: none">
-  <h2>Preventivi &amp; Prenotazioni</h2>
+        // ======================================================
+//  PREVENTIVI - DATI IN MEMORIA
+// ======================================================
 
-  <!-- FILTRI / RICERCA -->
-  <div
-    class="preventivi-filters"
-    style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"
-  >
-    <div style="flex:1 1 160px;">
-      <label style="font-size:12px; display:block; margin-bottom:2px;">
-        Cerca preventivo
-      </label>
-      <input
-        type="text"
-        id="preventivi-search"
-        class="input-pill"
-        placeholder="Nome cliente, cognome, evento, data..."
-      />
+let preventiviCache = [];
+let currentPreventivo = null;
+let currentMenu = [];
+let currentExtra = [];
+
+function showPreventiviView() {
+  document.querySelectorAll(".view").forEach(v => v.style.display = "none");
+  document.getElementById("view-preventivi").style.display = "";
+  resetPreventivoForm();
+  loadPreventiviList();
+}
+
+
+// ======================================================
+//  CARICAMENTO ARCHIVIO
+// ======================================================
+
+async function loadPreventiviList() {
+  const box = document.getElementById("preventivi-list");
+  box.innerHTML = "Caricamento…";
+
+  const { data, error } = await window.supabaseClient
+    .from("preventivi")
+    .select(`
+      id, titolo_evento, data_evento, totale, stato,
+      contatti:cliente_id ( nome, cognome )
+    `)
+    .order("data_evento", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    box.innerHTML = "Errore caricamento preventivi.";
+    return;
+  }
+
+  preventiviCache = data || [];
+  renderPreventiviListFiltered();
+}
+
+function renderPreventiviListFiltered() {
+  const search = (document.getElementById("preventivi-search")?.value || "").toLowerCase();
+  const stato = document.getElementById("preventivi-stato-filter")?.value || "tutti";
+
+  let list = preventiviCache;
+
+  if (stato !== "tutti")
+    list = list.filter(p => p.stato === stato);
+
+  if (search)
+    list = list.filter(p =>
+      (p.titolo_evento || "").toLowerCase().includes(search) ||
+      (p.contatti?.nome || "").toLowerCase().includes(search) ||
+      (p.contatti?.cognome || "").toLowerCase().includes(search)
+    );
+
+  renderPreventiviList(list);
+}
+
+function renderPreventiviList(list) {
+  const box = document.getElementById("preventivi-list");
+
+  if (!list.length) {
+    box.innerHTML = `<p class="small-muted">Nessun preventivo trovato.</p>`;
+    return;
+  }
+
+  box.innerHTML = list.map(p => `
+    <div class="preventivo-list-item" data-id="${p.id}">
+      <strong>${p.titolo_evento || "-"}</strong>  
+      <span>${p.contatti?.nome || ""} ${p.contatti?.cognome || ""}</span>
+      <span>${p.data_evento || ""}</span>
+      <span>€ ${(p.totale||0).toFixed(2)}</span>
+      <span class="badge stato-${p.stato}">${p.stato}</span>
     </div>
+  `).join("");
 
-    <div style="flex:0 0 130px;">
-      <label style="font-size:12px; display:block; margin-bottom:2px;">
-        Stato
-      </label>
-      <select id="preventivi-stato-filter" class="input-pill">
-        <option value="tutti">Tutti</option>
-        <option value="bozza">Bozze</option>
-        <option value="inviato">Inviati</option>
-        <option value="accettato">Confermati</option>
-        <option value="rifiutato">Rifiutati</option>
-      </select>
-    </div>
+  box.querySelectorAll(".preventivo-list-item").forEach(item => {
+    item.addEventListener("click", () => openPreventivo(item.dataset.id));
+  });
+}
 
-    <div style="flex:0 0 auto; align-self:flex-end;">
-      <button id="btn-new-preventivo" class="app-button small gray">
-        + Nuovo preventivo
-      </button>
-    </div>
-  </div>
 
-  <div class="preventivi-layout">
-    <!-- LISTA PREVENTIVI -->
-    <div class="preventivi-list-panel">
-      <h4 style="margin:0 0 6px;">Archivio preventivi</h4>
-      <div
-        id="preventivi-list"
-        class="preventivi-list"
-        style="display:flex; flex-direction:column; gap:6px;"
-      >
-        <!-- Popolato da JS -->
-      </div>
-    </div>
+// ======================================================
+//  RESET FORM
+// ======================================================
 
-    <!-- DETTAGLIO PREVENTIVO -->
-    <div class="preventivi-detail-panel">
-      <h4 style="margin:0 0 6px;">Dettaglio preventivo</h4>
+function resetPreventivoForm() {
+  document.getElementById("preventivo-form")?.reset();
+  currentPreventivo = null;
+  currentMenu = [];
+  currentExtra = [];
+  document.getElementById("preventivo-menu-tbody").innerHTML = "";
+  document.getElementById("preventivo-extra-tbody").innerHTML = "";
+}
 
-      <form id="preventivo-form" onsubmit="return false;">
-        <input type="hidden" id="preventivo-id" />
 
-        <!-- CLIENTE -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Dati cliente</h5>
+// ======================================================
+//  APRI PREVENTIVO
+// ======================================================
 
-          <input type="hidden" id="preventivo-cliente-id" />
+async function openPreventivo(id) {
+  resetPreventivoForm();
 
-          <label>
-            Nome
-            <input type="text" id="preventivo-cliente-nome" class="input-pill" />
-          </label>
+  const { data: prev, error } = await window.supabaseClient
+    .from("preventivi")
+    .select(`
+      *, 
+      contatti:cliente_id (*)
+    `)
+    .eq("id", id)
+    .single();
 
-          <label>
-            Cognome
-            <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
-          </label>
+  if (error) {
+    alert("Errore nel caricamento.");
+    return;
+  }
 
-          <label>
-            Telefono
-            <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
-          </label>
+  currentPreventivo = prev;
 
-          <label>
-            Email
-            <input type="email" id="preventivo-cliente-email" class="input-pill" />
-          </label>
+  // cliente
+  document.getElementById("preventivo-id").value = prev.id;
+  document.getElementById("preventivo-cliente-id").value = prev.cliente_id;
 
-          <label>
-            Comune di residenza
-            <input type="text" id="preventivo-cliente-comune" class="input-pill" />
-          </label>
-        </div>
+  document.getElementById("preventivo-cliente-nome").value = prev.contatti?.nome || "";
+  document.getElementById("preventivo-cliente-cognome").value = prev.contatti?.cognome || "";
+  document.getElementById("preventivo-cliente-telefono").value = prev.contatti?.telefono || "";
+  document.getElementById("preventivo-cliente-email").value = prev.contatti?.email || "";
+  document.getElementById("preventivo-cliente-comune").value = prev.contatti?.note || "";
 
-        <!-- EVENTO -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Evento</h5>
+  // evento
+  document.getElementById("preventivo-titolo").value = prev.titolo_evento || "";
+  document.getElementById("preventivo-tipo-servizio").value = prev.tipo_servizio || "";
+  document.getElementById("preventivo-data-evento").value = prev.data_evento || "";
+  document.getElementById("preventivo-n-invitati").value = prev.n_invitati || "";
+  document.getElementById("preventivo-location").value = prev.location || "";
+  document.getElementById("preventivo-stato").value = prev.stato || "bozza";
+  document.getElementById("preventivo-acconto").value = prev.acconto || 0;
 
-          <label>
-            Tipologia di evento
-            <select id="preventivo-titolo" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="Matrimonio">Matrimonio</option>
-              <option value="Battesimo">Battesimo</option>
-              <option value="Comunione">Comunione</option>
-              <option value="Cresima">Cresima</option>
-              <option value="Compleanno">Compleanno</option>
-            </select>
-          </label>
+  // righe menù
+  const { data: menu } = await window.supabaseClient
+    .from("preventivi_ricette")
+    .select("*")
+    .eq("preventivo_id", id);
 
-          <label>
-            Tipo servizio
-            <select id="preventivo-tipo-servizio" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="buffet">Buffet</option>
-              <option value="servito">Servito</option>
-              <option value="misto">Misto</option>
-            </select>
-          </label>
+  currentMenu = menu || [];
+  renderMenuRows();
 
-          <label>
-            Data evento
-            <input type="date" id="preventivo-data-evento" class="input-pill" />
-          </label>
+  // righe extra
+  const { data: extra } = await window.supabaseClient
+    .from("preventivi_extra")
+    .select("*")
+    .eq("preventivo_id", id);
 
-          <label>
-            N. invitati
-            <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
-          </label>
+  currentExtra = extra || [];
+  renderExtraRows();
 
-          <label>
-            Location
-            <input type="text" id="preventivo-location" class="input-pill" />
-          </label>
+  recalcPreventivoTotals();
+}
 
-          <label>
-            Note interne
-            <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
-          </label>
 
-          <label>
-            Stato
-            <select id="preventivo-stato" class="input-pill">
-              <option value="bozza">Bozza</option>
-              <option value="inviato">Inviato</option>
-              <option value="accettato">Accettato</option>
-              <option value="rifiutato">Rifiutato</option>
-            </select>
-          </label>
-        </div>
+// ======================================================
+//  MENU
+// ======================================================
 
-        <!-- MENÙ -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Menù</h5>
+function renderMenuRows() {
+  const tbody = document.getElementById("preventivo-menu-tbody");
+  tbody.innerHTML = "";
 
-          <button
-            type="button"
-            id="btn-add-menu-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi portata
-          </button>
+  const nInv = Number(document.getElementById("preventivo-n-invitati").value || 0);
 
-          <!-- datalist per suggerimenti ricette -->
-          <datalist id="ricette-suggestions"></datalist>
+  currentMenu.forEach((r, i) => {
+    const tot = nInv * Number(r.costo_unitario || 0);
 
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Portata</th>
-                  <th class="col-prezzo-portata">Costo a persona</th>
-                  <th class="col-prezzo-portata">Totale riga</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-menu-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="input-pill menu-name" list="ricette-suggestions" value="${r.nome_piatto||""}"></td>
+      <td class="col-prezzo-portata">€ ${(r.costo_unitario||0).toFixed(2)}</td>
+      <td class="col-prezzo-portata">€ ${tot.toFixed(2)}</td>
+      <td><button class="btn-icon remove-menu" data-i="${i}">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
 
-        <!-- SERVIZI EXTRA -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Servizi extra</h5>
+    tr.querySelector(".menu-name").addEventListener("blur", e => {
+      updateMenuRow(i, e.target.value);
+    });
 
-          <button
-            type="button"
-            id="btn-add-extra-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi extra
-          </button>
+    tr.querySelector(".remove-menu").addEventListener("click", () => {
+      currentMenu.splice(i,1);
+      renderMenuRows();
+      recalcPreventivoTotals();
+    });
+  });
 
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Descrizione</th>
-                  <th>Q.tà</th>
-                  <th>Prezzo unit.</th>
-                  <th>Totale</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-extra-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+  recalcPreventivoTotals();
+}
 
-        <!-- TOTALI -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Totali</h5>
+async function updateMenuRow(i, nome) {
+  if (!nome.trim()) return;
+  currentMenu[i].nome_piatto = nome;
 
-          <label>
-            Totale preventivo
-            <input type="text" id="preventivo-totale" class="input-pill" readonly />
-          </label>
+  // controlla se ricetta esiste
+  const { data: found } = await window.supabaseClient
+    .from("ricette")
+    .select("id")
+    .ilike("nome", nome)
+    .maybeSingle();
 
-          <label>
-            Prezzo per persona
-            <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
-          </label>
+  if (found) {
+    currentMenu[i].ricetta_id = found.id;
+  } else {
+    const { data: creata } = await window.supabaseClient
+      .from("ricette")
+      .insert({ nome })
+      .select()
+      .single();
 
-          <label>
-            Acconto
-            <input
-              type="number"
-              id="preventivo-acconto"
-              class="input-pill"
-              min="0"
-              step="0.01"
-            />
-          </label>
+    currentMenu[i].ricetta_id = creata.id;
+  }
 
-          <label>
-            Saldo residuo
-            <input type="text" id="preventivo-saldo" class="input-pill" readonly />
-          </label>
-        </div>
+  renderMenuRows();
+}
 
-        <!-- AZIONI -->
-        <div
-          class="form-section"
-          style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"
-        >
-          <button
-            type="submit"
-            id="btn-save-preventivo"
-            class="app-button small green"
-            style="flex:1 1 130px;"
-          >
-            Salva preventivo
-          </button>
 
-          <button
-            type="button"
-            id="btn-print-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 130px;"
-          >
-            Stampa / PDF
-          </button>
+// ======================================================
+//  EXTRA
+// ======================================================
 
-          <button
-            type="button"
-            id="btn-email-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 130px;"
-          >
-            Invia per email
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</section>
+function renderExtraRows() {
+  const tbody = document.getElementById("preventivo-extra-tbody");
+  tbody.innerHTML = "";
+
+  currentExtra.forEach((r, i) => {
+    const tot = Number(r.quantita||0) * Number(r.prezzo_unitario||0);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="input-pill extra-desc" value="${r.descrizione||""}"></td>
+      <td><input class="input-pill extra-q" type="number" value="${r.quantita||1}"></td>
+      <td><input class="input-pill extra-p" type="number" step="0.01" value="${r.prezzo_unitario||0}"></td>
+      <td>€ ${tot.toFixed(2)}</td>
+      <td><button class="btn-icon remove-extra" data-i="${i}">🗑</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    tr.querySelector(".extra-desc").addEventListener("input", e => {
+      currentExtra[i].descrizione = e.target.value;
+    });
+    tr.querySelector(".extra-q").addEventListener("input", e => {
+      currentExtra[i].quantita = Number(e.target.value||0);
+      renderExtraRows();
+    });
+    tr.querySelector(".extra-p").addEventListener("input", e => {
+      currentExtra[i].prezzo_unitario = Number(e.target.value||0);
+      renderExtraRows();
+    });
+    tr.querySelector(".remove-extra").addEventListener("click", () => {
+      currentExtra.splice(i,1);
+      renderExtraRows();
+    });
+  });
+
+  recalcPreventivoTotals();
+}
+
+
+// ======================================================
+//  TOTALI
+// ======================================================
+
+function recalcPreventivoTotals() {
+  const nInv = Number(document.getElementById("preventivo-n-invitati").value||0);
+
+  const totaleMenu = currentMenu.reduce((s,r)=> s + nInv*Number(r.costo_unitario||0), 0);
+  const totaleExtra = currentExtra.reduce((s,r)=> s + Number(r.quantita||0)*Number(r.prezzo_unitario||0), 0);
+
+  const totale = totaleMenu + totaleExtra;
+  const acconto = Number(document.getElementById("preventivo-acconto").value||0);
+
+  document.getElementById("preventivo-totale").value = totale.toFixed(2);
+  document.getElementById("preventivo-prezzo-persona").value =
+    (nInv>0 ? (totale/nInv) : 0).toFixed(2);
+  document.getElementById("preventivo-saldo").value = (totale-acconto).toFixed(2);
+}
+
+
+// ======================================================
+//  SALVATAGGIO
+// ======================================================
+
+async function savePreventivo() {
+  const id = Number(document.getElementById("preventivo-id").value||0);
+  const clienteId = await savePreventivoCliente();
+  if (!clienteId) { alert("Inserisci almeno nome e cognome."); return; }
+
+  const payload = {
+    cliente_id: clienteId,
+    titolo_evento: document.getElementById("preventivo-titolo").value || null,
+    tipo_servizio: document.getElementById("preventivo-tipo-servizio").value || null,
+    data_evento: document.getElementById("preventivo-data-evento").value || null,
+    n_invitati: Number(document.getElementById("preventivo-n-invitati").value||0),
+    location: document.getElementById("preventivo-location").value || null,
+    stato: document.getElementById("preventivo-stato").value,
+    acconto: Number(document.getElementById("preventivo-acconto").value||0),
+    totale: Number(document.getElementById("preventivo-totale").value||0),
+  };
+
+  let preventivoId = id;
+
+  if (!id) {
+    const { data, error } = await window.supabaseClient
+      .from("preventivi")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) { alert("Errore salvataggio."); return; }
+    preventivoId = data.id;
+  } else {
+    await window.supabaseClient.from("preventivi").update(payload).eq("id", id);
+  }
+
+  // salva righe
+  await window.supabaseClient.from("preventivi_ricette").delete().eq("preventivo_id", preventivoId);
+  await window.supabaseClient.from("preventivi_extra").delete().eq("preventivo_id", preventivoId);
+
+  if (currentMenu.length)
+    await window.supabaseClient.from("preventivi_ricette").insert(
+      currentMenu.map(r => ({
+        preventivo_id: preventivoId,
+        ricetta_id: r.ricetta_id || null,
+        nome_piatto: r.nome_piatto,
+        quantita: Number(document.getElementById("preventivo-n-invitati").value||0),
+        costo_unitario: Number(r.costo_unitario||0),
+        costo_totale: Number(r.costo_totale||0),
+      }))
+    );
+
+  if (currentExtra.length)
+    await window.supabaseClient.from("preventivi_extra").insert(
+      currentExtra.map(r => ({
+        preventivo_id: preventivoId,
+        descrizione: r.descrizione,
+        quantita: Number(r.quantita||0),
+        prezzo_unitario: Number(r.prezzo_unitario||0),
+      }))
+    );
+
+  alert("Preventivo salvato");
+  loadPreventiviList();
+}
+
+async function savePreventivoCliente() {
+  const id = Number(document.getElementById("preventivo-cliente-id").value||0);
+
+  const payload = {
+    nome: document.getElementById("preventivo-cliente-nome").value.trim(),
+    cognome: document.getElementById("preventivo-cliente-cognome").value.trim(),
+    telefono: document.getElementById("preventivo-cliente-telefono").value.trim(),
+    email: document.getElementById("preventivo-cliente-email").value.trim(),
+    note: document.getElementById("preventivo-cliente-comune").value.trim(),
+  };
+
+  if (!payload.nome && !payload.cognome) return null;
+
+  if (!id) {
+    const { data } = await window.supabaseClient
+      .from("contatti")
+      .insert(payload).select().single();
+    document.getElementById("preventivo-cliente-id").value = data.id;
+    return data.id;
+  }
+
+  await window.supabaseClient.from("contatti").update(payload).eq("id", id);
+  return id;
+}
+
+
+// ======================================================
+//  INVIA EMAIL (MAILTO), STAMPA
+// ======================================================
+
+// (Versione abbreviata ma funzionante – mantiene testo pulito senza prezzi portata)
+
+function btnEmailPreventivoHandler() {
+  const email = document.getElementById("preventivo-cliente-email").value.trim();
+  if (!email) return alert("Inserisci l'email del cliente.");
+
+  const titolo = document.getElementById("preventivo-titolo").value;
+  const dataEv = document.getElementById("preventivo-data-evento").value;
+  const totale = document.getElementById("preventivo-totale").value;
+  const prezzoPers = document.getElementById("preventivo-prezzo-persona").value;
+
+  const testo =
+    `Gentile Cliente,\n\n` +
+    `Le inviamo il preventivo per ${titolo} del ${dataEv}.\n\n` +
+    `Totale: € ${totale}\n` +
+    `Prezzo a persona: € ${prezzoPers}\n\n` +
+    `Il preventivo è valido 15 giorni.\n\n` +
+    `Cordiali saluti`;
+
+  const mailto =
+    `mailto:${email}?subject=Preventivo%20${encodeURIComponent(titolo)}&body=${encodeURIComponent(testo)}`;
+
+  window.location.href = mailto;
+}
+
+document.getElementById("btn-email-preventivo")
+  ?.addEventListener("click", btnEmailPreventivoHandler);
+
+document.getElementById("btn-print-preventivo")
+  ?.addEventListener("click", () => window.print());
 
 
         <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
