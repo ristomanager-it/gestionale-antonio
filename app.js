@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
-  
+
   // header
   const btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
@@ -73,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (EDIT) ----------
-  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
   const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
   const ricettaNoteInput = document.getElementById("ricetta-note");
@@ -157,10 +156,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUser = null;
   let periodoCorrente = "oggi";
 
-  
+  let ricettaCorrenteId = null;
   let ricettaFotoCorrenteUrl = null;
   let ricetteCache = [];
-  // ricettaDaAprireId NON più usata dal viewer (solo da eventuale logica futura)
+  let ricettaDaAprireId = null; // per aprire la ricetta scelta dal ricettario
 
   let currentFatturaId = null;
   let fornitoriCache = [];
@@ -322,186 +321,136 @@ document.addEventListener("DOMContentLoaded", () => {
     return 0;
   }
 
-    // ========= ROUTING =========
+  // ========= HEADER & VISIBILITÀ =========
+  function updateHeaderUser() {
+    if (!currentUserLabel) return;
 
-  // variabile usata quando si arriva dal ricettario con "modifica"
-  let ricettaDaAprireId = null;
+    if (!currentUser) {
+      currentUserLabel.textContent = "Nessun utente";
+    } else {
+      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
+      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
+    }
 
-  async function onRouteEnter(route) {
-    switch (route) {
-      case "timbratura":
-        await caricaTimbratureDaSupabase();
-        updateTimbraturaUserInfo();
-        break;
-
-      case "dipendenti":
-        await caricaDipendentiDaSupabase();
-        break;
-
-      case "ricette":
-        // nuova schermata ricette (food cost)
-        await caricaProdottiPerRicette();
-        await caricaElencoRicette();
-
-        if (ricettaDaAprireId) {
-          const idToOpen = ricettaDaAprireId;
-          ricettaDaAprireId = null;
-          await caricaRicettaInForm(idToOpen);
-        } else {
-          // form vuoto
-          if (typeof nuovaRicetta === "function") {
-            nuovaRicetta();
-          }
-        }
-        break;
-
-      case "ricette-viewer":
-        // ricettario solo lettura
-        if (typeof caricaRicetteDaSupabase === "function") {
-          await caricaRicetteDaSupabase();
-        }
-        break;
-
-      case "acquisti":
-        await caricaCategorieInCache();
-        await caricaFornitoriInCache();
-        await caricaMagazzinoDati();
-        resetFatturaForm();
-        await caricaElencoFatture();
-        break;
-
-      case "magazzino":
-        await caricaCategorieInCache();
-        await caricaMagazzinoDati();
-        popolaMagazzinoForm(null);
-        break;
-
-      case "report":
-        // per ora non carichiamo niente, ma la view si apre
-        break;
-
-      case "venduto":
-        // logica futura per venduto del giorno
-        break;
-
-      default:
-        break;
+    if (btnLogout) {
+      btnLogout.style.display = currentUser ? "inline-block" : "none";
     }
   }
 
-  async function navigateTo(route) {
-    if (!currentUser) {
-      showLogin();
-      return;
-    }
+  function applyRoleVisibility() {
+    const modalita =
+      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
 
-    const isManager = isManagerRole(currentUser.ruolo);
+    document
+      .querySelectorAll("[data-manager-only='true'], .manager-only")
+      .forEach((el) => {
+        el.style.display = modalita === "manager" ? "" : "none";
+      });
 
-    if (!isManager) {
-      // dipendenti "semplici": poche view ammesse
-      if (
-        route === "timbratura" ||
-        route === "ordine" ||
-        route === "ricette-viewer"
-      ) {
-        showOnlyView(`view-${route}`);
-        await onRouteEnter(route);
+    routeButtons.forEach((btn) => {
+      const managerOnly = btn.getAttribute("data-manager-only") === "true";
+      if (managerOnly && modalita !== "manager") {
+        btn.style.display = "none";
       } else {
-        showHomeDipendente();
+        btn.style.display = "";
       }
-    } else {
-      // manager / admin
-      let active = document.getElementById(`view-${route}`);
-      if (!active) {
-        route = "timbratura";
-        active = document.getElementById("view-timbratura");
-      }
+    });
 
-      showOnlyView(`view-${route}`);
-      await onRouteEnter(route);
+    if (managerMenu) {
+      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
     }
 
+    updateHeaderUser();
+    updateTimbraturaUserInfo();
+  }
+
+  function showOnlyView(viewId) {
+    views.forEach((v) => {
+      v.style.display = v.id === viewId ? "block" : "none";
+    });
+  }
+
+  function showLogin() {
+    if (homeDipView) homeDipView.style.display = "none";
+    if (managerMenu) managerMenu.style.display = "none";
+    showOnlyView("view-login");
+    currentUser = null;
+    localStorage.removeItem(CURRENT_USER_KEY);
+    updateHeaderUser();
+  }
+
+  function showHomeDipendente() {
+    if (managerMenu) managerMenu.style.display = "none";
+    showOnlyView("view-home-dip");
     applyRoleVisibility();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function showManagerMenuAndRoute(initialRoute) {
     if (managerMenu) managerMenu.style.display = "grid";
-    const route = initialRoute || "timbratura";
-    // aggiorno hash e uso sempre navigateTo
-    window.location.hash = route;
-    navigateTo(route);
+    showOnlyView(`view-${initialRoute || "timbratura"}`);
+    applyRoleVisibility();
+    navigateTo(initialRoute || "timbratura");
   }
 
-  // click sui pulsanti di menu
-  routeButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const route = btn.getAttribute("data-route");
-      window.location.hash = route;
-      navigateTo(route);
+  function setCurrentUser(user, persist) {
+    currentUser = {
+      id: user.id ?? null,
+      nome: user.nome,
+      ruolo: user.ruolo || "",
+      canalePrevalente: user.canalePrevalente || "NR",
+      virtualAdmin: !!user.virtualAdmin,
+    };
+
+    if (persist) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    }
+
+    updateHeaderUser();
+    applyRoleVisibility();
+  }
+
+  function restoreUserFromStorage() {
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      if (!saved) return;
+
+      if (saved.virtualAdmin) {
+        currentUser = saved;
+        applyRoleVisibility();
+        return;
+      }
+
+      const found = dipendenti.find((d) => d.id === saved.id);
+      if (found) {
+        setCurrentUser(found, true);
+        return;
+      }
+
+      const byName = dipendenti.find(
+        (d) =>
+          d.nome &&
+          d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
+      );
+      if (byName) {
+        setCurrentUser(byName, true);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      showLogin();
     });
-  });
-
-  // supporto cambio hash manuale / refresh
-  window.addEventListener("hashchange", () => {
-    const route = window.location.hash.replace("#", "") || "timbratura";
-    navigateTo(route);
-  });
-
-  // ========= DIPENDENTI =========
-  function aggiornaUICompenso() {
-    if (!dipTipoCompenso || !labelRetribuzione) return;
-
-    const tipo = dipTipoCompenso.value || "orario";
-
-    if (tipo === "orario") {
-      if (labelRetribuzione.firstChild) {
-        labelRetribuzione.firstChild.textContent = "Paga oraria lorda (€/h)";
-      }
-      if (rowOreMensili) rowOreMensili.style.display = "none";
-      if (rowOreServizio) rowOreServizio.style.display = "none";
-    } else if (tipo === "mensile") {
-      if (labelRetribuzione.firstChild) {
-        labelRetribuzione.firstChild.textContent =
-          "Stipendio lordo mensile (€/mese)";
-      }
-      if (rowOreMensili) rowOreMensili.style.display = "block";
-      if (rowOreServizio) rowOreServizio.style.display = "none";
-    } else if (tipo === "servizio") {
-      if (labelRetribuzione.firstChild) {
-        labelRetribuzione.firstChild.textContent =
-          "Paga lorda per servizio (€/servizio)";
-      }
-      if (rowOreMensili) rowOreMensili.style.display = "none";
-      if (rowOreServizio) rowOreServizio.style.display = "block";
-    }
-
-    const retribuzioneBase =
-      parseFloat(dipRetribuzioneBase?.value || "0") || 0;
-    const oreMensiliVal = parseFloat(dipOreMensili?.value || "0") || 0;
-    const oreServizioVal = parseFloat(dipOreServizio?.value || "0") || 0;
-
-    const costo = calcolaCostoOrario(
-      tipo,
-      retribuzioneBase,
-      oreMensiliVal,
-      oreServizioVal
-    );
-    if (dipCosto) {
-      dipCosto.value = costo > 0 ? costo.toFixed(2) : "";
-    }
   }
 
-  if (dipTipoCompenso) {
-    dipTipoCompenso.addEventListener("change", aggiornaUICompenso);
-  }
-  if (dipRetribuzioneBase) {
-    dipRetribuzioneBase.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreMensili) {
-    dipOreMensili.addEventListener("input", aggiornaUICompenso);
-  }
-  if (dipOreServizio) {
   // ========= DIPENDENTI =========
   function aggiornaUICompenso() {
     if (!dipTipoCompenso || !labelRetribuzione) return;
@@ -593,11 +542,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }));
 
     renderDipendenti();
-
-    // chiamata sicura: se esiste applyRoleVisibility la usiamo, altrimenti niente errore
-    if (typeof applyRoleVisibility === "function") {
-      applyRoleVisibility();
-    }
+    applyRoleVisibility();
   }
 
   async function salvaDipendenteSupabase(dip) {
@@ -821,11 +766,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dipNome) delete dipNome.dataset.editIndex;
 
       aggiornaUICompenso();
-
-      // ricarico elenco da Supabase
       await caricaDipendentiDaSupabase();
+      applyRoleVisibility();
     });
   }
+
   // ========= LOGIN & UTENTE CORRENTE =========
   function updateTimbraturaUserInfo() {
     if (!currentUser) {
@@ -1319,1761 +1264,552 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-// =========================================================
-// ======================= RICETTE =========================
-// =========================================================
+  // ========= RICETTE: INGREDIENTI =========
+  function creaRigaIngrediente(initial = {}) {
+    if (!ricettaIngredientiContainer) return;
 
-// Riferimenti DOM
-const ricNome = document.getElementById("ric-nome");
-const ricDescrizione = document.getElementById("ric-descrizione");
-const ricPorzioneNote = document.getElementById("ric-porzione-note");
+    const row = document.createElement("div");
+    row.className = "ricetta-ingrediente-row";
+    row.innerHTML = `
+      <input
+        type="text"
+        class="ingrediente-nome"
+        placeholder="Ingrediente (come in magazzino)"
+        list="ingredienti-suggestions"
+        value="${initial.nome_prodotto || ""}"
+      />
+      <input
+        type="number"
+        class="ingrediente-quantita"
+        placeholder="Q.tà"
+        step="0.001"
+        min="0"
+        value="${initial.quantita != null ? initial.quantita : ""}"
+      />
+      <input
+        type="text"
+        class="ingrediente-unita"
+        placeholder="g, kg, ml, u..."
+        value="${initial.unita_misura || ""}"
+      />
+      <button type="button" class="app-button tiny red btn-del-ingrediente">
+        ✕
+      </button>
+    `;
 
-const ricIngredientiContainer = document.getElementById("ric-ingredienti-container");
-const ricProdottiSuggestions = document.getElementById("ric-prodotti-suggestions");
-const ricAddIngredienteBtn = document.getElementById("ric-add-ingrediente");
+    const btnDel = row.querySelector(".btn-del-ingrediente");
+    if (btnDel) {
+      btnDel.addEventListener("click", () => row.remove());
+    }
 
-const ricCostoBase = document.getElementById("ric-costo-base");
-const ricSfrido = document.getElementById("ric-sfrido");
-const ricCostoSfrido = document.getElementById("ric-costo-sfrido");
-const ricCoeff = document.getElementById("ric-coefficiente");
-const ricFattoreEvento = document.getElementById("ric-fattore-evento");
-const ricPrezzoRist = document.getElementById("ric-prezzo-ristorante");
-const ricPrezzoEvento = document.getElementById("ric-prezzo-evento");
-
-const ricSalvaBtn = document.getElementById("ric-salva");
-const ricNuovaBtn = document.getElementById("ric-nuova");
-const ricetteLista = document.getElementById("ricette-lista");
-
-let ricettaCorrenteId = null;
-let prodottiCacheRicette = [];
-
-// ------------------ Caricamento prodotti ------------------
-
-async function caricaProdottiPerRicette() {
-  if (!supabase) return;
-
-  const res = await supabase
-    .from("prodotti")
-    .select("id, nome, unita_misura, costo_medio, attivo")
-    .order("nome", { ascending: true });
-
-  if (res.error) {
-    console.error("Errore caricando prodotti per ricette:", res.error);
-    return;
+    ricettaIngredientiContainer.appendChild(row);
   }
 
-  prodottiCacheRicette = res.data || [];
+  // ========= RICETTE: RESET FORM =========
+  function resetFormRicetta() {
+    if (!ricettaNomeInput) return;
 
-  if (!ricProdottiSuggestions) return;
-  ricProdottiSuggestions.innerHTML = "";
+    ricettaCorrenteId = null;
+    ricettaFotoCorrenteUrl = null;
 
-  prodottiCacheRicette.forEach(function (p) {
-    if (!p.nome) return;
-    const opt = document.createElement("option");
-    opt.value = p.nome;
-    ricProdottiSuggestions.appendChild(opt);
-  });
-}
+    ricettaNomeInput.value = "";
+    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = "";
+    if (ricettaNoteInput) ricettaNoteInput.value = "";
+    if (ricettaFotoInput) ricettaFotoInput.value = "";
 
-// ------------------ Caricamento elenco ricette ------------
+    if (ricettaPezziBaseInput) ricettaPezziBaseInput.value = "";
+    if (ricettaFormato1LabelInput)
+      ricettaFormato1LabelInput.value = "Ristorante";
+    if (ricettaFormato1PercInput) ricettaFormato1PercInput.value = 100;
+    if (ricettaFormato2LabelInput)
+      ricettaFormato2LabelInput.value = "Buffet";
+    if (ricettaFormato2PercInput) ricettaFormato2PercInput.value = 25;
 
-async function caricaElencoRicette() {
-  if (!supabase || !ricetteLista) return;
+    if (ricettaFormato1PezziOut) ricettaFormato1PezziOut.textContent = "-";
+    if (ricettaFormato2PezziOut) ricettaFormato2PezziOut.textContent = "-";
 
-  const res = await supabase
-    .from("ricette")
-    .select("id, nome, costo_con_sfrido, prezzo_ristorante, prezzo_evento")
-    .order("nome", { ascending: true });
-
-  if (res.error) {
-    console.error("Errore caricando ricette:", res.error);
-    return;
-  }
-
-  ricetteLista.innerHTML = "";
-
-  (res.data || []).forEach(function (r) {
-    const tr = document.createElement("tr");
-
-    const costoSfridoStr =
-      r.costo_con_sfrido != null ? Number(r.costo_con_sfrido).toFixed(2) : "0.00";
-    const prezzoRistStr =
-      r.prezzo_ristorante != null ? Number(r.prezzo_ristorante).toFixed(2) : "0.00";
-    const prezzoEventoStr =
-      r.prezzo_evento != null ? Number(r.prezzo_evento).toFixed(2) : "0.00";
-
-    tr.innerHTML =
-      "<td>" + (r.nome || "") + "</td>" +
-      "<td>" + costoSfridoStr + " €</td>" +
-      "<td>" + prezzoRistStr + " €</td>" +
-      "<td>" + prezzoEventoStr + " €</td>" +
-      '<td><button class="app-button tiny gray" data-ric-edit="' + r.id + '">Apri</button></td>';
-
-    ricetteLista.appendChild(tr);
-  });
-
-  const buttons = ricetteLista.querySelectorAll("[data-ric-edit]");
-  buttons.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const id = parseInt(btn.getAttribute("data-ric-edit"), 10);
-      if (!isNaN(id)) {
-        caricaRicettaInForm(id);
-      }
-    });
-  });
-}
-
-// ------------------ Gestione righe ingredienti ------------
-
-function creaRigaIngrediente(ing) {
-  const div = document.createElement("div");
-  div.className = "form-grid-2";
-  div.style.marginTop = "8px";
-
-  const nomeProd = ing && ing.nome_prodotto ? ing.nome_prodotto : "";
-  const quantitaVal =
-    ing && typeof ing.quantita !== "undefined" && ing.quantita !== null
-      ? ing.quantita
-      : 1;
-  const unitaVal = ing && ing.unita ? ing.unita : "g";
-  const costoMedioVal =
-    ing && typeof ing.costo_medio_prodotto !== "undefined" && ing.costo_medio_prodotto !== null
-      ? ing.costo_medio_prodotto
-      : 0;
-  const costoRigaVal =
-    ing && typeof ing.costo_riga !== "undefined" && ing.costo_riga !== null
-      ? ing.costo_riga
-      : 0;
-
-  if (ing && ing.prodotto_id) {
-    div.dataset.prodottoId = ing.prodotto_id;
-  }
-
-  // Colonna sinistra: prodotto + quantità
-  const labelProd = document.createElement("label");
-  const textProd = document.createTextNode("Ingrediente");
-  const inputProd = document.createElement("input");
-  inputProd.className = "input-pill ric-ing-nome";
-  inputProd.setAttribute("list", "ric-prodotti-suggestions");
-  inputProd.value = nomeProd;
-
-  labelProd.appendChild(textProd);
-  labelProd.appendChild(document.createElement("br"));
-  labelProd.appendChild(inputProd);
-
-  const labelQty = document.createElement("label");
-  const textQty = document.createTextNode("Quantità");
-  const inputQty = document.createElement("input");
-  inputQty.type = "number";
-  inputQty.className = "input-pill ric-ing-qty";
-  inputQty.min = "0";
-  inputQty.step = "0.01";
-  inputQty.value = quantitaVal;
-
-  labelQty.appendChild(textQty);
-  labelQty.appendChild(document.createElement("br"));
-  labelQty.appendChild(inputQty);
-
-  // Colonna destra: unità, costo medio, costo riga + elimina
-  const labelUnita = document.createElement("label");
-  const textUnita = document.createTextNode("Unità");
-  const inputUnita = document.createElement("input");
-  inputUnita.className = "input-pill ric-ing-unita";
-  inputUnita.value = unitaVal;
-
-  labelUnita.appendChild(textUnita);
-  labelUnita.appendChild(document.createElement("br"));
-  labelUnita.appendChild(inputUnita);
-
-  const labelCostoMedio = document.createElement("label");
-  const textCostoMedio = document.createTextNode("Costo medio €/unità");
-  const inputCostoMedio = document.createElement("input");
-  inputCostoMedio.className = "input-pill ric-ing-costo-medio";
-  inputCostoMedio.readOnly = true;
-  inputCostoMedio.value = costoMedioVal;
-
-  labelCostoMedio.appendChild(textCostoMedio);
-  labelCostoMedio.appendChild(document.createElement("br"));
-  labelCostoMedio.appendChild(inputCostoMedio);
-
-  const labelCostoRiga = document.createElement("label");
-  const textCostoRiga = document.createTextNode("Costo riga €");
-  const inputCostoRiga = document.createElement("input");
-  inputCostoRiga.className = "input-pill ric-ing-costo-riga";
-  inputCostoRiga.readOnly = true;
-  inputCostoRiga.value = costoRigaVal;
-
-  labelCostoRiga.appendChild(textCostoRiga);
-  labelCostoRiga.appendChild(document.createElement("br"));
-  labelCostoRiga.appendChild(inputCostoRiga);
-
-  const btnDel = document.createElement("button");
-  btnDel.type = "button";
-  btnDel.className = "app-button tiny red ric-ing-del";
-  btnDel.textContent = "X";
-
-  // Append
-  div.appendChild(labelProd);
-  div.appendChild(labelQty);
-  div.appendChild(labelUnita);
-  div.appendChild(labelCostoMedio);
-  div.appendChild(labelCostoRiga);
-  div.appendChild(btnDel);
-
-  // Eventi
-  inputProd.addEventListener("change", function () {
-    aggiornaIngredienteDaProdotto(div);
-  });
-
-  const aggiorna = function () {
-    aggiornaCostoRigaIngrediente(div);
-    ricalcolaFoodCostRicetta();
-  };
-
-  inputQty.addEventListener("input", aggiorna);
-
-  btnDel.addEventListener("click", function () {
-    div.remove();
-    ricalcolaFoodCostRicetta();
-  });
-
-  // Se abbiamo già il prodotto in cache e nessun costo medio, proviamo a impostarlo
-  if (!costoMedioVal && nomeProd) {
-    aggiornaIngredienteDaProdotto(div);
-  } else {
-    ricalcolaFoodCostRicetta();
-  }
-
-  return div;
-}
-
-function aggiungiRigaIngrediente(ing) {
-  if (!ricIngredientiContainer) return;
-  const riga = creaRigaIngrediente(ing || null);
-  ricIngredientiContainer.appendChild(riga);
-}
-
-// quando si seleziona/compila il prodotto, aggiorna costo medio e unita
-function aggiornaIngredienteDaProdotto(div) {
-  const inputProd = div.querySelector(".ric-ing-nome");
-  const inputUnita = div.querySelector(".ric-ing-unita");
-  const inputCostoMedio = div.querySelector(".ric-ing-costo-medio");
-
-  if (!inputProd || !inputUnita || !inputCostoMedio) return;
-
-  const nome = (inputProd.value || "").trim();
-  if (!nome) return;
-
-  let prodotto = null;
-  for (let i = 0; i < prodottiCacheRicette.length; i++) {
-    const p = prodottiCacheRicette[i];
-    if (p.nome && p.nome.toLowerCase() === nome.toLowerCase()) {
-      prodotto = p;
-      break;
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+      creaRigaIngrediente();
     }
   }
 
-  if (!prodotto) {
-    delete div.dataset.prodottoId;
-    inputCostoMedio.value = "";
-    ricalcolaFoodCostRicetta();
-    return;
-  }
+  // ========= RICETTE: CALCOLO RESE =========
+  function aggiornaResaRicetta() {
+    if (!ricettaPezziBaseInput) return;
 
-  div.dataset.prodottoId = prodotto.id;
-  inputCostoMedio.value =
-    prodotto.costo_medio != null ? Number(prodotto.costo_medio).toFixed(4) : "0.0000";
-  if (!inputUnita.value && prodotto.unita_misura) {
-    inputUnita.value = prodotto.unita_misura;
-  }
+    const base = parseFloat(ricettaPezziBaseInput.value) || 0;
+    const perc1 = parseFloat(ricettaFormato1PercInput?.value || "0") || 0;
+    const perc2 = parseFloat(ricettaFormato2PercInput?.value || "0") || 0;
 
-  aggiornaCostoRigaIngrediente(div);
-  ricalcolaFoodCostRicetta();
-}
+    const pezzi1 = base > 0 && perc1 > 0 ? base * (100 / perc1) : null;
+    const pezzi2 = base > 0 && perc2 > 0 ? base * (100 / perc2) : null;
 
-function aggiornaCostoRigaIngrediente(div) {
-  const inputQty = div.querySelector(".ric-ing-qty");
-  const inputCostoMedio = div.querySelector(".ric-ing-costo-medio");
-  const inputCostoRiga = div.querySelector(".ric-ing-costo-riga");
-
-  if (!inputQty || !inputCostoMedio || !inputCostoRiga) return;
-
-  const q = parseFloat(inputQty.value || "0");
-  const cm = parseFloat(inputCostoMedio.value || "0");
-
-  const costo = q * cm;
-  inputCostoRiga.value = costo.toFixed(4);
-}
-
-// ------------------ Food cost e prezzi --------------------
-
-function ricalcolaFoodCostRicetta() {
-  let costoBase = 0;
-
-  if (ricIngredientiContainer) {
-    const righe = ricIngredientiContainer.querySelectorAll(".ric-ing-costo-riga");
-    righe.forEach(function (input) {
-      costoBase += parseFloat(input.value || "0");
-    });
-  }
-
-  if (ricCostoBase) {
-    ricCostoBase.value = costoBase.toFixed(4);
-  }
-
-  // sfrido in percentuale (input in %)
-  let sfridoPerc = 15;
-  if (ricSfrido && ricSfrido.value !== "") {
-    sfridoPerc = parseFloat(ricSfrido.value || "15");
-  }
-  const sfridoFrac = sfridoPerc / 100;
-
-  const costoSfrido = costoBase * (1 + sfridoFrac);
-  if (ricCostoSfrido) {
-    ricCostoSfrido.value = costoSfrido.toFixed(4);
-  }
-
-  // coefficiente e fattore evento
-  let coeff = 3;
-  if (ricCoeff && ricCoeff.value !== "") {
-    coeff = parseFloat(ricCoeff.value || "3");
-  }
-  let fattEvento = 0.6;
-  if (ricFattoreEvento && ricFattoreEvento.value !== "") {
-    fattEvento = parseFloat(ricFattoreEvento.value || "0.6");
-  }
-
-  const prezzoR = costoSfrido * coeff;
-  const prezzoE = prezzoR * fattEvento;
-
-  if (ricPrezzoRist) {
-    ricPrezzoRist.value = prezzoR.toFixed(2);
-  }
-  if (ricPrezzoEvento) {
-    ricPrezzoEvento.value = prezzoE.toFixed(2);
-  }
-}
-
-// ------------------ Salvataggio ricetta ------------------
-
-async function salvaRicetta() {
-  if (!supabase) return;
-
-  const nome = ricNome ? (ricNome.value || "").trim() : "";
-  if (!nome) {
-    alert("Inserisci il nome della ricetta.");
-    return;
-  }
-
-  const descr = ricDescrizione ? (ricDescrizione.value || null) : null;
-  const notePorzione = ricPorzioneNote ? (ricPorzioneNote.value || null) : null;
-
-  const costoBase = ricCostoBase ? parseFloat(ricCostoBase.value || "0") : 0;
-  const sfridoPerc = ricSfrido ? parseFloat(ricSfrido.value || "15") : 15;
-  const sfridoFrac = sfridoPerc / 100;
-  const costoSfrido = ricCostoSfrido
-    ? parseFloat(ricCostoSfrido.value || "0")
-    : costoBase * (1 + sfridoFrac);
-  const coeff = ricCoeff ? parseFloat(ricCoeff.value || "3") : 3;
-  const fattEvento = ricFattoreEvento
-    ? parseFloat(ricFattoreEvento.value || "0.6")
-    : 0.6;
-  const prezzoR = ricPrezzoRist ? parseFloat(ricPrezzoRist.value || "0") : costoSfrido * coeff;
-  const prezzoE = ricPrezzoEvento ? parseFloat(ricPrezzoEvento.value || "0") : prezzoR * fattEvento;
-
-  const payload = {
-    nome: nome,
-    descrizione: descr,
-    porzione_base_note: notePorzione,
-    costo_materia_prima: costoBase,
-    percentuale_sfrido: sfridoFrac,
-    costo_con_sfrido: costoSfrido,
-    coefficiente_base: coeff,
-    fattore_porzione_ristorante: 1.0,
-    fattore_porzione_evento: fattEvento,
-    prezzo_ristorante: prezzoR,
-    prezzo_evento: prezzoE,
-    aggiornato_il: new Date().toISOString()
-  };
-
-  let id = ricettaCorrenteId;
-
-  if (id) {
-    const resUpd = await supabase
-      .from("ricette")
-      .update(payload)
-      .eq("id", id);
-
-    if (resUpd.error) {
-      console.error("Errore aggiornando ricetta:", resUpd.error);
-      alert("Errore salvando la ricetta.");
-      return;
+    if (ricettaFormato1PezziOut) {
+      ricettaFormato1PezziOut.textContent = pezzi1 ? pezzi1.toFixed(1) : "-";
     }
-  } else {
-    const resIns = await supabase
+    if (ricettaFormato2PezziOut) {
+      ricettaFormato2PezziOut.textContent = pezzi2 ? pezzi2.toFixed(1) : "-";
+    }
+  }
+
+  if (ricettaPezziBaseInput) {
+    ricettaPezziBaseInput.addEventListener("input", aggiornaResaRicetta);
+  }
+  if (ricettaFormato1PercInput) {
+    ricettaFormato1PercInput.addEventListener("input", aggiornaResaRicetta);
+  }
+  if (ricettaFormato2PercInput) {
+    ricettaFormato2PercInput.addEventListener("input", aggiornaResaRicetta);
+  }
+
+  // ========= RICETTE: SALVATAGGIO BASE =========
+  async function salvaRicettaSupabaseBase({
+    id,
+    nome,
+    descrizione,
+    note,
+    fotoUrl,
+    pezziBase,
+    formato1Label,
+    formato1Perc,
+    formato2Label,
+    formato2Perc,
+  }) {
+    if (!supabase) return null;
+
+    const payload = {
+      id: id || undefined,
+      nome,
+      descrizione: descrizione || null,
+      note_procedimento: note || null,
+      foto_url: fotoUrl || null,
+      pezzi_base: pezziBase || null,
+      formato1_label: formato1Label || null,
+      formato1_percent: formato1Perc || null,
+      formato2_label: formato2Label || null,
+      formato2_percent: formato2Perc || null,
+      attivo: true,
+    };
+
+    const { data, error } = await supabase
       .from("ricette")
-      .insert(payload)
+      .upsert(payload)
       .select()
       .single();
 
-    if (resIns.error) {
-      console.error("Errore inserendo ricetta:", resIns.error);
-      alert("Errore creando la ricetta.");
+    if (error) {
+      console.error("Errore salvataggio ricetta:", error);
+      alert("Errore nel salvare la ricetta");
+      return null;
+    }
+
+    return data;
+  }
+
+  // ========= RICETTE: SALVATAGGIO INGREDIENTI =========
+  async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
+    if (!supabase) return;
+
+    await supabase
+      .from("ricetta_ingredienti")
+      .delete()
+      .eq("ricetta_id", ricettaId);
+
+    if (!ingredienti.length) return;
+
+    const payload = ingredienti.map((ing) => ({
+      ricetta_id: ricettaId,
+      prodotto_id: null,
+      nome_prodotto: ing.nome,
+      quantita: ing.quantita,
+      unita_misura: ing.unita,
+      note: null,
+    }));
+
+    const { error } = await supabase
+      .from("ricetta_ingredienti")
+      .insert(payload);
+
+    if (error) {
+      console.error("Errore salvataggio ingredienti:", error);
+      alert("Errore nel salvare gli ingredienti della ricetta");
+    }
+  }
+
+  // ========= RICETTE: UPLOAD FOTO =========
+  async function uploadFotoRicettaSePresente() {
+    try {
+      if (!supabase) return ricettaFotoCorrenteUrl;
+      if (
+        !ricettaFotoInput ||
+        !ricettaFotoInput.files ||
+        ricettaFotoInput.files.length === 0
+      ) {
+        return ricettaFotoCorrenteUrl || null;
+      }
+
+      const file = ricettaFotoInput.files[0];
+      if (!file) return ricettaFotoCorrenteUrl || null;
+
+      const estensione = file.name.includes(".")
+        ? file.name.split(".").pop().toLowerCase()
+        : "jpg";
+
+      const filePath = `ricetta_${Date.now()}.${estensione}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("ricette_foto")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error("Errore upload foto ricetta:", uploadError);
+        alert("Errore nel caricare la foto della ricetta");
+        return ricettaFotoCorrenteUrl || null;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from("ricette_foto")
+        .getPublicUrl(filePath);
+
+      return publicData?.publicUrl || ricettaFotoCorrenteUrl || null;
+    } catch (err) {
+      console.error("Eccezione upload foto ricetta:", err);
+      return ricettaFotoCorrenteUrl || null;
+    }
+  }
+
+  // ========= RICETTE: CARICA UNA RICETTA NEL FORM (PER MODIFICA) =========
+  async function caricaRicettaInForm(ricettaId) {
+    if (!supabase || !ricettaNomeInput) return;
+
+    const { data: ricetta, error: errRic } = await supabase
+      .from("ricette")
+      .select(
+        `
+        id,
+        nome,
+        descrizione,
+        note_procedimento,
+        foto_url,
+        pezzi_base,
+        formato1_label,
+        formato1_percent,
+        formato2_label,
+        formato2_percent
+      `
+      )
+      .eq("id", ricettaId)
+      .single();
+
+    if (errRic) {
+      console.error("Errore caricamento ricetta:", errRic);
+      alert("Errore nel caricare la ricetta");
       return;
     }
-    id = resIns.data.id;
-    ricettaCorrenteId = id;
+
+    ricettaCorrenteId = ricetta.id;
+    ricettaFotoCorrenteUrl = ricetta.foto_url || null;
+
+    ricettaNomeInput.value = ricetta.nome || "";
+    if (ricettaDescrizioneInput)
+      ricettaDescrizioneInput.value = ricetta.descrizione || "";
+    if (ricettaNoteInput)
+      ricettaNoteInput.value = ricetta.note_procedimento || "";
+
+    if (ricettaPezziBaseInput)
+      ricettaPezziBaseInput.value =
+        ricetta.pezzi_base != null ? ricetta.pezzi_base : "";
+
+    if (ricettaFormato1LabelInput)
+      ricettaFormato1LabelInput.value = ricetta.formato1_label || "Ristorante";
+    if (ricettaFormato1PercInput)
+      ricettaFormato1PercInput.value =
+        ricetta.formato1_percent != null ? ricetta.formato1_percent : 100;
+
+    if (ricettaFormato2LabelInput)
+      ricettaFormato2LabelInput.value = ricetta.formato2_label || "Buffet";
+    if (ricettaFormato2PercInput)
+      ricettaFormato2PercInput.value =
+        ricetta.formato2_percent != null ? ricetta.formato2_percent : 25;
+
+    const { data: ingredienti, error: errIng } = await supabase
+      .from("ricetta_ingredienti")
+      .select("nome_prodotto, quantita, unita_misura")
+      .eq("ricetta_id", ricettaId);
+
+    if (errIng) {
+      console.error("Errore caricamento ingredienti ricetta:", errIng);
+      alert("Errore nel caricare gli ingredienti della ricetta");
+      return;
+    }
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+      if (ingredienti && ingredienti.length) {
+        ingredienti.forEach((ing) => {
+          creaRigaIngrediente(ing);
+        });
+      } else {
+        creaRigaIngrediente();
+      }
+    }
+
+    aggiornaResaRicetta();
   }
 
-  // salva ingredienti
-  if (id && ricIngredientiContainer) {
-    await supabase
-      .from("ricette_ingredienti")
-      .delete()
-      .eq("ricetta_id", id);
+  // ========= RICETTE: SALVATAGGIO COMPLETO =========
+  async function handleSalvaRicetta() {
+    if (!ricettaNomeInput) return;
 
-    const righe = ricIngredientiContainer.children;
-    for (let i = 0; i < righe.length; i++) {
-      const div = righe[i];
-      const inputNome = div.querySelector(".ric-ing-nome");
-      const inputQty = div.querySelector(".ric-ing-qty");
-      const inputUnita = div.querySelector(".ric-ing-unita");
+    const nome = ricettaNomeInput.value.trim();
+    if (!nome) {
+      alert("Inserisci il nome della ricetta");
+      return;
+    }
 
-      const nomeProd = inputNome ? (inputNome.value || "").trim() : "";
-      if (!nomeProd) continue;
+    const descrizione = ricettaDescrizioneInput?.value.trim() || "";
+    const note = ricettaNoteInput?.value.trim() || "";
 
-      let prodottoId = div.dataset.prodottoId || null;
+    const ingredienti = [];
+    if (ricettaIngredientiContainer) {
+      const rows = Array.from(
+        ricettaIngredientiContainer.querySelectorAll(
+          ".ricetta-ingrediente-row"
+        )
+      );
+      rows.forEach((row) => {
+        const nomeEl = row.querySelector(".ingrediente-nome");
+        const qtaEl = row.querySelector(".ingrediente-quantita");
+        const unitaEl = row.querySelector(".ingrediente-unita");
 
-      // Se non abbiamo ancora l'id, cerchiamo nel cache per nome
-      if (!prodottoId) {
-        for (let j = 0; j < prodottiCacheRicette.length; j++) {
-          const p = prodottiCacheRicette[j];
-          if (p.nome && p.nome.toLowerCase() === nomeProd.toLowerCase()) {
-            prodottoId = p.id;
-            break;
-          }
+        const nomeIng = (nomeEl?.value || "").trim();
+        const qtaVal = parseFloat(qtaEl?.value || "0") || 0;
+        const unitaVal = (unitaEl?.value || "").trim();
+
+        if (nomeIng && qtaVal > 0 && unitaVal) {
+          ingredienti.push({
+            nome: nomeIng,
+            quantita: qtaVal,
+            unita: unitaVal,
+          });
         }
-      }
-
-      if (!prodottoId) {
-        // prodotto non trovato -> per ora saltiamo
-        continue;
-      }
-
-      const qty = inputQty ? parseFloat(inputQty.value || "0") : 0;
-      const unita = inputUnita ? (inputUnita.value || "") : "";
-      if (!unita) continue;
-
-      await supabase.from("ricette_ingredienti").insert({
-        ricetta_id: id,
-        prodotto_id: prodottoId,
-        quantita: qty,
-        unita: unita
       });
     }
+
+    const pezziBase = parseFloat(ricettaPezziBaseInput?.value || "0") || 0;
+    const formato1Label = ricettaFormato1LabelInput?.value.trim() || "";
+    const formato1Perc =
+      parseFloat(ricettaFormato1PercInput?.value || "0") || 0;
+    const formato2Label = ricettaFormato2LabelInput?.value.trim() || "";
+    const formato2Perc =
+      parseFloat(ricettaFormato2PercInput?.value || "0") || 0;
+
+    const fotoUrl = await uploadFotoRicettaSePresente();
+    ricettaFotoCorrenteUrl = fotoUrl;
+
+    const ricettaSalvata = await salvaRicettaSupabaseBase({
+      id: ricettaCorrenteId,
+      nome,
+      descrizione,
+      note,
+      fotoUrl,
+      pezziBase,
+      formato1Label,
+      formato1Perc,
+      formato2Label,
+      formato2Perc,
+    });
+
+    if (!ricettaSalvata) return;
+
+    ricettaCorrenteId = ricettaSalvata.id;
+    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+
+    alert("Ricetta salvata correttamente");
+    aggiornaResaRicetta();
   }
 
-  alert("Ricetta salvata.");
-  await caricaElencoRicette();
-}
-
-// ------------------ Carica ricetta in form ----------------
-
-async function caricaRicettaInForm(id) {
-  if (!supabase) return;
-
-  ricettaCorrenteId = id;
-
-  const res = await supabase
-    .from("ricette")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (res.error || !res.data) {
-    console.error("Errore caricando ricetta:", res.error);
-    alert("Errore caricando la ricetta.");
-    return;
-  }
-
-  const r = res.data;
-
-  if (ricNome) ricNome.value = r.nome || "";
-  if (ricDescrizione) ricDescrizione.value = r.descrizione || "";
-  if (ricPorzioneNote) ricPorzioneNote.value = r.porzione_base_note || "";
-
-  if (ricCostoBase) ricCostoBase.value = (r.costo_materia_prima || 0).toFixed(4);
-  if (ricSfrido) {
-    const perc =
-      r.percentuale_sfrido != null ? Number(r.percentuale_sfrido) * 100 : 15;
-    ricSfrido.value = perc.toFixed(2).replace(/\.?0+$/, "");
-  }
-  if (ricCostoSfrido) ricCostoSfrido.value = (r.costo_con_sfrido || 0).toFixed(4);
-  if (ricCoeff) ricCoeff.value = r.coefficiente_base != null ? r.coefficiente_base : 3;
-  if (ricFattoreEvento)
-    ricFattoreEvento.value =
-      r.fattore_porzione_evento != null ? r.fattore_porzione_evento : 0.6;
-  if (ricPrezzoRist)
-    ricPrezzoRist.value = (r.prezzo_ristorante || 0).toFixed(2);
-  if (ricPrezzoEvento)
-    ricPrezzoEvento.value = (r.prezzo_evento || 0).toFixed(2);
-
-  // carica ingredienti
-  if (ricIngredientiContainer) ricIngredientiContainer.innerHTML = "";
-
-  const resIng = await supabase
-    .from("ricette_ingredienti")
-    .select("id, prodotto_id, quantita, unita, prodotto:prodotto_id (nome, costo_medio)")
-    .eq("ricetta_id", id);
-
-  if (!resIng.error && resIng.data) {
-    resIng.data.forEach(function (ing) {
-      const ogg = {
-        prodotto_id: ing.prodotto_id,
-        nome_prodotto: ing.prodotto ? ing.prodotto.nome : "",
-        quantita: ing.quantita,
-        unita: ing.unita,
-        costo_medio_prodotto: ing.prodotto ? ing.prodotto.costo_medio : 0,
-        costo_riga:
-          (ing.quantita || 0) *
-          (ing.prodotto && ing.prodotto.costo_medio ? ing.prodotto.costo_medio : 0)
-      };
-      aggiungiRigaIngrediente(ogg);
+  if (btnAddIngrediente) {
+    btnAddIngrediente.addEventListener("click", () => {
+      creaRigaIngrediente();
     });
   }
 
-  ricalcolaFoodCostRicetta();
-}
-
-// ------------------ Nuova ricetta -------------------------
-
-function nuovaRicetta() {
-  ricettaCorrenteId = null;
-
-  if (ricNome) ricNome.value = "";
-  if (ricDescrizione) ricDescrizione.value = "";
-  if (ricPorzioneNote) ricPorzioneNote.value = "";
-
-  if (ricCostoBase) ricCostoBase.value = "";
-  if (ricSfrido) ricSfrido.value = "15";
-  if (ricCostoSfrido) ricCostoSfrido.value = "";
-  if (ricCoeff) ricCoeff.value = "3";
-  if (ricFattoreEvento) ricFattoreEvento.value = "0.6";
-  if (ricPrezzoRist) ricPrezzoRist.value = "";
-  if (ricPrezzoEvento) ricPrezzoEvento.value = "";
-
-  if (ricIngredientiContainer) ricIngredientiContainer.innerHTML = "";
-}
-
-// ------------------ Event listeners RICETTE ---------------
-
-if (ricAddIngredienteBtn) {
-  ricAddIngredienteBtn.addEventListener("click", function () {
-    aggiungiRigaIngrediente();
-  });
-}
-
-if (ricSalvaBtn) {
-  ricSalvaBtn.addEventListener("click", function () {
-    salvaRicetta();
-  });
-}
-
-if (ricNuovaBtn) {
-  ricNuovaBtn.addEventListener("click", function () {
-    nuovaRicetta();
-  });
-}
-
-if (ricSfrido) {
-  ricSfrido.addEventListener("input", function () {
-    ricalcolaFoodCostRicetta();
-  });
-}
-
-if (ricCoeff) {
-  ricCoeff.addEventListener("input", function () {
-    ricalcolaFoodCostRicetta();
-  });
-}
-
-if (ricFattoreEvento) {
-  ricFattoreEvento.addEventListener("input", function () {
-    ricalcolaFoodCostRicetta();
-  });
-}
-
-// Caricamento iniziale dati ricette
-(async function () {
-  await caricaProdottiPerRicette();
-  await caricaElencoRicette();
-})();
-
-// ==== RIFERIMENTI DOM ====
-const prevClienteNome = document.getElementById("prev-cliente-nome");
-const prevContattiList = document.getElementById("prev-contatti-list");
-const prevClienteEmail = document.getElementById("prev-cliente-email");
-const prevClienteTelefono = document.getElementById("prev-cliente-telefono");
-const prevAddContattoBtn = document.getElementById("prev-add-contatto");
-
-const prevTitolo = document.getElementById("prev-titolo");
-const prevTipoServizio = document.getElementById("prev-tipo-servizio");
-const prevDataEvento = document.getElementById("prev-data-evento");
-const prevNInvitati = document.getElementById("prev-n-invitati");
-const prevLocation = document.getElementById("prev-location");
-const prevNote = document.getElementById("prev-note");
-
-const prevPiattiContainer = document.getElementById("prev-piatti-container");
-const prevPiattiSuggestions = document.getElementById("prev-piatti-suggestions");
-const prevAddPiattoBtn = document.getElementById("prev-add-piatto");
-
-const prevExtraContainer = document.getElementById("prev-extra-container");
-const prevExtraSuggestions = document.getElementById("prev-extra-suggestions");
-const prevAddExtraBtn = document.getElementById("prev-add-extra");
-
-const prevTotalePiatti = document.getElementById("prev-totale-piatti");
-const prevTotaleExtra = document.getElementById("prev-totale-extra");
-const prevTotale = document.getElementById("prev-totale");
-const prevTotalePP = document.getElementById("prev-totale-pp");
-
-const prevStato = document.getElementById("prev-stato");
-const prevAccontoCard = document.getElementById("prev-acconto-card");
-const prevAcconto = document.getElementById("prev-acconto");
-const prevSaldo = document.getElementById("prev-saldo");
-const prevGeneraPrenotazione = document.getElementById("prev-genera-prenotazione");
-
-const prevSalvaBtn = document.getElementById("prev-salva");
-const prevStampaBtn = document.getElementById("prev-stampa");
-const prevEmailBtn = document.getElementById("prev-email");
-const prevApriPrenotazioneBtn = document.getElementById("prev-apri-prenotazione");
-
-const prevLista = document.getElementById("prev-lista");
-
-let preventivoCorrenteId = null;
-let contattiCache = [];
-let ricetteCachePreventivi = [];
-let serviziExtraCatalogo = [];
-
-// =========================================================
-// =============== CARICAMENTO DATI INIZIALI ================
-// =========================================================
-
-async function caricaContatti() {
-  if (!supabase) return;
-
-  const res = await supabase
-    .from("contatti")
-    .select("*")
-    .order("nome");
-
-  if (res.error) {
-    console.error("Errore caricando contatti:", res.error);
-    return;
+  if (btnSalvaRicetta) {
+    btnSalvaRicetta.addEventListener("click", () => {
+      handleSalvaRicetta();
+    });
   }
 
-  contattiCache = res.data || [];
-  if (!prevContattiList) return;
-  prevContattiList.innerHTML = "";
+  // ===========================================================
+  // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
+  // ===========================================================
+  let ricetteSuggestionsList = null;
 
-  contattiCache.forEach(function (c) {
-    const opt = document.createElement("option");
-    const nomeCompleto = (c.nome || "") + " " + (c.cognome || "");
-    opt.value = nomeCompleto.trim();
-    prevContattiList.appendChild(opt);
-  });
-}
+  // creo il datalist per l'autocompletamento del ricettario
+  if (ricetteSearchInput) {
+    ricetteSuggestionsList = document.createElement("datalist");
+    ricetteSuggestionsList.id = "ricette-suggestions";
+    document.body.appendChild(ricetteSuggestionsList);
+    ricetteSearchInput.setAttribute("list", "ricette-suggestions");
+  }
 
-async function caricaRicettePreventivi() {
-  if (!supabase) return;
+  // aggiorna le opzioni del datalist con i nomi delle ricette
+  function aggiornaRicetteSuggestions() {
+    if (!ricetteSuggestionsList) return;
+    ricetteSuggestionsList.innerHTML = "";
 
-  const res = await supabase
-    .from("ricette")
-    .select("id, nome");
-
-  if (!res.error && res.data) {
-    ricetteCachePreventivi = res.data;
-    if (!prevPiattiSuggestions) return;
-    prevPiattiSuggestions.innerHTML = "";
-    res.data.forEach(function (r) {
+    ricetteCache.forEach((r) => {
+      if (!r.nome) return;
       const opt = document.createElement("option");
       opt.value = r.nome;
-      prevPiattiSuggestions.appendChild(opt);
-    });
-  }
-}
-
-async function caricaCatalogoExtra() {
-  if (!supabase) return;
-
-  const res = await supabase
-    .from("extra_servizi_catalogo")
-    .select("*");
-
-  if (!res.error && res.data) {
-    serviziExtraCatalogo = res.data;
-    if (!prevExtraSuggestions) return;
-    prevExtraSuggestions.innerHTML = "";
-    res.data.forEach(function (s) {
-      const opt = document.createElement("option");
-      opt.value = s.nome;
-      prevExtraSuggestions.appendChild(opt);
-    });
-  }
-}
-
-async function caricaPreventiviEsistenti() {
-  if (!supabase || !prevLista) return;
-
-  const res = await supabase
-    .from("preventivi")
-    .select("*, contatti:cliente_id (nome, cognome)")
-    .order("created_at", { ascending: false });
-
-  if (res.error) {
-    console.error("Errore caricando preventivi:", res.error);
-    return;
-  }
-
-  prevLista.innerHTML = "";
-
-  (res.data || []).forEach(function (p) {
-    const tr = document.createElement("tr");
-    const cont = p.contatti || {};
-    const clienteNome = ((cont.nome || "") + " " + (cont.cognome || "")).trim();
-    const dataEvento = p.data_evento || "-";
-    const titolo = p.titolo_evento || "-";
-    const invitati = (p.n_invitati != null ? p.n_invitati : "-");
-    const totaleStr = (p.totale != null ? Number(p.totale).toFixed(2) : "0.00");
-    const stato = p.stato || "-";
-
-    var html =
-      "<td>" + dataEvento + "</td>" +
-      "<td>" + (clienteNome || "-") + "</td>" +
-      "<td>" + titolo + "</td>" +
-      "<td>" + invitati + "</td>" +
-      "<td>" + totaleStr + "</td>" +
-      "<td>" + stato + "</td>" +
-      '<td><button class="app-button tiny gray" data-edit-prev="' + p.id + '">Apri</button></td>';
-
-    tr.innerHTML = html;
-    prevLista.appendChild(tr);
-  });
-
-  const buttons = prevLista.querySelectorAll("[data-edit-prev]");
-  buttons.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const id = parseInt(btn.getAttribute("data-edit-prev"), 10);
-      if (!isNaN(id)) {
-        caricaPreventivoInModifica(id);
-      }
-    });
-  });
-}
-
-// =========================================================
-// ======================= PIATTI / MENÙ ====================
-// =========================================================
-
-function aggiungiRigaPiatto(piatto) {
-  if (!prevPiattiContainer) return;
-
-  var div = document.createElement("div");
-  div.className = "form-grid-2";
-  div.style.marginTop = "8px";
-
-  // valori di default
-  var defaultQty = 1;
-  if (prevNInvitati && prevNInvitati.value) {
-    var parsed = parseInt(prevNInvitati.value, 10);
-    if (!isNaN(parsed) && parsed > 0) defaultQty = parsed;
-  }
-
-  var nomeVal =
-    piatto && typeof piatto.nome_piatto !== "undefined"
-      ? piatto.nome_piatto
-      : "";
-  var qtyVal =
-    piatto && typeof piatto.quantita !== "undefined" && piatto.quantita !== null
-      ? piatto.quantita
-      : defaultQty;
-  var costoUnitVal =
-    piatto &&
-    typeof piatto.costo_unitario !== "undefined" &&
-    piatto.costo_unitario !== null
-      ? piatto.costo_unitario
-      : "";
-  var costoTotVal =
-    piatto &&
-    typeof piatto.costo_totale !== "undefined" &&
-    piatto.costo_totale !== null
-      ? piatto.costo_totale
-      : "";
-
-  div.innerHTML =
-    '<label>' +
-      'Portata' +
-      '<input ' +
-        'class="input-pill prev-piatto-nome" ' +
-        'list="prev-piatti-suggestions" ' +
-        'value="' + nomeVal + '"' +
-      '>' +
-    '</label>' +
-
-    '<label>' +
-      'Quantità' +
-      '<input ' +
-        'type="number" ' +
-        'class="input-pill prev-piatto-qty" ' +
-        'min="1" ' +
-        'value="' + qtyVal + '"' +
-      '>' +
-    '</label>' +
-
-    '<label>' +
-      'Prezzo unitario (€)' +
-      '<input ' +
-        'class="input-pill prev-piatto-costo" ' +
-        'readonly ' +
-        'value="' + costoUnitVal + '"' +
-      '>' +
-    '</label>' +
-
-    '<label>' +
-      'Totale (€)' +
-      '<input ' +
-        'class="input-pill prev-piatto-tot" ' +
-        'readonly ' +
-        'value="' + costoTotVal + '"' +
-      '>' +
-    '</label>' +
-
-    '<button class="app-button tiny red prev-del-piatto" type="button">X</button>';
-
-  prevPiattiContainer.appendChild(div);
-
-  var btnDel = div.querySelector(".prev-del-piatto");
-  var inputNome = div.querySelector(".prev-piatto-nome");
-  var inputQty = div.querySelector(".prev-piatto-qty");
-
-  if (btnDel) {
-    btnDel.addEventListener("click", function () {
-      div.remove();
-      calcolaTotaliPreventivo();
+      ricetteSuggestionsList.appendChild(opt);
     });
   }
 
-  if (inputNome) {
-    inputNome.addEventListener("change", function () {
-      aggiornaCostoPiatto(div, true).then(function () {
-        calcolaTotaliPreventivo();
-      });
-    });
-  }
+  async function caricaRicetteDaSupabase() {
+    if (!supabase) return;
 
-  if (inputQty) {
-    inputQty.addEventListener("input", function () {
-      aggiornaCostoPiatto(div, false).then(function () {
-        calcolaTotaliPreventivo();
-      });
-    });
-  }
-}
-
-// logica prezzo portata: food cost dai prodotti
-async function aggiornaCostoPiatto(div, force) {
-  if (!supabase) return;
-
-  var nomeInput = div.querySelector(".prev-piatto-nome");
-  var qtyInput = div.querySelector(".prev-piatto-qty");
-  var costoInput = div.querySelector(".prev-piatto-costo");
-  var totInput = div.querySelector(".prev-piatto-tot");
-
-  if (!nomeInput || !qtyInput || !costoInput || !totInput) return;
-
-  var nome = (nomeInput.value || "").trim();
-  var qty = parseFloat(qtyInput.value || "1");
-
-  if (!nome) return;
-
-  var ric = null;
-  for (var i = 0; i < ricetteCachePreventivi.length; i++) {
-    var r = ricetteCachePreventivi[i];
-    if (r.nome && r.nome.toLowerCase() === nome.toLowerCase()) {
-      ric = r;
-      break;
-    }
-  }
-
-  var ricettaId = null;
-  var prezzoUnitario = 0;
-
-  if (ric) {
-    ricettaId = ric.id;
-
-    var res = await supabase
-      .from("ricette_ingredienti")
-      .select("quantita, prodotto:prodotto_id (costo_medio)")
-      .eq("ricetta_id", ric.id);
-
-    if (!res.error && res.data) {
-      res.data.forEach(function (ing) {
-        var q = parseFloat(ing.quantita || "0");
-        var costoMedio = 0;
-        if (ing.prodotto && typeof ing.prodotto.costo_medio !== "undefined") {
-          costoMedio = parseFloat(ing.prodotto.costo_medio || "0");
-        }
-        prezzoUnitario += q * costoMedio;
-      });
-    }
-  } else {
-    // ricetta non esiste: creiamo scheda "da completare"
-    var inserimento = await supabase
+    const { data, error } = await supabase
       .from("ricette")
-      .insert({
-        nome: nome,
-        descrizione: "Ricetta da completare",
-        tipo: "piatto"
-      })
-      .select()
-      .single();
+      .select(
+        `
+        id,
+        nome,
+        descrizione,
+        note_procedimento,
+        foto_url,
+        pezzi_base,
+        formato1_label,
+        formato1_percent,
+        formato2_label,
+        formato2_percent
+      `
+      )
+      .order("nome", { ascending: true });
 
-  if (!inserimento.error && inserimento.data) {
-      ricettaId = inserimento.data.id;
-
-      ricetteCachePreventivi.push({
-        id: inserimento.data.id,
-        nome: nome
-      });
-
-      if (prevPiattiSuggestions) {
-        var opt = document.createElement("option");
-        opt.value = nome;
-        prevPiattiSuggestions.appendChild(opt);
-      }
-    }
-  }
-
-  // salva id ricetta sulla riga
-  div.dataset.ricettaId = ricettaId;
-
-  // aggiorna campi costo e totale
-  costoInput.value = prezzoUnitario.toFixed(2);
-  totInput.value = (prezzoUnitario * qty).toFixed(2);
-}
-
-// =========================================================
-// ======================= EXTRA ============================
-// =========================================================
-
-function aggiungiRigaExtra(extra) {
-  if (!prevExtraContainer) return;
-
-  const div = document.createElement("div");
-  div.className = "form-grid-2";
-  div.style.marginTop = "8px";
-
-  // Valori iniziali sicuri
-  const descVal =
-    extra && typeof extra.descrizione !== "undefined"
-      ? extra.descrizione
-      : "";
-  const qtyVal =
-    extra && typeof extra.quantita !== "undefined" && extra.quantita !== null
-      ? extra.quantita
-      : 1;
-  const prezzoUnitVal =
-    extra &&
-    typeof extra.prezzo_unitario !== "undefined" &&
-    extra.prezzo_unitario !== null
-      ? extra.prezzo_unitario
-      : 0;
-  const prezzoTotVal =
-    extra &&
-    typeof extra.prezzo_totale !== "undefined" &&
-    extra.prezzo_totale !== null
-      ? extra.prezzo_totale
-      : 0;
-
-  // ====== Servizio ======
-  const labelServ = document.createElement("label");
-  const textServ = document.createTextNode("Servizio");
-  const inputServ = document.createElement("input");
-  inputServ.className = "input-pill prev-extra-desc";
-  inputServ.setAttribute("list", "prev-extra-suggestions");
-  inputServ.value = descVal;
-
-  labelServ.appendChild(textServ);
-  labelServ.appendChild(document.createElement("br"));
-  labelServ.appendChild(inputServ);
-
-  // ====== Quantità ======
-  const labelQty = document.createElement("label");
-  const textQty = document.createTextNode("Quantità");
-  const inputQty = document.createElement("input");
-  inputQty.type = "number";
-  inputQty.className = "input-pill prev-extra-qty";
-  inputQty.min = "1";
-  inputQty.value = qtyVal;
-
-  labelQty.appendChild(textQty);
-  labelQty.appendChild(document.createElement("br"));
-  labelQty.appendChild(inputQty);
-
-  // ====== Prezzo unitario ======
-  const labelPrezzo = document.createElement("label");
-  const textPrezzo = document.createTextNode("Prezzo unitario (€)");
-  const inputPrezzo = document.createElement("input");
-  inputPrezzo.type = "number";
-  inputPrezzo.className = "input-pill prev-extra-prezzo";
-  inputPrezzo.step = "0.01";
-  inputPrezzo.value = prezzoUnitVal;
-
-  labelPrezzo.appendChild(textPrezzo);
-  labelPrezzo.appendChild(document.createElement("br"));
-  labelPrezzo.appendChild(inputPrezzo);
-
-  // ====== Totale ======
-  const labelTot = document.createElement("label");
-  const textTot = document.createTextNode("Totale (€)");
-  const inputTot = document.createElement("input");
-  inputTot.className = "input-pill prev-extra-tot";
-  inputTot.readOnly = true;
-  inputTot.value = prezzoTotVal;
-
-  labelTot.appendChild(textTot);
-  labelTot.appendChild(document.createElement("br"));
-  labelTot.appendChild(inputTot);
-
-  // ====== Bottone elimina ======
-  const btnDel = document.createElement("button");
-  btnDel.type = "button";
-  btnDel.className = "app-button tiny red prev-del-extra";
-  btnDel.textContent = "X";
-
-  // Append a div
-  div.appendChild(labelServ);
-  div.appendChild(labelQty);
-  div.appendChild(labelPrezzo);
-  div.appendChild(labelTot);
-  div.appendChild(btnDel);
-
-  prevExtraContainer.appendChild(div);
-
-  // Funzione di aggiornamento totale
-  const aggiornaExtra = () => {
-    const q = parseFloat(inputQty.value || "1");
-    const p = parseFloat(inputPrezzo.value || "0");
-    inputTot.value = (q * p).toFixed(2);
-    calcolaTotaliPreventivo();
-  };
-
-  inputQty.addEventListener("input", aggiornaExtra);
-  inputPrezzo.addEventListener("input", aggiornaExtra);
-
-  btnDel.addEventListener("click", () => {
-    div.remove();
-    calcolaTotaliPreventivo();
-  });
-}
-
-// =========================================================
-// ================== CALCOLO TOTALI ========================
-// =========================================================
-
-function calcolaTotaliPreventivo() {
-  let totPiatti = 0;
-  let totExtra = 0;
-
-  if (prevPiattiContainer) {
-    const righePiatti = prevPiattiContainer.querySelectorAll(".prev-piatto-tot");
-    righePiatti.forEach(function (el) {
-      totPiatti += parseFloat(el.value || "0");
-    });
-  }
-
-  if (prevExtraContainer) {
-    const righeExtra = prevExtraContainer.querySelectorAll(".prev-extra-tot");
-    righeExtra.forEach(function (el) {
-      totExtra += parseFloat(el.value || "0");
-    });
-  }
-
-  if (prevTotalePiatti) prevTotalePiatti.value = totPiatti.toFixed(2);
-  if (prevTotaleExtra) prevTotaleExtra.value = totExtra.toFixed(2);
-
-  const totale = totPiatti + totExtra;
-  if (prevTotale) prevTotale.value = totale.toFixed(2);
-
-  // Prezzo a persona = (menù + extra) / n_invitati
-  if (prevTotalePP) {
-    let nInv = 0;
-    if (prevNInvitati && prevNInvitati.value) {
-      nInv = parseFloat(prevNInvitati.value);
-    }
-    if (nInv > 0) {
-      prevTotalePP.value = (totale / nInv).toFixed(2);
-    } else {
-      prevTotalePP.value = "";
-    }
-  }
-
-  if (prevStato && prevStato.value === "accettato" && prevSaldo) {
-    let ac = 0;
-    if (prevAcconto && prevAcconto.value) {
-      ac = parseFloat(prevAcconto.value || "0");
-    }
-    prevSaldo.value = (totale - ac).toFixed(2);
-  }
-}
-
-// =========================================================
-// ===================== SALVATAGGIO ========================
-// =========================================================
-
-async function salvaPreventivo() {
-  if (!supabase) return;
-
-  const cliente = prevClienteNome ? (prevClienteNome.value || "").trim() : "";
-  if (!cliente) {
-    alert("Seleziona un cliente.");
-    return;
-  }
-
-  // TROVA O CREA CONTATTO
-  let contattoId = null;
-  let contatto = contattiCache.find(function (c) {
-    const nomeCompleto = (c.nome || "") + " " + (c.cognome || "");
-    return nomeCompleto.trim().toLowerCase() === cliente.toLowerCase();
-  });
-
-  if (contatto) {
-    contattoId = contatto.id;
-  } else {
-    const parti = cliente.split(" ");
-    const nome = parti.shift() || cliente;
-    const cognome = parti.join(" ");
-
-    const resIns = await supabase
-      .from("contatti")
-      .insert({
-        nome: nome,
-        cognome: cognome || null,
-        email: prevClienteEmail ? (prevClienteEmail.value || null) : null,
-        telefono: prevClienteTelefono ? (prevClienteTelefono.value || null) : null
-      })
-      .select()
-      .single();
-
-    if (resIns.error) {
-      console.error(resIns.error);
-      alert("Errore creando contatto");
+    if (error) {
+      console.error("Errore caricamento ricette:", error);
+      alert("Errore nel caricare le ricette");
       return;
     }
 
-    contattoId = resIns.data.id;
-    contattiCache.push(resIns.data);
+    ricetteCache = data || [];
+
+    aggiornaRicetteSuggestions();
+
+    const container = document.getElementById("ricette-lista-viewer");
+    if (container) {
+      container.innerHTML = "";
+    }
   }
 
-  const payload = {
-    cliente_id: contattoId,
-    titolo_evento: prevTitolo ? (prevTitolo.value || null) : null,
-    tipo_servizio: prevTipoServizio ? (prevTipoServizio.value || null) : null,
-    data_evento: prevDataEvento ? (prevDataEvento.value || null) : null,
-    n_invitati:
-      prevNInvitati && prevNInvitati.value
-        ? parseInt(prevNInvitati.value, 10)
-        : null,
-    location: prevLocation ? (prevLocation.value || null) : null,
-    note: prevNote ? (prevNote.value || null) : null,
-    stato: prevStato ? (prevStato.value || "bozza") : "bozza",
-    acconto:
-      prevAcconto && prevAcconto.value
-        ? parseFloat(prevAcconto.value || "0")
-        : 0,
-    totale:
-      prevTotale && prevTotale.value
-        ? parseFloat(prevTotale.value || "0")
-        : 0
-  };
+  // funzione di render opzionale (se un giorno vorrai rivedere la lista sotto)
+  function renderRicetteViewer(lista) {
+    const container = document.getElementById("ricette-lista-viewer");
+    if (!container) return;
 
-  let id = preventivoCorrenteId;
-  let ricettaDaAprireId = null;
+    container.innerHTML = "";
 
-
-  if (id) {
-    const resUpd = await supabase
-      .from("preventivi")
-      .update(payload)
-      .eq("id", id);
-
-    if (resUpd.error) {
-      console.error(resUpd.error);
-      alert("Errore salvando preventivo");
+    if (!lista.length) {
+      container.innerHTML = "<p>Nessuna ricetta trovata.</p>";
       return;
     }
-  } else {
-    const resNew = await supabase
-      .from("preventivi")
-      .insert(payload)
-      .select()
-      .single();
 
-    if (resNew.error) {
-      console.error(resNew.error);
-      alert("Errore creando preventivo");
-      return;
-    }
-    id = resNew.data.id;
-    preventivoCorrenteId = id;
-  }
+    lista.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "timbratura-intro-card";
 
-  // SALVA RIGHE MENÙ
-  await supabase.from("preventivi_ricette").delete().eq("preventivo_id", id);
+      const base = r.pezzi_base || 0;
+      const f1Perc = r.formato1_percent || 100;
+      const f2Perc = r.formato2_percent || 0;
 
-  if (prevPiattiContainer) {
-    const righe = prevPiattiContainer.children;
-    for (let i = 0; i < righe.length; i++) {
-      const div = righe[i];
-      const inputNome = div.querySelector(".prev-piatto-nome");
-      const inputQty = div.querySelector(".prev-piatto-qty");
-      const inputCU = div.querySelector(".prev-piatto-costo");
-      const inputTot = div.querySelector(".prev-piatto-tot");
+      const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
+      const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
 
-      const nomePiatto = inputNome ? (inputNome.value || "") : "";
-      if (!nomePiatto) continue;
+      card.innerHTML = `
+        <h3 style="margin:0 0 4px">${r.nome}</h3>
 
-      await supabase.from("preventivi_ricette").insert({
-        preventivo_id: id,
-        ricetta_id: div.dataset.ricettaId || null,
-        nome_piatto: nomePiatto,
-        quantita: inputQty ? inputQty.value : 0,
-        costo_unitario: inputCU ? inputCU.value : 0,
-        costo_totale: inputTot ? inputTot.value : 0,
-        ricetta_completa: !!div.dataset.ricettaId
-      });
-    }
-  }
+        <p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
+          ${r.descrizione || ""}
+        </p>
 
-  // SALVA EXTRA
-  await supabase.from("preventivi_extra").delete().eq("preventivo_id", id);
+        ${
+          base
+            ? `
+            <div style="font-size:12px; margin-bottom:4px;">
+              <strong>Quantità base:</strong> ${base} pezzi equivalenti
+            </div>
+            <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
+              <span><strong>${r.formato1_label || "Formato 1"}:</strong>
+                ${pezzi1 ? pezzi1.toFixed(1) : "-"} pz
+              </span>
+              ${
+                f2Perc
+                  ? `<span><strong>${r.formato2_label || "Formato 2"}:</strong>
+                      ${pezzi2 ? pezzi2.toFixed(1) : "-"} pz
+                    </span>`
+                  : ""
+              }
+            </div>
+          `
+            : ""
+        }
 
-  if (prevExtraContainer) {
-    const righeE = prevExtraContainer.children;
-    for (let i = 0; i < righeE.length; i++) {
-      const div = righeE[i];
-      const inputDesc = div.querySelector(".prev-extra-desc");
-      const inputQty = div.querySelector(".prev-extra-qty");
-      const inputPU = div.querySelector(".prev-extra-prezzo");
+        ${
+          r.note_procedimento
+            ? `
+          <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+            <strong>Note:</strong> ${r.note_procedimento}
+          </p>`
+            : ""
+        }
+      `;
 
-      const desc = inputDesc ? (inputDesc.value || "") : "";
-      if (!desc) continue;
-
-      await supabase.from("preventivi_extra").insert({
-        preventivo_id: id,
-        descrizione: desc,
-        quantita: inputQty ? inputQty.value : 0,
-        prezzo_unitario: inputPU ? inputPU.value : 0
-      });
-    }
-  }
-
-  // GENERA PRENOTAZIONE SOLO SE ACCETTATO
-  if (prevStato && prevStato.value === "accettato") {
-    await generaPrenotazione(id);
-  }
-
-  alert("Preventivo salvato.");
-  await caricaPreventiviEsistenti();
-}
-// =========================================================
-// ============ STAMPA & EMAIL PREVENTIVO ==================
-// =========================================================
-
-function raccogliDatiPreventivoCorrente() {
-  // Cliente
-  var clienteNome = prevClienteNome ? (prevClienteNome.value || "") : "";
-  var clienteEmail = prevClienteEmail ? (prevClienteEmail.value || "") : "";
-  var clienteTelefono = prevClienteTelefono ? (prevClienteTelefono.value || "") : "";
-
-  // Evento
-  var titoloEvento = prevTitolo ? (prevTitolo.value || "") : "";
-  var tipoServizio = prevTipoServizio ? (prevTipoServizio.value || "") : "";
-  var dataEvento = prevDataEvento ? (prevDataEvento.value || "") : "";
-  var nInvitati = prevNInvitati && prevNInvitati.value ? parseInt(prevNInvitati.value, 10) : 0;
-  var locationEvento = prevLocation ? (prevLocation.value || "") : "";
-  var note = prevNote ? (prevNote.value || "") : "";
-
-  // Totali
-  var totMenù = prevTotalePiatti ? (prevTotalePiatti.value || "0") : "0";
-  var totExtra = prevTotaleExtra ? (prevTotaleExtra.value || "0") : "0";
-  var totPreventivo = prevTotale ? (prevTotale.value || "0") : "0";
-  var totPP = prevTotalePP ? (prevTotalePP.value || "") : "";
-
-  var accontoVal = prevAcconto && prevAcconto.value ? prevAcconto.value : "";
-  var saldoVal = prevSaldo && prevSaldo.value ? prevSaldo.value : "";
-
-  // Righe menù
-  var righeMenu = [];
-  if (prevPiattiContainer) {
-    var righeP = prevPiattiContainer.children;
-    for (var i = 0; i < righeP.length; i++) {
-      var div = righeP[i];
-      var nome = div.querySelector(".prev-piatto-nome");
-      var qty = div.querySelector(".prev-piatto-qty");
-      var cu = div.querySelector(".prev-piatto-costo");
-      var tot = div.querySelector(".prev-piatto-tot");
-
-      var riga = {
-        nome: nome ? (nome.value || "") : "",
-        quantita: qty ? (qty.value || "") : "",
-        costoUnitario: cu ? (cu.value || "") : "",
-        totale: tot ? (tot.value || "") : ""
-      };
-      if (riga.nome) {
-        righeMenu.push(riga);
-      }
-    }
-  }
-
-  // Righe extra
-  var righeExtra = [];
-  if (prevExtraContainer) {
-    var righeE = prevExtraContainer.children;
-    for (var j = 0; j < righeE.length; j++) {
-      var d = righeE[j];
-      var desc = d.querySelector(".prev-extra-desc");
-      var q = d.querySelector(".prev-extra-qty");
-      var pu = d.querySelector(".prev-extra-prezzo");
-      var totE = d.querySelector(".prev-extra-tot");
-
-      var rigaE = {
-        descrizione: desc ? (desc.value || "") : "",
-        quantita: q ? (q.value || "") : "",
-        prezzoUnitario: pu ? (pu.value || "") : "",
-        totale: totE ? (totE.value || "") : ""
-      };
-      if (rigaE.descrizione) {
-        righeExtra.push(rigaE);
-      }
-    }
-  }
-
-  return {
-    clienteNome: clienteNome,
-    clienteEmail: clienteEmail,
-    clienteTelefono: clienteTelefono,
-    titoloEvento: titoloEvento,
-    tipoServizio: tipoServizio,
-    dataEvento: dataEvento,
-    nInvitati: nInvitati,
-    locationEvento: locationEvento,
-    note: note,
-    totMenù: totMenù,
-    totExtra: totExtra,
-    totPreventivo: totPreventivo,
-    totPP: totPP,
-    acconto: accontoVal,
-    saldo: saldoVal,
-    righeMenu: righeMenu,
-    righeExtra: righeExtra
-  };
-}
-
-function stampaPreventivoCorrente() {
-  var dati = raccogliDatiPreventivoCorrente();
-
-  var titolo = "Preventivo " + (dati.titoloEvento || "");
-  var win = window.open("", "_blank");
-
-  if (!win) {
-    alert("Blocca pop-up attivo: consenti la finestra di stampa.");
-    return;
-  }
-
-  var html = "";
-  html += "<!DOCTYPE html><html><head><meta charset='utf-8'>";
-  html += "<title>" + titolo + "</title>";
-  html += "<style>";
-  html += "body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; color: #222; }";
-  html += "h1,h2,h3 { margin: 0 0 8px; }";
-  html += ".header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }";
-  html += ".logo { font-size: 20px; font-weight: bold; }";
-  html += ".azienda-contatti { font-size: 12px; text-align: right; }";
-  html += ".box { border: 1px solid #ccc; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }";
-  html += ".titolo-box { font-weight: 600; margin-bottom: 6px; font-size: 14px; }";
-  html += "table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }";
-  html += "th, td { border: 1px solid #ccc; padding: 4px 6px; }";
-  html += "th { background: #f2f2f2; text-align: left; }";
-  html += "td.num { text-align: right; }";
-  html += ".totale-row td { font-weight: bold; }";
-  html += ".note { font-size: 12px; white-space: pre-wrap; }";
-  html += "@media print { body { margin: 10mm; } }";
-  html += "</style></head><body>";
-
-  // intestazione con logo + dati azienda
-  html += "<div class='header'>";
-  html += "<div class='logo'>LOGO / Nome Ristorante</div>";
-  html += "<div class='azienda-contatti'>";
-  html += "Indirizzo azienda<br>";
-  html += "Telefono / Email<br>";
-  html += "</div>";
-  html += "</div>";
-
-  // titolo preventivo
-  html += "<h1>Preventivo evento</h1>";
-
-  // dati cliente
-  html += "<div class='box'>";
-  html += "<div class='titolo-box'>Cliente</div>";
-  html += "<div>" + (dati.clienteNome || "-") + "</div>";
-  if (dati.clienteEmail) {
-    html += "<div>Email: " + dati.clienteEmail + "</div>";
-  }
-  if (dati.clienteTelefono) {
-    html += "<div>Telefono: " + dati.clienteTelefono + "</div>";
-  }
-  html += "</div>";
-
-  // dati evento
-  html += "<div class='box'>";
-  html += "<div class='titolo-box'>Dettagli evento</div>";
-  html += "<div>Tipologia evento: " + (dati.titoloEvento || "-") + "</div>";
-  html += "<div>Tipo servizio: " + (dati.tipoServizio || "-") + "</div>";
-  html += "<div>Data evento: " + (dati.dataEvento || "-") + "</div>";
-  html += "<div>Numero invitati: " + (dati.nInvitati || "-") + "</div>";
-  if (dati.locationEvento) {
-    html += "<div>Location: " + dati.locationEvento + "</div>";
-  }
-  html += "</div>";
-
-  // Menù
-  html += "<div class='box'>";
-  html += "<div class='titolo-box'>Menù</div>";
-  if (dati.righeMenu.length === 0) {
-    html += "<div>Nessuna portata inserita.</div>";
-  } else {
-    html += "<table>";
-    html += "<thead><tr><th>Portata</th><th>Quantità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead>";
-    html += "<tbody>";
-    for (var i = 0; i < dati.righeMenu.length; i++) {
-      var r = dati.righeMenu[i];
-      html += "<tr>";
-      html += "<td>" + r.nome + "</td>";
-      html += "<td class='num'>" + (r.quantita || "") + "</td>";
-      html += "<td class='num'>" + (r.costoUnitario || "") + "</td>";
-      html += "<td class='num'>" + (r.totale || "") + "</td>";
-      html += "</tr>";
-    }
-    html += "</tbody>";
-    html += "</table>";
-  }
-  html += "</div>";
-
-  // Servizi extra
-  html += "<div class='box'>";
-  html += "<div class='titolo-box'>Servizi extra</div>";
-  if (dati.righeExtra.length === 0) {
-    html += "<div>Nessun servizio extra.</div>";
-  } else {
-    html += "<table>";
-    html += "<thead><tr><th>Servizio</th><th>Quantità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead>";
-    html += "<tbody>";
-    for (var j = 0; j < dati.righeExtra.length; j++) {
-      var e = dati.righeExtra[j];
-      html += "<tr>";
-      html += "<td>" + e.descrizione + "</td>";
-      html += "<td class='num'>" + (e.quantita || "") + "</td>";
-      html += "<td class='num'>" + (e.prezzoUnitario || "") + "</td>";
-      html += "<td class='num'>" + (e.totale || "") + "</td>";
-      html += "</tr>";
-    }
-    html += "</tbody>";
-    html += "</table>";
-  }
-  html += "</div>";
-
-  // Totali
-  html += "<div class='box'>";
-  html += "<div class='titolo-box'>Riepilogo economico</div>";
-  html += "<table>";
-  html += "<tbody>";
-  html += "<tr><td>Totale menù</td><td class='num'>" + (dati.totMenù || "0") + " €</td></tr>";
-  html += "<tr><td>Totale servizi extra</td><td class='num'>" + (dati.totExtra || "0") + " €</td></tr>";
-  html += "<tr class='totale-row'><td>Totale preventivo</td><td class='num'>" + (dati.totPreventivo || "0") + " €</td></tr>";
-  if (dati.totPP) {
-    html += "<tr><td>Prezzo a persona</td><td class='num'>" + dati.totPP + " €</td></tr>";
-  }
-  if (dati.acconto) {
-    html += "<tr><td>Acconto</td><td class='num'>-" + dati.acconto + " €</td></tr>";
-  }
-  if (dati.saldo) {
-    html += "<tr><td>Saldo da versare</td><td class='num'>" + dati.saldo + " €</td></tr>";
-  }
-  html += "</tbody>";
-  html += "</table>";
-  html += "</div>";
-
-  // Note
-  if (dati.note) {
-    html += "<div class='box'>";
-    html += "<div class='titolo-box'>Note</div>";
-    html += "<div class='note'>" + dati.note.replace(/\n/g, "<br>") + "</div>";
-    html += "</div>";
-  }
-
-  // footer
-  html += "<div style='margin-top:20px; font-size:11px; color:#777;'>Questo documento è un preventivo non fiscale.</div>";
-
-  html += "</body></html>";
-
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.print();
-}
-function inviaEmailPreventivoCorrente() {
-  var dati = raccogliDatiPreventivoCorrente();
-
-  var emailDest = dati.clienteEmail || "";
-  if (!emailDest) {
-    alert("Il cliente non ha un'email. Compilala prima.");
-    return;
-  }
-
-  var oggetto = "Preventivo " + (dati.titoloEvento || "evento");
-
-  var body = "";
-  body += "Gentile " + (dati.clienteNome || "") + ",%0D%0A%0D%0A";
-  body += "Le inoltriamo il preventivo per il seguente evento:%0D%0A";
-  body += "- Tipologia evento: " + (dati.titoloEvento || "-") + "%0D%0A";
-  body += "- Tipo servizio: " + (dati.tipoServizio || "-") + "%0D%0A";
-  body += "- Data evento: " + (dati.dataEvento || "-") + "%0D%0A";
-  body += "- Numero invitati: " + (dati.nInvitati || "-") + "%0D%0A";
-  if (dati.locationEvento) {
-    body += "- Location: " + dati.locationEvento + "%0D%0A";
-  }
-  body += "%0D%0A";
-
-  body += "Riepilogo economico:%0D%0A";
-  body += "- Totale menù: " + (dati.totMenù || "0") + " €%0D%0A";
-  body += "- Totale servizi extra: " + (dati.totExtra || "0") + " €%0D%0A";
-  body += "- Totale preventivo: " + (dati.totPreventivo || "0") + " €%0D%0A";
-  if (dati.totPP) {
-    body += "- Prezzo a persona: " + dati.totPP + " €%0D%0A";
-  }
-  if (dati.acconto) {
-    body += "- Acconto: " + dati.acconto + " €%0D%0A";
-  }
-  if (dati.saldo) {
-    body += "- Saldo da versare: " + dati.saldo + " €%0D%0A";
-  }
-
-  if (dati.note) {
-    body += "%0D%0ANote:%0D%0A" + dati.note.replace(/\n/g, "%0D%0A") + "%0D%0A";
-  }
-
-  body += "%0D%0ACordiali saluti,%0D%0A";
-  body += "Nome Ristorante";
-
-  var mailtoLink =
-    "mailto:" +
-    encodeURIComponent(emailDest) +
-    "?subject=" +
-    encodeURIComponent(oggetto) +
-    "&body=" +
-    body;
-
-  window.location.href = mailtoLink;
-}
-if (prevStampaBtn) {
-  prevStampaBtn.addEventListener("click", function () {
-    stampaPreventivoCorrente();
-  });
-}
-
-if (prevEmailBtn) {
-  prevEmailBtn.addEventListener("click", function () {
-    inviaEmailPreventivoCorrente();
-  });
-}
-
-// =========================================================
-// ================= PRENOTAZIONE ===========================
-// =========================================================
-
-async function generaPrenotazione(id) {
-  if (!supabase) return;
-
-  let ac = 0;
-  let tot = 0;
-
-  if (prevAcconto && prevAcconto.value) {
-    ac = parseFloat(prevAcconto.value || "0");
-  }
-  if (prevTotale && prevTotale.value) {
-    tot = parseFloat(prevTotale.value || "0");
-  }
-
-  const resPrev = await supabase
-    .from("preventivi")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (resPrev.error || !resPrev.data) return;
-
-  const resPren = await supabase.from("prenotazioni").upsert({
-    preventivo_id: id,
-    cliente_id: resPrev.data.cliente_id,
-    data_evento: resPrev.data.data_evento,
-    acconto: ac,
-    saldo_residuo: tot - ac
-  });
-
-  if (resPren.error) {
-    console.error("Errore creando prenotazione:", resPren.error);
-  }
-}
-
-// =========================================================
-// =================== CARICA IN MODIFICA ===================
-// =========================================================
-
-async function caricaPreventivoInModifica(id) {
-  if (!supabase) return;
-
-  preventivoCorrenteId = id;
-
-  const res = await supabase
-    .from("preventivi")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (res.error || !res.data) {
-    console.error(res.error);
-    alert("Errore caricando preventivo");
-    return;
-  }
-
-  const p = res.data;
-  const contatto = contattiCache.find(function (c) {
-    return c.id === p.cliente_id;
-  });
-
-  if (contatto) {
-    if (prevClienteNome) {
-      const nomeCompleto = (contatto.nome || "") + " " + (contatto.cognome || "");
-      prevClienteNome.value = nomeCompleto.trim();
-    }
-    if (prevClienteEmail) prevClienteEmail.value = contatto.email || "";
-    if (prevClienteTelefono) prevClienteTelefono.value = contatto.telefono || "";
-  }
-
-  if (prevTitolo) prevTitolo.value = p.titolo_evento || "";
-  if (prevTipoServizio) prevTipoServizio.value = p.tipo_servizio || "buffet";
-  if (prevDataEvento) prevDataEvento.value = p.data_evento || "";
-  if (prevNInvitati) prevNInvitati.value = p.n_invitati || "";
-  if (prevLocation) prevLocation.value = p.location || "";
-  if (prevNote) prevNote.value = p.note || "";
-  if (prevStato) prevStato.value = p.stato || "bozza";
-  if (prevAcconto) prevAcconto.value = p.acconto || "0";
-
-  if (prevPiattiContainer) prevPiattiContainer.innerHTML = "";
-  if (prevExtraContainer) prevExtraContainer.innerHTML = "";
-
-  const resPiatti = await supabase
-    .from("preventivi_ricette")
-    .select("*")
-    .eq("preventivo_id", id);
-
-  if (!resPiatti.error && resPiatti.data) {
-    resPiatti.data.forEach(function (riga) {
-      aggiungiRigaPiatto(riga);
+      container.appendChild(card);
     });
   }
 
-  const resExtra = await supabase
-    .from("preventivi_extra")
-    .select("*")
-    .eq("preventivo_id", id);
+  // Ricerca ricette: selezione dal datalist → apre schermata Ricette (modifica)
+  if (ricetteSearchInput) {
+    function apriRicettaDaSearch() {
+      const q = (ricetteSearchInput.value || "").toLowerCase().trim();
+      if (!q) return;
 
-  if (!resExtra.error && resExtra.data) {
-    resExtra.data.forEach(function (e) {
-      aggiungiRigaExtra(e);
+      const found = ricetteCache.find(
+        (r) => (r.nome || "").toLowerCase() === q
+      );
+
+      if (!found) {
+        alert("Ricetta non trovata");
+        return;
+      }
+
+      ricettaDaAprireId = found.id;
+      window.location.hash = "ricette";
+    }
+
+    ricetteSearchInput.addEventListener("change", apriRicettaDaSearch);
+
+    ricetteSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        apriRicettaDaSearch();
+      }
+    });
+
+    ricetteSearchInput.addEventListener("input", () => {
+      const q = (ricetteSearchInput.value || "").trim();
+      const found = ricetteCache.find(
+        (r) => (r.nome || "").toLowerCase() === q.toLowerCase()
+      );
+      if (found) {
+        ricettaDaAprireId = found.id;
+        window.location.hash = "ricette";
+      }
     });
   }
-
-  calcolaTotaliPreventivo();
-
-  if (prevAccontoCard) {
-    prevAccontoCard.style.display = p.stato === "accettato" ? "block" : "none";
-  }
-  if (prevApriPrenotazioneBtn) {
-    prevApriPrenotazioneBtn.style.display =
-      p.stato === "accettato" ? "block" : "none";
-  }
-
-  showOnlyView("view-preventivi");
-  applyRoleVisibility();
-}
-
-// =========================================================
-// =================== EVENT LISTENERS ======================
-// =========================================================
-
-if (prevAddPiattoBtn) {
-  prevAddPiattoBtn.addEventListener("click", function () {
-    aggiungiRigaPiatto();
-  });
-}
-
-if (prevAddExtraBtn) {
-  prevAddExtraBtn.addEventListener("click", function () {
-    aggiungiRigaExtra();
-  });
-}
-
-if (prevSalvaBtn) {
-  prevSalvaBtn.addEventListener("click", function () {
-    salvaPreventivo();
-  });
-}
-
-if (prevStato) {
-  prevStato.addEventListener("change", function () {
-    if (prevAccontoCard) {
-      prevAccontoCard.style.display =
-        prevStato.value === "accettato" ? "block" : "none";
-    }
-    if (prevApriPrenotazioneBtn) {
-      prevApriPrenotazioneBtn.style.display =
-        prevStato.value === "accettato" ? "block" : "none";
-    }
-    calcolaTotaliPreventivo();
-  });
-}
-
-if (prevAcconto) {
-  prevAcconto.addEventListener("input", function () {
-    calcolaTotaliPreventivo();
-  });
-}
-
-if (prevNInvitati) {
-  prevNInvitati.addEventListener("input", function () {
-    calcolaTotaliPreventivo();
-  });
-}
-
-// === Caricamento iniziale dei dati preventivi
-(async function () {
-  await caricaContatti();
-  await caricaRicettePreventivi();
-  await caricaCatalogoExtra();
-  await caricaPreventiviEsistenti();
-})();
 
   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
@@ -4122,64 +2858,106 @@ if (prevNInvitati) {
     }
   }
 
- async function onRouteEnter(route) {
-  switch (route) {
-    case "timbratura":
-      await caricaTimbratureDaSupabase();
-      updateTimbraturaUserInfo();
-      break;
+  // ========= ROUTING =========
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
+        break;
 
-    case "dipendenti":
-      await caricaDipendentiDaSupabase();
-      break;
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
 
-    case "ricette":
-      // Nuova logica: ricette con food cost
-      await caricaProdottiPerRicette();
-      await caricaElencoRicette();
+      case "ricette":
+        await caricaProdottiSuggerimentiIngredienti();
+        if (ricettaDaAprireId) {
+          const idToOpen = ricettaDaAprireId;
+          ricettaDaAprireId = null;
+          await caricaRicettaInForm(idToOpen);
+        } else {
+          resetFormRicetta();
+        }
+        break;
 
-      if (ricettaDaAprireId) {
-        // se arrivo dal Ricettario con "Modifica"
-        const idToOpen = ricettaDaAprireId;
-        ricettaDaAprireId = null; // lo consumo subito
-        await caricaRicettaInForm(idToOpen);
-      } else {
-        // apertura normale: form vuoto
-        nuovaRicetta();
-      }
-      break;
+      case "ricette-viewer":
+        await caricaRicetteDaSupabase();
+        break;
 
-    case "ricette-viewer":
-      // schermata Ricettario (solo lettura)
-      await caricaRicetteDaSupabase();
-      break;
+      case "acquisti":
+        await caricaCategorieInCache();
+        await caricaFornitoriInCache();
+        await caricaMagazzinoDati();
+        resetFatturaForm();
+        await caricaElencoFatture();
+        break;
 
-    case "acquisti":
-      await caricaCategorieInCache();
-      await caricaFornitoriInCache();
-      await caricaMagazzinoDati();
-      resetFatturaForm();
-      await caricaElencoFatture();
-      break;
+      case "magazzino":
+        await caricaCategorieInCache();
+        await caricaMagazzinoDati();
+        popolaMagazzinoForm(null);
+        break;
 
-    case "magazzino":
-      await caricaCategorieInCache();
-      await caricaMagazzinoDati();
-      popolaMagazzinoForm(null);
-      break;
+      case "report":
+        // logica futura per report
+        break;
 
-    case "report":
-      // per ora non fa nulla, ma la view si apre
-      break;
+      case "venduto":
+        // logica futura per venduto del giorno
+        break;
 
-    case "venduto":
-      // logica futura per venduto del giorno
-      break;
-
-    default:
-      break;
+      default:
+        break;
+    }
   }
-}
+
+  async function navigateTo(route) {
+    if (!currentUser) {
+      showLogin();
+      return;
+    }
+
+    const isManager = isManagerRole(currentUser.ruolo);
+
+    if (!isManager) {
+      if (
+        route === "timbratura" ||
+        route === "ordine" ||
+        route === "ricette-viewer"
+      ) {
+        showOnlyView(`view-${route}`);
+        await onRouteEnter(route);
+      } else {
+        showHomeDipendente();
+      }
+    } else {
+      let active = document.getElementById(`view-${route}`);
+      if (!active) {
+        route = "timbratura";
+        active = document.getElementById("view-timbratura");
+      }
+
+      showOnlyView(`view-${route}`);
+      await onRouteEnter(route);
+    }
+
+    applyRoleVisibility();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  routeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const route = btn.getAttribute("data-route");
+      window.location.hash = route;
+      navigateTo(route);
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    const route = window.location.hash.replace("#", "");
+    navigateTo(route);
+  });
 
   // ========= AVVIO =========
   async function init() {
