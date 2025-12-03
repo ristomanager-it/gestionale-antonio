@@ -461,10 +461,6 @@ let magazzinoDati = [];
 //  PREVENTIVI & PRENOTAZIONI
 // =====================================
 
-// Usa il client Supabase già creato in index.html
-const supabaseClient = window.supabaseClient;
-
-
 // Stato in memoria
 let currentPreventivo = null;
 let currentPreventivoMenu = [];
@@ -612,7 +608,7 @@ async function loadPreventiviList() {
   preventiviListContainer.innerHTML =
     '<p class="small-muted">Caricamento preventivi...</p>';
 
-  const { data, error } = await supabase
+  const { data, error } = await window.supabaseClient
     .from("preventivi")
     .select(
       `
@@ -778,7 +774,7 @@ async function openPreventivo(preventivoId) {
     return;
   }
 
-  const { data: prevData, error: prevError } = await supabase
+  const { data: prevData, error: prevError } = await window.supabaseClient
     .from("preventivi")
     .select(
       `
@@ -804,7 +800,7 @@ async function openPreventivo(preventivoId) {
 
   currentPreventivo = prevData;
 
-  const { data: menuData, error: menuError } = await supabase
+  const { data: menuData, error: menuError } = await window.supabaseClient
     .from("preventivi_ricette")
     .select("*")
     .eq("preventivo_id", preventivoId)
@@ -813,7 +809,7 @@ async function openPreventivo(preventivoId) {
   if (menuError) console.error("Errore caricamento menù:", menuError);
   currentPreventivoMenu = menuData || [];
 
-  const { data: extraData, error: extraError } = await supabase
+  const { data: extraData, error: extraError } = await window.supabaseClient
     .from("preventivi_extra")
     .select("*")
     .eq("preventivo_id", preventivoId)
@@ -944,7 +940,7 @@ async function fetchRicetteSuggestions(term) {
   const t = (term || "").trim();
   if (t.length < 2) return;
 
-  const { data, error } = await supabase
+  const { data, error } = await window.supabaseClient
     .from("ricette")
     .select("id, nome")
     .ilike("nome", `%${t}%`)
@@ -969,7 +965,7 @@ async function updateMenuRowFromRicettaNome(index) {
   const nome = (row.nome_piatto || "").trim();
   if (!nome) return;
 
-  const { data: ricetta, error } = await supabase
+  const { data: ricetta, error } = await window.supabaseClient
     .from("ricette")
     .select("id, nome")
     .ilike("nome", nome)
@@ -980,7 +976,7 @@ async function updateMenuRowFromRicettaNome(index) {
   if (!error && ricetta) {
     ricettaId = ricetta.id;
   } else {
-    const { data: nuovaRicetta, error: insertError } = await supabase
+    const { data: nuovaRicetta, error: insertError } = await window.supabaseClient
       .from("ricette")
       .insert({
         nome: nome,
@@ -1155,7 +1151,7 @@ async function savePreventivo() {
   let preventivoId = existingId;
 
   if (!existingId) {
-    const { data: insertData, error: insertError } = await supabase
+    const { data: insertData, error: insertError } = await window.supabaseClient
       .from("preventivi")
       .insert(payloadPrev)
       .select()
@@ -1172,7 +1168,7 @@ async function savePreventivo() {
     preventivoId = insertData.id;
     if (inputPrevId) inputPrevId.value = preventivoId;
   } else {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await window.supabaseClient
       .from("preventivi")
       .update(payloadPrev)
       .eq("id", existingId);
@@ -1224,7 +1220,7 @@ async function upsertPreventivoCliente() {
   };
 
   if (!idEsistente) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabaseClient
       .from("contatti")
       .insert(payloadContatto)
       .select()
@@ -1239,7 +1235,7 @@ async function upsertPreventivoCliente() {
     if (inputClienteId) inputClienteId.value = data.id;
     return data.id;
   } else {
-    const { error } = await supabase
+    const { error } = await window.supabaseClient
       .from("contatti")
       .update(payloadContatto)
       .eq("id", idEsistente);
@@ -1254,11 +1250,11 @@ async function upsertPreventivoCliente() {
 }
 
 async function savePreventivoRighe(preventivoId) {
-  await supabase
+  await window.supabaseClient
     .from("preventivi_ricette")
     .delete()
     .eq("preventivo_id", preventivoId);
-  await supabase
+  await window.supabaseClient
     .from("preventivi_extra")
     .delete()
     .eq("preventivo_id", preventivoId);
@@ -1276,7 +1272,7 @@ async function savePreventivoRighe(preventivoId) {
     }));
 
   if (menuPayload.length) {
-    const { error: menuErr } = await supabase
+    const { error: menuErr } = await window.supabaseClient
       .from("preventivi_ricette")
       .insert(menuPayload);
     if (menuErr) {
@@ -1295,7 +1291,7 @@ async function savePreventivoRighe(preventivoId) {
     }));
 
   if (extraPayload.length) {
-    const { error: extraErr } = await supabase
+    const { error: extraErr } = await window.supabaseClient
       .from("preventivi_extra")
       .insert(extraPayload);
     if (extraErr) {
@@ -1310,7 +1306,7 @@ async function savePreventivoRighe(preventivoId) {
 // -----------------------------
 
 async function ensurePrenotazioneForPreventivo(preventivoId, payloadPrev) {
-  const { data: prenotData, error } = await supabase
+  const { data: prenotData, error } = await window.supabaseClient
     .from("prenotazioni")
     .select("*")
     .eq("preventivo_id", preventivoId)
@@ -1324,7 +1320,7 @@ async function ensurePrenotazioneForPreventivo(preventivoId, payloadPrev) {
   const saldo = payloadPrev.totale - payloadPrev.acconto;
 
   if (!prenotData) {
-    const { error: insertError } = await supabase.from("prenotazioni").insert({
+    const { error: insertError } = await window.supabaseClient.from("prenotazioni").insert({
       preventivo_id: preventivoId,
       cliente_id: payloadPrev.cliente_id,
       data_evento: payloadPrev.data_evento,
@@ -1335,7 +1331,7 @@ async function ensurePrenotazioneForPreventivo(preventivoId, payloadPrev) {
       console.error("Errore creazione prenotazione:", insertError);
     }
   } else {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await window.supabaseClient
       .from("prenotazioni")
       .update({
         data_evento: payloadPrev.data_evento,
