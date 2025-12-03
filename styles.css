@@ -647,3 +647,141 @@ body.theme-light .view {
 #venduto-table tr.partial {
   background: #fef9c3;
 }
+/* ===================================================== */
+/*   PREVENTIVI & PRENOTAZIONI                           */
+/* ===================================================== */
+
+.preventivi-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Colonne affiancate su schermi grandi */
+@media (min-width: 900px) {
+  .preventivi-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .preventivi-list-panel {
+    flex: 0 0 32%;
+    max-width: 340px;
+  }
+
+  .preventivi-detail-panel {
+    flex: 1 1 auto;
+  }
+}
+
+.preventivi-list-panel,
+.preventivi-detail-panel {
+  background: rgba(15, 23, 42, 0.04);
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+/* Lista preventivi */
+.preventivi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preventivo-list-item {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.preventivo-list-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.preventivo-list-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.preventivo-data {
+  color: #6b7280;
+}
+
+.preventivo-titolo {
+  color: #111827;
+}
+
+.preventivo-list-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  align-items: center;
+}
+
+.preventivo-cliente {
+  color: #374151;
+}
+
+.preventivo-totale {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+/* Badge stato preventivo */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stato-bozza {
+  background: rgba(148, 163, 184, 0.2);
+  color: #4b5563;
+}
+
+.stato-inviato {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.stato-accettato {
+  background: rgba(22, 163, 74, 0.18);
+  color: #15803d;
+}
+
+.stato-rifiutato {
+  background: rgba(239, 68, 68, 0.18);
+  color: #b91c1c;
+}
+
+/* Celle piccole nelle tabelle menù/extra */
+#view-preventivi .table-timbrature input.input-pill {
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+/* Piccole utility (se non le hai già) */
+.small-muted {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.text-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
