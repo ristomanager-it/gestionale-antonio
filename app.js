@@ -461,7 +461,9 @@ let magazzinoDati = [];
 //  PREVENTIVI & PRENOTAZIONI
 // =====================================
 
-const sb = window.supabaseClient;
+// ATTENZIONE: qui usiamo la variabile "supabase"
+// che DEVE essere già definita all'inizio del file, es.
+// const supabase = window.supabaseClient;
 
 // Stato in memoria
 let currentPreventivo = null;
@@ -557,7 +559,6 @@ if (btnEmailPreventivo) {
 // ricalcolo quando cambiano invitati / acconto
 if (inputPrevNInvitati) {
   inputPrevNInvitati.addEventListener('input', () => {
-    // quando cambia il numero invitati ricalcolo tutte le righe del menù
     recalcMenuQuantitaDaInvitati();
     recalcPreventivoTotali();
   });
@@ -569,13 +570,13 @@ if (inputPrevAcconto) {
 }
 
 // -----------------------------
-//  Routing (da usare nel tuo navigate)
+//  Funzione da richiamare nel routing
 // -----------------------------
-// Chiamare showPreventiviView() quando si vuole aprire la view preventivi.
 
 async function showPreventiviView() {
   if (!viewPreventivi) return;
-  // Nasconde tutte le altre view (se non hai già una funzione centrale)
+
+  // se hai una funzione generica showView, puoi usarla qui
   const allViews = document.querySelectorAll('.view');
   allViews.forEach((v) => (v.style.display = 'none'));
   viewPreventivi.style.display = '';
@@ -825,7 +826,6 @@ function renderMenuRows() {
     const btnRemove = tr.querySelector('.btn-menu-remove');
 
     if (inputNome) {
-      // suggerimenti ricette
       inputNome.addEventListener('input', () => {
         const term = inputNome.value;
         currentPreventivoMenu[index].nome_piatto = term;
@@ -896,36 +896,32 @@ async function fetchRicetteSuggestions(term) {
     .join('');
 }
 
-// collega nome portata a ricetta (o la crea)
+// collega nome portata a ricetta (o la crea) - versione compatibile con il tuo schema
 async function updateMenuRowFromRicettaNome(index) {
   const row = currentPreventivoMenu[index];
   if (!row) return;
   const nome = (row.nome_piatto || '').trim();
   if (!nome) return;
 
-  // prova a trovare in ricette
+  // 1. Provo a trovare una ricetta con quel nome
   const { data: ricetta, error } = await supabase
     .from('ricette')
-    .select('id, nome, costo_porzione, flag_da_completare')
+    .select('id, nome')   // solo colonne esistenti
     .ilike('nome', nome)
     .maybeSingle();
 
   let ricettaId = null;
-  let costoPorzione = 0;
-  let ricettaCompleta = false;
 
   if (!error && ricetta) {
+    // trovata ricetta esistente
     ricettaId = ricetta.id;
-    costoPorzione = Number(ricetta.costo_porzione || 0);
-    ricettaCompleta = !ricetta.flag_da_completare;
   } else {
-    // se non esiste, la creo "da completare"
+    // 2. Se non esiste, la creo "minimal"
     const { data: nuovaRicetta, error: insertError } = await supabase
       .from('ricette')
       .insert({
-        nome: nome,
-        descrizione: 'Da completare',
-        flag_da_completare: true
+        nome: nome
+        // niente costo_porzione / flag_da_completare: non esistono nel tuo schema
       })
       .select()
       .single();
@@ -934,20 +930,20 @@ async function updateMenuRowFromRicettaNome(index) {
       console.error('Errore creazione ricetta da preventivo:', insertError);
     } else if (nuovaRicetta) {
       ricettaId = nuovaRicetta.id;
-      costoPorzione = 0;
-      ricettaCompleta = false;
     }
   }
 
+  // Per ora non abbiamo costo_porzione nel DB → costo 0 (solo logica interna)
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
   const quantita = nInv;
+  const costoPorzione = 0;
   const costoTotale = quantita * costoPorzione;
 
   row.ricetta_id = ricettaId;
   row.costo_unitario = costoPorzione;
   row.quantita = quantita;
   row.costo_totale = costoTotale;
-  row.ricetta_completa = ricettaCompleta;
+  row.ricetta_completa = false;
 
   renderMenuRows();
 }
@@ -1155,7 +1151,7 @@ async function upsertPreventivoCliente() {
     cognome,
     telefono: telefono || null,
     email: email || null,
-    note: comune || null
+    note: comune || null   // nel tuo schema contatti.note ESISTE
   };
 
   if (!idEsistente) {
@@ -1293,6 +1289,9 @@ function printCurrentPreventivo() {
 
   const clienteNome = `${inputClienteNome?.value || ''} ${inputClienteCognome?.value || ''}`.trim();
   const clienteComune = inputClienteComune?.value || '';
+  const clienteTel = inputClienteTelefono?.value || '';
+  const clienteMail = inputClienteEmail?.value || '';
+
   const dataEvento = inputPrevDataEvento?.value || '';
   const tipologia = inputPrevTitolo?.value || '';
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
@@ -1358,8 +1357,8 @@ function printCurrentPreventivo() {
         <div class="section-title">Cliente</div>
         <div>${clienteNome || '-'}</div>
         <div>${clienteComune || ''}</div>
-        <div>${clienteTelefono || ''}</div>
-        <div>${inputClienteEmail?.value || ''}</div>
+        <div>${clienteTel || ''}</div>
+        <div>${clienteMail || ''}</div>
       </div>
 
       <div class="section">
@@ -1480,6 +1479,7 @@ function emailCurrentPreventivoViaMailto() {
 
   window.location.href = mailtoLink;
 }
+
 
 
   // ========= DIPENDENTI =========
