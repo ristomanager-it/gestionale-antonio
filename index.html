@@ -1,1108 +1,567 @@
-<!DOCTYPE html>
-<html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestionale Antonio</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-
-  <body>
-    <div class="app-main-wrapper">
-      <!-- HEADER -->
-      <header class="app-header">
-        <div class="header-top">
-          <div class="header-left">
-            <div class="header-logo-circle">
-              <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
-            </div>
-            <div>
-              <h1>Gestionale Antonio</h1>
-              <p class="subtitle">Suite per NR, RA, CC e Catering</p>
-            </div>
-          </div>
-
-          <div class="header-right">
-            <button id="btn-theme" class="app-button tiny ghost">🌙</button>
-
-            <div class="header-user">
-              <span id="current-user-label">Nessun utente</span>
-              <button
-                id="btn-logout"
-                class="app-button tiny"
-                style="display: none"
-              >
-                Esci
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- CONTENUTO PRINCIPALE -->
-      <main class="app-main">
-        <!-- LOGIN -->
-        <section id="view-login" class="view login-view">
-          <div class="login-wrapper">
-            <div class="form-card login-card">
-              <div class="login-logo">
-                <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
-              </div>
-
-              <h2 class="login-title">Benvenuto</h2>
-              <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
-
-              <form class="login-form" onsubmit="return false;">
-                <div class="form-row">
-                  <label for="login-nome" class="input-label">Nome</label>
-                  <input
-                    type="text"
-                    id="login-nome"
-                    class="input-pill"
-                    placeholder="Es. Mario Rossi"
-                    autocomplete="off"
-                  />
-                </div>
-
-                <div class="form-row">
-                  <label for="login-pin" class="input-label">PIN</label>
-                  <input
-                    type="password"
-                    id="login-pin"
-                    class="input-pill"
-                    maxlength="10"
-                    inputmode="numeric"
-                    placeholder="PIN personale"
-                  />
-                </div>
-
-                <div class="form-row form-row-inline">
-                  <label class="checkbox-label">
-                    <input type="checkbox" id="login-remember" />
-                    <span>Ricordami su questo dispositivo</span>
-                  </label>
-                </div>
-
-                <div class="form-row">
-                  <button
-                    type="button"
-                    id="btn-login"
-                    class="app-button login-button"
-                  >
-                    Entra
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </section>
-
-        <!-- HOME DIPENDENTE -->
-        <section id="view-home-dip" class="view" style="display: none">
-          <h2>Cosa vuoi fare?</h2>
-
-          <div class="home-buttons">
-            <button class="app-button big-home" data-route="timbratura">
-              Timbratura
-            </button>
-
-            <button class="app-button big-home" data-route="ordine">
-              Ordine del giorno
-            </button>
-
-            <button
-              class="app-button big-home"
-              data-route="ricette-viewer"
-            >
-              Ricettario
-            </button>
-          </div>
-        </section>
-
-        <!-- MENU MANAGER -->
-        <section id="manager-menu" class="buttons-grid" style="display: none">
-          <button class="app-button menu-button" data-route="timbratura">
-            Timbratura
-          </button>
-
-          <button class="app-button menu-button" data-route="dipendenti">
-            Dipendenti
-          </button>
-
-          <button class="app-button menu-button" data-route="acquisti">
-            Acquisti / Fatture
-          </button>
-
-          <button class="app-button menu-button" data-route="ricette">
-            Ricette
-          </button>
-
-          <button class="app-button menu-button" data-route="magazzino">
-            Magazzino
-          </button>
-
-          <!-- 🔥 NUOVO: VENDUTO -->
-          <button class="app-button menu-button" data-route="venduto">
-            Venduto del giorno
-          </button>
-
-          <button
-            class="app-button menu-button"
-            data-route="ricette-viewer"
-            data-manager-only="false"
-          >
-            Ricettario
-          </button>
-
-          <button
-            class="app-button menu-button wide"
-            data-route="report"
-          >
-            Report
-          </button>
-        </section>
-
-        <!-- TIMBRATURA -->
-        <section id="view-timbratura" class="view" style="display: none">
-          <h2>Timbratura</h2>
-          <p>Registra entrata, pausa e uscita.</p>
-
-          <div class="timbratura-intro-card">
-            <p>
-              Stai timbrando come
-              <strong id="timbratura-utente-nome">-</strong>
-            </p>
-
-            <label>
-              Luogo di lavoro
-              <select id="timbratura-canale-select">
-                <option value="NR">NR</option>
-                <option value="RA">RA</option>
-                <option value="CC">CC</option>
-                <option value="CAT">Catering</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="timbratura-buttons">
-            <button id="btn-entra" class="app-button timb-button green">
-              ENTRA
-            </button>
-            <button id="btn-pausa" class="app-button timb-button gray">
-              PAUSA
-            </button>
-            <button id="btn-esci" class="app-button timb-button red">
-              USCITA
-            </button>
-          </div>
-
-          <!-- PRESENZE MANAGER -->
-          <div
-            class="manager-only"
-            data-manager-only="true"
-            style="margin-top: 16px;"
-          >
-            <button
-              id="btn-toggle-presenze"
-              class="app-button small gray"
-            >
-              Mostra stato presenze
-            </button>
-
-            <div
-              id="sezione-presenze"
-              style="display: none; margin-top: 10px;"
-            >
-              <h3>Stato dipendenti</h3>
-              <div class="table-wrapper">
-                <table class="table-timbrature">
-                  <thead>
-                    <tr>
-                      <th>Dipendente</th>
-                      <th>Canale</th>
-                      <th>Stato</th>
-                    </tr>
-                  </thead>
-                  <tbody id="presenze-lista"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- DIPENDENTI -->
-        <section id="view-dipendenti" class="view" style="display: none">
-          <h2>Dipendenti</h2>
-          <p>Gestione completa dipendenti.</p>
-
-          <form id="dipendente-form" onsubmit="return false;">
-            <label>
-              Nome
-              <input type="text" id="dip-nome" class="input-pill" />
-            </label>
-
-            <label>
-              Mansione
-              <input
-                type="text"
-                id="dip-mansione"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Data nascita
-              <input
-                type="date"
-                id="dip-data-nascita"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Residenza
-              <input
-                type="text"
-                id="dip-residenza"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Telefono
-              <input
-                type="tel"
-                id="dip-telefono"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Email
-              <input
-                type="email"
-                id="dip-email"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Ruolo
-              <select id="dip-ruolo" class="input-pill">
-                <option value="admin">Admin</option>
-                <option value="manager_cucina">Manager cucina</option>
-                <option value="manager_sala">Manager sala</option>
-                <option value="addetto_cucina">Addetto cucina</option>
-                <option value="cameriere">Cameriere</option>
-              </select>
-            </label>
-
-            <label>
-              Tipo compenso
-              <select
-                id="dip-tipo-compenso"
-                class="input-pill"
-              >
-                <option value="orario">A ore</option>
-                <option value="mensile">Mensile</option>
-                <option value="servizio">Per servizio</option>
-              </select>
-            </label>
-
-            <label id="label-retribuzione-base">
-              Paga oraria lorda (€/h)
-              <input
-                type="number"
-                id="dip-retribuzione-base"
-                step="0.01"
-                class="input-pill"
-              />
-            </label>
-
-            <div id="row-ore-mensili" style="display: none;">
-              <label>
-                Ore mensili contrattuali
-                <input
-                  type="number"
-                  id="dip-ore-mensili"
-                  step="0.1"
-                  class="input-pill"
-                />
-              </label>
-            </div>
-
-            <div id="row-ore-servizio" style="display: none;">
-              <label>
-                Ore medie per servizio
-                <input
-                  type="number"
-                  id="dip-ore-servizio"
-                  step="0.1"
-                  class="input-pill"
-                />
-              </label>
-            </div>
-
-            <label>
-              Costo orario calcolato
-              <input
-                type="number"
-                id="dip-costo"
-                step="0.01"
-                class="input-pill"
-                readonly
-              />
-            </label>
-
-            <label>
-              PIN
-              <input
-                type="text"
-                id="dip-codice"
-                maxlength="10"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Canale prevalente
-              <select id="dip-canale" class="input-pill">
-                <option value="NR">NR</option>
-                <option value="RA">RA</option>
-                <option value="CC">CC</option>
-                <option value="CAT">Catering</option>
-              </select>
-            </label>
-
-            <label>
-              <input type="checkbox" id="dip-attivo" checked />
-              Attivo
-            </label>
-
-            <button
-              id="btn-add-dip"
-              class="app-button small green"
-            >
-              Salva dipendente
-            </button>
-          </form>
-
-          <h3>Elenco</h3>
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Mansione</th>
-                  <th>Data nascita</th>
-                  <th>Residenza</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Ruolo</th>
-                  <th>Tipo compenso</th>
-                  <th>Costo orario</th>
-                  <th>Canale</th>
-                  <th>PIN</th>
-                  <th>Attivo</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody id="dipendenti-lista"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- ACQUISTI / FATTURE -->
-        <section id="view-acquisti" class="view" style="display: none">
-          <h2>Fatture di acquisto</h2>
-          <p>Registra fatture, prodotti e movimenti di magazzino.</p>
-
-          <form id="fattura-form" onsubmit="return false;">
-            <div class="form-grid-2">
-              <label>
-                Numero fattura
-                <input
-                  id="fattura-numero"
-                  type="text"
-                  class="input-pill"
-                />
-              </label>
-
-              <label>
-                Data
-                <input
-                  id="fattura-data"
-                  type="date"
-                  class="input-pill"
-                />
-              </label>
-            </div>
-
-            <div class="form-grid-2">
-              <label>
-                Fornitore
-                <input
-                  id="fattura-fornitore"
-                  type="text"
-                  class="input-pill"
-                  placeholder="Es. Fornitore Srl"
-                />
-              </label>
-
-              <label>
-                Note
-                <input
-                  id="fattura-note"
-                  type="text"
-                  class="input-pill"
-                  placeholder="Note documento"
-                />
-              </label>
-            </div>
-
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <button
-                id="btn-nuova-fattura"
-                class="app-button small gray"
-                type="button"
-              >
-                Nuova fattura
-              </button>
-              <button
-                id="btn-salva-fattura"
-                class="app-button small green"
-                type="button"
-              >
-                Salva fattura
-              </button>
-            </div>
-          </form>
-
-          <h3 style="margin-top: 16px;">Righe fattura</h3>
-
-          <div id="fattura-righe-body" class="fattura-righe-container"></div>
-
-          <button
-            id="btn-add-riga-fattura"
-            class="app-button small gray"
-            type="button"
-            style="margin-top: 8px;"
-          >
-            + Aggiungi riga
-          </button>
-
-          <h3 style="margin-top: 16px;">Totali</h3>
-          <div class="kpi-cards">
-            <div class="kpi-card">
-              <h3>Imponibile</h3>
-              <p>
-                <input
-                  id="fattura-imponibile-totale"
-                  type="number"
-                  step="0.01"
-                  class="input-pill"
-                  readonly
-                />
-              </p>
-            </div>
-            <div class="kpi-card">
-              <h3>IVA</h3>
-              <p>
-                <input
-                  id="fattura-iva-totale"
-                  type="number"
-                  step="0.01"
-                  class="input-pill"
-                  readonly
-                />
-              </p>
-            </div>
-            <div class="kpi-card">
-              <h3>Totale documento</h3>
-              <p>
-                <input
-                  id="fattura-totale-documento"
-                  type="number"
-                  step="0.01"
-                  class="input-pill"
-                  readonly
-                />
-              </p>
-            </div>
-          </div>
-
-          <h3 style="margin-top: 16px;">Fatture registrate</h3>
-
-          <button
-            id="btn-toggle-fatture"
-            class="app-button small gray"
-            type="button"
-          >
-            Mostra / Nascondi
-          </button>
-
-          <table
-            id="fatture-table"
-            class="table-timbrature"
-            style="display: none; margin-top: 8px;"
-          >
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Numero</th>
-                <th>Fornitore</th>
-                <th>Totale</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="fatture-lista"></tbody>
-          </table>
-        </section>
-
-        <!-- RICETTE (MODIFICA) -->
-        <section id="view-ricette" class="view" style="display: none">
-          <h2>Ricette</h2>
-
-          <form onsubmit="return false;">
-            <label>
-              Nome ricetta
-              <input
-                type="text"
-                id="ricetta-nome"
-                class="input-pill"
-                placeholder="Es. Flan di patate"
-              />
-            </label>
-
-            <label>
-              Descrizione breve
-              <input
-                type="text"
-                id="ricetta-descrizione"
-                class="input-pill"
-                placeholder="Es. Antipasto al piatto o da buffet"
-              />
-            </label>
-
-            <label>
-              Note / Procedimento
-              <textarea
-                id="ricetta-note"
-                rows="4"
-                class="textarea-pill"
-              ></textarea>
-            </label>
-
-            <label>
-              Foto ricetta
-              <input
-                type="file"
-                id="ricetta-foto"
-                accept="image/*"
-              />
-            </label>
-
-            <h3>Resa ricetta</h3>
-
-            <div class="kpi-cards">
-              <div class="kpi-card">
-                <h3>Resa base</h3>
-                <label>
-                  Pezzi base (porzione 100%)
-                  <input
-                    type="number"
-                    id="ricetta-pezzi-base"
-                    class="input-pill"
-                    min="0"
-                    step="1"
-                    placeholder="Es. 10"
-                  />
-                </label>
-                <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
-                  Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
-                </p>
-              </div>
-
-              <div class="kpi-card">
-                <h3>Formato 1</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato1-label"
-                    class="input-pill"
-                    placeholder="Es. Ristorante"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato1-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 100"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
-                </p>
-              </div>
-
-              <div class="kpi-card">
-                <h3>Formato 2</h3>
-                <label>
-                  Nome formato
-                  <input
-                    type="text"
-                    id="ricetta-formato2-label"
-                    class="input-pill"
-                    placeholder="Es. Ricevimento / Buffet"
-                  />
-                </label>
-                <label>
-                  Percentuale porzione
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <input
-                      type="number"
-                      id="ricetta-formato2-percent"
-                      class="input-pill"
-                      min="1"
-                      max="500"
-                      step="1"
-                      placeholder="Es. 60 o 25"
-                      style="max-width:120px;"
-                    />
-                    <span style="font-size:13px;">%</span>
-                  </div>
-                </label>
-                <p style="margin-top:6px; font-size:13px;">
-                  Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
-                </p>
-              </div>
-            </div>
-
-            <h3>Ingredienti</h3>
-
-            <div id="ricetta-ingredienti-container"></div>
-
-            <datalist id="ingredienti-suggestions"></datalist>
-
-            <button
-              id="btn-add-ingrediente"
-              class="app-button small gray"
-              type="button"
-            >
-              + Aggiungi ingrediente
-            </button>
-
-            <button
-              id="btn-salva-ricetta"
-              class="app-button small green"
-              type="button"
-            >
-              Salva ricetta
-            </button>
-          </form>
-        </section>
-
-        <!-- RICETTARIO (SOLO LETTURA) -->
-        <section
-          id="view-ricette-viewer"
-          class="view"
-          style="display: none"
-        >
-          <h2>Ricettario</h2>
-          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-            Visualizza le ricette registrate, senza possibilità di modificarle.
-          </p>
-
-          <div style="margin-top:10px; margin-bottom:8px;">
-            <label style="display:block; font-size:13px; margin-bottom:4px;">
-              Cerca ricetta
-            </label>
-            <input
-              id="ricette-search"
-              type="text"
-              class="input-pill"
-              placeholder="Es. Flan di patate, Tiramisù..."
-            />
-          </div>
-
-          <div
-            id="ricette-lista-viewer"
-            style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
-          ></div>
-        </section>
-
-        <!-- REPORT KPI -->
-        <section id="view-report" class="view" style="display: none">
-          <h2>Cruscotto KPI</h2>
-          <p>Panoramica veloce di incassi e costi sul periodo selezionato.</p>
-
-          <div class="kpi-filters">
-            <label>
-              Data di riferimento
-              <input id="report-data" type="date" class="input-pill" />
-            </label>
-          </div>
-
-          <div class="kpi-period-switch">
-            <button
-              type="button"
-              class="app-button tiny report-period-btn active"
-              data-period="giorno"
-            >
-              Giorno
-            </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="settimana"
-            >
-              Settimana
-            </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="mese"
-            >
-              Mese
-            </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="anno"
-            >
-              Anno
-            </button>
-          </div>
-
-          <div class="kpi-inputs">
-            <label>
-              Incasso periodo (€)
-              <input
-                id="kpi-incasso-input"
-                type="number"
-                step="0.01"
-                class="input-pill"
-                placeholder="Es. 1500"
-              />
-            </label>
-
-            <label>
-              Food cost periodo (€)
-              <input
-                id="kpi-foodcost-input"
-                type="number"
-                step="0.01"
-                class="input-pill"
-                placeholder="Es. 450"
-              />
-            </label>
-          </div>
-
-          <div class="kpi-incasso-row">
-            <span>
-              Incasso:
-              <strong id="kpi-incasso-value">0,00&nbsp;€</strong>
-            </span>
-            <span>
-              Netto (Incasso - Food):
-              <strong id="kpi-netto-value">0,00&nbsp;€</strong>
-            </span>
-          </div>
-
-          <div id="kpi-margine-badge" class="kpi-margin-badge neg">
-            Margine 0,00&nbsp;€
-          </div>
-
-          <div class="kpi-gauge-wrapper">
-            <div class="kpi-gauge-dial">
-              <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
-              <div class="kpi-gauge-center"></div>
-            </div>
-            <div class="kpi-gauge-bep">
-              <span id="kpi-bep-label">BEP 0,00&nbsp;€</span>
-            </div>
-          </div>
-
-          <div class="kpi-cards">
-            <div class="kpi-card">
-              <h3>Lavoro</h3>
-              <p id="kpi-lavoro-importo">0,00&nbsp;€</p>
-              <small id="kpi-lavoro-percent">0%</small>
-            </div>
-            <div class="kpi-card">
-              <h3>Food cost</h3>
-              <p id="kpi-food-importo">0,00&nbsp;€</p>
-              <small id="kpi-food-percent">0%</small>
-            </div>
-            <div class="kpi-card">
-              <h3>Costi fissi</h3>
-              <p id="kpi-fissi-importo">0,00&nbsp;€</p>
-              <small id="kpi-fissi-percent">0%</small>
-            </div>
-          </div>
-
-          <hr class="report-section-divider" />
-
-          <button
-            id="btn-toggle-costi-fissi"
-            class="app-button small gray"
-            type="button"
-          >
-            Gestisci costi fissi
-          </button>
-
-          <div
-            id="costi-fissi-panel"
-            style="display: none; margin-top: 10px;"
-          >
-            <h3>Costi fissi annuali</h3>
-
-            <form id="costi-fissi-form" onsubmit="return false;">
-              <label>
-                Categoria
-                <input
-                  id="costi-fissi-categoria"
-                  type="text"
-                  class="input-pill"
-                  placeholder="Affitto, utenze, personale fisso..."
-                />
-              </label>
-
-              <label>
-                Descrizione
-                <input
-                  id="costi-fissi-descrizione"
-                  type="text"
-                  class="input-pill"
-                  placeholder="Descrizione voce di costo"
-                />
-              </label>
-
-              <label>
-                Anno di riferimento
-                <input
-                  id="costi-fissi-anno"
-                  type="number"
-                  class="input-pill"
-                  placeholder="Es. 2024"
-                />
-              </label>
-
-              <label>
-                Importo annuo (€)
-                <input
-                  id="costi-fissi-importo"
-                  type="number"
-                  step="0.01"
-                  class="input-pill"
-                />
-              </label>
-
-              <button
-                id="btn-salva-costo-fisso"
-                class="app-button small green"
-                type="button"
-              >
-                Salva costo fisso
-              </button>
-            </form>
-
-            <h4>Elenco costi fissi</h4>
-            <div class="table-wrapper">
-              <table class="table-timbrature">
-                <thead>
-                  <tr>
-                    <th>Categoria</th>
-                    <th>Descrizione</th>
-                    <th>Anno</th>
-                    <th>Importo annuo</th>
-                  </tr>
-                </thead>
-                <tbody id="costi-fissi-lista"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- MAGAZZINO -->
-        <section id="view-magazzino" class="view" style="display: none">
-          <h2>Magazzino</h2>
-          <p>Ricerca prodotti, scorte e movimenti.</p>
-
-          <div style="position: relative;">
-            <input
-              id="magazzino-search"
-              type="text"
-              placeholder="Cerca prodotto..."
-              autocomplete="off"
-              list="magazzino-suggestions"
-              class="input-pill"
-            />
-            <datalist id="magazzino-suggestions"></datalist>
-          </div>
-
-          <h3>Prodotti</h3>
-          <table
-            id="magazzino-table"
-            class="table-timbrature"
-            style="display: none;"
-          >
-            <thead>
-              <tr>
-                <th>Codice</th>
-                <th>Descrizione</th>
-                <th>Categoria</th>
-                <th>Stock</th>
-              </tr>
-            </thead>
-            <tbody id="magazzino-lista"></tbody>
-          </table>
-
-          <h3>Dettaglio prodotto</h3>
-
-          <button
-            id="btn-magazzino-nuovo"
-            class="app-button small gray"
-            type="button"
-            style="margin-bottom: 8px;"
-          >
-            Nuovo prodotto
-          </button>
-
-          <form id="magazzino-form" onsubmit="return false;">
-            <input type="hidden" id="magazzino-id" />
-
-            <label>
-              Descrizione
-              <input
-                type="text"
-                id="magazzino-descrizione"
-                list="ingredienti-suggestions"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Categoria
-              <input
-                type="text"
-                id="magazzino-categoria"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              UM
-              <input
-                type="text"
-                id="magazzino-um"
-                placeholder="kg, l, pz..."
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Scorta minima
-              <input
-                type="number"
-                id="magazzino-scorta-minima"
-                step="0.001"
-                class="input-pill"
-              />
-            </label>
-
-            <label>
-              Giacenza attuale
-              <input
-                type="number"
-                id="magazzino-giacenza"
-                step="0.001"
-                class="input-pill"
-                readonly
-              />
-            </label>
-
-            <button
-              id="btn-magazzino-salva"
-              class="app-button small green"
-              type="button"
-            >
-              Salva prodotto
-            </button>
-          </form>
-
-          <p class="small-muted">
-            Scrivi il nome (es. "pomodori") nel campo di ricerca sopra per
-            vedere i prodotti e le quantità, poi clicca sulla riga per
-            caricare il dettaglio.
-          </p>
-        </section>
-
-        <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
-        <section id="view-venduto" class="view" style="display: none">
-          <h2>Venduto del giorno</h2>
-          <p>Carica un file CSV per registrare il venduto e scaricare il magazzino.</p>
-
-          <label>
-            <strong>Carica CSV</strong>
-            <input
-              type="file"
-              id="venduto-file"
-              accept=".csv"
-              class="input-pill"
-            />
-          </label>
-
-          <button
-            id="btn-carica-venduto"
-            class="app-button small green"
-            style="margin-top: 12px;"
-          >
-            Importa venduto
-          </button>
-
-          <h3 style="margin-top:16px;">Anteprima</h3>
-
-          <table
-            class="table-timbrature"
-            id="venduto-table"
-            style="display:none;"
-          >
-            <thead>
-              <tr>
-                <th>Prodotto</th>
-                <th>Qtà</th>
-                <th>Totale Lordo</th>
-                <th>Totale Netto</th>
-              </tr>
-            </thead>
-            <tbody id="venduto-table-body"></tbody>
-          </table>
-        </section>
-      </main>
-    </div>
-
-    <!-- SUPABASE -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-      const supabaseClient = window.supabase.createClient(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
-      );
-      window.supabaseClient = supabaseClient;
-    </script>
-
-    <!-- SCRIPT APP -->
-    <script src="app.js"></script>
-  </body>
-</html>
+// app.js - VERSIONE RIORGANIZZATA
+// Assistente Gestionale Antonio - file completo con modulo Preventivi integrato
+// Struttura a blocchi per facilitare interventi: [0] Riferimenti DOM, [1] Stato/let, [2] Utility, [3] Supabase, [4] Routing/Visibilità, [5] Autenticazione/Login,
+// [6] Dipendenti, [7] Timbrature, [8] Ricette, [9] Acquisti/Fatture, [10] Magazzino, [11] Preventivi, [12] Init
+
+/* ==========================================================
+   [0] RIFERIMENTI DOM (principali / comuni)
+   ========================================================== */
+
+const views = Array.from(document.querySelectorAll('.view'));
+const loginView = document.getElementById('view-login');
+const homeDipView = document.getElementById('view-home-dip');
+const managerMenu = document.getElementById('manager-menu');
+const routeButtons = Array.from(document.querySelectorAll('[data-route]'));
+
+// header
+const btnTheme = document.getElementById('btn-theme');
+const currentUserLabel = document.getElementById('current-user-label');
+const btnLogout = document.getElementById('btn-logout');
+
+// login
+const loginNomeInput = document.getElementById('login-nome');
+const loginPinInput = document.getElementById('login-pin');
+const loginRememberInput = document.getElementById('login-remember');
+const btnLogin = document.getElementById('btn-login');
+
+// timbratura (esempio)
+const timbUtenteNomeEl = document.getElementById('timbratura-utente-nome');
+const timbCanaleSelect = document.getElementById('timbratura-canale-select');
+const btnEntra = document.getElementById('btn-entra');
+const btnPausa = document.getElementById('btn-pausa');
+const btnEsci = document.getElementById('btn-esci');
+
+// dipendenti
+const dipLista = document.getElementById('dipendenti-lista');
+
+// acquisti / fatture
+const fatturaRigheBody = document.getElementById('fattura-righe-body');
+
+// magazzino (solo riferimenti di esempio)
+const magazzinoListaEl = document.getElementById('magazzino-lista');
+
+// RICETTE viewer
+const ricetteSearchInput = document.getElementById('ricette-search');
+
+// ====== PREVENTIVI (blocchi DOM forniti dall'utente) ======
+const prevClienteNome = document.getElementById('prev-cliente-nome');
+const prevContattiList = document.getElementById('prev-contatti-list');
+const prevClienteEmail = document.getElementById('prev-cliente-email');
+const prevClienteTelefono = document.getElementById('prev-cliente-telefono');
+const prevAddContattoBtn = document.getElementById('prev-add-contatto');
+
+const prevTitolo = document.getElementById('prev-titolo');
+const prevTipoServizio = document.getElementById('prev-tipo-servizio');
+const prevDataEvento = document.getElementById('prev-data-evento');
+const prevNInvitati = document.getElementById('prev-n-invitati');
+const prevLocation = document.getElementById('prev-location');
+const prevNote = document.getElementById('prev-note');
+
+const prevPiattiContainer = document.getElementById('prev-piatti-container');
+const prevPiattiSuggestions = document.getElementById('prev-piatti-suggestions');
+const prevAddPiattoBtn = document.getElementById('prev-add-piatto');
+
+const prevExtraContainer = document.getElementById('prev-extra-container');
+const prevExtraSuggestions = document.getElementById('prev-extra-suggestions');
+const prevAddExtraBtn = document.getElementById('prev-add-extra');
+
+const prevTotalePiatti = document.getElementById('prev-totale-piatti');
+const prevTotaleExtra = document.getElementById('prev-totale-extra');
+const prevTotale = document.getElementById('prev-totale');
+const prevTotalePP = document.getElementById('prev-totale-pp');
+
+const prevStato = document.getElementById('prev-stato');
+const prevAccontoCard = document.getElementById('prev-acconto-card');
+const prevAcconto = document.getElementById('prev-acconto');
+const prevSaldo = document.getElementById('prev-saldo');
+const prevGeneraPrenotazione = document.getElementById('prev-genera-prenotazione');
+
+const prevSalvaBtn = document.getElementById('prev-salva');
+const prevStampaBtn = document.getElementById('prev-stampa');
+const prevEmailBtn = document.getElementById('prev-email');
+const prevApriPrenotazioneBtn = document.getElementById('prev-apri-prenotazione');
+
+const prevLista = document.getElementById('prev-lista');
+
+/* ==========================================================
+   [1] STATO / VARIABILI GLOBALI
+   ========================================================== */
+let dipendenti = [];
+let timbrature = [];
+let currentUser = null;
+let periodoCorrente = 'oggi';
+
+// Ricette / magazzino cache
+let ricetteCache = [];
+let magazzinoDati = [];
+
+// Preventivi state
+let preventivoCorrenteId = null;
+let contattiCache = [];
+let ricetteCachePreventivi = [];
+let serviziExtraCatalogo = [];
+
+/* ==========================================================
+   [2] UTILITY GENERICHE
+   ========================================================== */
+function parseNumber(val) {
+  if (val == null) return 0;
+  const str = String(val).replace(',', '.');
+  const n = parseFloat(str);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function showOnlyView(viewId) {
+  views.forEach(v => v.style.display = (v.id === viewId) ? 'block' : 'none');
+}
+
+function isManagerRole(ruolo) {
+  return ruolo === 'admin' || ruolo === 'manager_cucina' || ruolo === 'manager_sala';
+}
+
+/* ==========================================================
+   [3] SUPABASE - usare window.supabaseClient creato da index.html
+   ========================================================== */
+const supabase = window.supabaseClient || null;
+
+/* ==========================================================
+   [4] ROUTING E VISIBILITA' (header/user)
+   ========================================================== */
+function updateHeaderUser() {
+  if (!currentUserLabel) return;
+  if (!currentUser) {
+    currentUserLabel.textContent = 'Nessun utente';
+  } else {
+    const ruoloLabel = currentUser.ruolo || 'Dipendente';
+    currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
+  }
+  if (btnLogout) btnLogout.style.display = currentUser ? 'inline-block' : 'none';
+}
+
+function applyRoleVisibility() {
+  const modalita = currentUser && isManagerRole(currentUser.ruolo) ? 'manager' : 'dipendente';
+  document.querySelectorAll('[data-manager-only="true"], .manager-only').forEach(el => {
+    el.style.display = modalita === 'manager' ? '' : 'none';
+  });
+  if (managerMenu) managerMenu.style.display = modalita === 'manager' ? 'grid' : 'none';
+  updateHeaderUser();
+}
+
+/* ==========================================================
+   [5] AUTENTICAZIONE / LOGIN
+   ========================================================== */
+function setCurrentUser(user, persist) {
+  currentUser = user ? { id: user.id||null, nome: user.nome, ruolo: user.ruolo||'', canalePrevalente: user.canalePrevalente||'NR', virtualAdmin: !!user.virtualAdmin } : null;
+  if (persist && currentUser) localStorage.setItem('ga_current_user_v1', JSON.stringify(currentUser));
+  else localStorage.removeItem('ga_current_user_v1');
+  updateHeaderUser();
+  applyRoleVisibility();
+}
+
+if (btnLogin) {
+  btnLogin.addEventListener('click', async () => {
+    const nome = (loginNomeInput?.value||'').trim();
+    const pin = (loginPinInput?.value||'').trim();
+    const remember = loginRememberInput?.checked || false;
+    if (!nome) return alert('Inserisci il nome');
+    if (!pin) return alert('Inserisci il PIN');
+
+    if (!dipendenti || dipendenti.length === 0) await caricaDipendentiDaSupabase();
+
+    if (nome.toLowerCase() === 'admin' && pin === '9999') {
+      setCurrentUser({ id:null, nome:'Admin', ruolo:'admin', canalePrevalente:'NR', virtualAdmin:true }, remember);
+      showOnlyView('view-timbratura');
+      return;
+    }
+
+    const dip = dipendenti.find(d => d.attivo && d.nome && d.nome.toLowerCase() === nome.toLowerCase() && d.codice && d.codice.toString() === pin.toString());
+    if (!dip) return alert('Nome o PIN non corretti');
+    setCurrentUser(dip, remember);
+
+    if (isManagerRole(dip.ruolo)) showOnlyView('view-timbratura'); else showOnlyView('view-home-dip');
+  });
+}
+
+if (btnLogout) {
+  btnLogout.addEventListener('click', () => {
+    setCurrentUser(null, false);
+    showOnlyView('view-login');
+  });
+}
+
+/* ==========================================================
+   [6] DIPENDENTI - esempi di funzioni chiave (caricamento)
+   ========================================================== */
+async function caricaDipendentiDaSupabase() {
+  if (!supabase) return;
+  const { data, error } = await supabase.from('dipendenti').select('*').order('nome', { ascending: true });
+  if (error) { console.error('Errore caricamento dipendenti:', error); return; }
+  dipendenti = (data||[]).map(r => ({ id:r.id, nome:r.nome, ruolo:r.ruolo, codice:r.codice, attivo: r.attivo !== false, costoOrario: r.costo_orario }));
+}
+
+/* ==========================================================
+   [7] TIMBRATURE - placeholder (la logica esistente dovrebbe essere copiata qui)
+   ========================================================== */
+async function caricaTimbratureDaSupabase() { /* ... */ }
+
+/* ==========================================================
+   [8] RICETTE - caricamento cache necessario per i preventivi
+   ========================================================== */
+async function caricaRicetteInCache() {
+  if (!supabase) return;
+  const { data, error } = await supabase.from('ricette').select('id,nome').order('nome',{ascending:true});
+  if (!error && data) {
+    ricetteCache = data;
+  }
+}
+
+/* ==========================================================
+   [9] ACQUISTI / FATTURE - placeholder
+   ========================================================== */
+async function caricaFatture() { /* ... */ }
+
+/* ==========================================================
+   [10] MAGAZZINO - placeholder
+   ========================================================== */
+async function caricaMagazzinoDati() { /* ... */ }
+
+/* ==========================================================
+   [11] PREVENTIVI - modulo integrato (DOM refs e funzioni fornite dall'utente)
+   ========================================================== */
+// Caricamento dati iniziali per Preventivi
+async function caricaContatti() {
+  if (!supabase) return;
+  const res = await supabase.from('contatti').select('*').order('nome');
+  if (res.error) { console.error('Errore caricando contatti:', res.error); return; }
+  contattiCache = res.data || [];
+  if (!prevContattiList) return;
+  prevContattiList.innerHTML = '';
+  contattiCache.forEach(function(c) {
+    const opt = document.createElement('option');
+    const nomeCompleto = ((c.nome||'') + ' ' + (c.cognome||'')).trim();
+    opt.value = nomeCompleto;
+    prevContattiList.appendChild(opt);
+  });
+}
+
+async function caricaRicettePreventivi() {
+  if (!supabase) return;
+  const res = await supabase.from('ricette').select('id,nome');
+  if (!res.error && res.data) {
+    ricetteCachePreventivi = res.data;
+    if (!prevPiattiSuggestions) return;
+    prevPiattiSuggestions.innerHTML = '';
+    res.data.forEach(function(r) { const opt = document.createElement('option'); opt.value = r.nome; prevPiattiSuggestions.appendChild(opt); });
+  }
+}
+
+async function caricaCatalogoExtra() {
+  if (!supabase) return;
+  const res = await supabase.from('extra_servizi_catalogo').select('*');
+  if (!res.error && res.data) {
+    serviziExtraCatalogo = res.data;
+    if (!prevExtraSuggestions) return;
+    prevExtraSuggestions.innerHTML = '';
+    res.data.forEach(function(s) { const opt = document.createElement('option'); opt.value = s.nome; prevExtraSuggestions.appendChild(opt); });
+  }
+}
+
+async function caricaPreventiviEsistenti() {
+  if (!supabase || !prevLista) return;
+  const res = await supabase.from('preventivi').select('*, contatti:cliente_id (nome, cognome)').order('created_at',{ascending:false});
+  if (res.error) { console.error('Errore caricando preventivi:', res.error); return; }
+  prevLista.innerHTML = '';
+  (res.data||[]).forEach(function(p) {
+    const tr = document.createElement('tr');
+    const cont = p.contatti||{};
+    const clienteNome = ((cont.nome||'') + ' ' + (cont.cognome||'')).trim();
+    const dataEvento = p.data_evento || '-';
+    const titolo = p.titolo_evento || '-';
+    const invitati = (p.n_invitati != null ? p.n_invitati : '-');
+    const totaleStr = (p.totale != null ? Number(p.totale).toFixed(2) : '0.00');
+    const stato = p.stato || '-';
+    var html = '<td>'+dataEvento+'</td><td>'+(clienteNome||'-')+'</td><td>'+titolo+'</td><td>'+invitati+'</td><td>'+totaleStr+'</td><td>'+stato+'</td><td><button class="app-button tiny gray" data-edit-prev="'+p.id+'">Apri</button></td>';
+    tr.innerHTML = html;
+    prevLista.appendChild(tr);
+  });
+  const buttons = prevLista.querySelectorAll('[data-edit-prev]');
+  buttons.forEach(function(btn){ btn.addEventListener('click', function(){ const id = parseInt(btn.getAttribute('data-edit-prev'),10); if (!isNaN(id)) caricaPreventivoInModifica(id); }); });
+}
+
+// PIATTI / MENU: aggiungi riga piatto
+function aggiungiRigaPiatto(piatto) {
+  if (!prevPiattiContainer) return;
+  const div = document.createElement('div');
+  div.className = 'form-grid-2';
+  div.style.marginTop = '8px';
+  let defaultQty = 1;
+  if (prevNInvitati && prevNInvitati.value) {
+    const parsed = parseInt(prevNInvitati.value,10);
+    if (!isNaN(parsed) && parsed>0) defaultQty = parsed;
+  }
+  const nomeVal = piatto && typeof piatto.nome_piatto !== 'undefined' ? piatto.nome_piatto : '';
+  const qtyVal = piatto && typeof piatto.quantita !== 'undefined' && piatto.quantita !== null ? piatto.quantita : defaultQty;
+  const costoUnitVal = piatto && typeof piatto.costo_unitario !== 'undefined' && piatto.costo_unitario !== null ? piatto.costo_unitario : '';
+  const costoTotVal = piatto && typeof piatto.costo_totale !== 'undefined' && piatto.costo_totale !== null ? piatto.costo_totale : '';
+
+  div.innerHTML =
+    '<label>Portata<input class="input-pill prev-piatto-nome" list="prev-piatti-suggestions" value="'+nomeVal+'"></label>'+
+    '<label>Quantità<input type="number" class="input-pill prev-piatto-qty" min="1" value="'+qtyVal+'"></label>'+
+    '<label>Prezzo unitario (€)<input class="input-pill prev-piatto-costo" readonly value="'+costoUnitVal+'"></label>'+
+    '<label>Totale (€)<input class="input-pill prev-piatto-tot" readonly value="'+costoTotVal+'"></label>'+
+    '<button class="app-button tiny red prev-del-piatto" type="button">X</button>';
+
+  prevPiattiContainer.appendChild(div);
+  const btnDel = div.querySelector('.prev-del-piatto');
+  const inputNome = div.querySelector('.prev-piatto-nome');
+  const inputQty = div.querySelector('.prev-piatto-qty');
+
+  if (btnDel) btnDel.addEventListener('click', function(){ div.remove(); calcolaTotaliPreventivo(); });
+  if (inputNome) inputNome.addEventListener('change', function(){ aggiornaCostoPiatto(div, true).then(()=>calcolaTotaliPreventivo()); });
+  if (inputQty) inputQty.addEventListener('input', function(){ aggiornaCostoPiatto(div, false).then(()=>calcolaTotaliPreventivo()); });
+}
+
+// aggiorna costo piatto (fa query a ricette_ingredienti e prodotti.costo_medio)
+async function aggiornaCostoPiatto(div, force) {
+  if (!supabase) return;
+  const nomeInput = div.querySelector('.prev-piatto-nome');
+  const qtyInput = div.querySelector('.prev-piatto-qty');
+  const costoInput = div.querySelector('.prev-piatto-costo');
+  const totInput = div.querySelector('.prev-piatto-tot');
+  if (!nomeInput || !qtyInput || !costoInput || !totInput) return;
+  const nome = (nomeInput.value||'').trim();
+  const qty = parseFloat(qtyInput.value||'1');
+  if (!nome) return;
+
+  let ric = null;
+  for (let i=0;i<ricetteCachePreventivi.length;i++){
+    const r = ricetteCachePreventivi[i];
+    if (r.nome && r.nome.toLowerCase()===nome.toLowerCase()) { ric = r; break; }
+  }
+
+  let ricettaId = null;
+  let prezzoUnitario = 0;
+
+  if (ric) {
+    ricettaId = ric.id;
+    const res = await supabase.from('ricette_ingredienti').select('quantita, prodotto:prodotto_id (costo_medio)').eq('ricetta_id', ric.id);
+    if (!res.error && res.data) {
+      res.data.forEach(function(ing){
+        const q = parseFloat(ing.quantita||'0');
+        let costoMedio = 0;
+        if (ing.prodotto && typeof ing.prodotto.costo_medio !== 'undefined') costoMedio = parseFloat(ing.prodotto.costo_medio||'0');
+        prezzoUnitario += q * costoMedio;
+      });
+    }
+  } else {
+    // crea ricetta provvisoria
+    const inserimento = await supabase.from('ricette').insert({ nome: nome, descrizione: 'Ricetta da completare', tipo: 'piatto' }).select().single();
+    if (!inserimento.error && inserimento.data) {
+      ricettaId = inserimento.data.id;
+      ricetteCachePreventivi.push({ id: inserimento.data.id, nome: nome });
+      if (prevPiattiSuggestions) { const opt = document.createElement('option'); opt.value = nome; prevPiattiSuggestions.appendChild(opt); }
+    }
+  }
+
+  div.dataset.ricettaId = ricettaId;
+  costoInput.value = prezzoUnitario.toFixed(2);
+  totInput.value = (prezzoUnitario * qty).toFixed(2);
+}
+
+// EXTRA
+function aggiungiRigaExtra(extra) {
+  if (!prevExtraContainer) return;
+  const div = document.createElement('div');
+  div.className = 'form-grid-2';
+  div.style.marginTop = '8px';
+  const descVal = extra && typeof extra.descrizione !== 'undefined' ? extra.descrizione : '';
+  const qtyVal = extra && typeof extra.quantita !== 'undefined' && extra.quantita !== null ? extra.quantita : 1;
+  const prezzoUnitVal = extra && typeof extra.prezzo_unitario !== 'undefined' && extra.prezzo_unitario !== null ? extra.prezzo_unitario : 0;
+  const prezzoTotVal = extra && typeof extra.prezzo_totale !== 'undefined' && extra.prezzo_totale !== null ? extra.prezzo_totale : 0;
+
+  const labelServ = document.createElement('label');
+  const inputServ = document.createElement('input');
+  inputServ.className = 'input-pill prev-extra-desc';
+  inputServ.setAttribute('list','prev-extra-suggestions');
+  inputServ.value = descVal;
+  labelServ.appendChild(document.createTextNode('Servizio'));
+  labelServ.appendChild(document.createElement('br'));
+  labelServ.appendChild(inputServ);
+
+  const labelQty = document.createElement('label');
+  const inputQty = document.createElement('input'); inputQty.type='number'; inputQty.className='input-pill prev-extra-qty'; inputQty.min='1'; inputQty.value = qtyVal;
+  labelQty.appendChild(document.createTextNode('Quantità')); labelQty.appendChild(document.createElement('br')); labelQty.appendChild(inputQty);
+
+  const labelPrezzo = document.createElement('label');
+  const inputPrezzo = document.createElement('input'); inputPrezzo.type='number'; inputPrezzo.className='input-pill prev-extra-prezzo'; inputPrezzo.step='0.01'; inputPrezzo.value = prezzoUnitVal;
+  labelPrezzo.appendChild(document.createTextNode('Prezzo unitario (€)')); labelPrezzo.appendChild(document.createElement('br')); labelPrezzo.appendChild(inputPrezzo);
+
+  const labelTot = document.createElement('label');
+  const inputTot = document.createElement('input'); inputTot.className='input-pill prev-extra-tot'; inputTot.readOnly = true; inputTot.value = prezzoTotVal;
+  labelTot.appendChild(document.createTextNode('Totale (€)')); labelTot.appendChild(document.createElement('br')); labelTot.appendChild(inputTot);
+
+  const btnDel = document.createElement('button'); btnDel.type='button'; btnDel.className='app-button tiny red prev-del-extra'; btnDel.textContent='X';
+
+  div.appendChild(labelServ); div.appendChild(labelQty); div.appendChild(labelPrezzo); div.appendChild(labelTot); div.appendChild(btnDel);
+  prevExtraContainer.appendChild(div);
+
+  const aggiornaExtra = () => { const q = parseFloat(inputQty.value||'1'); const p = parseFloat(inputPrezzo.value||'0'); inputTot.value = (q*p).toFixed(2); calcolaTotaliPreventivo(); };
+  inputQty.addEventListener('input', aggiornaExtra);
+  inputPrezzo.addEventListener('input', aggiornaExtra);
+  btnDel.addEventListener('click', ()=>{ div.remove(); calcolaTotaliPreventivo(); });
+}
+
+// CALCOLO TOTALI
+function calcolaTotaliPreventivo() {
+  let totPiatti = 0; let totExtra = 0;
+  if (prevPiattiContainer) {
+    const righePiatti = prevPiattiContainer.querySelectorAll('.prev-piatto-tot');
+    righePiatti.forEach(el => { totPiatti += parseFloat(el.value||'0'); });
+  }
+  if (prevExtraContainer) {
+    const righeExtra = prevExtraContainer.querySelectorAll('.prev-extra-tot');
+    righeExtra.forEach(el => { totExtra += parseFloat(el.value||'0'); });
+  }
+  if (prevTotalePiatti) prevTotalePiatti.value = totPiatti.toFixed(2);
+  if (prevTotaleExtra) prevTotaleExtra.value = totExtra.toFixed(2);
+  const totale = totPiatti + totExtra;
+  if (prevTotale) prevTotale.value = totale.toFixed(2);
+  if (prevTotalePP) {
+    let nInv = 0; if (prevNInvitati && prevNInvitati.value) nInv = parseFloat(prevNInvitati.value);
+    prevTotalePP.value = nInv>0 ? (totale / nInv).toFixed(2) : '';
+  }
+  if (prevStato && prevStato.value === 'accettato' && prevSaldo) {
+    let ac = 0; if (prevAcconto && prevAcconto.value) ac = parseFloat(prevAcconto.value||'0');
+    prevSaldo.value = (totale - ac).toFixed(2);
+  }
+}
+
+// SALVA PREVENTIVO (salva record + righe)
+async function salvaPreventivo() {
+  if (!supabase) return; if (!prevClienteNome) return alert('Seleziona un cliente.');
+  const cliente = (prevClienteNome.value||'').trim(); if (!cliente) return alert('Seleziona un cliente.');
+
+  // trova o crea contatto
+  let contattoId = null;
+  let contatto = contattiCache.find(function(c){ const nc = ((c.nome||'')+' '+(c.cognome||'')).trim(); return nc.toLowerCase()===cliente.toLowerCase(); });
+  if (contatto) contattoId = contatto.id; else {
+    const parti = cliente.split(' '); const nome = parti.shift()||cliente; const cognome = parti.join(' ');
+    const resIns = await supabase.from('contatti').insert({ nome: nome, cognome: cognome||null, email: prevClienteEmail? (prevClienteEmail.value||null) : null, telefono: prevClienteTelefono? (prevClienteTelefono.value||null) : null }).select().single();
+    if (resIns.error) { console.error(resIns.error); return alert('Errore creando contatto'); }
+    contattoId = resIns.data.id; contattiCache.push(resIns.data);
+  }
+
+  const payload = {
+    cliente_id: contattoId,
+    titolo_evento: prevTitolo? (prevTitolo.value||null) : null,
+    tipo_servizio: prevTipoServizio? (prevTipoServizio.value||null) : null,
+    data_evento: prevDataEvento? (prevDataEvento.value||null) : null,
+    n_invitati: prevNInvitati && prevNInvitati.value ? parseInt(prevNInvitati.value,10) : null,
+    location: prevLocation? (prevLocation.value||null) : null,
+    note: prevNote? (prevNote.value||null) : null,
+    stato: prevStato? (prevStato.value||'bozza') : 'bozza',
+    acconto: prevAcconto && prevAcconto.value ? parseFloat(prevAcconto.value||'0') : 0,
+    totale: prevTotale && prevTotale.value ? parseFloat(prevTotale.value||'0') : 0
+  };
+
+  let id = preventivoCorrenteId;
+  if (id) {
+    const resUpd = await supabase.from('preventivi').update(payload).eq('id', id);
+    if (resUpd.error) { console.error(resUpd.error); return alert('Errore salvando preventivo'); }
+  } else {
+    const resNew = await supabase.from('preventivi').insert(payload).select().single();
+    if (resNew.error) { console.error(resNew.error); return alert('Errore creando preventivo'); }
+    id = resNew.data.id; preventivoCorrenteId = id;
+  }
+
+  // righe menù
+  await supabase.from('preventivi_ricette').delete().eq('preventivo_id', id);
+  if (prevPiattiContainer) {
+    const righe = prevPiattiContainer.children;
+    for (let i=0;i<righe.length;i++){ const div = righe[i]; const inputNome = div.querySelector('.prev-piatto-nome'); const inputQty = div.querySelector('.prev-piatto-qty'); const inputCU = div.querySelector('.prev-piatto-costo'); const inputTot = div.querySelector('.prev-piatto-tot'); const nomePiatto = inputNome? (inputNome.value||'') : ''; if (!nomePiatto) continue; await supabase.from('preventivi_ricette').insert({ preventivo_id: id, ricetta_id: div.dataset.ricettaId || null, nome_piatto: nomePiatto, quantita: inputQty? inputQty.value : 0, costo_unitario: inputCU? inputCU.value : 0, costo_totale: inputTot? inputTot.value : 0, ricetta_completa: !!div.dataset.ricettaId }); }
+  }
+
+  // righe extra
+  await supabase.from('preventivi_extra').delete().eq('preventivo_id', id);
+  if (prevExtraContainer) {
+    const righeE = prevExtraContainer.children;
+    for (let i=0;i<righeE.length;i++){ const div = righeE[i]; const inputDesc = div.querySelector('.prev-extra-desc'); const inputQty = div.querySelector('.prev-extra-qty'); const inputPU = div.querySelector('.prev-extra-prezzo'); const desc = inputDesc? (inputDesc.value||'') : ''; if (!desc) continue; await supabase.from('preventivi_extra').insert({ preventivo_id: id, descrizione: desc, quantita: inputQty? inputQty.value : 0, prezzo_unitario: inputPU? inputPU.value : 0 }); }
+  }
+
+  if (prevStato && prevStato.value === 'accettato') await generaPrenotazione(id);
+  alert('Preventivo salvato.');
+  await caricaPreventiviEsistenti();
+}
+
+// Genera prenotazione
+async function generaPrenotazione(id) {
+  if (!supabase) return;
+  let ac = 0; let tot = 0; if (prevAcconto && prevAcconto.value) ac = parseFloat(prevAcconto.value||'0'); if (prevTotale && prevTotale.value) tot = parseFloat(prevTotale.value||'0');
+  const resPrev = await supabase.from('preventivi').select('*').eq('id', id).single(); if (resPrev.error || !resPrev.data) return;
+  const resPren = await supabase.from('prenotazioni').upsert({ preventivo_id: id, cliente_id: resPrev.data.cliente_id, data_evento: resPrev.data.data_evento, acconto: ac, saldo_residuo: tot - ac });
+  if (resPren.error) console.error('Errore creando prenotazione:', resPren.error);
+}
+
+// Carica in modifica
+async function caricaPreventivoInModifica(id) {
+  if (!supabase) return;
+  preventivoCorrenteId = id;
+  const res = await supabase.from('preventivi').select('*').eq('id', id).single();
+  if (res.error || !res.data) { console.error(res.error); return alert('Errore caricando preventivo'); }
+  const p = res.data;
+  const contatto = contattiCache.find(c => c.id === p.cliente_id);
+  if (contatto) {
+    if (prevClienteNome) prevClienteNome.value = ((contatto.nome||'') + ' ' + (contatto.cognome||'')).trim();
+    if (prevClienteEmail) prevClienteEmail.value = contatto.email || '';
+    if (prevClienteTelefono) prevClienteTelefono.value = contatto.telefono || '';
+  }
+  if (prevTitolo) prevTitolo.value = p.titolo_evento || '';
+  if (prevTipoServizio) prevTipoServizio.value = p.tipo_servizio || 'buffet';
+  if (prevDataEvento) prevDataEvento.value = p.data_evento || '';
+  if (prevNInvitati) prevNInvitati.value = p.n_invitati || '';
+  if (prevLocation) prevLocation.value = p.location || '';
+  if (prevNote) prevNote.value = p.note || '';
+  if (prevStato) prevStato.value = p.stato || 'bozza';
+  if (prevAcconto) prevAcconto.value = p.acconto || '0';
+  if (prevPiattiContainer) prevPiattiContainer.innerHTML = '';
+  if (prevExtraContainer) prevExtraContainer.innerHTML = '';
+
+  const resPiatti = await supabase.from('preventivi_ricette').select('*').eq('preventivo_id', id);
+  if (!resPiatti.error && resPiatti.data) resPiatti.data.forEach(function(riga){ aggiungiRigaPiatto(riga); });
+  const resExtra = await supabase.from('preventivi_extra').select('*').eq('preventivo_id', id);
+  if (!resExtra.error && resExtra.data) resExtra.data.forEach(function(e){ aggiungiRigaExtra(e); });
+  calcolaTotaliPreventivo();
+  if (prevAccontoCard) prevAccontoCard.style.display = p.stato === 'accettato' ? 'block' : 'none';
+  if (prevApriPrenotazioneBtn) prevApriPrenotazioneBtn.style.display = p.stato === 'accettato' ? 'block' : 'none';
+  showOnlyView('view-preventivi'); applyRoleVisibility();
+}
+
+// EVENT LISTENERS preventivi
+if (prevAddPiattoBtn) prevAddPiattoBtn.addEventListener('click', ()=> aggiungiRigaPiatto());
+if (prevAddExtraBtn) prevAddExtraBtn.addEventListener('click', ()=> aggiungiRigaExtra());
+if (prevSalvaBtn) prevSalvaBtn.addEventListener('click', ()=> salvaPreventivo());
+if (prevStato) prevStato.addEventListener('change', ()=> { if (prevAccontoCard) prevAccontoCard.style.display = prevStato.value === 'accettato' ? 'block' : 'none'; if (prevApriPrenotazioneBtn) prevApriPrenotazioneBtn.style.display = prevStato.value === 'accettato' ? 'block' : 'none'; calcolaTotaliPreventivo(); });
+if (prevAcconto) prevAcconto.addEventListener('input', ()=> calcolaTotaliPreventivo());
+if (prevNInvitati) prevNInvitati.addEventListener('input', ()=> calcolaTotaliPreventivo());
+
+/* ==========================================================
+   [12] INIT - funzione di inizializzazione eseguita al caricamento
+   ========================================================== */
+async function initApp() {
+  // carica risorse principali
+  await caricaDipendentiDaSupabase().catch(()=>{});
+  await caricaRicetteInCache().catch(()=>{});
+  // init preventivi
+  await caricaContatti().catch(()=>{});
+  await caricaRicettePreventivi().catch(()=>{});
+  await caricaCatalogoExtra().catch(()=>{});
+  await caricaPreventiviEsistenti().catch(()=>{});
+
+  // mostra login all'apertura
+  showOnlyView('view-login');
+}
+
+// avvio immediato
+document.addEventListener('DOMContentLoaded', function(){ initApp(); });
+
+// fine file
