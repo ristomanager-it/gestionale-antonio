@@ -462,7 +462,8 @@ let magazzinoDati = [];
 // =====================================
 
 // Usa il client Supabase già creato in index.html
-const supabase = window.supabaseClient;
+const supabaseClient = window.supabaseClient;
+
 
 // Stato in memoria
 let currentPreventivo = null;
