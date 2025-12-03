@@ -564,6 +564,15 @@
           <h2>Ricette</h2>
 
           <form onsubmit="return false;">
+            <!-- TIPO RICETTA -->
+            <label>
+              Tipo ricetta
+              <select id="ricetta-tipo" class="input-pill">
+                <option value="piatto">Ricetta (piatto finito)</option>
+                <option value="base">Ricetta base (preparazione)</option>
+              </select>
+            </label>
+
             <label>
               Nome ricetta
               <input
@@ -618,9 +627,6 @@
                     placeholder="Es. 10"
                   />
                 </label>
-                <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
-                  Con le quantità inserite, quanti pezzi “interi” escono (es. 10 flan da 120 g)?
-                </p>
               </div>
 
               <div class="kpi-card">
@@ -723,6 +729,7 @@
             Visualizza le ricette registrate, senza possibilità di modificarle.
           </p>
 
+          <!-- Ricerca -->
           <div style="margin-top:10px; margin-bottom:8px;">
             <label style="display:block; font-size:13px; margin-bottom:4px;">
               Cerca ricetta
@@ -735,6 +742,14 @@
             />
           </div>
 
+          <!-- FILTRI (Tutte / Ricette / Basi) -->
+          <div id="ricette-filtri" style="display:flex; gap:6px; margin-top:10px;">
+            <button class="app-button tiny" data-filter="tutte">Tutte</button>
+            <button class="app-button tiny" data-filter="piatto">Ricette</button>
+            <button class="app-button tiny" data-filter="base">Ricette Base</button>
+          </div>
+
+          <!-- LISTA / VIEWER -->
           <div
             id="ricette-lista-viewer"
             style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
