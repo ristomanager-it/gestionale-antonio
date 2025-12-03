@@ -1072,25 +1072,59 @@
 <section id="view-preventivi" class="view" style="display: none">
   <h2>Preventivi &amp; Prenotazioni</h2>
 
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
-    <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
-    <button id="btn-new-preventivo" class="app-button small gray">
-      + Nuovo preventivo
-    </button>
+  <!-- FILTRI / RICERCA -->
+  <div
+    class="preventivi-filters"
+    style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"
+  >
+    <div style="flex:1 1 160px;">
+      <label style="font-size:12px; display:block; margin-bottom:2px;">
+        Cerca preventivo
+      </label>
+      <input
+        type="text"
+        id="preventivi-search"
+        class="input-pill"
+        placeholder="Nome cliente, cognome, evento, data..."
+      />
+    </div>
+
+    <div style="flex:0 0 130px;">
+      <label style="font-size:12px; display:block; margin-bottom:2px;">
+        Stato
+      </label>
+      <select id="preventivi-stato-filter" class="input-pill">
+        <option value="tutti">Tutti</option>
+        <option value="bozza">Bozze</option>
+        <option value="inviato">Inviati</option>
+        <option value="accettato">Confermati</option>
+        <option value="rifiutato">Rifiutati</option>
+      </select>
+    </div>
+
+    <div style="flex:0 0 auto; align-self:flex-end;">
+      <button id="btn-new-preventivo" class="app-button small gray">
+        + Nuovo preventivo
+      </button>
+    </div>
   </div>
 
-  <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
+  <div class="preventivi-layout">
     <!-- LISTA PREVENTIVI -->
     <div class="preventivi-list-panel">
-      <h4 style="margin:0 0 6px;">Lista preventivi</h4>
-      <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;">
+      <h4 style="margin:0 0 6px;">Archivio preventivi</h4>
+      <div
+        id="preventivi-list"
+        class="preventivi-list"
+        style="display:flex; flex-direction:column; gap:6px;"
+      >
         <!-- Popolato da JS -->
       </div>
     </div>
 
     <!-- DETTAGLIO PREVENTIVO -->
     <div class="preventivi-detail-panel">
-      <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
+      <h4 style="margin:0 0 6px;">Dettaglio preventivo</h4>
 
       <form id="preventivo-form" onsubmit="return false;">
         <input type="hidden" id="preventivo-id" />
@@ -1280,12 +1314,15 @@
         </div>
 
         <!-- AZIONI -->
-        <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+        <div
+          class="form-section"
+          style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"
+        >
           <button
             type="submit"
             id="btn-save-preventivo"
             class="app-button small green"
-            style="flex:1 1 150px;"
+            style="flex:1 1 130px;"
           >
             Salva preventivo
           </button>
@@ -1294,7 +1331,7 @@
             type="button"
             id="btn-print-preventivo"
             class="app-button small gray"
-            style="flex:1 1 150px;"
+            style="flex:1 1 130px;"
           >
             Stampa / PDF
           </button>
@@ -1303,7 +1340,7 @@
             type="button"
             id="btn-email-preventivo"
             class="app-button small gray"
-            style="flex:1 1 150px;"
+            style="flex:1 1 130px;"
           >
             Invia per email
           </button>
