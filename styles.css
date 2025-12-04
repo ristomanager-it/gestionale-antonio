@@ -815,3 +815,9 @@ body.theme-light .view {
     flex: 1 1 auto;
   }
 }
+/* In stampa, nascondi i prezzi per portata nella view preventivi */
+@media print {
+  .col-prezzo-portata {
+    display: none !important;
+  }
+}
