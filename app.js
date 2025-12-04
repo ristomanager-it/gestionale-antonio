@@ -11,6 +11,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
+// ========== SCHEDA PRODUZIONE: RIFERIMENTI DOM ==========
+const produzioneRigheContainer = document.getElementById("produzione-righe");
+const produzioneDataInput = document.getElementById("produzione-data");
+const produzioneNoteInput = document.getElementById("produzione-note");
+const produzioneLottoInput = document.getElementById("produzione-lotto");
+const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
+const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
 
   // header
   const btnTheme = document.getElementById("btn-theme");
@@ -2926,8 +2933,21 @@ function emailCurrentPreventivoViaMailto() {
 const produzioneRigheContainer = document.getElementById("produzione-righe");
 const produzioneDataInput = document.getElementById("produzione-data");
 const produzioneNoteInput = document.getElementById("produzione-note");
+const produzioneLottoInput = document.getElementById("produzione-lotto");
 const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
 const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
+
+// Genera un lotto tipo: L20251204-143055
+function generaLottoProduzione() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `L${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+}
 
 // helper: trova ricetta in ricetteCache per NOME
 function trovaRicettaPerNome(nome) {
@@ -2971,16 +2991,16 @@ function popolaFormatiPerRiga(row, ricetta) {
   }
 }
 
-// ricalcola pezzi equivalenti e moltiplicatore per UNA riga
+// ricalcola quantità equivalente e moltiplicatore per UNA riga
 function ricalcolaQuantitaRiga(row) {
-  const pezziInput = row.querySelector(".prod-pezzi");
-  const pezziEqInput = row.querySelector(".prod-pezzi-equivalenti");
+  const qtaInput = row.querySelector(".prod-qta");
+  const qtaEqInput = row.querySelector(".prod-qta-equivalente");
   const moltipInput = row.querySelector(".prod-moltiplicatore");
   const selectFormato = row.querySelector(".prod-formato");
 
-  if (!pezziInput || !pezziEqInput || !moltipInput || !selectFormato) return;
+  if (!qtaInput || !qtaEqInput || !moltipInput || !selectFormato) return;
 
-  const pezzi = parseFloat(pezziInput.value || "0") || 0;
+  const qta = parseFloat(qtaInput.value || "0") || 0;
   const pezziBaseRicetta = parseFloat(row.dataset.pezziBase || "0") || 0;
 
   const selectedOption = selectFormato.options[selectFormato.selectedIndex];
@@ -2989,73 +3009,107 @@ function ricalcolaQuantitaRiga(row) {
       ? parseFloat(selectedOption.dataset.percent) || 0
       : 0;
 
-  if (!pezzi || !perc || !pezziBaseRicetta) {
-    pezziEqInput.value = "";
+  if (!qta || !perc || !pezziBaseRicetta) {
+    qtaEqInput.value = "";
     moltipInput.value = "";
     return;
   }
 
-  // pezzi equivalenti = pezzi * (percentuale / 100)
-  const pezziEquivalenti = pezzi * (perc / 100);
-  const moltiplicatore = pezziEquivalenti / pezziBaseRicetta;
+  // quantità equivalente = qta * (percentuale / 100)
+  const qtaEquivalente = qta * (perc / 100);
+  const moltiplicatore = qtaEquivalente / pezziBaseRicetta;
 
-  pezziEqInput.value = pezziEquivalenti.toFixed(2);
+  qtaEqInput.value = qtaEquivalente.toFixed(2);
   moltipInput.value = moltiplicatore.toFixed(2);
 }
 
-// crea una nuova riga di produzione
+// crea una nuova riga di produzione (card, mobile friendly)
 function creaRigaProduzione(initial = {}) {
   if (!produzioneRigheContainer) return;
 
   const row = document.createElement("div");
-  row.className = "produzione-riga";
-  row.style.display = "grid";
-  row.style.gridTemplateColumns = "minmax(160px, 1.2fr) 120px 130px 120px 100px 32px";
+  row.className = "produzione-riga timbratura-intro-card";
+  row.style.display = "flex";
+  row.style.flexDirection = "column";
   row.style.gap = "6px";
-  row.style.alignItems = "center";
 
   row.innerHTML = `
-    <input
-      type="text"
-      class="prod-ricetta-nome input-pill"
-      placeholder="Ricetta"
-      list="ricette-suggestions"
-      value="${initial.ricettaNome || ""}"
-    />
-    <select class="prod-formato input-pill">
-      <option value="">Formato...</option>
-    </select>
-    <input
-      type="number"
-      class="prod-pezzi input-pill"
-      placeholder="Pezzi"
-      min="0"
-      step="1"
-      value="${initial.pezzi || ""}"
-    />
-    <input
-      type="number"
-      class="prod-pezzi-equivalenti input-pill"
-      placeholder="Pezzi base eq."
-      step="0.01"
-      readonly
-    />
-    <input
-      type="number"
-      class="prod-moltiplicatore input-pill"
-      placeholder="x ricetta"
-      step="0.01"
-      readonly
-    />
-    <button type="button" class="app-button tiny red btn-del-riga-prod">
-      ✕
-    </button>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <strong style="font-size:14px;">Riga produzione</strong>
+      <button type="button" class="app-button tiny red btn-del-riga-prod">✕</button>
+    </div>
+
+    <label style="font-size:13px;">
+      Ricetta
+      <input
+        type="text"
+        class="prod-ricetta-nome input-pill"
+        placeholder="Es. Flan di patate, Ragù..."
+        list="ricette-suggestions"
+        value="${initial.ricettaNome || ""}"
+      />
+    </label>
+
+    <div class="form-grid-2">
+      <label style="font-size:13px;">
+        Formato
+        <select class="prod-formato input-pill">
+          <option value="">Formato...</option>
+        </select>
+      </label>
+
+      <label style="font-size:13px;">
+        UM
+        <input
+          type="text"
+          class="prod-um input-pill"
+          placeholder="pz, kg..."
+          value="${initial.um || ""}"
+        />
+      </label>
+    </div>
+
+    <div class="form-grid-2">
+      <label style="font-size:13px;">
+        Q.tà richiesta
+        <input
+          type="number"
+          class="prod-qta input-pill"
+          placeholder="Es. 120 (pz o kg)"
+          min="0"
+          step="0.001"
+          value="${initial.qta || ""}"
+        />
+      </label>
+
+      <label style="font-size:13px;">
+        Q.tà base equivalente
+        <input
+          type="number"
+          class="prod-qta-equivalente input-pill"
+          placeholder="Calcolata"
+          step="0.01"
+          readonly
+        />
+      </label>
+    </div>
+
+    <label style="font-size:13px;">
+      Moltiplicatore ricetta (x)
+      <input
+        type="number"
+        class="prod-moltiplicatore input-pill"
+        placeholder="Calcolato"
+        step="0.01"
+        readonly
+      />
+    </label>
   `;
 
+  const btnDel = row.querySelector(".btn-del-riga-prod");
   const inputRicetta = row.querySelector(".prod-ricetta-nome");
   const selectFormato = row.querySelector(".prod-formato");
-  const pezziInput = row.querySelector(".prod-pezzi");
-  const btnDel = row.querySelector(".btn-del-riga-prod");
+  const qtaInput = row.querySelector(".prod-qta");
 
   if (btnDel) {
     btnDel.addEventListener("click", () => row.remove());
@@ -3076,8 +3130,8 @@ function creaRigaProduzione(initial = {}) {
     });
   }
 
-  if (pezziInput) {
-    pezziInput.addEventListener("input", () => {
+  if (qtaInput) {
+    qtaInput.addEventListener("input", () => {
       ricalcolaQuantitaRiga(row);
     });
   }
@@ -3090,6 +3144,27 @@ function creaRigaProduzione(initial = {}) {
   produzioneRigheContainer.appendChild(row);
 }
 
+// reset completo scheda produzione
+function resetSchedaProduzione() {
+  if (!produzioneRigheContainer) return;
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  if (produzioneDataInput && !produzioneDataInput.value) {
+    produzioneDataInput.value = todayISO;
+  }
+
+  if (produzioneLottoInput) {
+    produzioneLottoInput.value = generaLottoProduzione();
+  }
+
+  if (produzioneNoteInput) {
+    produzioneNoteInput.value = "";
+  }
+
+  produzioneRigheContainer.innerHTML = "";
+  creaRigaProduzione();
+}
+
 // salvataggio su Supabase della scheda produzione
 async function salvaSchedaProduzione() {
   if (!supabase || !produzioneRigheContainer) return;
@@ -3097,11 +3172,15 @@ async function salvaSchedaProduzione() {
   const todayISO = new Date().toISOString().slice(0, 10);
   const dataScheda = produzioneDataInput?.value || todayISO;
   const noteScheda = produzioneNoteInput?.value.trim() || null;
+  const lottoScheda =
+    (produzioneLottoInput && produzioneLottoInput.value) ||
+    generaLottoProduzione();
 
   const payloadScheda = {
     data: dataScheda,
     note: noteScheda,
-    // operatore_id: currentUser?.id || null, // se vuoi legarlo all'utente
+    lotto: lottoScheda,
+    // operatore_id: currentUser?.id || null,
   };
 
   const { data: scheda, error: errScheda } = await supabase
@@ -3127,9 +3206,10 @@ async function salvaSchedaProduzione() {
     const ricettaId = parseInt(row.dataset.ricettaId || "0");
     if (!ricettaId) return;
 
-    const pezziInput = row.querySelector(".prod-pezzi");
-    const pezziEqInput = row.querySelector(".prod-pezzi-equivalenti");
+    const qtaInput = row.querySelector(".prod-qta");
+    const qtaEqInput = row.querySelector(".prod-qta-equivalente");
     const moltipInput = row.querySelector(".prod-moltiplicatore");
+    const umInput = row.querySelector(".prod-um");
     const selectFormato = row.querySelector(".prod-formato");
 
     const selectedOption =
@@ -3141,26 +3221,27 @@ async function salvaSchedaProduzione() {
         ? parseFloat(selectedOption.dataset.percent) || null
         : null;
 
-    const pezzi = pezziInput
-      ? parseFloat(pezziInput.value || "0") || 0
-      : 0;
-    const pezziEquivalenti = pezziEqInput
-      ? parseFloat(pezziEqInput.value || "0") || 0
+    const qta = qtaInput ? parseFloat(qtaInput.value || "0") || 0 : 0;
+    const qtaEquivalente = qtaEqInput
+      ? parseFloat(qtaEqInput.value || "0") || 0
       : 0;
     const moltiplicatore = moltipInput
       ? parseFloat(moltipInput.value || "0") || 0
       : 0;
+    const um = umInput ? (umInput.value || "").trim() : "";
 
-    if (!pezzi || !moltiplicatore) return;
+    if (!qta || !moltiplicatore) return;
 
     righePayload.push({
       scheda_id: schedaId,
       ricetta_id: ricettaId,
       formato_label: formatoLabel || null,
       formato_percent: formatoPercent,
-      pezzi,
-      pezzi_equivalenti: pezziEquivalenti,
+      quantita: qta,
+      quantita_equivalente: qtaEquivalente,
+      unita: um || null,
       moltiplicatore_ricetta: moltiplicatore,
+      lotto: lottoScheda,
     });
   });
 
@@ -3181,12 +3262,8 @@ async function salvaSchedaProduzione() {
 
   alert("Scheda di produzione salvata correttamente.");
 
-  // reset semplice
-  if (produzioneNoteInput) produzioneNoteInput.value = "";
-  if (produzioneRigheContainer) {
-    produzioneRigheContainer.innerHTML = "";
-    creaRigaProduzione();
-  }
+  // nuova scheda, nuovo lotto
+  resetSchedaProduzione();
 }
 
 // EVENTI GENERALI SCHEDA PRODUZIONE
@@ -3194,28 +3271,11 @@ if (btnAddRigaProduzione && produzioneRigheContainer) {
   btnAddRigaProduzione.addEventListener("click", () => {
     creaRigaProduzione();
   });
-
-  // creo almeno una riga all'inizio
-  creaRigaProduzione();
 }
 
 if (btnSalvaSchedaProduzione) {
   btnSalvaSchedaProduzione.addEventListener("click", () => {
     salvaSchedaProduzione();
-  });
-}
-// === APERTURA DIRETTA VIEW PRODUZIONE DA BOTTONE ===
-const btnOpenProduzione = document.getElementById("btn-open-produzione");
-const viewProduzione = document.getElementById("view-produzione");
-
-if (btnOpenProduzione && viewProduzione) {
-  btnOpenProduzione.addEventListener("click", () => {
-    // nascondo tutte le altre view
-    const views = document.querySelectorAll(".view");
-    views.forEach((v) => (v.style.display = "none"));
-
-    // mostro la produzione
-    viewProduzione.style.display = "block";
   });
 }
 
