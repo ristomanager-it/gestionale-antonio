@@ -11,13 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
-// ========== SCHEDA PRODUZIONE: RIFERIMENTI DOM ==========
-const produzioneRigheContainer = document.getElementById("produzione-righe");
-const produzioneDataInput = document.getElementById("produzione-data");
-const produzioneNoteInput = document.getElementById("produzione-note");
-const produzioneLottoInput = document.getElementById("produzione-lotto");
-const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
-const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
+
 
   // header
   const btnTheme = document.getElementById("btn-theme");
