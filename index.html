@@ -137,6 +137,11 @@
             Ricette
           </button>
 
+          <!-- 🔹 NUOVO: PRODUZIONE -->
+          <button class="app-button menu-button" data-route="produzione">
+            Produzione
+          </button>
+
           <button class="app-button menu-button" data-route="magazzino">
             Magazzino
           </button>
@@ -739,19 +744,21 @@
           class="view"
           style="display: none"
         >
-          <!-- 🔹 Bottone per aprire la scheda produzione -->
-  <button
-    type="button"
-    id="btn-open-produzione"
-    class="app-button small"
-    style="margin-top:8px;"
-  >
-    Vai alla scheda di produzione
-  </button>
           <h2>Ricettario</h2>
           <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
             Visualizza le ricette registrate, senza possibilità di modificarle.
           </p>
+
+          <!-- 🔹 Bottone per aprire la scheda produzione -->
+          <button
+            type="button"
+            id="btn-open-produzione"
+            class="app-button small"
+            data-route="produzione"
+            style="margin-top:8px;"
+          >
+            Vai alla scheda di produzione
+          </button>
 
           <!-- Ricerca -->
           <div style="margin-top:10px; margin-bottom:8px;">
@@ -779,68 +786,69 @@
             style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
           ></div>
         </section>
-<!-- SCHEDA PRODUZIONE -->
-<section id="view-produzione" class="view" style="display: none">
-  <h2>Scheda di produzione</h2>
-  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-    Compila le ricette da produrre: i formati e i pezzi saranno convertiti
-    in "pezzi base equivalenti" in base alle rese della ricetta.
-  </p>
 
-  <div
-    class="produzione-header"
-    style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap;"
-  >
-    <label style="font-size:13px;">
-      Data
-      <input
-        type="date"
-        id="produzione-data"
-        class="input-pill"
-        style="min-width:160px;"
-      />
-    </label>
+        <!-- SCHEDA PRODUZIONE -->
+        <section id="view-produzione" class="view" style="display: none">
+          <h2>Scheda di produzione</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Compila le ricette da produrre: i formati e i pezzi saranno convertiti
+            in "pezzi base equivalenti" in base alle rese della ricetta.
+          </p>
 
-    <label style="flex:1; font-size:13px; min-width:200px;">
-      Note generali
-      <input
-        type="text"
-        id="produzione-note"
-        class="input-pill"
-        placeholder="Es. Produzione pranzo matrimonio Rossi..."
-      />
-    </label>
-  </div>
+          <div
+            class="produzione-header"
+            style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap;"
+          >
+            <label style="font-size:13px;">
+              Data
+              <input
+                type="date"
+                id="produzione-data"
+                class="input-pill"
+                style="min-width:160px;"
+              />
+            </label>
 
-  <h3 style="margin-top:16px;">Righe di produzione</h3>
-  <p style="margin-top:4px; font-size:12px; color:#6b7280;">
-    1 riga = 1 ricetta in uno specifico formato (ristorante, buffet, ecc.).
-  </p>
+            <label style="flex:1; font-size:13px; min-width:200px;">
+              Note generali
+              <input
+                type="text"
+                id="produzione-note"
+                class="input-pill"
+                placeholder="Es. Produzione pranzo matrimonio Rossi..."
+              />
+            </label>
+          </div>
 
-  <!-- Container righe -->
-  <div
-    id="produzione-righe"
-    style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"
-  ></div>
+          <h3 style="margin-top:16px;">Righe di produzione</h3>
+          <p style="margin-top:4px; font-size:12px; color:#6b7280;">
+            1 riga = 1 ricetta in uno specifico formato (ristorante, buffet, ecc.).
+          </p>
 
-  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-    <button
-      type="button"
-      class="app-button small gray"
-      id="btn-add-riga-produzione"
-    >
-      + Aggiungi riga
-    </button>
+          <!-- Container righe -->
+          <div
+            id="produzione-righe"
+            style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"
+          ></div>
 
-    <button
-      type="button"
-      class="app-button small green"
-      id="btn-salva-scheda-produzione"
-    >
-      Salva scheda produzione
-    </button>
-  </div>
-</section>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button
+              type="button"
+              class="app-button small gray"
+              id="btn-add-riga-produzione"
+            >
+              + Aggiungi riga
+            </button>
+
+            <button
+              type="button"
+              class="app-button small green"
+              id="btn-salva-scheda-produzione"
+            >
+              Salva scheda produzione
+            </button>
+          </div>
+        </section>
 
         <!-- REPORT KPI -->
         <section id="view-report" class="view" style="display: none">
@@ -1149,251 +1157,250 @@
           </p>
         </section>
 
-      <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
-<section id="view-preventivi" class="view" style="display: none">
-  <h2>Preventivi &amp; Prenotazioni</h2>
+        <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
+        <section id="view-preventivi" class="view" style="display: none">
+          <h2>Preventivi &amp; Prenotazioni</h2>
 
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
-    <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
-    <button id="btn-new-preventivo" class="app-button small gray">
-      + Nuovo preventivo
-    </button>
-  </div>
-
-  <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
-    <!-- LISTA PREVENTIVI -->
-    <div class="preventivi-list-panel">
-      <h4 style="margin:0 0 6px;">Lista preventivi</h4>
-      <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- Popolato da JS -->
-      </div>
-    </div>
-
-    <!-- DETTAGLIO PREVENTIVO -->
-    <div class="preventivi-detail-panel">
-      <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
-
-      <form id="preventivo-form" onsubmit="return false;">
-        <input type="hidden" id="preventivo-id" />
-
-        <!-- CLIENTE -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Dati cliente</h5>
-
-          <input type="hidden" id="preventivo-cliente-id" />
-
-          <label>
-            Nome
-            <input type="text" id="preventivo-cliente-nome" class="input-pill" />
-          </label>
-
-          <label>
-            Cognome
-            <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
-          </label>
-
-          <label>
-            Telefono
-            <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
-          </label>
-
-          <label>
-            Email
-            <input type="email" id="preventivo-cliente-email" class="input-pill" />
-          </label>
-
-          <label>
-            Comune di residenza
-            <input type="text" id="preventivo-cliente-comune" class="input-pill" />
-          </label>
-        </div>
-
-        <!-- EVENTO -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Evento</h5>
-
-          <label>
-            Tipologia di evento
-            <select id="preventivo-titolo" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="Matrimonio">Matrimonio</option>
-              <option value="Battesimo">Battesimo</option>
-              <option value="Comunione">Comunione</option>
-              <option value="Cresima">Cresima</option>
-              <option value="Compleanno">Compleanno</option>
-            </select>
-          </label>
-
-          <label>
-            Tipo servizio
-            <select id="preventivo-tipo-servizio" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="buffet">Buffet</option>
-              <option value="servito">Servito</option>
-              <option value="misto">Misto</option>
-            </select>
-          </label>
-
-          <label>
-            Data evento
-            <input type="date" id="preventivo-data-evento" class="input-pill" />
-          </label>
-
-          <label>
-            N. invitati
-            <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
-          </label>
-
-          <label>
-            Location
-            <input type="text" id="preventivo-location" class="input-pill" />
-          </label>
-
-          <label>
-            Note interne
-            <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
-          </label>
-
-          <label>
-            Stato
-            <select id="preventivo-stato" class="input-pill">
-              <option value="bozza">Bozza</option>
-              <option value="inviato">Inviato</option>
-              <option value="accettato">Accettato</option>
-              <option value="rifiutato">Rifiutato</option>
-            </select>
-          </label>
-        </div>
-
-        <!-- MENÙ -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Menù</h5>
-
-          <button
-            type="button"
-            id="btn-add-menu-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi portata
-          </button>
-
-          <!-- datalist per suggerimenti ricette -->
-          <datalist id="ricette-suggestions"></datalist>
-
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Portata</th>
-                  <th class="col-prezzo-portata">Costo a persona</th>
-                  <th class="col-prezzo-portata">Totale riga</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-menu-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
+            <button id="btn-new-preventivo" class="app-button small gray">
+              + Nuovo preventivo
+            </button>
           </div>
-        </div>
 
-        <!-- SERVIZI EXTRA -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Servizi extra</h5>
+          <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
+            <!-- LISTA PREVENTIVI -->
+            <div class="preventivi-list-panel">
+              <h4 style="margin:0 0 6px;">Lista preventivi</h4>
+              <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;">
+                <!-- Popolato da JS -->
+              </div>
+            </div>
 
-          <button
-            type="button"
-            id="btn-add-extra-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi extra
-          </button>
+            <!-- DETTAGLIO PREVENTIVO -->
+            <div class="preventivi-detail-panel">
+              <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
 
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Descrizione</th>
-                  <th>Q.tà</th>
-                  <th>Prezzo unit.</th>
-                  <th>Totale</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-extra-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
+              <form id="preventivo-form" onsubmit="return false;">
+                <input type="hidden" id="preventivo-id" />
+
+                <!-- CLIENTE -->
+                <div class="form-section">
+                  <h5 style="margin:8px 0;">Dati cliente</h5>
+
+                  <input type="hidden" id="preventivo-cliente-id" />
+
+                  <label>
+                    Nome
+                    <input type="text" id="preventivo-cliente-nome" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Cognome
+                    <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Telefono
+                    <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Email
+                    <input type="email" id="preventivo-cliente-email" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Comune di residenza
+                    <input type="text" id="preventivo-cliente-comune" class="input-pill" />
+                  </label>
+                </div>
+
+                <!-- EVENTO -->
+                <div class="form-section">
+                  <h5 style="margin:8px 0;">Evento</h5>
+
+                  <label>
+                    Tipologia di evento
+                    <select id="preventivo-titolo" class="input-pill">
+                      <option value="">-- seleziona --</option>
+                      <option value="Matrimonio">Matrimonio</option>
+                      <option value="Battesimo">Battesimo</option>
+                      <option value="Comunione">Comunione</option>
+                      <option value="Cresima">Cresima</option>
+                      <option value="Compleanno">Compleanno</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Tipo servizio
+                    <select id="preventivo-tipo-servizio" class="input-pill">
+                      <option value="">-- seleziona --</option>
+                      <option value="buffet">Buffet</option>
+                      <option value="servito">Servito</option>
+                      <option value="misto">Misto</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Data evento
+                    <input type="date" id="preventivo-data-evento" class="input-pill" />
+                  </label>
+
+                  <label>
+                    N. invitati
+                    <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
+                  </label>
+
+                  <label>
+                    Location
+                    <input type="text" id="preventivo-location" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Note interne
+                    <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
+                  </label>
+
+                  <label>
+                    Stato
+                    <select id="preventivo-stato" class="input-pill">
+                      <option value="bozza">Bozza</option>
+                      <option value="inviato">Inviato</option>
+                      <option value="accettato">Accettato</option>
+                      <option value="rifiutato">Rifiutato</option>
+                    </select>
+                  </label>
+                </div>
+
+                <!-- MENÙ -->
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Menù</h5>
+
+                  <button
+                    type="button"
+                    id="btn-add-menu-row"
+                    class="app-button small gray"
+                    style="margin-bottom:6px;"
+                  >
+                    + Aggiungi portata
+                  </button>
+
+                  <!-- datalist per suggerimenti ricette (usa lo stesso id di ricettario) -->
+                  <datalist id="ricette-suggestions"></datalist>
+
+                  <div class="table-wrapper">
+                    <table class="table-timbrature">
+                      <thead>
+                        <tr>
+                          <th>Portata</th>
+                          <th class="col-prezzo-portata">Costo a persona</th>
+                          <th class="col-prezzo-portata">Totale riga</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="preventivo-menu-tbody">
+                        <!-- righe generate da JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- SERVIZI EXTRA -->
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Servizi extra</h5>
+
+                  <button
+                    type="button"
+                    id="btn-add-extra-row"
+                    class="app-button small gray"
+                    style="margin-bottom:6px;"
+                  >
+                    + Aggiungi extra
+                  </button>
+
+                  <div class="table-wrapper">
+                    <table class="table-timbrature">
+                      <thead>
+                        <tr>
+                          <th>Descrizione</th>
+                          <th>Q.tà</th>
+                          <th>Prezzo unit.</th>
+                          <th>Totale</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="preventivo-extra-tbody">
+                        <!-- righe generate da JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- TOTALI -->
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Totali</h5>
+
+                  <label>
+                    Totale preventivo
+                    <input type="text" id="preventivo-totale" class="input-pill" readonly />
+                  </label>
+
+                  <label>
+                    Prezzo per persona
+                    <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
+                  </label>
+
+                  <label>
+                    Acconto
+                    <input
+                      type="number"
+                      id="preventivo-acconto"
+                      class="input-pill"
+                      min="0"
+                      step="0.01"
+                    />
+                  </label>
+
+                  <label>
+                    Saldo residuo
+                    <input type="text" id="preventivo-saldo" class="input-pill" readonly />
+                  </label>
+                </div>
+
+                <!-- AZIONI -->
+                <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+                  <button
+                    type="submit"
+                    id="btn-save-preventivo"
+                    class="app-button small green"
+                    style="flex:1 1 150px;"
+                  >
+                    Salva preventivo
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-print-preventivo"
+                    class="app-button small gray"
+                    style="flex:1 1 150px;"
+                  >
+                    Stampa / PDF
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-email-preventivo"
+                    class="app-button small gray"
+                    style="flex:1 1 150px;"
+                  >
+                    Invia per email
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-
-        <!-- TOTALI -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Totali</h5>
-
-          <label>
-            Totale preventivo
-            <input type="text" id="preventivo-totale" class="input-pill" readonly />
-          </label>
-
-          <label>
-            Prezzo per persona
-            <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
-          </label>
-
-          <label>
-            Acconto
-            <input
-              type="number"
-              id="preventivo-acconto"
-              class="input-pill"
-              min="0"
-              step="0.01"
-            />
-          </label>
-
-          <label>
-            Saldo residuo
-            <input type="text" id="preventivo-saldo" class="input-pill" readonly />
-          </label>
-        </div>
-
-        <!-- AZIONI -->
-        <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
-          <button
-            type="submit"
-            id="btn-save-preventivo"
-            class="app-button small green"
-            style="flex:1 1 150px;"
-          >
-            Salva preventivo
-          </button>
-
-          <button
-            type="button"
-            id="btn-print-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 150px;"
-          >
-            Stampa / PDF
-          </button>
-
-          <button
-            type="button"
-            id="btn-email-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 150px;"
-          >
-            Invia per email
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</section>
-
+        </section>
 
         <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
         <section id="view-venduto" class="view" style="display: none">
