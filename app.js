@@ -461,7 +461,7 @@ let magazzinoDati = [];
 //  PREVENTIVI & PRENOTAZIONI
 // =====================================
 
-const supabase = window.supabaseClient;
+const sb = window.supabaseClient;
 
 // Stato in memoria
 let currentPreventivo = null;
