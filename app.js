@@ -3204,6 +3204,20 @@ if (btnSalvaSchedaProduzione) {
     salvaSchedaProduzione();
   });
 }
+// === APERTURA DIRETTA VIEW PRODUZIONE DA BOTTONE ===
+const btnOpenProduzione = document.getElementById("btn-open-produzione");
+const viewProduzione = document.getElementById("view-produzione");
+
+if (btnOpenProduzione && viewProduzione) {
+  btnOpenProduzione.addEventListener("click", () => {
+    // nascondo tutte le altre view
+    const views = document.querySelectorAll(".view");
+    views.forEach((v) => (v.style.display = "none"));
+
+    // mostro la produzione
+    viewProduzione.style.display = "block";
+  });
+}
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
