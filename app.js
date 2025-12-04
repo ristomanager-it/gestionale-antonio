@@ -2921,7 +2921,7 @@ function emailCurrentPreventivoViaMailto() {
     });
   }
 
-  // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -3146,6 +3146,20 @@ function emailCurrentPreventivoViaMailto() {
   function creaRigaFattura(initial = {}) {
     if (!fatturaRigheBody) return;
 
+    // auto-compilante: se non è passato nulla, copia la categoria di bilancio dall'ultima riga
+    let defaultBilancio = initial.categoria_bilancio || "";
+    if (!defaultBilancio) {
+      const lastRow = fatturaRigheBody.querySelector(
+        "tr.fatt-riga-row:last-of-type"
+      );
+      if (lastRow) {
+        const lastBilancioInput = lastRow.querySelector(".fatt-riga-bilancio");
+        if (lastBilancioInput && lastBilancioInput.value) {
+          defaultBilancio = lastBilancioInput.value;
+        }
+      }
+    }
+
     const tr = document.createElement("tr");
     tr.className = "fatt-riga-row";
 
@@ -3191,6 +3205,19 @@ function emailCurrentPreventivoViaMailto() {
 
           <div class="fatt-field">
             <label>
+              Categoria di bilancio
+              <input
+                type="text"
+                class="fatt-riga-bilancio input-pill"
+                placeholder="Es. Materie prime"
+                list="bilancio-categorie"
+                value="${defaultBilancio || ""}"
+              />
+            </label>
+          </div>
+
+          <div class="fatt-field">
+            <label>
               Unità di misura
               <input
                 type="text"
@@ -3224,9 +3251,7 @@ function emailCurrentPreventivoViaMailto() {
                 placeholder="Prezzo"
                 min="0"
                 step="0.0001"
-                value="${
-                  initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
-                }"
+                value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
               />
             </label>
           </div>
@@ -3430,6 +3455,7 @@ function emailCurrentPreventivoViaMailto() {
       const codiceEl = tr.querySelector(".fatt-riga-codice");
       const descrEl = tr.querySelector(".fatt-riga-descrizione");
       const catEl = tr.querySelector(".fatt-riga-categoria");
+      const bilancioEl = tr.querySelector(".fatt-riga-bilancio");
       const umEl = tr.querySelector(".fatt-riga-um");
       const qtaEl = tr.querySelector(".fatt-riga-quantita");
       const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
@@ -3438,6 +3464,7 @@ function emailCurrentPreventivoViaMailto() {
       const codiceVal = (codiceEl?.value || "").trim();
       const descrVal = (descrEl?.value || "").trim();
       const catVal = (catEl?.value || "").trim();
+      const bilancioVal = (bilancioEl?.value || "").trim();
       const umVal = (umEl?.value || "").trim();
       const qtaVal = parseNumber(qtaEl?.value || "0");
       const prezzoVal = parseNumber(prezzoEl?.value || "0");
@@ -3473,6 +3500,7 @@ function emailCurrentPreventivoViaMailto() {
         iva: ivaVal,
         totale,
         categoria_id: prodotto.categoria_id || null,
+        categoria_bilancio: bilancioVal || null,
       });
     }
 
@@ -3607,6 +3635,7 @@ function emailCurrentPreventivoViaMailto() {
           codice_prodotto: r.codice_prodotto,
           descrizione_riga: r.descrizione_riga,
           categoria_nome: categoria,
+          categoria_bilancio: r.categoria_bilancio || "",
           um: r.um,
           quantita: r.quantita,
           prezzo_unitario: r.prezzo_unitario,
@@ -3642,6 +3671,7 @@ function emailCurrentPreventivoViaMailto() {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
+
 
   // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
