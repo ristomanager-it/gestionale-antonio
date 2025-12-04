@@ -787,68 +787,79 @@
           ></div>
         </section>
 
-        <!-- SCHEDA PRODUZIONE -->
-        <section id="view-produzione" class="view" style="display: none">
-          <h2>Scheda di produzione</h2>
-          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-            Compila le ricette da produrre: i formati e i pezzi saranno convertiti
-            in "pezzi base equivalenti" in base alle rese della ricetta.
-          </p>
+       <!-- SCHEDA PRODUZIONE -->
+<section id="view-produzione" class="view" style="display: none">
+  <h2>Scheda di produzione</h2>
+  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+    Compila le ricette da produrre: quantità in pezzi o kg, in base alla ricetta.
+  </p>
 
-          <div
-            class="produzione-header"
-            style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap;"
-          >
-            <label style="font-size:13px;">
-              Data
-              <input
-                type="date"
-                id="produzione-data"
-                class="input-pill"
-                style="min-width:160px;"
-              />
-            </label>
+  <div
+    class="produzione-header"
+    style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"
+  >
+    <div class="form-grid-2">
+      <label style="font-size:13px;">
+        Data
+        <input
+          type="date"
+          id="produzione-data"
+          class="input-pill"
+        />
+      </label>
 
-            <label style="flex:1; font-size:13px; min-width:200px;">
-              Note generali
-              <input
-                type="text"
-                id="produzione-note"
-                class="input-pill"
-                placeholder="Es. Produzione pranzo matrimonio Rossi..."
-              />
-            </label>
-          </div>
+      <label style="font-size:13px;">
+        Lotto produzione
+        <input
+          type="text"
+          id="produzione-lotto"
+          class="input-pill"
+          readonly
+        />
+      </label>
+    </div>
 
-          <h3 style="margin-top:16px;">Righe di produzione</h3>
-          <p style="margin-top:4px; font-size:12px; color:#6b7280;">
-            1 riga = 1 ricetta in uno specifico formato (ristorante, buffet, ecc.).
-          </p>
+    <label style="font-size:13px;">
+      Note generali
+      <input
+        type="text"
+        id="produzione-note"
+        class="input-pill"
+        placeholder="Es. Produzione pranzo matrimonio Rossi..."
+      />
+    </label>
+  </div>
 
-          <!-- Container righe -->
-          <div
-            id="produzione-righe"
-            style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"
-          ></div>
+  <h3 style="margin-top:16px;">Righe di produzione</h3>
+  <p style="margin-top:4px; font-size:12px; color:#6b7280;">
+    Ogni riga è una ricetta in un formato (ristorante, buffet, kg ragù, ecc.).
+  </p>
 
-          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button
-              type="button"
-              class="app-button small gray"
-              id="btn-add-riga-produzione"
-            >
-              + Aggiungi riga
-            </button>
+  <!-- Container righe -->
+  <div
+    id="produzione-righe"
+    style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"
+  ></div>
 
-            <button
-              type="button"
-              class="app-button small green"
-              id="btn-salva-scheda-produzione"
-            >
-              Salva scheda produzione
-            </button>
-          </div>
-        </section>
+  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+    <button
+      type="button"
+      class="app-button small gray"
+      id="btn-add-riga-produzione"
+    >
+      + Aggiungi riga
+    </button>
+
+    <button
+      type="button"
+      class="app-button small green"
+      id="btn-salva-scheda-produzione"
+    >
+      Salva scheda produzione
+    </button>
+  </div>
+</section>
+
 
         <!-- REPORT KPI -->
         <section id="view-report" class="view" style="display: none">
