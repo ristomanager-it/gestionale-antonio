@@ -787,79 +787,78 @@
           ></div>
         </section>
 
-       <!-- SCHEDA PRODUZIONE -->
-<section id="view-produzione" class="view" style="display: none">
-  <h2>Scheda di produzione</h2>
-  <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
-    Compila le ricette da produrre: quantità in pezzi o kg, in base alla ricetta.
-  </p>
+        <!-- SCHEDA PRODUZIONE -->
+        <section id="view-produzione" class="view" style="display: none">
+          <h2>Scheda di produzione</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Compila le ricette da produrre: quantità in pezzi o kg, in base alla ricetta.
+          </p>
 
-  <div
-    class="produzione-header"
-    style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"
-  >
-    <div class="form-grid-2">
-      <label style="font-size:13px;">
-        Data
-        <input
-          type="date"
-          id="produzione-data"
-          class="input-pill"
-        />
-      </label>
+          <div
+            class="produzione-header"
+            style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"
+          >
+            <div class="form-grid-2">
+              <label style="font-size:13px;">
+                Data
+                <input
+                  type="date"
+                  id="produzione-data"
+                  class="input-pill"
+                />
+              </label>
 
-      <label style="font-size:13px;">
-        Lotto produzione
-        <input
-          type="text"
-          id="produzione-lotto"
-          class="input-pill"
-          readonly
-        />
-      </label>
-    </div>
+              <label style="font-size:13px;">
+                Lotto produzione
+                <input
+                  type="text"
+                  id="produzione-lotto"
+                  class="input-pill"
+                  readonly
+                />
+              </label>
+            </div>
 
-    <label style="font-size:13px;">
-      Note generali
-      <input
-        type="text"
-        id="produzione-note"
-        class="input-pill"
-        placeholder="Es. Produzione pranzo matrimonio Rossi..."
-      />
-    </label>
-  </div>
+            <label style="font-size:13px;">
+              Note generali
+              <input
+                type="text"
+                id="produzione-note"
+                class="input-pill"
+                placeholder="Es. Produzione pranzo matrimonio Rossi..."
+              />
+            </label>
+          </div>
 
-  <h3 style="margin-top:16px;">Righe di produzione</h3>
-  <p style="margin-top:4px; font-size:12px; color:#6b7280;">
-    Ogni riga è una ricetta in un formato (ristorante, buffet, kg ragù, ecc.).
-  </p>
+          <h3 style="margin-top:16px;">Righe di produzione</h3>
+          <p style="margin-top:4px; font-size:12px; color:#6b7280;">
+            Ogni riga è una ricetta in un formato (ristorante, buffet, kg ragù, ecc.).
+          </p>
 
-  <!-- Container righe -->
-  <div
-    id="produzione-righe"
-    style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"
-  ></div>
+          <!-- Container righe -->
+          <div
+            id="produzione-righe"
+            style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"
+          ></div>
 
-  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-    <button
-      type="button"
-      class="app-button small gray"
-      id="btn-add-riga-produzione"
-    >
-      + Aggiungi riga
-    </button>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button
+              type="button"
+              class="app-button small gray"
+              id="btn-add-riga-produzione"
+            >
+              + Aggiungi riga
+            </button>
 
-    <button
-      type="button"
-      class="app-button small green"
-      id="btn-salva-scheda-produzione"
-    >
-      Salva scheda produzione
-    </button>
-  </div>
-</section>
-
+            <button
+              type="button"
+              class="app-button small green"
+              id="btn-salva-scheda-produzione"
+            >
+              Salva scheda produzione
+            </button>
+          </div>
+        </section>
 
         <!-- REPORT KPI -->
         <section id="view-report" class="view" style="display: none">
@@ -1297,9 +1296,6 @@
                     + Aggiungi portata
                   </button>
 
-                  <!-- datalist per suggerimenti ricette (usa lo stesso id di ricettario) -->
-                  <datalist id="ricette-suggestions"></datalist>
-
                   <div class="table-wrapper">
                     <table class="table-timbrature">
                       <thead>
@@ -1456,6 +1452,9 @@
         </section>
       </main>
     </div>
+
+    <!-- DATALIST GLOBALE PER LE RICETTE (usato da Produzione, Preventivi, ecc.) -->
+    <datalist id="ricette-suggestions"></datalist>
 
     <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
