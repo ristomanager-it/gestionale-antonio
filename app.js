@@ -105,9 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "ricetta-formato2-pezzi"
   );
 
-  // ---------- RICETTARIO (VIEWER) ----------
-  const ricetteSearchInput = document.getElementById("ricette-search");
-  // container lista viewer: document.getElementById("ricette-lista-viewer")
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
