@@ -4356,7 +4356,7 @@ if (btnSalvaSchedaProduzione) {
     }
   }
 
-  // ========= ROUTING =========
+// ========= ROUTING =========
 async function onRouteEnter(route) {
   switch (route) {
     case "timbratura":
@@ -4417,10 +4417,61 @@ async function onRouteEnter(route) {
       // logica futura per venduto del giorno
       break;
 
+    case "preventivi":
+      // se hai logica di caricamento preventivi, mettila qui
+      break;
+
     default:
       break;
   }
 }
+
+async function navigateTo(route) {
+  if (!currentUser) {
+    showLogin();
+    return;
+  }
+
+  const isManager = isManagerRole(currentUser.ruolo);
+
+  if (!isManager) {
+    if (
+      route === "timbratura" ||
+      route === "ordine" ||
+      route === "ricette-viewer"
+    ) {
+      showOnlyView(`view-${route}`);
+      await onRouteEnter(route);
+    } else {
+      showHomeDipendente();
+    }
+  } else {
+    let active = document.getElementById(`view-${route}`);
+    if (!active) {
+      route = "timbratura";
+      active = document.getElementById("view-timbratura");
+    }
+
+    showOnlyView(`view-${route}`);
+    await onRouteEnter(route);
+  }
+
+  applyRoleVisibility();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+routeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const route = btn.getAttribute("data-route");
+    window.location.hash = route;
+    navigateTo(route);
+  });
+});
+
+window.addEventListener("hashchange", () => {
+  const route = window.location.hash.replace("#", "");
+  navigateTo(route);
+});
 
   // ========= AVVIO =========
   async function init() {
