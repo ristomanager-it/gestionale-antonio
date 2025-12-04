@@ -3015,7 +3015,7 @@ function ricalcolaQuantitaRiga(row) {
     return;
   }
 
-  // quantità equivalente = qta * (percentuale / 100)
+  // quantità base equivalente = qta * (percentuale / 100)
   const qtaEquivalente = qta * (perc / 100);
   const moltiplicatore = qtaEquivalente / pezziBaseRicetta;
 
@@ -3278,6 +3278,7 @@ if (btnSalvaSchedaProduzione) {
     salvaSchedaProduzione();
   });
 }
+
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
