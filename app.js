@@ -2680,17 +2680,27 @@ function emailCurrentPreventivoViaMailto() {
    // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
-let ricetteSuggestionsList = null;
+let ricetteSuggestionsList = document.getElementById("ricette-suggestions");
 
-// uso il datalist globale se esiste, altrimenti lo creo
-if (ricetteSearchInput) {
-  ricetteSuggestionsList = document.getElementById("ricette-suggestions");
+// collego il campo di ricerca ricette al datalist globale
+if (ricetteSearchInput && ricetteSuggestionsList) {
+  ricetteSearchInput.setAttribute("list", "ricette-suggestions");
+}
 
-  if (!ricetteSuggestionsList) {
-    ricetteSuggestionsList = document.createElement("datalist");
-    ricetteSuggestionsList.id = "ricette-suggestions";
-    document.body.appendChild(ricetteSuggestionsList);
-  }
+// aggiorna le opzioni del datalist con i nomi delle ricette
+function aggiornaRicetteSuggestions() {
+  if (!ricetteSuggestionsList || !Array.isArray(ricetteCache)) return;
+
+  ricetteSuggestionsList.innerHTML = "";
+
+  ricetteCache.forEach((r) => {
+    if (!r.nome) return;
+    const opt = document.createElement("option");
+    opt.value = r.nome;
+    ricetteSuggestionsList.appendChild(opt);
+  });
+}
+
 
   // collego la search del ricettario al datalist globale
   ricetteSearchInput.setAttribute("list", "ricette-suggestions");
