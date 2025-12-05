@@ -2680,14 +2680,14 @@ function emailCurrentPreventivoViaMailto() {
 // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
+
 // ricetteSearchInput è già definito sopra, qui lo riutilizziamo
 const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
-
 
 // datalist globale definito in index.html
 let ricetteSuggestionsList = document.getElementById("ricette-suggestions");
 
-// collega il campo di ricerca al datalist globale
+// collega il campo di ricerca al datalist globale (autocomplete)
 if (ricetteSearchInput && ricetteSuggestionsList) {
   ricetteSearchInput.setAttribute("list", "ricette-suggestions");
 }
@@ -2706,7 +2706,7 @@ function aggiornaRicetteSuggestions() {
   });
 }
 
-// carica ricette da Supabase (usato da viewer E da produzione)
+// carica ricette da Supabase (usato da viewer E da editor)
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
 
@@ -2732,12 +2732,13 @@ async function caricaRicetteDaSupabase() {
     return;
   }
 
+  // cache globale usata da editor + viewer
   ricetteCache = data || [];
 
-  // popola il datalist globale
+  // popola il datalist dei nomi ricette
   aggiornaRicetteSuggestions();
 
-  // aggiorna la vista ricettario (se sono nel viewer)
+  // aggiorna la vista ricettario se c'è un filtro inserito
   applicaFiltroRicettario();
 }
 
@@ -2845,6 +2846,7 @@ function renderRicetteViewer(lista, filtroTesto) {
         e.stopPropagation(); // evita il toggle ingredienti
 
         ricettaDaAprireId = r.id;
+        // delego alla logica di routing: la tua navigateTo / hash
         window.location.hash = "ricette";
       });
 
@@ -2907,6 +2909,7 @@ function applicaFiltroRicettario() {
   const q = qRaw.toLowerCase().trim();
 
   if (!q) {
+    // niente filtro → non mostro tutto, aspetto che l'utente cerchi qualcosa
     renderRicetteViewer([], "");
     return;
   }
