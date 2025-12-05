@@ -4353,7 +4353,7 @@ if (btnSalvaSchedaProduzione) {
     });
   }
 
-  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI DA MAGAZZINO =========
+    // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI DA MAGAZZINO =========
   async function caricaProdottiSuggerimentiIngredienti() {
     if (!magazzinoDati.length) {
       await caricaCategorieInCache();
@@ -4363,122 +4363,140 @@ if (btnSalvaSchedaProduzione) {
     }
   }
 
-// ========= ROUTING =========
-async function onRouteEnter(route) {
-  switch (route) {
-    case "timbratura":
-      await caricaTimbratureDaSupabase();
-      updateTimbraturaUserInfo();
-      break;
+  // ========= ROUTING =========
+  async function onRouteEnter(route) {
+    switch (route) {
+      case "timbratura":
+        await caricaTimbratureDaSupabase();
+        updateTimbraturaUserInfo();
+        break;
 
-    case "dipendenti":
-      await caricaDipendentiDaSupabase();
-      break;
+      case "dipendenti":
+        await caricaDipendentiDaSupabase();
+        break;
 
-    case "ricette":
-      // carico suggerimenti ingredienti da magazzino
-      await caricaProdottiSuggerimentiIngredienti();
+      case "ricette":
+        // carico suggerimenti ingredienti da magazzino
+        await caricaProdottiSuggerimentiIngredienti();
 
-      if (ricettaDaAprireId) {
-        // se arrivo dal Ricettario con "Modifica"
-        const idToOpen = ricettaDaAprireId;
-        ricettaDaAprireId = null; // lo consumo subito
-        await caricaRicettaInForm(idToOpen);
+        if (ricettaDaAprireId) {
+          // se arrivo dal Ricettario con "Modifica"
+          const idToOpen = ricettaDaAprireId;
+          ricettaDaAprireId = null; // lo consumo subito
+          await caricaRicettaInForm(idToOpen);
+        } else {
+          // apertura normale: form vuoto
+          resetFormRicetta();
+        }
+        break;
+
+      case "ricette-viewer":
+        await caricaRicetteDaSupabase();
+        break;
+
+      case "acquisti":
+        await caricaCategorieInCache();
+        await caricaFornitoriInCache();
+        await caricaMagazzinoDati();
+        resetFatturaForm();
+        await caricaElencoFatture();
+        break;
+
+      case "magazzino":
+        await caricaCategorieInCache();
+        await caricaMagazzinoDati();
+        popolaMagazzinoForm(null);
+        break;
+
+      case "report":
+        // logica futura per report KPI (per ora solo UI statica)
+        break;
+
+      case "venduto":
+        // qui in futuro importeremo il CSV e scaricheremo magazzino
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // normalizza valori tipo "view-magazzino" / "#view-magazzino" → "magazzino"
+  function normalizeRoute(raw) {
+    if (!raw) return "timbratura";
+    let r = String(raw).replace(/^#/, "");
+    if (r.startsWith("view-")) {
+      r = r.slice("view-".length);
+    }
+    return r || "timbratura";
+  }
+
+  async function navigateTo(rawRoute) {
+    const route = normalizeRoute(rawRoute);
+
+    if (!currentUser) {
+      showLogin();
+      return;
+    }
+
+    const isManager = isManagerRole(currentUser.ruolo);
+
+    if (!isManager) {
+      // dipendente semplice: può vedere solo alcune view
+      if (
+        route === "timbratura" ||
+        route === "ordine" ||
+        route === "ricette-viewer"
+      ) {
+        showOnlyView(`view-${route}`);
+        await onRouteEnter(route);
       } else {
-        // apertura normale: form vuoto
-        resetFormRicetta();
+        showHomeDipendente();
       }
-      break;
-
-    case "ricette-viewer":
-      await caricaRicetteDaSupabase();
-      break;
-
-    case "produzione":
-      // per la scheda produzione:
-      // 1) serve l'elenco ricette per l'autocomplete
-      await caricaRicetteDaSupabase();
-      // 2) preparo lotto + prima riga vuota
-      resetSchedaProduzione();
-      break;
-
-    case "acquisti":
-      await caricaCategorieInCache();
-      await caricaFornitoriInCache();
-      await caricaMagazzinoDati();
-      resetFatturaForm();
-      await caricaElencoFatture();
-      break;
-
-    case "magazzino":
-      await caricaCategorieInCache();
-      await caricaMagazzinoDati();
-      popolaMagazzinoForm(null);
-      break;
-
-    case "report":
-      // logica futura per report
-      break;
-
-    case "venduto":
-      // logica futura per venduto del giorno
-      break;
-
-    case "preventivi":
-      // se hai logica di caricamento preventivi, mettila qui
-      break;
-
-    default:
-      break;
-  }
-}
-
-async function navigateTo(route) {
-  if (!currentUser) {
-    showLogin();
-    return;
-  }
-
-  const isManager = isManagerRole(currentUser.ruolo);
-
-  if (!isManager) {
-    if (
-      route === "timbratura" ||
-      route === "ordine" ||
-      route === "ricette-viewer"
-    ) {
-      showOnlyView(`view-${route}`);
-      await onRouteEnter(route);
     } else {
-      showHomeDipendente();
-    }
-  } else {
-    let active = document.getElementById(`view-${route}`);
-    if (!active) {
-      route = "timbratura";
-      active = document.getElementById("view-timbratura");
+      // MANAGER / ADMIN
+      let viewId = `view-${route}`;
+      let active = document.getElementById(viewId);
+
+      // se non trova "view-<route>", prova con l'id grezzo passato dal bottone
+      if (!active && rawRoute) {
+        const rawId = String(rawRoute).replace(/^#/, "");
+        const direct = document.getElementById(rawId);
+        if (direct) {
+          viewId = rawId;
+          active = direct;
+        }
+      }
+
+      // fallback di sicurezza su timbratura
+      if (!active) {
+        viewId = "view-timbratura";
+        active = document.getElementById("view-timbratura");
+      }
+
+      showOnlyView(viewId);
+      await onRouteEnter(route);
     }
 
-    showOnlyView(`view-${route}`);
-    await onRouteEnter(route);
+    applyRoleVisibility();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  applyRoleVisibility();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-routeButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const route = btn.getAttribute("data-route");
-    window.location.hash = route;
-    navigateTo(route);
+  // click sui bottoni del menu (data-route può essere "timbratura" o "view-timbratura")
+  routeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const raw = btn.getAttribute("data-route");
+      if (!raw) return;
+      window.location.hash = raw;
+      navigateTo(raw);
+    });
   });
-});
 
-window.addEventListener("hashchange", () => {
-  const route = window.location.hash.replace("#", "");
-  navigateTo(route);
-});
+  // cambio hash (es. dal Ricettario quando clicchi "Modifica")
+  window.addEventListener("hashchange", () => {
+    const raw = window.location.hash.replace("#", "");
+    navigateTo(raw);
+  });
 
   // ========= AVVIO =========
   async function init() {
@@ -4487,14 +4505,17 @@ window.addEventListener("hashchange", () => {
 
     restoreUserFromStorage();
 
+    const rawHash = window.location.hash.replace("#", "") || "timbratura";
+    const route = normalizeRoute(rawHash);
+
     if (currentUser) {
-      const hashRoute = window.location.hash.replace("#", "") || "timbratura";
       if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenuAndRoute(hashRoute);
+        // mostra menu manager e vai alla route normalizzata
+        showManagerMenuAndRoute(route);
       } else {
-        if (hashRoute === "timbratura" || hashRoute === "ricette-viewer") {
-          showOnlyView(`view-${hashRoute}`);
-          await onRouteEnter(hashRoute);
+        if (route === "timbratura" || route === "ricette-viewer") {
+          showOnlyView(`view-${route}`);
+          await onRouteEnter(route);
         } else {
           showHomeDipendente();
         }
@@ -4506,3 +4527,4 @@ window.addEventListener("hashchange", () => {
 
   init();
 });
+
