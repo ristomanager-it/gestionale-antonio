@@ -4342,15 +4342,49 @@ if (btnSalvaSchedaProduzione) {
     });
   }
 
-  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI DA MAGAZZINO =========
-  async function caricaProdottiSuggerimentiIngredienti() {
-    if (!magazzinoDati.length) {
-      await caricaCategorieInCache();
-      await caricaMagazzinoDati();
-    } else {
-      aggiornaIngredientiSuggestionsDaMagazzino();
-    }
+ // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
+async function caricaProdottiSuggerimentiIngredienti() {
+  // 1) Prima: riempio il datalist con i prodotti di magazzino
+  if (!magazzinoDati.length) {
+    await caricaCategorieInCache();
+    await caricaMagazzinoDati(); // questo già chiama aggiornaIngredientiSuggestionsDaMagazzino()
+  } else {
+    aggiornaIngredientiSuggestionsDaMagazzino();
   }
+
+  // 2) Poi: aggiungo anche i nomi ingredienti già usati in altre ricette (tabella ricetta_ingredienti)
+  if (!supabase || !ingredientiSuggestions) return;
+
+  const { data, error } = await supabase
+    .from("ricetta_ingredienti")
+    .select("nome_prodotto")
+    .not("nome_prodotto", "is", null);
+
+  if (error) {
+    console.error("Errore caricamento suggerimenti da ricetta_ingredienti:", error);
+    return;
+  }
+
+  // Evito duplicati: prendo tutti i valori già presenti nel datalist
+  const esistenti = new Set(
+    Array.from(ingredientiSuggestions.querySelectorAll("option"))
+      .map((opt) => (opt.value || "").toLowerCase().trim())
+      .filter(Boolean)
+  );
+
+  (data || []).forEach((row) => {
+    const nome = (row.nome_prodotto || "").trim();
+    if (!nome) return;
+    const key = nome.toLowerCase();
+    if (esistenti.has(key)) return;
+
+    esistenti.add(key);
+    const opt = document.createElement("option");
+    opt.value = nome;
+    ingredientiSuggestions.appendChild(opt);
+  });
+}
+
 
 // ========= ROUTING =========
 async function onRouteEnter(route) {
