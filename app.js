@@ -3343,7 +3343,7 @@ if (btnSalvaSchedaProduzione) {
 }
 
 
-    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+      // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -3541,26 +3541,117 @@ if (btnSalvaSchedaProduzione) {
     return data;
   }
 
-  function onDescrizioneProdottoChange(tr) {
+  // 🔁 Auto-compilazione categoria + categoria di bilancio quando scrivi la descrizione
+  async function onDescrizioneProdottoChange(tr) {
     if (!tr) return;
     const descrInput = tr.querySelector(".fatt-riga-descrizione");
     if (!descrInput) return;
 
-    const descrVal = (descrInput.value || "").trim().toLowerCase();
+    const descrValRaw = descrInput.value || "";
+    const descrVal = descrValRaw.trim();
     if (!descrVal) return;
 
-    const prodotto = magazzinoDati.find(
-      (p) => (p.descrizione || "").toLowerCase() === descrVal
-    );
-    if (!prodotto) return;
+    const descrLower = descrVal.toLowerCase();
+
+    // 1) Prima provo a vedere se ho già il prodotto in magazzinoDati
+    let prodotto =
+      magazzinoDati.find(
+        (p) =>
+          (p.descrizione || "").toString().toLowerCase() === descrLower
+      ) || null;
+
+    // 2) Se non lo trovo in magazzinoDati, lo cerco su Supabase (prodotti)
+    if (!prodotto && supabase) {
+      const { data: prodRows, error: prodErr } = await supabase
+        .from("prodotti")
+        .select("id, codice_interno, descrizione, categoria_id, um")
+        .ilike("descrizione", descrVal)
+        .limit(1);
+
+      if (prodErr) {
+        console.error("Errore ricerca prodotto da descrizione:", prodErr);
+      }
+
+      if (prodRows && prodRows.length > 0) {
+        const p = prodRows[0];
+        prodotto = {
+          id: p.id,
+          codice: p.codice_interno,
+          descrizione: p.descrizione,
+          um: p.um,
+          categoria_id: p.categoria_id,
+        };
+      }
+    }
+
+    if (!prodotto) {
+      // Nessun prodotto trovato, non compilo nulla
+      return;
+    }
 
     const codiceInput = tr.querySelector(".fatt-riga-codice");
     const umInput = tr.querySelector(".fatt-riga-um");
     const catInput = tr.querySelector(".fatt-riga-categoria");
+    const bilancioInput = tr.querySelector(".fatt-riga-bilancio");
 
-    if (codiceInput) codiceInput.value = prodotto.codice || "";
-    if (umInput) umInput.value = prodotto.um || "";
-    if (catInput) catInput.value = prodotto.categoriaNome || "";
+    if (codiceInput) {
+      codiceInput.value =
+        prodotto.codice ||
+        prodotto.codice_interno ||
+        codiceInput.value ||
+        "";
+    }
+    if (umInput) {
+      umInput.value = prodotto.um || umInput.value || "";
+    }
+
+    // 3) Categoria: se non ho già il nome, lo ricavo dalla tabella categorie_prodotto
+    let categoriaNome =
+      prodotto.categoriaNome ||
+      prodotto.categoria_nome ||
+      "";
+
+    if (!categoriaNome && prodotto.categoria_id && supabase) {
+      const { data: catRows, error: catErr } = await supabase
+        .from("categorie_prodotto")
+        .select("id, nome")
+        .eq("id", prodotto.categoria_id)
+        .limit(1);
+
+      if (catErr) {
+        console.error("Errore lettura categoria prodotto:", catErr);
+      } else if (catRows && catRows.length > 0) {
+        categoriaNome = catRows[0].nome;
+      }
+    }
+
+    if (catInput && categoriaNome) {
+      catInput.value = categoriaNome;
+    }
+
+    // 4) Categoria di bilancio: prendo l'ultima usata per questo prodotto nelle fatture
+    if (bilancioInput && supabase && prodotto.id) {
+      const { data: bilRows, error: bilErr } = await supabase
+        .from("fatture_acquisto_righe")
+        .select("categoria_bilancio")
+        .eq("prodotto_id", prodotto.id)
+        .not("categoria_bilancio", "is", null)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      if (bilErr) {
+        console.error(
+          "Errore lettura categoria di bilancio per prodotto:",
+          bilErr
+        );
+      } else if (
+        bilRows &&
+        bilRows.length > 0 &&
+        bilRows[0].categoria_bilancio
+      ) {
+        bilancioInput.value = bilRows[0].categoria_bilancio;
+      }
+    }
 
     tr.dataset.prodottoId = String(prodotto.id);
   }
@@ -3680,7 +3771,7 @@ if (btnSalvaSchedaProduzione) {
             </label>
           </div>
 
-          <!-- 🔥 NUOVA CARD DOPPIO SCONTO 10 + 5 % -->
+          <!-- 🔥 CARD DOPPIO SCONTO 10 + 5 % -->
           <div class="fatt-field">
             <label>
               Sconto %
@@ -3761,6 +3852,7 @@ if (btnSalvaSchedaProduzione) {
 
     if (descrInput) {
       const handlerDescr = () => {
+        // non serve await: l'handler async si occupa lui
         onDescrizioneProdottoChange(tr);
       };
       descrInput.addEventListener("change", handlerDescr);
@@ -4097,6 +4189,9 @@ if (btnSalvaSchedaProduzione) {
           ? fattura.totale_documento.toFixed(2)
           : "";
 
+    // carico le categorie prima di usare getCategoriaById
+    await caricaCategorieInCache();
+
     const { data: righe, error: righeError } = await supabase
       .from("fatture_acquisto_righe")
       .select("*")
@@ -4157,6 +4252,7 @@ if (btnSalvaSchedaProduzione) {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
+
 
   // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
