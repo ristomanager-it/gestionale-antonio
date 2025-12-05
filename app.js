@@ -2590,33 +2590,34 @@ function emailCurrentPreventivoViaMailto() {
     aggiornaResaRicetta();
   }
 
-  // ========= RICETTE: CAMBIO NOME RICETTA (AUTOCOMPILAZIONE) =========
+ // ========= RICETTE: CAMBIO NOME RICETTA (AUTOCOMPILAZIONE) =========
 // Quando cambia il campo "Nome ricetta" nell'editor:
 // se trova una ricetta esistente con quel nome, la carica nel form.
 async function handleRicettaNomeChange() {
-  if (!ricettaNomeInput) return;
+  if (!supabase || !ricettaNomeInput) return;
 
   const nome = (ricettaNomeInput.value || "").trim();
   if (!nome) return;
 
-  // se la cache è vuota per qualche motivo, la ricarico
-  if (!Array.isArray(ricetteCache) || ricetteCache.length === 0) {
-    await caricaRicetteDaSupabase();
+  // cerco una ricetta con quel nome (case-insensitive)
+  const { data: ricetta, error } = await supabase
+    .from("ricette")
+    .select("id, nome")
+    .ilike("nome", nome)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Errore ricerca ricetta per nome:", error);
+    return;
   }
 
-  const lower = nome.toLowerCase();
-
-  const esistente = ricetteCache.find(
-    (r) => (r.nome || "").toLowerCase().trim() === lower
-  );
-
-  if (esistente) {
-    // carico tutti i dati (descrizione, rese, ingredienti, ecc.)
-    await caricaRicettaInForm(esistente.id);
+  if (ricetta && ricetta.id) {
+    // se esiste, carico tutta la ricetta nel form (descrizione, rese, ingredienti...)
+    await caricaRicettaInForm(ricetta.id);
   } else {
     // nome nuovo → nuova ricetta
     ricettaCorrenteId = null;
-    // non resetto tutto per non perdere ingredienti già scritti
+    // NON azzero il form per non perdere eventuali dati già scritti
   }
 }
 
