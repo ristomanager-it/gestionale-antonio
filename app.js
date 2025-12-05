@@ -2676,12 +2676,12 @@ function emailCurrentPreventivoViaMailto() {
       handleSalvaRicetta();
     });
   }
-
-   // ===========================================================
+// ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
-const ricetteSearchInput = document.getElementById("ricette-search");
+// ricetteSearchInput è già definito sopra, qui lo riutilizziamo
 const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+
 
 // datalist globale definito in index.html
 let ricetteSuggestionsList = document.getElementById("ricette-suggestions");
