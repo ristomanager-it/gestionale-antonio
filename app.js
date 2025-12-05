@@ -2591,34 +2591,34 @@ function emailCurrentPreventivoViaMailto() {
   }
 
   // ========= RICETTE: CAMBIO NOME RICETTA (AUTOCOMPILAZIONE) =========
-  // Quando cambia il campo "Nome ricetta" nell'editor:
-  // se trova una ricetta esistente con quel nome, la carica nel form.
-  async function handleRicettaNomeChange() {
-    if (!ricettaNomeInput) return;
+// Quando cambia il campo "Nome ricetta" nell'editor:
+// se trova una ricetta esistente con quel nome, la carica nel form.
+async function handleRicettaNomeChange() {
+  if (!ricettaNomeInput) return;
 
-    const nome = (ricettaNomeInput.value || "").trim();
-    if (!nome) return;
+  const nome = (ricettaNomeInput.value || "").trim();
+  if (!nome) return;
 
-    // se la cache è vuota per qualche motivo, la ricarico
-    if (!Array.isArray(ricetteCache) || ricetteCache.length === 0) {
-      await caricaRicetteDaSupabase();
-    }
-
-    const lower = nome.toLowerCase();
-
-    const esistente = ricetteCache.find(
-      (r) => (r.nome || "").toLowerCase().trim() === lower
-    );
-
-    if (esistente) {
-      // carico tutti i dati (descrizione, rese, ingredienti, ecc.)
-      await caricaRicettaInForm(esistente.id);
-    } else {
-      // nome nuovo → nuova ricetta
-      ricettaCorrenteId = null;
-      // non resetto tutto per non perdere ingredienti già scritti
-    }
+  // se la cache è vuota per qualche motivo, la ricarico
+  if (!Array.isArray(ricetteCache) || ricetteCache.length === 0) {
+    await caricaRicetteDaSupabase();
   }
+
+  const lower = nome.toLowerCase();
+
+  const esistente = ricetteCache.find(
+    (r) => (r.nome || "").toLowerCase().trim() === lower
+  );
+
+  if (esistente) {
+    // carico tutti i dati (descrizione, rese, ingredienti, ecc.)
+    await caricaRicettaInForm(esistente.id);
+  } else {
+    // nome nuovo → nuova ricetta
+    ricettaCorrenteId = null;
+    // non resetto tutto per non perdere ingredienti già scritti
+  }
+}
 
   // ========= RICETTE: SALVATAGGIO COMPLETO =========
   async function handleSalvaRicetta() {
