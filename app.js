@@ -499,7 +499,6 @@ async function calcolaSpesePerCategoria() {
   }
 
   // 2) RIGHE FATTURE DI QUEL PERIODO
-  // uso select("*") per evitare problemi di nomi colonna
   const { data: righe, error: errRighe } = await supabase
     .from("fatture_acquisto_righe")
     .select("*")
@@ -511,12 +510,19 @@ async function calcolaSpesePerCategoria() {
     return;
   }
 
+  // 🧠 FILTRO CATEGORIA: ora è più tollerante (minuscole + trim + includes)
   const righeValid = (righe || []).filter((r) => {
     if (!r) return false;
+
     if (catFilter) {
-      const cat = (r.categoria_bilancio || "").toLowerCase();
-      if (cat !== catFilter) return false;
+      const cat = String(r.categoria_bilancio || "")
+        .toLowerCase()
+        .trim();
+
+      // se la categoria della riga NON contiene il testo inserito → scarta
+      if (!cat.includes(catFilter)) return false;
     }
+
     return true;
   });
 
@@ -526,7 +532,7 @@ async function calcolaSpesePerCategoria() {
     return;
   }
 
-  // 3) AGGREGO PER CATEGORIA_BILANCIO
+  // 3) AGGREGAZIONE PER CATEGORIA_BILANCIO
   const aggregato = {};
 
   righeValid.forEach((r) => {
@@ -3473,7 +3479,10 @@ if (btnSalvaSchedaProduzione) {
 }
 
 
-      // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+       // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+  // Cache categorie di bilancio
+  let categorieBilancioCache = [];
+
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -3510,6 +3519,89 @@ if (btnSalvaSchedaProduzione) {
       return;
     }
     categorieCache = data || [];
+  }
+
+  // 🔹 Carica le categorie di bilancio da Supabase e popola il datalist globale
+  async function caricaCategorieBilancioInDatalist() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("categorie_bilancio")
+      .select("id, nome, attivo")
+      .eq("attivo", true)
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie bilancio:", error);
+      return; // non blocco l'app
+    }
+
+    categorieBilancioCache = data || [];
+
+    const dl = document.getElementById("bilancio-categorie");
+    if (!dl) return;
+
+    dl.innerHTML = "";
+    categorieBilancioCache.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.nome;
+      dl.appendChild(opt);
+    });
+  }
+
+  // 🔹 Garantisce che una categoria di bilancio esista in Supabase; se manca la crea
+  async function ensureCategoriaBilancio(nomeCategoriaBilancio) {
+    if (!supabase) return;
+    const nomeTrim = (nomeCategoriaBilancio || "").trim();
+    if (!nomeTrim) return;
+
+    // 1) controllo in cache
+    const existing = categorieBilancioCache.find(
+      (c) => c.nome && c.nome.toLowerCase() === nomeTrim.toLowerCase()
+    );
+    if (existing) return;
+
+    // 2) controllo diretto su Supabase (nel caso la cache non sia aggiornata)
+    const { data: findData, error: findError } = await supabase
+      .from("categorie_bilancio")
+      .select("id, nome, attivo")
+      .ilike("nome", nomeTrim)
+      .maybeSingle();
+
+    if (findError) {
+      console.error("Errore ricerca categoria_bilancio:", findError);
+    }
+
+    if (findData) {
+      categorieBilancioCache.push(findData);
+      const dl = document.getElementById("bilancio-categorie");
+      if (dl) {
+        const opt = document.createElement("option");
+        opt.value = findData.nome;
+        dl.appendChild(opt);
+      }
+      return;
+    }
+
+    // 3) se non esiste la inserisco
+    const { data: insertData, error: insertError } = await supabase
+      .from("categorie_bilancio")
+      .insert({ nome: nomeTrim, attivo: true })
+      .select("id, nome, attivo")
+      .single();
+
+    if (insertError) {
+      console.error("Errore creazione categoria_bilancio:", insertError);
+      return;
+    }
+
+    categorieBilancioCache.push(insertData);
+    const dl = document.getElementById("bilancio-categorie");
+    if (dl) {
+      const opt = document.createElement("option");
+      opt.value = insertData.nome;
+      dl.appendChild(opt);
+    }
   }
 
   async function findOrCreateFornitoreByName(nomeFornitore) {
@@ -4170,6 +4262,11 @@ if (btnSalvaSchedaProduzione) {
         continue;
       }
 
+      // 🔹 memorizzo la categoria di bilancio in tabella dedicata, se è una nuova voce
+      if (bilancioVal) {
+        await ensureCategoriaBilancio(bilancioVal);
+      }
+
       await caricaCategorieInCache();
       const prodotto = await findOrCreateProdotto({
         codice: codiceVal,
@@ -4382,6 +4479,9 @@ if (btnSalvaSchedaProduzione) {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
+
+  // 🚀 carico le categorie di bilancio all'avvio (per fatture + report)
+  caricaCategorieBilancioInDatalist();
 
 
   // ========= MAGAZZINO =========
