@@ -461,109 +461,129 @@ let magazzinoDati = [];
       showLogin();
     });
   }
-  // ========= REPORT: SPESE PER CATEGORIA DI BILANCIO =========
-  async function calcolaSpesePerCategoria() {
-    if (!supabase) return;
+ // ========= REPORT: SPESE PER CATEGORIA DI BILANCIO =========
+async function calcolaSpesePerCategoria() {
+  if (!supabase) return;
 
-    const dal = repSpeseDalInput?.value || "";
-    const al = repSpeseAlInput?.value || "";
-    const catFilterRaw = repSpeseCatInput?.value || "";
-    const catFilter = catFilterRaw.trim().toLowerCase();
+  const dal = repSpeseDalInput?.value || "";
+  const al = repSpeseAlInput?.value || "";
+  const catFilterRaw = repSpeseCatInput?.value || "";
+  const catFilter = catFilterRaw.trim().toLowerCase();
 
-    if (!dal || !al) {
-      alert("Inserisci sia la data iniziale che quella finale.");
-      return;
-    }
-
-    // 1) Prendo le fatture nel periodo
-    const { data: fatture, error: errFatt } = await supabase
-      .from("fatture_acquisto")
-      .select("id, data_documento")
-      .gte("data_documento", dal)
-      .lte("data_documento", al);
-
-    if (errFatt) {
-      console.error("Errore caricamento fatture per report spese:", errFatt);
-      alert("Errore nel caricare le fatture per il report spese.");
-      return;
-    }
-
-    const fattureIds = (fatture || [])
-      .map((f) => f.id)
-      .filter((id) => id != null);
-
-    if (!fattureIds.length) {
-      if (repSpeseRows) {
-        repSpeseRows.innerHTML = "";
-      }
-      alert("Nessuna fattura trovata nel periodo selezionato.");
-      return;
-    }
-
-    // 2) Prendo le righe di quelle fatture
-    const { data: righe, error: errRighe } = await supabase
-      .from("fatture_acquisto_righe")
-      .select("fattura_id, categoria_bilancio, imponibile, iva, totale")
-      .in("fattura_id", fattureIds);
-
-    if (errRighe) {
-      console.error("Errore caricamento righe fattura per report spese:", errRighe);
-      alert("Errore nel caricare le righe delle fatture per il report spese.");
-      return;
-    }
-
-    const righeValid = (righe || []).filter((r) => {
-      if (!r) return false;
-      // filtro per categoria di bilancio se è stato inserito un filtro
-      if (catFilter) {
-        const cat = (r.categoria_bilancio || "").toLowerCase();
-        if (cat !== catFilter) return false;
-      }
-      return true;
-    });
-
-    if (!righeValid.length) {
-      if (repSpeseRows) {
-        repSpeseRows.innerHTML = "";
-      }
-      alert("Nessuna riga fattura trovata per la categoria/periodo selezionati.");
-      return;
-    }
-
-    // 3) Aggrego per categoria_bilancio
-    const aggregato = {};
-
-    righeValid.forEach((r) => {
-      const key = (r.categoria_bilancio || "Senza categoria").trim() || "Senza categoria";
-
-      if (!aggregato[key]) {
-        aggregato[key] = {
-          imponibile: 0,
-          iva: 0,
-          totale: 0,
-        };
-      }
-
-      aggregato[key].imponibile += Number(r.imponibile) || 0;
-      aggregato[key].iva += Number(r.iva) || 0;
-      aggregato[key].totale += Number(r.totale) || 0;
-    });
-
-    // 4) Scrivo i risultati in tabella
-    if (!repSpeseRows) return;
-    repSpeseRows.innerHTML = "";
-
-    Object.entries(aggregato).forEach(([cat, valori]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${cat}</td>
-        <td>${valori.imponibile.toFixed(2)}</td>
-        <td>${valori.iva.toFixed(2)}</td>
-        <td>${valori.totale.toFixed(2)}</td>
-      `;
-      repSpeseRows.appendChild(tr);
-    });
+  if (!dal || !al) {
+    alert("Inserisci sia la data iniziale che quella finale.");
+    return;
   }
+
+  // 1) FATTURE NEL PERIODO
+  const { data: fatture, error: errFatt } = await supabase
+    .from("fatture_acquisto")
+    .select("id, data_documento")
+    .gte("data_documento", dal)
+    .lte("data_documento", al);
+
+  if (errFatt) {
+    console.error("Errore caricamento fatture per report spese:", errFatt);
+    alert("Errore nel caricare le fatture per il report spese: " + errFatt.message);
+    return;
+  }
+
+  const fattureIds = (fatture || [])
+    .map((f) => f.id)
+    .filter((id) => id != null);
+
+  if (!fattureIds.length) {
+    if (repSpeseRows) repSpeseRows.innerHTML = "";
+    alert("Nessuna fattura trovata nel periodo selezionato.");
+    return;
+  }
+
+  // 2) RIGHE FATTURE DI QUEL PERIODO
+  // uso select("*") per evitare problemi di nomi colonna
+  const { data: righe, error: errRighe } = await supabase
+    .from("fatture_acquisto_righe")
+    .select("*")
+    .in("fattura_id", fattureIds);
+
+  if (errRighe) {
+    console.error("Errore caricamento righe fattura per report spese:", errRighe);
+    alert("Errore nel caricare le righe delle fatture per il report spese: " + errRighe.message);
+    return;
+  }
+
+  const righeValid = (righe || []).filter((r) => {
+    if (!r) return false;
+    if (catFilter) {
+      const cat = (r.categoria_bilancio || "").toLowerCase();
+      if (cat !== catFilter) return false;
+    }
+    return true;
+  });
+
+  if (!righeValid.length) {
+    if (repSpeseRows) repSpeseRows.innerHTML = "";
+    alert("Nessuna riga fattura trovata per la categoria/periodo selezionati.");
+    return;
+  }
+
+  // 3) AGGREGO PER CATEGORIA_BILANCIO
+  const aggregato = {};
+
+  righeValid.forEach((r) => {
+    const key = (r.categoria_bilancio || "Senza categoria").trim() || "Senza categoria";
+
+    // provo a usare i campi già salvati
+    let imp = Number(r.imponibile);
+    let iv = Number(r.iva);
+    let tot = Number(r.totale);
+
+    // se non ci sono o sono NaN, ricalcolo da quantità/prezzo/sconti/iva
+    const quantita = Number(r.quantita) || 0;
+    const prezzo = Number(r.prezzo_unitario) || 0;
+    const s1 = Number(r.sconto1_perc) || 0;
+    const s2 = Number(r.sconto2_perc) || 0;
+    const ivaPerc = Number(r.iva_perc) || 0;
+
+    const fattoreS1 = 1 - s1 / 100;
+    const fattoreS2 = 1 - s2 / 100;
+    const prezzoNetto = prezzo * fattoreS1 * fattoreS2;
+
+    const impCalc = quantita * prezzoNetto;
+    const ivaCalc = impCalc * (ivaPerc / 100);
+    const totCalc = impCalc + ivaCalc;
+
+    if (!isFinite(imp)) imp = impCalc;
+    if (!isFinite(iv)) iv = ivaCalc;
+    if (!isFinite(tot)) tot = totCalc;
+
+    if (!aggregato[key]) {
+      aggregato[key] = {
+        imponibile: 0,
+        iva: 0,
+        totale: 0,
+      };
+    }
+
+    aggregato[key].imponibile += imp || 0;
+    aggregato[key].iva += iv || 0;
+    aggregato[key].totale += tot || 0;
+  });
+
+  // 4) SCRIVO RISULTATI IN TABELLA
+  if (!repSpeseRows) return;
+  repSpeseRows.innerHTML = "";
+
+  Object.entries(aggregato).forEach(([cat, valori]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${cat}</td>
+      <td>${valori.imponibile.toFixed(2)}</td>
+      <td>${valori.iva.toFixed(2)}</td>
+      <td>${valori.totale.toFixed(2)}</td>
+    `;
+    repSpeseRows.appendChild(tr);
+  });
+}
 
 // =====================================
 //  PREVENTIVI & PRENOTAZIONI
