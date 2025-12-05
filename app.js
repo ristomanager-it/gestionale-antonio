@@ -4365,13 +4365,18 @@ async function onRouteEnter(route) {
       break;
 
     case "ricette":
-      // carico suggerimenti ingredienti da magazzino
+      // 1) carico TUTTE le ricette (serve per:
+      //    - autocomplete "Nome ricetta" editor
+      //    - ricetteSuggestionsList / datalist
+      await caricaRicetteDaSupabase();
+
+      // 2) carico suggerimenti ingredienti da magazzino
       await caricaProdottiSuggerimentiIngredienti();
 
       if (ricettaDaAprireId) {
-        // se arrivo dal Ricettario con "Modifica"
+        // arrivo dal Ricettario con "Modifica"
         const idToOpen = ricettaDaAprireId;
-        ricettaDaAprireId = null; // lo consumo subito
+        ricettaDaAprireId = null; // consumo il flag
         await caricaRicettaInForm(idToOpen);
       } else {
         // apertura normale: form vuoto
@@ -4380,14 +4385,15 @@ async function onRouteEnter(route) {
       break;
 
     case "ricette-viewer":
+      // solo lettura: elenco ricette + filtro
       await caricaRicetteDaSupabase();
       break;
 
     case "produzione":
       // per la scheda produzione:
-      // 1) serve l'elenco ricette per l'autocomplete
+      // 1) serve l'elenco ricette per autocomplete e formati
       await caricaRicetteDaSupabase();
-      // 2) preparo lotto + prima riga vuota
+      // 2) prepara data, lotto e prima riga
       resetSchedaProduzione();
       break;
 
@@ -4414,7 +4420,9 @@ async function onRouteEnter(route) {
       break;
 
     case "preventivi":
-      // se hai logica di caricamento preventivi, mettila qui
+      // carica lista + reset form dettaglio
+      await loadPreventiviList();
+      resetPreventivoForm();
       break;
 
     default:
@@ -4431,6 +4439,7 @@ async function navigateTo(route) {
   const isManager = isManagerRole(currentUser.ruolo);
 
   if (!isManager) {
+    // DIPENDENTE SEMPLICE
     if (
       route === "timbratura" ||
       route === "ordine" ||
@@ -4442,6 +4451,7 @@ async function navigateTo(route) {
       showHomeDipendente();
     }
   } else {
+    // MANAGER / ADMIN
     let active = document.getElementById(`view-${route}`);
     if (!active) {
       route = "timbratura";
@@ -4456,42 +4466,48 @@ async function navigateTo(route) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// click sui bottoni con data-route (menu manager + home dip)
 routeButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const route = btn.getAttribute("data-route");
+    if (!route) return;
     window.location.hash = route;
     navigateTo(route);
   });
 });
 
+// cambio hash manuale (es. #ricette, #produzione, #preventivi)
 window.addEventListener("hashchange", () => {
   const route = window.location.hash.replace("#", "");
   navigateTo(route);
 });
 
-  // ========= AVVIO =========
-  async function init() {
-    await caricaDipendentiDaSupabase();
-    await caricaTimbratureDaSupabase();
+// ========= AVVIO =========
+async function init() {
+  await caricaDipendentiDaSupabase();
+  await caricaTimbratureDaSupabase();
 
-    restoreUserFromStorage();
+  restoreUserFromStorage();
 
-    if (currentUser) {
-      const hashRoute = window.location.hash.replace("#", "") || "timbratura";
-      if (isManagerRole(currentUser.ruolo)) {
-        showManagerMenuAndRoute(hashRoute);
-      } else {
-        if (hashRoute === "timbratura" || hashRoute === "ricette-viewer") {
-          showOnlyView(`view-${hashRoute}`);
-          await onRouteEnter(hashRoute);
-        } else {
-          showHomeDipendente();
-        }
-      }
+  const hashRoute = window.location.hash.replace("#", "") || "timbratura";
+
+  if (currentUser) {
+    if (isManagerRole(currentUser.ruolo)) {
+      // mostra menu manager e delega a navigateTo per la view iniziale
+      showManagerMenuAndRoute(hashRoute);
     } else {
-      showLogin();
+      // dipendente
+      if (hashRoute === "timbratura" || hashRoute === "ricette-viewer") {
+        showOnlyView(`view-${hashRoute}`);
+        await onRouteEnter(hashRoute);
+      } else {
+        showHomeDipendente();
+      }
     }
+  } else {
+    showLogin();
   }
+}
 
-  init();
+init();
 });
