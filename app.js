@@ -1295,6 +1295,7 @@ function printCurrentPreventivo() {
   const clienteNome = `${inputClienteNome?.value || ''} ${inputClienteCognome?.value || ''}`.trim();
   const clienteComune = inputClienteComune?.value || '';
   const dataEvento = inputPrevDataEvento?.value || '';
+  const clienteTelefono = inputClienteTelefono?.value || '';   //
   const tipologia = inputPrevTitolo?.value || '';
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
   const totale = inputPrevTotale ? inputPrevTotale.value : '0.00';
