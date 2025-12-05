@@ -3343,7 +3343,7 @@ if (btnSalvaSchedaProduzione) {
 }
 
 
-   // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
     return fornitoriCache.find((f) => f.id === id) || null;
   }
@@ -3442,7 +3442,7 @@ if (btnSalvaSchedaProduzione) {
     return data;
   }
 
-    async function findOrCreateProdotto({
+  async function findOrCreateProdotto({
     codice,
     descrizione,
     categoriaNome,
@@ -3995,6 +3995,9 @@ if (btnSalvaSchedaProduzione) {
         alert("Errore nel salvare le righe della fattura");
         return;
       }
+
+      // 🔁 dopo aver salvato le righe aggiorno subito il magazzino
+      await caricaMagazzinoDati();
     }
 
     alert("Fattura salvata correttamente");
@@ -4154,8 +4157,6 @@ if (btnSalvaSchedaProduzione) {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
-
-
 
   // ========= MAGAZZINO =========
   function renderMagazzinoLista(lista) {
