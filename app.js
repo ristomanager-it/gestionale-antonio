@@ -498,6 +498,9 @@ const inputPrevTotale = document.getElementById('preventivo-totale');
 const inputPrevPrezzoPersona = document.getElementById('preventivo-prezzo-persona');
 const inputPrevSaldo = document.getElementById('preventivo-saldo');
 
+// 🔥 nuovo: sconto menù %
+const selectPrevScontoMenu = document.getElementById('preventivo-sconto-menu');
+
 // Tabelle menu & extra
 const menuTableBody = document.getElementById('preventivo-menu-tbody');
 const extraTableBody = document.getElementById('preventivo-extra-tbody');
@@ -562,6 +565,13 @@ if (inputPrevNInvitati) {
 }
 if (inputPrevAcconto) {
   inputPrevAcconto.addEventListener('input', () => {
+    recalcPreventivoTotali();
+  });
+}
+
+// 🔥 ricalcolo anche quando cambia lo sconto menù
+if (selectPrevScontoMenu) {
+  selectPrevScontoMenu.addEventListener('change', () => {
     recalcPreventivoTotali();
   });
 }
@@ -686,6 +696,9 @@ function resetPreventivoForm() {
   if (inputPrevTotale) inputPrevTotale.value = '';
   if (inputPrevPrezzoPersona) inputPrevPrezzoPersona.value = '';
   if (inputPrevSaldo) inputPrevSaldo.value = '';
+
+  // 🔥 reset sconto menù
+  if (selectPrevScontoMenu) selectPrevScontoMenu.value = '0';
 }
 
 async function openPreventivo(preventivoId) {
@@ -777,6 +790,17 @@ function fillPreventivoFormFromData(p) {
   if (selectPrevStato) selectPrevStato.value = p.stato || 'bozza';
   if (inputPrevAcconto)
     inputPrevAcconto.value = Number(p.acconto || 0).toFixed(2);
+
+  // 🔥 sconto menù da DB
+  if (selectPrevScontoMenu) {
+    const scontoVal = p.sconto_menu_perc != null ? p.sconto_menu_perc : 0;
+    // se non esiste tra le opzioni, metto 0
+    const sVal = String(scontoVal);
+    const optionExists = Array.from(selectPrevScontoMenu.options).some(
+      (opt) => opt.value === sVal
+    );
+    selectPrevScontoMenu.value = optionExists ? sVal : '0';
+  }
 }
 
 // -----------------------------
@@ -1035,7 +1059,8 @@ function addExtraRow() {
 // -----------------------------
 
 function recalcPreventivoTotali() {
-  const totaleMenu = currentPreventivoMenu.reduce((sum, r) => {
+  // totale lordo menù (prima degli sconti)
+  const totaleMenuLordo = currentPreventivoMenu.reduce((sum, r) => {
     return sum + Number(r.costo_totale || 0);
   }, 0);
 
@@ -1045,7 +1070,14 @@ function recalcPreventivoTotali() {
     return sum + q * pu;
   }, 0);
 
-  const totale = totaleMenu + totaleExtra;
+  // 🔥 sconto solo sul menù, NON sugli extra
+  const scontoMenuPerc = selectPrevScontoMenu
+    ? Number(selectPrevScontoMenu.value || 0)
+    : 0;
+  const fattoreScontoMenu = 1 - scontoMenuPerc / 100;
+  const totaleMenuNetto = totaleMenuLordo * fattoreScontoMenu;
+
+  const totale = totaleMenuNetto + totaleExtra;
 
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
   const acconto = inputPrevAcconto ? Number(inputPrevAcconto.value || 0) : 0;
@@ -1083,7 +1115,11 @@ async function savePreventivo() {
     note: inputPrevNote ? inputPrevNote.value || null : null,
     stato: selectPrevStato ? selectPrevStato.value || 'bozza' : 'bozza',
     acconto: inputPrevAcconto ? Number(inputPrevAcconto.value || 0) : 0,
-    totale: inputPrevTotale ? Number(inputPrevTotale.value || 0) : 0
+    totale: inputPrevTotale ? Number(inputPrevTotale.value || 0) : 0,
+    // 🔥 salviamo anche lo sconto menù
+    sconto_menu_perc: selectPrevScontoMenu
+      ? Number(selectPrevScontoMenu.value || 0)
+      : 0
   };
 
   const existingId = inputPrevId ? Number(inputPrevId.value || 0) : 0;
