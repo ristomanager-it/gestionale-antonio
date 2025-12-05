@@ -11,6 +11,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
+  
+  // ---------- REPORT: SPESE PER CATEGORIA ----------
+  const repSpeseDalInput = document.getElementById("rep-spese-dal");
+  const repSpeseAlInput = document.getElementById("rep-spese-al");
+  const repSpeseCatInput = document.getElementById("rep-spese-cat-bilancio");
+  const repSpeseRows = document.getElementById("rep-spese-rows");
+  const btnCalcolaSpese = document.getElementById("btn-calcola-spese");
 
 
   // header
@@ -452,6 +459,109 @@ let magazzinoDati = [];
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       showLogin();
+    });
+  }
+  // ========= REPORT: SPESE PER CATEGORIA DI BILANCIO =========
+  async function calcolaSpesePerCategoria() {
+    if (!supabase) return;
+
+    const dal = repSpeseDalInput?.value || "";
+    const al = repSpeseAlInput?.value || "";
+    const catFilterRaw = repSpeseCatInput?.value || "";
+    const catFilter = catFilterRaw.trim().toLowerCase();
+
+    if (!dal || !al) {
+      alert("Inserisci sia la data iniziale che quella finale.");
+      return;
+    }
+
+    // 1) Prendo le fatture nel periodo
+    const { data: fatture, error: errFatt } = await supabase
+      .from("fatture_acquisto")
+      .select("id, data_documento")
+      .gte("data_documento", dal)
+      .lte("data_documento", al);
+
+    if (errFatt) {
+      console.error("Errore caricamento fatture per report spese:", errFatt);
+      alert("Errore nel caricare le fatture per il report spese.");
+      return;
+    }
+
+    const fattureIds = (fatture || [])
+      .map((f) => f.id)
+      .filter((id) => id != null);
+
+    if (!fattureIds.length) {
+      if (repSpeseRows) {
+        repSpeseRows.innerHTML = "";
+      }
+      alert("Nessuna fattura trovata nel periodo selezionato.");
+      return;
+    }
+
+    // 2) Prendo le righe di quelle fatture
+    const { data: righe, error: errRighe } = await supabase
+      .from("fatture_acquisto_righe")
+      .select("fattura_id, categoria_bilancio, imponibile, iva, totale")
+      .in("fattura_id", fattureIds);
+
+    if (errRighe) {
+      console.error("Errore caricamento righe fattura per report spese:", errRighe);
+      alert("Errore nel caricare le righe delle fatture per il report spese.");
+      return;
+    }
+
+    const righeValid = (righe || []).filter((r) => {
+      if (!r) return false;
+      // filtro per categoria di bilancio se è stato inserito un filtro
+      if (catFilter) {
+        const cat = (r.categoria_bilancio || "").toLowerCase();
+        if (cat !== catFilter) return false;
+      }
+      return true;
+    });
+
+    if (!righeValid.length) {
+      if (repSpeseRows) {
+        repSpeseRows.innerHTML = "";
+      }
+      alert("Nessuna riga fattura trovata per la categoria/periodo selezionati.");
+      return;
+    }
+
+    // 3) Aggrego per categoria_bilancio
+    const aggregato = {};
+
+    righeValid.forEach((r) => {
+      const key = (r.categoria_bilancio || "Senza categoria").trim() || "Senza categoria";
+
+      if (!aggregato[key]) {
+        aggregato[key] = {
+          imponibile: 0,
+          iva: 0,
+          totale: 0,
+        };
+      }
+
+      aggregato[key].imponibile += Number(r.imponibile) || 0;
+      aggregato[key].iva += Number(r.iva) || 0;
+      aggregato[key].totale += Number(r.totale) || 0;
+    });
+
+    // 4) Scrivo i risultati in tabella
+    if (!repSpeseRows) return;
+    repSpeseRows.innerHTML = "";
+
+    Object.entries(aggregato).forEach(([cat, valori]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${cat}</td>
+        <td>${valori.imponibile.toFixed(2)}</td>
+        <td>${valori.iva.toFixed(2)}</td>
+        <td>${valori.totale.toFixed(2)}</td>
+      `;
+      repSpeseRows.appendChild(tr);
     });
   }
 
@@ -4767,6 +4877,12 @@ async function caricaProdottiSuggerimentiIngredienti() {
     const raw = window.location.hash.replace("#", "");
     navigateTo(raw);
   });
+ 
+  if (btnCalcolaSpese) {
+    btnCalcolaSpese.addEventListener("click", () => {
+      calcolaSpesePerCategoria();
+    });
+  }
 
   // ========= AVVIO =========
   async function init() {
