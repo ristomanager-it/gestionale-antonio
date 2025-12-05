@@ -3406,7 +3406,7 @@ if (btnSalvaSchedaProduzione) {
     return data;
   }
 
-  async function findOrCreateProdotto({
+    async function findOrCreateProdotto({
     codice,
     descrizione,
     categoriaNome,
@@ -3637,8 +3637,43 @@ if (btnSalvaSchedaProduzione) {
                 placeholder="Prezzo"
                 min="0"
                 step="0.0001"
-                value="${initial.prezzo_unitario != null ? initial.prezzo_unitario : ""}"
+                value="${
+                  initial.prezzo_unitario != null ? initial.prezzo_unitario : ""
+                }"
               />
+            </label>
+          </div>
+
+          <!-- 🔥 NUOVA CARD DOPPIO SCONTO 10 + 5 % -->
+          <div class="fatt-field">
+            <label>
+              Sconto %
+              <div class="fatt-sconto-card">
+                <input
+                  type="number"
+                  class="fatt-riga-sconto1 input-pill"
+                  placeholder="10"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value="${
+                    initial.sconto1_perc != null ? initial.sconto1_perc : ""
+                  }"
+                />
+                <span class="fatt-sconto-plus">+</span>
+                <input
+                  type="number"
+                  class="fatt-riga-sconto2 input-pill"
+                  placeholder="5"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value="${
+                    initial.sconto2_perc != null ? initial.sconto2_perc : ""
+                  }"
+                />
+                <span class="fatt-sconto-percent">%</span>
+              </div>
             </label>
           </div>
 
@@ -3672,6 +3707,8 @@ if (btnSalvaSchedaProduzione) {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const sconto1Input = tr.querySelector(".fatt-riga-sconto1");
+    const sconto2Input = tr.querySelector(".fatt-riga-sconto2");
     const btnDel = tr.querySelector(".btn-del-riga");
     const descrInput = tr.querySelector(".fatt-riga-descrizione");
 
@@ -3683,6 +3720,8 @@ if (btnSalvaSchedaProduzione) {
     if (qtaInput) qtaInput.addEventListener("input", handleChange);
     if (prezzoInput) prezzoInput.addEventListener("input", handleChange);
     if (ivaInput) ivaInput.addEventListener("input", handleChange);
+    if (sconto1Input) sconto1Input.addEventListener("input", handleChange);
+    if (sconto2Input) sconto2Input.addEventListener("input", handleChange);
 
     if (descrInput) {
       const handlerDescr = () => {
@@ -3707,13 +3746,22 @@ if (btnSalvaSchedaProduzione) {
     const qtaInput = tr.querySelector(".fatt-riga-quantita");
     const prezzoInput = tr.querySelector(".fatt-riga-prezzo");
     const ivaInput = tr.querySelector(".fatt-riga-iva");
+    const sconto1Input = tr.querySelector(".fatt-riga-sconto1");
+    const sconto2Input = tr.querySelector(".fatt-riga-sconto2");
     const totaleEl = tr.querySelector(".fatt-riga-totale");
 
     const qta = parseNumber(qtaInput?.value || "0");
-    const prezzo = parseNumber(prezzoInput?.value || "0");
+    const prezzoListino = parseNumber(prezzoInput?.value || "0");
     const ivaPerc = parseNumber(ivaInput?.value || "0");
+    const sconto1 = parseNumber(sconto1Input?.value || "0");
+    const sconto2 = parseNumber(sconto2Input?.value || "0");
 
-    const imponibile = qta * prezzo;
+    // 🔢 SCONTO COMPOSTO: prezzo_netto = prezzo * (1 - s1/100) * (1 - s2/100)
+    const fattoreSconto1 = 1 - sconto1 / 100;
+    const fattoreSconto2 = 1 - sconto2 / 100;
+    const prezzoNetto = prezzoListino * fattoreSconto1 * fattoreSconto2;
+
+    const imponibile = qta * prezzoNetto;
     const iva = imponibile * (ivaPerc / 100);
     const totale = imponibile + iva;
 
@@ -3846,6 +3894,8 @@ if (btnSalvaSchedaProduzione) {
       const qtaEl = tr.querySelector(".fatt-riga-quantita");
       const prezzoEl = tr.querySelector(".fatt-riga-prezzo");
       const ivaEl = tr.querySelector(".fatt-riga-iva");
+      const sconto1El = tr.querySelector(".fatt-riga-sconto1");
+      const sconto2El = tr.querySelector(".fatt-riga-sconto2");
 
       const codiceVal = (codiceEl?.value || "").trim();
       const descrVal = (descrEl?.value || "").trim();
@@ -3855,6 +3905,8 @@ if (btnSalvaSchedaProduzione) {
       const qtaVal = parseNumber(qtaEl?.value || "0");
       const prezzoVal = parseNumber(prezzoEl?.value || "0");
       const ivaPercVal = parseNumber(ivaEl?.value || "0");
+      const sconto1Val = parseNumber(sconto1El?.value || "0");
+      const sconto2Val = parseNumber(sconto2El?.value || "0");
 
       if (!descrVal || qtaVal <= 0 || prezzoVal <= 0) {
         continue;
@@ -3869,7 +3921,12 @@ if (btnSalvaSchedaProduzione) {
       });
       if (!prodotto) continue;
 
-      const imponibile = qtaVal * prezzoVal;
+      // 🔢 sconto composto anche qui per i valori salvati in tabella
+      const fattoreSconto1 = 1 - sconto1Val / 100;
+      const fattoreSconto2 = 1 - sconto2Val / 100;
+      const prezzoNettoUnit = prezzoVal * fattoreSconto1 * fattoreSconto2;
+
+      const imponibile = qtaVal * prezzoNettoUnit;
       const ivaVal = imponibile * (ivaPercVal / 100);
       const totale = imponibile + ivaVal;
 
@@ -3880,7 +3937,9 @@ if (btnSalvaSchedaProduzione) {
         descrizione_riga: descrVal,
         quantita: qtaVal,
         um: prodotto.um,
-        prezzo_unitario: prezzoVal,
+        prezzo_unitario: prezzoVal,      // listino
+        sconto1_perc: sconto1Val || null,
+        sconto2_perc: sconto2Val || null,
         iva_perc: ivaPercVal,
         imponibile,
         iva: ivaVal,
@@ -4026,6 +4085,8 @@ if (btnSalvaSchedaProduzione) {
           quantita: r.quantita,
           prezzo_unitario: r.prezzo_unitario,
           iva_perc: r.iva_perc,
+          sconto1_perc: r.sconto1_perc,
+          sconto2_perc: r.sconto2_perc,
         });
       });
       ricalcolaTotaliFattura();
@@ -4057,6 +4118,7 @@ if (btnSalvaSchedaProduzione) {
       fattureTable.style.display = vis ? "none" : "table";
     });
   }
+
 
 
   // ========= MAGAZZINO =========
