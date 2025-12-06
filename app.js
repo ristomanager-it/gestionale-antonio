@@ -3478,9 +3478,8 @@ if (btnSalvaSchedaProduzione) {
   });
 }
 
-
-       // ========= ACQUISTI / FATTURE + MAGAZZINO =========
-  // Cache categorie di bilancio
+  // ========= ACQUISTI / FATTURE + MAGAZZINO =========
+  // Cache categorie di bilancio (report + fatture)
   let categorieBilancioCache = [];
 
   function getFornitoreById(id) {
@@ -3525,21 +3524,26 @@ if (btnSalvaSchedaProduzione) {
   async function caricaCategorieBilancioInDatalist() {
     if (!supabase) return;
 
+    const dl = document.getElementById("bilancio-categorie");
+    if (!dl) return;
+
     const { data, error } = await supabase
       .from("categorie_bilancio")
       .select("id, nome, attivo")
-      .eq("attivo", true)
       .order("nome", { ascending: true });
 
     if (error) {
       console.error("Errore caricamento categorie bilancio:", error);
-      return; // non blocco l'app
+      // se la tabella non esiste o dà errore, lascio il datalist com'è
+      return;
     }
 
     categorieBilancioCache = data || [];
 
-    const dl = document.getElementById("bilancio-categorie");
-    if (!dl) return;
+    if (!categorieBilancioCache.length) {
+      // se il DB è vuoto, mantengo le opzioni scritte a mano in HTML
+      return;
+    }
 
     dl.innerHTML = "";
     categorieBilancioCache.forEach((c) => {
@@ -3561,14 +3565,14 @@ if (btnSalvaSchedaProduzione) {
     );
     if (existing) return;
 
-    // 2) controllo diretto su Supabase (nel caso la cache non sia aggiornata)
+    // 2) controllo diretto su Supabase
     const { data: findData, error: findError } = await supabase
       .from("categorie_bilancio")
       .select("id, nome, attivo")
       .ilike("nome", nomeTrim)
       .maybeSingle();
 
-    if (findError) {
+    if (findError && findError.code !== "PGRST116") {
       console.error("Errore ricerca categoria_bilancio:", findError);
     }
 
@@ -3601,6 +3605,48 @@ if (btnSalvaSchedaProduzione) {
       const opt = document.createElement("option");
       opt.value = insertData.nome;
       dl.appendChild(opt);
+    }
+  }
+
+  // 🔹 Carica le categorie prodotto da Supabase e popola un datalist riusabile
+  async function caricaCategorieProdottoInDatalist() {
+    if (!supabase) return;
+
+    const { data, error } = await supabase
+      .from("categorie_prodotto")
+      .select("id, nome")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento categorie prodotto:", error);
+      return;
+    }
+
+    categorieCache = data || [];
+
+    // creo/recupero il datalist per le categorie prodotto
+    let dl = document.getElementById("categorie-prodotto-list");
+    if (!dl) {
+      dl = document.createElement("datalist");
+      dl.id = "categorie-prodotto-list";
+      document.body.appendChild(dl);
+    }
+
+    dl.innerHTML = "";
+    categorieCache.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.nome;
+      dl.appendChild(opt);
+    });
+
+    // collego i campi categoria al datalist
+    document
+      .querySelectorAll(".fatt-riga-categoria")
+      .forEach((inp) => inp.setAttribute("list", "categorie-prodotto-list"));
+
+    const magCat = document.getElementById("magazzino-categoria");
+    if (magCat) {
+      magCat.setAttribute("list", "categorie-prodotto-list");
     }
   }
 
@@ -3661,6 +3707,18 @@ if (btnSalvaSchedaProduzione) {
     }
 
     categorieCache.push(data);
+
+    // aggiorno al volo il datalist delle categorie prodotto
+    let dl = document.getElementById("categorie-prodotto-list");
+    if (!dl) {
+      dl = document.createElement("datalist");
+      dl.id = "categorie-prodotto-list";
+      document.body.appendChild(dl);
+    }
+    const opt = document.createElement("option");
+    opt.value = data.nome;
+    dl.appendChild(opt);
+
     return data;
   }
 
@@ -3934,6 +3992,7 @@ if (btnSalvaSchedaProduzione) {
                 class="fatt-riga-categoria input-pill"
                 placeholder="Categoria"
                 value="${initial.categoria_nome || ""}"
+                list="categorie-prodotto-list"
               />
             </label>
           </div>
@@ -4074,7 +4133,6 @@ if (btnSalvaSchedaProduzione) {
 
     if (descrInput) {
       const handlerDescr = () => {
-        // non serve await: l'handler async si occupa lui
         onDescrizioneProdottoChange(tr);
       };
       descrInput.addEventListener("change", handlerDescr);
@@ -4090,6 +4148,9 @@ if (btnSalvaSchedaProduzione) {
 
     fatturaRigheBody.appendChild(tr);
     ricalcolaTotaleRiga(tr);
+
+    // mi assicuro che la nuova riga veda il datalist delle categorie prodotto
+    caricaCategorieProdottoInDatalist();
   }
 
   function ricalcolaTotaleRiga(tr) {
@@ -4106,7 +4167,6 @@ if (btnSalvaSchedaProduzione) {
     const sconto1 = parseNumber(sconto1Input?.value || "0");
     const sconto2 = parseNumber(sconto2Input?.value || "0");
 
-    // 🔢 SCONTO COMPOSTO: prezzo_netto = prezzo * (1 - s1/100) * (1 - s2/100)
     const fattoreSconto1 = 1 - sconto1 / 100;
     const fattoreSconto2 = 1 - sconto2 / 100;
     const prezzoNetto = prezzoListino * fattoreSconto1 * fattoreSconto2;
@@ -4276,7 +4336,6 @@ if (btnSalvaSchedaProduzione) {
       });
       if (!prodotto) continue;
 
-      // 🔢 sconto composto anche qui per i valori salvati in tabella
       const fattoreSconto1 = 1 - sconto1Val / 100;
       const fattoreSconto2 = 1 - sconto2Val / 100;
       const prezzoNettoUnit = prezzoVal * fattoreSconto1 * fattoreSconto2;
@@ -4310,12 +4369,11 @@ if (btnSalvaSchedaProduzione) {
         .insert(righePayload);
 
       if (righeError) {
-        console.error("Errore salvataggio righe fattura:", righeError);
+        console.error("Errore nel salvare le righe della fattura:", righeError);
         alert("Errore nel salvare le righe della fattura");
         return;
       }
 
-      // 🔁 dopo aver salvato le righe aggiorno subito il magazzino
       await caricaMagazzinoDati();
     }
 
@@ -4416,7 +4474,6 @@ if (btnSalvaSchedaProduzione) {
           ? fattura.totale_documento.toFixed(2)
           : "";
 
-    // carico le categorie prima di usare getCategoriaById
     await caricaCategorieInCache();
 
     const { data: righe, error: righeError } = await supabase
@@ -4480,7 +4537,8 @@ if (btnSalvaSchedaProduzione) {
     });
   }
 
-  // 🚀 carico le categorie di bilancio all'avvio (per fatture + report)
+  // 🚀 all'avvio popolo i datalist da Supabase (categorie prodotto + categorie di bilancio)
+  caricaCategorieProdottoInDatalist();
   caricaCategorieBilancioInDatalist();
 
 
