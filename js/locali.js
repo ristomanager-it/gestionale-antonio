@@ -5,81 +5,84 @@
 
   const localeSelect = document.getElementById("locale-select");
 
-  if (!localeSelect) {
-    console.warn("⚠️ locale-select non trovato nel DOM");
-    return;
-  }
-
   // =========================
-  // CARICA LOCALI
+  // CARICA LOCALI PER AZIENDA
   // =========================
-  async function caricaLocali() {
+  async function caricaLocaliPerAzienda(aziendaId) {
     const { data, error } = await supabase
       .from("locali")
       .select("*")
-      .eq("attivo", true)
-      .order("nome");
+      .eq("azienda_id", aziendaId)
+      .order("nome", { ascending: true });
 
     if (error) {
-      console.error("❌ Errore caricamento locali", error);
-      localeSelect.innerHTML =
-        "<option value=''>Errore caricamento</option>";
-      return;
+      console.error("Errore caricamento locali:", error);
+      return [];
     }
 
-    if (!data || data.length === 0) {
-      localeSelect.innerHTML =
-        "<option value=''>Nessun locale</option>";
-      return;
-    }
-
-    localeSelect.innerHTML = "";
-
-    data.forEach((loc) => {
-      const opt = document.createElement("option");
-      opt.value = loc.id;
-      opt.textContent = `${loc.nome} (${loc.tipo})`;
-      opt.dataset.locale = JSON.stringify(loc);
-      localeSelect.appendChild(opt);
-    });
-
-    // ripristina locale salvato
-    const saved = AppState.getCurrentLocale();
-    if (saved) {
-      const match = [...localeSelect.options].find(
-        (o) => Number(o.value) === Number(saved.id)
-      );
-      if (match) {
-        match.selected = true;
-        AppState.setCurrentLocale(saved);
-        return;
-      }
-    }
-
-    // default: primo locale
-    const first = data[0];
-    localeSelect.value = first.id;
-    AppState.setCurrentLocale(first);
+    return data || [];
   }
 
   // =========================
-  // CHANGE LOCALE
+  // POPOLA SELECT
   // =========================
-  localeSelect.addEventListener("change", () => {
-    const opt = localeSelect.selectedOptions[0];
-    if (!opt) return;
+  function popolaSelectLocali(locali) {
+    if (!localeSelect) return;
 
-    try {
-      const locale = JSON.parse(opt.dataset.locale);
-      AppState.setCurrentLocale(locale);
-      console.log("📍 Locale selezionato:", locale.nome);
-    } catch {
-      console.error("❌ Errore parsing locale");
+    localeSelect.innerHTML = "";
+
+    locali.forEach((loc) => {
+      const opt = document.createElement("option");
+      opt.value = loc.id;
+      opt.textContent = loc.nome;
+      localeSelect.appendChild(opt);
+    });
+
+    localeSelect.onchange = () => {
+      const localeId = Number(localeSelect.value);
+      const locale = locali.find((l) => l.id === localeId);
+      if (locale) {
+        AppState.setCurrentLocale(locale);
+        console.log("📍 Locale attivo:", locale.nome);
+      }
+    };
+  }
+
+  // =========================
+  // INIZIALIZZAZIONE
+  // =========================
+  async function initLocali() {
+    const user = AppState.getCurrentUser();
+    if (!user || !user.azienda_id) return;
+
+    const locali = await caricaLocaliPerAzienda(user.azienda_id);
+
+    if (locali.length === 0) {
+      alert("Nessun locale associato all’azienda");
+      return;
     }
-  });
+
+    // 1 solo locale → entra diretto
+    if (locali.length === 1) {
+      AppState.setCurrentLocale(locali[0]);
+      console.log("📍 Locale unico:", locali[0].nome);
+      return;
+    }
+
+    // più locali → mostra select
+    popolaSelectLocali(locali);
+
+    // ripristino da stato
+    const saved = AppState.getCurrentLocale();
+    if (saved) {
+      localeSelect.value = saved.id;
+    }
+  }
 
   // =========================
-  // INIT
+  // EXPORT
   // =========================
-  caricaLocali();
+  window.Locali = {
+    initLocali,
+  };
 })();
