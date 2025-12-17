@@ -102,10 +102,11 @@ document.addEventListener("DOMContentLoaded", () => {
       showManagerMenuAndRoute("timbratura");
       console.log("✅ Login admin riuscito");
       return;
-    }
-showOnlyView("view-select-locale");
+      showOnlyView("view-select-locale");
 return;
-  }
+    }
+
+    
     // 🔑 LOGIN DA DB
     const user = await Auth.loginWithPin(nome, pin, false);
 
