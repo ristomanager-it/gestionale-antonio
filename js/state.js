@@ -3,8 +3,10 @@
   const STATE_KEY = "ga_app_state_v1";
 
   const defaultState = {
-    currentUser: null,
-    currentLocale: null, // 👈 MULTILOCALE
+    currentUser: null,      // titolare o dipendente
+    currentAzienda: null,   // azienda del titolare
+    locali: [],             // lista locali disponibili
+    currentLocale: null,    // locale attivo
   };
 
   let state = { ...defaultState };
@@ -39,9 +41,40 @@
     return state.currentUser;
   }
 
+  function clearUser() {
+    state.currentUser = null;
+    save();
+  }
+
   // =========================
-  // LOCALE
+  // AZIENDA
   // =========================
+  function setCurrentAzienda(azienda) {
+    state.currentAzienda = azienda;
+    save();
+  }
+
+  function getCurrentAzienda() {
+    return state.currentAzienda;
+  }
+
+  function clearAzienda() {
+    state.currentAzienda = null;
+    save();
+  }
+
+  // =========================
+  // LOCALI
+  // =========================
+  function setLocali(locali) {
+    state.locali = locali || [];
+    save();
+  }
+
+  function getLocali() {
+    return state.locali || [];
+  }
+
   function setCurrentLocale(locale) {
     state.currentLocale = locale;
     save();
@@ -53,6 +86,11 @@
 
   function clearLocale() {
     state.currentLocale = null;
+    save();
+  }
+
+  function clearAll() {
+    state = { ...defaultState };
     save();
   }
 
@@ -68,10 +106,21 @@
     // user
     setCurrentUser,
     getCurrentUser,
+    clearUser,
 
-    // locale
+    // azienda
+    setCurrentAzienda,
+    getCurrentAzienda,
+    clearAzienda,
+
+    // locali
+    setLocali,
+    getLocali,
     setCurrentLocale,
     getCurrentLocale,
     clearLocale,
+
+    // reset totale (logout)
+    clearAll,
   };
 })();
