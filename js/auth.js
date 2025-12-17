@@ -5,15 +5,19 @@
   const supabase = window.supabaseClient;
   const AppState = window.AppState;
 
-  // -----------------------------
-  //  RUOLI
-  // -----------------------------
+  // =========================
+  // RUOLI
+  // =========================
   function isManagerRole(ruolo) {
     return (
       ruolo === "admin" ||
       ruolo === "manager_cucina" ||
       ruolo === "manager_sala"
     );
+  }
+
+  function isManager(ruolo) {
+    return isManagerRole(ruolo);
   }
 
   function formatRuolo(ruolo) {
@@ -29,13 +33,17 @@
       case "cameriere":
         return "Cameriere";
       default:
-        return "";
+        return "Dipendente";
     }
   }
 
-  // -----------------------------
-  //  UTENTE CORRENTE
-  // -----------------------------
+  // =========================
+  // UTENTE CORRENTE
+  // =========================
+  function getCurrentUser() {
+    return AppState.currentUser;
+  }
+
   function setCurrentUser(user, persist = false) {
     AppState.currentUser = {
       id: user.id ?? null,
@@ -93,9 +101,9 @@
     localStorage.removeItem(CURRENT_USER_KEY);
   }
 
-  // -----------------------------
-  //  LOGIN (PIN semplice)
-  // -----------------------------
+  // =========================
+  // LOGIN
+  // =========================
   async function loginWithPin(nome, pin, remember = false) {
     if (!nome || !pin) return null;
 
@@ -120,15 +128,22 @@
     return user;
   }
 
-  // -----------------------------
-  //  EXPORT GLOBALE
-  // -----------------------------
+  // =========================
+  // EXPORT
+  // =========================
   window.Auth = {
-    loginWithPin,
-    logout,
+    // user
+    getCurrentUser,
     setCurrentUser,
     restoreUserFromStorage,
+    logout,
+
+    // login
+    loginWithPin,
+
+    // ruoli
     isManagerRole,
+    isManager,
     formatRuolo,
   };
 })();
