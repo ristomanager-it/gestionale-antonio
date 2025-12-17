@@ -1,33 +1,77 @@
 // js/state.js
-// Stato globale dell'app (centralizzato).
-// Qui metteremo anche il MULTILOCALE (currentLocale) e cache condivise.
-
 (function () {
-  const DEFAULTS = {
-    // utente loggato
+  const STATE_KEY = "ga_app_state_v1";
+
+  const defaultState = {
     currentUser: null,
-
-    // 🔥 multilocale: oggetto locale selezionato (per ora null)
-    // Esempio futuro: { id: 'uuid', nome: 'Ristorante Centro' }
-    currentLocale: null,
-
-    // cache principali (le popoleremo gradualmente spostando le sezioni)
-    dipendenti: [],
-    timbrature: [],
-    ricette: [],
-    magazzino: [],
-    fornitori: [],
-    categorieProdotto: [],
-
-    // stato UI / navigazione
-    periodoCorrente: "oggi",
+    currentLocale: null, // 👈 MULTILOCALE
   };
 
-  // Se esiste già, non sovrascrivo (utile se ricarichi script più volte)
-  window.AppState = window.AppState || { ...DEFAULTS };
+  let state = { ...defaultState };
 
-  // Utility comoda per debug
-  window.AppState.reset = function resetAppState() {
-    Object.keys(DEFAULTS).forEach((k) => (window.AppState[k] = DEFAULTS[k]));
+  // =========================
+  // LOAD / SAVE
+  // =========================
+  function load() {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      state = { ...state, ...parsed };
+    } catch {
+      // ignore
+    }
+  }
+
+  function save() {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  }
+
+  // =========================
+  // USER
+  // =========================
+  function setCurrentUser(user) {
+    state.currentUser = user;
+    save();
+  }
+
+  function getCurrentUser() {
+    return state.currentUser;
+  }
+
+  // =========================
+  // LOCALE
+  // =========================
+  function setCurrentLocale(locale) {
+    state.currentLocale = locale;
+    save();
+  }
+
+  function getCurrentLocale() {
+    return state.currentLocale;
+  }
+
+  function clearLocale() {
+    state.currentLocale = null;
+    save();
+  }
+
+  // =========================
+  // INIT
+  // =========================
+  load();
+
+  // =========================
+  // EXPORT
+  // =========================
+  window.AppState = {
+    // user
+    setCurrentUser,
+    getCurrentUser,
+
+    // locale
+    setCurrentLocale,
+    getCurrentLocale,
+    clearLocale,
   };
 })();
