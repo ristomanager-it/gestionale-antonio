@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // CONTEXT APP (A)
+  // CONTEXT APP (globale)
   // =========================
   function getAppContext() {
     return {
@@ -42,11 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
       locale: AppState.getCurrentLocale(),
     };
   }
-
-  window.getAppContext = getAppContext; // 👈 disponibile ovunque
+  window.getAppContext = getAppContext;
 
   // =========================
-  // ROUTING PONTE (STABILE)
+  // ROUTING PONTE (GLOBALI)
   // =========================
   window.showManagerMenuAndRoute = function (route = "timbratura") {
     if (managerMenu) managerMenu.style.display = "grid";
@@ -80,15 +79,53 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔐 ADMIN VIRTUALE
+    // 🔐 ADMIN VIRTUALE (SENZA DB)
     if (nome.toLowerCase() === "admin" && pin === "9999") {
-      Auth.setCurrentUser(
-        {
-          id: null,
-          nome: "Admin",
-          ruolo: "admin",
-          canalePrevalente: "NR",
-          virtualAdmin: true,
-        },
-        false
-      );
+      const adminUser = {
+        id: null,
+        nome: "Admin",
+        ruolo: "admin",
+        canalePrevalente: "NR",
+        virtualAdmin: true,
+        azienda_id: 1, // 👈 azienda master
+      };
+
+      Auth.setCurrentUser(adminUser, false);
+      AppState.setCurrentUser(adminUser);
+
+      loginView.style.display = "none";
+
+      // inizializza locali (multilocale)
+      if (window.Locali) {
+        await Locali.initLocali();
+      }
+
+      showManagerMenuAndRoute("timbratura");
+      console.log("✅ Login admin riuscito");
+      return;
+    }
+
+    // 🔑 LOGIN NORMALE (DB)
+    const user = await Auth.loginWithPin(nome, pin, false);
+
+    if (!user) {
+      alert("Nome o PIN non corretti");
+      return;
+    }
+
+    AppState.setCurrentUser(user);
+
+    loginView.style.display = "none";
+
+    // inizializza locali
+    if (window.Locali) {
+      await Locali.initLocali();
+    }
+
+    if (Auth.isManagerRole(user.ruolo)) {
+      showManagerMenuAndRoute("timbratura");
+    } else {
+      showHomeDipendente();
+    }
+  });
+});
