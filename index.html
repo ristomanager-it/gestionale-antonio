@@ -112,6 +112,7 @@
   </div>
 </section>
 <!-- SUPER ADMIN -->
+<!-- SUPER ADMIN -->
 <section id="view-super-admin" class="view" style="display:none">
   <h2>Super Admin – Gestionale Antonio</h2>
 
@@ -119,18 +120,56 @@
     Area riservata al proprietario del software.
   </p>
 
-  <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
-    <button class="app-button" id="btn-sa-aziende">
-      Gestione aziende
+  <!-- MENU SUPER ADMIN -->
+  <div
+    style="
+      margin-top:16px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    "
+  >
+    <button class="app-button small" id="btn-sa-aziende">
+      Aziende
     </button>
 
-    <button class="app-button" id="btn-sa-titolari">
-      Gestione titolari
+    <button class="app-button small" id="btn-sa-titolari">
+      Titolari
     </button>
 
-    <button class="app-button" id="btn-sa-locali">
-      Gestione locali
+    <button class="app-button small" id="btn-sa-locali">
+      Locali
     </button>
+  </div>
+
+  <!-- ========================= -->
+  <!-- PANEL AZIENDE -->
+  <!-- ========================= -->
+  <div id="sa-aziende-panel" style="display:none; margin-top:20px;">
+    <h3>Gestione aziende</h3>
+    <p class="small-muted">
+      Qui verrà gestita la creazione e modifica delle aziende.
+    </p>
+  </div>
+
+  <!-- ========================= -->
+  <!-- PANEL TITOLARI -->
+  <!-- ========================= -->
+  <div id="sa-titolari-panel" style="display:none; margin-top:20px;">
+    <h3>Gestione titolari</h3>
+    <p class="small-muted">
+      Qui verranno creati gli admin delle aziende.
+    </p>
+  </div>
+
+  <!-- ========================= -->
+  <!-- PANEL LOCALI -->
+  <!-- ========================= -->
+  <div id="sa-locali-panel" style="display:none; margin-top:20px;">
+    <h3>Gestione locali</h3>
+    <p class="small-muted">
+      Qui verranno creati e assegnati i locali alle aziende.
+    </p>
   </div>
 </section>
 
