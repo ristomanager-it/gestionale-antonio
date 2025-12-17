@@ -1531,21 +1531,25 @@
       </main>
     </div>
 
-     <!-- SUPABASE -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-      const supabaseClient = window.supabase.createClient(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
-      );
-      window.supabaseClient = supabaseClient;
-    </script>
+   <!-- SUPABASE -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseClient = window.supabase.createClient(
+    "https://cuhcscpvhypoaplcmtjk.supabase.co",
+    "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
+  );
+  window.supabaseClient = supabaseClient;
+</script>
 
-    <!-- STATO GLOBALE -->
+<!-- STATO GLOBALE -->
 <script src="js/state.js"></script>
 
 <!-- AUTENTICAZIONE -->
 <script src="js/auth.js"></script>
 
-<!-- SCRIPT APP -->
+<!-- ROUTER SPA -->
+<script src="js/router.js"></script>
+
+<!-- APP -->
 <script src="app.js"></script>
+
