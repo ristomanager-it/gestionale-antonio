@@ -103,7 +103,9 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("✅ Login admin riuscito");
       return;
     }
-
+showOnlyView("view-select-locale");
+return;
+  }
     // 🔑 LOGIN DA DB
     const user = await Auth.loginWithPin(nome, pin, false);
 
