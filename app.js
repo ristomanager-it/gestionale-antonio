@@ -1738,6 +1738,19 @@ function emailCurrentPreventivoViaMailto() {
       applyRoleVisibility();
     });
   }
+// ========= MENU MANAGER + ROUTING (FIX GLOBALE) =========
+window.showManagerMenuAndRoute = function (initialRoute) {
+  if (managerMenu) {
+    managerMenu.style.display = "grid";
+  }
+
+  showOnlyView(`view-${initialRoute || "timbratura"}`);
+  applyRoleVisibility();
+
+  if (typeof navigateTo === "function") {
+    navigateTo(initialRoute || "timbratura");
+  }
+};
 
 // ========= LOGIN & UTENTE CORRENTE =========
 function updateTimbraturaUserInfo() {
