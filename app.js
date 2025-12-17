@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ruolo: "admin",
         canalePrevalente: "NR",
         virtualAdmin: true,
-        azienda_id: 1,
+        azienda_id: 3,
       };
 
       Auth.setCurrentUser(adminUser, false);
