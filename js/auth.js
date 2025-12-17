@@ -91,7 +91,7 @@
         setCurrentUser(byName, true);
         return byName;
       }
-    } catch {
+    } catch (e) {
       return null;
     }
   }
@@ -132,16 +132,11 @@
   // EXPORT
   // =========================
   window.Auth = {
-    // user
     getCurrentUser,
     setCurrentUser,
     restoreUserFromStorage,
     logout,
-
-    // login
     loginWithPin,
-
-    // ruoli
     isManagerRole,
     isManager,
     formatRuolo,
