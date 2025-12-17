@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔐 ADMIN VIRTUALE (SENZA DB)
+    // 🔐 ADMIN VIRTUALE
     if (nome.toLowerCase() === "admin" && pin === "9999") {
       const adminUser = {
         id: null,
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ruolo: "admin",
         canalePrevalente: "NR",
         virtualAdmin: true,
-        azienda_id: 1, // 👈 azienda master
+        azienda_id: 1,
       };
 
       Auth.setCurrentUser(adminUser, false);
@@ -95,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       loginView.style.display = "none";
 
-      // inizializza locali (multilocale)
       if (window.Locali) {
         await Locali.initLocali();
       }
@@ -105,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔑 LOGIN NORMALE (DB)
+    // 🔑 LOGIN DA DB
     const user = await Auth.loginWithPin(nome, pin, false);
 
     if (!user) {
@@ -114,10 +113,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     AppState.setCurrentUser(user);
-
     loginView.style.display = "none";
 
-    // inizializza locali
     if (window.Locali) {
       await Locali.initLocali();
     }
