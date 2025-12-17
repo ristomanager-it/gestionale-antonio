@@ -1531,10 +1531,7 @@
       </main>
     </div>
 
-    <!-- DATALIST GLOBALE PER LE RICETTE (usato da Produzione, Preventivi, ecc.) -->
-    <datalist id="ricette-suggestions"></datalist>
-
-    <!-- SUPABASE -->
+     <!-- SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
       const supabaseClient = window.supabase.createClient(
@@ -1544,7 +1541,8 @@
       window.supabaseClient = supabaseClient;
     </script>
 
+    <!-- STATO GLOBALE (MULTILOCALE READY) -->
+    <script src="js/state.js"></script>
+
     <!-- SCRIPT APP -->
     <script src="app.js"></script>
-  </body>
-</html>
