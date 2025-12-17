@@ -1739,7 +1739,7 @@ function emailCurrentPreventivoViaMailto() {
     });
   }
 
- // ========= LOGIN & UTENTE CORRENTE =========
+// ========= LOGIN & UTENTE CORRENTE =========
 function updateTimbraturaUserInfo() {
   const user = Auth.getCurrentUser();
 
@@ -1749,7 +1749,9 @@ function updateTimbraturaUserInfo() {
     return;
   }
 
-  if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = user.nome;
+  if (timbUtenteNomeEl) {
+    timbUtenteNomeEl.textContent = user.nome;
+  }
 
   const defaultCanale = user.canalePrevalente || "NR";
   if (timbCanaleSelect) {
@@ -1772,7 +1774,8 @@ if (btnLogin) {
       return;
     }
 
-    if (dipendenti.length === 0) {
+    // carico i dipendenti se non ancora caricati
+    if (!Array.isArray(dipendenti) || dipendenti.length === 0) {
       await caricaDipendentiDaSupabase();
     }
 
@@ -1797,11 +1800,11 @@ if (btnLogin) {
     // 🔍 LOGIN DIPENDENTE
     const dip = dipendenti.find(
       (d) =>
-        d.attivo &&
-        d.nome &&
+        d.attivo === true &&
+        typeof d.nome === "string" &&
         d.nome.toLowerCase() === nome.toLowerCase() &&
-        d.codice &&
-        d.codice.toString() === pin.toString()
+        d.codice != null &&
+        String(d.codice) === String(pin)
     );
 
     if (!dip) {
@@ -1810,6 +1813,7 @@ if (btnLogin) {
     }
 
     Auth.setCurrentUser(dip, remember);
+
     if (loginView) loginView.style.display = "none";
 
     if (Auth.isManagerRole(dip.ruolo)) {
