@@ -1,6 +1,6 @@
 // app.js
-// Bootstrap minimale + routing ponte
-// Compatibile con state.js, auth.js, locali.js
+// Bootstrap principale dell’app
+// Dipendenze: state.js, auth.js, locali.js
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ app.js caricato");
@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const views = document.querySelectorAll(".view");
 
-  if (!loginView || !timbraturaView || !btnLogin) {
+  if (!loginView || !btnLogin) {
     console.error("❌ Elementi DOM principali mancanti");
     return;
   }
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // CONTEXT APP (globale)
+  // CONTEXT GLOBALE APP
   // =========================
   function getAppContext() {
     return {
@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.getAppContext = getAppContext;
 
   // =========================
-  // ROUTING PONTE (GLOBALI)
+  // ROUTING GLOBALI
   // =========================
   window.showManagerMenuAndRoute = function (route = "timbratura") {
     if (managerMenu) managerMenu.style.display = "grid";
@@ -62,10 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // STATO INIZIALE
   // =========================
-  loginView.style.display = "block";
+  showOnlyView("view-login");
   if (managerMenu) managerMenu.style.display = "none";
-  if (homeDipView) homeDipView.style.display = "none";
-  if (timbraturaView) timbraturaView.style.display = "none";
 
   // =========================
   // LOGIN
@@ -79,35 +77,34 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔐 ADMIN VIRTUALE
-    if (nome.toLowerCase() === "admin" && pin === "9999") {
-      const adminUser = {
-        id: null,
-        nome: "Admin",
-        ruolo: "admin",
-        canalePrevalente: "NR",
-        virtualAdmin: true,
-        azienda_id: 3,
+    // =====================================
+    // 🔑 SUPER ADMIN (UNICO, FUORI DAL DB)
+    // =====================================
+    if (nome.toLowerCase() === "antonio" && pin === "1975") {
+      const superAdmin = {
+        id: "superadmin",
+        nome: "Antonio",
+        ruolo: "super_admin",
+        azienda_id: null,
+        canalePrevalente: null,
+        superAdmin: true,
       };
 
-      Auth.setCurrentUser(adminUser, false);
-      AppState.setCurrentUser(adminUser);
+      Auth.setCurrentUser(superAdmin, false);
+      AppState.setCurrentUser(superAdmin);
 
       loginView.style.display = "none";
 
-      if (window.Locali) {
-        await Locali.initLocali();
-      }
+      // il super admin NON entra in un locale
+      showOnlyView("view-super-admin");
 
-      showManagerMenuAndRoute("timbratura");
-      console.log("✅ Login admin riuscito");
+      console.log("✅ Super Admin loggato");
       return;
-      showOnlyView("view-select-locale");
-return;
     }
 
-    
-    // 🔑 LOGIN DA DB
+    // =====================================
+    // 🔐 LOGIN NORMALE DA DATABASE
+    // =====================================
     const user = await Auth.loginWithPin(nome, pin, false);
 
     if (!user) {
@@ -115,17 +112,49 @@ return;
       return;
     }
 
+    Auth.setCurrentUser(user, false);
     AppState.setCurrentUser(user);
+
     loginView.style.display = "none";
 
+    // inizializza locali per azienda
     if (window.Locali) {
-      await Locali.initLocali();
+      const ok = await Locali.initLocali();
+      if (!ok) {
+        alert("Nessun locale associato all’azienda");
+        return;
+      }
     }
 
+    // routing per ruolo
     if (Auth.isManagerRole(user.ruolo)) {
       showManagerMenuAndRoute("timbratura");
     } else {
       showHomeDipendente();
     }
   });
+
+  // =========================
+  // RIPRISTINO SESSIONE
+  // =========================
+  const restoredUser = Auth.restoreUserFromStorage?.();
+
+  if (restoredUser) {
+    AppState.setCurrentUser(restoredUser);
+
+    if (restoredUser.superAdmin) {
+      showOnlyView("view-super-admin");
+      return;
+    }
+
+    if (window.Locali) {
+      Locali.initLocali().then(() => {
+        if (Auth.isManagerRole(restoredUser.ruolo)) {
+          showManagerMenuAndRoute("timbratura");
+        } else {
+          showHomeDipendente();
+        }
+      });
+    }
+  }
 });
