@@ -1786,6 +1786,21 @@ if (btnLogin) {
       alert("Inserisci il PIN");
       return;
     }
+    // FIX HARD: assicura che la funzione esista sempre
+    if (typeof showManagerMenuAndRoute !== "function") {
+      window.showManagerMenuAndRoute = function (initialRoute) {
+        if (managerMenu) {
+          managerMenu.style.display = "grid";
+        }
+
+        showOnlyView(`view-${initialRoute || "timbratura"}`);
+        applyRoleVisibility();
+
+        if (typeof navigateTo === "function") {
+          navigateTo(initialRoute || "timbratura");
+        }
+      };
+    }
 
     // carico i dipendenti se non ancora caricati
     if (!Array.isArray(dipendenti) || dipendenti.length === 0) {
