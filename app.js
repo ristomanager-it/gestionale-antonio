@@ -1774,19 +1774,7 @@ function updateTimbraturaUserInfo() {
 
 if (btnLogin) {
   btnLogin.addEventListener("click", async () => {
-    const nome = (loginNomeInput?.value || "").trim();
-    const pin = (loginPinInput?.value || "").trim();
-    const remember = loginRememberInput?.checked || false;
-
-    if (!nome) {
-      alert("Inserisci il nome");
-      return;
-    }
-    if (!pin) {
-      alert("Inserisci il PIN");
-      return;
-    }
-    // FIX HARD: assicura che la funzione esista sempre
+      // FIX HARD: assicura che la funzione esista sempre
     if (typeof showManagerMenuAndRoute !== "function") {
       window.showManagerMenuAndRoute = function (initialRoute) {
         if (managerMenu) {
@@ -1801,6 +1789,19 @@ if (btnLogin) {
         }
       };
     }
+    const nome = (loginNomeInput?.value || "").trim();
+    const pin = (loginPinInput?.value || "").trim();
+    const remember = loginRememberInput?.checked || false;
+
+    if (!nome) {
+      alert("Inserisci il nome");
+      return;
+    }
+    if (!pin) {
+      alert("Inserisci il PIN");
+      return;
+    }
+  
 
     // carico i dipendenti se non ancora caricati
     if (!Array.isArray(dipendenti) || dipendenti.length === 0) {
