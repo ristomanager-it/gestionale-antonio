@@ -4775,7 +4775,8 @@ async function caricaProdottiSuggerimentiIngredienti() {
     await caricaDipendentiDaSupabase();
     await caricaTimbratureDaSupabase();
 
-    restoreUserFromStorage();
+   Auth.restoreUserFromStorage(dipendenti);
+
 
     const rawHash = window.location.hash.replace("#", "") || "timbratura";
     const route = normalizeRoute(rawHash);
