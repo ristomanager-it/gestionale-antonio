@@ -262,198 +262,100 @@ let magazzinoDati = [];
   loadTheme();
 
   // ========= RUOLI / FORMATI =========
-  function isManagerRole(ruolo) {
-    return (
-      ruolo === "admin" ||
-      ruolo === "manager_cucina" ||
-      ruolo === "manager_sala"
-    );
+// ⚠️ formatRuolo è stato spostato in Auth → NON serve più qui
+
+function formatTipoCompenso(tipo) {
+  switch (tipo) {
+    case "orario":
+      return "A ore";
+    case "mensile":
+      return "Mensile";
+    case "servizio":
+      return "Per servizio";
+    default:
+      return "";
+  }
+}
+
+function formatDataNascita(dataNascita) {
+  if (!dataNascita) return "";
+  const d = new Date(dataNascita);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("it-IT");
+}
+
+function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
+  if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
+
+  if (tipo === "orario") return retribuzioneBase;
+
+  if (tipo === "mensile") {
+    if (!oreMensili || oreMensili <= 0) return 0;
+    return retribuzioneBase / oreMensili;
   }
 
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
+  if (tipo === "servizio") {
+    if (!oreServizio || oreServizio <= 0) return 0;
+    return retribuzioneBase / oreServizio;
   }
 
-  function formatTipoCompenso(tipo) {
-    switch (tipo) {
-      case "orario":
-        return "A ore";
-      case "mensile":
-        return "Mensile";
-      case "servizio":
-        return "Per servizio";
-      default:
-        return "";
-    }
+  return 0;
+}
+
+// ========= HEADER & VISIBILITÀ =========
+// 🔥 Autenticazione delegata ad Auth (auth.js)
+
+function updateHeaderUser() {
+  const user = Auth.getCurrentUser();
+  if (!currentUserLabel) return;
+
+  if (!user) {
+    currentUserLabel.textContent = "Nessun utente";
+    if (btnLogout) btnLogout.style.display = "none";
+  } else {
+    currentUserLabel.textContent = `${user.nome} (${Auth.formatRuolo(user.ruolo)})`;
+    if (btnLogout) btnLogout.style.display = "inline-block";
   }
+}
 
-  function formatDataNascita(dataNascita) {
-    if (!dataNascita) return "";
-    const d = new Date(dataNascita);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("it-IT");
-  }
+function applyRoleVisibility() {
+  const user = Auth.getCurrentUser();
+  const isManager = user && Auth.isManager(user.ruolo);
 
-  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
-    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
-
-    if (tipo === "orario") return retribuzioneBase;
-
-    if (tipo === "mensile") {
-      if (!oreMensili || oreMensili <= 0) return 0;
-      return retribuzioneBase / oreMensili;
-    }
-
-    if (tipo === "servizio") {
-      if (!oreServizio || oreServizio <= 0) return 0;
-      return retribuzioneBase / oreServizio;
-    }
-
-    return 0;
-  }
-
-  // ========= HEADER & VISIBILITÀ =========
-  function updateHeaderUser() {
-    if (!currentUserLabel) return;
-
-    if (!currentUser) {
-      currentUserLabel.textContent = "Nessun utente";
-    } else {
-      const ruoloLabel = formatRuolo(currentUser.ruolo) || "Dipendente";
-      currentUserLabel.textContent = `${currentUser.nome} (${ruoloLabel})`;
-    }
-
-    if (btnLogout) {
-      btnLogout.style.display = currentUser ? "inline-block" : "none";
-    }
-  }
-
-  function applyRoleVisibility() {
-    const modalita =
-      currentUser && isManagerRole(currentUser.ruolo) ? "manager" : "dipendente";
-
-    document
-      .querySelectorAll("[data-manager-only='true'], .manager-only")
-      .forEach((el) => {
-        el.style.display = modalita === "manager" ? "" : "none";
-      });
-
-    routeButtons.forEach((btn) => {
-      const managerOnly = btn.getAttribute("data-manager-only") === "true";
-      if (managerOnly && modalita !== "manager") {
-        btn.style.display = "none";
-      } else {
-        btn.style.display = "";
-      }
+  document
+    .querySelectorAll("[data-manager-only='true'], .manager-only")
+    .forEach((el) => {
+      el.style.display = isManager ? "" : "none";
     });
 
-    if (managerMenu) {
-      managerMenu.style.display = modalita === "manager" ? "grid" : "none";
-    }
+  routeButtons.forEach((btn) => {
+    const managerOnly = btn.getAttribute("data-manager-only") === "true";
+    btn.style.display = managerOnly && !isManager ? "none" : "";
+  });
 
-    updateHeaderUser();
-    updateTimbraturaUserInfo();
+  if (managerMenu) {
+    managerMenu.style.display = isManager ? "grid" : "none";
   }
+}
 
-  function showOnlyView(viewId) {
-    views.forEach((v) => {
-      v.style.display = v.id === viewId ? "block" : "none";
-    });
-  }
+function showOnlyView(viewId) {
+  views.forEach((v) => {
+    v.style.display = v.id === viewId ? "block" : "none";
+  });
+}
 
-  function showLogin() {
-    if (homeDipView) homeDipView.style.display = "none";
-    if (managerMenu) managerMenu.style.display = "none";
-    showOnlyView("view-login");
-    currentUser = null;
-    localStorage.removeItem(CURRENT_USER_KEY);
-    updateHeaderUser();
-  }
+function showLogin() {
+  Auth.logout();
+  showOnlyView("view-login");
+  if (homeDipView) homeDipView.style.display = "none";
+  if (managerMenu) managerMenu.style.display = "none";
+  updateHeaderUser();
+}
 
-  function showHomeDipendente() {
-    if (managerMenu) managerMenu.style.display = "none";
-    showOnlyView("view-home-dip");
-    applyRoleVisibility();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+if (btnLogout) {
+  btnLogout.addEventListener("click", showLogin);
+}
 
-  function showManagerMenuAndRoute(initialRoute) {
-    if (managerMenu) managerMenu.style.display = "grid";
-    showOnlyView(`view-${initialRoute || "timbratura"}`);
-    applyRoleVisibility();
-    navigateTo(initialRoute || "timbratura");
-  }
-
-  function setCurrentUser(user, persist) {
-    currentUser = {
-      id: user.id ?? null,
-      nome: user.nome,
-      ruolo: user.ruolo || "",
-      canalePrevalente: user.canalePrevalente || "NR",
-      virtualAdmin: !!user.virtualAdmin,
-    };
-
-    if (persist) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
-
-    updateHeaderUser();
-    applyRoleVisibility();
-  }
-
-  function restoreUserFromStorage() {
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    if (!raw) return;
-    try {
-      const saved = JSON.parse(raw);
-      if (!saved) return;
-
-      if (saved.virtualAdmin) {
-        currentUser = saved;
-        applyRoleVisibility();
-        return;
-      }
-
-      const found = dipendenti.find((d) => d.id === saved.id);
-      if (found) {
-        setCurrentUser(found, true);
-        return;
-      }
-
-      const byName = dipendenti.find(
-        (d) =>
-          d.nome &&
-          d.nome.toLowerCase() === String(saved.nome || "").toLowerCase()
-      );
-      if (byName) {
-        setCurrentUser(byName, true);
-        return;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      showLogin();
-    });
-  }
 
 // =====================================
 //  PREVENTIVI & PRENOTAZIONI
