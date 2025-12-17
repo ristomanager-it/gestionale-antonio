@@ -1739,82 +1739,86 @@ function emailCurrentPreventivoViaMailto() {
     });
   }
 
-  // ========= LOGIN & UTENTE CORRENTE =========
-  function updateTimbraturaUserInfo() {
-    if (!currentUser) {
-      if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
-      if (timbCanaleSelect) timbCanaleSelect.value = "NR";
+ // ========= LOGIN & UTENTE CORRENTE =========
+function updateTimbraturaUserInfo() {
+  const user = Auth.getCurrentUser();
+
+  if (!user) {
+    if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = "-";
+    if (timbCanaleSelect) timbCanaleSelect.value = "NR";
+    return;
+  }
+
+  if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = user.nome;
+
+  const defaultCanale = user.canalePrevalente || "NR";
+  if (timbCanaleSelect) {
+    timbCanaleSelect.value = defaultCanale;
+  }
+}
+
+if (btnLogin) {
+  btnLogin.addEventListener("click", async () => {
+    const nome = (loginNomeInput?.value || "").trim();
+    const pin = (loginPinInput?.value || "").trim();
+    const remember = loginRememberInput?.checked || false;
+
+    if (!nome) {
+      alert("Inserisci il nome");
+      return;
+    }
+    if (!pin) {
+      alert("Inserisci il PIN");
       return;
     }
 
-    if (timbUtenteNomeEl) timbUtenteNomeEl.textContent = currentUser.nome;
-
-    const defaultCanale = currentUser.canalePrevalente || "NR";
-    if (timbCanaleSelect) {
-      timbCanaleSelect.value = defaultCanale;
+    if (dipendenti.length === 0) {
+      await caricaDipendentiDaSupabase();
     }
-  }
 
-  if (btnLogin) {
-    btnLogin.addEventListener("click", async () => {
-      const nome = (loginNomeInput?.value || "").trim();
-      const pin = (loginPinInput?.value || "").trim();
-      const remember = loginRememberInput?.checked || false;
-
-      if (!nome) {
-        alert("Inserisci il nome");
-        return;
-      }
-      if (!pin) {
-        alert("Inserisci il PIN");
-        return;
-      }
-
-      if (dipendenti.length === 0) {
-        await caricaDipendentiDaSupabase();
-      }
-
-      // admin virtuale
-      if (nome.toLowerCase() === "admin" && pin === "9999") {
-        setCurrentUser(
-          {
-            id: null,
-            nome: "Admin",
-            ruolo: "admin",
-            canalePrevalente: "NR",
-            virtualAdmin: true,
-          },
-          remember
-        );
-        if (loginView) loginView.style.display = "none";
-        showManagerMenuAndRoute("timbratura");
-        return;
-      }
-
-      const dip = dipendenti.find(
-        (d) =>
-          d.attivo &&
-          d.nome &&
-          d.nome.toLowerCase() === nome.toLowerCase() &&
-          d.codice &&
-          d.codice.toString() === pin.toString()
+    // 🔐 ADMIN VIRTUALE
+    if (nome.toLowerCase() === "admin" && pin === "9999") {
+      Auth.setCurrentUser(
+        {
+          id: null,
+          nome: "Admin",
+          ruolo: "admin",
+          canalePrevalente: "NR",
+          virtualAdmin: true,
+        },
+        remember
       );
 
-      if (!dip) {
-        alert("Nome o PIN non corretti");
-        return;
-      }
-
-      setCurrentUser(dip, remember);
       if (loginView) loginView.style.display = "none";
+      showManagerMenuAndRoute("timbratura");
+      return;
+    }
 
-      if (isManagerRole(dip.ruolo)) {
-        showManagerMenuAndRoute("timbratura");
-      } else {
-        showHomeDipendente();
-      }
-    });
-  }
+    // 🔍 LOGIN DIPENDENTE
+    const dip = dipendenti.find(
+      (d) =>
+        d.attivo &&
+        d.nome &&
+        d.nome.toLowerCase() === nome.toLowerCase() &&
+        d.codice &&
+        d.codice.toString() === pin.toString()
+    );
+
+    if (!dip) {
+      alert("Nome o PIN non corretti");
+      return;
+    }
+
+    Auth.setCurrentUser(dip, remember);
+    if (loginView) loginView.style.display = "none";
+
+    if (Auth.isManagerRole(dip.ruolo)) {
+      showManagerMenuAndRoute("timbratura");
+    } else {
+      showHomeDipendente();
+    }
+  });
+}
 
   // ========= TIMBRATURE =========
   async function caricaTimbratureDaSupabase() {
