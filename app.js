@@ -52,3 +52,17 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Login dipendenti disattivato (modalità test)");
   });
 });
+// =========================
+// ROUTING BASE (PONTE)
+// =========================
+function showManagerMenuAndRoute(route) {
+  if (managerMenu) managerMenu.style.display = "grid";
+  showOnlyView(`view-${route}`);
+  applyRoleVisibility();
+}
+
+function showHomeDipendente() {
+  if (managerMenu) managerMenu.style.display = "none";
+  showOnlyView("view-home-dip");
+  applyRoleVisibility();
+}
