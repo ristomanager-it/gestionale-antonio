@@ -1,87 +1,74 @@
 // js/super-admin.js
-// Gestione aziende - Super Admin
+// Gestione Super Admin (Aziende / Titolari / Locali)
+// Sicuro: non genera errori se la view non è presente
 
 (function () {
-  const supabase = window.supabaseClient;
-
-  const panel = document.getElementById("sa-aziende-panel");
-  if (!panel) return;
-
-  const lista = document.getElementById("sa-aziende-lista");
-  const btnSalva = document.getElementById("btn-sa-salva-azienda");
-
-  const inputId = document.getElementById("sa-azienda-id");
-  const inputNome = document.getElementById("sa-azienda-nome");
-  const inputPiano = document.getElementById("sa-azienda-piano");
-  const inputMaxLocali = document.getElementById("sa-azienda-max-locali");
-  const inputMaxUtenti = document.getElementById("sa-azienda-max-utenti");
-
-  // =========================
-  async function caricaAziende() {
-    const { data, error } = await supabase
-      .from("aziende")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      alert("Errore caricamento aziende");
+  document.addEventListener("DOMContentLoaded", () => {
+    // =========================
+    // CONTROLLI DI BASE
+    // =========================
+    const superAdminView = document.getElementById("view-super-admin");
+    if (!superAdminView) {
+      // Non siamo nella pagina super admin
       return;
     }
 
-    lista.innerHTML = "";
+    // =========================
+    // BOTTONI MENU
+    // =========================
+    const btnAziende = document.getElementById("btn-sa-aziende");
+    const btnTitolari = document.getElementById("btn-sa-titolari");
+    const btnLocali = document.getElementById("btn-sa-locali");
 
-    data.forEach((a) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${a.nome}</td>
-        <td>${a.piano}</td>
-        <td>${a.max_locali}</td>
-        <td>${a.max_utenti}</td>
-        <td>
-          <button class="app-button tiny gray">Modifica</button>
-        </td>
-      `;
+    // =========================
+    // PANEL
+    // =========================
+    const panelAziende = document.getElementById("sa-aziende-panel");
+    const panelTitolari = document.getElementById("sa-titolari-panel");
+    const panelLocali = document.getElementById("sa-locali-panel");
 
-      tr.querySelector("button").addEventListener("click", () => {
-        inputId.value = a.id;
-        inputNome.value = a.nome;
-        inputPiano.value = a.piano;
-        inputMaxLocali.value = a.max_locali;
-        inputMaxUtenti.value = a.max_utenti;
+    if (!panelAziende || !panelTitolari || !panelLocali) {
+      console.warn("⚠️ Panel Super Admin mancanti");
+      return;
+    }
+
+    // =========================
+    // HELPER: MOSTRA PANEL
+    // =========================
+    function showPanel(panelToShow) {
+      [panelAziende, panelTitolari, panelLocali].forEach((p) => {
+        p.style.display = "none";
       });
 
-      lista.appendChild(tr);
-    });
-  }
-
-  // =========================
-  btnSalva.addEventListener("click", async () => {
-    const payload = {
-      nome: inputNome.value,
-      piano: inputPiano.value,
-      max_locali: Number(inputMaxLocali.value),
-      max_utenti: Number(inputMaxUtenti.value),
-    };
-
-    if (!payload.nome) {
-      alert("Nome azienda obbligatorio");
-      return;
+      panelToShow.style.display = "block";
     }
 
-    if (inputId.value) {
-      await supabase.from("aziende").update(payload).eq("id", inputId.value);
-    } else {
-      await supabase.from("aziende").insert(payload);
+    // =========================
+    // EVENTI MENU
+    // =========================
+    if (btnAziende) {
+      btnAziende.addEventListener("click", () => {
+        showPanel(panelAziende);
+      });
     }
 
-    inputId.value = "";
-    inputNome.value = "";
-    inputMaxLocali.value = "";
-    inputMaxUtenti.value = "";
+    if (btnTitolari) {
+      btnTitolari.addEventListener("click", () => {
+        showPanel(panelTitolari);
+      });
+    }
 
-    caricaAziende();
+    if (btnLocali) {
+      btnLocali.addEventListener("click", () => {
+        showPanel(panelLocali);
+      });
+    }
+
+    // =========================
+    // STATO INIZIALE
+    // =========================
+    showPanel(panelAziende);
+
+    console.log("✅ Super Admin JS inizializzato");
   });
-
-  // =========================
-  caricaAziende();
 })();
