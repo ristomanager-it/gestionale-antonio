@@ -77,30 +77,30 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // =====================================
-    // 🔑 SUPER ADMIN (UNICO, FUORI DAL DB)
-    // =====================================
-    if (nome.toLowerCase() === "antonio" && pin === "1975") {
-      const superAdmin = {
-        id: "superadmin",
-        nome: "Antonio",
-        ruolo: "super_admin",
-        azienda_id: null,
-        canalePrevalente: null,
-        superAdmin: true,
-      };
+    // 🔐 SUPER ADMIN
+if (nome === "admin" && pin === "9999") {
+  const superAdmin = {
+    id: "super-admin",
+    nome: "Super Admin",
+    ruolo: "super_admin",
+    virtualAdmin: true,
+  };
 
-      Auth.setCurrentUser(superAdmin, false);
-      AppState.setCurrentUser(superAdmin);
+  AppState.setCurrentUser(superAdmin);
 
-      loginView.style.display = "none";
+  loginView.style.display = "none";
 
-      // il super admin NON entra in un locale
-      showOnlyView("view-super-admin");
+  // nasconde tutto
+  document.querySelectorAll(".view").forEach(v => {
+    v.style.display = "none";
+  });
 
-      console.log("✅ Super Admin loggato");
-      return;
-    }
+  // mostra SOLO super admin
+  document.getElementById("view-super-admin").style.display = "block";
+
+  console.log("✅ Super Admin loggato");
+  return;
+}
 
     // =====================================
     // 🔐 LOGIN NORMALE DA DATABASE
