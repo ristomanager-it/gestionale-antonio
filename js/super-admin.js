@@ -1,33 +1,47 @@
 // js/super-admin.js
 (function () {
-  console.log("✅ Super Admin JS inizializzato");
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("✅ Super Admin JS inizializzato");
 
-  document.addEventListener("click", (e) => {
-    const actionEl = e.target.closest("[data-sa-action]");
-    if (!actionEl) return;
+    const viewSuperAdmin = document.getElementById("view-super-admin");
+    if (!viewSuperAdmin) return;
 
-    const action = actionEl.dataset.saAction;
-    console.log("👉 Super Admin action:", action);
+    const btnAziende = document.getElementById("btn-sa-aziende");
+    const btnTitolari = document.getElementById("btn-sa-titolari");
+    const btnLocali = document.getElementById("btn-sa-locali");
 
-    function showOnlyView(viewId) {
-      document.querySelectorAll(".view").forEach((v) => {
-        v.style.display = v.id === viewId ? "block" : "none";
+    const panelAziende = document.getElementById("sa-aziende-panel");
+    const panelTitolari = document.getElementById("sa-titolari-panel");
+    const panelLocali = document.getElementById("sa-locali-panel");
+
+    function hideAllPanels() {
+      if (panelAziende) panelAziende.style.display = "none";
+      if (panelTitolari) panelTitolari.style.display = "none";
+      if (panelLocali) panelLocali.style.display = "none";
+    }
+
+    if (btnAziende) {
+      btnAziende.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Aziende");
+        hideAllPanels();
+        panelAziende.style.display = "block";
       });
     }
 
-    if (action === "aziende") {
-      alert("Gestione Aziende");
-      // showOnlyView("view-sa-aziende");
+    if (btnTitolari) {
+      btnTitolari.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Titolari");
+        hideAllPanels();
+        panelTitolari.style.display = "block";
+      });
     }
 
-    if (action === "titolari") {
-      alert("Gestione Titolari");
-      // showOnlyView("view-sa-titolari");
-    }
-
-    if (action === "locali") {
-      alert("Gestione Locali");
-      // showOnlyView("view-sa-locali");
+    if (btnLocali) {
+      btnLocali.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Locali");
+        hideAllPanels();
+        panelLocali.style.display = "block";
+      });
     }
   });
 })();
