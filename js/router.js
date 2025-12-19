@@ -9,12 +9,25 @@ window.Router = (function () {
       return;
     }
 
-    document.querySelectorAll(".view").forEach((v) => {
+    // nasconde tutte le view
+    document.querySelectorAll(".view").forEach(v => {
       v.style.display = "none";
     });
 
+    // mostra view richiesta
     targetView.style.display = "block";
 
+    // menu manager
+    const user = AppState.getCurrentUser();
+    const managerMenu = document.getElementById("manager-menu");
+
+    if (user && Auth.isManagerRole(user.ruolo)) {
+      if (managerMenu) managerMenu.style.display = "grid";
+    } else {
+      if (managerMenu) managerMenu.style.display = "none";
+    }
+
+    // hook onEnter
     const hookName = `onEnter_${route.replace(/-/g, "_")}`;
     if (typeof window[hookName] === "function") {
       window[hookName]();
@@ -24,7 +37,7 @@ window.Router = (function () {
   }
 
   function init() {
-    document.querySelectorAll("[data-route]").forEach((btn) => {
+    document.querySelectorAll("[data-route]").forEach(btn => {
       btn.addEventListener("click", () => {
         navigate(btn.dataset.route);
       });
@@ -33,6 +46,6 @@ window.Router = (function () {
 
   return {
     init,
-    navigate,
+    navigate
   };
 })();
