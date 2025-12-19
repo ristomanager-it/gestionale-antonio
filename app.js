@@ -1,4 +1,91 @@
 // app.js
+
+document.addEventListener("DOMContentLoaded", () => {
+  const views = document.querySelectorAll(".view");
+
+  function showOnlyView(id) {
+    views.forEach((v) => {
+      v.style.display = v.id === id ? "block" : "none";
+    });
+  }
+
+  // ================= ROUTER =================
+  Router.init();
+
+  // ================= LOGIN =================
+  const btnLogin = document.getElementById("btn-login");
+  const inputNome = document.getElementById("login-nome");
+  const inputPin = document.getElementById("login-pin");
+
+  btnLogin.addEventListener("click", async () => {
+    const nome = inputNome.value.trim();
+    const pin = inputPin.value.trim();
+
+    // SUPER ADMIN
+    if (nome === "admin" && pin === "9999") {
+      AppState.setCurrentUser({
+        id: "super-admin",
+        nome: "Super Admin",
+        ruolo: "super_admin",
+        virtualAdmin: true,
+      });
+
+      Router.navigate("super-admin");
+      return;
+    }
+
+    const user = await Auth.loginWithPin(nome, pin, false);
+
+    if (!user) {
+      alert("Nome o PIN errati");
+      return;
+    }
+
+    AppState.setCurrentUser(user);
+
+    const result = await Locali.initLocali();
+
+    if (result.status === "none") {
+      alert("Nessun locale associato");
+      return;
+    }
+
+    if (result.status === "multiple") {
+      Router.navigate("select-locale");
+      return;
+    }
+
+    // locale singolo
+    if (Auth.isManagerRole(user.ruolo)) {
+      Router.navigate("timbratura");
+    } else {
+      Router.navigate("home-dip");
+    }
+  });
+
+  // ================= RIPRISTINO SESSIONE =================
+  const restored = Auth.restoreUserFromStorage?.();
+
+  if (restored) {
+    AppState.setCurrentUser(restored);
+
+    if (restored.virtualAdmin) {
+      Router.navigate("super-admin");
+      return;
+    }
+
+    Locali.initLocali().then((res) => {
+      if (res.status === "multiple") {
+        Router.navigate("select-locale");
+      } else {
+        Router.navigate("timbratura");
+      }
+    });
+  } else {
+    showOnlyView("view-login");
+  }
+});
+// app.js
 // Bootstrap principale dell’app
 // Dipendenze: state.js, auth.js, locali.js
 
