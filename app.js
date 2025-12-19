@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // LOGIN NORMALE
     const user = await Auth.loginWithPin(nome, pin, false);
     if (!user) {
       alert("Nome o PIN errati");
@@ -38,14 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     AppState.setCurrentUser(user);
 
+    // LOCALi
     const result = await Locali.initLocali();
 
-    if (!result || result.status === "none") {
-      alert("Nessun locale associato all’azienda");
-      return;
-    }
-
-    if (result.status === "multiple") {
+    if (result && result.status === "multiple") {
       Router.navigate("select-locale");
       return;
     }
@@ -55,6 +52,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   });
 
-  // AVVIO APP
+  // AVVIO
   Router.navigate("login");
 });
