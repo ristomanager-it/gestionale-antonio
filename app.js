@@ -1,16 +1,9 @@
-// app.js — VERSIONE STABILE
-
+// app.js
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ app.js avviato");
 
-  // =========================
-  // ROUTER
-  // =========================
   Router.init();
 
-  // =========================
-  // LOGIN
-  // =========================
   const btnLogin = document.getElementById("btn-login");
   const inputNome = document.getElementById("login-nome");
   const inputPin = document.getElementById("login-pin");
@@ -24,23 +17,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔐 SUPER ADMIN
+    // SUPER ADMIN
     if (nome === "admin" && pin === "9999") {
-      const superAdmin = {
+      AppState.setCurrentUser({
         id: "super-admin",
         nome: "Super Admin",
         ruolo: "super_admin",
         virtualAdmin: true,
-      };
+      });
 
-      AppState.setCurrentUser(superAdmin);
       Router.navigate("super-admin");
       return;
     }
 
-    // 🔐 LOGIN NORMALE
     const user = await Auth.loginWithPin(nome, pin, false);
-
     if (!user) {
       alert("Nome o PIN errati");
       return;
@@ -48,9 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     AppState.setCurrentUser(user);
 
-    // =========================
-    // LOCALi
-    // =========================
     const result = await Locali.initLocali();
 
     if (!result || result.status === "none") {
@@ -63,40 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // =========================
-    // ROUTING FINALE
-    // =========================
-    if (Auth.isManagerRole(user.ruolo)) {
-      Router.navigate("timbratura");
-    } else {
-      Router.navigate("home-dip");
-    }
+    Router.navigate(
+      Auth.isManagerRole(user.ruolo) ? "timbratura" : "home-dip"
+    );
   });
 
-  // =========================
-  // RIPRISTINO SESSIONE
-  // =========================
-  const restored = Auth.restoreUserFromStorage?.();
-
-  if (restored) {
-    AppState.setCurrentUser(restored);
-
-    if (restored.virtualAdmin) {
-      Router.navigate("super-admin");
-      return;
-    }
-
-    Locali.initLocali().then((res) => {
-      if (res && res.status === "multiple") {
-        Router.navigate("select-locale");
-      } else if (Auth.isManagerRole(restored.ruolo)) {
-        Router.navigate("timbratura");
-      } else {
-        Router.navigate("home-dip");
-      }
-    });
-  } else {
-    // 👇 QUESTO È IL FIX CHIAVE
-    Router.navigate("login");
-  }
+  // AVVIO APP
+  Router.navigate("login");
 });
