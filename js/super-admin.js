@@ -1,74 +1,50 @@
 // js/super-admin.js
-// Gestione Super Admin (Aziende / Titolari / Locali)
-// Sicuro: non genera errori se la view non è presente
-
 (function () {
+  console.log("✅ super-admin.js caricato");
+
   document.addEventListener("DOMContentLoaded", () => {
-    // =========================
-    // CONTROLLI DI BASE
-    // =========================
-    const superAdminView = document.getElementById("view-super-admin");
-    if (!superAdminView) {
-      // Non siamo nella pagina super admin
+    const viewSuperAdmin = document.getElementById("view-super-admin");
+
+    if (!viewSuperAdmin) {
+      console.warn("⚠️ view-super-admin non trovata");
       return;
     }
 
-    // =========================
-    // BOTTONI MENU
-    // =========================
     const btnAziende = document.getElementById("btn-sa-aziende");
     const btnTitolari = document.getElementById("btn-sa-titolari");
     const btnLocali = document.getElementById("btn-sa-locali");
 
-    // =========================
-    // PANEL
-    // =========================
-    const panelAziende = document.getElementById("sa-aziende-panel");
-    const panelTitolari = document.getElementById("sa-titolari-panel");
-    const panelLocali = document.getElementById("sa-locali-panel");
-
-    if (!panelAziende || !panelTitolari || !panelLocali) {
-      console.warn("⚠️ Panel Super Admin mancanti");
-      return;
-    }
-
-    // =========================
-    // HELPER: MOSTRA PANEL
-    // =========================
-    function showPanel(panelToShow) {
-      [panelAziende, panelTitolari, panelLocali].forEach((p) => {
-        p.style.display = "none";
+    // helper per cambiare view
+    function showOnlyView(viewId) {
+      document.querySelectorAll(".view").forEach((v) => {
+        v.style.display = v.id === viewId ? "block" : "none";
       });
-
-      panelToShow.style.display = "block";
     }
 
-    // =========================
-    // EVENTI MENU
-    // =========================
     if (btnAziende) {
       btnAziende.addEventListener("click", () => {
-        showPanel(panelAziende);
+        console.log("👉 Click Gestione Aziende");
+        alert("Gestione Aziende (placeholder)");
+        // showOnlyView("view-sa-aziende"); // la creeremo dopo
       });
     }
 
     if (btnTitolari) {
       btnTitolari.addEventListener("click", () => {
-        showPanel(panelTitolari);
+        console.log("👉 Click Gestione Titolari");
+        alert("Gestione Titolari (placeholder)");
+        // showOnlyView("view-sa-titolari");
       });
     }
 
     if (btnLocali) {
       btnLocali.addEventListener("click", () => {
-        showPanel(panelLocali);
+        console.log("👉 Click Gestione Locali");
+        alert("Gestione Locali (placeholder)");
+        // showOnlyView("view-sa-locali");
       });
     }
 
-    // =========================
-    // STATO INIZIALE
-    // =========================
-    showPanel(panelAziende);
-
-    console.log("✅ Super Admin JS inizializzato");
+    console.log("✅ Super Admin listeners attivi");
   });
 })();
