@@ -1,5 +1,62 @@
 <!DOCTYPE html>
 <html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestionale Antonio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="header-left">
+        <div class="header-logo-circle">
+          <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
+        </div>
+        <h1>Gestionale Antonio</h1>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="app-main">
+    <!-- LOGIN -->
+    <section id="view-login" class="view login-view">
+      <div class="login-card">
+        <div class="login-logo">
+          <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
+        </div>
+
+        <h2 class="login-title">Benvenuto</h2>
+        <p class="login-subtitle">Accedi con Nome e PIN</p>
+
+        <label>Nome</label>
+        <input id="login-nome" class="input-pill" />
+
+        <label>PIN</label>
+        <input id="login-pin" type="password" class="input-pill" />
+
+        <button id="btn-login" class="app-button login-button">
+          Entra
+        </button>
+      </div>
+    </section>
+
+    <!-- HOME -->
+    <section id="view-home" class="view" style="display:none">
+      <h2>Home</h2>
+      <button id="btn-logout" class="app-button">Logout</button>
+    </section>
+  </main>
+
+  <!-- APP -->
+  <script src="app.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
