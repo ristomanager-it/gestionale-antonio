@@ -1,50 +1,33 @@
 // js/super-admin.js
 (function () {
-  console.log("✅ super-admin.js caricato");
+  console.log("✅ Super Admin JS inizializzato");
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const viewSuperAdmin = document.getElementById("view-super-admin");
+  document.addEventListener("click", (e) => {
+    const actionEl = e.target.closest("[data-sa-action]");
+    if (!actionEl) return;
 
-    if (!viewSuperAdmin) {
-      console.warn("⚠️ view-super-admin non trovata");
-      return;
-    }
+    const action = actionEl.dataset.saAction;
+    console.log("👉 Super Admin action:", action);
 
-    const btnAziende = document.getElementById("btn-sa-aziende");
-    const btnTitolari = document.getElementById("btn-sa-titolari");
-    const btnLocali = document.getElementById("btn-sa-locali");
-
-    // helper per cambiare view
     function showOnlyView(viewId) {
       document.querySelectorAll(".view").forEach((v) => {
         v.style.display = v.id === viewId ? "block" : "none";
       });
     }
 
-    if (btnAziende) {
-      btnAziende.addEventListener("click", () => {
-        console.log("👉 Click Gestione Aziende");
-        alert("Gestione Aziende (placeholder)");
-        // showOnlyView("view-sa-aziende"); // la creeremo dopo
-      });
+    if (action === "aziende") {
+      alert("Gestione Aziende");
+      // showOnlyView("view-sa-aziende");
     }
 
-    if (btnTitolari) {
-      btnTitolari.addEventListener("click", () => {
-        console.log("👉 Click Gestione Titolari");
-        alert("Gestione Titolari (placeholder)");
-        // showOnlyView("view-sa-titolari");
-      });
+    if (action === "titolari") {
+      alert("Gestione Titolari");
+      // showOnlyView("view-sa-titolari");
     }
 
-    if (btnLocali) {
-      btnLocali.addEventListener("click", () => {
-        console.log("👉 Click Gestione Locali");
-        alert("Gestione Locali (placeholder)");
-        // showOnlyView("view-sa-locali");
-      });
+    if (action === "locali") {
+      alert("Gestione Locali");
+      // showOnlyView("view-sa-locali");
     }
-
-    console.log("✅ Super Admin listeners attivi");
   });
 })();
