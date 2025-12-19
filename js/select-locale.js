@@ -6,11 +6,17 @@
 
     if (!view || !container) return;
 
-    window.onEnter_select-locale = function () {
+    // ⚠️ NOME SENZA TRATTINI
+    window.onEnter_select_locale = function () {
       const user = AppState.getCurrentUser();
       const locali = AppState.getLocali();
 
       container.innerHTML = "";
+
+      if (!locali || locali.length === 0) {
+        container.innerHTML = "<p>Nessun locale disponibile</p>";
+        return;
+      }
 
       locali.forEach((loc) => {
         const btn = document.createElement("button");
