@@ -1,60 +1,65 @@
 // js/super-admin.js
 (function () {
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("✅ Super Admin JS inizializzato");
+  console.log("✅ Super Admin JS inizializzato");
 
-    // =========================
-    // BOTTONI
-    // =========================
+  document.addEventListener("DOMContentLoaded", () => {
+    const viewSuperAdmin = document.getElementById("view-super-admin");
+
     const btnAziende = document.getElementById("btn-sa-aziende");
     const btnTitolari = document.getElementById("btn-sa-titolari");
     const btnLocali = document.getElementById("btn-sa-locali");
 
-    // =========================
-    // PANNELLI
-    // =========================
     const panelAziende = document.getElementById("sa-aziende-panel");
     const panelTitolari = document.getElementById("sa-titolari-panel");
     const panelLocali = document.getElementById("sa-locali-panel");
 
-    if (!btnAziende || !btnTitolari || !btnLocali) {
-      console.warn("⚠️ Bottoni Super Admin mancanti");
-      return;
-    }
+    if (!viewSuperAdmin) return;
 
-    if (!panelAziende || !panelTitolari || !panelLocali) {
-      console.warn("⚠️ Pannelli Super Admin mancanti");
-      return;
-    }
-
-    // =========================
-    // HELPER
-    // =========================
     function hideAllPanels() {
-      panelAziende.style.display = "none";
-      panelTitolari.style.display = "none";
-      panelLocali.style.display = "none";
+      if (panelAziende) panelAziende.style.display = "none";
+      if (panelTitolari) panelTitolari.style.display = "none";
+      if (panelLocali) panelLocali.style.display = "none";
     }
 
-    // =========================
-    // EVENTI
-    // =========================
-    btnAziende.addEventListener("click", () => {
-      console.log("👉 Click Super Admin: Aziende");
-      hideAllPanels();
-      panelAziende.style.display = "block";
-    });
+    function isSuperAdmin() {
+      const user = AppState.getCurrentUser();
+      return user && user.virtualAdmin === true;
+    }
 
-    btnTitolari.addEventListener("click", () => {
-      console.log("👉 Click Super Admin: Titolari");
+    // mostra la view solo se super admin
+    if (isSuperAdmin()) {
+      viewSuperAdmin.style.display = "block";
       hideAllPanels();
-      panelTitolari.style.display = "block";
-    });
+      console.log("✅ Super Admin loggato");
+    } else {
+      viewSuperAdmin.style.display = "none";
+      return;
+    }
 
-    btnLocali.addEventListener("click", () => {
-      console.log("👉 Click Super Admin: Locali");
-      hideAllPanels();
-      panelLocali.style.display = "block";
-    });
+    // ===== CLICK HANDLER =====
+
+    if (btnAziende) {
+      btnAziende.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Aziende");
+        hideAllPanels();
+        panelAziende.style.display = "block";
+      });
+    }
+
+    if (btnTitolari) {
+      btnTitolari.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Titolari");
+        hideAllPanels();
+        panelTitolari.style.display = "block";
+      });
+    }
+
+    if (btnLocali) {
+      btnLocali.addEventListener("click", () => {
+        console.log("👉 Click Super Admin: Locali");
+        hideAllPanels();
+        panelLocali.style.display = "block";
+      });
+    }
   });
 })();
