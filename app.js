@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – SAFE MODE");
+  console.log("✅ App avviata – LOGIN SAFE");
 
   const $ = (id) => document.getElementById(id);
 
   // =========================
-  // VISTE
+  // ELEMENTI
   // =========================
   const views = document.querySelectorAll(".view");
   const viewLogin = $("view-login");
@@ -12,15 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewTimbratura = $("view-timbratura");
   const managerMenu = $("manager-menu");
 
-  // =========================
-  // HEADER
-  // =========================
   const currentUserLabel = $("current-user-label");
   const btnLogout = $("btn-logout");
 
-  // =========================
-  // LOGIN
-  // =========================
   const btnLogin = $("btn-login");
   const inputNome = $("login-nome");
   const inputPin = $("login-pin");
@@ -64,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const saveSession = (s) =>
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+
   const loadSession = () => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -71,10 +66,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
   };
+
   const clearSession = () => localStorage.removeItem(STORAGE_KEY);
 
   const isValidSession = (s) =>
-    s && s.nome && s.locale && LOCALI[s.locale];
+    s &&
+    typeof s.nome === "string" &&
+    typeof s.ruolo === "string" &&
+    typeof s.locale === "string" &&
+    LOCALI[s.locale];
 
   // =========================
   // UI
@@ -87,17 +87,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function showLogin() {
     hideAll();
     if (viewLogin) viewLogin.style.display = "flex";
+    setHeader(null);
   }
 
   function showManagerHome() {
     hideAll();
-    if (managerMenu) managerMenu.style.display = "grid";
-    if (viewTimbratura) viewTimbratura.style.display = "block";
+
+    if (!managerMenu || !viewTimbratura) {
+      console.warn("⚠️ Vista manager mancante → logout");
+      clearSession();
+      showLogin();
+      return;
+    }
+
+    managerMenu.style.display = "grid";
+    viewTimbratura.style.display = "block";
   }
 
   function showDipendenteHome() {
     hideAll();
-    if (viewHomeDip) viewHomeDip.style.display = "block";
+
+    if (!viewHomeDip) {
+      console.warn("⚠️ Vista dipendente mancante → logout");
+      clearSession();
+      showLogin();
+      return;
+    }
+
+    viewHomeDip.style.display = "block";
   }
 
   function setHeader(session) {
@@ -120,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       clearSession();
-      setHeader(null);
       showLogin();
     });
   }
@@ -165,15 +181,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // AVVIO
+  // AVVIO (RIGOROSO)
   // =========================
-  const session = loadSession();
+  showLogin(); // 👈 MOSTRA SEMPRE LOGIN PER PRIMA
 
-  if (isValidSession(session)) {
-    console.log("🔁 Sessione ripristinata");
-    enterApp(session);
-  } else {
-    console.log("🔐 Login richiesto");
-    showLogin();
-  }
+  setTimeout(() => {
+    const session = loadSession();
+
+    if (isValidSession(session)) {
+      console.log("🔁 Sessione valida → ripristino");
+      enterApp(session);
+    } else {
+      console.log("🔐 Nessuna sessione valida");
+      clearSession();
+    }
+  }, 50);
 });
