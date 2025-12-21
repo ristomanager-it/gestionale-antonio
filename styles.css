@@ -1,17 +1,16 @@
-* {
-  box-sizing: border-box;
-  font-family: system-ui, sans-serif;
-}
-
 body {
   margin: 0;
+  font-family: system-ui, sans-serif;
   background: #020617;
 }
 
 .app-header {
   background: #020617;
   color: white;
-  padding: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .header-logo-circle {
@@ -24,7 +23,6 @@ body {
 .header-logo-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
 .app-main {
@@ -35,48 +33,30 @@ body {
   background: #f9fafb;
   border-radius: 16px;
   padding: 20px;
+  margin-top: 10px;
 }
 
 .login-view {
-  min-height: calc(100vh - 60px);
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
 .login-card {
   width: 100%;
-  max-width: 360px;
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-}
-
-.login-logo {
-  text-align: center;
-}
-
-.login-logo-img {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-}
-
-.login-title,
-.login-subtitle {
-  text-align: center;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .input-pill {
-  width: 100%;
   padding: 10px;
-  margin-bottom: 10px;
   border-radius: 999px;
   border: 1px solid #ccc;
 }
 
 .app-button {
-  padding: 12px;
+  padding: 10px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -85,5 +65,4 @@ body {
 .login-button {
   background: #2563eb;
   color: white;
-  width: 100%;
 }
