@@ -1,16 +1,3 @@
-function getCurrentLocale() {
-  return localStorage.getItem("ga_locale");
-}
-
-function requireLocale() {
-  const loc = getCurrentLocale();
-  if (!loc) {
-    alert("Seleziona prima un locale");
-    return null;
-  }
-  return loc;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const viewLogin = document.getElementById("view-login");
   const viewLocale = document.getElementById("view-locale");
@@ -22,11 +9,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const localeLabel = document.getElementById("current-locale");
 
+  const LOCALI = {
+    CP: "Centro Produzione",
+    TA: "Trattoria dell’Aquila",
+    AP: "Da Antonio Pizza",
+    CR: "Campo Antico Ristorante",
+    CC: "Campo Antico Catering",
+  };
+
   function show(view) {
     [viewLogin, viewLocale, viewHome].forEach(v => {
       v.style.display = "none";
     });
     view.style.display = "block";
+  }
+
+  function setLocale(codice) {
+    localStorage.setItem("ga_locale", codice);
+    localStorage.setItem("ga_locale_nome", LOCALI[codice]);
+  }
+
+  function getLocale() {
+    return {
+      codice: localStorage.getItem("ga_locale"),
+      nome: localStorage.getItem("ga_locale_nome"),
+    };
   }
 
   // AVVIO
@@ -37,16 +44,17 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Inserisci nome e PIN");
       return;
     }
-
-    // login fittizio (per ora)
     show(viewLocale);
   };
 
   document.querySelectorAll("[data-locale]").forEach(btn => {
     btn.onclick = () => {
-      const locale = btn.dataset.locale;
-      localStorage.setItem("ga_locale", locale);
-      localeLabel.textContent = locale;
+      const codice = btn.dataset.locale;
+      setLocale(codice);
+
+      const loc = getLocale();
+      localeLabel.textContent = `${loc.nome} (${loc.codice})`;
+
       show(viewHome);
     };
   });
