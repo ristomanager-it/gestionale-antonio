@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – LOGIN SAFE");
+  console.log("✅ App avviata – STABLE MODE");
 
   const $ = (id) => document.getElementById(id);
 
@@ -93,28 +93,27 @@ document.addEventListener("DOMContentLoaded", () => {
   function showManagerHome() {
     hideAll();
 
-    if (!managerMenu || !viewTimbratura) {
-      console.warn("⚠️ Vista manager mancante → logout");
-      clearSession();
-      showLogin();
-      return;
+    if (!managerMenu) {
+      console.warn("⚠️ manager-menu non presente nel DOM");
+    } else {
+      managerMenu.style.display = "grid";
     }
 
-    managerMenu.style.display = "grid";
-    viewTimbratura.style.display = "block";
+    if (!viewTimbratura) {
+      console.warn("⚠️ view-timbratura non presente nel DOM");
+    } else {
+      viewTimbratura.style.display = "block";
+    }
   }
 
   function showDipendenteHome() {
     hideAll();
 
     if (!viewHomeDip) {
-      console.warn("⚠️ Vista dipendente mancante → logout");
-      clearSession();
-      showLogin();
-      return;
+      console.warn("⚠️ view-home-dip non presente nel DOM");
+    } else {
+      viewHomeDip.style.display = "block";
     }
-
-    viewHomeDip.style.display = "block";
   }
 
   function setHeader(session) {
@@ -181,18 +180,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // AVVIO (RIGOROSO)
+  // AVVIO
   // =========================
-  showLogin(); // 👈 MOSTRA SEMPRE LOGIN PER PRIMA
+  showLogin();
 
   setTimeout(() => {
     const session = loadSession();
 
     if (isValidSession(session)) {
-      console.log("🔁 Sessione valida → ripristino");
+      console.log("🔁 Sessione ripristinata");
       enterApp(session);
     } else {
-      console.log("🔐 Nessuna sessione valida");
       clearSession();
     }
   }, 50);
