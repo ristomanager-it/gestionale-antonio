@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – BASE STABLE MODE");
+  console.log("✅ App avviata – LOGIN STABLE MODE");
 
   const $ = (id) => document.getElementById(id);
 
@@ -10,10 +10,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewLogin = $("view-login");
   const viewHome = $("view-home-dip");
 
+  // =========================
+  // LOGIN
+  // =========================
   const btnLogin = $("btn-login");
   const inputNome = $("login-nome");
   const inputPin = $("login-pin");
 
+  // =========================
+  // HEADER
+  // =========================
   const currentUserLabel = $("current-user-label");
   const btnLogout = $("btn-logout");
 
@@ -118,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // LOGIN
+  // LOGIN CLICK
   // =========================
   if (btnLogin) {
     btnLogin.addEventListener("click", () => {
@@ -143,17 +149,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // AVVIO
+  // AVVIO (DECISIONE UNICA)
   // =========================
-  showLogin();
+  const session = loadSession();
 
-  setTimeout(() => {
-    const session = loadSession();
-    if (isValidSession(session)) {
-      console.log("🔁 Sessione ripristinata");
-      showHome(session);
-    } else {
-      clearSession();
-    }
-  }, 50);
+  if (isValidSession(session)) {
+    console.log("🔁 Sessione valida trovata");
+    showHome(session);
+  } else {
+    clearSession();
+    showLogin();
+  }
 });
