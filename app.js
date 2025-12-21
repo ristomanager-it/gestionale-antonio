@@ -1,5 +1,5 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ App avviata – FIX HEADER NULL");
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ App avviata – FIX LOGIN REFRESH");
 
   const supabase = window.supabaseClient;
 
@@ -9,10 +9,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const views = document.querySelectorAll(".view");
   const viewLogin = document.getElementById("view-login");
   const managerMenu = document.getElementById("manager-menu");
-  const viewDipendenti = document.getElementById("view-dipendenti");
 
   // =========================
-  // HEADER (⚠️ possono non esistere)
+  // HEADER (opzionali)
   // =========================
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
@@ -23,12 +22,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnLogin = document.getElementById("btn-login");
   const inputNome = document.getElementById("login-nome");
   const inputPin = document.getElementById("login-pin");
-
-  // =========================
-  // DIPENDENTI
-  // =========================
-  const dipForm = document.getElementById("dipendente-form");
-  const dipLista = document.getElementById("dipendenti-lista");
 
   // =========================
   // LOCALI
@@ -66,11 +59,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   // SESSIONE
   // =========================
   const STORAGE_KEY = "ga_session";
-  const saveSession = s =>
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  const loadSession = () =>
-    JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-  const clearSession = () => localStorage.removeItem(STORAGE_KEY);
+
+  function saveSession(session) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  }
+
+  function loadSession() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      return null;
+    }
+  }
+
+  function clearSession() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function isValidSession(s) {
+    return (
+      s &&
+      typeof s.nome === "string" &&
+      typeof s.ruolo === "string" &&
+      typeof s.locale === "string"
+    );
+  }
 
   // =========================
   // UI
@@ -139,95 +152,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // =========================
-  // ROUTING
-  // =========================
-  document.querySelectorAll("[data-route]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const route = btn.dataset.route;
-      const view = document.getElementById(`view-${route}`);
-      if (!view) return;
-
-      showView(view);
-
-      if (route === "dipendenti") {
-        loadDipendenti();
-      }
-    });
-  });
-
-  // =========================
-  // DIPENDENTI – LOAD
-  // =========================
-  async function loadDipendenti() {
-    const session = loadSession();
-    if (!session || !dipLista) return;
-
-    dipLista.innerHTML = "";
-
-    let query = supabase.from("dipendenti").select("*");
-
-    if (session.ruolo !== "superadmin") {
-      query = query.eq("locale", session.locale);
-    }
-
-    const { data, error } = await query.order("nome");
-    if (error) {
-      console.error(error);
-      alert("Errore caricamento dipendenti");
-      return;
-    }
-
-    data.forEach(d => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${d.nome}</td>
-        <td>${d.mansione || ""}</td>
-        <td>${d.ruolo}</td>
-        <td>${d.locale}</td>
-        <td>${d.pin}</td>
-        <td>${d.attivo ? "✔️" : "❌"}</td>
-      `;
-      dipLista.appendChild(tr);
-    });
-  }
-
-  // =========================
-  // DIPENDENTI – SAVE
-  // =========================
-  dipForm?.addEventListener("submit", async e => {
-    e.preventDefault();
-
-    const session = loadSession();
-    if (!session) return;
-
-    const payload = {
-      nome: document.getElementById("dip-nome").value,
-      mansione: document.getElementById("dip-mansione").value,
-      ruolo: document.getElementById("dip-ruolo").value,
-      pin: document.getElementById("dip-codice").value,
-      locale: session.locale,
-      attivo: document.getElementById("dip-attivo").checked,
-    };
-
-    const { error } = await supabase.from("dipendenti").insert(payload);
-
-    if (error) {
-      console.error(error);
-      alert("Errore salvataggio dipendente");
-      return;
-    }
-
-    dipForm.reset();
-    loadDipendenti();
-  });
-
-  // =========================
-  // AVVIO
+  // AVVIO APP (QUI ERA IL BUG)
   // =========================
   const session = loadSession();
-  if (session) {
+
+  if (isValidSession(session)) {
+    console.log("🔁 Sessione valida trovata:", session);
     enterApp(session);
   } else {
+    console.log("🔐 Nessuna sessione valida → login");
+    clearSession();
     showView(viewLogin);
   }
 });
