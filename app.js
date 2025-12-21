@@ -1,19 +1,21 @@
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – STEP 2 Blocco viste per locale");
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("✅ App avviata – FIX LOGIN + STEP 3");
+
+  const supabase = window.supabaseClient;
 
   // =========================
-  // VISTE PRINCIPALI
+  // VISTE
   // =========================
+  const views = document.querySelectorAll(".view");
   const viewLogin = document.getElementById("view-login");
-  const viewLocale = document.getElementById("view-locale");
-  const viewHomeDip = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
+  const viewDipendenti = document.getElementById("view-dipendenti");
 
-  const btnLogout = document.getElementById("btn-logout");
+  // =========================
+  // HEADER
+  // =========================
   const currentUserLabel = document.getElementById("current-user-label");
-
-  // Tutte le viste con id="view-..."
-  const ALL_VIEWS = document.querySelectorAll(".view");
+  const btnLogout = document.getElementById("btn-logout");
 
   // =========================
   // LOGIN
@@ -21,6 +23,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnLogin = document.getElementById("btn-login");
   const inputNome = document.getElementById("login-nome");
   const inputPin = document.getElementById("login-pin");
+
+  // =========================
+  // DIPENDENTI
+  // =========================
+  const dipForm = document.getElementById("dipendente-form");
+  const dipLista = document.getElementById("dipendenti-lista");
 
   // =========================
   // LOCALI
@@ -40,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     admin: {
       pin: "9999",
       ruolo: "superadmin",
-      locali: ["CP", "TA", "AP", "CR", "CC"],
+      locali: Object.keys(LOCALI),
     },
     michele: {
       pin: "1111",
@@ -59,29 +67,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   const STORAGE_KEY = "ga_session";
 
-  function saveSession(session) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  }
-
-  function loadSession() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-
-  function clearSession() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+  const saveSession = s =>
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  const loadSession = () =>
+    JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  const clearSession = () => localStorage.removeItem(STORAGE_KEY);
 
   // =========================
   // UI HELPERS
   // =========================
   function hideAllViews() {
-    ALL_VIEWS.forEach(v => (v.style.display = "none"));
+    views.forEach(v => (v.style.display = "none"));
   }
 
   function showView(view) {
@@ -89,91 +85,41 @@ document.addEventListener("DOMContentLoaded", () => {
     if (view) view.style.display = "block";
   }
 
-  function setHeaderUser(session) {
+  function setHeader(session) {
     if (!session) {
       currentUserLabel.textContent = "Nessun utente";
       btnLogout.style.display = "none";
       return;
     }
 
-    const localeNome = LOCALI[session.locale] || "";
-    currentUserLabel.textContent = `${session.nome} · ${localeNome}`;
+    currentUserLabel.textContent =
+      session.nome + " · " + LOCALI[session.locale];
     btnLogout.style.display = "inline-block";
-  }
-
-  // =========================
-  // ACCESS CONTROL
-  // =========================
-  function canAccessLocale(session, localeCode) {
-    if (!session) return false;
-    if (session.ruolo === "superadmin") return true;
-    return session.locale === localeCode;
-  }
-
-  function enterApp(session) {
-    setHeaderUser(session);
-
-    // DIPENDENTE / MANAGER → menu
-    if (session.ruolo === "manager") {
-      showView(managerMenu);
-      return;
-    }
-
-    // SUPERADMIN → home base
-    showView(managerMenu);
   }
 
   // =========================
   // LOGOUT
   // =========================
-  btnLogout.addEventListener("click", () => {
+  btnLogout?.addEventListener("click", () => {
     clearSession();
-    inputNome.value = "";
-    inputPin.value = "";
-    setHeaderUser(null);
+    setHeader(null);
     showView(viewLogin);
   });
 
   // =========================
   // LOGIN
   // =========================
-  btnLogin.addEventListener("click", () => {
+  btnLogin?.addEventListener("click", () => {
     const nome = inputNome.value.trim().toLowerCase();
     const pin = inputPin.value.trim();
 
     const user = UTENTI[nome];
-
     if (!user || user.pin !== pin) {
       alert("Nome o PIN non corretti");
       return;
     }
 
-    // SUPERADMIN → sceglie locale
-    if (user.ruolo === "superadmin") {
-      showView(viewLocale);
-
-      document.querySelectorAll("[data-locale]").forEach(btn => {
-        const code = btn.dataset.locale;
-
-        btn.style.display = user.locali.includes(code)
-          ? "block"
-          : "none";
-
-        btn.onclick = () => {
-          const session = {
-            nome,
-            ruolo: user.ruolo,
-            locale: code,
-          };
-          saveSession(session);
-          enterApp(session);
-        };
-      });
-
-      return;
-    }
-
-    // MANAGER → entra diretto nel suo locale
+    // 🔥 locale di default
     const session = {
       nome,
       ruolo: user.ruolo,
@@ -185,7 +131,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // =========================
-  // ROUTING INTERNO (BOTTONI)
+  // ENTER APP
+  // =========================
+  function enterApp(session) {
+    setHeader(session);
+    showView(managerMenu);
+  }
+
+  // =========================
+  // ROUTING
   // =========================
   document.querySelectorAll("[data-route]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -194,16 +148,84 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!view) return;
 
       showView(view);
+
+      if (route === "dipendenti") {
+        loadDipendenti();
+      }
     });
   });
 
   // =========================
-  // AVVIO APP
+  // DIPENDENTI – LOAD
+  // =========================
+  async function loadDipendenti() {
+    const session = loadSession();
+    if (!session) return;
+
+    dipLista.innerHTML = "";
+
+    let query = supabase.from("dipendenti").select("*");
+
+    if (session.ruolo !== "superadmin") {
+      query = query.eq("locale", session.locale);
+    }
+
+    const { data, error } = await query.order("nome");
+    if (error) {
+      console.error(error);
+      alert("Errore caricamento dipendenti");
+      return;
+    }
+
+    data.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.nome}</td>
+        <td>${d.mansione || ""}</td>
+        <td>${d.ruolo}</td>
+        <td>${d.locale}</td>
+        <td>${d.pin}</td>
+        <td>${d.attivo ? "✔️" : "❌"}</td>
+      `;
+      dipLista.appendChild(tr);
+    });
+  }
+
+  // =========================
+  // DIPENDENTI – SAVE
+  // =========================
+  dipForm?.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const session = loadSession();
+    if (!session) return;
+
+    const payload = {
+      nome: document.getElementById("dip-nome").value,
+      mansione: document.getElementById("dip-mansione").value,
+      ruolo: document.getElementById("dip-ruolo").value,
+      pin: document.getElementById("dip-codice").value,
+      locale: session.locale,
+      attivo: document.getElementById("dip-attivo").checked,
+    };
+
+    const { error } = await supabase.from("dipendenti").insert(payload);
+
+    if (error) {
+      console.error(error);
+      alert("Errore salvataggio dipendente");
+      return;
+    }
+
+    dipForm.reset();
+    loadDipendenti();
+  });
+
+  // =========================
+  // AVVIO
   // =========================
   const session = loadSession();
-
-  if (session && canAccessLocale(session, session.locale)) {
-    console.log("♻️ Sessione ripristinata:", session);
+  if (session) {
     enterApp(session);
   } else {
     showView(viewLogin);
