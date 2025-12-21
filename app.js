@@ -1,20 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ App avviata");
 
-  // === VISTE ===
+  // =========================
+  // VISTE
+  // =========================
   const viewLogin = document.getElementById("view-login");
   const viewLocale = document.getElementById("view-locale");
   const viewHome = document.getElementById("view-home");
 
-  // === LOGIN ===
+  // =========================
+  // LOGIN
+  // =========================
   const btnLogin = document.getElementById("btn-login");
   const inputNome = document.getElementById("login-nome");
   const inputPin = document.getElementById("login-pin");
 
-  // === LOCALE ATTIVO ===
+  // =========================
+  // UI
+  // =========================
   const localeLabel = document.getElementById("current-locale");
 
-  // === MAPPATURA LOCALI ===
+  // =========================
+  // LOCALI
+  // =========================
   const LOCALI = {
     CP: "Centro Produzione",
     TA: "Trattoria dell’Aquila",
@@ -23,7 +31,30 @@ document.addEventListener("DOMContentLoaded", () => {
     CC: "Campo Antico Catering",
   };
 
-  // === HELPER VISTE ===
+  // =========================
+  // UTENTI (TEMPORANEO → DB)
+  // =========================
+  const UTENTI = {
+    admin: {
+      pin: "9999",
+      ruolo: "superadmin",
+      locali: ["CP", "TA", "AP", "CR", "CC"],
+    },
+    michele: {
+      pin: "1111",
+      ruolo: "responsabile",
+      locali: ["CP"],
+    },
+    antonio: {
+      pin: "1975",
+      ruolo: "responsabile",
+      locali: ["TA"],
+    },
+  };
+
+  // =========================
+  // HELPER
+  // =========================
   function show(view) {
     [viewLogin, viewLocale, viewHome].forEach(v => {
       if (v) v.style.display = "none";
@@ -31,43 +62,58 @@ document.addEventListener("DOMContentLoaded", () => {
     view.style.display = "block";
   }
 
-  // === AVVIO: MOSTRA LOGIN ===
+  function setSession(userKey, localeCode) {
+    localStorage.setItem("ga_user", userKey);
+    localStorage.setItem("ga_ruolo", UTENTI[userKey].ruolo);
+    localStorage.setItem("ga_locale", localeCode);
+    localStorage.setItem("ga_locale_nome", LOCALI[localeCode]);
+  }
+
+  // =========================
+  // AVVIO
+  // =========================
   show(viewLogin);
 
-  // === LOGIN (temporaneo, senza Supabase) ===
+  // =========================
+  // LOGIN LOGICA
+  // =========================
   btnLogin.addEventListener("click", () => {
-    const nome = inputNome.value.trim();
+    const nome = inputNome.value.trim().toLowerCase();
     const pin = inputPin.value.trim();
 
-    if (!nome || !pin) {
-      alert("Inserisci nome e PIN");
+    const user = UTENTI[nome];
+
+    if (!user || user.pin !== pin) {
+      alert("Nome o PIN non corretti");
       return;
     }
 
-    console.log("🔐 Login ok:", nome);
-    show(viewLocale);
-  });
+    console.log("🔐 Login OK:", nome, user.ruolo);
 
-  // === SELEZIONE LOCALE ===
-  document.querySelectorAll("[data-locale]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const codice = btn.dataset.locale;
-      const nomeLocale = LOCALI[codice];
+    // SUPER ADMIN → sceglie locale
+    if (user.ruolo === "superadmin") {
+      show(viewLocale);
 
-      if (!nomeLocale) {
-        alert("Locale non valido");
-        return;
-      }
+      document.querySelectorAll("[data-locale]").forEach(btn => {
+        const code = btn.dataset.locale;
+        btn.style.display = user.locali.includes(code)
+          ? "block"
+          : "none";
 
-      // salva locale attivo
-      localStorage.setItem("ga_locale", codice);
-      localStorage.setItem("ga_locale_nome", nomeLocale);
+        btn.onclick = () => {
+          setSession(nome, code);
+          localeLabel.textContent = `${LOCALI[code]} (${code})`;
+          show(viewHome);
+        };
+      });
 
-      // aggiorna UI
-      localeLabel.textContent = `${nomeLocale} (${codice})`;
+      return;
+    }
 
-      console.log("📍 Locale selezionato:", nomeLocale);
-      show(viewHome);
-    });
+    // RESPONSABILE → entra diretto nel suo locale
+    const localeCode = user.locali[0];
+    setSession(nome, localeCode);
+    localeLabel.textContent = `${LOCALI[localeCode]} (${localeCode})`;
+    show(viewHome);
   });
 });
