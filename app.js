@@ -1,14 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ App avviata");
+
+  // === VISTE ===
   const viewLogin = document.getElementById("view-login");
   const viewLocale = document.getElementById("view-locale");
   const viewHome = document.getElementById("view-home");
 
+  // === LOGIN ===
   const btnLogin = document.getElementById("btn-login");
-  const nomeInput = document.getElementById("login-nome");
-  const pinInput = document.getElementById("login-pin");
+  const inputNome = document.getElementById("login-nome");
+  const inputPin = document.getElementById("login-pin");
 
+  // === LOCALE ATTIVO ===
   const localeLabel = document.getElementById("current-locale");
 
+  // === MAPPATURA LOCALI ===
   const LOCALI = {
     CP: "Centro Produzione",
     TA: "Trattoria dell’Aquila",
@@ -17,45 +23,51 @@ document.addEventListener("DOMContentLoaded", () => {
     CC: "Campo Antico Catering",
   };
 
+  // === HELPER VISTE ===
   function show(view) {
     [viewLogin, viewLocale, viewHome].forEach(v => {
-      v.style.display = "none";
+      if (v) v.style.display = "none";
     });
     view.style.display = "block";
   }
 
-  function setLocale(codice) {
-    localStorage.setItem("ga_locale", codice);
-    localStorage.setItem("ga_locale_nome", LOCALI[codice]);
-  }
-
-  function getLocale() {
-    return {
-      codice: localStorage.getItem("ga_locale"),
-      nome: localStorage.getItem("ga_locale_nome"),
-    };
-  }
-
-  // AVVIO
+  // === AVVIO: MOSTRA LOGIN ===
   show(viewLogin);
 
-  btnLogin.onclick = () => {
-    if (!nomeInput.value || !pinInput.value) {
+  // === LOGIN (temporaneo, senza Supabase) ===
+  btnLogin.addEventListener("click", () => {
+    const nome = inputNome.value.trim();
+    const pin = inputPin.value.trim();
+
+    if (!nome || !pin) {
       alert("Inserisci nome e PIN");
       return;
     }
+
+    console.log("🔐 Login ok:", nome);
     show(viewLocale);
-  };
+  });
 
+  // === SELEZIONE LOCALE ===
   document.querySelectorAll("[data-locale]").forEach(btn => {
-    btn.onclick = () => {
+    btn.addEventListener("click", () => {
       const codice = btn.dataset.locale;
-      setLocale(codice);
+      const nomeLocale = LOCALI[codice];
 
-      const loc = getLocale();
-      localeLabel.textContent = `${loc.nome} (${loc.codice})`;
+      if (!nomeLocale) {
+        alert("Locale non valido");
+        return;
+      }
 
+      // salva locale attivo
+      localStorage.setItem("ga_locale", codice);
+      localStorage.setItem("ga_locale_nome", nomeLocale);
+
+      // aggiorna UI
+      localeLabel.textContent = `${nomeLocale} (${codice})`;
+
+      console.log("📍 Locale selezionato:", nomeLocale);
       show(viewHome);
-    };
+    });
   });
 });
