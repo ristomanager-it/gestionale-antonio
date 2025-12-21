@@ -1,30 +1,40 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("APP AVVIATA");
-
-  const loginView = document.getElementById("view-login");
-  const homeView = document.getElementById("view-home");
+  const viewLogin = document.getElementById("view-login");
+  const viewLocale = document.getElementById("view-locale");
+  const viewHome = document.getElementById("view-home");
 
   const btnLogin = document.getElementById("btn-login");
-  const btnLogout = document.getElementById("btn-logout");
+  const nomeInput = document.getElementById("login-nome");
+  const pinInput = document.getElementById("login-pin");
 
-  function showLogin() {
-    loginView.style.display = "flex";
-    homeView.style.display = "none";
+  const localeLabel = document.getElementById("current-locale");
+
+  function show(view) {
+    [viewLogin, viewLocale, viewHome].forEach(v => {
+      v.style.display = "none";
+    });
+    view.style.display = "block";
   }
 
-  function showHome() {
-    loginView.style.display = "none";
-    homeView.style.display = "block";
-  }
+  // AVVIO
+  show(viewLogin);
 
-  // MOSTRA SEMPRE LOGIN ALL’AVVIO
-  showLogin();
+  btnLogin.onclick = () => {
+    if (!nomeInput.value || !pinInput.value) {
+      alert("Inserisci nome e PIN");
+      return;
+    }
 
-  btnLogin.addEventListener("click", () => {
-    showHome();
-  });
+    // login fittizio (per ora)
+    show(viewLocale);
+  };
 
-  btnLogout.addEventListener("click", () => {
-    showLogin();
+  document.querySelectorAll("[data-locale]").forEach(btn => {
+    btn.onclick = () => {
+      const locale = btn.dataset.locale;
+      localStorage.setItem("ga_locale", locale);
+      localeLabel.textContent = locale;
+      show(viewHome);
+    };
   });
 });
