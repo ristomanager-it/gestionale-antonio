@@ -1,3 +1,16 @@
+function getCurrentLocale() {
+  return localStorage.getItem("ga_locale");
+}
+
+function requireLocale() {
+  const loc = getCurrentLocale();
+  if (!loc) {
+    alert("Seleziona prima un locale");
+    return null;
+  }
+  return loc;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const viewLogin = document.getElementById("view-login");
   const viewLocale = document.getElementById("view-locale");
