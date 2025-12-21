@@ -1,9 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ App avviata – SAFE MODE");
 
-  // =========================
-  // HELPERS DOM SICURI
-  // =========================
   const $ = (id) => document.getElementById(id);
 
   // =========================
@@ -11,7 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   const views = document.querySelectorAll(".view");
   const viewLogin = $("view-login");
-  const managerMenu = $("manager-menu"); // ⚠️ può essere null
+  const viewHomeDip = $("view-home-dip");
+  const viewTimbratura = $("view-timbratura");
+  const managerMenu = $("manager-menu");
 
   // =========================
   // HEADER
@@ -75,32 +74,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearSession = () => localStorage.removeItem(STORAGE_KEY);
 
   const isValidSession = (s) =>
-    s &&
-    typeof s.nome === "string" &&
-    typeof s.locale === "string" &&
-    LOCALI[s.locale];
+    s && s.nome && s.locale && LOCALI[s.locale];
 
   // =========================
   // UI
   // =========================
-  function hideAllViews() {
+  function hideAll() {
     views.forEach((v) => (v.style.display = "none"));
     if (managerMenu) managerMenu.style.display = "none";
   }
 
   function showLogin() {
-    hideAllViews();
+    hideAll();
     if (viewLogin) viewLogin.style.display = "flex";
   }
 
   function showManagerHome() {
-    hideAllViews();
+    hideAll();
+    if (managerMenu) managerMenu.style.display = "grid";
+    if (viewTimbratura) viewTimbratura.style.display = "block";
+  }
 
-    if (managerMenu) {
-      managerMenu.style.display = "grid";
-    } else {
-      console.warn("⚠️ manager-menu non presente nel DOM");
-    }
+  function showDipendenteHome() {
+    hideAll();
+    if (viewHomeDip) viewHomeDip.style.display = "block";
   }
 
   function setHeader(session) {
@@ -113,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     currentUserLabel.textContent =
-      session.nome + " · " + LOCALI[session.locale];
+      `${session.nome} · ${LOCALI[session.locale]}`;
     btnLogout.style.display = "inline-block";
   }
 
@@ -159,11 +156,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function enterApp(session) {
     console.log("➡️ Enter app:", session);
     setHeader(session);
-    showManagerHome();
+
+    if (session.ruolo === "manager" || session.ruolo === "superadmin") {
+      showManagerHome();
+    } else {
+      showDipendenteHome();
+    }
   }
 
   // =========================
-  // AVVIO SICURO
+  // AVVIO
   // =========================
   const session = loadSession();
 
