@@ -1,25 +1,30 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – LOGIN STABILE");
+  console.log("✅ App avviata – SAFE MODE");
+
+  // =========================
+  // HELPERS DOM SICURI
+  // =========================
+  const $ = (id) => document.getElementById(id);
 
   // =========================
   // VISTE
   // =========================
   const views = document.querySelectorAll(".view");
-  const viewLogin = document.getElementById("view-login");
-  const managerMenu = document.getElementById("manager-menu");
+  const viewLogin = $("view-login");
+  const managerMenu = $("manager-menu"); // ⚠️ può essere null
 
   // =========================
   // HEADER
   // =========================
-  const currentUserLabel = document.getElementById("current-user-label");
-  const btnLogout = document.getElementById("btn-logout");
+  const currentUserLabel = $("current-user-label");
+  const btnLogout = $("btn-logout");
 
   // =========================
   // LOGIN
   // =========================
-  const btnLogin = document.getElementById("btn-login");
-  const inputNome = document.getElementById("login-nome");
-  const inputPin = document.getElementById("login-pin");
+  const btnLogin = $("btn-login");
+  const inputNome = $("login-nome");
+  const inputPin = $("login-pin");
 
   // =========================
   // LOCALI
@@ -58,47 +63,44 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   const STORAGE_KEY = "ga_session";
 
-  function saveSession(session) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  }
-
-  function loadSession() {
+  const saveSession = (s) =>
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  const loadSession = () => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY));
     } catch {
       return null;
     }
-  }
+  };
+  const clearSession = () => localStorage.removeItem(STORAGE_KEY);
 
-  function clearSession() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-
-  function isValidSession(s) {
-    return (
-      s &&
-      typeof s.nome === "string" &&
-      typeof s.ruolo === "string" &&
-      typeof s.locale === "string" &&
-      s.locale in LOCALI
-    );
-  }
+  const isValidSession = (s) =>
+    s &&
+    typeof s.nome === "string" &&
+    typeof s.locale === "string" &&
+    LOCALI[s.locale];
 
   // =========================
   // UI
   // =========================
   function hideAllViews() {
-    views.forEach(v => (v.style.display = "none"));
+    views.forEach((v) => (v.style.display = "none"));
+    if (managerMenu) managerMenu.style.display = "none";
   }
 
   function showLogin() {
     hideAllViews();
-    viewLogin.style.display = "flex";
+    if (viewLogin) viewLogin.style.display = "flex";
   }
 
   function showManagerHome() {
     hideAllViews();
-    managerMenu.style.display = "grid";
+
+    if (managerMenu) {
+      managerMenu.style.display = "grid";
+    } else {
+      console.warn("⚠️ manager-menu non presente nel DOM");
+    }
   }
 
   function setHeader(session) {
@@ -118,39 +120,44 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // LOGOUT
   // =========================
-  btnLogout?.addEventListener("click", () => {
-    clearSession();
-    setHeader(null);
-    showLogin();
-  });
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      clearSession();
+      setHeader(null);
+      showLogin();
+    });
+  }
 
   // =========================
   // LOGIN
   // =========================
-  btnLogin?.addEventListener("click", () => {
-    const nome = inputNome.value.trim().toLowerCase();
-    const pin = inputPin.value.trim();
+  if (btnLogin) {
+    btnLogin.addEventListener("click", () => {
+      const nome = inputNome.value.trim().toLowerCase();
+      const pin = inputPin.value.trim();
 
-    const user = UTENTI[nome];
-    if (!user || user.pin !== pin) {
-      alert("Nome o PIN non corretti");
-      return;
-    }
+      const user = UTENTI[nome];
+      if (!user || user.pin !== pin) {
+        alert("Nome o PIN non corretti");
+        return;
+      }
 
-    const session = {
-      nome,
-      ruolo: user.ruolo,
-      locale: user.locali[0],
-    };
+      const session = {
+        nome,
+        ruolo: user.ruolo,
+        locale: user.locali[0],
+      };
 
-    saveSession(session);
-    enterApp(session);
-  });
+      saveSession(session);
+      enterApp(session);
+    });
+  }
 
   // =========================
   // ENTER APP
   // =========================
   function enterApp(session) {
+    console.log("➡️ Enter app:", session);
     setHeader(session);
     showManagerHome();
   }
@@ -158,15 +165,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // AVVIO SICURO
   // =========================
-  clearSession(); // 🔥 LINEA CHIAVE PER IL TUO CASO
-
   const session = loadSession();
 
   if (isValidSession(session)) {
-    console.log("🔁 Sessione valida:", session);
+    console.log("🔁 Sessione ripristinata");
     enterApp(session);
   } else {
-    console.log("🔐 Login forzato");
+    console.log("🔐 Login richiesto");
     showLogin();
   }
 });
