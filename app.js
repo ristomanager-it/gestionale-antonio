@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – FIX LOGIN REFRESH");
-
-  const supabase = window.supabaseClient;
+  console.log("✅ App avviata – LOGIN STABILE");
 
   // =========================
   // VISTE
@@ -11,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
 
   // =========================
-  // HEADER (opzionali)
+  // HEADER
   // =========================
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
@@ -81,7 +79,8 @@ document.addEventListener("DOMContentLoaded", () => {
       s &&
       typeof s.nome === "string" &&
       typeof s.ruolo === "string" &&
-      typeof s.locale === "string"
+      typeof s.locale === "string" &&
+      s.locale in LOCALI
     );
   }
 
@@ -92,9 +91,14 @@ document.addEventListener("DOMContentLoaded", () => {
     views.forEach(v => (v.style.display = "none"));
   }
 
-  function showView(view) {
+  function showLogin() {
     hideAllViews();
-    if (view) view.style.display = "block";
+    viewLogin.style.display = "flex";
+  }
+
+  function showManagerHome() {
+    hideAllViews();
+    managerMenu.style.display = "grid";
   }
 
   function setHeader(session) {
@@ -117,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnLogout?.addEventListener("click", () => {
     clearSession();
     setHeader(null);
-    showView(viewLogin);
+    showLogin();
   });
 
   // =========================
@@ -148,20 +152,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   function enterApp(session) {
     setHeader(session);
-    showView(managerMenu);
+    showManagerHome();
   }
 
   // =========================
-  // AVVIO APP (QUI ERA IL BUG)
+  // AVVIO SICURO
   // =========================
+  clearSession(); // 🔥 LINEA CHIAVE PER IL TUO CASO
+
   const session = loadSession();
 
   if (isValidSession(session)) {
-    console.log("🔁 Sessione valida trovata:", session);
+    console.log("🔁 Sessione valida:", session);
     enterApp(session);
   } else {
-    console.log("🔐 Nessuna sessione valida → login");
-    clearSession();
-    showView(viewLogin);
+    console.log("🔐 Login forzato");
+    showLogin();
   }
 });
