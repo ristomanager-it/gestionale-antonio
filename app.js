@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewHome = document.getElementById("view-home");
 
   // =========================
-  // LOGIN
+  // LOGIN INPUT
   // =========================
   const btnLogin = document.getElementById("btn-login");
   const inputNome = document.getElementById("login-nome");
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // =========================
-  // UTENTI (TEMPORANEO → DB)
+  // UTENTI (TEMPORANEO – poi Supabase)
   // =========================
   const UTENTI = {
     admin: {
@@ -53,20 +53,33 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // =========================
-  // HELPER
+  // HELPER VISTE
   // =========================
-  function show(view) {
+  function hideAllViews() {
     [viewLogin, viewLocale, viewHome].forEach(v => {
       if (v) v.style.display = "none";
     });
+  }
+
+  function show(view) {
+    hideAllViews();
     view.style.display = "block";
   }
 
+  // =========================
+  // SESSIONE (BASE)
+  // =========================
   function setSession(userKey, localeCode) {
     localStorage.setItem("ga_user", userKey);
     localStorage.setItem("ga_ruolo", UTENTI[userKey].ruolo);
     localStorage.setItem("ga_locale", localeCode);
     localStorage.setItem("ga_locale_nome", LOCALI[localeCode]);
+
+    console.log("📦 Sessione:", {
+      user: userKey,
+      ruolo: UTENTI[userKey].ruolo,
+      locale: localeCode,
+    });
   }
 
   // =========================
@@ -81,6 +94,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const nome = inputNome.value.trim().toLowerCase();
     const pin = inputPin.value.trim();
 
+    if (!nome || !pin) {
+      alert("Inserisci nome e PIN");
+      return;
+    }
+
     const user = UTENTI[nome];
 
     if (!user || user.pin !== pin) {
@@ -90,12 +108,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🔐 Login OK:", nome, user.ruolo);
 
-    // SUPER ADMIN → sceglie locale
+    // =========================
+    // SUPERADMIN → SCELTA LOCALE
+    // =========================
     if (user.ruolo === "superadmin") {
       show(viewLocale);
 
       document.querySelectorAll("[data-locale]").forEach(btn => {
         const code = btn.dataset.locale;
+
+        // mostra solo i locali consentiti
         btn.style.display = user.locali.includes(code)
           ? "block"
           : "none";
@@ -110,8 +132,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // RESPONSABILE → entra diretto nel suo locale
+    // =========================
+    // RESPONSABILE → LOCALE FISSO
+    // =========================
     const localeCode = user.locali[0];
+
     setSession(nome, localeCode);
     localeLabel.textContent = `${LOCALI[localeCode]} (${localeCode})`;
     show(viewHome);
