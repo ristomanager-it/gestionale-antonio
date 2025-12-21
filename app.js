@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ App avviata – FIX LOGIN + STEP 3");
+  console.log("✅ App avviata – FIX HEADER NULL");
 
   const supabase = window.supabaseClient;
 
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const viewDipendenti = document.getElementById("view-dipendenti");
 
   // =========================
-  // HEADER
+  // HEADER (⚠️ possono non esistere)
   // =========================
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   // =========================
-  // UTENTI (TEMPORANEI)
+  // UTENTI (TEMP)
   // =========================
   const UTENTI = {
     admin: {
@@ -66,7 +66,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // SESSIONE
   // =========================
   const STORAGE_KEY = "ga_session";
-
   const saveSession = s =>
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   const loadSession = () =>
@@ -74,7 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clearSession = () => localStorage.removeItem(STORAGE_KEY);
 
   // =========================
-  // UI HELPERS
+  // UI
   // =========================
   function hideAllViews() {
     views.forEach(v => (v.style.display = "none"));
@@ -86,6 +85,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function setHeader(session) {
+    if (!currentUserLabel || !btnLogout) return;
+
     if (!session) {
       currentUserLabel.textContent = "Nessun utente";
       btnLogout.style.display = "none";
@@ -119,7 +120,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 🔥 locale di default
     const session = {
       nome,
       ruolo: user.ruolo,
@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // =========================
   async function loadDipendenti() {
     const session = loadSession();
-    if (!session) return;
+    if (!session || !dipLista) return;
 
     dipLista.innerHTML = "";
 
