@@ -1,33 +1,43 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – STABLE LOGIN MODE");
+  console.log("✅ App avviata – STEP 2 STABILE");
 
   // =========================
-  // VISTE
+  // DOM
   // =========================
   const viewLogin = document.getElementById("view-login");
-  const viewLocale = document.getElementById("view-locale");
-  const viewHome = document.getElementById("view-home");
+  const viewHomeDip = document.getElementById("view-home-dip");
+  const managerMenu = document.getElementById("manager-menu");
+  const viewTimbratura = document.getElementById("view-timbratura");
 
-  // =========================
-  // LOGIN
-  // =========================
   const btnLogin = document.getElementById("btn-login");
+  const btnLogout = document.getElementById("btn-logout");
+
   const inputNome = document.getElementById("login-nome");
   const inputPin = document.getElementById("login-pin");
 
-  // =========================
-  // HOME
-  // =========================
-  const btnLogout = document.getElementById("btn-logout");
+  const currentUserLabel = document.getElementById("current-user-label");
 
   // =========================
-  // UI
+  // DATI STATICI (TEMP)
   // =========================
-  const localeLabel = document.getElementById("current-locale");
+  const UTENTI = {
+    admin: {
+      pin: "9999",
+      ruolo: "superadmin",
+      locale: "CP",
+    },
+    michele: {
+      pin: "1111",
+      ruolo: "manager",
+      locale: "CP",
+    },
+    antonio: {
+      pin: "1975",
+      ruolo: "manager",
+      locale: "TA",
+    },
+  };
 
-  // =========================
-  // LOCALI
-  // =========================
   const LOCALI = {
     CP: "Centro Produzione",
     TA: "Trattoria dell’Aquila",
@@ -37,148 +47,91 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // =========================
-  // UTENTI (TEMP → SUPABASE)
-  // =========================
-  const UTENTI = {
-    admin: {
-      pin: "9999",
-      ruolo: "superadmin",
-      locali: ["CP", "TA", "AP", "CR", "CC"],
-    },
-    michele: {
-      pin: "1111",
-      ruolo: "manager",
-      locali: ["CP"],
-    },
-    antonio: {
-      pin: "1975",
-      ruolo: "manager",
-      locali: ["TA"],
-    },
-  };
-
-  // =========================
   // HELPERS
   // =========================
   function hideAll() {
-    [viewLogin, viewLocale, viewHome].forEach((v) => {
+    [viewLogin, viewHomeDip, managerMenu, viewTimbratura].forEach(v => {
       if (v) v.style.display = "none";
     });
   }
 
-  function show(view) {
+  function showLogin() {
     hideAll();
-    if (view) view.style.display = "block";
-  }
-
-  function saveSession(user, locale) {
-    localStorage.setItem(
-      "ga_session",
-      JSON.stringify({
-        nome: user,
-        ruolo: UTENTI[user].ruolo,
-        locale,
-      })
-    );
-  }
-
-  function loadSession() {
-    try {
-      return JSON.parse(localStorage.getItem("ga_session"));
-    } catch {
-      return null;
-    }
-  }
-
-  function clearSession() {
+    viewLogin.style.display = "block";
     localStorage.removeItem("ga_session");
+    currentUserLabel.textContent = "Nessun utente";
+    btnLogout.style.display = "none";
+    console.log("🔐 Login visibile");
   }
 
-  function setLocaleHeader(locale) {
-    if (!localeLabel) return;
-    const nome = LOCALI[locale] || locale || "—";
-    localeLabel.textContent = `${nome} (${locale || "—"})`;
-  }
+  function enterApp(session) {
+    console.log("➡️ Enter app:", session);
 
-  // =========================
-  // HOME
-  // =========================
-  function enterHome(session) {
-    console.log("➡️ Enter home:", session);
-    setLocaleHeader(session.locale);
-    show(viewHome);
-  }
+    hideAll();
 
-  // =========================
-  // AVVIO
-  // =========================
-  show(viewLogin);
-  console.log("🔐 Login visibile");
+    const localeNome = LOCALI[session.locale] || session.locale;
+    currentUserLabel.textContent =
+      `${session.nome} – ${localeNome}`;
 
-  // =========================
-  // RIPRISTINO SESSIONE
-  // =========================
-  const restored = loadSession();
-  if (restored && restored.nome && restored.locale) {
-    console.log("🔁 Sessione ripristinata");
-    setTimeout(() => enterHome(restored), 50);
-    return;
+    btnLogout.style.display = "inline-block";
+
+    if (session.ruolo === "manager" || session.ruolo === "superadmin") {
+      managerMenu.style.display = "grid";
+      viewTimbratura.style.display = "block";
+    } else {
+      viewHomeDip.style.display = "block";
+    }
   }
 
   // =========================
   // LOGIN
   // =========================
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nome = (inputNome?.value || "").trim().toLowerCase();
-      const pin = (inputPin?.value || "").trim();
+  btnLogin.addEventListener("click", () => {
+    const nome = inputNome.value.trim().toLowerCase();
+    const pin = inputPin.value.trim();
 
-      const user = UTENTI[nome];
-      if (!user || user.pin !== pin) {
-        alert("Nome o PIN non corretti");
-        return;
-      }
+    const user = UTENTI[nome];
 
-      console.log("✅ Login OK:", nome, user.ruolo);
+    if (!user || user.pin !== pin) {
+      alert("Nome o PIN non corretti");
+      return;
+    }
 
-      // SUPER ADMIN → sceglie locale
-      if (user.ruolo === "superadmin") {
-        show(viewLocale);
+    const session = {
+      nome,
+      ruolo: user.ruolo,
+      locale: user.locale,
+    };
 
-        document.querySelectorAll("[data-locale]").forEach((btn) => {
-          const code = btn.dataset.locale;
+    localStorage.setItem("ga_session", JSON.stringify(session));
+    console.log("✅ Login OK:", session);
 
-          btn.style.display = user.locali.includes(code) ? "inline-block" : "none";
-
-          btn.onclick = () => {
-            saveSession(nome, code);
-            enterHome({ nome, ruolo: user.ruolo, locale: code });
-          };
-        });
-
-        return;
-      }
-
-      // MANAGER → entra diretto
-      const locale = user.locali[0];
-      saveSession(nome, locale);
-      enterHome({ nome, ruolo: user.ruolo, locale });
-    });
-  }
+    enterApp(session);
+  });
 
   // =========================
   // LOGOUT
   // =========================
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      clearSession();
-      setLocaleHeader(null);
+  btnLogout.addEventListener("click", () => {
+    showLogin();
+  });
 
-      if (inputNome) inputNome.value = "";
-      if (inputPin) inputPin.value = "";
-
-      show(viewLogin);
-      console.log("🚪 Logout");
-    });
+  // =========================
+  // RIPRISTINO SESSIONE
+  // =========================
+  const saved = localStorage.getItem("ga_session");
+  if (saved) {
+    try {
+      const session = JSON.parse(saved);
+      if (session?.nome && session?.locale) {
+        console.log("🔁 Sessione ripristinata");
+        enterApp(session);
+        return;
+      }
+    } catch (e) {
+      console.warn("Sessione corrotta");
+    }
   }
+
+  showLogin();
 });
