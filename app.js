@@ -4911,3 +4911,72 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Azienda salvata ✅");
   });
 });
+// ======================
+// SUPER ADMIN - AZIENDE
+// ======================
+async function loadAziende() {
+  const { data, error } = await supabaseClient
+    .from("aziende")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Errore aziende:", error);
+    return;
+  }
+
+  const list = document.getElementById("aziende-lista");
+  list.innerHTML = "";
+
+  data.forEach(a => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <strong>${a.nome}</strong> (${a.codice})
+      - ${a.attiva ? "🟢 Attiva" : "🔴 Disattiva"}
+      <button data-id="${a.id}" class="toggle-azienda">
+        ON / OFF
+      </button>
+    `;
+    list.appendChild(li);
+  });
+
+  document.querySelectorAll(".toggle-azienda").forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      await supabaseClient
+        .from("aziende")
+        .update({ attiva: false })
+        .eq("id", id);
+      loadAziende();
+    };
+  });
+}
+
+document.getElementById("btn-save-azienda")?.addEventListener("click", async () => {
+  const nome = document.getElementById("azienda-nome").value;
+  const codice = document.getElementById("azienda-codice").value;
+  const pin = document.getElementById("azienda-pin").value;
+
+  const features = {
+    dipendenti: document.getElementById("feat-dipendenti").checked,
+    magazzino: document.getElementById("feat-magazzino").checked,
+    ricette: document.getElementById("feat-ricette").checked,
+    preventivi: document.getElementById("feat-preventivi").checked,
+    report: document.getElementById("feat-report").checked,
+  };
+
+  const { error } = await supabaseClient.from("aziende").insert({
+    nome,
+    codice,
+    pin_accesso: pin,
+    features
+  });
+
+  if (error) {
+    alert("Errore creazione azienda");
+    console.error(error);
+    return;
+  }
+
+  loadAziende();
+});
