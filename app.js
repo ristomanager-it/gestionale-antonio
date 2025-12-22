@@ -4701,3 +4701,213 @@ async function caricaProdottiSuggerimentiIngredienti() {
 
   init();
 });
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("🏢 Modulo AZIENDE avviato");
+
+  const supabase = window.supabaseClient;
+
+  // =========================
+  // VIEW & ROUTING
+  // =========================
+  const views = document.querySelectorAll(".view");
+
+  function showView(id) {
+    views.forEach(v => (v.style.display = "none"));
+    const el = document.getElementById(id);
+    if (el) el.style.display = "block";
+  }
+
+  // intercetta pulsanti menu
+  document.querySelectorAll("[data-route]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const route = btn.dataset.route;
+      showView(`view-${route}`);
+      if (route === "aziende") loadAziende();
+    });
+  });
+
+  // =========================
+  // ELEMENTI DOM
+  // =========================
+  const listaAziende = document.getElementById("aziende-lista");
+
+  const aziendaId = document.getElementById("azienda-id");
+  const aziendaCodice = document.getElementById("azienda-codice");
+  const aziendaNome = document.getElementById("azienda-nome");
+  const aziendaAttiva = document.getElementById("azienda-attiva");
+
+  const feat = key => document.getElementById(`azienda-feat-${key}`);
+
+  const btnNuova = document.getElementById("btn-azienda-nuova");
+  const btnSalva = document.getElementById("btn-azienda-salva");
+
+  // =========================
+  // LOAD AZIENDE
+  // =========================
+  async function loadAziende() {
+    const { data, error } = await supabase
+      .from("aziende")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Errore load aziende:", error);
+      alert("Errore caricamento aziende");
+      return;
+    }
+
+    renderAziende(data);
+  }
+
+  function renderAziende(aziende) {
+    listaAziende.innerHTML = "";
+
+    aziende.forEach(a => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td><strong>${a.codice}</strong></td>
+        <td>${a.nome}</td>
+        <td>${a.attiva ? "✅" : "❌"}</td>
+        <td>
+          <button class="app-button tiny gray" data-edit="${a.id}">Modifica</button>
+          <button class="app-button tiny ${a.attiva ? "red" : "green"}" data-toggle="${a.id}">
+            ${a.attiva ? "Disattiva" : "Attiva"}
+          </button>
+        </td>
+      `;
+
+      listaAziende.appendChild(tr);
+    });
+
+    // bind azioni
+    document.querySelectorAll("[data-edit]").forEach(b => {
+      b.onclick = () => editAzienda(b.dataset.edit);
+    });
+
+    document.querySelectorAll("[data-toggle]").forEach(b => {
+      b.onclick = () => toggleAzienda(b.dataset.toggle);
+    });
+  }
+
+  // =========================
+  // EDIT AZIENDA
+  // =========================
+  async function editAzienda(id) {
+    const { data, error } = await supabase
+      .from("aziende")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      alert("Errore caricamento azienda");
+      return;
+    }
+
+    aziendaId.value = data.id;
+    aziendaCodice.value = data.codice;
+    aziendaNome.value = data.nome;
+    aziendaAttiva.checked = data.attiva;
+
+    [
+      "dipendenti",
+      "acquisti",
+      "ricette",
+      "produzione",
+      "magazzino",
+      "preventivi",
+      "venduto",
+      "report"
+    ].forEach(k => {
+      feat(k).checked = data[`feat_${k}`];
+    });
+
+    showView("view-aziende");
+  }
+
+  // =========================
+  // TOGGLE ATTIVA
+  // =========================
+  async function toggleAzienda(id) {
+    const { data, error } = await supabase
+      .from("aziende")
+      .select("attiva")
+      .eq("id", id)
+      .single();
+
+    if (error) return alert("Errore");
+
+    await supabase
+      .from("aziende")
+      .update({ attiva: !data.attiva })
+      .eq("id", id);
+
+    loadAziende();
+  }
+
+  // =========================
+  // NUOVA
+  // =========================
+  btnNuova?.addEventListener("click", () => {
+    aziendaId.value = "";
+    aziendaCodice.value = "";
+    aziendaNome.value = "";
+    aziendaAttiva.checked = true;
+
+    [
+      "dipendenti",
+      "acquisti",
+      "ricette",
+      "produzione",
+      "magazzino",
+      "preventivi",
+      "venduto",
+      "report"
+    ].forEach(k => (feat(k).checked = true));
+  });
+
+  // =========================
+  // SALVA
+  // =========================
+  btnSalva?.addEventListener("click", async () => {
+    const payload = {
+      codice: aziendaCodice.value.trim(),
+      nome: aziendaNome.value.trim(),
+      attiva: aziendaAttiva.checked,
+
+      feat_dipendenti: feat("dipendenti").checked,
+      feat_acquisti: feat("acquisti").checked,
+      feat_ricette: feat("ricette").checked,
+      feat_produzione: feat("produzione").checked,
+      feat_magazzino: feat("magazzino").checked,
+      feat_preventivi: feat("preventivi").checked,
+      feat_venduto: feat("venduto").checked,
+      feat_report: feat("report").checked
+    };
+
+    if (!payload.codice || !payload.nome) {
+      alert("Codice e nome obbligatori");
+      return;
+    }
+
+    let res;
+    if (aziendaId.value) {
+      res = await supabase
+        .from("aziende")
+        .update(payload)
+        .eq("id", aziendaId.value);
+    } else {
+      res = await supabase.from("aziende").insert(payload);
+    }
+
+    if (res.error) {
+      console.error(res.error);
+      alert("Errore salvataggio azienda");
+      return;
+    }
+
+    loadAziende();
+    alert("Azienda salvata ✅");
+  });
+});
