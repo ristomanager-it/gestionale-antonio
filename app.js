@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const periodoSelect = document.getElementById("timbratura-periodo");
   const lista = document.getElementById("timbratura-lista");
-  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
+  const riepilogoDipEl = document.getElementById("riepilogo-utenti");
   const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
   const costoDipEl = document.getElementById("costo-dipendenti");
   const costoCanaliEl = document.getElementById("costo-canali");
