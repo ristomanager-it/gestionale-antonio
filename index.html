@@ -352,6 +352,42 @@
             </div>
           </div>
         </section>
+<!-- SUPER ADMIN - AZIENDE -->
+<section id="view-aziende" class="view" style="display:none">
+  <h2>Gestione Aziende</h2>
+
+  <form id="azienda-form" onsubmit="return false;">
+    <label>
+      Nome azienda
+      <input id="azienda-nome" class="input-pill" />
+    </label>
+
+    <label>
+      Codice azienda
+      <input id="azienda-codice" class="input-pill" placeholder="ES. ANTONIO01" />
+    </label>
+
+    <label>
+      PIN titolare
+      <input id="azienda-pin" class="input-pill" />
+    </label>
+
+    <h4>Funzioni attive</h4>
+
+    <label><input type="checkbox" id="feat-dipendenti" checked /> Dipendenti</label>
+    <label><input type="checkbox" id="feat-magazzino" checked /> Magazzino</label>
+    <label><input type="checkbox" id="feat-ricette" checked /> Ricette</label>
+    <label><input type="checkbox" id="feat-preventivi" /> Preventivi</label>
+    <label><input type="checkbox" id="feat-report" /> Report</label>
+
+    <button id="btn-save-azienda" class="app-button green">
+      Salva azienda
+    </button>
+  </form>
+
+  <h3>Aziende registrate</h3>
+  <ul id="aziende-lista"></ul>
+</section>
 
         <!-- DIPENDENTI -->
         <section id="view-dipendenti" class="view" style="display: none">
