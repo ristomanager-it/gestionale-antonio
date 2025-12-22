@@ -1,69 +1,96 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestionale Antonio</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionale</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* fallback minimo se styles.css non c'è */
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#0b1220; color:#e5e7eb; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+      .card { background:#111a2e; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; }
+      .row { display:flex; gap:10px; flex-wrap:wrap; }
+      .btn { padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:#1a2643; color:#e5e7eb; cursor:pointer; }
+      .btn:hover { filter: brightness(1.08); }
+      .input { width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:#0d1630; color:#e5e7eb; }
+      label { display:block; margin:10px 0 6px; color:#cbd5e1; font-size:13px; }
+      h1,h2 { margin: 0 0 10px; }
+      .muted { color:#94a3b8; font-size: 13px; }
+      .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px; }
+      .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#0d1630; border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:13px; }
+      .view { display:none; }
+    </style>
+  </head>
 
-<body>
-  <header class="app-header">
-    <div class="header-logo-circle">
-      <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
-    </div>
-    <h1>Gestionale Antonio</h1>
-  </header>
-
-  <main class="app-main">
-
-    <!-- LOGIN -->
-    <section id="view-login" class="view login-view">
-      <div class="login-card">
-        <h2>Login</h2>
-
-        <input id="login-nome" class="input-pill" placeholder="Nome" />
-        <input id="login-pin" type="password" class="input-pill" placeholder="PIN" />
-
-        <button id="btn-login" class="app-button login-button">
-          Entra
-        </button>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div>
+          <h1>Gestionale</h1>
+          <div class="muted">Login → Locale → Home (base stabile)</div>
+        </div>
+        <div class="pill">
+          Locale attivo: <strong id="current-locale">—</strong>
+        </div>
       </div>
-    </section>
 
-   <!-- SELEZIONE LOCALE -->
-<section id="view-locale" class="view" style="display:none">
-  <h2>Seleziona il locale</h2>
+      <!-- VIEW: LOGIN -->
+      <section id="view-login" class="view" style="display:block;">
+        <div class="card">
+          <h2>Login</h2>
+          <div class="muted">Inserisci Nome + PIN</div>
 
-  <button class="app-button" data-locale="CP">
-    Centro Produzione
-  </button>
+          <label for="login-nome">Nome</label>
+          <input id="login-nome" class="input" type="text" autocomplete="off" placeholder="es. admin, antonio..." />
 
-  <button class="app-button" data-locale="TA">
-    Trattoria dell’Aquila
-  </button>
+          <label for="login-pin">PIN</label>
+          <input id="login-pin" class="input" type="password" inputmode="numeric" placeholder="PIN" />
 
-  <button class="app-button" data-locale="AP">
-    Da Antonio Pizza
-  </button>
+          <div style="margin-top:12px;">
+            <button id="btn-login" class="btn" type="button">Entra</button>
+          </div>
+        </div>
+      </section>
 
-  <button class="app-button" data-locale="CR">
-    Campo Antico Ristorante
-  </button>
+      <!-- VIEW: SCELTA LOCALE (solo superadmin) -->
+      <section id="view-locale" class="view">
+        <div class="card">
+          <h2>Seleziona locale</h2>
+          <div class="muted">Visibile solo per Super Admin</div>
 
-  <button class="app-button" data-locale="CC">
-    Campo Antico Catering
-  </button>
-</section>
+          <div class="row" style="margin-top:12px;">
+            <button class="btn" type="button" data-locale="CP">Centro Produzione (CP)</button>
+            <button class="btn" type="button" data-locale="TA">Trattoria dell’Aquila (TA)</button>
+            <button class="btn" type="button" data-locale="AP">Da Antonio Pizza (AP)</button>
+            <button class="btn" type="button" data-locale="CR">Campo Antico Ristorante (CR)</button>
+            <button class="btn" type="button" data-locale="CC">Campo Antico Catering (CC)</button>
+          </div>
 
-    <!-- HOME -->
-    <section id="view-home" class="view" style="display:none">
-      <h2>Home</h2>
-      <p>Locale attivo: <strong id="current-locale"></strong></p>
-    </section>
+          <div class="muted" style="margin-top:10px;">
+            I pulsanti verranno mostrati/nascosti in base ai permessi dell’utente.
+          </div>
+        </div>
+      </section>
 
-  </main>
+      <!-- VIEW: HOME -->
+      <section id="view-home" class="view">
+        <div class="card">
+          <h2>Home</h2>
+          <div class="muted">Sei dentro. Qui poi metteremo menu e funzioni per locale.</div>
 
-  <script src="app.js"></script>
-</body>
+          <div style="margin-top:12px;" class="row">
+            <button class="btn" type="button" id="btn-logout">Logout</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;">
+            Prossimo step: bloccare dati per locale e collegare Supabase.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- SCRIPT APP -->
+    <script src="app.js"></script>
+  </body>
 </html>
