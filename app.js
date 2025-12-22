@@ -1,13 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – LOGIN STABILE");
+  console.log("✅ App avviata – STEP 3 DIPENDENTI PER LOCALE");
 
   // =========================
-  // DOM (SAFE)
+  // DOM CORE
   // =========================
+  const allViews = document.querySelectorAll(".view");
   const viewLogin = document.getElementById("view-login");
   const viewHomeDip = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
-  const viewTimbratura = document.getElementById("view-timbratura");
+  const viewDipendenti = document.getElementById("view-dipendenti");
 
   const btnLogin = document.getElementById("btn-login");
   const btnLogout = document.getElementById("btn-logout");
@@ -17,15 +18,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const currentUserLabel = document.getElementById("current-user-label");
 
-  // =========================
-  // DATI TEMPORANEI
-  // =========================
-  const UTENTI = {
-    admin: { pin: "9999", ruolo: "superadmin", locale: "CP" },
-    michele: { pin: "1111", ruolo: "manager", locale: "CP" },
-    antonio: { pin: "1975", ruolo: "manager", locale: "TA" },
-  };
+  // DIPENDENTI FORM
+  const dipForm = document.getElementById("dipendente-form");
+  const dipLista = document.getElementById("dipendenti-lista");
 
+  // =========================
+  // DATI BASE
+  // =========================
   const LOCALI = {
     CP: "Centro Produzione",
     TA: "Trattoria dell’Aquila",
@@ -34,128 +33,189 @@ document.addEventListener("DOMContentLoaded", () => {
     CC: "Campo Antico Catering",
   };
 
+  const UTENTI = {
+    admin: { pin: "9999", ruolo: "superadmin", locale: "CP" },
+    michele: { pin: "1111", ruolo: "manager", locale: "CP" },
+    antonio: { pin: "1975", ruolo: "manager", locale: "TA" },
+  };
+
   // =========================
-  // HELPERS
+  // STORAGE DIPENDENTI (LOCALE)
   // =========================
-  function hide(el) {
-    if (el) el.style.display = "none";
+  function getDipendenti() {
+    return JSON.parse(localStorage.getItem("ga_dipendenti") || "[]");
   }
 
-  function show(el, mode = "block") {
-    if (el) el.style.display = mode;
+  function saveDipendenti(list) {
+    localStorage.setItem("ga_dipendenti", JSON.stringify(list));
   }
 
-  function hideAll() {
-    hide(viewLogin);
-    hide(viewHomeDip);
-    hide(managerMenu);
-    hide(viewTimbratura);
+  // =========================
+  // HELPERS UI
+  // =========================
+  function hideAllViews() {
+    allViews.forEach(v => (v.style.display = "none"));
   }
 
-  function setUserLabel(text) {
-    if (currentUserLabel) {
-      currentUserLabel.textContent = text;
+  function showView(id) {
+    hideAllViews();
+    const v = document.getElementById(id);
+    if (v) v.style.display = "block";
+  }
+
+  // =========================
+  // SESSIONE
+  // =========================
+  function getSession() {
+    return JSON.parse(localStorage.getItem("ga_session") || "null");
+  }
+
+  function setSession(session) {
+    localStorage.setItem("ga_session", JSON.stringify(session));
+  }
+
+  // =========================
+  // LOGIN / LOGOUT
+  // =========================
+  function showLogin() {
+    hideAllViews();
+    viewLogin.style.display = "block";
+    managerMenu.style.display = "none";
+    btnLogout.style.display = "none";
+    currentUserLabel.textContent = "Nessun utente";
+    localStorage.removeItem("ga_session");
+  }
+
+  function enterApp(session) {
+    hideAllViews();
+
+    currentUserLabel.textContent =
+      session.nome + " – " + LOCALI[session.locale];
+
+    btnLogout.style.display = "inline-block";
+
+    if (session.ruolo === "manager" || session.ruolo === "superadmin") {
+      managerMenu.style.display = "grid";
+      showView("view-dipendenti");
+      renderDipendenti();
     } else {
-      console.warn("⚠️ current-user-label non presente");
+      showView("view-home-dip");
     }
   }
 
   // =========================
-  // LOGIN VIEW
+  // LOGIN CLICK
   // =========================
-  function showLogin() {
-    hideAll();
-    show(viewLogin);
-    localStorage.removeItem("ga_session");
-    setUserLabel("Nessun utente");
-    hide(btnLogout);
-    console.log("🔐 Login visibile");
-  }
+  btnLogin.addEventListener("click", () => {
+    const nome = inputNome.value.trim().toLowerCase();
+    const pin = inputPin.value.trim();
+    const user = UTENTI[nome];
 
-  // =========================
-  // ENTER APP
-  // =========================
-  function enterApp(session) {
-    console.log("➡️ Enter app:", session);
-    hideAll();
-
-    const localeNome = LOCALI[session.locale] || session.locale;
-    setUserLabel(`${session.nome} – ${localeNome}`);
-    show(btnLogout, "inline-block");
-
-    // manager / admin
-    if (session.ruolo === "manager" || session.ruolo === "superadmin") {
-      if (managerMenu) {
-        show(managerMenu, "grid");
-      } else {
-        console.warn("⚠️ manager-menu non presente");
-      }
-
-      if (viewTimbratura) {
-        show(viewTimbratura);
-      } else {
-        console.warn("⚠️ view-timbratura non presente");
-      }
-
+    if (!user || user.pin !== pin) {
+      alert("Nome o PIN non corretti");
       return;
     }
 
-    // dipendente
-    if (viewHomeDip) {
-      show(viewHomeDip);
+    const session = { nome, ruolo: user.ruolo, locale: user.locale };
+    setSession(session);
+    enterApp(session);
+  });
+
+  btnLogout.addEventListener("click", showLogin);
+
+  // =========================
+  // ROUTING MANAGER
+  // =========================
+  managerMenu.addEventListener("click", e => {
+    const btn = e.target.closest("[data-route]");
+    if (!btn) return;
+
+    const viewId = "view-" + btn.dataset.route;
+    showView(viewId);
+
+    if (viewId === "view-dipendenti") {
+      renderDipendenti();
     }
-  }
+  });
 
   // =========================
-  // LOGIN LOGIC
+  // DIPENDENTI – LOGICA
   // =========================
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nome = inputNome?.value.trim().toLowerCase();
-      const pin = inputPin?.value.trim();
+  function renderDipendenti() {
+    const session = getSession();
+    if (!session) return;
 
-      const user = UTENTI[nome];
+    const all = getDipendenti();
 
-      if (!user || user.pin !== pin) {
-        alert("Nome o PIN non corretti");
-        return;
-      }
+    const filtrati =
+      session.ruolo === "superadmin"
+        ? all
+        : all.filter(d => d.locale === session.locale);
 
-      const session = {
-        nome,
-        ruolo: user.ruolo,
-        locale: user.locale,
-      };
+    dipLista.innerHTML = "";
 
-      localStorage.setItem("ga_session", JSON.stringify(session));
-      console.log("✅ Login OK:", session);
-      enterApp(session);
+    filtrati.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.nome}</td>
+        <td>${d.mansione || ""}</td>
+        <td>${d.data_nascita || ""}</td>
+        <td>${d.residenza || ""}</td>
+        <td>${d.telefono || ""}</td>
+        <td>${d.email || ""}</td>
+        <td>${d.ruolo}</td>
+        <td>${d.tipo_compenso}</td>
+        <td>${d.costo || ""}</td>
+        <td>${LOCALI[d.locale]}</td>
+        <td>${d.pin}</td>
+        <td>${d.attivo ? "✅" : "❌"}</td>
+        <td>-</td>
+      `;
+      dipLista.appendChild(tr);
     });
   }
 
   // =========================
-  // LOGOUT
+  // SALVATAGGIO DIPENDENTE
   // =========================
-  if (btnLogout) {
-    btnLogout.addEventListener("click", showLogin);
-  }
+  dipForm.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const session = getSession();
+    if (!session) return;
+
+    const dip = {
+      id: crypto.randomUUID(),
+      nome: document.getElementById("dip-nome").value,
+      mansione: document.getElementById("dip-mansione").value,
+      data_nascita: document.getElementById("dip-data-nascita").value,
+      residenza: document.getElementById("dip-residenza").value,
+      telefono: document.getElementById("dip-telefono").value,
+      email: document.getElementById("dip-email").value,
+      ruolo: document.getElementById("dip-ruolo").value,
+      tipo_compenso: document.getElementById("dip-tipo-compenso").value,
+      costo: document.getElementById("dip-costo").value,
+      pin: document.getElementById("dip-codice").value,
+      attivo: document.getElementById("dip-attivo").checked,
+      locale: session.locale, // 🔒 BLOCCO LOCALE
+    };
+
+    const list = getDipendenti();
+    list.push(dip);
+    saveDipendenti(list);
+
+    dipForm.reset();
+    renderDipendenti();
+  });
 
   // =========================
-  // SESSION RESTORE
+  // AVVIO
   // =========================
-  const saved = localStorage.getItem("ga_session");
+  const saved = getSession();
   if (saved) {
-    try {
-      const session = JSON.parse(saved);
-      if (session?.nome && session?.locale) {
-        console.log("🔁 Sessione ripristinata");
-        enterApp(session);
-        return;
-      }
-    } catch (e) {
-      console.warn("Sessione corrotta");
-    }
+    console.log("🔁 Sessione ripristinata");
+    enterApp(saved);
+  } else {
+    showLogin();
   }
-
-  showLogin();
 });
