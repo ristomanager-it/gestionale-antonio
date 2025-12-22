@@ -1,68 +1,649 @@
+/* ========================================================= */
+/* ==================== [0] RESET & BASE =================== */
+/* ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #020617;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
-.app-header {
+/* Tema base: SCURO; il chiaro è gestito con body.theme-light */
+body {
   background: #020617;
-  color: white;
-  padding: 10px;
+  color: #0f172a;
+}
+
+/* Layout app principale */
+.app-main-wrapper {
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 8px 24px;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
 }
 
-.header-logo-circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
+/* Utility */
+.hidden {
+  display: none !important;
 }
 
-.header-logo-img {
-  width: 100%;
-  height: 100%;
-}
-
+/* Contenuto principale */
 .app-main {
-  padding: 16px;
-}
-
-.view {
-  background: #f9fafb;
-  border-radius: 16px;
-  padding: 20px;
-  margin-top: 10px;
-}
-
-.login-view {
-  display: flex;
-  justify-content: center;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 320px;
+  flex: 1;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.input-pill {
-  padding: 10px;
-  border-radius: 999px;
-  border: 1px solid #ccc;
+/* Card generica vista */
+.view {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
 }
+
+/* Riduzione zoom automatico su mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
+
+
+/* ========================================================= */
+/* ===================== [1] HEADER TOP ==================== */
+/* ========================================================= */
+
+.app-header {
+  background: #020617;
+  color: #e5e7eb;
+  padding: 8px 4px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f97316;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+
+
+/* ========================================================= */
+/* ==================== [2] BOTTONI BASE =================== */
+/* ========================================================= */
 
 .app-button {
-  padding: 10px;
-  border-radius: 999px;
+  padding: 11px 12px;
+  font-size: 14px;
   border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
   cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease,
+    box-shadow 0.12s ease;
+  font-weight: 600;
+  text-align: center;
 }
 
-.login-button {
-  background: #2563eb;
-  color: white;
+.app-button:hover {
+  background: #d1d5db;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
+
+.app-button:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.app-button.tiny {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.app-button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.app-button.ghost {
+  background: transparent;
+  color: #e5e7eb;
+  box-shadow: none;
+}
+
+.app-button.ghost:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.app-button.login-button {
+  background: #2563eb; 
+  color: #ffffff; 
+  font-size: 16px; 
+  padding: 12px 20px; 
+  border-radius: 999px;
+  display: block;
+  margin: 10px auto 0; 
+  min-width: 60%; 
+  max-width: 260px; 
+  text-align: center;
+}
+
+.app-button.login-button:hover {
+  background: #1d4ed8; 
+}
+
+.app-button.green {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.app-button.green:hover {
+  background: #15803d;
+}
+
+.app-button.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.app-button.red:hover {
+  background: #b91c1c;
+}
+
+.app-button.gray {
+  background: #6b7280;
+  color: #ffffff;
+}
+
+.app-button.gray:hover {
+  background: #4b5563;
+}
+
+
+
+/* ========================================================= */
+/* ============== [3] INPUT A PILLOLA / TEXTAREA =========== */
+/* ========================================================= */
+
+/* Input / select stondati */
+.input-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* Textarea stile card */
+.textarea-pill {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  resize: vertical;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [4] LOGIN VIEW ==================== */
+/* ========================================================= */
+
+.login-view {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.6);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin: 6px 0 4px;
+  font-size: 24px;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+
+
+/* ========================================================= */
+/* ============ [5] HOME DIPENDENTE / MENU MANAGER ========= */
+/* ========================================================= */
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.app-button.big-home {
+  padding: 16px 14px;
+  font-size: 17px;
+  background: #e5e7eb;
+}
+
+/* Griglia menu manager */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.menu-button {
+  padding: 14px 10px;
+  font-size: 14px;
+  background: #111827;
+  color: #f9fafb;
+}
+
+.menu-button.wide {
+  grid-column: 1 / -1;
+}
+
+
+
+/* ========================================================= */
+/* ================= [6] TIMBRATURA & BOTTONI ============== */
+/* ========================================================= */
+
+#view-timbratura h2 {
+  margin-top: 0;
+}
+
+.timbratura-intro-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+  margin-bottom: 10px;
+}
+
+.timbratura-intro-card p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.timbratura-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.timb-button {
+  flex: 1;
+  font-size: 15px;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [7] TABELLE BASE ================== */
+/* ========================================================= */
+
+.table-wrapper {
+  margin-top: 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.3);
+}
+
+.table-timbrature {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+}
+
+.table-timbrature thead {
+  background: #f3f4f6;
+}
+
+.table-timbrature th,
+.table-timbrature td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table-timbrature th {
+  font-weight: 600;
+}
+
+
+
+/* ========================================================= */
+/* ================== [8] DIPENDENTI VIEW ================== */
+/* ========================================================= */
+
+#view-dipendenti form {
+  margin-top: 8px;
+}
+
+/* solo per la checkbox 'attivo' */
+#view-dipendenti label input[type="checkbox"] {
+  width: auto;
+  margin-right: 6px;
+}
+
+#view-dipendenti h3 {
+  margin-top: 16px;
+}
+
+
+
+/* ========================================================= */
+/* ================== [9] ACQUISTI / FATTURE =============== */
+/* ========================================================= */
+
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+}
+
+.kpi-card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.kpi-card p {
+  margin: 0;
+}
+
+
+/* ========================================================= */
+/* ====================== [10] RICETTE ===================== */
+/* ========================================================= */
+
+#view-ricette h2 {
+  margin-top: 0;
+}
+
+#view-ricette form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#ricetta-note {
+  width: 100%;
+  min-height: 90px;
+  border-radius: 16px;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+#ricetta-ingredienti-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+
+
+/* ========================================================= */
+/* =================== [11] REPORT KPI VIEW ================= */
+/* ========================================================= */
+
+.kpi-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kpi-subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [12] MAGAZZINO ===================== */
+/* ========================================================= */
+
+#view-magazzino #magazzino-search.input-pill {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+}
+
+#view-magazzino form {
+  margin: 10px 0 12px;
+}
+
+#view-magazzino table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#view-magazzino th,
+#view-magazzino td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+#view-magazzino thead {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.magazzino-low {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+
+/* ========================================================= */
+/* ===================== [13] TEMA CHIARO =================== */
+/* ========================================================= */
+
+body.theme-light {
+  background: #e5e7eb;
+}
+
+body.theme-light .app-header {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+body.theme-light .subtitle {
+  color: #6b7280;
+}
+
+body.theme-light .header-user {
+  color: #111827;
+}
+
+body.theme-light .view {
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(148, 163, 184, 0.45);
+}
+
+
+
+/* ========================================================= */
+/* ================= [14] VENDUTO DEL GIORNO ================ */
+/* ========================================================= */
+
+#view-venduto h2 {
+  margin-top: 0;
+}
+
+#view-venduto table {
+  margin-top: 10px;
+  width: 100%;
+}
+
+#view-venduto input[type="file"] {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
+#venduto-table td,
+#venduto-table th {
+  font-size: 12px;
+}
+
+#venduto-table tr.missing {
+  background: #fee2e2;
+}
+
+#venduto-table tr.ok {
+  background: #dcfce7;
+}
+
+#venduto-table tr.partial {
+  background: #fef9c3;
 }
