@@ -110,10 +110,7 @@
               Ordine del giorno
             </button>
 
-            <button
-              class="app-button big-home"
-              data-route="ricette-viewer"
-            >
+            <button class="app-button big-home" data-route="ricette-viewer">
               Ricettario
             </button>
           </div>
@@ -121,6 +118,15 @@
 
         <!-- MENU MANAGER -->
         <section id="manager-menu" class="buttons-grid" style="display: none">
+          <!-- ✅ NUOVO: AZIENDE (SOLO SUPERADMIN) -->
+          <button
+            class="app-button menu-button"
+            data-route="aziende"
+            data-superadmin-only="true"
+          >
+            🏢 Aziende
+          </button>
+
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
@@ -164,12 +170,125 @@
             Ricettario
           </button>
 
-          <button
-            class="app-button menu-button wide"
-            data-route="report"
-          >
+          <button class="app-button menu-button wide" data-route="report">
             Report
           </button>
+        </section>
+
+        <!-- ✅ NUOVO: VIEW AZIENDE -->
+        <section id="view-aziende" class="view" style="display: none">
+          <h2>Gestione aziende</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Crea aziende, assegna codici, attivale/disattivale e gestisci le funzioni abilitate (contratto).
+          </p>
+
+          <form id="azienda-form" onsubmit="return false;" style="margin-top: 12px;">
+            <input type="hidden" id="azienda-id" />
+
+            <div class="form-grid-2">
+              <label>
+                Codice (es. CP)
+                <input
+                  type="text"
+                  id="azienda-codice"
+                  class="input-pill"
+                  maxlength="12"
+                  placeholder="CP"
+                />
+              </label>
+
+              <label>
+                Nome azienda
+                <input
+                  type="text"
+                  id="azienda-nome"
+                  class="input-pill"
+                  placeholder="Centro Produzione"
+                />
+              </label>
+            </div>
+
+            <label style="margin-top: 8px;">
+              Attiva
+              <input type="checkbox" id="azienda-attiva" checked />
+            </label>
+
+            <h3 style="margin-top: 14px;">Funzioni abilitate</h3>
+            <p style="margin-top: 4px; font-size: 12px; color: #6b7280;">
+              Spunta cosa è incluso nel contratto dell’azienda.
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top: 8px;">
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-dipendenti" checked />
+                <span>Dipendenti</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-acquisti" checked />
+                <span>Acquisti / Fatture</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-ricette" checked />
+                <span>Ricette</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-produzione" checked />
+                <span>Produzione</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-magazzino" checked />
+                <span>Magazzino</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-preventivi" checked />
+                <span>Preventivi & Prenotazioni</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-venduto" checked />
+                <span>Venduto del giorno</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="azienda-feat-report" checked />
+                <span>Report</span>
+              </label>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px;">
+              <button id="btn-azienda-nuova" class="app-button small gray" type="button">
+                Nuova
+              </button>
+              <button id="btn-azienda-salva" class="app-button small green" type="button">
+                Salva azienda
+              </button>
+            </div>
+          </form>
+
+          <h3 style="margin-top: 18px;">Elenco aziende</h3>
+
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Codice</th>
+                  <th>Nome</th>
+                  <th>Attiva</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="aziende-lista"></tbody>
+            </table>
+          </div>
+
+          <p style="margin-top: 10px; font-size: 12px; color:#6b7280;">
+            Nota: la disattivazione azienda serve come “kill switch” (chi non paga).
+          </p>
         </section>
 
         <!-- TIMBRATURA -->
@@ -212,17 +331,11 @@
             data-manager-only="true"
             style="margin-top: 16px;"
           >
-            <button
-              id="btn-toggle-presenze"
-              class="app-button small gray"
-            >
+            <button id="btn-toggle-presenze" class="app-button small gray">
               Mostra stato presenze
             </button>
 
-            <div
-              id="sezione-presenze"
-              style="display: none; margin-top: 10px;"
-            >
+            <div id="sezione-presenze" style="display: none; margin-top: 10px;">
               <h3>Stato dipendenti</h3>
               <div class="table-wrapper">
                 <table class="table-timbrature">
@@ -253,47 +366,27 @@
 
             <label>
               Mansione
-              <input
-                type="text"
-                id="dip-mansione"
-                class="input-pill"
-              />
+              <input type="text" id="dip-mansione" class="input-pill" />
             </label>
 
             <label>
               Data nascita
-              <input
-                type="date"
-                id="dip-data-nascita"
-                class="input-pill"
-              />
+              <input type="date" id="dip-data-nascita" class="input-pill" />
             </label>
 
             <label>
               Residenza
-              <input
-                type="text"
-                id="dip-residenza"
-                class="input-pill"
-              />
+              <input type="text" id="dip-residenza" class="input-pill" />
             </label>
 
             <label>
               Telefono
-              <input
-                type="tel"
-                id="dip-telefono"
-                class="input-pill"
-              />
+              <input type="tel" id="dip-telefono" class="input-pill" />
             </label>
 
             <label>
               Email
-              <input
-                type="email"
-                id="dip-email"
-                class="input-pill"
-              />
+              <input type="email" id="dip-email" class="input-pill" />
             </label>
 
             <label>
@@ -309,10 +402,7 @@
 
             <label>
               Tipo compenso
-              <select
-                id="dip-tipo-compenso"
-                class="input-pill"
-              >
+              <select id="dip-tipo-compenso" class="input-pill">
                 <option value="orario">A ore</option>
                 <option value="mensile">Mensile</option>
                 <option value="servizio">Per servizio</option>
@@ -389,10 +479,7 @@
               Attivo
             </label>
 
-            <button
-              id="btn-add-dip"
-              class="app-button small green"
-            >
+            <button id="btn-add-dip" class="app-button small green">
               Salva dipendente
             </button>
           </form>
@@ -431,20 +518,12 @@
             <div class="form-grid-2">
               <label>
                 Numero fattura
-                <input
-                  id="fattura-numero"
-                  type="text"
-                  class="input-pill"
-                />
+                <input id="fattura-numero" type="text" class="input-pill" />
               </label>
 
               <label>
                 Data
-                <input
-                  id="fattura-data"
-                  type="date"
-                  class="input-pill"
-                />
+                <input id="fattura-data" type="date" class="input-pill" />
               </label>
             </div>
 
@@ -574,7 +653,6 @@
           <h2>Ricette</h2>
 
           <form onsubmit="return false;">
-            <!-- TIPO RICETTA -->
             <label>
               Tipo ricetta
               <select id="ricetta-tipo" class="input-pill">
@@ -605,20 +683,12 @@
 
             <label>
               Note / Procedimento
-              <textarea
-                id="ricetta-note"
-                rows="4"
-                class="textarea-pill"
-              ></textarea>
+              <textarea id="ricetta-note" rows="4" class="textarea-pill"></textarea>
             </label>
 
             <label>
               Foto ricetta
-              <input
-                type="file"
-                id="ricetta-foto"
-                accept="image/*"
-              />
+              <input type="file" id="ricetta-foto" accept="image/*" />
             </label>
 
             <h3>Resa ricetta</h3>
@@ -710,7 +780,6 @@
 
             <datalist id="ingredienti-suggestions"></datalist>
 
-            <!-- NUOVO: datalist per categorie di bilancio -->
             <datalist id="bilancio-categorie">
               <option value="Materie prime"></option>
               <option value="Bevande"></option>
@@ -720,36 +789,23 @@
               <option value="Altro"></option>
             </datalist>
 
-            <button
-              id="btn-add-ingrediente"
-              class="app-button small gray"
-              type="button"
-            >
+            <button id="btn-add-ingrediente" class="app-button small gray" type="button">
               + Aggiungi ingrediente
             </button>
 
-            <button
-              id="btn-salva-ricetta"
-              class="app-button small green"
-              type="button"
-            >
+            <button id="btn-salva-ricetta" class="app-button small green" type="button">
               Salva ricetta
             </button>
           </form>
         </section>
 
         <!-- RICETTARIO (SOLO LETTURA) -->
-        <section
-          id="view-ricette-viewer"
-          class="view"
-          style="display: none"
-        >
+        <section id="view-ricette-viewer" class="view" style="display: none">
           <h2>Ricettario</h2>
           <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
             Visualizza le ricette registrate, senza possibilità di modificarle.
           </p>
 
-          <!-- 🔹 Bottone per aprire la scheda produzione -->
           <button
             type="button"
             id="btn-open-produzione"
@@ -760,7 +816,6 @@
             Vai alla scheda di produzione
           </button>
 
-          <!-- Ricerca -->
           <div style="margin-top:10px; margin-bottom:8px;">
             <label style="display:block; font-size:13px; margin-bottom:4px;">
               Cerca ricetta
@@ -773,14 +828,12 @@
             />
           </div>
 
-          <!-- FILTRI (Tutte / Ricette / Basi) -->
           <div id="ricette-filtri" style="display:flex; gap:6px; margin-top:10px;">
             <button class="app-button tiny" data-filter="tutte">Tutte</button>
             <button class="app-button tiny" data-filter="piatto">Ricette</button>
             <button class="app-button tiny" data-filter="base">Ricette Base</button>
           </div>
 
-          <!-- LISTA / VIEWER -->
           <div
             id="ricette-lista-viewer"
             style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
@@ -801,21 +854,12 @@
             <div class="form-grid-2">
               <label style="font-size:13px;">
                 Data
-                <input
-                  type="date"
-                  id="produzione-data"
-                  class="input-pill"
-                />
+                <input type="date" id="produzione-data" class="input-pill" />
               </label>
 
               <label style="font-size:13px;">
                 Lotto produzione
-                <input
-                  type="text"
-                  id="produzione-lotto"
-                  class="input-pill"
-                  readonly
-                />
+                <input type="text" id="produzione-lotto" class="input-pill" readonly />
               </label>
             </div>
 
@@ -835,26 +879,17 @@
             Ogni riga è una ricetta in un formato (ristorante, buffet, kg ragù, ecc.).
           </p>
 
-          <!-- Container righe -->
           <div
             id="produzione-righe"
             style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"
           ></div>
 
           <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button
-              type="button"
-              class="app-button small gray"
-              id="btn-add-riga-produzione"
-            >
+            <button type="button" class="app-button small gray" id="btn-add-riga-produzione">
               + Aggiungi riga
             </button>
 
-            <button
-              type="button"
-              class="app-button small green"
-              id="btn-salva-scheda-produzione"
-            >
+            <button type="button" class="app-button small green" id="btn-salva-scheda-produzione">
               Salva scheda produzione
             </button>
           </div>
@@ -873,32 +908,16 @@
           </div>
 
           <div class="kpi-period-switch">
-            <button
-              type="button"
-              class="app-button tiny report-period-btn active"
-              data-period="giorno"
-            >
+            <button type="button" class="app-button tiny report-period-btn active" data-period="giorno">
               Giorno
             </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="settimana"
-            >
+            <button type="button" class="app-button tiny report-period-btn" data-period="settimana">
               Settimana
             </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="mese"
-            >
+            <button type="button" class="app-button tiny report-period-btn" data-period="mese">
               Mese
             </button>
-            <button
-              type="button"
-              class="app-button tiny report-period-btn"
-              data-period="anno"
-            >
+            <button type="button" class="app-button tiny report-period-btn" data-period="anno">
               Anno
             </button>
           </div>
@@ -972,18 +991,11 @@
 
           <hr class="report-section-divider" />
 
-          <button
-            id="btn-toggle-costi-fissi"
-            class="app-button small gray"
-            type="button"
-          >
+          <button id="btn-toggle-costi-fissi" class="app-button small gray" type="button">
             Gestisci costi fissi
           </button>
 
-          <div
-            id="costi-fissi-panel"
-            style="display: none; margin-top: 10px;"
-          >
+          <div id="costi-fissi-panel" style="display: none; margin-top: 10px;">
             <h3>Costi fissi annuali</h3>
 
             <form id="costi-fissi-form" onsubmit="return false;">
@@ -1027,11 +1039,7 @@
                 />
               </label>
 
-              <button
-                id="btn-salva-costo-fisso"
-                class="app-button small green"
-                type="button"
-              >
+              <button id="btn-salva-costo-fisso" class="app-button small green" type="button">
                 Salva costo fisso
               </button>
             </form>
@@ -1113,11 +1121,7 @@
 
             <label>
               Categoria
-              <input
-                type="text"
-                id="magazzino-categoria"
-                class="input-pill"
-              />
+              <input type="text" id="magazzino-categoria" class="input-pill" />
             </label>
 
             <label>
@@ -1151,11 +1155,7 @@
               />
             </label>
 
-            <button
-              id="btn-magazzino-salva"
-              class="app-button small green"
-              type="button"
-            >
+            <button id="btn-magazzino-salva" class="app-button small green" type="button">
               Salva prodotto
             </button>
           </form>
@@ -1167,291 +1167,231 @@
           </p>
         </section>
 
-       <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
-<section id="view-preventivi" class="view" style="display: none">
-  <h2>Preventivi &amp; Prenotazioni</h2>
+        <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
+        <section id="view-preventivi" class="view" style="display: none">
+          <h2>Preventivi &amp; Prenotazioni</h2>
 
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
-    <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
-    <button id="btn-new-preventivo" class="app-button small gray">
-      + Nuovo preventivo
-    </button>
-  </div>
-
-  <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
-    <!-- LISTA PREVENTIVI -->
-    <div class="preventivi-list-panel">
-      <h4 style="margin:0 0 6px;">Lista preventivi</h4>
-      <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- Popolato da JS -->
-      </div>
-    </div>
-
-    <!-- DETTAGLIO PREVENTIVO -->
-    <div class="preventivi-detail-panel">
-      <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
-
-      <form id="preventivo-form" onsubmit="return false;">
-        <input type="hidden" id="preventivo-id" />
-
-        <!-- CLIENTE -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Dati cliente</h5>
-
-          <input type="hidden" id="preventivo-cliente-id" />
-
-          <label>
-            Nome
-            <input type="text" id="preventivo-cliente-nome" class="input-pill" />
-          </label>
-
-          <label>
-            Cognome
-            <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
-          </label>
-
-          <label>
-            Telefono
-            <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
-          </label>
-
-          <label>
-            Email
-            <input type="email" id="preventivo-cliente-email" class="input-pill" />
-          </label>
-
-          <label>
-            Comune di residenza
-            <input type="text" id="preventivo-cliente-comune" class="input-pill" />
-          </label>
-        </div>
-
-        <!-- EVENTO -->
-        <div class="form-section">
-          <h5 style="margin:8px 0;">Evento</h5>
-
-          <label>
-            Tipologia di evento
-            <select id="preventivo-titolo" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="Matrimonio">Matrimonio</option>
-              <option value="Battesimo">Battesimo</option>
-              <option value="Comunione">Comunione</option>
-              <option value="Cresima">Cresima</option>
-              <option value="Compleanno">Compleanno</option>
-            </select>
-          </label>
-
-          <label>
-            Tipo servizio
-            <select id="preventivo-tipo-servizio" class="input-pill">
-              <option value="">-- seleziona --</option>
-              <option value="buffet">Buffet</option>
-              <option value="servito">Servito</option>
-              <option value="misto">Misto</option>
-            </select>
-          </label>
-
-          <label>
-            Data evento
-            <input type="date" id="preventivo-data-evento" class="input-pill" />
-          </label>
-
-          <label>
-            N. invitati
-            <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
-          </label>
-
-          <label>
-            Location
-            <input type="text" id="preventivo-location" class="input-pill" />
-          </label>
-
-          <label>
-            Note interne
-            <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
-          </label>
-
-          <label>
-            Stato
-            <select id="preventivo-stato" class="input-pill">
-              <option value="bozza">Bozza</option>
-              <option value="inviato">Inviato</option>
-              <option value="accettato">Accettato</option>
-              <option value="rifiutato">Rifiutato</option>
-            </select>
-          </label>
-        </div>
-
-        <!-- MENÙ -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Menù</h5>
-
-          <button
-            type="button"
-            id="btn-add-menu-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi portata
-          </button>
-
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Portata</th>
-                  <th class="col-prezzo-portata">Costo a persona</th>
-                  <th class="col-prezzo-portata">Totale riga</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-menu-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
+            <button id="btn-new-preventivo" class="app-button small gray">
+              + Nuovo preventivo
+            </button>
           </div>
-        </div>
 
-        <!-- SERVIZI EXTRA -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Servizi extra</h5>
+          <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="preventivi-list-panel">
+              <h4 style="margin:0 0 6px;">Lista preventivi</h4>
+              <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
 
-          <button
-            type="button"
-            id="btn-add-extra-row"
-            class="app-button small gray"
-            style="margin-bottom:6px;"
-          >
-            + Aggiungi extra
-          </button>
+            <div class="preventivi-detail-panel">
+              <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
 
-          <div class="table-wrapper">
-            <table class="table-timbrature">
-              <thead>
-                <tr>
-                  <th>Descrizione</th>
-                  <th>Q.tà</th>
-                  <th>Prezzo unit.</th>
-                  <th>Totale</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="preventivo-extra-tbody">
-                <!-- righe generate da JS -->
-              </tbody>
-            </table>
+              <form id="preventivo-form" onsubmit="return false;">
+                <input type="hidden" id="preventivo-id" />
+
+                <div class="form-section">
+                  <h5 style="margin:8px 0;">Dati cliente</h5>
+
+                  <input type="hidden" id="preventivo-cliente-id" />
+
+                  <label>
+                    Nome
+                    <input type="text" id="preventivo-cliente-nome" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Cognome
+                    <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Telefono
+                    <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Email
+                    <input type="email" id="preventivo-cliente-email" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Comune di residenza
+                    <input type="text" id="preventivo-cliente-comune" class="input-pill" />
+                  </label>
+                </div>
+
+                <div class="form-section">
+                  <h5 style="margin:8px 0;">Evento</h5>
+
+                  <label>
+                    Tipologia di evento
+                    <select id="preventivo-titolo" class="input-pill">
+                      <option value="">-- seleziona --</option>
+                      <option value="Matrimonio">Matrimonio</option>
+                      <option value="Battesimo">Battesimo</option>
+                      <option value="Comunione">Comunione</option>
+                      <option value="Cresima">Cresima</option>
+                      <option value="Compleanno">Compleanno</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Tipo servizio
+                    <select id="preventivo-tipo-servizio" class="input-pill">
+                      <option value="">-- seleziona --</option>
+                      <option value="buffet">Buffet</option>
+                      <option value="servito">Servito</option>
+                      <option value="misto">Misto</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Data evento
+                    <input type="date" id="preventivo-data-evento" class="input-pill" />
+                  </label>
+
+                  <label>
+                    N. invitati
+                    <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
+                  </label>
+
+                  <label>
+                    Location
+                    <input type="text" id="preventivo-location" class="input-pill" />
+                  </label>
+
+                  <label>
+                    Note interne
+                    <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
+                  </label>
+
+                  <label>
+                    Stato
+                    <select id="preventivo-stato" class="input-pill">
+                      <option value="bozza">Bozza</option>
+                      <option value="inviato">Inviato</option>
+                      <option value="accettato">Accettato</option>
+                      <option value="rifiutato">Rifiutato</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Menù</h5>
+
+                  <button type="button" id="btn-add-menu-row" class="app-button small gray" style="margin-bottom:6px;">
+                    + Aggiungi portata
+                  </button>
+
+                  <div class="table-wrapper">
+                    <table class="table-timbrature">
+                      <thead>
+                        <tr>
+                          <th>Portata</th>
+                          <th class="col-prezzo-portata">Costo a persona</th>
+                          <th class="col-prezzo-portata">Totale riga</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="preventivo-menu-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Servizi extra</h5>
+
+                  <button type="button" id="btn-add-extra-row" class="app-button small gray" style="margin-bottom:6px;">
+                    + Aggiungi extra
+                  </button>
+
+                  <div class="table-wrapper">
+                    <table class="table-timbrature">
+                      <thead>
+                        <tr>
+                          <th>Descrizione</th>
+                          <th>Q.tà</th>
+                          <th>Prezzo unit.</th>
+                          <th>Totale</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="preventivo-extra-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="form-section" style="margin-top:10px;">
+                  <h5 style="margin:8px 0;">Totali</h5>
+
+                  <label>
+                    Sconto menù (%)
+                    <select id="preventivo-sconto-menu" class="input-pill">
+                      <option value="0">Nessuno</option>
+                      <option value="3">3%</option>
+                      <option value="5">5%</option>
+                      <option value="8">8%</option>
+                      <option value="10">10%</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Totale preventivo
+                    <input type="text" id="preventivo-totale" class="input-pill" readonly />
+                  </label>
+
+                  <label>
+                    Prezzo per persona
+                    <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
+                  </label>
+
+                  <label>
+                    Acconto
+                    <input type="number" id="preventivo-acconto" class="input-pill" min="0" step="0.01" />
+                  </label>
+
+                  <label>
+                    Saldo residuo
+                    <input type="text" id="preventivo-saldo" class="input-pill" readonly />
+                  </label>
+                </div>
+
+                <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+                  <button type="submit" id="btn-save-preventivo" class="app-button small green" style="flex:1 1 150px;">
+                    Salva preventivo
+                  </button>
+
+                  <button type="button" id="btn-print-preventivo" class="app-button small gray" style="flex:1 1 150px;">
+                    Stampa / PDF
+                  </button>
+
+                  <button type="button" id="btn-email-preventivo" class="app-button small gray" style="flex:1 1 150px;">
+                    Invia per email
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- TOTALI -->
-        <div class="form-section" style="margin-top:10px;">
-          <h5 style="margin:8px 0;">Totali</h5>
-
-          <!-- 🔥 nuovo: sconto menù -->
-          <label>
-            Sconto menù (%)
-            <select id="preventivo-sconto-menu" class="input-pill">
-              <option value="0">Nessuno</option>
-              <option value="3">3%</option>
-              <option value="5">5%</option>
-              <option value="8">8%</option>
-              <option value="10">10%</option>
-            </select>
-          </label>
-
-          <label>
-            Totale preventivo
-            <input type="text" id="preventivo-totale" class="input-pill" readonly />
-          </label>
-
-          <label>
-            Prezzo per persona
-            <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
-          </label>
-
-          <label>
-            Acconto
-            <input
-              type="number"
-              id="preventivo-acconto"
-              class="input-pill"
-              min="0"
-              step="0.01"
-            />
-          </label>
-
-          <label>
-            Saldo residuo
-            <input type="text" id="preventivo-saldo" class="input-pill" readonly />
-          </label>
-        </div>
-
-        <!-- AZIONI -->
-        <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
-          <button
-            type="submit"
-            id="btn-save-preventivo"
-            class="app-button small green"
-            style="flex:1 1 150px;"
-          >
-            Salva preventivo
-          </button>
-
-          <button
-            type="button"
-            id="btn-print-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 150px;"
-          >
-            Stampa / PDF
-          </button>
-
-          <button
-            type="button"
-            id="btn-email-preventivo"
-            class="app-button small gray"
-            style="flex:1 1 150px;"
-          >
-            Invia per email
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</section>
-
-
-        <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
+        <!-- 🔥 VENDUTO DEL GIORNO -->
         <section id="view-venduto" class="view" style="display: none">
           <h2>Venduto del giorno</h2>
           <p>Carica un file CSV per registrare il venduto e scaricare il magazzino.</p>
 
           <label>
             <strong>Carica CSV</strong>
-            <input
-              type="file"
-              id="venduto-file"
-              accept=".csv"
-              class="input-pill"
-            />
+            <input type="file" id="venduto-file" accept=".csv" class="input-pill" />
           </label>
 
-          <button
-            id="btn-carica-venduto"
-            class="app-button small green"
-            style="margin-top: 12px;"
-          >
+          <button id="btn-carica-venduto" class="app-button small green" style="margin-top: 12px;">
             Importa venduto
           </button>
 
           <h3 style="margin-top:16px;">Anteprima</h3>
 
-          <table
-            class="table-timbrature"
-            id="venduto-table"
-            style="display:none;"
-          >
+          <table class="table-timbrature" id="venduto-table" style="display:none;">
             <thead>
               <tr>
                 <th>Prodotto</th>
@@ -1466,7 +1406,7 @@
       </main>
     </div>
 
-    <!-- DATALIST GLOBALE PER LE RICETTE (usato da Produzione, Preventivi, ecc.) -->
+    <!-- DATALIST GLOBALE PER LE RICETTE -->
     <datalist id="ricette-suggestions"></datalist>
 
     <!-- SUPABASE -->
