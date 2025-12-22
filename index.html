@@ -1,4 +1,1488 @@
-document.addEventListener("DOMContentLoaded", () => {
+do<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionale Antonio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <div class="app-main-wrapper">
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-top">
+          <div class="header-left">
+            <div class="header-logo-circle">
+              <img src="Logo Gestionale Antonio.png" class="header-logo-img" />
+            </div>
+            <div>
+              <h1>Gestionale Antonio</h1>
+              <p class="subtitle">Suite per NR, RA, CC e Catering</p>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <button id="btn-theme" class="app-button tiny ghost">🌙</button>
+
+            <div class="header-user">
+              <span id="current-user-label">Nessun utente</span>
+              <button
+                id="btn-logout"
+                class="app-button tiny"
+                style="display: none"
+              >
+                Esci
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENUTO PRINCIPALE -->
+      <main class="app-main">
+        <!-- LOGIN -->
+        <section id="view-login" class="view login-view">
+          <div class="login-wrapper">
+            <div class="form-card login-card">
+              <div class="login-logo">
+                <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
+              </div>
+
+              <h2 class="login-title">Benvenuto</h2>
+              <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
+
+              <form class="login-form" onsubmit="return false;">
+                <div class="form-row">
+                  <label for="login-nome" class="input-label">Nome</label>
+                  <input
+                    type="text"
+                    id="login-nome"
+                    class="input-pill"
+                    placeholder="Es. Mario Rossi"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="form-row">
+                  <label for="login-pin" class="input-label">PIN</label>
+                  <input
+                    type="password"
+                    id="login-pin"
+                    class="input-pill"
+                    maxlength="10"
+                    inputmode="numeric"
+                    placeholder="PIN personale"
+                  />
+                </div>
+
+                <div class="form-row form-row-inline">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="login-remember" />
+                    <span>Ricordami su questo dispositivo</span>
+                  </label>
+                </div>
+
+                <div class="form-row">
+                  <button
+                    type="button"
+                    id="btn-login"
+                    class="app-button login-button"
+                  >
+                    Entra
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- HOME DIPENDENTE -->
+        <section id="view-home-dip" class="view" style="display: none">
+          <h2>Cosa vuoi fare?</h2>
+
+          <div class="home-buttons">
+            <button class="app-button big-home" data-route="timbratura">
+              Timbratura
+            </button>
+
+            <button class="app-button big-home" data-route="ordine">
+              Ordine del giorno
+            </button>
+
+            <button
+              class="app-button big-home"
+              data-route="ricette-viewer"
+            >
+              Ricettario
+            </button>
+          </div>
+        </section>
+
+        <!-- MENU MANAGER -->
+        <section id="manager-menu" class="buttons-grid" style="display: none">
+          <button class="app-button menu-button" data-route="timbratura">
+            Timbratura
+          </button>
+
+          <button class="app-button menu-button" data-route="dipendenti">
+            Dipendenti
+          </button>
+
+          <button class="app-button menu-button" data-route="acquisti">
+            Acquisti / Fatture
+          </button>
+
+          <button class="app-button menu-button" data-route="ricette">
+            Ricette
+          </button>
+
+          <!-- 🔹 NUOVO: PRODUZIONE -->
+          <button class="app-button menu-button" data-route="produzione">
+            Produzione
+          </button>
+
+          <button class="app-button menu-button" data-route="magazzino">
+            Magazzino
+          </button>
+
+          <!-- 🔥 NUOVO: PREVENTIVI -->
+          <button class="app-button menu-button" data-route="preventivi">
+            Preventivi & Prenotazioni
+          </button>
+
+          <!-- 🔥 NUOVO: VENDUTO -->
+          <button class="app-button menu-button" data-route="venduto">
+            Venduto del giorno
+          </button>
+
+          <button
+            class="app-button menu-button"
+            data-route="ricette-viewer"
+            data-manager-only="false"
+          >
+            Ricettario
+          </button>
+
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+          >
+            Report
+          </button>
+        </section>
+
+        <!-- TIMBRATURA -->
+        <section id="view-timbratura" class="view" style="display: none">
+          <h2>Timbratura</h2>
+          <p>Registra entrata, pausa e uscita.</p>
+
+          <div class="timbratura-intro-card">
+            <p>
+              Stai timbrando come
+              <strong id="timbratura-utente-nome">-</strong>
+            </p>
+
+            <label>
+              Luogo di lavoro
+              <select id="timbratura-canale-select">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">Catering</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="timbratura-buttons">
+            <button id="btn-entra" class="app-button timb-button green">
+              ENTRA
+            </button>
+            <button id="btn-pausa" class="app-button timb-button gray">
+              PAUSA
+            </button>
+            <button id="btn-esci" class="app-button timb-button red">
+              USCITA
+            </button>
+          </div>
+
+          <!-- PRESENZE MANAGER -->
+          <div
+            class="manager-only"
+            data-manager-only="true"
+            style="margin-top: 16px;"
+          >
+            <button
+              id="btn-toggle-presenze"
+              class="app-button small gray"
+            >
+              Mostra stato presenze
+            </button>
+
+            <div
+              id="sezione-presenze"
+              style="display: none; margin-top: 10px;"
+            >
+              <h3>Stato dipendenti</h3>
+              <div class="table-wrapper">
+                <table class="table-timbrature">
+                  <thead>
+                    <tr>
+                      <th>Dipendente</th>
+                      <th>Canale</th>
+                      <th>Stato</th>
+                    </tr>
+                  </thead>
+                  <tbody id="presenze-lista"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DIPENDENTI -->
+        <section id="view-dipendenti" class="view" style="display: none">
+          <h2>Dipendenti</h2>
+          <p>Gestione completa dipendenti.</p>
+
+          <form id="dipendente-form" onsubmit="return false;">
+            <label>
+              Nome
+              <input type="text" id="dip-nome" class="input-pill" />
+            </label>
+
+            <label>
+              Mansione
+              <input
+                type="text"
+                id="dip-mansione"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Data nascita
+              <input
+                type="date"
+                id="dip-data-nascita"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Residenza
+              <input
+                type="text"
+                id="dip-residenza"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Telefono
+              <input
+                type="tel"
+                id="dip-telefono"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                type="email"
+                id="dip-email"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Ruolo
+              <select id="dip-ruolo" class="input-pill">
+                <option value="admin">Admin</option>
+                <option value="manager_cucina">Manager cucina</option>
+                <option value="manager_sala">Manager sala</option>
+                <option value="addetto_cucina">Addetto cucina</option>
+                <option value="cameriere">Cameriere</option>
+              </select>
+            </label>
+
+            <label>
+              Tipo compenso
+              <select
+                id="dip-tipo-compenso"
+                class="input-pill"
+              >
+                <option value="orario">A ore</option>
+                <option value="mensile">Mensile</option>
+                <option value="servizio">Per servizio</option>
+              </select>
+            </label>
+
+            <label id="label-retribuzione-base">
+              Paga oraria lorda (€/h)
+              <input
+                type="number"
+                id="dip-retribuzione-base"
+                step="0.01"
+                class="input-pill"
+              />
+            </label>
+
+            <div id="row-ore-mensili" style="display: none;">
+              <label>
+                Ore mensili contrattuali
+                <input
+                  type="number"
+                  id="dip-ore-mensili"
+                  step="0.1"
+                  class="input-pill"
+                />
+              </label>
+            </div>
+
+            <div id="row-ore-servizio" style="display: none;">
+              <label>
+                Ore medie per servizio
+                <input
+                  type="number"
+                  id="dip-ore-servizio"
+                  step="0.1"
+                  class="input-pill"
+                />
+              </label>
+            </div>
+
+            <label>
+              Costo orario calcolato
+              <input
+                type="number"
+                id="dip-costo"
+                step="0.01"
+                class="input-pill"
+                readonly
+              />
+            </label>
+
+            <label>
+              PIN
+              <input
+                type="text"
+                id="dip-codice"
+                maxlength="10"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Canale prevalente
+              <select id="dip-canale" class="input-pill">
+                <option value="NR">NR</option>
+                <option value="RA">RA</option>
+                <option value="CC">CC</option>
+                <option value="CAT">Catering</option>
+              </select>
+            </label>
+
+            <label>
+              <input type="checkbox" id="dip-attivo" checked />
+              Attivo
+            </label>
+
+            <button
+              id="btn-add-dip"
+              class="app-button small green"
+            >
+              Salva dipendente
+            </button>
+          </form>
+
+          <h3>Elenco</h3>
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Mansione</th>
+                  <th>Data nascita</th>
+                  <th>Residenza</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Ruolo</th>
+                  <th>Tipo compenso</th>
+                  <th>Costo orario</th>
+                  <th>Canale</th>
+                  <th>PIN</th>
+                  <th>Attivo</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="dipendenti-lista"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ACQUISTI / FATTURE -->
+        <section id="view-acquisti" class="view" style="display: none">
+          <h2>Fatture di acquisto</h2>
+          <p>Registra fatture, prodotti e movimenti di magazzino.</p>
+
+          <form id="fattura-form" onsubmit="return false;">
+            <div class="form-grid-2">
+              <label>
+                Numero fattura
+                <input
+                  id="fattura-numero"
+                  type="text"
+                  class="input-pill"
+                />
+              </label>
+
+              <label>
+                Data
+                <input
+                  id="fattura-data"
+                  type="date"
+                  class="input-pill"
+                />
+              </label>
+            </div>
+
+            <div class="form-grid-2">
+              <label>
+                Fornitore
+                <input
+                  id="fattura-fornitore"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Es. Fornitore Srl"
+                />
+              </label>
+
+              <label>
+                Note
+                <input
+                  id="fattura-note"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Note documento"
+                />
+              </label>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button
+                id="btn-nuova-fattura"
+                class="app-button small gray"
+                type="button"
+              >
+                Nuova fattura
+              </button>
+              <button
+                id="btn-salva-fattura"
+                class="app-button small green"
+                type="button"
+              >
+                Salva fattura
+              </button>
+            </div>
+          </form>
+
+          <h3 style="margin-top: 16px;">Righe fattura</h3>
+
+          <div id="fattura-righe-body" class="fattura-righe-container"></div>
+
+          <button
+            id="btn-add-riga-fattura"
+            class="app-button small gray"
+            type="button"
+            style="margin-top: 8px;"
+          >
+            + Aggiungi riga
+          </button>
+
+          <h3 style="margin-top: 16px;">Totali</h3>
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Imponibile</h3>
+              <p>
+                <input
+                  id="fattura-imponibile-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>IVA</h3>
+              <p>
+                <input
+                  id="fattura-iva-totale"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+            <div class="kpi-card">
+              <h3>Totale documento</h3>
+              <p>
+                <input
+                  id="fattura-totale-documento"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                  readonly
+                />
+              </p>
+            </div>
+          </div>
+
+          <h3 style="margin-top: 16px;">Fatture registrate</h3>
+
+          <button
+            id="btn-toggle-fatture"
+            class="app-button small gray"
+            type="button"
+          >
+            Mostra / Nascondi
+          </button>
+
+          <table
+            id="fatture-table"
+            class="table-timbrature"
+            style="display: none; margin-top: 8px;"
+          >
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Numero</th>
+                <th>Fornitore</th>
+                <th>Totale</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="fatture-lista"></tbody>
+          </table>
+        </section>
+
+        <!-- RICETTE (MODIFICA) -->
+        <section id="view-ricette" class="view" style="display: none">
+          <h2>Ricette</h2>
+
+          <form onsubmit="return false;">
+            <!-- TIPO RICETTA -->
+            <label>
+              Tipo ricetta
+              <select id="ricetta-tipo" class="input-pill">
+                <option value="piatto">Ricetta (piatto finito)</option>
+                <option value="base">Ricetta base (preparazione)</option>
+              </select>
+            </label>
+
+            <label>
+              Nome ricetta
+              <input
+                type="text"
+                id="ricetta-nome"
+                class="input-pill"
+                placeholder="Es. Flan di patate"
+              />
+            </label>
+
+            <label>
+              Descrizione breve
+              <input
+                type="text"
+                id="ricetta-descrizione"
+                class="input-pill"
+                placeholder="Es. Antipasto al piatto o da buffet"
+              />
+            </label>
+
+            <label>
+              Note / Procedimento
+              <textarea
+                id="ricetta-note"
+                rows="4"
+                class="textarea-pill"
+              ></textarea>
+            </label>
+
+            <label>
+              Foto ricetta
+              <input
+                type="file"
+                id="ricetta-foto"
+                accept="image/*"
+              />
+            </label>
+
+            <h3>Resa ricetta</h3>
+
+            <div class="kpi-cards">
+              <div class="kpi-card">
+                <h3>Resa base</h3>
+                <label>
+                  Pezzi base (porzione 100%)
+                  <input
+                    type="number"
+                    id="ricetta-pezzi-base"
+                    class="input-pill"
+                    min="0"
+                    step="1"
+                    placeholder="Es. 10"
+                  />
+                </label>
+              </div>
+
+              <div class="kpi-card">
+                <h3>Formato 1</h3>
+                <label>
+                  Nome formato
+                  <input
+                    type="text"
+                    id="ricetta-formato1-label"
+                    class="input-pill"
+                    placeholder="Es. Ristorante"
+                  />
+                </label>
+                <label>
+                  Percentuale porzione
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <input
+                      type="number"
+                      id="ricetta-formato1-percent"
+                      class="input-pill"
+                      min="1"
+                      max="500"
+                      step="1"
+                      placeholder="Es. 100"
+                      style="max-width:120px;"
+                    />
+                    <span style="font-size:13px;">%</span>
+                  </div>
+                </label>
+                <p style="margin-top:6px; font-size:13px;">
+                  Pezzi ottenuti: <strong id="ricetta-formato1-pezzi">-</strong>
+                </p>
+              </div>
+
+              <div class="kpi-card">
+                <h3>Formato 2</h3>
+                <label>
+                  Nome formato
+                  <input
+                    type="text"
+                    id="ricetta-formato2-label"
+                    class="input-pill"
+                    placeholder="Es. Ricevimento / Buffet"
+                  />
+                </label>
+                <label>
+                  Percentuale porzione
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <input
+                      type="number"
+                      id="ricetta-formato2-percent"
+                      class="input-pill"
+                      min="1"
+                      max="500"
+                      step="1"
+                      placeholder="Es. 60 o 25"
+                      style="max-width:120px;"
+                    />
+                    <span style="font-size:13px;">%</span>
+                  </div>
+                </label>
+                <p style="margin-top:6px; font-size:13px;">
+                  Pezzi ottenuti: <strong id="ricetta-formato2-pezzi">-</strong>
+                </p>
+              </div>
+            </div>
+
+            <h3>Ingredienti</h3>
+
+            <div id="ricetta-ingredienti-container"></div>
+
+            <datalist id="ingredienti-suggestions"></datalist>
+
+            <!-- NUOVO: datalist per categorie di bilancio -->
+            <datalist id="bilancio-categorie">
+              <option value="Materie prime"></option>
+              <option value="Bevande"></option>
+              <option value="Servizi esterni"></option>
+              <option value="Energia e utenze"></option>
+              <option value="Spese generali"></option>
+              <option value="Altro"></option>
+            </datalist>
+
+            <button
+              id="btn-add-ingrediente"
+              class="app-button small gray"
+              type="button"
+            >
+              + Aggiungi ingrediente
+            </button>
+
+            <button
+              id="btn-salva-ricetta"
+              class="app-button small green"
+              type="button"
+            >
+              Salva ricetta
+            </button>
+          </form>
+        </section>
+
+        <!-- RICETTARIO (SOLO LETTURA) -->
+        <section
+          id="view-ricette-viewer"
+          class="view"
+          style="display: none"
+        >
+          <h2>Ricettario</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Visualizza le ricette registrate, senza possibilità di modificarle.
+          </p>
+
+          <!-- 🔹 Bottone per aprire la scheda produzione -->
+          <button
+            type="button"
+            id="btn-open-produzione"
+            class="app-button small"
+            data-route="produzione"
+            style="margin-top:8px;"
+          >
+            Vai alla scheda di produzione
+          </button>
+
+          <!-- Ricerca -->
+          <div style="margin-top:10px; margin-bottom:8px;">
+            <label style="display:block; font-size:13px; margin-bottom:4px;">
+              Cerca ricetta
+            </label>
+            <input
+              id="ricette-search"
+              type="text"
+              class="input-pill"
+              placeholder="Es. Flan di patate, Tiramisù..."
+            />
+          </div>
+
+          <!-- FILTRI (Tutte / Ricette / Basi) -->
+          <div id="ricette-filtri" style="display:flex; gap:6px; margin-top:10px;">
+            <button class="app-button tiny" data-filter="tutte">Tutte</button>
+            <button class="app-button tiny" data-filter="piatto">Ricette</button>
+            <button class="app-button tiny" data-filter="base">Ricette Base</button>
+          </div>
+
+          <!-- LISTA / VIEWER -->
+          <div
+            id="ricette-lista-viewer"
+            style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;"
+          ></div>
+        </section>
+
+        <!-- SCHEDA PRODUZIONE -->
+        <section id="view-produzione" class="view" style="display: none">
+          <h2>Scheda di produzione</h2>
+          <p style="margin-top: 4px; font-size: 13px; color: #6b7280;">
+            Compila le ricette da produrre: quantità in pezzi o kg, in base alla ricetta.
+          </p>
+
+          <div
+            class="produzione-header"
+            style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"
+          >
+            <div class="form-grid-2">
+              <label style="font-size:13px;">
+                Data
+                <input
+                  type="date"
+                  id="produzione-data"
+                  class="input-pill"
+                />
+              </label>
+
+              <label style="font-size:13px;">
+                Lotto produzione
+                <input
+                  type="text"
+                  id="produzione-lotto"
+                  class="input-pill"
+                  readonly
+                />
+              </label>
+            </div>
+
+            <label style="font-size:13px;">
+              Note generali
+              <input
+                type="text"
+                id="produzione-note"
+                class="input-pill"
+                placeholder="Es. Produzione pranzo matrimonio Rossi..."
+              />
+            </label>
+          </div>
+
+          <h3 style="margin-top:16px;">Righe di produzione</h3>
+          <p style="margin-top:4px; font-size:12px; color:#6b7280;">
+            Ogni riga è una ricetta in un formato (ristorante, buffet, kg ragù, ecc.).
+          </p>
+
+          <!-- Container righe -->
+          <div
+            id="produzione-righe"
+            style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"
+          ></div>
+
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button
+              type="button"
+              class="app-button small gray"
+              id="btn-add-riga-produzione"
+            >
+              + Aggiungi riga
+            </button>
+
+            <button
+              type="button"
+              class="app-button small green"
+              id="btn-salva-scheda-produzione"
+            >
+              Salva scheda produzione
+            </button>
+          </div>
+        </section>
+
+        <!-- REPORT KPI -->
+        <section id="view-report" class="view" style="display: none">
+          <h2>Cruscotto KPI</h2>
+          <p>Panoramica veloce di incassi e costi sul periodo selezionato.</p>
+
+          <div class="kpi-filters">
+            <label>
+              Data di riferimento
+              <input id="report-data" type="date" class="input-pill" />
+            </label>
+          </div>
+
+          <div class="kpi-period-switch">
+            <button
+              type="button"
+              class="app-button tiny report-period-btn active"
+              data-period="giorno"
+            >
+              Giorno
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="settimana"
+            >
+              Settimana
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="mese"
+            >
+              Mese
+            </button>
+            <button
+              type="button"
+              class="app-button tiny report-period-btn"
+              data-period="anno"
+            >
+              Anno
+            </button>
+          </div>
+
+          <div class="kpi-inputs">
+            <label>
+              Incasso periodo (€)
+              <input
+                id="kpi-incasso-input"
+                type="number"
+                step="0.01"
+                class="input-pill"
+                placeholder="Es. 1500"
+              />
+            </label>
+
+            <label>
+              Food cost periodo (€)
+              <input
+                id="kpi-foodcost-input"
+                type="number"
+                step="0.01"
+                class="input-pill"
+                placeholder="Es. 450"
+              />
+            </label>
+          </div>
+
+          <div class="kpi-incasso-row">
+            <span>
+              Incasso:
+              <strong id="kpi-incasso-value">0,00&nbsp;€</strong>
+            </span>
+            <span>
+              Netto (Incasso - Food):
+              <strong id="kpi-netto-value">0,00&nbsp;€</strong>
+            </span>
+          </div>
+
+          <div id="kpi-margine-badge" class="kpi-margin-badge neg">
+            Margine 0,00&nbsp;€
+          </div>
+
+          <div class="kpi-gauge-wrapper">
+            <div class="kpi-gauge-dial">
+              <div id="kpi-gauge-needle" class="kpi-gauge-needle"></div>
+              <div class="kpi-gauge-center"></div>
+            </div>
+            <div class="kpi-gauge-bep">
+              <span id="kpi-bep-label">BEP 0,00&nbsp;€</span>
+            </div>
+          </div>
+
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <h3>Lavoro</h3>
+              <p id="kpi-lavoro-importo">0,00&nbsp;€</p>
+              <small id="kpi-lavoro-percent">0%</small>
+            </div>
+            <div class="kpi-card">
+              <h3>Food cost</h3>
+              <p id="kpi-food-importo">0,00&nbsp;€</p>
+              <small id="kpi-food-percent">0%</small>
+            </div>
+            <div class="kpi-card">
+              <h3>Costi fissi</h3>
+              <p id="kpi-fissi-importo">0,00&nbsp;€</p>
+              <small id="kpi-fissi-percent">0%</small>
+            </div>
+          </div>
+
+          <hr class="report-section-divider" />
+
+          <button
+            id="btn-toggle-costi-fissi"
+            class="app-button small gray"
+            type="button"
+          >
+            Gestisci costi fissi
+          </button>
+
+          <div
+            id="costi-fissi-panel"
+            style="display: none; margin-top: 10px;"
+          >
+            <h3>Costi fissi annuali</h3>
+
+            <form id="costi-fissi-form" onsubmit="return false;">
+              <label>
+                Categoria
+                <input
+                  id="costi-fissi-categoria"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Affitto, utenze, personale fisso..."
+                />
+              </label>
+
+              <label>
+                Descrizione
+                <input
+                  id="costi-fissi-descrizione"
+                  type="text"
+                  class="input-pill"
+                  placeholder="Descrizione voce di costo"
+                />
+              </label>
+
+              <label>
+                Anno di riferimento
+                <input
+                  id="costi-fissi-anno"
+                  type="number"
+                  class="input-pill"
+                  placeholder="Es. 2024"
+                />
+              </label>
+
+              <label>
+                Importo annuo (€)
+                <input
+                  id="costi-fissi-importo"
+                  type="number"
+                  step="0.01"
+                  class="input-pill"
+                />
+              </label>
+
+              <button
+                id="btn-salva-costo-fisso"
+                class="app-button small green"
+                type="button"
+              >
+                Salva costo fisso
+              </button>
+            </form>
+
+            <h4>Elenco costi fissi</h4>
+            <div class="table-wrapper">
+              <table class="table-timbrature">
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Descrizione</th>
+                    <th>Anno</th>
+                    <th>Importo annuo</th>
+                  </tr>
+                </thead>
+                <tbody id="costi-fissi-lista"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- MAGAZZINO -->
+        <section id="view-magazzino" class="view" style="display: none">
+          <h2>Magazzino</h2>
+          <p>Ricerca prodotti, scorte e movimenti.</p>
+
+          <div style="position: relative;">
+            <input
+              id="magazzino-search"
+              type="text"
+              placeholder="Cerca prodotto..."
+              autocomplete="off"
+              list="magazzino-suggestions"
+              class="input-pill"
+            />
+            <datalist id="magazzino-suggestions"></datalist>
+          </div>
+
+          <h3>Prodotti</h3>
+          <table
+            id="magazzino-table"
+            class="table-timbrature"
+            style="display: none;"
+          >
+            <thead>
+              <tr>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th>Categoria</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody id="magazzino-lista"></tbody>
+          </table>
+
+          <h3>Dettaglio prodotto</h3>
+
+          <button
+            id="btn-magazzino-nuovo"
+            class="app-button small gray"
+            type="button"
+            style="margin-bottom: 8px;"
+          >
+            Nuovo prodotto
+          </button>
+
+          <form id="magazzino-form" onsubmit="return false;">
+            <input type="hidden" id="magazzino-id" />
+
+            <label>
+              Descrizione
+              <input
+                type="text"
+                id="magazzino-descrizione"
+                list="ingredienti-suggestions"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Categoria
+              <input
+                type="text"
+                id="magazzino-categoria"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              UM
+              <input
+                type="text"
+                id="magazzino-um"
+                placeholder="kg, l, pz..."
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Scorta minima
+              <input
+                type="number"
+                id="magazzino-scorta-minima"
+                step="0.001"
+                class="input-pill"
+              />
+            </label>
+
+            <label>
+              Giacenza attuale
+              <input
+                type="number"
+                id="magazzino-giacenza"
+                step="0.001"
+                class="input-pill"
+                readonly
+              />
+            </label>
+
+            <button
+              id="btn-magazzino-salva"
+              class="app-button small green"
+              type="button"
+            >
+              Salva prodotto
+            </button>
+          </form>
+
+          <p class="small-muted">
+            Scrivi il nome (es. "pomodori") nel campo di ricerca sopra per
+            vedere i prodotti e le quantità, poi clicca sulla riga per
+            caricare il dettaglio.
+          </p>
+        </section>
+
+       <!-- ✅ PREVENTIVI & PRENOTAZIONI -->
+<section id="view-preventivi" class="view" style="display: none">
+  <h2>Preventivi &amp; Prenotazioni</h2>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+    <h3 style="margin:0; font-size:16px;">Gestione preventivi</h3>
+    <button id="btn-new-preventivo" class="app-button small gray">
+      + Nuovo preventivo
+    </button>
+  </div>
+
+  <div class="preventivi-layout" style="display:flex; flex-direction:column; gap:12px;">
+    <!-- LISTA PREVENTIVI -->
+    <div class="preventivi-list-panel">
+      <h4 style="margin:0 0 6px;">Lista preventivi</h4>
+      <div id="preventivi-list" class="preventivi-list" style="display:flex; flex-direction:column; gap:6px;">
+        <!-- Popolato da JS -->
+      </div>
+    </div>
+
+    <!-- DETTAGLIO PREVENTIVO -->
+    <div class="preventivi-detail-panel">
+      <h4 style="margin:10px 0 6px;">Dettaglio preventivo</h4>
+
+      <form id="preventivo-form" onsubmit="return false;">
+        <input type="hidden" id="preventivo-id" />
+
+        <!-- CLIENTE -->
+        <div class="form-section">
+          <h5 style="margin:8px 0;">Dati cliente</h5>
+
+          <input type="hidden" id="preventivo-cliente-id" />
+
+          <label>
+            Nome
+            <input type="text" id="preventivo-cliente-nome" class="input-pill" />
+          </label>
+
+          <label>
+            Cognome
+            <input type="text" id="preventivo-cliente-cognome" class="input-pill" />
+          </label>
+
+          <label>
+            Telefono
+            <input type="tel" id="preventivo-cliente-telefono" class="input-pill" />
+          </label>
+
+          <label>
+            Email
+            <input type="email" id="preventivo-cliente-email" class="input-pill" />
+          </label>
+
+          <label>
+            Comune di residenza
+            <input type="text" id="preventivo-cliente-comune" class="input-pill" />
+          </label>
+        </div>
+
+        <!-- EVENTO -->
+        <div class="form-section">
+          <h5 style="margin:8px 0;">Evento</h5>
+
+          <label>
+            Tipologia di evento
+            <select id="preventivo-titolo" class="input-pill">
+              <option value="">-- seleziona --</option>
+              <option value="Matrimonio">Matrimonio</option>
+              <option value="Battesimo">Battesimo</option>
+              <option value="Comunione">Comunione</option>
+              <option value="Cresima">Cresima</option>
+              <option value="Compleanno">Compleanno</option>
+            </select>
+          </label>
+
+          <label>
+            Tipo servizio
+            <select id="preventivo-tipo-servizio" class="input-pill">
+              <option value="">-- seleziona --</option>
+              <option value="buffet">Buffet</option>
+              <option value="servito">Servito</option>
+              <option value="misto">Misto</option>
+            </select>
+          </label>
+
+          <label>
+            Data evento
+            <input type="date" id="preventivo-data-evento" class="input-pill" />
+          </label>
+
+          <label>
+            N. invitati
+            <input type="number" id="preventivo-n-invitati" class="input-pill" min="0" />
+          </label>
+
+          <label>
+            Location
+            <input type="text" id="preventivo-location" class="input-pill" />
+          </label>
+
+          <label>
+            Note interne
+            <textarea id="preventivo-note" class="textarea-pill" rows="3"></textarea>
+          </label>
+
+          <label>
+            Stato
+            <select id="preventivo-stato" class="input-pill">
+              <option value="bozza">Bozza</option>
+              <option value="inviato">Inviato</option>
+              <option value="accettato">Accettato</option>
+              <option value="rifiutato">Rifiutato</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- MENÙ -->
+        <div class="form-section" style="margin-top:10px;">
+          <h5 style="margin:8px 0;">Menù</h5>
+
+          <button
+            type="button"
+            id="btn-add-menu-row"
+            class="app-button small gray"
+            style="margin-bottom:6px;"
+          >
+            + Aggiungi portata
+          </button>
+
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Portata</th>
+                  <th class="col-prezzo-portata">Costo a persona</th>
+                  <th class="col-prezzo-portata">Totale riga</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="preventivo-menu-tbody">
+                <!-- righe generate da JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SERVIZI EXTRA -->
+        <div class="form-section" style="margin-top:10px;">
+          <h5 style="margin:8px 0;">Servizi extra</h5>
+
+          <button
+            type="button"
+            id="btn-add-extra-row"
+            class="app-button small gray"
+            style="margin-bottom:6px;"
+          >
+            + Aggiungi extra
+          </button>
+
+          <div class="table-wrapper">
+            <table class="table-timbrature">
+              <thead>
+                <tr>
+                  <th>Descrizione</th>
+                  <th>Q.tà</th>
+                  <th>Prezzo unit.</th>
+                  <th>Totale</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="preventivo-extra-tbody">
+                <!-- righe generate da JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TOTALI -->
+        <div class="form-section" style="margin-top:10px;">
+          <h5 style="margin:8px 0;">Totali</h5>
+
+          <!-- 🔥 nuovo: sconto menù -->
+          <label>
+            Sconto menù (%)
+            <select id="preventivo-sconto-menu" class="input-pill">
+              <option value="0">Nessuno</option>
+              <option value="3">3%</option>
+              <option value="5">5%</option>
+              <option value="8">8%</option>
+              <option value="10">10%</option>
+            </select>
+          </label>
+
+          <label>
+            Totale preventivo
+            <input type="text" id="preventivo-totale" class="input-pill" readonly />
+          </label>
+
+          <label>
+            Prezzo per persona
+            <input type="text" id="preventivo-prezzo-persona" class="input-pill" readonly />
+          </label>
+
+          <label>
+            Acconto
+            <input
+              type="number"
+              id="preventivo-acconto"
+              class="input-pill"
+              min="0"
+              step="0.01"
+            />
+          </label>
+
+          <label>
+            Saldo residuo
+            <input type="text" id="preventivo-saldo" class="input-pill" readonly />
+          </label>
+        </div>
+
+        <!-- AZIONI -->
+        <div class="form-section" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+          <button
+            type="submit"
+            id="btn-save-preventivo"
+            class="app-button small green"
+            style="flex:1 1 150px;"
+          >
+            Salva preventivo
+          </button>
+
+          <button
+            type="button"
+            id="btn-print-preventivo"
+            class="app-button small gray"
+            style="flex:1 1 150px;"
+          >
+            Stampa / PDF
+          </button>
+
+          <button
+            type="button"
+            id="btn-email-preventivo"
+            class="app-button small gray"
+            style="flex:1 1 150px;"
+          >
+            Invia per email
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+
+        <!-- 🔥 NUOVO: VENDUTO DEL GIORNO -->
+        <section id="view-venduto" class="view" style="display: none">
+          <h2>Venduto del giorno</h2>
+          <p>Carica un file CSV per registrare il venduto e scaricare il magazzino.</p>
+
+          <label>
+            <strong>Carica CSV</strong>
+            <input
+              type="file"
+              id="venduto-file"
+              accept=".csv"
+              class="input-pill"
+            />
+          </label>
+
+          <button
+            id="btn-carica-venduto"
+            class="app-button small green"
+            style="margin-top: 12px;"
+          >
+            Importa venduto
+          </button>
+
+          <h3 style="margin-top:16px;">Anteprima</h3>
+
+          <table
+            class="table-timbrature"
+            id="venduto-table"
+            style="display:none;"
+          >
+            <thead>
+              <tr>
+                <th>Prodotto</th>
+                <th>Qtà</th>
+                <th>Totale Lordo</th>
+                <th>Totale Netto</th>
+              </tr>
+            </thead>
+            <tbody id="venduto-table-body"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <!-- DATALIST GLOBALE PER LE RICETTE (usato da Produzione, Preventivi, ecc.) -->
+    <datalist id="ricette-suggestions"></datalist>
+
+    <!-- SUPABASE -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+      const supabaseClient = window.supabase.createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
+      );
+      window.supabaseClient = supabaseClient;
+    </script>
+
+    <!-- SCRIPT APP -->
+    <script src="app.js"></script>
+  </body>
+</html>cument.addEventListener("DOMContentLoaded", () => {
   console.log("✅ App avviata – STEP 3 DIPENDENTI PER LOCALE");
 
   // =========================
