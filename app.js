@@ -1,163 +1,98 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ App avviata – LOGIN STABLE MODE");
-
-  const $ = (id) => document.getElementById(id);
+  console.log("✅ App avviata – LOGIN STABILE");
 
   // =========================
-  // VISTE
+  // ELEMENTI DOM
   // =========================
-  const views = document.querySelectorAll(".view");
-  const viewLogin = $("view-login");
-  const viewHome = $("view-home-dip");
+  const viewLogin = document.getElementById("view-login");
+  const viewHomeDip = document.getElementById("view-home-dip");
+  const managerMenu = document.getElementById("manager-menu");
+
+  const btnLogin = document.getElementById("btn-login");
+  const inputNome = document.getElementById("login-nome");
+  const inputPin = document.getElementById("login-pin");
 
   // =========================
-  // LOGIN
+  // SICUREZZA DOM
   // =========================
-  const btnLogin = $("btn-login");
-  const inputNome = $("login-nome");
-  const inputPin = $("login-pin");
+  if (!viewLogin || !btnLogin || !inputNome || !inputPin) {
+    console.error("❌ Elementi login mancanti nel DOM");
+    return;
+  }
 
   // =========================
-  // HEADER
+  // NASCONDE TUTTE LE VISTE
   // =========================
-  const currentUserLabel = $("current-user-label");
-  const btnLogout = $("btn-logout");
+  function hideAllViews() {
+    document.querySelectorAll(".view").forEach(v => {
+      v.style.display = "none";
+    });
+    if (managerMenu) managerMenu.style.display = "none";
+  }
 
   // =========================
-  // LOCALI
+  // MOSTRA LOGIN (DEFAULT)
   // =========================
-  const LOCALI = {
-    CP: "Centro Produzione",
-    TA: "Trattoria dell’Aquila",
-    AP: "Da Antonio Pizza",
-    CR: "Campo Antico Ristorante",
-    CC: "Campo Antico Catering",
-  };
+  function showLogin() {
+    hideAllViews();
+    viewLogin.style.display = "flex";
+    console.log("🔐 Login visibile");
+  }
 
   // =========================
-  // UTENTI (TEMP)
+  // MOSTRA HOME DIPENDENTE
+  // =========================
+  function showHomeDip() {
+    hideAllViews();
+    viewHomeDip.style.display = "block";
+    console.log("🏠 Home dipendente");
+  }
+
+  // =========================
+  // MOSTRA MENU MANAGER
+  // =========================
+  function showManager() {
+    hideAllViews();
+    if (managerMenu) {
+      managerMenu.style.display = "grid";
+      console.log("🧑‍💼 Menu manager");
+    } else {
+      console.warn("⚠️ manager-menu non presente");
+    }
+  }
+
+  // =========================
+  // AVVIO APP → SOLO LOGIN
+  // =========================
+  showLogin();
+
+  // =========================
+  // LOGIN (TEMPORANEO HARDCODE)
   // =========================
   const UTENTI = {
-    admin: {
-      pin: "9999",
-      ruolo: "superadmin",
-      locale: "CP",
-    },
-    michele: {
-      pin: "1111",
-      ruolo: "manager",
-      locale: "CP",
-    },
-    antonio: {
-      pin: "1975",
-      ruolo: "manager",
-      locale: "TA",
-    },
+    admin: { pin: "9999", ruolo: "superadmin" },
+    antonio: { pin: "1975", ruolo: "manager" },
+    michele: { pin: "1111", ruolo: "manager" },
   };
 
-  // =========================
-  // SESSIONE
-  // =========================
-  const STORAGE_KEY = "ga_session";
+  btnLogin.addEventListener("click", () => {
+    const nome = inputNome.value.trim().toLowerCase();
+    const pin = inputPin.value.trim();
 
-  const saveSession = (s) =>
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    const user = UTENTI[nome];
 
-  const loadSession = () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY));
-    } catch {
-      return null;
-    }
-  };
-
-  const clearSession = () => localStorage.removeItem(STORAGE_KEY);
-
-  const isValidSession = (s) =>
-    s &&
-    s.nome &&
-    s.ruolo &&
-    s.locale &&
-    LOCALI[s.locale];
-
-  // =========================
-  // UI
-  // =========================
-  function hideAll() {
-    views.forEach((v) => (v.style.display = "none"));
-  }
-
-  function showLogin() {
-    hideAll();
-    if (viewLogin) viewLogin.style.display = "flex";
-    setHeader(null);
-  }
-
-  function showHome(session) {
-    hideAll();
-    if (viewHome) viewHome.style.display = "block";
-    setHeader(session);
-  }
-
-  function setHeader(session) {
-    if (!currentUserLabel || !btnLogout) return;
-
-    if (!session) {
-      currentUserLabel.textContent = "Nessun utente";
-      btnLogout.style.display = "none";
+    if (!user || user.pin !== pin) {
+      alert("Nome o PIN non corretti");
       return;
     }
 
-    currentUserLabel.textContent =
-      `${session.nome} · ${LOCALI[session.locale]}`;
-    btnLogout.style.display = "inline-block";
-  }
+    console.log("✅ Login OK:", nome, user.ruolo);
 
-  // =========================
-  // LOGOUT
-  // =========================
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      clearSession();
-      showLogin();
-    });
-  }
-
-  // =========================
-  // LOGIN CLICK
-  // =========================
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nome = inputNome.value.trim().toLowerCase();
-      const pin = inputPin.value.trim();
-
-      const user = UTENTI[nome];
-      if (!user || user.pin !== pin) {
-        alert("Nome o PIN non corretti");
-        return;
-      }
-
-      const session = {
-        nome,
-        ruolo: user.ruolo,
-        locale: user.locale,
-      };
-
-      saveSession(session);
-      showHome(session);
-    });
-  }
-
-  // =========================
-  // AVVIO (DECISIONE UNICA)
-  // =========================
-  const session = loadSession();
-
-  if (isValidSession(session)) {
-    console.log("🔁 Sessione valida trovata");
-    showHome(session);
-  } else {
-    clearSession();
-    showLogin();
-  }
+    // PER ORA: manager e superadmin vanno al menu manager
+    if (user.ruolo === "manager" || user.ruolo === "superadmin") {
+      showManager();
+    } else {
+      showHomeDip();
+    }
+  });
 });
