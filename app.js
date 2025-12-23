@@ -12,6 +12,41 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
+// ===============================
+// ROUTER CENTRALE VISTE
+// ===============================
+function navigateTo(route) {
+  if (!route) return;
+
+  const viewId = `view-${route}`;
+  const view = document.getElementById(viewId);
+
+  if (!view) {
+    console.warn("❌ Vista non trovata:", viewId);
+    return;
+  }
+
+  // Nasconde tutte le viste
+  views.forEach(v => {
+    v.style.display = "none";
+  });
+
+  // Mostra la vista richiesta
+  view.style.display = "block";
+
+  console.log("✅ Vista aperta:", viewId);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Collega tutti i pulsanti con data-route
+routeButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const route = btn.dataset.route;
+    console.log("➡️ Click menu:", route);
+    navigateTo(route);
+  });
+});
 
   // header
   const btnTheme = document.getElementById("btn-theme");
