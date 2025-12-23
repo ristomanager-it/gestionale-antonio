@@ -13,8 +13,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
 // ===============================
-// ROUTER CENTRALE VISTE
+// ROUTER CENTRALE VISTE – STABLE
 // ===============================
+
+// tutte le view (section.view)
+const views = Array.from(document.querySelectorAll(".view"));
+
+// pulsanti menu con data-route
+const routeButtons = Array.from(
+  document.querySelectorAll("[data-route]")
+);
+
+function hideAllViews() {
+  views.forEach(v => {
+    v.style.display = "none";
+  });
+}
+
 function navigateTo(route) {
   if (!route) return;
 
@@ -26,20 +41,14 @@ function navigateTo(route) {
     return;
   }
 
-  // Nasconde tutte le viste
-  views.forEach(v => {
-    v.style.display = "none";
-  });
-
-  // Mostra la vista richiesta
+  hideAllViews();
   view.style.display = "block";
 
   console.log("✅ Vista aperta:", viewId);
-
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Collega tutti i pulsanti con data-route
+// collega i pulsanti menu
 routeButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     const route = btn.dataset.route;
