@@ -2332,50 +2332,123 @@ function emailCurrentPreventivoViaMailto() {
 
    // ========= RICETTE: INGREDIENTI =========
 function parseCSV(text) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .normalize("NFD")              // rimuove accenti
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "_");
+  // 1) pulizia BOM (Excel)
+  text = (text || "").replace(/^\uFEFF/, "");
 
+  // 2) helper: normalizza header (accenti/spazi)
+  const normalizeHeader = (s) =>
+    String(s || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  // 3) parser riga CSV con supporto virgolette
+  function parseLine(line, sep) {
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+
+      if (ch === '"') {
+        // doppie virgolette dentro campo: "" -> "
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (!inQuotes && ch === sep) {
+        out.push(cur);
+        cur = "";
+        continue;
+      }
+
+      cur += ch;
+    }
+
+    out.push(cur);
+    return out.map((x) => String(x || "").trim());
+  }
+
+  // 4) split righe
   const lines = text
     .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(l => l.length > 0);
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   if (lines.length < 2) return [];
 
-  const sep = lines[0].includes(";") ? ";" : ",";
+  // 5) rilevo separatore (quello più frequente nella prima riga)
+  const headerLine = lines[0];
+  const candidates = [";", ",", "\t"];
+  let sep = ";";
+  let bestCount = -1;
+  for (const c of candidates) {
+    const count = (headerLine.match(new RegExp(`\\${c}`, "g")) || []).length;
+    if (count > bestCount) {
+      bestCount = count;
+      sep = c;
+    }
+  }
 
-  const rawHeaders = lines[0].split(sep);
-  const headers = rawHeaders.map(h => normalize(h));
+  // 6) headers + alias
+  const rawHeaders = parseLine(headerLine, sep);
+  const headers = rawHeaders.map(normalizeHeader);
 
-  return lines.slice(1).map(line => {
-    const values = line.split(sep);
+  const alias = {
+    nome_ricetta: ["nome_ricetta", "nome", "ricetta", "titolo", "nome_piatto", "piatto"],
+    tipo_ricetta: ["tipo_ricetta", "tipo", "categoria"],
+    descrizione: ["descrizione", "descrizione_breve", "desc", "note_brevi"],
+    pezzi_base: ["pezzi_base", "resa_base", "porzioni", "pezzi", "resa"],
+    ingrediente: ["ingrediente", "ingredienti", "prodotto", "materia_prima", "articolo", "nome_ingrediente"],
+    quantita: ["quantita", "qta", "qty", "quantita_tot", "quantita_kg", "quantita_g"],
+    unita: ["unita", "um", "u_m", "unita_misura", "unita_di_misura", "misura"]
+  };
+
+  function pick(obj, key) {
+    const keys = alias[key] || [key];
+    for (const k of keys) {
+      if (obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
+    }
+    return "";
+  }
+
+  // 7) righe -> oggetti canonici
+  const rows = [];
+  for (let li = 1; li < lines.length; li++) {
+    const vals = parseLine(lines[li], sep);
     const obj = {};
-
-    headers.forEach((h, i) => {
-      let val = values[i]?.trim() || "";
-
-      // numeri con virgola
-      if (/^\d+,\d+$/.test(val)) {
-        val = val.replace(",", ".");
-      }
-
-      obj[h] = val;
+    headers.forEach((h, idx) => {
+      obj[h] = vals[idx] != null ? String(vals[idx]).trim() : "";
     });
 
-    return {
-      nome_ricetta: obj.nome_ricetta || obj.nome || obj.ricetta || "",
-      descrizione: obj.descrizione || "",
-      ingrediente: obj.ingrediente || "",
-      quantita: obj.quantita || "",
-      unita: obj.unita || obj.unita_di_misura || obj.um || ""
-    };
-  });
+    // normalizza numeri con virgola (1,25 -> 1.25)
+    const qRaw = pick(obj, "quantita");
+    const qNorm = /^\d+,\d+$/.test(qRaw) ? qRaw.replace(",", ".") : qRaw;
+
+    rows.push({
+      nome_ricetta: pick(obj, "nome_ricetta"),
+      tipo_ricetta: pick(obj, "tipo_ricetta"),
+      descrizione: pick(obj, "descrizione"),
+      pezzi_base: pick(obj, "pezzi_base"),
+      ingrediente: pick(obj, "ingrediente"),
+      quantita: qNorm,
+      unita: pick(obj, "unita"),
+    });
+  }
+
+  // 8) filtro righe inutili (ingredienti vuoti)
+  return rows.filter((r) => (r.ingrediente || "").trim() !== "");
 }
+
 
 
   function creaRigaIngrediente(initial = {}) {
