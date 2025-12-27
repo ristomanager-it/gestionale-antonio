@@ -2839,6 +2839,7 @@ async function handleRicettaNomeChange() {
       formato2Label,
       formato2Perc,
     });
+console.log("RICETTA SALVATA:", ricettaSalvata);
 
     if (!ricettaSalvata) return;
 
