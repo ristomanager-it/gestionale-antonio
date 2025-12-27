@@ -2331,8 +2331,15 @@ function emailCurrentPreventivoViaMailto() {
   }
 
    // ========= RICETTE: INGREDIENTI =========
-// --- parser CSV (ROBUSTO: Excel ITA ; e virgole decimali) ---
 function parseCSV(text) {
+  const normalize = (str) =>
+    str
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")              // rimuove accenti
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_");
+
   const lines = text
     .split(/\r?\n/)
     .map(l => l.trim())
@@ -2340,12 +2347,10 @@ function parseCSV(text) {
 
   if (lines.length < 2) return [];
 
-  // rileva automaticamente il separatore
   const sep = lines[0].includes(";") ? ";" : ",";
 
-  const headers = lines[0]
-    .split(sep)
-    .map(h => h.trim().toLowerCase());
+  const rawHeaders = lines[0].split(sep);
+  const headers = rawHeaders.map(h => normalize(h));
 
   return lines.slice(1).map(line => {
     const values = line.split(sep);
@@ -2354,7 +2359,7 @@ function parseCSV(text) {
     headers.forEach((h, i) => {
       let val = values[i]?.trim() || "";
 
-      // converte numeri tipo 1,25 → 1.25
+      // numeri con virgola
       if (/^\d+,\d+$/.test(val)) {
         val = val.replace(",", ".");
       }
@@ -2362,9 +2367,16 @@ function parseCSV(text) {
       obj[h] = val;
     });
 
-    return obj;
+    return {
+      nome_ricetta: obj.nome_ricetta || obj.nome || obj.ricetta || "",
+      descrizione: obj.descrizione || "",
+      ingrediente: obj.ingrediente || "",
+      quantita: obj.quantita || "",
+      unita: obj.unita || obj.unita_di_misura || obj.um || ""
+    };
   });
 }
+
 
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
