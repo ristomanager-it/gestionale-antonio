@@ -2582,7 +2582,8 @@ function parseCSV(text) {
 
     const { data, error } = await supabase
       .from("ricette")
-      .upsert(payload)
+      .insert(payload)
+
       .select()
       .single();
 
