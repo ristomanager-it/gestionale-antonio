@@ -4590,7 +4590,14 @@ async function caricaProdottiSuggerimentiIngredienti() {
           await caricaRicettaInForm(idToOpen);
         } else {
           // apertura normale: form vuoto
-          resetFormRicetta();
+         if (typeof resetFormRicetta === "function") {
+  resetFormRicetta();
+} else if (ricettaIngredientiContainer) {
+  // fallback: pulizia manuale minima
+  ricettaIngredientiContainer.innerHTML = "";
+  creaRigaIngrediente();
+}
+
         }
         break;
 
