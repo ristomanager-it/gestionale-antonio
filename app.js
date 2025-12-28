@@ -2929,6 +2929,7 @@ async function caricaIngredientiRicettaViewer(ricettaId, container) {
 // carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
+mostraFiltriRicetteSeManager();
 
   const { data, error } = await supabase
     .from("ricette")
@@ -4785,9 +4786,7 @@ async function caricaProdottiSuggerimentiIngredienti() {
         route === "timbratura" ||
         route === "ordine" ||
         route === "ricette-viewer"
-        if (route === "ricette-viewer") {
-  mostraFiltriRicetteSeManager();
-}
+        
 
       ) {
         showOnlyView(`view-${route}`);
