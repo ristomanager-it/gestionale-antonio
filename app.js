@@ -4886,3 +4886,27 @@ function mostraFiltriRicetteSeManager() {
     filtri.style.display = "none";
   }
 }
+// ===== FIX AUTOCOMPLETE RICETTARIO (MINIMO) =====
+function forzaAutocompleteRicette() {
+  const input = document.getElementById("ricette-search");
+  const datalist = document.getElementById("ricette-datalist");
+
+  if (!input || !datalist) return;
+  if (!Array.isArray(ricetteCache)) return;
+
+  datalist.innerHTML = "";
+
+  ricetteCache.forEach((r) => {
+    if (!r || !r.nome) return;
+    const opt = document.createElement("option");
+    opt.value = r.nome;
+    datalist.appendChild(opt);
+  });
+}
+
+// quando carico il ricettario, forzo autocomplete
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    forzaAutocompleteRicette();
+  }, 500);
+});
