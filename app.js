@@ -4865,3 +4865,59 @@ async function caricaProdottiSuggerimentiIngredienti() {
 
   init();
 });
+const btnEliminaRicettaViewer = document.getElementById(
+  "btn-elimina-ricetta-viewer"
+);
+
+if (btnEliminaRicettaViewer) {
+  btnEliminaRicettaViewer.addEventListener("click", async () => {
+    const nome = prompt(
+      "Inserisci ESATTAMENTE il nome della ricetta da eliminare:"
+    );
+
+    if (!nome) return;
+
+    const conferma = confirm(
+      `Confermi eliminazione definitiva della ricetta:\n\n"${nome}" ?`
+    );
+    if (!conferma) return;
+
+    // 1) recupero ID ricetta dal nome
+    const { data: ricetta, error: errGet } = await supabase
+      .from("ricette")
+      .select("id")
+      .eq("nome", nome)
+      .single();
+
+    if (errGet || !ricetta) {
+      alert("Ricetta non trovata. Controlla il nome.");
+      return;
+    }
+
+    const ricettaId = ricetta.id;
+
+    // 2) elimino ingredienti
+    await supabase
+      .from("ricetta_ingredienti")
+      .delete()
+      .eq("ricetta_id", ricettaId);
+
+    // 3) elimino ricetta
+    const { error: errDel } = await supabase
+      .from("ricette")
+      .delete()
+      .eq("id", ricettaId);
+
+    if (errDel) {
+      alert("Errore durante eliminazione ricetta");
+      return;
+    }
+
+    alert("Ricetta eliminata correttamente.");
+
+    // 4) ricarico ricettario se esiste la funzione
+    if (typeof caricaRicetteDaSupabase === "function") {
+      await caricaRicetteDaSupabase();
+    }
+  });
+}
