@@ -2331,126 +2331,6 @@ function emailCurrentPreventivoViaMailto() {
   }
 
    // ========= RICETTE: INGREDIENTI =========
-function parseCSV(text) {
-  // 1) pulizia BOM (Excel)
-  text = (text || "").replace(/^\uFEFF/, "");
-
-  // 2) helper: normalizza header (accenti/spazi)
-  const normalizeHeader = (s) =>
-    String(s || "")
-      .trim()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-
-  // 3) parser riga CSV con supporto virgolette
-  function parseLine(line, sep) {
-    const out = [];
-    let cur = "";
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-
-      if (ch === '"') {
-        // doppie virgolette dentro campo: "" -> "
-        if (inQuotes && line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-        continue;
-      }
-
-      if (!inQuotes && ch === sep) {
-        out.push(cur);
-        cur = "";
-        continue;
-      }
-
-      cur += ch;
-    }
-
-    out.push(cur);
-    return out.map((x) => String(x || "").trim());
-  }
-
-  // 4) split righe
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  if (lines.length < 2) return [];
-
-  // 5) rilevo separatore (quello più frequente nella prima riga)
-  const headerLine = lines[0];
-  const candidates = [";", ",", "\t"];
-  let sep = ";";
-  let bestCount = -1;
-  for (const c of candidates) {
-    const count = (headerLine.match(new RegExp(`\\${c}`, "g")) || []).length;
-    if (count > bestCount) {
-      bestCount = count;
-      sep = c;
-    }
-  }
-
-  // 6) headers + alias
-  const rawHeaders = parseLine(headerLine, sep);
-  const headers = rawHeaders.map(normalizeHeader);
-
-  const alias = {
-    nome_ricetta: ["nome_ricetta", "nome", "ricetta", "titolo", "nome_piatto", "piatto"],
-    tipo_ricetta: ["tipo_ricetta", "tipo", "categoria"],
-    descrizione: ["descrizione", "descrizione_breve", "desc", "note_brevi"],
-    pezzi_base: ["pezzi_base", "resa_base", "porzioni", "pezzi", "resa"],
-    ingrediente: ["ingrediente", "ingredienti", "prodotto", "materia_prima", "articolo", "nome_ingrediente"],
-    quantita: ["quantita", "qta", "qty", "quantita_tot", "quantita_kg", "quantita_g"],
-    unita: ["unita", "um", "u_m", "unita_misura", "unita_di_misura", "misura"]
-  };
-
-  function pick(obj, key) {
-    const keys = alias[key] || [key];
-    for (const k of keys) {
-      if (obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
-    }
-    return "";
-  }
-
-  // 7) righe -> oggetti canonici
-  const rows = [];
-  for (let li = 1; li < lines.length; li++) {
-    const vals = parseLine(lines[li], sep);
-    const obj = {};
-    headers.forEach((h, idx) => {
-      obj[h] = vals[idx] != null ? String(vals[idx]).trim() : "";
-    });
-
-    // normalizza numeri con virgola (1,25 -> 1.25)
-    const qRaw = pick(obj, "quantita");
-    const qNorm = /^\d+,\d+$/.test(qRaw) ? qRaw.replace(",", ".") : qRaw;
-
-    rows.push({
-      nome_ricetta: pick(obj, "nome_ricetta"),
-      tipo_ricetta: pick(obj, "tipo_ricetta"),
-      descrizione: pick(obj, "descrizione"),
-      pezzi_base: pick(obj, "pezzi_base"),
-      ingrediente: pick(obj, "ingrediente"),
-      quantita: qNorm,
-      unita: pick(obj, "unita"),
-    });
-  }
-
-  // 8) filtro righe inutili (ingredienti vuoti)
-  return rows.filter((r) => (r.ingrediente || "").trim() !== "");
-}
-
-
-
   function creaRigaIngrediente(initial = {}) {
     if (!ricettaIngredientiContainer) return;
 
@@ -2582,8 +2462,7 @@ function parseCSV(text) {
 
     const { data, error } = await supabase
       .from("ricette")
-      .insert(payload)
-
+      .upsert(payload)
       .select()
       .single();
 
@@ -2840,7 +2719,6 @@ async function handleRicettaNomeChange() {
       formato2Label,
       formato2Perc,
     });
-console.log("RICETTA SALVATA:", ricettaSalvata);
 
     if (!ricettaSalvata) return;
 
@@ -2891,45 +2769,10 @@ function aggiornaRicetteSuggestions() {
     ricetteSuggestionsList.appendChild(opt);
   });
 }
-async function caricaIngredientiRicettaViewer(ricettaId, container) {
-  if (!supabase) return;
-
-  const { data, error } = await supabase
-    .from("ricetta_ingredienti")
-    .select("nome_prodotto, quantita, unita_misura")
-    .eq("ricetta_id", ricettaId);
-
-  if (error) {
-    console.error("Errore caricamento ingredienti viewer:", error);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    container.innerHTML += `
-      <p style="font-size:13px; color:#6b7280;">
-        Nessun ingrediente registrato.
-      </p>
-    `;
-    return;
-  }
-
-  const ul = document.createElement("ul");
-  ul.style.fontSize = "13px";
-  ul.style.marginTop = "6px";
-
-  data.forEach((ing) => {
-    const li = document.createElement("li");
-    li.textContent = `${ing.nome_prodotto} – ${ing.quantita} ${ing.unita_misura || ""}`;
-    ul.appendChild(li);
-  });
-
-  container.appendChild(ul);
-}
 
 // carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
-mostraFiltriRicetteSeManager();
 
   const { data, error } = await supabase
     .from("ricette")
@@ -2957,7 +2800,7 @@ mostraFiltriRicetteSeManager();
 
   // popola il datalist globale
   aggiornaRicetteSuggestions();
-aggiornaAutocompleteRicette(ricetteCache);
+
   // aggiorna la vista ricettario (se sono nel viewer)
   applicaFiltroRicettario();
 }
@@ -3003,8 +2846,6 @@ function renderRicetteViewer(lista, filtroTesto) {
     const card = document.createElement("div");
     card.className = "timbratura-intro-card";
     card.style.cursor = "pointer";
-caricaIngredientiRicettaViewer(r.id, card);
-
 
     const base = r.pezzi_base || 0;
     const f1Perc = r.formato1_percent || 100;
@@ -4714,14 +4555,7 @@ async function caricaProdottiSuggerimentiIngredienti() {
           await caricaRicettaInForm(idToOpen);
         } else {
           // apertura normale: form vuoto
-         if (typeof resetFormRicetta === "function") {
-  resetFormRicetta();
-} else if (ricettaIngredientiContainer) {
-  // fallback: pulizia manuale minima
-  ricettaIngredientiContainer.innerHTML = "";
-  creaRigaIngrediente();
-}
-
+          resetFormRicetta();
         }
         break;
 
@@ -4786,8 +4620,6 @@ async function caricaProdottiSuggerimentiIngredienti() {
         route === "timbratura" ||
         route === "ordine" ||
         route === "ricette-viewer"
-        
-
       ) {
         showOnlyView(`view-${route}`);
         await onRouteEnter(route);
@@ -4869,44 +4701,3 @@ async function caricaProdottiSuggerimentiIngredienti() {
 
   init();
 });
-function mostraFiltriRicetteSeManager() {
-  const filtri = document.getElementById("ricette-filtri");
-  if (!filtri) return;
-
-  const ruolo = utenteCorrente?.ruolo;
-
-  if (
-    ruolo === "admin" ||
-    ruolo === "manager" ||
-    ruolo === "manager cucina" ||
-    ruolo === "manager sala"
-  ) {
-    filtri.style.display = "flex";
-  } else {
-    filtri.style.display = "none";
-  }
-}
-// ===== FIX AUTOCOMPLETE RICETTARIO (SENZA ricetteCache) =====
-function forzaAutocompleteRicette() {
-  const input = document.getElementById("ricette-search");
-  const datalist = document.getElementById("ricette-datalist");
-  if (!input || !datalist) return;
-
-  // prova varie cache possibili (senza rompere nulla)
-  const lista =
-    (Array.isArray(window.ricetteCache) && window.ricetteCache) ||
-    (Array.isArray(window.ricetteViewerCache) && window.ricetteViewerCache) ||
-    (Array.isArray(window.__ULTIME_RICETTE__) && window.__ULTIME_RICETTE__) ||
-    [];
-
-  datalist.innerHTML = "";
-
-  lista.forEach((r) => {
-    const nome = (r?.nome || "").trim();
-    if (!nome) return;
-    const opt = document.createElement("option");
-    opt.value = nome;
-    datalist.appendChild(opt);
-  });
-}
-
