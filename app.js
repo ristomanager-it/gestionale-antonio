@@ -4886,27 +4886,27 @@ function mostraFiltriRicetteSeManager() {
     filtri.style.display = "none";
   }
 }
-// ===== FIX AUTOCOMPLETE RICETTARIO (MINIMO) =====
+// ===== FIX AUTOCOMPLETE RICETTARIO (SENZA ricetteCache) =====
 function forzaAutocompleteRicette() {
   const input = document.getElementById("ricette-search");
   const datalist = document.getElementById("ricette-datalist");
-
   if (!input || !datalist) return;
-  if (!Array.isArray(ricetteCache)) return;
+
+  // prova varie cache possibili (senza rompere nulla)
+  const lista =
+    (Array.isArray(window.ricetteCache) && window.ricetteCache) ||
+    (Array.isArray(window.ricetteViewerCache) && window.ricetteViewerCache) ||
+    (Array.isArray(window.__ULTIME_RICETTE__) && window.__ULTIME_RICETTE__) ||
+    [];
 
   datalist.innerHTML = "";
 
-  ricetteCache.forEach((r) => {
-    if (!r || !r.nome) return;
+  lista.forEach((r) => {
+    const nome = (r?.nome || "").trim();
+    if (!nome) return;
     const opt = document.createElement("option");
-    opt.value = r.nome;
+    opt.value = nome;
     datalist.appendChild(opt);
   });
 }
 
-// quando carico il ricettario, forzo autocomplete
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    forzaAutocompleteRicette();
-  }, 500);
-});
