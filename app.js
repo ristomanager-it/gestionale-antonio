@@ -4594,10 +4594,9 @@ async function caricaProdottiSuggerimentiIngredienti() {
         // logica futura per venduto del giorno
         break;
 
-      case "preventivi":
-        await loadPreventiviList();
-        resetPreventivoForm();
-        break;
+     case "preventivi":
+  await onEnterPreventivi();
+  break;
 
       default:
         break;
