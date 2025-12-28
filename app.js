@@ -3002,7 +3002,8 @@ function renderRicetteViewer(lista, filtroTesto) {
     const card = document.createElement("div");
     card.className = "timbratura-intro-card";
     card.style.cursor = "pointer";
-caricaIngredientiRicettaViewer(ricetta.id, card);
+caricaIngredientiRicettaViewer(r.id, card);
+
 
     const base = r.pezzi_base || 0;
     const f1Perc = r.formato1_percent || 100;
