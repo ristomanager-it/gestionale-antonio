@@ -2957,7 +2957,7 @@ mostraFiltriRicetteSeManager();
 
   // popola il datalist globale
   aggiornaRicetteSuggestions();
-
+aggiornaAutocompleteRicette(ricetteCache);
   // aggiorna la vista ricettario (se sono nel viewer)
   applicaFiltroRicettario();
 }
