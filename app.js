@@ -2891,6 +2891,40 @@ function aggiornaRicetteSuggestions() {
     ricetteSuggestionsList.appendChild(opt);
   });
 }
+async function caricaIngredientiRicettaViewer(ricettaId, container) {
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from("ricetta_ingredienti")
+    .select("nome_prodotto, quantita, unita_misura")
+    .eq("ricetta_id", ricettaId);
+
+  if (error) {
+    console.error("Errore caricamento ingredienti viewer:", error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML += `
+      <p style="font-size:13px; color:#6b7280;">
+        Nessun ingrediente registrato.
+      </p>
+    `;
+    return;
+  }
+
+  const ul = document.createElement("ul");
+  ul.style.fontSize = "13px";
+  ul.style.marginTop = "6px";
+
+  data.forEach((ing) => {
+    const li = document.createElement("li");
+    li.textContent = `${ing.nome_prodotto} – ${ing.quantita} ${ing.unita_misura || ""}`;
+    ul.appendChild(li);
+  });
+
+  container.appendChild(ul);
+}
 
 // carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
@@ -2968,6 +3002,7 @@ function renderRicetteViewer(lista, filtroTesto) {
     const card = document.createElement("div");
     card.className = "timbratura-intro-card";
     card.style.cursor = "pointer";
+await caricaIngredientiRicettaViewer(ricetta.id, card);
 
     const base = r.pezzi_base || 0;
     const f1Perc = r.formato1_percent || 100;
