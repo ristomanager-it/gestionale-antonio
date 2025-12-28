@@ -4785,6 +4785,10 @@ async function caricaProdottiSuggerimentiIngredienti() {
         route === "timbratura" ||
         route === "ordine" ||
         route === "ricette-viewer"
+        if (route === "ricette-viewer") {
+  mostraFiltriRicetteSeManager();
+}
+
       ) {
         showOnlyView(`view-${route}`);
         await onRouteEnter(route);
