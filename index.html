@@ -831,12 +831,29 @@
             />
           </div>
 
-          <!-- FILTRI (Tutte / Ricette / Basi) -->
-          <div id="ricette-filtri" style="display:flex; gap:6px; margin-top:10px;">
-            <button class="app-button tiny" data-filter="tutte">Tutte</button>
-            <button class="app-button tiny" data-filter="piatto">Ricette</button>
-            <button class="app-button tiny" data-filter="base">Ricette Base</button>
-          </div>
+         <!-- FILTRI (Tutte / Ricette / Basi) – SOLO MANAGER -->
+<div
+  id="ricette-filtri"
+  style="display:none; gap:6px; margin-top:10px;"
+>
+  <button class="app-button tiny" data-filter="tutte">Tutte</button>
+  <button class="app-button tiny" data-filter="piatto">Ricette</button>
+  <button class="app-button tiny" data-filter="base">Ricette Base</button>
+
+  <!-- AZIONI MANAGER -->
+  <div style="margin-left:auto; display:flex; gap:6px;">
+    <button
+      id="btn-elimina-ricetta-viewer"
+      class="app-button tiny red"
+      type="button"
+    >
+      Elimina ricetta
+    </button>
+  </div>
+</div>
+
+<!-- LISTA / VIEWER -->
+
 
           <!-- LISTA / VIEWER -->
           <div
