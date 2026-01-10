@@ -514,114 +514,6 @@ const btnAddExtraRow = document.getElementById('btn-add-extra-row');
 const btnPrintPreventivo = document.getElementById('btn-print-preventivo');
 const btnEmailPreventivo = document.getElementById('btn-email-preventivo');
 
-// 🧾 nuovo: duplica preventivo (se non esiste lo creo accanto a stampa)
-let btnDupPreventivo = document.getElementById('btn-dup-preventivo');
-if (!btnDupPreventivo && btnPrintPreventivo && btnPrintPreventivo.parentElement) {
-  btnDupPreventivo = document.createElement('button');
-  btnDupPreventivo.type = 'button';
-  btnDupPreventivo.id = 'btn-dup-preventivo';
-  btnDupPreventivo.className = btnPrintPreventivo.className || 'app-button';
-  btnDupPreventivo.textContent = 'Duplica';
-  btnPrintPreventivo.parentElement.insertBefore(btnDupPreventivo, btnPrintPreventivo.nextSibling);
-}
-
-// -----------------------------
-//  Helper UI: Badge CSS + Lock
-// -----------------------------
-
-function ensurePreventiviBadgeStyles() {
-  if (document.getElementById('preventivi-badge-styles')) return;
-
-  const style = document.createElement('style');
-  style.id = 'preventivi-badge-styles';
-  style.textContent = `
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:2px 8px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:600;
-      line-height:18px;
-      border:1px solid rgba(255,255,255,.14);
-    }
-    .stato-bozza{ background: rgba(245,158,11,.18); color:#fbbf24; border-color: rgba(245,158,11,.35); }
-    .stato-inviato{ background: rgba(59,130,246,.18); color:#60a5fa; border-color: rgba(59,130,246,.35); }
-    .stato-accettato{ background: rgba(34,197,94,.18); color:#4ade80; border-color: rgba(34,197,94,.35); }
-    .stato-rifiutato{ background: rgba(239,68,68,.18); color:#f87171; border-color: rgba(239,68,68,.35); }
-    .stato-archiviato{ background: rgba(156,163,175,.18); color:#d1d5db; border-color: rgba(156,163,175,.35); }
-
-    .preventivo-locked {
-      opacity:.9;
-    }
-    .preventivo-locked .lock-note {
-      margin: 8px 0;
-      padding: 8px 10px;
-      border-radius: 10px;
-      background: rgba(34,197,94,.12);
-      border: 1px solid rgba(34,197,94,.25);
-      color: #86efac;
-      font-size: 12px;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-function isPreventivoLocked() {
-  const stato = (selectPrevStato ? selectPrevStato.value : (currentPreventivo?.stato || '')).toLowerCase();
-  return stato === 'accettato';
-}
-
-function setElDisabled(el, disabled) {
-  if (!el) return;
-  // input/select/textarea
-  if ('disabled' in el) el.disabled = !!disabled;
-  if ('readOnly' in el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) el.readOnly = !!disabled;
-}
-
-function applyPreventivoLockUI() {
-  const locked = isPreventivoLocked();
-
-  if (preventivoForm) {
-    preventivoForm.classList.toggle('preventivo-locked', locked);
-
-    // messaggio lock (una volta sola)
-    let note = preventivoForm.querySelector('.lock-note');
-    if (locked) {
-      if (!note) {
-        note = document.createElement('div');
-        note.className = 'lock-note';
-        note.textContent = '🔒 Preventivo ACCETTATO: modifiche bloccate.';
-        // lo metto in alto nel form
-        preventivoForm.insertBefore(note, preventivoForm.firstChild);
-      }
-    } else {
-      if (note) note.remove();
-    }
-  }
-
-  // blocco campi principali (cliente + evento)
-  [
-    inputClienteNome, inputClienteCognome, inputClienteTelefono, inputClienteEmail, inputClienteComune,
-    inputPrevTitolo, inputPrevTipoServizio, inputPrevDataEvento, inputPrevNInvitati,
-    inputPrevLocation, inputPrevNote, selectPrevStato, inputPrevAcconto, selectPrevScontoMenu
-  ].forEach((el) => setElDisabled(el, locked));
-
-  // bottoni: salva/add/remove devono essere bloccati; stampa/email/duplica no
-  setElDisabled(btnSavePreventivo, locked);
-  setElDisabled(btnAddMenuRow, locked);
-  setElDisabled(btnAddExtraRow, locked);
-
-  // nelle tabelle righe: disabilito tutti gli input e i cestini
-  if (menuTableBody) {
-    menuTableBody.querySelectorAll('input, button').forEach((el) => setElDisabled(el, locked));
-  }
-  if (extraTableBody) {
-    extraTableBody.querySelectorAll('input, button').forEach((el) => setElDisabled(el, locked));
-  }
-}
-
 // -----------------------------
 //  Eventi di base
 // -----------------------------
@@ -635,27 +527,18 @@ if (btnNewPreventivo) {
 if (btnSavePreventivo) {
   btnSavePreventivo.addEventListener('click', async (e) => {
     e.preventDefault();
-
-    // 📦 blocco modifica se accettato
-    if (isPreventivoLocked()) {
-      alert('Preventivo ACCETTATO: non è possibile modificare.');
-      return;
-    }
-
     await savePreventivo();
   });
 }
 
 if (btnAddMenuRow) {
   btnAddMenuRow.addEventListener('click', () => {
-    if (isPreventivoLocked()) return;
     addMenuRow();
   });
 }
 
 if (btnAddExtraRow) {
   btnAddExtraRow.addEventListener('click', () => {
-    if (isPreventivoLocked()) return;
     addExtraRow();
   });
 }
@@ -672,17 +555,9 @@ if (btnEmailPreventivo) {
   });
 }
 
-// 🧾 duplicazione
-if (btnDupPreventivo) {
-  btnDupPreventivo.addEventListener('click', async () => {
-    await duplicateCurrentPreventivo();
-  });
-}
-
 // ricalcolo quando cambiano invitati / acconto
 if (inputPrevNInvitati) {
   inputPrevNInvitati.addEventListener('input', () => {
-    if (isPreventivoLocked()) return;
     // quando cambia il numero invitati ricalcolo tutte le righe del menù
     recalcMenuQuantitaDaInvitati();
     recalcPreventivoTotali();
@@ -690,7 +565,6 @@ if (inputPrevNInvitati) {
 }
 if (inputPrevAcconto) {
   inputPrevAcconto.addEventListener('input', () => {
-    if (isPreventivoLocked()) return;
     recalcPreventivoTotali();
   });
 }
@@ -698,15 +572,7 @@ if (inputPrevAcconto) {
 // 🔥 ricalcolo anche quando cambia lo sconto menù
 if (selectPrevScontoMenu) {
   selectPrevScontoMenu.addEventListener('change', () => {
-    if (isPreventivoLocked()) return;
     recalcPreventivoTotali();
-  });
-}
-
-// se cambia stato (quando NON è locked) aggiorno UI
-if (selectPrevStato) {
-  selectPrevStato.addEventListener('change', () => {
-    applyPreventivoLockUI();
   });
 }
 
@@ -716,17 +582,6 @@ if (selectPrevStato) {
 // Chiamare showPreventiviView() quando si vuole aprire la view preventivi.
 
 async function showPreventiviView() {
-  // 🔒 archivio / accesso solo manager
-  // (usa la tua funzione globale isManagerRole + currentUser già presenti in app.js)
-  if (typeof currentUser !== 'undefined' && currentUser && typeof isManagerRole === 'function') {
-    if (!isManagerRole(currentUser.ruolo)) {
-      alert('Accesso non consentito: sezione preventivi riservata ai manager.');
-      return;
-    }
-  }
-
-  ensurePreventiviBadgeStyles();
-
   if (!viewPreventivi) return;
   // Nasconde tutte le altre view (se non hai già una funzione centrale)
   const allViews = document.querySelectorAll('.view');
@@ -735,7 +590,6 @@ async function showPreventiviView() {
 
   await loadPreventiviList();
   resetPreventivoForm();
-  applyPreventivoLockUI();
 }
 
 // -----------------------------
@@ -783,12 +637,6 @@ function renderPreventiviList(preventivi) {
     return;
   }
 
-  const safeStatoClass = (st) => {
-    const s = String(st || '').toLowerCase().trim();
-    if (s === 'bozza' || s === 'inviato' || s === 'accettato' || s === 'rifiutato' || s === 'archiviato') return s;
-    return 'bozza';
-  };
-
   const html = preventivi
     .map((p) => {
       const clienteNome = p.contatti
@@ -801,9 +649,6 @@ function renderPreventiviList(preventivi) {
         .toFixed(2)
         .replace('.', ',');
 
-      const statoTxt = String(p.stato || 'bozza');
-      const statoCls = safeStatoClass(p.stato);
-
       return `
         <div class="preventivo-list-item" data-id="${p.id}">
           <div class="preventivo-list-main">
@@ -813,7 +658,7 @@ function renderPreventiviList(preventivi) {
           <div class="preventivo-list-sub">
             <span class="preventivo-cliente">${clienteNome}</span>
             <span class="preventivo-totale">€ ${totaleLabel}</span>
-            <span class="preventivo-stato badge stato-${statoCls}">${statoTxt}</span>
+            <span class="preventivo-stato badge stato-${p.stato}">${p.stato}</span>
           </div>
         </div>
       `;
@@ -854,10 +699,6 @@ function resetPreventivoForm() {
 
   // 🔥 reset sconto menù
   if (selectPrevScontoMenu) selectPrevScontoMenu.value = '0';
-
-  // di default sbloccato
-  if (selectPrevStato) selectPrevStato.value = 'bozza';
-  applyPreventivoLockUI();
 }
 
 async function openPreventivo(preventivoId) {
@@ -869,7 +710,6 @@ async function openPreventivo(preventivoId) {
     currentPreventivoMenu = [];
     currentPreventivoExtra = [];
     recalcPreventivoTotali();
-    applyPreventivoLockUI();
     return;
   }
 
@@ -927,7 +767,6 @@ async function openPreventivo(preventivoId) {
   renderMenuRows();
   renderExtraRows();
   recalcPreventivoTotali();
-  applyPreventivoLockUI();
 }
 
 function fillPreventivoFormFromData(p) {
@@ -949,11 +788,13 @@ function fillPreventivoFormFromData(p) {
   if (inputPrevLocation) inputPrevLocation.value = p.location || '';
   if (inputPrevNote) inputPrevNote.value = p.note || '';
   if (selectPrevStato) selectPrevStato.value = p.stato || 'bozza';
-  if (inputPrevAcconto) inputPrevAcconto.value = Number(p.acconto || 0).toFixed(2);
+  if (inputPrevAcconto)
+    inputPrevAcconto.value = Number(p.acconto || 0).toFixed(2);
 
   // 🔥 sconto menù da DB
   if (selectPrevScontoMenu) {
     const scontoVal = p.sconto_menu_perc != null ? p.sconto_menu_perc : 0;
+    // se non esiste tra le opzioni, metto 0
     const sVal = String(scontoVal);
     const optionExists = Array.from(selectPrevScontoMenu.options).some(
       (opt) => opt.value === sVal
@@ -969,8 +810,6 @@ function fillPreventivoFormFromData(p) {
 function renderMenuRows() {
   if (!menuTableBody) return;
   menuTableBody.innerHTML = '';
-
-  const locked = isPreventivoLocked();
 
   currentPreventivoMenu.forEach((row, index) => {
     const cu = Number(row.costo_unitario || 0);
@@ -990,7 +829,6 @@ function renderMenuRows() {
           list="ricette-suggestions"
           value="${row.nome_piatto || ''}"
           placeholder="Es. Flan di patate"
-          ${locked ? 'disabled' : ''}
         />
       </td>
       <td class="col-prezzo-portata menu-costo-persona">
@@ -1000,7 +838,7 @@ function renderMenuRows() {
         € ${ct.toFixed(2)}
       </td>
       <td>
-        <button type="button" class="btn-icon btn-menu-remove" data-index="${index}" ${locked ? 'disabled' : ''}>🗑</button>
+        <button type="button" class="btn-icon btn-menu-remove" data-index="${index}">🗑</button>
       </td>
     `;
     menuTableBody.appendChild(tr);
@@ -1008,7 +846,7 @@ function renderMenuRows() {
     const inputNome = tr.querySelector('.menu-nome');
     const btnRemove = tr.querySelector('.btn-menu-remove');
 
-    if (inputNome && !locked) {
+    if (inputNome) {
       // suggerimenti ricette
       inputNome.addEventListener('input', () => {
         const term = inputNome.value;
@@ -1021,7 +859,7 @@ function renderMenuRows() {
       });
     }
 
-    if (btnRemove && !locked) {
+    if (btnRemove) {
       btnRemove.addEventListener('click', () => {
         currentPreventivoMenu.splice(index, 1);
         renderMenuRows();
@@ -1082,8 +920,6 @@ async function fetchRicetteSuggestions(term) {
 
 // collega nome portata a ricetta (o la crea)
 async function updateMenuRowFromRicettaNome(index) {
-  if (isPreventivoLocked()) return;
-
   const row = currentPreventivoMenu[index];
   if (!row) return;
   const nome = (row.nome_piatto || '').trim();
@@ -1146,8 +982,6 @@ function renderExtraRows() {
   if (!extraTableBody) return;
   extraTableBody.innerHTML = '';
 
-  const locked = isPreventivoLocked();
-
   currentPreventivoExtra.forEach((row, index) => {
     const q = Number(row.quantita || 0);
     const pu = Number(row.prezzo_unitario || 0);
@@ -1156,19 +990,19 @@ function renderExtraRows() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <input type="text" class="input-pill extra-desc" value="${row.descrizione || ''}" ${locked ? 'disabled' : ''}>
+        <input type="text" class="input-pill extra-desc" value="${row.descrizione || ''}">
       </td>
       <td>
-        <input type="number" min="0" step="1" class="input-pill extra-quantita" value="${q}" ${locked ? 'disabled' : ''}>
+        <input type="number" min="0" step="1" class="input-pill extra-quantita" value="${q}">
       </td>
       <td>
-        <input type="number" min="0" step="0.01" class="input-pill extra-prezzo-unit" value="${pu}" ${locked ? 'disabled' : ''}>
+        <input type="number" min="0" step="0.01" class="input-pill extra-prezzo-unit" value="${pu}">
       </td>
       <td class="extra-totale-col">
         € ${pt.toFixed(2)}
       </td>
       <td>
-        <button type="button" class="btn-icon btn-extra-remove" data-index="${index}" ${locked ? 'disabled' : ''}>🗑</button>
+        <button type="button" class="btn-icon btn-extra-remove" data-index="${index}">🗑</button>
       </td>
     `;
     extraTableBody.appendChild(tr);
@@ -1178,7 +1012,7 @@ function renderExtraRows() {
     const inputPU = tr.querySelector('.extra-prezzo-unit');
     const btnRemove = tr.querySelector('.btn-extra-remove');
 
-    if (!locked && inputDesc) {
+    if (inputDesc) {
       inputDesc.addEventListener('input', () => {
         currentPreventivoExtra[index].descrizione = inputDesc.value;
       });
@@ -1195,10 +1029,10 @@ function renderExtraRows() {
       recalcPreventivoTotali();
     };
 
-    if (!locked && inputQ) inputQ.addEventListener('input', recalcRow);
-    if (!locked && inputPU) inputPU.addEventListener('input', recalcRow);
+    if (inputQ) inputQ.addEventListener('input', recalcRow);
+    if (inputPU) inputPU.addEventListener('input', recalcRow);
 
-    if (!locked && btnRemove) {
+    if (btnRemove) {
       btnRemove.addEventListener('click', () => {
         currentPreventivoExtra.splice(index, 1);
         renderExtraRows();
@@ -1252,7 +1086,8 @@ function recalcPreventivoTotali() {
   const saldo = totale - acconto;
 
   if (inputPrevTotale) inputPrevTotale.value = totale.toFixed(2);
-  if (inputPrevPrezzoPersona) inputPrevPrezzoPersona.value = prezzoPersona.toFixed(2);
+  if (inputPrevPrezzoPersona)
+    inputPrevPrezzoPersona.value = prezzoPersona.toFixed(2);
   if (inputPrevSaldo) inputPrevSaldo.value = saldo.toFixed(2);
 }
 
@@ -1282,7 +1117,9 @@ async function savePreventivo() {
     acconto: inputPrevAcconto ? Number(inputPrevAcconto.value || 0) : 0,
     totale: inputPrevTotale ? Number(inputPrevTotale.value || 0) : 0,
     // 🔥 salviamo anche lo sconto menù
-    sconto_menu_perc: selectPrevScontoMenu ? Number(selectPrevScontoMenu.value || 0) : 0
+    sconto_menu_perc: selectPrevScontoMenu
+      ? Number(selectPrevScontoMenu.value || 0)
+      : 0
   };
 
   const existingId = inputPrevId ? Number(inputPrevId.value || 0) : 0;
@@ -1326,19 +1163,22 @@ async function savePreventivo() {
 
   await loadPreventiviList();
   alert('Preventivo salvato correttamente.');
-
-  // ricarico e applico lock se necessario
-  await openPreventivo(preventivoId);
 }
 
 async function upsertPreventivoCliente() {
   const idEsistente = inputClienteId ? Number(inputClienteId.value || 0) : 0;
 
   const nome = inputClienteNome ? (inputClienteNome.value || '').trim() : '';
-  const cognome = inputClienteCognome ? (inputClienteCognome.value || '').trim() : '';
-  const telefono = inputClienteTelefono ? (inputClienteTelefono.value || '').trim() : '';
+  const cognome = inputClienteCognome
+    ? (inputClienteCognome.value || '').trim()
+    : '';
+  const telefono = inputClienteTelefono
+    ? (inputClienteTelefono.value || '').trim()
+    : '';
   const email = inputClienteEmail ? (inputClienteEmail.value || '').trim() : '';
-  const comune = inputClienteComune ? (inputClienteComune.value || '').trim() : '';
+  const comune = inputClienteComune
+    ? (inputClienteComune.value || '').trim()
+    : '';
 
   if (!nome && !cognome) {
     return null;
@@ -1475,89 +1315,6 @@ async function ensurePrenotazioneForPreventivo(preventivoId, payloadPrev) {
 }
 
 // -----------------------------
-//  🧾 DUPLICAZIONE PREVENTIVO
-// -----------------------------
-async function duplicateCurrentPreventivo() {
-  const existingId = inputPrevId ? Number(inputPrevId.value || 0) : 0;
-  if (!existingId) {
-    alert('Salva prima il preventivo, poi potrai duplicarlo.');
-    return;
-  }
-
-  // duplica mantenendo cliente e contenuti, ma resetta stato/acconto
-  const clienteId = inputClienteId ? Number(inputClienteId.value || 0) : 0;
-  if (!clienteId) {
-    alert('Manca il cliente: salva/crea prima il cliente.');
-    return;
-  }
-
-  const payloadPrev = {
-    cliente_id: clienteId,
-    titolo_evento: inputPrevTitolo ? inputPrevTitolo.value || null : null,
-    tipo_servizio: inputPrevTipoServizio ? inputPrevTipoServizio.value || null : null,
-    data_evento: inputPrevDataEvento ? inputPrevDataEvento.value || null : null,
-    n_invitati: inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0,
-    location: inputPrevLocation ? inputPrevLocation.value || null : null,
-    note: inputPrevNote ? inputPrevNote.value || null : null,
-    stato: 'bozza',
-    acconto: 0,
-    totale: inputPrevTotale ? Number(inputPrevTotale.value || 0) : 0,
-    sconto_menu_perc: selectPrevScontoMenu ? Number(selectPrevScontoMenu.value || 0) : 0
-  };
-
-  const { data: newPrev, error: insErr } = await supabase
-    .from('preventivi')
-    .insert(payloadPrev)
-    .select()
-    .single();
-
-  if (insErr || !newPrev) {
-    console.error('Errore duplicazione preventivo (testata):', insErr);
-    alert('Errore durante la duplicazione del preventivo.');
-    return;
-  }
-
-  const newId = newPrev.id;
-
-  // copia righe menù
-  const menuPayload = currentPreventivoMenu
-    .filter((r) => (r.nome_piatto || '').trim() !== '')
-    .map((r) => ({
-      preventivo_id: newId,
-      ricetta_id: r.ricetta_id || null,
-      nome_piatto: r.nome_piatto,
-      quantita: Number(r.quantita || 0),
-      costo_unitario: Number(r.costo_unitario || 0),
-      costo_totale: Number(r.costo_totale || 0),
-      ricetta_completa: !!r.ricetta_completa
-    }));
-
-  if (menuPayload.length) {
-    const { error: mErr } = await supabase.from('preventivi_ricette').insert(menuPayload);
-    if (mErr) console.error('Errore duplicazione righe menù:', mErr);
-  }
-
-  // copia righe extra
-  const extraPayload = currentPreventivoExtra
-    .filter((r) => (r.descrizione || '').trim() !== '')
-    .map((r) => ({
-      preventivo_id: newId,
-      descrizione: r.descrizione,
-      quantita: Number(r.quantita || 0),
-      prezzo_unitario: Number(r.prezzo_unitario || 0)
-    }));
-
-  if (extraPayload.length) {
-    const { error: eErr } = await supabase.from('preventivi_extra').insert(extraPayload);
-    if (eErr) console.error('Errore duplicazione righe extra:', eErr);
-  }
-
-  await loadPreventiviList();
-  await openPreventivo(newId);
-  alert(`Preventivo duplicato (ID ${newId}).`);
-}
-
-// -----------------------------
 //  Stampa / PDF (solo front-end)
 // -----------------------------
 
@@ -1570,12 +1327,13 @@ function printCurrentPreventivo() {
 
   const clienteNome = `${inputClienteNome?.value || ''} ${inputClienteCognome?.value || ''}`.trim();
   const clienteComune = inputClienteComune?.value || '';
-  const clienteTelefono = inputClienteTelefono?.value || '';
   const dataEvento = inputPrevDataEvento?.value || '';
   const tipologia = inputPrevTitolo?.value || '';
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
   const totale = inputPrevTotale ? inputPrevTotale.value : '0.00';
-  const prezzoPersona = inputPrevPrezzoPersona ? inputPrevPrezzoPersona.value : '0.00';
+  const prezzoPersona = inputPrevPrezzoPersona
+    ? inputPrevPrezzoPersona.value
+    : '0.00';
   const acconto = inputPrevAcconto ? inputPrevAcconto.value : '0.00';
   const saldo = inputPrevSaldo ? inputPrevSaldo.value : '0.00';
 
@@ -1586,7 +1344,10 @@ function printCurrentPreventivo() {
     .join('<br>');
 
   const extraElenco = currentPreventivoExtra
-    .map((r) => `${r.descrizione || ''} (x${r.quantita || 0})`)
+    .map(
+      (r) =>
+        `${r.descrizione || ''} (x${r.quantita || 0})`
+    )
     .filter((s) => s.trim() !== '')
     .join('<br>');
 
@@ -1679,7 +1440,9 @@ function printCurrentPreventivo() {
       </div>
 
       <script>
-        window.onload = function() { window.print(); };
+        window.onload = function() {
+          window.print();
+        };
       </script>
     </body>
     </html>
@@ -1704,7 +1467,9 @@ function emailCurrentPreventivoViaMailto() {
   const dataEvento = inputPrevDataEvento?.value || '';
   const nInv = inputPrevNInvitati ? Number(inputPrevNInvitati.value || 0) : 0;
   const totale = inputPrevTotale ? inputPrevTotale.value : '0.00';
-  const prezzoPersona = inputPrevPrezzoPersona ? inputPrevPrezzoPersona.value : '0.00';
+  const prezzoPersona = inputPrevPrezzoPersona
+    ? inputPrevPrezzoPersona.value
+    : '0.00';
   const acconto = inputPrevAcconto ? inputPrevAcconto.value : '0.00';
   const saldo = inputPrevSaldo ? inputPrevSaldo.value : '0.00';
 
@@ -1716,7 +1481,10 @@ function emailCurrentPreventivoViaMailto() {
     .join('\n');
 
   const extraElenco = currentPreventivoExtra
-    .map((r) => `- ${r.descrizione || ''} (x${r.quantita || 0})`)
+    .map(
+      (r) =>
+        `- ${r.descrizione || ''} (x${r.quantita || 0})`
+    )
     .filter((s) => s.trim() !== '-')
     .join('\n');
 
@@ -1746,6 +1514,7 @@ function emailCurrentPreventivoViaMailto() {
 
   window.location.href = mailtoLink;
 }
+
 
 
   // ========= DIPENDENTI =========
@@ -4825,9 +4594,10 @@ async function caricaProdottiSuggerimentiIngredienti() {
         // logica futura per venduto del giorno
         break;
 
-     case "preventivi":
-  await onEnterPreventivi();
-  break;
+      case "preventivi":
+        await loadPreventiviList();
+        resetPreventivoForm();
+        break;
 
       default:
         break;
