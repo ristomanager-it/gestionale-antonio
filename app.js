@@ -2742,7 +2742,7 @@ async function handleRicettaNomeChange() {
   }
 
 
-  // ===========================================================
+ // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
 
@@ -2750,16 +2750,16 @@ async function handleRicettaNomeChange() {
 const ricetteSearchInput = document.getElementById("ricette-search");
 const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
 
-// datalist globale definito in index.html
+// datalist suggerimenti (definito in index.html)
 const ricetteSuggestionsList = document.getElementById("ricette-suggestions");
 
-// collega il campo di ricerca al datalist
+// collega input → datalist
 if (ricetteSearchInput && ricetteSuggestionsList) {
   ricetteSearchInput.setAttribute("list", "ricette-suggestions");
 }
 
-// cache globale ricette (già dichiarata sopra nel file)
-// let ricetteCache = [];
+// variabile globale per apertura ricetta in modifica
+let ricettaDaAprireId = null;
 
 // -----------------------------------------------------------
 // aggiorna suggerimenti datalist
@@ -2806,23 +2806,24 @@ async function caricaRicetteDaSupabase() {
   }
 
   ricetteCache = data || [];
-
   aggiornaRicetteSuggestions();
   applicaFiltroRicettario();
 }
 
 // -----------------------------------------------------------
-// carica ingredienti di UNA ricetta (JOIN con prodotti)
+// carica ingredienti di UNA ricetta
+// (tabella: ricetta_ingredienti)
 // -----------------------------------------------------------
 async function caricaIngredientiRicettaViewer(ricettaId) {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from("ricette_ingredienti")
+    .from("ricetta_ingredienti")
     .select(`
       quantita,
       unita,
-      prodotti (
+      prodotto_id,
+      prodotti:prodotto_id (
         descrizione
       )
     `)
@@ -2835,14 +2836,14 @@ async function caricaIngredientiRicettaViewer(ricettaId) {
   }
 
   return (data || []).map((row) => ({
-    nome: row.prodotti?.descrizione || "",
+    nome: row.prodotti?.descrizione || "Prodotto",
     quantita: row.quantita,
     unita: row.unita,
   }));
 }
 
 // -----------------------------------------------------------
-// render card ricette nel viewer
+// render card ricette
 // -----------------------------------------------------------
 function renderRicetteViewer(lista, filtroTesto) {
   if (!ricetteListaViewer) return;
@@ -2913,7 +2914,7 @@ function renderRicetteViewer(lista, filtroTesto) {
       }
     `;
 
-    // bottone modifica (solo manager/admin)
+    // pulsante modifica (solo manager/admin)
     if (currentUser && isManagerRole(currentUser.ruolo)) {
       const footer = document.createElement("div");
       footer.style.marginTop = "8px";
@@ -2935,7 +2936,7 @@ function renderRicetteViewer(lista, filtroTesto) {
       card.appendChild(footer);
     }
 
-    // toggle ingredienti (click card)
+    // toggle ingredienti
     card.addEventListener("click", async () => {
       let ingBox = card.querySelector(".ricetta-ingredienti-viewer");
 
@@ -2977,7 +2978,7 @@ function renderRicetteViewer(lista, filtroTesto) {
 }
 
 // -----------------------------------------------------------
-// filtro ricerca ricette
+// filtro ricerca
 // -----------------------------------------------------------
 function applicaFiltroRicettario() {
   if (!ricetteSearchInput) {
@@ -3002,9 +3003,7 @@ function applicaFiltroRicettario() {
 
 // evento input ricerca
 if (ricetteSearchInput) {
-  ricetteSearchInput.addEventListener("input", () => {
-    applicaFiltroRicettario();
-  });
+  ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
 }
 
 // -----------------------------------------------------------
@@ -3013,6 +3012,7 @@ if (ricetteSearchInput) {
 function initRicettarioViewer() {
   caricaRicetteDaSupabase();
 }
+
 
 
 // ===========================================================
