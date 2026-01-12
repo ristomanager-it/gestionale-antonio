@@ -3000,7 +3000,9 @@ const produzioneLottoInput = document.getElementById("produzione-lotto");
 const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
 const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
 
-// Genera un lotto tipo: L20251204-143055
+// -----------------------------------------------------------
+// GENERAZIONE LOTTO
+// -----------------------------------------------------------
 function generaLottoProduzione() {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -3012,16 +3014,17 @@ function generaLottoProduzione() {
   return `L${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
 }
 
-// helper: trova ricetta in ricetteCache per NOME
+// -----------------------------------------------------------
+// RICETTE
+// -----------------------------------------------------------
 function trovaRicettaPerNome(nome) {
   if (!nome || !ricetteCache) return null;
   const q = nome.toLowerCase().trim();
-  return (
-    ricetteCache.find((r) => (r.nome || "").toLowerCase().trim() === q) || null
-  );
+  return ricetteCache.find(
+    (r) => (r.nome || "").toLowerCase().trim() === q
+  ) || null;
 }
 
-// popola il select dei formati in base alla ricetta
 function popolaFormatiPerRiga(row, ricetta) {
   const selectFormato = row.querySelector(".prod-formato");
   if (!selectFormato) return;
@@ -3035,312 +3038,183 @@ function popolaFormatiPerRiga(row, ricetta) {
   }
 
   row.dataset.ricettaId = ricetta.id;
-  row.dataset.pezziBase = ricetta.pezzi_base != null ? ricetta.pezzi_base : 0;
+  row.dataset.pezziBase = ricetta.pezzi_base || 0;
 
   if (ricetta.formato1_label && ricetta.formato1_percent) {
-    const opt1 = document.createElement("option");
-    opt1.value = "1";
-    opt1.textContent = ricetta.formato1_label;
-    opt1.dataset.percent = ricetta.formato1_percent;
-    selectFormato.appendChild(opt1);
+    const o = document.createElement("option");
+    o.value = "1";
+    o.textContent = ricetta.formato1_label;
+    o.dataset.percent = ricetta.formato1_percent;
+    selectFormato.appendChild(o);
   }
 
   if (ricetta.formato2_label && ricetta.formato2_percent) {
-    const opt2 = document.createElement("option");
-    opt2.value = "2";
-    opt2.textContent = ricetta.formato2_label;
-    opt2.dataset.percent = ricetta.formato2_percent;
-    selectFormato.appendChild(opt2);
+    const o = document.createElement("option");
+    o.value = "2";
+    o.textContent = ricetta.formato2_label;
+    o.dataset.percent = ricetta.formato2_percent;
+    selectFormato.appendChild(o);
   }
 }
 
-// ricalcola quantità equivalente e moltiplicatore per UNA riga
 function ricalcolaQuantitaRiga(row) {
-  const qtaInput = row.querySelector(".prod-qta");
-  const qtaEqInput = row.querySelector(".prod-qta-equivalente");
-  const moltipInput = row.querySelector(".prod-moltiplicatore");
-  const selectFormato = row.querySelector(".prod-formato");
+  const qta = parseFloat(row.querySelector(".prod-qta")?.value || 0);
+  const pezziBase = parseFloat(row.dataset.pezziBase || 0);
+  const formato = row.querySelector(".prod-formato");
+  const opt = formato?.options[formato.selectedIndex];
+  const perc = opt?.dataset.percent ? parseFloat(opt.dataset.percent) : 0;
 
-  if (!qtaInput || !qtaEqInput || !moltipInput || !selectFormato) return;
-
-  const qta = parseFloat(qtaInput.value || "0") || 0;
-  const pezziBaseRicetta = parseFloat(row.dataset.pezziBase || "0") || 0;
-
-  const selectedOption = selectFormato.options[selectFormato.selectedIndex];
-  const perc =
-    selectedOption && selectedOption.dataset.percent
-      ? parseFloat(selectedOption.dataset.percent) || 0
-      : 0;
-
-  if (!qta || !perc || !pezziBaseRicetta) {
-    qtaEqInput.value = "";
-    moltipInput.value = "";
+  if (!qta || !pezziBase || !perc) {
+    row.querySelector(".prod-qta-equivalente").value = "";
+    row.querySelector(".prod-moltiplicatore").value = "";
     return;
   }
 
-  // quantità base equivalente = qta * (percentuale / 100)
-  const qtaEquivalente = qta * (perc / 100);
-  const moltiplicatore = qtaEquivalente / pezziBaseRicetta;
+  const qtaEq = qta * (perc / 100);
+  const moltip = qtaEq / pezziBase;
 
-  qtaEqInput.value = qtaEquivalente.toFixed(2);
-  moltipInput.value = moltiplicatore.toFixed(2);
+  row.querySelector(".prod-qta-equivalente").value = qtaEq.toFixed(2);
+  row.querySelector(".prod-moltiplicatore").value = moltip.toFixed(2);
 }
 
-// crea una nuova riga di produzione (card, mobile friendly)
-function creaRigaProduzione(initial = {}) {
-  if (!produzioneRigheContainer) return;
-
+// -----------------------------------------------------------
+// RIGA PRODUZIONE
+// -----------------------------------------------------------
+function creaRigaProduzione() {
   const row = document.createElement("div");
   row.className = "produzione-riga timbratura-intro-card";
-  row.style.display = "flex";
-  row.style.flexDirection = "column";
-  row.style.gap = "6px";
-
   row.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-      <strong style="font-size:14px;">Riga produzione</strong>
-      <button type="button" class="app-button tiny red btn-del-riga-prod">✕</button>
-    </div>
+    <button class="app-button tiny red btn-del">✕</button>
 
-    <label style="font-size:13px;">
-      Ricetta
-      <input
-        type="text"
-        class="prod-ricetta-nome input-pill"
-        placeholder="Es. Flan di patate, Ragù..."
-        list="ricette-suggestions"
-        value="${initial.ricettaNome || ""}"
-      />
-    </label>
-
-    <div class="form-grid-2">
-      <label style="font-size:13px;">
-        Formato
-        <select class="prod-formato input-pill">
-          <option value="">Formato...</option>
-        </select>
-      </label>
-
-      <label style="font-size:13px;">
-        UM
-        <input
-          type="text"
-          class="prod-um input-pill"
-          placeholder="pz, kg..."
-          value="${initial.um || ""}"
-        />
-      </label>
-    </div>
-
-    <div class="form-grid-2">
-      <label style="font-size:13px;">
-        Q.tà richiesta
-        <input
-          type="number"
-          class="prod-qta input-pill"
-          placeholder="Es. 120 (pz o kg)"
-          min="0"
-          step="0.001"
-          value="${initial.qta || ""}"
-        />
-      </label>
-
-      <label style="font-size:13px;">
-        Q.tà base equivalente
-        <input
-          type="number"
-          class="prod-qta-equivalente input-pill"
-          placeholder="Calcolata"
-          step="0.01"
-          readonly
-        />
-      </label>
-    </div>
-
-    <label style="font-size:13px;">
-      Moltiplicatore ricetta (x)
-      <input
-        type="number"
-        class="prod-moltiplicatore input-pill"
-        placeholder="Calcolato"
-        step="0.01"
-        readonly
-      />
-    </label>
+    <input class="prod-ricetta-nome input-pill" list="ricette-suggestions" placeholder="Ricetta" />
+    <select class="prod-formato input-pill"></select>
+    <input class="prod-um input-pill" placeholder="UM" />
+    <input type="number" class="prod-qta input-pill" placeholder="Quantità" />
+    <input class="prod-qta-equivalente input-pill" readonly />
+    <input class="prod-moltiplicatore input-pill" readonly />
   `;
 
-  const btnDel = row.querySelector(".btn-del-riga-prod");
+  row.querySelector(".btn-del").onclick = () => row.remove();
+
   const inputRicetta = row.querySelector(".prod-ricetta-nome");
-  const selectFormato = row.querySelector(".prod-formato");
-  const qtaInput = row.querySelector(".prod-qta");
+  const formato = row.querySelector(".prod-formato");
+  const qta = row.querySelector(".prod-qta");
 
-  if (btnDel) {
-    btnDel.addEventListener("click", () => row.remove());
-  }
+  inputRicetta.onchange = () => {
+    const ricetta = trovaRicettaPerNome(inputRicetta.value);
+    popolaFormatiPerRiga(row, ricetta);
+    ricalcolaQuantitaRiga(row);
+  };
 
-  // quando scelgo la ricetta → popola formati
-  if (inputRicetta) {
-    inputRicetta.addEventListener("change", () => {
-      const ricetta = trovaRicettaPerNome(inputRicetta.value);
-      popolaFormatiPerRiga(row, ricetta);
-      ricalcolaQuantitaRiga(row);
-    });
-  }
-
-  if (selectFormato) {
-    selectFormato.addEventListener("change", () => {
-      ricalcolaQuantitaRiga(row);
-    });
-  }
-
-  if (qtaInput) {
-    qtaInput.addEventListener("input", () => {
-      ricalcolaQuantitaRiga(row);
-    });
-  }
-
-  // se passo iniziali (es. ricetta già nota)
-  if (initial.ricettaObj) {
-    popolaFormatiPerRiga(row, initial.ricettaObj);
-  }
+  formato.onchange = () => ricalcolaQuantitaRiga(row);
+  qta.oninput = () => ricalcolaQuantitaRiga(row);
 
   produzioneRigheContainer.appendChild(row);
 }
 
-// reset completo scheda produzione
+// -----------------------------------------------------------
+// RESET SCHEDA
+// -----------------------------------------------------------
 function resetSchedaProduzione() {
-  if (!produzioneRigheContainer) return;
-
-  const todayISO = new Date().toISOString().slice(0, 10);
-  if (produzioneDataInput && !produzioneDataInput.value) {
-    produzioneDataInput.value = todayISO;
-  }
-
-  if (produzioneLottoInput) {
-    produzioneLottoInput.value = generaLottoProduzione();
-  }
-
-  if (produzioneNoteInput) {
-    produzioneNoteInput.value = "";
-  }
-
+  produzioneDataInput.value = new Date().toISOString().slice(0, 10);
+  produzioneLottoInput.value = generaLottoProduzione();
+  produzioneNoteInput.value = "";
   produzioneRigheContainer.innerHTML = "";
   creaRigaProduzione();
 }
 
-// salvataggio su Supabase della scheda produzione
-async function salvaSchedaProduzione() {
-  if (!supabase || !produzioneRigheContainer) return;
+// -----------------------------------------------------------
+// MAGAZZINO PRODUZIONE
+// -----------------------------------------------------------
+async function getOrCreateProdottoPreparazione(ricettaId, nome, um) {
+  const { data } = await supabase
+    .from("prodotti")
+    .select("id")
+    .eq("tipo_prodotto", "preparazione")
+    .eq("ricetta_id", ricettaId)
+    .single();
 
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const dataScheda = produzioneDataInput?.value || todayISO;
-  const noteScheda = produzioneNoteInput?.value.trim() || null;
-  const lottoScheda =
-    (produzioneLottoInput && produzioneLottoInput.value) ||
-    generaLottoProduzione();
+  if (data) return data.id;
 
-  const payloadScheda = {
-    data: dataScheda,
-    note: noteScheda,
-    lotto: lottoScheda,
-    // operatore_id: currentUser?.id || null,
-  };
-
-  const { data: scheda, error: errScheda } = await supabase
-    .from("schede_produzione")
-    .insert(payloadScheda)
+  const { data: nuovo } = await supabase
+    .from("prodotti")
+    .insert({
+      descrizione: nome,
+      tipo_prodotto: "preparazione",
+      ricetta_id: ricettaId,
+      um
+    })
     .select()
     .single();
 
-  if (errScheda) {
-    console.error("Errore salvataggio scheda produzione:", errScheda);
-    alert("Errore nel salvare la scheda di produzione");
-    return;
-  }
+  return nuovo.id;
+}
+
+// -----------------------------------------------------------
+// SALVATAGGIO SCHEDA PRODUZIONE
+// -----------------------------------------------------------
+async function salvaSchedaProduzione() {
+  const dataScheda = produzioneDataInput.value;
+  const lotto = produzioneLottoInput.value;
+  const note = produzioneNoteInput.value || null;
+
+  const { data: scheda } = await supabase
+    .from("schede_produzione")
+    .insert({ data: dataScheda, lotto, note })
+    .select()
+    .single();
 
   const schedaId = scheda.id;
+  const movimenti = [];
+  const righe = [];
 
-  const righePayload = [];
-  const rows = Array.from(
-    produzioneRigheContainer.querySelectorAll(".produzione-riga")
-  );
-
-  rows.forEach((row) => {
-    const ricettaId = parseInt(row.dataset.ricettaId || "0");
+  document.querySelectorAll(".produzione-riga").forEach((row) => {
+    const ricettaId = parseInt(row.dataset.ricettaId || 0);
     if (!ricettaId) return;
 
-    const qtaInput = row.querySelector(".prod-qta");
-    const qtaEqInput = row.querySelector(".prod-qta-equivalente");
-    const moltipInput = row.querySelector(".prod-moltiplicatore");
-    const umInput = row.querySelector(".prod-um");
-    const selectFormato = row.querySelector(".prod-formato");
+    const qta = parseFloat(row.querySelector(".prod-qta").value || 0);
+    if (!qta) return;
 
-    const selectedOption =
-      selectFormato && selectFormato.options[selectFormato.selectedIndex];
-
-    const formatoLabel = selectedOption ? selectedOption.textContent : "";
-    const formatoPercent =
-      selectedOption && selectedOption.dataset.percent
-        ? parseFloat(selectedOption.dataset.percent) || null
-        : null;
-
-    const qta = qtaInput ? parseFloat(qtaInput.value || "0") || 0 : 0;
-    const qtaEquivalente = qtaEqInput
-      ? parseFloat(qtaEqInput.value || "0") || 0
-      : 0;
-    const moltiplicatore = moltipInput
-      ? parseFloat(moltipInput.value || "0") || 0
-      : 0;
-    const um = umInput ? (umInput.value || "").trim() : "";
-
-    if (!qta || !moltiplicatore) return;
-
-    righePayload.push({
+    righe.push({
       scheda_id: schedaId,
       ricetta_id: ricettaId,
-      formato_label: formatoLabel || null,
-      formato_percent: formatoPercent,
       quantita: qta,
-      quantita_equivalente: qtaEquivalente,
-      unita: um || null,
-      moltiplicatore_ricetta: moltiplicatore,
-      lotto: lottoScheda,
+      lotto
     });
+
+    movimenti.push({ row, ricettaId, qta });
   });
 
-  if (!righePayload.length) {
-    alert("Nessuna riga valida nella scheda di produzione.");
-    return;
+  await supabase.from("schede_produzione_righe").insert(righe);
+
+  for (const m of movimenti) {
+    const nome = m.row.querySelector(".prod-ricetta-nome").value;
+    const um = m.row.querySelector(".prod-um").value;
+    const prodottoId = await getOrCreateProdottoPreparazione(m.ricettaId, nome, um);
+
+    await supabase.from("magazzino_movimenti").insert({
+      data_movimento: dataScheda,
+      prodotto_id: prodottoId,
+      quantita: m.qta,
+      tipo: "carico",
+      origine: "produzione",
+      riferimento_id: schedaId,
+      lotto
+    });
   }
 
-  const { error: errRighe } = await supabase
-    .from("schede_produzione_righe")
-    .insert(righePayload);
-
-  if (errRighe) {
-    console.error("Errore salvataggio righe scheda produzione:", errRighe);
-    alert("Errore nel salvare le righe della scheda");
-    return;
-  }
-
-  alert("Scheda di produzione salvata correttamente.");
-
-  // nuova scheda, nuovo lotto
+  alert("Produzione salvata e magazzino aggiornato");
   resetSchedaProduzione();
 }
 
-// EVENTI GENERALI SCHEDA PRODUZIONE
-if (btnAddRigaProduzione && produzioneRigheContainer) {
-  btnAddRigaProduzione.addEventListener("click", () => {
-    creaRigaProduzione();
-  });
-}
+// -----------------------------------------------------------
+// EVENTI
+// -----------------------------------------------------------
+btnAddRigaProduzione.onclick = creaRigaProduzione;
+btnSalvaSchedaProduzione.onclick = salvaSchedaProduzione;
 
-if (btnSalvaSchedaProduzione) {
-  btnSalvaSchedaProduzione.addEventListener("click", () => {
-    salvaSchedaProduzione();
-  });
-}
+// INIT
+resetSchedaProduzione();
 
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
