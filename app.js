@@ -2997,84 +2997,20 @@ const produzioneRigheContainer = document.getElementById("produzione-righe");
 const produzioneDataInput = document.getElementById("produzione-data");
 const produzioneNoteInput = document.getElementById("produzione-note");
 const produzioneLottoInput = document.getElementById("produzione-lotto");
+const produzioneLuogoSelect = document.getElementById("produzione-luogo");
+
 const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
 const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
 
 // -----------------------------------------------------------
-// GENERAZIONE LOTTO
+// GENERAZIONE LOTTO (AUTOMATICA)
 // -----------------------------------------------------------
-function generaLottoProduzione() {
+function generaLottoProduzione(luogo) {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `L${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
-}
-
-// -----------------------------------------------------------
-// RICETTE
-// -----------------------------------------------------------
-function trovaRicettaPerNome(nome) {
-  if (!nome || !ricetteCache) return null;
-  const q = nome.toLowerCase().trim();
-  return ricetteCache.find(
-    (r) => (r.nome || "").toLowerCase().trim() === q
-  ) || null;
-}
-
-function popolaFormatiPerRiga(row, ricetta) {
-  const selectFormato = row.querySelector(".prod-formato");
-  if (!selectFormato) return;
-
-  selectFormato.innerHTML = `<option value="">Formato...</option>`;
-
-  if (!ricetta) {
-    row.dataset.ricettaId = "";
-    row.dataset.pezziBase = "";
-    return;
-  }
-
-  row.dataset.ricettaId = ricetta.id;
-  row.dataset.pezziBase = ricetta.pezzi_base || 0;
-
-  if (ricetta.formato1_label && ricetta.formato1_percent) {
-    const o = document.createElement("option");
-    o.value = "1";
-    o.textContent = ricetta.formato1_label;
-    o.dataset.percent = ricetta.formato1_percent;
-    selectFormato.appendChild(o);
-  }
-
-  if (ricetta.formato2_label && ricetta.formato2_percent) {
-    const o = document.createElement("option");
-    o.value = "2";
-    o.textContent = ricetta.formato2_label;
-    o.dataset.percent = ricetta.formato2_percent;
-    selectFormato.appendChild(o);
-  }
-}
-
-function ricalcolaQuantitaRiga(row) {
-  const qta = parseFloat(row.querySelector(".prod-qta")?.value || 0);
-  const pezziBase = parseFloat(row.dataset.pezziBase || 0);
-  const formato = row.querySelector(".prod-formato");
-  const opt = formato?.options[formato.selectedIndex];
-  const perc = opt?.dataset.percent ? parseFloat(opt.dataset.percent) : 0;
-
-  if (!qta || !pezziBase || !perc) {
-    row.querySelector(".prod-qta-equivalente").value = "";
-    row.querySelector(".prod-moltiplicatore").value = "";
-    return;
-  }
-
-  const qtaEq = qta * (perc / 100);
-  const moltip = qtaEq / pezziBase;
-
-  row.querySelector(".prod-qta-equivalente").value = qtaEq.toFixed(2);
-  row.querySelector(".prod-moltiplicatore").value = moltip.toFixed(2);
+  return `${luogo}-${yyyy}${mm}${dd}`;
 }
 
 // -----------------------------------------------------------
@@ -3083,32 +3019,24 @@ function ricalcolaQuantitaRiga(row) {
 function creaRigaProduzione() {
   const row = document.createElement("div");
   row.className = "produzione-riga timbratura-intro-card";
+
   row.innerHTML = `
     <button class="app-button tiny red btn-del">✕</button>
 
-    <input class="prod-ricetta-nome input-pill" list="ricette-suggestions" placeholder="Ricetta" />
-    <select class="prod-formato input-pill"></select>
-    <input class="prod-um input-pill" placeholder="UM" />
-    <input type="number" class="prod-qta input-pill" placeholder="Quantità" />
-    <input class="prod-qta-equivalente input-pill" readonly />
-    <input class="prod-moltiplicatore input-pill" readonly />
+    <input class="prod-nome input-pill" placeholder="Prodotto lavorato" />
+    <input class="prod-um input-pill" placeholder="UM (porzioni / kg)" />
+    <input type="number" class="prod-qta input-pill" placeholder="Quantità prodotta" />
+
+    <select class="prod-abbattimento input-pill">
+      <option value="">Abbattimento</option>
+      <option value="positivo">Positivo</option>
+      <option value="negativo">Negativo</option>
+    </select>
+
+    <input type="date" class="prod-scadenza input-pill" />
   `;
 
   row.querySelector(".btn-del").onclick = () => row.remove();
-
-  const inputRicetta = row.querySelector(".prod-ricetta-nome");
-  const formato = row.querySelector(".prod-formato");
-  const qta = row.querySelector(".prod-qta");
-
-  inputRicetta.onchange = () => {
-    const ricetta = trovaRicettaPerNome(inputRicetta.value);
-    popolaFormatiPerRiga(row, ricetta);
-    ricalcolaQuantitaRiga(row);
-  };
-
-  formato.onchange = () => ricalcolaQuantitaRiga(row);
-  qta.oninput = () => ricalcolaQuantitaRiga(row);
-
   produzioneRigheContainer.appendChild(row);
 }
 
@@ -3116,90 +3044,81 @@ function creaRigaProduzione() {
 // RESET SCHEDA
 // -----------------------------------------------------------
 function resetSchedaProduzione() {
-  produzioneDataInput.value = new Date().toISOString().slice(0, 10);
-  produzioneLottoInput.value = generaLottoProduzione();
+  const oggi = new Date().toISOString().slice(0, 10);
+  produzioneDataInput.value = oggi;
+
+  const luogo = produzioneLuogoSelect?.value || "CC";
+  produzioneLottoInput.value = generaLottoProduzione(luogo);
+
   produzioneNoteInput.value = "";
   produzioneRigheContainer.innerHTML = "";
   creaRigaProduzione();
 }
 
 // -----------------------------------------------------------
-// MAGAZZINO PRODUZIONE
+// SALVATAGGIO SCHEDA PRODUZIONE
 // -----------------------------------------------------------
-async function getOrCreateProdottoPreparazione(ricettaId, nome, um) {
-  const { data } = await supabase
-    .from("prodotti")
-    .select("id")
-    .eq("tipo_prodotto", "preparazione")
-    .eq("ricetta_id", ricettaId)
-    .single();
+async function salvaSchedaProduzione() {
+  const dataProduzione = produzioneDataInput.value;
+  const lotto = produzioneLottoInput.value;
+  const note = produzioneNoteInput.value || null;
+  const luogo = produzioneLuogoSelect?.value || "CC";
 
-  if (data) return data.id;
-
-  const { data: nuovo } = await supabase
-    .from("prodotti")
+  // 1️⃣ CREA TESTATA PRODUZIONE
+  const { data: produzione, error } = await supabase
+    .from("produzioni")
     .insert({
-      descrizione: nome,
-      tipo_prodotto: "preparazione",
-      ricetta_id: ricettaId,
-      um
+      data_produzione: dataProduzione,
+      lotto,
+      luogo,
+      note
     })
     .select()
     .single();
 
-  return nuovo.id;
-}
+  if (error) {
+    alert("Errore salvataggio produzione");
+    console.error(error);
+    return;
+  }
 
-// -----------------------------------------------------------
-// SALVATAGGIO SCHEDA PRODUZIONE
-// -----------------------------------------------------------
-async function salvaSchedaProduzione() {
-  const dataScheda = produzioneDataInput.value;
-  const lotto = produzioneLottoInput.value;
-  const note = produzioneNoteInput.value || null;
+  const produzioneId = produzione.id;
 
-  const { data: scheda } = await supabase
-    .from("schede_produzione")
-    .insert({ data: dataScheda, lotto, note })
-    .select()
-    .single();
+  // 2️⃣ RIGHE PRODUZIONE + MOVIMENTI MAGAZZINO
+  for (const row of document.querySelectorAll(".produzione-riga")) {
+    const nome = row.querySelector(".prod-nome").value.trim();
+    const um = row.querySelector(".prod-um").value.trim();
+    const quantita = parseFloat(row.querySelector(".prod-qta").value || 0);
+    const abbattimento = row.querySelector(".prod-abbattimento").value;
+    const scadenza = row.querySelector(".prod-scadenza").value;
 
-  const schedaId = scheda.id;
-  const movimenti = [];
-  const righe = [];
+    if (!nome || !quantita || !abbattimento || !scadenza) continue;
 
-  document.querySelectorAll(".produzione-riga").forEach((row) => {
-    const ricettaId = parseInt(row.dataset.ricettaId || 0);
-    if (!ricettaId) return;
+    // 2a️⃣ SALVA RIGA PRODUZIONE
+    const { data: riga } = await supabase
+      .from("produzioni_righe")
+      .insert({
+        produzione_id: produzioneId,
+        nome_prodotto: nome,
+        unita_misura: um,
+        quantita,
+        tipo_abbattimento: abbattimento,
+        data_scadenza: scadenza
+      })
+      .select()
+      .single();
 
-    const qta = parseFloat(row.querySelector(".prod-qta").value || 0);
-    if (!qta) return;
-
-    righe.push({
-      scheda_id: schedaId,
-      ricetta_id: ricettaId,
-      quantita: qta,
-      lotto
-    });
-
-    movimenti.push({ row, ricettaId, qta });
-  });
-
-  await supabase.from("schede_produzione_righe").insert(righe);
-
-  for (const m of movimenti) {
-    const nome = m.row.querySelector(".prod-ricetta-nome").value;
-    const um = m.row.querySelector(".prod-um").value;
-    const prodottoId = await getOrCreateProdottoPreparazione(m.ricettaId, nome, um);
-
-    await supabase.from("magazzino_movimenti").insert({
-      data_movimento: dataScheda,
-      prodotto_id: prodottoId,
-      quantita: m.qta,
+    // 2b️⃣ CARICO MAGAZZINO PRODUZIONE
+    await supabase.from("magazzino_produzione_movimenti").insert({
+      nome_prodotto: nome,
+      lotto,
       tipo: "carico",
-      origine: "produzione",
-      riferimento_id: schedaId,
-      lotto
+      quantita,
+      tipo_abbattimento: abbattimento,
+      data_scadenza: scadenza,
+      riferimento_tipo: "produzione",
+      riferimento_id: riga.id,
+      luogo
     });
   }
 
@@ -3215,7 +3134,6 @@ btnSalvaSchedaProduzione.onclick = salvaSchedaProduzione;
 
 // INIT
 resetSchedaProduzione();
-
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
