@@ -74,36 +74,42 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (EDIT) ----------
-  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
-  const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById(
-    "ricetta-ingredienti-container"
-  );
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+const ricettaTipoSelect = document.getElementById("ricetta-tipo");
+const ricettaNomeInput = document.getElementById("ricetta-nome");
+const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+const ricettaNoteInput = document.getElementById("ricetta-note");
+const ricettaFotoInput = document.getElementById("ricetta-foto");
+const ricettaIngredientiContainer = document.getElementById(
+  "ricetta-ingredienti-container"
+);
+const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
-  const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
-  const ricettaFormato1LabelInput = document.getElementById(
-    "ricetta-formato1-label"
-  );
-  const ricettaFormato1PercInput = document.getElementById(
-    "ricetta-formato1-percent"
-  );
-  const ricettaFormato2LabelInput = document.getElementById(
-    "ricetta-formato2-label"
-  );
-  const ricettaFormato2PercInput = document.getElementById(
-    "ricetta-formato2-percent"
-  );
-  const ricettaFormato1PezziOut = document.getElementById(
-    "ricetta-formato1-pezzi"
-  );
-  const ricettaFormato2PezziOut = document.getElementById(
-    "ricetta-formato2-pezzi"
-  );
+const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
+const ricettaFormato1LabelInput = document.getElementById(
+  "ricetta-formato1-label"
+);
+const ricettaFormato1PercInput = document.getElementById(
+  "ricetta-formato1-percent"
+);
+const ricettaFormato2LabelInput = document.getElementById(
+  "ricetta-formato2-label"
+);
+const ricettaFormato2PercInput = document.getElementById(
+  "ricetta-formato2-percent"
+);
+const ricettaFormato1PezziOut = document.getElementById(
+  "ricetta-formato1-pezzi"
+);
+const ricettaFormato2PezziOut = document.getElementById(
+  "ricetta-formato2-pezzi"
+);
+
+// 🔥 COLLEGAMENTO ROBUSTO AL DATALIST GLOBALE RICETTE
+if (ricettaNomeInput) {
+  ricettaNomeInput.setAttribute("list", "ricette-suggestions");
+}
+
 // ===========================================================
 // ========== DATALIST GLOBALE RICETTE (SEMPRE PRESENTE) ======
 // ===========================================================
