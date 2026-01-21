@@ -104,6 +104,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaFormato2PezziOut = document.getElementById(
     "ricetta-formato2-pezzi"
   );
+// ===========================================================
+// ========== DATALIST GLOBALE RICETTE (SEMPRE PRESENTE) ======
+// ===========================================================
+let ricetteSuggestionsList = document.getElementById("ricette-suggestions");
+if (!ricetteSuggestionsList) {
+  ricetteSuggestionsList = document.createElement("datalist");
+  ricetteSuggestionsList.id = "ricette-suggestions";
+  document.body.appendChild(ricetteSuggestionsList);
+}
+
+function aggiornaRicetteSuggestions() {
+  if (!ricetteSuggestionsList || !Array.isArray(ricetteCache)) return;
+
+  ricetteSuggestionsList.innerHTML = "";
+  ricetteCache.forEach((r) => {
+    if (!r?.nome) return;
+    const opt = document.createElement("option");
+    opt.value = r.nome;
+    ricetteSuggestionsList.appendChild(opt);
+  });
+}
 
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
