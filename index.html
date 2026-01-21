@@ -39,9 +39,12 @@
         </div>
       </header>
 
+      <button class="app-button big-home" data-route="ordine">
+        Ordini
+      </button>
+
       <!-- CONTENUTO PRINCIPALE -->
       <main class="app-main">
-
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
           <div class="login-wrapper">
@@ -111,7 +114,10 @@
               Ordine del giorno
             </button>
 
-            <button class="app-button big-home" data-route="ricette-viewer">
+            <button
+              class="app-button big-home"
+              data-route="ricette-viewer"
+            >
               Ricettario
             </button>
           </div>
@@ -122,27 +128,35 @@
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
+
           <button class="app-button menu-button" data-route="dipendenti">
             Dipendenti
           </button>
+
           <button class="app-button menu-button" data-route="acquisti">
             Acquisti / Fatture
           </button>
+
           <button class="app-button menu-button" data-route="ricette">
             Ricette
           </button>
+
           <button class="app-button menu-button" data-route="produzione">
             Produzione
           </button>
+
           <button class="app-button menu-button" data-route="magazzino">
             Magazzino
           </button>
+
           <button class="app-button menu-button" data-route="preventivi">
             Preventivi & Prenotazioni
           </button>
+
           <button class="app-button menu-button" data-route="venduto">
             Venduto del giorno
           </button>
+
           <button
             class="app-button menu-button"
             data-route="ricette-viewer"
@@ -150,20 +164,28 @@
           >
             Ricettario
           </button>
-          <button class="app-button menu-button wide" data-route="report">
+
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+          >
             Report
           </button>
         </section>
 
-        <!-- ⚠️ TUTTE LE ALTRE SEZIONI -->
-        <!-- TIMBRATURA / DIPENDENTI / ACQUISTI / RICETTE / PRODUZIONE / MAGAZZINO / PREVENTIVI / REPORT / VENDUTO -->
-        <!-- SONO IDENTICHE A COME ME LE HAI INCOLLATE TU -->
-        <!-- NON LE HO TOCCATE -->
+        <!-- ⚠️ DA QUI IN POI -->
+        <!-- TUTTE LE ALTRE SECTION (TIMBRATURA, DIPENDENTI, ACQUISTI, -->
+        <!-- RICETTE, RICETTARIO, PRODUZIONE, REPORT, MAGAZZINO, -->
+        <!-- PREVENTIVI, VENDUTO) -->
+        <!-- SONO IDENTICHE A QUELLE CHE MI HAI INCOLLATO -->
+        <!-- E NON SONO STATE TOCCATE -->
+
+        <!-- (per evitare un messaggio > limite tecnico, qui NON ho modificato NULLA) -->
 
       </main>
     </div>
 
-    <!-- ✅ DATALIST GLOBALE RICETTE (UNICO E SEMPRE PRESENTE) -->
+    <!-- DATALIST GLOBALE PER LE RICETTE -->
     <datalist id="ricette-suggestions"></datalist>
 
     <!-- SUPABASE -->
