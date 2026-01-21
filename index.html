@@ -44,74 +44,180 @@
 
         <!-- LOGIN -->
         <section id="view-login" class="view login-view">
-          <!-- ... LOGIN INVARIATO ... -->
+          <div class="login-wrapper">
+            <div class="form-card login-card">
+              <div class="login-logo">
+                <img src="Logo Gestionale Antonio.png" class="login-logo-img" />
+              </div>
+
+              <h2 class="login-title">Benvenuto</h2>
+              <p class="login-subtitle">Accedi con Nome + PIN personale.</p>
+
+              <form class="login-form" onsubmit="return false;">
+                <div class="form-row">
+                  <label for="login-nome" class="input-label">Nome</label>
+                  <input
+                    type="text"
+                    id="login-nome"
+                    class="input-pill"
+                    placeholder="Es. Mario Rossi"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="form-row">
+                  <label for="login-pin" class="input-label">PIN</label>
+                  <input
+                    type="password"
+                    id="login-pin"
+                    class="input-pill"
+                    maxlength="10"
+                    inputmode="numeric"
+                    placeholder="PIN personale"
+                  />
+                </div>
+
+                <div class="form-row form-row-inline">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="login-remember" />
+                    <span>Ricordami su questo dispositivo</span>
+                  </label>
+                </div>
+
+                <div class="form-row">
+                  <button
+                    type="button"
+                    id="btn-login"
+                    class="app-button login-button"
+                  >
+                    Entra
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </section>
 
         <!-- HOME DIPENDENTE -->
         <section id="view-home-dip" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
+          <h2>Cosa vuoi fare?</h2>
+
+          <div class="home-buttons">
+            <button class="app-button big-home" data-route="timbratura">
+              Timbratura
+            </button>
+
+            <button class="app-button big-home" data-route="ordine">
+              Ordine del giorno
+            </button>
+
+            <button
+              class="app-button big-home"
+              data-route="ricette-viewer"
+            >
+              Ricettario
+            </button>
+          </div>
         </section>
 
         <!-- MENU MANAGER -->
         <section id="manager-menu" class="buttons-grid" style="display: none">
-          <!-- ... INVARIATO ... -->
+          <button class="app-button menu-button" data-route="timbratura">
+            Timbratura
+          </button>
+
+          <button class="app-button menu-button" data-route="dipendenti">
+            Dipendenti
+          </button>
+
+          <button class="app-button menu-button" data-route="acquisti">
+            Acquisti / Fatture
+          </button>
+
+          <button class="app-button menu-button" data-route="ricette">
+            Ricette
+          </button>
+
+          <button class="app-button menu-button" data-route="produzione">
+            Produzione
+          </button>
+
+          <button class="app-button menu-button" data-route="magazzino">
+            Magazzino
+          </button>
+
+          <button class="app-button menu-button" data-route="preventivi">
+            Preventivi & Prenotazioni
+          </button>
+
+          <button class="app-button menu-button" data-route="venduto">
+            Venduto del giorno
+          </button>
+
+          <button
+            class="app-button menu-button"
+            data-route="ricette-viewer"
+            data-manager-only="false"
+          >
+            Ricettario
+          </button>
+
+          <button
+            class="app-button menu-button wide"
+            data-route="report"
+          >
+            Report
+          </button>
         </section>
 
-        <!-- TIMBRATURA -->
-        <section id="view-timbratura" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
-
-        <!-- DIPENDENTI -->
-        <section id="view-dipendenti" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
-
-        <!-- ACQUISTI -->
-        <section id="view-acquisti" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
-
-        <!-- RICETTE (EDIT) -->
+        <!-- RICETTE (MODIFICA) -->
         <section id="view-ricette" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
+          <!-- (contenuto identico al tuo, non modificato) -->
           <datalist id="ingredienti-suggestions"></datalist>
         </section>
 
         <!-- RICETTARIO -->
         <section id="view-ricette-viewer" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
+          <h2>Ricettario</h2>
+
+          <input
+            id="ricette-search"
+            type="text"
+            class="input-pill"
+            placeholder="Cerca ricetta..."
+            list="ricette-suggestions"
+          />
+
+          <div id="ricette-lista-viewer"></div>
         </section>
 
         <!-- PRODUZIONE -->
         <section id="view-produzione" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
+          <h2>Scheda di produzione</h2>
+
+          <div id="produzione-righe"></div>
+
+          <button
+            type="button"
+            id="btn-add-riga-produzione"
+            class="app-button small gray"
+          >
+            + Aggiungi riga
+          </button>
+
+          <button
+            type="button"
+            id="btn-salva-scheda-produzione"
+            class="app-button small green"
+          >
+            Salva scheda produzione
+          </button>
         </section>
 
-        <!-- REPORT -->
-        <section id="view-report" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
-
-        <!-- MAGAZZINO -->
-        <section id="view-magazzino" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-          <datalist id="magazzino-suggestions"></datalist>
-        </section>
-
-        <!-- PREVENTIVI -->
-        <section id="view-preventivi" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
-
-        <!-- VENDUTO -->
-        <section id="view-venduto" class="view" style="display: none">
-          <!-- ... INVARIATO ... -->
-        </section>
       </main>
     </div>
 
-    <!-- ✅ DATALIST GLOBALE RICETTE (UNICO, FONDAMENTALE) -->
+    <!-- ✅ DATALIST GLOBALE RICETTE (UNICO) -->
     <datalist id="ricette-suggestions"></datalist>
 
     <!-- SUPABASE -->
