@@ -2354,7 +2354,7 @@ function emailCurrentPreventivoViaMailto() {
     });
   }
 
-   // ===========================================================
+ // ===========================================================
 // ========== RICETTE: INGREDIENTI ===========================
 // ===========================================================
 function creaRigaIngrediente(initial = {}) {
@@ -2367,7 +2367,7 @@ function creaRigaIngrediente(initial = {}) {
       type="text"
       class="ingrediente-nome"
       placeholder="Ingrediente (come in magazzino)"
-      list="ingredienti-suggestions"
+      autocomplete="off"
       value="${initial.nome_prodotto || ""}"
     />
     <input
@@ -2387,7 +2387,13 @@ function creaRigaIngrediente(initial = {}) {
     <button type="button" class="app-button tiny red btn-del-ingrediente">✕</button>
   `;
 
+  // 🔥 COLLEGAMENTO ROBUSTO AL DATALIST INGREDIENTI
+  const inputNome = row.querySelector(".ingrediente-nome");
+  inputNome.setAttribute("list", "ingredienti-suggestions");
+
+  // elimina riga
   row.querySelector(".btn-del-ingrediente").onclick = () => row.remove();
+
   ricettaIngredientiContainer.appendChild(row);
 }
 
