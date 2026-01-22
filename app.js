@@ -124,20 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // datalist ingredienti per ricette (autocomplete da magazzino)
   const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
 
-  // ---------- STATO ----------
-  let dipendenti = [];
-  let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
-
-  let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
-
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
-  let magazzinoDati = [];
-
+ 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
     if (val == null) return 0;
