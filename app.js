@@ -23,6 +23,276 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
+  // timbratura
+  const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
+  const timbCanaleSelect = document.getElementById("timbratura-canale-select");
+  const btnEntra = document.getElementById("btn-entra");
+  const btnPausa = document.getElementById("btn-pausa");
+  const btnEsci = document.getElementById("btn-esci");
+
+  const periodoSelect = document.getElementById("timbratura-periodo");
+  const lista = document.getElementById("timbratura-lista");
+  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
+  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
+  const costoDipEl = document.getElementById("costo-dipendenti");
+  const costoCanaliEl = document.getElementById("costo-canali");
+  const attiviListaEl = document.getElementById("attivi-lista");
+
+  const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
+  const sezioneTimbratureDettaglio = document.getElementById(
+    "sezione-timbrature-dettaglio"
+  );
+
+  // presenze (stato dipendenti) - solo manager/admin
+  const presenzeListaEl = document.getElementById("presenze-lista");
+  const btnTogglePresenze = document.getElementById("btn-toggle-presenze");
+  const sezionePresenzeEl = document.getElementById("sezione-presenze");
+
+  // anagrafica dipendenti
+  const dipNome = document.getElementById("dip-nome");
+  const dipMansione = document.getElementById("dip-mansione");
+  const dipDataNascita = document.getElementById("dip-data-nascita");
+  const dipResidenza = document.getElementById("dip-residenza");
+  const dipTelefono = document.getElementById("dip-telefono");
+  const dipEmail = document.getElementById("dip-email");
+  const dipRuolo = document.getElementById("dip-ruolo");
+
+  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
+  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
+  const dipOreMensili = document.getElementById("dip-ore-mensili");
+  const dipOreServizio = document.getElementById("dip-ore-servizio");
+  const dipCosto = document.getElementById("dip-costo");
+  const rowOreMensili = document.getElementById("row-ore-mensili");
+  const rowOreServizio = document.getElementById("row-ore-servizio");
+  const labelRetribuzione = document.getElementById("label-retribuzione-base");
+
+  const dipCodice = document.getElementById("dip-codice");
+  const dipCanale = document.getElementById("dip-canale");
+  const dipAttivo = document.getElementById("dip-attivo");
+  const btnAddDip = document.getElementById("btn-add-dip");
+  const dipLista = document.getElementById("dipendenti-lista");
+
+  // ---------- RICETTE (DOM) ----------
+  const ricettaNomeInput = document.getElementById("ricetta-nome");
+  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaNoteInput = document.getElementById("ricetta-note");
+  const ricettaFotoInput = document.getElementById("ricetta-foto");
+  const ricettaIngredientiContainer = document.getElementById(
+    "ricetta-ingredienti-container"
+  );
+  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+  // ---------- ACQUISTI / FATTURE (DOM) ----------
+  const fatturaNumeroInput = document.getElementById("fattura-numero");
+  const fatturaDataInput = document.getElementById("fattura-data");
+  const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
+  const fatturaNoteInput = document.getElementById("fattura-note");
+  const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
+  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
+  const fatturaRigheBody = document.getElementById("fattura-righe-body");
+  const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
+  const fatturaImponibileTotaleInput = document.getElementById(
+    "fattura-imponibile-totale"
+  );
+  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
+  const fatturaTotaleDocumentoInput = document.getElementById(
+    "fattura-totale-documento"
+  );
+  const fattureListaBody = document.getElementById("fatture-lista");
+  const fattureTable = document.getElementById("fatture-table");
+  const btnToggleFatture = document.getElementById("btn-toggle-fatture");
+
+  // ---------- MAGAZZINO (DOM) ----------
+  const magazzinoSearchInput = document.getElementById("magazzino-search");
+  const magazzinoListaEl = document.getElementById("magazzino-lista");
+  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
+  const magazzinoTable = document.getElementById("magazzino-table");
+
+  const magazzinoForm = document.getElementById("magazzino-form");
+  const magazzinoIdInput = document.getElementById("magazzino-id");
+  const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
+  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
+  const magazzinoUmInput = document.getElementById("magazzino-um");
+  const magazzinoScortaMinimaInput = document.getElementById(
+    "magazzino-scorta-minima"
+  );
+  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
+  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
+  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
+
+  // datalist ingredienti per ricette (autocomplete da magazzino)
+  const ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+
+  // ---------- STATO ----------
+  let dipendenti = [];
+  let timbrature = [];
+  let currentUser = null;
+  let periodoCorrente = "oggi";
+
+  let ricettaCorrenteId = null;
+  let ricettaFotoCorrenteUrl = null;
+
+  let currentFatturaId = null;
+  let fornitoriCache = [];
+  let categorieCache = [];
+  let magazzinoDati = [];
+
+  // ========= UTILITY GENERALI =========
+  function parseNumber(val) {
+    if (val == null) return 0;
+    const str = String(val).replace(",", ".");
+    const n = parseFloat(str);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
+  function formatDateInputToday(input) {
+    if (!input) return;
+    const oggi = new Date();
+    const yyyy = oggi.getFullYear();
+    const mm = String(oggi.getMonth() + 1).padStart(2, "0");
+    const dd = String(oggi.getDate()).padStart(2, "0");
+    input.value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  // ========= GENERATORE CODICE INTERNO PRODOTTO =========
+  function slugCategoria(nomeCategoria) {
+    if (!nomeCategoria) return "GEN";
+
+    let base = nomeCategoria.trim().split(/\s+/)[0].toUpperCase();
+    base = base
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Z0-9]/g, "");
+
+    if (base.length >= 3) return base.slice(0, 3);
+    if (base.length === 2) return base + "X";
+    if (base.length === 1) return base + "XX";
+    return "GEN";
+  }
+
+  async function generaCodiceInternoAutomatico(nomeCategoria) {
+    const prefix = slugCategoria(nomeCategoria);
+
+    const { data, error } = await supabase
+      .from("prodotti")
+      .select("codice_interno")
+      .ilike("codice_interno", `${prefix}-%`)
+      .order("codice_interno", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("Errore lettura ultimo codice prodotto:", error);
+      alert("Errore Supabase (lettura codice prodotto): " + error.message);
+      return `${prefix}-0001`;
+    }
+
+    if (!data || data.length === 0) {
+      return `${prefix}-0001`;
+    }
+
+    const ultimo = data[0].codice_interno || "";
+    const match = ultimo.match(/-(\d+)$/);
+    const lastNum = match ? parseInt(match[1], 10) : 0;
+    const nextNum = Number.isNaN(lastNum) ? 1 : lastNum + 1;
+
+    return `${prefix}-${String(nextNum).padStart(4, "0")}`;
+  }
+
+  // ========= TEMA CHIARO/SCURO =========
+  function applyTheme(theme) {
+    const body = document.body;
+    if (theme === "light") {
+      body.classList.add("theme-light");
+      if (btnTheme) btnTheme.textContent = "☀️";
+    } else {
+      body.classList.remove("theme-light");
+      if (btnTheme) btnTheme.textContent = "🌙";
+    }
+  }
+
+  function loadTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const theme = saved === "light" ? "light" : "dark";
+    applyTheme(theme);
+  }
+
+  function toggleTheme() {
+    const isLight = document.body.classList.contains("theme-light");
+    const next = isLight ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  }
+
+  if (btnTheme) {
+    btnTheme.addEventListener("click", toggleTheme);
+  }
+  loadTheme();
+
+  // ========= RUOLI / FORMATI =========
+  function isManagerRole(ruolo) {
+    return (
+      ruolo === "admin" ||
+      ruolo === "manager_cucina" ||
+      ruolo === "manager_sala"
+    );
+  }
+
+  function formatRuolo(ruolo) {
+    switch (ruolo) {
+      case "admin":
+        return "Admin";
+      case "manager_cucina":
+        return "Manager cucina";
+      case "manager_sala":
+        return "Manager sala";
+      case "addetto_cucina":
+        return "Addetto cucina";
+      case "cameriere":
+        return "Cameriere";
+      default:
+        return "";
+    }
+  }
+
+  function formatTipoCompenso(tipo) {
+    switch (tipo) {
+      case "orario":
+        return "A ore";
+      case "mensile":
+        return "Mensile";
+      case "servizio":
+        return "Per servizio";
+      default:
+        return "";
+    }
+  }
+
+  function formatDataNascita(dataNascita) {
+    if (!dataNascita) return "";
+    const d = new Date(dataNascita);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("it-IT");
+  }
+
+  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
+    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
+
+    if (tipo === "orario") return retribuzioneBase;
+
+    if (tipo === "mensile") {
+      if (!oreMensili || oreMensili <= 0) return 0;
+      return retribuzioneBase / oreMensili;
+    }
+
+    if (tipo === "servizio") {
+      if (!oreServizio || oreServizio <= 0) return 0;
+      return retribuzioneBase / oreServizio;
+    }
+
+    return 0;
+  }
+
   // ------------------------------------------------
   // ---------- STATO GLOBALE ------------------------
   // ------------------------------------------------
@@ -105,9 +375,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const dd = String(oggi.getDate()).padStart(2, "0");
     input.value = `${yyyy}-${mm}-${dd}`;
   }
-
-  // ⚠️ il resto del tuo file continua invariato
-});
 
   // ========= HEADER & VISIBILITÀ =========
   function updateHeaderUser() {
