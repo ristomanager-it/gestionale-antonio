@@ -3942,7 +3942,7 @@ resetSchedaProduzione();
     });
   }
 // ========= MAGAZZINO PREPARAZIONI (SOLO LETTURA) =========
-let magazzinoPreparazioni = [];
+
 
 async function caricaMagazzinoPreparazioni() {
   if (!supabase) return;
