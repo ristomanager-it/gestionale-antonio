@@ -2774,7 +2774,7 @@ async function salvaSchedaProduzione() {
 
     // 2a️⃣ SALVA RIGA PRODUZIONE
     const { data: riga } = await supabase
-      .from("produzioni_righe")
+     
       .insert({
         produzione_id: produzioneId,
         nome_prodotto: nome,
