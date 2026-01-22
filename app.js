@@ -2658,9 +2658,21 @@ function creaRigaProduzione() {
   row.innerHTML = `
     <button class="app-button tiny red btn-del">✕</button>
 
-    <input class="prod-nome input-pill" placeholder="Prodotto lavorato" />
-    <input class="prod-um input-pill" placeholder="UM (porzioni / kg)" />
-    <input type="number" class="prod-qta input-pill" placeholder="Quantità prodotta" />
+    <input
+      class="prod-nome input-pill"
+      placeholder="Prodotto lavorato"
+      autocomplete="off"
+    />
+    <input
+      class="prod-um input-pill"
+      placeholder="UM (porzioni / kg)"
+      readonly
+    />
+    <input
+      type="number"
+      class="prod-qta input-pill"
+      placeholder="Quantità prodotta"
+    />
 
     <select class="prod-abbattimento input-pill">
       <option value="">Abbattimento</option>
@@ -2671,9 +2683,39 @@ function creaRigaProduzione() {
     <input type="date" class="prod-scadenza input-pill" />
   `;
 
+  // elimina riga
   row.querySelector(".btn-del").onclick = () => row.remove();
+
+  // -------------------------------------------------
+  // 🔥 AUTOCOMPILAZIONE RICETTA
+  // -------------------------------------------------
+  const inputNome = row.querySelector(".prod-nome");
+  const inputUm = row.querySelector(".prod-um");
+
+  // collega SEMPRE il datalist
+  inputNome.setAttribute("list", "ricette-suggestions");
+
+  // evento CORRETTO per datalist
+  inputNome.oninput = () => {
+    if (!Array.isArray(ricetteCache)) return;
+
+    const ricetta = ricetteCache.find(
+      (r) => r.nome === inputNome.value
+    );
+
+    if (!ricetta) {
+      inputUm.value = "";
+      return;
+    }
+
+    // UM base (puoi raffinarla dopo)
+    inputUm.value =
+      ricetta.tipo === "base" ? "kg" : "porzioni";
+  };
+
   produzioneRigheContainer.appendChild(row);
 }
+
 
 // -----------------------------------------------------------
 // RESET SCHEDA
