@@ -2742,14 +2742,15 @@ async function salvaSchedaProduzione() {
   const note = produzioneNoteInput.value || null;
   const luogo = produzioneLuogoSelect?.value || "CC";
 
+  // 1️⃣ TESTATA PRODUZIONE
   const { error } = await supabase
-  .from("produzioni")
-  .insert({
-    data_produzione: dataProduzione,
-    lotto,
-    luogo,
-    note
-  }, { returning: "minimal" });
+    .from("produzioni")
+    .insert({
+      data_produzione: dataProduzione,
+      lotto,
+      luogo,
+      note
+    }, { returning: "minimal" });
 
   if (error) {
     alert("Errore salvataggio produzione");
@@ -2757,35 +2758,35 @@ async function salvaSchedaProduzione() {
     return;
   }
 
-
-
-  // 2️⃣ RIGHE PRODUZIONE + MOVIMENTI MAGAZZINO
+  // 2️⃣ MOVIMENTI MAGAZZINO (LEDGER)
   for (const row of document.querySelectorAll(".produzione-riga")) {
     const nome = row.querySelector(".prod-nome").value.trim();
-    const um = row.querySelector(".prod-um").value.trim();
     const quantita = parseFloat(row.querySelector(".prod-qta").value || 0);
     const abbattimento = row.querySelector(".prod-abbattimento").value;
     const scadenza = row.querySelector(".prod-scadenza").value;
 
     if (!nome || !quantita || !abbattimento || !scadenza) continue;
 
-    // 2️⃣ CARICO MAGAZZINO PRODUZIONE (LEDGER PURO)
-await supabase
-  .from("magazzino_produzione_movimenti")
-  .insert({
-    nome_prodotto: nome,
-    lotto,
-    data: dataProduzione,
-    tipo: "carico",
-    quantita,
-    tipo_abbattimento: abbattimento,
-    data_scadenza: scadenza,
-    riferimento_tipo: "produzione",
-    riferimento_id: null,
-    luogo,
-    note
-  });
+    await supabase
+      .from("magazzino_produzione_movimenti")
+      .insert({
+        nome_prodotto: nome,
+        lotto,
+        data: dataProduzione,
+        tipo: "carico",
+        quantita,
+        tipo_abbattimento: abbattimento,
+        data_scadenza: scadenza,
+        riferimento_tipo: "produzione",
+        riferimento_id: null,
+        luogo,
+        note
+      });
+  }
 
+  alert("Produzione salvata e magazzino aggiornato");
+  resetSchedaProduzione();
+}
 
 // -----------------------------------------------------------
 // EVENTI
