@@ -2742,17 +2742,14 @@ async function salvaSchedaProduzione() {
   const note = produzioneNoteInput.value || null;
   const luogo = produzioneLuogoSelect?.value || "CC";
 
-  // 1️⃣ CREA TESTATA PRODUZIONE
-  const { data: produzione, error } = await supabase
-    .from("produzioni")
-    .insert({
-      data_produzione: dataProduzione,
-      lotto,
-      luogo,
-      note
-    })
-    .select()
-    .single();
+  const { error } = await supabase
+  .from("produzioni")
+  .insert({
+    data_produzione: dataProduzione,
+    lotto,
+    luogo,
+    note
+  }, { returning: "minimal" });
 
   if (error) {
     alert("Errore salvataggio produzione");
