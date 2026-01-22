@@ -2757,7 +2757,7 @@ async function salvaSchedaProduzione() {
     return;
   }
 
-  const produzioneId = produzione.id;
+
 
   // 2️⃣ RIGHE PRODUZIONE + MOVIMENTI MAGAZZINO
   for (const row of document.querySelectorAll(".produzione-riga")) {
@@ -2769,37 +2769,23 @@ async function salvaSchedaProduzione() {
 
     if (!nome || !quantita || !abbattimento || !scadenza) continue;
 
-    // 2a️⃣ SALVA RIGA PRODUZIONE
-    const { data: riga } = await supabase
-     
-      .insert({
-        produzione_id: produzioneId,
-        nome_prodotto: nome,
-        unita_misura: um,
-        quantita,
-        tipo_abbattimento: abbattimento,
-        data_scadenza: scadenza
-      })
-      .select()
-      .single();
+    // 2️⃣ CARICO MAGAZZINO PRODUZIONE (LEDGER PURO)
+await supabase
+  .from("magazzino_produzione_movimenti")
+  .insert({
+    nome_prodotto: nome,
+    lotto,
+    data: dataProduzione,
+    tipo: "carico",
+    quantita,
+    tipo_abbattimento: abbattimento,
+    data_scadenza: scadenza,
+    riferimento_tipo: "produzione",
+    riferimento_id: null,
+    luogo,
+    note
+  });
 
-    // 2b️⃣ CARICO MAGAZZINO PRODUZIONE
-    await supabase.from("magazzino_produzione_movimenti").insert({
-      nome_prodotto: nome,
-      lotto,
-      tipo: "carico",
-      quantita,
-      tipo_abbattimento: abbattimento,
-      data_scadenza: scadenza,
-      riferimento_tipo: "produzione",
-      riferimento_id: riga.id,
-      luogo
-    });
-  }
-
-  alert("Produzione salvata e magazzino aggiornato");
-  resetSchedaProduzione();
-}
 
 // -----------------------------------------------------------
 // EVENTI
