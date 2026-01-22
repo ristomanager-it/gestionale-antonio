@@ -193,6 +193,7 @@ let currentFatturaId = null;
 let fornitoriCache = [];
 let categorieCache = [];
 let magazzinoDati = [];
+let magazzinoPreparazioni = [];
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
@@ -3940,6 +3941,47 @@ resetSchedaProduzione();
       }
     });
   }
+// ========= MAGAZZINO PREPARAZIONI (SOLO LETTURA) =========
+let magazzinoPreparazioni = [];
+
+async function caricaMagazzinoPreparazioni() {
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from("magazzino_preparazioni")
+    .select("*")
+    .order("nome_prodotto", { ascending: true })
+    .order("data_scadenza", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento magazzino preparazioni:", error);
+    alert("Errore nel caricare il magazzino preparazioni");
+    return;
+  }
+
+  magazzinoPreparazioni = data || [];
+}
+
+function renderMagazzinoPreparazioni(lista) {
+  const tbody = document.getElementById("magazzino-preparazioni-lista");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  lista.forEach((r) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${r.nome_prodotto}</td>
+      <td>${r.lotto || "-"}</td>
+      <td>${r.data_scadenza ? new Date(r.data_scadenza).toLocaleDateString("it-IT") : "-"}</td>
+      <td>${r.luogo || "-"}</td>
+      <td><strong>${Number(r.quantita_disponibile).toFixed(3)}</strong></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
 async function caricaProdottiSuggerimentiIngredienti() {
@@ -4056,6 +4098,10 @@ async function onRouteEnter(route) {
 
     case "venduto":
       break;
+case "magazzino-preparazioni":
+  await caricaMagazzinoPreparazioni();
+  renderMagazzinoPreparazioni(magazzinoPreparazioni);
+  break;
 
     case "preventivi":
       await loadPreventiviList();
