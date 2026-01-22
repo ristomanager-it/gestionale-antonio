@@ -124,6 +124,12 @@
           <button class="app-button menu-button" data-route="timbratura">
             Timbratura
           </button>
+<button
+  class="app-button menu-button"
+  data-route="magazzino-preparazioni"
+>
+  Magazzino Preparazioni
+</button>
 
           <button class="app-button menu-button" data-route="dipendenti">
             Dipendenti
@@ -421,6 +427,26 @@
             </table>
           </div>
         </section>
+<!-- MAGAZZINO PREPARAZIONI -->
+<section id="view-magazzino-preparazioni" class="view" style="display:none">
+  <h2>Magazzino Preparazioni</h2>
+  <p>Prodotti lavorati disponibili (derivati dalla produzione)</p>
+
+  <div class="table-wrapper">
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Prodotto</th>
+          <th>Lotto</th>
+          <th>Scadenza</th>
+          <th>Luogo</th>
+          <th>Quantità</th>
+        </tr>
+      </thead>
+      <tbody id="magazzino-preparazioni-lista"></tbody>
+    </table>
+  </div>
+</section>
 
         <!-- ACQUISTI / FATTURE -->
         <section id="view-acquisti" class="view" style="display: none">
