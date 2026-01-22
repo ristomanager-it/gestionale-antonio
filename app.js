@@ -4189,4 +4189,4 @@ window.addEventListener("hashchange", () => {
   }
 
   init();
-});
+}
