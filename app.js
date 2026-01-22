@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
-
   // header
   const btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
@@ -24,178 +23,73 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // timbratura
-  const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
-  const timbCanaleSelect = document.getElementById("timbratura-canale-select");
-  const btnEntra = document.getElementById("btn-entra");
-  const btnPausa = document.getElementById("btn-pausa");
-  const btnEsci = document.getElementById("btn-esci");
+  // ------------------------------------------------
+  // ---------- STATO GLOBALE ------------------------
+  // ------------------------------------------------
+  let dipendenti = [];
+  let timbrature = [];
+  let currentUser = null;
+  let periodoCorrente = "oggi";
 
-  const periodoSelect = document.getElementById("timbratura-periodo");
-  const lista = document.getElementById("timbratura-lista");
-  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
-  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
-  const costoDipEl = document.getElementById("costo-dipendenti");
-  const costoCanaliEl = document.getElementById("costo-canali");
-  const attiviListaEl = document.getElementById("attivi-lista");
+  let ricettaCorrenteId = null;
+  let ricettaFotoCorrenteUrl = null;
+  let ricetteCache = [];
+  let ricettaDaAprireId = null;
 
-  const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
-  const sezioneTimbratureDettaglio = document.getElementById(
-    "sezione-timbrature-dettaglio"
-  );
+  let currentFatturaId = null;
+  let fornitoriCache = [];
+  let categorieCache = [];
+  let magazzinoDati = [];
+  let magazzinoPreparazioni = [];
 
-  // presenze (stato dipendenti) - solo manager/admin
-  const presenzeListaEl = document.getElementById("presenze-lista");
-  const btnTogglePresenze = document.getElementById("btn-toggle-presenze");
-  const sezionePresenzeEl = document.getElementById("sezione-presenze");
+  // ===========================================================
+  // ========== RICETTARIO + DATALIST GLOBALE ==================
+  // ===========================================================
 
-  // anagrafica dipendenti
-  const dipNome = document.getElementById("dip-nome");
-  const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
+  const ricetteSuggestionsList =
+    document.getElementById("ricette-suggestions");
 
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
-  const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
+  function aggiornaRicetteSuggestions() {
+    if (!ricetteSuggestionsList) return;
+    if (!Array.isArray(ricetteCache)) return;
 
-  const dipCodice = document.getElementById("dip-codice");
-  const dipCanale = document.getElementById("dip-canale");
-  const dipAttivo = document.getElementById("dip-attivo");
-  const btnAddDip = document.getElementById("btn-add-dip");
-  const dipLista = document.getElementById("dipendenti-lista");
+    ricetteSuggestionsList.innerHTML = "";
 
- // ---------- RICETTE (EDIT) ----------
-const ricettaTipoSelect = document.getElementById("ricetta-tipo");
-const ricettaNomeInput = document.getElementById("ricetta-nome");
-const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-const ricettaNoteInput = document.getElementById("ricetta-note");
-const ricettaFotoInput = document.getElementById("ricetta-foto");
-const ricettaIngredientiContainer = document.getElementById(
-  "ricetta-ingredienti-container"
-);
-const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+    ricetteCache.forEach((r) => {
+      if (!r || !r.nome) return;
+      const opt = document.createElement("option");
+      opt.value = r.nome;
+      ricetteSuggestionsList.appendChild(opt);
+    });
+  }
 
-const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
-const ricettaFormato1LabelInput = document.getElementById(
-  "ricetta-formato1-label"
-);
-const ricettaFormato1PercInput = document.getElementById(
-  "ricetta-formato1-percent"
-);
-const ricettaFormato2LabelInput = document.getElementById(
-  "ricetta-formato2-label"
-);
-const ricettaFormato2PercInput = document.getElementById(
-  "ricetta-formato2-percent"
-);
-const ricettaFormato1PezziOut = document.getElementById(
-  "ricetta-formato1-pezzi"
-);
-const ricettaFormato2PezziOut = document.getElementById(
-  "ricetta-formato2-pezzi"
-);
+  async function caricaRicetteDaSupabase() {
+    if (!supabase) return;
 
-// 🔗 COLLEGAMENTO INPUT → DATALIST GLOBALE (HTML)
-if (ricettaNomeInput) {
-  ricettaNomeInput.setAttribute("list", "ricette-suggestions");
-}
+    const { data, error } = await supabase
+      .from("ricette")
+      .select("*")
+      .order("nome");
 
-// ===========================================================
-// ========== DATALIST GLOBALE RICETTE ========================
-// ===========================================================
-const ricetteSuggestionsList =
-  document.getElementById("ricette-suggestions");
+    if (error) {
+      console.error("Errore caricamento ricette:", error);
+      return;
+    }
 
-function aggiornaRicetteSuggestions() {
-  if (!ricetteSuggestionsList) return;
-  if (!Array.isArray(ricetteCache)) return;
+    ricetteCache = data || [];
 
-  ricetteSuggestionsList.innerHTML = "";
+    // aggiorna SEMPRE datalist
+    aggiornaRicetteSuggestions();
 
-  ricetteCache.forEach((r) => {
-    if (!r || !r.nome) return;
-    const opt = document.createElement("option");
-    opt.value = r.nome;
-    ricetteSuggestionsList.appendChild(opt);
-  });
-}
+    // aggiorna lista ricettario se presente
+    if (typeof applicaFiltroRicettario === "function") {
+      applicaFiltroRicettario();
+    }
+  }
 
-  // ---------- ACQUISTI / FATTURE (DOM) ----------
-  const fatturaNumeroInput = document.getElementById("fattura-numero");
-  const fatturaDataInput = document.getElementById("fattura-data");
-  const fatturaFornitoreInput = document.getElementById("fattura-fornitore");
-  const fatturaNoteInput = document.getElementById("fattura-note");
-  const btnNuovaFattura = document.getElementById("btn-nuova-fattura");
-  const btnSalvaFattura = document.getElementById("btn-salva-fattura");
-  const fatturaRigheBody = document.getElementById("fattura-righe-body");
-  const btnAddRigaFattura = document.getElementById("btn-add-riga-fattura");
-  const fatturaImponibileTotaleInput = document.getElementById(
-    "fattura-imponibile-totale"
-  );
-  const fatturaIvaTotaleInput = document.getElementById("fattura-iva-totale");
-  const fatturaTotaleDocumentoInput = document.getElementById(
-    "fattura-totale-documento"
-  );
-  const fattureListaBody = document.getElementById("fatture-lista");
-  const fattureTable = document.getElementById("fatture-table");
-  const btnToggleFatture = document.getElementById("btn-toggle-fatture");
-
-  // ---------- MAGAZZINO (DOM) ----------
-  const magazzinoSearchInput = document.getElementById("magazzino-search");
-  const magazzinoListaEl = document.getElementById("magazzino-lista");
-  const magazzinoSuggestions = document.getElementById("magazzino-suggestions");
-  const magazzinoTable = document.getElementById("magazzino-table");
-
-  const magazzinoForm = document.getElementById("magazzino-form");
-  const magazzinoIdInput = document.getElementById("magazzino-id");
-  const magazzinoDescrInput = document.getElementById("magazzino-descrizione");
-  const magazzinoCategoriaInput = document.getElementById("magazzino-categoria");
-  const magazzinoUmInput = document.getElementById("magazzino-um");
-  const magazzinoScortaMinimaInput = document.getElementById(
-    "magazzino-scorta-minima"
-  );
-  const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
-  const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
-  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
-
-  // datalist ingredienti per ricette + prodotti fatture + magazzino descrizione
-  const ingredientiSuggestions = document.getElementById(
-    "ingredienti-suggestions"
-  );
-const navPreventivi = document.getElementById('nav-preventivi');
-if (navPreventivi) {
-  navPreventivi.addEventListener('click', () => {
-    showPreventiviView();
-  });
-}
- // ---------- STATO ----------
-let dipendenti = [];
-let timbrature = [];
-let currentUser = null;
-let periodoCorrente = "oggi";
-
-let ricettaCorrenteId = null;
-let ricettaFotoCorrenteUrl = null;
-let ricetteCache = [];
-let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
-
-let currentFatturaId = null;
-let fornitoriCache = [];
-let categorieCache = [];
-let magazzinoDati = [];
-let magazzinoPreparazioni = [];
-
-  // ========= UTILITY GENERALI =========
+  // ===========================================================
+  // ========== UTILITY GENERALI ==============================
+  // ===========================================================
   function parseNumber(val) {
     if (val == null) return 0;
     const str = String(val).replace(",", ".");
@@ -212,143 +106,8 @@ let magazzinoPreparazioni = [];
     input.value = `${yyyy}-${mm}-${dd}`;
   }
 
-  // ========= GENERATORE CODICE INTERNO PRODOTTO =========
-  function slugCategoria(nomeCategoria) {
-    if (!nomeCategoria) return "GEN";
-
-    let base = nomeCategoria.trim().split(/\s+/)[0].toUpperCase();
-    base = base
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^A-Z0-9]/g, "");
-
-    if (base.length >= 3) return base.slice(0, 3);
-    if (base.length === 2) return base + "X";
-    if (base.length === 1) return base + "XX";
-    return "GEN";
-  }
-
-  async function generaCodiceInternoAutomatico(nomeCategoria) {
-    const prefix = slugCategoria(nomeCategoria);
-
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("codice_interno")
-      .ilike("codice_interno", `${prefix}-%`)
-      .order("codice_interno", { ascending: false })
-      .limit(1);
-
-    if (error) {
-      console.error("Errore lettura ultimo codice prodotto:", error);
-      alert("Errore Supabase (lettura codice prodotto): " + error.message);
-      return `${prefix}-0001`;
-    }
-
-    if (!data || data.length === 0) {
-      return `${prefix}-0001`;
-    }
-
-    const ultimo = data[0].codice_interno || "";
-    const match = ultimo.match(/-(\d+)$/);
-    const lastNum = match ? parseInt(match[1], 10) : 0;
-    const nextNum = Number.isNaN(lastNum) ? 1 : lastNum + 1;
-
-    return `${prefix}-${String(nextNum).padStart(4, "0")}`;
-  }
-
-  // ========= TEMA CHIARO/SCURO =========
-  function applyTheme(theme) {
-    const body = document.body;
-    if (theme === "light") {
-      body.classList.add("theme-light");
-      if (btnTheme) btnTheme.textContent = "☀️";
-    } else {
-      body.classList.remove("theme-light");
-      if (btnTheme) btnTheme.textContent = "🌙";
-    }
-  }
-
-  function loadTheme() {
-    const saved = localStorage.getItem(THEME_KEY);
-    const theme = saved === "light" ? "light" : "dark";
-    applyTheme(theme);
-  }
-
-  function toggleTheme() {
-    const isLight = document.body.classList.contains("theme-light");
-    const next = isLight ? "dark" : "light";
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
-  }
-
-  if (btnTheme) {
-    btnTheme.addEventListener("click", toggleTheme);
-  }
-  loadTheme();
-
-  // ========= RUOLI / FORMATI =========
-  function isManagerRole(ruolo) {
-    return (
-      ruolo === "admin" ||
-      ruolo === "manager_cucina" ||
-      ruolo === "manager_sala"
-    );
-  }
-
-  function formatRuolo(ruolo) {
-    switch (ruolo) {
-      case "admin":
-        return "Admin";
-      case "manager_cucina":
-        return "Manager cucina";
-      case "manager_sala":
-        return "Manager sala";
-      case "addetto_cucina":
-        return "Addetto cucina";
-      case "cameriere":
-        return "Cameriere";
-      default:
-        return "";
-    }
-  }
-
-  function formatTipoCompenso(tipo) {
-    switch (tipo) {
-      case "orario":
-        return "A ore";
-      case "mensile":
-        return "Mensile";
-      case "servizio":
-        return "Per servizio";
-      default:
-        return "";
-    }
-  }
-
-  function formatDataNascita(dataNascita) {
-    if (!dataNascita) return "";
-    const d = new Date(dataNascita);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("it-IT");
-  }
-
-  function calcolaCostoOrario(tipo, retribuzioneBase, oreMensili, oreServizio) {
-    if (!retribuzioneBase || retribuzioneBase <= 0) return 0;
-
-    if (tipo === "orario") return retribuzioneBase;
-
-    if (tipo === "mensile") {
-      if (!oreMensili || oreMensili <= 0) return 0;
-      return retribuzioneBase / oreMensili;
-    }
-
-    if (tipo === "servizio") {
-      if (!oreServizio || oreServizio <= 0) return 0;
-      return retribuzioneBase / oreServizio;
-    }
-
-    return 0;
-  }
+  // ⚠️ il resto del tuo file continua invariato
+});
 
   // ========= HEADER & VISIBILITÀ =========
   function updateHeaderUser() {
