@@ -229,13 +229,13 @@ async function caricaRicetteDaSupabase() {
     console.error(error);
     return;
   }
-
+const ricetteSearchInput = document.getElementById("ricette-search");
+const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
   ricetteCache = data || [];
   aggiornaRicetteSuggestions();
   applicaFiltroRicettario();
 }
-const ricetteSearchInput = document.getElementById("ricette-search");
-const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+
 function applicaFiltroRicettario() {
   if (!ricetteListaViewer || !ricetteSearchInput) return;
 
