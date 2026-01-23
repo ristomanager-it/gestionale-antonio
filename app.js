@@ -4360,6 +4360,45 @@ function resetPrepView() {
   prepCardSingola.innerHTML = "";
   prepDettaglioLotti.innerHTML = "";
 }
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "prep-search") return;
+
+  const q = e.target.value.trim().toLowerCase();
+  const box = document.getElementById("prep-suggestions");
+
+  prepCardSingola.innerHTML = "";
+  prepDettaglioLotti.innerHTML = "";
+
+  if (!q || !prepProdotti || prepProdotti.length === 0) {
+    box.innerHTML = "";
+    return;
+  }
+
+  const matches = prepProdotti.filter(p =>
+    (p.nome_prodotto || "").toLowerCase().includes(q)
+  );
+
+  box.innerHTML = "";
+
+  if (!matches.length) {
+    box.innerHTML = `<div class="prep-suggestion">Nessun risultato</div>`;
+    return;
+  }
+
+  matches.slice(0, 8).forEach(p => {
+    const div = document.createElement("div");
+    div.className = "prep-suggestion";
+    div.textContent = p.nome_prodotto;
+
+    div.onclick = () => {
+      e.target.value = p.nome_prodotto;
+      box.innerHTML = "";
+      selezionaProdottoPrep(p);
+    };
+
+    box.appendChild(div);
+  });
+});
 
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
