@@ -4181,7 +4181,7 @@ function initPrepAutocomplete() {
         data_scadenza: m.data_scadenza,
         giacenza: 0,
       };
-    }
+
 
     map[nome].lotti[m.lotto].giacenza += segno * Number(m.quantita);
   });
