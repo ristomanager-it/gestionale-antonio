@@ -4178,9 +4178,13 @@ function aggregaPreparazioni(movimenti) {
 }
 
 /* =========================================================
-   AUTOCOMPLETE
+   AUTOCOMPLETE (VERSIONE DEFINITIVA)
 ========================================================= */
-prepSearchInput.addEventListener("input", () => {
+
+function handlePrepAutocomplete() {
+  // dati non ancora pronti
+  if (!prepProdotti || prepProdotti.length === 0) return;
+
   const q = prepSearchInput.value.trim().toLowerCase();
   resetPrepView();
 
@@ -4189,17 +4193,31 @@ prepSearchInput.addEventListener("input", () => {
     return;
   }
 
-  const matches = prepProdotti.filter((p) =>
+  const matches = prepProdotti.filter(p =>
     p.nome_prodotto.toLowerCase().includes(q)
   );
 
   renderPrepSuggestions(matches);
-});
+}
+
+// listener robusti
+prepSearchInput.addEventListener("input", handlePrepAutocomplete);
+prepSearchInput.addEventListener("keyup", handlePrepAutocomplete);
+prepSearchInput.addEventListener("focus", handlePrepAutocomplete);
 
 function renderPrepSuggestions(lista) {
   prepSuggestionsEl.innerHTML = "";
 
-  lista.slice(0, 8).forEach((p) => {
+  if (!lista || lista.length === 0) {
+    prepSuggestionsEl.innerHTML = `
+      <div class="prep-suggestion" style="color:#6b7280">
+        Nessun risultato
+      </div>
+    `;
+    return;
+  }
+
+  lista.slice(0, 8).forEach(p => {
     const div = document.createElement("div");
     div.className = "prep-suggestion";
     div.textContent = p.nome_prodotto;
