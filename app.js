@@ -73,47 +73,88 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  // ---------- RICETTE (EDIT) ----------
-  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
-  const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById(
-    "ricetta-ingredienti-container"
-  );
-  const ricetteSearchInput = document.getElementById("ricette-search");
-if (ricetteSearchInput) {
-  ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
+ // ===========================================================
+// ========== RICETTARIO (VIEWER) =============================
+// ===========================================================
+function applicaFiltroRicettario() {
+  const container = document.getElementById("ricette-lista-viewer");
+  if (!container) return;
+
+  const searchInput = document.getElementById("ricette-search");
+  const filtro = (searchInput?.value || "").toLowerCase();
+
+  container.innerHTML = "";
+
+  ricetteCache.forEach((r) => {
+    if (!r || !r.id || !r.nome) return;
+    if (filtro && !r.nome.toLowerCase().includes(filtro)) return;
+
+    const div = document.createElement("div");
+    div.className = "ricetta-card";
+    div.textContent = r.nome;
+    div.style.cursor = "pointer";
+
+    div.onclick = () => {
+      ricettaDaAprireId = r.id;
+      navigateTo("ricette");
+    };
+
+    container.appendChild(div);
+  });
+
+  if (!container.children.length) {
+    container.innerHTML =
+      '<p style="font-size:13px;color:#6b7280;">Nessuna ricetta trovata</p>';
+  }
 }
 
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+// ===========================================================
+// ========== RICETTE (EDIT) =================================
+// ===========================================================
+const ricettaTipoSelect = document.getElementById("ricetta-tipo");
+const ricettaNomeInput = document.getElementById("ricetta-nome");
+const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+const ricettaNoteInput = document.getElementById("ricetta-note");
+const ricettaFotoInput = document.getElementById("ricetta-foto");
+const ricettaIngredientiContainer = document.getElementById(
+  "ricetta-ingredienti-container"
+);
 
-  const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
-  const ricettaFormato1LabelInput = document.getElementById(
-    "ricetta-formato1-label"
-  );
-  const ricettaFormato1PercInput = document.getElementById(
-    "ricetta-formato1-percent"
-  );
-  const ricettaFormato2LabelInput = document.getElementById(
-    "ricetta-formato2-label"
-  );
-  const ricettaFormato2PercInput = document.getElementById(
-    "ricetta-formato2-percent"
-  );
-  const ricettaFormato1PezziOut = document.getElementById(
-    "ricetta-formato1-pezzi"
-  );
-  const ricettaFormato2PezziOut = document.getElementById(
-    "ricetta-formato2-pezzi"
-  );
+const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
+const ricettaFormato1LabelInput = document.getElementById(
+  "ricetta-formato1-label"
+);
+const ricettaFormato1PercInput = document.getElementById(
+  "ricetta-formato1-percent"
+);
+const ricettaFormato2LabelInput = document.getElementById(
+  "ricetta-formato2-label"
+);
+const ricettaFormato2PercInput = document.getElementById(
+  "ricetta-formato2-percent"
+);
+const ricettaFormato1PezziOut = document.getElementById(
+  "ricetta-formato1-pezzi"
+);
+const ricettaFormato2PezziOut = document.getElementById(
+  "ricetta-formato2-pezzi"
+);
+
 // 🔗 COLLEGAMENTO INPUT RICETTA → DATALIST GLOBALE
 if (ricettaNomeInput) {
   ricettaNomeInput.setAttribute("list", "ricette-suggestions");
 }
 
+// ===========================================================
+// ========== RICERCA RICETTARIO ===============================
+// ===========================================================
+const ricetteSearchInput = document.getElementById("ricette-search");
+if (ricetteSearchInput) {
+  ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
+}
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
