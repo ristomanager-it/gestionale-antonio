@@ -2735,12 +2735,6 @@ function applicaFiltroRicettario() {
     div.textContent = r.nome;
     div.style.cursor = "pointer";
 
-    div.onclick = () => {
-      console.log("APRO RICETTA:", r.id);
-      ricettaDaAprireId = r.id;
-      navigateTo("ricette");
-    };
-
     container.appendChild(div);
   });
 
