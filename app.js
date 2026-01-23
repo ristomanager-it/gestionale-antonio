@@ -189,12 +189,14 @@ let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'edito
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
 
-// usa:
-// ricetteSearchInput
-// ricetteListaViewer
-// ricetteSuggestionsList
-// già definiti nel DOM
+// DOM (UNA SOLA VOLTA, IN ALTO)
+const ricetteSearchInput = document.getElementById("ricette-search");
+const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+// ricetteSuggestionsList e ricetteCache ESISTONO GIÀ GLOBALI
 
+// ---------------------------
+// DATALIST AUTOCOMPILAZIONE
+// ---------------------------
 function aggiornaRicetteSuggestions() {
   if (!ricetteSuggestionsList || !Array.isArray(ricetteCache)) return;
 
@@ -207,6 +209,9 @@ function aggiornaRicetteSuggestions() {
   });
 }
 
+// ---------------------------
+// CARICAMENTO RICETTE
+// ---------------------------
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
 
@@ -229,13 +234,15 @@ async function caricaRicetteDaSupabase() {
     console.error(error);
     return;
   }
-const ricetteSearchInput = document.getElementById("ricette-search");
-const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+
   ricetteCache = data || [];
   aggiornaRicetteSuggestions();
   applicaFiltroRicettario();
 }
 
+// ---------------------------
+// FILTRO + RENDER RICETTARIO
+// ---------------------------
 function applicaFiltroRicettario() {
   if (!ricetteListaViewer || !ricetteSearchInput) return;
 
@@ -254,7 +261,7 @@ function applicaFiltroRicettario() {
     card.style.cursor = "pointer";
     card.innerHTML = `<strong>${r.nome}</strong>`;
 
-    // SOLO toggle lettura
+    // 👁️ LETTURA (toggle ingredienti)
     card.addEventListener("click", async () => {
       let box = card.querySelector(".ricetta-ingredienti-viewer");
       if (box) {
@@ -286,7 +293,7 @@ function applicaFiltroRicettario() {
         "</ul>";
     });
 
-    // 🔐 MODIFICA SOLO MANAGER
+    // ✏️ MODIFICA (solo manager)
     if (currentUser && isManagerRole(currentUser.ruolo)) {
       const btn = document.createElement("button");
       btn.className = "app-button tiny gray";
@@ -303,10 +310,12 @@ function applicaFiltroRicettario() {
   });
 }
 
+// ---------------------------
+// EVENTO INPUT RICERCA
+// ---------------------------
 if (ricetteSearchInput) {
   ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
 }
-
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
