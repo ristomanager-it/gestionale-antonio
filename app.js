@@ -73,40 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
- // ===========================================================
-// ========== RICETTARIO (VIEWER) =============================
-// ===========================================================
-function applicaFiltroRicettario() {
-  const container = document.getElementById("ricette-lista-viewer");
-  if (!container) return;
 
-  const searchInput = document.getElementById("ricette-search");
-  const filtro = (searchInput?.value || "").toLowerCase();
-
-  container.innerHTML = "";
-
-  ricetteCache.forEach((r) => {
-    if (!r || !r.id || !r.nome) return;
-    if (filtro && !r.nome.toLowerCase().includes(filtro)) return;
-
-    const div = document.createElement("div");
-    div.className = "ricetta-card";
-    div.textContent = r.nome;
-    div.style.cursor = "pointer";
-
-    div.onclick = () => {
-      ricettaDaAprireId = r.id;
-      navigateTo("ricette");
-    };
-
-    container.appendChild(div);
-  });
-
-  if (!container.children.length) {
-    container.innerHTML =
-      '<p style="font-size:13px;color:#6b7280;">Nessuna ricetta trovata</p>';
-  }
-}
 
 // ===========================================================
 // ========== RICETTE (EDIT) =================================
@@ -218,35 +185,28 @@ const ricetteSuggestionsList = document.getElementById("ricette-suggestions");
 
 let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
 
-   // ===========================================================
+// ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
-const ricetteSearchInput = document.getElementById("ricette-search");
-const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
 
-// datalist globale definito in index.html
-let ricetteSuggestionsList = document.getElementById("ricette-suggestions");
+// usa:
+// ricetteSearchInput
+// ricetteListaViewer
+// ricetteSuggestionsList
+// già definiti nel DOM
 
-// collega il campo di ricerca al datalist globale
-if (ricetteSearchInput && ricetteSuggestionsList) {
-  ricetteSearchInput.setAttribute("list", "ricette-suggestions");
-}
-
-// aggiorna le opzioni del datalist con i nomi delle ricette
 function aggiornaRicetteSuggestions() {
   if (!ricetteSuggestionsList || !Array.isArray(ricetteCache)) return;
 
   ricetteSuggestionsList.innerHTML = "";
-
   ricetteCache.forEach((r) => {
-    if (!r.nome) return;
+    if (!r?.nome) return;
     const opt = document.createElement("option");
     opt.value = r.nome;
     ricetteSuggestionsList.appendChild(opt);
   });
 }
 
-// carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
 
@@ -257,218 +217,94 @@ async function caricaRicetteDaSupabase() {
       nome,
       descrizione,
       note_procedimento,
-      foto_url,
       pezzi_base,
       formato1_label,
       formato1_percent,
       formato2_label,
       formato2_percent
     `)
-    .order("nome", { ascending: true });
+    .order("nome");
 
   if (error) {
-    console.error("Errore caricamento ricette:", error);
-    alert("Errore nel caricare le ricette");
+    console.error(error);
     return;
   }
 
   ricetteCache = data || [];
-
-  // popola il datalist globale
   aggiornaRicetteSuggestions();
-
-  // aggiorna la vista ricettario (se sono nel viewer)
   applicaFiltroRicettario();
 }
 
-// carica ingredienti per una ricetta (solo lettura, viewer)
-async function caricaIngredientiRicettaViewer(ricettaId) {
-  if (!supabase) return [];
+function applicaFiltroRicettario() {
+  if (!ricetteListaViewer || !ricetteSearchInput) return;
 
-  const { data, error } = await supabase
-    .from("ricetta_ingredienti")
-    .select("nome_prodotto, quantita, unita_misura")
-    .eq("ricetta_id", ricettaId)
-    .order("id", { ascending: true });
+  const q = (ricetteSearchInput.value || "").toLowerCase().trim();
+  ricetteListaViewer.innerHTML = "";
 
-  if (error) {
-    console.error("Errore caricamento ingredienti ricetta (viewer):", error);
-    return [];
-  }
+  if (!q) return;
 
-  return data || [];
-}
-
-// render delle card ricette nel ricettario
-function renderRicetteViewer(lista, filtroTesto) {
-  if (!ricetteListaViewer) return;
-
-  const container = ricetteListaViewer;
-  container.innerHTML = "";
-
-  // Nessuna ricetta da mostrare
-  if (!lista.length) {
-    if (filtroTesto) {
-      container.innerHTML =
-        `<p>Nessuna ricetta trovata per "<strong>${filtroTesto}</strong>".</p>`;
-    } else {
-      container.innerHTML =
-        `<p>Digita il nome della ricetta nella casella sopra.</p>`;
-    }
-    return;
-  }
+  const lista = ricetteCache.filter(r =>
+    (r.nome || "").toLowerCase().includes(q)
+  );
 
   lista.forEach((r) => {
     const card = document.createElement("div");
     card.className = "timbratura-intro-card";
     card.style.cursor = "pointer";
+    card.innerHTML = `<strong>${r.nome}</strong>`;
 
-    const base = r.pezzi_base || 0;
-    const f1Perc = r.formato1_percent || 100;
-    const f2Perc = r.formato2_percent || 0;
-
-    const pezzi1 = base && f1Perc ? base * (100 / f1Perc) : null;
-    const pezzi2 = base && f2Perc ? base * (100 / f2Perc) : null;
-
-    card.innerHTML = `
-      <h3 style="margin:0 0 4px">${r.nome}</h3>
-
-      <p style="margin:0 0 6px; font-size:13px; color:#4b5563;">
-        ${r.descrizione || ""}
-      </p>
-
-      ${
-        base
-          ? `
-          <div style="font-size:12px; margin-bottom:4px;">
-            <strong>Quantità base:</strong> ${base} pezzi equivalenti
-          </div>
-          <div style="display:flex; gap:8px; font-size:12px; flex-wrap:wrap;">
-            <span><strong>${r.formato1_label || "Formato 1"}:</strong>
-              ${pezzi1 ? pezzi1.toFixed(1) : "-"} pz
-            </span>
-            ${
-              f2Perc
-                ? `<span><strong>${r.formato2_label || "Formato 2"}:</strong>
-                    ${pezzi2 ? pezzi2.toFixed(1) : "-"} pz
-                  </span>`
-                : ""
-            }
-          </div>
-        `
-          : ""
-      }
-
-      ${
-        r.note_procedimento
-          ? `
-        <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
-          <strong>Note:</strong> ${r.note_procedimento}
-        </p>`
-          : ""
-      }
-    `;
-
-    // Bottone "Modifica" per manager/admin
-    if (currentUser && isManagerRole(currentUser.ruolo)) {
-      const footer = document.createElement("div");
-      footer.style.marginTop = "8px";
-      footer.style.display = "flex";
-      footer.style.justifyContent = "flex-end";
-
-      const btnMod = document.createElement("button");
-      btnMod.type = "button";
-      btnMod.className = "app-button tiny gray";
-      btnMod.textContent = "Modifica";
-
-      btnMod.addEventListener("click", (e) => {
-        e.stopPropagation(); // evita il toggle ingredienti
-
-        ricettaDaAprireId = r.id;
-        window.location.hash = "ricette";
-      });
-
-      footer.appendChild(btnMod);
-      card.appendChild(footer);
-    }
-
-    // click sulla card: mostra / nasconde ingredienti (solo lettura)
+    // SOLO toggle lettura
     card.addEventListener("click", async () => {
-      let ingBox = card.querySelector(".ricetta-ingredienti-viewer");
-
-      // se già aperti → chiudo
-      if (ingBox) {
-        ingBox.remove();
+      let box = card.querySelector(".ricetta-ingredienti-viewer");
+      if (box) {
+        box.remove();
         return;
       }
 
-      ingBox = document.createElement("div");
-      ingBox.className = "ricetta-ingredienti-viewer";
-      ingBox.style.marginTop = "8px";
-      ingBox.style.fontSize = "12px";
-      ingBox.innerHTML = "<em>Caricamento ingredienti...</em>";
-      card.appendChild(ingBox);
+      box = document.createElement("div");
+      box.className = "ricetta-ingredienti-viewer";
+      box.style.marginTop = "8px";
+      box.innerHTML = "<em>Caricamento ingredienti...</em>";
+      card.appendChild(box);
 
-      const ingredienti = await caricaIngredientiRicettaViewer(r.id);
+      const { data } = await supabase
+        .from("ricetta_ingredienti")
+        .select("nome_prodotto, quantita, unita_misura")
+        .eq("ricetta_id", r.id);
 
-      if (!ingredienti.length) {
-        ingBox.innerHTML = "<em>Nessun ingrediente registrato.</em>";
+      if (!data?.length) {
+        box.innerHTML = "<em>Nessun ingrediente</em>";
         return;
       }
 
-      const listaEl = document.createElement("ul");
-      listaEl.style.margin = "4px 0 0";
-      listaEl.style.paddingLeft = "18px";
-
-      ingredienti.forEach((ing) => {
-        const li = document.createElement("li");
-        li.textContent = `${ing.nome_prodotto || ""} - ${ing.quantita || 0} ${
-          ing.unita_misura || ""
-        }`;
-        listaEl.appendChild(li);
-      });
-
-      ingBox.innerHTML = "<strong>Ingredienti:</strong>";
-      ingBox.appendChild(listaEl);
+      box.innerHTML =
+        "<strong>Ingredienti:</strong><ul>" +
+        data.map(i =>
+          `<li>${i.nome_prodotto} - ${i.quantita} ${i.unita_misura || ""}</li>`
+        ).join("") +
+        "</ul>";
     });
 
-    container.appendChild(card);
+    // 🔐 MODIFICA SOLO MANAGER
+    if (currentUser && isManagerRole(currentUser.ruolo)) {
+      const btn = document.createElement("button");
+      btn.className = "app-button tiny gray";
+      btn.textContent = "Modifica";
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        ricettaDaAprireId = r.id;
+        window.location.hash = "ricette";
+      };
+      card.appendChild(btn);
+    }
+
+    ricetteListaViewer.appendChild(card);
   });
 }
 
-// Applica filtro di ricerca (per ora solo per nome)
-function applicaFiltroRicettario() {
-  if (!ricetteSearchInput) {
-    renderRicetteViewer([], "");
-    return;
-  }
-
-  const qRaw = ricetteSearchInput.value || "";
-  const q = qRaw.toLowerCase().trim();
-
-  if (!q) {
-    renderRicetteViewer([], "");
-    return;
-  }
-
-  const lista = ricetteCache.filter((r) =>
-    (r.nome || "").toLowerCase().includes(q)
-  );
-
-  renderRicetteViewer(lista, qRaw.trim());
-}
-
-// Eventi sulla casella di ricerca ricette (viewer)
 if (ricetteSearchInput) {
-  ricetteSearchInput.addEventListener("input", () => {
-    applicaFiltroRicettario();
-  });
+  ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
 }
-
-let currentFatturaId = null;
-let fornitoriCache = [];
-let categorieCache = [];
-let magazzinoDati = [];
 
 
   // ========= UTILITY GENERALI =========
