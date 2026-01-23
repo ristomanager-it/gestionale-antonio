@@ -180,6 +180,8 @@ let periodoCorrente = "oggi";
 let prepProdotti = [];
 let prepRicetteMap = {};
 let prepProdottoSelezionato = null;
+// esposizione debug (NON influisce sulla logica)
+window.prepProdotti = prepProdotti;
 
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
