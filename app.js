@@ -176,6 +176,10 @@ let dipendenti = [];
 let timbrature = [];
 let currentUser = null;
 let periodoCorrente = "oggi";
+// ---------- STATO MAGAZZINO PREPARAZIONI ----------
+let prepProdotti = [];
+let prepRicetteMap = {};
+let prepProdottoSelezionato = null;
 
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
