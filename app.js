@@ -4360,11 +4360,14 @@ function resetPrepView() {
   prepCardSingola.innerHTML = "";
   prepDettaglioLotti.innerHTML = "";
 }
+
+/* === AUTOCOMPLETE PREPARAZIONI === */
 document.addEventListener("input", (e) => {
   if (e.target.id !== "prep-search") return;
 
   const q = e.target.value.trim().toLowerCase();
   const box = document.getElementById("prep-suggestions");
+  if (!box) return;
 
   prepCardSingola.innerHTML = "";
   prepDettaglioLotti.innerHTML = "";
@@ -4399,6 +4402,7 @@ document.addEventListener("input", (e) => {
     box.appendChild(div);
   });
 });
+
 
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
