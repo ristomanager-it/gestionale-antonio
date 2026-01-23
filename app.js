@@ -4174,7 +4174,7 @@ function initPrepAutocomplete() {
 /* =========================================================
    AGGREGAZIONE
 ========================================================= */
-) {
+
       map[nome].lotti[m.lotto] = {
         lotto: m.lotto,
         luogo: m.luogo,
