@@ -4108,7 +4108,7 @@ async function caricaMagazzinoPreparazioni() {
       quantita,
       unita_misura
     `)
-    .eq("riferimento_tipo", "ricetta");
+    .eq("riferimento_tipo", "produzione")
 
   if (errMov) {
     console.error("Errore movimenti:", errMov);
