@@ -167,6 +167,9 @@ let periodoCorrente = "oggi";
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
 let ricetteCache = [];
+
+const ricetteSuggestionsList = document.getElementById("ricette-suggestions");
+
   // ===========================================================
 // ========== DATALIST GLOBALE RICETTE ========================
 // ===========================================================
