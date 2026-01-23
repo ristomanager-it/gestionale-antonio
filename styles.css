@@ -647,3 +647,129 @@ body.theme-light .view {
 #venduto-table tr.partial {
   background: #fef9c3;
 }
+/* ========================================================= */
+/* ========== MAGAZZINO PREPARAZIONI (SOLO LETTURA) ========= */
+/* ========================================================= */
+
+#view-magazzino-preparazioni h2 {
+  margin-top: 0;
+}
+
+/* 🔍 Input ricerca */
+#prep-search {
+  margin-top: 6px;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><circle cx='11' cy='11' r='6'/><line x1='16' y1='16' x2='21' y2='21' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+}
+
+/* 📦 Card prodotto */
+.prep-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
+  position: relative;
+}
+
+.prep-card::before {
+  content: "🍲";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 22px;
+  opacity: 0.85;
+}
+
+.prep-card h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.prep-card p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 🧾 Sezione lotti */
+#prep-dettaglio-lotti h3 {
+  margin: 12px 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 🧊 Singolo lotto */
+.prep-lotto {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+  font-size: 13px;
+  line-height: 1.45;
+  position: relative;
+}
+
+.prep-lotto::before {
+  content: "📦";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.prep-lotto strong {
+  font-weight: 600;
+}
+
+/* ⏰ Warning scadenze */
+.prep-warning-ok::before {
+  content: "✅ ";
+}
+
+.prep-warning-att::before {
+  content: "🟡 ";
+}
+
+.prep-warning-urg::before {
+  content: "⚠️ ";
+}
+
+.prep-warning-exp::before {
+  content: "❌ ";
+}
+
+.prep-warning-ok {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.prep-warning-att {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.prep-warning-urg {
+  color: #ea580c;
+  font-weight: 700;
+}
+
+.prep-warning-exp {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* 🖥️ Desktop */
+@media (min-width: 768px) {
+  .prep-card {
+    padding: 16px 18px;
+  }
+
+  .prep-lotto {
+    padding: 14px 16px;
+  }
+}
