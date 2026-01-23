@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
+
   // header
   const btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
@@ -104,30 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "ricetta-formato2-pezzi"
   );
 
-  // 🔗 COLLEGAMENTO INPUT → DATALIST GLOBALE (HTML)
-  if (ricettaNomeInput) {
-    ricettaNomeInput.setAttribute("list", "ricette-suggestions");
-  }
-
-  // ===========================================================
-  // ========== DATALIST GLOBALE RICETTE ========================
-  // ===========================================================
-  const ricetteSuggestionsList =
-    document.getElementById("ricette-suggestions");
-
-  function aggiornaRicetteSuggestions() {
-    if (!ricetteSuggestionsList) return;
-    if (!Array.isArray(ricetteCache)) return;
-
-    ricetteSuggestionsList.innerHTML = "";
-
-    ricetteCache.forEach((r) => {
-      if (!r || !r.nome) return;
-      const opt = document.createElement("option");
-      opt.value = r.nome;
-      ricetteSuggestionsList.appendChild(opt);
-    });
-  }
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
@@ -171,30 +148,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const ingredientiSuggestions = document.getElementById(
     "ingredienti-suggestions"
   );
+const navPreventivi = document.getElementById('nav-preventivi');
+if (navPreventivi) {
+  navPreventivi.addEventListener('click', () => {
+    showPreventiviView();
+  });
+}
+ // ---------- STATO ----------
+let dipendenti = [];
+let timbrature = [];
+let currentUser = null;
+let periodoCorrente = "oggi";
 
-  const navPreventivi = document.getElementById("nav-preventivi");
-  if (navPreventivi) {
-    navPreventivi.addEventListener("click", () => {
-      showPreventiviView();
-    });
-  }
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+let ricetteCache = [];
+let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
 
-  // ---------- STATO ----------
-  let dipendenti = [];
-  let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
-
-  let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
-  let ricetteCache = [];
-  let ricettaDaAprireId = null;
-
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
-  let magazzinoDati = [];
-  let magazzinoPreparazioni = [];
+let currentFatturaId = null;
+let fornitoriCache = [];
+let categorieCache = [];
+let magazzinoDati = [];
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
@@ -349,90 +323,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return 0;
-  }
-}
-
-  // ------------------------------------------------
-  // ---------- STATO GLOBALE ------------------------
-  // ------------------------------------------------
-  let dipendenti = [];
-  let timbrature = [];
-  let currentUser = null;
-  let periodoCorrente = "oggi";
-
-  let ricettaCorrenteId = null;
-  let ricettaFotoCorrenteUrl = null;
-  let ricetteCache = [];
-  let ricettaDaAprireId = null;
-
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
-  let magazzinoDati = [];
-  let magazzinoPreparazioni = [];
-
-  // ===========================================================
-  // ========== RICETTARIO + DATALIST GLOBALE ==================
-  // ===========================================================
-
-  const ricetteSuggestionsList =
-    document.getElementById("ricette-suggestions");
-
-  function aggiornaRicetteSuggestions() {
-    if (!ricetteSuggestionsList) return;
-    if (!Array.isArray(ricetteCache)) return;
-
-    ricetteSuggestionsList.innerHTML = "";
-
-    ricetteCache.forEach((r) => {
-      if (!r || !r.nome) return;
-      const opt = document.createElement("option");
-      opt.value = r.nome;
-      ricetteSuggestionsList.appendChild(opt);
-    });
-  }
-
-  async function caricaRicetteDaSupabase() {
-    if (!supabase) return;
-
-    const { data, error } = await supabase
-      .from("ricette")
-      .select("*")
-      .order("nome");
-
-    if (error) {
-      console.error("Errore caricamento ricette:", error);
-      return;
-    }
-
-    ricetteCache = data || [];
-
-    // aggiorna SEMPRE datalist
-    aggiornaRicetteSuggestions();
-
-    // aggiorna lista ricettario se presente
-    if (typeof applicaFiltroRicettario === "function") {
-      applicaFiltroRicettario();
-    }
-  }
-
-  // ===========================================================
-  // ========== UTILITY GENERALI ==============================
-  // ===========================================================
-  function parseNumber(val) {
-    if (val == null) return 0;
-    const str = String(val).replace(",", ".");
-    const n = parseFloat(str);
-    return Number.isNaN(n) ? 0 : n;
-  }
-
-  function formatDateInputToday(input) {
-    if (!input) return;
-    const oggi = new Date();
-    const yyyy = oggi.getFullYear();
-    const mm = String(oggi.getMonth() + 1).padStart(2, "0");
-    const dd = String(oggi.getDate()).padStart(2, "0");
-    input.value = `${yyyy}-${mm}-${dd}`;
   }
 
   // ========= HEADER & VISIBILITÀ =========
