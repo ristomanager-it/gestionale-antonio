@@ -82,6 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaIngredientiContainer = document.getElementById(
     "ricetta-ingredienti-container"
   );
+  const ricetteSearchInput = document.getElementById("ricette-search");
+if (ricetteSearchInput) {
+  ricetteSearchInput.addEventListener("input", applicaFiltroRicettario);
+}
+
   const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
   const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
