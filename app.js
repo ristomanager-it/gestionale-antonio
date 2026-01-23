@@ -167,6 +167,26 @@ let periodoCorrente = "oggi";
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
 let ricetteCache = [];
+  // ===========================================================
+// ========== DATALIST GLOBALE RICETTE ========================
+// ===========================================================
+
+const ricetteSuggestionsList =
+  document.getElementById("ricette-suggestions");
+
+function aggiornaRicetteSuggestions() {
+  if (!ricetteSuggestionsList || !Array.isArray(ricetteCache)) return;
+
+  ricetteSuggestionsList.innerHTML = "";
+
+  ricetteCache.forEach((r) => {
+    if (!r || !r.nome) return;
+    const opt = document.createElement("option");
+    opt.value = r.nome;
+    ricetteSuggestionsList.appendChild(opt);
+  });
+}
+
 let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
 
 let currentFatturaId = null;
