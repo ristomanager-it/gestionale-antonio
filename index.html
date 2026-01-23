@@ -149,8 +149,16 @@
           </button>
 
           <button class="app-button menu-button" data-route="magazzino">
-            Magazzino
-          </button>
+  Magazzino
+</button>
+
+<!-- 👇 QUI -->
+<button
+  class="app-button menu-button"
+  data-route="magazzino-preparazioni"
+>
+  Preparazioni
+</button>
 
           <!-- 🔥 NUOVO: PREVENTIVI -->
           <button class="app-button menu-button" data-route="preventivi">
@@ -446,6 +454,27 @@
       <tbody id="magazzino-preparazioni-lista"></tbody>
     </table>
   </div>
+</section>
+<!-- MAGAZZINO PREPARAZIONI (SOLO LETTURA) -->
+<section
+  id="view-magazzino-preparazioni"
+  class="view"
+  style="display: none"
+>
+  <h2>Magazzino Preparazioni</h2>
+
+  <input
+    id="prep-search"
+    class="input-pill"
+    placeholder="Cerca preparazione..."
+    autocomplete="off"
+  />
+
+  <!-- Card prodotto selezionato -->
+  <div id="prep-card-singola" style="margin-top: 12px;"></div>
+
+  <!-- Dettaglio lotti -->
+  <div id="prep-dettaglio-lotti" style="margin-top: 12px;"></div>
 </section>
 
         <!-- ACQUISTI / FATTURE -->
