@@ -2587,7 +2587,39 @@ function aggiornaRicetteSuggestions() {
 
 async function caricaRicetteDaSupabase() {
   if (!supabase) return;
+function applicaFiltroRicettario() {
+  const container = document.getElementById("ricette-lista-viewer");
+  if (!container) return;
 
+  const searchInput = document.getElementById("ricette-search");
+  const filtro = (searchInput?.value || "").toLowerCase();
+
+  container.innerHTML = "";
+
+  ricetteCache.forEach((r) => {
+    if (!r || !r.id || !r.nome) return;
+
+    if (filtro && !r.nome.toLowerCase().includes(filtro)) return;
+
+    const div = document.createElement("div");
+    div.className = "ricetta-card";
+    div.textContent = r.nome;
+    div.style.cursor = "pointer";
+
+    div.onclick = () => {
+      console.log("APRO RICETTA:", r.id);
+      ricettaDaAprireId = r.id;
+      navigateTo("ricette");
+    };
+
+    container.appendChild(div);
+  });
+
+  if (!container.children.length) {
+    container.innerHTML =
+      '<p style="font-size:13px;color:#6b7280;">Nessuna ricetta trovata</p>';
+  }
+}
   const { data, error } = await supabase
     .from("ricette")
     .select("*")
