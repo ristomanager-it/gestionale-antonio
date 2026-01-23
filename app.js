@@ -4119,7 +4119,7 @@ async function caricaMagazzinoPreparazioni() {
   prepProdotti = aggregaPreparazioni(movimenti);
 }
 initPrepAutocomplete();
-} 
+
  function initPrepAutocomplete() {
   if (!prepSearchInput || !prepSuggestionsEl) return;
 
