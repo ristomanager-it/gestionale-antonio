@@ -4174,32 +4174,8 @@ function initPrepAutocomplete() {
 /* =========================================================
    AGGREGAZIONE
 ========================================================= */
-function aggregaPreparazioni(movimenti) {
-  const map = {};
-
-  movimenti.forEach((m) => {
-    const ricettaId = m.riferimento_id;
-    const nome = m.nome_prodotto;
-    if (!nome) return;
-
-    if (!map[ricettaId]) {
-      map[ricettaId] = {
-        ricetta_id: ricettaId,
-        nome_prodotto: nome,
-        unita_misura: m.unita_misura,
-        lotti: {},
-      };
-    }
-
-    const segno =
-      m.tipo === "carico"
-        ? 1
-        : m.tipo === "scarico"
-        ? -1
-        : 1;
-
-    if (!map[ricettaId].lotti[m.lotto]) {
-      map[ricettaId].lotti[m.lotto] = {
+) {
+      map[nome].lotti[m.lotto] = {
         lotto: m.lotto,
         luogo: m.luogo,
         data_scadenza: m.data_scadenza,
@@ -4207,29 +4183,27 @@ function aggregaPreparazioni(movimenti) {
       };
     }
 
-    map[ricettaId].lotti[m.lotto].giacenza +=
-      segno * Number(m.quantita);
+    map[nome].lotti[m.lotto].giacenza += segno * Number(m.quantita);
   });
 
-return Object.values(map)
-  .map((p) => {
-    p.lotti = Object.values(p.lotti)
-      .filter((l) => l.giacenza !== 0) // ⬅️ NON solo > 0
-      .sort(
-        (a, b) =>
-          new Date(a.data_scadenza) - new Date(b.data_scadenza)
+  return Object.values(map)
+    .map((p) => {
+      p.lotti = Object.values(p.lotti)
+        .filter((l) => l.giacenza !== 0)
+        .sort(
+          (a, b) =>
+            new Date(a.data_scadenza) - new Date(b.data_scadenza)
+        );
+
+      p.giacenza_totale = p.lotti.reduce(
+        (s, l) => s + l.giacenza,
+        0
       );
 
-    p.giacenza_totale = p.lotti.reduce(
-      (s, l) => s + l.giacenza,
-      0
-    );
-
-    return p;
-  })
-  .filter((p) => p.lotti.length > 0);
-
-
+      return p;
+    })
+    .filter((p) => p.lotti.length > 0);
+}
 /* =========================================================
    AUTOCOMPLETE (VERSIONE DEFINITIVA)
 ========================================================= */
