@@ -4404,8 +4404,10 @@ async function onRouteEnter(route) {
       break;
 case "magazzino-preparazioni":
   await caricaMagazzinoPreparazioni();
-  renderMagazzinoPreparazioni(magazzinoPreparazioni);
+  // NON si renderizza nulla qui:
+  // il rendering avviene solo dopo la selezione autocomplete
   break;
+
 
     case "preventivi":
       await loadPreventiviList();
