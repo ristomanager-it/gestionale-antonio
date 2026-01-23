@@ -234,7 +234,8 @@ async function caricaRicetteDaSupabase() {
   aggiornaRicetteSuggestions();
   applicaFiltroRicettario();
 }
-
+const ricetteSearchInput = document.getElementById("ricette-search");
+const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
 function applicaFiltroRicettario() {
   if (!ricetteListaViewer || !ricetteSearchInput) return;
 
