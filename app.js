@@ -4211,15 +4211,15 @@ function aggregaPreparazioni(movimenti) {
       segno * Number(m.quantita);
   });
 
-  return Object.values(map)
-    .map((p) => {
-      p.lotti = Object.values(p.lotti)
-        .filter((l) => l.giacenza > 0)
-        .sort(
-          (a, b) =>
-            new Date(a.data_scadenza) -
-            new Date(b.data_scadenza)
-        );
+return Object.values(map).map((p) => {
+  p.lotti = Object.values(p.lotti).sort(
+    (a, b) => new Date(a.data_scadenza) - new Date(b.data_scadenza)
+  );
+
+  p.giacenza_totale = p.lotti.reduce((s, l) => s + l.giacenza, 0);
+  return p;
+});
+
 
       p.giacenza_totale = p.lotti.reduce(
         (s, l) => s + l.giacenza,
