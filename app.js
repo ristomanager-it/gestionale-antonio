@@ -4111,6 +4111,7 @@ async function caricaMagazzinoPreparazioni() {
     `)
     .eq("riferimento_tipo", "ricetta");
 
+  
   if (errMov) {
     console.error("Errore movimenti:", errMov);
     alert("Errore caricamento magazzino preparazioni");
@@ -4120,7 +4121,52 @@ async function caricaMagazzinoPreparazioni() {
   /* 3️⃣ AGGREGAZIONE */
   prepProdotti = aggregaPreparazioni(movimenti);
 }
+initPrepAutocomplete();
+} 
+ function initPrepAutocomplete() {
+  if (!prepSearchInput || !prepSuggestionsEl) return;
 
+  prepSearchInput.oninput = () => {
+    const q = prepSearchInput.value.trim().toLowerCase();
+
+    prepCardSingola.innerHTML = "";
+    prepDettaglioLotti.innerHTML = "";
+
+    if (!q || prepProdotti.length === 0) {
+      prepSuggestionsEl.innerHTML = "";
+      return;
+    }
+
+    const matches = prepProdotti.filter(p =>
+      p.nome_prodotto.toLowerCase().includes(q)
+    );
+
+    prepSuggestionsEl.innerHTML = "";
+
+    if (!matches.length) {
+      prepSuggestionsEl.innerHTML =
+        `<div class="prep-suggestion" style="color:#6b7280">
+          Nessun risultato
+        </div>`;
+      return;
+    }
+
+    matches.slice(0, 8).forEach(p => {
+      const div = document.createElement("div");
+      div.className = "prep-suggestion";
+      div.textContent = p.nome_prodotto;
+
+      div.onclick = () => {
+        prepSearchInput.value = p.nome_prodotto;
+        prepSuggestionsEl.innerHTML = "";
+        selezionaProdottoPrep(p);
+      };
+
+      prepSuggestionsEl.appendChild(div);
+    });
+  };
+}
+                         
 /* =========================================================
    AGGREGAZIONE
 ========================================================= */
