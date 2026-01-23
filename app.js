@@ -4179,7 +4179,7 @@ function aggregaPreparazioni(movimenti) {
 
   movimenti.forEach((m) => {
     const ricettaId = m.riferimento_id;
-    const nome = prepRicetteMap[ricettaId];
+    const nome = m.nome_prodotto;
     if (!nome) return;
 
     if (!map[ricettaId]) {
