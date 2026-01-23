@@ -4129,13 +4129,12 @@ async function caricaMagazzinoPreparazioni() {
 function initPrepAutocomplete() {
   if (!prepSearchInput || !prepSuggestionsEl) return;
 
-  // evito doppie inizializzazioni
+  // sicurezza: rimuovo eventuali listener precedenti
   prepSearchInput.oninput = null;
 
   prepSearchInput.oninput = () => {
     const q = prepSearchInput.value.trim().toLowerCase();
 
-    // mentre cerco, pulisco solo la vista
     prepCardSingola.innerHTML = "";
     prepDettaglioLotti.innerHTML = "";
 
@@ -4151,10 +4150,8 @@ function initPrepAutocomplete() {
     prepSuggestionsEl.innerHTML = "";
 
     if (!matches.length) {
-      prepSuggestionsEl.innerHTML = `
-        <div class="prep-suggestion" style="color:#6b7280">
-          Nessun risultato
-        </div>`;
+      prepSuggestionsEl.innerHTML =
+        `<div class="prep-suggestion">Nessun risultato</div>`;
       return;
     }
 
