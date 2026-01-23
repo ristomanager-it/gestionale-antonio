@@ -4108,7 +4108,6 @@ async function caricaMagazzinoPreparazioni() {
     `)
     .eq("riferimento_tipo", "ricetta");
 
-  
   if (errMov) {
     console.error("Errore movimenti:", errMov);
     alert("Errore caricamento magazzino preparazioni");
@@ -4117,32 +4116,41 @@ async function caricaMagazzinoPreparazioni() {
 
   /* 3️⃣ AGGREGAZIONE */
   prepProdotti = aggregaPreparazioni(movimenti);
-}
-initPrepAutocomplete();
 
- function initPrepAutocomplete() {
+  /* 4️⃣ INIT AUTOCOMPLETE (UNA SOLA VOLTA, QUI) */
+  initPrepAutocomplete();
+}
+
+/* =========================================================
+   AUTOCOMPLETE – UNICO E PULITO
+========================================================= */
+function initPrepAutocomplete() {
   if (!prepSearchInput || !prepSuggestionsEl) return;
+
+  // evito doppie inizializzazioni
+  prepSearchInput.oninput = null;
 
   prepSearchInput.oninput = () => {
     const q = prepSearchInput.value.trim().toLowerCase();
 
+    // mentre cerco, pulisco solo la vista
     prepCardSingola.innerHTML = "";
     prepDettaglioLotti.innerHTML = "";
 
-    if (!q || prepProdotti.length === 0) {
+    if (!q || !prepProdotti || prepProdotti.length === 0) {
       prepSuggestionsEl.innerHTML = "";
       return;
     }
 
     const matches = prepProdotti.filter(p =>
-      p.nome_prodotto.toLowerCase().includes(q)
+      (p.nome_prodotto || "").toLowerCase().includes(q)
     );
 
     prepSuggestionsEl.innerHTML = "";
 
     if (!matches.length) {
-      prepSuggestionsEl.innerHTML =
-        `<div class="prep-suggestion" style="color:#6b7280">
+      prepSuggestionsEl.innerHTML = `
+        <div class="prep-suggestion" style="color:#6b7280">
           Nessun risultato
         </div>`;
       return;
@@ -4163,7 +4171,7 @@ initPrepAutocomplete();
     });
   };
 }
-                         
+
 /* =========================================================
    AGGREGAZIONE
 ========================================================= */
