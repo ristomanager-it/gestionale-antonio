@@ -4051,10 +4051,7 @@ resetSchedaProduzione();
    - SOLO LETTURA
 ========================================================= */
 
-/* ===== STATO ===== */
-let prepRicetteMap = {};
-let prepProdotti = [];
-let prepProdottoSelezionato = null;
+
 
 /* ===== DOM ===== */
 const prepSearchInput = document.getElementById("prep-search");
