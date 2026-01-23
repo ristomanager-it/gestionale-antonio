@@ -4118,7 +4118,7 @@ async function caricaMagazzinoPreparazioni() {
 
   /* 3️⃣ AGGREGAZIONE */
   prepProdotti = aggregaPreparazioni(movimenti);
-
+console.log("PREP PRODOTTI:", prepProdotti);
   /* 4️⃣ INIT AUTOCOMPLETE (UNA SOLA VOLTA, QUI) */
   initPrepAutocomplete();
 }
