@@ -104,6 +104,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaFormato2PezziOut = document.getElementById(
     "ricetta-formato2-pezzi"
   );
+// 🔗 COLLEGAMENTO INPUT RICETTA → DATALIST GLOBALE
+if (ricettaNomeInput) {
+  ricettaNomeInput.setAttribute("list", "ricette-suggestions");
+}
 
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
