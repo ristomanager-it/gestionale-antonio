@@ -4041,24 +4041,25 @@ resetSchedaProduzione();
     });
   }
 /* =========================================================
-   MAGAZZINO PREPARAZIONI
-   - Nome SEMPRE da ricette (tipo = base)
-   - Giacenze da magazzino_produzione_movimenti
+   MAGAZZINO PREPARAZIONI – VERSIONE DEFINITIVA
+   - NOME = ricette.nome (fonte unica)
+   - GIACENZE = magazzino_produzione_movimenti
    - SOLO LETTURA
 ========================================================= */
 
+/* ===== STATO ===== */
 let prepRicetteMap = {};
 let prepProdotti = [];
 let prepProdottoSelezionato = null;
 
-/* DOM */
+/* ===== DOM ===== */
 const prepSearchInput = document.getElementById("prep-search");
 const prepSuggestionsEl = document.getElementById("prep-suggestions");
 const prepCardSingola = document.getElementById("prep-card-singola");
 const prepDettaglioLotti = document.getElementById("prep-dettaglio-lotti");
 
-/* ROUTE */
-routeButtons.forEach(btn => {
+/* ===== ROUTE ===== */
+routeButtons.forEach((btn) => {
   if (btn.dataset.route === "magazzino-preparazioni") {
     btn.addEventListener("click", async () => {
       showOnlyView("view-magazzino-preparazioni");
@@ -4067,31 +4068,32 @@ routeButtons.forEach(btn => {
   }
 });
 
-/* =======================
-   CARICAMENTO DATI
-======================= */
+/* =========================================================
+   CARICAMENTO DATI (UN SOLO PUNTO)
+========================================================= */
 async function caricaMagazzinoPreparazioni() {
+  if (!supabase) return;
+
   resetPrepView();
   prepProdotti = [];
   prepRicetteMap = {};
 
-  /* 1️⃣ Ricette base */
+  /* 1️⃣ CARICO RICETTE (NOMI) */
   const { data: ricette, error: errRicette } = await supabase
     .from("ricette")
-    .select("id, nome")
-    .eq("tipo", "base");
+    .select("id, nome");
 
   if (errRicette) {
+    console.error("Errore ricette:", errRicette);
     alert("Errore caricamento ricette");
-    console.error(errRicette);
     return;
   }
 
-  ricette.forEach(r => {
+  ricette.forEach((r) => {
     prepRicetteMap[r.id] = r.nome;
   });
 
-  /* 2️⃣ Movimenti produzione */
+  /* 2️⃣ CARICO MOVIMENTI PRODUZIONE */
   const { data: movimenti, error: errMov } = await supabase
     .from("magazzino_produzione_movimenti")
     .select(`
@@ -4106,22 +4108,22 @@ async function caricaMagazzinoPreparazioni() {
     .eq("riferimento_tipo", "ricetta");
 
   if (errMov) {
+    console.error("Errore movimenti:", errMov);
     alert("Errore caricamento magazzino preparazioni");
-    console.error(errMov);
     return;
   }
 
-  /* 3️⃣ Aggregazione */
+  /* 3️⃣ AGGREGAZIONE */
   prepProdotti = aggregaPreparazioni(movimenti);
 }
 
-/* =======================
+/* =========================================================
    AGGREGAZIONE
-======================= */
+========================================================= */
 function aggregaPreparazioni(movimenti) {
   const map = {};
 
-  movimenti.forEach(m => {
+  movimenti.forEach((m) => {
     const ricettaId = m.riferimento_id;
     const nome = prepRicetteMap[ricettaId];
     if (!nome) return;
@@ -4131,40 +4133,53 @@ function aggregaPreparazioni(movimenti) {
         ricetta_id: ricettaId,
         nome_prodotto: nome,
         unita_misura: m.unita_misura,
-        lotti: {}
+        lotti: {},
       };
     }
 
     const segno =
-      m.tipo === "carico" ? 1 :
-      m.tipo === "scarico" ? -1 : 1;
+      m.tipo === "carico"
+        ? 1
+        : m.tipo === "scarico"
+        ? -1
+        : 1;
 
     if (!map[ricettaId].lotti[m.lotto]) {
       map[ricettaId].lotti[m.lotto] = {
         lotto: m.lotto,
         luogo: m.luogo,
         data_scadenza: m.data_scadenza,
-        giacenza: 0
+        giacenza: 0,
       };
     }
 
-    map[ricettaId].lotti[m.lotto].giacenza += segno * Number(m.quantita);
+    map[ricettaId].lotti[m.lotto].giacenza +=
+      segno * Number(m.quantita);
   });
 
   return Object.values(map)
-    .map(p => {
+    .map((p) => {
       p.lotti = Object.values(p.lotti)
-        .filter(l => l.giacenza > 0)
-        .sort((a, b) => new Date(a.data_scadenza) - new Date(b.data_scadenza));
-      p.giacenza_totale = p.lotti.reduce((s, l) => s + l.giacenza, 0);
+        .filter((l) => l.giacenza > 0)
+        .sort(
+          (a, b) =>
+            new Date(a.data_scadenza) -
+            new Date(b.data_scadenza)
+        );
+
+      p.giacenza_totale = p.lotti.reduce(
+        (s, l) => s + l.giacenza,
+        0
+      );
+
       return p;
     })
-    .filter(p => p.giacenza_totale > 0);
+    .filter((p) => p.giacenza_totale > 0);
 }
 
-/* =======================
+/* =========================================================
    AUTOCOMPLETE
-======================= */
+========================================================= */
 prepSearchInput.addEventListener("input", () => {
   const q = prepSearchInput.value.trim().toLowerCase();
   resetPrepView();
@@ -4174,7 +4189,7 @@ prepSearchInput.addEventListener("input", () => {
     return;
   }
 
-  const matches = prepProdotti.filter(p =>
+  const matches = prepProdotti.filter((p) =>
     p.nome_prodotto.toLowerCase().includes(q)
   );
 
@@ -4184,7 +4199,7 @@ prepSearchInput.addEventListener("input", () => {
 function renderPrepSuggestions(lista) {
   prepSuggestionsEl.innerHTML = "";
 
-  lista.slice(0, 8).forEach(p => {
+  lista.slice(0, 8).forEach((p) => {
     const div = document.createElement("div");
     div.className = "prep-suggestion";
     div.textContent = p.nome_prodotto;
@@ -4198,9 +4213,9 @@ function renderPrepSuggestions(lista) {
   });
 }
 
-/* =======================
+/* =========================================================
    SELEZIONE
-======================= */
+========================================================= */
 function selezionaProdottoPrep(p) {
   prepSuggestionsEl.innerHTML = "";
   prepProdottoSelezionato = p;
@@ -4208,9 +4223,9 @@ function selezionaProdottoPrep(p) {
   renderPrepLotti(p);
 }
 
-/* =======================
+/* =========================================================
    RENDER
-======================= */
+========================================================= */
 function renderPrepCard(p) {
   prepCardSingola.innerHTML = `
     <div class="prep-card">
@@ -4226,8 +4241,9 @@ function renderPrepCard(p) {
 function renderPrepLotti(p) {
   prepDettaglioLotti.innerHTML = `<h3>📦 Lotti disponibili</h3>`;
 
-  p.lotti.forEach(l => {
+  p.lotti.forEach((l) => {
     const stato = statoScadenza(l.data_scadenza);
+
     prepDettaglioLotti.innerHTML += `
       <div class="prep-lotto">
         <strong>Lotto:</strong> ${l.lotto}<br>
@@ -4243,17 +4259,20 @@ function renderPrepLotti(p) {
   });
 }
 
-/* =======================
+/* =========================================================
    UTILS
-======================= */
+========================================================= */
 function statoScadenza(data) {
   const oggi = new Date();
   const d = new Date(data);
   const diff = (d - oggi) / 86400000;
 
-  if (diff < 0) return { label: "❌ Scaduto", classe: "prep-warning-exp" };
-  if (diff <= 3) return { label: "⚠️ Urgente", classe: "prep-warning-urg" };
-  if (diff <= 7) return { label: "🟡 Attenzione", classe: "prep-warning-att" };
+  if (diff < 0)
+    return { label: "❌ Scaduto", classe: "prep-warning-exp" };
+  if (diff <= 3)
+    return { label: "⚠️ Urgente", classe: "prep-warning-urg" };
+  if (diff <= 7)
+    return { label: "🟡 Attenzione", classe: "prep-warning-att" };
   return { label: "✔ OK", classe: "prep-warning-ok" };
 }
 
@@ -4266,6 +4285,7 @@ function resetPrepView() {
   prepCardSingola.innerHTML = "";
   prepDettaglioLotti.innerHTML = "";
 }
+
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
 async function caricaProdottiSuggerimentiIngredienti() {
