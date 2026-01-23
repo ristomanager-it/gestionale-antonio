@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return 0;
   }
-});
+}
 
   // ------------------------------------------------
   // ---------- STATO GLOBALE ------------------------
