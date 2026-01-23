@@ -189,10 +189,7 @@ let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'edito
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
 // ===========================================================
 
-// DOM (UNA SOLA VOLTA, IN ALTO)
-const ricetteSearchInput = document.getElementById("ricette-search");
-const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
-// ricetteSuggestionsList e ricetteCache ESISTONO GIÀ GLOBALI
+
 
 // ---------------------------
 // DATALIST AUTOCOMPILAZIONE
