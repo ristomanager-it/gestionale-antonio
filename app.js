@@ -4466,6 +4466,4 @@ window.addEventListener("hashchange", () => {
 
   console.log("✅ __prep pronto", window.__prep);
 
-}); // <-- QUESTA ERA GIÀ LÌ
-
-});
+}); 
