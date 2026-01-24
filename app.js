@@ -1137,8 +1137,8 @@ currentUser = null;
   // -----------------------------------------------------------
   // STATO
   // -----------------------------------------------------------
-  let prepProdotti = [];
-  let prepProdottoSelezionato = null;
+   prepProdotti = [];
+ prepProdottoSelezionato = null;
 
   // -----------------------------------------------------------
   // CARICAMENTO DATI
