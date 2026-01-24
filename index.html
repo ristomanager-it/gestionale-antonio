@@ -435,12 +435,34 @@
             </table>
           </div>
         </section>
-<!-- MAGAZZINO PREPARAZIONI -->
+<!-- MAGAZZINO PREPARAZIONI (SOLO LETTURA) -->
 <section id="view-magazzino-preparazioni" class="view" style="display:none">
   <h2>Magazzino Preparazioni</h2>
   <p>Prodotti lavorati disponibili (derivati dalla produzione)</p>
 
-  <div class="table-wrapper">
+  <!-- Ricerca -->
+  <input
+    id="prep-search"
+    class="input-pill"
+    placeholder="Cerca preparazione..."
+    autocomplete="off"
+  />
+
+  <!-- Suggerimenti autocomplete -->
+  <div
+    id="prep-suggestions"
+    class="autocomplete-box"
+    style="position: relative; z-index: 10;"
+  ></div>
+
+  <!-- Card prodotto selezionato -->
+  <div id="prep-card-singola" style="margin-top: 12px;"></div>
+
+  <!-- Dettaglio lotti -->
+  <div id="prep-dettaglio-lotti" style="margin-top: 12px;"></div>
+
+  <!-- (OPZIONALE) tabella riepilogo futura -->
+  <div class="table-wrapper" style="margin-top:16px; display:none">
     <table class="table-timbrature">
       <thead>
         <tr>
@@ -454,27 +476,6 @@
       <tbody id="magazzino-preparazioni-lista"></tbody>
     </table>
   </div>
-</section>
-<!-- MAGAZZINO PREPARAZIONI (SOLO LETTURA) -->
-<section
-  id="view-magazzino-preparazioni"
-  class="view"
-  style="display: none"
->
-  <h2>Magazzino Preparazioni</h2>
-
-  <input
-    id="prep-search"
-    class="input-pill"
-    placeholder="Cerca preparazione..."
-    autocomplete="off"
-  />
-
-  <!-- Card prodotto selezionato -->
-  <div id="prep-card-singola" style="margin-top: 12px;"></div>
-
-  <!-- Dettaglio lotti -->
-  <div id="prep-dettaglio-lotti" style="margin-top: 12px;"></div>
 </section>
 
         <!-- ACQUISTI / FATTURE -->
