@@ -2817,7 +2817,7 @@ function initRicettaOutput() {
   initRicettaOutput();
   caricaRicettaOutput();
 async function caricaRicettaInForm(id) {
-  ...
+
   aggiornaResaRicetta();
 
   // OUTPUT v2
