@@ -3009,35 +3009,47 @@ function initPrepAutocomplete() {
   const input = document.getElementById("prep-search");
   const box = document.getElementById("prep-suggestions");
 
-  if (!input || !box) return;
+  if (!input || !box) {
+    console.warn("prep-search o prep-suggestions non trovati");
+    return;
+  }
 
-  input.oninput = () => {
-    const q = input.value.trim().toLowerCase();
+  // rimuovo eventuali listener precedenti
+  input.replaceWith(input.cloneNode(true));
+
+  const newInput = document.getElementById("prep-search");
+
+  newInput.addEventListener("input", () => {
+    const q = newInput.value.trim().toLowerCase();
     box.innerHTML = "";
 
     resetPrepView();
 
-    if (!q || !prepProdotti.length) return;
+    if (!q) return;
 
-    prepProdotti
-      .filter((p) =>
-        p.nome_prodotto.toLowerCase().includes(q)
-      )
-      .slice(0, 8)
-      .forEach((p) => {
-        const div = document.createElement("div");
-        div.className = "prep-suggestion";
-        div.textContent = p.nome_prodotto;
+    const matches = prepProdotti.filter(p =>
+      p.nome_prodotto.toLowerCase().includes(q)
+    );
 
-        div.onclick = () => {
-          input.value = p.nome_prodotto;
-          box.innerHTML = "";
-          selezionaProdottoPrep(p);
-        };
+    if (!matches.length) {
+      box.innerHTML = `<div class="prep-suggestion">Nessun risultato</div>`;
+      return;
+    }
 
-        box.appendChild(div);
+    matches.slice(0, 8).forEach(p => {
+      const div = document.createElement("div");
+      div.className = "prep-suggestion";
+      div.textContent = p.nome_prodotto;
+
+      div.addEventListener("click", () => {
+        newInput.value = p.nome_prodotto;
+        box.innerHTML = "";
+        window.__prep.seleziona(p);
       });
-  };
+
+      box.appendChild(div);
+    });
+  });
 }
 
 // ---------- SELEZIONE ----------
