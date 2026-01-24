@@ -1,12 +1,18 @@
 // app.js
 
-// ================== COSTANTI GLOBALI ==================
+// ================== COSTANTI ==================
 const CURRENT_USER_KEY = "ga_current_user_v1";
 const THEME_KEY = "ga_theme_v1";
 
-// ================== VARIABILI GLOBALI =================
+// ================== VARIABILI GLOBALI ==================
 let supabase;
+
+// header
 let btnTheme;
+let btnLogout;
+let currentUserLabel;
+
+// ricette
 let ricettaIngredientiContainer;
 let ingredientiSuggestions;
 let btnAddIngrediente;
@@ -27,8 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- HEADER ----------
   btnTheme = document.getElementById("btn-theme");
-  const currentUserLabel = document.getElementById("current-user-label");
-  const btnLogout = document.getElementById("btn-logout");
+  btnLogout = document.getElementById("btn-logout");
+  currentUserLabel = document.getElementById("current-user-label");
 
   // ---------- LOGIN ----------
   const loginNomeInput = document.getElementById("login-nome");
@@ -57,6 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (ricettaNomeInput) {
     ricettaNomeInput.setAttribute("list", "ricette-suggestions");
   }
+
+ 
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
