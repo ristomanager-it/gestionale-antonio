@@ -1,24 +1,22 @@
 // app.js
-let btnTheme;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const supabase = window.supabaseClient;
-
-  const CURRENT_USER_KEY = "ga_current_user_v1";
+// ================== COSTANTI GLOBALI ==================
+const CURRENT_USER_KEY = "ga_current_user_v1";
 const THEME_KEY = "ga_theme_v1";
 
+// ================== VARIABILI GLOBALI =================
+let supabase;
+let btnTheme;
+let ricettaIngredientiContainer;
+let ingredientiSuggestions;
+let btnAddIngrediente;
 
-
-// ===========================================================
-// ================== DOMContentLoaded =======================
-// ===========================================================
-
+// ======================================================
+// ================== DOMContentLoaded ==================
+// ======================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Supabase globale
+  // Supabase
   supabase = window.supabaseClient;
-
-  const CURRENT_USER_KEY = "ga_current_user_v1";
-  const THEME_KEY = "ga_theme_v1";
 
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
@@ -28,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
   // ---------- HEADER ----------
-  const btnTheme = document.getElementById("btn-theme");
+  btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
@@ -38,10 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // ===========================================================
-  // ========== RICETTE (EDIT) =================================
-  // ===========================================================
-
+  // ===================================================
+  // ========== RICETTE (EDIT) =========================
+  // ===================================================
   const ricettaTipoSelect = document.getElementById("ricetta-tipo");
   const ricettaNomeInput = document.getElementById("ricetta-nome");
   const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
@@ -60,11 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (ricettaNomeInput) {
     ricettaNomeInput.setAttribute("list", "ricette-suggestions");
   }
-
-  // ⚠️ TUTTO IL RESTO DEL TUO CODICE
-  // (timbrature, magazzino, ricettario, viewer, ecc.)
-  // PUÒ RIMANERE IDENTICO SOTTO QUESTO BLOCCO
-});
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
