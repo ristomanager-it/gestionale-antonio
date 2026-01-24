@@ -4,6 +4,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
+// livello zero
+function initRicettaOutput() {
+  ...
+}
+
+// livello zero
+async function caricaRicettaOutput() {
+  ...
+}
+
+// livello zero
+async function apriEditorOutput() {
+  ...
+}
 
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
