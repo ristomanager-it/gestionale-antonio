@@ -1955,7 +1955,7 @@ currentUser = null;
   // -----------------------------------------------------------
   // EVENTI UI
   // -----------------------------------------------------------
-  const ricetteSearchInput =
+  ricetteSearchInput =
     document.getElementById("ricette-search");
 
   if (ricetteSearchInput) {
