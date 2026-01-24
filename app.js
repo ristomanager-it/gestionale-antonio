@@ -2374,9 +2374,6 @@ currentUser = null;
       um: "kg",
       giacenza: 0,
       scorta_minima: 5
-   
-};
-
 
   // ===========================================================
   // ========== 15. CONTROLLO PRODUCIBILITÀ RICETTA ============
