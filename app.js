@@ -327,7 +327,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // -----------------------------------------------------------
   // STATO SESSIONE
   // -----------------------------------------------------------
-  let currentUser = null;
+currentUser = null;
 
   // -----------------------------------------------------------
   // HEADER UTENTE
