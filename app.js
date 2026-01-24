@@ -132,10 +132,8 @@ if (ricetteSearchInput) {
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
-  // datalist ingredienti per ricette + prodotti fatture + magazzino descrizione
-ingredientiSuggestions = document.getElementById(
-    "ingredienti-suggestions"
-  );
+  
+   
 const navPreventivi = document.getElementById('nav-preventivi');
 if (navPreventivi) {
   navPreventivi.addEventListener('click', () => {
