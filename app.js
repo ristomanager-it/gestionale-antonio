@@ -4354,9 +4354,13 @@ async function caricaIngredientiDaRicette() {
     .not("nome_prodotto", "is", null);
 
   if (error) {
-    console.error("Errore caricamento suggerimenti da ricetta_ingredienti:", error);
-    return;
+    console.error("Errore caricamento ingredienti ricette", error);
+    return [];
   }
+
+  return data;
+}
+
 
   // Evito duplicati: prendo tutti i valori già presenti nel datalist
   const esistenti = new Set(
