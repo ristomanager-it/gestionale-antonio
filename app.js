@@ -2740,6 +2740,40 @@ btnSalvaRicetta.onclick = async () => {
 
   alert("Ricetta salvata correttamente");
 };
+// ===========================================================
+// ========== RICETTE: OUTPUT FINALE PREPARAZIONE =============
+// ===========================================================
+
+async function caricaRicettaOutput() {
+  if (!ricettaCorrenteId) return;
+
+  const container = document.getElementById("ricetta-output-body");
+  if (!container) return;
+
+  container.innerHTML = '<p class="muted">Caricamento...</p>';
+
+  const { data, error } = await supabase
+    .from("ricette_output")
+    .select("*")
+    .eq("ricetta_id", ricettaCorrenteId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    container.innerHTML = '<p class="error">Errore caricamento output</p>';
+    return;
+  }
+
+  if (!data) {
+    container.innerHTML = '<p class="muted">Nessun output configurato</p>';
+    return;
+  }
+
+  container.innerHTML = `
+    <p><strong>${data.peso_finale}</strong> ${data.unita_misura}</p>
+    ${data.note ? `<p class="muted">${data.note}</p>` : ""}
+  `;
+}
 
 // ===========================================================
 // ========== SCHEDA PRODUZIONE ==============================
