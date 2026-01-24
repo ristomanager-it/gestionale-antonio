@@ -3045,6 +3045,7 @@ function selezionaProdottoPrep(p) {
   prepProdottoSelezionato = p;
   renderPrepCard(p);
   renderPrepLotti(p);
+  window.selezionaProdottoPrep = selezionaProdottoPrep;
 }
 
 // ---------- RENDER ----------
