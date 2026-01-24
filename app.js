@@ -5,9 +5,7 @@ const CURRENT_USER_KEY = "ga_current_user_v1";
 const THEME_KEY = "ga_theme_v1";
 
 // ================== VARIABILI GLOBALI ==================
-let supabase;
-
-// header
+// ❌ NON dichiarare supabase qui (esiste già)
 let btnTheme;
 let btnLogout;
 let currentUserLabel;
@@ -21,8 +19,9 @@ let btnAddIngrediente;
 // ================== DOMContentLoaded ==================
 // ======================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Supabase
-  supabase = window.supabaseClient;
+  // ❗ usa quello già esistente
+  // (NON dichiarare, NON assegnare)
+  // supabase è già disponibile globalmente
 
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
@@ -63,8 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (ricettaNomeInput) {
     ricettaNomeInput.setAttribute("list", "ricette-suggestions");
   }
-
- 
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
