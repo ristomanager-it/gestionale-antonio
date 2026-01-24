@@ -2376,7 +2376,6 @@ currentUser = null;
       scorta_minima: 5
     }
 
-    {
       prodotto_id: 12,
       descrizione: "Farina 00",
       um: "kg",
