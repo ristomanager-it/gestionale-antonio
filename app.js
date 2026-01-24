@@ -4347,7 +4347,7 @@ async function caricaProdottiSuggerimentiIngredienti() {
 
   // 2) Poi: aggiungo anche i nomi ingredienti già usati in altre ricette (tabella ricetta_ingredienti)
   if (!supabase || !ingredientiSuggestions) return;
-
+async function caricaIngredientiDaRicette() {
   const { data, error } = await supabase
     .from("ricetta_ingredienti")
     .select("nome_prodotto")
