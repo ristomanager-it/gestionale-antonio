@@ -2774,6 +2774,56 @@ async function caricaRicettaOutput() {
     ${data.note ? `<p class="muted">${data.note}</p>` : ""}
   `;
 }
+async function apriEditorOutput() {
+  if (!ricettaCorrenteId) {
+    alert("Salva prima la ricetta");
+    return;
+  }
+
+  const peso = prompt("Peso finale preparazione (numero):");
+  if (peso === null) return;
+
+  const um = prompt("Unità di misura (g / kg / l):", "kg");
+  if (!um) return;
+
+  const note = prompt("Note (facoltative):", "");
+
+  const payload = {
+    ricetta_id: ricettaCorrenteId,
+    peso_finale: parseFloat(peso),
+    unita_misura: um,
+    note: note || null,
+  };
+
+  const { error } = await supabase
+    .from("ricette_output")
+    .upsert(payload, { onConflict: "ricetta_id" });
+
+  if (error) {
+    console.error(error);
+    alert("Errore salvataggio output");
+    return;
+  }
+
+  caricaRicettaOutput();
+}
+function initRicettaOutput() {
+  const btn = document.getElementById("btn-add-output");
+  if (!btn) return;
+
+  btn.onclick = apriEditorOutput;
+}
+  // 🔽 NUOVO: Output finale preparazione
+  initRicettaOutput();
+  caricaRicettaOutput();
+async function caricaRicettaInForm(id) {
+  ...
+  aggiornaResaRicetta();
+
+  // OUTPUT v2
+  initRicettaOutput();
+  caricaRicettaOutput();
+}
 
 // ===========================================================
 // ========== SCHEDA PRODUZIONE ==============================
