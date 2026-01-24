@@ -5,7 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
 
   const CURRENT_USER_KEY = "ga_current_user_v1";
-btnTheme = document.getElementById("btn-theme");
+const THEME_KEY = "ga_theme_v1";
+
 
 
 // ===========================================================
