@@ -2374,15 +2374,7 @@ currentUser = null;
       um: "kg",
       giacenza: 0,
       scorta_minima: 5
-    }
-const risultato = {
-  sotto_scorta: [
-    {
-      prodotto_id: 12,
-      nome: "Farina",
-      giacenza: 4
-    }
-  ]
+   
 };
 
 
