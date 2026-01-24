@@ -2375,8 +2375,8 @@ currentUser = null;
       giacenza: 0,
       scorta_minima: 5
     }
-  ],
-  sotto_scorta: [
+ 
+  sotto_scorta: [ ],
     {
       prodotto_id: 12,
       descrizione: "Farina 00",
