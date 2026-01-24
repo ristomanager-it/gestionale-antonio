@@ -955,13 +955,13 @@ currentUser = null;
   // RIFERIMENTI DOM
   // -----------------------------------------------------------
   produzioneRigheContainer = document.getElementById("produzione-righe");
-  const produzioneDataInput = document.getElementById("produzione-data");
-  const produzioneNoteInput = document.getElementById("produzione-note");
-  const produzioneLottoInput = document.getElementById("produzione-lotto");
-  const produzioneLuogoSelect = document.getElementById("produzione-luogo");
+  produzioneDataInput = document.getElementById("produzione-data");
+ produzioneNoteInput = document.getElementById("produzione-note");
+  produzioneLottoInput = document.getElementById("produzione-lotto");
+ produzioneLuogoSelect = document.getElementById("produzione-luogo");
 
-  const btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
-  const btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
+  btnAddRigaProduzione = document.getElementById("btn-add-riga-produzione");
+ btnSalvaSchedaProduzione = document.getElementById("btn-salva-scheda-produzione");
 
   // -----------------------------------------------------------
   // GENERAZIONE LOTTO
