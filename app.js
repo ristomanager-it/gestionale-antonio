@@ -178,10 +178,7 @@ let currentUser = null;
 let periodoCorrente = "oggi";
 // ---------- STATO MAGAZZINO PREPARAZIONI ----------
 let prepProdotti = [];
-let prepRicetteMap = {};
 let prepProdottoSelezionato = null;
-// esposizione debug (NON influisce sulla logica)
-window.prepProdotti = prepProdotti;
 
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
@@ -4177,47 +4174,57 @@ function initPrepAutocomplete() {
 function aggregaPreparazioni(movimenti) {
   const map = {};
 
-  movimenti.forEach((m) => {
-    const nome = m.nome_prodotto;
+  (movimenti || []).forEach((m) => {
+    // nome preparazione (OBBLIGATORIO)
+    const nome = (m.nome_prodotto || "").trim();
     if (!nome) return;
 
+    // inizializzo prodotto
     if (!map[nome]) {
       map[nome] = {
         nome_prodotto: nome,
-        unita_misura: m.unita_misura,
+        unita_misura: m.unita_misura || "",
         lotti: {},
+        giacenza_totale: 0,
       };
     }
 
-    const segno = m.tipo === "scarico" ? -1 : 1;
+    // segno movimento
+    let segno = 1;
+    if (m.tipo === "scarico") segno = -1;
+    if (m.tipo === "rettifica") segno = 1; // per sicurezza
 
-    if (!map[nome].lotti[m.lotto]) {
-      map[nome].lotti[m.lotto] = {
-        lotto: m.lotto,
-        luogo: m.luogo,
-        data_scadenza: m.data_scadenza,
+    const lottoKey = m.lotto || "SENZA LOTTO";
+
+    // inizializzo lotto
+    if (!map[nome].lotti[lottoKey]) {
+      map[nome].lotti[lottoKey] = {
+        lotto: lottoKey,
+        luogo: m.luogo || "",
+        data_scadenza: m.data_scadenza || null,
         giacenza: 0,
       };
     }
 
-    map[nome].lotti[m.lotto].giacenza +=
-      segno * Number(m.quantita);
+    const qta = Number(m.quantita) || 0;
+
+    // aggiorno giacenza lotto
+    map[nome].lotti[lottoKey].giacenza += segno * qta;
+
+    // aggiorno giacenza totale
+    map[nome].giacenza_totale += segno * qta;
   });
 
+  // trasformo in array + pulizia finale
   return Object.values(map)
     .map((p) => {
       p.lotti = Object.values(p.lotti)
         .filter((l) => l.giacenza !== 0)
-        .sort(
-          (a, b) =>
-            new Date(a.data_scadenza) -
-            new Date(b.data_scadenza)
-        );
-
-      p.giacenza_totale = p.lotti.reduce(
-        (s, l) => s + l.giacenza,
-        0
-      );
+        .sort((a, b) => {
+          if (!a.data_scadenza) return 1;
+          if (!b.data_scadenza) return -1;
+          return new Date(a.data_scadenza) - new Date(b.data_scadenza);
+        });
 
       return p;
     })
