@@ -130,10 +130,7 @@ if (ricetteSearchInput) {
   );
   const magazzinoGiacenzaInput = document.getElementById("magazzino-giacenza");
   const btnMagazzinoSalva = document.getElementById("btn-magazzino-salva");
-  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
-
-  
-   
+  const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");   
 const navPreventivi = document.getElementById('nav-preventivi');
 if (navPreventivi) {
   navPreventivi.addEventListener('click', () => {
