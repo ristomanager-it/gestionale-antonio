@@ -1349,9 +1349,9 @@ currentUser = null;
   // ========== 8. ACQUISTI / FATTURE ==========================
   // ===========================================================
 
-  let currentFatturaId = null;
-  let fornitoriCache = [];
-  let categorieCache = [];
+   currentFatturaId = null;
+   fornitoriCache = [];
+  categorieCache = [];
   function parseNumber(v) {
     const n = parseFloat(v);
     return isNaN(n) ? 0 : n;
