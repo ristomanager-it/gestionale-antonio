@@ -4247,10 +4247,9 @@ function handlePrepAutocomplete() {
   renderPrepSuggestions(matches);
 }
 
-// listener robusti
+// listener
 prepSearchInput.addEventListener("input", handlePrepAutocomplete);
-prepSearchInput.addEventListener("keyup", handlePrepAutocomplete);
-prepSearchInput.addEventListener("focus", handlePrepAutocomplete);
+
 
 function renderPrepSuggestions(lista) {
   prepSuggestionsEl.innerHTML = "";
