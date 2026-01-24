@@ -4174,16 +4174,34 @@ function initPrepAutocomplete() {
 /* =========================================================
    AGGREGAZIONE
 ========================================================= */
+function aggregaPreparazioni(movimenti) {
+  const map = {};
 
+  movimenti.forEach((m) => {
+    const nome = m.nome_prodotto;
+    if (!nome) return;
+
+    if (!map[nome]) {
+      map[nome] = {
+        nome_prodotto: nome,
+        unita_misura: m.unita_misura,
+        lotti: {},
+      };
+    }
+
+    const segno = m.tipo === "scarico" ? -1 : 1;
+
+    if (!map[nome].lotti[m.lotto]) {
       map[nome].lotti[m.lotto] = {
         lotto: m.lotto,
         luogo: m.luogo,
         data_scadenza: m.data_scadenza,
         giacenza: 0,
       };
+    }
 
-
-    map[nome].lotti[m.lotto].giacenza += segno * Number(m.quantita);
+    map[nome].lotti[m.lotto].giacenza +=
+      segno * Number(m.quantita);
   });
 
   return Object.values(map)
@@ -4192,7 +4210,8 @@ function initPrepAutocomplete() {
         .filter((l) => l.giacenza !== 0)
         .sort(
           (a, b) =>
-            new Date(a.data_scadenza) - new Date(b.data_scadenza)
+            new Date(a.data_scadenza) -
+            new Date(b.data_scadenza)
         );
 
       p.giacenza_totale = p.lotti.reduce(
@@ -4204,6 +4223,7 @@ function initPrepAutocomplete() {
     })
     .filter((p) => p.lotti.length > 0);
 }
+
 /* =========================================================
    AUTOCOMPLETE (VERSIONE DEFINITIVA)
 ========================================================= */
