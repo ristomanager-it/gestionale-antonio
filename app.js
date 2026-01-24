@@ -84,9 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ricettaNomeInput.setAttribute("list", "ricette-suggestions");
   }
 
-  // ⬇️ DA QUI IN POI INCOLLA / LASCIA
-  // TUTTO IL TUO CODICE ESISTENTE
-});
+ 
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
