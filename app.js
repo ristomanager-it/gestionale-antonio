@@ -188,7 +188,7 @@ if (ricetteSearchInput) {
   const btnMagazzinoNuovo = document.getElementById("btn-magazzino-nuovo");
 
   // datalist ingredienti per ricette + prodotti fatture + magazzino descrizione
-  const ingredientiSuggestions = document.getElementById(
+ingredientiSuggestions = document.getElementById(
     "ingredienti-suggestions"
   );
 const navPreventivi = document.getElementById('nav-preventivi');
