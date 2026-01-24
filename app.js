@@ -954,7 +954,7 @@ currentUser = null;
   // -----------------------------------------------------------
   // RIFERIMENTI DOM
   // -----------------------------------------------------------
-  const produzioneRigheContainer = document.getElementById("produzione-righe");
+  produzioneRigheContainer = document.getElementById("produzione-righe");
   const produzioneDataInput = document.getElementById("produzione-data");
   const produzioneNoteInput = document.getElementById("produzione-note");
   const produzioneLottoInput = document.getElementById("produzione-lotto");
