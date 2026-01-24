@@ -3045,8 +3045,11 @@ function selezionaProdottoPrep(p) {
   prepProdottoSelezionato = p;
   renderPrepCard(p);
   renderPrepLotti(p);
-  window.selezionaProdottoPrep = selezionaProdottoPrep;
 }
+
+// 👇 OBBLIGATORIO
+window.selezionaProdottoPrep = selezionaProdottoPrep;
+
 
 // ---------- RENDER ----------
 function renderPrepCard(p) {
