@@ -2375,14 +2375,14 @@ currentUser = null;
       giacenza: 0,
       scorta_minima: 5
     }
+sotto_scorta: [
+  {
+    prodotto_id: 12,
+    nome: "Farina",
+    giacenza: 4
+  }
+]
 
-      prodotto_id: 12,
-      descrizione: "Farina 00",
-      um: "kg",
-      giacenza: 8,
-      scorta_minima: 10
-    }
-  ]
 }
   // ===========================================================
   // ========== 15. CONTROLLO PRODUCIBILITÀ RICETTA ============
