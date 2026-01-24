@@ -4342,24 +4342,24 @@ function formatData(d) {
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
 async function caricaProdottiSuggerimentiIngredienti() {
-  // guardia difensiva: la variabile deve esistere
+  // guardia difensiva
   if (!Array.isArray(window.magazzinoDati)) {
     window.magazzinoDati = [];
   }
 
-  // 1) Prima: riempio il datalist con i prodotti di magazzino
+  if (!ingredientiSuggestions) return;
+
+  // 1) Prodotti da magazzino
   if (!magazzinoDati.length) {
     await caricaCategorieInCache();
-    await caricaMagazzinoDati(); // questa chiama aggiornaIngredientiSuggestionsDaMagazzino()
+    await caricaMagazzinoDati(); // chiama aggiornaIngredientiSuggestionsDaMagazzino()
   } else {
     aggiornaIngredientiSuggestionsDaMagazzino();
   }
-}
 
+  // 2) Ingredienti già usati in altre ricette
+  if (!supabase) return;
 
-  // 2) Poi: aggiungo anche i nomi ingredienti già usati in altre ricette (tabella ricetta_ingredienti)
-  if (!supabase || !ingredientiSuggestions) return;
-async function caricaIngredientiDaRicette() {
   const { data, error } = await supabase
     .from("ricetta_ingredienti")
     .select("nome_prodotto")
@@ -4367,14 +4367,10 @@ async function caricaIngredientiDaRicette() {
 
   if (error) {
     console.error("Errore caricamento ingredienti ricette", error);
-    return [];
+    return;
   }
 
-  return data;
-}
-
-
-  // Evito duplicati: prendo tutti i valori già presenti nel datalist
+  // Evito duplicati
   const esistenti = new Set(
     Array.from(ingredientiSuggestions.querySelectorAll("option"))
       .map((opt) => (opt.value || "").toLowerCase().trim())
@@ -4384,6 +4380,7 @@ async function caricaIngredientiDaRicette() {
   (data || []).forEach((row) => {
     const nome = (row.nome_prodotto || "").trim();
     if (!nome) return;
+
     const key = nome.toLowerCase();
     if (esistenti.has(key)) return;
 
@@ -4393,7 +4390,6 @@ async function caricaIngredientiDaRicette() {
     ingredientiSuggestions.appendChild(opt);
   });
 }
-
 
  // ========= ROUTING =========
 
