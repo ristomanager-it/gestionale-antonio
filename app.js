@@ -1,9 +1,4 @@
 // app.js
-document.addEventListener("DOMContentLoaded", () => {
-  const supabase = window.supabaseClient;
-
-  const CURRENT_USER_KEY = "ga_current_user_v1";
-  const THEME_KEY = "ga_theme_v1";
 // livello zero
 function initRicettaOutput() {
   ...
@@ -18,6 +13,12 @@ async function caricaRicettaOutput() {
 async function apriEditorOutput() {
   ...
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const supabase = window.supabaseClient;
+
+  const CURRENT_USER_KEY = "ga_current_user_v1";
+  const THEME_KEY = "ga_theme_v1";
+
 
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
