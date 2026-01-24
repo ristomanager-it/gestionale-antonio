@@ -784,6 +784,87 @@
             >
               Salva ricetta
             </button>
+            <hr style="margin:30px 0;">
+
+<h3>Configurazione Produzione & Conservazione</h3>
+
+<!-- OUTPUT FINALE -->
+<section class="card" id="card-ricetta-output">
+  <header class="card-header">
+    <h4>Output finale preparazione</h4>
+    <button type="button" id="btn-add-output" class="app-button small gray">
+      Aggiungi / Modifica
+    </button>
+  </header>
+  <div class="card-body" id="ricetta-output-body">
+    <p class="muted">Nessun output configurato</p>
+  </div>
+</section>
+
+<!-- PORZIONI -->
+<section class="card" id="card-ricetta-porzioni">
+  <header class="card-header">
+    <h4>Porzioni / Formati</h4>
+    <button type="button" id="btn-add-porzione" class="app-button small gray">
+      + Aggiungi porzione
+    </button>
+  </header>
+
+  <div class="card-body">
+    <table class="table" id="table-porzioni">
+      <thead>
+        <tr>
+          <th>Contesto</th>
+          <th>Peso</th>
+          <th>UM</th>
+          <th>Attiva</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- COTTURA -->
+<section class="card" id="card-ricetta-cottura">
+  <header class="card-header">
+    <h4>Tecnologia di cottura</h4>
+    <button type="button" id="btn-edit-cottura" class="app-button small gray">
+      Modifica
+    </button>
+  </header>
+  <div class="card-body" id="ricetta-cottura-body">
+    <p class="muted">Non specificata</p>
+  </div>
+</section>
+
+<!-- CONSERVAZIONE -->
+<section class="card" id="card-ricetta-conservazione">
+  <header class="card-header">
+    <h4>Conservazione & Shelf life</h4>
+    <button type="button" id="btn-add-conservazione" class="app-button small gray">
+      + Aggiungi scenario
+    </button>
+  </header>
+
+  <div class="card-body">
+    <table class="table" id="table-conservazione">
+      <thead>
+        <tr>
+          <th>Abbattimento</th>
+          <th>Confezionamento</th>
+          <th>Trattamento</th>
+          <th>Shelf life (gg)</th>
+          <th>Temp.</th>
+          <th>Attivo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
           </form>
         </section>
 
