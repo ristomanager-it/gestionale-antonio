@@ -5,13 +5,7 @@
 // ======================= GLOBALI ===========================
 let supabase;
 
-// Ricette
-let ricettaIngredientiContainer;
-let ingredientiSuggestions;
-let btnAddIngrediente;
 
-
-let ricettaFotoCorrenteUrl = null;
 
 // ===========================================================
 // ========== RICETTE: OUTPUT FINALE PREPARAZIONE =============
