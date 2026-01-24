@@ -4330,13 +4330,20 @@ function formatData(d) {
 
  // ========= SUPPORTO RICETTE: CARICARE SUGGERIMENTI INGREDIENTI =========
 async function caricaProdottiSuggerimentiIngredienti() {
+  // guardia difensiva: la variabile deve esistere
+  if (!Array.isArray(window.magazzinoDati)) {
+    window.magazzinoDati = [];
+  }
+
   // 1) Prima: riempio il datalist con i prodotti di magazzino
   if (!magazzinoDati.length) {
     await caricaCategorieInCache();
-    await caricaMagazzinoDati(); // questo già chiama aggiornaIngredientiSuggestionsDaMagazzino()
+    await caricaMagazzinoDati(); // questa chiama aggiornaIngredientiSuggestionsDaMagazzino()
   } else {
     aggiornaIngredientiSuggestionsDaMagazzino();
   }
+}
+
 
   // 2) Poi: aggiungo anche i nomi ingredienti già usati in altre ricette (tabella ricetta_ingredienti)
   if (!supabase || !ingredientiSuggestions) return;
