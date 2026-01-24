@@ -3014,13 +3014,15 @@ function initPrepAutocomplete() {
     return;
   }
 
-  // rimuovo eventuali listener precedenti
-  input.replaceWith(input.cloneNode(true));
+  // reset visivo
+  input.value = "";
+  box.innerHTML = "";
 
-  const newInput = document.getElementById("prep-search");
+  // rimuovo eventuale handler precedente
+  input.oninput = null;
 
-  newInput.addEventListener("input", () => {
-    const q = newInput.value.trim().toLowerCase();
+  input.oninput = () => {
+    const q = input.value.trim().toLowerCase();
     box.innerHTML = "";
 
     resetPrepView();
@@ -3032,7 +3034,8 @@ function initPrepAutocomplete() {
     );
 
     if (!matches.length) {
-      box.innerHTML = `<div class="prep-suggestion">Nessun risultato</div>`;
+      box.innerHTML =
+        `<div class="prep-suggestion">Nessun risultato</div>`;
       return;
     }
 
@@ -3041,16 +3044,18 @@ function initPrepAutocomplete() {
       div.className = "prep-suggestion";
       div.textContent = p.nome_prodotto;
 
-      div.addEventListener("click", () => {
-        newInput.value = p.nome_prodotto;
+      div.onclick = () => {
+        input.value = p.nome_prodotto;
         box.innerHTML = "";
-        window.__prep.seleziona(p);
-      });
+        renderPrepCard(p);
+        renderPrepLotti(p);
+      };
 
       box.appendChild(div);
     });
-  });
+  };
 }
+
 
 // ---------- SELEZIONE ----------
 function selezionaProdottoPrep(p) {
