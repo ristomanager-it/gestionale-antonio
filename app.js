@@ -2285,10 +2285,8 @@ currentUser = null;
     }
 
     return {
-      ricetta_id: ricettaId,
-      costo_totale: costoTotale,
-      dettaglio
-    };
-  }
+  ricetta_id: ricettaId,
+  costo_totale: costoTotale,
+  dettaglio
+};
 }
-});
