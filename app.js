@@ -1,17 +1,14 @@
 // app.js
 // livello zero
 function initRicettaOutput() {
-  ...
 }
 
 // livello zero
 async function caricaRicettaOutput() {
-  ...
 }
 
 // livello zero
 async function apriEditorOutput() {
-  ...
 }
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
