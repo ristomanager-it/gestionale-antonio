@@ -1,21 +1,99 @@
-// app.js
-// livello zero
+// ===========================================================
+// ======================= app.js ============================
+// ===========================================================
+
+// ======================= GLOBALI ===========================
+let supabase;
+
+// Ricette
+let ricettaIngredientiContainer;
+let ingredientiSuggestions;
+let btnAddIngrediente;
+
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+
+// ===========================================================
+// ========== RICETTE: OUTPUT FINALE PREPARAZIONE =============
+// ===========================================================
+
 function initRicettaOutput() {
+  const btn = document.getElementById("btn-add-output");
+  if (!btn) return;
+  btn.onclick = apriEditorOutput;
 }
 
-// livello zero
 async function caricaRicettaOutput() {
+  if (!supabase || !ricettaCorrenteId) return;
+
+  const container = document.getElementById("ricetta-output-body");
+  if (!container) return;
+
+  container.innerHTML = "<em>Caricamento...</em>";
+
+  const { data, error } = await supabase
+    .from("ricette_output")
+    .select("*")
+    .eq("ricetta_id", ricettaCorrenteId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Errore output ricetta:", error);
+    container.innerHTML = "<em>Errore caricamento</em>";
+    return;
+  }
+
+  if (!data) {
+    container.innerHTML = "<em>Nessun output configurato</em>";
+    return;
+  }
+
+  container.innerHTML = `
+    <strong>${data.peso_finale}</strong> ${data.unita_misura}
+    ${data.note ? `<div style="font-size:12px;color:#6b7280;">${data.note}</div>` : ""}
+  `;
 }
 
-// livello zero
 async function apriEditorOutput() {
+  if (!supabase || !ricettaCorrenteId) {
+    alert("Salva prima la ricetta");
+    return;
+  }
+
+  const peso = prompt("Peso finale preparazione:");
+  if (!peso) return;
+
+  const um = prompt("Unità di misura (kg, g, l):", "kg");
+  if (!um) return;
+
+  const note = prompt("Note (facoltative):", "");
+
+  const { error } = await supabase.from("ricette_output").upsert({
+    ricetta_id: ricettaCorrenteId,
+    peso_finale: Number(peso),
+    unita_misura: um,
+    note: note || null,
+  });
+
+  if (error) {
+    console.error("Errore salvataggio output:", error);
+    alert("Errore salvataggio output");
+    return;
+  }
+
+  caricaRicettaOutput();
 }
+
+// ===========================================================
+// ================== DOMContentLoaded =======================
+// ===========================================================
+
 document.addEventListener("DOMContentLoaded", () => {
-  const supabase = window.supabaseClient;
+  // Supabase globale
+  supabase = window.supabaseClient;
 
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
-
 
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
@@ -24,108 +102,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
-
-  // header
+  // ---------- HEADER ----------
   const btnTheme = document.getElementById("btn-theme");
   const currentUserLabel = document.getElementById("current-user-label");
   const btnLogout = document.getElementById("btn-logout");
 
-  // login
+  // ---------- LOGIN ----------
   const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
   const loginRememberInput = document.getElementById("login-remember");
   const btnLogin = document.getElementById("btn-login");
 
-  // timbratura
-  const timbUtenteNomeEl = document.getElementById("timbratura-utente-nome");
-  const timbCanaleSelect = document.getElementById("timbratura-canale-select");
-  const btnEntra = document.getElementById("btn-entra");
-  const btnPausa = document.getElementById("btn-pausa");
-  const btnEsci = document.getElementById("btn-esci");
+  // ===========================================================
+  // ========== RICETTE (EDIT) =================================
+  // ===========================================================
 
-  const periodoSelect = document.getElementById("timbratura-periodo");
-  const lista = document.getElementById("timbratura-lista");
-  const riepilogoDipEl = document.getElementById("riepilogo-dipendenti");
-  const riepilogoCanaliEl = document.getElementById("riepilogo-canali");
-  const costoDipEl = document.getElementById("costo-dipendenti");
-  const costoCanaliEl = document.getElementById("costo-canali");
-  const attiviListaEl = document.getElementById("attivi-lista");
+  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
+  const ricettaNomeInput = document.getElementById("ricetta-nome");
+  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+  const ricettaNoteInput = document.getElementById("ricetta-note");
+  const ricettaFotoInput = document.getElementById("ricetta-foto");
 
-  const btnToggleTimbrature = document.getElementById("btn-toggle-timbrature");
-  const sezioneTimbratureDettaglio = document.getElementById(
-    "sezione-timbrature-dettaglio"
-  );
+  ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
+  ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
+  btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
-  // presenze (stato dipendenti) - solo manager/admin
-  const presenzeListaEl = document.getElementById("presenze-lista");
-  const btnTogglePresenze = document.getElementById("btn-toggle-presenze");
-  const sezionePresenzeEl = document.getElementById("sezione-presenze");
+  if (btnAddIngrediente) {
+    btnAddIngrediente.onclick = () => creaRigaIngrediente();
+  }
 
-  // anagrafica dipendenti
-  const dipNome = document.getElementById("dip-nome");
-  const dipMansione = document.getElementById("dip-mansione");
-  const dipDataNascita = document.getElementById("dip-data-nascita");
-  const dipResidenza = document.getElementById("dip-residenza");
-  const dipTelefono = document.getElementById("dip-telefono");
-  const dipEmail = document.getElementById("dip-email");
-  const dipRuolo = document.getElementById("dip-ruolo");
+  if (ricettaNomeInput) {
+    ricettaNomeInput.setAttribute("list", "ricette-suggestions");
+  }
 
-  const dipTipoCompenso = document.getElementById("dip-tipo-compenso");
-  const dipRetribuzioneBase = document.getElementById("dip-retribuzione-base");
-  const dipOreMensili = document.getElementById("dip-ore-mensili");
-  const dipOreServizio = document.getElementById("dip-ore-servizio");
-  const dipCosto = document.getElementById("dip-costo");
-  const rowOreMensili = document.getElementById("row-ore-mensili");
-  const rowOreServizio = document.getElementById("row-ore-servizio");
-  const labelRetribuzione = document.getElementById("label-retribuzione-base");
-
-  const dipCodice = document.getElementById("dip-codice");
-  const dipCanale = document.getElementById("dip-canale");
-  const dipAttivo = document.getElementById("dip-attivo");
-  const btnAddDip = document.getElementById("btn-add-dip");
-  const dipLista = document.getElementById("dipendenti-lista");
-
-
-
-// ===========================================================
-// ========== RICETTE (EDIT) =================================
-// ===========================================================
-const ricettaTipoSelect = document.getElementById("ricetta-tipo");
-const ricettaNomeInput = document.getElementById("ricetta-nome");
-const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-const ricettaNoteInput = document.getElementById("ricetta-note");
-const ricettaFotoInput = document.getElementById("ricetta-foto");
-const ricettaIngredientiContainer = document.getElementById(
-  "ricetta-ingredienti-container"
-);
-
-const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
-
-const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
-const ricettaFormato1LabelInput = document.getElementById(
-  "ricetta-formato1-label"
-);
-const ricettaFormato1PercInput = document.getElementById(
-  "ricetta-formato1-percent"
-);
-const ricettaFormato2LabelInput = document.getElementById(
-  "ricetta-formato2-label"
-);
-const ricettaFormato2PercInput = document.getElementById(
-  "ricetta-formato2-percent"
-);
-const ricettaFormato1PezziOut = document.getElementById(
-  "ricetta-formato1-pezzi"
-);
-const ricettaFormato2PezziOut = document.getElementById(
-  "ricetta-formato2-pezzi"
-);
-
-// 🔗 COLLEGAMENTO INPUT RICETTA → DATALIST GLOBALE
-if (ricettaNomeInput) {
-  ricettaNomeInput.setAttribute("list", "ricette-suggestions");
-}
+  // ⚠️ TUTTO IL RESTO DEL TUO CODICE
+  // (timbrature, magazzino, ricettario, viewer, ecc.)
+  // PUÒ RIMANERE IDENTICO SOTTO QUESTO BLOCCO
+});
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
