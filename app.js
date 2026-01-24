@@ -4452,4 +4452,20 @@ window.addEventListener("hashchange", () => {
   }
 
   init();
+    // ===============================
+  // DEBUG / ESPOSIZIONE PREP SU WINDOW
+  // ===============================
+  window.__prep = window.__prep || {};
+
+  window.__prep.getProdotti = () => prepProdotti;
+  window.__prep.seleziona = (p) => {
+    prepProdottoSelezionato = p;
+    renderPrepCard(p);
+    renderPrepLotti(p);
+  };
+
+  console.log("✅ __prep pronto", window.__prep);
+
+}); // <-- QUESTA ERA GIÀ LÌ
+
 });
