@@ -2290,5 +2290,3 @@ currentUser = null;
       dettaglio
     };
   }
-
- 
