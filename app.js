@@ -10,7 +10,7 @@ let ricettaIngredientiContainer;
 let ingredientiSuggestions;
 let btnAddIngrediente;
 
-let ricettaCorrenteId = null;
+
 let ricettaFotoCorrenteUrl = null;
 
 // ===========================================================
