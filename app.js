@@ -2290,3 +2290,4 @@ currentUser = null;
       dettaglio
     };
   }
+}
