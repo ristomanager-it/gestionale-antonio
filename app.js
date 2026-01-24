@@ -2375,7 +2375,7 @@ currentUser = null;
       giacenza: 0,
       scorta_minima: 5
     }
-return {
+const risultato = {
   sotto_scorta: [
     {
       prodotto_id: 12,
@@ -2384,6 +2384,7 @@ return {
     }
   ]
 };
+
 
   // ===========================================================
   // ========== 15. CONTROLLO PRODUCIBILITÀ RICETTA ============
