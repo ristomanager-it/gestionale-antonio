@@ -1,41 +1,34 @@
 // app.js
-
-// ================== COSTANTI ==================
-const CURRENT_USER_KEY = "ga_current_user_v1";
-const THEME_KEY = "ga_theme_v1";
-
-// ================== VARIABILI GLOBALI ==================
-// ❌ NON dichiarare supabase qui (esiste già)
-let btnTheme;
-let btnLogout;
-let currentUserLabel;
-
-// ricette
-let ricettaIngredientiContainer;
-let ingredientiSuggestions;
-let btnAddIngrediente;
-
-// ======================================================
-// ================== DOMContentLoaded ==================
-// ======================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // ❗ usa quello già esistente
-  // (NON dichiarare, NON assegnare)
-  // supabase è già disponibile globalmente
 
-  // ---------- DOM COMMON / ROUTING ----------
+  // ======================
+  // CONFIG / COSTANTI
+  // ======================
+  const CURRENT_USER_KEY = "ga_current_user_v1";
+  const THEME_KEY = "ga_theme_v1";
+
+  // supabase è già globale (caricato prima)
+  const supabase = window.supabaseClient;
+
+  // ======================
+  // DOM COMMON / ROUTING
+  // ======================
   const views = Array.from(document.querySelectorAll(".view"));
   const loginView = document.getElementById("view-login");
   const homeDipView = document.getElementById("view-home-dip");
   const managerMenu = document.getElementById("manager-menu");
   const routeButtons = Array.from(document.querySelectorAll("[data-route]"));
 
-  // ---------- HEADER ----------
-  btnTheme = document.getElementById("btn-theme");
-  btnLogout = document.getElementById("btn-logout");
-  currentUserLabel = document.getElementById("current-user-label");
+  // ======================
+  // HEADER
+  // ======================
+  const btnTheme = document.getElementById("btn-theme");
+  const btnLogout = document.getElementById("btn-logout");
+  const currentUserLabel = document.getElementById("current-user-label");
 
-  // ---------- LOGIN ----------
+  // ======================
+  // LOGIN
+  // ======================
   const loginNomeInput = document.getElementById("login-nome");
   const loginPinInput = document.getElementById("login-pin");
   const loginRememberInput = document.getElementById("login-remember");
@@ -50,18 +43,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const ricettaNoteInput = document.getElementById("ricetta-note");
   const ricettaFotoInput = document.getElementById("ricetta-foto");
 
-  ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
-  ingredientiSuggestions = document.getElementById("ingredienti-suggestions");
-  btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+  const ricettaIngredientiContainer =
+    document.getElementById("ricetta-ingredienti-container");
+  const ingredientiSuggestions =
+    document.getElementById("ingredienti-suggestions");
+  const btnAddIngrediente =
+    document.getElementById("btn-add-ingrediente");
+  const btnSalvaRicetta =
+    document.getElementById("btn-salva-ricetta");
 
+  // ======================
+  // FUNZIONI (TUTTE QUI)
+  // ======================
+  function creaRigaIngrediente(initial = {}) {
+    if (!ricettaIngredientiContainer) return;
+
+    const row = document.createElement("div");
+    row.className = "ricetta-ingrediente-row";
+    row.innerHTML = `
+      <input type="text" class="ingrediente-nome" placeholder="Ingrediente" />
+      <input type="number" class="ingrediente-quantita" placeholder="Q.tà" />
+      <input type="text" class="ingrediente-unita" placeholder="UM" />
+      <button type="button" class="btn-del-ingrediente">✕</button>
+    `;
+
+    row.querySelector(".btn-del-ingrediente").onclick = () => row.remove();
+    ricettaIngredientiContainer.appendChild(row);
+  }
+
+  // ======================
+  // EVENTI
+  // ======================
   if (btnAddIngrediente) {
-    btnAddIngrediente.onclick = () => creaRigaIngrediente();
+    btnAddIngrediente.addEventListener("click", () => {
+      creaRigaIngrediente();
+    });
   }
 
   if (ricettaNomeInput) {
     ricettaNomeInput.setAttribute("list", "ricette-suggestions");
   }
+
+  // ⬇️ DA QUI IN POI INCOLLA / LASCIA
+  // TUTTO IL TUO CODICE ESISTENTE
+});
 
 // ===========================================================
 // ========== RICERCA RICETTARIO ===============================
