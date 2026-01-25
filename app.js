@@ -2984,6 +2984,138 @@ async function caricaRicettaInForm(ricettaId) {
 
   aggiornaResaRicetta();
 }
+// =======================================================
+// RICETTE – CONSERVAZIONE & SHELF LIFE (SCENARI MULTIPLI)
+// =======================================================
+
+// ---------- 1. CARICAMENTO TABELLA CONSERVAZIONE ----------
+async function caricaConservazioneRicetta(ricettaId) {
+  if (!supabase || !ricettaId) return;
+
+  const tbody = document.querySelector("#table-conservazione tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  const { data, error } = await supabase
+    .from("ricette_conservazione")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .order("id", { ascending: false });
+
+  if (error) {
+    console.error("Errore caricamento conservazione:", error);
+    tbody.innerHTML = `<tr><td colspan="7">Errore caricamento</td></tr>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="muted">Nessuno scenario configurato</td>
+      </tr>`;
+    return;
+  }
+
+  data.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${row.abbattimento}</td>
+      <td>${row.confezionamento}</td>
+      <td>${row.trattamento}</td>
+      <td>${row.shelf_life_giorni}</td>
+      <td>${row.temperatura_conservazione ?? "-"}</td>
+      <td style="text-align:center;">
+        <input
+          type="radio"
+          name="conservazione-attiva"
+          ${row.attivo ? "checked" : ""}
+          data-id="${row.id}"
+        />
+      </td>
+      <td></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  // radio: imposta scenario attivo
+  tbody.querySelectorAll("input[type=radio]").forEach((radio) => {
+    radio.addEventListener("change", async () => {
+      await impostaConservazioneAttiva(radio.dataset.id, ricettaId);
+    });
+  });
+}
+
+// ---------- 2. IMPOSTA SCENARIO ATTIVO ----------
+async function impostaConservazioneAttiva(conservazioneId, ricettaId) {
+  if (!supabase) return;
+
+  // disattiva tutti
+  await supabase
+    .from("ricette_conservazione")
+    .update({ attivo: false })
+    .eq("ricetta_id", ricettaId);
+
+  // attiva selezionato
+  const { error } = await supabase
+    .from("ricette_conservazione")
+    .update({ attivo: true })
+    .eq("id", conservazioneId);
+
+  if (error) {
+    console.error("Errore aggiornamento conservazione attiva:", error);
+  }
+}
+
+// ---------- 3. AGGIUNTA NUOVO SCENARIO ----------
+async function aggiungiScenarioConservazione(ricettaId) {
+  if (!supabase || !ricettaId) return;
+
+  const payload = {
+    ricetta_id: ricettaId,
+    abbattimento: "Nessuno",
+    confezionamento: "ATM",
+    trattamento: "Nessuno",
+    shelf_life_giorni: 5,
+    temperatura_conservazione: 4,
+    attivo: false,
+  };
+
+  const { error } = await supabase
+    .from("ricette_conservazione")
+    .insert(payload);
+
+  if (error) {
+    console.error("Errore aggiunta scenario conservazione:", error);
+    alert("Errore aggiunta conservazione");
+    return;
+  }
+
+  await caricaConservazioneRicetta(ricettaId);
+}
+
+// ---------- 4. HOOK PULSANTE + INTEGRAZIONE FORM ----------
+
+// bottone "+ Aggiungi scenario"
+const btnAddConservazione = document.getElementById("btn-add-conservazione");
+if (btnAddConservazione) {
+  btnAddConservazione.addEventListener("click", () => {
+    if (!ricettaCorrenteId) {
+      alert("Salva prima la ricetta");
+      return;
+    }
+    aggiungiScenarioConservazione(ricettaCorrenteId);
+  });
+}
+
+// AGGIUNTA AUTOMATICA AL CARICAMENTO RICETTA
+const _caricaRicettaInFormOriginale = caricaRicettaInForm;
+caricaRicettaInForm = async function (ricettaId) {
+  await _caricaRicettaInFormOriginale(ricettaId);
+  await caricaConservazioneRicetta(ricettaId);
+};
 
 // ========= RICETTE: CAMBIO NOME RICETTA (AUTOCOMPILAZIONE) =========
 // Quando cambia il campo "Nome ricetta" nell'editor:
