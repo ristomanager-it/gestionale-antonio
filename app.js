@@ -5563,4 +5563,27 @@ case "magazzino-preparazioni":
   }
 
   init();
+  function showView(route) {
+  document.querySelectorAll(".view").forEach(v => {
+    v.style.display = "none";
+  });
+
+  const target = document.getElementById(`view-${route}`);
+  if (target) {
+    target.style.display = "block";
+  }
+}
+
+// gestione hash
+window.addEventListener("hashchange", () => {
+  const route = location.hash.replace("#", "");
+  if (route) showView(route);
 });
+
+// fallback iniziale
+document.addEventListener("DOMContentLoaded", () => {
+  if (location.hash) {
+    showView(location.hash.replace("#", ""));
+  }
+});
+
