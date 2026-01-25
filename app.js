@@ -169,6 +169,220 @@ let currentFatturaId = null;
 let fornitoriCache = [];
 let categorieCache = [];
 let magazzinoDati = [];
+// ===========================================================
+// ========== MAGAZZINO PREPARAZIONI (SOLO LETTURA) ===========
+// ===========================================================
+
+// ---------- STATO ----------
+let prepProdotti = [];
+let prepProdottoSelezionato = null;
+
+// ---------- CARICAMENTO ----------
+async function caricaMagazzinoPreparazioni() {
+  if (!supabase) return;
+
+  resetPrepView();
+  prepProdotti = [];
+
+  const { data: movimenti, error } = await supabase
+    .from("magazzino_produzione_movimenti")
+    .select(`
+      nome_prodotto,
+      lotto,
+      data_scadenza,
+      luogo,
+      tipo,
+      quantita,
+      unita_misura
+    `)
+    .eq("riferimento_tipo", "produzione");
+
+  if (error) {
+    console.error("Errore magazzino preparazioni:", error);
+    return;
+  }
+
+  // 👉 QUI: AGGREGAZIONE DATI
+  prepProdotti = aggregaPreparazioni(movimenti);
+
+  console.log("PREP PRODOTTI:", prepProdotti);
+
+  // 👉 QUI: AUTOCOMPLETE (PUNTO GIUSTO)
+  initPrepAutocomplete();
+}
+
+// ---------- AGGREGAZIONE ----------
+function aggregaPreparazioni(movimenti) {
+  const map = {};
+
+  (movimenti || []).forEach((m) => {
+    const nome = (m.nome_prodotto || "").trim();
+    if (!nome) return;
+
+    if (!map[nome]) {
+      map[nome] = {
+        nome_prodotto: nome,
+        unita_misura: m.unita_misura || "",
+        lotti: {},
+      };
+    }
+
+    const segno = m.tipo === "scarico" ? -1 : 1;
+    const lottoKey = m.lotto || "SENZA LOTTO";
+
+    if (!map[nome].lotti[lottoKey]) {
+      map[nome].lotti[lottoKey] = {
+        lotto: lottoKey,
+        luogo: m.luogo || "",
+        data_scadenza: m.data_scadenza,
+        giacenza: 0,
+      };
+    }
+
+    map[nome].lotti[lottoKey].giacenza +=
+      segno * Number(m.quantita || 0);
+  });
+
+  return Object.values(map)
+    .map((p) => {
+      p.lotti = Object.values(p.lotti)
+        .filter((l) => l.giacenza > 0)
+        .sort(
+          (a, b) =>
+            new Date(a.data_scadenza) -
+            new Date(b.data_scadenza)
+        );
+
+      p.giacenza_totale = p.lotti.reduce(
+        (s, l) => s + l.giacenza,
+        0
+      );
+
+      return p;
+    })
+    .filter((p) => p.giacenza_totale > 0);
+}
+
+// ---------- AUTOCOMPLETE (VERSIONE FUNZIONANTE) ----------
+function initPrepAutocomplete() {
+  const input = document.getElementById("prep-search");
+  const box = document.getElementById("prep-suggestions");
+
+  if (!input || !box) {
+    console.warn("prep-search o prep-suggestions non trovati");
+    return;
+  }
+
+  // reset visivo
+  input.value = "";
+  box.innerHTML = "";
+
+  // IMPORTANTISSIMO: niente clone
+  input.oninput = null;
+
+  input.oninput = () => {
+    const q = input.value.trim().toLowerCase();
+    box.innerHTML = "";
+
+    resetPrepView();
+
+    if (!q || prepProdotti.length === 0) return;
+
+    const matches = prepProdotti.filter(p =>
+      p.nome_prodotto.toLowerCase().includes(q)
+    );
+
+    if (!matches.length) {
+      box.innerHTML =
+        `<div class="prep-suggestion">Nessun risultato</div>`;
+      return;
+    }
+
+    matches.slice(0, 8).forEach(p => {
+      const div = document.createElement("div");
+      div.className = "prep-suggestion";
+      div.textContent = p.nome_prodotto;
+
+      div.onclick = () => {
+        input.value = p.nome_prodotto;
+        box.innerHTML = "";
+        renderPrepCard(p);
+        renderPrepLotti(p);
+      };
+
+      box.appendChild(div);
+    });
+  };
+}
+
+// ---------- RENDER ----------
+function renderPrepCard(p) {
+  const box = document.getElementById("prep-card-singola");
+  if (!box) return;
+
+  box.innerHTML = `
+    <div class="prep-card">
+      <h3>${p.nome_prodotto}</h3>
+      <p>
+        Giacenza totale:
+        <strong>${p.giacenza_totale.toFixed(2)} ${p.unita_misura}</strong>
+      </p>
+    </div>
+  `;
+}
+
+function renderPrepLotti(p) {
+  const box = document.getElementById("prep-dettaglio-lotti");
+  if (!box) return;
+
+  box.innerHTML = `<h3>📦 Lotti disponibili</h3>`;
+
+  p.lotti.forEach((l) => {
+    const stato = statoScadenza(l.data_scadenza);
+
+    box.innerHTML += `
+      <div class="prep-lotto">
+        <strong>Lotto:</strong> ${l.lotto}<br>
+        <strong>Luogo:</strong> ${l.luogo}<br>
+        <strong>Scadenza:</strong>
+        <span class="${stato.classe}">
+          ${formatData(l.data_scadenza)} ${stato.label}
+        </span><br>
+        <strong>Giacenza:</strong>
+        ${l.giacenza.toFixed(2)} ${p.unita_misura}
+      </div>
+    `;
+  });
+}
+
+// ---------- UTILS ----------
+function statoScadenza(data) {
+  const oggi = new Date();
+  const d = new Date(data);
+  const diff = (d - oggi) / 86400000;
+
+  if (diff < 0)
+    return { label: "❌ Scaduto", classe: "prep-warning-exp" };
+  if (diff <= 3)
+    return { label: "⚠️ Urgente", classe: "prep-warning-urg" };
+  if (diff <= 7)
+    return { label: "🟡 Attenzione", classe: "prep-warning-att" };
+  return { label: "✔ OK", classe: "prep-warning-ok" };
+}
+
+function formatData(d) {
+  return new Date(d).toLocaleDateString("it-IT");
+}
+
+function resetPrepView() {
+  prepProdottoSelezionato = null;
+
+  const card = document.getElementById("prep-card-singola");
+  const lotti = document.getElementById("prep-dettaglio-lotti");
+
+  if (card) card.innerHTML = "";
+  if (lotti) lotti.innerHTML = "";
+}
 
   // ========= UTILITY GENERALI =========
   function parseNumber(val) {
