@@ -3559,10 +3559,6 @@ if (btnSalvaSchedaProduzione) {
 // ========== MAGAZZINO PREPARAZIONI (SOLO LETTURA) ===========
 // ===========================================================
 
-// ---------- STATO ----------
-let prepProdotti = [];
-let prepProdottoSelezionato = null;
-
 // ---------- CARICAMENTO ----------
 async function caricaMagazzinoPreparazioni() {
   if (!supabase) return;
