@@ -3897,67 +3897,79 @@ async function salvaSchedaProduzione() {
 
   const schedaId = scheda.id;
 
-  const righePayload = [];
-  const rows = Array.from(
-    produzioneRigheContainer.querySelectorAll(".produzione-riga")
-    const conservazioneSelect = row.querySelector(".prod-conservazione");
-const conservazioneId = conservazioneSelect
-  ? parseInt(conservazioneSelect.value || "0")
-  : null;
+ const righePayload = [];
 
-  );
+const rows = Array.from(
+  produzioneRigheContainer.querySelectorAll(".produzione-riga")
+);
 
-  rows.forEach((row) => {
-    const ricettaId = parseInt(row.dataset.ricettaId || "0");
-    if (!ricettaId) return;
+rows.forEach((row) => {
+  const ricettaId = parseInt(row.dataset.ricettaId || "0");
+  if (!ricettaId) return;
 
-    const qtaInput = row.querySelector(".prod-qta");
-    const qtaEqInput = row.querySelector(".prod-qta-equivalente");
-    const moltipInput = row.querySelector(".prod-moltiplicatore");
-    const umInput = row.querySelector(".prod-um");
-    const selectFormato = row.querySelector(".prod-formato");
-const selectConservazione = row.querySelector(".prod-conservazione");
+  const qtaInput = row.querySelector(".prod-qta");
+  const qtaEqInput = row.querySelector(".prod-qta-equivalente");
+  const moltipInput = row.querySelector(".prod-moltiplicatore");
+  const umInput = row.querySelector(".prod-um");
+  const selectFormato = row.querySelector(".prod-formato");
+  const selectConservazione = row.querySelector(".prod-conservazione");
 
-    const selectedOption =
-      selectFormato && selectFormato.options[selectFormato.selectedIndex];
+  const selectedOption =
+    selectFormato && selectFormato.options[selectFormato.selectedIndex];
 
-    const formatoLabel = selectedOption ? selectedOption.textContent : "";
-    const formatoPercent =
-      selectedOption && selectedOption.dataset.percent
-        ? parseFloat(selectedOption.dataset.percent) || null
-        : null;
+  const formatoLabel = selectedOption ? selectedOption.textContent : "";
+  const formatoPercent =
+    selectedOption && selectedOption.dataset.percent
+      ? parseFloat(selectedOption.dataset.percent) || null
+      : null;
 
-    const qta = qtaInput ? parseFloat(qtaInput.value || "0") || 0 : 0;
-    const qtaEquivalente = qtaEqInput
-      ? parseFloat(qtaEqInput.value || "0") || 0
-      : 0;
-    const moltiplicatore = moltipInput
-      ? parseFloat(moltipInput.value || "0") || 0
-      : 0;
-    const um = umInput ? (umInput.value || "").trim() : "";
+  const qta = qtaInput ? parseFloat(qtaInput.value || "0") || 0 : 0;
+  const qtaEquivalente = qtaEqInput
+    ? parseFloat(qtaEqInput.value || "0") || 0
+    : 0;
+  const moltiplicatore = moltipInput
+    ? parseFloat(moltipInput.value || "0") || 0
+    : 0;
+  const um = umInput ? (umInput.value || "").trim() : "";
 
-    if (!qta || !moltiplicatore) return;
-const conservazioneId =
-  selectConservazione && selectConservazione.value
-    ? parseInt(selectConservazione.value)
+  if (!qta || !moltiplicatore) return;
+
+  const conservazioneId =
+    selectConservazione && selectConservazione.value
+      ? parseInt(selectConservazione.value || "0") || null
+      : null;
+
+  // se hai messo shelf life e temperatura nei dataset delle OPTION del selectConservazione
+  const selectedConsOpt =
+    selectConservazione && selectConservazione.options[selectConservazione.selectedIndex];
+
+  const shelfLifeGiorni = selectedConsOpt?.dataset?.shelfLife
+    ? parseInt(selectedConsOpt.dataset.shelfLife || "0") || null
     : null;
 
-    righePayload.push({
-  scheda_id: schedaId,
-  ricetta_id: ricettaId,
-  conservazione_id: conservazioneId, // 👈 ECCOLO
-  formato_label: formatoLabel || null,
-  formato_percent: formatoPercent,
-  quantita: qta,
-  quantita_equivalente: qtaEquivalente,
-  unita: um || null,
-  moltiplicatore_ricetta: moltiplicatore,
-  lotto: lottoScheda,
-     conservazione_id: conservazioneId || null,
-shelf_life_giorni: selectedOption?.dataset.shelfLife || null,
-temperatura_conservazione: selectedOption?.dataset.temperatura || null,
- 
+  const temperaturaConservazione = selectedConsOpt?.dataset?.temperatura
+    ? (selectedConsOpt.dataset.temperatura || "").trim()
+    : null;
+
+  righePayload.push({
+    scheda_id: schedaId,
+    ricetta_id: ricettaId,
+
+    formato_label: formatoLabel || null,
+    formato_percent: formatoPercent,
+
+    quantita: qta,
+    quantita_equivalente: qtaEquivalente,
+    unita: um || null,
+    moltiplicatore_ricetta: moltiplicatore,
+    lotto: lottoScheda,
+
+    conservazione_id: conservazioneId,
+    shelf_life_giorni: shelfLifeGiorni,
+    temperatura_conservazione: temperaturaConservazione,
+  });
 });
+
 
   });
 
