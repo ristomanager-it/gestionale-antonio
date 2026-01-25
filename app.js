@@ -3627,6 +3627,10 @@ function popolaFormatiPerRiga(row, ricetta) {
   if (!selectFormato) return;
 
   selectFormato.innerHTML = `<option value="">Formato...</option>`;
+const selectConservazione = row.querySelector(".prod-conservazione");
+if (selectConservazione && ricetta?.id) {
+  caricaScenariConservazione(selectConservazione, ricetta.id);
+}
 
   if (!ricetta) {
     row.dataset.ricettaId = "";
