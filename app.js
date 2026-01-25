@@ -3325,6 +3325,7 @@ async function handleSalvaRicetta() {
 
   ricettaCorrenteId = ricettaSalvata.id;
   await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+await salvaConservazioneRicetta(ricettaCorrenteId);
 
   alert("Ricetta salvata correttamente");
   aggiornaResaRicetta();
