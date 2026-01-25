@@ -3900,6 +3900,11 @@ async function salvaSchedaProduzione() {
   const righePayload = [];
   const rows = Array.from(
     produzioneRigheContainer.querySelectorAll(".produzione-riga")
+    const conservazioneSelect = row.querySelector(".prod-conservazione");
+const conservazioneId = conservazioneSelect
+  ? parseInt(conservazioneSelect.value || "0")
+  : null;
+
   );
 
   rows.forEach((row) => {
@@ -3948,6 +3953,10 @@ const conservazioneId =
   unita: um || null,
   moltiplicatore_ricetta: moltiplicatore,
   lotto: lottoScheda,
+     conservazione_id: conservazioneId || null,
+shelf_life_giorni: selectedOption?.dataset.shelfLife || null,
+temperatura_conservazione: selectedOption?.dataset.temperatura || null,
+ 
 });
 
   });
