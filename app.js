@@ -5020,7 +5020,9 @@ async function caricaProdottiSuggerimentiIngredienti() {
         await loadPreventiviList();
         resetPreventivoForm();
         break;
-
+case "magazzino-preparazioni":
+  await caricaMagazzinoPreparazioni();
+  break;
       default:
         break;
     }
