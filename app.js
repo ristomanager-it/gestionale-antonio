@@ -2812,6 +2812,120 @@ async function salvaIngredientiPerRicetta(ricettaId, ingredienti) {
     alert("Errore nel salvare gli ingredienti della ricetta");
   }
 }
+// =======================================================
+// ========= RICETTE: CONSERVAZIONE & SHELF LIFE =========
+// =======================================================
+
+const conservazioneCard = document.getElementById("card-ricetta-conservazione");
+
+// Legge TUTTI gli scenari dalle card
+function leggiScenariConservazioneDaForm() {
+  if (!conservazioneCard) return [];
+
+  const scenari = [];
+  const cards = conservazioneCard.querySelectorAll(".conservazione-scenario");
+
+  cards.forEach((card) => {
+    const abbattimento = card.querySelector(".conservazione-abbattimento")?.value || "";
+    const confezionamento =
+      card.querySelector(".conservazione-confezionamento")?.value || "";
+    const trattamento =
+      card.querySelector(".conservazione-trattamento")?.value || "";
+    const shelfLife = parseInt(
+      card.querySelector(".conservazione-shelf")?.value || "0",
+      10
+    );
+    const temperatura =
+      card.querySelector(".conservazione-temperatura")?.value || "";
+    const note = card.querySelector(".conservazione-note")?.value || "";
+
+    // scenario valido solo se ha almeno shelf life
+    if (shelfLife > 0) {
+      scenari.push({
+        abbattimento,
+        confezionamento,
+        trattamento,
+        shelf_life_giorni: shelfLife,
+        temperatura_conservazione: temperatura,
+        note,
+        attivo: true,
+      });
+    }
+  });
+
+  return scenari;
+}
+
+// Salva scenari su Supabase
+async function salvaConservazioneRicetta(ricettaId) {
+  if (!supabase || !ricettaId) return;
+
+  const scenari = leggiScenariConservazioneDaForm();
+
+  // cancella quelli esistenti
+  await supabase
+    .from("ricette_conservazione")
+    .delete()
+    .eq("ricetta_id", ricettaId);
+
+  if (!scenari.length) return;
+
+  const payload = scenari.map((s) => ({
+    ricetta_id: ricettaId,
+    abbattimento: s.abbattimento || "nessuno",
+    confezionamento: s.confezionamento || "nessuno",
+    trattamento: s.trattamento || "nessuno",
+    shelf_life_giorni: s.shelf_life_giorni,
+    temperatura_conservazione: s.temperatura_conservazione || null,
+    note: s.note || null,
+    attivo: true,
+  }));
+
+  const { error } = await supabase
+    .from("ricette_conservazione")
+    .insert(payload);
+
+  if (error) {
+    console.error("Errore salvataggio conservazione:", error);
+    alert("Errore nel salvare la conservazione");
+  }
+}
+
+// Ricarica scenari nel form
+async function caricaConservazioneRicetta(ricettaId) {
+  if (!supabase || !ricettaId || !conservazioneCard) return;
+
+  const { data, error } = await supabase
+    .from("ricette_conservazione")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento conservazione:", error);
+    return;
+  }
+
+  const cards = conservazioneCard.querySelectorAll(".conservazione-scenario");
+
+  cards.forEach((card, index) => {
+    const scenario = data?.[index];
+    if (!scenario) return;
+
+    const setVal = (sel, val) => {
+      const el = card.querySelector(sel);
+      if (el) el.value = val ?? "";
+    };
+
+    setVal(".conservazione-abbattimento", scenario.abbattimento);
+    setVal(".conservazione-confezionamento", scenario.confezionamento);
+    setVal(".conservazione-trattamento", scenario.trattamento);
+    setVal(".conservazione-shelf", scenario.shelf_life_giorni);
+    setVal(".conservazione-temperatura", scenario.temperatura_conservazione);
+    setVal(".conservazione-note", scenario.note);
+  });
+}
 
 // ========= RICETTE: UPLOAD FOTO =========
 async function uploadFotoRicettaSePresente() {
