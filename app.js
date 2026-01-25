@@ -3895,18 +3895,24 @@ const selectConservazione = row.querySelector(".prod-conservazione");
     const um = umInput ? (umInput.value || "").trim() : "";
 
     if (!qta || !moltiplicatore) return;
+const conservazioneId =
+  selectConservazione && selectConservazione.value
+    ? parseInt(selectConservazione.value)
+    : null;
 
     righePayload.push({
-      scheda_id: schedaId,
-      ricetta_id: ricettaId,
-      formato_label: formatoLabel || null,
-      formato_percent: formatoPercent,
-      quantita: qta,
-      quantita_equivalente: qtaEquivalente,
-      unita: um || null,
-      moltiplicatore_ricetta: moltiplicatore,
-      lotto: lottoScheda,
-    });
+  scheda_id: schedaId,
+  ricetta_id: ricettaId,
+  conservazione_id: conservazioneId, // 👈 ECCOLO
+  formato_label: formatoLabel || null,
+  formato_percent: formatoPercent,
+  quantita: qta,
+  quantita_equivalente: qtaEquivalente,
+  unita: um || null,
+  moltiplicatore_ricetta: moltiplicatore,
+  lotto: lottoScheda,
+});
+
   });
 
   if (!righePayload.length) {
