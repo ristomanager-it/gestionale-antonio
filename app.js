@@ -3767,6 +3767,13 @@ function creaRigaProduzione(initial = {}) {
         readonly
       />
     </label>
+   
+    <label style="font-size:13px;">
+  Conservazione
+  <select class="prod-conservazione input-pill">
+    <option value="">Scenario...</option>
+  </select>
+</label>
   `;
 
   const btnDel = row.querySelector(".btn-del-riga-prod");
@@ -3826,6 +3833,32 @@ function resetSchedaProduzione() {
 
   produzioneRigheContainer.innerHTML = "";
   creaRigaProduzione();
+}
+async function caricaScenariConservazione(selectEl, ricettaId) {
+  if (!supabase || !selectEl || !ricettaId) return;
+
+  const { data, error } = await supabase
+    .from("ricette_conservazione")
+    .select("id, scenario_label, shelf_life_giorni, temperatura_conservazione")
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .order("id");
+
+  if (error) {
+    console.error("Errore carico conservazioni:", error);
+    return;
+  }
+
+  selectEl.innerHTML = `<option value="">Scenario...</option>`;
+
+  data.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s.id; // bigint → OK
+    opt.textContent = `${s.scenario_label} (${s.shelf_life_giorni} gg)`;
+    opt.dataset.shelfLife = s.shelf_life_giorni;
+    opt.dataset.temperatura = s.temperatura_conservazione;
+    selectEl.appendChild(opt);
+  });
 }
 
 // salvataggio su Supabase della scheda produzione
