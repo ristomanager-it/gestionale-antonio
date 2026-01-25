@@ -3884,7 +3884,7 @@ async function salvaSchedaProduzione() {
   };
 
   const { data: scheda, error: errScheda } = await supabase
-    .from("schede_produzione")
+    .from("schede_produzioni")
     .insert(payloadScheda)
     .select()
     .single();
@@ -3969,10 +3969,6 @@ rows.forEach((row) => {
     temperatura_conservazione: temperaturaConservazione,
   });
 });
-
-
-  });
-
   if (!righePayload.length) {
     alert("Nessuna riga valida nella scheda di produzione.");
     return;
