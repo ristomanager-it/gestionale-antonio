@@ -830,14 +830,38 @@
 <section class="card" id="card-ricetta-cottura">
   <header class="card-header">
     <h4>Tecnologia di cottura</h4>
-    <button type="button" id="btn-edit-cottura" class="app-button small gray">
-      Modifica
-    </button>
   </header>
-  <div class="card-body" id="ricetta-cottura-body">
-    <p class="muted">Non specificata</p>
+
+  <div class="card-body grid-2">
+    <label>
+      Tipologia
+      <select id="cottura-tipologia" class="input-pill">
+        <option value="">—</option>
+        <option value="CBT">CBT</option>
+        <option value="Pentola">Pentola</option>
+        <option value="Forno">Forno</option>
+        <option value="Vapore">Vapore</option>
+        <option value="Mista">Mista</option>
+      </select>
+    </label>
+
+    <label>
+      Temperatura (°C)
+      <input type="number" id="cottura-temperatura" class="input-pill" step="0.1" />
+    </label>
+
+    <label>
+      Tempo (minuti)
+      <input type="number" id="cottura-tempo" class="input-pill" />
+    </label>
+
+    <label style="grid-column:1 / -1">
+      Note
+      <textarea id="cottura-note" class="textarea-pill" rows="2"></textarea>
+    </label>
   </div>
 </section>
+
 
 <!-- CONSERVAZIONE -->
 <section class="card" id="card-ricetta-conservazione">
