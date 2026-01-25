@@ -3874,6 +3874,7 @@ async function salvaSchedaProduzione() {
     const moltipInput = row.querySelector(".prod-moltiplicatore");
     const umInput = row.querySelector(".prod-um");
     const selectFormato = row.querySelector(".prod-formato");
+const selectConservazione = row.querySelector(".prod-conservazione");
 
     const selectedOption =
       selectFormato && selectFormato.options[selectFormato.selectedIndex];
