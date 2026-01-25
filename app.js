@@ -2764,6 +2764,56 @@ function emailCurrentPreventivoViaMailto() {
   // ========= RICETTE: CARICA UNA RICETTA NEL FORM (PER MODIFICA) =========
   async function caricaRicettaInForm(ricettaId) {
     if (!supabase || !ricettaNomeInput) return;
+// ========= RICETTE: LETTURA COMPLETA (RICETTARIO / PRODUZIONE) =========
+async function caricaRicettaCompleta(ricettaId) {
+  if (!supabase || !ricettaId) return null;
+
+  const { data: ricetta, error } = await supabase
+    .from("ricette")
+    .select("*")
+    .eq("id", ricettaId)
+    .single();
+
+  if (error) {
+    console.error("Errore lettura ricetta:", error);
+    return null;
+  }
+
+  const { data: output } = await supabase
+    .from("ricette_output")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .maybeSingle();
+
+  const { data: porzioni } = await supabase
+    .from("ricette_porzione")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .order("label", { ascending: true });
+
+  const { data: cottura } = await supabase
+    .from("ricette_cottura")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .maybeSingle();
+
+  const { data: conservazione } = await supabase
+    .from("ricette_conservazione")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .maybeSingle();
+
+  return {
+    ricetta,
+    output,
+    porzioni: porzioni || [],
+    cottura,
+    conservazione
+  };
+}
 
     const { data: ricetta, error: errRic } = await supabase
       .from("ricette")
