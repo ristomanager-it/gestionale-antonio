@@ -3618,9 +3618,11 @@ function generaLottoProduzione() {
 function trovaRicettaPerNome(nome) {
   if (!nome || !ricetteCache) return null;
   const q = nome.toLowerCase().trim();
-  return ricetteCache.find(
-    (r) => (r.nome || "").toLowerCase().trim() === q
-  ) || null;
+  return (
+    ricetteCache.find(
+      (r) => (r.nome || "").toLowerCase().trim() === q
+    ) || null
+  );
 }
 
 // -----------------------------------------------------------
@@ -3720,8 +3722,8 @@ function creaRigaProduzione() {
 
     <input class="prod-ricetta-nome input-pill" placeholder="Ricetta" list="ricette-suggestions">
 
-    <select class="prod-formato input-pill"><option>Formato...</option></select>
-    <select class="prod-conservazione input-pill"><option>Scenario...</option></select>
+    <select class="prod-formato input-pill"><option value="">Formato...</option></select>
+    <select class="prod-conservazione input-pill"><option value="">Scenario...</option></select>
 
     <input class="prod-um input-pill" placeholder="UM">
     <input class="prod-qta input-pill" type="number" step="0.001">
@@ -3738,6 +3740,7 @@ function creaRigaProduzione() {
 
   row.querySelector(".prod-formato").onchange = () =>
     ricalcolaQuantitaRiga(row);
+
   row.querySelector(".prod-qta").oninput = () =>
     ricalcolaQuantitaRiga(row);
 
@@ -3769,26 +3772,43 @@ async function salvaSchedaProduzione() {
     .select()
     .single();
 
-  if (error) return alert("Errore produzione");
+  if (error) {
+    console.error(error);
+    return alert("Errore produzione");
+  }
 
   const righe = [];
 
   document.querySelectorAll(".produzione-riga").forEach((row) => {
-    const ricettaId = row.dataset.ricettaId;
+    const ricettaId = parseInt(row.dataset.ricettaId || "0");
     if (!ricettaId) return;
 
-    const consOpt = row.querySelector(".prod-conservazione").selectedOptions[0];
+    const formatoOpt = row.querySelector(".prod-formato")?.selectedOptions[0];
+    const consOpt = row.querySelector(".prod-conservazione")?.selectedOptions[0];
 
     righe.push({
       produzione_id: produzione.id,
       ricetta_id: ricettaId,
-      conservazione_id: consOpt?.value || null,
-      shelf_life_giorni: consOpt?.dataset?.shelfLife || null,
+
+      formato_label: formatoOpt?.textContent || null,
+      formato_percent: formatoOpt?.dataset?.percent
+        ? parseFloat(formatoOpt.dataset.percent)
+        : null,
+
+      conservazione_id: consOpt?.value ? parseInt(consOpt.value) : null,
+      shelf_life_giorni: consOpt?.dataset?.shelfLife
+        ? parseInt(consOpt.dataset.shelfLife)
+        : null,
       temperatura_conservazione: consOpt?.dataset?.temperatura || null,
-      quantita: row.querySelector(".prod-qta").value,
-      quantita_equivalente: row.querySelector(".prod-qta-equivalente").value,
-      unita: row.querySelector(".prod-um").value,
-      moltiplicatore_ricetta: row.querySelector(".prod-moltiplicatore").value,
+
+      quantita: parseFloat(row.querySelector(".prod-qta")?.value || "0"),
+      quantita_equivalente: parseFloat(
+        row.querySelector(".prod-qta-equivalente")?.value || "0"
+      ),
+      unita: row.querySelector(".prod-um")?.value || null,
+      moltiplicatore_ricetta: parseFloat(
+        row.querySelector(".prod-moltiplicatore")?.value || "0"
+      ),
       lotto: produzione.lotto,
     });
   });
@@ -3799,9 +3819,12 @@ async function salvaSchedaProduzione() {
     .from("produzioni_righe")
     .insert(righe);
 
-  if (errRighe) return alert("Errore righe");
+  if (errRighe) {
+    console.error(errRighe);
+    return alert("Errore righe produzione");
+  }
 
-  alert("Produzione salvata");
+  alert("Produzione salvata correttamente");
   resetSchedaProduzione();
 }
 
@@ -3815,7 +3838,6 @@ btnSalvaSchedaProduzione?.addEventListener("click", salvaSchedaProduzione);
 // ========== MAGAZZINO PREPARAZIONI (SOLO LETTURA) ===========
 // ===========================================================
 
-// ---------- CARICAMENTO ----------
 async function caricaMagazzinoPreparazioni() {
   if (!supabase) return;
 
@@ -3824,15 +3846,9 @@ async function caricaMagazzinoPreparazioni() {
 
   const { data: movimenti, error } = await supabase
     .from("magazzino_produzione_movimenti")
-    .select(`
-      nome_prodotto,
-      lotto,
-      data_scadenza,
-      luogo,
-      tipo,
-      quantita,
-      unita_misura
-    `)
+    .select(
+      "nome_prodotto, lotto, data_scadenza, luogo, tipo, quantita, unita_misura"
+    )
     .eq("riferimento_tipo", "produzione");
 
   if (error) {
@@ -3841,185 +3857,8 @@ async function caricaMagazzinoPreparazioni() {
   }
 
   prepProdotti = aggregaPreparazioni(movimenti);
-
-  console.log("PREP PRODOTTI:", prepProdotti);
-
   initPrepAutocomplete();
 }
-
-// ---------- AGGREGAZIONE ----------
-function aggregaPreparazioni(movimenti) {
-  const map = {};
-
-  (movimenti || []).forEach((m) => {
-    const nome = (m.nome_prodotto || "").trim();
-    if (!nome) return;
-
-    if (!map[nome]) {
-      map[nome] = {
-        nome_prodotto: nome,
-        unita_misura: m.unita_misura || "",
-        lotti: {},
-      };
-    }
-
-    const segno = m.tipo === "scarico" ? -1 : 1;
-    const lottoKey = m.lotto || "SENZA LOTTO";
-
-    if (!map[nome].lotti[lottoKey]) {
-      map[nome].lotti[lottoKey] = {
-        lotto: lottoKey,
-        luogo: m.luogo || "",
-        data_scadenza: m.data_scadenza,
-        giacenza: 0,
-      };
-    }
-
-    map[nome].lotti[lottoKey].giacenza +=
-      segno * Number(m.quantita || 0);
-  });
-
-  return Object.values(map)
-    .map((p) => {
-      p.lotti = Object.values(p.lotti)
-        .filter((l) => l.giacenza > 0)
-        .sort(
-          (a, b) =>
-            new Date(a.data_scadenza) -
-            new Date(b.data_scadenza)
-        );
-
-      p.giacenza_totale = p.lotti.reduce(
-        (s, l) => s + l.giacenza,
-        0
-      );
-
-      return p;
-    })
-    .filter((p) => p.giacenza_totale > 0);
-}
-
-// ---------- AUTOCOMPLETE (VERSIONE CORRETTA) ----------
-function initPrepAutocomplete() {
-  const input = document.getElementById("prep-search");
-  const box = document.getElementById("prep-suggestions");
-
-  if (!input || !box) {
-    console.warn("prep-search o prep-suggestions non trovati");
-    return;
-  }
-
-  // reset
-  input.value = "";
-  box.innerHTML = "";
-
-  // IMPORTANTISSIMO: niente clone, solo reset handler
-  input.oninput = null;
-
-  input.oninput = () => {
-    const q = input.value.trim().toLowerCase();
-    box.innerHTML = "";
-
-    resetPrepView();
-
-    if (!q) return;
-
-    const matches = prepProdotti.filter(p =>
-      p.nome_prodotto.toLowerCase().includes(q)
-    );
-
-    if (!matches.length) {
-      box.innerHTML =
-        `<div class="prep-suggestion">Nessun risultato</div>`;
-      return;
-    }
-
-    matches.slice(0, 8).forEach(p => {
-      const div = document.createElement("div");
-      div.className = "prep-suggestion";
-      div.textContent = p.nome_prodotto;
-
-      div.onclick = () => {
-        input.value = p.nome_prodotto;
-        box.innerHTML = "";
-        renderPrepCard(p);
-        renderPrepLotti(p);
-      };
-
-      box.appendChild(div);
-    });
-  };
-}
-
-// ---------- RENDER ----------
-function renderPrepCard(p) {
-  const box = document.getElementById("prep-card-singola");
-  if (!box) return;
-
-  box.innerHTML = `
-    <div class="prep-card">
-      <h3>${p.nome_prodotto}</h3>
-      <p>
-        Giacenza totale:
-        <strong>${p.giacenza_totale.toFixed(2)} ${p.unita_misura}</strong>
-      </p>
-    </div>
-  `;
-}
-
-function renderPrepLotti(p) {
-  const box = document.getElementById("prep-dettaglio-lotti");
-  if (!box) return;
-
-  box.innerHTML = `<h3>📦 Lotti disponibili</h3>`;
-
-  p.lotti.forEach((l) => {
-    const stato = statoScadenza(l.data_scadenza);
-
-    box.innerHTML += `
-      <div class="prep-lotto">
-        <strong>Lotto:</strong> ${l.lotto}<br>
-        <strong>Luogo:</strong> ${l.luogo}<br>
-        <strong>Scadenza:</strong>
-        <span class="${stato.classe}">
-          ${formatData(l.data_scadenza)} ${stato.label}
-        </span><br>
-        <strong>Giacenza:</strong>
-        ${l.giacenza.toFixed(2)} ${p.unita_misura}
-      </div>
-    `;
-  });
-}
-
-// ---------- UTILS ----------
-function statoScadenza(data) {
-  const oggi = new Date();
-  const d = new Date(data);
-  const diff = (d - oggi) / 86400000;
-
-  if (diff < 0)
-    return { label: "❌ Scaduto", classe: "prep-warning-exp" };
-  if (diff <= 3)
-    return { label: "⚠️ Urgente", classe: "prep-warning-urg" };
-  if (diff <= 7)
-    return { label: "🟡 Attenzione", classe: "prep-warning-att" };
-  return { label: "✔ OK", classe: "prep-warning-ok" };
-}
-
-function formatData(d) {
-  return new Date(d).toLocaleDateString("it-IT");
-}
-
-function resetPrepView() {
-  prepProdottoSelezionato = null;
-
-  const card = document.getElementById("prep-card-singola");
-  const lotti = document.getElementById("prep-dettaglio-lotti");
-
-  if (card) card.innerHTML = "";
-  if (lotti) lotti.innerHTML = "";
-}
-
 
    // ========= ACQUISTI / FATTURE + MAGAZZINO =========
   function getFornitoreById(id) {
