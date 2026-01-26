@@ -3327,6 +3327,103 @@ function emailCurrentPreventivoViaMailto() {
   if (ricettaFormato2PercInput) {
     ricettaFormato2PercInput.addEventListener("input", aggiornaResaRicetta);
   }
+// ================= PREPARAZIONE & PROCESSO PRODUTTIVO =================
+
+// stato in memoria
+let preparazioneFasi = [];
+
+// riferimenti DOM
+const tablePreparazioneBody = document.querySelector(
+  "#table-preparazione tbody"
+);
+
+const prepTempoTotaleEl = document.getElementById("prep-tempo-totale");
+const prepTempoUomoEl = document.getElementById("prep-tempo-uomo");
+
+// ---------- RENDER TABELLA ----------
+function renderPreparazioneFasi() {
+  if (!tablePreparazioneBody) return;
+
+  tablePreparazioneBody.innerHTML = "";
+
+  preparazioneFasi.forEach((fase, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${fase.nome_fase || ""}</td>
+      <td>${fase.tipo_fase || ""}</td>
+      <td>${fase.durata_minuti || 0}</td>
+      <td>${fase.tempo_uomo_minuti || 0}</td>
+      <td>${fase.tecnologia || ""}</td>
+      <td>${fase.temperatura ?? ""}</td>
+      <td>
+        <button class="app-button tiny red" data-remove="${index}">
+          ✕
+        </button>
+      </td>
+    `;
+
+    tablePreparazioneBody.appendChild(tr);
+  });
+
+  // bind pulsanti elimina
+  tablePreparazioneBody
+    .querySelectorAll("[data-remove]")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.remove, 10);
+        rimuoviFasePreparazione(idx);
+      });
+    });
+
+  calcolaTotaliPreparazione();
+}
+
+// ---------- CALCOLO TOTALI ----------
+function calcolaTotaliPreparazione() {
+  let tempoTotale = 0;
+  let tempoUomo = 0;
+
+  preparazioneFasi.forEach((fase) => {
+    tempoTotale += Number(fase.durata_minuti || 0);
+    tempoUomo += Number(fase.tempo_uomo_minuti || 0);
+  });
+
+  if (prepTempoTotaleEl) {
+    prepTempoTotaleEl.textContent = `${tempoTotale} min`;
+  }
+
+  if (prepTempoUomoEl) {
+    prepTempoUomoEl.textContent = `${tempoUomo} min`;
+  }
+}
+
+// ---------- API AGGIUNTA / RIMOZIONE ----------
+function aggiungiFasePreparazione(fase) {
+  preparazioneFasi.push({
+    ordine: preparazioneFasi.length + 1,
+    nome_fase: fase.nome_fase || "",
+    tipo_fase: fase.tipo_fase || "prep",
+    durata_minuti: Number(fase.durata_minuti || 0),
+    tempo_uomo_minuti: Number(fase.tempo_uomo_minuti || 0),
+    tecnologia: fase.tecnologia || "",
+    temperatura: fase.temperatura ?? null
+  });
+
+  renderPreparazioneFasi();
+}
+
+function rimuoviFasePreparazione(index) {
+  preparazioneFasi.splice(index, 1);
+
+  // riordina
+  preparazioneFasi.forEach((f, i) => {
+    f.ordine = i + 1;
+  });
+
+  renderPreparazioneFasi();
+}
 
   // ========= RICETTE: SALVATAGGIO BASE =========
   async function salvaRicettaSupabaseBase({
