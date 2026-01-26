@@ -3430,19 +3430,83 @@ const btnAddFasePreparazione = document.getElementById(
 );
 
 if (btnAddFasePreparazione) {
-  btnAddFasePreparazione.addEventListener("click", () => {
-    // TEST TEMPORANEO
-    aggiungiFasePreparazione({
-      nome_fase: "Nuova fase",
-      tipo_fase: "prep",
-      durata_minuti: 10,
-      tempo_uomo_minuti: 5,
-      tecnologia: "",
-      temperatura: null
-    });
+// ---------- MODALE: AGGIUNGI FASE PREPARAZIONE ----------
+function openFasePreparazioneModal() {
+  makeModal({
+    title: "🧑‍🍳 Aggiungi fase di lavorazione",
+    bodyHtml: `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <label style="font-size:13px;">
+          Nome fase
+          <input id="m_fase_nome" type="text" class="input-pill" placeholder="Es. Rosolatura" />
+        </label>
+
+        <label style="font-size:13px;">
+          Tipo fase
+          <select id="m_fase_tipo" class="input-pill">
+            <option value="prep">Preparazione</option>
+            <option value="cottura">Cottura</option>
+            <option value="raffreddamento">Raffreddamento</option>
+            <option value="altro">Altro</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+        <label style="font-size:13px;">
+          Durata (min)
+          <input id="m_fase_durata" type="number" step="1" min="0" class="input-pill" />
+        </label>
+
+        <label style="font-size:13px;">
+          Tempo uomo (min)
+          <input id="m_fase_uomo" type="number" step="1" min="0" class="input-pill" />
+        </label>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+        <label style="font-size:13px;">
+          Tecnologia
+          <input id="m_fase_tecnologia" type="text" class="input-pill" placeholder="Padella / Forno / CBT" />
+        </label>
+
+        <label style="font-size:13px;">
+          Temperatura °C
+          <input id="m_fase_temp" type="number" step="0.1" class="input-pill" placeholder="Es. 180" />
+        </label>
+      </div>
+    `,
+    onSave: async ({ close }) => {
+      const nome = document.getElementById("m_fase_nome").value.trim();
+      const tipo = document.getElementById("m_fase_tipo").value;
+      const durata = Number(document.getElementById("m_fase_durata").value);
+      const uomo = Number(document.getElementById("m_fase_uomo").value);
+      const tecnologia = document.getElementById("m_fase_tecnologia").value.trim();
+      const tempVal = document.getElementById("m_fase_temp").value;
+      const temperatura = tempVal !== "" ? Number(tempVal) : null;
+
+      if (!nome) {
+        alert("Inserisci il nome della fase.");
+        return;
+      }
+
+      if (!durata || durata <= 0) {
+        alert("Inserisci una durata valida (> 0).");
+        return;
+      }
+
+      aggiungiFasePreparazione({
+        nome_fase: nome,
+        tipo_fase: tipo,
+        durata_minuti: durata,
+        tempo_uomo_minuti: uomo || 0,
+        tecnologia: tecnologia || "",
+        temperatura: temperatura
+      });
+
+      close();
+    }
   });
-} else {
-  console.warn("⚠️ btn-add-fase-preparazione NON trovato");
 }
 
   // ========= RICETTE: SALVATAGGIO BASE =========
