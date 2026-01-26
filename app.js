@@ -2628,9 +2628,8 @@ function emailCurrentPreventivoViaMailto() {
     const n = Number(String(v).replace(",", "."));
     return Number.isFinite(n) ? n : null;
   }
-
- // ================= MODALE GENERICO (GLOBALE) =================
-// Usato da: Output, Porzioni, Conservazione, Preparazione
+// ================= MODALE GENERICO (GLOBALE) =================
+// 🧩 Usato da: Output, Porzioni, Conservazione, Preparazione
 
 function escHtml(s) {
   return String(s ?? "")
@@ -2696,74 +2695,13 @@ function makeModal({ title, bodyHtml, onSave }) {
       alert("Errore durante il salvataggio.");
     }
   };
+
+  return { close, overlay, box };
 }
 
-// 🔑 ESPOSIZIONE GLOBALE (FONDAMENTALE)
+// 🌍 ESPOSIZIONE GLOBALE
 window.makeModal = makeModal;
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    const close = () => overlay.remove();
-    overlay.querySelector("#__m_close").onclick = close;
-    overlay.querySelector("#__m_cancel").onclick = close;
-
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) close();
-    });
-
-    overlay.querySelector("#__m_save").onclick = async () => {
-      try {
-        await onSave({ overlay, box, close });
-      } catch (err) {
-        console.error(err);
-        alert("Errore nel salvataggio (vedi console).");
-      }
-    };
-
-    return { overlay, box, close };
-  }
-
-  // ---------- RENDER: OUTPUT ----------
-  function renderOutput() {
-    if (!outputBody) return;
-
-    if (!ricettaCorrenteId) {
-      outputBody.innerHTML = `<p class="muted">Seleziona una ricetta per vedere l'output.</p>`;
-      return;
-    }
-
-    if (!cacheOutput) {
-      outputBody.innerHTML = `<p class="muted">Nessun output configurato</p>`;
-      return;
-    }
-
-    outputBody.innerHTML = `
-      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start;">
-        <div style="flex:1 1 220px;">
-          <div style="font-size:12px; opacity:.75;">Peso finale</div>
-          <div style="font-size:18px; font-weight:800;">${Number(cacheOutput.peso_finale).toFixed(3)} ${escHtml(cacheOutput.unita_misura)}</div>
-        </div>
-        <div style="flex:2 1 260px;">
-          <div style="font-size:12px; opacity:.75;">Note</div>
-          <div style="font-size:13px;">${cacheOutput.note ? escHtml(cacheOutput.note) : "<span class='muted'>—</span>"}</div>
-        </div>
-      </div>
-      <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:8px;">
-        <button type="button" class="app-button tiny red" id="btn-del-output">Elimina</button>
-      </div>
-    `;
-
-    const btnDel = document.getElementById("btn-del-output");
-    if (btnDel) {
-      btnDel.onclick = async () => {
-        if (!confirm("Eliminare l'output finale di questa ricetta?")) return;
-        await supabase.from("ricette_output").delete().eq("ricetta_id", ricettaCorrenteId);
-        cacheOutput = null;
-        renderOutput();
-      };
-    }
-  }
+window.escHtml = escHtml;
 
   // ---------- RENDER: PORZIONI ----------
   function renderPorzioni() {
