@@ -5057,4 +5057,5 @@ async function caricaProdottiSuggerimentiIngredienti() {
     const opt = document.createElement("option");
     opt.value = nome;
     ingredientiSuggestions.appendChild(opt);
-  });
+});
+});
