@@ -5128,11 +5128,24 @@ case "magazzino-preparazioni":
 // ROUTER BASE – RIPRISTINO NAVIGAZIONE
 // ===================================================
 
-// mostra una view e nasconde le altre
-function showView(route) {
+function showView(viewName) {
+  if (!viewName) return;
+
+  // nasconde TUTTE le view
   document.querySelectorAll(".view").forEach((v) => {
     v.style.display = "none";
   });
+
+  const view = document.getElementById("view-" + viewName);
+
+  if (!view) {
+    console.warn("View non trovata:", viewName);
+    return;
+  }
+
+  view.style.display = "block";
+}
+
 
   const target = document.getElementById(`view-${route}`);
   if (target) {
