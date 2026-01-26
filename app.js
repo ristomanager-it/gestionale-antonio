@@ -5153,7 +5153,7 @@ function showView(viewName) {
   } else {
     console.warn("View non trovata:", route);
   }
-}
+
 
 // navigazione principale
 function navigateTo(route) {
