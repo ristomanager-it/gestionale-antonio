@@ -2629,38 +2629,77 @@ function emailCurrentPreventivoViaMailto() {
     return Number.isFinite(n) ? n : null;
   }
 
-  function makeModal({ title, bodyHtml, onSave }) {
-    const overlay = document.createElement("div");
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.background = "rgba(0,0,0,.55)";
-    overlay.style.zIndex = "9999";
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.padding = "14px";
+ // ================= MODALE GENERICO (GLOBALE) =================
+// Usato da: Output, Porzioni, Conservazione, Preparazione
 
-    const box = document.createElement("div");
-    box.style.width = "min(720px, 100%)";
-    box.style.background = "var(--card-bg, #fff)";
-    box.style.color = "inherit";
-    box.style.borderRadius = "14px";
-    box.style.boxShadow = "0 14px 40px rgba(0,0,0,.22)";
-    box.style.overflow = "hidden";
+function escHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-    box.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid rgba(0,0,0,.08);">
-        <div style="font-weight:700;">${escHtml(title)}</div>
-        <button type="button" class="app-button tiny gray" id="__m_close">✕</button>
-      </div>
-      <div style="padding:14px;">
-        ${bodyHtml}
-      </div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid rgba(0,0,0,.08);">
-        <button type="button" class="app-button small gray" id="__m_cancel">Annulla</button>
-        <button type="button" class="app-button small green" id="__m_save">Salva</button>
-      </div>
-    `;
+function makeModal({ title, bodyHtml, onSave }) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,.55)";
+  overlay.style.zIndex = "9999";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "14px";
+
+  const box = document.createElement("div");
+  box.style.width = "min(720px, 100%)";
+  box.style.background = "var(--card-bg, #fff)";
+  box.style.color = "inherit";
+  box.style.borderRadius = "14px";
+  box.style.boxShadow = "0 14px 40px rgba(0,0,0,.22)";
+  box.style.overflow = "hidden";
+
+  box.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid rgba(0,0,0,.08);">
+      <div style="font-weight:700;">${escHtml(title)}</div>
+      <button type="button" class="app-button tiny gray" id="__m_close">✕</button>
+    </div>
+
+    <div style="padding:14px;">
+      ${bodyHtml}
+    </div>
+
+    <div style="display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid rgba(0,0,0,.08);">
+      <button type="button" class="app-button small gray" id="__m_cancel">Annulla</button>
+      <button type="button" class="app-button small green" id="__m_save">Salva</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+
+  overlay.querySelector("#__m_close").onclick = close;
+  overlay.querySelector("#__m_cancel").onclick = close;
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+
+  overlay.querySelector("#__m_save").onclick = async () => {
+    try {
+      await onSave({ close, overlay, box });
+    } catch (err) {
+      console.error("Errore modale:", err);
+      alert("Errore durante il salvataggio.");
+    }
+  };
+}
+
+// 🔑 ESPOSIZIONE GLOBALE (FONDAMENTALE)
+window.makeModal = makeModal;
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
