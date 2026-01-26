@@ -3267,6 +3267,131 @@ function emailCurrentPreventivoViaMailto() {
   renderPorzioni();
   renderConservazione();
 })();
+/* =========================================================
+   RICETTE – PREPARAZIONE & PROCESSO PRODUTTIVO
+========================================================= */
+
+// cache in memoria (per ora)
+let preparazioneFasi = [];
+
+// DOM
+function getPrepDom() {
+  return {
+    tbody: document.querySelector("#table-preparazione tbody"),
+    btnAdd: document.getElementById("btn-add-fase-preparazione"),
+    totTempo: document.getElementById("prep-tempo-totale"),
+    totUomo: document.getElementById("prep-tempo-uomo"),
+  };
+}
+
+// render tabella
+function renderPreparazione() {
+  const { tbody, totTempo, totUomo } = getPrepDom();
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  let tempoTot = 0;
+  let tempoUomo = 0;
+
+  preparazioneFasi.forEach((f, i) => {
+    tempoTot += f.durata || 0;
+    tempoUomo += f.lavoro_uomo || 0;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td><input class="input-pill" value="${f.nome}" /></td>
+      <td>
+        <select class="input-pill">
+          <option value="prep" ${f.tipo === "prep" ? "selected" : ""}>Prep</option>
+          <option value="cottura" ${f.tipo === "cottura" ? "selected" : ""}>Cottura</option>
+          <option value="riposo" ${f.tipo === "riposo" ? "selected" : ""}>Riposo</option>
+        </select>
+      </td>
+      <td><input type="number" class="input-pill" value="${f.durata}" /></td>
+      <td><input type="number" class="input-pill" value="${f.lavoro_uomo}" /></td>
+      <td><input class="input-pill" value="${f.tecnologia || ""}" /></td>
+      <td><input type="number" class="input-pill" value="${f.temperatura || ""}" /></td>
+      <td>
+        <button class="app-button tiny red">✕</button>
+      </td>
+    `;
+
+    // bind input
+    const inputs = tr.querySelectorAll("input, select");
+
+    inputs[0].oninput = e => f.nome = e.target.value;
+    inputs[1].onchange = e => f.tipo = e.target.value;
+    inputs[2].oninput = e => { f.durata = Number(e.target.value) || 0; renderPreparazione(); };
+    inputs[3].oninput = e => { f.lavoro_uomo = Number(e.target.value) || 0; renderPreparazione(); };
+    inputs[4].oninput = e => f.tecnologia = e.target.value;
+    inputs[5].oninput = e => f.temperatura = Number(e.target.value) || null;
+
+    tr.querySelector("button").onclick = () => {
+      preparazioneFasi.splice(i, 1);
+      renderPreparazione();
+    };
+
+    tbody.appendChild(tr);
+  });
+
+  if (totTempo) totTempo.textContent = `${tempoTot} min`;
+  if (totUomo) totUomo.textContent = `${tempoUomo} min`;
+}
+
+// init bottone (come le altre card)
+function initPreparazione() {
+  const { btnAdd } = getPrepDom();
+  if (!btnAdd || btnAdd.__bound) return;
+
+  btnAdd.__bound = true;
+  btnAdd.addEventListener("click", () => {
+    preparazioneFasi.push({
+      nome: "Nuova fase",
+      tipo: "prep",
+      durata: 10,
+      lavoro_uomo: 5,
+      tecnologia: "",
+      temperatura: null,
+    });
+    renderPreparazione();
+  });
+}
+
+// hook automatici (stesso schema delle altre)
+(function hookPreparazione() {
+  if (typeof window.caricaRicettaInForm === "function") {
+    const old = window.caricaRicettaInForm;
+    window.caricaRicettaInForm = async function (id) {
+      preparazioneFasi = [];
+      const res = await old(id);
+      initPreparazione();
+      renderPreparazione();
+      return res;
+    };
+  }
+
+  if (typeof window.resetFormRicetta === "function") {
+    const old = window.resetFormRicetta;
+    window.resetFormRicetta = function () {
+      preparazioneFasi = [];
+      const res = old();
+      renderPreparazione();
+      return res;
+    };
+  }
+
+  const btnSalva = document.getElementById("btn-salva-ricetta");
+  if (btnSalva) {
+    btnSalva.addEventListener("click", () => {
+      setTimeout(() => {
+        initPreparazione();
+        renderPreparazione();
+      }, 400);
+    });
+  }
+})();
 
   // ========= RICETTE: RESET FORM =========
   function resetFormRicetta() {
