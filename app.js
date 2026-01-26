@@ -2628,18 +2628,6 @@ function emailCurrentPreventivoViaMailto() {
     const n = Number(String(v).replace(",", "."));
     return Number.isFinite(n) ? n : null;
   }
-// ================= MODALE GENERICO (GLOBALE) =================
-// 🧩 Usato da: Output, Porzioni, Conservazione, Preparazione
-
-function escHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function makeModal({ title, bodyHtml, onSave }) {
   const overlay = document.createElement("div");
   overlay.style.position = "fixed";
@@ -2698,76 +2686,6 @@ function makeModal({ title, bodyHtml, onSave }) {
 
   return { close, overlay, box };
 }
-
-// 🌍 ESPOSIZIONE GLOBALE
-window.makeModal = makeModal;
-window.escHtml = escHtml;
-
-  // ---------- RENDER: PORZIONI ----------
-  function renderPorzioni() {
-    if (!porzioniTbody) return;
-
-    porzioniTbody.innerHTML = "";
-
-    if (!ricettaCorrenteId) {
-      porzioniTbody.innerHTML = `<tr><td colspan="5" class="muted">Seleziona una ricetta.</td></tr>`;
-      return;
-    }
-
-    if (!cachePorzioni.length) {
-      porzioniTbody.innerHTML = `<tr><td colspan="5" class="muted">Nessuna porzione configurata</td></tr>`;
-      return;
-    }
-
-    cachePorzioni.forEach((r) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><strong>${escHtml(r.label)}</strong></td>
-        <td>${Number(r.peso_porzione).toFixed(1)}</td>
-        <td>${escHtml(r.unita_misura)}</td>
-        <td>
-          <input type="checkbox" ${r.attivo ? "checked" : ""} data-id="${r.id}" class="porz-toggle" />
-        </td>
-        <td style="white-space:nowrap;">
-          <button type="button" class="app-button tiny gray porz-edit" data-id="${r.id}">Modifica</button>
-          <button type="button" class="app-button tiny red porz-del" data-id="${r.id}">✕</button>
-        </td>
-      `;
-      porzioniTbody.appendChild(tr);
-    });
-
-    // toggle attivo
-    porzioniTbody.querySelectorAll(".porz-toggle").forEach((el) => {
-      el.onchange = async () => {
-        const id = Number(el.getAttribute("data-id"));
-        const attivo = !!el.checked;
-        await supabase.from("ricette_porzione").update({ attivo }).eq("id", id);
-        const row = cachePorzioni.find((x) => x.id === id);
-        if (row) row.attivo = attivo;
-      };
-    });
-
-    // delete
-    porzioniTbody.querySelectorAll(".porz-del").forEach((btn) => {
-      btn.onclick = async () => {
-        const id = Number(btn.getAttribute("data-id"));
-        if (!confirm("Eliminare questa porzione?")) return;
-        await supabase.from("ricette_porzione").delete().eq("id", id);
-        cachePorzioni = cachePorzioni.filter((x) => x.id !== id);
-        renderPorzioni();
-      };
-    });
-
-    // edit
-    porzioniTbody.querySelectorAll(".porz-edit").forEach((btn) => {
-      btn.onclick = async () => {
-        const id = Number(btn.getAttribute("data-id"));
-        const row = cachePorzioni.find((x) => x.id === id);
-        if (!row) return;
-        openPorzioneModal(row);
-      };
-    });
-  }
 
   // ---------- RENDER: CONSERVAZIONE ----------
   function renderConservazione() {
