@@ -725,23 +725,60 @@
         </table>
       </div>
     </section>
+<!-- PREPARAZIONE & PROCESSO PRODUTTIVO -->
+<section class="card" id="card-ricetta-preparazione">
+  <header class="card-header">
+    <h4>🧑‍🍳 Preparazione & Processo produttivo</h4>
+    <button
+      type="button"
+      id="btn-add-fase-preparazione"
+      class="app-button small gray"
+    >
+      + Aggiungi fase
+    </button>
+  </header>
 
-    <!-- ================= COTTURA ================= -->
-    <section class="card" id="card-ricetta-cottura">
-      <header class="card-header">
-        <h4>🔥 Tecnologia di cottura</h4>
-        <button
-          type="button"
-          id="btn-edit-cottura"
-          class="app-button small gray"
-        >
-          Modifica
-        </button>
-      </header>
-      <div class="card-body" id="ricetta-cottura-body">
-        <p class="muted">Non specificata</p>
+  <div class="card-body">
+    <table class="table" id="table-preparazione">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Fase</th>
+          <th>Tipo</th>
+          <th>Durata (min)</th>
+          <th>Lavoro uomo (min)</th>
+          <th>Tecnologia</th>
+          <th>Temp. °C</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- righe generate da JS -->
+      </tbody>
+    </table>
+
+    <!-- TOTALI -->
+    <div
+      style="
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      "
+    >
+      <div class="kpi-card">
+        <h3>⏱️ Tempo totale</h3>
+        <p id="prep-tempo-totale">0 min</p>
       </div>
-    </section>
+
+      <div class="kpi-card">
+        <h3>👨‍🍳 Tempo uomo</h3>
+        <p id="prep-tempo-uomo">0 min</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 
     <!-- ================= CONSERVAZIONE ================= -->
     <section class="card" id="card-ricetta-conservazione">
