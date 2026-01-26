@@ -5,6 +5,129 @@ document.addEventListener("DOMContentLoaded", () => {
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
 
+  // =======================================================
+  // ================= ROUTER UNICO APP ====================
+  // =======================================================
+
+  const ALL_VIEWS_SELECTOR = ".view";
+
+  const ROUTE_HOOKS = {
+    "login": () => {},
+
+    "home-dip": () => {},
+
+    "timbratura": () => {
+      if (typeof caricaTimbratureDaSupabase === "function") {
+        caricaTimbratureDaSupabase();
+      }
+      if (typeof updateTimbraturaUserInfo === "function") {
+        updateTimbraturaUserInfo();
+      }
+    },
+
+    "dipendenti": () => {
+      if (typeof caricaDipendentiDaSupabase === "function") {
+        caricaDipendentiDaSupabase();
+      }
+    },
+
+    "ricette": async () => {
+      await caricaRicetteDaSupabase();
+      await caricaProdottiSuggerimentiIngredienti();
+
+      if (ricettaDaAprireId) {
+        const id = ricettaDaAprireId;
+        ricettaDaAprireId = null;
+        await caricaRicettaInForm(id);
+      } else {
+        resetFormRicetta();
+      }
+    },
+
+    "ricette-viewer": async () => {
+      await caricaRicetteDaSupabase();
+    },
+
+    "produzione": async () => {
+      await caricaRicetteDaSupabase();
+      resetSchedaProduzione();
+    },
+
+    "acquisti": async () => {
+      await caricaCategorieInCache();
+      await caricaFornitoriInCache();
+      await caricaMagazzinoDati();
+      resetFatturaForm();
+      await caricaElencoFatture();
+    },
+
+    "magazzino": async () => {
+      await caricaCategorieInCache();
+      await caricaMagazzinoDati();
+      popolaMagazzinoForm(null);
+    },
+
+    "magazzino-preparazioni": async () => {
+      await caricaMagazzinoPreparazioni();
+    },
+
+    "preventivi": async () => {
+      await loadPreventiviList();
+      resetPreventivoForm();
+    },
+
+    "report": () => {},
+
+    "venduto": () => {}
+  };
+
+  function initNavigation() {
+    document.querySelectorAll("[data-route]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        navigateTo(btn.dataset.route);
+      });
+    });
+  }
+
+  async function navigateTo(route) {
+    if (!route) return;
+
+    console.log("➡️ NAVIGATE:", route);
+
+    document.querySelectorAll(ALL_VIEWS_SELECTOR).forEach(v => {
+      v.style.display = "none";
+    });
+
+    const target = document.getElementById(`view-${route}`);
+    if (!target) {
+      console.warn(`View non trovata: view-${route}`);
+      return;
+    }
+
+    target.style.display = "block";
+
+    if (ROUTE_HOOKS[route]) {
+      try {
+        await ROUTE_HOOKS[route]();
+      } catch (err) {
+        console.error(`Errore hook route "${route}"`, err);
+      }
+    }
+
+    if (typeof applyRoleVisibility === "function") {
+      applyRoleVisibility();
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // =======================================================
+  // ===================== AVVIO ===========================
+  // =======================================================
+
+  initNavigation();
+  navigateTo("login");
+
   // ---------- DOM COMMON / ROUTING ----------
   const views = Array.from(document.querySelectorAll(".view"));
   const loginView = document.getElementById("view-login");
@@ -4935,126 +5058,3 @@ async function caricaProdottiSuggerimentiIngredienti() {
     opt.value = nome;
     ingredientiSuggestions.appendChild(opt);
   });
-}
-
-
- // =======================================================
-// ================ ROUTER UNICO APP =====================
-// =======================================================
-
-// tutte le view = <section class="view" id="view-xxx">
-const ALL_VIEWS_SELECTOR = ".view";
-
-// mappa opzionale: hook di ingresso per singola schermata
-const ROUTE_HOOKS = {
-  "login": () => {},
-
-  "home-dip": () => {},
-
-  "timbratura": () => {
-    if (typeof aggiornaTimbraturaUI === "function") {
-      aggiornaTimbraturaUI();
-    }
-  },
-
-  "dipendenti": () => {
-    if (typeof caricaDipendenti === "function") {
-      caricaDipendenti();
-    }
-  },
-
-  "ricette": () => {
-    if (typeof initRicetteEditor === "function") {
-      initRicetteEditor();
-    }
-  },
-
-  "ricette-viewer": () => {
-    if (typeof caricaRicettarioViewer === "function") {
-      caricaRicettarioViewer();
-    }
-  },
-
-  "produzione": () => {
-    if (typeof initProduzione === "function") {
-      initProduzione();
-    }
-  },
-
-  "magazzino": () => {
-    if (typeof caricaMagazzino === "function") {
-      caricaMagazzino();
-    }
-  },
-
-  "magazzino-preparazioni": () => {
-    if (typeof caricaMagazzinoPreparazioni === "function") {
-      caricaMagazzinoPreparazioni();
-    }
-  },
-
-  "acquisti": () => {
-    if (typeof caricaFatture === "function") {
-      caricaFatture();
-    }
-  },
-
-  "preventivi": () => {
-    if (typeof caricaPreventivi === "function") {
-      caricaPreventivi();
-    }
-  },
-
-  "report": () => {
-    if (typeof initReport === "function") {
-      initReport();
-    }
-  },
-
-  "venduto": () => {
-    if (typeof initVenduto === "function") {
-      initVenduto();
-    }
-  }
-};
-
-// inizializza i listener sui pulsanti
-function initNavigation() {
-  document.querySelectorAll("[data-route]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const route = btn.dataset.route;
-      navigateTo(route);
-    });
-  });
-}
-
-// funzione centrale di navigazione
-function navigateTo(route) {
-  if (!route) return;
-
-  console.log("➡️ NAVIGATE:", route);
-
-  // nasconde tutte le schermate
-  document.querySelectorAll(ALL_VIEWS_SELECTOR).forEach(view => {
-    view.style.display = "none";
-  });
-
-  // mostra la schermata target
-  const target = document.getElementById(`view-${route}`);
-  if (!target) {
-    console.warn(`❌ View non trovata: view-${route}`);
-    return;
-  }
-
-  target.style.display = "block";
-
-  // esegue hook di ingresso (se esiste)
-  if (ROUTE_HOOKS[route]) {
-    try {
-      ROUTE_HOOKS[route]();
-    } catch (err) {
-      console.error(`Errore hook route "${route}"`, err);
-    }
-  }
-}
-
