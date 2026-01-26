@@ -3328,19 +3328,17 @@ function emailCurrentPreventivoViaMailto() {
     ricettaFormato2PercInput.addEventListener("input", aggiornaResaRicetta);
   }
 // ================= PREPARAZIONE & PROCESSO PRODUTTIVO =================
+// 🧑‍🍳 Gestione fasi, tempi e lavoro uomo
 
-// stato in memoria
+// ---------- STATO IN MEMORIA ----------
 let preparazioneFasi = [];
 
-// riferimenti DOM
-const tablePreparazioneBody = document.querySelector(
-  "#table-preparazione tbody"
-);
-
+// ---------- RIFERIMENTI DOM ----------
+const tablePreparazioneBody = document.querySelector("#table-preparazione tbody");
 const prepTempoTotaleEl = document.getElementById("prep-tempo-totale");
 const prepTempoUomoEl = document.getElementById("prep-tempo-uomo");
 
-// ---------- RENDER TABELLA ----------
+// ---------- RENDER TABELLA FASI ----------
 function renderPreparazioneFasi() {
   if (!tablePreparazioneBody) return;
 
@@ -3358,24 +3356,20 @@ function renderPreparazioneFasi() {
       <td>${fase.tecnologia || ""}</td>
       <td>${fase.temperatura ?? ""}</td>
       <td>
-        <button class="app-button tiny red" data-remove="${index}">
-          ✕
-        </button>
+        <button class="app-button tiny red" data-remove="${index}">✕</button>
       </td>
     `;
 
     tablePreparazioneBody.appendChild(tr);
   });
 
-  // bind pulsanti elimina
-  tablePreparazioneBody
-    .querySelectorAll("[data-remove]")
-    .forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.remove, 10);
-        rimuoviFasePreparazione(idx);
-      });
+  // 🗑️ elimina fase
+  tablePreparazioneBody.querySelectorAll("[data-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.remove);
+      rimuoviFasePreparazione(idx);
     });
+  });
 
   calcolaTotaliPreparazione();
 }
@@ -3390,16 +3384,11 @@ function calcolaTotaliPreparazione() {
     tempoUomo += Number(fase.tempo_uomo_minuti || 0);
   });
 
-  if (prepTempoTotaleEl) {
-    prepTempoTotaleEl.textContent = `${tempoTotale} min`;
-  }
-
-  if (prepTempoUomoEl) {
-    prepTempoUomoEl.textContent = `${tempoUomo} min`;
-  }
+  if (prepTempoTotaleEl) prepTempoTotaleEl.textContent = `⏱️ ${tempoTotale} min`;
+  if (prepTempoUomoEl) prepTempoUomoEl.textContent = `👨‍🍳 ${tempoUomo} min`;
 }
 
-// ---------- API AGGIUNTA / RIMOZIONE ----------
+// ---------- AGGIUNTA FASE ----------
 function aggiungiFasePreparazione(fase) {
   preparazioneFasi.push({
     ordine: preparazioneFasi.length + 1,
@@ -3414,35 +3403,27 @@ function aggiungiFasePreparazione(fase) {
   renderPreparazioneFasi();
 }
 
+// ---------- RIMOZIONE FASE ----------
 function rimuoviFasePreparazione(index) {
   preparazioneFasi.splice(index, 1);
 
-  // riordina
-  preparazioneFasi.forEach((f, i) => {
-    f.ordine = i + 1;
-  });
+  // 🔢 riordino
+  preparazioneFasi.forEach((f, i) => (f.ordine = i + 1));
 
   renderPreparazioneFasi();
 }
-// ---------- BOTTONE: AGGIUNGI FASE ----------
-const btnAddFasePreparazione = document.getElementById(
-  "btn-add-fase-preparazione"
-);
 
-if (btnAddFasePreparazione) {
-// ---------- MODALE: AGGIUNGI FASE PREPARAZIONE ----------
+// ---------- MODALE: AGGIUNGI FASE ----------
 function openFasePreparazioneModal() {
   makeModal({
     title: "🧑‍🍳 Aggiungi fase di lavorazione",
     bodyHtml: `
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <label style="font-size:13px;">
-          Nome fase
-          <input id="m_fase_nome" type="text" class="input-pill" placeholder="Es. Rosolatura" />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <label>Nome fase
+          <input id="m_fase_nome" class="input-pill" placeholder="Es. Rosolatura">
         </label>
 
-        <label style="font-size:13px;">
-          Tipo fase
+        <label>Tipo
           <select id="m_fase_tipo" class="input-pill">
             <option value="prep">Preparazione</option>
             <option value="cottura">Cottura</option>
@@ -3452,46 +3433,37 @@ function openFasePreparazioneModal() {
         </label>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-        <label style="font-size:13px;">
-          Durata (min)
-          <input id="m_fase_durata" type="number" step="1" min="0" class="input-pill" />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <label>Durata (min)
+          <input id="m_fase_durata" type="number" class="input-pill">
         </label>
 
-        <label style="font-size:13px;">
-          Tempo uomo (min)
-          <input id="m_fase_uomo" type="number" step="1" min="0" class="input-pill" />
+        <label>Tempo uomo (min)
+          <input id="m_fase_uomo" type="number" class="input-pill">
         </label>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-        <label style="font-size:13px;">
-          Tecnologia
-          <input id="m_fase_tecnologia" type="text" class="input-pill" placeholder="Padella / Forno / CBT" />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <label>Tecnologia
+          <input id="m_fase_tecnologia" class="input-pill">
         </label>
 
-        <label style="font-size:13px;">
-          Temperatura °C
-          <input id="m_fase_temp" type="number" step="0.1" class="input-pill" placeholder="Es. 180" />
+        <label>Temperatura °C
+          <input id="m_fase_temp" type="number" class="input-pill">
         </label>
       </div>
     `,
-    onSave: async ({ close }) => {
+    onSave: ({ close }) => {
       const nome = document.getElementById("m_fase_nome").value.trim();
       const tipo = document.getElementById("m_fase_tipo").value;
       const durata = Number(document.getElementById("m_fase_durata").value);
       const uomo = Number(document.getElementById("m_fase_uomo").value);
       const tecnologia = document.getElementById("m_fase_tecnologia").value.trim();
-      const tempVal = document.getElementById("m_fase_temp").value;
-      const temperatura = tempVal !== "" ? Number(tempVal) : null;
+      const tempRaw = document.getElementById("m_fase_temp").value;
+      const temperatura = tempRaw !== "" ? Number(tempRaw) : null;
 
-      if (!nome) {
-        alert("Inserisci il nome della fase.");
-        return;
-      }
-
-      if (!durata || durata <= 0) {
-        alert("Inserisci una durata valida (> 0).");
+      if (!nome || !durata || durata <= 0) {
+        alert("Nome e durata sono obbligatori.");
         return;
       }
 
@@ -3500,13 +3472,19 @@ function openFasePreparazioneModal() {
         tipo_fase: tipo,
         durata_minuti: durata,
         tempo_uomo_minuti: uomo || 0,
-        tecnologia: tecnologia || "",
-        temperatura: temperatura
+        tecnologia,
+        temperatura
       });
 
       close();
     }
   });
+}
+
+// ---------- BOTTONE + AGGIUNGI FASE ----------
+const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
+if (btnAddFasePreparazione) {
+  btnAddFasePreparazione.addEventListener("click", openFasePreparazioneModal);
 }
 
   // ========= RICETTE: SALVATAGGIO BASE =========
