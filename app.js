@@ -3244,6 +3244,20 @@ window.escHtml = escHtml;
   renderPorzioni();
   renderConservazione();
 })();
+// ================= AGGANCIO FINALE RENDER =================
+// Se le funzioni vere esistono, sovrascrivono i fallback
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof renderOutput === "function") {
+    window.renderOutput = renderOutput;
+  }
+  if (typeof renderPorzioni === "function") {
+    window.renderPorzioni = renderPorzioni;
+  }
+  if (typeof renderConservazione === "function") {
+    window.renderConservazione = renderConservazione;
+  }
+});
 
   // ========= RICETTE: RESET FORM =========
   function resetFormRicetta() {
