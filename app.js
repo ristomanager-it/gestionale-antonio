@@ -2908,7 +2908,7 @@ function emailCurrentPreventivoViaMailto() {
     }
     const { data, error } = await supabase
       .from("ricette_conservazione")
-      .select("id, ricetta_id, abbattimento, confezionamento, trattamento, shelf_life_giorni, temperatura, note, attivo")
+      .select("id, ricetta_id, abbattimento, confezionamento, trattamento, shelf_life_giorni, note, attivo")
       .eq("ricetta_id", ricettaCorrenteId)
       .order("attivo", { ascending: false })
       .order("id", { ascending: true });
@@ -3181,8 +3181,7 @@ function emailCurrentPreventivoViaMailto() {
               abbattimento,
               confezionamento,
               trattamento,
-              shelf_life_giorni,
-              temperatura,
+              shelf_life_giorni
               note: noteVal,
               attivo: attivoVal,
             })
@@ -3194,7 +3193,6 @@ function emailCurrentPreventivoViaMailto() {
             confezionamento,
             trattamento,
             shelf_life_giorni,
-            temperatura,
             note: noteVal,
             attivo: attivoVal,
           });
