@@ -3588,6 +3588,7 @@ if (ricetteSearchInput) {
     applicaFiltroRicettario();
   });
 }
+console.log("ARRIVO QUI");
 
 
 // ===========================================================
