@@ -3175,36 +3175,38 @@ function emailCurrentPreventivoViaMailto() {
         }
 
         if (existing?.id) {
-          await supabase
-  .from("ricette_conservazione")
-  .update({
-    abbattimento,
-    confezionamento,
-    trattamento,
-    temperatura,
-    shelf_life_giorni,
-    note: noteVal,
-    attivo: attivoVal,
-  })
-  .eq("id", existing.id);
-await supabase
-  .from("ricette_conservazione")
-  .insert({
-    ricetta_id: ricettaCorrenteId,
-    abbattimento,
-    confezionamento,
-    trattamento,
-    temperatura,
-    shelf_life_giorni,
-    note: noteVal,
-    attivo: attivoVal,
-  });
+  // UPDATE
+  await supabase
+    .from("ricette_conservazione")
+    .update({
+      abbattimento,
+      confezionamento,
+      trattamento,
+      temperatura,
+      shelf_life_giorni,
+      note: noteVal,
+      attivo: attivoVal,
+    })
+    .eq("id", existing.id);
 
-
-        close();
-        await refreshCards();
+} else {
+  // INSERT
+  await supabase
+    .from("ricette_conservazione")
+    .insert({
+      ricetta_id: ricettaCorrenteId,
+      abbattimento,
+      confezionamento,
+      trattamento,
+      temperatura,
+      shelf_life_giorni,
+      note: noteVal,
+      attivo: attivoVal,
     });
-  }
+}
+
+close();
+await refreshCards();
 
   // ---------- EVENTI BOTTONI ----------
   btnAddOutput.onclick = async () => {
