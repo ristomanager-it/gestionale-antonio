@@ -3424,6 +3424,26 @@ function rimuoviFasePreparazione(index) {
 
   renderPreparazioneFasi();
 }
+// ---------- BOTTONE: AGGIUNGI FASE ----------
+const btnAddFasePreparazione = document.getElementById(
+  "btn-add-fase-preparazione"
+);
+
+if (btnAddFasePreparazione) {
+  btnAddFasePreparazione.addEventListener("click", () => {
+    // TEST TEMPORANEO
+    aggiungiFasePreparazione({
+      nome_fase: "Nuova fase",
+      tipo_fase: "prep",
+      durata_minuti: 10,
+      tempo_uomo_minuti: 5,
+      tecnologia: "",
+      temperatura: null
+    });
+  });
+} else {
+  console.warn("⚠️ btn-add-fase-preparazione NON trovato");
+}
 
   // ========= RICETTE: SALVATAGGIO BASE =========
   async function salvaRicettaSupabaseBase({
