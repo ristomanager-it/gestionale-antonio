@@ -830,161 +830,43 @@
 <section class="card" id="card-ricetta-cottura">
   <header class="card-header">
     <h4>Tecnologia di cottura</h4>
+    <button type="button" id="btn-edit-cottura" class="app-button small gray">
+      Modifica
+    </button>
   </header>
-
-  <div class="card-body grid-2">
-    <label>
-      Tipologia
-      <select id="cottura-tipologia" class="input-pill">
-        <option value="">—</option>
-        <option value="CBT">CBT</option>
-        <option value="Pentola">Pentola</option>
-        <option value="Forno">Forno</option>
-        <option value="Vapore">Vapore</option>
-        <option value="Mista">Mista</option>
-      </select>
-    </label>
-
-    <label>
-      Temperatura (°C)
-      <input type="number" id="cottura-temperatura" class="input-pill" step="0.1" />
-    </label>
-
-    <label>
-      Tempo (minuti)
-      <input type="number" id="cottura-tempo" class="input-pill" />
-    </label>
-
-    <label style="grid-column:1 / -1">
-      Note
-      <textarea id="cottura-note" class="textarea-pill" rows="2"></textarea>
-    </label>
+  <div class="card-body" id="ricetta-cottura-body">
+    <p class="muted">Non specificata</p>
   </div>
 </section>
 
-
-<!-- CONSERVAZIONE & SHELF LIFE -->
+<!-- CONSERVAZIONE -->
 <section class="card" id="card-ricetta-conservazione">
   <header class="card-header">
     <h4>Conservazione & Shelf life</h4>
-    <p class="muted" style="font-size:12px;">
-      Definisci gli scenari finali dopo la cottura (HACCP / Produzione)
-    </p>
+    <button type="button" id="btn-add-conservazione" class="app-button small gray">
+      + Aggiungi scenario
+    </button>
   </header>
 
-  <div class="card-body" style="display:flex; flex-direction:column; gap:16px;">
-
-    <!-- SCENARIO 1 -->
-    <div class="conservazione-scenario card-sub">
-      <h5>Scenario A – Refrigerato</h5>
-
-      <label>
-        Abbattimento
-        <select class="input-pill conservazione-abbattimento">
-          <option value="nessuno">Nessuno</option>
-          <option value="positivo">Positivo</option>
-          <option value="negativo">Negativo</option>
-        </select>
-      </label>
-
-      <label>
-        Confezionamento
-        <select class="input-pill conservazione-confezionamento">
-          <option value="nessuno">Nessuno</option>
-          <option value="sottovuoto">Sottovuoto</option>
-          <option value="atm">ATM</option>
-          <option value="vaso">Vaso</option>
-        </select>
-      </label>
-
-      <label>
-        Trattamento termico
-        <select class="input-pill conservazione-trattamento">
-          <option value="nessuno">Nessuno</option>
-          <option value="pastorizzazione">Pastorizzazione</option>
-          <option value="sterilizzazione">Sterilizzazione</option>
-        </select>
-      </label>
-
-      <div class="grid-2">
-        <label>
-          Shelf life (giorni)
-          <input type="number" class="input-pill conservazione-shelf" min="1" />
-        </label>
-
-        <label>
-          Temperatura conservazione
-          <input
-            type="text"
-            class="input-pill conservazione-temperatura"
-            placeholder="Es. +4°C"
-          />
-        </label>
-      </div>
-
-      <label>
-        Note
-        <textarea class="textarea-pill conservazione-note" rows="2"></textarea>
-      </label>
-    </div>
-
-    <!-- SCENARIO 2 -->
-    <div class="conservazione-scenario card-sub">
-      <h5>Scenario B – Congelato</h5>
-
-      <label>
-        Abbattimento
-        <select class="input-pill conservazione-abbattimento">
-          <option value="nessuno">Nessuno</option>
-          <option value="positivo">Positivo</option>
-          <option value="negativo">Negativo</option>
-        </select>
-      </label>
-
-      <label>
-        Confezionamento
-        <select class="input-pill conservazione-confezionamento">
-          <option value="nessuno">Nessuno</option>
-          <option value="sottovuoto">Sottovuoto</option>
-          <option value="atm">ATM</option>
-          <option value="vaso">Vaso</option>
-        </select>
-      </label>
-
-      <label>
-        Trattamento termico
-        <select class="input-pill conservazione-trattamento">
-          <option value="nessuno">Nessuno</option>
-          <option value="pastorizzazione">Pastorizzazione</option>
-          <option value="sterilizzazione">Sterilizzazione</option>
-        </select>
-      </label>
-
-      <div class="grid-2">
-        <label>
-          Shelf life (giorni)
-          <input type="number" class="input-pill conservazione-shelf" min="1" />
-        </label>
-
-        <label>
-          Temperatura conservazione
-          <input
-            type="text"
-            class="input-pill conservazione-temperatura"
-            placeholder="Es. -18°C"
-          />
-        </label>
-      </div>
-
-      <label>
-        Note
-        <textarea class="textarea-pill conservazione-note" rows="2"></textarea>
-      </label>
-    </div>
-
+  <div class="card-body">
+    <table class="table" id="table-conservazione">
+      <thead>
+        <tr>
+          <th>Abbattimento</th>
+          <th>Confezionamento</th>
+          <th>Trattamento</th>
+          <th>Shelf life (gg)</th>
+          <th>Temp.</th>
+          <th>Attivo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 </section>
-
+          </form>
+        </section>
 
         <!-- RICETTARIO (SOLO LETTURA) -->
         <section
