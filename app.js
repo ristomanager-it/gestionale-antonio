@@ -2908,7 +2908,7 @@ function emailCurrentPreventivoViaMailto() {
     }
     const { data, error } = await supabase
       .from("ricette_conservazione")
-      .select("id, ricetta_id, abbattimento, confezionamento, trattamento, shelf_life_giorni, note, attivo")
+      .select("id, ricetta_id, abbattimento, confezionamento, trattamento, shelf_life_giorni,temperatura, note, attivo")
       .eq("ricetta_id", ricettaCorrenteId)
       .order("attivo", { ascending: false })
       .order("id", { ascending: true });
@@ -3176,27 +3176,30 @@ function emailCurrentPreventivoViaMailto() {
 
         if (existing?.id) {
           await supabase
-            .from("ricette_conservazione")
-            .update({
-              abbattimento,
-              confezionamento,
-              trattamento,
-              shelf_life_giorni
-              note: noteVal,
-              attivo: attivoVal,
-            })
-            .eq("id", existing.id);
-        } else {
-          await supabase.from("ricette_conservazione").insert({
-            ricetta_id: ricettaCorrenteId,
-            abbattimento,
-            confezionamento,
-            trattamento,
-            shelf_life_giorni,
-            note: noteVal,
-            attivo: attivoVal,
-          });
-        }
+  .from("ricette_conservazione")
+  .update({
+    abbattimento,
+    confezionamento,
+    trattamento,
+    temperatura,
+    shelf_life_giorni,
+    note: noteVal,
+    attivo: attivoVal,
+  })
+  .eq("id", existing.id);
+await supabase
+  .from("ricette_conservazione")
+  .insert({
+    ricetta_id: ricettaCorrenteId,
+    abbattimento,
+    confezionamento,
+    trattamento,
+    temperatura,
+    shelf_life_giorni,
+    note: noteVal,
+    attivo: attivoVal,
+  });
+
 
         close();
         await refreshCards();
