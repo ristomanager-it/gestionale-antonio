@@ -5124,4 +5124,45 @@ case "magazzino-preparazioni":
   }
 
   init();
+  // ===================================================
+// ROUTER BASE – RIPRISTINO NAVIGAZIONE
+// ===================================================
+
+// mostra una view e nasconde le altre
+function showView(route) {
+  document.querySelectorAll(".view").forEach((v) => {
+    v.style.display = "none";
+  });
+
+  const target = document.getElementById(`view-${route}`);
+  if (target) {
+    target.style.display = "block";
+  } else {
+    console.warn("View non trovata:", route);
+  }
+}
+
+// navigazione principale
+function navigateTo(route) {
+  showView(route);
+  window.location.hash = route;
+}
+
+// click su QUALSIASI bottone con data-route
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-route]");
+  if (!btn) return;
+
+  const route = btn.dataset.route;
+  if (!route) return;
+
+  navigateTo(route);
+});
+
+// gestione hash (refresh / back browser)
+window.addEventListener("hashchange", () => {
+  const route = location.hash.replace("#", "");
+  if (route) showView(route);
+});
+
 });
