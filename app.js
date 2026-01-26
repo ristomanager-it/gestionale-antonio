@@ -3203,7 +3203,6 @@ await supabase
 
         close();
         await refreshCards();
-      },
     });
   }
 
