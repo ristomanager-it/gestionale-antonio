@@ -5099,16 +5099,18 @@ async function caricaProdottiSuggerimentiIngredienti() {
         // 2) carico suggerimenti ingredienti da magazzino
         await caricaProdottiSuggerimentiIngredienti();
 
-        if (ricettaDaAprireId) {
-          // arrivo dal Ricettario con "Modifica"
-          const idToOpen = ricettaDaAprireId;
-          ricettaDaAprireId = null; // consumo il flag
-          await caricaRicettaInForm(idToOpen);
-        } else {
-          // apertura normale: form vuoto
-          resetFormRicetta();
-        }
-        break;
+      if (ricettaDaAprireId) {
+  // arrivo dal Ricettario con "Modifica"
+  const idToOpen = ricettaDaAprireId;
+  ricettaDaAprireId = null; // consumo il flag
+
+  await caricaRicettaInForm(idToOpen);
+} else {
+  // apertura normale: nuova ricetta
+  ricettaCorrenteId = null;
+}
+break;
+
 
       case "ricette-viewer":
         // solo lettura: elenco ricette + filtro
