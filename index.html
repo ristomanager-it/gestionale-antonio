@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+perfetto cosi mi piace di più. ti incollo tutto il codice index cosi lo modifichi e me lo rigiri, poi adegueremo app.js.: <!DOCTYPE html>
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
@@ -616,200 +616,215 @@
           </table>
         </section>
 
-      <!-- ================= RICETTE (EDITOR) ================= -->
-<section id="view-ricette" class="view" style="display:none">
+       <!-- ================= RICETTE (MODIFICA) ================= -->
+<section id="view-ricette" class="view" style="display: none">
+  <h2>Ricette</h2>
 
-<h2>Ricette</h2>
+  <form id="ricetta-form" onsubmit="return false;">
 
-<form id="ricetta-form" onsubmit="return false;">
+    <!-- ANAGRAFICA -->
+    <label>
+      Tipo ricetta
+      <select id="ricetta-tipo" class="input-pill">
+        <option value="piatto">Ricetta (piatto finito)</option>
+        <option value="base">Ricetta base / Preparazione</option>
+      </select>
+    </label>
 
-<!-- ANAGRAFICA -->
-<label>
-  Nome ricetta
-  <input id="ricetta-nome" class="input-pill" list="ricette-suggestions" />
-</label>
+    <label>
+      Nome ricetta
+      <input
+        type="text"
+        id="ricetta-nome"
+        class="input-pill"
+        placeholder="Es. Ragù classico"
+        list="ricette-suggestions"
+      />
+    </label>
 
-<label>
-  Descrizione
-  <input id="ricetta-descrizione" class="input-pill" />
-</label>
+    <label>
+      Descrizione breve
+      <input
+        type="text"
+        id="ricetta-descrizione"
+        class="input-pill"
+        placeholder="Es. Base per primi piatti"
+      />
+    </label>
 
-<label>
-  Procedimento / Note
-  <textarea id="ricetta-note" class="textarea-pill" rows="4"></textarea>
-</label>
+    <label>
+      Procedimento / Note
+      <textarea
+        id="ricetta-note"
+        rows="4"
+        class="textarea-pill"
+      ></textarea>
+    </label>
 
-<hr>
+    <hr style="margin:24px 0">
 
-<!-- ================= INGREDIENTI ================= -->
-<h3>Ingredienti</h3>
+    <!-- ================= INGREDIENTI ================= -->
+    <h3>Ingredienti</h3>
 
-<div id="ricetta-ingredienti-container"></div>
+    <div id="ricetta-ingredienti-container"></div>
 
-<button type="button" id="btn-add-ingrediente" class="app-button small gray">
-  + Aggiungi ingrediente
-</button>
+    <datalist id="ingredienti-suggestions"></datalist>
 
-<hr>
+    <button
+      id="btn-add-ingrediente"
+      class="app-button small gray"
+      type="button"
+    >
+      + Aggiungi ingrediente
+    </button>
 
-<!-- ================= OUTPUT ================= -->
-<section class="card">
-<header class="card-header">
-  <h4>📦 Output finale di produzione</h4>
-</header>
+    <hr style="margin:30px 0">
 
-<div class="card-body">
+    <!-- ================= OUTPUT FINALE ================= -->
+    <section class="card" id="card-ricetta-output">
+      <header class="card-header">
+        <h4>📦 Output finale di produzione</h4>
+        <button
+          type="button"
+          id="btn-add-output"
+          class="app-button small gray"
+        >
+          Aggiungi / Modifica
+        </button>
+      </header>
+      <div class="card-body" id="ricetta-output-body">
+        <p class="muted">Nessun output configurato</p>
+      </div>
+    </section>
 
-<div class="form-grid-2">
-  <label>
-    Peso finale
-    <input id="output-peso" type="number" step="0.001" class="input-pill" />
-  </label>
+    <!-- ================= PORZIONI ================= -->
+    <section class="card" id="card-ricetta-porzioni">
+      <header class="card-header">
+        <h4>🍽️ Porzioni / Formati di servizio</h4>
+        <button
+          type="button"
+          id="btn-add-porzione"
+          class="app-button small gray"
+        >
+          + Aggiungi porzione
+        </button>
+      </header>
 
-  <label>
-    Unità di misura
-    <input id="output-um" class="input-pill" placeholder="kg / pz" />
-  </label>
-</div>
+      <div class="card-body">
+        <table class="table" id="table-porzioni">
+          <thead>
+            <tr>
+              <th>Contesto</th>
+              <th>Peso</th>
+              <th>UM</th>
+              <th>Attiva</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+<!-- PREPARAZIONE & PROCESSO PRODUTTIVO -->
+<section class="card" id="card-ricetta-preparazione">
+  <header class="card-header">
+    <h4>🧑‍🍳 Preparazione & Processo produttivo</h4>
+    <button
+      type="button"
+      id="btn-add-fase-preparazione"
+      class="app-button small gray"
+    >
+      + Aggiungi fase
+    </button>
+  </header>
 
-<label>
-  Note output
-  <input id="output-note" class="input-pill" />
-</label>
+  <div class="card-body">
+    <table class="table" id="table-preparazione">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Fase</th>
+          <th>Tipo</th>
+          <th>Durata (min)</th>
+          <th>Lavoro uomo (min)</th>
+          <th>Tecnologia</th>
+          <th>Temp. °C</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- righe generate da JS -->
+      </tbody>
+    </table>
 
-</div>
-</section>
+    <!-- TOTALI -->
+    <div
+      style="
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      "
+    >
+      <div class="kpi-card">
+        <h3>⏱️ Tempo totale</h3>
+        <p id="prep-tempo-totale">0 min</p>
+      </div>
 
-<!-- ================= PORZIONI ================= -->
-<section class="card">
-<header class="card-header">
-  <h4>🍽️ Porzioni / Formati di servizio</h4>
-</header>
-
-<div class="card-body">
-
-<table class="table" id="table-porzioni">
-<thead>
-<tr>
-  <th>Contesto</th>
-  <th>Peso</th>
-  <th>UM</th>
-  <th>Attiva</th>
-  <th></th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-<button type="button" id="btn-add-porzione" class="app-button small gray">
-  + Aggiungi porzione
-</button>
-
-</div>
-</section>
-
-<!-- ================= PREPARAZIONE ================= -->
-<section class="card">
-<header class="card-header">
-  <h4>🧑‍🍳 Preparazione & Processo produttivo</h4>
-</header>
-
-<div class="card-body">
-
-<table class="table" id="table-preparazione">
-<thead>
-<tr>
-  <th>#</th>
-  <th>Fase</th>
-  <th>Tipo</th>
-  <th>Durata (min)</th>
-  <th>Lavoro uomo</th>
-  <th>Tecnologia</th>
-  <th>Temp.</th>
-  <th></th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-<button type="button" id="btn-add-fase" class="app-button small gray">
-  + Aggiungi fase
-</button>
-
-<div style="display:flex; gap:16px; margin-top:12px">
-  <div class="kpi-card">
-    <h3>⏱️ Tempo totale</h3>
-    <p id="prep-tempo-totale">0 min</p>
+      <div class="kpi-card">
+        <h3>👨‍🍳 Tempo uomo</h3>
+        <p id="prep-tempo-uomo">0 min</p>
+      </div>
+    </div>
   </div>
-  <div class="kpi-card">
-    <h3>👨‍🍳 Tempo uomo</h3>
-    <p id="prep-tempo-uomo">0 min</p>
-  </div>
-</div>
-
-</div>
 </section>
 
-<!-- ================= CONSERVAZIONE ================= -->
-<section class="card">
-<header class="card-header">
-  <h4>❄️ Conservazione & Shelf life</h4>
-</header>
 
-<div class="card-body">
+    <!-- ================= CONSERVAZIONE ================= -->
+    <section class="card" id="card-ricetta-conservazione">
+      <header class="card-header">
+        <h4>❄️ Conservazione & Shelf life</h4>
+        <button
+          type="button"
+          id="btn-add-conservazione"
+          class="app-button small gray"
+        >
+          + Aggiungi scenario
+        </button>
+      </header>
 
-<table class="table" id="table-conservazione">
-<thead>
-<tr>
-  <th>Abbattimento</th>
-  <th>Confezionamento</th>
-  <th>Trattamento</th>
-  <th>Shelf life (gg)</th>
-  <th>Temp.</th>
-  <th>Attiva</th>
-  <th></th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+      <div class="card-body">
+        <table class="table" id="table-conservazione">
+          <thead>
+            <tr>
+              <th>Abbattimento</th>
+              <th>Confezionamento</th>
+              <th>Trattamento</th>
+              <th>Shelf life (gg)</th>
+              <th>Temp.</th>
+              <th>Attivo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
 
-<button type="button" id="btn-add-conservazione" class="app-button small gray">
-  + Aggiungi scenario
-</button>
+    <hr style="margin:30px 0">
 
-</div>
+    <!-- ================= SALVA ================= -->
+    <button
+      id="btn-salva-ricetta"
+      class="app-button green"
+      type="button"
+    >
+      💾 Salva ricetta
+    </button>
+
+  </form>
 </section>
 
-<hr>
-
-<button id="btn-salva-ricetta" class="app-button green">
-  💾 Salva ricetta
-</button>
-
-</form>
-</section>
-
-<!-- DATALIST -->
-<datalist id="ricette-suggestions"></datalist>
-<datalist id="ingredienti-suggestions"></datalist>
-
-</main>
-
-<!-- SUPABASE -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseClient = window.supabase.createClient(
-    "https://cuhcscpvhypoaplcmtjk.supabase.co",
-    "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"
-  );
-  window.supabase = supabaseClient;
-</script>
-
-<script src="app.js"></script>
-
-</div>
-</body>
-</html>
         <!-- RICETTARIO (SOLO LETTURA) -->
         <section
           id="view-ricette-viewer"
