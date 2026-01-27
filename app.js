@@ -2745,6 +2745,53 @@ async function handleSalvaRicetta() {
 
   alert("Ricetta salvata correttamente");
 }
+// =========================================================
+// CARICAMENTO RICETTA IN EDIT (da Ricettario)
+// =========================================================
+async function caricaRicettaInForm(id) {
+  if (!id || !supabase) return;
+
+  // --- ricetta base ---
+  const { data: r, error } = await supabase
+    .from("ricette")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !r) {
+    console.error("Errore caricamento ricetta:", error);
+    alert("Errore nel caricare la ricetta");
+    return;
+  }
+
+  ricettaCorrenteId = r.id;
+  ricettaFotoCorrenteUrl = r.foto_url || null;
+
+  // campi base
+  ricettaNomeInput.value = r.nome || "";
+  if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = r.descrizione || "";
+  if (ricettaNoteInput) ricettaNoteInput.value = r.note || "";
+
+  if (ricettaPezziBaseInput) ricettaPezziBaseInput.value = r.pezzi_base ?? "";
+  if (ricettaFormato1LabelInput) ricettaFormato1LabelInput.value = r.formato1_label || "";
+  if (ricettaFormato1PercInput) ricettaFormato1PercInput.value = r.formato1_percent ?? "";
+  if (ricettaFormato2LabelInput) ricettaFormato2LabelInput.value = r.formato2_label || "";
+  if (ricettaFormato2PercInput) ricettaFormato2PercInput.value = r.formato2_percent ?? "";
+
+  // --- ingredienti ---
+  const { data: ing } = await supabase
+    .from("ricetta_ingredienti")
+    .select("*")
+    .eq("ricetta_id", id)
+    .order("id");
+
+  ricettaIngredientiContainer.innerHTML = "";
+  (ing || []).forEach(creaRigaIngrediente);
+  if (!ing?.length) creaRigaIngrediente();
+
+  // --- preparazione & processo ---
+  await loadPreparazioneFasi();
+}
 
 // =========================================================
 // EVENTI
