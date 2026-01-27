@@ -74,37 +74,159 @@ document.addEventListener("DOMContentLoaded", () => {
   const dipLista = document.getElementById("dipendenti-lista");
 
   // ---------- RICETTE (EDIT) ----------
-  const ricettaTipoSelect = document.getElementById("ricetta-tipo");
-  const ricettaNomeInput = document.getElementById("ricetta-nome");
-  const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
-  const ricettaNoteInput = document.getElementById("ricetta-note");
-  const ricettaFotoInput = document.getElementById("ricetta-foto");
-  const ricettaIngredientiContainer = document.getElementById(
-    "ricetta-ingredienti-container"
-  );
-  const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
-  const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+const ricettaTipoSelect = document.getElementById("ricetta-tipo");
+const ricettaNomeInput = document.getElementById("ricetta-nome");
+const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+const ricettaNoteInput = document.getElementById("ricetta-note");
+const ricettaFotoInput = document.getElementById("ricetta-foto");
 
-  const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
-  const ricettaFormato1LabelInput = document.getElementById(
-    "ricetta-formato1-label"
-  );
-  const ricettaFormato1PercInput = document.getElementById(
-    "ricetta-formato1-percent"
-  );
-  const ricettaFormato2LabelInput = document.getElementById(
-    "ricetta-formato2-label"
-  );
-  const ricettaFormato2PercInput = document.getElementById(
-    "ricetta-formato2-percent"
-  );
-  const ricettaFormato1PezziOut = document.getElementById(
-    "ricetta-formato1-pezzi"
-  );
-  const ricettaFormato2PezziOut = document.getElementById(
-    "ricetta-formato2-pezzi"
-  );
+const ricettaIngredientiContainer = document.getElementById(
+  "ricetta-ingredienti-container"
+);
+const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
+/* =========================================================
+   PREPARAZIONE / LAVORAZIONI
+   ========================================================= */
+
+// stato in memoria
+let lavorazioniRicetta = [];
+
+// DOM
+const btnAddLavorazione = document.getElementById("btn-add-lavorazione");
+const tablePreparazioneBody = document.querySelector(
+  "#table-preparazione tbody"
+);
+const prepTempoTotaleEl = document.getElementById("prep-tempo-totale");
+const prepTempoUomoEl = document.getElementById("prep-tempo-uomo");
+
+// render lavorazioni
+function renderLavorazioni() {
+  if (!tablePreparazioneBody) return;
+
+  tablePreparazioneBody.innerHTML = "";
+
+  let tempoTot = 0;
+  let tempoUomo = 0;
+
+  lavorazioniRicetta.forEach((lav, index) => {
+    tempoTot += lav.durata_min;
+    tempoUomo += lav.lavoro_uomo_min;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="Es. Disosso"
+          value="${lav.nome}"
+        />
+      </td>
+
+      <td>
+        <select class="input-pill">
+          <option value="preparazione" ${
+            lav.tipo === "preparazione" ? "selected" : ""
+          }>Preparazione</option>
+          <option value="cottura" ${
+            lav.tipo === "cottura" ? "selected" : ""
+          }>Cottura</option>
+          <option value="riposo" ${
+            lav.tipo === "riposo" ? "selected" : ""
+          }>Riposo</option>
+          <option value="altro" ${
+            lav.tipo === "altro" ? "selected" : ""
+          }>Altro</option>
+        </select>
+      </td>
+
+      <td>
+        <input
+          type="number"
+          class="input-pill"
+          min="0"
+          value="${lav.durata_min}"
+        />
+      </td>
+
+      <td>
+        <input
+          type="number"
+          class="input-pill"
+          min="0"
+          value="${lav.lavoro_uomo_min}"
+        />
+      </td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="Tecnologia"
+          value="${lav.tecnologia}"
+        />
+      </td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="°C"
+          value="${lav.temperatura}"
+        />
+      </td>
+
+      <td>
+        <button class="app-button tiny red">✕</button>
+      </td>
+    `;
+
+    const inputs = tr.querySelectorAll("input, select");
+
+    inputs[0].oninput = e => (lav.nome = e.target.value);
+    inputs[1].onchange = e => (lav.tipo = e.target.value);
+
+    inputs[2].oninput = e => {
+      lav.durata_min = Number(e.target.value) || 0;
+      renderLavorazioni();
+    };
+
+    inputs[3].oninput = e => {
+      lav.lavoro_uomo_min = Number(e.target.value) || 0;
+      renderLavorazioni();
+    };
+
+    inputs[4].oninput = e => (lav.tecnologia = e.target.value);
+    inputs[5].oninput = e => (lav.temperatura = e.target.value);
+
+    tr.querySelector("button").onclick = () => {
+      lavorazioniRicetta.splice(index, 1);
+      renderLavorazioni();
+    };
+
+    tablePreparazioneBody.appendChild(tr);
+  });
+
+  if (prepTempoTotaleEl)
+    prepTempoTotaleEl.textContent = `${tempoTot} min`;
+  if (prepTempoUomoEl)
+    prepTempoUomoEl.textContent = `${tempoUomo} min`;
+}
+
+// click "Aggiungi lavorazione"
+btnAddLavorazione?.addEventListener("click", () => {
+  lavorazioniRicetta.push({
+    nome: "",
+    tipo: "preparazione",
+    durata_min: 0,
+    lavoro_uomo_min: 0,
+    tecnologia: "",
+    temperatura: ""
+  });
+
+  renderLavorazioni();
+});
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
