@@ -2676,11 +2676,86 @@ async function savePreparazioneFasi() {
     }))
   );
 }
+// =====================
+// RENDER OUTPUT
+// =====================
+function renderOutput() {
+  const outputBody = document.getElementById("ricetta-output-body");
+  if (!outputBody) return;
 
-/* =======================
-   OUTPUT / PORZIONI / CONSERVAZIONE
-   (la tua logica era già buona → solo pulita)
-======================= */
+  if (!ricettaCorrenteId) {
+    outputBody.innerHTML = `<p class="muted">Seleziona una ricetta.</p>`;
+    return;
+  }
+
+  if (!cacheOutput) {
+    outputBody.innerHTML = `<p class="muted">Nessun output configurato</p>`;
+    return;
+  }
+
+  outputBody.innerHTML = `
+    <div>
+      <strong>${Number(cacheOutput.peso_finale).toFixed(3)} ${cacheOutput.unita_misura}</strong>
+      <div class="muted">${cacheOutput.note || ""}</div>
+    </div>
+  `;
+}
+
+// =====================
+// RENDER PORZIONI
+// =====================
+function renderPorzioni() {
+  const tbody = document.querySelector("#table-porzioni tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!cachePorzioni.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Nessuna porzione</td></tr>`;
+    return;
+  }
+
+  cachePorzioni.forEach((p) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.label}</td>
+      <td>${p.peso_porzione}</td>
+      <td>${p.unita_misura}</td>
+      <td>${p.attivo ? "✔" : "—"}</td>
+      <td></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// =====================
+// RENDER CONSERVAZIONE
+// =====================
+function renderConservazione() {
+  const tbody = document.querySelector("#table-conservazione tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!cacheConservazione.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">Nessuno scenario</td></tr>`;
+    return;
+  }
+
+  cacheConservazione.forEach((c) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.abbattimento || "-"}</td>
+      <td>${c.confezionamento || "-"}</td>
+      <td>${c.trattamento || "-"}</td>
+      <td>${c.shelf_life_giorni || "-"}</td>
+      <td>${c.temperatura || "-"}</td>
+      <td>${c.attivo ? "✔" : "—"}</td>
+      <td></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
 async function loadExtraCards() {
   if (!ricettaCorrenteId) return;
