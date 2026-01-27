@@ -3049,16 +3049,16 @@ async function caricaRicettaInForm(id) {
   ricettaCorrenteId = r.id;
   ricettaFotoCorrenteUrl = r.foto_url || null;
 
-  // campi base
-  ricettaNomeInput.value = r.nome || "";
-  if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = r.descrizione || "";
-  if (ricettaNoteInput) ricettaNoteInput.value = r.note || "";
+ // ================== CAMPI BASE RICETTA ==================
+ricettaNomeInput.value = r.nome || "";
 
-  if (ricettaPezziBaseInput) ricettaPezziBaseInput.value = r.pezzi_base ?? "";
-  if (ricettaFormato1LabelInput) ricettaFormato1LabelInput.value = r.formato1_label || "";
-  if (ricettaFormato1PercInput) ricettaFormato1PercInput.value = r.formato1_percent ?? "";
-  if (ricettaFormato2LabelInput) ricettaFormato2LabelInput.value = r.formato2_label || "";
-  if (ricettaFormato2PercInput) ricettaFormato2PercInput.value = r.formato2_percent ?? "";
+if (ricettaDescrizioneInput) {
+  ricettaDescrizioneInput.value = r.descrizione || "";
+}
+
+if (ricettaNoteInput) {
+  ricettaNoteInput.value = r.note || "";
+}
 
   // --- ingredienti ---
   const { data: ing } = await supabase
