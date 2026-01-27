@@ -2556,8 +2556,6 @@ function emailCurrentPreventivoViaMailto() {
 /* =======================
    STATO GLOBALE RICETTA
 ======================= */
-let ricettaCorrenteId = null;
-let ricettaFotoCorrenteUrl = null;
 
 let cacheOutput = null;
 let cachePorzioni = [];
