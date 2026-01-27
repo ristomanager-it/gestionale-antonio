@@ -2544,19 +2544,13 @@ function emailCurrentPreventivoViaMailto() {
     });
   }
 
-   /* =========================================================
-   RICETTE – VERSIONE DEFINITIVA
-   - Ingredienti
-   - Output finale
-   - Porzioni / formati di servizio
-   - Preparazione & Processo produttivo
-   - Conservazione & Shelf life
+  /* =========================================================
+   RICETTE – BLOCCO DEFINITIVO STABILE
 ========================================================= */
 
 /* =======================
-   STATO GLOBALE RICETTA
+   STATO
 ======================= */
-
 let cacheOutput = null;
 let cachePorzioni = [];
 let cacheConservazione = [];
@@ -2573,7 +2567,6 @@ function escHtml(s) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
 function parseNum(v) {
   if (v == null) return null;
   const n = Number(String(v).replace(",", "."));
@@ -2581,62 +2574,93 @@ function parseNum(v) {
 }
 
 /* =======================
-   INGREDIENTI
+   MODALE GENERICA
 ======================= */
-function creaRigaIngrediente(initial = {}) {
-  const container = document.getElementById("ricetta-ingredienti-container");
-  if (!container) return;
-
-  const row = document.createElement("div");
-  row.className = "ricetta-ingrediente-row";
-  row.innerHTML = `
-    <input class="ingrediente-nome" list="ingredienti-suggestions" placeholder="Ingrediente" value="${escHtml(initial.nome_prodotto || "")}">
-    <input class="ingrediente-quantita" type="number" step="0.001" min="0" placeholder="Q.tà" value="${initial.quantita ?? ""}">
-    <input class="ingrediente-unita" placeholder="UM" value="${escHtml(initial.unita_misura || "")}">
-    <button class="app-button tiny red">✕</button>
+function makeModal({ title, bodyHtml, onSave }) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:9999; padding:14px;
   `;
+  const box = document.createElement("div");
+  box.style.cssText = `
+    background:var(--card-bg,#fff); border-radius:14px;
+    width:min(720px,100%); box-shadow:0 20px 40px rgba(0,0,0,.25);
+    overflow:hidden;
+  `;
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #ddd">
+      <strong>${title}</strong>
+      <button class="app-button tiny gray" id="m-close">✕</button>
+    </div>
+    <div style="padding:14px">${bodyHtml}</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 14px;border-top:1px solid #ddd">
+      <button class="app-button small gray" id="m-cancel">Annulla</button>
+      <button class="app-button small green" id="m-save">Salva</button>
+    </div>
+  `;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
 
-  row.querySelector("button").onclick = () => row.remove();
-  container.appendChild(row);
+  const close = () => overlay.remove();
+  box.querySelector("#m-close").onclick = close;
+  box.querySelector("#m-cancel").onclick = close;
+  overlay.addEventListener("click", e => e.target === overlay && close());
+
+  box.querySelector("#m-save").onclick = async () => {
+    await onSave({ close });
+  };
 }
 
 /* =======================
-   PREPARAZIONE & PROCESSO
+   INGREDIENTI
+======================= */
+function creaRigaIngrediente(initial = {}) {
+  const cont = document.getElementById("ricetta-ingredienti-container");
+  if (!cont) return;
+  const row = document.createElement("div");
+  row.className = "ricetta-ingrediente-row";
+  row.innerHTML = `
+    <input class="ingrediente-nome" list="ingredienti-suggestions" value="${escHtml(initial.nome_prodotto || "")}">
+    <input class="ingrediente-quantita" type="number" step="0.001" value="${initial.quantita ?? ""}">
+    <input class="ingrediente-unita" value="${escHtml(initial.unita_misura || "")}">
+    <button class="app-button tiny red">✕</button>
+  `;
+  row.querySelector("button").onclick = () => row.remove();
+  cont.appendChild(row);
+}
+
+/* =======================
+   PREPARAZIONE
 ======================= */
 function renderPreparazioneFasi() {
   const tbody = document.querySelector("#table-preparazione tbody");
   if (!tbody) return;
-
   tbody.innerHTML = "";
-  let tot = 0;
-  let uomo = 0;
+  let tot = 0, uomo = 0;
 
-  preparazioneFasi
-    .sort((a, b) => a.ordine - b.ordine)
-    .forEach((f, i) => {
-      tot += f.durata_min;
-      uomo += f.lavoro_umano_min;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${escHtml(f.nome_fase)}</td>
-        <td>${escHtml(f.tipo_fase)}</td>
-        <td>${f.durata_min}</td>
-        <td>${f.lavoro_umano_min}</td>
-        <td>${escHtml(f.tecnologia || "-")}</td>
-        <td>${escHtml(f.temperatura || "-")}</td>
-        <td>
-          <button class="app-button tiny red">✕</button>
-        </td>
-      `;
-      tr.querySelector("button").onclick = () => {
-        preparazioneFasi.splice(i, 1);
-        preparazioneFasi.forEach((x, idx) => (x.ordine = idx + 1));
-        renderPreparazioneFasi();
-      };
-      tbody.appendChild(tr);
-    });
+  preparazioneFasi.forEach((f, i) => {
+    tot += f.durata_min;
+    uomo += f.lavoro_umano_min;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${escHtml(f.nome_fase)}</td>
+      <td>${escHtml(f.tipo_fase)}</td>
+      <td>${f.durata_min}</td>
+      <td>${f.lavoro_umano_min}</td>
+      <td>${escHtml(f.tecnologia || "-")}</td>
+      <td>${escHtml(f.temperatura || "-")}</td>
+      <td><button class="app-button tiny red">✕</button></td>
+    `;
+    tr.querySelector("button").onclick = () => {
+      preparazioneFasi.splice(i, 1);
+      preparazioneFasi.forEach((x, idx) => x.ordine = idx + 1);
+      renderPreparazioneFasi();
+    };
+    tbody.appendChild(tr);
+  });
 
   document.getElementById("prep-tempo-totale").innerText = `${tot} min`;
   document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
@@ -2655,315 +2679,50 @@ async function loadPreparazioneFasi() {
 
 async function savePreparazioneFasi() {
   if (!ricettaCorrenteId) return;
-
-  await supabase
-    .from("ricette_preparazione_fasi")
-    .delete()
-    .eq("ricetta_id", ricettaCorrenteId);
-
+  await supabase.from("ricette_preparazione_fasi").delete().eq("ricetta_id", ricettaCorrenteId);
   if (!preparazioneFasi.length) return;
-
   await supabase.from("ricette_preparazione_fasi").insert(
-    preparazioneFasi.map((f) => ({
+    preparazioneFasi.map(f => ({
       ricetta_id: ricettaCorrenteId,
       ordine: f.ordine,
       nome_fase: f.nome_fase,
       tipo_fase: f.tipo_fase,
       durata_min: f.durata_min,
       lavoro_umano_min: f.lavoro_umano_min,
-      tecnologia: f.tecnologia || null,
-      temperatura: f.temperatura || null,
+      tecnologia: f.tecnologia,
+      temperatura: f.temperatura
     }))
   );
 }
-// =====================
-// RENDER OUTPUT
-// =====================
-function renderOutput() {
-  const outputBody = document.getElementById("ricetta-output-body");
-  if (!outputBody) return;
-
-  if (!ricettaCorrenteId) {
-    outputBody.innerHTML = `<p class="muted">Seleziona una ricetta.</p>`;
-    return;
-  }
-
-  if (!cacheOutput) {
-    outputBody.innerHTML = `<p class="muted">Nessun output configurato</p>`;
-    return;
-  }
-
-  outputBody.innerHTML = `
-    <div>
-      <strong>${Number(cacheOutput.peso_finale).toFixed(3)} ${cacheOutput.unita_misura}</strong>
-      <div class="muted">${cacheOutput.note || ""}</div>
-    </div>
-  `;
-}
-
-// =====================
-// RENDER PORZIONI
-// =====================
-function renderPorzioni() {
-  const tbody = document.querySelector("#table-porzioni tbody");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
-
-  if (!cachePorzioni.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="muted">Nessuna porzione</td></tr>`;
-    return;
-  }
-
-  cachePorzioni.forEach((p) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${p.label}</td>
-      <td>${p.peso_porzione}</td>
-      <td>${p.unita_misura}</td>
-      <td>${p.attivo ? "✔" : "—"}</td>
-      <td></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// =====================
-// RENDER CONSERVAZIONE
-// =====================
-function renderConservazione() {
-  const tbody = document.querySelector("#table-conservazione tbody");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
-
-  if (!cacheConservazione.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="muted">Nessuno scenario</td></tr>`;
-    return;
-  }
-
-  cacheConservazione.forEach((c) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${c.abbattimento || "-"}</td>
-      <td>${c.confezionamento || "-"}</td>
-      <td>${c.trattamento || "-"}</td>
-      <td>${c.shelf_life_giorni || "-"}</td>
-      <td>${c.temperatura || "-"}</td>
-      <td>${c.attivo ? "✔" : "—"}</td>
-      <td></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-async function loadExtraCards() {
-  if (!ricettaCorrenteId) return;
-
-  cacheOutput = (
-    await supabase
-      .from("ricette_output")
-      .select("*")
-      .eq("ricetta_id", ricettaCorrenteId)
-      .maybeSingle()
-  ).data;
-
-  cachePorzioni = (
-    await supabase
-      .from("ricette_porzione")
-      .select("*")
-      .eq("ricetta_id", ricettaCorrenteId)
-      .order("attivo", { ascending: false })
-  ).data || [];
-
-  cacheConservazione = (
-    await supabase
-      .from("ricette_conservazione")
-      .select("*")
-      .eq("ricetta_id", ricettaCorrenteId)
-      .order("attivo", { ascending: false })
-  ).data || [];
-
-  renderOutput();
-  renderPorzioni();
-  renderConservazione();
-}
 
 /* =======================
-   SALVATAGGIO COMPLETO
+   MODALI
 ======================= */
-async function handleSalvaRicetta() {
-  const nome = document.getElementById("ricetta-nome").value.trim();
-  if (!nome) {
-    alert("Inserisci il nome ricetta");
-    return;
-  }
-
-  const descrizione = document.getElementById("ricetta-descrizione")?.value || "";
-  const note = document.getElementById("ricetta-note")?.value || "";
-
-  const { data: ricetta } = await supabase
-    .from("ricette")
-    .upsert({
-      id: ricettaCorrenteId || undefined,
-      nome,
-      descrizione,
-      note,
-      attiva: true,
-    })
-    .select()
-    .single();
-
-  ricettaCorrenteId = ricetta.id;
-
-  // ingredienti
-  const ingredienti = [];
-  document.querySelectorAll(".ricetta-ingrediente-row").forEach((r) => {
-    const nome = r.querySelector(".ingrediente-nome").value.trim();
-    const qta = parseNum(r.querySelector(".ingrediente-quantita").value);
-    const um = r.querySelector(".ingrediente-unita").value.trim();
-    if (nome && qta && um) ingredienti.push({ nome, qta, um });
-  });
-
-  await supabase.from("ricetta_ingredienti").delete().eq("ricetta_id", ricettaCorrenteId);
-  if (ingredienti.length) {
-    await supabase.from("ricetta_ingredienti").insert(
-      ingredienti.map((i) => ({
-        ricetta_id: ricettaCorrenteId,
-        nome_prodotto: i.nome,
-        quantita: i.qta,
-        unita_misura: i.um,
-      }))
-    );
-  }
-
-  await savePreparazioneFasi();
-  await loadExtraCards();
-
-  alert("Ricetta salvata correttamente");
-}
-
-/* =======================
-   LOAD RICETTA IN EDIT
-======================= */
-async function caricaRicettaInForm(id) {
-  const { data: r } = await supabase.from("ricette").select("*").eq("id", id).single();
-  if (!r) return;
-
-  ricettaCorrenteId = r.id;
-  document.getElementById("ricetta-nome").value = r.nome || "";
-  document.getElementById("ricetta-descrizione").value = r.descrizione || "";
-  document.getElementById("ricetta-note").value = r.note || "";
-
-  const { data: ing } = await supabase
-    .from("ricetta_ingredienti")
-    .select("*")
-    .eq("ricetta_id", id);
-
-  const cont = document.getElementById("ricetta-ingredienti-container");
-  cont.innerHTML = "";
-  (ing || []).forEach(creaRigaIngrediente);
-  if (!ing?.length) creaRigaIngrediente();
-
-  await loadPreparazioneFasi();
-  await loadExtraCards();
-}
-// ===== OUTPUT: bottone apri modale =====
-const btnAddOutput = document.getElementById("btn-add-output");
-if (btnAddOutput) {
-  btnAddOutput.onclick = async () => {
-    if (!ricettaCorrenteId) {
-      alert("Prima salva o seleziona una ricetta.");
-      return;
-    }
-    await loadExtraCards();
-    openOutputModal(cacheOutput);
-  };
-}
-// ===== CONSERVAZIONE: bottone apri modale =====
-const btnAddConservazione = document.getElementById("btn-add-conservazione");
-if (btnAddConservazione) {
-  btnAddConservazione.onclick = () => {
-    if (!ricettaCorrenteId) {
-      alert("Prima salva o seleziona una ricetta.");
-      return;
-    }
-    openConservazioneModal(null);
-  };
-}
-// ===== PREPARAZIONE: bottone aggiungi fase =====
-const btnAddFase = document.getElementById("btn-add-fase-preparazione");
-if (btnAddFase) {
-  btnAddFase.onclick = () => {
-    if (!ricettaCorrenteId) {
-      alert("Prima salva o seleziona una ricetta.");
-      return;
-    }
-    openFasePreparazioneModal();
-  };
-}
-function openFasePreparazioneModal(existing = null) {
-  const fase = existing || {
-    nome_fase: "",
-    tipo_fase: "preparazione",
-    durata_min: 0,
-    lavoro_umano_min: 0,
-    tecnologia: "",
-    temperatura: "",
-  };
-
+function openFasePreparazioneModal() {
   makeModal({
-    title: existing ? "✏️ Modifica fase" : "🧑‍🍳 Nuova fase",
+    title: "🧑‍🍳 Nuova fase",
     bodyHtml: `
-      <label>Nome fase
-        <input id="m_f_nome" class="input-pill" value="${fase.nome_fase}">
-      </label>
-
-      <label>Tipo
-        <select id="m_f_tipo" class="input-pill">
-          <option value="preparazione">Preparazione</option>
-          <option value="cottura">Cottura</option>
-          <option value="raffreddamento">Raffreddamento</option>
-          <option value="attesa">Attesa</option>
-        </select>
-      </label>
-
-      <label>Durata totale (min)
-        <input id="m_f_durata" type="number" class="input-pill" value="${fase.durata_min}">
-      </label>
-
-      <label>Tempo uomo (min)
-        <input id="m_f_uomo" type="number" class="input-pill" value="${fase.lavoro_umano_min}">
-      </label>
-
-      <label>Tecnologia
-        <input id="m_f_tecnologia" class="input-pill" value="${fase.tecnologia || ""}">
-      </label>
-
-      <label>Temperatura
-        <input id="m_f_temp" class="input-pill" value="${fase.temperatura || ""}">
-      </label>
+      <label>Nome fase<input id="m-nome" class="input-pill"></label>
+      <label>Tipo<select id="m-tipo" class="input-pill">
+        <option value="preparazione">Preparazione</option>
+        <option value="cottura">Cottura</option>
+        <option value="raffreddamento">Raffreddamento</option>
+        <option value="attesa">Attesa</option>
+      </select></label>
+      <label>Durata (min)<input id="m-durata" type="number" class="input-pill"></label>
+      <label>Tempo uomo<input id="m-uomo" type="number" class="input-pill"></label>
     `,
     onSave: ({ close }) => {
-      const nuovaFase = {
+      preparazioneFasi.push({
         ordine: preparazioneFasi.length + 1,
-        nome_fase: document.getElementById("m_f_nome").value.trim(),
-        tipo_fase: document.getElementById("m_f_tipo").value,
-        durata_min: parseNum(document.getElementById("m_f_durata").value) || 0,
-        lavoro_umano_min: parseNum(document.getElementById("m_f_uomo").value) || 0,
-        tecnologia: document.getElementById("m_f_tecnologia").value || null,
-        temperatura: document.getElementById("m_f_temp").value || null,
-      };
-
-      if (!nuovaFase.nome_fase) {
-        alert("Inserisci il nome della fase");
-        return;
-      }
-
-      preparazioneFasi.push(nuovaFase);
+        nome_fase: document.getElementById("m-nome").value,
+        tipo_fase: document.getElementById("m-tipo").value,
+        durata_min: parseNum(document.getElementById("m-durata").value) || 0,
+        lavoro_umano_min: parseNum(document.getElementById("m-uomo").value) || 0,
+      });
       renderPreparazioneFasi();
       close();
-    },
+    }
   });
 }
 
@@ -2971,8 +2730,8 @@ function openFasePreparazioneModal(existing = null) {
    EVENTI
 ======================= */
 document.getElementById("btn-add-ingrediente")?.addEventListener("click", () => creaRigaIngrediente());
+document.getElementById("btn-add-fase-preparazione")?.addEventListener("click", openFasePreparazioneModal);
 document.getElementById("btn-salva-ricetta")?.addEventListener("click", handleSalvaRicetta);
-
 
    // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
