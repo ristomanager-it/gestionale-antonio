@@ -2749,9 +2749,12 @@ async function handleSalvaRicetta() {
 // =========================================================
 // EVENTI
 // =========================================================
+const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
+
 btnAddIngrediente?.addEventListener("click", creaRigaIngrediente);
 btnAddFasePreparazione?.addEventListener("click", openFasePreparazioneModal);
 btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
+
 
    // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
