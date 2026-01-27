@@ -2868,6 +2868,104 @@ async function caricaRicettaInForm(id) {
   await loadPreparazioneFasi();
   await loadExtraCards();
 }
+// ===== OUTPUT: bottone apri modale =====
+const btnAddOutput = document.getElementById("btn-add-output");
+if (btnAddOutput) {
+  btnAddOutput.onclick = async () => {
+    if (!ricettaCorrenteId) {
+      alert("Prima salva o seleziona una ricetta.");
+      return;
+    }
+    await loadExtraCards();
+    openOutputModal(cacheOutput);
+  };
+}
+// ===== CONSERVAZIONE: bottone apri modale =====
+const btnAddConservazione = document.getElementById("btn-add-conservazione");
+if (btnAddConservazione) {
+  btnAddConservazione.onclick = () => {
+    if (!ricettaCorrenteId) {
+      alert("Prima salva o seleziona una ricetta.");
+      return;
+    }
+    openConservazioneModal(null);
+  };
+}
+// ===== PREPARAZIONE: bottone aggiungi fase =====
+const btnAddFase = document.getElementById("btn-add-fase-preparazione");
+if (btnAddFase) {
+  btnAddFase.onclick = () => {
+    if (!ricettaCorrenteId) {
+      alert("Prima salva o seleziona una ricetta.");
+      return;
+    }
+    openFasePreparazioneModal();
+  };
+}
+function openFasePreparazioneModal(existing = null) {
+  const fase = existing || {
+    nome_fase: "",
+    tipo_fase: "preparazione",
+    durata_min: 0,
+    lavoro_umano_min: 0,
+    tecnologia: "",
+    temperatura: "",
+  };
+
+  makeModal({
+    title: existing ? "✏️ Modifica fase" : "🧑‍🍳 Nuova fase",
+    bodyHtml: `
+      <label>Nome fase
+        <input id="m_f_nome" class="input-pill" value="${fase.nome_fase}">
+      </label>
+
+      <label>Tipo
+        <select id="m_f_tipo" class="input-pill">
+          <option value="preparazione">Preparazione</option>
+          <option value="cottura">Cottura</option>
+          <option value="raffreddamento">Raffreddamento</option>
+          <option value="attesa">Attesa</option>
+        </select>
+      </label>
+
+      <label>Durata totale (min)
+        <input id="m_f_durata" type="number" class="input-pill" value="${fase.durata_min}">
+      </label>
+
+      <label>Tempo uomo (min)
+        <input id="m_f_uomo" type="number" class="input-pill" value="${fase.lavoro_umano_min}">
+      </label>
+
+      <label>Tecnologia
+        <input id="m_f_tecnologia" class="input-pill" value="${fase.tecnologia || ""}">
+      </label>
+
+      <label>Temperatura
+        <input id="m_f_temp" class="input-pill" value="${fase.temperatura || ""}">
+      </label>
+    `,
+    onSave: ({ close }) => {
+      const nuovaFase = {
+        ordine: preparazioneFasi.length + 1,
+        nome_fase: document.getElementById("m_f_nome").value.trim(),
+        tipo_fase: document.getElementById("m_f_tipo").value,
+        durata_min: parseNum(document.getElementById("m_f_durata").value) || 0,
+        lavoro_umano_min: parseNum(document.getElementById("m_f_uomo").value) || 0,
+        tecnologia: document.getElementById("m_f_tecnologia").value || null,
+        temperatura: document.getElementById("m_f_temp").value || null,
+      };
+
+      if (!nuovaFase.nome_fase) {
+        alert("Inserisci il nome della fase");
+        return;
+      }
+
+      preparazioneFasi.push(nuovaFase);
+      renderPreparazioneFasi();
+      close();
+    },
+  });
+}
 
 /* =======================
    EVENTI
