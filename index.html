@@ -680,141 +680,92 @@
 
     <hr style="margin:30px 0">
 
-    <!-- ================= OUTPUT FINALE ================= -->
-<section class="card" id="card-ricetta-output">
+    <!-- ================= RESA FINALE ================= -->
+<section class="card" id="card-ricetta-resa">
   <header class="card-header">
-    <h4>📦 Output finale di produzione</h4>
+    <h4>⚖️ Resa finale a cottura ultimata</h4>
   </header>
 
   <div class="card-body">
-    <label>
-      Descrizione output
-      <input
-        type="text"
-        id="out-descrizione"
-        class="input-pill"
-        placeholder="Es. Vaschette da 1 kg, porzioni da ristorante…"
-      />
-    </label>
+    <div class="form-grid-2">
+      <label>
+        Peso finale medio
+        <input
+          type="number"
+          id="resa-peso"
+          class="input-pill"
+          step="0.01"
+          placeholder="Es. 3.20"
+        />
+      </label>
 
-    <label>
-      Quantità base prodotta
-      <input
-        type="number"
-        id="out-pezzi"
-        class="input-pill"
-        step="0.01"
-        placeholder="Es. 10"
-      />
-    </label>
+      <label>
+        Unità di misura
+        <select id="resa-um" class="input-pill">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="pz">pz</option>
+        </select>
+      </label>
+    </div>
 
     <small class="muted">
-      L’output rappresenta la quantità standard prodotta da questa ricetta.
+      Valore medio a fine cottura, usato per food cost e pianificazione.
     </small>
   </div>
 </section>
-<!-- ================= PORZIONI ================= -->
+
+<!-- ================= PORZIONI / FORMATI ================= -->
 <section class="card" id="card-ricetta-porzioni">
   <header class="card-header">
-    <h4>🍽️ Porzioni / Formati di servizio</h4>
+    <h4>🍽️ Formati di servizio</h4>
+    <button
+      type="button"
+      id="btn-add-formato"
+      class="app-button tiny gray"
+    >
+      + Aggiungi formato
+    </button>
   </header>
 
   <div class="card-body">
     <table class="table" id="table-porzioni">
       <thead>
         <tr>
-          <th>Contesto</th>
-          <th>Peso</th>
+          <th>Nome formato</th>
+          <th>Grammatura</th>
           <th>UM</th>
-          <th>Attiva</th>
+          <th>Attivo</th>
           <th></th>
         </tr>
       </thead>
-      <tbody>
-        <!-- righe salvate -->
-      </tbody>
-      <tfoot>
-        <tr>
-          <td>
-            <input
-              type="text"
-              id="porzione-contesto"
-              class="input-pill"
-              placeholder="Ristorante, Buffet…"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              id="porzione-peso"
-              class="input-pill"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              id="porzione-um"
-              class="input-pill"
-              placeholder="g, kg, pz"
-            />
-          </td>
-          <td style="text-align:center;">
-            <input type="checkbox" id="porzione-attiva" checked />
-          </td>
-          <td>
-            <button
-              type="button"
-              id="btn-add-porzione"
-              class="app-button tiny gray"
-            >
-              +
-            </button>
-          </td>
-        </tr>
-      </tfoot>
+      <tbody></tbody>
     </table>
   </div>
 </section>
-<!-- PREPARAZIONE & PROCESSO PRODUTTIVO -->
+
+<!-- ================= PREPARAZIONE & LAVORAZIONI ================= -->
 <section class="card" id="card-ricetta-preparazione">
   <header class="card-header">
-    <h4>🧑‍🍳 Preparazione & Processo produttivo</h4>
+    <h4>🧑‍🍳 Preparazione & Lavorazioni</h4>
+    <button
+      type="button"
+      id="btn-add-lavorazione"
+      class="app-button tiny gray"
+    >
+      + Aggiungi lavorazione
+    </button>
   </header>
 
   <div class="card-body">
-
-    <!-- RIGA INSERIMENTO -->
-    <div
-      style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap:6px; margin-bottom:10px;"
-    >
-      <input id="prep-nome" class="input-pill" placeholder="Fase" />
-      <select id="prep-tipo" class="input-pill">
-        <option value="prep">Preparazione</option>
-        <option value="cottura">Cottura</option>
-        <option value="attesa">Attesa</option>
-      </select>
-      <input id="prep-durata" type="number" class="input-pill" placeholder="Min" />
-      <input id="prep-uomo" type="number" class="input-pill" placeholder="Uomo" />
-      <input id="prep-tec" class="input-pill" placeholder="Tecnologia" />
-      <input id="prep-temp" class="input-pill" placeholder="°C" />
-      <button
-        type="button"
-        id="btn-add-fase-preparazione"
-        class="app-button tiny gray"
-      >
-        +
-      </button>
-    </div>
-
     <table class="table" id="table-preparazione">
       <thead>
         <tr>
           <th>#</th>
-          <th>Fase</th>
+          <th>Lavorazione</th>
           <th>Tipo</th>
-          <th>Durata</th>
-          <th>Uomo</th>
+          <th>Durata (min)</th>
+          <th>Lavoro uomo (min)</th>
           <th>Tecnologia</th>
           <th>Temp.</th>
           <th></th>
@@ -823,7 +774,6 @@
       <tbody></tbody>
     </table>
 
-    <!-- TOTALI -->
     <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
       <div class="kpi-card">
         <h3>⏱️ Tempo totale</h3>
@@ -836,51 +786,38 @@
     </div>
   </div>
 </section>
-<!-- ================= CONSERVAZIONE ================= -->
+
+<!-- ================= CONSERVAZIONE & SHELF LIFE ================= -->
 <section class="card" id="card-ricetta-conservazione">
   <header class="card-header">
     <h4>❄️ Conservazione & Shelf life</h4>
+    <button
+      type="button"
+      id="btn-add-processo-conservazione"
+      class="app-button tiny gray"
+    >
+      + Aggiungi processo
+    </button>
   </header>
 
   <div class="card-body">
     <table class="table" id="table-conservazione">
       <thead>
         <tr>
-          <th>Abbattimento</th>
-          <th>Confezionamento</th>
+          <th>Processo</th>
           <th>Trattamento</th>
+          <th>Temperatura</th>
           <th>Shelf life (gg)</th>
-          <th>Temp.</th>
+          <th>Note</th>
           <th>Attivo</th>
           <th></th>
         </tr>
       </thead>
       <tbody></tbody>
-      <tfoot>
-        <tr>
-          <td><input id="cons-abb" class="input-pill" /></td>
-          <td><input id="cons-conf" class="input-pill" /></td>
-          <td><input id="cons-tratt" class="input-pill" /></td>
-          <td><input id="cons-shelf" type="number" class="input-pill" /></td>
-          <td><input id="cons-temp" class="input-pill" /></td>
-          <td style="text-align:center;">
-            <input type="checkbox" id="cons-attiva" checked />
-          </td>
-          <td>
-            <button
-              type="button"
-              id="btn-add-conservazione"
-              class="app-button tiny gray"
-            >
-              +
-            </button>
-          </td>
-        </tr>
-      </tfoot>
     </table>
   </div>
 </section>
-<hr style="margin:30px 0">
+
 
 <!-- ================= SALVA ================= -->
 <div style="display:flex; justify-content:flex-end;">
