@@ -2548,10 +2548,6 @@ function emailCurrentPreventivoViaMailto() {
 // ================= RICETTE – EDITOR =====================
 // =========================================================
 
-// ---------- STATO ----------
-let ricettaCorrenteId = null;
-let ricettaFotoCorrenteUrl = null;
-
 // ---------- HELPERS ----------
 function escHtml(s) {
   return String(s ?? "")
