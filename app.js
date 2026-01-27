@@ -227,6 +227,165 @@ btnAddLavorazione?.addEventListener("click", () => {
 
   renderLavorazioni();
 });
+/* =========================================================
+   PORZIONI / FORMATI
+   ========================================================= */
+
+let formatiRicetta = [];
+
+const btnAddFormato = document.getElementById("btn-add-formato");
+const tablePorzioniBody = document.querySelector("#table-porzioni tbody");
+
+function renderFormati() {
+  if (!tablePorzioniBody) return;
+  tablePorzioniBody.innerHTML = "";
+
+  formatiRicetta.forEach((f, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="input-pill" value="${f.nome}"></td>
+      <td><input type="number" class="input-pill" value="${f.grammi}"></td>
+      <td><input class="input-pill" value="${f.um}"></td>
+      <td style="text-align:center">
+        <input type="checkbox" ${f.attivo ? "checked" : ""}>
+      </td>
+      <td>
+        <button class="app-button tiny red">✕</button>
+      </td>
+    `;
+
+    const inputs = tr.querySelectorAll("input");
+
+    inputs[0].oninput = e => f.nome = e.target.value;
+    inputs[1].oninput = e => f.grammi = Number(e.target.value) || 0;
+    inputs[2].oninput = e => f.um = e.target.value;
+    inputs[3].onchange = e => f.attivo = e.target.checked;
+
+    tr.querySelector("button").onclick = () => {
+      formatiRicetta.splice(i, 1);
+      renderFormati();
+    };
+
+    tablePorzioniBody.appendChild(tr);
+  });
+}
+
+btnAddFormato?.addEventListener("click", () => {
+  formatiRicetta.push({
+    nome: "",
+    grammi: 0,
+    um: "g",
+    attivo: true
+  });
+  renderFormati();
+});
+/* =========================================================
+   BLOCCO 3 – CONSERVAZIONE & SHELF LIFE
+   ========================================================= */
+
+// ================== STATO ==================
+let processiConservazione = [];
+
+// ================== DOM ==================
+const btnAddProcessoConservazione = document.getElementById(
+  "btn-add-processo-conservazione"
+);
+
+const tableConservazioneBody = document.querySelector(
+  "#table-conservazione tbody"
+);
+
+// ================== RENDER ==================
+function renderConservazione() {
+  if (!tableConservazioneBody) return;
+
+  tableConservazioneBody.innerHTML = "";
+
+  processiConservazione.forEach((p, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>
+        <input
+          class="input-pill"
+          placeholder="Es. Abbattimento positivo"
+          value="${p.processo}"
+        />
+      </td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="Sottovuoto / Pastorizzazione"
+          value="${p.trattamento}"
+        />
+      </td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="+3°C / -18°C"
+          value="${p.temperatura}"
+        />
+      </td>
+
+      <td>
+        <input
+          type="number"
+          class="input-pill"
+          min="0"
+          value="${p.shelf_life}"
+        />
+      </td>
+
+      <td>
+        <input
+          class="input-pill"
+          placeholder="Note operative"
+          value="${p.note}"
+        />
+      </td>
+
+      <td style="text-align:center;">
+        <input type="checkbox" ${p.attivo ? "checked" : ""} />
+      </td>
+
+      <td>
+        <button class="app-button tiny red">✕</button>
+      </td>
+    `;
+
+    const inputs = tr.querySelectorAll("input");
+
+    inputs[0].oninput = e => (p.processo = e.target.value);
+    inputs[1].oninput = e => (p.trattamento = e.target.value);
+    inputs[2].oninput = e => (p.temperatura = e.target.value);
+    inputs[3].oninput = e => (p.shelf_life = Number(e.target.value) || 0);
+    inputs[4].oninput = e => (p.note = e.target.value);
+    inputs[5].onchange = e => (p.attivo = e.target.checked);
+
+    tr.querySelector("button").onclick = () => {
+      processiConservazione.splice(index, 1);
+      renderConservazione();
+    };
+
+    tableConservazioneBody.appendChild(tr);
+  });
+}
+
+// ================== EVENTO ==================
+btnAddProcessoConservazione?.addEventListener("click", () => {
+  processiConservazione.push({
+    processo: "",
+    trattamento: "",
+    temperatura: "",
+    shelf_life: 0,
+    note: "",
+    attivo: true
+  });
+
+  renderConservazione();
+});
 
   // ---------- ACQUISTI / FATTURE (DOM) ----------
   const fatturaNumeroInput = document.getElementById("fattura-numero");
