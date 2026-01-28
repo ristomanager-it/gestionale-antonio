@@ -800,88 +800,54 @@ body.theme-light .view {
   background: rgba(0,0,0,0.05);
 }
 /* ========================================================= */
-/* ========== RICETTE – CARD RESPONSIVE (SAFE) ============== */
-/* ========================================================= */
-
-/* contenitore card */
-.ricetta-mobile-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-/* singola card */
-.ricetta-mobile-row {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 10px 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  /* 🔑 adattamento */
-  width: 100%;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  box-sizing: border-box;
-
-  font-size: 13px;
-}
-
-/* footer pulsanti */
-.ricetta-mobile-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-
-/* ========================================================= */
-/* ========== CONTENIMENTO GENERALE MOBILE ================= */
+/* ========== RICETTE – RIGHE SEMPRE VERTICALI SU MOBILE ==== */
 /* ========================================================= */
 
 @media (max-width: 768px) {
 
-  /* blocca overflow orizzontale globale */
-  body {
-    overflow-x: hidden;
-  }
-
-  /* tutte le viste ricette NON possono uscire */
-  #view-ricette,
-  #view-ricette * {
+  /* ogni riga (porzioni / preparazioni / conservazione) */
+  .ricetta-mobile-row,
+  .ricetta-row,
+  .ricetta-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px;
+    width: 100%;
     max-width: 100%;
     box-sizing: border-box;
   }
 
-  /* input, select, textarea sempre fluidi */
-  #view-ricette input,
-  #view-ricette select,
-  #view-ricette textarea {
-    width: 100%;
+  /* ogni “campo” della riga va a tutta larghezza */
+  .ricetta-mobile-row > *,
+  .ricetta-row > *,
+  .ricetta-table-row > * {
+    width: 100% !important;
     max-width: 100%;
   }
 
-  /* tabelle: scroll interno, NON overflow pagina */
-  #table-porzioni,
-  #table-preparazione,
-  #table-conservazione {
-    width: 100%;
-    overflow-x: auto;
-    display: block;
+  /* label sopra, valore sotto (stile ingredienti) */
+  .ricetta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
   }
-}
 
-/* ========================================================= */
-/* ========== DESKTOP: NESSUNA LIMITAZIONE ================= */
-/* ========================================================= */
+  .ricetta-field label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+  }
 
-@media (min-width: 769px) {
-  .ricetta-mobile-row {
-    font-size: 14px;
+  .ricetta-field input,
+  .ricetta-field select,
+  .ricetta-field textarea {
+    width: 100%;
+  }
+
+  /* pulsanti riga vanno in fondo */
+  .ricetta-mobile-actions {
+    justify-content: flex-end;
+    margin-top: 6px;
   }
 }
