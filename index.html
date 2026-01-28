@@ -680,7 +680,7 @@
 
     <hr style="margin:30px 0">
 
-   <!-- ================= RESA FINALE ================= -->
+    <!-- ================= RESA FINALE ================= -->
 <section class="card" id="card-ricetta-resa">
   <header class="card-header">
     <h4>⚖️ Resa finale a cottura ultimata</h4>
@@ -715,7 +715,7 @@
   </div>
 </section>
 
-<!-- ================= PORZIONI ================= -->
+<!-- ================= PORZIONI / FORMATI ================= -->
 <section class="card" id="card-ricetta-porzioni">
   <header class="card-header">
     <h4>🍽️ Formati di servizio</h4>
@@ -739,14 +739,12 @@
           <th></th>
         </tr>
       </thead>
-      <tbody id="porzioni-tbody">
-        <!-- righe generate da JS -->
-      </tbody>
+      <tbody></tbody>
     </table>
   </div>
 </section>
 
-<!-- ================= PREPARAZIONE ================= -->
+<!-- ================= PREPARAZIONE & LAVORAZIONI ================= -->
 <section class="card" id="card-ricetta-preparazione">
   <header class="card-header">
     <h4>🧑‍🍳 Preparazione & Lavorazioni</h4>
@@ -763,18 +761,17 @@
     <table class="table" id="table-preparazione">
       <thead>
         <tr>
+          <th>#</th>
           <th>Lavorazione</th>
           <th>Tipo</th>
           <th>Durata (min)</th>
           <th>Lavoro uomo (min)</th>
-          <th>Tecnologia / Attrezzatura</th>
+          <th>Tecnologia</th>
           <th>Temp.</th>
           <th></th>
         </tr>
       </thead>
-      <tbody id="preparazione-tbody">
-        <!-- righe generate da JS -->
-      </tbody>
+      <tbody></tbody>
     </table>
 
     <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
@@ -790,7 +787,7 @@
   </div>
 </section>
 
-<!-- ================= CONSERVAZIONE ================= -->
+<!-- ================= CONSERVAZIONE & SHELF LIFE ================= -->
 <section class="card" id="card-ricetta-conservazione">
   <header class="card-header">
     <h4>❄️ Conservazione & Shelf life</h4>
@@ -808,23 +805,19 @@
       <thead>
         <tr>
           <th>Processo</th>
-          <th>Confezionamento</th>
+          <th>Trattamento</th>
           <th>Temperatura</th>
-          <th>Note operative</th>
+          <th>Shelf life (gg)</th>
+          <th>Note</th>
           <th>Attivo</th>
           <th></th>
         </tr>
       </thead>
-      <tbody id="conservazione-tbody">
-        <!-- righe generate da JS -->
-      </tbody>
+      <tbody></tbody>
     </table>
-
-    <p class="muted" style="margin-top:8px;">
-      La shelf life finale verrà calcolata al termine dei processi attivi.
-    </p>
   </div>
 </section>
+
 
 <!-- ================= SALVA ================= -->
 <div style="display:flex; justify-content:flex-end;">
@@ -837,6 +830,8 @@
   </button>
 </div>
 
+</form>
+</section>
 
         <!-- RICETTARIO (SOLO LETTURA) -->
         <section
