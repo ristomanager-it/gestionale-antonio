@@ -800,17 +800,18 @@ body.theme-light .view {
   background: rgba(0,0,0,0.05);
 }
 /* ========================================================= */
-/* ========== RICETTE – CARD MOBILE (SENZA ROMPERE JS) ===== */
+/* ========== RICETTE – CARD RESPONSIVE (SAFE) ============== */
 /* ========================================================= */
 
-/* wrapper righe mobile */
+/* contenitore card */
 .ricetta-mobile-rows {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
-/* singola riga come card */
+/* singola card */
 .ricetta-mobile-row {
   background: #ffffff;
   border-radius: 16px;
@@ -819,55 +820,68 @@ body.theme-light .view {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+
+  /* 🔑 adattamento */
+  width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  box-sizing: border-box;
+
+  font-size: 13px;
 }
 
-/* footer pulsanti riga */
+/* footer pulsanti */
 .ricetta-mobile-actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
   margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 /* ========================================================= */
-/* ========== CLASSE DI NASCONDIMENTO (JS SAFE) ============= */
-/* ========================================================= */
-
-.hidden-section {
-  display: none !important;
-}
-
-/* ========================================================= */
-/* ========== MOBILE: STILE, NON LOGICA ===================== */
+/* ========== CONTENIMENTO GENERALE MOBILE ================= */
 /* ========================================================= */
 
 @media (max-width: 768px) {
 
-  /* evita overflow orizzontale */
+  /* blocca overflow orizzontale globale */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* tutte le viste ricette NON possono uscire */
   #view-ricette,
   #view-ricette * {
     max-width: 100%;
     box-sizing: border-box;
   }
 
-  /* le tabelle RESTANO nel DOM */
+  /* input, select, textarea sempre fluidi */
+  #view-ricette input,
+  #view-ricette select,
+  #view-ricette textarea {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* tabelle: scroll interno, NON overflow pagina */
   #table-porzioni,
   #table-preparazione,
   #table-conservazione {
     width: 100%;
     overflow-x: auto;
+    display: block;
   }
 }
 
 /* ========================================================= */
-/* ========== DESKTOP: NASCONDI CARD MOBILE ================= */
+/* ========== DESKTOP: NESSUNA LIMITAZIONE ================= */
 /* ========================================================= */
 
 @media (min-width: 769px) {
-  .ricetta-mobile-rows {
-    display: none;
+  .ricetta-mobile-row {
+    font-size: 14px;
   }
 }
