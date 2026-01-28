@@ -5526,3 +5526,14 @@ case "magazzino-preparazioni":
 
   init();
 });
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    console.log("TOUCH SU BOTTONE:", btn.id || btn.className);
+    alert("Tap rilevato su: " + (btn.id || "senza id"));
+  },
+  { passive: false }
+);
