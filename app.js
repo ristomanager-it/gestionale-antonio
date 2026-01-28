@@ -102,7 +102,6 @@ const tablePreparazioneBody = document.querySelector(
 const prepTempoTotaleEl = document.getElementById("prep-tempo-totale");
 const prepTempoUomoEl = document.getElementById("prep-tempo-uomo");
 
-// render lavorazioni
 function renderLavorazioni() {
   if (!tablePreparazioneBody) return;
 
@@ -116,9 +115,8 @@ function renderLavorazioni() {
     tempoUomo += lav.lavoro_uomo_min;
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${index + 1}</td>
 
+    tr.innerHTML = `
       <td>
         <input
           class="input-pill"
@@ -129,18 +127,10 @@ function renderLavorazioni() {
 
       <td>
         <select class="input-pill">
-          <option value="preparazione" ${
-            lav.tipo === "preparazione" ? "selected" : ""
-          }>Preparazione</option>
-          <option value="cottura" ${
-            lav.tipo === "cottura" ? "selected" : ""
-          }>Cottura</option>
-          <option value="riposo" ${
-            lav.tipo === "riposo" ? "selected" : ""
-          }>Riposo</option>
-          <option value="altro" ${
-            lav.tipo === "altro" ? "selected" : ""
-          }>Altro</option>
+          <option value="preparazione" ${lav.tipo === "preparazione" ? "selected" : ""}>Preparazione</option>
+          <option value="cottura" ${lav.tipo === "cottura" ? "selected" : ""}>Cottura</option>
+          <option value="riposo" ${lav.tipo === "riposo" ? "selected" : ""}>Riposo</option>
+          <option value="altro" ${lav.tipo === "altro" ? "selected" : ""}>Altro</option>
         </select>
       </td>
 
@@ -165,7 +155,7 @@ function renderLavorazioni() {
       <td>
         <input
           class="input-pill"
-          placeholder="Tecnologia"
+          placeholder="Tecnologia / Attrezzatura"
           value="${lav.tecnologia}"
         />
       </td>
@@ -215,19 +205,6 @@ function renderLavorazioni() {
     prepTempoUomoEl.textContent = `${tempoUomo} min`;
 }
 
-// click "Aggiungi lavorazione"
-btnAddLavorazione?.addEventListener("click", () => {
-  lavorazioniRicetta.push({
-    nome: "",
-    tipo: "preparazione",
-    durata_min: 0,
-    lavoro_uomo_min: 0,
-    tecnologia: "",
-    temperatura: ""
-  });
-
-  renderLavorazioni();
-});
 /* =========================================================
    PORZIONI / FORMATI
    ========================================================= */
