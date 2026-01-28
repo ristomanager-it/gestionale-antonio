@@ -5526,3 +5526,46 @@ case "magazzino-preparazioni":
 
   init();
 });
+// =========================================================
+// FALLBACK MODAL (SAFE – MOBILE)
+// =========================================================
+
+if (typeof window.makeModal !== "function") {
+  window.makeModal = function ({ title, bodyHtml, onSave }) {
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.background = "rgba(0,0,0,0.6)";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+
+    const modal = document.createElement("div");
+    modal.style.background = "#fff";
+    modal.style.borderRadius = "16px";
+    modal.style.padding = "16px";
+    modal.style.maxWidth = "90%";
+    modal.style.maxHeight = "90%";
+    modal.style.overflowY = "auto";
+
+    modal.innerHTML = `
+      <h3 style="margin-top:0">${title || ""}</h3>
+      <div>${bodyHtml || ""}</div>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
+        <button id="modal-cancel" class="app-button gray small">Annulla</button>
+        <button id="modal-save" class="app-button green small">Salva</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+
+    modal.querySelector("#modal-cancel").onclick = close;
+    modal.querySelector("#modal-save").onclick = () => {
+      if (typeof onSave === "function") onSave({ close });
+    };
+  };
+}
