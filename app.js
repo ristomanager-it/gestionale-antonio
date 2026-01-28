@@ -2984,9 +2984,7 @@ function renderPreparazioneFasi() {
       tbody.appendChild(tr);
     });
 
-  document.getElementById("prep-tempo-totale").innerText = `${tot} min`;
-  document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
-}
+  
 
 function aggiornaKpiPreparazione() {
   let tot = 0;
