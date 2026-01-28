@@ -3310,18 +3310,16 @@ if (ricettaNoteInput) {
 }
 
 // =========================================================
-// EVENT DELEGATION – RICETTE (DESKTOP + MOBILE)
+// EVENTI – RICETTE (DESKTOP + MOBILE FIX)
 // =========================================================
 
-document.addEventListener("click", (e) => {
+function handleRicetteAction(e) {
   const btn = e.target.closest("button");
   if (!btn) return;
 
-  // ➕ Ingrediente
-  if (btn === btnAddIngrediente) {
-    creaRigaIngrediente();
-    return;
-  }
+  // evita doppio firing su mobile
+  e.preventDefault();
+  e.stopPropagation();
 
   // 🍽️ Formati di servizio
   if (btn.id === "btn-add-formato") {
@@ -3346,7 +3344,16 @@ document.addEventListener("click", (e) => {
     handleSalvaRicetta();
     return;
   }
+}
+
+// CLICK desktop
+document.addEventListener("click", handleRicetteAction);
+
+// TOUCH mobile (FONDAMENTALE)
+document.addEventListener("touchstart", handleRicetteAction, {
+  passive: false,
 });
+
 
    // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
