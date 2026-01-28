@@ -800,163 +800,151 @@ body.theme-light .view {
   background: rgba(0,0,0,0.05);
 }
 /* ========================================================= */
-/* ========== RICETTE – CARD RESPONSIVE (SAFE) ============== */
+/* ========== RICETTE – RESPONSIVE SOLIDO E COERENTE ======= */
 /* ========================================================= */
 
-/* contenitore card */
+/* ========================================================= */
+/* ========== BASE CARD (USATE OVUNQUE) ==================== */
+/* ========================================================= */
+
 .ricetta-mobile-rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
 }
 
-/* singola card */
 .ricetta-mobile-row {
   background: #ffffff;
   border-radius: 16px;
-  padding: 10px 12px;
+  padding: 12px;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
   display: flex;
   flex-direction: column;
   gap: 8px;
-
-  /* adattamento */
   width: 100%;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-break: break-word;
   box-sizing: border-box;
-
   font-size: 13px;
 }
 
-/* footer pulsanti */
 .ricetta-mobile-actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 
 /* ========================================================= */
-/* ========== CONTENIMENTO GENERALE MOBILE ================= */
+/* ========== MOBILE FIRST – TRASFORMA TABELLE IN CARD ===== */
 /* ========================================================= */
 
 @media (max-width: 768px) {
 
+  /* sicurezza globale */
   body {
     overflow-x: hidden;
   }
 
-  #view-ricette,
+  #view-ricette {
+    overflow-x: hidden;
+  }
+
   #view-ricette * {
-    max-width: 100%;
     box-sizing: border-box;
-  }
-
-  #view-ricette input,
-  #view-ricette select,
-  #view-ricette textarea {
-    width: 100%;
     max-width: 100%;
   }
 
-  #table-porzioni,
+  /* ------------------ */
+  /* TABELLE → CONTENITORI */
+  /* ------------------ */
+
   #table-preparazione,
-  #table-conservazione {
-    width: 100%;
-    overflow-x: auto;
-    display: block;
-  }
-}
-
-/* ========================================================= */
-/* ========== DESKTOP: NESSUNA LIMITAZIONE ================= */
-/* ========================================================= */
-
-@media (min-width: 769px) {
-  .ricetta-mobile-row {
-    font-size: 14px;
-  }
-}
-/* ========================================================= */
-/* ========== RICETTE – FORZA VERTICALE SU MOBILE =========== */
-/* ========================================================= */
-
-@media (max-width: 768px) {
-
-  /* ogni tabella ricette */
   #table-porzioni,
-  #table-preparazione,
   #table-conservazione {
     display: block;
     width: 100%;
+    border: none;
   }
 
-  /* corpo tabella */
-  #table-porzioni tbody,
+  /* nasconde header classico */
+  #table-preparazione thead,
+  #table-porzioni thead,
+  #table-conservazione thead {
+    display: none;
+  }
+
+  /* tbody diventa stack */
   #table-preparazione tbody,
+  #table-porzioni tbody,
   #table-conservazione tbody {
     display: block;
     width: 100%;
   }
 
-  /* OGNI RIGA diventa una CARD */
-  #table-porzioni tr,
+  /* ------------------ */
+  /* RIGA → CARD */
+  /* ------------------ */
+
   #table-preparazione tr,
+  #table-porzioni tr,
   #table-conservazione tr {
     display: block;
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     background: #ffffff;
     border-radius: 16px;
-    padding: 10px 12px;
+    padding: 12px;
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
   }
 
-  /* OGNI CELLA va in VERTICALE */
-  #table-porzioni td,
+  /* ------------------ */
+  /* CELLA → FIELD */
+  /* ------------------ */
+
   #table-preparazione td,
+  #table-porzioni td,
   #table-conservazione td {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
     width: 100%;
-    max-width: 100%;
-    padding: 4px 0;
+    padding: 6px 0;
     border: none;
-    box-sizing: border-box;
+    font-size: 13px;
   }
 
-  /* evita intestazioni inutili */
-  #table-porzioni thead,
-  #table-preparazione thead,
-  #table-conservazione thead {
-    display: none;
-  }
-}
-/* ========================================================= */
-/* ========== RICETTE – LABEL COLONNE SU MOBILE ============= */
-/* ========================================================= */
-
-@media (max-width: 768px) {
-
-  /* ogni cella mostra il nome colonna */
+  /* LABEL (titolo campo) */
   #table-preparazione td::before,
   #table-porzioni td::before,
   #table-conservazione td::before {
     content: attr(data-label);
-    display: block;
     font-size: 11px;
     font-weight: 600;
     color: #6b7280;
-    margin-bottom: 2px;
   }
 
-  /* valore sotto la label */
-  #table-preparazione td,
-  #table-porzioni td,
-  #table-conservazione td {
-    font-size: 13px;
+  /* INPUT SEMPRE FLUIDI */
+  #table-preparazione input,
+  #table-preparazione select,
+  #table-preparazione textarea,
+  #table-porzioni input,
+  #table-porzioni select,
+  #table-porzioni textarea,
+  #table-conservazione input,
+  #table-conservazione select,
+  #table-conservazione textarea {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* ========================================================= */
+/* ========== DESKTOP – NESSUNA ALTERAZIONE ================= */
+/* ========================================================= */
+
+@media (min-width: 769px) {
+  .ricetta-mobile-row {
+    font-size: 14px;
   }
 }
