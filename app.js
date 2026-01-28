@@ -2874,6 +2874,7 @@ function creaRigaIngrediente(initial = {}) {
 // =========================================================
 // PREPARAZIONE & PROCESSO PRODUTTIVO
 // =========================================================
+
 let preparazioneFasi = [];
 
 function renderPreparazioneFasi() {
@@ -2881,31 +2882,113 @@ function renderPreparazioneFasi() {
   if (!tbody) return;
 
   tbody.innerHTML = "";
+
   let tot = 0;
   let uomo = 0;
 
   preparazioneFasi
     .sort((a, b) => a.ordine - b.ordine)
     .forEach((f, i) => {
-      tot += f.durata_min;
-      uomo += f.lavoro_umano_min;
+      tot += f.durata_min || 0;
+      uomo += f.lavoro_umano_min || 0;
 
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${escHtml(f.nome_fase)}</td>
-        <td>${escHtml(f.tipo_fase)}</td>
-        <td>${f.durata_min}</td>
-        <td>${f.lavoro_umano_min}</td>
-        <td>${escHtml(f.tecnologia || "-")}</td>
-        <td>${escHtml(f.temperatura || "-")}</td>
-        <td><button class="app-button tiny red">✕</button></td>
+        <td data-label="Lavorazione">
+          <input
+            type="text"
+            class="input-pill prep-lavorazione"
+            value="${escHtml(f.nome_fase || "")}"
+            placeholder="Es. Disosso"
+          />
+        </td>
+
+        <td data-label="Tipo">
+          <select class="input-pill prep-tipo">
+            <option value="preparazione" ${f.tipo_fase === "preparazione" ? "selected" : ""}>Preparazione</option>
+            <option value="cottura" ${f.tipo_fase === "cottura" ? "selected" : ""}>Cottura</option>
+            <option value="riposo" ${f.tipo_fase === "riposo" ? "selected" : ""}>Riposo</option>
+            <option value="altro" ${f.tipo_fase === "altro" ? "selected" : ""}>Altro</option>
+          </select>
+        </td>
+
+        <td data-label="Durata (min)">
+          <input
+            type="number"
+            class="input-pill prep-durata"
+            min="0"
+            step="1"
+            value="${f.durata_min || 0}"
+          />
+        </td>
+
+        <td data-label="Lavoro uomo (min)">
+          <input
+            type="number"
+            class="input-pill prep-uomo"
+            min="0"
+            step="1"
+            value="${f.lavoro_umano_min || 0}"
+          />
+        </td>
+
+        <td data-label="Tecnologia / Attrezzatura">
+          <input
+            type="text"
+            class="input-pill prep-tecnologia"
+            value="${escHtml(f.tecnologia || "")}"
+            placeholder="Forno, cutter, planetaria…"
+          />
+        </td>
+
+        <td data-label="Temp.">
+          <input
+            type="text"
+            class="input-pill prep-temp"
+            value="${escHtml(f.temperatura || "")}"
+            placeholder="Es. 72°C"
+          />
+        </td>
+
+        <td data-label="">
+          <button type="button" class="app-button tiny red btn-del-prep">✕</button>
+        </td>
       `;
-      tr.querySelector("button").onclick = () => {
+
+      // === EVENTI ===
+      tr.querySelector(".prep-lavorazione").oninput = e => {
+        f.nome_fase = e.target.value;
+      };
+
+      tr.querySelector(".prep-tipo").onchange = e => {
+        f.tipo_fase = e.target.value;
+      };
+
+      tr.querySelector(".prep-durata").oninput = e => {
+        f.durata_min = parseInt(e.target.value) || 0;
+        aggiornaKpiPreparazione();
+      };
+
+      tr.querySelector(".prep-uomo").oninput = e => {
+        f.lavoro_umano_min = parseInt(e.target.value) || 0;
+        aggiornaKpiPreparazione();
+      };
+
+      tr.querySelector(".prep-tecnologia").oninput = e => {
+        f.tecnologia = e.target.value;
+      };
+
+      tr.querySelector(".prep-temp").oninput = e => {
+        f.temperatura = e.target.value;
+      };
+
+      tr.querySelector(".btn-del-prep").onclick = () => {
         preparazioneFasi.splice(i, 1);
-        preparazioneFasi.forEach((x, idx) => x.ordine = idx + 1);
+        preparazioneFasi.forEach((x, idx) => (x.ordine = idx + 1));
         renderPreparazioneFasi();
       };
+
       tbody.appendChild(tr);
     });
 
@@ -2913,13 +2996,28 @@ function renderPreparazioneFasi() {
   document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
 }
 
+function aggiornaKpiPreparazione() {
+  let tot = 0;
+  let uomo = 0;
+
+  preparazioneFasi.forEach(f => {
+    tot += f.durata_min || 0;
+    uomo += f.lavoro_umano_min || 0;
+  });
+
+  document.getElementById("prep-tempo-totale").innerText = `${tot} min`;
+  document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
+}
+
 async function loadPreparazioneFasi() {
   if (!ricettaCorrenteId) return;
+
   const { data } = await supabase
     .from("ricette_preparazione_fasi")
     .select("*")
     .eq("ricetta_id", ricettaCorrenteId)
     .order("ordine");
+
   preparazioneFasi = data || [];
   renderPreparazioneFasi();
 }
@@ -2946,44 +3044,6 @@ async function savePreparazioneFasi() {
       temperatura: f.temperatura || null,
     }))
   );
-}
-
-function openFasePreparazioneModal() {
-  makeModal({
-    title: "🧑‍🍳 Nuova fase",
-    bodyHtml: `
-      <label>Nome fase<input id="m_f_nome" class="input-pill"></label>
-      <label>Tipo
-        <select id="m_f_tipo" class="input-pill">
-          <option value="preparazione">Preparazione</option>
-          <option value="cottura">Cottura</option>
-          <option value="raffreddamento">Raffreddamento</option>
-          <option value="attesa">Attesa</option>
-        </select>
-      </label>
-      <label>Durata (min)<input id="m_f_durata" type="number" class="input-pill"></label>
-      <label>Tempo uomo (min)<input id="m_f_uomo" type="number" class="input-pill"></label>
-      <label>Tecnologia<input id="m_f_tec" class="input-pill"></label>
-      <label>Temperatura<input id="m_f_temp" class="input-pill"></label>
-    `,
-    onSave: ({ close }) => {
-      const nome = document.getElementById("m_f_nome").value.trim();
-      if (!nome) return alert("Nome fase obbligatorio");
-
-      preparazioneFasi.push({
-        ordine: preparazioneFasi.length + 1,
-        nome_fase: nome,
-        tipo_fase: document.getElementById("m_f_tipo").value,
-        durata_min: parseNum(document.getElementById("m_f_durata").value) || 0,
-        lavoro_umano_min: parseNum(document.getElementById("m_f_uomo").value) || 0,
-        tecnologia: document.getElementById("m_f_tec").value || null,
-        temperatura: document.getElementById("m_f_temp").value || null,
-      });
-
-      renderPreparazioneFasi();
-      close();
-    },
-  });
 }
 
 // =========================================================
