@@ -2985,6 +2985,230 @@ function openFasePreparazioneModal() {
     },
   });
 }
+// =========================================================
+// FORMATI DI SERVIZIO
+// =========================================================
+
+let formatiServizio = [];
+
+function openFormatoModal() {
+  makeModal({
+    title: "🍽️ Nuovo formato di servizio",
+    bodyHtml: `
+      <label>
+        Nome formato
+        <input id="m_formato_nome" class="input-pill">
+      </label>
+
+      <label>
+        Grammatura
+        <input id="m_formato_grammi" type="number" step="0.01" class="input-pill">
+      </label>
+
+      <label>
+        Unità di misura
+        <select id="m_formato_um" class="input-pill">
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="pz">pz</option>
+        </select>
+      </label>
+
+      <label style="margin-top:6px;">
+        <input type="checkbox" id="m_formato_attivo" checked>
+        Attivo
+      </label>
+    `,
+    onSave: ({ close }) => {
+      const nome = document.getElementById("m_formato_nome").value.trim();
+      if (!nome) return alert("Nome formato obbligatorio");
+
+      const grammatura = parseNum(
+        document.getElementById("m_formato_grammi").value
+      );
+      if (!grammatura || grammatura <= 0)
+        return alert("Grammatura non valida");
+
+      formatiServizio.push({
+        nome,
+        grammatura,
+        um: document.getElementById("m_formato_um").value,
+        attivo: document.getElementById("m_formato_attivo").checked,
+      });
+
+      renderFormatiServizio();
+      close();
+    },
+  });
+}
+
+function renderFormatiServizio() {
+  const tbody = document.querySelector("#table-porzioni tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  formatiServizio.forEach((f, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escHtml(f.nome)}</td>
+      <td>${f.grammatura}</td>
+      <td>${escHtml(f.um)}</td>
+      <td>${f.attivo ? "✅" : "❌"}</td>
+      <td><button class="app-button tiny red">✕</button></td>
+    `;
+
+    tr.querySelector("button").onclick = () => {
+      formatiServizio.splice(i, 1);
+      renderFormatiServizio();
+    };
+
+    tbody.appendChild(tr);
+  });
+}
+// =========================================================
+// CONSERVAZIONE & SHELF LIFE
+// =========================================================
+
+let processiConservazione = [];
+
+function openProcessoConservazioneModal() {
+  makeModal({
+    title: "❄️ Nuovo processo di conservazione",
+    bodyHtml: `
+      <label>Processo<input id="m_c_processo" class="input-pill"></label>
+      <label>Trattamento<input id="m_c_trattamento" class="input-pill"></label>
+      <label>Temperatura<input id="m_c_temp" class="input-pill"></label>
+      <label>Shelf life (giorni)
+        <input id="m_c_shelf" type="number" class="input-pill">
+      </label>
+      <label>Note<input id="m_c_note" class="input-pill"></label>
+      <label style="margin-top:6px;">
+        <input type="checkbox" id="m_c_attivo" checked>
+        Attivo
+      </label>
+    `,
+    onSave: ({ close }) => {
+      processiConservazione.push({
+        processo: document.getElementById("m_c_processo").value,
+        trattamento: document.getElementById("m_c_trattamento").value,
+        temperatura: document.getElementById("m_c_temp").value,
+        shelf_life_giorni: parseNum(
+          document.getElementById("m_c_shelf").value
+        ),
+        note: document.getElementById("m_c_note").value,
+        attivo: document.getElementById("m_c_attivo").checked,
+      });
+
+      renderConservazioneTable();
+      renderConservazioneMobile(processiConservazione);
+      close();
+    },
+  });
+}
+
+function renderConservazioneTable() {
+  const tbody = document.querySelector("#table-conservazione tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  processiConservazione.forEach((p, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escHtml(p.processo)}</td>
+      <td>${escHtml(p.trattamento)}</td>
+      <td>${escHtml(p.temperatura)}</td>
+      <td>${p.shelf_life_giorni ?? "-"}</td>
+      <td>${escHtml(p.note || "")}</td>
+      <td>${p.attivo ? "✅" : "❌"}</td>
+      <td><button class="app-button tiny red">✕</button></td>
+    `;
+
+    tr.querySelector("button").onclick = () => {
+      processiConservazione.splice(i, 1);
+      renderConservazioneTable();
+      renderConservazioneMobile(processiConservazione);
+    };
+
+    tbody.appendChild(tr);
+  });
+}
+/* ========================================================= */
+/* ========== RENDER MOBILE – PREPARAZIONE ================= */
+/* ========================================================= */
+
+function renderPreparazioneMobile() {
+  const container = document.getElementById("mobile-preparazione");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!preparazioneFasi.length) {
+    container.innerHTML = `
+      <div class="ricetta-mobile-row">
+        <em>Nessuna lavorazione inserita</em>
+      </div>
+    `;
+    return;
+  }
+
+  preparazioneFasi
+    .sort((a, b) => a.ordine - b.ordine)
+    .forEach((f, i) => {
+      const row = document.createElement("div");
+      row.className = "ricetta-mobile-row";
+
+      row.innerHTML = `
+        <label>
+          Fase
+          <input class="input-pill" value="${escHtml(f.nome_fase)}" readonly>
+        </label>
+
+        <label>
+          Tipo
+          <input class="input-pill" value="${escHtml(f.tipo_fase)}" readonly>
+        </label>
+
+        <label>
+          Durata (min)
+          <input class="input-pill" value="${f.durata_min}" readonly>
+        </label>
+
+        <label>
+          Tempo uomo (min)
+          <input class="input-pill" value="${f.lavoro_umano_min}" readonly>
+        </label>
+
+        <label>
+          Tecnologia
+          <input class="input-pill" value="${escHtml(f.tecnologia || "-")}" readonly>
+        </label>
+
+        <label>
+          Temperatura
+          <input class="input-pill" value="${escHtml(f.temperatura || "-")}" readonly>
+        </label>
+
+        <div class="ricetta-mobile-actions">
+          <button class="app-button tiny red" data-del-prep="${i}">
+            Elimina
+          </button>
+        </div>
+      `;
+
+      row
+        .querySelector("[data-del-prep]")
+        .addEventListener("click", () => {
+          preparazioneFasi.splice(i, 1);
+          preparazioneFasi.forEach((x, idx) => (x.ordine = idx + 1));
+          renderPreparazioneFasi();
+          renderPreparazioneMobile();
+        });
+
+      container.appendChild(row);
+    });
+}
 
 // =========================================================
 // SALVATAGGIO COMPLETO RICETTA
