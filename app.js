@@ -3070,7 +3070,6 @@ function renderFormatiServizio() {
 // CONSERVAZIONE & SHELF LIFE
 // =========================================================
 
-let processiConservazione = [];
 
 function openProcessoConservazioneModal() {
   makeModal({
