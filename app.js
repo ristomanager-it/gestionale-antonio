@@ -2878,7 +2878,7 @@ function creaRigaIngrediente(initial = {}) {
 let preparazioneFasi = [];
 
 function renderPreparazioneFasi() {
-  const tbody = document.querySelector("#table-preparazione tbody");
+  const tbody = document.getElementById("preparazione-tbody");
   if (!tbody) return;
 
   tbody.innerHTML = "";
@@ -2896,16 +2896,13 @@ function renderPreparazioneFasi() {
 
       tr.innerHTML = `
         <td data-label="Lavorazione">
-          <input
-            type="text"
-            class="input-pill prep-lavorazione"
+          <input type="text" class="input-pill"
             value="${escHtml(f.nome_fase || "")}"
-            placeholder="Es. Disosso"
-          />
+            placeholder="Es. Disosso">
         </td>
 
         <td data-label="Tipo">
-          <select class="input-pill prep-tipo">
+          <select class="input-pill">
             <option value="preparazione" ${f.tipo_fase === "preparazione" ? "selected" : ""}>Preparazione</option>
             <option value="cottura" ${f.tipo_fase === "cottura" ? "selected" : ""}>Cottura</option>
             <option value="riposo" ${f.tipo_fase === "riposo" ? "selected" : ""}>Riposo</option>
@@ -2914,47 +2911,42 @@ function renderPreparazioneFasi() {
         </td>
 
         <td data-label="Durata (min)">
-          <input
-            type="number"
-            class="input-pill prep-durata"
-            min="0"
-            step="1"
-            value="${f.durata_min || 0}"
-          />
+          <input type="number" class="input-pill"
+            value="${f.durata_min || 0}">
         </td>
 
         <td data-label="Lavoro uomo (min)">
-          <input
-            type="number"
-            class="input-pill prep-uomo"
-            min="0"
-            step="1"
-            value="${f.lavoro_umano_min || 0}"
-          />
+          <input type="number" class="input-pill"
+            value="${f.lavoro_umano_min || 0}">
         </td>
 
         <td data-label="Tecnologia / Attrezzatura">
-          <input
-            type="text"
-            class="input-pill prep-tecnologia"
-            value="${escHtml(f.tecnologia || "")}"
-            placeholder="Forno, cutter, planetaria…"
-          />
+          <input type="text" class="input-pill"
+            value="${escHtml(f.tecnologia || "")}">
         </td>
 
         <td data-label="Temp.">
-          <input
-            type="text"
-            class="input-pill prep-temp"
-            value="${escHtml(f.temperatura || "")}"
-            placeholder="Es. 72°C"
-          />
+          <input type="text" class="input-pill"
+            value="${escHtml(f.temperatura || "")}">
         </td>
 
-        <td data-label="">
-          <button type="button" class="app-button tiny red btn-del-prep">✕</button>
+        <td>
+          <button class="app-button tiny red">✕</button>
         </td>
       `;
+
+      tr.querySelector("button").onclick = () => {
+        preparazioneFasi.splice(i, 1);
+        preparazioneFasi.forEach((x, idx) => x.ordine = idx + 1);
+        renderPreparazioneFasi();
+      };
+
+      tbody.appendChild(tr);
+    });
+
+  document.getElementById("prep-tempo-totale").innerText = `${tot} min`;
+  document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
+}
 
       // === EVENTI ===
       tr.querySelector(".prep-lavorazione").oninput = e => {
