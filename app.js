@@ -102,6 +102,7 @@ const tablePreparazioneBody = document.querySelector(
 const prepTempoTotaleEl = document.getElementById("prep-tempo-totale");
 const prepTempoUomoEl = document.getElementById("prep-tempo-uomo");
 
+// render lavorazioni
 function renderLavorazioni() {
   if (!tablePreparazioneBody) return;
 
@@ -115,8 +116,9 @@ function renderLavorazioni() {
     tempoUomo += lav.lavoro_uomo_min;
 
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
+      <td>${index + 1}</td>
+
       <td>
         <input
           class="input-pill"
@@ -127,10 +129,18 @@ function renderLavorazioni() {
 
       <td>
         <select class="input-pill">
-          <option value="preparazione" ${lav.tipo === "preparazione" ? "selected" : ""}>Preparazione</option>
-          <option value="cottura" ${lav.tipo === "cottura" ? "selected" : ""}>Cottura</option>
-          <option value="riposo" ${lav.tipo === "riposo" ? "selected" : ""}>Riposo</option>
-          <option value="altro" ${lav.tipo === "altro" ? "selected" : ""}>Altro</option>
+          <option value="preparazione" ${
+            lav.tipo === "preparazione" ? "selected" : ""
+          }>Preparazione</option>
+          <option value="cottura" ${
+            lav.tipo === "cottura" ? "selected" : ""
+          }>Cottura</option>
+          <option value="riposo" ${
+            lav.tipo === "riposo" ? "selected" : ""
+          }>Riposo</option>
+          <option value="altro" ${
+            lav.tipo === "altro" ? "selected" : ""
+          }>Altro</option>
         </select>
       </td>
 
@@ -155,7 +165,7 @@ function renderLavorazioni() {
       <td>
         <input
           class="input-pill"
-          placeholder="Tecnologia / Attrezzatura"
+          placeholder="Tecnologia"
           value="${lav.tecnologia}"
         />
       </td>
@@ -205,6 +215,19 @@ function renderLavorazioni() {
     prepTempoUomoEl.textContent = `${tempoUomo} min`;
 }
 
+// click "Aggiungi lavorazione"
+btnAddLavorazione?.addEventListener("click", () => {
+  lavorazioniRicetta.push({
+    nome: "",
+    tipo: "preparazione",
+    durata_min: 0,
+    lavoro_uomo_min: 0,
+    tecnologia: "",
+    temperatura: ""
+  });
+
+  renderLavorazioni();
+});
 /* =========================================================
    PORZIONI / FORMATI
    ========================================================= */
@@ -2972,9 +2995,8 @@ async function handleSalvaRicetta() {
   const nome = ricettaNomeInput.value.trim();
   if (!nome) return alert("Nome ricetta obbligatorio");
 
-  // 🔕 Foto disattivata temporaneamente
-  const fotoUrl = null;
-  ricettaFotoCorrenteUrl = null;
+  const fotoUrl = await uploadFotoRicettaSePresente();
+  ricettaFotoCorrenteUrl = fotoUrl;
 
   const ricetta = await salvaRicettaSupabaseBase({
     id: ricettaCorrenteId,
@@ -2994,9 +3016,9 @@ async function handleSalvaRicetta() {
 
   const ingredienti = [];
   document.querySelectorAll(".ricetta-ingrediente-row").forEach(r => {
-    const n = r.querySelector(".ingrediente-nome")?.value.trim();
-    const q = parseNum(r.querySelector(".ingrediente-quantita")?.value);
-    const u = r.querySelector(".ingrediente-unita")?.value.trim();
+    const n = r.querySelector(".ingrediente-nome").value.trim();
+    const q = parseNum(r.querySelector(".ingrediente-quantita").value);
+    const u = r.querySelector(".ingrediente-unita").value.trim();
     if (n && q && u) ingredienti.push({ nome: n, quantita: q, unita: u });
   });
 
@@ -3005,7 +3027,6 @@ async function handleSalvaRicetta() {
 
   alert("Ricetta salvata correttamente");
 }
-
 // =========================================================
 // CARICAMENTO RICETTA IN EDIT (da Ricettario)
 // =========================================================
