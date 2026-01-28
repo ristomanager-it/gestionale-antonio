@@ -935,3 +935,28 @@ body.theme-light .view {
     display: none;
   }
 }
+/* ========================================================= */
+/* ========== RICETTE – LABEL COLONNE SU MOBILE ============= */
+/* ========================================================= */
+
+@media (max-width: 768px) {
+
+  /* ogni cella mostra il nome colonna */
+  #table-preparazione td::before,
+  #table-porzioni td::before,
+  #table-conservazione td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 2px;
+  }
+
+  /* valore sotto la label */
+  #table-preparazione td,
+  #table-porzioni td,
+  #table-conservazione td {
+    font-size: 13px;
+  }
+}
