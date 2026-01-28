@@ -800,7 +800,7 @@ body.theme-light .view {
   background: rgba(0,0,0,0.05);
 }
 /* ========================================================= */
-/* ========== RICETTE – TABELLE → CARD SU MOBILE =========== */
+/* ========== RICETTE – CARD MOBILE (SENZA ROMPERE JS) ===== */
 /* ========================================================= */
 
 /* wrapper righe mobile */
@@ -810,7 +810,7 @@ body.theme-light .view {
   gap: 10px;
 }
 
-/* singola riga come card (pattern ingredienti) */
+/* singola riga come card */
 .ricetta-mobile-row {
   background: #ffffff;
   border-radius: 16px;
@@ -820,6 +820,8 @@ body.theme-light .view {
   flex-direction: column;
   gap: 8px;
   font-size: 13px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* footer pulsanti riga */
@@ -831,14 +833,32 @@ body.theme-light .view {
 }
 
 /* ========================================================= */
-/* ========== NASCONDI SOLO LE TABELLE RICETTE ============== */
+/* ========== CLASSE DI NASCONDIMENTO (JS SAFE) ============= */
+/* ========================================================= */
+
+.hidden-section {
+  display: none !important;
+}
+
+/* ========================================================= */
+/* ========== MOBILE: STILE, NON LOGICA ===================== */
 /* ========================================================= */
 
 @media (max-width: 768px) {
+
+  /* evita overflow orizzontale */
+  #view-ricette,
+  #view-ricette * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* le tabelle RESTANO nel DOM */
   #table-porzioni,
   #table-preparazione,
   #table-conservazione {
-    display: none;
+    width: 100%;
+    overflow-x: auto;
   }
 }
 
