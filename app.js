@@ -3067,9 +3067,14 @@ function renderFormatiServizio() {
   });
 }
 // =========================================================
-// CONSERVAZIONE & SHELF LIFE
+// CONSERVAZIONE & SHELF LIFE (SAFE: NO REDECLARE)
 // =========================================================
 
+function getProcessiConservazione() {
+  // unico stato globale, nessuna ridichiarazione
+  if (!window.processiConservazione) window.processiConservazione = [];
+  return window.processiConservazione;
+}
 
 function openProcessoConservazioneModal() {
   makeModal({
@@ -3082,25 +3087,27 @@ function openProcessoConservazioneModal() {
         <input id="m_c_shelf" type="number" class="input-pill">
       </label>
       <label>Note<input id="m_c_note" class="input-pill"></label>
-      <label style="margin-top:6px;">
+      <label style="margin-top:6px; display:flex; align-items:center; gap:8px;">
         <input type="checkbox" id="m_c_attivo" checked>
         Attivo
       </label>
     `,
     onSave: ({ close }) => {
-      processiConservazione.push({
-        processo: document.getElementById("m_c_processo").value,
-        trattamento: document.getElementById("m_c_trattamento").value,
-        temperatura: document.getElementById("m_c_temp").value,
-        shelf_life_giorni: parseNum(
-          document.getElementById("m_c_shelf").value
-        ),
-        note: document.getElementById("m_c_note").value,
-        attivo: document.getElementById("m_c_attivo").checked,
+      const processi = getProcessiConservazione();
+
+      processi.push({
+        processo: (document.getElementById("m_c_processo")?.value || "").trim(),
+        trattamento: (document.getElementById("m_c_trattamento")?.value || "").trim(),
+        temperatura: (document.getElementById("m_c_temp")?.value || "").trim(),
+        shelf_life_giorni: parseNum(document.getElementById("m_c_shelf")?.value),
+        note: (document.getElementById("m_c_note")?.value || "").trim(),
+        attivo: !!document.getElementById("m_c_attivo")?.checked,
       });
 
       renderConservazioneTable();
-      renderConservazioneMobile(processiConservazione);
+      if (typeof renderConservazioneMobile === "function") {
+        renderConservazioneMobile(processi);
+      }
       close();
     },
   });
@@ -3110,29 +3117,33 @@ function renderConservazioneTable() {
   const tbody = document.querySelector("#table-conservazione tbody");
   if (!tbody) return;
 
+  const processi = getProcessiConservazione();
   tbody.innerHTML = "";
 
-  processiConservazione.forEach((p, i) => {
+  processi.forEach((p, i) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escHtml(p.processo)}</td>
-      <td>${escHtml(p.trattamento)}</td>
-      <td>${escHtml(p.temperatura)}</td>
+      <td>${escHtml(p.processo || "")}</td>
+      <td>${escHtml(p.trattamento || "")}</td>
+      <td>${escHtml(p.temperatura || "")}</td>
       <td>${p.shelf_life_giorni ?? "-"}</td>
       <td>${escHtml(p.note || "")}</td>
       <td>${p.attivo ? "✅" : "❌"}</td>
-      <td><button class="app-button tiny red">✕</button></td>
+      <td><button type="button" class="app-button tiny red">✕</button></td>
     `;
 
     tr.querySelector("button").onclick = () => {
-      processiConservazione.splice(i, 1);
+      processi.splice(i, 1);
       renderConservazioneTable();
-      renderConservazioneMobile(processiConservazione);
+      if (typeof renderConservazioneMobile === "function") {
+        renderConservazioneMobile(processi);
+      }
     };
 
     tbody.appendChild(tr);
   });
 }
+
 /* ========================================================= */
 /* ========== RENDER MOBILE – PREPARAZIONE ================= */
 /* ========================================================= */
