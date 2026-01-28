@@ -3076,12 +3076,39 @@ if (ricettaNoteInput) {
 }
 
 // =========================================================
-// EVENTI
+// EVENTI – RICETTE
 // =========================================================
-const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
 
+// ➕ Ingrediente
 btnAddIngrediente?.addEventListener("click", creaRigaIngrediente);
-btnAddFasePreparazione?.addEventListener("click", openFasePreparazioneModal);
+
+// 🍽️ Formati di servizio
+const btnAddFormato = document.getElementById("btn-add-formato");
+btnAddFormato?.addEventListener("click", () => {
+  if (typeof openFormatoModal === "function") {
+    openFormatoModal();
+  } else {
+    alert("Gestione formati non ancora implementata");
+  }
+});
+
+// 🧑‍🍳 Preparazione & Lavorazioni
+const btnAddLavorazione = document.getElementById("btn-add-lavorazione");
+btnAddLavorazione?.addEventListener("click", openFasePreparazioneModal);
+
+// ❄️ Conservazione & Shelf life
+const btnAddProcessoConservazione = document.getElementById(
+  "btn-add-processo-conservazione"
+);
+btnAddProcessoConservazione?.addEventListener("click", () => {
+  if (typeof openProcessoConservazioneModal === "function") {
+    openProcessoConservazioneModal();
+  } else {
+    alert("Gestione conservazione non ancora implementata");
+  }
+});
+
+// 💾 Salva ricetta
 btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
 
 
