@@ -2995,8 +2995,9 @@ async function handleSalvaRicetta() {
   const nome = ricettaNomeInput.value.trim();
   if (!nome) return alert("Nome ricetta obbligatorio");
 
-  const fotoUrl = await uploadFotoRicettaSePresente();
-  ricettaFotoCorrenteUrl = fotoUrl;
+  // 🔕 Foto disattivata temporaneamente
+  const fotoUrl = null;
+  ricettaFotoCorrenteUrl = null;
 
   const ricetta = await salvaRicettaSupabaseBase({
     id: ricettaCorrenteId,
@@ -3016,9 +3017,9 @@ async function handleSalvaRicetta() {
 
   const ingredienti = [];
   document.querySelectorAll(".ricetta-ingrediente-row").forEach(r => {
-    const n = r.querySelector(".ingrediente-nome").value.trim();
-    const q = parseNum(r.querySelector(".ingrediente-quantita").value);
-    const u = r.querySelector(".ingrediente-unita").value.trim();
+    const n = r.querySelector(".ingrediente-nome")?.value.trim();
+    const q = parseNum(r.querySelector(".ingrediente-quantita")?.value);
+    const u = r.querySelector(".ingrediente-unita")?.value.trim();
     if (n && q && u) ingredienti.push({ nome: n, quantita: q, unita: u });
   });
 
@@ -3027,6 +3028,7 @@ async function handleSalvaRicetta() {
 
   alert("Ricetta salvata correttamente");
 }
+
 // =========================================================
 // CARICAMENTO RICETTA IN EDIT (da Ricettario)
 // =========================================================
