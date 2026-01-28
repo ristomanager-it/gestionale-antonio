@@ -715,7 +715,6 @@
   </div>
 </section>
 
-<!-- ================= PORZIONI / FORMATI ================= -->
 <section class="card" id="card-ricetta-porzioni">
   <header class="card-header">
     <h4>🍽️ Formati di servizio</h4>
@@ -739,12 +738,13 @@
           <th></th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- righe generate da JS -->
+      </tbody>
     </table>
   </div>
 </section>
 
-<!-- ================= PREPARAZIONE & LAVORAZIONI ================= -->
 <section class="card" id="card-ricetta-preparazione">
   <header class="card-header">
     <h4>🧑‍🍳 Preparazione & Lavorazioni</h4>
@@ -761,17 +761,18 @@
     <table class="table" id="table-preparazione">
       <thead>
         <tr>
-          <th>#</th>
           <th>Lavorazione</th>
           <th>Tipo</th>
           <th>Durata (min)</th>
           <th>Lavoro uomo (min)</th>
-          <th>Tecnologia</th>
+          <th>Tecnologia / Attrezzatura</th>
           <th>Temp.</th>
           <th></th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- righe generate da JS -->
+      </tbody>
     </table>
 
     <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
@@ -787,7 +788,6 @@
   </div>
 </section>
 
-<!-- ================= CONSERVAZIONE & SHELF LIFE ================= -->
 <section class="card" id="card-ricetta-conservazione">
   <header class="card-header">
     <h4>❄️ Conservazione & Shelf life</h4>
@@ -805,19 +805,23 @@
       <thead>
         <tr>
           <th>Processo</th>
-          <th>Trattamento</th>
+          <th>Confezionamento</th>
           <th>Temperatura</th>
-          <th>Shelf life (gg)</th>
-          <th>Note</th>
+          <th>Note operative</th>
           <th>Attivo</th>
           <th></th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- righe generate da JS -->
+      </tbody>
     </table>
+
+    <p class="muted" style="margin-top:8px;">
+      La shelf life finale verrà calcolata al termine dei processi attivi.
+    </p>
   </div>
 </section>
-
 
 <!-- ================= SALVA ================= -->
 <div style="display:flex; justify-content:flex-end;">
