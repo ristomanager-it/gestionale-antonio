@@ -881,3 +881,57 @@ body.theme-light .view {
     font-size: 14px;
   }
 }
+/* ========================================================= */
+/* ========== RICETTE – FORZA VERTICALE SU MOBILE =========== */
+/* ========================================================= */
+
+@media (max-width: 768px) {
+
+  /* ogni tabella ricette */
+  #table-porzioni,
+  #table-preparazione,
+  #table-conservazione {
+    display: block;
+    width: 100%;
+  }
+
+  /* corpo tabella */
+  #table-porzioni tbody,
+  #table-preparazione tbody,
+  #table-conservazione tbody {
+    display: block;
+    width: 100%;
+  }
+
+  /* OGNI RIGA diventa una CARD */
+  #table-porzioni tr,
+  #table-preparazione tr,
+  #table-conservazione tr {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 10px 12px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  }
+
+  /* OGNI CELLA va in VERTICALE */
+  #table-porzioni td,
+  #table-preparazione td,
+  #table-conservazione td {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    padding: 4px 0;
+    border: none;
+    box-sizing: border-box;
+  }
+
+  /* evita intestazioni inutili */
+  #table-porzioni thead,
+  #table-preparazione thead,
+  #table-conservazione thead {
+    display: none;
+  }
+}
