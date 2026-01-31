@@ -2825,6 +2825,25 @@ function emailCurrentPreventivoViaMailto() {
       }
     });
   }
+  // ===================== STATO =============================
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+let ricetteCache = [];
+let ricettaDaAprireId = null;
+
+// ===================== DOM ===============================
+const ricettaNomeInput = document.getElementById("ricetta-nome");
+const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
+const ricettaNoteInput = document.getElementById("ricetta-note");
+const ricettaFotoInput = document.getElementById("ricetta-foto");
+const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
+const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+const ricetteSearchInput = document.getElementById("ricette-search");
+const ricetteListaViewer = document.getElementById("ricette-lista-viewer");
+const ricetteSuggestionsList = document.getElementById("ricette-suggestions");
+
 // =========================================================
 // ===================== HELPERS ============================
 // =========================================================
