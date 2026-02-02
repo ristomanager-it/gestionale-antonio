@@ -2995,9 +2995,7 @@ async function handleSalvaRicetta() {
   const nome = ricettaNomeInput.value.trim();
   if (!nome) return alert("Nome ricetta obbligatorio");
 
-  const fotoUrl = await uploadFotoRicettaSePresente();
-  ricettaFotoCorrenteUrl = fotoUrl;
-
+   const fotoUrl = await uploadFotoRicettaSePresente();
   const ricetta = await salvaRicettaSupabaseBase({
     id: ricettaCorrenteId,
     nome,
