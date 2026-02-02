@@ -3100,14 +3100,13 @@ await caricaRicetteDaSupabase();
 async function caricaRicettaInForm(id) {
   if (!id || !supabase) return;
 
-  // ===== RESET STATO =====
+  // reset stato
   preparazioneFasi = [];
   formatiRicetta = [];
 
   renderPreparazioneFasi();
   renderFormati();
 
-  // ===== RICETTA BASE =====
   const { data: r, error } = await supabase
     .from("ricette")
     .select("*")
@@ -3123,12 +3122,10 @@ async function caricaRicettaInForm(id) {
   ricettaCorrenteId = r.id;
   ricettaFotoCorrenteUrl = r.foto_url || null;
 
-  // ===== CAMPI BASE =====
   ricettaNomeInput.value = r.nome || "";
   if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = r.descrizione || "";
   if (ricettaNoteInput) ricettaNoteInput.value = r.note || "";
 
-  // ===== INGREDIENTI =====
   const { data: ing } = await supabase
     .from("ricetta_ingredienti")
     .select("*")
@@ -3139,10 +3136,7 @@ async function caricaRicettaInForm(id) {
   (ing || []).forEach(creaRigaIngrediente);
   if (!ing?.length) creaRigaIngrediente();
 
-  // ===== PREPARAZIONE =====
   await loadPreparazioneFasi();
-
-  // ===== PORZIONI =====
   await caricaPorzioniRicetta(id);
 }
 
