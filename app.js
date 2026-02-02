@@ -3024,6 +3024,7 @@ async function handleSalvaRicetta() {
 
   await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
   await savePreparazioneFasi();
+await caricaRicetteDaSupabase();
 
   alert("Ricetta salvata correttamente");
 }
