@@ -3305,34 +3305,34 @@ function renderRicetteViewer(lista, filtroTesto) {
   });
 }
 
-// Applica filtro di ricerca (per ora solo per nome)
+// Applica filtro di ricerca (nome + descrizione)
 function applicaFiltroRicettario() {
   if (!ricetteSearchInput) {
-    renderRicetteViewer([], "");
+    renderRicetteViewer(ricetteCache || [], "");
     return;
   }
 
   const qRaw = ricetteSearchInput.value || "";
   const q = qRaw.toLowerCase().trim();
 
+  // 🔹 SE NON C'È RICERCA → MOSTRA TUTTO
   if (!q) {
-    renderRicetteViewer([], "");
+    renderRicetteViewer(ricetteCache || [], "");
     return;
   }
 
-  const lista = ricetteCache.filter((r) =>
-    (r.nome || "").toLowerCase().includes(q)
-  );
+  const lista = (ricetteCache || []).filter((r) => {
+    const testo =
+      (r.nome || "").toLowerCase() +
+      " " +
+      (r.descrizione || "").toLowerCase();
+
+    return testo.includes(q);
+  });
 
   renderRicetteViewer(lista, qRaw.trim());
 }
 
-// Eventi sulla casella di ricerca ricette (viewer)
-if (ricetteSearchInput) {
-  ricetteSearchInput.addEventListener("input", () => {
-    applicaFiltroRicettario();
-  });
-}
 
 
 // ===========================================================
