@@ -3115,9 +3115,9 @@ function aggiornaRicetteSuggestions() {
 
 // carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
-  if (!window.supabaseClient) return;
+  if (!supabase) return;
 
-  const { data, error } = await window.supabaseClient
+  const { data, error } = await supabase
     .from("ricette")
     .select(`
       id,
@@ -3139,15 +3139,13 @@ async function caricaRicetteDaSupabase() {
     return;
   }
 
-  window.ricetteCache = data || [];
+  ricetteCache = data || [];
 
-  if (typeof aggiornaRicetteSuggestions === "function") {
-    aggiornaRicetteSuggestions();
-  }
+  // popola il datalist globale
+  aggiornaRicetteSuggestions();
 
-  if (typeof applicaFiltroRicettario === "function") {
-    applicaFiltroRicettario();
-  }
+  // aggiorna la vista ricettario (se sono nel viewer)
+  applicaFiltroRicettario();
 }
 
 // carica ingredienti per una ricetta (solo lettura, viewer)
@@ -3305,34 +3303,34 @@ function renderRicetteViewer(lista, filtroTesto) {
   });
 }
 
-// Applica filtro di ricerca (nome + descrizione)
+// Applica filtro di ricerca (per ora solo per nome)
 function applicaFiltroRicettario() {
   if (!ricetteSearchInput) {
-    renderRicetteViewer(ricetteCache || [], "");
+    renderRicetteViewer([], "");
     return;
   }
 
   const qRaw = ricetteSearchInput.value || "";
   const q = qRaw.toLowerCase().trim();
 
-  // 🔹 SE NON C'È RICERCA → MOSTRA TUTTO
   if (!q) {
-    renderRicetteViewer(ricetteCache || [], "");
+    renderRicetteViewer([], "");
     return;
   }
 
-  const lista = (ricetteCache || []).filter((r) => {
-    const testo =
-      (r.nome || "").toLowerCase() +
-      " " +
-      (r.descrizione || "").toLowerCase();
-
-    return testo.includes(q);
-  });
+  const lista = ricetteCache.filter((r) =>
+    (r.nome || "").toLowerCase().includes(q)
+  );
 
   renderRicetteViewer(lista, qRaw.trim());
 }
 
+// Eventi sulla casella di ricerca ricette (viewer)
+if (ricetteSearchInput) {
+  ricetteSearchInput.addEventListener("input", () => {
+    applicaFiltroRicettario();
+  });
+}
 
 
 // ===========================================================
