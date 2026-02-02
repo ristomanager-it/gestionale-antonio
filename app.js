@@ -3162,8 +3162,6 @@ async function caricaRicetteDaSupabase() {
   if (typeof applicaFiltroRicettario === "function") {
     applicaFiltroRicettario();
   }
-}
-
 // carica ingredienti per una ricetta (solo lettura, viewer)
 async function caricaIngredientiRicettaViewer(ricettaId) {
   if (!supabase) return [];
