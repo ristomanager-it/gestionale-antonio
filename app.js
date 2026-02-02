@@ -441,7 +441,7 @@ let dipendenti = [];
 let timbrature = [];
 let currentUser = null;
 let periodoCorrente = "oggi";
-let ricetteCache = [];
+
 let ricettaCorrenteId = null;
 let ricettaFotoCorrenteUrl = null;
 let ricetteCache = [];
