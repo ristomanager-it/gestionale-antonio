@@ -3121,7 +3121,6 @@ async function caricaRicetteDaSupabase() {
     .from("ricette")
     .select(`
       id,
-      tipo,
       nome,
       descrizione,
       note_procedimento,
@@ -3139,6 +3138,17 @@ async function caricaRicetteDaSupabase() {
     alert("Errore nel caricare le ricette");
     return;
   }
+
+  window.ricetteCache = data || [];
+
+  if (typeof aggiornaRicetteSuggestions === "function") {
+    aggiornaRicetteSuggestions();
+  }
+
+  if (typeof applicaFiltroRicettario === "function") {
+    applicaFiltroRicettario();
+  }
+}
 
   // cache globale
   ricetteCache = data || [];
