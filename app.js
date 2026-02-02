@@ -3141,6 +3141,8 @@ if (ricettaNoteInput) {
 
   // --- preparazione & processo ---
   await loadPreparazioneFasi();
+await caricaPorzioniRicetta(id);
+  
 }
 
 // =========================================================
