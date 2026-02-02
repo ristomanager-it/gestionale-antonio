@@ -3150,18 +3150,6 @@ async function caricaRicetteDaSupabase() {
   }
 }
 
-  // cache globale
-  ricetteCache = data || [];
-
-  // autocomplete / suggerimenti
-  if (typeof aggiornaRicetteSuggestions === "function") {
-    aggiornaRicetteSuggestions();
-  }
-
-  // aggiorna il ricettario se la vista è attiva
-  if (typeof applicaFiltroRicettario === "function") {
-    applicaFiltroRicettario();
-  }
 // carica ingredienti per una ricetta (solo lettura, viewer)
 async function caricaIngredientiRicettaViewer(ricettaId) {
   if (!supabase) return [];
