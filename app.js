@@ -3115,12 +3115,13 @@ function aggiornaRicetteSuggestions() {
 
 // carica ricette da Supabase (usato da viewer E da produzione)
 async function caricaRicetteDaSupabase() {
-  if (!supabase) return;
+  if (!window.supabaseClient) return;
 
-  const { data, error } = await supabase
+  const { data, error } = await window.supabaseClient
     .from("ricette")
     .select(`
       id,
+      tipo,
       nome,
       descrizione,
       note_procedimento,
@@ -3139,13 +3140,18 @@ async function caricaRicetteDaSupabase() {
     return;
   }
 
+  // cache globale
   ricetteCache = data || [];
 
-  // popola il datalist globale
-  aggiornaRicetteSuggestions();
+  // autocomplete / suggerimenti
+  if (typeof aggiornaRicetteSuggestions === "function") {
+    aggiornaRicetteSuggestions();
+  }
 
-  // aggiorna la vista ricettario (se sono nel viewer)
-  applicaFiltroRicettario();
+  // aggiorna il ricettario se la vista è attiva
+  if (typeof applicaFiltroRicettario === "function") {
+    applicaFiltroRicettario();
+  }
 }
 
 // carica ingredienti per una ricetta (solo lettura, viewer)
