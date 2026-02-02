@@ -237,6 +237,7 @@ let formatiRicetta = [];
 const btnAddFormato = document.getElementById("btn-add-formato");
 const tablePorzioniBody = document.querySelector("#table-porzioni tbody");
 
+/* ================== RENDER ================== */
 function renderFormati() {
   if (!tablePorzioniBody) return;
   tablePorzioniBody.innerHTML = "";
@@ -271,6 +272,7 @@ function renderFormati() {
   });
 }
 
+/* ================== EVENTO ================== */
 btnAddFormato?.addEventListener("click", () => {
   formatiRicetta.push({
     nome: "",
@@ -280,6 +282,72 @@ btnAddFormato?.addEventListener("click", () => {
   });
   renderFormati();
 });
+
+/* =========================================================
+   SALVATAGGIO PORZIONI SU SUPABASE
+   tabella: ricette_porzione
+   ========================================================= */
+async function salvaPorzioniRicetta(ricettaId) {
+  if (!ricettaId || !supabase) return;
+
+  // elimina porzioni esistenti
+  await supabase
+    .from("ricette_porzione")
+    .delete()
+    .eq("ricetta_id", ricettaId);
+
+  if (!formatiRicetta.length) return;
+
+  const payload = formatiRicetta
+    .filter(f => f.nome && f.grammi > 0 && f.um)
+    .map(f => ({
+      ricetta_id: ricettaId,
+      label: f.nome,
+      peso_porzione: f.grammi,
+      unita_misura: f.um,
+      note: null,
+      attivo: f.attivo !== false
+    }));
+
+  if (!payload.length) return;
+
+  const { error } = await supabase
+    .from("ricette_porzione")
+    .insert(payload);
+
+  if (error) {
+    console.error("Errore salvataggio porzioni:", error);
+    alert("Errore nel salvataggio della porzionatura");
+  }
+}
+
+/* =========================================================
+   CARICAMENTO PORZIONI IN EDIT
+   ========================================================= */
+async function caricaPorzioniRicetta(ricettaId) {
+  if (!ricettaId || !supabase) return;
+
+  const { data, error } = await supabase
+    .from("ricette_porzione")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .order("label", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento porzioni:", error);
+    return;
+  }
+
+  formatiRicetta = (data || []).map(p => ({
+    nome: p.label,
+    grammi: Number(p.peso_porzione) || 0,
+    um: p.unita_misura || "",
+    attivo: p.attivo !== false
+  }));
+
+  renderFormati();
+}
+
 /* =========================================================
    BLOCCO 3 – CONSERVAZIONE & SHELF LIFE
    ========================================================= */
