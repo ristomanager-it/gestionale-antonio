@@ -2990,100 +2990,124 @@ function openFasePreparazioneModal() {
 // SALVATAGGIO COMPLETO RICETTA
 // =========================================================
 async function handleSalvaRicetta() {
-  if (!ricettaNomeInput) return;
+  try {
+    if (!ricettaNomeInput) return;
 
-  const nome = ricettaNomeInput.value.trim();
-  if (!nome) return alert("Nome ricetta obbligatorio");
+    const nome = ricettaNomeInput.value.trim();
+    if (!nome) {
+      alert("Nome ricetta obbligatorio");
+      return;
+    }
 
-  const fotoUrl = await uploadFotoRicettaSePresente();
-  ricettaFotoCorrenteUrl = fotoUrl;
+    // ---------- FOTO ----------
+    const fotoUrl = await uploadFotoRicettaSePresente();
+    ricettaFotoCorrenteUrl = fotoUrl || null;
 
-  const ricetta = await salvaRicettaSupabaseBase({
-    id: ricettaCorrenteId,
-    nome,
-    descrizione: ricettaDescrizioneInput?.value || "",
-    note: ricettaNoteInput?.value || "",
-    fotoUrl,
-    pezziBase: parseNum(ricettaPezziBaseInput?.value),
-    formato1Label: ricettaFormato1LabelInput?.value,
-    formato1Perc: parseNum(ricettaFormato1PercInput?.value),
-    formato2Label: ricettaFormato2LabelInput?.value,
-    formato2Perc: parseNum(ricettaFormato2PercInput?.value),
-  });
+    // ---------- RICETTA BASE ----------
+    const ricetta = await salvaRicettaSupabaseBase({
+      id: ricettaCorrenteId,
+      nome,
+      descrizione: ricettaDescrizioneInput?.value || "",
+      note: ricettaNoteInput?.value || "",
+      fotoUrl: ricettaFotoCorrenteUrl,
+      pezziBase: parseNum(ricettaPezziBaseInput?.value),
+      formato1Label: ricettaFormato1LabelInput?.value || null,
+      formato1Perc: parseNum(ricettaFormato1PercInput?.value),
+      formato2Label: ricettaFormato2LabelInput?.value || null,
+      formato2Perc: parseNum(ricettaFormato2PercInput?.value),
+    });
 
-  if (!ricetta) return;
-  ricettaCorrenteId = ricetta.id;
+    if (!ricetta || !ricetta.id) {
+      alert("Errore nel salvataggio della ricetta");
+      return;
+    }
 
-  const ingredienti = [];
-  document.querySelectorAll(".ricetta-ingrediente-row").forEach(r => {
-    const n = r.querySelector(".ingrediente-nome").value.trim();
-    const q = parseNum(r.querySelector(".ingrediente-quantita").value);
-    const u = r.querySelector(".ingrediente-unita").value.trim();
-    if (n && q && u) ingredienti.push({ nome: n, quantita: q, unita: u });
-  });
+    ricettaCorrenteId = ricetta.id;
 
-  await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
-  await savePreparazioneFasi();
+    // ---------- INGREDIENTI ----------
+    const ingredienti = [];
+    document.querySelectorAll(".ricetta-ingrediente-row").forEach(r => {
+      const n = r.querySelector(".ingrediente-nome")?.value.trim();
+      const q = parseNum(r.querySelector(".ingrediente-quantita")?.value);
+      const u = r.querySelector(".ingrediente-unita")?.value.trim();
+      if (n && q && u) ingredienti.push({ nome: n, quantita: q, unita: u });
+    });
 
-  alert("Ricetta salvata correttamente");
+    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+
+    // ---------- PREPARAZIONE / LAVORAZIONI ----------
+    if (typeof savePreparazioneFasi === "function") {
+      await savePreparazioneFasi(ricettaCorrenteId);
+    }
+
+    alert("Ricetta salvata correttamente ✔️");
+
+  } catch (err) {
+    console.error("Errore salvataggio ricetta:", err);
+    alert("Errore durante il salvataggio della ricetta");
+  }
 }
 // =========================================================
 // CARICAMENTO RICETTA IN EDIT (da Ricettario)
 // =========================================================
 async function caricaRicettaInForm(id) {
-  if (!id || !supabase) return;
+  try {
+    if (!id || !supabase) return;
 
-  // --- ricetta base ---
-  const { data: r, error } = await supabase
-    .from("ricette")
-    .select("*")
-    .eq("id", id)
-    .single();
+    // ---------- RICETTA BASE ----------
+    const { data: r, error } = await supabase
+      .from("ricette")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  if (error || !r) {
-    console.error("Errore caricamento ricetta:", error);
-    alert("Errore nel caricare la ricetta");
-    return;
+    if (error || !r) {
+      console.error("Errore caricamento ricetta:", error);
+      alert("Errore nel caricare la ricetta");
+      return;
+    }
+
+    ricettaCorrenteId = r.id;
+    ricettaFotoCorrenteUrl = r.foto_url || null;
+
+    // ---------- CAMPI BASE ----------
+    ricettaNomeInput.value = r.nome || "";
+    if (ricettaDescrizioneInput) ricettaDescrizioneInput.value = r.descrizione || "";
+    if (ricettaNoteInput) ricettaNoteInput.value = r.note || "";
+    if (ricettaPezziBaseInput) ricettaPezziBaseInput.value = r.pezzi_base || "";
+
+    if (ricettaFormato1LabelInput) ricettaFormato1LabelInput.value = r.formato1_label || "";
+    if (ricettaFormato1PercInput) ricettaFormato1PercInput.value = r.formato1_perc || "";
+
+    if (ricettaFormato2LabelInput) ricettaFormato2LabelInput.value = r.formato2_label || "";
+    if (ricettaFormato2PercInput) ricettaFormato2PercInput.value = r.formato2_perc || "";
+
+    // ---------- INGREDIENTI ----------
+    const { data: ing } = await supabase
+      .from("ricetta_ingredienti")
+      .select("*")
+      .eq("ricetta_id", id)
+      .order("id");
+
+    if (ricettaIngredientiContainer) {
+      ricettaIngredientiContainer.innerHTML = "";
+      (ing || []).forEach(creaRigaIngrediente);
+      if (!ing?.length) creaRigaIngrediente();
+    }
+
+    // ---------- PREPARAZIONE ----------
+    if (typeof loadPreparazioneFasi === "function") {
+      await loadPreparazioneFasi(id);
+    }
+
+  } catch (err) {
+    console.error("Errore caricamento ricetta:", err);
+    alert("Errore durante il caricamento della ricetta");
   }
-
-  ricettaCorrenteId = r.id;
-  ricettaFotoCorrenteUrl = r.foto_url || null;
-
- // ================== CAMPI BASE RICETTA ==================
-ricettaNomeInput.value = r.nome || "";
-
-if (ricettaDescrizioneInput) {
-  ricettaDescrizioneInput.value = r.descrizione || "";
 }
-
-if (ricettaNoteInput) {
-  ricettaNoteInput.value = r.note || "";
-}
-
-  // --- ingredienti ---
-  const { data: ing } = await supabase
-    .from("ricetta_ingredienti")
-    .select("*")
-    .eq("ricetta_id", id)
-    .order("id");
-
-  ricettaIngredientiContainer.innerHTML = "";
-  (ing || []).forEach(creaRigaIngrediente);
-  if (!ing?.length) creaRigaIngrediente();
-
-  // --- preparazione & processo ---
-  await loadPreparazioneFasi();
-}
-
-// =========================================================
-// EVENTI
-// =========================================================
-const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
-
 btnAddIngrediente?.addEventListener("click", creaRigaIngrediente);
 btnAddFasePreparazione?.addEventListener("click", openFasePreparazioneModal);
 btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
-
 
    // ===========================================================
 // ========== RICETTARIO - SOLO LETTURA (VIEWER) =============
