@@ -74,7 +74,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
- // ---------- RICETTE (EDIT) ----------
+ // =========================================================
+// RICETTE (EDIT) – DOM
+// =========================================================
 const ricettaTipoSelect = document.getElementById("ricetta-tipo");
 const ricettaNomeInput = document.getElementById("ricetta-nome");
 const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
@@ -87,13 +89,16 @@ const ricettaFormato1PercInput = document.getElementById("ricetta-formato1-perce
 const ricettaFormato2LabelInput = document.getElementById("ricetta-formato2-label");
 const ricettaFormato2PercInput = document.getElementById("ricetta-formato2-percent");
 
-const ricettaIngredientiContainer = document.getElementById(
-  "ricetta-ingredienti-container"
-);
+const ricettaIngredientiContainer = document.getElementById("ricetta-ingredienti-container");
 
 const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
 const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
 const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
+
+// stato
+let ricettaCorrenteId = null;
+let ricettaFotoCorrenteUrl = null;
+let ricettaDaAprireId = null;
 
 /* =========================================================
    PREPARAZIONE / LAVORAZIONI
@@ -3082,28 +3087,121 @@ async function handleSalvaRicetta() {
       return;
     }
 
-    // ---------- FOTO ----------
-    const fotoUrl = await uploadFotoRicettaSePresente();
-    ricettaFotoCorrenteUrl = fotoUrl;
+    // =========================================================
+// UPLOAD FOTO RICETTA (stub sicuro)
+// =========================================================
+async function uploadFotoRicettaSePresente() {
+  if (!ricettaFotoInput?.files?.[0]) {
+    return ricettaFotoCorrenteUrl || null;
+  }
+  return ricettaFotoCorrenteUrl || null;
+}
 
-    // ---------- RICETTA BASE ----------
-    const ricetta = await salvaRicettaSupabaseBase({
-      id: ricettaCorrenteId,
-      nome,
-      descrizione: ricettaDescrizioneInput?.value || "",
-      note: ricettaNoteInput?.value || "",
-      fotoUrl,
-      pezziBase: parseNum(ricettaPezziBaseInput?.value),
-      formato1Label: ricettaFormato1LabelInput?.value || null,
-      formato1Perc: parseNum(ricettaFormato1PercInput?.value),
-      formato2Label: ricettaFormato2LabelInput?.value || null,
-      formato2Perc: parseNum(ricettaFormato2PercInput?.value),
-    });
 
-    if (!ricetta || !ricetta.id) {
-      alert("Errore nel salvataggio della ricetta");
-      return;
-    }
+// =========================================================
+// SALVATAGGIO RICETTA BASE SU SUPABASE
+// =========================================================
+async function salvaRicettaSupabaseBase(payload) {
+  const dataToSave = {
+    nome: payload.nome,
+    descrizione: payload.descrizione || null,
+    note: payload.note || null,
+    foto_url: payload.fotoUrl || null,
+    pezzi_base: payload.pezziBase || null,
+    formato1_label: payload.formato1Label || null,
+    formato1_perc: payload.formato1Perc || null,
+    formato2_label: payload.formato2Label || null,
+    formato2_perc: payload.formato2Perc || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (payload.id) {
+    const { data, error } = await supabase
+      .from("ricette")
+      .update(dataToSave)
+      .eq("id", payload.id)
+      .select()
+      .single();
+    if (error) return null;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("ricette")
+    .insert([dataToSave])
+    .select()
+    .single();
+  if (error) return null;
+  return data;
+}
+// =========================================================
+// CARICAMENTO RICETTA IN EDIT
+// =========================================================
+async function caricaRicettaInForm(id) {
+  if (!id) return;
+
+  const { data: r, error } = await supabase
+    .from("ricette")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !r) return;
+
+  ricettaCorrenteId = r.id;
+  ricettaFotoCorrenteUrl = r.foto_url || null;
+
+  ricettaNomeInput.value = r.nome || "";
+  ricettaDescrizioneInput.value = r.descrizione || "";
+  ricettaNoteInput.value = r.note || "";
+  ricettaPezziBaseInput.value = r.pezzi_base || "";
+
+  ricettaFormato1LabelInput.value = r.formato1_label || "";
+  ricettaFormato1PercInput.value = r.formato1_perc || "";
+  ricettaFormato2LabelInput.value = r.formato2_label || "";
+  ricettaFormato2PercInput.value = r.formato2_perc || "";
+
+  const { data: ing } = await supabase
+    .from("ricetta_ingredienti")
+    .select("*")
+    .eq("ricetta_id", id)
+    .order("id");
+
+  ricettaIngredientiContainer.innerHTML = "";
+  (ing || []).forEach(creaRigaIngrediente);
+  if (!ing?.length) creaRigaIngrediente();
+}
+// =========================================================
+// SALVATAGGIO COMPLETO RICETTA
+// =========================================================
+async function handleSalvaRicetta() {
+  const nome = ricettaNomeInput.value.trim();
+  if (!nome) return alert("Nome ricetta obbligatorio");
+
+  const fotoUrl = await uploadFotoRicettaSePresente();
+
+  const ricetta = await salvaRicettaSupabaseBase({
+    id: ricettaCorrenteId,
+    nome,
+    descrizione: ricettaDescrizioneInput.value,
+    note: ricettaNoteInput.value,
+    fotoUrl,
+    pezziBase: Number(ricettaPezziBaseInput.value),
+    formato1Label: ricettaFormato1LabelInput.value,
+    formato1Perc: Number(ricettaFormato1PercInput.value),
+    formato2Label: ricettaFormato2LabelInput.value,
+    formato2Perc: Number(ricettaFormato2PercInput.value),
+  });
+
+  if (!ricetta) return alert("Errore salvataggio");
+
+  ricettaCorrenteId = ricetta.id;
+  alert("Ricetta salvata ✔️");
+}
+btnAddIngrediente?.addEventListener("click", creaRigaIngrediente);
+btnAddFasePreparazione?.addEventListener("click", openFasePreparazioneModal);
+btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
+
 
     ricettaCorrenteId = ricetta.id;
 
