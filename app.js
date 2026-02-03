@@ -3008,8 +3008,15 @@ async function handleSalvaRicetta() {
     }
 
     // ---------- FOTO ----------
-    const fotoUrl = await uploadFotoRicettaSePresente();
-    ricettaFotoCorrenteUrl = fotoUrl || null;
+    async function uploadFotoRicettaSePresente() {
+  if (!ricettaFotoInput || !ricettaFotoInput.files || !ricettaFotoInput.files[0]) {
+    return ricettaFotoCorrenteUrl || null;
+  }
+
+  // TODO: upload reale su Supabase Storage
+  // per ora non carichiamo nulla, manteniamo la foto esistente
+  return ricettaFotoCorrenteUrl || null;
+}
 
     // ---------- RICETTA BASE ----------
     const ricetta = await salvaRicettaSupabaseBase({
