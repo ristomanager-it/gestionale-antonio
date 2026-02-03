@@ -1,12 +1,14 @@
 // app.js
-// =========================================================
-// STUB GLOBALE — richiesto dal routing
-// =========================================================
-window.caricaRicettaInForm = async function () {
-  console.warn(
-    "caricaRicettaInForm chiamata prima dell'inizializzazione"
-  );
+window.caricaRicettaInForm = async function (ricettaId) {
+  if (!window.__DOM_READY__) {
+    console.warn("DOM non pronto, ritento caricaRicettaInForm");
+    setTimeout(() => window.caricaRicettaInForm(ricettaId), 50);
+    return;
+  }
+
+  console.warn("caricaRicettaInForm chiamata ma non ancora agganciata");
 };
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
