@@ -1,13 +1,5 @@
 // app.js
-window.caricaRicettaInForm = async function (ricettaId) {
-  if (!window.__DOM_READY__) {
-    console.warn("DOM non pronto, ritento caricaRicettaInForm");
-    setTimeout(() => window.caricaRicettaInForm(ricettaId), 50);
-    return;
-  }
 
-  console.warn("caricaRicettaInForm chiamata ma non ancora agganciata");
-};
 
 
 document.addEventListener("DOMContentLoaded", () => {
