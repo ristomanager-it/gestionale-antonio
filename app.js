@@ -3136,7 +3136,7 @@ async function salvaRicettaSupabaseBase(payload) {
 // =========================================================
 // CARICAMENTO RICETTA IN EDIT
 // =========================================================
-async function caricaRicettaInForm(id) {
+window.caricaRicettaInForm = async function (ricettaId) {
   if (!id) return;
 
   const { data: r, error } = await supabase
