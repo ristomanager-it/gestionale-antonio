@@ -2926,29 +2926,29 @@ function renderPreparazioneFasi() {
 }
 
 async function loadPreparazioneFasi() {
-  if (!ricettaCorrenteId) return;
+  if (!AppState.ricettaCorrenteId) return;
   const { data } = await supabase
     .from("ricette_preparazione_fasi")
     .select("*")
-    .eq("ricetta_id", ricettaCorrenteId)
+    .eq("ricetta_id", AppState.ricettaCorrenteId)
     .order("ordine");
   preparazioneFasi = data || [];
   renderPreparazioneFasi();
 }
 
 async function savePreparazioneFasi() {
-  if (!ricettaCorrenteId) return;
+  if (!AppState.ricettaCorrenteId) return;
 
   await supabase
     .from("ricette_preparazione_fasi")
     .delete()
-    .eq("ricetta_id", ricettaCorrenteId);
+    .eq("ricetta_id", AppState.ricettaCorrenteId);
 
   if (!preparazioneFasi.length) return;
 
   await supabase.from("ricette_preparazione_fasi").insert(
     preparazioneFasi.map(f => ({
-      ricetta_id: ricettaCorrenteId,
+      ricetta_id: AppState.ricettaCorrenteId,
       ordine: f.ordine,
       nome_fase: f.nome_fase,
       tipo_fase: f.tipo_fase,
@@ -3147,7 +3147,7 @@ async function caricaRicettaInForm(id) {
 
   if (error || !r) return;
 
-  ricettaCorrenteId = r.id;
+  AppState.ricettaCorrenteId = r.id;
   ricettaFotoCorrenteUrl = r.foto_url || null;
 
   ricettaNomeInput.value = r.nome || "";
@@ -3180,7 +3180,7 @@ async function handleSalvaRicetta() {
   const fotoUrl = await uploadFotoRicettaSePresente();
 
   const ricetta = await salvaRicettaSupabaseBase({
-    id: ricettaCorrenteId,
+    id: AppState.ricettaCorrenteId,
     nome,
     descrizione: ricettaDescrizioneInput.value,
     note: ricettaNoteInput.value,
@@ -3194,7 +3194,7 @@ async function handleSalvaRicetta() {
 
   if (!ricetta) return alert("Errore salvataggio");
 
-  ricettaCorrenteId = ricetta.id;
+  AppState.ricettaCorrenteId = ricetta.id;
   alert("Ricetta salvata ✔️");
 }
 btnAddIngrediente?.addEventListener("click", creaRigaIngrediente);
@@ -3224,11 +3224,11 @@ btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
         }
       });
 
-    await salvaIngredientiPerRicetta(ricettaCorrenteId, ingredienti);
+    await salvaIngredientiPerRicetta(AppState.ricettaCorrenteId, ingredienti);
 
     // ---------- PREPARAZIONE / LAVORAZIONI ----------
     if (typeof savePreparazioneFasi === "function") {
-      await savePreparazioneFasi(ricettaCorrenteId);
+      await savePreparazioneFasi(AppState.ricettaCorrenteId);
     }
 
     alert("Ricetta salvata correttamente ✔️");
@@ -5261,7 +5261,7 @@ async function caricaProdottiSuggerimentiIngredienti() {
   await caricaRicettaInForm(idToOpen);
 } else {
   // apertura normale: nuova ricetta
-  ricettaCorrenteId = null;
+  AppState.ricettaCorrenteId = null;
 }
 break;
 
