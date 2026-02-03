@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddDip = document.getElementById("btn-add-dip");
   const dipLista = document.getElementById("dipendenti-lista");
 
-  // ---------- RICETTE (EDIT) ----------
+ // ---------- RICETTE (EDIT) ----------
 const ricettaTipoSelect = document.getElementById("ricetta-tipo");
 const ricettaNomeInput = document.getElementById("ricetta-nome");
 const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
@@ -84,7 +84,9 @@ const ricettaFotoInput = document.getElementById("ricetta-foto");
 const ricettaIngredientiContainer = document.getElementById(
   "ricetta-ingredienti-container"
 );
+
 const btnAddIngrediente = document.getElementById("btn-add-ingrediente");
+const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazione");
 const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
 /* =========================================================
