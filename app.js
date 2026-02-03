@@ -3203,7 +3203,7 @@ btnAddFasePreparazione?.addEventListener("click", openFasePreparazioneModal);
 btnSalvaRicetta?.addEventListener("click", handleSalvaRicetta);
 
 
-    ricettaCorrenteId = ricetta.id;
+   
 
     // ---------- INGREDIENTI ----------
     const ingredienti = [];
