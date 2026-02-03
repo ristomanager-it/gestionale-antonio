@@ -455,10 +455,9 @@ let timbrature = [];
 let currentUser = null;
 let periodoCorrente = "oggi";
 
-let ricettaCorrenteId = null;
-let ricettaFotoCorrenteUrl = null;
+
 let ricetteCache = [];
-let ricettaDaAprireId = null; // usata per passare l'id dal Ricettario all'editor
+
 
 let currentFatturaId = null;
 let fornitoriCache = [];
