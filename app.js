@@ -96,9 +96,9 @@ const btnAddFasePreparazione = document.getElementById("btn-add-fase-preparazion
 const btnSalvaRicetta = document.getElementById("btn-salva-ricetta");
 
 // stato
-let ricettaCorrenteId = null;
+
 let ricettaFotoCorrenteUrl = null;
-let ricettaDaAprireId = null;
+
 
 /* =========================================================
    PREPARAZIONE / LAVORAZIONI
