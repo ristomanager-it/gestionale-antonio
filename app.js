@@ -81,6 +81,12 @@ const ricettaDescrizioneInput = document.getElementById("ricetta-descrizione");
 const ricettaNoteInput = document.getElementById("ricetta-note");
 const ricettaFotoInput = document.getElementById("ricetta-foto");
 
+const ricettaPezziBaseInput = document.getElementById("ricetta-pezzi-base");
+const ricettaFormato1LabelInput = document.getElementById("ricetta-formato1-label");
+const ricettaFormato1PercInput = document.getElementById("ricetta-formato1-percent");
+const ricettaFormato2LabelInput = document.getElementById("ricetta-formato2-label");
+const ricettaFormato2PercInput = document.getElementById("ricetta-formato2-percent");
+
 const ricettaIngredientiContainer = document.getElementById(
   "ricetta-ingredienti-container"
 );
