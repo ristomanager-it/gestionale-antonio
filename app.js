@@ -5270,7 +5270,7 @@ async function caricaProdottiSuggerimentiIngredienti() {
   const idToOpen = AppState.ricettaDaAprireId;
   AppState.ricettaDaAprireId = null; // consumo il flag
 
-  await caricaRicettaInForm(idToOpen);
+ await window.caricaRicettaInForm(idToOpen);
 } else {
   // apertura normale: nuova ricetta
   AppState.ricettaCorrenteId = null;
