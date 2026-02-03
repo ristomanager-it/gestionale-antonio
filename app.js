@@ -3141,12 +3141,14 @@ async function salvaRicettaSupabaseBase(payload) {
 // CARICAMENTO RICETTA IN EDIT
 // =========================================================
 window.caricaRicettaInForm = async function (ricettaId) {
-  if (!id) return;
+  if (!ricettaId) return;
+
+  const supabase = window.supabaseClient;
 
   const { data: r, error } = await supabase
     .from("ricette")
     .select("*")
-    .eq("id", id)
+    .eq("id", ricettaId)
     .single();
 
   if (error || !r) return;
@@ -3167,13 +3169,14 @@ window.caricaRicettaInForm = async function (ricettaId) {
   const { data: ing } = await supabase
     .from("ricetta_ingredienti")
     .select("*")
-    .eq("ricetta_id", id)
+    .eq("ricetta_id", ricettaId)
     .order("id");
 
   ricettaIngredientiContainer.innerHTML = "";
   (ing || []).forEach(creaRigaIngrediente);
   if (!ing?.length) creaRigaIngrediente();
-}
+};
+
 // =========================================================
 // SALVATAGGIO COMPLETO RICETTA
 // =========================================================
