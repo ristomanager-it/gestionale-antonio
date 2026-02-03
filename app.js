@@ -10,6 +10,7 @@ window.caricaRicettaInForm = async function () {
 
 document.addEventListener("DOMContentLoaded", () => {
   const supabase = window.supabaseClient;
+window.__DOM_READY__ = true;
 
   const CURRENT_USER_KEY = "ga_current_user_v1";
   const THEME_KEY = "ga_theme_v1";
