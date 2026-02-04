@@ -12,16 +12,17 @@
   <!-- APP ROOT -->
   <div id="app"></div>
 
-  <!-- SUPABASE -->
+  <!-- 1️⃣ SUPABASE CDN -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- BOOTSTRAP APP -->
+  <!-- 2️⃣ CONFIG SUPABASE (NON MODULE) -->
+  <script src="js/config.js"></script>
+
+  <!-- 3️⃣ APP (MODULE) -->
   <script type="module">
-    import "./js/config.js";
     import "./js/state.js";
     import "./js/router.js";
 
-    // Avvio router
     window.router.init();
   </script>
 
