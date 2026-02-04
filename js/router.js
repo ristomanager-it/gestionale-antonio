@@ -6,8 +6,11 @@
 // Mappa delle viste disponibili
 const routes = {
   login: () => import("./views/login.js"),
-  "select-azienda": () => import("./views/select-azienda.js"),
   home: () => import("./views/home.js"),
+  "carica-azienda": () => import("./views/carica-azienda.js"),
+  "crea-azienda": () => import("./views/crea-azienda.js"),
+  // select-azienda resta opzionale se vuoi tenerla
+  "select-azienda": () => import("./views/select-azienda.js"),
 };
 
 // Root dell'app
@@ -43,18 +46,13 @@ async function renderView(routeName) {
 function resolveRoute() {
   const hash = window.location.hash.replace("#/", "") || "login";
 
-  // NON loggato → solo login
+  // 🔒 NON LOGGATO → solo login
   if (!state.user && hash !== "login") {
     window.location.hash = "#/login";
     return;
   }
 
-  // Loggato ma senza azienda → selezione azienda
-  if (state.user && !state.azienda && hash !== "select-azienda") {
-    window.location.hash = "#/select-azienda";
-    return;
-  }
-
+  // ✅ LOGGATO → accesso libero alle viste
   renderView(hash);
 }
 
