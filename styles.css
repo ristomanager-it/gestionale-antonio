@@ -103,3 +103,32 @@ body {
   gap: 10px;
   margin: 12px 0;
 }
+/* =======================================
+   FIX SPA – view dentro #app
+   ======================================= */
+
+#app .view {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.4);
+  color: #111827;
+}
+container.innerHTML = `
+  <section class="view">
+    <h1>Benvenuto</h1>
+    <p>Accesso riuscito 🎉</p>
+  </section>
+`;
+export function render(container) {
+  container.innerHTML = `
+    <section class="view">
+      <h1>Benvenuto in Ristoflow</h1>
+      <p>Accesso riuscito 🎉</p>
+
+      <button class="app-button green">
+        ➕ Crea nuova azienda
+      </button>
+    </section>
+  `;
+}
