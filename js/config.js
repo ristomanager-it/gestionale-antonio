@@ -1,18 +1,24 @@
 // js/config.js
-// ===============================
-// Configurazione Supabase
-// ===============================
+// =======================================
+// Configurazione Supabase (SaaS)
+// =======================================
 
-// URL progetto Supabase
-const SUPABASE_URL =
-  "https://cuhcscpvhypoaplcmtjk.supabase.co";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Chiave pubblica (anon key)
-const SUPABASE_PUBLIC_KEY =
+// 🔐 URL e chiave pubblica Supabase
+const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+const SUPABASE_ANON_KEY =
   "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
 
-// Inizializzazione client Supabase (globale)
-window.supabaseClient = window.supabase.createClient(
+// ✅ Client Supabase
+export const supabase = createClient(
   SUPABASE_URL,
-  SUPABASE_PUBLIC_KEY
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
+  }
 );
