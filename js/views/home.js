@@ -6,6 +6,14 @@
 export function render(container) {
   const user = window.state.user;
   const azienda = window.state.azienda;
+  const aziende = window.state.aziende || [];
+
+  // 🔥 AUTO-CARICAMENTO AZIENDA SE UNICA
+  if (!azienda && aziende.length === 1) {
+    window.stateActions.setAzienda(aziende[0]);
+    render(container);
+    return;
+  }
 
   container.innerHTML = `
     <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
@@ -42,7 +50,10 @@ export function render(container) {
             </p>
 
             <h3 style="margin-top:20px;">Servizi disponibili</h3>
-            <div id="servizi-list" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
+            <div
+              id="servizi-list"
+              style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"
+            ></div>
 
             <div style="margin-top:20px;">
               <button id="btn-cambia-azienda" class="app-button">
@@ -94,7 +105,6 @@ export function render(container) {
       btn.textContent = servizio.label;
 
       btn.addEventListener("click", () => {
-        // Le viste specifiche verranno collegate dopo
         window.location.hash = `#/${servizio.route}`;
       });
 
