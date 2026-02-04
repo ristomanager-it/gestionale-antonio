@@ -1,0 +1,71 @@
+// js/views/login.js
+// ===============================
+// View: Login
+// ===============================
+
+export function render(container) {
+  container.innerHTML = `
+    <div class="login-wrapper">
+      <div class="login-card">
+        <img src="Logo Gestionale Antonio.png" alt="Logo" class="login-logo" />
+
+        <h2>Accesso</h2>
+        <p class="login-subtitle">Inserisci email e password</p>
+
+        <form id="login-form">
+          <input
+            type="email"
+            id="login-email"
+            placeholder="Email"
+            required
+          />
+
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Password"
+            required
+          />
+
+          <button type="submit">Entra</button>
+        </form>
+
+        <p id="login-error" class="login-error"></p>
+      </div>
+    </div>
+  `;
+
+  const form = document.getElementById("login-form");
+  const errorBox = document.getElementById("login-error");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorBox.textContent = "";
+
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+
+    if (!email || !password) {
+      errorBox.textContent = "Inserisci email e password";
+      return;
+    }
+
+    const supabase = window.supabaseClient;
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      errorBox.textContent = error.message;
+      return;
+    }
+
+    // Salva utente nello stato globale
+    window.stateActions.setUser(data.user);
+
+    // Vai alla selezione azienda
+    window.location.hash = "#/select-azienda";
+  });
+}
