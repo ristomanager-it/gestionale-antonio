@@ -10,7 +10,14 @@ export function render(container) {
 
   // 🔥 AUTO-CARICAMENTO AZIENDA SE UNICA
   if (!azienda && aziende.length === 1) {
-    window.stateActions.setAzienda(aziende[0]);
+    const record = aziende[0];
+
+    // supporta entrambe le strutture:
+    // - record.aziende (da utenti_aziende)
+    // - record diretto
+    const aziendaCorretta = record.aziende || record;
+
+    window.stateActions.setAzienda(aziendaCorretta);
     render(container);
     return;
   }
@@ -82,6 +89,8 @@ export function render(container) {
 
   // === AZIENDA SELEZIONATA ===
   if (azienda) {
+    console.log("AZIENDA ATTIVA:", azienda);
+
     const servizi = [
       { key: "timbrature", label: "Timbrature", route: "timbrature" },
       { key: "dipendenti", label: "Dipendenti", route: "dipendenti" },
@@ -98,7 +107,7 @@ export function render(container) {
     const listEl = document.getElementById("servizi-list");
 
     servizi.forEach((servizio) => {
-      if (!features[servizio.key]) return;
+      if (features[servizio.key] !== true) return;
 
       const btn = document.createElement("button");
       btn.className = "app-button";
