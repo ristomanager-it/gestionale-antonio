@@ -1,6 +1,7 @@
 // js/views/select-azienda.js
 // =================================
 // View: Selezione Azienda
+// (con fallback bootstrap SaaS)
 // =================================
 
 export async function render(container) {
@@ -30,7 +31,6 @@ export async function render(container) {
 
   const supabase = window.supabaseClient;
 
-  // Carica aziende collegate all'utente
   const { data, error } = await supabase
     .from("utenti_aziende")
     .select(`
@@ -48,9 +48,14 @@ export async function render(container) {
     return;
   }
 
+  // 🔥 CASO BOOTSTRAP: nessuna azienda
   if (!data || data.length === 0) {
-    errorEl.textContent =
-      "Nessuna azienda associata a questo utente.";
+    // Nessuna azienda → entra comunque
+    window.stateActions.setAziende([]);
+    window.stateActions.setAzienda(null);
+    window.stateActions.setRuolo("admin");
+
+    window.location.hash = "#/home";
     return;
   }
 
