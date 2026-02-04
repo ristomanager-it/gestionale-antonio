@@ -71,3 +71,18 @@ body {
   font-size: 13px;
   margin-top: 8px;
 }
+#aziende-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#aziende-list .app-button {
+  padding: 10px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  font-weight: 600;
+  cursor: pointer;
+}
