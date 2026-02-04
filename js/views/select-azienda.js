@@ -1,12 +1,19 @@
 // js/views/select-azienda.js
+// =================================
+// View: Selezione Azienda
+// =================================
 
 export async function render(container) {
   container.innerHTML = `
     <div class="login-wrapper">
       <div class="login-card">
         <h2>Seleziona azienda</h2>
-        <p>Scegli l’azienda con cui lavorare</p>
+        <p class="login-subtitle">
+          Scegli l’azienda con cui lavorare
+        </p>
+
         <div id="aziende-list"></div>
+
         <p id="azienda-error" class="login-error"></p>
       </div>
     </div>
@@ -23,6 +30,7 @@ export async function render(container) {
 
   const supabase = window.supabaseClient;
 
+  // Carica aziende collegate all'utente
   const { data, error } = await supabase
     .from("utenti_aziende")
     .select(`
@@ -41,14 +49,17 @@ export async function render(container) {
   }
 
   if (!data || data.length === 0) {
-    errorEl.textContent = "Nessuna azienda associata a questo utente.";
+    errorEl.textContent =
+      "Nessuna azienda associata a questo utente.";
     return;
   }
 
-  // Se una sola azienda → entra diretto
+  // Una sola azienda → entra diretto
   if (data.length === 1) {
-    window.stateActions.setAzienda(data[0].aziende);
-    window.stateActions.setRuolo(data[0].ruolo);
+    const record = data[0];
+    window.stateActions.setAziende(data);
+    window.stateActions.setAzienda(record.aziende);
+    window.stateActions.setRuolo(record.ruolo);
     window.location.hash = "#/home";
     return;
   }
@@ -59,11 +70,12 @@ export async function render(container) {
     btn.className = "app-button";
     btn.textContent = record.aziende.nome;
 
-    btn.onclick = () => {
+    btn.addEventListener("click", () => {
+      window.stateActions.setAziende(data);
       window.stateActions.setAzienda(record.aziende);
       window.stateActions.setRuolo(record.ruolo);
       window.location.hash = "#/home";
-    };
+    });
 
     listEl.appendChild(btn);
   });
