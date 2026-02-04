@@ -1,14 +1,18 @@
 // js/config.js
 // ===============================
-// Configurazione globale Supabase
+// Configurazione Supabase
 // ===============================
 
-// ⚠️ USA SOLO CHIAVE PUBBLICABILE
-const SUPABASE_URL = "https://INSERISCI_LA_TUA_URL.supabase.co";
-const SUPABASE_PUBLIC_KEY = "sb_publishable_INSERISCI_LA_TUA_CHIAVE";
+// URL progetto Supabase
+const SUPABASE_URL =
+  "https://cuhcscpvhypoaplcmtjk.supabase.co";
 
-// Client Supabase globale
-export const supabase = window.supabase.createClient(
+// Chiave pubblica (anon key)
+const SUPABASE_PUBLIC_KEY =
+  "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
+
+// Inizializzazione client Supabase (globale)
+window.supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_PUBLIC_KEY
 );
