@@ -22,16 +22,15 @@ window.stateActions = {
 
     const aziende = window.state.aziende || [];
 
-    // 1) piattaforma
     const piattaforma = aziende.find(
       (r) => (r.aziende || r).stato === "piattaforma"
     );
+
     if (piattaforma) {
       window.state.azienda = piattaforma.aziende || piattaforma;
       return;
     }
 
-    // 2) una sola azienda cliente
     if (aziende.length === 1) {
       window.state.azienda = aziende[0].aziende || aziende[0];
     }
