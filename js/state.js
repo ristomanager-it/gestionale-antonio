@@ -2,5 +2,5 @@
 window.state = {
   user: null,
   aziende: [],
-  azienda: null, // azienda attiva
+  azienda: null, // azienda attiva (piattaforma o cliente)
 };
