@@ -1,6 +1,6 @@
 // js/router.js
 // =======================================
-// Router SPA – login SEMPRE separato
+// Router SPA – LOGIN SEMPRE VISIBILE
 // =======================================
 
 import "./state.js";
@@ -34,7 +34,10 @@ function getRoute() {
   return window.location.hash.replace("#/", "") || "login";
 }
 
-async function bootstrapSession() {
+/**
+ * Carica sessione MA NON REDIRIGE
+ */
+async function loadSession() {
   const { data } = await window.supabaseClient.auth.getSession();
   const session = data?.session || null;
 
@@ -60,31 +63,27 @@ async function bootstrapSession() {
 }
 
 async function resolveRoute() {
-  await bootstrapSession();
+  await loadSession();
 
   const route = getRoute();
   const user = window.state.user;
 
-  // 🔐 NON LOGGATO → SEMPRE LOGIN
-  if (!user) {
-    if (route !== "login") {
-      window.location.hash = "#/login";
-      return;
-    }
+  // 🔑 LOGIN È SEMPRE ACCESSIBILE
+  if (route === "login") {
     await renderView("login");
     return;
   }
 
-  // ✅ LOGGATO
-  if (route === "login") {
-    window.location.hash = "#/home";
+  // 🔒 QUALSIASI ALTRA ROTTA → serve login
+  if (!user) {
+    window.location.hash = "#/login";
     return;
   }
 
-  // auto-set azienda (piattaforma o singola)
+  // auto-set azienda DOPO login
   window.stateActions.autoSetAzienda();
 
-  // se ancora nessuna azienda → select
+  // se loggato ma senza azienda → select
   if (!window.state.azienda) {
     window.location.hash = "#/select-azienda";
     return;
