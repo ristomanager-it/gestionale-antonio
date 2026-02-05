@@ -1,14 +1,28 @@
 // js/views/crea-azienda.js
 // =======================================
-// Creazione nuova azienda (SaaS)
+// Creazione nuova azienda (SOLO SUPERADMIN)
 // =======================================
+
+const DEFAULT_FEATURES = {
+  timbrature: true,
+  dipendenti: true,
+  ricette: true,
+  ricettario: true,
+  magazzino: true,
+  acquisti: true,
+  preventivi: true,
+  venduto: true,
+  report: true,
+};
 
 export async function render(container) {
   const user = window.state.user;
+  const aziendaAttiva = window.state.azienda;
   const supabase = window.supabaseClient;
 
-  if (!user) {
-    window.location.hash = "#/login";
+  // 🔒 SOLO PIATTAFORMA
+  if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
+    window.location.hash = "#/home";
     return;
   }
 
@@ -17,7 +31,7 @@ export async function render(container) {
       <div class="login-card">
         <h2>Crea nuova azienda</h2>
         <p class="login-subtitle">
-          Inserisci i dati dell’azienda
+          Inserisci i dati dell’azienda cliente
         </p>
 
         <form id="azienda-form">
@@ -36,9 +50,24 @@ export async function render(container) {
             <input id="az-pin" class="input-pill" required />
           </label>
 
-          <button class="app-button green" type="submit">
-            Crea azienda
-          </button>
+          <label>
+            Data scadenza (opzionale)
+            <input id="az-scadenza" type="date" class="input-pill" />
+          </label>
+
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="app-button green" type="submit">
+              Crea azienda
+            </button>
+
+            <button
+              type="button"
+              class="app-button"
+              onclick="window.location.hash='#/gestione-aziende'"
+            >
+              Annulla
+            </button>
+          </div>
         </form>
 
         <p id="azienda-error" class="login-error"></p>
@@ -51,52 +80,54 @@ export async function render(container) {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    errorEl.textContent = "";
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
     const pin = document.getElementById("az-pin").value.trim();
+    const scadenza = document.getElementById("az-scadenza").value || null;
 
     if (!nome || !codice || !pin) {
-      errorEl.textContent = "Compila tutti i campi.";
+      errorEl.textContent = "Compila tutti i campi obbligatori.";
       return;
     }
 
-    // 1️⃣ Crea azienda
-    const { data: azienda, error: errAzienda } = await supabase
-      .from("aziende")
-      .insert({
-        nome,
-        codice,
-        pin_accesso: pin
-      })
-      .select()
-      .single();
+    try {
+      // 1️⃣ CREA AZIENDA
+      const { data: azienda, error: errAzienda } = await supabase
+        .from("aziende")
+        .insert({
+          nome,
+          codice,
+          pin_accesso: pin,
+          stato: "attiva",
+          attiva: true,
+          features: DEFAULT_FEATURES,
+          data_scadenza: scadenza,
+        })
+        .select()
+        .single();
 
-    if (errAzienda) {
-      errorEl.textContent = errAzienda.message;
-      return;
+      if (errAzienda) throw errAzienda;
+
+      // 2️⃣ COLLEGA UTENTE COME ADMIN DELL’AZIENDA
+      const { error: errRel } = await supabase
+        .from("utenti_aziende")
+        .insert({
+          user_id: user.id,
+          azienda_id: azienda.id,
+          ruolo: "admin",
+          attivo: true,
+        });
+
+      if (errRel) throw errRel;
+
+      // 3️⃣ TORNA A GESTIONE AZIENDE
+      window.location.hash = "#/gestione-aziende";
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent =
+        err.message || "Errore durante la creazione dell’azienda";
     }
-
-    // 2️⃣ Collega utente → azienda
-    const { error: errRel } = await supabase
-      .from("utenti_aziende")
-      .insert({
-        user_id: user.id,
-        azienda_id: azienda.id,
-        ruolo: "admin",
-        attivo: true
-      });
-
-    if (errRel) {
-      errorEl.textContent = errRel.message;
-      return;
-    }
-
-    // 3️⃣ Set stato globale
-    window.stateActions.setAzienda(azienda);
-    window.stateActions.setRuolo("admin");
-
-    // 4️⃣ Torna alla home
-    window.location.hash = "#/home";
   });
 }
