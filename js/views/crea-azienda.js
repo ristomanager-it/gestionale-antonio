@@ -1,6 +1,6 @@
 // js/views/crea-azienda.js
 // =======================================
-// Creazione nuova azienda (SOLO SUPERADMIN)
+// Creazione nuova azienda (PIATTAFORMA)
 // =======================================
 
 import { supabase } from "../supabaseClient.js";
@@ -21,9 +21,16 @@ export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
-  // 🔒 SOLO PIATTAFORMA
+  // 🔒 SOLO PIATTAFORMA (admin OK)
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
-    window.location.hash = "#/home";
+    container.innerHTML = `
+      <div class="login-wrapper">
+        <div class="login-card">
+          <h3>Accesso negato</h3>
+          <p>Questa sezione è riservata alla piattaforma.</p>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -31,9 +38,7 @@ export async function render(container) {
     <div class="login-wrapper">
       <div class="login-card">
         <h2>Crea nuova azienda</h2>
-        <p class="login-subtitle">
-          Inserisci i dati dell’azienda cliente
-        </p>
+        <p class="login-subtitle">Aggiungi un’azienda cliente</p>
 
         <form id="azienda-form">
           <label>
@@ -42,7 +47,7 @@ export async function render(container) {
           </label>
 
           <label>
-            Codice azienda (univoco)
+            Codice azienda
             <input id="az-codice" class="input-pill" required />
           </label>
 
@@ -51,24 +56,9 @@ export async function render(container) {
             <input id="az-pin" class="input-pill" required />
           </label>
 
-          <label>
-            Data scadenza (opzionale)
-            <input id="az-scadenza" type="date" class="input-pill" />
-          </label>
-
-          <div style="display:flex; gap:8px; margin-top:12px;">
-            <button class="app-button green" type="submit">
-              Crea azienda
-            </button>
-
-            <button
-              type="button"
-              class="app-button"
-              onclick="window.location.hash='#/gestione-aziende'"
-            >
-              Annulla
-            </button>
-          </div>
+          <button class="app-button green" type="submit">
+            Crea azienda
+          </button>
         </form>
 
         <p id="azienda-error" class="login-error"></p>
@@ -86,16 +76,14 @@ export async function render(container) {
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
     const pin = document.getElementById("az-pin").value.trim();
-    const scadenza = document.getElementById("az-scadenza").value || null;
 
     if (!nome || !codice || !pin) {
-      errorEl.textContent = "Compila tutti i campi obbligatori.";
+      errorEl.textContent = "Compila tutti i campi.";
       return;
     }
 
     try {
-      // 1️⃣ CREA AZIENDA
-      const { data: azienda, error: errAzienda } = await supabase
+      const { data: azienda, error } = await supabase
         .from("aziende")
         .insert({
           nome,
@@ -104,31 +92,22 @@ export async function render(container) {
           stato: "attiva",
           attiva: true,
           features: DEFAULT_FEATURES,
-          data_scadenza: scadenza,
         })
         .select()
         .single();
 
-      if (errAzienda) throw errAzienda;
+      if (error) throw error;
 
-      // 2️⃣ COLLEGA UTENTE COME ADMIN DELL’AZIENDA
-      const { error: errRel } = await supabase
-        .from("utenti_aziende")
-        .insert({
-          user_id: user.id,
-          azienda_id: azienda.id,
-          ruolo: "admin",
-          attivo: true,
-        });
+      await supabase.from("utenti_aziende").insert({
+        user_id: user.id,
+        azienda_id: azienda.id,
+        ruolo: "admin",
+        attivo: true,
+      });
 
-      if (errRel) throw errRel;
-
-      // 3️⃣ TORNA ALLA GESTIONE AZIENDE
       window.location.hash = "#/gestione-aziende";
     } catch (err) {
-      console.error(err);
-      errorEl.textContent =
-        err.message || "Errore durante la creazione dell’azienda";
+      errorEl.textContent = err.message;
     }
   });
 }
