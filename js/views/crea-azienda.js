@@ -3,6 +3,8 @@
 // Creazione nuova azienda (SOLO SUPERADMIN)
 // =======================================
 
+import { supabase } from "../supabaseClient.js";
+
 const DEFAULT_FEATURES = {
   timbrature: true,
   dipendenti: true,
@@ -18,7 +20,6 @@ const DEFAULT_FEATURES = {
 export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
-  const supabase = window.supabaseClient;
 
   // 🔒 SOLO PIATTAFORMA
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
@@ -122,7 +123,7 @@ export async function render(container) {
 
       if (errRel) throw errRel;
 
-      // 3️⃣ TORNA A GESTIONE AZIENDE
+      // 3️⃣ TORNA ALLA GESTIONE AZIENDE
       window.location.hash = "#/gestione-aziende";
     } catch (err) {
       console.error(err);
