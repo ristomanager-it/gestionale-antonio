@@ -1,6 +1,6 @@
 // js/router.js
 // =======================================
-// Router SPA – VERSIONE STABILE DEFINITIVA
+// ROUTER SPA – VERSIONE ANTI-SCHERMO BIANCO
 // =======================================
 
 import "./state.js";
@@ -9,6 +9,9 @@ import "./supabaseClient.js";
 
 const appRoot = document.getElementById("app");
 
+// fallback IMMEDIATO (mai più schermo vuoto)
+appRoot.innerHTML = "<p style='padding:20px'>Caricamento...</p>";
+
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
@@ -16,23 +19,23 @@ const routes = {
   "gestione-aziende": () => import("./views/gestione-aziende.js"),
 };
 
-// --- util ---
 function getRoute() {
   return window.location.hash.replace("#/", "") || "login";
 }
 
 async function renderView(name) {
-  appRoot.innerHTML = "";
+  appRoot.innerHTML = "<p style='padding:20px'>Caricamento vista...</p>";
+
   const loader = routes[name];
   if (!loader) {
     appRoot.innerHTML = "<p>Vista non trovata</p>";
     return;
   }
+
   const view = await loader();
   await view.render(appRoot);
 }
 
-// --- session + aziende ---
 async function loadSessionAndAziende() {
   const { data } = await window.supabaseClient.auth.getSession();
   const session = data?.session || null;
@@ -58,35 +61,37 @@ async function loadSessionAndAziende() {
   window.stateActions.setAziende(rel || []);
 }
 
-// --- router core ---
 async function resolveRoute() {
+  // MOSTRA SEMPRE QUALCOSA
+  appRoot.innerHTML = "<p style='padding:20px'>Verifica accesso...</p>";
+
   await loadSessionAndAziende();
 
   const route = getRoute();
   const user = window.state.user;
 
-  // 🔐 NON LOGGATO → SOLO LOGIN
+  // 🔐 NON LOGGATO → LOGIN (SEMPRE)
   if (!user) {
     await renderView("login");
     return;
   }
 
-  // 🔥 AUTO-SET AZIENDA (piattaforma prioritaria)
+  // auto-set azienda
   window.stateActions.autoSetAzienda();
 
-  // sicurezza: se ancora nulla
+  // se non c'è azienda → fallback login (mai vuoto)
   if (!window.state.azienda) {
-    appRoot.innerHTML = "<p>Nessuna azienda associata</p>";
+    await renderView("login");
     return;
   }
 
-  // LOGIN non serve più da loggato
+  // se è loggato e chiede login → home
   if (route === "login") {
     window.location.hash = "#/home";
     return;
   }
 
-  // BLOCCO viste piattaforma se non piattaforma
+  // protezione viste piattaforma
   const piattaformaOnly = ["crea-azienda", "gestione-aziende"];
   if (
     piattaformaOnly.includes(route) &&
