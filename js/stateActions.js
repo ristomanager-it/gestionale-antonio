@@ -4,8 +4,8 @@ window.stateActions = {
     window.state.user = user;
   },
 
-  setAziende(aziende) {
-    window.state.aziende = aziende || [];
+  setAziende(relazioni) {
+    window.state.aziende = relazioni || [];
     this.autoSetAzienda();
   },
 
@@ -18,23 +18,26 @@ window.stateActions = {
   },
 
   autoSetAzienda() {
+    // se già settata, non toccare
     if (window.state.azienda) return;
 
-    const aziende = window.state.aziende || [];
+    const relazioni = window.state.aziende || [];
 
-    // priorità: piattaforma
-    const piattaforma = aziende.find(
-      (r) => (r.aziende || r).stato === "piattaforma"
+    if (relazioni.length === 0) return;
+
+    // 1️⃣ PRIORITÀ ASSOLUTA: PIATTAFORMA
+    const piattaforma = relazioni.find(
+      (r) => r.aziende && r.aziende.stato === "piattaforma"
     );
 
     if (piattaforma) {
-      window.state.azienda = piattaforma.aziende || piattaforma;
+      window.state.azienda = piattaforma.aziende;
       return;
     }
 
-    // se una sola azienda cliente
-    if (aziende.length === 1) {
-      window.state.azienda = aziende[0].aziende || aziende[0];
+    // 2️⃣ SE UNA SOLA AZIENDA → AUTO
+    if (relazioni.length === 1) {
+      window.state.azienda = relazioni[0].aziende;
     }
   },
 };
