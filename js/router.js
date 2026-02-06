@@ -1,16 +1,9 @@
 // js/router.js
-// =======================================
-// ROUTER SPA – VERSIONE ANTI-SCHERMO BIANCO
-// =======================================
-
 import "./state.js";
 import "./stateActions.js";
 import "./supabaseClient.js";
 
 const appRoot = document.getElementById("app");
-
-// fallback IMMEDIATO (mai più schermo vuoto)
-appRoot.innerHTML = "<p style='padding:20px'>Caricamento...</p>";
 
 const routes = {
   login: () => import("./views/login.js"),
@@ -24,7 +17,7 @@ function getRoute() {
 }
 
 async function renderView(name) {
-  appRoot.innerHTML = "<p style='padding:20px'>Caricamento vista...</p>";
+  appRoot.innerHTML = "<p style='padding:20px'>Caricamento…</p>";
 
   const loader = routes[name];
   if (!loader) {
@@ -36,62 +29,47 @@ async function renderView(name) {
   await view.render(appRoot);
 }
 
-async function loadSessionAndAziende() {
-  const { data } = await window.supabaseClient.auth.getSession();
-  const session = data?.session || null;
-
-  window.stateActions.setUser(session?.user || null);
-
-  if (!session?.user) {
+async function loadAziende(user) {
+  if (!user) {
     window.stateActions.setAziende([]);
     window.stateActions.resetAzienda();
     return;
   }
 
-  const { data: rel } = await window.supabaseClient
+  const { data } = await window.supabaseClient
     .from("utenti_aziende")
     .select(
       `ruolo, attivo, aziende:azienda_id (
         id, nome, codice, stato, attiva, features
       )`
     )
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .eq("attivo", true);
 
-  window.stateActions.setAziende(rel || []);
+  window.stateActions.setAziende(data || []);
 }
 
-async function resolveRoute() {
-  // MOSTRA SEMPRE QUALCOSA
-  appRoot.innerHTML = "<p style='padding:20px'>Verifica accesso...</p>";
-
-  await loadSessionAndAziende();
-
+async function resolve() {
   const route = getRoute();
   const user = window.state.user;
 
-  // 🔐 NON LOGGATO → LOGIN (SEMPRE)
   if (!user) {
     await renderView("login");
     return;
   }
 
-  // auto-set azienda
   window.stateActions.autoSetAzienda();
 
-  // se non c'è azienda → fallback login (mai vuoto)
   if (!window.state.azienda) {
-    await renderView("login");
+    appRoot.innerHTML = "<p>Nessuna azienda associata</p>";
     return;
   }
 
-  // se è loggato e chiede login → home
   if (route === "login") {
     window.location.hash = "#/home";
     return;
   }
 
-  // protezione viste piattaforma
   const piattaformaOnly = ["crea-azienda", "gestione-aziende"];
   if (
     piattaformaOnly.includes(route) &&
@@ -105,8 +83,18 @@ async function resolveRoute() {
 }
 
 function init() {
-  window.addEventListener("hashchange", resolveRoute);
-  resolveRoute();
+  // 🔔 LISTENER UFFICIALE SUPABASE
+  window.supabaseClient.auth.onAuthStateChange(
+    async (_event, session) => {
+      const user = session?.user || null;
+
+      window.stateActions.setUser(user);
+      await loadAziende(user);
+      await resolve();
+    }
+  );
+
+  resolve();
 }
 
 window.router = { init };
