@@ -1,4 +1,8 @@
 // js/router.js
+// =======================================
+// ROUTER MINIMO – LOGIN → HOME
+// =======================================
+
 import "./state.js";
 import "./stateActions.js";
 import "./supabaseClient.js";
@@ -8,8 +12,6 @@ const appRoot = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
-  "crea-azienda": () => import("./views/crea-azienda.js"),
-  "gestione-aziende": () => import("./views/gestione-aziende.js"),
 };
 
 function getRoute() {
@@ -17,83 +19,37 @@ function getRoute() {
 }
 
 async function renderView(name) {
-  appRoot.innerHTML = "<p style='padding:20px'>Caricamento…</p>";
-
-  const loader = routes[name];
-  if (!loader) {
-    appRoot.innerHTML = "<p>Vista non trovata</p>";
-    return;
-  }
-
-  const view = await loader();
+  appRoot.innerHTML = "";
+  const view = await routes[name]();
   await view.render(appRoot);
 }
 
-async function loadAziende(user) {
-  if (!user) {
-    window.stateActions.setAziende([]);
-    window.stateActions.resetAzienda();
-    return;
-  }
-
-  const { data } = await window.supabaseClient
-    .from("utenti_aziende")
-    .select(
-      `ruolo, attivo, aziende:azienda_id (
-        id, nome, codice, stato, attiva, features
-      )`
-    )
-    .eq("user_id", user.id)
-    .eq("attivo", true);
-
-  window.stateActions.setAziende(data || []);
-}
-
 async function resolve() {
-  const route = getRoute();
-  const user = window.state.user;
+  const {
+    data: { session },
+  } = await window.supabaseClient.auth.getSession();
 
-  if (!user) {
+  const route = getRoute();
+
+  // 🔴 NON LOGGATO → LOGIN
+  if (!session) {
     await renderView("login");
     return;
   }
 
-  window.stateActions.autoSetAzienda();
+  // ✅ LOGGATO → HOME (SEMPRE)
+  window.stateActions.setUser(session.user);
 
-  if (!window.state.azienda) {
-    appRoot.innerHTML = "<p>Nessuna azienda associata</p>";
-    return;
-  }
-
-  if (route === "login") {
+  if (route !== "home") {
     window.location.hash = "#/home";
     return;
   }
 
-  const piattaformaOnly = ["crea-azienda", "gestione-aziende"];
-  if (
-    piattaformaOnly.includes(route) &&
-    window.state.azienda.stato !== "piattaforma"
-  ) {
-    window.location.hash = "#/home";
-    return;
-  }
-
-  await renderView(route);
+  await renderView("home");
 }
 
 function init() {
-  // 🔔 LISTENER UFFICIALE SUPABASE
-  window.supabaseClient.auth.onAuthStateChange(
-    async (_event, session) => {
-      const user = session?.user || null;
-
-      window.stateActions.setUser(user);
-      await loadAziende(user);
-      await resolve();
-    }
-  );
-
+  window.addEventListener("hashchange", resolve);
   resolve();
 }
 
