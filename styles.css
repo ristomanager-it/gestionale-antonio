@@ -292,3 +292,27 @@ textarea {
     max-width: 140px;
   }
 }
+/* ============================= */
+/* LOGIN ACTIONS */
+/* ============================= */
+
+.login-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.app-button.primary {
+  background-color: #1e88e5; /* BLU */
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: 16px;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.app-button.primary:hover {
+  background-color: #1565c0;
+}
