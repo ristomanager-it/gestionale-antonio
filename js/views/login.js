@@ -3,14 +3,12 @@ export async function render(container) {
   container.innerHTML = `
     <div class="login-wrapper">
       <div class="login-card">
+
         <div class="login-logo">
-          <img src="Logo Gestionale Antonio.png" alt="RistoManager" />
+          <img src="Logo Gestionale Antonio.png" alt="Ristoflow" />
         </div>
 
-        <h2>Accesso</h2>
-        <p class="login-subtitle">
-          Inserisci email e password
-        </p>
+        <h2 style="text-align:center">Accesso</h2>
 
         <form id="login-form">
           <label>
@@ -23,9 +21,11 @@ export async function render(container) {
             <input id="login-pass" type="password" class="input-pill" required />
           </label>
 
-          <button class="app-button green" type="submit">
-            Entra
-          </button>
+          <div class="login-actions">
+            <button id="btn-login" class="app-button primary" type="submit">
+              Entra
+            </button>
+          </div>
         </form>
 
         <p id="login-error" class="login-error"></p>
@@ -52,8 +52,11 @@ export async function render(container) {
 
       if (error) throw error;
 
-      // 🔁 DOPO LOGIN → HOME
-      window.location.hash = "#/home";
+      // ✅ NON forziamo la rotta
+      // lasciamo che il router rilegga la sessione
+      setTimeout(() => {
+        window.router.init();
+      }, 0);
     } catch (err) {
       errorEl.textContent = err.message || "Errore di accesso";
     }
