@@ -1,4 +1,8 @@
 // js/views/login.js
+// =======================================
+// Login view – versione definitiva stabile
+// =======================================
+
 export async function render(container) {
   container.innerHTML = `
     <div class="login-wrapper">
@@ -13,16 +17,28 @@ export async function render(container) {
         <form id="login-form">
           <label>
             Email
-            <input id="login-email" type="email" class="input-pill" required />
+            <input
+              id="login-email"
+              type="email"
+              class="input-pill"
+              required
+              autocomplete="email"
+            />
           </label>
 
           <label>
             Password
-            <input id="login-pass" type="password" class="input-pill" required />
+            <input
+              id="login-pass"
+              type="password"
+              class="input-pill"
+              required
+              autocomplete="current-password"
+            />
           </label>
 
           <div class="login-actions">
-            <button id="btn-login" class="app-button primary" type="submit">
+            <button type="submit" class="app-button login-primary">
               Entra
             </button>
           </div>
@@ -52,13 +68,17 @@ export async function render(container) {
 
       if (error) throw error;
 
-      // ✅ NON forziamo la rotta
-      // lasciamo che il router rilegga la sessione
-      setTimeout(() => {
-        window.router.init();
-      }, 0);
+      // 🔥 FIX DEFINITIVO
+      // ricarichiamo la SPA con hash home
+      const base =
+        window.location.origin + window.location.pathname;
+
+      window.location.href = `${base}#/home`;
+      window.location.reload();
     } catch (err) {
-      errorEl.textContent = err.message || "Errore di accesso";
+      console.error("Errore login:", err);
+      errorEl.textContent =
+        err.message || "Errore di accesso";
     }
   });
 }
