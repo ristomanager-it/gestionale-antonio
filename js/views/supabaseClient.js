@@ -1,11 +1,21 @@
 // js/supabaseClient.js
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// ✅ METTI I TUOI
 const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-const SUPABASE_ANON_KEY = "INCOLLA_QUI_LA_TUA_ANON_KEY_COMPLETA";
+const SUPABASE_ANON_KEY =
+  "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
 
-// comodo per le view che usano window.supabaseClient
+// 👉 rendiamo disponibile globalmente
 window.supabaseClient = supabase;
