@@ -18,14 +18,12 @@ window.stateActions = {
   },
 
   autoSetAzienda() {
-    // se già settata, non toccare
     if (window.state.azienda) return;
 
     const relazioni = window.state.aziende || [];
-
     if (relazioni.length === 0) return;
 
-    // 1️⃣ PRIORITÀ ASSOLUTA: PIATTAFORMA
+    // PRIORITÀ: piattaforma
     const piattaforma = relazioni.find(
       (r) => r.aziende && r.aziende.stato === "piattaforma"
     );
@@ -35,7 +33,7 @@ window.stateActions = {
       return;
     }
 
-    // 2️⃣ SE UNA SOLA AZIENDA → AUTO
+    // fallback: una sola azienda
     if (relazioni.length === 1) {
       window.state.azienda = relazioni[0].aziende;
     }
