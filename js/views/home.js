@@ -1,21 +1,16 @@
 // js/views/home.js
-// ⚠️ NESSUN IMPORT QUI
 
 export async function render(container) {
   const state = window.state;
-
-  if (!state?.user || !state?.azienda) {
-    container.innerHTML = `<p class="error">Stato non disponibile</p>`;
-    return;
-  }
-
   const azienda = state.azienda;
-  const userName =
-    state.user.user_metadata?.full_name || state.user.email;
+  const user = state.user;
 
-  // =========================
+  const userName =
+    user.user_metadata?.full_name ||
+    user.email ||
+    "Utente";
+
   // HOME PIATTAFORMA
-  // =========================
   if (azienda.stato === "piattaforma") {
     container.innerHTML = `
       <div class="home">
@@ -31,7 +26,6 @@ export async function render(container) {
           <button id="btn-crea-azienda" class="app-button green">
             ➕ Crea azienda
           </button>
-
           <button id="btn-lista-aziende" class="app-button secondary">
             📋 Lista aziende
           </button>
@@ -42,17 +36,13 @@ export async function render(container) {
     document.getElementById("btn-crea-azienda").onclick = () => {
       window.location.hash = "#/creaAzienda";
     };
-
     document.getElementById("btn-lista-aziende").onclick = () => {
       window.location.hash = "#/listaAziende";
     };
-
     return;
   }
 
-  // =========================
   // HOME AZIENDA CLIENTE
-  // =========================
   container.innerHTML = `
     <div class="home">
       <h1>${azienda.nome}</h1>
