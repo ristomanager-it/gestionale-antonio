@@ -19,12 +19,8 @@ async function renderView(name) {
 }
 
 async function resolve() {
-  const {
-    data: { session },
-    error,
-  } = await window.supabaseClient.auth.getSession();
-
-  if (error) console.error(error);
+  const { data } = await window.supabaseClient.auth.getSession();
+  const session = data.session;
 
   if (!session) {
     await renderView("login");
@@ -33,25 +29,18 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  const { data, error: aziendeError } = await window.supabaseClient
+  const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
     .select(`
       ruolo,
       aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        features,
-        logo_path
+        id, nome, codice, stato, features, logo_path
       )
     `)
     .eq("user_id", session.user.id)
     .eq("attivo", true);
 
-  if (aziendeError) console.error(aziendeError);
-
-  window.stateActions.setAziende(data || []);
+  window.stateActions.setAziende(aziende || []);
   window.stateActions.autoSetAzienda();
 
   const route =
@@ -60,10 +49,5 @@ async function resolve() {
   await renderView(routes[route] ? route : "home");
 }
 
-function init() {
-  window.addEventListener("hashchange", resolve);
-  resolve();
-}
-
-window.router = { init };
-window.router.init();
+window.addEventListener("hashchange", resolve);
+resolve();
