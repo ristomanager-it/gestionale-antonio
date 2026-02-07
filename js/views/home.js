@@ -3,7 +3,7 @@
 export async function render(container) {
   const { state } = window;
 
-  if (!state.user || !state.azienda) {
+  if (!state?.user || !state?.azienda) {
     container.innerHTML = `<p>Errore: stato non valido</p>`;
     return;
   }
@@ -13,31 +13,49 @@ export async function render(container) {
 
   const azienda = state.azienda;
 
-  // ruolo utente per questa azienda
-  const aziendaEntry = state.aziende.find(
-    (a) => a.aziende.id === azienda.id
-  );
-  const ruolo = aziendaEntry?.ruolo || null;
+  // recupero ruolo in modo SAFE
+  let ruolo = null;
+
+  if (Array.isArray(state.aziende)) {
+    const match = state.aziende.find(
+      (row) =>
+        row?.aziende &&
+        row.aziende.id === azienda.id
+    );
+    ruolo = match?.ruolo || null;
+  }
 
   container.innerHTML = `
     <div class="home">
 
       <div class="azienda-header">
-        <img id="azienda-logo" class="azienda-logo" alt="Logo azienda" />
+        <img
+          id="azienda-logo"
+          class="azienda-logo"
+          alt="Logo azienda"
+          style="display:none"
+        />
 
         <div class="azienda-info">
           <div class="azienda-nome">${azienda.nome}</div>
           <div class="azienda-stato">
-            ${azienda.stato === "piattaforma" ? "Piattaforma" : "Azienda cliente"}
+            ${
+              azienda.stato === "piattaforma"
+                ? "Piattaforma Ristoflow"
+                : "Azienda cliente"
+            }
           </div>
         </div>
       </div>
 
-      <div class="utente-info">
+      <div class="utente-info" style="margin-top:12px;">
         Benvenuto, <strong>${userName}</strong>
       </div>
 
-      <div id="logo-upload-box" style="display:none; margin-top:16px;">
+      <div
+        id="logo-upload-box"
+        style="display:none; margin-top:16px;"
+      >
         <label><strong>Logo azienda</strong></label><br/>
         <input id="logo-file" type="file" accept="image/*" />
         <br/>
@@ -49,7 +67,10 @@ export async function render(container) {
     </div>
   `;
 
-  // mostra upload solo admin / superadmin / piattaforma
+  /* ===========================
+     PERMESSI UPLOAD LOGO
+  =========================== */
+
   const canUpload =
     azienda.stato === "piattaforma" ||
     ["admin", "superadmin"].includes(ruolo);
@@ -70,17 +91,15 @@ async function renderLogo() {
   const img = document.getElementById("azienda-logo");
   if (!img) return;
 
-  img.style.display = "none";
-
   const azienda = window.state.azienda;
-  if (!azienda.logo_path) return;
+  if (!azienda?.logo_path) return;
 
   const { data, error } = await window.supabaseClient.storage
     .from("loghi-aziende")
     .createSignedUrl(azienda.logo_path, 60 * 60);
 
   if (error) {
-    console.warn("Errore logo:", error.message);
+    console.warn("Errore caricamento logo:", error.message);
     return;
   }
 
@@ -129,7 +148,10 @@ function setupLogoUpload() {
       if (dbError) throw dbError;
 
       // aggiorna stato locale
-      window.state.azienda.logo_path = filePath;
+      window.state.azienda = {
+        ...window.state.azienda,
+        logo_path: filePath,
+      };
 
       await renderLogo();
       alert("Logo aggiornato ✅");
