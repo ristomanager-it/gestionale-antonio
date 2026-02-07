@@ -339,3 +339,113 @@ textarea {
   font-size: 12px;
   opacity: 0.7;
 }
+/* =====================
+   BASE DARK THEME
+===================== */
+
+body {
+  background: #0f172a; /* blu notte */
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+h1, h2, h3 {
+  color: #f9fafb;
+}
+
+.muted {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.big {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* =====================
+   HOME
+===================== */
+
+.home {
+  padding: 20px;
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.azienda-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.azienda-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #1f2933;
+}
+
+.azienda-nome {
+  margin: 0;
+}
+
+/* =====================
+   BADGE
+===================== */
+
+.badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+
+.badge-platform {
+  background: #1d4ed8;
+  color: white;
+}
+
+.badge-azienda {
+  background: #065f46;
+  color: white;
+}
+
+/* =====================
+   DASHBOARD
+===================== */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #020617;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.list {
+  padding-left: 16px;
+  margin: 0;
+}
+
+.ok {
+  color: #22c55e;
+  font-weight: 600;
+}
