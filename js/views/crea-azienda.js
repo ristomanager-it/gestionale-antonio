@@ -21,7 +21,7 @@ export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
-  // 🔒 SOLO PIATTAFORMA (admin OK)
+  // 🔒 SOLO PIATTAFORMA
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = `
       <div class="login-wrapper">
@@ -41,6 +41,7 @@ export async function render(container) {
         <p class="login-subtitle">Aggiungi un’azienda cliente</p>
 
         <form id="azienda-form">
+
           <label>
             Nome azienda
             <input id="az-nome" class="input-pill" required />
@@ -83,6 +84,7 @@ export async function render(container) {
     }
 
     try {
+      // 1️⃣ CREA AZIENDA
       const { data: azienda, error } = await supabase
         .from("aziende")
         .insert({
@@ -98,14 +100,21 @@ export async function render(container) {
 
       if (error) throw error;
 
-      await supabase.from("utenti_aziende").insert({
-        user_id: user.id,
-        azienda_id: azienda.id,
-        ruolo: "admin",
-        attivo: true,
-      });
+      // 2️⃣ COLLEGA UTENTE COME ADMIN
+      const { error: linkError } = await supabase
+        .from("utenti_aziende")
+        .insert({
+          user_id: user.id,
+          azienda_id: azienda.id,
+          ruolo: "admin",
+          attivo: true,
+        });
 
-      window.location.hash = "#/gestione-aziende";
+      if (linkError) throw linkError;
+
+      // 3️⃣ TORNA ALLA HOME PIATTAFORMA
+      window.location.hash = "#/home";
+
     } catch (err) {
       errorEl.textContent = err.message;
     }
