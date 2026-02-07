@@ -4,9 +4,8 @@ window.stateActions = {
     window.state.user = user;
   },
 
-  setAziende(relazioni) {
-    window.state.aziende = relazioni || [];
-    this.autoSetAzienda();
+  setAziende(aziende) {
+    window.state.aziende = aziende;
   },
 
   setAzienda(azienda) {
@@ -18,24 +17,22 @@ window.stateActions = {
   },
 
   autoSetAzienda() {
-    if (window.state.azienda) return;
+    const aziende = window.state.aziende || [];
+    if (aziende.length === 0) return;
 
-    const relazioni = window.state.aziende || [];
-    if (relazioni.length === 0) return;
-
-    // PRIORITÀ: piattaforma
-    const piattaforma = relazioni.find(
-      (r) => r.aziende && r.aziende.stato === "piattaforma"
+    // priorità piattaforma
+    const piattaforma = aziende.find(
+      (r) => (r.aziende || r).stato === "piattaforma"
     );
 
     if (piattaforma) {
-      window.state.azienda = piattaforma.aziende;
+      window.state.azienda = piattaforma.aziende || piattaforma;
       return;
     }
 
-    // fallback: una sola azienda
-    if (relazioni.length === 1) {
-      window.state.azienda = relazioni[0].aziende;
+    // se una sola azienda
+    if (aziende.length === 1) {
+      window.state.azienda = aziende[0].aziende || aziende[0];
     }
   },
 };
