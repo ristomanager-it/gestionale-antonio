@@ -8,11 +8,9 @@ const app = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
+  creaAzienda: () => import("./views/crea-azienda.js"),
+  listaAziende: () => import("./views/lista-aziende.js"),
 };
-
-function routeName() {
-  return window.location.hash.replace("#/", "") || "login";
-}
 
 async function renderView(name) {
   app.innerHTML = "";
@@ -26,24 +24,18 @@ async function resolve() {
     error,
   } = await window.supabaseClient.auth.getSession();
 
-  if (error) {
-    console.error("Errore sessione:", error.message);
-  }
+  if (error) console.error(error);
 
-  // 🔐 NON LOGGATO → LOGIN
   if (!session) {
     await renderView("login");
     return;
   }
 
-  // 👤 LOGGATO
   window.stateActions.setUser(session.user);
 
-  // 🏢 CARICO AZIENDE (JOIN SAFE)
   const { data, error: aziendeError } = await window.supabaseClient
     .from("utenti_aziende")
-    .select(
-      `
+    .select(`
       ruolo,
       aziende:azienda_id (
         id,
@@ -53,21 +45,19 @@ async function resolve() {
         features,
         logo_path
       )
-    `
-    )
+    `)
     .eq("user_id", session.user.id)
     .eq("attivo", true);
 
-  if (aziendeError) {
-    console.error("Errore caricamento aziende:", aziendeError.message);
-  }
+  if (aziendeError) console.error(aziendeError);
 
-  // 🧠 STATE
   window.stateActions.setAziende(data || []);
   window.stateActions.autoSetAzienda();
 
-  // 🏠 SEMPRE HOME
-  await renderView("home");
+  const route =
+    window.location.hash.replace("#/", "") || "home";
+
+  await renderView(routes[route] ? route : "home");
 }
 
 function init() {
