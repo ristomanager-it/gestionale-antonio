@@ -1,4 +1,5 @@
 // js/views/home.js
+// ⚠️ NESSUN IMPORT QUI
 
 export async function render(container) {
   const state = window.state;
@@ -12,12 +13,17 @@ export async function render(container) {
   const userName =
     state.user.user_metadata?.full_name || state.user.email;
 
+  // =========================
+  // HOME PIATTAFORMA
+  // =========================
   if (azienda.stato === "piattaforma") {
     container.innerHTML = `
       <div class="home">
         <header class="home-header">
-          <h1>Ristoflow</h1>
-          <span class="badge badge-platform">Piattaforma</span>
+          <div>
+            <h1>Ristoflow</h1>
+            <span class="badge badge-platform">Piattaforma</span>
+          </div>
           <div class="utente-info">👤 ${userName}</div>
         </header>
 
@@ -25,6 +31,7 @@ export async function render(container) {
           <button id="btn-crea-azienda" class="app-button green">
             ➕ Crea azienda
           </button>
+
           <button id="btn-lista-aziende" class="app-button secondary">
             📋 Lista aziende
           </button>
@@ -43,10 +50,13 @@ export async function render(container) {
     return;
   }
 
+  // =========================
+  // HOME AZIENDA CLIENTE
+  // =========================
   container.innerHTML = `
     <div class="home">
       <h1>${azienda.nome}</h1>
-      <p>Azienda cliente</p>
+      <p class="muted">Azienda cliente</p>
     </div>
   `;
 }
