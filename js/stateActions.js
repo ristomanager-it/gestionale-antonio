@@ -1,4 +1,7 @@
 // js/stateActions.js
+// ================================
+// Azioni su stato globale
+// ================================
 
 window.stateActions = {
   setUser(user) {
@@ -6,7 +9,7 @@ window.stateActions = {
   },
 
   setAziende(aziende) {
-    window.state.aziende = aziende || [];
+    window.state.aziende = Array.isArray(aziende) ? aziende : [];
   },
 
   setAzienda(azienda) {
@@ -18,30 +21,30 @@ window.stateActions = {
   },
 
   autoSetAzienda() {
-    const aziende = window.state.aziende || [];
+    const aziendeLink = window.state.aziende || [];
 
-    if (aziende.length === 0) {
+    if (aziendeLink.length === 0) {
       window.state.azienda = null;
       return;
     }
 
-    // 1️⃣ PRIORITÀ ASSOLUTA: PIATTAFORMA
-    const piattaforma = aziende.find(
+    // 🔑 PRIORITÀ ASSOLUTA: PIATTAFORMA
+    const piattaformaLink = aziendeLink.find(
       (a) => a.aziende && a.aziende.stato === "piattaforma"
     );
 
-    if (piattaforma) {
-      window.state.azienda = piattaforma.aziende;
+    if (piattaformaLink) {
+      window.state.azienda = piattaformaLink.aziende;
       return;
     }
 
-    // 2️⃣ SE UNA SOLA AZIENDA → USALA
-    if (aziende.length === 1) {
-      window.state.azienda = aziende[0].aziende;
+    // UNA SOLA AZIENDA → USALA
+    if (aziendeLink.length === 1) {
+      window.state.azienda = aziendeLink[0].aziende;
       return;
     }
 
-    // 3️⃣ ALTRIMENTI NESSUNA AUTO-SELEZIONE
+    // ALTRIMENTI NON AUTO-SELEZIONARE
     window.state.azienda = null;
   },
 };
