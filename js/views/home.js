@@ -1,98 +1,79 @@
-// js/views/home.js
+// js/router.js
+import "./state.js";
+import "./stateActions.js";
+import "./supabaseClient.js";
 
-export async function render(container) {
-  const state = window.state;
+const app = document.getElementById("app");
 
-  if (!state?.user || !state?.azienda) {
-    container.innerHTML = `<p class="error">Stato non disponibile</p>`;
+const routes = {
+  login: () => import("./views/login.js"),
+  home: () => import("./views/home.js"),
+};
+
+function routeName() {
+  return window.location.hash.replace("#/", "") || "login";
+}
+
+async function renderView(name) {
+  app.innerHTML = "";
+  const view = await routes[name]();
+  await view.render(app);
+}
+
+async function resolve() {
+  const {
+    data: { session },
+    error,
+  } = await window.supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error("Errore sessione:", error.message);
+  }
+
+  // 🔐 NON LOGGATO → LOGIN
+  if (!session) {
+    await renderView("login");
     return;
   }
 
-  const azienda = state.azienda;
-  const userName =
-    state.user.user_metadata?.full_name || state.user.email;
+  // 👤 LOGGATO
+  window.stateActions.setUser(session.user);
 
-  container.innerHTML = `
-    <div class="home">
+  // 🏢 CARICO AZIENDE (JOIN SAFE)
+  const { data, error: aziendeError } = await window.supabaseClient
+    .from("utenti_aziende")
+    .select(
+      `
+      ruolo,
+      aziende:azienda_id (
+        id,
+        nome,
+        codice,
+        stato,
+        features,
+        logo_path
+      )
+    `
+    )
+    .eq("user_id", session.user.id)
+    .eq("attivo", true);
 
-      <!-- HEADER -->
-      <header class="home-header">
-        <div class="azienda-header">
-          <img
-            id="azienda-logo"
-            class="azienda-logo"
-            style="display:none"
-            alt="Logo azienda"
-          />
+  if (aziendeError) {
+    console.error("Errore caricamento aziende:", aziendeError.message);
+  }
 
-          <div>
-            <h1 class="azienda-nome">${azienda.nome}</h1>
-            <span class="badge ${
-              azienda.stato === "piattaforma"
-                ? "badge-platform"
-                : "badge-azienda"
-            }">
-              ${azienda.stato === "piattaforma"
-                ? "Piattaforma Ristoflow"
-                : "Azienda cliente"}
-            </span>
-          </div>
-        </div>
+  // 🧠 STATE
+  window.stateActions.setAziende(data || []);
+  window.stateActions.autoSetAzienda();
 
-        <div class="utente-info">
-          👤 ${userName}
-        </div>
-      </header>
-
-      <!-- DASHBOARD BASE -->
-      <section class="dashboard-grid">
-
-        <div class="card">
-          <h3>Stato sistema</h3>
-          <p class="muted">Sistema operativo</p>
-          <span class="ok">● Online</span>
-        </div>
-
-        <div class="card">
-          <h3>Azienda</h3>
-          <p class="big">${azienda.codice || "—"}</p>
-          <p class="muted">Codice azienda</p>
-        </div>
-
-        <div class="card">
-          <h3>Moduli</h3>
-          <ul class="list">
-            <li>Dipendenti</li>
-            <li>Timbrature</li>
-            <li>Magazzino</li>
-          </ul>
-        </div>
-
-      </section>
-
-    </div>
-  `;
-
-  await renderLogo();
+  // 🏠 SEMPRE HOME
+  await renderView("home");
 }
 
-/* ===========================
-   LOGO
-=========================== */
-
-async function renderLogo() {
-  const img = document.getElementById("azienda-logo");
-  const azienda = window.state.azienda;
-
-  if (!img || !azienda?.logo_path) return;
-
-  const { data, error } =
-    await window.supabaseClient.storage
-      .from("loghi-aziende")
-      .createSignedUrl(azienda.logo_path, 3600);
-
-  if (error) return;
-
-  img.src = data.signedUrl;
-  img.style.display = "block";
+function init() {
+  window.addEventListener("hashchange", resolve);
+  resolve();
 }
+
+window.router = { init };
+window.router.init();
