@@ -1,28 +1,31 @@
 // js/views/home.js
 
 export async function render(container) {
-  const { state } = window;
+  const state = window.state;
 
   if (!state?.user || !state?.azienda) {
-    container.innerHTML = `<p>Errore: stato non valido</p>`;
+    container.innerHTML = `<p>Errore: stato non disponibile</p>`;
     return;
   }
 
+  const azienda = state.azienda;
   const userName =
     state.user.user_metadata?.full_name || state.user.email;
 
-  const azienda = state.azienda;
-
-  // recupero ruolo in modo SAFE
+  // 🔐 RISOLUZIONE RUOLO (ANTI NULL, ANTI BUG)
   let ruolo = null;
 
   if (Array.isArray(state.aziende)) {
-    const match = state.aziende.find(
-      (row) =>
-        row?.aziende &&
+    for (const row of state.aziende) {
+      if (
+        row &&
+        row.aziende &&
         row.aziende.id === azienda.id
-    );
-    ruolo = match?.ruolo || null;
+      ) {
+        ruolo = row.ruolo;
+        break;
+      }
+    }
   }
 
   container.innerHTML = `
@@ -32,8 +35,8 @@ export async function render(container) {
         <img
           id="azienda-logo"
           class="azienda-logo"
-          alt="Logo azienda"
           style="display:none"
+          alt="Logo azienda"
         />
 
         <div class="azienda-info">
@@ -67,10 +70,6 @@ export async function render(container) {
     </div>
   `;
 
-  /* ===========================
-     PERMESSI UPLOAD LOGO
-  =========================== */
-
   const canUpload =
     azienda.stato === "piattaforma" ||
     ["admin", "superadmin"].includes(ruolo);
@@ -84,22 +83,22 @@ export async function render(container) {
 }
 
 /* ===========================
-   LOGO — SIGNED URL
+   LOGO AZIENDA
 =========================== */
 
 async function renderLogo() {
   const img = document.getElementById("azienda-logo");
-  if (!img) return;
-
   const azienda = window.state.azienda;
-  if (!azienda?.logo_path) return;
 
-  const { data, error } = await window.supabaseClient.storage
-    .from("loghi-aziende")
-    .createSignedUrl(azienda.logo_path, 60 * 60);
+  if (!img || !azienda?.logo_path) return;
+
+  const { data, error } =
+    await window.supabaseClient.storage
+      .from("loghi-aziende")
+      .createSignedUrl(azienda.logo_path, 3600);
 
   if (error) {
-    console.warn("Errore caricamento logo:", error.message);
+    console.warn("Logo non caricato:", error.message);
     return;
   }
 
@@ -124,7 +123,7 @@ function setupLogoUpload() {
 
     const aziendaId = window.state.azienda.id;
     const ext = file.name.split(".").pop();
-    const filePath = `${aziendaId}/logo.${ext}`;
+    const path = `${aziendaId}/logo.${ext}`;
 
     btn.disabled = true;
     btn.textContent = "Salvataggio...";
@@ -133,31 +132,31 @@ function setupLogoUpload() {
       const { error: uploadError } =
         await window.supabaseClient.storage
           .from("loghi-aziende")
-          .upload(filePath, file, {
+          .upload(path, file, {
             upsert: true,
             contentType: file.type,
           });
 
       if (uploadError) throw uploadError;
 
-      const { error: dbError } = await window.supabaseClient
-        .from("aziende")
-        .update({ logo_path: filePath })
-        .eq("id", aziendaId);
+      const { error: dbError } =
+        await window.supabaseClient
+          .from("aziende")
+          .update({ logo_path: path })
+          .eq("id", aziendaId);
 
       if (dbError) throw dbError;
 
-      // aggiorna stato locale
       window.state.azienda = {
         ...window.state.azienda,
-        logo_path: filePath,
+        logo_path: path,
       };
 
       await renderLogo();
       alert("Logo aggiornato ✅");
       input.value = "";
     } catch (err) {
-      alert("Errore upload logo: " + err.message);
+      alert("Errore: " + err.message);
     } finally {
       btn.disabled = false;
       btn.textContent = "Salva logo";
