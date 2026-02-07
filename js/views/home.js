@@ -1,89 +1,144 @@
 // js/views/home.js
-// =======================================
-// HOME – con logo azienda e nome utente
-// =======================================
 
-export function render(container) {
-  const user = window.state.user;
-  const azienda = window.state.azienda;
+export async function render(container) {
+  const { state } = window;
 
-  const nomeUtente =
-    user?.user_metadata?.full_name ||
-    user?.email ||
-    "Utente";
+  if (!state.user || !state.azienda) {
+    container.innerHTML = `<p>Errore: stato non valido</p>`;
+    return;
+  }
+
+  const userName =
+    state.user.user_metadata?.full_name || state.user.email;
+
+  const azienda = state.azienda;
+
+  // ruolo utente per questa azienda
+  const aziendaEntry = state.aziende.find(
+    (a) => a.aziende.id === azienda.id
+  );
+  const ruolo = aziendaEntry?.ruolo || null;
 
   container.innerHTML = `
-    <section class="view">
-      <div style="padding:30px; background:#fff; color:#111;">
+    <div class="home">
 
-        <!-- HEADER AZIENDA -->
-        <div
-          style="
-            display:flex;
-            align-items:center;
-            gap:16px;
-            margin-bottom:24px;
-          "
-        >
-          ${
-            azienda?.logo_url
-              ? `
-                <img
-                  src="${azienda.logo_url}"
-                  alt="${azienda.nome}"
-                  style="
-                    width:64px;
-                    height:64px;
-                    object-fit:contain;
-                    border-radius:8px;
-                    border:1px solid #ddd;
-                  "
-                />
-              `
-              : `
-                <div
-                  style="
-                    width:64px;
-                    height:64px;
-                    border-radius:8px;
-                    background:#eee;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    font-weight:bold;
-                    color:#666;
-                  "
-                >
-                  ${azienda?.nome?.charAt(0) || "?"}
-                </div>
-              `
-          }
+      <div class="azienda-header">
+        <img id="azienda-logo" class="azienda-logo" alt="Logo azienda" />
 
-          <div>
-            <h1 style="margin:0;">
-              ${azienda?.nome || "Nessuna azienda"}
-            </h1>
-
-            <p style="margin:4px 0 0; opacity:0.7;">
-              ${azienda?.stato === "piattaforma"
-                ? "Piattaforma Ristoflow"
-                : "Azienda cliente"}
-            </p>
+        <div class="azienda-info">
+          <div class="azienda-nome">${azienda.nome}</div>
+          <div class="azienda-stato">
+            ${azienda.stato === "piattaforma" ? "Piattaforma" : "Azienda cliente"}
           </div>
         </div>
-
-        <!-- INFO UTENTE -->
-        <p style="margin-bottom:24px;">
-          Benvenuto,
-          <strong>${nomeUtente}</strong>
-        </p>
-
-        <!-- CONTENUTO BASE -->
-        <p>
-          Home operativa in costruzione.
-        </p>
-
       </div>
-    </section>
+
+      <div class="utente-info">
+        Benvenuto, <strong>${userName}</strong>
+      </div>
+
+      <div id="logo-upload-box" style="display:none; margin-top:16px;">
+        <label><strong>Logo azienda</strong></label><br/>
+        <input id="logo-file" type="file" accept="image/*" />
+        <br/>
+        <button id="btn-upload-logo" class="app-button">
+          Salva logo
+        </button>
+      </div>
+
+    </div>
   `;
+
+  // mostra upload solo admin / superadmin / piattaforma
+  const canUpload =
+    azienda.stato === "piattaforma" ||
+    ["admin", "superadmin"].includes(ruolo);
+
+  if (canUpload) {
+    document.getElementById("logo-upload-box").style.display = "block";
+    setupLogoUpload();
+  }
+
+  await renderLogo();
+}
+
+/* ===========================
+   LOGO — SIGNED URL
+=========================== */
+
+async function renderLogo() {
+  const img = document.getElementById("azienda-logo");
+  if (!img) return;
+
+  img.style.display = "none";
+
+  const azienda = window.state.azienda;
+  if (!azienda.logo_path) return;
+
+  const { data, error } = await window.supabaseClient.storage
+    .from("loghi-aziende")
+    .createSignedUrl(azienda.logo_path, 60 * 60);
+
+  if (error) {
+    console.warn("Errore logo:", error.message);
+    return;
+  }
+
+  img.src = data.signedUrl;
+  img.style.display = "block";
+}
+
+/* ===========================
+   UPLOAD LOGO
+=========================== */
+
+function setupLogoUpload() {
+  const input = document.getElementById("logo-file");
+  const btn = document.getElementById("btn-upload-logo");
+
+  btn.onclick = async () => {
+    const file = input.files?.[0];
+    if (!file) {
+      alert("Seleziona un file");
+      return;
+    }
+
+    const aziendaId = window.state.azienda.id;
+    const ext = file.name.split(".").pop();
+    const filePath = `${aziendaId}/logo.${ext}`;
+
+    btn.disabled = true;
+    btn.textContent = "Salvataggio...";
+
+    try {
+      const { error: uploadError } =
+        await window.supabaseClient.storage
+          .from("loghi-aziende")
+          .upload(filePath, file, {
+            upsert: true,
+            contentType: file.type,
+          });
+
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await window.supabaseClient
+        .from("aziende")
+        .update({ logo_path: filePath })
+        .eq("id", aziendaId);
+
+      if (dbError) throw dbError;
+
+      // aggiorna stato locale
+      window.state.azienda.logo_path = filePath;
+
+      await renderLogo();
+      alert("Logo aggiornato ✅");
+      input.value = "";
+    } catch (err) {
+      alert("Errore upload logo: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Salva logo";
+    }
+  };
 }
