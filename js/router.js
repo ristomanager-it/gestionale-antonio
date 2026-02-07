@@ -23,32 +23,50 @@ async function renderView(name) {
 async function resolve() {
   const {
     data: { session },
+    error,
   } = await window.supabaseClient.auth.getSession();
 
-  // NON LOGGATO → LOGIN
+  if (error) {
+    console.error("Errore sessione:", error.message);
+  }
+
+  // 🔐 NON LOGGATO → LOGIN
   if (!session) {
     await renderView("login");
     return;
   }
 
-  // LOGGATO
+  // 👤 LOGGATO
   window.stateActions.setUser(session.user);
 
-  // carico aziende
-  const { data } = await window.supabaseClient
+  // 🏢 CARICO AZIENDE (JOIN SAFE)
+  const { data, error: aziendeError } = await window.supabaseClient
     .from("utenti_aziende")
     .select(
-      `ruolo, aziende:azienda_id (
-        id, nome, codice, stato, features
-      )`
+      `
+      ruolo,
+      aziende:azienda_id (
+        id,
+        nome,
+        codice,
+        stato,
+        features,
+        logo_path
+      )
+    `
     )
     .eq("user_id", session.user.id)
     .eq("attivo", true);
 
+  if (aziendeError) {
+    console.error("Errore caricamento aziende:", aziendeError.message);
+  }
+
+  // 🧠 STATE
   window.stateActions.setAziende(data || []);
   window.stateActions.autoSetAzienda();
 
-  // SEMPRE HOME
+  // 🏠 SEMPRE HOME
   await renderView("home");
 }
 
