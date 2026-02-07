@@ -316,3 +316,26 @@ textarea {
 .app-button.primary:hover {
   background-color: #1565c0;
 }
+.azienda-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.azienda-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #e5e7eb;
+}
+
+.azienda-nome {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.azienda-stato {
+  font-size: 12px;
+  opacity: 0.7;
+}
