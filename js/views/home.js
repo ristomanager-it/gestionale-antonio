@@ -1,79 +1,52 @@
-// js/router.js
-import "./state.js";
-import "./stateActions.js";
-import "./supabaseClient.js";
+// js/views/home.js
 
-const app = document.getElementById("app");
+export async function render(container) {
+  const state = window.state;
 
-const routes = {
-  login: () => import("./views/login.js"),
-  home: () => import("./views/home.js"),
-};
-
-function routeName() {
-  return window.location.hash.replace("#/", "") || "login";
-}
-
-async function renderView(name) {
-  app.innerHTML = "";
-  const view = await routes[name]();
-  await view.render(app);
-}
-
-async function resolve() {
-  const {
-    data: { session },
-    error,
-  } = await window.supabaseClient.auth.getSession();
-
-  if (error) {
-    console.error("Errore sessione:", error.message);
-  }
-
-  // 🔐 NON LOGGATO → LOGIN
-  if (!session) {
-    await renderView("login");
+  if (!state?.user || !state?.azienda) {
+    container.innerHTML = `<p class="error">Stato non disponibile</p>`;
     return;
   }
 
-  // 👤 LOGGATO
-  window.stateActions.setUser(session.user);
+  const azienda = state.azienda;
+  const userName =
+    state.user.user_metadata?.full_name || state.user.email;
 
-  // 🏢 CARICO AZIENDE (JOIN SAFE)
-  const { data, error: aziendeError } = await window.supabaseClient
-    .from("utenti_aziende")
-    .select(
-      `
-      ruolo,
-      aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        features,
-        logo_path
-      )
-    `
-    )
-    .eq("user_id", session.user.id)
-    .eq("attivo", true);
+  if (azienda.stato === "piattaforma") {
+    container.innerHTML = `
+      <div class="home">
+        <header class="home-header">
+          <h1>Ristoflow</h1>
+          <span class="badge badge-platform">Piattaforma</span>
+          <div class="utente-info">👤 ${userName}</div>
+        </header>
 
-  if (aziendeError) {
-    console.error("Errore caricamento aziende:", aziendeError.message);
+        <div class="card">
+          <button id="btn-crea-azienda" class="app-button green">
+            ➕ Crea azienda
+          </button>
+          <button id="btn-lista-aziende" class="app-button secondary">
+            📋 Lista aziende
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btn-crea-azienda").onclick = () => {
+      window.location.hash = "#/creaAzienda";
+    };
+
+    document.getElementById("btn-lista-aziende").onclick = () => {
+      window.location.hash = "#/listaAziende";
+    };
+
+    return;
   }
 
-  // 🧠 STATE
-  window.stateActions.setAziende(data || []);
-  window.stateActions.autoSetAzienda();
-
-  // 🏠 SEMPRE HOME
-  await renderView("home");
+  container.innerHTML = `
+    <div class="home">
+      <h1>${azienda.nome}</h1>
+      <p>Azienda cliente</p>
+    </div>
+  `;
 }
-
-function init() {
-  window.addEventListener("hashchange", resolve);
-  resolve();
-}
-
-window.router = { init };
-window.router.init();
