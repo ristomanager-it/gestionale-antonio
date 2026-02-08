@@ -1,5 +1,25 @@
 // js/supabaseClient.js
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+// Supabase project
+const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+
+// ⚠️ Anon key (publishable)
+const SUPABASE_ANON_KEY =
+  "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
+
+// Client Supabase (CREATO SUBITO)
+export const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+// Esposto globalmente (utile per debug / legacy)
+window.supabase = supabase;
+
+// ===============================
+// DEBUG TEMPORANEO — rimuovere dopo
+// ===============================
 window.testCreateAzienda = async function () {
   const payload = {
     nome: "Azienda Demo",
@@ -19,27 +39,19 @@ window.testCreateAzienda = async function () {
     }
   };
 
-  const { data, error } = await supabase.functions.invoke(
+  const res = await supabase.functions.invoke(
     "create-azienda",
     { body: payload }
   );
 
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
+  console.log("RAW RESPONSE:", res);
+
+  if (res.error) {
+    console.error("ERROR MESSAGE:", res.error.message);
+    console.error("ERROR DETAILS:", res.error);
+  }
+
+  if (res.data) {
+    console.log("DATA:", res.data);
+  }
 };
-
-// Supabase project
-const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-
-// ⚠️ Anon key (publishable) — già in tuo possesso
-const SUPABASE_ANON_KEY =
-  "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
-
-// Client Supabase
-export const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
-// Esposto globalmente per le view legacy / compatibilità
-window.supabaseClient = supabase;
