@@ -8,12 +8,30 @@ const app = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
+
   creaAzienda: () => import("./views/crea-azienda.js"),
-  listaAziende: () => import("./views/lista-aziende.js"),
+
+  // ✅ route nuove “definitive”
+  gestioneAziende: () => import("./views/gestione-aziende.js"),
+  modificaAzienda: () => import("./views/modifica-azienda.js"),
+
+  // ✅ alias compatibilità (se in giro avevi ancora listaAziende)
+  listaAziende: () => import("./views/gestione-aziende.js"),
 };
 
-function getRoute() {
-  return window.location.hash.replace("#/", "") || "login";
+function parseHash() {
+  // es: "#/modificaAzienda?id=xxx"
+  const raw = window.location.hash || "#/login";
+  const cleaned = raw.replace("#/", "");
+  const [name, qs] = cleaned.split("?");
+
+  const params = {};
+  if (qs) {
+    const sp = new URLSearchParams(qs);
+    for (const [k, v] of sp.entries()) params[k] = v;
+  }
+
+  return { name: name || "login", params };
 }
 
 async function renderView(name) {
@@ -23,7 +41,8 @@ async function renderView(name) {
 }
 
 async function resolve() {
-  const route = getRoute();
+  const { name: routeName, params } = parseHash();
+  window.routeParams = params || {};
 
   const { data } = await window.supabaseClient.auth.getSession();
   const session = data.session;
@@ -34,7 +53,7 @@ async function resolve() {
     return;
   }
 
-  // 👤 SET UTENTE
+  // 👤 UTENTE
   window.stateActions.setUser(session.user);
 
   // 🏢 CARICA AZIENDE COLLEGATE
@@ -65,7 +84,7 @@ async function resolve() {
 
   const aziendaCorrente = window.state.azienda;
 
-  // ⛔ Nessuna azienda associata
+  // ⛔ SE NON ESISTE AZIENDA
   if (!aziendaCorrente) {
     app.innerHTML = `
       <div class="login-wrapper">
@@ -78,56 +97,55 @@ async function resolve() {
     return;
   }
 
-  // 🔴 Azienda disattivata
-  if (aziendaCorrente.attiva === false) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Azienda disattivata</h3>
-          <p>Contatta la piattaforma.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // 🔴 Azienda sospesa
-  if (aziendaCorrente.stato === "sospesa") {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Azienda sospesa</h3>
-          <p>Accesso temporaneamente bloccato.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // 🔴 Azienda scaduta
-  if (aziendaCorrente.data_scadenza) {
-    const oggi = new Date();
-    const scadenza = new Date(aziendaCorrente.data_scadenza);
-
-    // azzeriamo ore per confronto corretto
-    oggi.setHours(0, 0, 0, 0);
-    scadenza.setHours(0, 0, 0, 0);
-
-    if (scadenza < oggi) {
+  // 🔴 BLOCCO AZIENDA (non blocchiamo la piattaforma)
+  if (aziendaCorrente.stato !== "piattaforma") {
+    if (aziendaCorrente.attiva === false) {
       app.innerHTML = `
         <div class="login-wrapper">
           <div class="login-card">
-            <h3>Abbonamento scaduto</h3>
-            <p>Rinnova per continuare ad utilizzare Ristoflow.</p>
+            <h3>Azienda disattivata</h3>
+            <p>Contatta la piattaforma.</p>
           </div>
         </div>
       `;
       return;
     }
+
+    if (aziendaCorrente.stato === "sospesa") {
+      app.innerHTML = `
+        <div class="login-wrapper">
+          <div class="login-card">
+            <h3>Azienda sospesa</h3>
+            <p>Accesso temporaneamente bloccato.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (aziendaCorrente.data_scadenza) {
+      const oggi = new Date();
+      const scadenza = new Date(aziendaCorrente.data_scadenza);
+      oggi.setHours(0, 0, 0, 0);
+      scadenza.setHours(0, 0, 0, 0);
+
+      if (scadenza < oggi) {
+        app.innerHTML = `
+          <div class="login-wrapper">
+            <div class="login-card">
+              <h3>Abbonamento scaduto</h3>
+              <p>Rinnova per continuare ad utilizzare Ristoflow.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+    }
   }
 
-  // ✅ Tutto ok → renderizza
-  await renderView(routes[route] ? route : "home");
+  // ✅ Render
+  const safeRoute = routes[routeName] ? routeName : "home";
+  await renderView(safeRoute);
 }
 
 window.addEventListener("hashchange", resolve);
