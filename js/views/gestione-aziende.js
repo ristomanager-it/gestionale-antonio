@@ -46,6 +46,10 @@ export async function render(container) {
   const input = document.getElementById("search-input");
   const results = document.getElementById("search-results");
 
+  results.innerHTML = `
+    <p class="small-muted">Digita per cercare un’azienda.</p>
+  `;
+
   input.addEventListener("input", async () => {
     const q = input.value.trim();
 
@@ -56,12 +60,12 @@ export async function render(container) {
       return;
     }
 
-    const filter = `
-      nome.ilike.%${q}%,
-      codice.ilike.%${q}%,
-      email.ilike.%${q}%,
-      partita_iva.ilike.%${q}%
-    `.replace(/\s+/g, "");
+    // 🔥 STRINGA COSTRUITA SENZA MULTILINEA
+    const filter =
+      "nome.ilike.%" + q + "%," +
+      "codice.ilike.%" + q + "%," +
+      "email.ilike.%" + q + "%," +
+      "partita_iva.ilike.%" + q + "%";
 
     const { data, error } = await supabase
       .from("aziende")
@@ -70,15 +74,18 @@ export async function render(container) {
       .limit(20);
 
     if (error) {
+      console.error(error);
       results.innerHTML = `
-        <p style="color:#dc2626;">Errore ricerca: ${error.message}</p>
+        <p style="color:#dc2626;">
+          Errore ricerca: ${error.message}
+        </p>
       `;
       return;
     }
 
     if (!data || data.length === 0) {
       results.innerHTML = `
-        <p class="small-muted">Nessun risultato.</p>
+        <p class="small-muted">Nessuna azienda trovata.</p>
       `;
       return;
     }
@@ -97,8 +104,4 @@ export async function render(container) {
       </div>
     `).join("");
   });
-
-  results.innerHTML = `
-    <p class="small-muted">Digita per cercare un’azienda.</p>
-  `;
 }
