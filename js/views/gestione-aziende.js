@@ -19,40 +19,77 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
         <div>
           <h2 style="margin-top:0;">Gestione Aziende</h2>
           <p class="small-muted" style="margin-top:4px;">
-            Seleziona un’azienda per aprire la scheda e modificarla.
+            Cerca un’azienda per aprire la scheda.
           </p>
         </div>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="app-button small gray" type="button" id="btn-back-home">⬅ Dashboard</button>
-          <button class="app-button small green" type="button" id="btn-go-crea">+ Crea azienda</button>
+        <div style="display:flex; gap:8px;">
+          <button class="app-button small gray" id="btn-back-home">
+            ⬅ Dashboard
+          </button>
+
+          <button class="app-button small green" id="btn-crea">
+            + Nuova azienda
+          </button>
         </div>
       </div>
 
-      <div style="margin-top:12px;">
-        <label style="display:block; font-size:13px; margin-bottom:4px;">Cerca azienda</label>
-        <input id="aziende-search" class="input-pill" placeholder="Nome / Codice / P.IVA / Email..." />
+      <div style="margin-top:16px;">
+        <label style="display:block; font-size:13px; margin-bottom:4px;">
+          Cerca azienda
+        </label>
+        <input 
+          id="search-input" 
+          class="input-pill" 
+          placeholder="Digita nome, codice, P.IVA, email..."
+        />
       </div>
 
-      <div id="aziende-list" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"></div>
+      <div id="search-results" style="margin-top:14px;"></div>
     </div>
   `;
 
   document.getElementById("btn-back-home").onclick = () => {
     window.location.hash = "#/home";
   };
-  document.getElementById("btn-go-crea").onclick = () => {
+
+  document.getElementById("btn-crea").onclick = () => {
     window.location.hash = "#/creaAzienda";
   };
 
-  const search = document.getElementById("aziende-search");
-  let cache = [];
+  const input = document.getElementById("search-input");
+  const results = document.getElementById("search-results");
 
-  async function load() {
+  let timeout = null;
+
+  input.addEventListener("input", () => {
+    clearTimeout(timeout);
+
+    const value = input.value.trim();
+
+    if (value.length < 2) {
+      results.innerHTML = `
+        <p class="small-muted">
+          Digita almeno 2 caratteri per cercare.
+        </p>
+      `;
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      searchAziende(value);
+    }, 300);
+  });
+
+  async function searchAziende(query) {
+    results.innerHTML = `
+      <p class="small-muted">Ricerca in corso...</p>
+    `;
+
     const { data, error } = await supabase
       .from("aziende")
       .select(`
@@ -63,129 +100,58 @@ export async function render(container) {
         attiva,
         data_scadenza,
         email,
-        referente,
-        partita_iva,
-        ragione_sociale
+        referente
       `)
-      .order("created_at", { ascending: false });
+      .or(`
+        nome.ilike.%${query}%,
+        codice.ilike.%${query}%,
+        email.ilike.%${query}%,
+        partita_iva.ilike.%${query}%
+      `)
+      .limit(20);
 
     if (error) {
-      console.error("Errore caricamento aziende:", error);
-      document.getElementById("aziende-list").innerHTML = `
-        <div class="kpi-card">
-          <h3 style="margin:0;">Errore</h3>
-          <p class="small-muted">Impossibile caricare le aziende.</p>
-        </div>
+      results.innerHTML = `
+        <p style="color:#dc2626;">Errore ricerca: ${error.message}</p>
       `;
       return;
     }
 
-    cache = data || [];
-    renderList(cache);
-  }
-
-  function norm(s) {
-    return String(s || "").trim().toLowerCase();
-  }
-
-  function fmtDate(d) {
-    if (!d) return "—";
-    try {
-      return new Date(d).toLocaleDateString("it-IT");
-    } catch {
-      return String(d);
-    }
-  }
-
-  function statoBadge(az) {
-    const s = az.stato || "attiva";
-    const a = az.attiva !== false;
-
-    if (!a) return `<span class="badge badge-red">disattiva</span>`;
-    if (s === "sospesa") return `<span class="badge badge-orange">sospesa</span>`;
-    if (s === "piattaforma") return `<span class="badge badge-blue">piattaforma</span>`;
-    return `<span class="badge badge-green">attiva</span>`;
-  }
-
-  function renderList(rows) {
-    const list = document.getElementById("aziende-list");
-
-    if (!rows.length) {
-      list.innerHTML = `
-        <div class="kpi-card">
-          <h3 style="margin:0;">Nessun risultato</h3>
-          <p class="small-muted">Nessuna azienda trovata.</p>
-        </div>
+    if (!data || data.length === 0) {
+      results.innerHTML = `
+        <p class="small-muted">Nessuna azienda trovata.</p>
       `;
       return;
     }
 
-    list.innerHTML = rows
-      .map((az) => {
-        return `
-          <div class="azienda-row-card">
-            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
-              <div>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                  <strong style="font-size:15px;">${escapeHtml(az.nome || "—")}</strong>
-                  ${statoBadge(az)}
-                </div>
-
-                <div class="small-muted" style="margin-top:4px;">
-                  <div><strong>Codice:</strong> ${escapeHtml(az.codice || "—")}</div>
-                  <div><strong>Email:</strong> ${escapeHtml(az.email || "—")}</div>
-                  <div><strong>Referente:</strong> ${escapeHtml(az.referente || "—")}</div>
-                  <div><strong>Scadenza:</strong> ${fmtDate(az.data_scadenza)}</div>
-                </div>
-              </div>
-
-              <div style="display:flex; gap:8px;">
-                <button class="app-button small" type="button" data-open="${az.id}">Apri scheda</button>
-              </div>
+    results.innerHTML = data.map((az) => `
+      <div class="azienda-row-card">
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div>
+            <strong>${az.nome}</strong>
+            <div class="small-muted" style="margin-top:4px;">
+              Codice: ${az.codice}<br>
+              Email: ${az.email || "-"}<br>
+              Referente: ${az.referente || "-"}
             </div>
           </div>
-        `;
-      })
-      .join("");
 
-    list.querySelectorAll("[data-open]").forEach((btn) => {
-      btn.onclick = () => {
-        const id = btn.getAttribute("data-open");
-        window.location.hash = `#/modificaAzienda?id=${encodeURIComponent(id)}`;
-      };
-    });
+          <div>
+            <button 
+              class="app-button small"
+              onclick="window.location.hash='#/modificaAzienda?id=${az.id}'"
+            >
+              Apri
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join("");
   }
 
-  search.addEventListener("input", () => {
-    const q = norm(search.value);
-    if (!q) return renderList(cache);
-
-    const filtered = cache.filter((az) => {
-      const hay = [
-        az.nome,
-        az.codice,
-        az.email,
-        az.referente,
-        az.partita_iva,
-        az.ragione_sociale,
-      ]
-        .map(norm)
-        .join(" | ");
-
-      return hay.includes(q);
-    });
-
-    renderList(filtered);
-  });
-
-  await load();
-}
-
-function escapeHtml(str) {
-  return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  results.innerHTML = `
+    <p class="small-muted">
+      Digita per cercare un’azienda.
+    </p>
+  `;
 }
