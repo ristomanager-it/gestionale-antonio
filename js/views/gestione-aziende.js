@@ -19,95 +19,54 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h2 style="margin-top:0;">Gestione Aziende</h2>
-          <p class="small-muted" style="margin-top:4px;">
-            Cerca un’azienda per aprire la scheda.
-          </p>
-        </div>
+      <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-        <div style="display:flex; gap:8px;">
-          <button class="app-button small gray" id="btn-back-home">
-            ⬅ Dashboard
-          </button>
-
-          <button class="app-button small green" id="btn-crea">
-            + Nuova azienda
-          </button>
-        </div>
-      </div>
-
-      <div style="margin-top:16px;">
-        <label style="display:block; font-size:13px; margin-bottom:4px;">
-          Cerca azienda
-        </label>
+      <div style="margin-top:12px;">
         <input 
           id="search-input" 
-          class="input-pill" 
-          placeholder="Digita nome, codice, P.IVA, email..."
+          class="input-pill"
+          placeholder="Cerca azienda (min 2 caratteri)"
         />
       </div>
 
       <div id="search-results" style="margin-top:14px;"></div>
+
+      <div style="margin-top:20px;">
+        <button class="app-button small gray" id="btn-home">
+          ⬅ Dashboard
+        </button>
+      </div>
     </div>
   `;
 
-  document.getElementById("btn-back-home").onclick = () => {
+  document.getElementById("btn-home").onclick = () => {
     window.location.hash = "#/home";
-  };
-
-  document.getElementById("btn-crea").onclick = () => {
-    window.location.hash = "#/creaAzienda";
   };
 
   const input = document.getElementById("search-input");
   const results = document.getElementById("search-results");
 
-  let timeout = null;
+  input.addEventListener("input", async () => {
+    const q = input.value.trim();
 
-  input.addEventListener("input", () => {
-    clearTimeout(timeout);
-
-    const value = input.value.trim();
-
-    if (value.length < 2) {
+    if (q.length < 2) {
       results.innerHTML = `
-        <p class="small-muted">
-          Digita almeno 2 caratteri per cercare.
-        </p>
+        <p class="small-muted">Digita almeno 2 caratteri.</p>
       `;
       return;
     }
 
-    timeout = setTimeout(() => {
-      searchAziende(value);
-    }, 300);
-  });
-
-  async function searchAziende(query) {
-    results.innerHTML = `
-      <p class="small-muted">Ricerca in corso...</p>
-    `;
+    const filter = `
+      nome.ilike.%${q}%,
+      codice.ilike.%${q}%,
+      email.ilike.%${q}%,
+      partita_iva.ilike.%${q}%
+    `.replace(/\s+/g, "");
 
     const { data, error } = await supabase
       .from("aziende")
-      .select(`
-        id,
-        nome,
-        codice,
-        stato,
-        attiva,
-        data_scadenza,
-        email,
-        referente
-      `)
-      .or(`
-        nome.ilike.%${query}%,
-        codice.ilike.%${query}%,
-        email.ilike.%${query}%,
-        partita_iva.ilike.%${query}%
-      `)
+      .select("id,nome,codice,email,referente")
+      .or(filter)
       .limit(20);
 
     if (error) {
@@ -119,39 +78,27 @@ export async function render(container) {
 
     if (!data || data.length === 0) {
       results.innerHTML = `
-        <p class="small-muted">Nessuna azienda trovata.</p>
+        <p class="small-muted">Nessun risultato.</p>
       `;
       return;
     }
 
-    results.innerHTML = data.map((az) => `
+    results.innerHTML = data.map(a => `
       <div class="azienda-row-card">
-        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <div>
-            <strong>${az.nome}</strong>
-            <div class="small-muted" style="margin-top:4px;">
-              Codice: ${az.codice}<br>
-              Email: ${az.email || "-"}<br>
-              Referente: ${az.referente || "-"}
-            </div>
-          </div>
-
-          <div>
-            <button 
-              class="app-button small"
-              onclick="window.location.hash='#/modificaAzienda?id=${az.id}'"
-            >
-              Apri
-            </button>
-          </div>
+        <strong>${a.nome}</strong><br>
+        <span class="small-muted">Codice: ${a.codice}</span><br>
+        <span class="small-muted">Email: ${a.email || "-"}</span>
+        <div style="margin-top:8px;">
+          <button class="app-button small"
+            onclick="window.location.hash='#/modificaAzienda?id=${a.id}'">
+            Apri scheda
+          </button>
         </div>
       </div>
     `).join("");
-  }
+  });
 
   results.innerHTML = `
-    <p class="small-muted">
-      Digita per cercare un’azienda.
-    </p>
+    <p class="small-muted">Digita per cercare un’azienda.</p>
   `;
 }
