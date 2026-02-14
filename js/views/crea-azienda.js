@@ -43,13 +43,18 @@ export async function render(container) {
         </label>
 
         <label>
-          PIN accesso
-          <input id="az-pin" class="input-pill" required />
+          Email amministrativa
+          <input id="az-email-amministrativa" type="email" class="input-pill" required />
         </label>
 
         <label>
-          Logo azienda
-          <input id="az-logo" type="file" accept="image/*" class="input-pill" />
+          Telefono amministrativo
+          <input id="az-telefono" class="input-pill" required />
+        </label>
+
+        <label>
+          Email admin cliente (login)
+          <input id="az-email-admin" type="email" class="input-pill" required />
         </label>
 
         <button type="submit" class="app-button green">
@@ -81,58 +86,34 @@ export async function render(container) {
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
-    const pin = document.getElementById("az-pin").value.trim();
-    const file = document.getElementById("az-logo").files[0];
+    const emailAmministrativa = document
+      .getElementById("az-email-amministrativa")
+      .value.trim();
+    const telefono = document.getElementById("az-telefono").value.trim();
+    const emailAdmin = document
+      .getElementById("az-email-admin")
+      .value.trim();
 
     try {
-      const { data: azienda, error } = await supabase
-        .from("aziende")
-        .insert({
-          nome,
-          codice,
-          pin_accesso: pin,
-          stato: "attiva",
-          features: DEFAULT_FEATURES,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke(
+        "create-azienda",
+        {
+          body: {
+            nome,
+            codice,
+            email_admin: emailAdmin,
+            email_amministrativa: emailAmministrativa,
+            telefono_amministrativo: telefono,
+            features: DEFAULT_FEATURES,
+          },
+        }
+      );
 
       if (error) throw error;
 
-      if (file) {
-        const ext = file.name.split(".").pop();
-        const filePath = `logos/${azienda.id}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("loghi-aziende")
-          .upload(filePath, file, {
-            upsert: true,
-            contentType: file.type,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from("loghi-aziende")
-          .getPublicUrl(filePath);
-
-        await supabase.from("aziende")
-          .update({
-            logo_path: filePath,
-            logo_url: data.publicUrl,
-          })
-          .eq("id", azienda.id);
-      }
-
-      await supabase.from("utenti_aziende").insert({
-        user_id: user.id,
-        azienda_id: azienda.id,
-        ruolo: "admin",
-        attivo: true,
-      });
+      alert("Azienda creata con successo. Email di attivazione inviata al cliente.");
 
       window.location.hash = "#/home";
-
     } catch (err) {
       console.error(err);
       errorEl.textContent = err.message;
