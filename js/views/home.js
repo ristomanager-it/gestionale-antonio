@@ -17,12 +17,28 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
-      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <div>
-          <h2 style="margin-top:0;">Dashboard</h2>
-          <p class="small-muted">
-            Azienda attiva: <strong>${azienda.nome}</strong>
-          </p>
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center;">
+
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+
+          ${
+            azienda.logo_url
+              ? `
+            <img 
+              src="${azienda.logo_url}" 
+              style="width:60px; height:60px; object-fit:cover; border-radius:14px; background:#e5e7eb;"
+            />
+          `
+              : ""
+          }
+
+          <div>
+            <h2 style="margin:0;">Dashboard</h2>
+            <p class="small-muted" style="margin:4px 0 0 0;">
+              Azienda attiva: <strong>${azienda.nome}</strong>
+            </p>
+          </div>
+
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -30,7 +46,9 @@ export async function render(container) {
             🔄 Carica azienda
           </button>
 
-          ${isPiattaforma ? `
+          ${
+            isPiattaforma
+              ? `
             <button class="app-button small" id="btn-gestione">
               🏢 Gestione aziende
             </button>
@@ -38,7 +56,9 @@ export async function render(container) {
             <button class="app-button small green" id="btn-crea">
               + Crea azienda
             </button>
-          ` : ""}
+          `
+              : ""
+          }
         </div>
       </div>
 
@@ -64,7 +84,6 @@ export async function render(container) {
     };
   }
 
-  // Moduli azienda
   const moduliContainer = document.getElementById("home-moduli");
 
   if (isPiattaforma) {
@@ -79,7 +98,6 @@ export async function render(container) {
     return;
   }
 
-  // 👇 Azienda normale
   const features = azienda.features || {};
 
   const moduli = [
