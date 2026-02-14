@@ -5,6 +5,7 @@ export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
+  // 🔒 Accesso solo piattaforma
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = `
       <div class="login-wrapper">
@@ -21,7 +22,7 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-      <div style="margin-top:12px;">
+      <div style="margin-top:14px;">
         <input 
           id="search-input" 
           class="input-pill"
@@ -29,9 +30,9 @@ export async function render(container) {
         />
       </div>
 
-      <div id="search-results" style="margin-top:14px;"></div>
+      <div id="search-results" style="margin-top:16px;"></div>
 
-      <div style="margin-top:20px;">
+      <div style="margin-top:24px;">
         <button class="app-button small gray" id="btn-home">
           ⬅ Dashboard
         </button>
@@ -73,7 +74,7 @@ export async function render(container) {
       .limit(20);
 
     if (error) {
-      console.error(error);
+      console.error("Errore ricerca aziende:", error);
       results.innerHTML = `
         <p style="color:#dc2626;">
           Errore ricerca: ${error.message}
@@ -91,27 +92,29 @@ export async function render(container) {
 
     results.innerHTML = "";
 
-    data.forEach((a) => {
+    data.forEach((azienda) => {
       const card = document.createElement("div");
       card.className = "view";
-      card.style.marginBottom = "10px";
+      card.style.marginBottom = "12px";
 
       card.innerHTML = `
-        <strong>${a.nome}</strong><br>
-        <span class="small-muted">Codice: ${a.codice}</span><br>
-        <span class="small-muted">Email: ${a.email || "-"}</span><br>
-        <span class="small-muted">Stato: ${a.stato}</span>
+        <strong>${azienda.nome}</strong><br>
+        <span class="small-muted">Codice: ${azienda.codice}</span><br>
+        <span class="small-muted">Email: ${azienda.email || "-"}</span><br>
+        <span class="small-muted">Stato: ${azienda.stato}</span>
 
-        <div style="margin-top:8px;">
+        <div style="margin-top:10px;">
           <button class="app-button small gray btn-apri">
             ✏️ Apri scheda
           </button>
         </div>
       `;
 
-      card.querySelector(".btn-apri").onclick = () => {
-        window.location.hash = "#/modificaAzienda?id=" + a.id;
-      };
+      const btn = card.querySelector(".btn-apri");
+
+      btn.addEventListener("click", () => {
+        window.location.hash = "#/modificaAzienda?id=" + azienda.id;
+      });
 
       results.appendChild(card);
     });
