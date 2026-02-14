@@ -1,4 +1,3 @@
-// js/router.js
 import "./state.js";
 import "./stateActions.js";
 import "./supabaseClient.js";
@@ -16,7 +15,6 @@ const routes = {
 function parseHash() {
   const raw = window.location.hash || "#/login";
   const cleaned = raw.replace("#/", "");
-
   const [routeName, queryString] = cleaned.split("?");
 
   const params = {};
@@ -42,7 +40,6 @@ async function renderView(routeName) {
 async function resolve() {
   const { route, params } = parseHash();
 
-  // 🔥 IMPORTANTISSIMO
   window.routeParams = params || {};
 
   const { data } = await window.supabaseClient.auth.getSession();
@@ -67,7 +64,8 @@ async function resolve() {
         attiva,
         data_scadenza,
         features,
-        logo_path
+        logo_path,
+        logo_url
       )
     `)
     .eq("user_id", session.user.id)
