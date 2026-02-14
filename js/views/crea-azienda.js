@@ -118,7 +118,7 @@ export async function render(container) {
         const filePath = `logos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("aziende-logos")
+          .from("loghi-aziende")
           .upload(filePath, file, {
             upsert: true,
           });
@@ -126,7 +126,7 @@ export async function render(container) {
         if (uploadError) throw uploadError;
 
         const { data: publicUrl } = supabase.storage
-          .from("aziende-logos")
+          .from("loghi-aziende")
           .getPublicUrl(filePath);
 
         logo_path = filePath;
