@@ -50,11 +50,10 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Configurazione Azienda</h2>
 
-      <!-- ================= DATI BASE ================= -->
+      <!-- DATI BASE -->
       <div style="margin-top:24px;">
         <h3>Dati Base</h3>
         <form id="form-base" class="form-stack">
-
           <label>
             Nome azienda
             <input id="az-nome" class="input-pill" value="${azienda.nome || ""}" required />
@@ -96,11 +95,10 @@ export async function render(container) {
           <button type="submit" class="app-button green">
             Salva Dati Base
           </button>
-
         </form>
       </div>
 
-      <!-- ================= LOGO ================= -->
+      <!-- LOGO -->
       <div style="margin-top:32px;">
         <h3>Logo Azienda</h3>
 
@@ -128,12 +126,10 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- ================= ANAGRAFICA ================= -->
+      <!-- ANAGRAFICA -->
       <div style="margin-top:32px;">
         <h3>Anagrafica</h3>
-
         <form id="form-anagrafica" class="form-stack">
-
           <label>
             Ragione sociale
             <input id="az-ragione" class="input-pill" value="${azienda.ragione_sociale || ""}" />
@@ -172,11 +168,10 @@ export async function render(container) {
           <button type="submit" class="app-button green">
             Salva Anagrafica
           </button>
-
         </form>
       </div>
 
-      <!-- ================= FEATURES ================= -->
+      <!-- FEATURES -->
       <div style="margin-top:32px;">
         <h3>Funzionalità Attive</h3>
 
@@ -272,14 +267,19 @@ export async function render(container) {
       return;
     }
 
-    const { data } = supabase.storage
+    const { data: signedData, error: signedError } = await supabase.storage
       .from("loghi-aziende")
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
+    if (signedError) {
+      document.getElementById("logo-error").textContent = signedError.message;
+      return;
+    }
 
     await supabase.from("aziende")
       .update({
         logo_path: filePath,
-        logo_url: data.publicUrl,
+        logo_url: signedData.signedUrl,
       })
       .eq("id", id);
 
