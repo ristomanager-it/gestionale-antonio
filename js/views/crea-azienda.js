@@ -1,4 +1,3 @@
-// js/views/crea-azienda.js
 import { supabase } from "../supabaseClient.js";
 
 const DEFAULT_FEATURES = {
@@ -19,11 +18,9 @@ export async function render(container) {
 
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Accesso negato</h3>
-          <p>Sezione riservata alla piattaforma.</p>
-        </div>
+      <div class="view">
+        <h3>Accesso negato</h3>
+        <p>Sezione riservata alla piattaforma.</p>
       </div>
     `;
     return;
@@ -52,12 +49,7 @@ export async function render(container) {
 
         <label>
           Logo azienda
-          <input 
-            id="az-logo" 
-            type="file" 
-            accept="image/*"
-            class="input-pill"
-          />
+          <input id="az-logo" type="file" accept="image/*" class="input-pill" />
         </label>
 
         <button type="submit" class="app-button green">
@@ -92,11 +84,7 @@ export async function render(container) {
     const pin = document.getElementById("az-pin").value.trim();
     const file = document.getElementById("az-logo").files[0];
 
-    let logo_path = null;
-    let logo_url = null;
-
     try {
-      // 1️⃣ CREA AZIENDA
       const { data: azienda, error } = await supabase
         .from("aziende")
         .insert({
@@ -111,38 +99,31 @@ export async function render(container) {
 
       if (error) throw error;
 
-      // 2️⃣ UPLOAD LOGO (se presente)
       if (file) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${azienda.id}.${fileExt}`;
-        const filePath = `logos/${fileName}`;
+        const ext = file.name.split(".").pop();
+        const filePath = `logos/${azienda.id}.${ext}`;
 
         const { error: uploadError } = await supabase.storage
           .from("loghi-aziende")
           .upload(filePath, file, {
             upsert: true,
+            contentType: file.type,
           });
 
         if (uploadError) throw uploadError;
 
-        const { data: publicUrl } = supabase.storage
+        const { data } = supabase.storage
           .from("loghi-aziende")
           .getPublicUrl(filePath);
 
-        logo_path = filePath;
-        logo_url = publicUrl.publicUrl;
-
-        // 3️⃣ AGGIORNA RECORD CON LOGO
-        await supabase
-          .from("aziende")
+        await supabase.from("aziende")
           .update({
-            logo_path,
-            logo_url,
+            logo_path: filePath,
+            logo_url: data.publicUrl,
           })
           .eq("id", azienda.id);
       }
 
-      // 4️⃣ ASSOCIA UTENTE COME ADMIN
       await supabase.from("utenti_aziende").insert({
         user_id: user.id,
         azienda_id: azienda.id,
@@ -151,6 +132,7 @@ export async function render(container) {
       });
 
       window.location.hash = "#/home";
+
     } catch (err) {
       console.error(err);
       errorEl.textContent = err.message;
