@@ -2,18 +2,19 @@
 import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
+
   const id = window.routeParams?.id;
 
   if (!id) {
     container.innerHTML = `
       <div class="view">
-        <h3>Nessuna azienda selezionata</h3>
+        <h3>ID azienda non valido</h3>
       </div>
     `;
     return;
   }
 
-  // 🔥 Carichiamo dal database
+  // 🔥 Carica azienda dal DB
   const { data: azienda, error } = await supabase
     .from("aziende")
     .select("*")
@@ -73,32 +74,30 @@ export async function render(container) {
     window.location.hash = "#/gestioneAziende";
   };
 
-  document
-    .getElementById("modifica-form")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
+  document.getElementById("modifica-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const nome = document.getElementById("az-nome").value.trim();
-      const codice = document.getElementById("az-codice").value.trim();
-      const stato = document.getElementById("az-stato").value;
+    const nome = document.getElementById("az-nome").value.trim();
+    const codice = document.getElementById("az-codice").value.trim();
+    const stato = document.getElementById("az-stato").value;
 
-      const errorEl = document.getElementById("modifica-error");
+    const errorEl = document.getElementById("modifica-error");
 
-      try {
-        const { error } = await supabase
-          .from("aziende")
-          .update({
-            nome,
-            codice,
-            stato,
-          })
-          .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("aziende")
+        .update({
+          nome,
+          codice,
+          stato,
+        })
+        .eq("id", id);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        window.location.hash = "#/gestioneAziende";
-      } catch (err) {
-        errorEl.textContent = err.message;
-      }
-    });
+      window.location.hash = "#/gestioneAziende";
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
 }
