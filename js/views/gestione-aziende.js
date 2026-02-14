@@ -1,17 +1,34 @@
-// js/views/gestione-aziende.js
+// js/views/modifica-azienda.js
 import { supabase } from "../supabaseClient.js";
 
-export async function render(container) {
-  const user = window.state.user;
-  const aziendaAttiva = window.state.azienda;
+function getIdFromHash() {
+  const raw = window.location.hash || "";
+  const qIndex = raw.indexOf("?");
+  if (qIndex === -1) return null;
+  const qs = raw.slice(qIndex + 1);
+  const sp = new URLSearchParams(qs);
+  return sp.get("id");
+}
 
-  if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
+export async function render(container) {
+  const id = getIdFromHash();
+
+  if (!id) {
+    container.innerHTML = `<div class="view"><h3>ID non valido</h3></div>`;
+    return;
+  }
+
+  const { data: azienda, error } = await supabase
+    .from("aziende")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !azienda) {
     container.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Accesso negato</h3>
-          <p>Sezione riservata alla piattaforma.</p>
-        </div>
+      <div class="view">
+        <h3>Azienda non trovata</h3>
+        <p style="color:#dc2626;">${error?.message || ""}</p>
       </div>
     `;
     return;
@@ -19,101 +36,201 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <h2 style="margin-top:0;">Gestione Aziende</h2>
+      <h2 style="margin-top:0;">Configurazione Azienda</h2>
 
-      <div style="margin-top:12px;">
-        <input 
-          id="search-input" 
-          class="input-pill"
-          placeholder="Cerca azienda (min 2 caratteri)"
-        />
+      <!-- CARD IDENTITÀ -->
+      <div class="card-block">
+        <h3>Dati Base</h3>
+
+        <form id="form-base" class="form-stack">
+
+          <label>
+            Nome azienda
+            <input id="az-nome" class="input-pill" value="${azienda.nome || ""}" required />
+          </label>
+
+          <label>
+            Codice azienda
+            <input id="az-codice" class="input-pill" value="${azienda.codice || ""}" required />
+          </label>
+
+          <label>
+            PIN accesso
+            <input id="az-pin" class="input-pill" value="${azienda.pin_accesso || ""}" required />
+          </label>
+
+          <label>
+            Stato
+            <select id="az-stato" class="input-pill">
+              <option value="attiva" ${azienda.stato === "attiva" ? "selected" : ""}>Attiva</option>
+              <option value="sospesa" ${azienda.stato === "sospesa" ? "selected" : ""}>Sospesa</option>
+              <option value="piattaforma" ${azienda.stato === "piattaforma" ? "selected" : ""}>Piattaforma</option>
+            </select>
+          </label>
+
+          <label>
+            Attiva
+            <select id="az-attiva" class="input-pill">
+              <option value="true" ${azienda.attiva !== false ? "selected" : ""}>Sì</option>
+              <option value="false" ${azienda.attiva === false ? "selected" : ""}>No</option>
+            </select>
+          </label>
+
+          <label>
+            Data scadenza
+            <input id="az-scadenza" type="date" class="input-pill"
+              value="${azienda.data_scadenza ? String(azienda.data_scadenza).slice(0,10) : ""}" />
+          </label>
+
+          <button type="submit" class="app-button green">
+            Salva Dati Base
+          </button>
+
+        </form>
       </div>
 
-      <div id="search-results" style="margin-top:14px;"></div>
+      <!-- CARD LOGO -->
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Logo Azienda</h3>
+
+        ${azienda.logo_url ? `
+          <div style="margin-bottom:12px;">
+            <img src="${azienda.logo_url}" 
+                 style="max-width:120px; border-radius:12px;" />
+          </div>
+        ` : "<p class='small-muted'>Nessun logo caricato</p>"}
+
+        <input type="file" id="az-logo" accept="image/*" class="input-pill" />
+
+        <button id="btn-upload-logo" class="app-button small gray" style="margin-top:10px;">
+          Aggiorna Logo
+        </button>
+
+        <p id="logo-error" style="color:#dc2626;"></p>
+      </div>
+
+      <!-- CARD ANAGRAFICA -->
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Anagrafica</h3>
+
+        <form id="form-anagrafica" class="form-stack">
+
+          <label>
+            Ragione sociale
+            <input id="az-ragione" class="input-pill" value="${azienda.ragione_sociale || ""}" />
+          </label>
+
+          <label>
+            Partita IVA
+            <input id="az-piva" class="input-pill" value="${azienda.partita_iva || ""}" />
+          </label>
+
+          <label>
+            Codice Fiscale
+            <input id="az-cf" class="input-pill" value="${azienda.codice_fiscale || ""}" />
+          </label>
+
+          <label>
+            Email
+            <input id="az-email" class="input-pill" value="${azienda.email || ""}" />
+          </label>
+
+          <label>
+            PEC
+            <input id="az-pec" class="input-pill" value="${azienda.pec || ""}" />
+          </label>
+
+          <label>
+            Telefono
+            <input id="az-tel" class="input-pill" value="${azienda.telefono || ""}" />
+          </label>
+
+          <label>
+            Referente
+            <input id="az-ref" class="input-pill" value="${azienda.referente || ""}" />
+          </label>
+
+          <button type="submit" class="app-button green">
+            Salva Anagrafica
+          </button>
+
+        </form>
+      </div>
 
       <div style="margin-top:20px;">
-        <button class="app-button small gray" id="btn-home">
-          ⬅ Dashboard
+        <button class="app-button small gray" id="btn-back">
+          ⬅ Torna a Gestione Aziende
         </button>
       </div>
     </div>
   `;
 
-  document.getElementById("btn-home").onclick = () => {
-    window.location.hash = "#/home";
+  document.getElementById("btn-back").onclick = () => {
+    window.location.hash = "#/gestioneAziende";
   };
 
-  const input = document.getElementById("search-input");
-  const results = document.getElementById("search-results");
+  // 🔹 SALVA BASE
+  document.getElementById("form-base").onsubmit = async (e) => {
+    e.preventDefault();
 
-  results.innerHTML = `
-    <p class="small-muted">Digita per cercare un’azienda.</p>
-  `;
+    await supabase.from("aziende").update({
+      nome: document.getElementById("az-nome").value.trim(),
+      codice: document.getElementById("az-codice").value.trim(),
+      pin_accesso: document.getElementById("az-pin").value.trim(),
+      stato: document.getElementById("az-stato").value,
+      attiva: document.getElementById("az-attiva").value === "true",
+      data_scadenza: document.getElementById("az-scadenza").value || null,
+    }).eq("id", id);
 
-  input.addEventListener("input", async () => {
-    const q = input.value.trim();
+    alert("Dati base aggiornati");
+  };
 
-    if (q.length < 2) {
-      results.innerHTML = `
-        <p class="small-muted">Digita almeno 2 caratteri.</p>
-      `;
+  // 🔹 SALVA ANAGRAFICA
+  document.getElementById("form-anagrafica").onsubmit = async (e) => {
+    e.preventDefault();
+
+    await supabase.from("aziende").update({
+      ragione_sociale: document.getElementById("az-ragione").value.trim(),
+      partita_iva: document.getElementById("az-piva").value.trim(),
+      codice_fiscale: document.getElementById("az-cf").value.trim(),
+      email: document.getElementById("az-email").value.trim(),
+      pec: document.getElementById("az-pec").value.trim(),
+      telefono: document.getElementById("az-tel").value.trim(),
+      referente: document.getElementById("az-ref").value.trim(),
+    }).eq("id", id);
+
+    alert("Anagrafica aggiornata");
+  };
+
+  // 🔹 UPLOAD LOGO
+  document.getElementById("btn-upload-logo").onclick = async () => {
+    const file = document.getElementById("az-logo").files[0];
+    if (!file) return;
+
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${id}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("loghi-aziende")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      document.getElementById("logo-error").textContent = uploadError.message;
       return;
     }
 
-    const filter =
-      "nome.ilike.%" + q + "%," +
-      "codice.ilike.%" + q + "%," +
-      "email.ilike.%" + q + "%," +
-      "partita_iva.ilike.%" + q + "%";
+    const { data } = supabase.storage
+      .from("loghi-aziende")
+      .getPublicUrl(filePath);
 
-    const { data, error } = await supabase
-      .from("aziende")
-      .select("id,nome,codice,email,referente,stato")
-      .or(filter)
-      .limit(20);
+    await supabase.from("aziende")
+      .update({
+        logo_path: filePath,
+        logo_url: data.publicUrl,
+      })
+      .eq("id", id);
 
-    if (error) {
-      console.error(error);
-      results.innerHTML = `
-        <p style="color:#dc2626;">
-          Errore ricerca: ${error.message}
-        </p>
-      `;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      results.innerHTML = `
-        <p class="small-muted">Nessuna azienda trovata.</p>
-      `;
-      return;
-    }
-
-    results.innerHTML = "";
-
-    data.forEach((a) => {
-      const card = document.createElement("div");
-      card.className = "view";
-      card.style.marginBottom = "10px";
-
-      card.innerHTML = `
-        <strong>${a.nome}</strong><br>
-        <span class="small-muted">Codice: ${a.codice}</span><br>
-        <span class="small-muted">Email: ${a.email || "-"}</span><br>
-        <span class="small-muted">Stato: ${a.stato}</span>
-
-        <div style="margin-top:8px;">
-          <button class="app-button small gray btn-apri">
-            ✏️ Apri scheda
-          </button>
-        </div>
-      `;
-
-      card.querySelector(".btn-apri").onclick = () => {
-        window.location.hash = "#/modificaAzienda?id=" + a.id;
-      };
-
-      results.appendChild(card);
-    });
-  });
+    alert("Logo aggiornato");
+    window.location.reload();
+  };
 }
