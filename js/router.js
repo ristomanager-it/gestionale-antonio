@@ -10,6 +10,7 @@ const routes = {
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
+  setPassword: () => import("./views/set-password.js"),
 };
 
 function parseHash() {
@@ -38,8 +39,23 @@ async function renderView(routeName) {
 }
 
 async function resolve() {
-  const { route, params } = parseHash();
+  const url = window.location.href;
 
+  // 🔥 Gestione INVITE / RECOVERY
+  if (url.includes("code=")) {
+    const { error } =
+      await window.supabaseClient.auth.exchangeCodeForSession(url);
+
+    if (!error) {
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.hash
+      );
+    }
+  }
+
+  const { route, params } = parseHash();
   window.routeParams = params || {};
 
   const { data } = await window.supabaseClient.auth.getSession();
@@ -51,6 +67,12 @@ async function resolve() {
   }
 
   window.stateActions.setUser(session.user);
+
+  // 🔐 Se deve impostare password
+  if (session.user.user_metadata?.must_set_password === true) {
+    await renderView("setPassword");
+    return;
+  }
 
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
@@ -79,7 +101,6 @@ async function resolve() {
       <div class="login-wrapper">
         <div class="login-card">
           <h3>Nessuna azienda associata</h3>
-          <p>L’utente non è collegato a nessuna azienda.</p>
         </div>
       </div>
     `;
