@@ -550,3 +550,30 @@ h1, h2, h3 {
   flex-direction: column;
   gap: 12px;
 }
+/* ================= MOBILE FIX DEFINITIVO ================= */
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.view {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.kpi-cards {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .kpi-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
