@@ -110,8 +110,7 @@ export async function render(container) {
       `;
 
       card.querySelector(".btn-apri").onclick = () => {
-        window.stateActions.setAziendaSelezionata(a);
-        window.location.hash = "#/modificaAzienda";
+        window.location.hash = "#/modificaAzienda?id=" + a.id;
       };
 
       results.appendChild(card);
