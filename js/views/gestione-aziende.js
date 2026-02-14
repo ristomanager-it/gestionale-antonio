@@ -60,7 +60,6 @@ export async function render(container) {
       return;
     }
 
-    // 🔥 STRINGA COSTRUITA SENZA MULTILINEA
     const filter =
       "nome.ilike.%" + q + "%," +
       "codice.ilike.%" + q + "%," +
@@ -69,7 +68,7 @@ export async function render(container) {
 
     const { data, error } = await supabase
       .from("aziende")
-      .select("id,nome,codice,email,referente")
+      .select("id,nome,codice,email,referente,stato")
       .or(filter)
       .limit(20);
 
@@ -90,18 +89,32 @@ export async function render(container) {
       return;
     }
 
-    results.innerHTML = data.map(a => `
-      <div class="azienda-row-card">
+    results.innerHTML = "";
+
+    data.forEach((a) => {
+      const card = document.createElement("div");
+      card.className = "view";
+      card.style.marginBottom = "10px";
+
+      card.innerHTML = `
         <strong>${a.nome}</strong><br>
         <span class="small-muted">Codice: ${a.codice}</span><br>
-        <span class="small-muted">Email: ${a.email || "-"}</span>
+        <span class="small-muted">Email: ${a.email || "-"}</span><br>
+        <span class="small-muted">Stato: ${a.stato}</span>
+
         <div style="margin-top:8px;">
-          <button class="app-button small"
-            onclick="window.location.hash='#/modificaAzienda?id=${a.id}'">
-            Apri scheda
+          <button class="app-button small gray btn-apri">
+            ✏️ Apri scheda
           </button>
         </div>
-      </div>
-    `).join("");
+      `;
+
+      card.querySelector(".btn-apri").onclick = () => {
+        window.stateActions.setAziendaSelezionata(a);
+        window.location.hash = "#/modificaAzienda";
+      };
+
+      results.appendChild(card);
+    });
   });
 }
