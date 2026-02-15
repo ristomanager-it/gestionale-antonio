@@ -186,6 +186,9 @@ function creaCard(gruppi, percentuali) {
     } else {
       lista.forEach((az) => {
         const riga = document.createElement("div");
+        riga.style.display = "flex";
+        riga.style.justifyContent = "space-between";
+        riga.style.alignItems = "center";
         riga.style.padding = "10px 0";
         riga.style.borderBottom = "1px solid #e5e7eb";
 
@@ -198,7 +201,15 @@ function creaCard(gruppi, percentuali) {
             testo += ` — scade tra ${az.giorni} giorni`;
         }
 
-        riga.textContent = testo;
+        riga.innerHTML = `
+          <span>${testo}</span>
+          <button class="app-button small gray">Apri</button>
+        `;
+
+        riga.querySelector("button").onclick = () => {
+          window.location.hash = "#/modificaAzienda?id=" + az.id;
+        };
+
         interno.appendChild(riga);
       });
     }
