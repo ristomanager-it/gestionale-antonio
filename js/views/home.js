@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard moderna unificata
+// Dashboard Operativa Moderna
 // =======================================
 
 export async function render(container) {
@@ -12,7 +12,12 @@ export async function render(container) {
     return;
   }
 
-  const isPiattaforma = azienda.stato === "piattaforma";
+  // 🔁 Redirect piattaforma
+  if (azienda.stato === "piattaforma") {
+    window.location.hash = "#/homePiattaforma";
+    return;
+  }
+
   const features = azienda.features || {};
 
   const moduli = [
@@ -29,80 +34,105 @@ export async function render(container) {
 
   const attivi = moduli.filter(m => features[m.key] !== false);
 
+  const saluto = getSaluto();
+
   container.innerHTML = `
     <div class="view">
 
-      <!-- HEADER COMPATTO -->
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:22px;">
-        ${
-          azienda.logo_url
-            ? `<img 
-                src="${azienda.logo_url}" 
-                style="width:52px; height:52px; object-fit:cover; border-radius:14px; background:#e5e7eb;"
-              />`
-            : `<div style="width:52px; height:52px; border-radius:14px; background:#e5e7eb;"></div>`
-        }
+      <!-- HEADER MODERNO -->
+      <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:16px;
+        margin-bottom:32px;
+      ">
 
-        <div>
-          <h2 style="margin:0;">${azienda.nome}</h2>
-          <p class="small-muted" style="margin:4px 0 0 0;">
-            Dashboard operativa
-          </p>
+        <div style="display:flex; align-items:center; gap:16px;">
+          ${
+            azienda.logo_url
+              ? `<img 
+                  src="${azienda.logo_url}" 
+                  style="
+                    width:64px;
+                    height:64px;
+                    object-fit:cover;
+                    border-radius:18px;
+                    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+                  "
+                />`
+              : `<div style="
+                    width:64px;
+                    height:64px;
+                    border-radius:18px;
+                    background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
+                  "></div>`
+          }
+
+          <div>
+            <h2 style="margin:0; font-weight:600;">
+              ${azienda.nome}
+            </h2>
+            <p class="small-muted" style="margin:6px 0 0 0;">
+              ${saluto} 👋 Benvenuto nella tua dashboard
+            </p>
+          </div>
         </div>
+
       </div>
 
       <!-- GRID MODULI -->
       <div 
         style="
           display:grid;
-          gap:14px;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap:18px;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         "
       >
-        ${attivi.map(m => `
-          <div 
-            class="app-button"
-            style="
-              padding:22px 16px;
-              text-align:center;
-              border-radius:18px;
-              font-size:14px;
-              transition: all 0.2s ease;
-            "
-            onclick="window.location.hash='#/${m.key}'"
-          >
-            <div style="font-size:24px; margin-bottom:8px;">
-              ${m.icon}
-            </div>
-            ${m.label}
-          </div>
-        `).join("")}
-
         ${
-          isPiattaforma
+          attivi.length === 0
             ? `
-          <div 
-            class="app-button"
-            style="
-              padding:22px 16px;
-              text-align:center;
-              border-radius:18px;
-              background:#111827;
-              color:white;
-            "
-            onclick="window.location.hash='#/gestioneAziende'"
-          >
-            <div style="font-size:24px; margin-bottom:8px;">
-              🏢
-            </div>
-            Aziende
-          </div>
-        `
-            : ""
+              <div class="kpi-card">
+                <h3>Nessun modulo attivo</h3>
+                <p class="small-muted">
+                  Attiva le feature dalla piattaforma.
+                </p>
+              </div>
+            `
+            : attivi.map(m => `
+                <div 
+                  onclick="window.location.hash='#/${m.key}'"
+                  style="
+                    background:white;
+                    padding:28px 18px;
+                    border-radius:22px;
+                    text-align:center;
+                    cursor:pointer;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.05);
+                    transition: all 0.25s ease;
+                  "
+                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
+                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
+                >
+                  <div style="font-size:30px; margin-bottom:14px;">
+                    ${m.icon}
+                  </div>
+                  <div style="font-weight:500;">
+                    ${m.label}
+                  </div>
+                </div>
+              `).join("")
         }
-
       </div>
 
     </div>
   `;
+}
+
+function getSaluto() {
+  const ora = new Date().getHours();
+  if (ora < 12) return "Buongiorno";
+  if (ora < 18) return "Buon pomeriggio";
+  return "Buonasera";
 }
