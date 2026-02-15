@@ -1,9 +1,10 @@
-// js/views/gestione-aziende.js
+// js/views/modifica-azienda.js
 import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
+  const id = window.routeParams?.id;
 
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = `
@@ -17,207 +18,113 @@ export async function render(container) {
     return;
   }
 
-  container.innerHTML = `
-    <div class="view">
-      <h2 style="margin-top:0;">Gestione Aziende</h2>
-
-      <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:center; margin-top:20px;">
-        <canvas id="grafico-scadenze" width="180" height="180"></canvas>
-        <div id="status-cards" style="flex:1; display:flex; gap:14px; flex-wrap:wrap;"></div>
-      </div>
-
-      <div id="lista-dettaglio" style="margin-top:20px; overflow:hidden; max-height:0; transition:max-height 0.4s ease;"></div>
-
-      <div style="margin-top:30px;">
-        <input 
-          id="search-input" 
-          class="input-pill"
-          placeholder="Cerca azienda (min 2 caratteri)"
-        />
-      </div>
-
-      <div id="search-results" style="margin-top:16px;"></div>
-
-      <div style="margin-top:24px;">
-        <button class="app-button small gray" id="btn-home">
-          ⬅ Dashboard
+  if (!id) {
+    container.innerHTML = `
+      <div class="view">
+        <h3>ID azienda mancante</h3>
+        <button class="app-button small gray" onclick="window.location.hash='#/gestioneAziende'">
+          ⬅ Torna indietro
         </button>
       </div>
+    `;
+    return;
+  }
+
+  const { data: azienda, error } = await supabase
+    .from("aziende")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !azienda) {
+    container.innerHTML = `
+      <div class="view">
+        <h3>Azienda non trovata</h3>
+        <button class="app-button small gray" onclick="window.location.hash='#/gestioneAziende'">
+          ⬅ Torna indietro
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="view">
+      <h2>Modifica Azienda</h2>
+
+      <div style="display:grid; gap:12px; margin-top:16px;">
+
+        <input class="input-pill" id="nome" placeholder="Nome" value="${azienda.nome || ""}" />
+        <input class="input-pill" id="ragione_sociale" placeholder="Ragione Sociale" value="${azienda.ragione_sociale || ""}" />
+        <input class="input-pill" id="partita_iva" placeholder="Partita IVA" value="${azienda.partita_iva || ""}" />
+        <input class="input-pill" id="codice_fiscale" placeholder="Codice Fiscale" value="${azienda.codice_fiscale || ""}" />
+        <input class="input-pill" id="email" placeholder="Email" value="${azienda.email || ""}" />
+        <input class="input-pill" id="telefono" placeholder="Telefono" value="${azienda.telefono || ""}" />
+        <input class="input-pill" id="referente" placeholder="Referente" value="${azienda.referente || ""}" />
+
+        <input class="input-pill" id="indirizzo" placeholder="Indirizzo" value="${azienda.indirizzo || ""}" />
+        <input class="input-pill" id="citta" placeholder="Città" value="${azienda.citta || ""}" />
+        <input class="input-pill" id="cap" placeholder="CAP" value="${azienda.cap || ""}" />
+        <input class="input-pill" id="provincia" placeholder="Provincia" value="${azienda.provincia || ""}" />
+
+        <input class="input-pill" type="date" id="data_scadenza" value="${azienda.data_scadenza || ""}" />
+
+        <select class="input-pill" id="piano">
+          <option value="basic" ${azienda.piano === "basic" ? "selected" : ""}>Basic</option>
+          <option value="pro" ${azienda.piano === "pro" ? "selected" : ""}>Pro</option>
+          <option value="enterprise" ${azienda.piano === "enterprise" ? "selected" : ""}>Enterprise</option>
+        </select>
+
+        <select class="input-pill" id="stato">
+          <option value="attiva" ${azienda.stato === "attiva" ? "selected" : ""}>Attiva</option>
+          <option value="sospesa" ${azienda.stato === "sospesa" ? "selected" : ""}>Sospesa</option>
+        </select>
+
+      </div>
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="app-button" id="btn-save">💾 Salva modifiche</button>
+        <button class="app-button small gray" id="btn-back">⬅ Indietro</button>
+      </div>
+
+      <div id="save-result" style="margin-top:12px;"></div>
     </div>
   `;
 
-  document.getElementById("btn-home").onclick = () => {
-    window.location.hash = "#/home";
+  document.getElementById("btn-back").onclick = () => {
+    window.location.hash = "#/gestioneAziende";
   };
 
-  await caricaStatoScadenzeAziende();
-}
+  document.getElementById("btn-save").onclick = async () => {
+    const updateData = {
+      nome: document.getElementById("nome").value.trim(),
+      ragione_sociale: document.getElementById("ragione_sociale").value.trim(),
+      partita_iva: document.getElementById("partita_iva").value.trim(),
+      codice_fiscale: document.getElementById("codice_fiscale").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      telefono: document.getElementById("telefono").value.trim(),
+      referente: document.getElementById("referente").value.trim(),
+      indirizzo: document.getElementById("indirizzo").value.trim(),
+      citta: document.getElementById("citta").value.trim(),
+      cap: document.getElementById("cap").value.trim(),
+      provincia: document.getElementById("provincia").value.trim(),
+      data_scadenza: document.getElementById("data_scadenza").value || null,
+      piano: document.getElementById("piano").value,
+      stato: document.getElementById("stato").value
+    };
 
+    const { error } = await supabase
+      .from("aziende")
+      .update(updateData)
+      .eq("id", id);
 
-// ===============================
-// DASHBOARD STATO SCADENZE
-// ===============================
-async function caricaStatoScadenzeAziende() {
-  const { data, error } = await supabase
-    .from("aziende")
-    .select("id,nome,data_scadenza")
-    .eq("stato_attivazione", "attiva");
+    const resultDiv = document.getElementById("save-result");
 
-  if (error) return;
-
-  const oggi = new Date();
-  oggi.setHours(0,0,0,0);
-
-  const gruppi = { verde: [], giallo: [], rosso: [] };
-
-  data.forEach((az) => {
-    if (!az.data_scadenza) {
-      gruppi.verde.push(az);
+    if (error) {
+      resultDiv.innerHTML = `<span style="color:#dc2626;">Errore salvataggio: ${error.message}</span>`;
       return;
     }
 
-    const scadenza = new Date(az.data_scadenza);
-    scadenza.setHours(0,0,0,0);
-
-    const diff = Math.floor((scadenza - oggi) / (1000*60*60*24));
-
-    if (diff < 0) gruppi.rosso.push({ ...az, giorni: diff });
-    else if (diff <= 15) gruppi.giallo.push({ ...az, giorni: diff });
-    else gruppi.verde.push({ ...az, giorni: diff });
-  });
-
-  const totale = data.length || 1;
-
-  const percentuali = {
-    verde: Math.round((gruppi.verde.length / totale) * 100),
-    giallo: Math.round((gruppi.giallo.length / totale) * 100),
-    rosso: Math.round((gruppi.rosso.length / totale) * 100)
+    resultDiv.innerHTML = `<span style="color:#16a34a;">Salvataggio completato ✔</span>`;
   };
-
-  creaGrafico(percentuali);
-  creaCard(gruppi, percentuali);
-}
-
-
-
-// ===============================
-// GRAFICO DONUT
-// ===============================
-function creaGrafico(percentuali) {
-  const canvas = document.getElementById("grafico-scadenze");
-  const ctx = canvas.getContext("2d");
-
-  const colori = {
-    verde: "#16a34a",
-    giallo: "#eab308",
-    rosso: "#dc2626"
-  };
-
-  let start = 0;
-
-  Object.keys(percentuali).forEach((key) => {
-    const slice = (percentuali[key] / 100) * (Math.PI * 2);
-
-    ctx.beginPath();
-    ctx.moveTo(90, 90);
-    ctx.arc(90, 90, 80, start, start + slice);
-    ctx.closePath();
-    ctx.fillStyle = colori[key];
-    ctx.fill();
-
-    start += slice;
-  });
-
-  // foro centrale
-  ctx.beginPath();
-  ctx.arc(90, 90, 50, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-}
-
-
-
-// ===============================
-// CARD DASHBOARD STYLE
-// ===============================
-function creaCard(gruppi, percentuali) {
-  const container = document.getElementById("status-cards");
-  const dettaglio = document.getElementById("lista-dettaglio");
-
-  container.innerHTML = "";
-
-  const config = [
-    { key: "verde", colore: "#16a34a", label: "Regolari" },
-    { key: "giallo", colore: "#eab308", label: "In scadenza" },
-    { key: "rosso", colore: "#dc2626", label: "Scadute" }
-  ];
-
-  config.forEach((c) => {
-    const card = document.createElement("div");
-    card.style.flex = "1";
-    card.style.minWidth = "160px";
-    card.style.padding = "16px";
-    card.style.borderRadius = "18px";
-    card.style.background = "#ffffff";
-    card.style.boxShadow = "0 10px 25px rgba(0,0,0,0.08)";
-    card.style.cursor = "pointer";
-    card.style.transition = "transform 0.2s ease";
-
-    card.onmouseenter = () => card.style.transform = "translateY(-4px)";
-    card.onmouseleave = () => card.style.transform = "translateY(0px)";
-
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="width:12px; height:12px; border-radius:50%; background:${c.colore};"></div>
-          <strong>${c.label}</strong>
-        </div>
-        <span style="font-size:13px; color:#6b7280;">${percentuali[c.key]}%</span>
-      </div>
-      <div style="font-size:26px; margin-top:8px;">
-        ${gruppi[c.key].length}
-      </div>
-    `;
-
-    card.onclick = () => {
-      mostraDettaglio(gruppi[c.key], c.label);
-    };
-
-    container.appendChild(card);
-  });
-
-  function mostraDettaglio(lista, titolo) {
-    dettaglio.innerHTML = `
-      <div class="view">
-        <h3>${titolo}</h3>
-        <div id="lista-interna"></div>
-      </div>
-    `;
-
-    const interno = document.getElementById("lista-interna");
-
-    if (lista.length === 0) {
-      interno.innerHTML = `<p class="small-muted">Nessuna azienda.</p>`;
-    } else {
-      lista.forEach((az) => {
-        const riga = document.createElement("div");
-        riga.style.padding = "10px 0";
-        riga.style.borderBottom = "1px solid #e5e7eb";
-
-        let testo = az.nome;
-
-        if (az.giorni !== undefined) {
-          if (az.giorni < 0)
-            testo += ` — scaduta da ${Math.abs(az.giorni)} giorni`;
-          else
-            testo += ` — scade tra ${az.giorni} giorni`;
-        }
-
-        riga.textContent = testo;
-        interno.appendChild(riga);
-      });
-    }
-
-    dettaglio.style.maxHeight = "800px";
-  }
 }
