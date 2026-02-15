@@ -96,6 +96,32 @@ export async function render(container) {
         </form>
       </div>
 
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Gestione Password Cliente</h3>
+
+        ${
+          azienda.email_amministrativa
+            ? `
+          <p class="small-muted">
+            Email login: <strong>${esc(
+              azienda.email_amministrativa
+            )}</strong>
+          </p>
+
+          <button id="btn-reset-password" class="app-button small gray">
+            Rigenera Password
+          </button>
+
+          <p id="password-info" style="margin-top:10px;"></p>
+        `
+            : `
+          <p style="color:#dc2626;">
+            Nessuna email amministrativa impostata.
+          </p>
+        `
+        }
+      </div>
+
       <div style="margin-top:20px;">
         <button class="app-button small gray" id="btn-back">
           ⬅ Torna a Gestione Aziende
@@ -133,4 +159,50 @@ export async function render(container) {
     alert("Stato azienda aggiornato");
     window.location.reload();
   };
-}  
+
+  const btnReset = document.getElementById("btn-reset-password");
+
+  if (btnReset) {
+    btnReset.onclick = async () => {
+      const conferma = confirm(
+        "Vuoi rigenerare la password del cliente? La vecchia password non sarà più valida."
+      );
+      if (!conferma) return;
+
+      const { data: sessionData } =
+        await supabase.auth.getSession();
+
+      const response = await fetch(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/reset-password-admin",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({
+            email: azienda.email_amministrativa,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      const infoEl = document.getElementById("password-info");
+
+      if (!response.ok) {
+        infoEl.style.color = "#dc2626";
+        infoEl.textContent =
+          result.error || "Errore reset password.";
+        return;
+      }
+
+      infoEl.style.color = "#16a34a";
+      infoEl.innerHTML = `
+        Nuova password generata:<br>
+        <strong>${esc(result.password)}</strong><br>
+        Comunicala al cliente. Non sarà più visibile.
+      `;
+    };
+  }
+}
