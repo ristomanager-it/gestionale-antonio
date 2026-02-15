@@ -1,6 +1,20 @@
 import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
+  // 🔎 Verifica che esista sessione attiva
+  const { data } = await supabase.auth.getSession();
+  const session = data.session;
+
+  if (!session) {
+    container.innerHTML = `
+      <div class="view">
+        <h3>Sessione non valida</h3>
+        <p>Apri il link ricevuto via email per impostare la password.</p>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = `
     <div class="view">
       <h2 style="margin-top:0;">Crea la tua password</h2>
@@ -63,6 +77,7 @@ export async function render(container) {
         return;
       }
 
+      // 🔐 Aggiornamento password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
         data: {
@@ -75,6 +90,7 @@ export async function render(container) {
         return;
       }
 
+      // 🔄 Reindirizza dopo successo
       window.location.hash = "#/home";
     });
 }
