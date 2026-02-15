@@ -38,15 +38,27 @@ async function renderView(routeName) {
   await view.render(app);
 }
 
-async function resolve() {
-  const url = window.location.href;
+function isScaduta(dataScadenza) {
+  if (!dataScadenza) return false;
+  const today = new Date();
+  const scadenza = new Date(dataScadenza);
+  today.setHours(0, 0, 0, 0);
+  scadenza.setHours(0, 0, 0, 0);
+  return scadenza < today;
+}
 
-  // 🔥 Gestione INVITE / RECOVERY
-  if (url.includes("code=")) {
+async function resolve() {
+  const currentUrl = window.location.href;
+
+  // 🔥 Gestione INVITE / RECOVERY (fondamentale per onboarding SaaS)
+  if (currentUrl.includes("code=")) {
     const { error } =
-      await window.supabaseClient.auth.exchangeCodeForSession(url);
+      await window.supabaseClient.auth.exchangeCodeForSession(
+        window.location.href
+      );
 
     if (!error) {
+      // Pulizia URL dopo creazione sessione
       window.history.replaceState(
         {},
         document.title,
@@ -68,7 +80,7 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔐 Se deve impostare password
+  // 🔐 Forza impostazione password al primo accesso
   if (session.user.user_metadata?.must_set_password === true) {
     await renderView("setPassword");
     return;
@@ -101,6 +113,34 @@ async function resolve() {
       <div class="login-wrapper">
         <div class="login-card">
           <h3>Nessuna azienda associata</h3>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const azienda = window.state.azienda.aziende;
+
+  // 🚫 Azienda sospesa o disattivata
+  if (azienda.attiva === false || azienda.stato === "sospesa") {
+    app.innerHTML = `
+      <div class="login-wrapper">
+        <div class="login-card">
+          <h3>Azienda sospesa</h3>
+          <p>Contatta l’amministrazione.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // ⛔ Abbonamento scaduto
+  if (isScaduta(azienda.data_scadenza)) {
+    app.innerHTML = `
+      <div class="login-wrapper">
+        <div class="login-card">
+          <h3>Abbonamento scaduto</h3>
+          <p>Rinnova per continuare ad utilizzare Ristoflow.</p>
         </div>
       </div>
     `;
