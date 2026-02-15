@@ -37,6 +37,7 @@ export async function render(container) {
       ${cardFiscale(azienda)}
       ${cardContatti(azienda)}
       ${cardSaaS(azienda)}
+      ${cardFeatures(azienda)}
 
       <div style="margin-top:24px; display:flex; gap:12px;">
         <button class="app-button" id="btn-save">💾 Salva modifiche</button>
@@ -93,6 +94,8 @@ export async function render(container) {
     result.innerHTML = `<span style="color:#16a34a;">Salvato correttamente ✔</span>`;
   };
 
+  renderFeatures(azienda);
+
   // Upload Logo
   document.getElementById("logo-upload").addEventListener("change", async (e) => {
     const file = e.target.files[0];
@@ -123,6 +126,67 @@ export async function render(container) {
 
     location.reload();
   });
+}
+
+function renderFeatures(azienda) {
+  const container = document.getElementById("features-container");
+
+  const moduli = [
+    { key: "timbrature", label: "Timbrature" },
+    { key: "dipendenti", label: "Dipendenti" },
+    { key: "ricette", label: "Ricette" },
+    { key: "magazzino", label: "Magazzino" },
+    { key: "acquisti", label: "Acquisti" },
+    { key: "preventivi", label: "Preventivi" },
+    { key: "eventi", label: "Eventi" },
+    { key: "report", label: "Report" },
+    { key: "impostazioni", label: "Impostazioni" }
+  ];
+
+  const features = azienda.features || {};
+
+  container.innerHTML = moduli.map(m => `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:10px 0;
+      border-bottom:1px solid #e5e7eb;
+    ">
+      <span>${m.label}</span>
+      <input 
+        type="checkbox"
+        data-key="${m.key}"
+        ${features[m.key] === false ? "" : "checked"}
+      />
+    </div>
+  `).join("");
+
+  container.querySelectorAll("input[type='checkbox']")
+    .forEach(toggle => {
+      toggle.addEventListener("change", async (e) => {
+
+        const key = e.target.dataset.key;
+        const value = e.target.checked;
+
+        const nuoveFeatures = {
+          ...features,
+          [key]: value
+        };
+
+        const { error } = await supabase
+          .from("aziende")
+          .update({ features: nuoveFeatures })
+          .eq("id", azienda.id);
+
+        if (!error) {
+          azienda.features = nuoveFeatures;
+        } else {
+          alert("Errore aggiornamento feature");
+        }
+
+      });
+    });
 }
 
 function val(id) {
@@ -225,6 +289,15 @@ function cardSaaS(a) {
       <label style="display:block;margin-top:10px;">
         <input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva
       </label>
+    </div>
+  `;
+}
+
+function cardFeatures(a){
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Funzioni Attive</h3>
+      <div id="features-container"></div>
     </div>
   `;
 }
