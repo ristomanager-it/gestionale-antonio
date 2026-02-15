@@ -12,12 +12,6 @@ export async function render(container) {
     return;
   }
 
-  // 🔁 Redirect piattaforma
-  if (azienda.stato === "piattaforma") {
-    window.location.hash = "#/homePiattaforma";
-    return;
-  }
-
   const features = azienda.features || {};
 
   const moduli = [
@@ -32,7 +26,13 @@ export async function render(container) {
     { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
-  const attivi = moduli.filter(m => features[m.key] !== false);
+  // 🔥 La piattaforma vede tutto
+  let attivi;
+  if (azienda.stato === "piattaforma") {
+    attivi = moduli;
+  } else {
+    attivi = moduli.filter(m => features[m.key] !== false);
+  }
 
   const saluto = getSaluto();
 
@@ -75,7 +75,7 @@ export async function render(container) {
               ${azienda.nome}
             </h2>
             <p class="small-muted" style="margin:6px 0 0 0;">
-              ${saluto} 👋 Benvenuto nella tua dashboard
+              ${saluto} 👋 Benvenuto nella dashboard operativa
             </p>
           </div>
         </div>
@@ -100,7 +100,7 @@ export async function render(container) {
                 </p>
               </div>
             `
-            : attivi.map(m => `
+            : attivi.map((m, index) => `
                 <div 
                   onclick="window.location.hash='#/${m.key}'"
                   style="
@@ -111,6 +111,9 @@ export async function render(container) {
                     cursor:pointer;
                     box-shadow:0 10px 30px rgba(0,0,0,0.05);
                     transition: all 0.25s ease;
+                    animation: fadeInUp 0.4s ease forwards;
+                    animation-delay:${index * 0.05}s;
+                    opacity:0;
                   "
                   onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
                   onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
@@ -125,6 +128,19 @@ export async function render(container) {
               `).join("")
         }
       </div>
+
+      <style>
+        @keyframes fadeInUp {
+          from {
+            transform: translateY(15px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      </style>
 
     </div>
   `;
