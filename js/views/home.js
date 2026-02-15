@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa – Light Moderna
+// Dashboard Operativa Moderna
 // =======================================
 
 export async function render(container) {
@@ -12,7 +12,7 @@ export async function render(container) {
     return;
   }
 
-  // Redirect piattaforma
+  // 🔁 Redirect piattaforma
   if (azienda.stato === "piattaforma") {
     window.location.hash = "#/homePiattaforma";
     return;
@@ -33,29 +33,63 @@ export async function render(container) {
   ];
 
   const attivi = moduli.filter(m => features[m.key] !== false);
+
   const saluto = getSaluto();
 
   container.innerHTML = `
-    <div class="view dashboard-light">
+    <div class="view">
 
-      <!-- HEADER -->
-      <div class="dashboard-header">
-        ${
-          azienda.logo_url
-            ? `<img src="${azienda.logo_url}" class="dashboard-logo" />`
-            : `<div class="dashboard-logo-placeholder"></div>`
-        }
+      <!-- HEADER MODERNO -->
+      <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:16px;
+        margin-bottom:32px;
+      ">
 
-        <div>
-          <h2>${azienda.nome}</h2>
-          <p class="small-muted">
-            ${saluto} 👋 Benvenuto nella tua dashboard
-          </p>
+        <div style="display:flex; align-items:center; gap:16px;">
+          ${
+            azienda.logo_url
+              ? `<img 
+                  src="${azienda.logo_url}" 
+                  style="
+                    width:64px;
+                    height:64px;
+                    object-fit:cover;
+                    border-radius:18px;
+                    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+                  "
+                />`
+              : `<div style="
+                    width:64px;
+                    height:64px;
+                    border-radius:18px;
+                    background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
+                  "></div>`
+          }
+
+          <div>
+            <h2 style="margin:0; font-weight:600;">
+              ${azienda.nome}
+            </h2>
+            <p class="small-muted" style="margin:6px 0 0 0;">
+              ${saluto} 👋 Benvenuto nella tua dashboard
+            </p>
+          </div>
         </div>
+
       </div>
 
-      <!-- GRID -->
-      <div class="dashboard-grid">
+      <!-- GRID MODULI -->
+      <div 
+        style="
+          display:grid;
+          gap:18px;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        "
+      >
         ${
           attivi.length === 0
             ? `
@@ -66,97 +100,33 @@ export async function render(container) {
                 </p>
               </div>
             `
-            : attivi.map((m, index) => `
+            : attivi.map(m => `
                 <div 
-                  class="dashboard-card"
-                  style="animation-delay:${index * 0.06}s"
                   onclick="window.location.hash='#/${m.key}'"
+                  style="
+                    background:white;
+                    padding:28px 18px;
+                    border-radius:22px;
+                    text-align:center;
+                    cursor:pointer;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.05);
+                    transition: all 0.25s ease;
+                  "
+                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
+                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
                 >
-                  <div class="card-icon">${m.icon}</div>
-                  <div class="card-label">${m.label}</div>
+                  <div style="font-size:30px; margin-bottom:14px;">
+                    ${m.icon}
+                  </div>
+                  <div style="font-weight:500;">
+                    ${m.label}
+                  </div>
                 </div>
               `).join("")
         }
       </div>
 
     </div>
-
-    <style>
-      .dashboard-light {
-        background: linear-gradient(135deg, #f8fafc, #eef2f7);
-        padding: 32px;
-        border-radius: 24px;
-      }
-
-      .dashboard-header {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        margin-bottom: 36px;
-      }
-
-      .dashboard-logo {
-        width: 68px;
-        height: 68px;
-        object-fit: cover;
-        border-radius: 20px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-      }
-
-      .dashboard-logo-placeholder {
-        width: 68px;
-        height: 68px;
-        border-radius: 20px;
-        background: linear-gradient(135deg,#e5e7eb,#f1f5f9);
-      }
-
-      .dashboard-header h2 {
-        margin: 0;
-        font-weight: 600;
-        color: #111827;
-      }
-
-      .dashboard-grid {
-        display: grid;
-        gap: 22px;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      }
-
-      .dashboard-card {
-        background: white;
-        padding: 30px 18px;
-        border-radius: 22px;
-        text-align: center;
-        cursor: pointer;
-        border: 1px solid #e5e7eb;
-        transition: all 0.25s ease;
-        opacity: 0;
-        transform: translateY(20px);
-        animation: fadeUp 0.5s ease forwards;
-      }
-
-      .dashboard-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 16px 35px rgba(0,0,0,0.08);
-      }
-
-      .card-icon {
-        font-size: 30px;
-        margin-bottom: 14px;
-      }
-
-      .card-label {
-        font-weight: 500;
-        color: #1f2937;
-      }
-
-      @keyframes fadeUp {
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
   `;
 }
 
