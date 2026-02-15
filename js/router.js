@@ -44,83 +44,116 @@ async function renderView(routeName) {
 }
 
 async function resolve() {
-  const url = window.location.href;
+  try {
+    const url = window.location.href;
 
-  // 🔥 Gestione invite / recovery
-  if (url.includes("code=")) {
-    const { error } =
-      await window.supabaseClient.auth.exchangeCodeForSession(url);
+    // Gestione invite / recovery
+    if (url.includes("code=")) {
+      const { error } =
+        await window.supabaseClient.auth.exchangeCodeForSession(url);
 
-    if (!error) {
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname + window.location.hash
-      );
+      if (!error) {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + window.location.hash
+        );
+      }
     }
-  }
 
-  const { route, params } = parseHash();
-  window.routeParams = params || {};
+    const { route, params } = parseHash();
+    window.routeParams = params || {};
 
-  // 🔐 Recupero sessione robusto (mobile-safe)
-  let { data } = await window.supabaseClient.auth.getSession();
-  let session = data.session;
+    // Recupero sessione robusto (mobile-safe)
+    let { data } = await window.supabaseClient.auth.getSession();
+    let session = data.session;
 
-  if (!session) {
-    const { data: refreshed } =
-      await window.supabaseClient.auth.refreshSession();
-    session = refreshed?.session;
-  }
+    if (!session) {
+      const { data: refreshed } =
+        await window.supabaseClient.auth.refreshSession();
+      session = refreshed?.session;
+    }
 
-  if (!session) {
-    await renderView("login");
-    return;
-  }
+    // Se NON loggato → login
+    if (!session) {
+      await renderView("login");
+      return;
+    }
 
-  window.stateActions.setUser(session.user);
+    window.stateActions.setUser(session.user);
 
-  // 🔐 Impostazione password obbligatoria
-  if (session.user.user_metadata?.must_set_password === true) {
-    await renderView("setPassword");
-    return;
-  }
+    // Se deve impostare password
+    if (session.user.user_metadata?.must_set_password === true) {
+      await renderView("setPassword");
+      return;
+    }
 
-  // 📦 Carico aziende
-  const { data: aziende } = await window.supabaseClient
-    .from("utenti_aziende")
-    .select(`
-      ruolo,
-      aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        attiva,
-        data_scadenza,
-        features,
-        logo_path,
-        logo_url
-      )
-    `)
-    .eq("user_id", session.user.id)
-    .eq("attivo", true);
+    // Carico aziende collegate
+    const { data: aziende } = await window.supabaseClient
+      .from("utenti_aziende")
+      .select(`
+        ruolo,
+        aziende:azienda_id (
+          id,
+          nome,
+          codice,
+          stato,
+          attiva,
+          data_scadenza,
+          features,
+          logo_path,
+          logo_url
+        )
+      `)
+      .eq("user_id", session.user.id)
+      .eq("attivo", true);
 
-  window.stateActions.setAziende(aziende || []);
-  window.stateActions.autoSetAzienda();
+    const aziendePulite = (aziende || [])
+      .filter(a => a.aziende !== null);
 
-  if (!window.state.azienda) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Nessuna azienda associata</h3>
+    window.stateActions.setAziende(aziendePulite);
+    window.stateActions.autoSetAzienda();
+
+    const azienda = window.state.azienda;
+
+    // Se utente loggato ma nessuna azienda associata
+    if (!azienda) {
+      app.innerHTML = `
+        <div class="login-wrapper">
+          <div class="login-card">
+            <h3>Nessuna azienda associata</h3>
+          </div>
         </div>
+      `;
+      return;
+    }
+
+    // Se piattaforma → homePiattaforma
+    if (azienda.stato === "piattaforma") {
+      if (route !== "homePiattaforma") {
+        window.location.hash = "#/homePiattaforma";
+        return;
+      }
+      await renderView("homePiattaforma");
+      return;
+    }
+
+    // Azienda normale
+    if (route === "login" || route === "homePiattaforma") {
+      await renderView("home");
+      return;
+    }
+
+    await renderView(route);
+
+  } catch (err) {
+    console.error("Router error:", err);
+    app.innerHTML = `
+      <div class="view">
+        <h3>Errore caricamento dashboard</h3>
       </div>
     `;
-    return;
   }
-
-  await renderView(route);
 }
 
 window.addEventListener("hashchange", resolve);
