@@ -22,7 +22,34 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-      <div style="margin-top:14px;">
+      <!-- 🔔 KPI SCADENZE -->
+      <div style="margin-top:16px;">
+        <h3>Stato Abbonamenti</h3>
+
+        <div class="kpi-cards">
+          <div class="kpi-card">
+            <h3>Regolari</h3>
+            <p id="kpi-aziende-regolari">0</p>
+          </div>
+          <div class="kpi-card">
+            <h3>In scadenza</h3>
+            <p id="kpi-aziende-scadenza">0</p>
+          </div>
+          <div class="kpi-card">
+            <h3>Scadute</h3>
+            <p id="kpi-aziende-scadute">0</p>
+          </div>
+        </div>
+
+        <h4 style="margin-top:14px;">⚠ In scadenza</h4>
+        <div id="lista-aziende-scadenza"></div>
+
+        <h4 style="margin-top:14px;">🚨 Scadute</h4>
+        <div id="lista-aziende-scadute"></div>
+      </div>
+
+      <!-- 🔎 RICERCA -->
+      <div style="margin-top:24px;">
         <input 
           id="search-input" 
           class="input-pill"
@@ -118,5 +145,67 @@ export async function render(container) {
 
       results.appendChild(card);
     });
+  });
+
+  // 🔔 Caricamento stato scadenze
+  await caricaStatoScadenzeAziende();
+}
+
+
+// ===============================
+// FUNZIONE SCADENZE (NUOVA)
+// ===============================
+async function caricaStatoScadenzeAziende() {
+  const { data, error } = await supabase
+    .from("aziende_scadenze")
+    .select("*");
+
+  if (error) {
+    console.error("Errore caricamento scadenze:", error);
+    return;
+  }
+
+  const regolari = [];
+  const inScadenza = [];
+  const scadute = [];
+
+  data.forEach((az) => {
+    if (az.stato_scadenza_calcolato === "scaduta") {
+      scadute.push(az);
+    } else if (az.stato_scadenza_calcolato === "in_scadenza") {
+      inScadenza.push(az);
+    } else {
+      regolari.push(az);
+    }
+  });
+
+  const elReg = document.getElementById("kpi-aziende-regolari");
+  const elSca = document.getElementById("kpi-aziende-scadenza");
+  const elScad = document.getElementById("kpi-aziende-scadute");
+
+  if (elReg) elReg.textContent = regolari.length;
+  if (elSca) elSca.textContent = inScadenza.length;
+  if (elScad) elScad.textContent = scadute.length;
+
+  const listaScadute = document.getElementById("lista-aziende-scadute");
+  const listaInScadenza = document.getElementById("lista-aziende-scadenza");
+
+  if (!listaScadute || !listaInScadenza) return;
+
+  listaScadute.innerHTML = "";
+  listaInScadenza.innerHTML = "";
+
+  scadute.forEach((az) => {
+    const div = document.createElement("div");
+    div.className = "pill-alert red";
+    div.textContent = `${az.nome} — scaduta il ${az.data_scadenza}`;
+    listaScadute.appendChild(div);
+  });
+
+  inScadenza.forEach((az) => {
+    const div = document.createElement("div");
+    div.className = "pill-alert yellow";
+    div.textContent = `${az.nome} — scade il ${az.data_scadenza}`;
+    listaInScadenza.appendChild(div);
   });
 }
