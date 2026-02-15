@@ -10,7 +10,7 @@ const routes = {
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
-  impostaPassword: () => import("./views/imposta-password.js"),
+  setPassword: () => import("./views/set-password.js"),
 };
 
 function parseHash() {
@@ -38,24 +38,13 @@ async function renderView(routeName) {
   await view.render(app);
 }
 
-function isScaduta(dataScadenza) {
-  if (!dataScadenza) return false;
-  const today = new Date();
-  const scadenza = new Date(dataScadenza);
-  today.setHours(0, 0, 0, 0);
-  scadenza.setHours(0, 0, 0, 0);
-  return scadenza < today;
-}
-
 async function resolve() {
-  const currentUrl = window.location.href;
+  const url = window.location.href;
 
   // 🔥 Gestione INVITE / RECOVERY
-  if (currentUrl.includes("code=")) {
+  if (url.includes("code=")) {
     const { error } =
-      await window.supabaseClient.auth.exchangeCodeForSession(
-        window.location.href
-      );
+      await window.supabaseClient.auth.exchangeCodeForSession(url);
 
     if (!error) {
       window.history.replaceState(
@@ -79,9 +68,9 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔐 Forza impostazione password
+  // 🔐 Se deve impostare password
   if (session.user.user_metadata?.must_set_password === true) {
-    await renderView("impostaPassword");
+    await renderView("setPassword");
     return;
   }
 
@@ -107,40 +96,11 @@ async function resolve() {
   window.stateActions.setAziende(aziende || []);
   window.stateActions.autoSetAzienda();
 
-  // 🔒 BLOCCO SE NON C'È AZIENDA
-  if (!window.state.azienda || !window.state.azienda.aziende) {
+  if (!window.state.azienda) {
     app.innerHTML = `
       <div class="login-wrapper">
         <div class="login-card">
           <h3>Nessuna azienda associata</h3>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  const azienda = window.state.azienda.aziende;
-
-  // 🚫 Azienda sospesa o disattivata
-  if (azienda.attiva === false || azienda.stato === "sospesa") {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Azienda sospesa</h3>
-          <p>Contatta l’amministrazione.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // ⛔ Abbonamento scaduto
-  if (isScaduta(azienda.data_scadenza)) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Abbonamento scaduto</h3>
-          <p>Rinnova per continuare ad utilizzare Ristoflow.</p>
         </div>
       </div>
     `;
