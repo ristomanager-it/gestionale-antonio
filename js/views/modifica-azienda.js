@@ -133,4 +133,4 @@ export async function render(container) {
     alert("Stato azienda aggiornato");
     window.location.reload();
   };
-}
+}  
