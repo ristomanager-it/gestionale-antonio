@@ -7,6 +7,7 @@ const app = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
+  homePiattaforma: () => import("./views/home-piattaforma.js"), // ✅ AGGIUNTA
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
