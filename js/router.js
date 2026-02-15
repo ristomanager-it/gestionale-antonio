@@ -10,7 +10,7 @@ const routes = {
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
-  setPassword: () => import("./views/set-password.js"),
+  impostaPassword: () => import("./views/imposta-password.js"),
 };
 
 function parseHash() {
@@ -50,7 +50,7 @@ function isScaduta(dataScadenza) {
 async function resolve() {
   const currentUrl = window.location.href;
 
-  // 🔥 Gestione INVITE / RECOVERY (fondamentale per onboarding SaaS)
+  // 🔥 Gestione INVITE / RECOVERY
   if (currentUrl.includes("code=")) {
     const { error } =
       await window.supabaseClient.auth.exchangeCodeForSession(
@@ -58,7 +58,6 @@ async function resolve() {
       );
 
     if (!error) {
-      // Pulizia URL dopo creazione sessione
       window.history.replaceState(
         {},
         document.title,
@@ -80,9 +79,9 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔐 Forza impostazione password al primo accesso
+  // 🔐 Forza impostazione password
   if (session.user.user_metadata?.must_set_password === true) {
-    await renderView("setPassword");
+    await renderView("impostaPassword");
     return;
   }
 
@@ -108,7 +107,8 @@ async function resolve() {
   window.stateActions.setAziende(aziende || []);
   window.stateActions.autoSetAzienda();
 
-  if (!window.state.azienda) {
+  // 🔒 BLOCCO SE NON C'È AZIENDA
+  if (!window.state.azienda || !window.state.azienda.aziende) {
     app.innerHTML = `
       <div class="login-wrapper">
         <div class="login-card">
