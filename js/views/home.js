@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa – Dark Premium
+// Dashboard Operativa – Light Moderna
 // =======================================
 
 export async function render(container) {
@@ -36,7 +36,7 @@ export async function render(container) {
   const saluto = getSaluto();
 
   container.innerHTML = `
-    <div class="view dashboard-dark">
+    <div class="view dashboard-light">
 
       <!-- HEADER -->
       <div class="dashboard-header">
@@ -82,12 +82,10 @@ export async function render(container) {
     </div>
 
     <style>
-      /* DARK BASE */
-      .dashboard-dark {
-        background: linear-gradient(135deg, #0f172a, #111827);
-        padding: 28px;
+      .dashboard-light {
+        background: linear-gradient(135deg, #f8fafc, #eef2f7);
+        padding: 32px;
         border-radius: 24px;
-        color: #f9fafb;
       }
 
       .dashboard-header {
@@ -102,19 +100,20 @@ export async function render(container) {
         height: 68px;
         object-fit: cover;
         border-radius: 20px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
       }
 
       .dashboard-logo-placeholder {
         width: 68px;
         height: 68px;
         border-radius: 20px;
-        background: linear-gradient(135deg,#1f2937,#111827);
+        background: linear-gradient(135deg,#e5e7eb,#f1f5f9);
       }
 
       .dashboard-header h2 {
         margin: 0;
         font-weight: 600;
+        color: #111827;
       }
 
       .dashboard-grid {
@@ -124,13 +123,12 @@ export async function render(container) {
       }
 
       .dashboard-card {
-        background: rgba(255,255,255,0.05);
-        backdrop-filter: blur(8px);
+        background: white;
         padding: 30px 18px;
         border-radius: 22px;
         text-align: center;
         cursor: pointer;
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid #e5e7eb;
         transition: all 0.25s ease;
         opacity: 0;
         transform: translateY(20px);
@@ -138,9 +136,8 @@ export async function render(container) {
       }
 
       .dashboard-card:hover {
-        transform: translateY(-8px);
-        background: rgba(255,255,255,0.08);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        transform: translateY(-6px);
+        box-shadow: 0 16px 35px rgba(0,0,0,0.08);
       }
 
       .card-icon {
@@ -150,6 +147,7 @@ export async function render(container) {
 
       .card-label {
         font-weight: 500;
+        color: #1f2937;
       }
 
       @keyframes fadeUp {
