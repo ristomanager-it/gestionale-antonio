@@ -21,39 +21,11 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-      <div style="margin-top:16px;">
-        <h3>Stato Abbonamenti</h3>
+      <div id="status-cards" style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;"></div>
 
-        <div class="kpi-cards">
-          <div class="kpi-card">
-            <h3>Regolari</h3>
-            <p id="kpi-aziende-regolari">0</p>
-          </div>
-          <div class="kpi-card">
-            <h3>In scadenza</h3>
-            <p id="kpi-aziende-scadenza">0</p>
-          </div>
-          <div class="kpi-card">
-            <h3>Scadute</h3>
-            <p id="kpi-aziende-scadute">0</p>
-          </div>
-        </div>
-      </div>
+      <div id="lista-dettaglio" style="margin-top:18px;"></div>
 
-      <!-- CARD IN SCADENZA -->
-      <div class="view" style="margin-top:18px;">
-        <h3 id="titolo-scadenza">⚠ In scadenza (0)</h3>
-        <div id="lista-aziende-scadenza"></div>
-      </div>
-
-      <!-- CARD SCADUTE -->
-      <div class="view" style="margin-top:18px;">
-        <h3 id="titolo-scadute">🚨 Scadute (0)</h3>
-        <div id="lista-aziende-scadute"></div>
-      </div>
-
-      <!-- RICERCA -->
-      <div style="margin-top:24px;">
+      <div style="margin-top:30px;">
         <input 
           id="search-input" 
           class="input-pill"
@@ -75,6 +47,9 @@ export async function render(container) {
     window.location.hash = "#/home";
   };
 
+  await caricaStatoScadenzeAziende();
+
+  // ======= RICERCA (intatta) =======
   const input = document.getElementById("search-input");
   const results = document.getElementById("search-results");
 
@@ -101,7 +76,6 @@ export async function render(container) {
       .limit(20);
 
     if (error) {
-      console.error(error);
       results.innerHTML = `<p style="color:#dc2626;">Errore ricerca.</p>`;
       return;
     }
@@ -137,35 +111,32 @@ export async function render(container) {
       results.appendChild(card);
     });
   });
-
-  await caricaStatoScadenzeAziende();
 }
 
 
 // ===============================
-// FUNZIONE SCADENZE
+// NUOVA UI STATO VISIVO
 // ===============================
 async function caricaStatoScadenzeAziende() {
   const { data, error } = await supabase
     .from("aziende")
-    .select("id,nome,data_scadenza,attiva,stato")
+    .select("id,nome,data_scadenza")
     .eq("stato_attivazione", "attiva");
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if (error) return;
 
   const oggi = new Date();
   oggi.setHours(0,0,0,0);
 
-  const regolari = [];
-  const inScadenza = [];
-  const scadute = [];
+  const gruppi = {
+    verde: [],
+    giallo: [],
+    rosso: []
+  };
 
   data.forEach((az) => {
     if (!az.data_scadenza) {
-      regolari.push(az);
+      gruppi.verde.push(az);
       return;
     }
 
@@ -173,40 +144,84 @@ async function caricaStatoScadenzeAziende() {
     scadenza.setHours(0,0,0,0);
 
     const diff = Math.floor((scadenza - oggi) / (1000*60*60*24));
-    az._giorni = diff;
 
-    if (diff < 0) scadute.push(az);
-    else if (diff <= 15) inScadenza.push(az);
-    else regolari.push(az);
+    if (diff < 0) gruppi.rosso.push({ ...az, giorni: diff });
+    else if (diff <= 15) gruppi.giallo.push({ ...az, giorni: diff });
+    else gruppi.verde.push({ ...az, giorni: diff });
   });
 
-  document.getElementById("kpi-aziende-regolari").textContent = regolari.length;
-  document.getElementById("kpi-aziende-scadenza").textContent = inScadenza.length;
-  document.getElementById("kpi-aziende-scadute").textContent = scadute.length;
+  const container = document.getElementById("status-cards");
+  const dettaglio = document.getElementById("lista-dettaglio");
 
-  document.getElementById("titolo-scadenza").textContent =
-    `⚠ In scadenza (${inScadenza.length})`;
+  container.innerHTML = "";
+  dettaglio.innerHTML = "";
 
-  document.getElementById("titolo-scadute").textContent =
-    `🚨 Scadute (${scadute.length})`;
+  const config = [
+    { key: "verde", colore: "#16a34a", label: "Regolari" },
+    { key: "giallo", colore: "#eab308", label: "In scadenza" },
+    { key: "rosso", colore: "#dc2626", label: "Scadute" }
+  ];
 
-  const listaScadute = document.getElementById("lista-aziende-scadute");
-  const listaInScadenza = document.getElementById("lista-aziende-scadenza");
+  config.forEach((c) => {
+    const card = document.createElement("div");
+    card.className = "view";
+    card.style.cursor = "pointer";
+    card.style.flex = "1";
+    card.style.minWidth = "140px";
 
-  listaScadute.innerHTML = "";
-  listaInScadenza.innerHTML = "";
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="
+          width:14px;
+          height:14px;
+          border-radius:50%;
+          background:${c.colore};
+        "></div>
+        <strong>${c.label}</strong>
+      </div>
+      <div style="font-size:22px; margin-top:8px;">
+        ${gruppi[c.key].length}
+      </div>
+    `;
 
-  scadute.forEach((az) => {
-    const div = document.createElement("div");
-    div.className = "pill-alert red";
-    div.textContent = `${az.nome} — scaduta da ${Math.abs(az._giorni)} giorni`;
-    listaScadute.appendChild(div);
+    card.onclick = () => {
+      mostraDettaglio(c.key, gruppi[c.key], c.label);
+    };
+
+    container.appendChild(card);
   });
 
-  inScadenza.forEach((az) => {
-    const div = document.createElement("div");
-    div.className = "pill-alert yellow";
-    div.textContent = `${az.nome} — scade tra ${az._giorni} giorni`;
-    listaInScadenza.appendChild(div);
-  });
+  function mostraDettaglio(key, lista, titolo) {
+    dettaglio.innerHTML = `
+      <div class="view">
+        <h3>${titolo}</h3>
+        <div id="lista-interna"></div>
+      </div>
+    `;
+
+    const interno = document.getElementById("lista-interna");
+
+    if (lista.length === 0) {
+      interno.innerHTML = `<p class="small-muted">Nessuna azienda.</p>`;
+      return;
+    }
+
+    lista.forEach((az) => {
+      const riga = document.createElement("div");
+      riga.style.padding = "8px 0";
+      riga.style.borderBottom = "1px solid #e5e7eb";
+
+      let testo = az.nome;
+
+      if (az.giorni !== undefined) {
+        if (az.giorni < 0)
+          testo += ` — scaduta da ${Math.abs(az.giorni)} giorni`;
+        else
+          testo += ` — scade tra ${az.giorni} giorni`;
+      }
+
+      riga.textContent = testo;
+      interno.appendChild(riga);
+    });
+  }
 }
