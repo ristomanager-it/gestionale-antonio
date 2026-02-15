@@ -147,13 +147,12 @@ export async function render(container) {
     });
   });
 
-  // 🔔 Caricamento stato scadenze
   await caricaStatoScadenzeAziende();
 }
 
 
 // ===============================
-// FUNZIONE SCADENZE (NUOVA)
+// FUNZIONE SCADENZE
 // ===============================
 async function caricaStatoScadenzeAziende() {
   const { data, error } = await supabase
@@ -165,32 +164,48 @@ async function caricaStatoScadenzeAziende() {
     return;
   }
 
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
   const regolari = [];
   const inScadenza = [];
   const scadute = [];
 
   data.forEach((az) => {
-    if (az.stato_scadenza_calcolato === "scaduta") {
+    if (!az.data_scadenza) {
+      regolari.push(az);
+      return;
+    }
+
+    const scadenza = new Date(az.data_scadenza);
+    scadenza.setHours(0, 0, 0, 0);
+
+    const diffMs = scadenza - oggi;
+    const diffGiorni = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    az._giorni = diffGiorni;
+
+    if (diffGiorni < 0) {
       scadute.push(az);
-    } else if (az.stato_scadenza_calcolato === "in_scadenza") {
+    } else if (diffGiorni <= 15) {
       inScadenza.push(az);
     } else {
       regolari.push(az);
     }
   });
 
-  const elReg = document.getElementById("kpi-aziende-regolari");
-  const elSca = document.getElementById("kpi-aziende-scadenza");
-  const elScad = document.getElementById("kpi-aziende-scadute");
+  // 🔴 Ordina scadute (più grave prima)
+  scadute.sort((a, b) => a._giorni - b._giorni);
 
-  if (elReg) elReg.textContent = regolari.length;
-  if (elSca) elSca.textContent = inScadenza.length;
-  if (elScad) elScad.textContent = scadute.length;
+  // 🟡 Ordina in scadenza (più urgente prima)
+  inScadenza.sort((a, b) => a._giorni - b._giorni);
+
+  document.getElementById("kpi-aziende-regolari").textContent = regolari.length;
+  document.getElementById("kpi-aziende-scadenza").textContent = inScadenza.length;
+  document.getElementById("kpi-aziende-scadute").textContent = scadute.length;
 
   const listaScadute = document.getElementById("lista-aziende-scadute");
   const listaInScadenza = document.getElementById("lista-aziende-scadenza");
-
-  if (!listaScadute || !listaInScadenza) return;
 
   listaScadute.innerHTML = "";
   listaInScadenza.innerHTML = "";
@@ -198,14 +213,14 @@ async function caricaStatoScadenzeAziende() {
   scadute.forEach((az) => {
     const div = document.createElement("div");
     div.className = "pill-alert red";
-    div.textContent = `${az.nome} — scaduta il ${az.data_scadenza}`;
+    div.textContent = `${az.nome} — scaduta da ${Math.abs(az._giorni)} giorni`;
     listaScadute.appendChild(div);
   });
 
   inScadenza.forEach((az) => {
     const div = document.createElement("div");
     div.className = "pill-alert yellow";
-    div.textContent = `${az.nome} — scade il ${az.data_scadenza}`;
+    div.textContent = `${az.nome} — scade tra ${az._giorni} giorni`;
     listaInScadenza.appendChild(div);
   });
 }
