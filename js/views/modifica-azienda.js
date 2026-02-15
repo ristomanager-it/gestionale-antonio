@@ -32,11 +32,11 @@ export async function render(container) {
     <div class="view">
       <h2>Modifica Azienda</h2>
 
+      ${cardLogo(azienda)}
       ${cardAnagrafica(azienda)}
       ${cardFiscale(azienda)}
       ${cardContatti(azienda)}
       ${cardSaaS(azienda)}
-      ${cardParametri(azienda)}
 
       <div style="margin-top:24px; display:flex; gap:12px;">
         <button class="app-button" id="btn-save">💾 Salva modifiche</button>
@@ -52,7 +52,6 @@ export async function render(container) {
   };
 
   document.getElementById("btn-save").onclick = async () => {
-
     const updateData = {
       nome: val("nome"),
       ragione_sociale: val("ragione_sociale"),
@@ -74,9 +73,6 @@ export async function render(container) {
       piano: val("piano"),
       numero_massimo_utenti: intVal("numero_massimo_utenti"),
       numero_massimo_ricette: intVal("numero_massimo_ricette"),
-      aliquota_iva_default: numVal("aliquota_iva_default"),
-      food_cost_target_percentuale: numVal("food_cost_target_percentuale"),
-      markup_default: numVal("markup_default"),
       attiva: boolVal("attiva"),
       stato: val("stato"),
       stato_attivazione: val("stato_attivazione")
@@ -96,6 +92,37 @@ export async function render(container) {
 
     result.innerHTML = `<span style="color:#16a34a;">Salvato correttamente ✔</span>`;
   };
+
+  // Upload Logo
+  document.getElementById("logo-upload").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const filePath = `logo-${id}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("loghi-aziende")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      alert("Errore upload logo");
+      return;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from("loghi-aziende")
+      .getPublicUrl(filePath);
+
+    await supabase
+      .from("aziende")
+      .update({
+        logo_path: filePath,
+        logo_url: publicUrl.publicUrl
+      })
+      .eq("id", id);
+
+    location.reload();
+  });
 }
 
 function val(id) {
@@ -107,13 +134,42 @@ function intVal(id) {
   return v ? parseInt(v) : null;
 }
 
-function numVal(id) {
-  const v = document.getElementById(id)?.value;
-  return v ? parseFloat(v) : null;
-}
-
 function boolVal(id) {
   return document.getElementById(id)?.checked || false;
+}
+
+function input(id,label,value,type="text"){
+  return `
+    <div style="margin-top:10px;">
+      <label class="small-muted">${label}</label>
+      <input class="input-pill" type="${type}" id="${id}" value="${value ?? ""}" />
+    </div>
+  `;
+}
+
+function select(id,label,value,options){
+  return `
+    <div style="margin-top:10px;">
+      <label class="small-muted">${label}</label>
+      <select class="input-pill" id="${id}">
+        ${options.map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
+      </select>
+    </div>
+  `;
+}
+
+function cardLogo(a){
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Logo Azienda</h3>
+      ${
+        a.logo_url
+          ? `<img src="${a.logo_url}" style="width:120px; height:120px; object-fit:cover; border-radius:16px; margin-bottom:10px;" />`
+          : `<p class="small-muted">Nessun logo caricato</p>`
+      }
+      <input type="file" id="logo-upload" accept="image/*" />
+    </div>
+  `;
 }
 
 function cardAnagrafica(a) {
@@ -160,44 +216,15 @@ function cardSaaS(a) {
   return `
     <div class="view" style="margin-top:20px;">
       <h3>Configurazione SaaS</h3>
-      ${input("piano","Piano",a.piano)}
+      ${select("piano","Piano",a.piano,["basic","pro","premium"])}
       ${input("numero_massimo_utenti","Max Utenti",a.numero_massimo_utenti,"number")}
       ${input("numero_massimo_ricette","Max Ricette",a.numero_massimo_ricette,"number")}
       ${input("data_scadenza","Data Scadenza",a.data_scadenza,"date")}
       ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
       ${select("stato","Stato",a.stato,["attiva","sospesa"])}
-      <label><input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva</label>
-    </div>
-  `;
-}
-
-function cardParametri(a) {
-  return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Parametri Gestionali</h3>
-      ${input("aliquota_iva_default","Aliquota IVA Default",a.aliquota_iva_default,"number")}
-      ${input("food_cost_target_percentuale","Food Cost Target %",a.food_cost_target_percentuale,"number")}
-      ${input("markup_default","Markup Default",a.markup_default,"number")}
-    </div>
-  `;
-}
-
-function input(id,label,value,type="text"){
-  return `
-    <div style="margin-top:10px;">
-      <label class="small-muted">${label}</label>
-      <input class="input-pill" type="${type}" id="${id}" value="${value ?? ""}" />
-    </div>
-  `;
-}
-
-function select(id,label,value,options){
-  return `
-    <div style="margin-top:10px;">
-      <label class="small-muted">${label}</label>
-      <select class="input-pill" id="${id}">
-        ${options.map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
-      </select>
+      <label style="display:block;margin-top:10px;">
+        <input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva
+      </label>
     </div>
   `;
 }
