@@ -26,7 +26,6 @@ export async function render(container) {
     { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
-  // 🔥 La piattaforma vede tutto
   let attivi;
   if (azienda.stato === "piattaforma") {
     attivi = moduli;
@@ -39,45 +38,58 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
-      <!-- HEADER MODERNO -->
+      <!-- Pulsante ritorno piattaforma -->
+      ${
+        azienda.stato === "piattaforma"
+          ? `
+        <div style="margin-bottom:20px;">
+          <button 
+            class="app-button small gray"
+            onclick="window.location.hash='#/homePiattaforma'"
+          >
+            ⬅ Torna alla Piattaforma
+          </button>
+        </div>
+      `
+          : ""
+      }
+
+      <!-- HEADER -->
       <div style="
         display:flex;
         align-items:center;
-        justify-content:space-between;
-        flex-wrap:wrap;
         gap:16px;
         margin-bottom:32px;
+        flex-wrap:wrap;
       ">
 
-        <div style="display:flex; align-items:center; gap:16px;">
-          ${
-            azienda.logo_url
-              ? `<img 
-                  src="${azienda.logo_url}" 
-                  style="
-                    width:64px;
-                    height:64px;
-                    object-fit:cover;
-                    border-radius:18px;
-                    box-shadow:0 6px 18px rgba(0,0,0,0.08);
-                  "
-                />`
-              : `<div style="
-                    width:64px;
-                    height:64px;
-                    border-radius:18px;
-                    background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
-                  "></div>`
-          }
+        ${
+          azienda.logo_url
+            ? `<img 
+                src="${azienda.logo_url}" 
+                style="
+                  width:64px;
+                  height:64px;
+                  object-fit:cover;
+                  border-radius:18px;
+                  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+                "
+              />`
+            : `<div style="
+                  width:64px;
+                  height:64px;
+                  border-radius:18px;
+                  background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
+                "></div>`
+        }
 
-          <div>
-            <h2 style="margin:0; font-weight:600;">
-              ${azienda.nome}
-            </h2>
-            <p class="small-muted" style="margin:6px 0 0 0;">
-              ${saluto} 👋 Benvenuto nella dashboard operativa
-            </p>
-          </div>
+        <div>
+          <h2 style="margin:0; font-weight:600;">
+            ${azienda.nome}
+          </h2>
+          <p class="small-muted" style="margin:6px 0 0 0;">
+            ${saluto} 👋 Benvenuto nella dashboard operativa
+          </p>
         </div>
 
       </div>
@@ -91,41 +103,32 @@ export async function render(container) {
         "
       >
         ${
-          attivi.length === 0
-            ? `
-              <div class="kpi-card">
-                <h3>Nessun modulo attivo</h3>
-                <p class="small-muted">
-                  Attiva le feature dalla piattaforma.
-                </p>
+          attivi.map((m, index) => `
+            <div 
+              onclick="window.location.hash='#/${m.key}'"
+              style="
+                background:white;
+                padding:28px 18px;
+                border-radius:22px;
+                text-align:center;
+                cursor:pointer;
+                box-shadow:0 10px 30px rgba(0,0,0,0.05);
+                transition: all 0.25s ease;
+                animation: fadeInUp 0.4s ease forwards;
+                animation-delay:${index * 0.05}s;
+                opacity:0;
+              "
+              onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
+              onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
+            >
+              <div style="font-size:30px; margin-bottom:14px;">
+                ${m.icon}
               </div>
-            `
-            : attivi.map((m, index) => `
-                <div 
-                  onclick="window.location.hash='#/${m.key}'"
-                  style="
-                    background:white;
-                    padding:28px 18px;
-                    border-radius:22px;
-                    text-align:center;
-                    cursor:pointer;
-                    box-shadow:0 10px 30px rgba(0,0,0,0.05);
-                    transition: all 0.25s ease;
-                    animation: fadeInUp 0.4s ease forwards;
-                    animation-delay:${index * 0.05}s;
-                    opacity:0;
-                  "
-                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
-                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
-                >
-                  <div style="font-size:30px; margin-bottom:14px;">
-                    ${m.icon}
-                  </div>
-                  <div style="font-weight:500;">
-                    ${m.label}
-                  </div>
-                </div>
-              `).join("")
+              <div style="font-weight:500;">
+                ${m.label}
+              </div>
+            </div>
+          `).join("")
         }
       </div>
 
