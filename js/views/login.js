@@ -1,6 +1,7 @@
 // js/views/login.js
 // =======================================
 // Login view – versione definitiva stabile
+// Con reset password integrato
 // =======================================
 
 export async function render(container) {
@@ -37,7 +38,17 @@ export async function render(container) {
             />
           </label>
 
-          <div class="login-actions">
+          <div style="text-align:right; margin-top:6px;">
+            <button
+              type="button"
+              id="btn-reset-password"
+              style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;padding:0;"
+            >
+              Password dimenticata?
+            </button>
+          </div>
+
+          <div class="login-actions" style="margin-top:14px;">
             <button type="submit" class="app-button login-primary">
               Entra
             </button>
@@ -45,16 +56,21 @@ export async function render(container) {
         </form>
 
         <p id="login-error" class="login-error"></p>
+        <p id="login-success" style="color:#16a34a;font-size:13px;"></p>
       </div>
     </div>
   `;
 
   const form = document.getElementById("login-form");
   const errorEl = document.getElementById("login-error");
+  const successEl = document.getElementById("login-success");
+  const resetBtn = document.getElementById("btn-reset-password");
 
+  // 🔐 LOGIN
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorEl.textContent = "";
+    successEl.textContent = "";
 
     const email = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-pass").value;
@@ -68,17 +84,52 @@ export async function render(container) {
 
       if (error) throw error;
 
-      // 🔥 FIX DEFINITIVO
-      // ricarichiamo la SPA con hash home
       const base =
         window.location.origin + window.location.pathname;
 
       window.location.href = `${base}#/home`;
       window.location.reload();
+
     } catch (err) {
       console.error("Errore login:", err);
       errorEl.textContent =
         err.message || "Errore di accesso";
+    }
+  });
+
+  // 🔁 RESET PASSWORD
+  resetBtn.addEventListener("click", async () => {
+    errorEl.textContent = "";
+    successEl.textContent = "";
+
+    const email = document.getElementById("login-email").value.trim();
+
+    if (!email) {
+      errorEl.textContent =
+        "Inserisci la tua email per ricevere il link di reset.";
+      return;
+    }
+
+    try {
+      const { error } =
+        await window.supabaseClient.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo:
+              window.location.origin +
+              window.location.pathname +
+              "#/setPassword",
+          }
+        );
+
+      if (error) throw error;
+
+      successEl.textContent =
+        "Email di reset inviata. Controlla la tua casella di posta.";
+    } catch (err) {
+      console.error("Errore reset:", err);
+      errorEl.textContent =
+        err.message || "Errore durante il reset.";
     }
   });
 }
