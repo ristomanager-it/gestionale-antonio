@@ -1,135 +1,170 @@
-// js/views/login.js
+// js/views/home.js
 // =======================================
-// Login view – versione definitiva stabile
-// Con reset password integrato
+// Dashboard Operativa – Dark Premium
 // =======================================
 
 export async function render(container) {
+  const user = window.state.user;
+  const azienda = window.state.azienda;
+
+  if (!user || !azienda) {
+    container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
+    return;
+  }
+
+  // Redirect piattaforma
+  if (azienda.stato === "piattaforma") {
+    window.location.hash = "#/homePiattaforma";
+    return;
+  }
+
+  const features = azienda.features || {};
+
+  const moduli = [
+    { key: "timbrature", label: "Timbrature", icon: "⏱️" },
+    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
+    { key: "ricette", label: "Ricette", icon: "🍽️" },
+    { key: "magazzino", label: "Magazzino", icon: "📦" },
+    { key: "acquisti", label: "Acquisti", icon: "🧾" },
+    { key: "preventivi", label: "Preventivi", icon: "📑" },
+    { key: "eventi", label: "Eventi", icon: "🎉" },
+    { key: "report", label: "Report", icon: "📊" },
+    { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
+  ];
+
+  const attivi = moduli.filter(m => features[m.key] !== false);
+  const saluto = getSaluto();
+
   container.innerHTML = `
-    <div class="login-wrapper">
-      <div class="login-card">
+    <div class="view dashboard-dark">
 
-        <div class="login-logo">
-          <img src="Logo Gestionale Antonio.png" alt="Ristoflow" />
+      <!-- HEADER -->
+      <div class="dashboard-header">
+        ${
+          azienda.logo_url
+            ? `<img src="${azienda.logo_url}" class="dashboard-logo" />`
+            : `<div class="dashboard-logo-placeholder"></div>`
+        }
+
+        <div>
+          <h2>${azienda.nome}</h2>
+          <p class="small-muted">
+            ${saluto} 👋 Benvenuto nella tua dashboard
+          </p>
         </div>
-
-        <h2 style="text-align:center">Accesso</h2>
-
-        <form id="login-form">
-          <label>
-            Email
-            <input
-              id="login-email"
-              type="email"
-              class="input-pill"
-              required
-              autocomplete="email"
-            />
-          </label>
-
-          <label>
-            Password
-            <input
-              id="login-pass"
-              type="password"
-              class="input-pill"
-              required
-              autocomplete="current-password"
-            />
-          </label>
-
-          <div style="text-align:right; margin-top:6px;">
-            <button
-              type="button"
-              id="btn-reset-password"
-              style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;padding:0;"
-            >
-              Password dimenticata?
-            </button>
-          </div>
-
-          <div class="login-actions" style="margin-top:14px;">
-            <button type="submit" class="app-button login-primary">
-              Entra
-            </button>
-          </div>
-        </form>
-
-        <p id="login-error" class="login-error"></p>
-        <p id="login-success" style="color:#16a34a;font-size:13px;"></p>
       </div>
+
+      <!-- GRID -->
+      <div class="dashboard-grid">
+        ${
+          attivi.length === 0
+            ? `
+              <div class="kpi-card">
+                <h3>Nessun modulo attivo</h3>
+                <p class="small-muted">
+                  Attiva le feature dalla piattaforma.
+                </p>
+              </div>
+            `
+            : attivi.map((m, index) => `
+                <div 
+                  class="dashboard-card"
+                  style="animation-delay:${index * 0.06}s"
+                  onclick="window.location.hash='#/${m.key}'"
+                >
+                  <div class="card-icon">${m.icon}</div>
+                  <div class="card-label">${m.label}</div>
+                </div>
+              `).join("")
+        }
+      </div>
+
     </div>
+
+    <style>
+      /* DARK BASE */
+      .dashboard-dark {
+        background: linear-gradient(135deg, #0f172a, #111827);
+        padding: 28px;
+        border-radius: 24px;
+        color: #f9fafb;
+      }
+
+      .dashboard-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 36px;
+      }
+
+      .dashboard-logo {
+        width: 68px;
+        height: 68px;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      }
+
+      .dashboard-logo-placeholder {
+        width: 68px;
+        height: 68px;
+        border-radius: 20px;
+        background: linear-gradient(135deg,#1f2937,#111827);
+      }
+
+      .dashboard-header h2 {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        gap: 22px;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      }
+
+      .dashboard-card {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(8px);
+        padding: 30px 18px;
+        border-radius: 22px;
+        text-align: center;
+        cursor: pointer;
+        border: 1px solid rgba(255,255,255,0.05);
+        transition: all 0.25s ease;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeUp 0.5s ease forwards;
+      }
+
+      .dashboard-card:hover {
+        transform: translateY(-8px);
+        background: rgba(255,255,255,0.08);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      }
+
+      .card-icon {
+        font-size: 30px;
+        margin-bottom: 14px;
+      }
+
+      .card-label {
+        font-weight: 500;
+      }
+
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
   `;
+}
 
-  const form = document.getElementById("login-form");
-  const errorEl = document.getElementById("login-error");
-  const successEl = document.getElementById("login-success");
-  const resetBtn = document.getElementById("btn-reset-password");
-
-  // 🔐 LOGIN
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errorEl.textContent = "";
-    successEl.textContent = "";
-
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-pass").value;
-
-    try {
-      const { error } =
-        await window.supabaseClient.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-      if (error) throw error;
-
-      const base =
-        window.location.origin + window.location.pathname;
-
-      window.location.href = `${base}#/home`;
-      window.location.reload();
-
-    } catch (err) {
-      console.error("Errore login:", err);
-      errorEl.textContent =
-        err.message || "Errore di accesso";
-    }
-  });
-
-  // 🔁 RESET PASSWORD
-  resetBtn.addEventListener("click", async () => {
-    errorEl.textContent = "";
-    successEl.textContent = "";
-
-    const email = document.getElementById("login-email").value.trim();
-
-    if (!email) {
-      errorEl.textContent =
-        "Inserisci la tua email per ricevere il link di reset.";
-      return;
-    }
-
-    try {
-      const { error } =
-        await window.supabaseClient.auth.resetPasswordForEmail(
-          email,
-          {
-            redirectTo:
-              window.location.origin +
-              window.location.pathname +
-              "#/setPassword",
-          }
-        );
-
-      if (error) throw error;
-
-      successEl.textContent =
-        "Email di reset inviata. Controlla la tua casella di posta.";
-    } catch (err) {
-      console.error("Errore reset:", err);
-      errorEl.textContent =
-        err.message || "Errore durante il reset.";
-    }
-  });
+function getSaluto() {
+  const ora = new Date().getHours();
+  if (ora < 12) return "Buongiorno";
+  if (ora < 18) return "Buon pomeriggio";
+  return "Buonasera";
 }
