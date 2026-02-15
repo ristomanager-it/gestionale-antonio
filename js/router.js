@@ -7,7 +7,7 @@ const app = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
-  homePiattaforma: () => import("./views/home-piattaforma.js"), // ✅ AGGIUNTA
+  homePiattaforma: () => import("./views/home-piattaforma.js"),
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
@@ -34,33 +34,33 @@ function parseHash() {
 }
 
 async function renderView(routeName) {
+  if (!routes[routeName]) {
+    routeName = "home";
+  }
+
   app.innerHTML = "";
-  const view = await routes[routeName]();
-  await view.render(app);
+  const module = await routes[routeName]();
+
+  if (!module.render) {
+    throw new Error(`La view ${routeName} non esporta render()`);
+  }
+
+  await module.render(app);
 }
 
 async function resolve() {
-  const url = window.location.href;
-
-  // 🔥 Gestione INVITE / RECOVERY
-  if (url.includes("code=")) {
-    const { error } =
-      await window.supabaseClient.auth.exchangeCodeForSession(url);
-
-    if (!error) {
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname + window.location.hash
-      );
-    }
-  }
-
   const { route, params } = parseHash();
   window.routeParams = params || {};
 
-  const { data } = await window.supabaseClient.auth.getSession();
-  const session = data.session;
+  // Sessione
+  let { data } = await window.supabaseClient.auth.getSession();
+  let session = data.session;
+
+  if (!session) {
+    const { data: refreshed } =
+      await window.supabaseClient.auth.refreshSession();
+    session = refreshed?.session;
+  }
 
   if (!session) {
     await renderView("login");
@@ -68,12 +68,6 @@ async function resolve() {
   }
 
   window.stateActions.setUser(session.user);
-
-  // 🔐 Se deve impostare password
-  if (session.user.user_metadata?.must_set_password === true) {
-    await renderView("setPassword");
-    return;
-  }
 
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
@@ -94,10 +88,14 @@ async function resolve() {
     .eq("user_id", session.user.id)
     .eq("attivo", true);
 
-  window.stateActions.setAziende(aziende || []);
+  const aziendePulite = (aziende || []).filter(a => a.aziende !== null);
+
+  window.stateActions.setAziende(aziendePulite);
   window.stateActions.autoSetAzienda();
 
-  if (!window.state.azienda) {
+  const azienda = window.state.azienda;
+
+  if (!azienda) {
     app.innerHTML = `
       <div class="login-wrapper">
         <div class="login-card">
@@ -108,8 +106,14 @@ async function resolve() {
     return;
   }
 
-  const safeRoute = routes[route] ? route : "home";
-  await renderView(safeRoute);
+  if (azienda.stato === "piattaforma") {
+    if (route !== "homePiattaforma") {
+      window.location.hash = "#/homePiattaforma";
+      return;
+    }
+  }
+
+  await renderView(route);
 }
 
 window.addEventListener("hashchange", resolve);
