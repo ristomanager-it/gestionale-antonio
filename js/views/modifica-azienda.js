@@ -21,9 +21,12 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-      <div id="status-cards" style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;"></div>
+      <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:center; margin-top:20px;">
+        <canvas id="grafico-scadenze" width="180" height="180"></canvas>
+        <div id="status-cards" style="flex:1; display:flex; gap:14px; flex-wrap:wrap;"></div>
+      </div>
 
-      <div id="lista-dettaglio" style="margin-top:18px;"></div>
+      <div id="lista-dettaglio" style="margin-top:20px; overflow:hidden; max-height:0; transition:max-height 0.4s ease;"></div>
 
       <div style="margin-top:30px;">
         <input 
@@ -48,74 +51,11 @@ export async function render(container) {
   };
 
   await caricaStatoScadenzeAziende();
-
-  // ======= RICERCA (intatta) =======
-  const input = document.getElementById("search-input");
-  const results = document.getElementById("search-results");
-
-  results.innerHTML = `<p class="small-muted">Digita per cercare un’azienda.</p>`;
-
-  input.addEventListener("input", async () => {
-    const q = input.value.trim();
-
-    if (q.length < 2) {
-      results.innerHTML = `<p class="small-muted">Digita almeno 2 caratteri.</p>`;
-      return;
-    }
-
-    const filter =
-      "nome.ilike.%" + q + "%," +
-      "codice.ilike.%" + q + "%," +
-      "email.ilike.%" + q + "%," +
-      "partita_iva.ilike.%" + q + "%";
-
-    const { data, error } = await supabase
-      .from("aziende")
-      .select("id,nome,codice,email,referente,stato")
-      .or(filter)
-      .limit(20);
-
-    if (error) {
-      results.innerHTML = `<p style="color:#dc2626;">Errore ricerca.</p>`;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      results.innerHTML = `<p class="small-muted">Nessuna azienda trovata.</p>`;
-      return;
-    }
-
-    results.innerHTML = "";
-
-    data.forEach((azienda) => {
-      const card = document.createElement("div");
-      card.className = "view";
-      card.style.marginBottom = "12px";
-
-      card.innerHTML = `
-        <strong>${azienda.nome}</strong><br>
-        <span class="small-muted">Codice: ${azienda.codice}</span><br>
-        <span class="small-muted">Email: ${azienda.email || "-"}</span><br>
-        <span class="small-muted">Stato: ${azienda.stato}</span>
-        <div style="margin-top:10px;">
-          <button class="app-button small gray btn-apri">
-            ✏️ Apri scheda
-          </button>
-        </div>
-      `;
-
-      card.querySelector(".btn-apri").onclick = () => {
-        window.location.hash = "#/modificaAzienda?id=" + azienda.id;
-      };
-
-      results.appendChild(card);
-    });
-  });
 }
 
 
 // ===============================
-// NUOVA UI STATO VISIVO
+// DASHBOARD STATO SCADENZE
 // ===============================
 async function caricaStatoScadenzeAziende() {
   const { data, error } = await supabase
@@ -128,11 +68,7 @@ async function caricaStatoScadenzeAziende() {
   const oggi = new Date();
   oggi.setHours(0,0,0,0);
 
-  const gruppi = {
-    verde: [],
-    giallo: [],
-    rosso: []
-  };
+  const gruppi = { verde: [], giallo: [], rosso: [] };
 
   data.forEach((az) => {
     if (!az.data_scadenza) {
@@ -150,11 +86,65 @@ async function caricaStatoScadenzeAziende() {
     else gruppi.verde.push({ ...az, giorni: diff });
   });
 
+  const totale = data.length || 1;
+
+  const percentuali = {
+    verde: Math.round((gruppi.verde.length / totale) * 100),
+    giallo: Math.round((gruppi.giallo.length / totale) * 100),
+    rosso: Math.round((gruppi.rosso.length / totale) * 100)
+  };
+
+  creaGrafico(percentuali);
+  creaCard(gruppi, percentuali);
+}
+
+
+
+// ===============================
+// GRAFICO DONUT
+// ===============================
+function creaGrafico(percentuali) {
+  const canvas = document.getElementById("grafico-scadenze");
+  const ctx = canvas.getContext("2d");
+
+  const colori = {
+    verde: "#16a34a",
+    giallo: "#eab308",
+    rosso: "#dc2626"
+  };
+
+  let start = 0;
+
+  Object.keys(percentuali).forEach((key) => {
+    const slice = (percentuali[key] / 100) * (Math.PI * 2);
+
+    ctx.beginPath();
+    ctx.moveTo(90, 90);
+    ctx.arc(90, 90, 80, start, start + slice);
+    ctx.closePath();
+    ctx.fillStyle = colori[key];
+    ctx.fill();
+
+    start += slice;
+  });
+
+  // foro centrale
+  ctx.beginPath();
+  ctx.arc(90, 90, 50, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+}
+
+
+
+// ===============================
+// CARD DASHBOARD STYLE
+// ===============================
+function creaCard(gruppi, percentuali) {
   const container = document.getElementById("status-cards");
   const dettaglio = document.getElementById("lista-dettaglio");
 
   container.innerHTML = "";
-  dettaglio.innerHTML = "";
 
   const config = [
     { key: "verde", colore: "#16a34a", label: "Regolari" },
@@ -164,34 +154,39 @@ async function caricaStatoScadenzeAziende() {
 
   config.forEach((c) => {
     const card = document.createElement("div");
-    card.className = "view";
-    card.style.cursor = "pointer";
     card.style.flex = "1";
-    card.style.minWidth = "140px";
+    card.style.minWidth = "160px";
+    card.style.padding = "16px";
+    card.style.borderRadius = "18px";
+    card.style.background = "#ffffff";
+    card.style.boxShadow = "0 10px 25px rgba(0,0,0,0.08)";
+    card.style.cursor = "pointer";
+    card.style.transition = "transform 0.2s ease";
+
+    card.onmouseenter = () => card.style.transform = "translateY(-4px)";
+    card.onmouseleave = () => card.style.transform = "translateY(0px)";
 
     card.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <div style="
-          width:14px;
-          height:14px;
-          border-radius:50%;
-          background:${c.colore};
-        "></div>
-        <strong>${c.label}</strong>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:12px; height:12px; border-radius:50%; background:${c.colore};"></div>
+          <strong>${c.label}</strong>
+        </div>
+        <span style="font-size:13px; color:#6b7280;">${percentuali[c.key]}%</span>
       </div>
-      <div style="font-size:22px; margin-top:8px;">
+      <div style="font-size:26px; margin-top:8px;">
         ${gruppi[c.key].length}
       </div>
     `;
 
     card.onclick = () => {
-      mostraDettaglio(c.key, gruppi[c.key], c.label);
+      mostraDettaglio(gruppi[c.key], c.label);
     };
 
     container.appendChild(card);
   });
 
-  function mostraDettaglio(key, lista, titolo) {
+  function mostraDettaglio(lista, titolo) {
     dettaglio.innerHTML = `
       <div class="view">
         <h3>${titolo}</h3>
@@ -203,25 +198,26 @@ async function caricaStatoScadenzeAziende() {
 
     if (lista.length === 0) {
       interno.innerHTML = `<p class="small-muted">Nessuna azienda.</p>`;
-      return;
+    } else {
+      lista.forEach((az) => {
+        const riga = document.createElement("div");
+        riga.style.padding = "10px 0";
+        riga.style.borderBottom = "1px solid #e5e7eb";
+
+        let testo = az.nome;
+
+        if (az.giorni !== undefined) {
+          if (az.giorni < 0)
+            testo += ` — scaduta da ${Math.abs(az.giorni)} giorni`;
+          else
+            testo += ` — scade tra ${az.giorni} giorni`;
+        }
+
+        riga.textContent = testo;
+        interno.appendChild(riga);
+      });
     }
 
-    lista.forEach((az) => {
-      const riga = document.createElement("div");
-      riga.style.padding = "8px 0";
-      riga.style.borderBottom = "1px solid #e5e7eb";
-
-      let testo = az.nome;
-
-      if (az.giorni !== undefined) {
-        if (az.giorni < 0)
-          testo += ` — scaduta da ${Math.abs(az.giorni)} giorni`;
-        else
-          testo += ` — scade tra ${az.giorni} giorni`;
-      }
-
-      riga.textContent = testo;
-      interno.appendChild(riga);
-    });
+    dettaglio.style.maxHeight = "800px";
   }
 }
