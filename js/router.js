@@ -39,6 +39,7 @@ async function renderView(routeName) {
   }
 
   app.innerHTML = "";
+
   const module = await routes[routeName]();
 
   if (!module.render) {
@@ -52,16 +53,18 @@ async function resolve() {
   const { route, params } = parseHash();
   window.routeParams = params || {};
 
-  // Sessione
+  // 🔐 Recupero sessione
   let { data } = await window.supabaseClient.auth.getSession();
   let session = data.session;
 
+  // Tentativo refresh automatico
   if (!session) {
     const { data: refreshed } =
       await window.supabaseClient.auth.refreshSession();
     session = refreshed?.session;
   }
 
+  // ❌ Nessuna sessione → login
   if (!session) {
     await renderView("login");
     return;
@@ -69,6 +72,7 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
+  // 🔐 Recupero aziende associate
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
     .select(`
@@ -106,11 +110,18 @@ async function resolve() {
     return;
   }
 
-  if (azienda.stato === "piattaforma") {
-    if (route !== "homePiattaforma") {
-      window.location.hash = "#/homePiattaforma";
-      return;
-    }
+  // 🔵 Regole di navigazione
+
+  // Se piattaforma e non specifica route → home piattaforma
+  if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
+    window.location.hash = "#/homePiattaforma";
+    return;
+  }
+
+  // Se azienda normale prova ad andare su homePiattaforma → riportala a home
+  if (azienda.stato !== "piattaforma" && route === "homePiattaforma") {
+    window.location.hash = "#/home";
+    return;
   }
 
   await renderView(route);
