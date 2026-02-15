@@ -32,64 +32,54 @@ export async function render(container) {
     <div class="view">
       <h2>Modifica Azienda</h2>
 
-      <!-- CARD LOGO -->
-      <div class="view" style="margin-top:16px;">
-        <h3>Logo Azienda</h3>
+      ${cardAnagrafica(azienda)}
+      ${cardFiscale(azienda)}
+      ${cardContatti(azienda)}
+      ${cardSaaS(azienda)}
+      ${cardParametri(azienda)}
 
-        <div style="margin-top:10px;">
-          ${
-            azienda.logo_url
-              ? `<img src="${azienda.logo_url}" style="max-width:150px; border-radius:12px;" />`
-              : `<p class="small-muted">Nessun logo caricato</p>`
-          }
-        </div>
-
-        <div style="margin-top:10px;">
-          <input type="file" id="logo-file" accept="image/*" />
-        </div>
-
-        <div style="margin-top:10px;">
-          <button class="app-button small gray" id="btn-upload-logo">
-            Carica nuovo logo
-          </button>
-        </div>
-
-        <div id="logo-result" style="margin-top:8px;"></div>
-      </div>
-
-      <!-- DATI AZIENDA -->
-      <div style="display:grid; gap:12px; margin-top:20px;">
-        <input class="input-pill" id="nome" value="${azienda.nome || ""}" placeholder="Nome" />
-        <input class="input-pill" id="ragione_sociale" value="${azienda.ragione_sociale || ""}" placeholder="Ragione Sociale" />
-        <input class="input-pill" id="partita_iva" value="${azienda.partita_iva || ""}" placeholder="Partita IVA" />
-        <input class="input-pill" id="email" value="${azienda.email || ""}" placeholder="Email" />
-        <input class="input-pill" id="referente" value="${azienda.referente || ""}" placeholder="Referente" />
-        <input class="input-pill" type="date" id="data_scadenza" value="${azienda.data_scadenza || ""}" />
-      </div>
-
-      <div style="margin-top:20px; display:flex; gap:10px;">
-        <button class="app-button" id="btn-save">💾 Salva</button>
+      <div style="margin-top:24px; display:flex; gap:12px;">
+        <button class="app-button" id="btn-save">💾 Salva modifiche</button>
         <button class="app-button small gray" id="btn-back">⬅ Indietro</button>
       </div>
 
-      <div id="save-result" style="margin-top:10px;"></div>
+      <div id="save-result" style="margin-top:12px;"></div>
     </div>
   `;
 
-  // 🔙 Torna indietro
   document.getElementById("btn-back").onclick = () => {
     window.location.hash = "#/gestioneAziende";
   };
 
-  // 💾 Salva dati
   document.getElementById("btn-save").onclick = async () => {
+
     const updateData = {
-      nome: document.getElementById("nome").value.trim(),
-      ragione_sociale: document.getElementById("ragione_sociale").value.trim(),
-      partita_iva: document.getElementById("partita_iva").value.trim(),
-      email: document.getElementById("email").value.trim(),
-      referente: document.getElementById("referente").value.trim(),
-      data_scadenza: document.getElementById("data_scadenza").value || null
+      nome: val("nome"),
+      ragione_sociale: val("ragione_sociale"),
+      partita_iva: val("partita_iva"),
+      codice_fiscale: val("codice_fiscale"),
+      indirizzo: val("indirizzo"),
+      citta: val("citta"),
+      cap: val("cap"),
+      provincia: val("provincia"),
+      nazione: val("nazione"),
+      email: val("email"),
+      telefono: val("telefono"),
+      pec: val("pec"),
+      codice_univoco: val("codice_univoco"),
+      referente: val("referente"),
+      email_amministrativa: val("email_amministrativa"),
+      telefono_amministrativo: val("telefono_amministrativo"),
+      data_scadenza: val("data_scadenza") || null,
+      piano: val("piano"),
+      numero_massimo_utenti: intVal("numero_massimo_utenti"),
+      numero_massimo_ricette: intVal("numero_massimo_ricette"),
+      aliquota_iva_default: numVal("aliquota_iva_default"),
+      food_cost_target_percentuale: numVal("food_cost_target_percentuale"),
+      markup_default: numVal("markup_default"),
+      attiva: boolVal("attiva"),
+      stato: val("stato"),
+      stato_attivazione: val("stato_attivazione")
     };
 
     const { error } = await supabase
@@ -100,48 +90,114 @@ export async function render(container) {
     const result = document.getElementById("save-result");
 
     if (error) {
-      result.innerHTML = `<span style="color:#dc2626;">Errore salvataggio</span>`;
+      result.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`;
       return;
     }
 
-    result.innerHTML = `<span style="color:#16a34a;">Salvato ✔</span>`;
+    result.innerHTML = `<span style="color:#16a34a;">Salvato correttamente ✔</span>`;
   };
+}
 
-  // 🖼 Upload logo
-  document.getElementById("btn-upload-logo").onclick = async () => {
-    const fileInput = document.getElementById("logo-file");
-    const file = fileInput.files[0];
+function val(id) {
+  return document.getElementById(id)?.value.trim() || null;
+}
 
-    if (!file) return;
+function intVal(id) {
+  const v = document.getElementById(id)?.value;
+  return v ? parseInt(v) : null;
+}
 
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${id}.${fileExt}`;
+function numVal(id) {
+  const v = document.getElementById(id)?.value;
+  return v ? parseFloat(v) : null;
+}
 
-    const { error: uploadError } = await supabase.storage
-      .from("loghi-aziende")
-      .upload(filePath, file, { upsert: true });
+function boolVal(id) {
+  return document.getElementById(id)?.checked || false;
+}
 
-    if (uploadError) {
-      document.getElementById("logo-result").innerHTML =
-        `<span style="color:#dc2626;">Errore upload</span>`;
-      return;
-    }
+function cardAnagrafica(a) {
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Dati Anagrafici</h3>
+      ${input("nome","Nome",a.nome)}
+      ${input("ragione_sociale","Ragione Sociale",a.ragione_sociale)}
+      ${input("referente","Referente",a.referente)}
+    </div>
+  `;
+}
 
-    const { data: publicUrlData } = supabase.storage
-      .from("loghi-aziende")
-      .getPublicUrl(filePath);
+function cardFiscale(a) {
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Dati Fiscali</h3>
+      ${input("partita_iva","Partita IVA",a.partita_iva)}
+      ${input("codice_fiscale","Codice Fiscale",a.codice_fiscale)}
+      ${input("codice_univoco","Codice Univoco",a.codice_univoco)}
+      ${input("pec","PEC",a.pec)}
+    </div>
+  `;
+}
 
-    await supabase
-      .from("aziende")
-      .update({
-        logo_path: filePath,
-        logo_url: publicUrlData.publicUrl
-      })
-      .eq("id", id);
+function cardContatti(a) {
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Contatti</h3>
+      ${input("email","Email",a.email)}
+      ${input("telefono","Telefono",a.telefono)}
+      ${input("email_amministrativa","Email Amministrativa",a.email_amministrativa)}
+      ${input("telefono_amministrativo","Telefono Amministrativo",a.telefono_amministrativo)}
+      ${input("indirizzo","Indirizzo",a.indirizzo)}
+      ${input("citta","Città",a.citta)}
+      ${input("cap","CAP",a.cap)}
+      ${input("provincia","Provincia",a.provincia)}
+      ${input("nazione","Nazione",a.nazione)}
+    </div>
+  `;
+}
 
-    document.getElementById("logo-result").innerHTML =
-      `<span style="color:#16a34a;">Logo aggiornato ✔</span>`;
+function cardSaaS(a) {
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Configurazione SaaS</h3>
+      ${input("piano","Piano",a.piano)}
+      ${input("numero_massimo_utenti","Max Utenti",a.numero_massimo_utenti,"number")}
+      ${input("numero_massimo_ricette","Max Ricette",a.numero_massimo_ricette,"number")}
+      ${input("data_scadenza","Data Scadenza",a.data_scadenza,"date")}
+      ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
+      ${select("stato","Stato",a.stato,["attiva","sospesa"])}
+      <label><input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva</label>
+    </div>
+  `;
+}
 
-    location.reload();
-  };
+function cardParametri(a) {
+  return `
+    <div class="view" style="margin-top:20px;">
+      <h3>Parametri Gestionali</h3>
+      ${input("aliquota_iva_default","Aliquota IVA Default",a.aliquota_iva_default,"number")}
+      ${input("food_cost_target_percentuale","Food Cost Target %",a.food_cost_target_percentuale,"number")}
+      ${input("markup_default","Markup Default",a.markup_default,"number")}
+    </div>
+  `;
+}
+
+function input(id,label,value,type="text"){
+  return `
+    <div style="margin-top:10px;">
+      <label class="small-muted">${label}</label>
+      <input class="input-pill" type="${type}" id="${id}" value="${value ?? ""}" />
+    </div>
+  `;
+}
+
+function select(id,label,value,options){
+  return `
+    <div style="margin-top:10px;">
+      <label class="small-muted">${label}</label>
+      <select class="input-pill" id="${id}">
+        ${options.map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
+      </select>
+    </div>
+  `;
 }
