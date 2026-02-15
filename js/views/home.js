@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard principale
+// Dashboard moderna unificata
 // =======================================
 
 export async function render(container) {
@@ -8,131 +8,101 @@ export async function render(container) {
   const azienda = window.state.azienda;
 
   if (!user || !azienda) {
-    container.innerHTML = `<p>Errore caricamento dashboard</p>`;
+    container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
     return;
   }
 
   const isPiattaforma = azienda.stato === "piattaforma";
-
-  container.innerHTML = `
-    <div class="view">
-
-      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center;">
-
-        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-
-          ${
-            azienda.logo_url
-              ? `
-            <img 
-              src="${azienda.logo_url}" 
-              style="width:60px; height:60px; object-fit:cover; border-radius:14px; background:#e5e7eb;"
-            />
-          `
-              : ""
-          }
-
-          <div>
-            <h2 style="margin:0;">Dashboard</h2>
-            <p class="small-muted" style="margin:4px 0 0 0;">
-              Azienda attiva: <strong>${azienda.nome}</strong>
-            </p>
-          </div>
-
-        </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="app-button small gray" id="btn-carica">
-            🔄 Carica azienda
-          </button>
-
-          ${
-            isPiattaforma
-              ? `
-            <button class="app-button small" id="btn-gestione">
-              🏢 Gestione aziende
-            </button>
-
-            <button class="app-button small green" id="btn-crea">
-              + Crea azienda
-            </button>
-          `
-              : ""
-          }
-        </div>
-      </div>
-
-      <hr style="margin:16px 0;" />
-
-      <div id="home-moduli" style="display:flex; flex-direction:column; gap:12px;"></div>
-
-    </div>
-  `;
-
-  // Pulsanti top
-  document.getElementById("btn-carica").onclick = () => {
-    window.location.hash = "#/caricaAzienda";
-  };
-
-  if (isPiattaforma) {
-    document.getElementById("btn-gestione").onclick = () => {
-      window.location.hash = "#/gestioneAziende";
-    };
-
-    document.getElementById("btn-crea").onclick = () => {
-      window.location.hash = "#/creaAzienda";
-    };
-  }
-
-  const moduliContainer = document.getElementById("home-moduli");
-
-  if (isPiattaforma) {
-    moduliContainer.innerHTML = `
-      <div class="kpi-card">
-        <h3>Piattaforma Ristoflow</h3>
-        <p class="small-muted">
-          Gestisci clienti, scadenze, feature e configurazioni SaaS.
-        </p>
-      </div>
-    `;
-    return;
-  }
-
   const features = azienda.features || {};
 
   const moduli = [
-    { key: "timbrature", label: "Timbrature" },
-    { key: "dipendenti", label: "Dipendenti" },
-    { key: "ricette", label: "Ricette" },
-    { key: "ricettario", label: "Ricettario" },
-    { key: "magazzino", label: "Magazzino" },
-    { key: "acquisti", label: "Acquisti" },
-    { key: "preventivi", label: "Preventivi" },
-    { key: "venduto", label: "Venduto" },
-    { key: "report", label: "Report" },
+    { key: "timbrature", label: "Timbrature", icon: "⏱️" },
+    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
+    { key: "ricette", label: "Ricette", icon: "🍽️" },
+    { key: "magazzino", label: "Magazzino", icon: "📦" },
+    { key: "acquisti", label: "Acquisti", icon: "🧾" },
+    { key: "preventivi", label: "Preventivi", icon: "📑" },
+    { key: "eventi", label: "Eventi", icon: "🎉" },
+    { key: "report", label: "Report", icon: "📊" },
+    { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
   const attivi = moduli.filter(m => features[m.key] !== false);
 
-  if (attivi.length === 0) {
-    moduliContainer.innerHTML = `
-      <div class="kpi-card">
-        <h3>Nessun modulo attivo</h3>
-        <p class="small-muted">
-          Attiva le feature dalla piattaforma.
-        </p>
-      </div>
-    `;
-    return;
-  }
+  container.innerHTML = `
+    <div class="view">
 
-  moduliContainer.innerHTML = attivi.map(m => `
-    <button 
-      class="app-button"
-      style="width:100%;"
-      onclick="window.location.hash='#/${m.key}'"
-    >
-      ${m.label}
-    </button>
-  `).join("");
+      <!-- HEADER COMPATTO -->
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:22px;">
+        ${
+          azienda.logo_url
+            ? `<img 
+                src="${azienda.logo_url}" 
+                style="width:52px; height:52px; object-fit:cover; border-radius:14px; background:#e5e7eb;"
+              />`
+            : `<div style="width:52px; height:52px; border-radius:14px; background:#e5e7eb;"></div>`
+        }
+
+        <div>
+          <h2 style="margin:0;">${azienda.nome}</h2>
+          <p class="small-muted" style="margin:4px 0 0 0;">
+            Dashboard operativa
+          </p>
+        </div>
+      </div>
+
+      <!-- GRID MODULI -->
+      <div 
+        style="
+          display:grid;
+          gap:14px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        "
+      >
+        ${attivi.map(m => `
+          <div 
+            class="app-button"
+            style="
+              padding:22px 16px;
+              text-align:center;
+              border-radius:18px;
+              font-size:14px;
+              transition: all 0.2s ease;
+            "
+            onclick="window.location.hash='#/${m.key}'"
+          >
+            <div style="font-size:24px; margin-bottom:8px;">
+              ${m.icon}
+            </div>
+            ${m.label}
+          </div>
+        `).join("")}
+
+        ${
+          isPiattaforma
+            ? `
+          <div 
+            class="app-button"
+            style="
+              padding:22px 16px;
+              text-align:center;
+              border-radius:18px;
+              background:#111827;
+              color:white;
+            "
+            onclick="window.location.hash='#/gestioneAziende'"
+          >
+            <div style="font-size:24px; margin-bottom:8px;">
+              🏢
+            </div>
+            Aziende
+          </div>
+        `
+            : ""
+        }
+
+      </div>
+
+    </div>
+  `;
 }
