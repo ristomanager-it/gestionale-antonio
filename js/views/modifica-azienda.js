@@ -1,5 +1,17 @@
 import { supabase } from "../supabaseClient.js";
 
+const DEFAULT_FEATURES = {
+  timbrature: true,
+  dipendenti: true,
+  ricette: true,
+  ricettario: true,
+  magazzino: true,
+  acquisti: true,
+  preventivi: true,
+  venduto: true,
+  report: true,
+};
+
 function getIdFromHash() {
   const raw = window.location.hash || "";
   const qIndex = raw.indexOf("?");
@@ -42,6 +54,8 @@ export async function render(container) {
     return;
   }
 
+  const features = { ...DEFAULT_FEATURES, ...(azienda.features || {}) };
+
   const dataScadenzaValue = azienda.data_scadenza
     ? String(azienda.data_scadenza).slice(0, 10)
     : "";
@@ -50,11 +64,19 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Configurazione Azienda</h2>
 
+      <!-- ATTIVAZIONE -->
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Attivazione SaaS</h3>
+        <p>Stato attivazione: <strong>${esc(
+          azienda.stato_attivazione || "bozza"
+        )}</strong></p>
+      </div>
+
+      <!-- STATO -->
       <div class="card-block" style="margin-top:20px;">
         <h3>Stato Azienda</h3>
 
         <form id="form-stato" class="form-stack">
-
           <label>
             Stato operativo
             <select id="az-stato" class="input-pill">
@@ -92,34 +114,139 @@ export async function render(container) {
           <button type="submit" class="app-button green">
             Salva Stato
           </button>
+        </form>
+      </div>
+
+      <!-- DATI BASE -->
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Dati Base</h3>
+
+        <form id="form-base" class="form-stack">
+          <label>
+            Nome azienda
+            <input id="az-nome" class="input-pill" value="${esc(
+              azienda.nome
+            )}" required />
+          </label>
+
+          <label>
+            Codice azienda
+            <input id="az-codice" class="input-pill" value="${esc(
+              azienda.codice
+            )}" required />
+          </label>
+
+          <label>
+            PIN accesso
+            <input id="az-pin" class="input-pill" value="${esc(
+              azienda.pin_accesso || ""
+            )}" />
+          </label>
+
+          <button type="submit" class="app-button green">
+            Salva Dati Base
+          </button>
+        </form>
+      </div>
+
+      <!-- ANAGRAFICA -->
+      <div class="card-block" style="margin-top:20px;">
+        <h3>Anagrafica</h3>
+
+        <form id="form-anagrafica" class="form-stack">
+
+          <label>
+            Ragione sociale
+            <input id="az-ragione" class="input-pill" value="${esc(
+              azienda.ragione_sociale || ""
+            )}" />
+          </label>
+
+          <label>
+            Partita IVA
+            <input id="az-piva" class="input-pill" value="${esc(
+              azienda.partita_iva || ""
+            )}" />
+          </label>
+
+          <label>
+            Codice Fiscale
+            <input id="az-cf" class="input-pill" value="${esc(
+              azienda.codice_fiscale || ""
+            )}" />
+          </label>
+
+          <label>
+            Email
+            <input id="az-email" class="input-pill" value="${esc(
+              azienda.email || ""
+            )}" />
+          </label>
+
+          <label>
+            PEC
+            <input id="az-pec" class="input-pill" value="${esc(
+              azienda.pec || ""
+            )}" />
+          </label>
+
+          <label>
+            Telefono
+            <input id="az-tel" class="input-pill" value="${esc(
+              azienda.telefono || ""
+            )}" />
+          </label>
+
+          <label>
+            Referente
+            <input id="az-ref" class="input-pill" value="${esc(
+              azienda.referente || ""
+            )}" />
+          </label>
+
+          <label>
+            Email amministrativa
+            <input id="az-email-amm" class="input-pill" value="${esc(
+              azienda.email_amministrativa || ""
+            )}" />
+          </label>
+
+          <label>
+            Telefono amministrativo
+            <input id="az-tel-amm" class="input-pill" value="${esc(
+              azienda.telefono_amministrativo || ""
+            )}" />
+          </label>
+
+          <button type="submit" class="app-button green">
+            Salva Anagrafica
+          </button>
 
         </form>
       </div>
 
+      <!-- FEATURES -->
       <div class="card-block" style="margin-top:20px;">
-        <h3>Gestione Password Cliente</h3>
+        <h3>Funzionalità Attive</h3>
 
-        ${
-          azienda.email_amministrativa
-            ? `
-          <p class="small-muted">
-            Email login: <strong>${esc(
-              azienda.email_amministrativa
-            )}</strong>
-          </p>
+        <form id="form-features" class="features-grid">
+          ${Object.keys(features)
+            .map(
+              (key) => `
+            <label class="feature-item">
+              <input type="checkbox" data-feature="${esc(key)}" ${
+                features[key] ? "checked" : ""
+              } />
+              ${esc(key)}
+            </label>
+          `
+            )
+            .join("")}
+        </form>
 
-          <button id="btn-reset-password" class="app-button small gray">
-            Rigenera Password
-          </button>
-
-          <p id="password-info" style="margin-top:10px;"></p>
-        `
-            : `
-          <p style="color:#dc2626;">
-            Nessuna email amministrativa impostata.
-          </p>
-        `
-        }
+        <button id="btn-save-features" class="app-button green" style="margin-top:14px;">
+          Salva Funzionalità
+        </button>
       </div>
 
       <div style="margin-top:20px;">
@@ -134,75 +261,63 @@ export async function render(container) {
     window.location.hash = "#/gestioneAziende";
   };
 
-  const formStato = document.getElementById("form-stato");
-
-  formStato.onsubmit = async (e) => {
+  document.getElementById("form-stato").onsubmit = async (e) => {
     e.preventDefault();
 
-    const payload = {
+    await supabase.from("aziende").update({
       stato: document.getElementById("az-stato").value,
       attiva: document.getElementById("az-attiva").value === "true",
       data_scadenza:
         document.getElementById("az-scadenza").value || null,
-    };
+    }).eq("id", id);
 
-    const { error: upErr } = await supabase
-      .from("aziende")
-      .update(payload)
-      .eq("id", id);
-
-    if (upErr) {
-      alert(upErr.message);
-      return;
-    }
-
-    alert("Stato azienda aggiornato");
+    alert("Stato aggiornato");
     window.location.reload();
   };
 
-  const btnReset = document.getElementById("btn-reset-password");
+  document.getElementById("form-base").onsubmit = async (e) => {
+    e.preventDefault();
 
-  if (btnReset) {
-    btnReset.onclick = async () => {
-      const conferma = confirm(
-        "Vuoi rigenerare la password del cliente? La vecchia password non sarà più valida."
-      );
-      if (!conferma) return;
+    await supabase.from("aziende").update({
+      nome: document.getElementById("az-nome").value.trim(),
+      codice: document.getElementById("az-codice").value.trim(),
+      pin_accesso: document.getElementById("az-pin").value.trim() || null,
+    }).eq("id", id);
 
-      const { data: sessionData } =
-        await supabase.auth.getSession();
+    alert("Dati base aggiornati");
+  };
 
-      const response = await fetch(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/reset-password-admin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionData.session.access_token}`,
-          },
-          body: JSON.stringify({
-            email: azienda.email_amministrativa,
-          }),
-        }
-      );
+  document.getElementById("form-anagrafica").onsubmit = async (e) => {
+    e.preventDefault();
 
-      const result = await response.json();
+    await supabase.from("aziende").update({
+      ragione_sociale: document.getElementById("az-ragione").value || null,
+      partita_iva: document.getElementById("az-piva").value || null,
+      codice_fiscale: document.getElementById("az-cf").value || null,
+      email: document.getElementById("az-email").value || null,
+      pec: document.getElementById("az-pec").value || null,
+      telefono: document.getElementById("az-tel").value || null,
+      referente: document.getElementById("az-ref").value || null,
+      email_amministrativa:
+        document.getElementById("az-email-amm").value || null,
+      telefono_amministrativo:
+        document.getElementById("az-tel-amm").value || null,
+    }).eq("id", id);
 
-      const infoEl = document.getElementById("password-info");
+    alert("Anagrafica aggiornata");
+  };
 
-      if (!response.ok) {
-        infoEl.style.color = "#dc2626";
-        infoEl.textContent =
-          result.error || "Errore reset password.";
-        return;
-      }
+  document.getElementById("btn-save-features").onclick = async () => {
+    const checkboxes = document.querySelectorAll("[data-feature]");
+    const newFeatures = {};
+    checkboxes.forEach((cb) => {
+      newFeatures[cb.dataset.feature] = cb.checked;
+    });
 
-      infoEl.style.color = "#16a34a";
-      infoEl.innerHTML = `
-        Nuova password generata:<br>
-        <strong>${esc(result.password)}</strong><br>
-        Comunicala al cliente. Non sarà più visibile.
-      `;
-    };
-  }
+    await supabase.from("aziende").update({
+      features: newFeatures,
+    }).eq("id", id);
+
+    alert("Funzionalità aggiornate");
+  };
 }
