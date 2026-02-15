@@ -5,7 +5,6 @@ export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
-  // 🔒 Accesso solo piattaforma
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = `
       <div class="login-wrapper">
@@ -22,7 +21,6 @@ export async function render(container) {
     <div class="view">
       <h2 style="margin-top:0;">Gestione Aziende</h2>
 
-      <!-- 🔔 KPI SCADENZE -->
       <div style="margin-top:16px;">
         <h3>Stato Abbonamenti</h3>
 
@@ -48,7 +46,6 @@ export async function render(container) {
         <div id="lista-aziende-scadute"></div>
       </div>
 
-      <!-- 🔎 RICERCA -->
       <div style="margin-top:24px;">
         <input 
           id="search-input" 
@@ -74,17 +71,13 @@ export async function render(container) {
   const input = document.getElementById("search-input");
   const results = document.getElementById("search-results");
 
-  results.innerHTML = `
-    <p class="small-muted">Digita per cercare un’azienda.</p>
-  `;
+  results.innerHTML = `<p class="small-muted">Digita per cercare un’azienda.</p>`;
 
   input.addEventListener("input", async () => {
     const q = input.value.trim();
 
     if (q.length < 2) {
-      results.innerHTML = `
-        <p class="small-muted">Digita almeno 2 caratteri.</p>
-      `;
+      results.innerHTML = `<p class="small-muted">Digita almeno 2 caratteri.</p>`;
       return;
     }
 
@@ -101,19 +94,13 @@ export async function render(container) {
       .limit(20);
 
     if (error) {
-      console.error("Errore ricerca aziende:", error);
-      results.innerHTML = `
-        <p style="color:#dc2626;">
-          Errore ricerca: ${error.message}
-        </p>
-      `;
+      console.error(error);
+      results.innerHTML = `<p style="color:#dc2626;">Errore ricerca.</p>`;
       return;
     }
 
     if (!data || data.length === 0) {
-      results.innerHTML = `
-        <p class="small-muted">Nessuna azienda trovata.</p>
-      `;
+      results.innerHTML = `<p class="small-muted">Nessuna azienda trovata.</p>`;
       return;
     }
 
@@ -129,7 +116,6 @@ export async function render(container) {
         <span class="small-muted">Codice: ${azienda.codice}</span><br>
         <span class="small-muted">Email: ${azienda.email || "-"}</span><br>
         <span class="small-muted">Stato: ${azienda.stato}</span>
-
         <div style="margin-top:10px;">
           <button class="app-button small gray btn-apri">
             ✏️ Apri scheda
@@ -137,11 +123,9 @@ export async function render(container) {
         </div>
       `;
 
-      const btn = card.querySelector(".btn-apri");
-
-      btn.addEventListener("click", () => {
+      card.querySelector(".btn-apri").onclick = () => {
         window.location.hash = "#/modificaAzienda?id=" + azienda.id;
-      });
+      };
 
       results.appendChild(card);
     });
@@ -151,21 +135,19 @@ export async function render(container) {
 }
 
 
-// ===============================
-// FUNZIONE SCADENZE
-// ===============================
 async function caricaStatoScadenzeAziende() {
   const { data, error } = await supabase
-    .from("aziende_scadenze")
-    .select("*");
+    .from("aziende")
+    .select("id,nome,data_scadenza,attiva,stato")
+    .eq("stato_attivazione", "attiva");
 
   if (error) {
-    console.error("Errore caricamento scadenze:", error);
+    console.error(error);
     return;
   }
 
   const oggi = new Date();
-  oggi.setHours(0, 0, 0, 0);
+  oggi.setHours(0,0,0,0);
 
   const regolari = [];
   const inScadenza = [];
@@ -178,27 +160,15 @@ async function caricaStatoScadenzeAziende() {
     }
 
     const scadenza = new Date(az.data_scadenza);
-    scadenza.setHours(0, 0, 0, 0);
+    scadenza.setHours(0,0,0,0);
 
-    const diffMs = scadenza - oggi;
-    const diffGiorni = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diff = Math.floor((scadenza - oggi) / (1000*60*60*24));
+    az._giorni = diff;
 
-    az._giorni = diffGiorni;
-
-    if (diffGiorni < 0) {
-      scadute.push(az);
-    } else if (diffGiorni <= 15) {
-      inScadenza.push(az);
-    } else {
-      regolari.push(az);
-    }
+    if (diff < 0) scadute.push(az);
+    else if (diff <= 15) inScadenza.push(az);
+    else regolari.push(az);
   });
-
-  // 🔴 Ordina scadute (più grave prima)
-  scadute.sort((a, b) => a._giorni - b._giorni);
-
-  // 🟡 Ordina in scadenza (più urgente prima)
-  inScadenza.sort((a, b) => a._giorni - b._giorni);
 
   document.getElementById("kpi-aziende-regolari").textContent = regolari.length;
   document.getElementById("kpi-aziende-scadenza").textContent = inScadenza.length;
@@ -210,17 +180,34 @@ async function caricaStatoScadenzeAziende() {
   listaScadute.innerHTML = "";
   listaInScadenza.innerHTML = "";
 
-  scadute.forEach((az) => {
+  [...scadute, ...inScadenza].forEach((az) => {
     const div = document.createElement("div");
-    div.className = "pill-alert red";
-    div.textContent = `${az.nome} — scaduta da ${Math.abs(az._giorni)} giorni`;
-    listaScadute.appendChild(div);
-  });
+    div.className = az._giorni < 0 ? "pill-alert red" : "pill-alert yellow";
 
-  inScadenza.forEach((az) => {
-    const div = document.createElement("div");
-    div.className = "pill-alert yellow";
-    div.textContent = `${az.nome} — scade tra ${az._giorni} giorni`;
-    listaInScadenza.appendChild(div);
+    const giorniText = az._giorni < 0
+      ? `scaduta da ${Math.abs(az._giorni)} giorni`
+      : `scade tra ${az._giorni} giorni`;
+
+    div.innerHTML = `
+      ${az.nome} — ${giorniText}
+      <button class="app-button tiny gray btn-toggle" style="margin-left:8px;">
+        ${az.attiva ? "Sospendi" : "Riattiva"}
+      </button>
+    `;
+
+    div.querySelector(".btn-toggle").onclick = async () => {
+      await supabase
+        .from("aziende")
+        .update({
+          attiva: !az.attiva,
+          stato: az.attiva ? "sospesa" : "attiva"
+        })
+        .eq("id", az.id);
+
+      await caricaStatoScadenzeAziende();
+    };
+
+    if (az._giorni < 0) listaScadute.appendChild(div);
+    else listaInScadenza.appendChild(div);
   });
 }
