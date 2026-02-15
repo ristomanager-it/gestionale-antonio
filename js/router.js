@@ -7,7 +7,7 @@ const app = document.getElementById("app");
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
-  homePiattaforma: () => import("./views/home-piattaforma.js"), // ✅ AGGIUNTA
+  homePiattaforma: () => import("./views/home-piattaforma.js"),
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
@@ -34,6 +34,10 @@ function parseHash() {
 }
 
 async function renderView(routeName) {
+  if (!routes[routeName]) {
+    routeName = "home";
+  }
+
   app.innerHTML = "";
   const view = await routes[routeName]();
   await view.render(app);
@@ -42,7 +46,7 @@ async function renderView(routeName) {
 async function resolve() {
   const url = window.location.href;
 
-  // 🔥 Gestione INVITE / RECOVERY
+  // 🔥 Gestione invite / recovery
   if (url.includes("code=")) {
     const { error } =
       await window.supabaseClient.auth.exchangeCodeForSession(url);
@@ -59,8 +63,15 @@ async function resolve() {
   const { route, params } = parseHash();
   window.routeParams = params || {};
 
-  const { data } = await window.supabaseClient.auth.getSession();
-  const session = data.session;
+  // 🔐 Recupero sessione robusto (mobile-safe)
+  let { data } = await window.supabaseClient.auth.getSession();
+  let session = data.session;
+
+  if (!session) {
+    const { data: refreshed } =
+      await window.supabaseClient.auth.refreshSession();
+    session = refreshed?.session;
+  }
 
   if (!session) {
     await renderView("login");
@@ -69,12 +80,13 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔐 Se deve impostare password
+  // 🔐 Impostazione password obbligatoria
   if (session.user.user_metadata?.must_set_password === true) {
     await renderView("setPassword");
     return;
   }
 
+  // 📦 Carico aziende
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
     .select(`
@@ -108,8 +120,7 @@ async function resolve() {
     return;
   }
 
-  const safeRoute = routes[route] ? route : "home";
-  await renderView(safeRoute);
+  await renderView(route);
 }
 
 window.addEventListener("hashchange", resolve);
