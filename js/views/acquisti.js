@@ -38,7 +38,7 @@ export async function render(container) {
     setActiveTab(tab);
 
     if (tab === "fatture") renderFatture(content, azienda);
-    if (tab === "fornitori") renderFornitori(content);
+    if (tab === "fornitori") renderFornitori(content, azienda);
     if (tab === "ordini") renderOrdini(content);
     if (tab === "riordino") renderRiordino(content);
   }
@@ -68,6 +68,7 @@ async function renderFatture(container, azienda) {
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
       <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
       <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
+      <button class="app-button tiny mode-btn" data-mode="import_api">Import API</button>
     </div>
 
     <div id="ocr-upload-section" style="display:none; margin-bottom:16px;">
@@ -119,6 +120,8 @@ async function renderFatture(container, azienda) {
   const feedback = document.getElementById("fattura-feedback");
   const btnOcr = document.getElementById("btn-esegui-ocr");
 
+  /* ================= MODE SWITCH ================= */
+
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       modeButtons.forEach(b => b.classList.remove("active"));
@@ -128,68 +131,90 @@ async function renderFatture(container, azienda) {
     });
   });
 
-  /* ================= MATCHING FUNCTION ================= */
+  /* ================= OCR FLOW ================= */
 
-  async function matchProdotto(descrizione, fornitoreId) {
+  btnOcr?.addEventListener("click", async () => {
+    const fileInput = document.getElementById("fattura-file");
+    if (!fileInput.files.length) return;
 
-    if (!descrizione) return null;
+    const file = fileInput.files[0];
+    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${file.name}`;
 
-    // 1️⃣ match su prodotti_fornitore
-    if (fornitoreId) {
-      const { data } = await window.supabaseClient
-        .from("prodotti_fornitore")
-        .select("prodotto_id, descrizione_fornitore")
-        .eq("azienda_id", azienda.id)
-        .eq("fornitore_id", fornitoreId)
-        .ilike("descrizione_fornitore", `%${descrizione}%`)
-        .limit(1);
+    feedback.innerHTML = "Upload in corso...";
 
-      if (data?.length) return data[0].prodotto_id;
+    const { error: uploadError } = await window.supabaseClient.storage
+      .from("fatture-acquisto")
+      .upload(path, file);
+
+    if (uploadError) {
+      feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
+      return;
     }
 
-    // 2️⃣ fallback su prodotti
-    const { data } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, descrizione")
-      .eq("azienda_id", azienda.id)
-      .ilike("descrizione", `%${descrizione}%`)
-      .limit(1);
+    allegatoPath = path;
 
-    if (data?.length) return data[0].id;
+    const { data: signedData, error: signedError } =
+      await window.supabaseClient.storage
+        .from("fatture-acquisto")
+        .createSignedUrl(path, 60);
 
-    return null;
-  }
+    if (signedError) {
+      feedback.innerHTML = `<span style="color:red;">Errore signed URL</span>`;
+      return;
+    }
 
-  /* ================= APPLY OCR ================= */
+    feedback.innerHTML = "OCR in elaborazione...";
+
+    const { data: ocrResult, error: ocrError } =
+      await window.supabaseClient.functions.invoke("ocr-fattura", {
+        body: { imageUrl: signedData.signedUrl }
+      });
+
+    if (ocrError || !ocrResult?.success) {
+      feedback.innerHTML = `<span style="color:red;">OCR fallito</span>`;
+      return;
+    }
+
+    applyOcrResult(ocrResult);
+    feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
+  });
+
+  /* ================= APPLY OCR RESULT ================= */
 
   async function applyOcrResult(result) {
 
-    const fornitoreSelect = document.getElementById("fattura-fornitore");
-    const fornitoreId = fornitoreSelect.value;
+    // Prefill documento
+    if (result.documento?.numero_documento)
+      document.getElementById("fattura-numero").value =
+        result.documento.numero_documento;
 
+    if (result.documento?.data_documento)
+      document.getElementById("fattura-data").value =
+        result.documento.data_documento;
+
+    // Tentativo match fornitore
+    if (result.fornitore?.ragione_sociale) {
+      const nome = result.fornitore.ragione_sociale.toLowerCase();
+      const match = (fornitori || []).find(f =>
+        f.ragione_sociale.toLowerCase().includes(nome)
+      );
+      if (match)
+        document.getElementById("fattura-fornitore").value = match.id;
+    }
+
+    // Generazione righe
     righe = [];
     righeContainer.innerHTML = "";
 
-    for (const riga of result.righe || []) {
-
-      const prodottoId = await matchProdotto(
-        riga.descrizione,
-        fornitoreId
-      );
-
-      const matched = !!prodottoId;
+    (result.righe || []).forEach((riga, index) => {
 
       righe.push({
-        prodotto_id: prodottoId,
         quantita: riga.quantita || 0,
         prezzo_unitario: riga.prezzo_unitario || 0
       });
 
       const row = document.createElement("div");
       row.style.marginBottom = "10px";
-      row.style.padding = "8px";
-      row.style.borderRadius = "12px";
-      row.style.background = matched ? "#dcfce7" : "#fee2e2";
 
       row.innerHTML = `
         <input type="text"
@@ -206,55 +231,59 @@ async function renderFatture(container, azienda) {
           value="${riga.prezzo_unitario || 0}"
           class="input-pill"
           readonly />
-
-        <small style="font-size:12px;">
-          ${matched ? "Prodotto riconosciuto" : "Prodotto NON riconosciuto"}
-        </small>
       `;
 
       righeContainer.appendChild(row);
-    }
+    });
   }
 
-  /* ================= OCR ================= */
+  /* ================= MANUAL RIGHE ================= */
 
-  btnOcr?.addEventListener("click", async () => {
+  btnAddRiga.addEventListener("click", () => {
+    const index = righe.length;
+    righe.push({});
 
-    const fileInput = document.getElementById("fattura-file");
-    if (!fileInput.files.length) return;
+    const row = document.createElement("div");
+    row.style.marginBottom = "10px";
 
-    const file = fileInput.files[0];
-    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${file.name}`;
+    row.innerHTML = `
+      <input type="text"
+        placeholder="Prodotto..."
+        class="input-pill riga-search"
+        data-i="${index}" />
 
-    feedback.innerHTML = "Upload in corso...";
+      <input type="number"
+        step="0.001"
+        placeholder="Quantità"
+        class="input-pill riga-quantita"
+        data-i="${index}" />
 
-    await window.supabaseClient.storage
-      .from("fatture-acquisto")
-      .upload(path, file);
+      <input type="number"
+        step="0.0001"
+        placeholder="Costo Unitario"
+        class="input-pill riga-prezzo"
+        data-i="${index}" />
+    `;
 
-    allegatoPath = path;
+    righeContainer.appendChild(row);
+  });
 
-    const { data: signedData } =
-      await window.supabaseClient.storage
-        .from("fatture-acquisto")
-        .createSignedUrl(path, 60);
+  righeContainer.addEventListener("input", e => {
+    const i = e.target.dataset.i;
+    if (i === undefined) return;
 
-    const { data: ocrResult } =
-      await window.supabaseClient.functions.invoke("ocr-fattura", {
-        body: { imageUrl: signedData.signedUrl }
-      });
+    if (e.target.classList.contains("riga-quantita"))
+      righe[i].quantita = Number(e.target.value);
 
-    if (ocrResult?.success) {
-      await applyOcrResult(ocrResult);
-      feedback.innerHTML = "OCR completato.";
-    } else {
-      feedback.innerHTML = "Errore OCR.";
-    }
+    if (e.target.classList.contains("riga-prezzo"))
+      righe[i].prezzo_unitario = Number(e.target.value);
   });
 
   /* ================= SALVATAGGIO ================= */
 
   btnSalva.addEventListener("click", async () => {
+
+    feedback.innerHTML = "Salvataggio...";
 
     try {
 
@@ -277,15 +306,15 @@ async function renderFatture(container, azienda) {
 
       const righePulite = righe.filter(r => r.quantita);
 
-      if (righePulite.length) {
+      if (righePulite.length > 0) {
         await window.supabaseClient
           .from("fatture_acquisto_righe")
           .insert(righePulite.map(r => ({
             azienda_id: azienda.id,
             fattura_id: fattura.id,
-            prodotto_id: r.prodotto_id,
+            prodotto_id: null,
             quantita: r.quantita,
-            prezzo_unitario: r.prezzo_unitario
+            prezzo_unitario: r.prezzo_unitario || 0
           })));
       }
 
@@ -294,13 +323,15 @@ async function renderFatture(container, azienda) {
         p_fattura_id: fattura.id
       });
 
-      feedback.innerHTML = "Fattura processata.";
+      feedback.innerHTML = "<span style='color:green;'>Fattura salvata e processata.</span>";
 
     } catch (err) {
-      feedback.innerHTML = err.message;
+      feedback.innerHTML = "<span style='color:red;'>" + err.message + "</span>";
     }
   });
 }
+
+/* ===================================================== */
 
 function renderFornitori(container) {
   container.innerHTML = "<h3>Fornitori</h3><p>In sviluppo</p>";
