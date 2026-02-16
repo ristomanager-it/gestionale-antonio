@@ -12,6 +12,7 @@ const routes = {
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   setPassword: () => import("./views/set-password.js"),
+  acquisti: () => import("./views/acquisti.js"), // 👈 AGGIUNTA
 };
 
 function parseHash() {
