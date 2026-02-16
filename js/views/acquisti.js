@@ -65,7 +65,6 @@ async function renderFatture(container, azienda) {
   container.innerHTML = `
     <h3>Nuova Fattura</h3>
 
-    <!-- Modalità -->
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
       <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
       <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
@@ -111,6 +110,7 @@ async function renderFatture(container, azienda) {
 
   let mode = "manuale";
   let allegatoPath = null;
+  let righe = [];
 
   const modeButtons = document.querySelectorAll(".mode-btn");
   const ocrSection = document.getElementById("ocr-upload-section");
@@ -119,6 +119,8 @@ async function renderFatture(container, azienda) {
   const btnSalva = document.getElementById("btn-salva-fattura");
   const feedback = document.getElementById("fattura-feedback");
   const btnOcr = document.getElementById("btn-esegui-ocr");
+
+  /* ================= MODE SWITCH ================= */
 
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -129,7 +131,7 @@ async function renderFatture(container, azienda) {
     });
   });
 
-  /* ================= UPLOAD FILE ================= */
+  /* ================= OCR FLOW ================= */
 
   btnOcr?.addEventListener("click", async () => {
     const fileInput = document.getElementById("fattura-file");
@@ -138,29 +140,104 @@ async function renderFatture(container, azienda) {
     const file = fileInput.files[0];
     const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${file.name}`;
 
-    const { error } = await window.supabaseClient.storage
+    feedback.innerHTML = "Upload in corso...";
+
+    const { error: uploadError } = await window.supabaseClient.storage
       .from("fatture-acquisto")
       .upload(path, file);
 
-    if (error) {
+    if (uploadError) {
       feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
       return;
     }
 
     allegatoPath = path;
-    feedback.innerHTML = `<span style="color:green;">File caricato.</span>`;
 
-    // Chiamata Edge OCR
-    await window.supabaseClient.functions.invoke("ocr-fattura", {
-      body: { path }
-    });
+    const { data: signedData, error: signedError } =
+      await window.supabaseClient.storage
+        .from("fatture-acquisto")
+        .createSignedUrl(path, 60);
 
-    feedback.innerHTML += `<br><span style="color:green;">OCR eseguito (verifica risultati).</span>`;
+    if (signedError) {
+      feedback.innerHTML = `<span style="color:red;">Errore signed URL</span>`;
+      return;
+    }
+
+    feedback.innerHTML = "OCR in elaborazione...";
+
+    const { data: ocrResult, error: ocrError } =
+      await window.supabaseClient.functions.invoke("ocr-fattura", {
+        body: { imageUrl: signedData.signedUrl }
+      });
+
+    if (ocrError || !ocrResult?.success) {
+      feedback.innerHTML = `<span style="color:red;">OCR fallito</span>`;
+      return;
+    }
+
+    applyOcrResult(ocrResult);
+    feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
   });
 
-  /* ================= RIGHE ================= */
+  /* ================= APPLY OCR RESULT ================= */
 
-  let righe = [];
+  async function applyOcrResult(result) {
+
+    // Prefill documento
+    if (result.documento?.numero_documento)
+      document.getElementById("fattura-numero").value =
+        result.documento.numero_documento;
+
+    if (result.documento?.data_documento)
+      document.getElementById("fattura-data").value =
+        result.documento.data_documento;
+
+    // Tentativo match fornitore
+    if (result.fornitore?.ragione_sociale) {
+      const nome = result.fornitore.ragione_sociale.toLowerCase();
+      const match = (fornitori || []).find(f =>
+        f.ragione_sociale.toLowerCase().includes(nome)
+      );
+      if (match)
+        document.getElementById("fattura-fornitore").value = match.id;
+    }
+
+    // Generazione righe
+    righe = [];
+    righeContainer.innerHTML = "";
+
+    (result.righe || []).forEach((riga, index) => {
+
+      righe.push({
+        quantita: riga.quantita || 0,
+        prezzo_unitario: riga.prezzo_unitario || 0
+      });
+
+      const row = document.createElement("div");
+      row.style.marginBottom = "10px";
+
+      row.innerHTML = `
+        <input type="text"
+          value="${riga.descrizione || ""}"
+          class="input-pill"
+          readonly />
+
+        <input type="number"
+          value="${riga.quantita || 0}"
+          class="input-pill"
+          readonly />
+
+        <input type="number"
+          value="${riga.prezzo_unitario || 0}"
+          class="input-pill"
+          readonly />
+      `;
+
+      righeContainer.appendChild(row);
+    });
+  }
+
+  /* ================= MANUAL RIGHE ================= */
 
   btnAddRiga.addEventListener("click", () => {
     const index = righe.length;
@@ -170,16 +247,19 @@ async function renderFatture(container, azienda) {
     row.style.marginBottom = "10px";
 
     row.innerHTML = `
-      <input type="text" placeholder="Prodotto..."
+      <input type="text"
+        placeholder="Prodotto..."
         class="input-pill riga-search"
         data-i="${index}" />
 
-      <input type="number" step="0.001"
+      <input type="number"
+        step="0.001"
         placeholder="Quantità"
         class="input-pill riga-quantita"
         data-i="${index}" />
 
-      <input type="number" step="0.0001"
+      <input type="number"
+        step="0.0001"
         placeholder="Costo Unitario"
         class="input-pill riga-prezzo"
         data-i="${index}" />
@@ -232,7 +312,7 @@ async function renderFatture(container, azienda) {
           .insert(righePulite.map(r => ({
             azienda_id: azienda.id,
             fattura_id: fattura.id,
-            prodotto_id: r.prodotto_id || null,
+            prodotto_id: null,
             quantita: r.quantita,
             prezzo_unitario: r.prezzo_unitario || 0
           })));
@@ -251,8 +331,6 @@ async function renderFatture(container, azienda) {
   });
 }
 
-/* ===================================================== */
-/* Placeholder altri tab */
 /* ===================================================== */
 
 function renderFornitori(container) {
