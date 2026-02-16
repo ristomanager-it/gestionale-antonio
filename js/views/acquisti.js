@@ -65,6 +65,21 @@ async function renderFatture(container, azienda) {
   container.innerHTML = `
     <h3>Nuova Fattura</h3>
 
+    <!-- Modalità -->
+    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
+      <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
+      <button class="app-button tiny mode-btn" data-mode="import_api">Import API</button>
+    </div>
+
+    <div id="ocr-upload-section" style="display:none; margin-bottom:16px;">
+      <label>Carica immagine fattura</label>
+      <input type="file" id="fattura-file" accept="image/*,.pdf" class="input-pill"/>
+      <button id="btn-esegui-ocr" class="app-button small gray" style="margin-top:8px;">
+        Esegui OCR
+      </button>
+    </div>
+
     <label>Fornitore</label>
     <select id="fattura-fornitore" class="input-pill">
       <option value="">Seleziona fornitore</option>
@@ -94,28 +109,70 @@ async function renderFatture(container, azienda) {
     <div id="fattura-feedback" style="margin-top:10px;"></div>
   `;
 
+  let mode = "manuale";
+  let allegatoPath = null;
+
+  const modeButtons = document.querySelectorAll(".mode-btn");
+  const ocrSection = document.getElementById("ocr-upload-section");
   const righeContainer = document.getElementById("righe-container");
   const btnAddRiga = document.getElementById("btn-add-riga");
   const btnSalva = document.getElementById("btn-salva-fattura");
   const feedback = document.getElementById("fattura-feedback");
+  const btnOcr = document.getElementById("btn-esegui-ocr");
+
+  modeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      modeButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      mode = btn.dataset.mode;
+      ocrSection.style.display = mode === "ocr" ? "block" : "none";
+    });
+  });
+
+  /* ================= UPLOAD FILE ================= */
+
+  btnOcr?.addEventListener("click", async () => {
+    const fileInput = document.getElementById("fattura-file");
+    if (!fileInput.files.length) return;
+
+    const file = fileInput.files[0];
+    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${file.name}`;
+
+    const { error } = await window.supabaseClient.storage
+      .from("fatture-acquisto")
+      .upload(path, file);
+
+    if (error) {
+      feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
+      return;
+    }
+
+    allegatoPath = path;
+    feedback.innerHTML = `<span style="color:green;">File caricato.</span>`;
+
+    // Chiamata Edge OCR
+    await window.supabaseClient.functions.invoke("ocr-fattura", {
+      body: { path }
+    });
+
+    feedback.innerHTML += `<br><span style="color:green;">OCR eseguito (verifica risultati).</span>`;
+  });
+
+  /* ================= RIGHE ================= */
 
   let righe = [];
 
   btnAddRiga.addEventListener("click", () => {
     const index = righe.length;
     righe.push({});
+
     const row = document.createElement("div");
     row.style.marginBottom = "10px";
-    row.style.position = "relative";
 
     row.innerHTML = `
-      <input type="text" placeholder="Cerca prodotto..."
+      <input type="text" placeholder="Prodotto..."
         class="input-pill riga-search"
-        data-i="${index}" autocomplete="off"/>
-
-      <div class="autocomplete-results"
-        data-i="${index}"
-        style="position:absolute; background:white; border:1px solid #ddd; width:300px; z-index:1000;"></div>
+        data-i="${index}" />
 
       <input type="number" step="0.001"
         placeholder="Quantità"
@@ -131,49 +188,18 @@ async function renderFatture(container, azienda) {
     righeContainer.appendChild(row);
   });
 
-  righeContainer.addEventListener("input", async e => {
-
+  righeContainer.addEventListener("input", e => {
     const i = e.target.dataset.i;
     if (i === undefined) return;
 
-    if (e.target.classList.contains("riga-search")) {
-      const query = e.target.value;
-
-      if (query.length < 2) return;
-
-      const { data } = await window.supabaseClient
-        .from("prodotti")
-        .select("id, descrizione, codice_interno")
-        .eq("azienda_id", azienda.id)
-        .ilike("descrizione", `%${query}%`)
-        .limit(10);
-
-      const box = document.querySelector(`.autocomplete-results[data-i="${i}"]`);
-      box.innerHTML = (data || []).map(p => `
-        <div style="padding:6px; cursor:pointer;"
-          data-id="${p.id}"
-          data-desc="${p.descrizione}">
-          ${p.descrizione}
-        </div>
-      `).join("");
-
-      box.querySelectorAll("div").forEach(el => {
-        el.addEventListener("click", () => {
-          righe[i].prodotto_id = Number(el.dataset.id);
-          e.target.value = el.dataset.desc;
-          box.innerHTML = "";
-        });
-      });
-    }
-
-    if (e.target.classList.contains("riga-quantita")) {
+    if (e.target.classList.contains("riga-quantita"))
       righe[i].quantita = Number(e.target.value);
-    }
 
-    if (e.target.classList.contains("riga-prezzo")) {
+    if (e.target.classList.contains("riga-prezzo"))
       righe[i].prezzo_unitario = Number(e.target.value);
-    }
   });
+
+  /* ================= SALVATAGGIO ================= */
 
   btnSalva.addEventListener("click", async () => {
 
@@ -189,13 +215,16 @@ async function renderFatture(container, azienda) {
         .insert({
           azienda_id: azienda.id,
           fornitore_id: fornitoreId,
-          numero: document.getElementById("fattura-numero").value,
-          data: document.getElementById("fattura-data").value
+          numero_documento: document.getElementById("fattura-numero").value,
+          data_documento: document.getElementById("fattura-data").value,
+          origine: mode,
+          stato_elaborazione: mode === "manuale" ? "confermata" : "da_verificare",
+          allegato_path: allegatoPath
         })
         .select()
         .single();
 
-      const righePulite = righe.filter(r => r.prodotto_id && r.quantita);
+      const righePulite = righe.filter(r => r.quantita);
 
       if (righePulite.length > 0) {
         await window.supabaseClient
@@ -203,7 +232,7 @@ async function renderFatture(container, azienda) {
           .insert(righePulite.map(r => ({
             azienda_id: azienda.id,
             fattura_id: fattura.id,
-            prodotto_id: r.prodotto_id,
+            prodotto_id: r.prodotto_id || null,
             quantita: r.quantita,
             prezzo_unitario: r.prezzo_unitario || 0
           })));
@@ -214,7 +243,7 @@ async function renderFatture(container, azienda) {
         p_fattura_id: fattura.id
       });
 
-      feedback.innerHTML = "<span style='color:green;'>Fattura processata.</span>";
+      feedback.innerHTML = "<span style='color:green;'>Fattura salvata e processata.</span>";
 
     } catch (err) {
       feedback.innerHTML = "<span style='color:red;'>" + err.message + "</span>";
