@@ -18,7 +18,6 @@ export async function render(container) {
 
       <h2>Modulo Acquisti</h2>
 
-      <!-- SUB NAVIGATION -->
       <div style="
         display:flex;
         gap:10px;
@@ -31,7 +30,6 @@ export async function render(container) {
         <button class="app-button tiny tab-btn" data-tab="riordino">Riordino</button>
       </div>
 
-      <!-- CONTENUTO DINAMICO -->
       <div id="acquisti-content"></div>
 
     </div>
@@ -43,39 +41,23 @@ export async function render(container) {
   function setActiveTab(tab) {
     tabButtons.forEach(btn => {
       btn.classList.remove("active");
-      if (btn.dataset.tab === tab) {
-        btn.classList.add("active");
-      }
+      if (btn.dataset.tab === tab) btn.classList.add("active");
     });
   }
 
   function renderTab(tab) {
     setActiveTab(tab);
 
-    if (tab === "fatture") {
-      renderFatture(content, azienda);
-    }
-
-    if (tab === "fornitori") {
-      renderFornitori(content);
-    }
-
-    if (tab === "ordini") {
-      renderOrdini(content);
-    }
-
-    if (tab === "riordino") {
-      renderRiordino(content);
-    }
+    if (tab === "fatture") renderFatture(content, azienda);
+    if (tab === "fornitori") renderFornitori(content, azienda);
+    if (tab === "ordini") renderOrdini(content);
+    if (tab === "riordino") renderRiordino(content);
   }
 
-  tabButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      renderTab(btn.dataset.tab);
-    });
-  });
+  tabButtons.forEach(btn =>
+    btn.addEventListener("click", () => renderTab(btn.dataset.tab))
+  );
 
-  // Default
   renderTab("fatture");
 }
 
@@ -223,11 +205,109 @@ function renderFatture(container, azienda) {
 /* ================== TAB FORNITORI ==================== */
 /* ===================================================== */
 
-function renderFornitori(container) {
+async function renderFornitori(container, azienda) {
+  container.innerHTML = `<p>Caricamento fornitori...</p>`;
+
+  const { data, error } = await window.supabaseClient
+    .from("fornitori")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .order("ragione_sociale");
+
+  if (error) {
+    container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
+    return;
+  }
+
   container.innerHTML = `
-    <h3>Gestione Fornitori</h3>
-    <p>Sezione in costruzione</p>
+    <h3>Fornitori</h3>
+
+    <div style="margin-bottom:16px;">
+      <button id="btn-nuovo-fornitore" class="app-button small green">
+        + Nuovo Fornitore
+      </button>
+    </div>
+
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Ragione Sociale</th>
+          <th>Referente</th>
+          <th>Email</th>
+          <th>Lead Time</th>
+          <th>Min. Ordine</th>
+          <th>Attivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(f => `
+          <tr>
+            <td>${f.ragione_sociale}</td>
+            <td>${f.referente_ordini || "-"}</td>
+            <td>${f.email_referente_ordini || "-"}</td>
+            <td>${f.lead_time_giorni || 0} gg</td>
+            <td>${f.minimo_ordine || 0}</td>
+            <td>${f.attivo ? "Sì" : "No"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
   `;
+
+  document.getElementById("btn-nuovo-fornitore")
+    .addEventListener("click", () => apriFormFornitore(container, azienda));
+}
+
+function apriFormFornitore(container, azienda) {
+  container.innerHTML = `
+    <h3>Nuovo Fornitore</h3>
+
+    <div style="display:grid; gap:10px; max-width:500px;">
+      <input id="f-ragione" class="input-pill" placeholder="Ragione Sociale" />
+      <input id="f-referente" class="input-pill" placeholder="Referente Ordini" />
+      <input id="f-email" class="input-pill" placeholder="Email Referente" />
+      <input id="f-telefono" class="input-pill" placeholder="Telefono" />
+      <input id="f-lead" type="number" class="input-pill" placeholder="Lead Time (giorni)" />
+      <input id="f-minimo" type="number" class="input-pill" placeholder="Minimo Ordine" />
+
+      <button id="btn-salva-fornitore" class="app-button small green">
+        Salva
+      </button>
+
+      <button id="btn-annulla" class="app-button small gray">
+        Annulla
+      </button>
+    </div>
+  `;
+
+  document.getElementById("btn-salva-fornitore")
+    .addEventListener("click", async () => {
+      try {
+        const { error } = await window.supabaseClient
+          .from("fornitori")
+          .insert({
+            azienda_id: azienda.id,
+            ragione_sociale: document.getElementById("f-ragione").value,
+            referente_ordini: document.getElementById("f-referente").value,
+            email_referente_ordini: document.getElementById("f-email").value,
+            telefono_referente_ordini: document.getElementById("f-telefono").value,
+            lead_time_giorni: Number(document.getElementById("f-lead").value) || 0,
+            minimo_ordine: Number(document.getElementById("f-minimo").value) || 0,
+            attivo: true
+          });
+
+        if (error) throw error;
+
+        alert("Fornitore salvato");
+        renderFornitori(container, azienda);
+
+      } catch (err) {
+        alert("Errore: " + err.message);
+      }
+    });
+
+  document.getElementById("btn-annulla")
+    .addEventListener("click", () => renderFornitori(container, azienda));
 }
 
 /* ===================================================== */
