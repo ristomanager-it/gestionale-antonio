@@ -15,34 +15,99 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <h2>Fattura di Acquisto</h2>
 
-      <div style="margin-bottom:12px;">
-        <label>Numero fattura</label>
-        <input id="fattura-numero" class="input-pill" />
+      <h2>Modulo Acquisti</h2>
 
-        <label>Data</label>
-        <input id="fattura-data" type="date" class="input-pill" />
-
-        <label>Note</label>
-        <input id="fattura-note" class="input-pill" />
+      <!-- SUB NAVIGATION -->
+      <div style="
+        display:flex;
+        gap:10px;
+        margin-bottom:20px;
+        flex-wrap:wrap;
+      ">
+        <button class="app-button tiny tab-btn active" data-tab="fatture">Fatture</button>
+        <button class="app-button tiny tab-btn" data-tab="fornitori">Fornitori</button>
+        <button class="app-button tiny tab-btn" data-tab="ordini">Ordini</button>
+        <button class="app-button tiny tab-btn" data-tab="riordino">Riordino</button>
       </div>
 
-      <h3>Righe fattura</h3>
-      <div id="righe-container"></div>
+      <!-- CONTENUTO DINAMICO -->
+      <div id="acquisti-content"></div>
 
-      <button id="btn-add-riga" class="app-button small gray">
-        + Aggiungi Riga
-      </button>
-
-      <hr style="margin:16px 0;" />
-
-      <button id="btn-salva-fattura" class="app-button small green">
-        Salva e Processa
-      </button>
-
-      <div id="fattura-feedback" style="margin-top:10px;"></div>
     </div>
+  `;
+
+  const content = document.getElementById("acquisti-content");
+  const tabButtons = document.querySelectorAll(".tab-btn");
+
+  function setActiveTab(tab) {
+    tabButtons.forEach(btn => {
+      btn.classList.remove("active");
+      if (btn.dataset.tab === tab) {
+        btn.classList.add("active");
+      }
+    });
+  }
+
+  function renderTab(tab) {
+    setActiveTab(tab);
+
+    if (tab === "fatture") {
+      renderFatture(content, azienda);
+    }
+
+    if (tab === "fornitori") {
+      renderFornitori(content);
+    }
+
+    if (tab === "ordini") {
+      renderOrdini(content);
+    }
+
+    if (tab === "riordino") {
+      renderRiordino(content);
+    }
+  }
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      renderTab(btn.dataset.tab);
+    });
+  });
+
+  // Default
+  renderTab("fatture");
+}
+
+/* ===================================================== */
+/* ================== TAB FATTURE ====================== */
+/* ===================================================== */
+
+function renderFatture(container, azienda) {
+  container.innerHTML = `
+    <h3>Nuova Fattura</h3>
+
+    <div style="margin-bottom:12px;">
+      <label>Numero</label>
+      <input id="fattura-numero" class="input-pill" />
+
+      <label>Data</label>
+      <input id="fattura-data" type="date" class="input-pill" />
+    </div>
+
+    <div id="righe-container"></div>
+
+    <button id="btn-add-riga" class="app-button small gray">
+      + Riga
+    </button>
+
+    <hr style="margin:16px 0;" />
+
+    <button id="btn-salva-fattura" class="app-button small green">
+      Salva e Processa
+    </button>
+
+    <div id="fattura-feedback" style="margin-top:10px;"></div>
   `;
 
   const righeContainer = document.getElementById("righe-container");
@@ -55,110 +120,82 @@ export async function render(container) {
   function renderRighe() {
     righeContainer.innerHTML = "";
 
-    righe.forEach((riga, index) => {
-      const wrapper = document.createElement("div");
-      wrapper.style.marginBottom = "10px";
+    righe.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.style.marginBottom = "10px";
 
-      wrapper.innerHTML = `
-        <input 
-          type="number" 
-          placeholder="ID Prodotto" 
-          value="${riga.prodotto_id || ""}" 
-          data-index="${index}"
-          class="input-pill riga-prodotto" 
-        />
+      row.innerHTML = `
+        <input type="number" placeholder="ID Prodotto"
+          data-i="${i}" class="input-pill riga-prodotto" />
 
-        <input 
-          type="number" 
-          step="0.001"
-          placeholder="Quantità" 
-          value="${riga.quantita || ""}" 
-          data-index="${index}"
-          class="input-pill riga-quantita" 
-        />
+        <input type="number" step="0.001" placeholder="Quantità"
+          data-i="${i}" class="input-pill riga-quantita" />
 
-        <input 
-          type="number" 
-          step="0.0001"
-          placeholder="Costo unitario" 
-          value="${riga.prezzo_unitario || ""}" 
-          data-index="${index}"
-          class="input-pill riga-prezzo" 
-        />
+        <input type="number" step="0.0001" placeholder="Costo Unitario"
+          data-i="${i}" class="input-pill riga-prezzo" />
       `;
 
-      righeContainer.appendChild(wrapper);
+      righeContainer.appendChild(row);
     });
   }
 
   btnAddRiga.addEventListener("click", () => {
-    righe.push({
-      prodotto_id: null,
-      quantita: 0,
-      prezzo_unitario: 0
-    });
-
+    righe.push({});
     renderRighe();
   });
 
-  righeContainer.addEventListener("input", (e) => {
-    const index = e.target.dataset.index;
-    if (index === undefined) return;
+  righeContainer.addEventListener("input", e => {
+    const i = e.target.dataset.i;
+    if (i === undefined) return;
 
     if (e.target.classList.contains("riga-prodotto")) {
-      righe[index].prodotto_id = Number(e.target.value);
+      righe[i].prodotto_id = Number(e.target.value);
     }
-
     if (e.target.classList.contains("riga-quantita")) {
-      righe[index].quantita = Number(e.target.value);
+      righe[i].quantita = Number(e.target.value);
     }
-
     if (e.target.classList.contains("riga-prezzo")) {
-      righe[index].prezzo_unitario = Number(e.target.value);
+      righe[i].prezzo_unitario = Number(e.target.value);
     }
   });
 
   btnSalva.addEventListener("click", async () => {
-    feedback.innerHTML = "Salvataggio in corso...";
+    feedback.innerHTML = "Salvataggio...";
 
     try {
-      // 1️⃣ Inserimento header fattura
-      const { data: fattura, error: errHeader } =
+      const { data: fattura, error: err1 } =
         await window.supabaseClient
           .from("fatture_acquisto")
           .insert({
             azienda_id: azienda.id,
             numero: document.getElementById("fattura-numero").value,
-            data: document.getElementById("fattura-data").value,
-            note: document.getElementById("fattura-note").value,
+            data: document.getElementById("fattura-data").value
           })
           .select()
           .single();
 
-      if (errHeader) throw errHeader;
+      if (err1) throw err1;
 
-      // 2️⃣ Inserimento righe
       const righePulite = righe
-        .filter(r => r.prodotto_id && r.quantita > 0)
+        .filter(r => r.prodotto_id && r.quantita)
         .map(r => ({
           azienda_id: azienda.id,
           fattura_id: fattura.id,
           prodotto_id: r.prodotto_id,
           quantita: r.quantita,
-          prezzo_unitario: r.prezzo_unitario,
+          prezzo_unitario: r.prezzo_unitario || 0
         }));
 
       if (righePulite.length > 0) {
-        const { error: errRighe } =
+        const { error: err2 } =
           await window.supabaseClient
             .from("fatture_acquisto_righe")
             .insert(righePulite);
 
-        if (errRighe) throw errRighe;
+        if (err2) throw err2;
       }
 
-      // 3️⃣ Processamento ERP (movimenti + costo medio)
-      const { error: errRpc } =
+      const { error: err3 } =
         await window.supabaseClient.rpc(
           "processa_fattura_acquisto",
           {
@@ -167,19 +204,50 @@ export async function render(container) {
           }
         );
 
-      if (errRpc) throw errRpc;
+      if (err3) throw err3;
 
       feedback.innerHTML =
-        "<span style='color:green;'>Fattura salvata e processata correttamente.</span>";
+        "<span style='color:green;'>Fattura processata.</span>";
 
-      // Reset stato locale
       righe = [];
       renderRighe();
 
     } catch (err) {
-      console.error(err);
       feedback.innerHTML =
-        "<span style='color:red;'>Errore: " + err.message + "</span>";
+        "<span style='color:red;'>" + err.message + "</span>";
     }
   });
+}
+
+/* ===================================================== */
+/* ================== TAB FORNITORI ==================== */
+/* ===================================================== */
+
+function renderFornitori(container) {
+  container.innerHTML = `
+    <h3>Gestione Fornitori</h3>
+    <p>Sezione in costruzione</p>
+  `;
+}
+
+/* ===================================================== */
+/* ================== TAB ORDINI ======================= */
+/* ===================================================== */
+
+function renderOrdini(container) {
+  container.innerHTML = `
+    <h3>Ordini Fornitore</h3>
+    <p>Sezione in costruzione</p>
+  `;
+}
+
+/* ===================================================== */
+/* ================== TAB RIORDINO ===================== */
+/* ===================================================== */
+
+function renderRiordino(container) {
+  container.innerHTML = `
+    <h3>Riordino Automatico</h3>
+    <p>Sezione in costruzione</p>
+  `;
 }
