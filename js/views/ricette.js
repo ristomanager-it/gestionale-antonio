@@ -9,50 +9,53 @@ let ricetteCache = [];
 export async function render(app) {
   app.innerHTML = `
     <section class="view">
-      <div class="card">
 
-        <h2>🍽️ Ricette</h2>
+      <button class="app-button small gray" data-route="home" style="margin-bottom:12px;">
+        ← Torna alla Dashboard
+      </button>
 
-        <div class="ricette-layout">
+      <h2>🍽️ Ricette</h2>
 
-          <div class="ricette-lista">
-            <h3>Ricettario</h3>
-            <div id="ricette-list"></div>
-            <button id="btn-nuova-ricetta" class="app-button gray">
-              + Nuova Ricetta
+      <div class="ricette-layout">
+
+        <div class="ricette-lista">
+          <h3>Ricettario</h3>
+          <div id="ricette-list"></div>
+          <button id="btn-nuova-ricetta" class="app-button gray" style="margin-top:10px;">
+            + Nuova Ricetta
+          </button>
+        </div>
+
+        <div class="ricette-editor">
+          <h3 id="editor-title">Nuova Ricetta</h3>
+
+          <label>
+            Nome
+            <input id="ricetta-nome" class="input-pill">
+          </label>
+
+          <label>
+            Descrizione
+            <textarea id="ricetta-descrizione" class="textarea-pill"></textarea>
+          </label>
+
+          <h4 style="margin-top:20px;">Ingredienti</h4>
+          <div id="ingredienti-container"></div>
+
+          <button id="btn-add-ingrediente" class="app-button tiny gray" style="margin-top:8px;">
+            + Ingrediente
+          </button>
+
+          <div style="margin-top:20px;">
+            <button id="btn-salva-ricetta" class="app-button green">
+              💾 Salva
             </button>
-          </div>
-
-          <div class="ricette-editor">
-            <h3 id="editor-title">Nuova Ricetta</h3>
-
-            <label>
-              Nome
-              <input id="ricetta-nome" class="input-pill">
-            </label>
-
-            <label>
-              Descrizione
-              <textarea id="ricetta-descrizione" class="input-pill"></textarea>
-            </label>
-
-            <h4>Ingredienti</h4>
-            <div id="ingredienti-container"></div>
-            <button id="btn-add-ingrediente" class="app-button tiny gray">
-              + Ingrediente
-            </button>
-
-            <div style="margin-top:20px;">
-              <button id="btn-salva-ricetta" class="app-button green">
-                💾 Salva
-              </button>
-            </div>
-
           </div>
 
         </div>
 
       </div>
+
     </section>
   `;
 
@@ -107,7 +110,9 @@ function renderListaRicette() {
 
   ricetteCache.forEach(r => {
     const div = document.createElement("div");
-    div.className = "ricetta-item";
+    div.className = "azienda-card";
+    div.style.cursor = "pointer";
+    div.style.padding = "8px";
     div.textContent = r.nome;
     div.onclick = () => caricaRicettaInEditor(r.id);
     box.appendChild(div);
@@ -174,7 +179,11 @@ function creaRigaIngrediente(initial = {}) {
   if (!container) return;
 
   const row = document.createElement("div");
-  row.className = "ingrediente-row";
+  row.className = "azienda-card";
+  row.style.display = "flex";
+  row.style.gap = "6px";
+  row.style.alignItems = "center";
+  row.style.marginBottom = "6px";
 
   row.innerHTML = `
     <input class="ing-nome input-pill" placeholder="Ingrediente"
@@ -248,12 +257,15 @@ async function salvaIngredienti(ricettaId) {
     .delete()
     .eq("ricetta_id", ricettaId);
 
-  const rows = document.querySelectorAll(".ingrediente-row");
+  const rows = document.querySelectorAll(".ingrediente-row, .azienda-card");
 
   const payload = [];
 
   rows.forEach(r => {
-    const nome = r.querySelector(".ing-nome").value.trim();
+    const nomeInput = r.querySelector(".ing-nome");
+    if (!nomeInput) return;
+
+    const nome = nomeInput.value.trim();
     const qta = parseFloat(r.querySelector(".ing-qta").value);
     const um = r.querySelector(".ing-um").value.trim();
 
