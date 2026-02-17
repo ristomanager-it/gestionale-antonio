@@ -20,11 +20,7 @@ export async function render(container) {
     </div>
 
     <h2>Modulo Acquisti</h2>
-    document
-  .getElementById("btn-back-dashboard")
-  .addEventListener("click", () => {
-    window.location.hash = "#/home";
-  });
+   
 
 
 
