@@ -10,9 +10,17 @@ export async function render(container) {
     return;
   }
 
-  container.innerHTML = `
-    <div class="view">
-      <h2>Modulo Acquisti</h2>
+ container.innerHTML = `
+  <div class="view">
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <button class="app-button tiny gray" id="btn-back-dashboard">
+        ← Dashboard
+      </button>
+    </div>
+
+    <h2>Modulo Acquisti</h2>
+
 
       <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
         <button class="app-button tiny tab-btn active" data-tab="fatture">Fatture</button>
