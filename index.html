@@ -2,9 +2,9 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta 
-    name="viewport" 
-    content="width=device-width, initial-scale=1, viewport-fit=cover" 
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
   />
 
   <title>Gestionale Antonio – Ristoflow SaaS</title>
@@ -16,13 +16,131 @@
 
   <!-- CSS principale -->
   <link rel="stylesheet" href="styles.css" />
-
 </head>
 
 <body>
 
   <!-- Root SPA -->
-  <div id="app"></div>
+  <div id="app">
+
+    <!-- DATALIST GLOBALI (usati da più moduli) -->
+    <datalist id="ingredienti-suggestions"></datalist>
+    <datalist id="ricette-suggestions"></datalist>
+    <datalist id="bilancio-categorie"></datalist>
+
+    <!-- ===================================================== -->
+    <!-- ================== VIEW RICETTE ===================== -->
+    <!-- ===================================================== -->
+    <section id="view-ricette" class="view" style="display:none">
+
+      <div class="card">
+        <h2>🍽️ Ricetta</h2>
+
+        <div class="form-grid-2">
+          <label>
+            Nome ricetta
+            <input id="ricetta-nome" class="input-pill" />
+          </label>
+
+          <label>
+            Stato
+            <div id="ricetta-stato-badge"></div>
+          </label>
+        </div>
+
+        <label>
+          Descrizione
+          <textarea id="ricetta-descrizione" class="input-pill"></textarea>
+        </label>
+
+        <label>
+          Note procedimento
+          <textarea id="ricetta-note" class="input-pill"></textarea>
+        </label>
+
+        <label>
+          Foto piatto
+          <input type="file" id="ricetta-foto" accept="image/*" class="input-pill" />
+        </label>
+
+        <div id="ricetta-foto-preview"></div>
+      </div>
+
+      <!-- ================= INGREDIENTI ================= -->
+
+      <div class="card">
+        <h3>🥕 Ingredienti</h3>
+
+        <div id="ricetta-ingredienti-container"></div>
+
+        <button id="btn-add-ingrediente" class="app-button">
+          + Aggiungi ingrediente
+        </button>
+      </div>
+
+      <!-- ================= PREPARAZIONE ================= -->
+
+      <div class="card">
+        <h3>🧑‍🍳 Preparazione</h3>
+
+        <table id="table-preparazione" class="app-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fase</th>
+              <th>Tipo</th>
+              <th>Durata</th>
+              <th>Uomo</th>
+              <th>Tecnologia</th>
+              <th>Temp</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div style="margin-top:10px;">
+          Totale: <strong id="prep-tempo-totale">0 min</strong> |
+          Uomo: <strong id="prep-tempo-uomo">0 min</strong>
+        </div>
+
+        <button id="btn-add-fase-preparazione" class="app-button">
+          + Aggiungi fase
+        </button>
+      </div>
+
+      <!-- ================= OUTPUT ================= -->
+
+      <div class="card">
+        <h3>📦 Prodotto generato</h3>
+
+        <label>
+          Collega a prodotto magazzino
+          <input
+            id="ricetta-prodotto-output"
+            class="input-pill"
+            placeholder="Digita almeno 2 lettere..."
+            list="ingredienti-suggestions"
+          />
+        </label>
+      </div>
+
+      <!-- ================= AZIONI ================= -->
+
+      <div class="card" style="display:flex; gap:10px;">
+        <button id="btn-salva-ricetta" class="app-button green">
+          💾 Salva
+        </button>
+
+        <button onclick="window.location.hash='ricette-viewer'"
+                class="app-button gray">
+          📖 Vai al Ricettario
+        </button>
+      </div>
+
+    </section>
+
+  </div>
 
   <!-- Router SPA -->
   <script type="module" src="js/router.js"></script>
