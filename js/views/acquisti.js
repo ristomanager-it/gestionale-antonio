@@ -148,6 +148,94 @@ async function renderFatture(container, azienda) {
 
   // Debounce map per input
   const debounceTimers = new Map();
+  /* ===================================================== */
+/* ============ AUTOCOMPLETE PRODOTTI (MIN 2) ========== */
+/* ===================================================== */
+
+// Caricamento prodotti light (solo campi necessari)
+async function caricaProdottiLight() {
+  const now = Date.now();
+
+  // cache 60 secondi
+  if (prodottiCache.length && (now - prodottiCacheLastLoad < 60000)) {
+    return prodottiCache;
+  }
+
+  const { data, error } = await window.supabaseClient
+    .from("prodotti")
+    .select("id, descrizione, codice_interno")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("descrizione");
+
+  if (!error && data) {
+    prodottiCache = data;
+    prodottiCacheLastLoad = now;
+  }
+
+  return prodottiCache;
+}
+
+// Autocomplete su input prodotto
+righeContainer.addEventListener("input", async (e) => {
+  if (!e.target.classList.contains("riga-search")) return;
+
+  const input = e.target;
+  const index = input.dataset.i;
+  const value = input.value.trim().toLowerCase();
+
+  // 🔒 REGOLA SISTEMA: minimo 2 lettere
+  if (value.length < 2) {
+    datalistProdotti.innerHTML = "";
+    return;
+  }
+
+  // Debounce 300ms
+  if (debounceTimers.has(index)) {
+    clearTimeout(debounceTimers.get(index));
+  }
+
+  debounceTimers.set(index, setTimeout(async () => {
+
+    const prodotti = await caricaProdottiLight();
+
+    const filtrati = prodotti.filter(p =>
+      (p.descrizione || "").toLowerCase().includes(value) ||
+      (p.codice_interno || "").toLowerCase().includes(value)
+    ).slice(0, 20); // max 20 risultati
+
+    datalistProdotti.innerHTML = filtrati.map(p =>
+      `<option value="${p.descrizione}" data-id="${p.id}"></option>`
+    ).join("");
+
+  }, 300));
+});
+
+// Selezione prodotto → salva prodotto_id nella riga
+righeContainer.addEventListener("change", async (e) => {
+  if (!e.target.classList.contains("riga-search")) return;
+
+  const input = e.target;
+  const index = input.dataset.i;
+  const value = input.value.trim().toLowerCase();
+
+  const prodotti = await caricaProdottiLight();
+
+  const match = prodotti.find(p =>
+    (p.descrizione || "").toLowerCase() === value
+  );
+
+  if (match) {
+    righe[index].prodotto_id = match.id;
+
+    input.style.background = "#dcfce7"; // verde match forte
+  } else {
+    righe[index].prodotto_id = null;
+
+    input.style.background = "#fee2e2"; // rosso no match
+  }
+});
+
 
   /* ================= MODE SWITCH ================= */
 
