@@ -12,10 +12,10 @@ export async function render(container) {
     return;
   }
 
+  // 🔥 RIMOSSO RICETTARIO - Produzione sarà il centro unico
   const moduli = [
     { key: "timbrature", label: "Timbrature", icon: "⏱️" },
     { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-    { key: "ricettario", label: "Ricettario", icon: "📚" },
     { key: "produzione", label: "Produzione", icon: "🏭" },
     { key: "magazzino", label: "Magazzino", icon: "📦" },
     { key: "acquisti", label: "Acquisti", icon: "🧾" },
@@ -25,7 +25,6 @@ export async function render(container) {
     { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
-  // 🔥 Per ora mostriamo sempre tutto
   const attivi = moduli;
 
   const saluto = getSaluto();
