@@ -1,23 +1,22 @@
 // js/views/crea-ricetta.js
 // ============================================================
 // CREA / MODIFICA RICETTA – VERSIONE DEFINITIVA STABILE
+// Coerente con struttura DB reale
 // ============================================================
 
 let ricettaId = null;
 let prodottiCache = [];
-let prodottiById = new Map();
+let prodottiMap = new Map();
 
 export async function render(app) {
   ricettaId = window.routeParams?.id
     ? String(window.routeParams.id)
     : null;
 
-  if (!window.state?.azienda?.id) {
-    app.innerHTML = `
-      <section class="view">
-        <h3>Nessuna azienda attiva</h3>
-      </section>
-    `;
+  const aziendaId = window.state?.azienda?.id;
+
+  if (!aziendaId) {
+    app.innerHTML = `<section class="view"><h3>Nessuna azienda attiva</h3></section>`;
     return;
   }
 
@@ -72,14 +71,11 @@ export async function render(app) {
     </section>
   `;
 
-  // 🔥 PRIMA carico prodotti
   await loadProdotti();
-
-  // 🔥 POI inizializzo UI
   bindUI();
 
   if (ricettaId) {
-    await caricaRicetta(ricettaId);
+    await caricaRicetta();
   } else {
     aggiungiIngrediente();
   }
@@ -102,16 +98,15 @@ async function loadProdotti() {
   if (error) {
     console.error(error);
     prodottiCache = [];
-    prodottiById = new Map();
+    prodottiMap = new Map();
     return;
   }
 
   prodottiCache = data || [];
-  prodottiById = new Map(
+  prodottiMap = new Map(
     prodottiCache.map(p => [String(p.id), p])
   );
 
-  // Autocomplete prodotto output
   setupAutocomplete(
     document.getElementById("r-output-search"),
     document.getElementById("r-output-id"),
@@ -120,13 +115,11 @@ async function loadProdotti() {
 }
 
 /* ============================================================
-   AUTOCOMPLETE UNIVERSALE
+   AUTOCOMPLETE
 ============================================================ */
 function setupAutocomplete(input, hidden, suggestBox) {
-  if (!input) return;
-
   input.addEventListener("input", () => {
-    const q = input.value.trim().toLowerCase();
+    const q = input.value.toLowerCase().trim();
     hidden.value = "";
     suggestBox.innerHTML = "";
 
@@ -134,9 +127,7 @@ function setupAutocomplete(input, hidden, suggestBox) {
 
     const risultati = prodottiCache
       .filter(p =>
-        (p.descrizione || "")
-          .toLowerCase()
-          .includes(q)
+        p.descrizione.toLowerCase().includes(q)
       )
       .slice(0, 10);
 
@@ -160,8 +151,7 @@ function setupAutocomplete(input, hidden, suggestBox) {
    INGREDIENTI
 ============================================================ */
 function aggiungiIngrediente(initial = {}) {
-  const container =
-    document.getElementById("ingredienti-container");
+  const container = document.getElementById("ingredienti-container");
 
   const row = document.createElement("div");
   row.className = "azienda-card";
@@ -197,9 +187,7 @@ function aggiungiIngrediente(initial = {}) {
     </div>
   `;
 
-  row.querySelector("button").onclick =
-    () => row.remove();
-
+  row.querySelector("button").onclick = () => row.remove();
   container.appendChild(row);
 
   setupAutocomplete(
@@ -210,81 +198,110 @@ function aggiungiIngrediente(initial = {}) {
 }
 
 /* ============================================================
-   SALVATAGGIO
+   CARICA RICETTA
+============================================================ */
+async function caricaRicetta() {
+  const supabase = window.supabaseClient;
+
+  const { data } = await supabase
+    .from("ricette")
+    .select("*")
+    .eq("id", ricettaId)
+    .single();
+
+  document.getElementById("r-nome").value = data.nome;
+
+  if (data.prodotto_output_id) {
+    const p = prodottiMap.get(String(data.prodotto_output_id));
+    if (p) {
+      document.getElementById("r-output-search").value = p.descrizione;
+      document.getElementById("r-output-id").value = p.id;
+    }
+  }
+
+  const { data: ingredienti } = await supabase
+    .from("ricetta_ingredienti")
+    .select("*")
+    .eq("ricetta_id", ricettaId);
+
+  document.getElementById("ingredienti-container").innerHTML = "";
+  ingredienti.forEach(i => aggiungiIngrediente(i));
+}
+
+/* ============================================================
+   SAVE
 ============================================================ */
 async function salvaTutto() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
-  const nome =
-    document.getElementById("r-nome").value.trim();
+  const nome = document.getElementById("r-nome").value.trim();
+  const prodotto_output_id = document.getElementById("r-output-id").value;
 
-  const prodotto_output_id =
-    document.getElementById("r-output-id").value;
-
-  if (!nome)
-    return alert("Nome obbligatorio");
-
-  if (!prodotto_output_id)
-    return alert("Seleziona prodotto output");
+  if (!nome) return alert("Nome obbligatorio");
+  if (!prodotto_output_id) return alert("Seleziona prodotto output");
 
   let savedId = ricettaId;
 
-  if (ricettaId) {
-    await supabase
-      .from("ricette")
-      .update({
-        nome,
-        prodotto_output_id,
-        azienda_id: aziendaId
-      })
-      .eq("id", ricettaId);
-  } else {
+  if (!ricettaId) {
     const { data } = await supabase
       .from("ricette")
       .insert({
         nome,
         prodotto_output_id,
         azienda_id: aziendaId,
-        attivo: true
+        attivo: true,
+        costo_materia_prima: 0,
+        percentuale_sfrido: 0,
+        costo_con_sfrido: 0,
+        coefficiente_base: 1,
+        fattore_porzione_ristorante: 1,
+        fattore_porzione_evento: 1,
+        prezzo_ristorante: 0,
+        prezzo_evento: 0,
+        costo_mp_snapshot: 0,
+        costo_tot_snapshot: 0,
+        stato_costo: 'bozza'
       })
       .select("id")
       .single();
 
     savedId = data.id;
+  } else {
+    await supabase
+      .from("ricette")
+      .update({ nome, prodotto_output_id })
+      .eq("id", ricettaId);
   }
-
-  const ingredienti = [];
-
-  document
-    .querySelectorAll("#ingredienti-container .azienda-card")
-    .forEach(r => {
-      const pid =
-        r.querySelector(".ing-id").value;
-
-      const qta =
-        parseFloat(
-          r.querySelector(".ing-qta").value
-        );
-
-      if (pid && qta > 0) {
-        ingredienti.push({
-          ricetta_id: savedId,
-          prodotto_id: pid,
-          quantita: qta
-        });
-      }
-    });
 
   await supabase
     .from("ricetta_ingredienti")
     .delete()
     .eq("ricetta_id", savedId);
 
-  if (ingredienti.length) {
-    await supabase
-      .from("ricetta_ingredienti")
-      .insert(ingredienti);
+  const rows = [];
+
+  document.querySelectorAll("#ingredienti-container .azienda-card")
+    .forEach(r => {
+      const pid = r.querySelector(".ing-id").value;
+      const nomeProd = r.querySelector(".ing-search").value;
+      const qta = parseFloat(r.querySelector(".ing-qta").value);
+
+      if (pid && qta > 0) {
+        rows.push({
+          ricetta_id: savedId,
+          prodotto_id: pid,
+          nome_prodotto: nomeProd,
+          quantita: qta,
+          unita_misura: prodottiMap.get(pid)?.um || "pz",
+          azienda_id: aziendaId,
+          mapping_stato: "ok"
+        });
+      }
+    });
+
+  if (rows.length) {
+    await supabase.from("ricetta_ingredienti").insert(rows);
   }
 
   alert("Ricetta salvata ✔️");
@@ -295,13 +312,9 @@ async function salvaTutto() {
    BIND UI
 ============================================================ */
 function bindUI() {
-  document
-    .getElementById("btn-add-ing")
-    .addEventListener("click",
-      () => aggiungiIngrediente());
+  document.getElementById("btn-add-ing")
+    .addEventListener("click", () => aggiungiIngrediente());
 
-  document
-    .getElementById("btn-salva")
-    .addEventListener("click",
-      salvaTutto);
+  document.getElementById("btn-salva")
+    .addEventListener("click", salvaTutto);
 }
