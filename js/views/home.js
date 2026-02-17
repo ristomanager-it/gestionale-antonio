@@ -17,7 +17,8 @@ export async function render(container) {
   const moduli = [
     { key: "timbrature", label: "Timbrature", icon: "⏱️" },
     { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-    { key: "ricette", label: "Ricette", icon: "🍽️" },
+    { key: "ricettario", label: "Ricettario", icon: "📚" },
+    { key: "produzione", label: "Produzione", icon: "🏭" },
     { key: "magazzino", label: "Magazzino", icon: "📦" },
     { key: "acquisti", label: "Acquisti", icon: "🧾" },
     { key: "preventivi", label: "Preventivi", icon: "📑" },
@@ -38,7 +39,6 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
-      <!-- Pulsante ritorno piattaforma -->
       ${
         azienda.stato === "piattaforma"
           ? `
@@ -54,7 +54,6 @@ export async function render(container) {
           : ""
       }
 
-      <!-- HEADER -->
       <div style="
         display:flex;
         align-items:center;
@@ -94,7 +93,6 @@ export async function render(container) {
 
       </div>
 
-      <!-- GRID MODULI -->
       <div 
         style="
           display:grid;
