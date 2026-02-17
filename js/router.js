@@ -16,6 +16,7 @@ const routes = {
   magazzino: () => import("./views/magazzino.js"),
   ricettario: () => import("./views/ricettario.js"),
   ricette: () => import("./views/ricette.js"),
+  produzione: () => import("./views/produzione.js"),
 };
 
 function parseHash() {
@@ -65,18 +66,15 @@ async function resolve() {
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
-  // 🔐 Recupero sessione
   let { data } = await window.supabaseClient.auth.getSession();
   let session = data.session;
 
-  // Tentativo refresh automatico
   if (!session) {
     const { data: refreshed } =
       await window.supabaseClient.auth.refreshSession();
     session = refreshed?.session;
   }
 
-  // ❌ Nessuna sessione → login
   if (!session) {
     await renderView("login");
     return;
@@ -84,7 +82,6 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔐 Recupero aziende associate
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
     .select(`
@@ -121,8 +118,6 @@ async function resolve() {
     `;
     return;
   }
-
-  // 🔵 Regole di navigazione
 
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
     window.location.hash = "#/homePiattaforma";
