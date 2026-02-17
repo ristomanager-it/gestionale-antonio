@@ -42,13 +42,17 @@ export async function render(app) {
 
 async function preloadRicette() {
   const supabase = window.supabaseClient;
-  const aziendaId = window.state.azienda.id;
+  const aziendaId = window.state.azienda?.id;
+
+  if (!aziendaId) {
+    console.error("Azienda non trovata nello state");
+    return;
+  }
 
   const { data, error } = await supabase
     .from("ricette")
     .select("id, nome, descrizione, pezzi_base")
     .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
     .order("nome");
 
   if (error) {
@@ -109,6 +113,7 @@ async function renderViewer(ricetta) {
   viewer.innerHTML = `
     <div class="azienda-card">
       <h3>${ricetta.nome}</h3>
+
       <div class="small-muted">
         ${ricetta.descrizione || ""}
       </div>
