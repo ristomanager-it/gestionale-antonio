@@ -1,297 +1,273 @@
 // ============================================================
-// VIEW RICETTE – Gestionale Antonio / Ristoflow SaaS
+// VIEW RICETTE - COMPLETA
+// Compatibile con router modulare
 // ============================================================
 
 let ricettaCorrenteId = null;
-let prodottiCache = [];
-let preparazioneFasi = [];
+let ricetteCache = [];
 
-// ------------------------------------------------------------
-// INIT VIEW
-// ------------------------------------------------------------
-export async function initViewRicette() {
-  await caricaProdotti();
+export async function render(app) {
+  app.innerHTML = `
+    <section class="view">
+      <div class="card">
+
+        <h2>🍽️ Ricette</h2>
+
+        <div class="ricette-layout">
+
+          <div class="ricette-lista">
+            <h3>Ricettario</h3>
+            <div id="ricette-list"></div>
+            <button id="btn-nuova-ricetta" class="app-button gray">
+              + Nuova Ricetta
+            </button>
+          </div>
+
+          <div class="ricette-editor">
+            <h3 id="editor-title">Nuova Ricetta</h3>
+
+            <label>
+              Nome
+              <input id="ricetta-nome" class="input-pill">
+            </label>
+
+            <label>
+              Descrizione
+              <textarea id="ricetta-descrizione" class="input-pill"></textarea>
+            </label>
+
+            <h4>Ingredienti</h4>
+            <div id="ingredienti-container"></div>
+            <button id="btn-add-ingrediente" class="app-button tiny gray">
+              + Ingrediente
+            </button>
+
+            <div style="margin-top:20px;">
+              <button id="btn-salva-ricetta" class="app-button green">
+                💾 Salva
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  `;
+
   bindEventi();
-  resetFormRicetta();
+  await caricaRicette();
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // EVENTI
-// ------------------------------------------------------------
+// ============================================================
+
 function bindEventi() {
-  const btnAddIng = document.getElementById("btn-add-ingrediente");
-  const btnAddFase = document.getElementById("btn-add-fase-preparazione");
-  const btnSalva = document.getElementById("btn-salva-ricetta");
+  document
+    .getElementById("btn-nuova-ricetta")
+    ?.addEventListener("click", nuovaRicetta);
 
-  btnAddIng?.addEventListener("click", () => creaRigaIngrediente());
-  btnAddFase?.addEventListener("click", () => openModalFase());
-  btnSalva?.addEventListener("click", handleSalvaRicetta);
+  document
+    .getElementById("btn-add-ingrediente")
+    ?.addEventListener("click", creaRigaIngrediente);
+
+  document
+    .getElementById("btn-salva-ricetta")
+    ?.addEventListener("click", salvaRicetta);
 }
 
-// ------------------------------------------------------------
-// RESET FORM
-// ------------------------------------------------------------
-function resetFormRicetta() {
-  ricettaCorrenteId = null;
-  preparazioneFasi = [];
+// ============================================================
+// RICETTE LISTA
+// ============================================================
 
-  document.getElementById("ricetta-nome").value = "";
-  document.getElementById("ricetta-descrizione").value = "";
-  document.getElementById("ricetta-note").value = "";
-  document.getElementById("ricetta-prodotto-output").value = "";
-  document.getElementById("ricetta-ingredienti-container").innerHTML = "";
-  document.querySelector("#table-preparazione tbody").innerHTML = "";
-
-  renderStato("bozza");
-  creaRigaIngrediente();
-}
-
-// ------------------------------------------------------------
-// STATO BADGE
-// ------------------------------------------------------------
-function renderStato(stato) {
-  const el = document.getElementById("ricetta-stato-badge");
-  if (!el) return;
-
-  if (stato === "strutturata")
-    el.innerHTML = `<span class="badge green">🟢 Strutturata</span>`;
-  else if (stato === "incompleta")
-    el.innerHTML = `<span class="badge yellow">🟡 Incompleta</span>`;
-  else
-    el.innerHTML = `<span class="badge red">🔴 Bozza</span>`;
-}
-
-// ------------------------------------------------------------
-// CARICAMENTO PRODOTTI (AUTOCOMPLETE)
-// ------------------------------------------------------------
-async function caricaProdotti() {
+async function caricaRicette() {
   const supabase = window.supabaseClient;
-  if (!supabase) return;
 
-  const { data } = await supabase
-    .from("prodotti")
-    .select("id, descrizione")
-    .eq("attivo", true)
-    .order("descrizione");
+  const { data, error } = await supabase
+    .from("ricette")
+    .select("id, nome")
+    .order("nome");
 
-  prodottiCache = data || [];
+  if (error) {
+    console.error(error);
+    return;
+  }
 
-  const datalist = document.getElementById("ingredienti-suggestions");
-  if (!datalist) return;
+  ricetteCache = data || [];
+  renderListaRicette();
+}
 
-  datalist.innerHTML = "";
+function renderListaRicette() {
+  const box = document.getElementById("ricette-list");
+  if (!box) return;
 
-  prodottiCache.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.descrizione;
-    datalist.appendChild(opt);
+  box.innerHTML = "";
+
+  ricetteCache.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "ricetta-item";
+    div.textContent = r.nome;
+    div.onclick = () => caricaRicettaInEditor(r.id);
+    box.appendChild(div);
   });
 }
 
-// ------------------------------------------------------------
+// ============================================================
+// NUOVA RICETTA
+// ============================================================
+
+function nuovaRicetta() {
+  ricettaCorrenteId = null;
+  document.getElementById("editor-title").innerText = "Nuova Ricetta";
+  document.getElementById("ricetta-nome").value = "";
+  document.getElementById("ricetta-descrizione").value = "";
+  document.getElementById("ingredienti-container").innerHTML = "";
+  creaRigaIngrediente();
+}
+
+// ============================================================
+// CARICAMENTO RICETTA
+// ============================================================
+
+async function caricaRicettaInEditor(id) {
+  const supabase = window.supabaseClient;
+
+  const { data, error } = await supabase
+    .from("ricette")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return;
+
+  ricettaCorrenteId = id;
+
+  document.getElementById("editor-title").innerText = "Modifica Ricetta";
+  document.getElementById("ricetta-nome").value = data.nome || "";
+  document.getElementById("ricetta-descrizione").value = data.descrizione || "";
+
+  await caricaIngredienti(id);
+}
+
+async function caricaIngredienti(ricettaId) {
+  const supabase = window.supabaseClient;
+
+  const { data } = await supabase
+    .from("ricetta_ingredienti")
+    .select("*")
+    .eq("ricetta_id", ricettaId);
+
+  const container = document.getElementById("ingredienti-container");
+  container.innerHTML = "";
+
+  (data || []).forEach(i => creaRigaIngrediente(i));
+}
+
+// ============================================================
 // INGREDIENTI
-// ------------------------------------------------------------
+// ============================================================
+
 function creaRigaIngrediente(initial = {}) {
-  const container = document.getElementById("ricetta-ingredienti-container");
+  const container = document.getElementById("ingredienti-container");
   if (!container) return;
 
   const row = document.createElement("div");
-  row.className = "ricetta-ingrediente-row";
-  row.style.display = "flex";
-  row.style.gap = "6px";
-  row.style.marginBottom = "6px";
+  row.className = "ingrediente-row";
 
   row.innerHTML = `
-    <input class="ingrediente-nome input-pill"
-      placeholder="Ingrediente (min 2 lettere)"
-      list="ingredienti-suggestions"
+    <input class="ing-nome input-pill" placeholder="Ingrediente"
       value="${initial.nome_prodotto || ""}">
-    <input class="ingrediente-quantita input-pill"
-      type="number" step="0.001" min="0"
+    <input class="ing-qta input-pill" type="number" step="0.001"
       placeholder="Q.tà"
       value="${initial.quantita || ""}">
-    <input class="ingrediente-unita input-pill"
-      placeholder="UM"
+    <input class="ing-um input-pill" placeholder="UM"
       value="${initial.unita_misura || ""}">
-    <button type="button" class="app-button tiny red">✕</button>
+    <button class="app-button tiny red">✕</button>
   `;
 
   row.querySelector("button").onclick = () => row.remove();
   container.appendChild(row);
 }
 
-// ------------------------------------------------------------
-// PREPARAZIONE FASI
-// ------------------------------------------------------------
-function openModalFase() {
-  const nome = prompt("Nome fase:");
-  if (!nome) return;
-
-  preparazioneFasi.push({
-    ordine: preparazioneFasi.length + 1,
-    nome_fase: nome,
-    tipo_fase: "preparazione",
-    durata_min: 0,
-    lavoro_umano_min: 0,
-  });
-
-  renderFasi();
-}
-
-function renderFasi() {
-  const tbody = document.querySelector("#table-preparazione tbody");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
-  let tot = 0;
-  let uomo = 0;
-
-  preparazioneFasi.forEach((f, i) => {
-    tot += f.durata_min;
-    uomo += f.lavoro_umano_min;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${f.nome_fase}</td>
-      <td>${f.tipo_fase}</td>
-      <td>${f.durata_min}</td>
-      <td>${f.lavoro_umano_min}</td>
-      <td>-</td>
-      <td>-</td>
-      <td><button class="app-button tiny red">✕</button></td>
-    `;
-
-    tr.querySelector("button").onclick = () => {
-      preparazioneFasi.splice(i, 1);
-      renderFasi();
-    };
-
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById("prep-tempo-totale").innerText = `${tot} min`;
-  document.getElementById("prep-tempo-uomo").innerText = `${uomo} min`;
-}
-
-// ------------------------------------------------------------
+// ============================================================
 // SALVATAGGIO
-// ------------------------------------------------------------
-async function handleSalvaRicetta() {
+// ============================================================
+
+async function salvaRicetta() {
   const supabase = window.supabaseClient;
-  if (!supabase) return;
 
   const nome = document.getElementById("ricetta-nome").value.trim();
-  if (!nome) return alert("Nome obbligatorio");
-
   const descrizione = document.getElementById("ricetta-descrizione").value;
-  const note = document.getElementById("ricetta-note").value;
-  const outputNome = document.getElementById("ricetta-prodotto-output").value;
 
-  const prodottoOutput = prodottiCache.find(
-    p => p.descrizione.toLowerCase() === outputNome.toLowerCase()
-  );
-
-  const payload = {
-    nome,
-    descrizione,
-    note_procedimento: note,
-    prodotto_output_id: prodottoOutput ? prodottoOutput.id : null
-  };
+  if (!nome) {
+    alert("Nome obbligatorio");
+    return;
+  }
 
   let ricetta;
 
   if (ricettaCorrenteId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("ricette")
-      .update(payload)
+      .update({ nome, descrizione })
       .eq("id", ricettaCorrenteId)
       .select()
       .single();
+
+    if (error) return alert("Errore update");
     ricetta = data;
   } else {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("ricette")
-      .insert(payload)
+      .insert({ nome, descrizione })
       .select()
       .single();
+
+    if (error) return alert("Errore insert");
     ricetta = data;
+    ricettaCorrenteId = ricetta.id;
   }
 
-  if (!ricetta) return alert("Errore salvataggio");
-
-  ricettaCorrenteId = ricetta.id;
-
-  await salvaIngredienti();
-  await salvaFasi();
-
-  renderStato(ricetta.stato_strutturale);
+  await salvaIngredienti(ricetta.id);
 
   alert("Ricetta salvata ✔️");
+  await caricaRicette();
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // SALVA INGREDIENTI
-// ------------------------------------------------------------
-async function salvaIngredienti() {
+// ============================================================
+
+async function salvaIngredienti(ricettaId) {
   const supabase = window.supabaseClient;
-  if (!ricettaCorrenteId) return;
 
   await supabase
     .from("ricetta_ingredienti")
     .delete()
-    .eq("ricetta_id", ricettaCorrenteId);
+    .eq("ricetta_id", ricettaId);
 
-  const rows = document.querySelectorAll(".ricetta-ingrediente-row");
+  const rows = document.querySelectorAll(".ingrediente-row");
 
   const payload = [];
 
   rows.forEach(r => {
-    const nome = r.querySelector(".ingrediente-nome").value.trim();
-    const qta = parseFloat(r.querySelector(".ingrediente-quantita").value);
-    const um = r.querySelector(".ingrediente-unita").value.trim();
+    const nome = r.querySelector(".ing-nome").value.trim();
+    const qta = parseFloat(r.querySelector(".ing-qta").value);
+    const um = r.querySelector(".ing-um").value.trim();
 
-    if (!nome || !qta) return;
-
-    const prodotto = prodottiCache.find(
-      p => p.descrizione.toLowerCase() === nome.toLowerCase()
-    );
+    if (!nome || !qta || !um) return;
 
     payload.push({
-      ricetta_id: ricettaCorrenteId,
-      prodotto_id: prodotto ? prodotto.id : null,
+      ricetta_id: ricettaId,
       nome_prodotto: nome,
       quantita: qta,
       unita_misura: um
     });
   });
 
-  if (payload.length)
+  if (payload.length) {
     await supabase.from("ricetta_ingredienti").insert(payload);
-}
-
-// ------------------------------------------------------------
-// SALVA FASI
-// ------------------------------------------------------------
-async function salvaFasi() {
-  const supabase = window.supabaseClient;
-  if (!ricettaCorrenteId) return;
-
-  await supabase
-    .from("ricette_preparazione_fasi")
-    .delete()
-    .eq("ricetta_id", ricettaCorrenteId);
-
-  if (!preparazioneFasi.length) return;
-
-  await supabase.from("ricette_preparazione_fasi").insert(
-    preparazioneFasi.map(f => ({
-      ricetta_id: ricettaCorrenteId,
-      ordine: f.ordine,
-      nome_fase: f.nome_fase,
-      tipo_fase: f.tipo_fase,
-      durata_min: f.durata_min,
-      lavoro_umano_min: f.lavoro_umano_min
-    }))
-  );
+  }
 }
