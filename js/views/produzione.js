@@ -1,6 +1,6 @@
 // ============================================================
 // VIEW PRODUZIONE (CENTRO PRODUZIONE)
-// Versione ALLINEATA al tuo DB reale (senza colonna tipo)
+// ALLINEATO allo schema reale ricette
 // ============================================================
 
 let ricetteCache = [];
@@ -20,39 +20,7 @@ export async function render(app) {
         </div>
       </div>
 
-      <div class="dashboard-grid" style="margin-top:10px;">
-        <div class="azienda-card">
-          <h3>➕ Crea Ricetta</h3>
-          <p class="small-muted">
-            Inserisci la scheda tecnica completa.
-          </p>
-          <button id="btn-prod-crea-ricetta" class="app-button green">
-            Apri Editor Ricetta
-          </button>
-        </div>
-
-        <div class="azienda-card">
-          <h3>🔍 Cerca Ricetta</h3>
-          <p class="small-muted">
-            Consulta una ricetta senza produrre.
-          </p>
-          <button id="btn-prod-cerca-ricetta" class="app-button gray">
-            Vai al Ricettario
-          </button>
-        </div>
-
-        <div class="azienda-card">
-          <h3>▶ Produci Ricetta</h3>
-          <p class="small-muted">
-            Registra una lavorazione.
-          </p>
-          <button id="btn-prod-apri-panel" class="app-button primary">
-            Apri Produzione
-          </button>
-        </div>
-      </div>
-
-      <div class="editor-section" id="panel-produzione" style="margin-top:12px;">
+      <div class="editor-section open" id="panel-produzione" style="margin-top:12px;">
         <div class="editor-section-header">
           <div>
             <strong>Produzione</strong>
@@ -130,23 +98,6 @@ export async function render(app) {
 }
 
 function bindUI() {
-
-  document.getElementById("btn-prod-crea-ricetta")
-    ?.addEventListener("click", () => {
-      window.location.hash = "#/ricette/nuova";
-    });
-
-  document.getElementById("btn-prod-cerca-ricetta")
-    ?.addEventListener("click", () => {
-      window.location.hash = "#/ricettario";
-    });
-
-  document.getElementById("btn-prod-apri-panel")
-    ?.addEventListener("click", () => {
-      document.getElementById("panel-produzione")
-        ?.classList.add("open");
-    });
-
   document.getElementById("btn-prod-conferma")
     ?.addEventListener("click", confermaProduzione);
 }
@@ -158,12 +109,16 @@ function presetDataOggi() {
   el.value = d.toISOString().slice(0, 10);
 }
 
+// ============================================================
+// CARICAMENTO RICETTE (FIX resa_base → pezzi_base)
+// ============================================================
+
 async function preloadRicette() {
   const supabase = window.supabaseClient;
 
   const { data, error } = await supabase
     .from("ricette")
-    .select("id, nome, prodotto_output_id, resa_base")
+    .select("id, nome, prodotto_output_id, pezzi_base")
     .order("nome");
 
   if (error) {
@@ -220,7 +175,7 @@ function renderRiepilogo() {
     <div class="azienda-card">
       <strong>${escapeHtml(ricettaSelezionata.nome)}</strong>
       <div class="small-muted">
-        Resa base: ${ricettaSelezionata.resa_base ?? "-"}
+        Pezzi base: ${ricettaSelezionata.pezzi_base ?? "-"}
       </div>
     </div>
   `;
