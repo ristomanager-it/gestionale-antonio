@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa Moderna
+// Dashboard Operativa Moderna (solo Produzione)
 // =======================================
 
 export async function render(container) {
@@ -12,10 +12,7 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 RIMOSSO RICETTARIO - Produzione sarà il centro unico
   const moduli = [
-    { key: "timbrature", label: "Timbrature", icon: "⏱️" },
-    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
     { key: "produzione", label: "Produzione", icon: "🏭" },
     { key: "magazzino", label: "Magazzino", icon: "📦" },
     { key: "acquisti", label: "Acquisti", icon: "🧾" },
