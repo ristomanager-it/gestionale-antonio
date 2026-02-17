@@ -14,15 +14,20 @@ const routes = {
   setPassword: () => import("./views/set-password.js"),
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
-  ricette: () => import("./views/ricette.js"), // ✅ AGGIUNTA
+  ricettario: () => import("./views/ricettario.js"),
+  ricette: () => import("./views/ricette.js"),
 };
 
 function parseHash() {
   const raw = window.location.hash || "#/login";
   const cleaned = raw.replace("#/", "");
-  const [routeName, queryString] = cleaned.split("?");
+  const parts = cleaned.split("?");
+
+  const path = parts[0] || "login";
+  const queryString = parts[1];
 
   const params = {};
+
   if (queryString) {
     const searchParams = new URLSearchParams(queryString);
     for (const [key, value] of searchParams.entries()) {
@@ -30,8 +35,11 @@ function parseHash() {
     }
   }
 
+  const segments = path.split("/").filter(Boolean);
+
   return {
-    route: routeName || "login",
+    route: segments[0] || "login",
+    segments,
     params,
   };
 }
@@ -53,8 +61,9 @@ async function renderView(routeName) {
 }
 
 async function resolve() {
-  const { route, params } = parseHash();
+  const { route, segments, params } = parseHash();
   window.routeParams = params || {};
+  window.routeSegments = segments || [];
 
   // 🔐 Recupero sessione
   let { data } = await window.supabaseClient.auth.getSession();
@@ -115,13 +124,11 @@ async function resolve() {
 
   // 🔵 Regole di navigazione
 
-  // Se piattaforma e non specifica route → home piattaforma
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
     window.location.hash = "#/homePiattaforma";
     return;
   }
 
-  // Se azienda normale prova ad andare su homePiattaforma → riportala a home
   if (azienda.stato !== "piattaforma" && route === "homePiattaforma") {
     window.location.hash = "#/home";
     return;
