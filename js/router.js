@@ -12,11 +12,22 @@ const routes = {
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   setPassword: () => import("./views/set-password.js"),
+
+  // Moduli operativi
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
+
+  // 🔥 CENTRO PRODUZIONE (3 scelte)
   produzione: () => import("./views/produzione.js"),
+
+  // 🔹 Ricettario (solo ricerca + viewer)
   ricettario: () => import("./views/ricettario.js"),
+
+  // 🔹 Editor completo ricetta
   creaRicetta: () => import("./views/crea-ricetta.js"),
+
+  // 🔹 Preparazioni / Lotti
+  preparazioni: () => import("./views/preparazioni.js"),
 };
 
 function parseHash() {
@@ -115,6 +126,7 @@ async function resolve() {
     return;
   }
 
+  // 🔹 Redirect coerenti piattaforma / azienda
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
     window.location.hash = "#/homePiattaforma";
     return;
@@ -122,6 +134,16 @@ async function resolve() {
 
   if (azienda.stato !== "piattaforma" && route === "homePiattaforma") {
     window.location.hash = "#/home";
+    return;
+  }
+
+  // 🔥 Se atterra su login ma è autenticato → vai a home corretta
+  if (route === "login") {
+    if (azienda.stato === "piattaforma") {
+      window.location.hash = "#/homePiattaforma";
+    } else {
+      window.location.hash = "#/home";
+    }
     return;
   }
 
