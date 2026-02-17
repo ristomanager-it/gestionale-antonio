@@ -1,4 +1,4 @@
-imimport "../supabaseClient.js";
+import "../supabaseClient.js";
 import "../state.js";
 
 export async function render(container) {
