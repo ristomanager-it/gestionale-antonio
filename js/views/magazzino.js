@@ -16,14 +16,23 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
+      <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
+        ← Torna alla Dashboard
+      </button>
+
       <h2>Modulo Magazzino</h2>
 
       <div id="magazzino-home"></div>
-
       <div id="magazzino-content" style="margin-top:20px;"></div>
 
     </div>
   `;
+
+  document
+    .getElementById("btn-back-dashboard")
+    .addEventListener("click", () => {
+      window.location.hash = "#/home";
+    });
 
   renderHome(azienda);
 }
@@ -56,17 +65,14 @@ function renderHome(azienda) {
 
       <div class="view mag-card" data-tab="movimenti">
         <h3>Movimenti</h3>
-        <p>Storico movimenti</p>
       </div>
 
       <div class="view mag-card" data-tab="scorte">
         <h3>Scorte Critiche</h3>
-        <p>Controllo livelli</p>
       </div>
 
       <div class="view mag-card" data-tab="mapping">
         <h3>Mapping Fornitori</h3>
-        <p>Collegamenti esterni</p>
       </div>
 
     </div>
@@ -112,10 +118,6 @@ async function renderProdotti(container, azienda, tipoProdotto) {
   }[tipoProdotto] || "Magazzino";
 
   container.innerHTML = `
-    <button class="app-button tiny gray" id="btn-back-mag" style="margin-bottom:10px;">
-      ← Torna al Magazzino
-    </button>
-
     <h3>${titolo}</h3>
 
     <table class="table-timbrature">
@@ -139,11 +141,6 @@ async function renderProdotti(container, azienda, tipoProdotto) {
       </tbody>
     </table>
   `;
-
-  document.getElementById("btn-back-mag")
-    .addEventListener("click", () => {
-      container.innerHTML = "";
-    });
 }
 
 /* ===================================================== */
@@ -173,10 +170,6 @@ async function renderMapping(container, azienda) {
   }
 
   container.innerHTML = `
-    <button class="app-button tiny gray" id="btn-back-map" style="margin-bottom:10px;">
-      ← Torna al Magazzino
-    </button>
-
     <h3>Mapping Fornitori</h3>
 
     <table class="table-timbrature">
@@ -200,124 +193,4 @@ async function renderMapping(container, azienda) {
       </tbody>
     </table>
   `;
-
-  document.getElementById("btn-back-map")
-    .addEventListener("click", () => {
-      container.innerHTML = "";
-    });
-}
-
-/* ===================================================== */
-/* ====================== MOVIMENTI ===================== */
-/* ===================================================== */
-
-async function renderMovimenti(container, azienda) {
-  container.innerHTML = `<p>Caricamento movimenti...</p>`;
-
-  const { data, error } = await window.supabaseClient
-    .from("magazzino_movimenti")
-    .select(`
-      data_movimento,
-      tipo_movimento,
-      quantita,
-      prodotti:prodotto_id ( descrizione )
-    `)
-    .eq("azienda_id", azienda.id)
-    .order("data_movimento", { ascending: false })
-    .limit(50);
-
-  if (error) {
-    container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
-    return;
-  }
-
-  container.innerHTML = `
-    <button class="app-button tiny gray" id="btn-back-mov" style="margin-bottom:10px;">
-      ← Torna al Magazzino
-    </button>
-
-    <h3>Ultimi Movimenti</h3>
-
-    <table class="table-timbrature">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Prodotto</th>
-          <th>Tipo</th>
-          <th>Quantità</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map(m => `
-          <tr>
-            <td>${m.data_movimento}</td>
-            <td>${m.prodotti?.descrizione || ""}</td>
-            <td>${m.tipo_movimento}</td>
-            <td>${m.quantita}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
-
-  document.getElementById("btn-back-mov")
-    .addEventListener("click", () => {
-      container.innerHTML = "";
-    });
-}
-
-/* ===================================================== */
-/* =================== SCORTE CRITICHE ================== */
-/* ===================================================== */
-
-async function renderScorte(container, azienda) {
-  container.innerHTML = `<p>Verifica scorte...</p>`;
-
-  const { data, error } = await window.supabaseClient
-    .from("v_magazzino_giacenze")
-    .select("*")
-    .eq("azienda_id", azienda.id);
-
-  if (error) {
-    container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
-    return;
-  }
-
-  const critici = data.filter(p => p.giacenza_attuale <= p.scorta_minima);
-
-  container.innerHTML = `
-    <button class="app-button tiny gray" id="btn-back-sco" style="margin-bottom:10px;">
-      ← Torna al Magazzino
-    </button>
-
-    <h3>Prodotti sotto scorta minima</h3>
-
-    ${critici.length === 0
-      ? "<p>Tutte le scorte sono regolari.</p>"
-      : `
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Prodotto</th>
-              <th>Giacenza</th>
-              <th>Scorta Min.</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${critici.map(p => `
-              <tr style="background:#fee2e2;">
-                <td>${p.descrizione}</td>
-                <td>${p.giacenza_attuale}</td>
-                <td>${p.scorta_minima}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      `}
-  `;
-
-  document.getElementById("btn-back-sco")
-    .addEventListener("click", () => {
-      container.innerHTML = "";
-    });
 }
