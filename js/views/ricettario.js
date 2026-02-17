@@ -1,15 +1,10 @@
-// ============================================================
-// VIEW RICETTARIO DEFINITIVO
-// ALLINEATO allo schema reale ricette (usa pezzi_base)
-// ============================================================
+// js/views/ricettario.js
 
 let ricetteCache = [];
-let ricettaSelezionata = null;
 
 export async function render(app) {
   app.innerHTML = `
     <section class="view">
-
       <div class="page-topbar">
         <div class="page-topbar-left">
           <button class="app-button small gray"
@@ -20,7 +15,7 @@ export async function render(app) {
         </div>
 
         <button class="app-button green"
-          onclick="window.location.hash='#/ricette/nuova'">
+          onclick="window.location.hash='#/ricettario/crea'">
           + Nuova Ricetta
         </button>
       </div>
@@ -37,7 +32,6 @@ export async function render(app) {
       </div>
 
       <div id="ricettario-viewer"></div>
-
     </section>
   `;
 
@@ -45,16 +39,13 @@ export async function render(app) {
   setupAutocomplete();
 }
 
-// ============================================================
-// PRELOAD RICETTE (FIX resa_base → pezzi_base)
-// ============================================================
-
+// Carica le ricette dal DB
 async function preloadRicette() {
   const supabase = window.supabaseClient;
 
   const { data, error } = await supabase
     .from("ricette")
-    .select("id, nome, descrizione, pezzi_base")
+    .select("id, nome")
     .order("nome");
 
   if (error) {
@@ -66,6 +57,7 @@ async function preloadRicette() {
   ricetteCache = data || [];
 }
 
+// Impostare autocompletamento per la ricerca ricetta
 function setupAutocomplete() {
   const input = document.getElementById("ricettario-search");
   const suggest = document.getElementById("ricettario-suggest");
@@ -94,10 +86,7 @@ function setupAutocomplete() {
   });
 }
 
-// ============================================================
-// APERTURA RICETTA COMPLETA
-// ============================================================
-
+// Funzione per aprire la ricetta e mostrarla in formato riassunto
 async function apriRicetta(id) {
   const supabase = window.supabaseClient;
 
@@ -121,10 +110,7 @@ async function apriRicetta(id) {
   renderViewer(ricetta, ingredienti || [], fasi || []);
 }
 
-// ============================================================
-// VIEWER LETTURA
-// ============================================================
-
+// Funzione per visualizzare la ricetta in modalità riassunto
 function renderViewer(r, ingredienti, fasi) {
   const container = document.getElementById("ricettario-viewer");
 
@@ -132,7 +118,7 @@ function renderViewer(r, ingredienti, fasi) {
     <div class="azienda-card" style="margin-bottom:20px;">
       <h3>${escapeHtml(r.nome)}</h3>
       <p class="small-muted">${escapeHtml(r.descrizione || "")}</p>
-      <p><strong>Pezzi base:</strong> ${r.pezzi_base ?? "-"}</p>
+      <p><strong>Resa base:</strong> ${r.pezzi_base ?? "-"}</p>
     </div>
 
     <div class="azienda-card" style="margin-bottom:20px;">
@@ -167,7 +153,7 @@ function renderViewer(r, ingredienti, fasi) {
 
     <div style="text-align:right;">
       <button class="app-button gray"
-        onclick="window.location.hash='#/ricette/${r.id}'">
+        onclick="window.location.hash='#/ricettario/modifica/${r.id}'">
         Modifica
       </button>
     </div>
