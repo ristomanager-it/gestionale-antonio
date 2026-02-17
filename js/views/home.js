@@ -12,8 +12,6 @@ export async function render(container) {
     return;
   }
 
-  const features = azienda.features || {};
-
   const moduli = [
     { key: "timbrature", label: "Timbrature", icon: "⏱️" },
     { key: "dipendenti", label: "Dipendenti", icon: "👥" },
@@ -27,12 +25,8 @@ export async function render(container) {
     { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
-  let attivi;
-  if (azienda.stato === "piattaforma") {
-    attivi = moduli;
-  } else {
-    attivi = moduli.filter(m => features[m.key] !== false);
-  }
+  // 🔥 Per ora mostriamo sempre tutto
+  const attivi = moduli;
 
   const saluto = getSaluto();
 
