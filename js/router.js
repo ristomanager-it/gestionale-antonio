@@ -14,21 +14,17 @@ const routes = {
   setPassword: () => import("./views/set-password.js"),
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
-  ricettario: () => import("./views/ricettario.js"),
-  ricette: () => import("./views/ricette.js"),
   produzione: () => import("./views/produzione.js"),
+  ricettario: () => import("./views/ricettario.js"),
+  creaRicetta: () => import("./views/crea-ricetta.js"),
 };
 
 function parseHash() {
   const raw = window.location.hash || "#/login";
   const cleaned = raw.replace("#/", "");
-  const parts = cleaned.split("?");
-
-  const path = parts[0] || "login";
-  const queryString = parts[1];
+  const [path, queryString] = cleaned.split("?");
 
   const params = {};
-
   if (queryString) {
     const searchParams = new URLSearchParams(queryString);
     for (const [key, value] of searchParams.entries()) {
