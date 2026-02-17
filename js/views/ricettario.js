@@ -1,8 +1,6 @@
 // ============================================================
 // VIEW RICETTARIO DEFINITIVO
-// - Spotlight ricerca centrale
-// - Viewer ricetta completo (lettura per tutti)
-// - Pulsante Nuova Ricetta
+// ALLINEATO allo schema reale ricette (usa pezzi_base)
 // ============================================================
 
 let ricetteCache = [];
@@ -47,12 +45,16 @@ export async function render(app) {
   setupAutocomplete();
 }
 
+// ============================================================
+// PRELOAD RICETTE (FIX resa_base → pezzi_base)
+// ============================================================
+
 async function preloadRicette() {
   const supabase = window.supabaseClient;
 
   const { data, error } = await supabase
     .from("ricette")
-    .select("id, nome, descrizione, resa_base")
+    .select("id, nome, descrizione, pezzi_base")
     .order("nome");
 
   if (error) {
@@ -92,6 +94,10 @@ function setupAutocomplete() {
   });
 }
 
+// ============================================================
+// APERTURA RICETTA COMPLETA
+// ============================================================
+
 async function apriRicetta(id) {
   const supabase = window.supabaseClient;
 
@@ -115,6 +121,10 @@ async function apriRicetta(id) {
   renderViewer(ricetta, ingredienti || [], fasi || []);
 }
 
+// ============================================================
+// VIEWER LETTURA
+// ============================================================
+
 function renderViewer(r, ingredienti, fasi) {
   const container = document.getElementById("ricettario-viewer");
 
@@ -122,7 +132,7 @@ function renderViewer(r, ingredienti, fasi) {
     <div class="azienda-card" style="margin-bottom:20px;">
       <h3>${escapeHtml(r.nome)}</h3>
       <p class="small-muted">${escapeHtml(r.descrizione || "")}</p>
-      <p><strong>Resa base:</strong> ${r.resa_base ?? "-"}</p>
+      <p><strong>Pezzi base:</strong> ${r.pezzi_base ?? "-"}</p>
     </div>
 
     <div class="azienda-card" style="margin-bottom:20px;">
