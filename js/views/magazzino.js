@@ -18,55 +18,86 @@ export async function render(container) {
 
       <h2>Modulo Magazzino</h2>
 
-      <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
-        <button class="app-button tiny tab-btn active" data-tab="prodotti">Prodotti</button>
-        <button class="app-button tiny tab-btn" data-tab="mapping">Mapping Fornitori</button>
-        <button class="app-button tiny tab-btn" data-tab="movimenti">Movimenti</button>
-        <button class="app-button tiny tab-btn" data-tab="scorte">Scorte Critiche</button>
-      </div>
+      <div id="magazzino-home"></div>
 
-      <div id="magazzino-content"></div>
+      <div id="magazzino-content" style="margin-top:20px;"></div>
 
     </div>
   `;
 
+  renderHome(azienda);
+}
+
+/* ===================================================== */
+/* ===================== HOME CARD ====================== */
+/* ===================================================== */
+
+function renderHome(azienda) {
+  const home = document.getElementById("magazzino-home");
   const content = document.getElementById("magazzino-content");
-  const tabButtons = document.querySelectorAll(".tab-btn");
 
-  function setActive(tab) {
-    tabButtons.forEach(b => {
-      b.classList.remove("active");
-      if (b.dataset.tab === tab) b.classList.add("active");
+  home.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
+
+      <div class="view mag-card" data-type="materia_prima">
+        <h3>Materie Prime</h3>
+        <p>Magazzino acquisti</p>
+      </div>
+
+      <div class="view mag-card" data-type="semilavorato">
+        <h3>Preparazioni</h3>
+        <p>Semilavorati prodotti</p>
+      </div>
+
+      <div class="view mag-card" data-type="prodotto_finito">
+        <h3>Prodotti Finiti</h3>
+        <p>Pronti alla vendita</p>
+      </div>
+
+      <div class="view mag-card" data-tab="movimenti">
+        <h3>Movimenti</h3>
+        <p>Storico movimenti</p>
+      </div>
+
+      <div class="view mag-card" data-tab="scorte">
+        <h3>Scorte Critiche</h3>
+        <p>Controllo livelli</p>
+      </div>
+
+      <div class="view mag-card" data-tab="mapping">
+        <h3>Mapping Fornitori</h3>
+        <p>Collegamenti esterni</p>
+      </div>
+
+    </div>
+  `;
+
+  document.querySelectorAll(".mag-card").forEach(card => {
+    card.style.cursor = "pointer";
+    card.addEventListener("click", () => {
+      const type = card.dataset.type;
+      const tab = card.dataset.tab;
+
+      if (type) renderProdotti(content, azienda, type);
+      if (tab === "movimenti") renderMovimenti(content, azienda);
+      if (tab === "scorte") renderScorte(content, azienda);
+      if (tab === "mapping") renderMapping(content, azienda);
     });
-  }
-
-  function renderTab(tab) {
-    setActive(tab);
-
-    if (tab === "prodotti") renderProdotti(content, azienda);
-    if (tab === "mapping") renderMapping(content, azienda);
-    if (tab === "movimenti") renderMovimenti(content, azienda);
-    if (tab === "scorte") renderScorte(content, azienda);
-  }
-
-  tabButtons.forEach(btn =>
-    btn.addEventListener("click", () => renderTab(btn.dataset.tab))
-  );
-
-  renderTab("prodotti");
+  });
 }
 
 /* ===================================================== */
 /* ===================== PRODOTTI ======================= */
 /* ===================================================== */
 
-async function renderProdotti(container, azienda) {
+async function renderProdotti(container, azienda, tipoProdotto) {
   container.innerHTML = `<p>Caricamento prodotti...</p>`;
 
   const { data, error } = await window.supabaseClient
     .from("v_magazzino_giacenze")
     .select("*")
     .eq("azienda_id", azienda.id)
+    .eq("tipo_prodotto", tipoProdotto)
     .order("descrizione");
 
   if (error) {
@@ -74,8 +105,18 @@ async function renderProdotti(container, azienda) {
     return;
   }
 
+  const titolo = {
+    materia_prima: "Magazzino Materie Prime",
+    semilavorato: "Magazzino Preparazioni",
+    prodotto_finito: "Magazzino Prodotti Finiti"
+  }[tipoProdotto] || "Magazzino";
+
   container.innerHTML = `
-    <h3>Anagrafica Prodotti</h3>
+    <button class="app-button tiny gray" id="btn-back-mag" style="margin-bottom:10px;">
+      ← Torna al Magazzino
+    </button>
+
+    <h3>${titolo}</h3>
 
     <table class="table-timbrature">
       <thead>
@@ -84,7 +125,6 @@ async function renderProdotti(container, azienda) {
           <th>Descrizione</th>
           <th>Giacenza</th>
           <th>Scorta Min.</th>
-          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -94,16 +134,16 @@ async function renderProdotti(container, azienda) {
             <td>${p.descrizione}</td>
             <td>${Number(p.giacenza_attuale).toFixed(3)}</td>
             <td>${p.scorta_minima || 0}</td>
-            <td>
-              <button class="app-button tiny" onclick="window.location.hash='#/magazzino?prodotto=${p.prodotto_id}'">
-                Dettaglio
-              </button>
-            </td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
+
+  document.getElementById("btn-back-mag")
+    .addEventListener("click", () => {
+      container.innerHTML = "";
+    });
 }
 
 /* ===================================================== */
@@ -133,6 +173,10 @@ async function renderMapping(container, azienda) {
   }
 
   container.innerHTML = `
+    <button class="app-button tiny gray" id="btn-back-map" style="margin-bottom:10px;">
+      ← Torna al Magazzino
+    </button>
+
     <h3>Mapping Fornitori</h3>
 
     <table class="table-timbrature">
@@ -156,6 +200,11 @@ async function renderMapping(container, azienda) {
       </tbody>
     </table>
   `;
+
+  document.getElementById("btn-back-map")
+    .addEventListener("click", () => {
+      container.innerHTML = "";
+    });
 }
 
 /* ===================================================== */
@@ -183,6 +232,10 @@ async function renderMovimenti(container, azienda) {
   }
 
   container.innerHTML = `
+    <button class="app-button tiny gray" id="btn-back-mov" style="margin-bottom:10px;">
+      ← Torna al Magazzino
+    </button>
+
     <h3>Ultimi Movimenti</h3>
 
     <table class="table-timbrature">
@@ -206,6 +259,11 @@ async function renderMovimenti(container, azienda) {
       </tbody>
     </table>
   `;
+
+  document.getElementById("btn-back-mov")
+    .addEventListener("click", () => {
+      container.innerHTML = "";
+    });
 }
 
 /* ===================================================== */
@@ -228,6 +286,10 @@ async function renderScorte(container, azienda) {
   const critici = data.filter(p => p.giacenza_attuale <= p.scorta_minima);
 
   container.innerHTML = `
+    <button class="app-button tiny gray" id="btn-back-sco" style="margin-bottom:10px;">
+      ← Torna al Magazzino
+    </button>
+
     <h3>Prodotti sotto scorta minima</h3>
 
     ${critici.length === 0
@@ -253,4 +315,9 @@ async function renderScorte(container, azienda) {
         </table>
       `}
   `;
+
+  document.getElementById("btn-back-sco")
+    .addEventListener("click", () => {
+      container.innerHTML = "";
+    });
 }
