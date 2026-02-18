@@ -61,18 +61,43 @@ async function renderView(routeName) {
   await module.render(app);
 }
 
-// 🔐 SISTEMA PERMESSI SCALABILE
+/* =========================================================
+   🔐 SISTEMA PERMESSI A 3 LIVELLI
+   1) Feature azienda
+   2) Permessi ruolo
+   3) Override utente
+========================================================= */
+
+function hasFeature(area) {
+  const features = window.state?.azienda?.features || {};
+  return features[area] === true;
+}
+
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
+  const override = window.state?.permessiOverride || {};
 
-  const permissions = {
-    dipendenti: ["admin", "segreteria", "manager_cucina", "manager_sala"],
-    acquisti: ["admin", "segreteria"],
-    report: ["admin", "segreteria"],
-    produzione: ["admin", "manager_cucina"],
+  // 🔹 1. Se la feature non è attiva per azienda → blocca
+  if (!hasFeature(area)) return false;
+
+  // 🔹 2. Override utente (prioritario)
+  if (override.hasOwnProperty(area)) {
+    return override[area] === true;
+  }
+
+  // 🔹 3. Permessi di default per ruolo
+  const rolePermissions = {
+    admin: ["*"],
+    segreteria: ["dipendenti", "acquisti", "report"],
+    manager_cucina: ["produzione"],
+    manager_sala: ["produzione"],
+    addetto_cucina: [],
+    cameriere: [],
   };
 
-  return permissions[area]?.includes(ruolo);
+  if (rolePermissions[ruolo]?.includes("*")) return true;
+
+  return rolePermissions[ruolo]?.includes(area);
 }
 
 async function resolve() {
@@ -100,6 +125,7 @@ async function resolve() {
     .from("utenti_aziende")
     .select(`
       ruolo,
+      permessi_override,
       aziende:azienda_id (
         id,
         nome,
@@ -133,16 +159,20 @@ async function resolve() {
     return;
   }
 
-  // 🔥 SALVIAMO RUOLO ATTIVO
+  // 🔥 Salva ruolo + override
   const recordAttivo = aziendePulite.find(
     a => a.aziende.id === azienda.id
   );
-  window.state.ruolo = recordAttivo?.ruolo || null;
 
-  // 🔒 BLOCCO ACCESSO DIPENDENTI
-  if (route === "dipendenti" && !hasPermission("dipendenti")) {
-    window.location.hash = "#/home";
-    return;
+  window.state.ruolo = recordAttivo?.ruolo || null;
+  window.state.permessiOverride = recordAttivo?.permessi_override || {};
+
+  // 🔒 BLOCCO GENERICO ROUTE (se definita nei permessi)
+  if (routes[route] && route !== "home" && route !== "homePiattaforma") {
+    if (!hasPermission(route)) {
+      window.location.hash = "#/home";
+      return;
+    }
   }
 
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
