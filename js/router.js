@@ -62,30 +62,39 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   🔐 SISTEMA PERMESSI A 3 LIVELLI
-   1) Feature azienda
-   2) Permessi ruolo
-   3) Override utente
+   🔐 SISTEMA PERMESSI DEFINITIVO
+   - Piattaforma: bypass totale
+   - Azienda cliente: feature → ruolo → override
 ========================================================= */
 
 function hasFeature(area) {
-  const features = window.state?.azienda?.features || {};
+  const azienda = window.state?.azienda;
+
+  // 🔥 Piattaforma vede sempre tutto
+  if (azienda?.stato === "piattaforma") return true;
+
+  const features = azienda?.features || {};
   return features[area] === true;
 }
 
 function hasPermission(area) {
+  const azienda = window.state?.azienda;
+
+  // 🔥 Piattaforma bypass totale
+  if (azienda?.stato === "piattaforma") return true;
+
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
 
-  // 🔹 1. Se la feature non è attiva per azienda → blocca
+  // 1️⃣ Feature azienda
   if (!hasFeature(area)) return false;
 
-  // 🔹 2. Override utente (prioritario)
+  // 2️⃣ Override utente (prioritario)
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
 
-  // 🔹 3. Permessi di default per ruolo
+  // 3️⃣ Permessi default ruolo
   const rolePermissions = {
     admin: ["*"],
     segreteria: ["dipendenti", "acquisti", "report"],
@@ -159,7 +168,7 @@ async function resolve() {
     return;
   }
 
-  // 🔥 Salva ruolo + override
+  // 🔥 Salva ruolo + override per azienda attiva
   const recordAttivo = aziendePulite.find(
     a => a.aziende.id === azienda.id
   );
@@ -167,7 +176,7 @@ async function resolve() {
   window.state.ruolo = recordAttivo?.ruolo || null;
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
-  // 🔒 BLOCCO GENERICO ROUTE (se definita nei permessi)
+  // 🔒 Blocco route (solo se non home)
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -175,6 +184,7 @@ async function resolve() {
     }
   }
 
+  // 🔁 Redirect coerenti
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
     window.location.hash = "#/homePiattaforma";
     return;
