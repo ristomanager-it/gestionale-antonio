@@ -1,6 +1,9 @@
 // js/views/dipendenti.js
 // =======================================
 // View Dipendenti – SaaS Multi-Azienda
+// - Tab Elenco / Nuovo-Modifica
+// - Invito accesso gestionale via email (OTP) + inviti_utenti
+// - Niente canale_prevalente
 // =======================================
 
 export async function render(container) {
@@ -15,243 +18,494 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
-      <h2>Dipendenti</h2>
-      <p class="small-muted">
-        Gestione personale azienda
-      </p>
-
-      <form id="dipendente-form" onsubmit="return false;" style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
-
-        <input type="hidden" id="dip-id" />
-
-        <label>Nome
-          <input type="text" id="dip-nome" class="input-pill" required />
-        </label>
-
-        <label>Mansione
-          <input type="text" id="dip-mansione" class="input-pill" />
-        </label>
-
-        <label>Data nascita
-          <input type="date" id="dip-data-nascita" class="input-pill" />
-        </label>
-
-        <label>Telefono
-          <input type="text" id="dip-telefono" class="input-pill" />
-        </label>
-
-        <label>Email
-          <input type="email" id="dip-email" class="input-pill" />
-        </label>
-
-        <label>Ruolo
-          <select id="dip-ruolo" class="input-pill">
-            <option value="admin">Admin</option>
-            <option value="segreteria">Segreteria</option>
-            <option value="manager_cucina">Manager cucina</option>
-            <option value="manager_sala">Manager sala</option>
-            <option value="addetto_cucina">Addetto cucina</option>
-            <option value="cameriere">Cameriere</option>
-          </select>
-        </label>
-
-        <label>Tipo compenso
-          <select id="dip-tipo-compenso" class="input-pill">
-            <option value="orario">A ore</option>
-            <option value="mensile">Mensile</option>
-            <option value="servizio">Per servizio</option>
-          </select>
-        </label>
-
-        <label>Retribuzione base
-          <input type="number" step="0.01" id="dip-retribuzione-base" class="input-pill" />
-        </label>
-
-        <label>Ore mensili contrattuali
-          <input type="number" step="0.1" id="dip-ore-mensili" class="input-pill" />
-        </label>
-
-        <label>Ore medie per servizio
-          <input type="number" step="0.1" id="dip-ore-servizio" class="input-pill" />
-        </label>
-
-        <label>Costo orario calcolato
-          <input type="number" step="0.01" id="dip-costo" class="input-pill" readonly />
-        </label>
-
-        <label>PIN
-          <input type="text" id="dip-codice" maxlength="10" class="input-pill" />
-        </label>
-
-        <label>Canale prevalente
-          <select id="dip-canale" class="input-pill">
-            <option value="NR">NR</option>
-            <option value="RA">RA</option>
-            <option value="CC">CC</option>
-            <option value="CAT">Catering</option>
-          </select>
-        </label>
-
-        <label>
-          <input type="checkbox" id="dip-attivo" checked />
-          Attivo
-        </label>
-
-        <button id="btn-salva-dip" class="app-button small green">
-          Salva dipendente
-        </button>
-
-      </form>
-
-      <h3 style="margin-top:24px;">Elenco dipendenti</h3>
-
-      <div class="table-wrapper">
-        <table class="table-timbrature">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Ruolo</th>
-              <th>Costo orario</th>
-              <th>Attivo</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="dipendenti-lista"></tbody>
-        </table>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button class="app-button small gray" id="btn-back-dashboard">⬅ Torna in Dashboard</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="app-button small" id="tab-elenco">👥 Elenco</button>
+          <button class="app-button small gray" id="tab-nuovo">➕ Nuovo</button>
+        </div>
       </div>
+
+      <div style="margin-top:14px;">
+        <h2 style="margin:0;">Dipendenti</h2>
+        <p class="small-muted" style="margin-top:6px;">
+          Gestione personale azienda (anagrafica + accessi)
+        </p>
+      </div>
+
+      <div id="dip-view-elenco" style="margin-top:16px;"></div>
+      <div id="dip-view-form" style="margin-top:16px; display:none;"></div>
 
     </div>
   `;
 
-  setupEventHandlers();
-  await caricaDipendenti();
-}
-
-function setupEventHandlers() {
-  document
-    .getElementById("btn-salva-dip")
-    .addEventListener("click", salvaDipendente);
-
-  document
-    .getElementById("dip-tipo-compenso")
-    .addEventListener("change", calcolaCosto);
-
-  document
-    .getElementById("dip-retribuzione-base")
-    .addEventListener("input", calcolaCosto);
-
-  document
-    .getElementById("dip-ore-mensili")
-    .addEventListener("input", calcolaCosto);
-
-  document
-    .getElementById("dip-ore-servizio")
-    .addEventListener("input", calcolaCosto);
-}
-
-function calcolaCosto() {
-  const tipo = document.getElementById("dip-tipo-compenso").value;
-  const base = parseFloat(document.getElementById("dip-retribuzione-base").value) || 0;
-  const oreMensili = parseFloat(document.getElementById("dip-ore-mensili").value) || 0;
-  const oreServizio = parseFloat(document.getElementById("dip-ore-servizio").value) || 0;
-
-  let costo = 0;
-
-  if (tipo === "orario") {
-    costo = base;
-  } else if (tipo === "mensile" && oreMensili > 0) {
-    costo = base / oreMensili;
-  } else if (tipo === "servizio" && oreServizio > 0) {
-    costo = base / oreServizio;
-  }
-
-  document.getElementById("dip-costo").value = costo.toFixed(2);
-}
-
-async function salvaDipendente() {
-  const azienda = window.state.azienda;
-
-  const payload = {
-    azienda_id: azienda.id,
-    nome: document.getElementById("dip-nome").value,
-    mansione: document.getElementById("dip-mansione").value,
-    data_nascita: document.getElementById("dip-data-nascita").value || null,
-    telefono: document.getElementById("dip-telefono").value,
-    email: document.getElementById("dip-email").value,
-    ruolo: document.getElementById("dip-ruolo").value,
-    tipo_compenso: document.getElementById("dip-tipo-compenso").value,
-    retribuzione_base: parseFloat(document.getElementById("dip-retribuzione-base").value) || null,
-    ore_mensili_contrattuali: parseFloat(document.getElementById("dip-ore-mensili").value) || null,
-    ore_medie_per_servizio: parseFloat(document.getElementById("dip-ore-servizio").value) || null,
-    costo_orario: parseFloat(document.getElementById("dip-costo").value) || null,
-    codice: document.getElementById("dip-codice").value,
-    canale_prevalente: document.getElementById("dip-canale").value,
-    attivo: document.getElementById("dip-attivo").checked
+  document.getElementById("btn-back-dashboard").onclick = () => {
+    window.location.hash = "#/home";
   };
 
-  const { error } = await window.supabaseClient
-    .from("dipendenti")
-    .insert(payload);
+  document.getElementById("tab-elenco").onclick = () => setTab("elenco");
+  document.getElementById("tab-nuovo").onclick = () => {
+    setTab("form");
+    renderForm(null);
+  };
 
-  if (error) {
-    alert("Errore salvataggio");
-    console.error(error);
-    return;
+  await renderElenco();
+  setTab("elenco");
+}
+
+/* =========================================================
+   Tabs
+========================================================= */
+
+function setTab(tab) {
+  const elenco = document.getElementById("dip-view-elenco");
+  const form = document.getElementById("dip-view-form");
+
+  const btnElenco = document.getElementById("tab-elenco");
+  const btnNuovo = document.getElementById("tab-nuovo");
+
+  if (tab === "elenco") {
+    elenco.style.display = "block";
+    form.style.display = "none";
+    btnElenco.className = "app-button small";
+    btnNuovo.className = "app-button small gray";
+  } else {
+    elenco.style.display = "none";
+    form.style.display = "block";
+    btnElenco.className = "app-button small gray";
+    btnNuovo.className = "app-button small";
   }
+}
 
-  document.getElementById("dipendente-form").reset();
+/* =========================================================
+   Elenco
+========================================================= */
+
+async function renderElenco() {
+  const host = document.getElementById("dip-view-elenco");
+
+  host.innerHTML = `
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+      <input id="dip-search" class="input-pill" placeholder="Cerca per nome..." style="max-width:320px;" />
+      <label class="small-muted" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="dip-only-attivi" checked />
+        Solo attivi
+      </label>
+      <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="table-timbrature">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Mansione</th>
+            <th>Costo orario</th>
+            <th>Email</th>
+            <th>Attivo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="dip-lista"></tbody>
+      </table>
+    </div>
+
+    <div id="dip-elenco-msg" style="margin-top:10px;"></div>
+  `;
+
+  document.getElementById("dip-refresh").onclick = () => caricaDipendenti();
+  document.getElementById("dip-search").addEventListener("input", () => caricaDipendenti());
+  document.getElementById("dip-only-attivi").addEventListener("change", () => caricaDipendenti());
+
   await caricaDipendenti();
 }
 
 async function caricaDipendenti() {
   const azienda = window.state.azienda;
+  const q = (document.getElementById("dip-search")?.value || "").trim().toLowerCase();
+  const onlyAttivi = !!document.getElementById("dip-only-attivi")?.checked;
 
-  const { data, error } = await window.supabaseClient
+  let query = window.supabaseClient
     .from("dipendenti")
-    .select("*")
+    .select("id,nome,mansione,email,costo_orario,attivo,created_at")
     .eq("azienda_id", azienda.id)
     .order("nome");
 
+  if (onlyAttivi) query = query.eq("attivo", true);
+
+  const { data, error } = await query;
+
+  const tbody = document.getElementById("dip-lista");
+  const msg = document.getElementById("dip-elenco-msg");
+
   if (error) {
     console.error(error);
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore caricamento dipendenti</span>`;
+    if (tbody) tbody.innerHTML = "";
     return;
   }
 
-  const tbody = document.getElementById("dipendenti-lista");
+  const filtered = (data || []).filter(d => {
+    if (!q) return true;
+    return (d.nome || "").toLowerCase().includes(q);
+  });
+
+  if (!tbody) return;
   tbody.innerHTML = "";
 
-  data.forEach(d => {
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="small-muted">Nessun dipendente trovato</td>
+      </tr>
+    `;
+    return;
+  }
+
+  filtered.forEach(d => {
     tbody.innerHTML += `
       <tr>
-        <td>${d.nome}</td>
-        <td>${d.ruolo || "-"}</td>
-        <td>${d.costo_orario ? d.costo_orario.toFixed(2) : "-"}</td>
+        <td>${escapeHtml(d.nome)}</td>
+        <td>${escapeHtml(d.mansione || "-")}</td>
+        <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
+        <td>${escapeHtml(d.email || "-")}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
-        <td>
-          <button 
-            class="app-button tiny red"
-            onclick="eliminaDipendente('${d.id}')"
-          >
-            Elimina
-          </button>
+        <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+          <button class="app-button tiny" onclick="window._dipEdit('${d.id}')">Modifica</button>
+          <button class="app-button tiny red" onclick="window._dipDelete('${d.id}')">Elimina</button>
         </td>
       </tr>
     `;
   });
 }
 
-window.eliminaDipendente = async function (id) {
+/* =========================================================
+   Form (Nuovo / Modifica)
+========================================================= */
+
+function renderForm(dip) {
+  const host = document.getElementById("dip-view-form");
+  if (!host) return;
+
+  const isEdit = !!dip?.id;
+
+  host.innerHTML = `
+    <div class="view" style="margin-top:0;">
+      <h3 style="margin-top:0;">${isEdit ? "Modifica Dipendente" : "Nuovo Dipendente"}</h3>
+
+      <form id="dip-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px;">
+
+        <input type="hidden" id="dip-id" value="${dip?.id || ""}" />
+
+        <label>Nome *
+          <input type="text" id="dip-nome" class="input-pill" required value="${dip?.nome || ""}" />
+        </label>
+
+        <label>Mansione
+          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+        </label>
+
+        <label>Data nascita
+          <input type="date" id="dip-data-nascita" class="input-pill" value="${dip?.data_nascita || ""}" />
+        </label>
+
+        <label>Telefono
+          <input type="text" id="dip-telefono" class="input-pill" value="${dip?.telefono || ""}" />
+        </label>
+
+        <label>Email (opzionale)
+          <input type="email" id="dip-email" class="input-pill" value="${dip?.email || ""}" />
+        </label>
+
+        <div class="view" style="margin-top:10px;">
+          <h4 style="margin:0;">Compenso</h4>
+
+          <label style="margin-top:10px;">Tipo compenso
+            <select id="dip-tipo-compenso" class="input-pill">
+              <option value="orario">A ore</option>
+              <option value="mensile">Mensile</option>
+              <option value="servizio">Per servizio</option>
+            </select>
+          </label>
+
+          <label>Retribuzione base
+            <input type="number" step="0.01" id="dip-retribuzione-base" class="input-pill" value="${dip?.retribuzione_base ?? ""}" />
+          </label>
+
+          <label>Ore mensili contrattuali
+            <input type="number" step="0.1" id="dip-ore-mensili" class="input-pill" value="${dip?.ore_mensili_contrattuali ?? ""}" />
+          </label>
+
+          <label>Ore medie per servizio
+            <input type="number" step="0.1" id="dip-ore-servizio" class="input-pill" value="${dip?.ore_medie_per_servizio ?? ""}" />
+          </label>
+
+          <label>Costo orario (calcolato)
+            <input type="number" step="0.01" id="dip-costo" class="input-pill" readonly value="${dip?.costo_orario ?? ""}" />
+          </label>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+          <input type="checkbox" id="dip-attivo" ${dip?.attivo === false ? "" : "checked"} />
+          Attivo
+        </label>
+
+        <div class="view" style="margin-top:10px;">
+          <h4 style="margin:0;">Accesso al gestionale</h4>
+          <p class="small-muted" style="margin-top:6px;">
+            Se abiliti l’accesso, inviamo una mail con link di login (magic link). L’utente poi potrà impostare una password dalla pagina profilo.
+          </p>
+
+          <label style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+            <input type="checkbox" id="dip-accesso" />
+            Abilita accesso al gestionale (invio invito)
+          </label>
+
+          <div id="dip-accesso-box" style="margin-top:10px; display:none;">
+            <label>Ruolo gestionale
+              <select id="dip-ruolo-app" class="input-pill">
+                <option value="operatore">Operatore</option>
+                <option value="manager_cucina">Manager cucina</option>
+                <option value="manager_sala">Manager sala</option>
+                <option value="segreteria">Segreteria</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+
+            <div class="small-muted" style="margin-top:8px;">
+              (I moduli visibili saranno filtrati da features azienda + permessi ruolo + override.)
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
+          <button class="app-button small green" id="btn-dip-save">
+            ${isEdit ? "Salva modifiche" : "Crea dipendente"}
+          </button>
+          <button class="app-button small gray" id="btn-dip-cancel">Annulla</button>
+        </div>
+
+        <div id="dip-form-msg" style="margin-top:6px;"></div>
+
+      </form>
+    </div>
+  `;
+
+  // Preselezione tipo_compenso se presente
+  const tipoCompenso = dip?.tipo_compenso || "orario";
+  const selTipo = document.getElementById("dip-tipo-compenso");
+  if (selTipo) selTipo.value = tipoCompenso;
+
+  const accessoCb = document.getElementById("dip-accesso");
+  const accessoBox = document.getElementById("dip-accesso-box");
+  if (accessoCb && accessoBox) {
+    accessoCb.addEventListener("change", () => {
+      accessoBox.style.display = accessoCb.checked ? "block" : "none";
+    });
+  }
+
+  // calcolo costo
+  document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
+  document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
+  document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
+  document.getElementById("dip-ore-servizio")?.addEventListener("input", calcolaCosto);
+
+  // pulsanti
+  document.getElementById("btn-dip-cancel").onclick = async () => {
+    setTab("elenco");
+    await caricaDipendenti();
+  };
+
+  document.getElementById("btn-dip-save").onclick = async () => {
+    await salvaDipendente(isEdit);
+  };
+
+  // calcolo iniziale
+  calcolaCosto();
+}
+
+function calcolaCosto() {
+  const tipo = document.getElementById("dip-tipo-compenso")?.value || "orario";
+  const base = parseFloat(document.getElementById("dip-retribuzione-base")?.value) || 0;
+  const oreMensili = parseFloat(document.getElementById("dip-ore-mensili")?.value) || 0;
+  const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || 0;
+
+  let costo = 0;
+
+  if (tipo === "orario") costo = base;
+  if (tipo === "mensile" && oreMensili > 0) costo = base / oreMensili;
+  if (tipo === "servizio" && oreServizio > 0) costo = base / oreServizio;
+
+  const out = document.getElementById("dip-costo");
+  if (out) out.value = (isFinite(costo) ? costo : 0).toFixed(2);
+}
+
+async function salvaDipendente(isEdit) {
+  const azienda = window.state.azienda;
+  const msg = document.getElementById("dip-form-msg");
+  if (msg) msg.innerHTML = "";
+
+  const id = document.getElementById("dip-id")?.value || null;
+
+  const nome = (document.getElementById("dip-nome")?.value || "").trim();
+  if (!nome) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome obbligatorio</span>`;
+    return;
+  }
+
+  const email = (document.getElementById("dip-email")?.value || "").trim() || null;
+
+  const payload = {
+    azienda_id: azienda.id,
+    nome,
+    mansione: (document.getElementById("dip-mansione")?.value || "").trim() || null,
+    data_nascita: document.getElementById("dip-data_nascita")?.value || document.getElementById("dip-data-nascita")?.value || null,
+    telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
+    email,
+    tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
+    retribuzione_base: numOrNull("dip-retribuzione-base"),
+    ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
+    ore_medie_per_servizio: numOrNull("dip-ore-servizio"),
+    costo_orario: numOrNull("dip-costo"),
+    attivo: !!document.getElementById("dip-attivo")?.checked
+  };
+
+  let res;
+
+  if (isEdit && id) {
+    res = await window.supabaseClient
+      .from("dipendenti")
+      .update(payload)
+      .eq("id", id)
+      .eq("azienda_id", azienda.id);
+  } else {
+    res = await window.supabaseClient
+      .from("dipendenti")
+      .insert(payload)
+      .select("id")
+      .single();
+  }
+
+  if (res.error) {
+    console.error(res.error);
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore salvataggio dipendente</span>`;
+    return;
+  }
+
+  // Invito accesso gestionale (solo se spuntato)
+  const wantAccess = !!document.getElementById("dip-accesso")?.checked;
+  const ruoloApp = document.getElementById("dip-ruolo-app")?.value || "operatore";
+
+  if (wantAccess) {
+    if (!email) {
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Per l’accesso serve una email.</span>`;
+      return;
+    }
+
+    // 1) crea invito in DB (inviti_utenti)
+    const invitoPayload = {
+      azienda_id: azienda.id,
+      email,
+      ruolo: ruoloApp,
+      permessi_override: {}
+    };
+
+    const inv = await window.supabaseClient
+      .from("inviti_utenti")
+      .insert(invitoPayload)
+      .select("id")
+      .single();
+
+    if (inv.error) {
+      console.error(inv.error);
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione invito</span>`;
+      return;
+    }
+
+    // 2) invia magic link (non cambia la sessione dell’admin)
+    const redirectTo = `${window.location.origin}${window.location.pathname}#/login`;
+    const otp = await window.supabaseClient.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true
+      }
+    });
+
+    if (otp.error) {
+      console.error(otp.error);
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email OTP</span>`;
+      return;
+    }
+  }
+
+  if (msg) msg.innerHTML = `<span style="color:#16a34a;">Salvato ✔</span>`;
+
+  // Torna a elenco
+  setTab("elenco");
+  await caricaDipendenti();
+}
+
+/* =========================================================
+   Actions globali (edit/delete)
+========================================================= */
+
+window._dipEdit = async function (id) {
+  const azienda = window.state.azienda;
+
+  const { data, error } = await window.supabaseClient
+    .from("dipendenti")
+    .select("*")
+    .eq("id", id)
+    .eq("azienda_id", azienda.id)
+    .single();
+
+  if (error || !data) {
+    console.error(error);
+    alert("Errore caricamento dipendente");
+    return;
+  }
+
+  setTab("form");
+  renderForm(data);
+};
+
+window._dipDelete = async function (id) {
   if (!confirm("Eliminare dipendente?")) return;
+
+  const azienda = window.state.azienda;
 
   const { error } = await window.supabaseClient
     .from("dipendenti")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("azienda_id", azienda.id);
 
   if (error) {
     console.error(error);
+    alert("Errore eliminazione");
     return;
   }
 
   await caricaDipendenti();
 };
+
+/* =========================================================
+   Utils
+========================================================= */
+
+function numOrNull(id) {
+  const v = document.getElementById(id)?.value;
+  if (v === undefined || v === null || v === "") return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
