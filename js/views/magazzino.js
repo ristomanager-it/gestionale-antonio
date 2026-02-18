@@ -1,5 +1,6 @@
 import "../supabaseClient.js";
 import "../state.js";
+import { render as renderAnagraficaProdotti } from "./prodotti.js";
 
 export async function render(container) {
   const azienda = window.state.azienda;
@@ -63,6 +64,11 @@ function renderHome(azienda) {
         <p>Pronti alla vendita</p>
       </div>
 
+      <div class="view mag-card" data-tab="anagrafica">
+        <h3>Anagrafica Prodotti</h3>
+        <p>UM • IVA • Categorie • Scorte</p>
+      </div>
+
       <div class="view mag-card" data-tab="mapping">
         <h3>Mapping Fornitori</h3>
       </div>
@@ -78,6 +84,7 @@ function renderHome(azienda) {
 
       if (type) renderProdotti(content, azienda, type);
       if (tab === "mapping") renderMapping(content, azienda);
+      if (tab === "anagrafica") renderAnagraficaProdotti(content);
     });
   });
 }
@@ -110,19 +117,62 @@ async function renderProdotti(container, azienda, tipoProdotto) {
   container.innerHTML = `
     <h3>${titolo}</h3>
 
-    <input 
-      type="text" 
-      id="magazzino-search" 
-      class="input-pill" 
-      placeholder="🔎 Cerca prodotto..."
-      style="margin-bottom:12px;"
-    />
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+      <input 
+        type="text" 
+        id="magazzino-search" 
+        class="input-pill" 
+        placeholder="🔎 Cerca prodotto..."
+        style="flex:1 1 260px;"
+      />
+      <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
+    </div>
 
     <div id="magazzino-table-container"></div>
+
+    <div id="magazzino-carico-backdrop"
+      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
+      <div class="view"
+        style="max-width:560px; margin:0 auto; border-radius:14px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
+          <h3 style="margin:0;">📦 Carico Giacenza</h3>
+          <button id="btn-close-carico" class="app-button tiny gray">✕ Chiudi</button>
+        </div>
+
+        <div class="small-muted" id="carico-prodotto-label" style="margin-top:8px;"></div>
+
+        <div class="editor-stack" style="margin-top:12px;">
+          <label>
+            Quantità da caricare
+            <input id="carico-quantita" type="number" step="0.001" min="0" class="input-pill" placeholder="Es: 12.500" />
+          </label>
+
+          <label style="margin-top:10px;">
+            Data movimento
+            <input id="carico-data" type="date" class="input-pill" />
+          </label>
+
+          <label style="margin-top:10px;">
+            Note
+            <input id="carico-note" class="input-pill" />
+          </label>
+
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btn-conferma-carico" class="app-button green">✅ Registra Carico</button>
+            <button id="btn-annulla-carico" class="app-button gray">Annulla</button>
+          </div>
+
+          <div id="carico-esito" class="small-muted" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
   `;
 
   const tableContainer = document.getElementById("magazzino-table-container");
   const searchInput = document.getElementById("magazzino-search");
+  const btnBackHome = document.getElementById("btn-back-mag-home");
+
+  btnBackHome?.addEventListener("click", () => renderHome(azienda));
 
   function renderTable(filteredData) {
     tableContainer.innerHTML = `
@@ -133,20 +183,41 @@ async function renderProdotti(container, azienda, tipoProdotto) {
             <th>Descrizione</th>
             <th>Giacenza</th>
             <th>Scorta Min.</th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
           ${(filteredData || []).map(p => `
             <tr ${Number(p.giacenza_attuale) <= Number(p.scorta_minima || 0) ? "style='background:#fee2e2;'" : ""}>
-              <td>${p.codice_interno || ""}</td>
-              <td>${p.descrizione || ""}</td>
+              <td>${escapeHtml(p.codice_interno || "")}</td>
+              <td>${escapeHtml(p.descrizione || "")}</td>
               <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
-              <td>${p.scorta_minima || 0}</td>
+              <td>${Number(p.scorta_minima || 0)}</td>
+              <td>
+                <button class="app-button tiny gray btn-apri-carico"
+                  data-prodotto-id="${escapeHtml(p.prodotto_id || "")}"
+                  data-prodotto-label="${escapeHtml((p.codice_interno ? p.codice_interno + " · " : "") + (p.descrizione || ""))}">
+                  + Carica
+                </button>
+              </td>
             </tr>
           `).join("")}
         </tbody>
       </table>
     `;
+
+    tableContainer.querySelectorAll(".btn-apri-carico").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const prodottoId = btn.getAttribute("data-prodotto-id");
+        const prodottoLabel = btn.getAttribute("data-prodotto-label");
+        apriCaricoModal({
+          aziendaId: azienda.id,
+          prodottoId,
+          prodottoLabel,
+          onSuccess: () => renderProdotti(container, azienda, tipoProdotto)
+        });
+      });
+    });
   }
 
   renderTable(data);
@@ -160,9 +231,7 @@ async function renderProdotti(container, azienda, tipoProdotto) {
     }
 
     if (value.length < 2) {
-      tableContainer.innerHTML = `
-        <p style="opacity:0.6;">Digita almeno 2 lettere...</p>
-      `;
+      tableContainer.innerHTML = `<p style="opacity:0.6;">Digita almeno 2 lettere...</p>`;
       return;
     }
 
@@ -173,6 +242,99 @@ async function renderProdotti(container, azienda, tipoProdotto) {
 
     renderTable(filtered);
   });
+}
+
+/* ===================================================== */
+/* =================== CARICO GIACENZA ================== */
+/* ===================================================== */
+
+function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
+  const backdrop = document.getElementById("magazzino-carico-backdrop");
+  const btnClose = document.getElementById("btn-close-carico");
+  const btnAnnulla = document.getElementById("btn-annulla-carico");
+  const btnConferma = document.getElementById("btn-conferma-carico");
+
+  const label = document.getElementById("carico-prodotto-label");
+  const qtaEl = document.getElementById("carico-quantita");
+  const dataEl = document.getElementById("carico-data");
+  const noteEl = document.getElementById("carico-note");
+  const esitoEl = document.getElementById("carico-esito");
+
+  if (!backdrop || !btnClose || !btnAnnulla || !btnConferma || !label || !qtaEl || !dataEl || !noteEl || !esitoEl) {
+    alert("UI carico non disponibile.");
+    return;
+  }
+
+  if (!prodottoId) {
+    alert("Prodotto non valido.");
+    return;
+  }
+
+  esitoEl.innerText = "";
+  label.innerText = prodottoLabel ? `Prodotto: ${prodottoLabel}` : "Prodotto selezionato";
+  qtaEl.value = "";
+  dataEl.value = new Date().toISOString().slice(0, 10);
+  noteEl.value = "Inventario iniziale";
+
+  backdrop.style.display = "block";
+
+  const close = () => {
+    backdrop.style.display = "none";
+    btnConferma.removeAttribute("disabled");
+  };
+
+  btnClose.onclick = close;
+  btnAnnulla.onclick = close;
+
+  backdrop.onclick = (e) => {
+    if (e.target?.id === "magazzino-carico-backdrop") close();
+  };
+
+  btnConferma.onclick = async () => {
+    const q = Number(qtaEl.value || 0);
+    const d = (dataEl.value || "").trim();
+    const note = (noteEl.value || "").trim();
+
+    if (!q || q <= 0) return alert("Inserisci una quantità > 0.");
+    if (!d) return alert("Seleziona una data.");
+
+    btnConferma.setAttribute("disabled", "disabled");
+    esitoEl.innerText = "Salvataggio...";
+
+    const { error } = await window.supabaseClient
+      .from("magazzino_movimenti")
+      .insert({
+        azienda_id: aziendaId,
+        prodotto_id: prodottoId,
+        tipo_movimento: "CARICO",
+        quantita: q,
+        data_movimento: d,
+        riferimento_tipo: "INVENTARIO",
+        note: note || "Inventario iniziale"
+      });
+
+    if (error) {
+      console.error("Errore carico magazzino:", error);
+      esitoEl.innerText = "Errore durante il carico. Controlla console.";
+      btnConferma.removeAttribute("disabled");
+      return;
+    }
+
+    esitoEl.innerText = "Carico registrato ✔️";
+    setTimeout(() => {
+      close();
+      if (typeof onSuccess === "function") onSuccess();
+    }, 350);
+  };
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 /* ===================================================== */
@@ -213,12 +375,12 @@ async function renderMapping(container, azienda) {
         </tr>
       </thead>
       <tbody>
-        ${data.map(m => `
+        ${(data || []).map(m => `
           <tr>
-            <td>${m.prodotti?.descrizione || ""}</td>
-            <td>${m.fornitori?.ragione_sociale || ""}</td>
-            <td>${m.codice_fornitore || ""}</td>
-            <td>${m.prezzo_ultimo_acquisto || 0}</td>
+            <td>${escapeHtml(m.prodotti?.descrizione || "")}</td>
+            <td>${escapeHtml(m.fornitori?.ragione_sociale || "")}</td>
+            <td>${escapeHtml(m.codice_fornitore || "")}</td>
+            <td>${Number(m.prezzo_ultimo_acquisto || 0)}</td>
           </tr>
         `).join("")}
       </tbody>
