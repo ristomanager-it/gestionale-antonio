@@ -36,7 +36,6 @@ export async function render(container) {
     });
   }
 
-
   const content = document.getElementById("acquisti-content");
   const tabButtons = document.querySelectorAll(".tab-btn");
 
@@ -95,7 +94,7 @@ async function renderFatture(container, azienda) {
     <select id="fattura-fornitore" class="input-pill">
       <option value="">Seleziona fornitore</option>
       ${(fornitori || []).map(f =>
-        `<option value="${f.id}">${f.ragione_sociale}</option>`
+        `<option value="${f.id}">${escapeHtml(f.ragione_sociale)}</option>`
       ).join("")}
     </select>
 
@@ -113,6 +112,7 @@ async function renderFatture(container, azienda) {
 
     <div id="righe-container" style="margin-top:10px;"></div>
 
+    <!-- fallback datalist (alcuni device lo mostrano poco/zero, ma lo teniamo) -->
     <datalist id="prodotti-suggestions"></datalist>
 
     <button id="btn-add-riga" class="app-button small gray">
@@ -142,100 +142,12 @@ async function renderFatture(container, azienda) {
   const datalistProdotti = document.getElementById("prodotti-suggestions");
   const selectFornitore = document.getElementById("fattura-fornitore");
 
-  // Cache prodotti per datalist/autocomplete (light)
+  // Cache prodotti per autocomplete
   let prodottiCache = [];
   let prodottiCacheLastLoad = 0;
 
   // Debounce map per input
   const debounceTimers = new Map();
-  /* ===================================================== */
-/* ============ AUTOCOMPLETE PRODOTTI (MIN 2) ========== */
-/* ===================================================== */
-
-// Caricamento prodotti light (solo campi necessari)
-async function caricaProdottiLight() {
-  const now = Date.now();
-
-  // cache 60 secondi
-  if (prodottiCache.length && (now - prodottiCacheLastLoad < 60000)) {
-    return prodottiCache;
-  }
-
-  const { data, error } = await window.supabaseClient
-    .from("prodotti")
-    .select("id, descrizione, codice_interno")
-    .eq("azienda_id", azienda.id)
-    .eq("attivo", true)
-    .order("descrizione");
-
-  if (!error && data) {
-    prodottiCache = data;
-    prodottiCacheLastLoad = now;
-  }
-
-  return prodottiCache;
-}
-
-// Autocomplete su input prodotto
-righeContainer.addEventListener("input", async (e) => {
-  if (!e.target.classList.contains("riga-search")) return;
-
-  const input = e.target;
-  const index = input.dataset.i;
-  const value = input.value.trim().toLowerCase();
-
-  // 🔒 REGOLA SISTEMA: minimo 2 lettere
-  if (value.length < 2) {
-    datalistProdotti.innerHTML = "";
-    return;
-  }
-
-  // Debounce 300ms
-  if (debounceTimers.has(index)) {
-    clearTimeout(debounceTimers.get(index));
-  }
-
-  debounceTimers.set(index, setTimeout(async () => {
-
-    const prodotti = await caricaProdottiLight();
-
-    const filtrati = prodotti.filter(p =>
-      (p.descrizione || "").toLowerCase().includes(value) ||
-      (p.codice_interno || "").toLowerCase().includes(value)
-    ).slice(0, 20); // max 20 risultati
-
-    datalistProdotti.innerHTML = filtrati.map(p =>
-      `<option value="${p.descrizione}" data-id="${p.id}"></option>`
-    ).join("");
-
-  }, 300));
-});
-
-// Selezione prodotto → salva prodotto_id nella riga
-righeContainer.addEventListener("change", async (e) => {
-  if (!e.target.classList.contains("riga-search")) return;
-
-  const input = e.target;
-  const index = input.dataset.i;
-  const value = input.value.trim().toLowerCase();
-
-  const prodotti = await caricaProdottiLight();
-
-  const match = prodotti.find(p =>
-    (p.descrizione || "").toLowerCase() === value
-  );
-
-  if (match) {
-    righe[index].prodotto_id = match.id;
-
-    input.style.background = "#dcfce7"; // verde match forte
-  } else {
-    righe[index].prodotto_id = null;
-
-    input.style.background = "#fee2e2"; // rosso no match
-  }
-});
-
 
   /* ================= MODE SWITCH ================= */
 
@@ -256,23 +168,26 @@ righeContainer.addEventListener("change", async (e) => {
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, descrizione, codice_interno, um")
       .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
       .order("descrizione", { ascending: true })
-      .limit(500);
+      .limit(2000);
 
     if (error) return;
 
     prodottiCache = (data || []).map(p => ({
       id: p.id,
-      descrizione: p.descrizione || ""
+      descrizione: p.descrizione || "",
+      codice_interno: p.codice_interno || "",
+      um: p.um || ""
     }));
     prodottiCacheLastLoad = now;
 
-    // Datalist: usiamo solo descrizione (mostra testo), id lo gestiamo con mapping sotto
+    // Datalist fallback
     datalistProdotti.innerHTML = prodottiCache
       .filter(p => p.descrizione)
-      .slice(0, 500)
+      .slice(0, 800)
       .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
       .join("");
   }
@@ -281,6 +196,27 @@ righeContainer.addEventListener("change", async (e) => {
     const n = (nome || "").trim().toLowerCase();
     if (!n) return null;
     return prodottiCache.find(p => (p.descrizione || "").trim().toLowerCase() === n) || null;
+  }
+
+  function findProdottoInCacheByCodice(codice) {
+    const c = (codice || "").trim().toLowerCase();
+    if (!c) return null;
+    return prodottiCache.find(p => (p.codice_interno || "").trim().toLowerCase() === c) || null;
+  }
+
+  function filterProdottiForSuggest(query, limit = 12) {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return [];
+    const out = [];
+    for (const p of prodottiCache) {
+      const d = (p.descrizione || "").toLowerCase();
+      const c = (p.codice_interno || "").toLowerCase();
+      if (d.includes(q) || (c && c.includes(q))) {
+        out.push(p);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
   }
 
   /* ================= UTIL ================= */
@@ -320,21 +256,17 @@ righeContainer.addEventListener("change", async (e) => {
   }
 
   function isStrongMatch(score) {
-    // soglia "forte"
     return typeof score === "number" && score >= 0.72;
   }
 
   function isWeakMatch(score) {
-    // soglia "debole"
     return typeof score === "number" && score >= 0.50;
   }
 
   async function tryMatchProdottoFornitore(fornitoreId, descrizioneRiga) {
-    // Tentativo: prodotti_fornitore (match diretto/ilike)
     const q = normalizeText(descrizioneRiga);
     if (!fornitoreId || !q) return null;
 
-    // NOTA: schema colonne non garantito, quindi query minimal: select prodotto_id, descrizione_fornitore
     const { data, error } = await window.supabaseClient
       .from("prodotti_fornitore")
       .select("prodotto_id, descrizione_fornitore")
@@ -353,7 +285,6 @@ righeContainer.addEventListener("change", async (e) => {
   }
 
   async function tryMatchProdottiDirect(descrizioneRiga) {
-    // Tentativo: prodotti (ilike)
     const q = normalizeText(descrizioneRiga);
     if (!q) return null;
 
@@ -375,7 +306,6 @@ righeContainer.addEventListener("change", async (e) => {
   }
 
   async function tryMatchFuzzy(descrizioneRiga) {
-    // Tentativo: RPC fuzzy (signature potrebbe variare, gestiamo fallback safe)
     const q = normalizeText(descrizioneRiga);
     if (!q) return null;
 
@@ -387,11 +317,7 @@ righeContainer.addEventListener("change", async (e) => {
 
       if (error || !data) return null;
 
-      // Supportiamo diversi formati:
-      // - array di record { prodotto_id/id, descrizione, score/similarity }
-      // - singolo record
       const best = Array.isArray(data) ? data[0] : data;
-
       if (!best) return null;
 
       const prodottoId = best.prodotto_id || best.id || null;
@@ -414,15 +340,12 @@ righeContainer.addEventListener("change", async (e) => {
   async function matchRigaToProdotto(descrizioneRiga) {
     const fornitoreId = getCurrentFornitoreId();
 
-    // 1) prodotti_fornitore
     const m1 = await tryMatchProdottoFornitore(fornitoreId, descrizioneRiga);
     if (m1?.prodotto_id) return m1;
 
-    // 2) prodotti direct
     const m2 = await tryMatchProdottiDirect(descrizioneRiga);
     if (m2?.prodotto_id) return m2;
 
-    // 3) fuzzy
     const m3 = await tryMatchFuzzy(descrizioneRiga);
     if (m3?.prodotto_id) return m3;
 
@@ -456,7 +379,66 @@ righeContainer.addEventListener("change", async (e) => {
     if (riga.match_reason === "match_fornitore") return "Match forte (fornitore).";
     if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
     if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
+    if (riga.match_reason === "match_cache") return "Match cache (esatto).";
     return "Prodotto selezionato manualmente.";
+  }
+
+  function closeAllSuggest() {
+    const all = righeContainer.querySelectorAll(".prod-suggest");
+    all.forEach(x => {
+      x.classList.remove("open");
+      x.innerHTML = "";
+      x.style.display = "none";
+    });
+  }
+
+  function openSuggestForIndex(idx, items) {
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+    const suggest = rowEl?.querySelector(".prod-suggest");
+    if (!suggest) return;
+
+    if (!items || !items.length) {
+      suggest.classList.remove("open");
+      suggest.innerHTML = "";
+      suggest.style.display = "none";
+      return;
+    }
+
+    suggest.innerHTML = items.map(p => {
+      const label = p.codice_interno
+        ? `${escapeHtml(p.descrizione)} · ${escapeHtml(p.codice_interno)}`
+        : `${escapeHtml(p.descrizione)}`;
+      return `<div class="suggest-item" data-prod-id="${escapeHtml(p.id)}">${label}</div>`;
+    }).join("");
+
+    suggest.style.display = "block";
+    suggest.classList.add("open");
+  }
+
+  async function selectProdottoForRow(idx, prodotto) {
+    if (!righe[idx] || !prodotto?.id) return;
+
+    righe[idx].prodotto_id = prodotto.id;
+    righe[idx].prodotto_nome = prodotto.descrizione || "";
+    righe[idx].match_reason = "manual_select";
+    righe[idx].match_score = 0.70;
+
+    // Autocompilazione UM (se presente nel DB prodotti)
+    if (prodotto.um) {
+      righe[idx].um = prodotto.um;
+    }
+
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+    const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+    const hidId = rowEl?.querySelector(".riga-prodotto-id");
+    const umEl = rowEl?.querySelector(".riga-um");
+
+    if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+    if (hidId) hidId.value = righe[idx].prodotto_id || "";
+    if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
+
+    closeAllSuggest();
+    await updateRowComputedUI(idx);
   }
 
   function renderRigheUI() {
@@ -467,9 +449,7 @@ righeContainer.addEventListener("change", async (e) => {
       row.style.marginBottom = "10px";
       row.dataset.i = String(index);
 
-      // Stato
       setRowStatus(row, computeStatusFromRiga(r));
-      setRowHint(row, computeHintFromRiga(r));
 
       const descrizioneVal = escapeHtml(r.descrizione || "");
       const prodottoNomeVal = escapeHtml(r.prodotto_nome || "");
@@ -486,15 +466,24 @@ righeContainer.addEventListener("change", async (e) => {
               data-i="${index}" />
           </div>
 
-          <div style="flex: 1 1 260px;">
+          <div style="flex: 1 1 260px; position:relative;">
             <label style="display:block; font-size:12px; margin-bottom:4px; color:#6b7280;">Prodotto (autocomplete)</label>
+
             <input type="text"
               value="${prodottoNomeVal}"
               list="prodotti-suggestions"
               placeholder="Cerca o scrivi prodotto..."
               class="input-pill riga-prodotto-nome"
-              data-i="${index}" />
+              data-i="${index}"
+              autocomplete="off" />
+
+            <div class="prod-suggest suggest-list" style="display:none; position:absolute; left:0; right:0; top:62px; z-index:50;"></div>
+
             <input type="hidden" class="riga-prodotto-id" data-i="${index}" value="${escapeHtml(r.prodotto_id || "")}" />
+
+            <div class="small-muted riga-um" style="margin-top:6px;">
+              ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
+            </div>
           </div>
         </div>
 
@@ -546,9 +535,7 @@ righeContainer.addEventListener("change", async (e) => {
         <small class="riga-hint" style="display:block; margin-top:8px; color:#6b7280;"></small>
       `;
 
-      // aggiorna hint dopo innerHTML
       setRowHint(row, computeHintFromRiga(r));
-
       righeContainer.appendChild(row);
     });
   }
@@ -563,6 +550,9 @@ righeContainer.addEventListener("change", async (e) => {
     const btnRinomina = rowEl.querySelector(".btn-rinomina-prodotto");
     if (btnCrea) btnCrea.style.display = righe[index].prodotto_id ? "none" : "";
     if (btnRinomina) btnRinomina.style.display = righe[index].prodotto_id ? "" : "none";
+
+    const umEl = rowEl.querySelector(".riga-um");
+    if (umEl) umEl.textContent = righe[index].um ? `UM: ${righe[index].um}` : "";
   }
 
   /* ================= OCR FLOW ================= */
@@ -620,7 +610,6 @@ righeContainer.addEventListener("change", async (e) => {
   async function applyOcrResult(result) {
     await loadProdottiCache(false);
 
-    // Prefill documento
     if (result.documento?.numero_documento)
       document.getElementById("fattura-numero").value =
         result.documento.numero_documento;
@@ -629,17 +618,15 @@ righeContainer.addEventListener("change", async (e) => {
       document.getElementById("fattura-data").value =
         result.documento.data_documento;
 
-    // Tentativo match fornitore
     if (result.fornitore?.ragione_sociale) {
       const nome = result.fornitore.ragione_sociale.toLowerCase();
       const match = (fornitori || []).find(f =>
-        f.ragione_sociale.toLowerCase().includes(nome)
+        (f.ragione_sociale || "").toLowerCase().includes(nome)
       );
       if (match)
         document.getElementById("fattura-fornitore").value = match.id;
     }
 
-    // Generazione righe (ora: MODIFICABILI + MATCH)
     righe = [];
     righeContainer.innerHTML = "";
 
@@ -649,11 +636,11 @@ righeContainer.addEventListener("change", async (e) => {
       prezzo_unitario: Number(r.prezzo_unitario || 0),
       prodotto_id: null,
       prodotto_nome: "",
+      um: "",
       match_reason: null,
       match_score: null
     }));
 
-    // Matching sequenziale (evitiamo tempeste di query)
     for (let i = 0; i < righeInput.length; i++) {
       const descr = righeInput[i].descrizione;
       if (!descr) {
@@ -661,11 +648,11 @@ righeContainer.addEventListener("change", async (e) => {
         continue;
       }
 
-      // Se match esatto in cache (fast path)
       const cachedExact = findProdottoInCacheByDescrizione(descr);
       if (cachedExact?.id) {
         righeInput[i].prodotto_id = cachedExact.id;
         righeInput[i].prodotto_nome = cachedExact.descrizione;
+        righeInput[i].um = cachedExact.um || "";
         righeInput[i].match_reason = "match_cache";
         righeInput[i].match_score = 0.80;
         righe.push(righeInput[i]);
@@ -680,6 +667,9 @@ righeContainer.addEventListener("change", async (e) => {
 
         const nomeProd = await loadProdottoNomeById(match.prodotto_id);
         righeInput[i].prodotto_nome = nomeProd || "";
+
+        const cached = prodottiCache.find(p => p.id === match.prodotto_id);
+        righeInput[i].um = cached?.um || "";
       }
 
       righe.push(righeInput[i]);
@@ -700,6 +690,7 @@ righeContainer.addEventListener("change", async (e) => {
       prezzo_unitario: 0,
       prodotto_id: null,
       prodotto_nome: "",
+      um: "",
       match_reason: null,
       match_score: null
     });
@@ -720,11 +711,9 @@ righeContainer.addEventListener("change", async (e) => {
     if (e.target.classList.contains("riga-descrizione")) {
       righe[idx].descrizione = e.target.value;
 
-      // debounce: riprova match automatico sulla descrizione
       const key = `desc_${idx}`;
       if (debounceTimers.has(key)) clearTimeout(debounceTimers.get(key));
       debounceTimers.set(key, setTimeout(async () => {
-        // non forziamo match se l'utente sta solo editando il testo: lo faremo su bottone o blur
         await updateRowComputedUI(idx);
       }, 250));
     }
@@ -740,65 +729,69 @@ righeContainer.addEventListener("change", async (e) => {
     }
 
     if (e.target.classList.contains("riga-prodotto-nome")) {
-      const nome = e.target.value;
-
-      righe[idx].prodotto_nome = nome;
-
-      // Se coincide con un prodotto in cache, settiamo subito id
       await loadProdottiCache(false);
-      const found = findProdottoInCacheByDescrizione(nome);
-      if (found?.id) {
-        righe[idx].prodotto_id = found.id;
-        righe[idx].match_reason = "manual_select";
-        righe[idx].match_score = 0.70;
-      } else {
-        // Se l'utente sta digitando un nome libero, non invalidiamo subito l'id
-        // ma se cambia testo e non coincide più, togliamo id per evitare salvataggi errati
-        righe[idx].prodotto_id = null;
-        righe[idx].match_reason = null;
-        righe[idx].match_score = null;
+
+      const q = e.target.value || "";
+      righe[idx].prodotto_nome = q;
+
+      // supporto: se l'utente scrive direttamente un codice interno
+      const byCod = findProdottoInCacheByCodice(q);
+      if (byCod?.id) {
+        await selectProdottoForRow(idx, byCod);
+        return;
       }
+
+      // se coincide esattamente con descrizione, aggancia subito
+      const foundExact = findProdottoInCacheByDescrizione(q);
+      if (foundExact?.id) {
+        await selectProdottoForRow(idx, foundExact);
+        return;
+      }
+
+      // altrimenti apri suggerimenti (min 2 caratteri)
+      const query = q.trim();
+      if (query.length >= 2) {
+        const items = filterProdottiForSuggest(query, 12);
+        // chiudi altri e apri questo
+        closeAllSuggest();
+        openSuggestForIndex(idx, items);
+      } else {
+        closeAllSuggest();
+      }
+
+      // non tenere un id se il testo non è esatto (evitiamo salvataggi errati)
+      righe[idx].prodotto_id = null;
+      righe[idx].match_reason = null;
+      righe[idx].match_score = null;
+      righe[idx].um = "";
 
       await updateRowComputedUI(idx);
     }
   });
 
-  righeContainer.addEventListener("blur", async (e) => {
-    const i = e.target?.dataset?.i;
-    if (i === undefined) return;
-    const idx = Number(i);
-    if (!righe[idx]) return;
-
-    // Su blur della descrizione o prodotto, proviamo match automatico se non abbiamo prodotto_id
-    if (e.target.classList.contains("riga-descrizione")) {
-      const descr = righe[idx].descrizione;
-      if (!righe[idx].prodotto_id && descr) {
-        await loadProdottiCache(false);
-        const match = await matchRigaToProdotto(descr);
-        if (match?.prodotto_id) {
-          righe[idx].prodotto_id = match.prodotto_id;
-          righe[idx].match_reason = match.reason;
-          righe[idx].match_score = match.score;
-          righe[idx].prodotto_nome = await loadProdottoNomeById(match.prodotto_id);
-        }
-        await updateRowComputedUI(idx);
-
-        // aggiorna anche input prodotto in UI se presente
-        const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
-        const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
-        if (inpProd && righe[idx].prodotto_nome) inpProd.value = righe[idx].prodotto_nome;
-      }
-    }
-
-    if (e.target.classList.contains("riga-prodotto-nome")) {
-      await updateRowComputedUI(idx);
-    }
-  }, true);
-
   righeContainer.addEventListener("click", async (e) => {
-    const btn = e.target;
-    if (!(btn instanceof HTMLElement)) return;
+    const el = e.target;
+    if (!(el instanceof HTMLElement)) return;
 
+    // click su elemento suggerimento
+    if (el.classList.contains("suggest-item") && el.closest(".prod-suggest")) {
+      const rowEl = el.closest("div[data-i]");
+      const idx = rowEl ? Number(rowEl.dataset.i) : NaN;
+      if (!Number.isFinite(idx)) return;
+
+      const prodId = el.getAttribute("data-prod-id");
+      if (!prodId) return;
+
+      await loadProdottiCache(false);
+      const prodotto = prodottiCache.find(p => p.id === prodId);
+      if (prodotto) {
+        await selectProdottoForRow(idx, prodotto);
+      }
+      return;
+    }
+
+    // click sui bottoni riga
+    const btn = el;
     const i = btn.dataset?.i;
     if (i === undefined) return;
     const idx = Number(i);
@@ -819,13 +812,19 @@ righeContainer.addEventListener("change", async (e) => {
           righe[idx].match_score = match.score;
           righe[idx].prodotto_nome = await loadProdottoNomeById(match.prodotto_id);
 
+          const cached = prodottiCache.find(p => p.id === match.prodotto_id);
+          righe[idx].um = cached?.um || "";
+
           const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
           const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+          const hidId = rowEl?.querySelector(".riga-prodotto-id");
           if (inpProd && righe[idx].prodotto_nome) inpProd.value = righe[idx].prodotto_nome;
+          if (hidId) hidId.value = righe[idx].prodotto_id || "";
         } else {
           righe[idx].prodotto_id = null;
           righe[idx].match_reason = null;
           righe[idx].match_score = null;
+          righe[idx].um = "";
         }
         await updateRowComputedUI(idx);
       } finally {
@@ -848,9 +847,10 @@ righeContainer.addEventListener("change", async (e) => {
           .from("prodotti")
           .insert({
             azienda_id: azienda.id,
-            descrizione: nome
+            descrizione: nome,
+            attivo: true
           })
-          .select("id, descrizione")
+          .select("id, descrizione, codice_interno, um")
           .single();
 
         if (error || !created?.id) {
@@ -858,21 +858,28 @@ righeContainer.addEventListener("change", async (e) => {
           return;
         }
 
-        // aggiorna cache e riga
-        prodottiCache.unshift({ id: created.id, descrizione: created.descrizione || nome });
-        datalistProdotti.insertAdjacentHTML("afterbegin", `<option value="${escapeHtml(created.descrizione || nome)}"></option>`);
+        prodottiCache.unshift({
+          id: created.id,
+          descrizione: created.descrizione || nome,
+          codice_interno: created.codice_interno || "",
+          um: created.um || ""
+        });
+
+        await loadProdottiCache(true);
 
         righe[idx].prodotto_id = created.id;
         righe[idx].prodotto_nome = created.descrizione || nome;
+        righe[idx].um = created.um || "";
         righe[idx].match_reason = "created";
         righe[idx].match_score = 0.80;
 
         await updateRowComputedUI(idx);
 
-        // aggiorna input prodotto UI (se presente)
         const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
         const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+        const hidId = rowEl?.querySelector(".riga-prodotto-id");
         if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+        if (hidId) hidId.value = righe[idx].prodotto_id || "";
 
         feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
       } finally {
@@ -903,12 +910,10 @@ righeContainer.addEventListener("change", async (e) => {
           return;
         }
 
-        // aggiorna cache
         const p = prodottiCache.find(x => x.id === prodottoId);
         if (p) p.descrizione = nuovoNome;
-        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome });
+        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "" });
 
-        // aggiorna datalist (semplice: ricarichiamo cache)
         await loadProdottiCache(true);
 
         righe[idx].match_reason = righe[idx].match_reason || "manual_rename";
@@ -924,10 +929,19 @@ righeContainer.addEventListener("change", async (e) => {
     }
   });
 
-  // Se cambia fornitore, i match "fornitore" potrebbero cambiare: non rompiamo nulla, ma permettiamo di riprovare
+  // Chiudi suggest se clicchi fuori
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    if (!righeContainer.contains(t)) return;
+    if (t.classList.contains("riga-prodotto-nome")) return;
+    if (t.closest(".prod-suggest")) return;
+    closeAllSuggest();
+  });
+
+  // Se cambia fornitore, i match "fornitore" potrebbero cambiare
   selectFornitore?.addEventListener("change", async () => {
     await loadProdottiCache(false);
-    // Non rifacciamo tutto automatico (evitiamo query), ma aggiorniamo hint/status
     righe.forEach((_, idx) => updateRowComputedUI(idx));
   });
 
@@ -942,7 +956,6 @@ righeContainer.addEventListener("change", async (e) => {
       const fornitoreId = document.getElementById("fattura-fornitore").value;
       if (!fornitoreId) throw new Error("Seleziona fornitore");
 
-      // Validazione righe: quantità > 0 e prodotto_id obbligatorio
       const righePulite = righe
         .map(r => ({
           descrizione: (r.descrizione || "").trim(),
@@ -956,7 +969,7 @@ righeContainer.addEventListener("change", async (e) => {
 
       const righeNonValide = righePulite.filter(r => !r.prodotto_id);
       if (righeNonValide.length > 0) {
-        throw new Error("Ci sono righe senza prodotto: completa il matching (verde/giallo) o crea il prodotto.");
+        throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
       }
 
       const { data: fattura, error: errInsFattura } = await window.supabaseClient
@@ -998,11 +1011,11 @@ righeContainer.addEventListener("change", async (e) => {
 
       feedback.innerHTML = "<span style='color:green;'>Fattura salvata e processata.</span>";
     } catch (err) {
-      feedback.innerHTML = "<span style='color:red;'>" + err.message + "</span>";
+      feedback.innerHTML = "<span style='color:red;'>" + (err?.message || "Errore") + "</span>";
     }
   });
 
-  // inizializzazione (carica datalist prodotti senza bloccare UX)
+  // init
   loadProdottiCache(false);
 }
 
@@ -1018,4 +1031,13 @@ function renderOrdini(container) {
 
 function renderRiordino(container) {
   container.innerHTML = "<h3>Riordino</h3><p>In sviluppo</p>";
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
