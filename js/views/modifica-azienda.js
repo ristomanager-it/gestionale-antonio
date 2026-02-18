@@ -106,7 +106,8 @@ export async function render(container) {
 
   renderFeatures(azienda);
 
-  document.getElementById("logo-upload").addEventListener("change", async (e) => {
+  // Upload Logo
+  document.getElementById("logo-upload")?.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -137,10 +138,12 @@ export async function render(container) {
   });
 }
 
+/* =========================================================
+   🔥 FEATURES CORRETTE E STABILI
+========================================================= */
+
 function renderFeatures(azienda) {
   const container = document.getElementById("features-container");
-
-  const currentFeatures = azienda.features || {};
 
   container.innerHTML = MODULI.map(m => `
     <div style="
@@ -154,7 +157,7 @@ function renderFeatures(azienda) {
       <input 
         type="checkbox"
         data-key="${m.key}"
-        ${currentFeatures[m.key] !== false ? "checked" : ""}
+        ${azienda.features?.[m.key] === false ? "" : "checked"}
       />
     </div>
   `).join("");
@@ -167,7 +170,7 @@ function renderFeatures(azienda) {
         const value = e.target.checked;
 
         const nuoveFeatures = {
-          ...currentFeatures,
+          ...(azienda.features || {}),
           [key]: value
         };
 
@@ -180,11 +183,16 @@ function renderFeatures(azienda) {
           azienda.features = nuoveFeatures;
         } else {
           alert("Errore aggiornamento feature");
+          console.error(error);
         }
 
       });
     });
 }
+
+/* =========================================================
+   Utility
+========================================================= */
 
 function val(id) {
   return document.getElementById(id)?.value.trim() || null;
