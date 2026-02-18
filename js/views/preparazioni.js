@@ -672,52 +672,137 @@ function validaForm(dati) {
   return null;
 }
 
-/* ================= SALVATAGGIO (mock + storico locale) ================= */
+/* ================= SALVATAGGIO (reale + movimenti magazzino) ================= */
 
-function salvaPreparazione() {
+async function salvaPreparazione() {
 
   const dati = raccogliDatiForm();
   const err = validaForm(dati);
   if (err) return;
 
-  // MOCK: salvo in localStorage per poterlo ritrovare subito
-  const record = {
-    id: cryptoRandomId(),
-    azienda_id: window.state?.azienda?.id || null,
-    ricetta_id: dati.ricettaId,
-    ricetta_nome: ricettaSelezionata?.nome || "",
-    data_produzione: dati.dataProduzione,
-    peso_finale: Number(dati.pesoFinale),
-    unita: document.getElementById("prep-unita-label")?.innerText || "",
-    lotto: dati.lotto,
-    scenario_conservazione_id: dati.scenarioId,
-    scadenza: dati.scadenza,
-    confezionamento: dati.confezionamento,
-    operatore_id: dati.operatore.id,
-    operatore_nome: `${dati.operatore.cognome} ${dati.operatore.nome}`.trim(),
-    created_at: new Date().toISOString()
-  };
-
-  const key = "rf_produzioni_mock";
-  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-  arr.unshift(record);
-  localStorage.setItem(key, JSON.stringify(arr));
-
-  const esito = document.getElementById("prep-esito");
-  if (esito) {
-    esito.innerText = `Produzione registrata ✔️ (mock) — Lotto: ${record.lotto}`;
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) {
+    alert("Azienda non attiva.");
+    return;
   }
 
-  alert(`Produzione registrata ✔️ (mock)\nLotto: ${record.lotto}\nOperatore: ${record.operatore_nome}`);
-}
+  try {
 
-function cryptoRandomId() {
-  // compat semplice
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === "x" ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+    // ================================
+    // 1️⃣ INSERT TESTATA PRODUZIONE
+    // ================================
+    const { data: produzione, error: errProduzione } =
+      await window.supabaseClient
+        .from("produzioni")
+        .insert({
+          azienda_id: aziendaId,
+          data_produzione: dati.dataProduzione,
+          lotto: dati.lotto,
+          operatore_id: dati.operatore.id,
+          scenario_conservazione_id: dati.scenarioId,
+          scadenza: dati.scadenza,
+          confezionamento: dati.confezionamento
+        })
+        .select()
+        .single();
+
+    if (errProduzione) throw errProduzione;
+
+    const produzioneId = produzione.id;
+
+    // ================================
+    // 2️⃣ INSERT RIGA PRODUZIONE
+    // ================================
+    const { data: riga, error: errRiga } =
+      await window.supabaseClient
+        .from("schede_produzione_righe")
+        .insert({
+          azienda_id: aziendaId,
+          produzione_id: produzioneId,
+          ricetta_id: dati.ricettaId,
+          quantita: Number(dati.pesoFinale),
+          unita: document.getElementById("prep-unita-label")?.innerText || "kg",
+          lotto: dati.lotto
+        })
+        .select()
+        .single();
+
+    if (errRiga) throw errRiga;
+
+    const rigaId = riga.id;
+
+    // ================================
+    // 3️⃣ RECUPERO INGREDIENTI
+    // ================================
+    const { data: ingredienti, error: errIng } =
+      await window.supabaseClient
+        .from("ricetta_ingredienti")
+        .select("*")
+        .eq("ricetta_id", dati.ricettaId)
+        .eq("azienda_id", aziendaId);
+
+    if (errIng) throw errIng;
+
+    // ================================
+    // 4️⃣ SCARICO INGREDIENTI
+    // ================================
+    for (const ing of (ingredienti || [])) {
+
+      const quantitaScarico = Number(ing.quantita || 0);
+      if (!ing.prodotto_id || quantitaScarico <= 0) continue;
+
+      const { error: errMov } =
+        await window.supabaseClient
+          .from("magazzino_movimenti")
+          .insert({
+            azienda_id: aziendaId,
+            prodotto_id: ing.prodotto_id,
+            tipo_movimento: "SCARICO",
+            quantita: quantitaScarico,
+            data_movimento: dati.dataProduzione,
+            riferimento_tipo: "PRODUZIONE",
+            riferimento_id: produzioneId,
+            riferimento_riga_id: rigaId,
+            note: `Scarico produzione lotto ${dati.lotto}`
+          });
+
+      if (errMov) throw errMov;
+    }
+
+    // ================================
+    // 5️⃣ CARICO PRODOTTO FINITO
+    // ================================
+    if (ricettaSelezionata?.prodotto_output_id) {
+
+      const { error: errCarico } =
+        await window.supabaseClient
+          .from("magazzino_movimenti")
+          .insert({
+            azienda_id: aziendaId,
+            prodotto_id: ricettaSelezionata.prodotto_output_id,
+            tipo_movimento: "CARICO",
+            quantita: Number(dati.pesoFinale),
+            data_movimento: dati.dataProduzione,
+            riferimento_tipo: "PRODUZIONE",
+            riferimento_id: produzioneId,
+            riferimento_riga_id: rigaId,
+            note: `Carico produzione lotto ${dati.lotto}`
+          });
+
+      if (errCarico) throw errCarico;
+    }
+
+    const esito = document.getElementById("prep-esito");
+    if (esito) {
+      esito.innerText = `Produzione registrata ✔️ — Lotto: ${dati.lotto}`;
+    }
+
+    alert(`Produzione registrata ✔️\nLotto: ${dati.lotto}`);
+
+  } catch (error) {
+    console.error("Errore produzione:", error);
+    alert("Errore durante la registrazione della produzione. Controlla console.");
+  }
 }
 
 /* ================= ETICHETTA (stampa) ================= */
