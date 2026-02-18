@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa Moderna (solo Produzione)
+// Dashboard Operativa Moderna
 // =======================================
 
 export async function render(container) {
@@ -22,27 +22,34 @@ export async function render(container) {
     { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
   ];
 
-  const attivi = moduli;
-
   const saluto = getSaluto();
 
   container.innerHTML = `
     <div class="view">
 
-      ${
-        azienda.stato === "piattaforma"
-          ? `
-        <div style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+
+        ${
+          azienda.stato === "piattaforma"
+            ? `
           <button 
             class="app-button small gray"
             onclick="window.location.hash='#/homePiattaforma'"
           >
             ⬅ Torna alla Piattaforma
           </button>
-        </div>
-      `
-          : ""
-      }
+        `
+            : `<div></div>`
+        }
+
+        <button 
+          id="btn-logout-dashboard"
+          class="app-button small red"
+        >
+          Esci
+        </button>
+
+      </div>
 
       <div style="
         display:flex;
@@ -91,7 +98,7 @@ export async function render(container) {
         "
       >
         ${
-          attivi.map((m, index) => `
+          moduli.map((m, index) => `
             <div 
               onclick="window.location.hash='#/${m.key}'"
               style="
@@ -135,6 +142,30 @@ export async function render(container) {
 
     </div>
   `;
+
+  // ===== LOGOUT LOGICA =====
+  const btnLogout = document.getElementById("btn-logout-dashboard");
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      try {
+        await window.supabaseClient.auth.signOut();
+
+        // reset stato globale
+        window.state.user = null;
+        window.state.azienda = null;
+
+        // eventuale remember
+        localStorage.removeItem("ristoflow_user");
+
+        // torna al login
+        window.location.hash = "#/login";
+
+      } catch (err) {
+        console.error("Errore logout:", err);
+      }
+    });
+  }
 }
 
 function getSaluto() {
