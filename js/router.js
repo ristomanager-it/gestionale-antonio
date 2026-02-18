@@ -13,11 +13,14 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   setPassword: () => import("./views/set-password.js"),
 
+  // 🔹 MODULO DIPENDENTI (NUOVO)
+  dipendenti: () => import("./views/dipendenti.js"),
+
   // Moduli operativi
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
 
-  // 🔥 CENTRO PRODUZIONE (3 scelte)
+  // 🔥 CENTRO PRODUZIONE
   produzione: () => import("./views/produzione.js"),
 
   // 🔹 Ricettario (solo ricerca + viewer)
@@ -126,7 +129,6 @@ async function resolve() {
     return;
   }
 
-  // 🔹 Redirect coerenti piattaforma / azienda
   if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
     window.location.hash = "#/homePiattaforma";
     return;
@@ -137,7 +139,6 @@ async function resolve() {
     return;
   }
 
-  // 🔥 Se atterra su login ma è autenticato → vai a home corretta
   if (route === "login") {
     if (azienda.stato === "piattaforma") {
       window.location.hash = "#/homePiattaforma";
