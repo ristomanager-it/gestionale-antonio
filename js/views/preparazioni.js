@@ -194,14 +194,43 @@ function presetDataOggi() {
 /* ================= RICETTE ================= */
 
 async function preloadRicette() {
-  const { data } = await window.supabaseClient
+  // FIX: unita/peso output NON stanno in ricette, ma in ricette_output (1:1)
+  const { data, error } = await window.supabaseClient
     .from("ricette")
-    .select("id, nome, pezzi_base, unita_misura_output")
+    .select(`
+      id,
+      nome,
+      pezzi_base,
+      prodotto_output_id,
+      ricette_output (
+        peso_finale,
+        unita_misura
+      )
+    `)
     .eq("azienda_id", window.state.azienda.id)
     .eq("attivo", true)
     .order("nome");
 
-  ricetteCache = data || [];
+  if (error) {
+    console.error("Errore preload ricette:", error);
+    ricetteCache = [];
+    return;
+  }
+
+  ricetteCache = (data || []).map(r => {
+    const out = Array.isArray(r.ricette_output)
+      ? (r.ricette_output[0] || null)
+      : (r.ricette_output || null);
+
+    return {
+      id: r.id,
+      nome: r.nome,
+      pezzi_base: r.pezzi_base,
+      prodotto_output_id: r.prodotto_output_id ?? null,
+      peso_output: out?.peso_finale ?? null,
+      unita_output: out?.unita_misura ?? "kg"
+    };
+  });
 }
 
 function setupAutocompleteRicette() {
@@ -246,10 +275,16 @@ function setupAutocompleteRicette() {
         ricettaSelezionata = r;
         btnVedi.disabled = false;
 
-        setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-"));
-        setUnitaMisuraLabel(r.unita_misura_output || "kg");
+        const resaTxt = (r.peso_output != null)
+          ? ` — Resa: ${r.peso_output} ${r.unita_output || "kg"}`
+          : "";
 
-        // lotto auto (prefisso da ricetta)
+        setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
+
+        // FIX: unità viene da ricette_output
+        setUnitaMisuraLabel(r.unita_output || "kg");
+
+        // lotto auto (prefisso da ricetta) - per ora fallback su nome
         ensureLotto(true);
 
         await loadConservazioni(r.id);
@@ -496,7 +531,8 @@ async function apriModalRicetta() {
   const [ingRes, fasiRes, ricRes] = await Promise.all([
     window.supabaseClient.from("ricetta_ingredienti").select("*").eq("ricetta_id", ricettaSelezionata.id).order("ordine"),
     window.supabaseClient.from("ricette_preparazione_fasi").select("*").eq("ricetta_id", ricettaSelezionata.id).order("ordine"),
-    window.supabaseClient.from("ricette").select("descrizione, note").eq("id", ricettaSelezionata.id).maybeSingle()
+    // FIX: campo note in ricette è note_procedimento, non "note"
+    window.supabaseClient.from("ricette").select("descrizione, note_procedimento").eq("id", ricettaSelezionata.id).maybeSingle()
   ]);
 
   const ingredienti = ingRes.data || [];
@@ -506,12 +542,12 @@ async function apriModalRicetta() {
   body.innerHTML = `
     <div style="display:grid; gap:12px;">
 
-      ${(ricettaDett.descrizione || ricettaDett.note) ? `
+      ${(ricettaDett.descrizione || ricettaDett.note_procedimento) ? `
         <div class="editor-section open">
           <div class="editor-section-header"><strong>Note</strong></div>
           <div class="editor-section-body">
             ${ricettaDett.descrizione ? `<div><strong>Descrizione:</strong> ${escapeHtml(ricettaDett.descrizione)}</div>` : ""}
-            ${ricettaDett.note ? `<div style="margin-top:8px;"><strong>Note:</strong> ${escapeHtml(ricettaDett.note)}</div>` : ""}
+            ${ricettaDett.note_procedimento ? `<div style="margin-top:8px;"><strong>Procedimento:</strong> ${escapeHtml(ricettaDett.note_procedimento)}</div>` : ""}
           </div>
         </div>
       ` : ""}
@@ -521,7 +557,7 @@ async function apriModalRicetta() {
         <div class="editor-section-body">
           ${ingredienti.length ? `
             <ul style="margin:0; padding-left:18px;">
-              ${ingredienti.map(i => `<li>${escapeHtml(i.nome_ingrediente || i.nome || "Ingrediente")} ${formatQta(i)}</li>`).join("")}
+              ${ingredienti.map(i => `<li>${escapeHtml(i.nome_ingrediente || i.nome || i.nome_prodotto || "Ingrediente")} ${formatQta(i)}</li>`).join("")}
             </ul>
           ` : `<div class="small-muted">Nessun ingrediente disponibile</div>`}
         </div>
@@ -532,7 +568,7 @@ async function apriModalRicetta() {
         <div class="editor-section-body">
           ${fasi.length ? `
             <ol style="margin:0; padding-left:18px;">
-              ${fasi.map(f => `<li style="margin-bottom:8px;">${escapeHtml(f.testo || f.descrizione || "Fase")}</li>`).join("")}
+              ${fasi.map(f => `<li style="margin-bottom:8px;">${escapeHtml(f.nome_fase || f.testo || f.descrizione || "Fase")}</li>`).join("")}
             </ol>
           ` : `<div class="small-muted">Nessuna fase disponibile</div>`}
         </div>
@@ -566,6 +602,7 @@ function formatQta(i) {
 /* ================= EVENTI ================= */
 
 function bindEvents() {
+
   document.getElementById("prep-conservazione")
     .addEventListener("change", aggiornaConservazione);
 
@@ -598,6 +635,7 @@ function bindEvents() {
 /* ================= VALIDAZIONI ================= */
 
 function raccogliDatiForm() {
+
   const ricettaId = document.getElementById("prep-ricetta-id").value;
   const dataProduzione = document.getElementById("prep-data").value;
   const pesoFinale = document.getElementById("prep-peso-finale").value;
@@ -621,23 +659,26 @@ function raccogliDatiForm() {
 }
 
 function validaForm(dati) {
-  if (!dati.ricettaId) return "Seleziona una ricetta.";
-  if (!dati.dataProduzione) return "Seleziona la data produzione.";
-  if (!dati.pesoFinale || Number(dati.pesoFinale) <= 0) return "Inserisci il peso finale prodotto (maggiore di 0).";
-  if (!dati.lotto) return "Lotto non disponibile. Seleziona una ricetta.";
-  if (!dati.operatore?.id) return "Inserisci un PIN operatore valido.";
-  if (!dati.scenarioId) return "Seleziona il tipo di conservazione.";
-  if (!dati.scadenza) return "Scadenza non disponibile. Controlla la conservazione e la data produzione.";
-  if (!dati.confezionamento) return "Seleziona il confezionamento usato.";
+
+  if (!dati.ricettaId) return alert("Seleziona una ricetta.");
+  if (!dati.dataProduzione) return alert("Seleziona la data produzione.");
+  if (!dati.pesoFinale || Number(dati.pesoFinale) <= 0) return alert("Inserisci il peso finale prodotto (maggiore di 0).");
+  if (!dati.lotto) return alert("Lotto non disponibile. Seleziona una ricetta.");
+  if (!dati.operatore?.id) return alert("Inserisci un PIN operatore valido.");
+  if (!dati.scenarioId) return alert("Seleziona il tipo di conservazione.");
+  if (!dati.scadenza) return alert("Scadenza non disponibile. Controlla la conservazione e la data produzione.");
+  if (!dati.confezionamento) return alert("Seleziona il confezionamento usato.");
+
   return null;
 }
 
 /* ================= SALVATAGGIO (mock + storico locale) ================= */
 
 function salvaPreparazione() {
+
   const dati = raccogliDatiForm();
   const err = validaForm(dati);
-  if (err) return alert(err);
+  if (err) return;
 
   // MOCK: salvo in localStorage per poterlo ritrovare subito
   const record = {
@@ -682,9 +723,10 @@ function cryptoRandomId() {
 /* ================= ETICHETTA (stampa) ================= */
 
 function creaEStampaEtichetta() {
+
   const dati = raccogliDatiForm();
   const err = validaForm(dati);
-  if (err) return alert(err);
+  if (err) return;
 
   const ricettaNome = ricettaSelezionata?.nome || "Ricetta";
   const operatoreNome = `${dati.operatore.cognome} ${dati.operatore.nome}`.trim();
