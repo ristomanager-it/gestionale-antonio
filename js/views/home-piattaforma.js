@@ -15,11 +15,20 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
-      <div style="margin-bottom:32px;">
-        <h2 style="margin:0;">Ristoflow – Piattaforma</h2>
-        <p class="small-muted" style="margin-top:6px;">
-          Controllo SaaS e gestione clienti
-        </p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2 style="margin:0;">Ristoflow – Piattaforma</h2>
+          <p class="small-muted" style="margin-top:6px;">
+            Controllo SaaS e gestione clienti
+          </p>
+        </div>
+
+        <button 
+          id="btn-logout-piattaforma"
+          class="app-button small red"
+        >
+          Esci
+        </button>
       </div>
 
       <div 
@@ -98,4 +107,28 @@ export async function render(container) {
 
     </div>
   `;
+
+  // ===== LOGOUT LOGICA =====
+  const btnLogout = document.getElementById("btn-logout-piattaforma");
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      try {
+        await window.supabaseClient.auth.signOut();
+
+        // Reset stato globale
+        window.state.user = null;
+        window.state.azienda = null;
+
+        // Rimuove eventuale remember
+        localStorage.removeItem("ristoflow_user");
+
+        // Torna al login
+        window.location.hash = "#/login";
+
+      } catch (err) {
+        console.error("Errore logout:", err);
+      }
+    });
+  }
 }
