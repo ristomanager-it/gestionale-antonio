@@ -24,10 +24,16 @@ export async function render(container) {
 
   const saluto = getSaluto();
 
-  // 🔐 FILTRO DINAMICO
-  const moduliAttivi = MODULI.filter(m =>
-    hasFeature(m.key) && hasPermission(m.key)
-  );
+  // 🔥 Se piattaforma → mostra tutto
+  let moduliAttivi;
+
+  if (azienda.stato === "piattaforma") {
+    moduliAttivi = MODULI;
+  } else {
+    moduliAttivi = MODULI.filter(m =>
+      hasFeature(m.key) && hasPermission(m.key)
+    );
+  }
 
   container.innerHTML = `
     <div class="view">
@@ -176,7 +182,7 @@ function hasFeature(area) {
   return window.state?.azienda?.features?.[area] === true;
 }
 
-// 🔹 PERMESSO UTENTE (usa stessa logica router)
+// 🔹 PERMESSO UTENTE
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
