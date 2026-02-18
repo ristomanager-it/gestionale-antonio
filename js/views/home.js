@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa Moderna
+// Dashboard Operativa Dinamica SaaS
 // =======================================
 
 export async function render(container) {
@@ -12,17 +12,22 @@ export async function render(container) {
     return;
   }
 
-  const moduli = [
+  const MODULI = [
     { key: "produzione", label: "Produzione", icon: "🏭" },
     { key: "magazzino", label: "Magazzino", icon: "📦" },
     { key: "acquisti", label: "Acquisti", icon: "🧾" },
-    { key: "preventivi", label: "Preventivi", icon: "📑" },
-    { key: "eventi", label: "Eventi", icon: "🎉" },
-    { key: "report", label: "Report", icon: "📊" },
-    { key: "impostazioni", label: "Impostazioni", icon: "⚙️" }
+    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
+    { key: "ricettario", label: "Ricettario", icon: "📖" },
+    { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
+    { key: "report", label: "Report", icon: "📊" }
   ];
 
   const saluto = getSaluto();
+
+  // 🔐 FILTRO DINAMICO
+  const moduliAttivi = MODULI.filter(m =>
+    hasFeature(m.key) && hasPermission(m.key)
+  );
 
   container.innerHTML = `
     <div class="view">
@@ -90,6 +95,10 @@ export async function render(container) {
 
       </div>
 
+      ${
+        moduliAttivi.length === 0
+          ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
+          : `
       <div 
         style="
           display:grid;
@@ -98,7 +107,7 @@ export async function render(container) {
         "
       >
         ${
-          moduli.map((m, index) => `
+          moduliAttivi.map((m, index) => `
             <div 
               onclick="window.location.hash='#/${m.key}'"
               style="
@@ -126,6 +135,8 @@ export async function render(container) {
           `).join("")
         }
       </div>
+      `
+      }
 
       <style>
         @keyframes fadeInUp {
@@ -143,29 +154,49 @@ export async function render(container) {
     </div>
   `;
 
-  // ===== LOGOUT LOGICA =====
   const btnLogout = document.getElementById("btn-logout-dashboard");
 
   if (btnLogout) {
     btnLogout.addEventListener("click", async () => {
       try {
         await window.supabaseClient.auth.signOut();
-
-        // reset stato globale
         window.state.user = null;
         window.state.azienda = null;
-
-        // eventuale remember
         localStorage.removeItem("ristoflow_user");
-
-        // torna al login
         window.location.hash = "#/login";
-
       } catch (err) {
         console.error("Errore logout:", err);
       }
     });
   }
+}
+
+// 🔹 FEATURE AZIENDA
+function hasFeature(area) {
+  return window.state?.azienda?.features?.[area] === true;
+}
+
+// 🔹 PERMESSO UTENTE (usa stessa logica router)
+function hasPermission(area) {
+  const ruolo = window.state?.ruolo;
+  const override = window.state?.permessiOverride || {};
+
+  if (override.hasOwnProperty(area)) {
+    return override[area] === true;
+  }
+
+  const rolePermissions = {
+    admin: ["*"],
+    segreteria: ["dipendenti", "acquisti", "report"],
+    manager_cucina: ["produzione"],
+    manager_sala: ["produzione"],
+    addetto_cucina: [],
+    cameriere: []
+  };
+
+  if (rolePermissions[ruolo]?.includes("*")) return true;
+
+  return rolePermissions[ruolo]?.includes(area);
 }
 
 function getSaluto() {
