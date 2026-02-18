@@ -13,23 +13,13 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   setPassword: () => import("./views/set-password.js"),
 
-  // 🔹 MODULO DIPENDENTI (NUOVO)
   dipendenti: () => import("./views/dipendenti.js"),
 
-  // Moduli operativi
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
-
-  // 🔥 CENTRO PRODUZIONE
   produzione: () => import("./views/produzione.js"),
-
-  // 🔹 Ricettario (solo ricerca + viewer)
   ricettario: () => import("./views/ricettario.js"),
-
-  // 🔹 Editor completo ricetta
   creaRicetta: () => import("./views/crea-ricetta.js"),
-
-  // 🔹 Preparazioni / Lotti
   preparazioni: () => import("./views/preparazioni.js"),
 };
 
@@ -69,6 +59,20 @@ async function renderView(routeName) {
   }
 
   await module.render(app);
+}
+
+// 🔐 SISTEMA PERMESSI SCALABILE
+function hasPermission(area) {
+  const ruolo = window.state?.ruolo;
+
+  const permissions = {
+    dipendenti: ["admin", "segreteria", "manager_cucina", "manager_sala"],
+    acquisti: ["admin", "segreteria"],
+    report: ["admin", "segreteria"],
+    produzione: ["admin", "manager_cucina"],
+  };
+
+  return permissions[area]?.includes(ruolo);
 }
 
 async function resolve() {
@@ -126,6 +130,18 @@ async function resolve() {
         </div>
       </div>
     `;
+    return;
+  }
+
+  // 🔥 SALVIAMO RUOLO ATTIVO
+  const recordAttivo = aziendePulite.find(
+    a => a.aziende.id === azienda.id
+  );
+  window.state.ruolo = recordAttivo?.ruolo || null;
+
+  // 🔒 BLOCCO ACCESSO DIPENDENTI
+  if (route === "dipendenti" && !hasPermission("dipendenti")) {
+    window.location.hash = "#/home";
     return;
   }
 
