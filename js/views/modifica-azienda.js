@@ -1,6 +1,16 @@
 // js/views/modifica-azienda.js
 import { supabase } from "../supabaseClient.js";
 
+const MODULI = [
+  { key: "produzione", label: "Produzione" },
+  { key: "magazzino", label: "Magazzino" },
+  { key: "acquisti", label: "Acquisti" },
+  { key: "dipendenti", label: "Dipendenti" },
+  { key: "ricettario", label: "Ricettario" },
+  { key: "preparazioni", label: "Preparazioni" },
+  { key: "report", label: "Report" }
+];
+
 export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
@@ -37,7 +47,7 @@ export async function render(container) {
       ${cardFiscale(azienda)}
       ${cardContatti(azienda)}
       ${cardSaaS(azienda)}
-      ${cardFeatures(azienda)}
+      ${cardFeatures()}
 
       <div style="margin-top:24px; display:flex; gap:12px;">
         <button class="app-button" id="btn-save">💾 Salva modifiche</button>
@@ -96,7 +106,6 @@ export async function render(container) {
 
   renderFeatures(azienda);
 
-  // Upload Logo
   document.getElementById("logo-upload").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -131,21 +140,9 @@ export async function render(container) {
 function renderFeatures(azienda) {
   const container = document.getElementById("features-container");
 
-  const moduli = [
-    { key: "timbrature", label: "Timbrature" },
-    { key: "dipendenti", label: "Dipendenti" },
-    { key: "ricette", label: "Ricette" },
-    { key: "magazzino", label: "Magazzino" },
-    { key: "acquisti", label: "Acquisti" },
-    { key: "preventivi", label: "Preventivi" },
-    { key: "eventi", label: "Eventi" },
-    { key: "report", label: "Report" },
-    { key: "impostazioni", label: "Impostazioni" }
-  ];
+  const currentFeatures = azienda.features || {};
 
-  const features = azienda.features || {};
-
-  container.innerHTML = moduli.map(m => `
+  container.innerHTML = MODULI.map(m => `
     <div style="
       display:flex;
       justify-content:space-between;
@@ -157,7 +154,7 @@ function renderFeatures(azienda) {
       <input 
         type="checkbox"
         data-key="${m.key}"
-        ${features[m.key] === false ? "" : "checked"}
+        ${currentFeatures[m.key] !== false ? "checked" : ""}
       />
     </div>
   `).join("");
@@ -170,7 +167,7 @@ function renderFeatures(azienda) {
         const value = e.target.checked;
 
         const nuoveFeatures = {
-          ...features,
+          ...currentFeatures,
           [key]: value
         };
 
@@ -293,10 +290,10 @@ function cardSaaS(a) {
   `;
 }
 
-function cardFeatures(a){
+function cardFeatures(){
   return `
     <div class="view" style="margin-top:20px;">
-      <h3>Funzioni Attive</h3>
+      <h3>Moduli Attivi</h3>
       <div id="features-container"></div>
     </div>
   `;
