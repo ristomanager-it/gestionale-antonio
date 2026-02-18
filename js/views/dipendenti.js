@@ -47,6 +47,7 @@ export async function render(container) {
         <label>Ruolo
           <select id="dip-ruolo" class="input-pill">
             <option value="admin">Admin</option>
+            <option value="segreteria">Segreteria</option>
             <option value="manager_cucina">Manager cucina</option>
             <option value="manager_sala">Manager sala</option>
             <option value="addetto_cucina">Addetto cucina</option>
