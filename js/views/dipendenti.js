@@ -2,7 +2,7 @@
 // =======================================
 // View Dipendenti – SaaS Multi-Azienda
 // - Tab Elenco / Nuovo-Modifica
-// - Invito accesso gestionale via Edge Function (white-label) + inviti_utenti
+// - Invito accesso gestionale via Edge Function
 // - Soft delete (attivo=false) + disattivazione accessi collegati
 // - Niente canale_prevalente
 // =======================================
@@ -254,7 +254,7 @@ function renderForm(dip) {
         <div class="view" style="margin-top:10px;">
           <h4 style="margin:0;">Accesso al gestionale</h4>
           <p class="small-muted" style="margin-top:6px;">
-            Se abiliti l’accesso, inviamo una mail (white-label) per creare la password e accedere.
+            Se abiliti l’accesso, inviamo una mail per creare la password e accedere.
           </p>
 
           <label style="display:flex; align-items:center; gap:10px; margin-top:8px;">
@@ -399,34 +399,15 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-    const invitoPayload = {
-      azienda_id: azienda.id,
-      email,
-      ruolo: ruoloApp,
-      permessi_override: {},
-      dipendente_id: res.data?.id || null,
-    };
-
-    const inv = await window.supabaseClient.from("inviti_utenti").insert(invitoPayload).select("id").single();
-
-    if (inv.error) {
-      console.error(inv.error);
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione invito</span>`;
-      return;
-    }
-
     const invio = await inviaInvitoDipendenteWhiteLabel({
       email,
       aziendaId: azienda.id,
       ruolo: ruoloApp,
-      invitoId: inv.data?.id || null,
-      dipendenteId: res.data?.id || null,
     });
 
     if (!invio.ok) {
       const extra = invio.message ? `<div class="small-muted" style="margin-top:6px;">${escapeHtml(invio.message)}</div>` : "";
-      if (msg)
-        msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email</span>${extra}`;
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore invio email invito</span>${extra}`;
       return;
     }
   }
@@ -499,27 +480,16 @@ window._dipDelete = async function (id) {
       .eq("email", dip.email);
 
     if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
-
-    // Inviti: per ora non gestiamo "attivo" (non esiste colonna).
-    // Se vuoi pulire inviti non usati, cancelliamo quelli non ancora usati.
-    const invDel = await window.supabaseClient
-      .from("inviti_utenti")
-      .delete()
-      .eq("azienda_id", azienda.id)
-      .eq("email", dip.email)
-      .eq("usato", false);
-
-    if (invDel.error) console.warn("Impossibile eliminare inviti_utenti non usati:", invDel.error);
   }
 
   await caricaDipendenti();
 };
 
 /* =========================================================
-   Invito white-label (Edge Function)
+   Invito (Edge Function)
 ========================================================= */
 
-async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invitoId, dipendenteId }) {
+async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
   try {
     const supa = window.supabaseClient;
 
@@ -535,18 +505,15 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invito
 
     const baseUrl = getFunctionsBaseUrl(supa);
 
-    // Endpoint primario (corretto)
-    const primary = `${baseUrl}/invito-dipendente`;
-    // Fallback se il deploy è stato fatto con nome strano (come indicato dal tuo endpoint)
-    const fallback = `${baseUrl}/invito-dipendente-index-ts`;
+    // Endpoint primario (nuovo)
+    const primary = `${baseUrl}/invita-dipendente`;
+    // Fallback se in passato è stato deployato con nome diverso
+    const fallback = `${baseUrl}/invita-dipendente-index-ts`;
 
     const body = JSON.stringify({
       email,
-      aziendaId,
+      azienda_id: aziendaId,
       ruolo,
-      invitoId: invitoId || null,
-      dipendenteId: dipendenteId || null,
-      redirectTo: `${window.location.origin}${window.location.pathname}#/set-password`,
     });
 
     let r = await fetch(primary, {
@@ -558,7 +525,6 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invito
       body,
     });
 
-    // Se non trovato, prova fallback
     if (r.status === 404) {
       r = await fetch(fallback, {
         method: "POST",
@@ -572,13 +538,13 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invito
 
     if (!r.ok) {
       const t = await safeReadText(r);
-      console.error("Edge function invito-dipendente error:", r.status, t);
+      console.error("Edge function invita-dipendente error:", r.status, t);
       return { ok: false, message: t || `Errore invio (HTTP ${r.status})` };
     }
 
     return { ok: true };
   } catch (e) {
-    console.error("Errore invio invito white-label:", e);
+    console.error("Errore invio invito:", e);
     return { ok: false, message: "Errore rete o funzione" };
   }
 }
