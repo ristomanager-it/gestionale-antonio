@@ -23,6 +23,10 @@ const routes = {
   preparazioni: () => import("./views/preparazioni.js"),
 };
 
+/* =========================================================
+   PARSE HASH
+========================================================= */
+
 function parseHash() {
   const raw = window.location.hash || "#/login";
   const cleaned = raw.replace("#/", "");
@@ -62,9 +66,7 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   🔐 SISTEMA PERMESSI DEFINITIVO
-   - Piattaforma: bypass totale
-   - Azienda cliente: feature → ruolo → override
+   🔐 PERMESSI DEFINITIVI
 ========================================================= */
 
 function hasFeature(area) {
@@ -89,12 +91,12 @@ function hasPermission(area) {
   // 1️⃣ Feature azienda
   if (!hasFeature(area)) return false;
 
-  // 2️⃣ Override utente (prioritario)
+  // 2️⃣ Override utente
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
 
-  // 3️⃣ Permessi default ruolo
+  // 3️⃣ Permessi ruolo
   const rolePermissions = {
     admin: ["*"],
     segreteria: ["dipendenti", "acquisti", "report"],
@@ -109,7 +111,18 @@ function hasPermission(area) {
   return rolePermissions[ruolo]?.includes(area);
 }
 
+/* =========================================================
+   RESOLVE ROUTER
+========================================================= */
+
 async function resolve() {
+
+  // 🔥 FIX HASH VUOTO
+  if (!window.location.hash) {
+    window.location.hash = "#/login";
+    return;
+  }
+
   const { route, segments, params } = parseHash();
   window.routeParams = params || {};
   window.routeSegments = segments || [];
@@ -123,12 +136,24 @@ async function resolve() {
     session = refreshed?.session;
   }
 
+  /* =====================================
+     🔒 NESSUNA SESSIONE → LOGIN
+  ===================================== */
+
   if (!session) {
+    window.stateActions.setUser(null);
+    window.stateActions.setAziende([]);
+    window.stateActions.setAzienda(null);
+
     await renderView("login");
     return;
   }
 
   window.stateActions.setUser(session.user);
+
+  /* =====================================
+     🔎 CARICAMENTO AZIENDE
+  ===================================== */
 
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
@@ -168,7 +193,10 @@ async function resolve() {
     return;
   }
 
-  // 🔥 Salva ruolo + override per azienda attiva
+  /* =====================================
+     🔥 SALVA RUOLO + OVERRIDE
+  ===================================== */
+
   const recordAttivo = aziendePulite.find(
     a => a.aziende.id === azienda.id
   );
@@ -176,7 +204,10 @@ async function resolve() {
   window.state.ruolo = recordAttivo?.ruolo || null;
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
-  // 🔒 Blocco route (solo se non home)
+  /* =====================================
+     🔒 BLOCCO ROUTE
+  ===================================== */
+
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -184,8 +215,11 @@ async function resolve() {
     }
   }
 
-  // 🔁 Redirect coerenti
-  if (azienda.stato === "piattaforma" && (route === "login" || route === "")) {
+  /* =====================================
+     🔁 REDIRECT COERENTI
+  ===================================== */
+
+  if (azienda.stato === "piattaforma" && route === "login") {
     window.location.hash = "#/homePiattaforma";
     return;
   }
@@ -196,11 +230,10 @@ async function resolve() {
   }
 
   if (route === "login") {
-    if (azienda.stato === "piattaforma") {
-      window.location.hash = "#/homePiattaforma";
-    } else {
-      window.location.hash = "#/home";
-    }
+    window.location.hash =
+      azienda.stato === "piattaforma"
+        ? "#/homePiattaforma"
+        : "#/home";
     return;
   }
 
