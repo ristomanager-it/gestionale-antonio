@@ -1,30 +1,31 @@
 // js/supabaseClient.js
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// Supabase project
+// 🔹 Supabase project
 const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 
+// 🔹 ANON PUBLIC KEY (corretta)
 const SUPABASE_ANON_KEY =
-  "sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
 
-// Client Supabase con configurazione AUTH stabile
+// 🔹 Client Supabase configurato in modo stabile
 export const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   {
     auth: {
       persistSession: true,
-      autoRefreshToken: false,   // Disattiviamo refresh automatico (evita loop 522)
-      detectSessionInUrl: false
+      autoRefreshToken: true,
+      detectSessionInUrl: true
     }
   }
 );
 
-// Esposto globalmente per compatibilità con le view
+// 🔹 Esposizione globale per compatibilità con le view
 window.supabaseClient = supabase;
 
 /* =====================================================
-   🔧 FUNZIONE TEST CREAZIONE AZIENDA (NON TOCCATA)
+   🔧 FUNZIONE TEST CREAZIONE AZIENDA (come prima)
 ===================================================== */
 
 window.testCreateAzienda = async function () {
