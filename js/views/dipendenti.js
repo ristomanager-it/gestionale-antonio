@@ -292,7 +292,6 @@ function renderForm(dip) {
     </div>
   `;
 
-  // Preselezione tipo_compenso se presente
   const tipoCompenso = dip?.tipo_compenso || "orario";
   const selTipo = document.getElementById("dip-tipo-compenso");
   if (selTipo) selTipo.value = tipoCompenso;
@@ -305,13 +304,11 @@ function renderForm(dip) {
     });
   }
 
-  // calcolo costo
   document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
   document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
   document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
   document.getElementById("dip-ore-servizio")?.addEventListener("input", calcolaCosto);
 
-  // pulsanti
   document.getElementById("btn-dip-cancel").onclick = async () => {
     setTab("elenco");
     await caricaDipendenti();
@@ -321,7 +318,6 @@ function renderForm(dip) {
     await salvaDipendente(isEdit);
   };
 
-  // calcolo iniziale
   calcolaCosto();
 }
 
@@ -394,7 +390,6 @@ async function salvaDipendente(isEdit) {
     return;
   }
 
-  // Invito accesso gestionale (solo se spuntato)
   const wantAccess = !!document.getElementById("dip-accesso")?.checked;
   const ruoloApp = document.getElementById("dip-ruolo-app")?.value || "operatore";
 
@@ -404,7 +399,6 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-    // 1) crea invito in DB (inviti_utenti)
     const invitoPayload = {
       azienda_id: azienda.id,
       email,
@@ -421,7 +415,6 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-    // 2) invio invito WHITE-LABEL via Edge Function
     const invio = await inviaInvitoDipendenteWhiteLabel({
       email,
       aziendaId: azienda.id,
@@ -431,14 +424,15 @@ async function salvaDipendente(isEdit) {
     });
 
     if (!invio.ok) {
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email</span>`;
+      const extra = invio.message ? `<div class="small-muted" style="margin-top:6px;">${escapeHtml(invio.message)}</div>` : "";
+      if (msg)
+        msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email</span>${extra}`;
       return;
     }
   }
 
   if (msg) msg.innerHTML = `<span style="color:#16a34a;">Salvato ✔</span>`;
 
-  // Torna a elenco
   setTab("elenco");
   await caricaDipendenti();
 }
@@ -472,7 +466,6 @@ window._dipDelete = async function (id) {
 
   const azienda = window.state.azienda;
 
-  // carico email per disattivare eventuali accessi collegati
   const { data: dip, error: dipErr } = await window.supabaseClient
     .from("dipendenti")
     .select("id,email")
@@ -486,7 +479,6 @@ window._dipDelete = async function (id) {
     return;
   }
 
-  // 1) soft delete dipendente
   const { error: disattivaErr } = await window.supabaseClient
     .from("dipendenti")
     .update({ attivo: false })
@@ -499,7 +491,6 @@ window._dipDelete = async function (id) {
     return;
   }
 
-  // 2) disattiva accesso su utenti_aziende (se esiste collegamento via email)
   if (dip.email) {
     const ua = await window.supabaseClient
       .from("utenti_aziende")
@@ -508,17 +499,17 @@ window._dipDelete = async function (id) {
       .eq("email", dip.email);
 
     if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
-  }
 
-  // 3) disattiva inviti aperti (se esiste campo attivo; se non esiste, ignora)
-  if (dip.email) {
-    const inv = await window.supabaseClient
+    // Inviti: per ora non gestiamo "attivo" (non esiste colonna).
+    // Se vuoi pulire inviti non usati, cancelliamo quelli non ancora usati.
+    const invDel = await window.supabaseClient
       .from("inviti_utenti")
-      .update({ attivo: false })
+      .delete()
       .eq("azienda_id", azienda.id)
-      .eq("email", dip.email);
+      .eq("email", dip.email)
+      .eq("usato", false);
 
-    if (inv.error) console.warn("Impossibile disattivare inviti_utenti (forse manca colonna attivo):", inv.error);
+    if (invDel.error) console.warn("Impossibile eliminare inviti_utenti non usati:", invDel.error);
   }
 
   await caricaDipendenti();
@@ -539,49 +530,61 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invito
     const token = session?.access_token || null;
     if (!token) {
       console.error("Sessione mancante: impossibile chiamare Edge Function");
-      return { ok: false };
+      return { ok: false, message: "Sessione mancante" };
     }
 
     const baseUrl = getFunctionsBaseUrl(supa);
-    const url = `${baseUrl}/invito-dipendente`;
 
-    const r = await fetch(url, {
+    // Endpoint primario (corretto)
+    const primary = `${baseUrl}/invito-dipendente`;
+    // Fallback se il deploy è stato fatto con nome strano (come indicato dal tuo endpoint)
+    const fallback = `${baseUrl}/invito-dipendente-index-ts`;
+
+    const body = JSON.stringify({
+      email,
+      aziendaId,
+      ruolo,
+      invitoId: invitoId || null,
+      dipendenteId: dipendenteId || null,
+      redirectTo: `${window.location.origin}${window.location.pathname}#/set-password`,
+    });
+
+    let r = await fetch(primary, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        email,
-        aziendaId,
-        ruolo,
-        invitoId: invitoId || null,
-        dipendenteId: dipendenteId || null,
-        redirectTo: `${window.location.origin}${window.location.pathname}#/set-password`,
-      }),
+      body,
     });
+
+    // Se non trovato, prova fallback
+    if (r.status === 404) {
+      r = await fetch(fallback, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+      });
+    }
 
     if (!r.ok) {
       const t = await safeReadText(r);
       console.error("Edge function invito-dipendente error:", r.status, t);
-      return { ok: false };
+      return { ok: false, message: t || `Errore invio (HTTP ${r.status})` };
     }
 
     return { ok: true };
   } catch (e) {
     console.error("Errore invio invito white-label:", e);
-    return { ok: false };
+    return { ok: false, message: "Errore rete o funzione" };
   }
 }
 
 function getFunctionsBaseUrl(supabaseClient) {
-  // supabase-js v2 espone supabaseUrl sul client; fallback a config globale se presente
-  const url =
-    supabaseClient?.supabaseUrl ||
-    window?.CONFIG?.SUPABASE_URL ||
-    window?.CONFIG?.supabaseUrl ||
-    "";
-
+  const url = supabaseClient?.supabaseUrl || window?.CONFIG?.SUPABASE_URL || window?.CONFIG?.supabaseUrl || "";
   return `${String(url).replace(/\/+$/, "")}/functions/v1`;
 }
 
