@@ -1,6 +1,34 @@
 // js/views/login.js
 import { supabase } from "../supabaseClient.js";
 
+async function collegaUserAUtenteAzienda() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // Cerchiamo record con stessa email
+  const { data, error } = await supabase
+    .from("utenti_aziende")
+    .select("*")
+    .eq("email", user.email)
+    .single();
+
+  if (error || !data) return;
+
+  // Aggiorniamo user_id + statistiche login
+  await supabase
+    .from("utenti_aziende")
+    .update({
+      user_id: user.id,
+      stato_invito: "attivo",
+      ultimo_accesso: new Date().toISOString(),
+      numero_accessi: (data.numero_accessi || 0) + 1,
+    })
+    .eq("id", data.id);
+}
+
 export async function render(container) {
   container.innerHTML = `
     <div class="login-wrapper-modern">
@@ -175,6 +203,9 @@ export async function render(container) {
       btn.textContent = "Entra";
       return;
     }
+
+    // 🔥 Collegamento automatico user ↔ utenti_aziende
+    await collegaUserAUtenteAzienda();
 
     window.location.hash = "#/home";
   };
