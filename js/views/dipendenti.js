@@ -505,11 +505,8 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
 
     const baseUrl = getFunctionsBaseUrl(supa);
 
-    // Endpoint primario (nuovo)
-    const primary = `${baseUrl}/invito-dipendente-index-ts`;
-
-    // Fallback se in passato è stato deployato con nome diverso
-    const fallback = `${baseUrl}/invita-dipendente-index-ts`;
+    // ✅ Endpoint corretto (nome cartella funzione Supabase)
+    const endpoint = `${baseUrl}/invita-dipendente`;
 
     const body = JSON.stringify({
       email,
@@ -517,7 +514,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
       ruolo,
     });
 
-    let r = await fetch(primary, {
+    const r = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -525,17 +522,6 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
       },
       body,
     });
-
-    if (r.status === 404) {
-      r = await fetch(fallback, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body,
-      });
-    }
 
     if (!r.ok) {
       const t = await safeReadText(r);
@@ -551,7 +537,12 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
 }
 
 function getFunctionsBaseUrl(supabaseClient) {
-  const url = supabaseClient?.supabaseUrl || window?.CONFIG?.SUPABASE_URL || window?.CONFIG?.supabaseUrl || "";
+  const url =
+    supabaseClient?.supabaseUrl ||
+    window?.CONFIG?.SUPABASE_URL ||
+    window?.CONFIG?.supabaseUrl ||
+    "";
+
   return `${String(url).replace(/\/+$/, "")}/functions/v1`;
 }
 
