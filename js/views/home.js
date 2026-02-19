@@ -1,158 +1,145 @@
-// js/views/home.js
-// =======================================
-// Dashboard Operativa Dinamica SaaS
-// =======================================
+// js/views/login.js
+import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
-  const user = window.state.user;
-  const azienda = window.state.azienda;
-
-  if (!user || !azienda) {
-    container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
-    return;
-  }
-
-  const MODULI = [
-    { key: "produzione", label: "Produzione", icon: "🏭" },
-    { key: "magazzino", label: "Magazzino", icon: "📦" },
-    { key: "acquisti", label: "Acquisti", icon: "🧾" },
-    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-    { key: "ricettario", label: "Ricettario", icon: "📖" },
-    { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
-    { key: "report", label: "Report", icon: "📊" }
-  ];
-
-  const saluto = getSaluto();
-
-  // 🔥 Se piattaforma → mostra tutto
-  let moduliAttivi;
-
-  if (azienda.stato === "piattaforma") {
-    moduliAttivi = MODULI;
-  } else {
-    moduliAttivi = MODULI.filter(m =>
-      hasFeature(m.key) && hasPermission(m.key)
-    );
-  }
-
   container.innerHTML = `
-    <div class="view">
+    <div class="login-wrapper-modern">
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+      <div class="login-card-modern">
 
-        ${
-          azienda.stato === "piattaforma"
-            ? `
-          <button 
-            class="app-button small gray"
-            onclick="window.location.hash='#/homePiattaforma'"
-          >
-            ⬅ Torna alla Piattaforma
-          </button>
-        `
-            : `<div></div>`
-        }
-
-        <button 
-          id="btn-logout-dashboard"
-          class="app-button small red"
-        >
-          Esci
-        </button>
-
-      </div>
-
-      <div style="
-        display:flex;
-        align-items:center;
-        gap:16px;
-        margin-bottom:32px;
-        flex-wrap:wrap;
-      ">
-
-        ${
-          azienda.logo_url
-            ? `<img 
-                src="${azienda.logo_url}" 
-                style="
-                  width:64px;
-                  height:64px;
-                  object-fit:cover;
-                  border-radius:18px;
-                  box-shadow:0 6px 18px rgba(0,0,0,0.08);
-                "
-              />`
-            : `<div style="
-                  width:64px;
-                  height:64px;
-                  border-radius:18px;
-                  background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
-                "></div>`
-        }
-
-        <div>
-          <h2 style="margin:0; font-weight:600;">
-            ${azienda.nome}
-          </h2>
-          <p class="small-muted" style="margin:6px 0 0 0;">
-            ${saluto} 👋 Benvenuto nella dashboard operativa
-          </p>
+        <!-- LOGO -->
+        <div class="login-logo">
+          <img src="Logo Gestionale Antonio.png" alt="Logo" />
         </div>
 
-      </div>
+        <h2>Accedi al gestionale</h2>
 
-      ${
-        moduliAttivi.length === 0
-          ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
-          : `
-      <div 
-        style="
-          display:grid;
-          gap:18px;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        "
-      >
-        ${
-          moduliAttivi.map((m, index) => `
-            <div 
-              onclick="window.location.hash='#/${m.key}'"
-              style="
-                background:white;
-                padding:28px 18px;
-                border-radius:22px;
-                text-align:center;
-                cursor:pointer;
-                box-shadow:0 10px 30px rgba(0,0,0,0.05);
-                transition: all 0.25s ease;
-                animation: fadeInUp 0.4s ease forwards;
-                animation-delay:${index * 0.05}s;
-                opacity:0;
-              "
-              onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
-              onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
-            >
-              <div style="font-size:30px; margin-bottom:14px;">
-                ${m.icon}
-              </div>
-              <div style="font-weight:500;">
-                ${m.label}
-              </div>
-            </div>
-          `).join("")
-        }
+        <div class="login-field">
+          <label>Email</label>
+          <input 
+            id="login-email" 
+            type="email" 
+            placeholder="Inserisci email"
+          />
+        </div>
+
+        <div class="login-field">
+          <label>Password</label>
+          <input 
+            id="login-password" 
+            type="password" 
+            placeholder="Inserisci password"
+          />
+        </div>
+
+        <button class="login-button" id="btn-login">
+          Entra
+        </button>
+
+        <div id="login-error" class="login-error"></div>
+
       </div>
-      `
-      }
 
       <style>
-        @keyframes fadeInUp {
+        .login-wrapper-modern {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+          padding: 20px;
+        }
+
+        .login-card-modern {
+          background: white;
+          padding: 40px 32px;
+          border-radius: 24px;
+          width: 100%;
+          max-width: 420px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          text-align: center;
+          animation: fadeIn 0.5s ease;
+        }
+
+        .login-logo img {
+          width: 90px;
+          height: 90px;
+          object-fit: contain;
+          margin-bottom: 20px;
+        }
+
+        .login-card-modern h2 {
+          margin-bottom: 28px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .login-field {
+          text-align: left;
+          margin-bottom: 18px;
+        }
+
+        .login-field label {
+          display: block;
+          font-size: 13px;
+          color: #6b7280;
+          margin-bottom: 6px;
+        }
+
+        .login-field input {
+          width: 100%;
+          padding: 14px 16px;
+          border-radius: 14px;
+          border: 1px solid #e5e7eb;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .login-field input:focus {
+          border-color: #2563eb;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+
+        .login-button {
+          width: 100%;
+          padding: 14px;
+          border-radius: 16px;
+          border: none;
+          background: #2563eb;
+          color: white;
+          font-weight: 600;
+          font-size: 15px;
+          margin-top: 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .login-button:hover {
+          background: #1d4ed8;
+          transform: translateY(-2px);
+        }
+
+        .login-button:disabled {
+          background: #93c5fd;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .login-error {
+          margin-top: 16px;
+          color: #dc2626;
+          font-size: 14px;
+        }
+
+        @keyframes fadeIn {
           from {
-            transform: translateY(15px);
             opacity: 0;
+            transform: translateY(15px);
           }
           to {
-            transform: translateY(0);
             opacity: 1;
+            transform: translateY(0);
           }
         }
       </style>
@@ -160,54 +147,35 @@ export async function render(container) {
     </div>
   `;
 
-  const btnLogout = document.getElementById("btn-logout-dashboard");
+  const btn = document.getElementById("btn-login");
+  const errorBox = document.getElementById("login-error");
 
-  if (btnLogout) {
-    btnLogout.addEventListener("click", async () => {
-      try {
-        await window.supabaseClient.auth.signOut();
-        window.state.user = null;
-        window.state.azienda = null;
-        localStorage.removeItem("ristoflow_user");
-        window.location.hash = "#/login";
-      } catch (err) {
-        console.error("Errore logout:", err);
-      }
+  btn.onclick = async () => {
+    errorBox.textContent = "";
+
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!email || !password) {
+      errorBox.textContent = "Inserisci email e password.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Accesso in corso...";
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-  }
-}
 
-// 🔹 FEATURE AZIENDA
-function hasFeature(area) {
-  return window.state?.azienda?.features?.[area] === true;
-}
+    if (error) {
+      errorBox.textContent = error.message;
+      btn.disabled = false;
+      btn.textContent = "Entra";
+      return;
+    }
 
-// 🔹 PERMESSO UTENTE
-function hasPermission(area) {
-  const ruolo = window.state?.ruolo;
-  const override = window.state?.permessiOverride || {};
-
-  if (override.hasOwnProperty(area)) {
-    return override[area] === true;
-  }
-
-  const rolePermissions = {
-    admin: ["*"],
-    segreteria: ["dipendenti", "acquisti", "report"],
-    manager_cucina: ["produzione"],
-    manager_sala: ["produzione"],
-    addetto_cucina: [],
-    cameriere: []
+    window.location.hash = "#/home";
   };
-
-  if (rolePermissions[ruolo]?.includes("*")) return true;
-
-  return rolePermissions[ruolo]?.includes(area);
-}
-
-function getSaluto() {
-  const ora = new Date().getHours();
-  if (ora < 12) return "Buongiorno";
-  if (ora < 18) return "Buon pomeriggio";
-  return "Buonasera";
 }
