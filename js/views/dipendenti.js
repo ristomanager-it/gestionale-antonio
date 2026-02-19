@@ -506,7 +506,8 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
     const baseUrl = getFunctionsBaseUrl(supa);
 
     // Endpoint primario (nuovo)
-    const primary = `${baseUrl}/invita-dipendente`;
+    const primary = `${baseUrl}/invito-dipendente-index-ts`;
+
     // Fallback se in passato è stato deployato con nome diverso
     const fallback = `${baseUrl}/invita-dipendente-index-ts`;
 
