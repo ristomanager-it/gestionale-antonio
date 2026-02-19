@@ -2,7 +2,8 @@
 // =======================================
 // View Dipendenti – SaaS Multi-Azienda
 // - Tab Elenco / Nuovo-Modifica
-// - Invito accesso gestionale via email (OTP) + inviti_utenti
+// - Invito accesso gestionale via Edge Function (white-label) + inviti_utenti
+// - Soft delete (attivo=false) + disattivazione accessi collegati
 // - Niente canale_prevalente
 // =======================================
 
@@ -145,7 +146,7 @@ async function caricaDipendenti() {
     return;
   }
 
-  const filtered = (data || []).filter(d => {
+  const filtered = (data || []).filter((d) => {
     if (!q) return true;
     return (d.nome || "").toLowerCase().includes(q);
   });
@@ -162,7 +163,7 @@ async function caricaDipendenti() {
     return;
   }
 
-  filtered.forEach(d => {
+  filtered.forEach((d) => {
     tbody.innerHTML += `
       <tr>
         <td>${escapeHtml(d.nome)}</td>
@@ -253,7 +254,7 @@ function renderForm(dip) {
         <div class="view" style="margin-top:10px;">
           <h4 style="margin:0;">Accesso al gestionale</h4>
           <p class="small-muted" style="margin-top:6px;">
-            Se abiliti l’accesso, inviamo una mail con link di login (magic link). L’utente poi potrà impostare una password dalla pagina profilo.
+            Se abiliti l’accesso, inviamo una mail (white-label) per creare la password e accedere.
           </p>
 
           <label style="display:flex; align-items:center; gap:10px; margin-top:8px;">
@@ -359,7 +360,10 @@ async function salvaDipendente(isEdit) {
     azienda_id: azienda.id,
     nome,
     mansione: (document.getElementById("dip-mansione")?.value || "").trim() || null,
-    data_nascita: document.getElementById("dip-data_nascita")?.value || document.getElementById("dip-data-nascita")?.value || null,
+    data_nascita:
+      document.getElementById("dip-data_nascita")?.value ||
+      document.getElementById("dip-data-nascita")?.value ||
+      null,
     telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
     email,
     tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
@@ -367,7 +371,7 @@ async function salvaDipendente(isEdit) {
     ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
     ore_medie_per_servizio: numOrNull("dip-ore-servizio"),
     costo_orario: numOrNull("dip-costo"),
-    attivo: !!document.getElementById("dip-attivo")?.checked
+    attivo: !!document.getElementById("dip-attivo")?.checked,
   };
 
   let res;
@@ -377,13 +381,11 @@ async function salvaDipendente(isEdit) {
       .from("dipendenti")
       .update(payload)
       .eq("id", id)
-      .eq("azienda_id", azienda.id);
-  } else {
-    res = await window.supabaseClient
-      .from("dipendenti")
-      .insert(payload)
-      .select("id")
+      .eq("azienda_id", azienda.id)
+      .select("id,email")
       .single();
+  } else {
+    res = await window.supabaseClient.from("dipendenti").insert(payload).select("id,email").single();
   }
 
   if (res.error) {
@@ -407,14 +409,11 @@ async function salvaDipendente(isEdit) {
       azienda_id: azienda.id,
       email,
       ruolo: ruoloApp,
-      permessi_override: {}
+      permessi_override: {},
+      dipendente_id: res.data?.id || null,
     };
 
-    const inv = await window.supabaseClient
-      .from("inviti_utenti")
-      .insert(invitoPayload)
-      .select("id")
-      .single();
+    const inv = await window.supabaseClient.from("inviti_utenti").insert(invitoPayload).select("id").single();
 
     if (inv.error) {
       console.error(inv.error);
@@ -422,19 +421,17 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-    // 2) invia magic link (non cambia la sessione dell’admin)
-    const redirectTo = `${window.location.origin}${window.location.pathname}#/login`;
-    const otp = await window.supabaseClient.auth.signInWithOtp({
+    // 2) invio invito WHITE-LABEL via Edge Function
+    const invio = await inviaInvitoDipendenteWhiteLabel({
       email,
-      options: {
-        emailRedirectTo: redirectTo,
-        shouldCreateUser: true
-      }
+      aziendaId: azienda.id,
+      ruolo: ruoloApp,
+      invitoId: inv.data?.id || null,
+      dipendenteId: res.data?.id || null,
     });
 
-    if (otp.error) {
-      console.error(otp.error);
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email OTP</span>`;
+    if (!invio.ok) {
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Invito creato, ma errore invio email</span>`;
       return;
     }
   }
@@ -471,24 +468,130 @@ window._dipEdit = async function (id) {
 };
 
 window._dipDelete = async function (id) {
-  if (!confirm("Eliminare dipendente?")) return;
+  if (!confirm("Disattivare il dipendente? (soft delete)")) return;
 
   const azienda = window.state.azienda;
 
-  const { error } = await window.supabaseClient
+  // carico email per disattivare eventuali accessi collegati
+  const { data: dip, error: dipErr } = await window.supabaseClient
     .from("dipendenti")
-    .delete()
+    .select("id,email")
+    .eq("id", id)
+    .eq("azienda_id", azienda.id)
+    .single();
+
+  if (dipErr || !dip) {
+    console.error(dipErr);
+    alert("Errore caricamento dipendente");
+    return;
+  }
+
+  // 1) soft delete dipendente
+  const { error: disattivaErr } = await window.supabaseClient
+    .from("dipendenti")
+    .update({ attivo: false })
     .eq("id", id)
     .eq("azienda_id", azienda.id);
 
-  if (error) {
-    console.error(error);
-    alert("Errore eliminazione");
+  if (disattivaErr) {
+    console.error(disattivaErr);
+    alert("Errore disattivazione dipendente");
     return;
+  }
+
+  // 2) disattiva accesso su utenti_aziende (se esiste collegamento via email)
+  if (dip.email) {
+    const ua = await window.supabaseClient
+      .from("utenti_aziende")
+      .update({ attivo: false })
+      .eq("azienda_id", azienda.id)
+      .eq("email", dip.email);
+
+    if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+  }
+
+  // 3) disattiva inviti aperti (se esiste campo attivo; se non esiste, ignora)
+  if (dip.email) {
+    const inv = await window.supabaseClient
+      .from("inviti_utenti")
+      .update({ attivo: false })
+      .eq("azienda_id", azienda.id)
+      .eq("email", dip.email);
+
+    if (inv.error) console.warn("Impossibile disattivare inviti_utenti (forse manca colonna attivo):", inv.error);
   }
 
   await caricaDipendenti();
 };
+
+/* =========================================================
+   Invito white-label (Edge Function)
+========================================================= */
+
+async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, invitoId, dipendenteId }) {
+  try {
+    const supa = window.supabaseClient;
+
+    const {
+      data: { session },
+    } = await supa.auth.getSession();
+
+    const token = session?.access_token || null;
+    if (!token) {
+      console.error("Sessione mancante: impossibile chiamare Edge Function");
+      return { ok: false };
+    }
+
+    const baseUrl = getFunctionsBaseUrl(supa);
+    const url = `${baseUrl}/invito-dipendente`;
+
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        email,
+        aziendaId,
+        ruolo,
+        invitoId: invitoId || null,
+        dipendenteId: dipendenteId || null,
+        redirectTo: `${window.location.origin}${window.location.pathname}#/set-password`,
+      }),
+    });
+
+    if (!r.ok) {
+      const t = await safeReadText(r);
+      console.error("Edge function invito-dipendente error:", r.status, t);
+      return { ok: false };
+    }
+
+    return { ok: true };
+  } catch (e) {
+    console.error("Errore invio invito white-label:", e);
+    return { ok: false };
+  }
+}
+
+function getFunctionsBaseUrl(supabaseClient) {
+  // supabase-js v2 espone supabaseUrl sul client; fallback a config globale se presente
+  const url =
+    supabaseClient?.supabaseUrl ||
+    window?.CONFIG?.SUPABASE_URL ||
+    window?.CONFIG?.supabaseUrl ||
+    "";
+
+  return `${String(url).replace(/\/+$/, "")}/functions/v1`;
+}
+
+async function safeReadText(resp) {
+  try {
+    return await resp.text();
+  } catch {
+    return "";
+  }
+}
 
 /* =========================================================
    Utils
