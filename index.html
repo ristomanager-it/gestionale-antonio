@@ -15,8 +15,44 @@
 
 <body>
 
+  <!-- HEADER GLOBALE -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="header-left">
+        <h1 style="margin:0;">Gestionale Antonio</h1>
+      </div>
+
+      <div class="header-right">
+
+        <!-- 🔥 Selettore Reparto Globale -->
+        <select
+          id="header-reparto-select"
+          class="input-pill"
+          style="max-width:180px; display:none;"
+        ></select>
+
+        <div class="header-user">
+          <span id="current-user-label"></span>
+          <button id="btn-logout" class="app-button tiny">
+            Esci
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- APP ROOT SPA -->
   <div id="app"></div>
 
+  <!-- STATE -->
+  <script src="js/state.js"></script>
+  <script src="js/stateActions.js"></script>
+
+  <!-- UI REPARTO -->
+  <script src="js/ui-reparto.js"></script>
+
+  <!-- ROUTER (MODULE SPA) -->
   <script type="module" src="js/router.js"></script>
 
 </body>
