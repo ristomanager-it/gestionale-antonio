@@ -826,7 +826,22 @@ async function caricaRicettaCompleta() {
 async function salvaTutto() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
+  // ============================================================
+  // 🔐 BLOCCO DIFENSIVO SALVATAGGIO
+  // ============================================================
 
+  const canCreate = window.hasPermesso?.("ricette.create");
+  const canUpdate = window.hasPermesso?.("ricette.update");
+
+  if (!ricettaId && !canCreate) {
+    alert("Non hai i permessi per creare ricette.");
+    return;
+  }
+
+  if (ricettaId && !canUpdate) {
+    alert("Non hai i permessi per modificare ricette.");
+    return;
+  }
   const nome = getVal("r-nome").trim();
   const pezzi_base = toIntOrNull(getVal("r-pezzi-base"));
   const descrizione = getVal("r-descrizione").trim() || null;
