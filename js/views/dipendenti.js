@@ -5,6 +5,7 @@
 // - Invito accesso gestionale via Edge Function
 // - Soft delete (attivo=false) + disattivazione accessi collegati
 // - Niente canale_prevalente
+// - + Campo costo_medio (TEXT libero)
 // =======================================
 
 export async function render(container) {
@@ -102,6 +103,7 @@ async function renderElenco() {
             <th>Nome</th>
             <th>Mansione</th>
             <th>Costo orario</th>
+            <th>Costo medio</th>
             <th>Email</th>
             <th>Attivo</th>
             <th></th>
@@ -128,7 +130,7 @@ async function caricaDipendenti() {
 
   let query = window.supabaseClient
     .from("dipendenti")
-    .select("id,nome,mansione,email,costo_orario,attivo,created_at")
+    .select("id,nome,mansione,email,costo_orario,costo_medio,attivo,created_at")
     .eq("azienda_id", azienda.id)
     .order("nome");
 
@@ -157,7 +159,7 @@ async function caricaDipendenti() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" class="small-muted">Nessun dipendente trovato</td>
+        <td colspan="7" class="small-muted">Nessun dipendente trovato</td>
       </tr>
     `;
     return;
@@ -169,6 +171,7 @@ async function caricaDipendenti() {
         <td>${escapeHtml(d.nome)}</td>
         <td>${escapeHtml(d.mansione || "-")}</td>
         <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
+        <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
         <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
@@ -216,6 +219,10 @@ function renderForm(dip) {
 
         <label>Email (opzionale)
           <input type="email" id="dip-email" class="input-pill" value="${dip?.email || ""}" />
+        </label>
+
+        <label>Costo medio (libero)
+          <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio || ""}" />
         </label>
 
         <div class="view" style="margin-top:10px;">
@@ -362,6 +369,7 @@ async function salvaDipendente(isEdit) {
       null,
     telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
     email,
+    costo_medio: (document.getElementById("dip-costo-medio")?.value || "").trim() || null,
     tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
     retribuzione_base: numOrNull("dip-retribuzione-base"),
     ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
@@ -458,7 +466,6 @@ window._dipDelete = async function (id) {
     return;
   }
 
-  // 🔹 SE È ATTIVO → SOFT DELETE
   if (dip.attivo) {
     if (!confirm("Disattivare il dipendente?")) return;
 
@@ -484,9 +491,7 @@ window._dipDelete = async function (id) {
       if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
     }
 
-  } 
-  // 🔹 SE È GIÀ INATTIVO → HARD DELETE
-  else {
+  } else {
     if (!confirm("Eliminare definitivamente questo dipendente?")) return;
 
     const { error } = await window.supabaseClient
@@ -504,6 +509,7 @@ window._dipDelete = async function (id) {
 
   await caricaDipendenti();
 };
+
 /* =========================================================
    Invito (Edge Function)
 ========================================================= */
@@ -529,7 +535,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
       email,
       azienda_id: aziendaId,
       ruolo,
-      mode, // 👈 nuovo parametro
+      mode,
     });
 
     const r = await fetch(endpoint, {
@@ -553,6 +559,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
     return { ok: false, message: "Errore rete o funzione" };
   }
 }
+
 /* =========================================================
    Utils
 ========================================================= */
