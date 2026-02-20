@@ -7,4 +7,5 @@ window.state = {
   user: null,
   aziende: [],
   azienda: null,
+  permessi: null, // 🔥 permessi effettivi utente
 };
