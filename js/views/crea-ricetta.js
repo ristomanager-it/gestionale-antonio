@@ -31,7 +31,52 @@ export async function render(app) {
     app.innerHTML = `<section class="view"><h3>Nessuna azienda attiva</h3></section>`;
     return;
   }
+  // ============================================================
+  // 🔐 CONTROLLO PERMESSI RICETTE (SaaS Multi-Azienda)
+  // ============================================================
 
+  const canRead = window.hasPermesso && window.hasPermesso("ricette.read");
+  const canCreate = window.hasPermesso && window.hasPermesso("ricette.create");
+  const canUpdate = window.hasPermesso && window.hasPermesso("ricette.update");
+
+  // 1️⃣ Blocco totale accesso se manca read
+  if (!canRead) {
+    app.innerHTML = `
+      <section class="view">
+        <h2 style="margin-top:0;">Accesso negato</h2>
+        <p class="small-muted">
+          Non hai i permessi per visualizzare le ricette.
+        </p>
+      </section>
+    `;
+    return;
+  }
+
+  // 2️⃣ Blocco creazione
+  if (!ricettaId && !canCreate) {
+    app.innerHTML = `
+      <section class="view">
+        <h2 style="margin-top:0;">Accesso negato</h2>
+        <p class="small-muted">
+          Non hai i permessi per creare nuove ricette.
+        </p>
+      </section>
+    `;
+    return;
+  }
+
+  // 3️⃣ Blocco modifica
+  if (ricettaId && !canUpdate) {
+    app.innerHTML = `
+      <section class="view">
+        <h2 style="margin-top:0;">Accesso negato</h2>
+        <p class="small-muted">
+          Non hai i permessi per modificare le ricette.
+        </p>
+      </section>
+    `;
+    return;
+  }
   app.innerHTML = `
     <section class="view">
 
