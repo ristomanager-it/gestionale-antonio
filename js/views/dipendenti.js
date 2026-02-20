@@ -16,6 +16,19 @@ export async function render(container) {
     return;
   }
 
+  // ✅ 1) Blocco accesso lettura
+  if (!window.hasPermesso || !window.hasPermesso("dipendenti.read")) {
+    container.innerHTML = `
+      <div class="view">
+        <h2 style="margin-top:0;">Accesso negato</h2>
+        <p class="small-muted" style="margin-top:6px;">
+          Non hai i permessi per visualizzare i dipendenti.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = `
     <div class="view">
 
@@ -50,6 +63,12 @@ export async function render(container) {
     renderForm(null);
   };
 
+  // ✅ 2) Nascondere bottone “Nuovo” se manca create
+  const btnNuovo = document.getElementById("tab-nuovo");
+  if (btnNuovo && (!window.hasPermesso || !window.hasPermesso("dipendenti.create"))) {
+    btnNuovo.style.display = "none";
+  }
+
   await renderElenco();
   setTab("elenco");
 }
@@ -69,12 +88,12 @@ function setTab(tab) {
     elenco.style.display = "block";
     form.style.display = "none";
     btnElenco.className = "app-button small";
-    btnNuovo.className = "app-button small gray";
+    if (btnNuovo) btnNuovo.className = "app-button small gray";
   } else {
     elenco.style.display = "none";
     form.style.display = "block";
     btnElenco.className = "app-button small gray";
-    btnNuovo.className = "app-button small";
+    if (btnNuovo) btnNuovo.className = "app-button small";
   }
 }
 
@@ -164,6 +183,9 @@ async function caricaDipendenti() {
     return;
   }
 
+  const canUpdate = !!(window.hasPermesso && window.hasPermesso("dipendenti.update"));
+  const canDelete = !!(window.hasPermesso && window.hasPermesso("dipendenti.delete"));
+
   filtered.forEach((d) => {
     tbody.innerHTML += `
       <tr>
@@ -174,8 +196,8 @@ async function caricaDipendenti() {
         <td>${escapeHtml(d.email || "-")}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
         <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-          <button class="app-button tiny" onclick="window._dipEdit('${d.id}')">Modifica</button>
-          <button class="app-button tiny red" onclick="window._dipDelete('${d.id}')">Elimina</button>
+          ${canUpdate ? `<button class="app-button tiny" onclick="window._dipEdit('${d.id}')">Modifica</button>` : ""}
+          ${canDelete ? `<button class="app-button tiny red" onclick="window._dipDelete('${d.id}')">Elimina</button>` : ""}
         </td>
       </tr>
     `;
@@ -348,6 +370,20 @@ async function salvaDipendente(isEdit) {
   const msg = document.getElementById("dip-form-msg");
   if (msg) msg.innerHTML = "";
 
+  // ✅ Permessi create/update (blocca la logica senza toccarla)
+  if (!window.hasPermesso) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Permessi non disponibili</span>`;
+    return;
+  }
+  if (!isEdit && !window.hasPermesso("dipendenti.create")) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Non hai i permessi per creare dipendenti.</span>`;
+    return;
+  }
+  if (isEdit && !window.hasPermesso("dipendenti.update")) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Non hai i permessi per modificare dipendenti.</span>`;
+    return;
+  }
+
   const id = document.getElementById("dip-id")?.value || null;
 
   const nome = (document.getElementById("dip-nome")?.value || "").trim();
@@ -430,6 +466,12 @@ async function salvaDipendente(isEdit) {
 ========================================================= */
 
 window._dipEdit = async function (id) {
+  // ✅ 3) Nascondere pulsante Modifica già gestito in tabella; qui blocco difensivo
+  if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
+    alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
+    return;
+  }
+
   const azienda = window.state.azienda;
 
   const { data, error } = await window.supabaseClient
@@ -450,6 +492,12 @@ window._dipEdit = async function (id) {
 };
 
 window._dipDelete = async function (id) {
+  // ✅ 4) Nascondere pulsante Elimina già gestito in tabella; qui blocco difensivo
+  if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
+    alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
+    return;
+  }
+
   const azienda = window.state.azienda;
 
   const { data: dip, error: dipErr } = await window.supabaseClient
