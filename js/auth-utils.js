@@ -3,14 +3,29 @@
 // AUTH UTILS – Enterprise Permission Layer
 // ============================================================
 
-// Verifica singolo permesso
+// ============================================================
+// 🔐 Verifica singolo permesso
+// ============================================================
 export function hasPermesso(perm) {
+
+  // 🔥 SUPERADMIN = ACCESSO TOTALE
+  if (window.state?.ruolo === "superadmin") {
+    return true;
+  }
+
   if (!window.state?.permessi) return false;
+
   return window.state.permessi[perm] === true;
 }
 
-// Render standard access denied
+
+// ============================================================
+// 🚫 Render standard access denied
+// ============================================================
 export function renderAccessDenied(container, message = "Accesso negato") {
+
+  if (!container) return;
+
   container.innerHTML = `
     <section class="view">
       <h2 style="margin-top:0;">${message}</h2>
@@ -21,12 +36,16 @@ export function renderAccessDenied(container, message = "Accesso negato") {
   `;
 }
 
-// Controllo completo CRUD
+
+// ============================================================
+// 🛡️ Controllo completo CRUD
+// ============================================================
 export function requirePermessi({
-  container,
+  container = null,
   resource,     // es: "ricette"
-  action,       // "read" | "create" | "update" | "delete"
+  action        // "read" | "create" | "update" | "delete"
 }) {
+
   const perm = `${resource}.${action}`;
 
   if (!hasPermesso(perm)) {
