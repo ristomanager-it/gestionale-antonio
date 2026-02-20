@@ -25,7 +25,36 @@ window.stateActions = {
   },
 
   setReparti(reparti) {
-    window.state.reparti = Array.isArray(reparti) ? reparti : [];
+    const lista = Array.isArray(reparti) ? reparti : [];
+    window.state.reparti = lista;
+
+    // 🔥 Auto gestione reparto attivo
+    if (lista.length === 1) {
+      window.state.repartoAttivo = lista[0];
+    } else {
+      window.state.repartoAttivo = null;
+    }
+
+    // Aggiorna UI selector se presente
+    if (window.uiActions?.renderRepartoSelector) {
+      window.uiActions.renderRepartoSelector();
+    }
+  },
+
+  setRepartoAttivo(repartoId) {
+    const reparto = window.state.reparti.find(r => r.id === repartoId);
+    if (!reparto) return;
+
+    window.state.repartoAttivo = reparto;
+
+    if (window.uiActions?.renderRepartoSelector) {
+      window.uiActions.renderRepartoSelector();
+    }
+
+    // Se esiste router con reload, aggiorna vista corrente
+    if (window.router?.reloadCurrentRoute) {
+      window.router.reloadCurrentRoute();
+    }
   },
 
   resetAzienda() {
@@ -33,6 +62,11 @@ window.stateActions = {
     window.state.permessi = null;
     window.state.ruolo = null;
     window.state.reparti = [];
+    window.state.repartoAttivo = null;
+
+    if (window.uiActions?.renderRepartoSelector) {
+      window.uiActions.renderRepartoSelector();
+    }
   },
 
   async caricaPermessiEffettivi() {
@@ -68,10 +102,11 @@ window.stateActions = {
     if (!user || !azienda) {
       window.state.ruolo = null;
       window.state.reparti = [];
+      window.state.repartoAttivo = null;
       return;
     }
 
-    // 1️⃣ Carica ruolo da utenti_aziende
+    // 1️⃣ Carica ruolo
     const { data: ruoloData, error: ruoloError } =
       await window.supabaseClient
         .from("utenti_aziende")
@@ -85,13 +120,14 @@ window.stateActions = {
       console.error("Errore caricamento ruolo:", ruoloError);
       window.state.ruolo = null;
       window.state.reparti = [];
+      window.state.repartoAttivo = null;
       return;
     }
 
     const ruolo = ruoloData?.ruolo || null;
     window.state.ruolo = ruolo;
 
-    // 2️⃣ Se admin o superadmin → carica tutti i reparti azienda
+    // 2️⃣ Admin / Superadmin → tutti i reparti azienda
     if (ruolo === "admin" || ruolo === "superadmin") {
       const { data: repartiData, error: repartiError } =
         await window.supabaseClient
@@ -104,10 +140,11 @@ window.stateActions = {
       if (repartiError) {
         console.error("Errore caricamento reparti:", repartiError);
         window.state.reparti = [];
+        window.state.repartoAttivo = null;
         return;
       }
 
-      window.state.reparti = repartiData || [];
+      this.setReparti(repartiData || []);
       return;
     }
 
@@ -123,14 +160,15 @@ window.stateActions = {
     if (urError) {
       console.error("Errore caricamento utenti_reparti:", urError);
       window.state.reparti = [];
+      window.state.repartoAttivo = null;
       return;
     }
 
     const reparti = (urData || [])
-      .map((r) => r.reparti)
+      .map(r => r.reparti)
       .filter(Boolean);
 
-    window.state.reparti = reparti;
+    this.setReparti(reparti);
   },
 
   autoSetAzienda() {
