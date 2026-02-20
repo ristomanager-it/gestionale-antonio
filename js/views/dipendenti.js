@@ -443,13 +443,11 @@ window._dipEdit = async function (id) {
 };
 
 window._dipDelete = async function (id) {
-  if (!confirm("Disattivare il dipendente? (soft delete)")) return;
-
   const azienda = window.state.azienda;
 
   const { data: dip, error: dipErr } = await window.supabaseClient
     .from("dipendenti")
-    .select("id,email")
+    .select("id,email,attivo")
     .eq("id", id)
     .eq("azienda_id", azienda.id)
     .single();
@@ -460,31 +458,52 @@ window._dipDelete = async function (id) {
     return;
   }
 
-  const { error: disattivaErr } = await window.supabaseClient
-    .from("dipendenti")
-    .update({ attivo: false })
-    .eq("id", id)
-    .eq("azienda_id", azienda.id);
+  // 🔹 SE È ATTIVO → SOFT DELETE
+  if (dip.attivo) {
+    if (!confirm("Disattivare il dipendente?")) return;
 
-  if (disattivaErr) {
-    console.error(disattivaErr);
-    alert("Errore disattivazione dipendente");
-    return;
-  }
-
-  if (dip.email) {
-    const ua = await window.supabaseClient
-      .from("utenti_aziende")
+    const { error } = await window.supabaseClient
+      .from("dipendenti")
       .update({ attivo: false })
-      .eq("azienda_id", azienda.id)
-      .eq("email", dip.email);
+      .eq("id", id)
+      .eq("azienda_id", azienda.id);
 
-    if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+    if (error) {
+      console.error(error);
+      alert("Errore disattivazione dipendente");
+      return;
+    }
+
+    if (dip.email) {
+      const ua = await window.supabaseClient
+        .from("utenti_aziende")
+        .update({ attivo: false })
+        .eq("azienda_id", azienda.id)
+        .eq("email", dip.email);
+
+      if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+    }
+
+  } 
+  // 🔹 SE È GIÀ INATTIVO → HARD DELETE
+  else {
+    if (!confirm("Eliminare definitivamente questo dipendente?")) return;
+
+    const { error } = await window.supabaseClient
+      .from("dipendenti")
+      .delete()
+      .eq("id", id)
+      .eq("azienda_id", azienda.id);
+
+    if (error) {
+      console.error(error);
+      alert("Errore eliminazione definitiva");
+      return;
+    }
   }
 
   await caricaDipendenti();
 };
-
 /* =========================================================
    Invito (Edge Function)
 ========================================================= */
