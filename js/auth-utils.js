@@ -20,6 +20,27 @@ export function hasPermesso(perm) {
 
 
 // ============================================================
+// 🏢 Verifica accesso reparto
+// ============================================================
+export function hasReparto(repartoId) {
+
+  // 🔥 SUPERADMIN e ADMIN vedono tutti i reparti
+  if (
+    window.state?.ruolo === "superadmin" ||
+    window.state?.ruolo === "admin"
+  ) {
+    return true;
+  }
+
+  if (!window.state?.reparti || !Array.isArray(window.state.reparti)) {
+    return false;
+  }
+
+  return window.state.reparti.some(r => r.id === repartoId);
+}
+
+
+// ============================================================
 // 🚫 Render standard access denied
 // ============================================================
 export function renderAccessDenied(container, message = "Accesso negato") {
