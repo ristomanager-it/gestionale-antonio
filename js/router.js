@@ -72,7 +72,6 @@ async function renderView(routeName) {
 function hasFeature(area) {
   const azienda = window.state?.azienda;
 
-  // 🔥 Piattaforma vede sempre tutto
   if (azienda?.stato === "piattaforma") return true;
 
   const features = azienda?.features || {};
@@ -82,28 +81,27 @@ function hasFeature(area) {
 function hasPermission(area) {
   const azienda = window.state?.azienda;
 
-  // 🔥 Piattaforma bypass totale
   if (azienda?.stato === "piattaforma") return true;
 
-  const ruolo = window.state?.ruolo;
   const permessiEffettivi = window.state?.permessi || {};
   const override = window.state?.permessiOverride || {};
 
-  // 1️⃣ Feature azienda attiva
   if (!hasFeature(area)) return false;
 
-  // 2️⃣ Override utente (prioritario)
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
 
-  // 3️⃣ Permessi effettivi da funzione SQL
   if (permessiEffettivi[`${area}.read`] === true) {
     return true;
   }
 
   return false;
 }
+
+/* =========================================================
+   RESOLVE ROUTER
+========================================================= */
 
 async function resolve() {
 
@@ -115,12 +113,6 @@ async function resolve() {
   const { route, segments, params } = parseHash();
   window.routeParams = params || {};
   window.routeSegments = segments || [];
-
-  // 🔥 NASCONDI HEADER SOLO SU LOGIN
-  const header = document.querySelector(".app-header");
-  if (header) {
-    header.style.display = route === "login" ? "none" : "block";
-  }
 
   let { data } = await window.supabaseClient.auth.getSession();
   let session = data.session;
@@ -140,9 +132,17 @@ async function resolve() {
     window.stateActions.setAziende([]);
     window.stateActions.resetAzienda();
 
+    // 🔥 NASCONDI HEADER
+    const header = document.querySelector(".app-header");
+    if (header) header.style.display = "none";
+
     await renderView("login");
     return;
   }
+
+  // 🔥 SESSIONE VALIDA → MOSTRA HEADER
+  const header = document.querySelector(".app-header");
+  if (header) header.style.display = "block";
 
   window.stateActions.setUser(session.user);
 
@@ -241,3 +241,6 @@ async function resolve() {
 
   await renderView(route);
 }
+
+window.addEventListener("hashchange", resolve);
+resolve();
