@@ -526,8 +526,9 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
       return { ok: false, message: "Sessione mancante" };
     }
 
-    const baseUrl = getFunctionsBaseUrl(supa);
-    const endpoint = `${baseUrl}/invita-dipendente`;
+    // 👇 USA DIRETTAMENTE L'URL SUPABASE
+    const supabaseUrl = supa?.supabaseUrl || window.SUPABASE_URL;
+    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
     const body = JSON.stringify({
       email,
@@ -546,7 +547,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
     });
 
     if (!r.ok) {
-      const t = await safeReadText(r);
+      const t = await r.text();
       console.error("Edge function invita-dipendente error:", r.status, t);
       return { ok: false, message: t || `Errore invio (HTTP ${r.status})` };
     }
@@ -557,7 +558,6 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
     return { ok: false, message: "Errore rete o funzione" };
   }
 }
-
 /* =========================================================
    Utils
 ========================================================= */
