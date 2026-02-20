@@ -71,6 +71,8 @@ async function renderView(routeName) {
 
 function hasFeature(area) {
   const azienda = window.state?.azienda;
+
+  // 🔥 Piattaforma vede sempre tutto
   if (azienda?.stato === "piattaforma") return true;
 
   const features = azienda?.features || {};
@@ -79,29 +81,28 @@ function hasFeature(area) {
 
 function hasPermission(area) {
   const azienda = window.state?.azienda;
+
+  // 🔥 Piattaforma bypass totale
   if (azienda?.stato === "piattaforma") return true;
 
   const ruolo = window.state?.ruolo;
+  const permessiEffettivi = window.state?.permessi || {};
   const override = window.state?.permessiOverride || {};
 
+  // 1️⃣ Feature azienda attiva
   if (!hasFeature(area)) return false;
 
+  // 2️⃣ Override utente (prioritario)
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
 
-  const rolePermissions = {
-    admin: ["*"],
-    segreteria: ["dipendenti", "acquisti", "report"],
-    manager_cucina: ["produzione"],
-    manager_sala: ["produzione"],
-    addetto_cucina: [],
-    cameriere: [],
-  };
+  // 3️⃣ Permessi effettivi da funzione SQL
+  if (permessiEffettivi[`${area}.read`] === true) {
+    return true;
+  }
 
-  if (rolePermissions[ruolo]?.includes("*")) return true;
-
-  return rolePermissions[ruolo]?.includes(area);
+  return false;
 }
 
 /* =========================================================
