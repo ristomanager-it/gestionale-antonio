@@ -25,58 +25,36 @@ let outputCache = null;
 
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
-
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) {
     app.innerHTML = `<section class="view"><h3>Nessuna azienda attiva</h3></section>`;
     return;
   }
+
   // ============================================================
-  // 🔐 CONTROLLO PERMESSI RICETTE (SaaS Multi-Azienda)
+  // 🔐 CONTROLLO PERMESSI RICETTE (Enterprise Layer)
   // ============================================================
 
-  const canRead = window.hasPermesso && window.hasPermesso("ricette.read");
-  const canCreate = window.hasPermesso && window.hasPermesso("ricette.create");
-  const canUpdate = window.hasPermesso && window.hasPermesso("ricette.update");
+  if (!requirePermessi({
+    container: app,
+    resource: "ricette",
+    action: "read"
+  })) return;
 
-  // 1️⃣ Blocco totale accesso se manca read
-  if (!canRead) {
-    app.innerHTML = `
-      <section class="view">
-        <h2 style="margin-top:0;">Accesso negato</h2>
-        <p class="small-muted">
-          Non hai i permessi per visualizzare le ricette.
-        </p>
-      </section>
-    `;
-    return;
+  if (!ricettaId) {
+    if (!requirePermessi({
+      container: app,
+      resource: "ricette",
+      action: "create"
+    })) return;
+  } else {
+    if (!requirePermessi({
+      container: app,
+      resource: "ricette",
+      action: "update"
+    })) return;
   }
 
-  // 2️⃣ Blocco creazione
-  if (!ricettaId && !canCreate) {
-    app.innerHTML = `
-      <section class="view">
-        <h2 style="margin-top:0;">Accesso negato</h2>
-        <p class="small-muted">
-          Non hai i permessi per creare nuove ricette.
-        </p>
-      </section>
-    `;
-    return;
-  }
-
-  // 3️⃣ Blocco modifica
-  if (ricettaId && !canUpdate) {
-    app.innerHTML = `
-      <section class="view">
-        <h2 style="margin-top:0;">Accesso negato</h2>
-        <p class="small-muted">
-          Non hai i permessi per modificare le ricette.
-        </p>
-      </section>
-    `;
-    return;
-  }
   app.innerHTML = `
     <section class="view">
 
