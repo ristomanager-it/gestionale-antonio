@@ -5,7 +5,6 @@
 // - Invito accesso gestionale via Edge Function
 // - Soft delete (attivo=false) + disattivazione accessi collegati
 // - Niente canale_prevalente
-// - + Campo costo_medio (TEXT libero)
 // =======================================
 
 export async function render(container) {
@@ -221,10 +220,6 @@ function renderForm(dip) {
           <input type="email" id="dip-email" class="input-pill" value="${dip?.email || ""}" />
         </label>
 
-        <label>Costo medio (libero)
-          <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio || ""}" />
-        </label>
-
         <div class="view" style="margin-top:10px;">
           <h4 style="margin:0;">Compenso</h4>
 
@@ -246,6 +241,10 @@ function renderForm(dip) {
 
           <label>Ore medie per servizio
             <input type="number" step="0.1" id="dip-ore-servizio" class="input-pill" value="${dip?.ore_medie_per_servizio ?? ""}" />
+          </label>
+
+          <label>Costo medio (libero)
+            <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio ?? ""}" />
           </label>
 
           <label>Costo orario (calcolato)
@@ -369,11 +368,11 @@ async function salvaDipendente(isEdit) {
       null,
     telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
     email,
-    costo_medio: (document.getElementById("dip-costo-medio")?.value || "").trim() || null,
     tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
     retribuzione_base: numOrNull("dip-retribuzione-base"),
     ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
     ore_medie_per_servizio: numOrNull("dip-ore-servizio"),
+    costo_medio: (document.getElementById("dip-costo-medio")?.value || "").trim() || null,
     costo_orario: numOrNull("dip-costo"),
     attivo: !!document.getElementById("dip-attivo")?.checked,
   };
@@ -490,7 +489,6 @@ window._dipDelete = async function (id) {
 
       if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
     }
-
   } else {
     if (!confirm("Eliminare definitivamente questo dipendente?")) return;
 
