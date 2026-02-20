@@ -508,7 +508,7 @@ window._dipDelete = async function (id) {
    Invito (Edge Function)
 ========================================================= */
 
-async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
+async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode = "invite" }) {
   try {
     const supa = window.supabaseClient;
 
@@ -523,14 +523,13 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
     }
 
     const baseUrl = getFunctionsBaseUrl(supa);
-
-    // ✅ Endpoint corretto (nome cartella funzione Supabase)
     const endpoint = `${baseUrl}/invita-dipendente`;
 
     const body = JSON.stringify({
       email,
       azienda_id: aziendaId,
       ruolo,
+      mode, // 👈 nuovo parametro
     });
 
     const r = await fetch(endpoint, {
@@ -554,25 +553,6 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo }) {
     return { ok: false, message: "Errore rete o funzione" };
   }
 }
-
-function getFunctionsBaseUrl(supabaseClient) {
-  const url =
-    supabaseClient?.supabaseUrl ||
-    window?.CONFIG?.SUPABASE_URL ||
-    window?.CONFIG?.supabaseUrl ||
-    "";
-
-  return `${String(url).replace(/\/+$/, "")}/functions/v1`;
-}
-
-async function safeReadText(resp) {
-  try {
-    return await resp.text();
-  } catch {
-    return "";
-  }
-}
-
 /* =========================================================
    Utils
 ========================================================= */
