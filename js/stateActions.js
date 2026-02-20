@@ -20,9 +20,19 @@ window.stateActions = {
     window.state.permessi = permessi || {};
   },
 
+  setRuolo(ruolo) {
+    window.state.ruolo = ruolo || null;
+  },
+
+  setReparti(reparti) {
+    window.state.reparti = Array.isArray(reparti) ? reparti : [];
+  },
+
   resetAzienda() {
     window.state.azienda = null;
     window.state.permessi = null;
+    window.state.ruolo = null;
+    window.state.reparti = [];
   },
 
   async caricaPermessiEffettivi() {
@@ -49,6 +59,78 @@ window.stateActions = {
     }
 
     window.state.permessi = data || {};
+  },
+
+  async caricaRuoloEReparti() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    if (!user || !azienda) {
+      window.state.ruolo = null;
+      window.state.reparti = [];
+      return;
+    }
+
+    // 1️⃣ Carica ruolo da utenti_aziende
+    const { data: ruoloData, error: ruoloError } =
+      await window.supabaseClient
+        .from("utenti_aziende")
+        .select("ruolo")
+        .eq("user_id", user.id)
+        .eq("azienda_id", azienda.id)
+        .eq("attivo", true)
+        .single();
+
+    if (ruoloError) {
+      console.error("Errore caricamento ruolo:", ruoloError);
+      window.state.ruolo = null;
+      window.state.reparti = [];
+      return;
+    }
+
+    const ruolo = ruoloData?.ruolo || null;
+    window.state.ruolo = ruolo;
+
+    // 2️⃣ Se admin o superadmin → carica tutti i reparti azienda
+    if (ruolo === "admin" || ruolo === "superadmin") {
+      const { data: repartiData, error: repartiError } =
+        await window.supabaseClient
+          .from("reparti")
+          .select("id, nome")
+          .eq("azienda_id", azienda.id)
+          .eq("attivo", true)
+          .order("sort_order", { ascending: true });
+
+      if (repartiError) {
+        console.error("Errore caricamento reparti:", repartiError);
+        window.state.reparti = [];
+        return;
+      }
+
+      window.state.reparti = repartiData || [];
+      return;
+    }
+
+    // 3️⃣ Manager / Operatore → solo reparti assegnati
+    const { data: urData, error: urError } =
+      await window.supabaseClient
+        .from("utenti_reparti")
+        .select("reparto_id, reparti(id, nome)")
+        .eq("user_id", user.id)
+        .eq("azienda_id", azienda.id)
+        .eq("attivo", true);
+
+    if (urError) {
+      console.error("Errore caricamento utenti_reparti:", urError);
+      window.state.reparti = [];
+      return;
+    }
+
+    const reparti = (urData || [])
+      .map((r) => r.reparti)
+      .filter(Boolean);
+
+    window.state.reparti = reparti;
   },
 
   autoSetAzienda() {
