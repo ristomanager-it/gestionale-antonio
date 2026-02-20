@@ -10,7 +10,7 @@
 // - ricette_output (1 record per ricetta)
 // - ricette_porzione
 // ============================================================
-
+import { requirePermessi } from "../auth-utils.js";
 let ricettaId = null;
 
 let prodottiCache = [];
