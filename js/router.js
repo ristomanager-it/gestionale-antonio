@@ -105,10 +105,6 @@ function hasPermission(area) {
   return false;
 }
 
-/* =========================================================
-   RESOLVE ROUTER
-========================================================= */
-
 async function resolve() {
 
   if (!window.location.hash) {
@@ -119,6 +115,12 @@ async function resolve() {
   const { route, segments, params } = parseHash();
   window.routeParams = params || {};
   window.routeSegments = segments || [];
+
+  // 🔥 NASCONDI HEADER SOLO SU LOGIN
+  const header = document.querySelector(".app-header");
+  if (header) {
+    header.style.display = route === "login" ? "none" : "block";
+  }
 
   let { data } = await window.supabaseClient.auth.getSession();
   let session = data.session;
@@ -239,6 +241,3 @@ async function resolve() {
 
   await renderView(route);
 }
-
-window.addEventListener("hashchange", resolve);
-resolve();
