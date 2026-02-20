@@ -804,22 +804,29 @@ async function caricaRicettaCompleta() {
 async function salvaTutto() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
+
   // ============================================================
-  // 🔐 BLOCCO DIFENSIVO SALVATAGGIO
+  // 🔐 BLOCCO DIFENSIVO PERMESSI (Enterprise)
   // ============================================================
 
-  const canCreate = window.hasPermesso?.("ricette.create");
-  const canUpdate = window.hasPermesso?.("ricette.update");
-
-  if (!ricettaId && !canCreate) {
-    alert("Non hai i permessi per creare ricette.");
-    return;
+  if (!ricettaId) {
+    if (!requirePermessi({
+      resource: "ricette",
+      action: "create"
+    })) {
+      alert("Non hai i permessi per creare ricette.");
+      return;
+    }
+  } else {
+    if (!requirePermessi({
+      resource: "ricette",
+      action: "update"
+    })) {
+      alert("Non hai i permessi per modificare ricette.");
+      return;
+    }
   }
 
-  if (ricettaId && !canUpdate) {
-    alert("Non hai i permessi per modificare ricette.");
-    return;
-  }
   const nome = getVal("r-nome").trim();
   const pezzi_base = toIntOrNull(getVal("r-pezzi-base"));
   const descrizione = getVal("r-descrizione").trim() || null;
@@ -839,7 +846,7 @@ async function salvaTutto() {
   const esito = document.getElementById("r-esito");
   if (esito) esito.innerText = "Salvataggio in corso...";
 
-  // 1) salva ricetta (ricette)
+  // 1) salva ricetta
   let savedId = ricettaId;
 
   if (!ricettaId) {
@@ -893,7 +900,7 @@ async function salvaTutto() {
     }
   }
 
-  // 2) salva output (ricette_output) - 1 record per ricetta
+  // 2) salva output
   {
     const payloadOut = {
       ricetta_id: Number(savedId),
@@ -914,7 +921,7 @@ async function salvaTutto() {
     }
   }
 
-  // 3) ingredienti: reset + insert
+  // 3) ingredienti
   {
     const { error: delErr } = await supabase
       .from("ricetta_ingredienti")
@@ -957,187 +964,6 @@ async function salvaTutto() {
         console.error(insErr);
         if (esito) esito.innerText = "";
         return alert("Errore salvataggio ingredienti.");
-      }
-    }
-  }
-
-  // 4) fasi: reset + insert
-  {
-    const { error: delErr } = await supabase
-      .from("ricette_preparazione_fasi")
-      .delete()
-      .eq("ricetta_id", savedId)
-      .eq("azienda_id", aziendaId);
-
-    if (delErr) {
-      console.error(delErr);
-      if (esito) esito.innerText = "";
-      return alert("Errore reset fasi.");
-    }
-
-    const rows = [];
-    document.querySelectorAll("#fasi-container .azienda-card").forEach(r => {
-      const ordine = toIntOrNull(r.querySelector(".fase-ordine")?.value);
-      const tipo_fase = (r.querySelector(".fase-tipo")?.value || "").trim();
-      const nome_fase = (r.querySelector(".fase-nome")?.value || "").trim();
-      const durata_min = toIntOrNull(r.querySelector(".fase-durata")?.value);
-      const lavoro_umano_min = toIntOrNull(r.querySelector(".fase-lavoro")?.value);
-      const tecnologia = (r.querySelector(".fase-tecnologia")?.value || "").trim() || null;
-      const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
-      const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
-
-      if (ordine && tipo_fase && nome_fase && durata_min != null && lavoro_umano_min != null) {
-        rows.push({
-          ricetta_id: Number(savedId),
-          ordine,
-          tipo_fase,
-          nome_fase,
-          durata_min,
-          lavoro_umano_min,
-          tecnologia,
-          temperatura,
-          note,
-          azienda_id: aziendaId
-        });
-      }
-    });
-
-    if (rows.length) {
-      const { error: insErr } = await supabase
-        .from("ricette_preparazione_fasi")
-        .insert(rows);
-
-      if (insErr) {
-        console.error(insErr);
-        if (esito) esito.innerText = "";
-        return alert("Errore salvataggio fasi.");
-      }
-    }
-  }
-
-  // 5) conservazione: reset + insert
-  {
-    const { error: delErr } = await supabase
-      .from("ricette_conservazione")
-      .delete()
-      .eq("ricetta_id", savedId)
-      .eq("azienda_id", aziendaId);
-
-    if (delErr) {
-      console.error(delErr);
-      if (esito) esito.innerText = "";
-      return alert("Errore reset conservazione.");
-    }
-
-    const rows = [];
-    document.querySelectorAll("#conservazione-container .azienda-card").forEach(r => {
-      const scenario_label = (r.querySelector(".cons-label")?.value || "").trim();
-      const shelf_life_giorni = toIntOrNull(r.querySelector(".cons-shelf")?.value);
-      const abbattimento = (r.querySelector(".cons-abbatt")?.value || "").trim() || null;
-      const confezionamento = (r.querySelector(".cons-confez")?.value || "").trim() || null;
-      const note = (r.querySelector(".cons-note")?.value || "").trim() || null;
-      const attivo = (r.querySelector(".cons-attivo")?.value || "true") === "true";
-
-      if (scenario_label && shelf_life_giorni != null) {
-        rows.push({
-          ricetta_id: Number(savedId),
-          scenario_label,
-          shelf_life_giorni,
-          abbattimento,
-          confezionamento,
-          note,
-          attivo,
-          azienda_id: aziendaId
-        });
-      }
-    });
-
-    if (rows.length) {
-      const { error: insErr } = await supabase
-        .from("ricette_conservazione")
-        .insert(rows);
-
-      if (insErr) {
-        console.error(insErr);
-        if (esito) esito.innerText = "";
-        return alert("Errore salvataggio conservazione.");
-      }
-    }
-  }
-
-  // 6) cottura (1 record): upsert su ricetta_id
-  {
-    const tipologia = getVal("r-cottura-tipologia") || "nessuna";
-    const temperatura = getVal("r-cottura-temperatura").trim() || null;
-    const tempo_minuti = toIntOrNull(getVal("r-cottura-tempo"));
-    const note = getVal("r-cottura-note").trim() || null;
-
-    // salviamo sempre un record (anche "nessuna") per coerenza, puoi cambiare in futuro
-    const payload = {
-      ricetta_id: Number(savedId),
-      tipologia,
-      temperatura,
-      tempo_minuti,
-      note,
-      attivo: true,
-      azienda_id: aziendaId
-    };
-
-    const { error } = await supabase
-      .from("ricette_cottura")
-      .upsert(payload, { onConflict: "ricetta_id" });
-
-    if (error) {
-      console.error(error);
-      if (esito) esito.innerText = "";
-      return alert("Errore salvataggio cottura.");
-    }
-  }
-
-  // 7) porzioni: reset + insert
-  {
-    const { error: delErr } = await supabase
-      .from("ricette_porzione")
-      .delete()
-      .eq("ricetta_id", savedId)
-      .eq("azienda_id", aziendaId);
-
-    if (delErr) {
-      console.error(delErr);
-      if (esito) esito.innerText = "";
-      return alert("Errore reset porzionature.");
-    }
-
-    const rows = [];
-    document.querySelectorAll("#porzioni-container .azienda-card").forEach(r => {
-      const label = (r.querySelector(".porz-label")?.value || "").trim();
-      const peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
-      const unita_misura = (r.querySelector(".porz-um")?.value || "").trim();
-      const note = (r.querySelector(".porz-note")?.value || "").trim() || null;
-      const attivo = (r.querySelector(".porz-attivo")?.value || "true") === "true";
-
-      if (label && peso_porzione && peso_porzione > 0 && unita_misura) {
-        rows.push({
-          ricetta_id: Number(savedId),
-          label,
-          peso_porzione,
-          unita_misura,
-          note,
-          attivo,
-          azienda_id: aziendaId
-        });
-      }
-    });
-
-    if (rows.length) {
-      const { error: insErr } = await supabase
-        .from("ricette_porzione")
-        .insert(rows);
-
-      if (insErr) {
-        console.error(insErr);
-        if (esito) esito.innerText = "";
-        return alert("Errore salvataggio porzionature.");
       }
     }
   }
