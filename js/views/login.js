@@ -8,7 +8,6 @@ async function collegaUserAUtenteAzienda() {
 
   if (!user) return;
 
-  // Cerchiamo record con stessa email
   const { data, error } = await supabase
     .from("utenti_aziende")
     .select("*")
@@ -17,7 +16,6 @@ async function collegaUserAUtenteAzienda() {
 
   if (error || !data) return;
 
-  // Aggiorniamo user_id + statistiche login
   await supabase
     .from("utenti_aziende")
     .update({
@@ -204,8 +202,51 @@ export async function render(container) {
       return;
     }
 
-    // 🔥 Collegamento automatico user ↔ utenti_aziende
+    // 1️⃣ Collega utente ↔ utenti_aziende
     await collegaUserAUtenteAzienda();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      errorBox.textContent = "Errore recupero utente.";
+      btn.disabled = false;
+      btn.textContent = "Entra";
+      return;
+    }
+
+    // 2️⃣ Recupero azienda + ruolo
+    const { data: utenteAzienda, error: uaError } = await supabase
+      .from("utenti_aziende")
+      .select("azienda_id, ruolo")
+      .eq("user_id", user.id)
+      .eq("attivo", true)
+      .single();
+
+    if (uaError || !utenteAzienda) {
+      errorBox.textContent = "Utente non associato ad azienda attiva.";
+      btn.disabled = false;
+      btn.textContent = "Entra";
+      return;
+    }
+
+    // 3️⃣ Recupero permessi effettivi
+    const { data: permessiEffettivi, error: permError } = await supabase
+      .rpc("permessi_effettivi", {
+        p_user_id: user.id,
+        p_azienda_id: utenteAzienda.azienda_id,
+      });
+
+    if (permError) {
+      console.error("Errore caricamento permessi:", permError);
+    }
+
+    // 4️⃣ Salvo stato globale
+    window.state.user = user;
+    window.state.azienda = { id: utenteAzienda.azienda_id };
+    window.state.ruolo = utenteAzienda.ruolo;
+    window.state.permessi = permessiEffettivi || {};
 
     window.location.hash = "#/home";
   };
