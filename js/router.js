@@ -71,8 +71,6 @@ async function renderView(routeName) {
 
 function hasFeature(area) {
   const azienda = window.state?.azienda;
-
-  // 🔥 Piattaforma vede sempre tutto
   if (azienda?.stato === "piattaforma") return true;
 
   const features = azienda?.features || {};
@@ -81,22 +79,17 @@ function hasFeature(area) {
 
 function hasPermission(area) {
   const azienda = window.state?.azienda;
-
-  // 🔥 Piattaforma bypass totale
   if (azienda?.stato === "piattaforma") return true;
 
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
 
-  // 1️⃣ Feature azienda
   if (!hasFeature(area)) return false;
 
-  // 2️⃣ Override utente
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
 
-  // 3️⃣ Permessi ruolo
   const rolePermissions = {
     admin: ["*"],
     segreteria: ["dipendenti", "acquisti", "report"],
@@ -117,7 +110,6 @@ function hasPermission(area) {
 
 async function resolve() {
 
-  // 🔥 FIX HASH VUOTO
   if (!window.location.hash) {
     window.location.hash = "#/login";
     return;
@@ -143,7 +135,7 @@ async function resolve() {
   if (!session) {
     window.stateActions.setUser(null);
     window.stateActions.setAziende([]);
-    window.stateActions.setAzienda(null);
+    window.stateActions.resetAzienda();
 
     await renderView("login");
     return;
@@ -201,8 +193,15 @@ async function resolve() {
     a => a.aziende.id === azienda.id
   );
 
-  window.state.ruolo = recordAttivo?.ruolo || null;
+  window.stateActions.setRuolo(recordAttivo?.ruolo || null);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
+
+  /* =====================================
+     🔥 CARICA PERMESSI + REPARTI
+  ===================================== */
+
+  await window.stateActions.caricaPermessiEffettivi();
+  await window.stateActions.caricaRuoloEReparti();
 
   /* =====================================
      🔒 BLOCCO ROUTE
