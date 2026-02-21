@@ -434,3 +434,18 @@ export async function render(app) {
   });
 
   elPausa.addEventListener("click", async () => {
+    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+    const ui = computeUiFromLastTipo(lastTipo);
+    if (ui.stato !== "In turno") return;
+    await doTimbratura("inizio_pausa");
+  });
+
+  elFine.addEventListener("click", async () => {
+    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+    const ui = computeUiFromLastTipo(lastTipo);
+    if (ui.stato === "Fuori turno") return;
+    await doTimbratura("fine_turno");
+  });
+
+  await refreshUi();
+}
