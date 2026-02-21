@@ -15,19 +15,25 @@
 
 <body>
 
-  <!-- HEADER GLOBALE -->
+  <!-- ===================================================== -->
+  <!-- ================= HEADER GLOBALE ==================== -->
+  <!-- ===================================================== -->
+
   <header class="app-header">
 
     <!-- SINISTRA -->
     <div class="header-left">
+
       <button id="menu-toggle" class="menu-toggle" type="button">
         <div class="menu-icon">☰</div>
         <div class="menu-label">Menù</div>
       </button>
+
     </div>
 
     <!-- CENTRO -->
     <div class="header-center">
+
       <img
         id="header-logo"
         class="header-logo"
@@ -35,27 +41,49 @@
         alt="Logo azienda"
         style="display:none;"
       />
-      <div id="header-azienda-nome" class="header-azienda-nome"></div>
+
+      <div id="header-azienda-nome" class="header-azienda-nome">
+        <!-- Nome azienda caricato dinamicamente -->
+      </div>
+
     </div>
 
     <!-- DESTRA -->
     <div class="header-right">
+
       <div class="header-profile">
-        <div id="header-user-name" class="header-user-name"></div>
+
+        <!-- Avatar iniziali -->
+        <div id="header-avatar" class="header-avatar">
+          <!-- JS mette iniziali -->
+        </div>
+
+        <div id="header-user-name" class="header-user-name">
+          <!-- Nome utente -->
+        </div>
+
         <button id="logout-btn" class="logout-link" type="button">
-          Logout
+          Esci
         </button>
+
       </div>
+
     </div>
 
   </header>
 
-  <!-- MENU GLOBALE LATERALE -->
+  <!-- ===================================================== -->
+  <!-- ================= MENU LATERALE ===================== -->
+  <!-- ===================================================== -->
+
   <nav id="global-menu" class="global-menu">
     <!-- Popolato dinamicamente via JS -->
   </nav>
 
-  <!-- ROOT SPA -->
+  <!-- ===================================================== -->
+  <!-- ================= ROOT SPA ========================== -->
+  <!-- ===================================================== -->
+
   <div id="app"></div>
 
   <!-- STATE -->
@@ -65,7 +93,7 @@
   <!-- UI REPARTO -->
   <script src="js/ui-reparto.js"></script>
 
-  <!-- ROUTER (SPA) -->
+  <!-- ROUTER -->
   <script type="module" src="js/router.js"></script>
 
 </body>
