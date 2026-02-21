@@ -1,14 +1,62 @@
-create table public.preventivi_ricette (
-  id bigint generated always as identity not null,
-  preventivo_id bigint not null,
-  ricetta_id bigint null,
-  nome_piatto text not null,
-  quantita integer null default 1,
-  costo_unitario numeric(10, 2) null default 0,
-  costo_totale numeric(10, 2) null default 0,
-  ricetta_completa boolean null default true,
-  azienda_id uuid not null,
-  constraint preventivi_ricette_pkey primary key (id),
-  constraint preventivi_ricette_preventivo_id_fkey foreign KEY (preventivo_id) references preventivi (id) on delete CASCADE,
-  constraint preventivi_ricette_ricetta_id_fkey foreign KEY (ricetta_id) references ricette (id) on delete set null
-) TABLESPACE pg_default;
+export async function render(container) {
+  container.innerHTML = `
+    <section class="view">
+      <h2>Crea Nuovo Preventivo</h2>
+
+      <form id="create-preventivo-form">
+        <div>
+          <label for="cliente-nome">Nome Cliente:</label>
+          <input type="text" id="cliente-nome" required />
+        </div>
+        <div>
+          <label for="titolo-evento">Titolo Evento:</label>
+          <input type="text" id="titolo-evento" required />
+        </div>
+        <div>
+          <label for="data-evento">Data Evento:</label>
+          <input type="date" id="data-evento" required />
+        </div>
+        <div>
+          <label for="totale">Totale:</label>
+          <input type="number" id="totale" required />
+        </div>
+        <button type="submit" class="app-button green">Crea Preventivo</button>
+      </form>
+    </section>
+  `;
+
+  const form = document.getElementById('create-preventivo-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await createPreventivo();
+  });
+}
+
+async function createPreventivo() {
+  const clienteNome = document.getElementById('cliente-nome').value;
+  const titoloEvento = document.getElementById('titolo-evento').value;
+  const dataEvento = document.getElementById('data-evento').value;
+  const totale = document.getElementById('totale').value;
+
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+
+  const { data, error } = await supabase
+    .from('preventivi')
+    .insert([
+      {
+        cliente_id: 1,  // ID cliente, da impostare a seconda del cliente selezionato
+        titolo_evento: titoloEvento,
+        data_evento: dataEvento,
+        totale: totale,
+        azienda_id: aziendaId,
+      }
+    ]);
+
+  if (error) {
+    console.error("Errore creazione preventivo:", error);
+    return;
+  }
+
+  window.location.hash = "#/preventivi";  // Torna alla lista dei preventivi
+}
