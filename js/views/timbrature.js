@@ -119,10 +119,6 @@ function tipoToLabel(tipo) {
 }
 
 function computeUiFromLastTipo(lastTipo) {
-  // Stato + abilitazioni secondo regola:
-  // - Entrata (solo quando fuori turno), oppure "Rientro da pausa" quando in pausa
-  // - Inizia pausa (solo quando in turno e non in pausa)
-  // - Fine turno (solo quando in turno o in pausa)
   const ui = {
     stato: "Fuori turno",
     primaryLabel: "Entrata 🟢",
@@ -136,7 +132,7 @@ function computeUiFromLastTipo(lastTipo) {
     ui.stato = "In turno";
     ui.primaryLabel = "Entrata 🟢";
     ui.primaryAction = "inizio_turno";
-    ui.primaryEnabled = false; // Entrata non ripetibile in turno
+    ui.primaryEnabled = false;
     ui.pausaEnabled = true;
     ui.fineEnabled = true;
     return ui;
@@ -227,9 +223,15 @@ export async function render(app) {
         <div id="tb-msg" style="margin-top:10px;"></div>
       </div>
 
-      <div class="card" style="margin-top:12px;">
+      <!-- Sezione per timbrature -->
+      <div class="card" id="timbrature-section" style="margin-top:12px; display:none;">
         <h3 style="margin:0 0 10px 0;">Ultime timbrature</h3>
         <div id="tb-list" style="opacity:.75;">Caricamento...</div>
+      </div>
+
+      <!-- Pulsante per mostrare timbrature -->
+      <div style="margin-top:20px;">
+        <button id="btn-show-timbrature" class="btn-large btn-gray">Mostra Timbrature 📋</button>
       </div>
     </div>
   `;
@@ -238,29 +240,21 @@ export async function render(app) {
   const elPrimary = app.querySelector("#btn-primary");
   const elPausa = app.querySelector("#btn-pausa");
   const elFine = app.querySelector("#btn-fine");
+  const elShowTimbrature = app.querySelector("#btn-show-timbrature");
   const elMsg = app.querySelector("#tb-msg");
   const elList = app.querySelector("#tb-list");
   const elLastGeo = app.querySelector("#tb-last-geo");
+  const elTimbratureSection = app.querySelector("#timbrature-section");
 
-  function setMsg(text, kind = "info") {
-    const bg =
-      kind === "ok"
-        ? "rgba(0,160,80,.10)"
-        : kind === "error"
-          ? "rgba(220,60,60,.10)"
-          : "rgba(0,0,0,.05)";
-
-    const border =
-      kind === "ok"
-        ? "rgba(0,160,80,.25)"
-        : kind === "error"
-          ? "rgba(220,60,60,.25)"
-          : "rgba(0,0,0,.10)";
-
-    elMsg.innerHTML = `
-      <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">${text}</div>
-    `;
-  }
+  // Funzione per mostrare/nascondere le timbrature
+  elShowTimbrature.addEventListener("click", () => {
+    elTimbratureSection.style.display =
+      elTimbratureSection.style.display === "none" ? "block" : "none";
+    elShowTimbrature.textContent =
+      elTimbratureSection.style.display === "none"
+        ? "Mostra Timbrature 📋"
+        : "Nascondi Timbrature ❌";
+  });
 
   async function refreshUi() {
     elMsg.innerHTML = "";
