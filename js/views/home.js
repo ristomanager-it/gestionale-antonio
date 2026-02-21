@@ -1,6 +1,7 @@
 // js/views/home.js
 // =======================================
 // Dashboard Operativa Dinamica SaaS
+// Versione con Sezioni (senza refactor architetturale)
 // =======================================
 
 export async function render(container) {
@@ -12,29 +13,45 @@ export async function render(container) {
     return;
   }
 
-  const MODULI = [
-    { key: "produzione", label: "Produzione", icon: "🏭" },
-    { key: "magazzino", label: "Magazzino", icon: "📦" },
-    { key: "acquisti", label: "Acquisti", icon: "🧾" },
-    { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-    { key: "ricettario", label: "Ricettario", icon: "📖" },
-    { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
-
-    // 🔥 CONTROLLO ECONOMICO
-    { key: "margini", label: "Margini", icon: "💰" },
-    { key: "report", label: "Report", icon: "📊" }
+  const SEZIONI = [
+    {
+      label: "Operativo",
+      moduli: [
+        { key: "produzione", label: "Produzione", icon: "🏭" },
+        { key: "magazzino", label: "Magazzino", icon: "📦" },
+        { key: "ricettario", label: "Ricettario", icon: "📖" },
+        { key: "preparazioni", label: "Preparazioni", icon: "🥣" }
+      ]
+    },
+    {
+      label: "Controllo Economico",
+      moduli: [
+        { key: "margini", label: "Margini", icon: "💰" },
+        { key: "report", label: "Report", icon: "📊" }
+      ]
+    },
+    {
+      label: "Gestione",
+      moduli: [
+        { key: "acquisti", label: "Acquisti", icon: "🧾" },
+        { key: "dipendenti", label: "Dipendenti", icon: "👥" }
+      ]
+    }
   ];
 
   const saluto = getSaluto();
 
-  let moduliAttivi;
+  let sezioniAttive;
 
   if (azienda.stato === "piattaforma") {
-    moduliAttivi = MODULI;
+    sezioniAttive = SEZIONI;
   } else {
-    moduliAttivi = MODULI.filter(m =>
-      hasFeature(m.key) && hasPermission(m.key)
-    );
+    sezioniAttive = SEZIONI.map(sezione => ({
+      ...sezione,
+      moduli: sezione.moduli.filter(m =>
+        hasFeature(m.key) && hasPermission(m.key)
+      )
+    })).filter(sezione => sezione.moduli.length > 0);
   }
 
   container.innerHTML = `
@@ -104,46 +121,57 @@ export async function render(container) {
       </div>
 
       ${
-        moduliAttivi.length === 0
+        sezioniAttive.length === 0
           ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
-          : `
-      <div 
-        style="
-          display:grid;
-          gap:18px;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        "
-      >
-        ${
-          moduliAttivi.map((m, index) => `
-            <div 
-              onclick="window.location.hash='#/${m.key}'"
-              style="
-                background:white;
-                padding:28px 18px;
-                border-radius:22px;
-                text-align:center;
-                cursor:pointer;
-                box-shadow:0 10px 30px rgba(0,0,0,0.05);
-                transition: all 0.25s ease;
-                animation: fadeInUp 0.4s ease forwards;
-                animation-delay:${index * 0.05}s;
-                opacity:0;
-              "
-              onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
-              onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
-            >
-              <div style="font-size:30px; margin-bottom:14px;">
-                ${m.icon}
-              </div>
-              <div style="font-weight:500;">
-                ${m.label}
-              </div>
-            </div>
-          `).join("")
-        }
-      </div>
-      `
+          : sezioniAttive.map((sezione, sIndex) => `
+
+        <div style="margin-bottom:40px;">
+          
+          <h3 style="
+            margin-bottom:18px;
+            font-weight:600;
+            letter-spacing:0.3px;
+          ">
+            ${sezione.label}
+          </h3>
+
+          <div style="
+            display:grid;
+            gap:18px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          ">
+            ${
+              sezione.moduli.map((m, index) => `
+                <div 
+                  onclick="window.location.hash='#/${m.key}'"
+                  style="
+                    background:white;
+                    padding:28px 18px;
+                    border-radius:22px;
+                    text-align:center;
+                    cursor:pointer;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.05);
+                    transition: all 0.25s ease;
+                    animation: fadeInUp 0.4s ease forwards;
+                    animation-delay:${(sIndex * 0.1) + (index * 0.05)}s;
+                    opacity:0;
+                  "
+                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
+                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
+                >
+                  <div style="font-size:30px; margin-bottom:14px;">
+                    ${m.icon}
+                  </div>
+                  <div style="font-weight:500;">
+                    ${m.label}
+                  </div>
+                </div>
+              `).join("")
+            }
+          </div>
+        </div>
+
+      `).join("")
       }
 
       <style>
