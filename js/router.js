@@ -25,11 +25,13 @@ const routes = {
 
   venduto: () => import("./views/venduto.js"),
 
-  // 🔥 CONTROLLO ECONOMICO
   margini: () => import("./views/margini.js"),
 
   // Aggiunta la rotta per i preventivi
   preventivi: () => import("./views/preventivi.js"), // Nuova rotta per preventivi
+
+  // Nuova rotta per creare un preventivo
+  creaPreventivo: () => import("./views/crea-preventivo.js"), // Nuova rotta per creare un preventivo
 };
 
 /* =========================================================
