@@ -24,6 +24,14 @@ export async function render(app) {
         <input type="text" id="search-preventivi" placeholder="Cerca per nome cliente, evento, data..." class="input-pill" style="width: 100%; max-width: 400px;">
       </div>
 
+      <!-- Pulsante Crea Nuovo Preventivo -->
+      <div style="margin-bottom: 20px;">
+        <button class="app-button large green"
+          onclick="window.location.hash='#/creaPreventivo'">
+          + Crea Nuovo Preventivo
+        </button>
+      </div>
+
       <div id="preventivi-list"></div> <!-- Qui visualizzeremo la lista dei preventivi -->
 
     </section>
