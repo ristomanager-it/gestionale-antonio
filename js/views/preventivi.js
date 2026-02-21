@@ -1,7 +1,3 @@
-// ============================================================
-// PREVENTIVI – Lista e Dettaglio Preventivo
-// ============================================================
-
 let preventiviCache = [];
 let filteredPreventivi = [];
 
