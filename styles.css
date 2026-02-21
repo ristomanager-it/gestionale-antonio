@@ -33,7 +33,7 @@ body {
 }
 
 /* ========================================================= */
-/* ==================== HEADER DEFINITIVO ================== */
+/* ==================== HEADER FIX LAYOUT ================== */
 /* ========================================================= */
 
 .app-header {
@@ -45,7 +45,7 @@ body {
   background: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* 🔥 forza separazione */
   padding: 0 32px;
   z-index: 1000;
   border-bottom: 1px solid #e5e7eb;
@@ -57,35 +57,36 @@ body {
   margin-top: 108px;
 }
 
-/* ===== LEFT ===== */
-
+/* BLOCCO SINISTRO */
 .header-left {
   display: flex;
   align-items: center;
   gap: 22px;
+  flex-shrink: 0;
 }
 
-/* Hamburger neutro elegante */
+/* BLOCCO DESTRO */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+  margin-left: auto; /* 🔥 forza a destra */
+}
+
+/* HAMBURGER */
 .menu-toggle {
   width: 44px;
   height: 44px;
   border-radius: 10px;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
-  color: #374151;               /* 🔥 grigio elegante */
+  color: #374151;
   font-size: 22px;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.menu-toggle:hover {
-  background: #e5e7eb;
-  transform: scale(1.05);
-}
-
-/* Logo + Nome */
-
+/* AZIENDA */
 .header-azienda {
   display: flex;
   align-items: center;
@@ -105,86 +106,30 @@ body {
   font-weight: 800;
   font-size: 18px;
   color: #111827;
-  letter-spacing: 0.3px;
-}
-
-/* ===== RIGHT ===== */
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 22px;
 }
 
 /* PROFILO */
-
 .header-user-box {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
-  padding: 8px 14px;
-  border-radius: 12px;
-  transition: background 0.2s ease;
 }
 
-.header-user-box:hover {
-  background: #f9fafb;
-}
-
-/* Avatar neutro elegante */
 .header-avatar {
   width: 46px;
   height: 46px;
   border-radius: 999px;
-  background: #e5e7eb;      /* 🔥 niente blu */
+  background: #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 15px;
   color: #374151;
 }
 
 .header-user-name {
   font-weight: 600;
-  font-size: 15px;
   color: #111827;
-}
-
-/* Dropdown */
-
-.user-dropdown {
-  position: absolute;
-  top: 72px;
-  right: 0;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.18);
-  display: none;
-  flex-direction: column;
-  min-width: 180px;
-  overflow: hidden;
-}
-
-.header-user-box.open .user-dropdown {
-  display: flex;
-}
-
-.dropdown-item {
-  padding: 14px 16px;
-  border: none;
-  background: none;
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-  color: #111827;
-  font-weight: 500;
-}
-
-.dropdown-item:hover {
-  background: #f3f4f6;
 }
 /* ========================================================= */
 /* ==================== GLOBAL MENU ======================== */
