@@ -4,13 +4,15 @@
 
 :root {
 
-  /* ===== BRAND ===== */
+ :root {
 
-  --color-primary: #6B8E23;        /* Verde oliva */
-  --color-primary-soft: #7C9A32;
-  --color-primary-dark: #556B2F;
+  /* ===== BRAND VERDE ANTICO ===== */
 
-  --color-accent: #E67E22;         /* Arancio caldo */
+  --color-primary: #4F6228;        /* Verde oliva antico */
+  --color-primary-soft: #5C7030;   /* sfumatura più chiara */
+  --color-primary-dark: #3E4D1F;
+
+  --color-accent: #E67E22;
   --color-accent-dark: #D35400;
 
   /* ===== NEUTRI ===== */
@@ -23,18 +25,12 @@
 
   --color-border: #E5E7EB;
 
-  /* ===== SHADOW ===== */
-
   --shadow-soft: 0 6px 20px rgba(0,0,0,0.06);
   --shadow-medium: 0 10px 30px rgba(0,0,0,0.08);
 
-  /* ===== RADIUS ===== */
-
   --radius-card: 18px;
   --radius-button: 14px;
-
 }
-
 /* ========================================================= */
 /* ================= RESET BASE ============================ */
 /* ========================================================= */
