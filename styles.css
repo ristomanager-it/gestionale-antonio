@@ -1,7 +1,38 @@
 /* ========================================================= */
-/* ==================== [0] RESET & BASE =================== */
+/* ================= DESIGN SYSTEM ROOT ==================== */
 /* ========================================================= */
 
+:root {
+
+  /* ===== COLORI BRAND ===== */
+
+  --color-primary: #6B8E23;        /* Verde oliva */
+  --color-primary-dark: #556B2F;
+
+  --color-accent: #E67E22;         /* Arancio caldo */
+  --color-accent-dark: #D35400;
+
+  /* ===== NEUTRI ===== */
+
+  --color-bg: #F4F6F3;             /* Sfondo caldo chiaro */
+  --color-card: #FFFFFF;
+
+  --color-text: #2F2F2F;
+  --color-text-muted: #6B7280;
+
+  --color-border: #E5E7EB;
+
+  /* ===== SHADOW ===== */
+
+  --shadow-soft: 0 6px 20px rgba(0,0,0,0.06);
+  --shadow-medium: 0 10px 30px rgba(0,0,0,0.08);
+
+  /* ===== RADIUS ===== */
+
+  --radius-card: 16px;
+  --radius-button: 12px;
+
+}
 *,
 *::before,
 *::after {
