@@ -15,59 +15,37 @@
 
 <body>
 
-  <!-- HEADER GLOBALE SaaS -->
+  <!-- HEADER GLOBALE -->
   <header class="app-header">
 
+    <!-- SINISTRA -->
     <div class="header-left">
-
-      <!-- Toggle menu globale -->
       <button id="menu-toggle" class="menu-toggle" type="button">
-        ☰
+        <div class="menu-icon">☰</div>
+        <div class="menu-label">Menù</div>
       </button>
-
-      <!-- Logo + Nome azienda -->
-      <div class="header-azienda">
-        <img
-          id="header-logo"
-          class="header-logo"
-          src=""
-          alt="Logo azienda"
-          style="display:none;"
-        />
-        <span id="header-azienda-nome" class="header-azienda-nome"></span>
-      </div>
-
     </div>
 
+    <!-- CENTRO -->
+    <div class="header-center">
+      <img
+        id="header-logo"
+        class="header-logo"
+        src=""
+        alt="Logo azienda"
+        style="display:none;"
+      />
+      <div id="header-azienda-nome" class="header-azienda-nome"></div>
+    </div>
+
+    <!-- DESTRA -->
     <div class="header-right">
-
-      <!-- Selettore Reparto -->
-      <select
-        id="header-reparto-select"
-        class="input-pill"
-        style="max-width:180px; display:none;"
-      ></select>
-
-      <!-- Profilo utente -->
-      <div id="header-user" class="header-user-box">
-
-        <div id="header-avatar" class="header-avatar">
-          <!-- Iniziali utente -->
-        </div>
-
-        <span id="header-user-name" class="header-user-name"></span>
-
-        <div id="user-dropdown" class="user-dropdown">
-          <button id="profile-btn" class="dropdown-item" type="button">
-            Profilo
-          </button>
-          <button id="logout-btn" class="dropdown-item" type="button">
-            Logout
-          </button>
-        </div>
-
+      <div class="header-profile">
+        <div id="header-user-name" class="header-user-name"></div>
+        <button id="logout-btn" class="logout-link" type="button">
+          Logout
+        </button>
       </div>
-
     </div>
 
   </header>
