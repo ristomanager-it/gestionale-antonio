@@ -3,60 +3,225 @@ export async function render(container) {
     <section class="view">
       <h2>Crea Nuovo Preventivo</h2>
 
-      <form id="create-preventivo-form">
+      <form id="preventivo-form">
         <div>
-          <label for="cliente-nome">Nome Cliente:</label>
-          <input type="text" id="cliente-nome" required />
+          <label for="preventivo-cliente-nome">Nome Cliente:</label>
+          <input type="text" id="preventivo-cliente-nome" required placeholder="Nome Cliente">
         </div>
         <div>
-          <label for="titolo-evento">Titolo Evento:</label>
-          <input type="text" id="titolo-evento" required />
+          <label for="preventivo-cliente-cognome">Cognome Cliente:</label>
+          <input type="text" id="preventivo-cliente-cognome" required placeholder="Cognome Cliente">
         </div>
         <div>
-          <label for="data-evento">Data Evento:</label>
-          <input type="date" id="data-evento" required />
+          <label for="preventivo-cliente-email">Email Cliente:</label>
+          <input type="email" id="preventivo-cliente-email" required placeholder="Email Cliente">
         </div>
         <div>
-          <label for="totale">Totale:</label>
-          <input type="number" id="totale" required />
+          <label for="preventivo-titolo">Titolo Evento:</label>
+          <input type="text" id="preventivo-titolo" required placeholder="Titolo Evento">
         </div>
-        <button type="submit" class="app-button green">Crea Preventivo</button>
+        <div>
+          <label for="preventivo-tipo-servizio">Tipo Servizio:</label>
+          <input type="text" id="preventivo-tipo-servizio" required placeholder="Tipo di Servizio">
+        </div>
+        <div>
+          <label for="preventivo-data-evento">Data Evento:</label>
+          <input type="date" id="preventivo-data-evento" required>
+        </div>
+        <div>
+          <label for="preventivo-n-invitati">Numero Invitati:</label>
+          <input type="number" id="preventivo-n-invitati" required>
+        </div>
+        <div>
+          <label for="preventivo-location">Location:</label>
+          <input type="text" id="preventivo-location" required placeholder="Location">
+        </div>
+        <div>
+          <label for="preventivo-note">Note:</label>
+          <textarea id="preventivo-note" placeholder="Eventuali Note"></textarea>
+        </div>
+        <div>
+          <label for="preventivo-acconto">Acconto (€):</label>
+          <input type="number" id="preventivo-acconto" value="0">
+        </div>
+        <div>
+          <label for="preventivo-totale">Totale (€):</label>
+          <input type="number" id="preventivo-totale" value="0" readonly>
+        </div>
+        <div>
+          <label for="preventivo-sconto-menu">Sconto Menù (%):</label>
+          <select id="preventivo-sconto-menu">
+            <option value="0">0%</option>
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+          </select>
+        </div>
+
+        <!-- Tabelle per Menù e Servizi Extra -->
+        <div>
+          <h3>Menu</h3>
+          <table id="preventivo-menu">
+            <thead>
+              <tr>
+                <th>Nome Piatto</th>
+                <th>Quantità</th>
+                <th>Costo Unitario (€)</th>
+                <th>Costo Totale (€)</th>
+              </tr>
+            </thead>
+            <tbody id="preventivo-menu-tbody"></tbody>
+          </table>
+          <button type="button" id="btn-add-menu-row">Aggiungi Menu</button>
+        </div>
+
+        <div>
+          <h3>Extra</h3>
+          <table id="preventivo-extra">
+            <thead>
+              <tr>
+                <th>Descrizione</th>
+                <th>Quantità</th>
+                <th>Prezzo Unitario (€)</th>
+                <th>Costo Totale (€)</th>
+              </tr>
+            </thead>
+            <tbody id="preventivo-extra-tbody"></tbody>
+          </table>
+          <button type="button" id="btn-add-extra-row">Aggiungi Extra</button>
+        </div>
+
+        <button type="submit" id="btn-save-preventivo" class="app-button green">Salva Preventivo</button>
       </form>
     </section>
   `;
 
-  const form = document.getElementById('create-preventivo-form');
-  form.addEventListener('submit', async (e) => {
+  const btnSavePreventivo = document.getElementById('btn-save-preventivo');
+  const btnAddMenuRow = document.getElementById('btn-add-menu-row');
+  const btnAddExtraRow = document.getElementById('btn-add-extra-row');
+
+  let menuRows = [];
+  let extraRows = [];
+
+  // Event listeners
+  btnSavePreventivo.addEventListener('click', async (e) => {
     e.preventDefault();
-    await createPreventivo();
+    await savePreventivo();
   });
-}
 
-async function createPreventivo() {
-  const clienteNome = document.getElementById('cliente-nome').value;
-  const titoloEvento = document.getElementById('titolo-evento').value;
-  const dataEvento = document.getElementById('data-evento').value;
-  const totale = document.getElementById('totale').value;
+  btnAddMenuRow.addEventListener('click', () => {
+    addMenuRow();
+  });
 
-  const supabase = window.supabaseClient;
-  const aziendaId = window.state?.azienda?.id;
+  btnAddExtraRow.addEventListener('click', () => {
+    addExtraRow();
+  });
 
-  const { data, error } = await supabase
-    .from('preventivi')
-    .insert([
-      {
-        cliente_id: 1,  // ID cliente, da impostare a seconda del cliente selezionato
-        titolo_evento: titoloEvento,
-        data_evento: dataEvento,
-        totale: totale,
-        azienda_id: aziendaId,
-      }
-    ]);
-
-  if (error) {
-    console.error("Errore creazione preventivo:", error);
-    return;
+  function addMenuRow() {
+    menuRows.push({
+      nome_piatto: '',
+      quantita: 1,
+      costo_unitario: 0,
+      costo_totale: 0,
+    });
+    renderMenuRows();
   }
 
-  window.location.hash = "#/preventivi";  // Torna alla lista dei preventivi
+  function addExtraRow() {
+    extraRows.push({
+      descrizione: '',
+      quantita: 1,
+      prezzo_unitario: 0,
+      costo_totale: 0,
+    });
+    renderExtraRows();
+  }
+
+  function renderMenuRows() {
+    const menuTableBody = document.getElementById('preventivo-menu-tbody');
+    menuTableBody.innerHTML = menuRows
+      .map((row, index) => {
+        return `
+          <tr>
+            <td><input type="text" value="${row.nome_piatto}" placeholder="Nome piatto" onchange="menuRows[${index}].nome_piatto = this.value"></td>
+            <td><input type="number" value="${row.quantita}" onchange="menuRows[${index}].quantita = this.value; recalcPreventivoTotali()"></td>
+            <td><input type="number" value="${row.costo_unitario}" onchange="menuRows[${index}].costo_unitario = this.value; recalcPreventivoTotali()"></td>
+            <td><input type="number" value="${row.costo_totale}" disabled></td>
+          </tr>
+        `;
+      })
+      .join('');
+    recalcPreventivoTotali();
+  }
+
+  function renderExtraRows() {
+    const extraTableBody = document.getElementById('preventivo-extra-tbody');
+    extraTableBody.innerHTML = extraRows
+      .map((row, index) => {
+        return `
+          <tr>
+            <td><input type="text" value="${row.descrizione}" placeholder="Descrizione" onchange="extraRows[${index}].descrizione = this.value"></td>
+            <td><input type="number" value="${row.quantita}" onchange="extraRows[${index}].quantita = this.value; recalcPreventivoTotali()"></td>
+            <td><input type="number" value="${row.prezzo_unitario}" onchange="extraRows[${index}].prezzo_unitario = this.value; recalcPreventivoTotali()"></td>
+            <td><input type="number" value="${row.costo_totale}" disabled></td>
+          </tr>
+        `;
+      })
+      .join('');
+    recalcPreventivoTotali();
+  }
+
+  function recalcPreventivoTotali() {
+    let totaleMenu = 0;
+    menuRows.forEach(row => {
+      row.costo_totale = row.quantita * row.costo_unitario;
+      totaleMenu += row.costo_totale;
+    });
+
+    let totaleExtra = 0;
+    extraRows.forEach(row => {
+      row.costo_totale = row.quantita * row.prezzo_unitario;
+      totaleExtra += row.costo_totale;
+    });
+
+    const totaleAcconto = parseFloat(document.getElementById('preventivo-acconto').value || 0);
+    const totale = totaleMenu + totaleExtra;
+
+    document.getElementById('preventivo-totale').value = totale.toFixed(2);
+    const saldo = totale - totaleAcconto;
+    document.getElementById('preventivo-saldo').value = saldo.toFixed(2);
+  }
+
+  async function savePreventivo() {
+    const clienteNome = document.getElementById('preventivo-cliente-nome').value;
+    const clienteCognome = document.getElementById('preventivo-cliente-cognome').value;
+    const clienteEmail = document.getElementById('preventivo-cliente-email').value;
+    const titoloEvento = document.getElementById('preventivo-titolo').value;
+    const tipoServizio = document.getElementById('preventivo-tipo-servizio').value;
+    const dataEvento = document.getElementById('preventivo-data-evento').value;
+    const nInvitati = document.getElementById('preventivo-n-invitati').value;
+    const location = document.getElementById('preventivo-location').value;
+    const note = document.getElementById('preventivo-note').value;
+    const acconto = document.getElementById('preventivo-acconto').value;
+
+    const { data, error } = await supabase.from('preventivi').insert([{
+      cliente_id: 1, // Utilizzare l'ID cliente che si vuole associare
+      titolo_evento: titoloEvento,
+      tipo_servizio: tipoServizio,
+      data_evento: dataEvento,
+      n_invitati: nInvitati,
+      location: location,
+      note: note,
+      acconto: acconto,
+      totale: document.getElementById('preventivo-totale').value
+    }]);
+
+    if (error) {
+      console.error(error);
+      alert("Errore nel salvataggio del preventivo");
+      return;
+    }
+
+    alert("Preventivo creato correttamente!");
+    window.location.hash = "#/preventivi";
+  }
 }
