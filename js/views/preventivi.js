@@ -3,6 +3,7 @@
 // ============================================================
 
 let preventiviCache = [];
+let filteredPreventivi = [];
 
 export async function render(app) {
 
@@ -18,11 +19,9 @@ export async function render(app) {
 
       <h2>📑 Preventivi</h2>
 
-      <div style="margin-bottom:20px;">
-        <button class="app-button small"
-          onclick="window.location.hash='#/creaPreventivo'">
-          + Crea Nuovo Preventivo
-        </button>
+      <!-- Barra di ricerca -->
+      <div style="margin-bottom: 20px;">
+        <input type="text" id="search-preventivi" placeholder="Cerca per nome cliente, evento, data..." class="input-pill" style="width: 100%; max-width: 400px;">
       </div>
 
       <div id="preventivi-list"></div> <!-- Qui visualizzeremo la lista dei preventivi -->
@@ -32,6 +31,13 @@ export async function render(app) {
 
   // Carichiamo i preventivi
   await loadPreventivi();
+
+  // Aggiungi evento di ricerca
+  const searchInput = document.getElementById("search-preventivi");
+  searchInput.addEventListener("input", () => {
+    const searchTerm = searchInput.value.toLowerCase();
+    filterPreventivi(searchTerm);
+  });
 }
 
 /* ============================================================ */
@@ -72,6 +78,31 @@ async function loadPreventivi() {
   }
 
   preventiviCache = data || [];
+  filteredPreventivi = preventiviCache;  // Inizialmente visualizziamo tutti i preventivi
+
+  renderPreventiviList();
+}
+
+/* ============================================================ */
+/* FILTRARE I PREVENTIVI IN BASE AL TERMINE DI RICERCA */
+/* ============================================================ */
+
+function filterPreventivi(searchTerm) {
+  // Filtra i preventivi in base al termine di ricerca
+  filteredPreventivi = preventiviCache.filter((p) => {
+    const clienteNome = p.cliente_id
+      ? `${p.cliente_id.nome || ''} ${p.cliente_id.cognome || ''}`.toLowerCase()
+      : '';
+    const titoloEvento = p.titolo_evento ? p.titolo_evento.toLowerCase() : '';
+    const dataEvento = p.data_evento ? new Date(p.data_evento).toLocaleDateString().toLowerCase() : '';
+    
+    // Verifica se uno dei campi contiene il termine di ricerca
+    return (
+      clienteNome.includes(searchTerm) ||
+      titoloEvento.includes(searchTerm) ||
+      dataEvento.includes(searchTerm)
+    );
+  });
 
   renderPreventiviList();
 }
@@ -84,14 +115,14 @@ function renderPreventiviList() {
   const preventiviListContainer = document.getElementById("preventivi-list");
   if (!preventiviListContainer) return;
 
-  if (!preventiviCache.length) {
+  if (!filteredPreventivi.length) {
     preventiviListContainer.innerHTML = `
       <p class="small-muted">Nessun preventivo trovato.</p>
     `;
     return;
   }
 
-  const html = preventiviCache
+  const html = filteredPreventivi
     .map((p) => {
       const clienteNome = p.cliente_id
         ? `${p.cliente_id.nome || ''} ${p.cliente_id.cognome || ''}`.trim()
