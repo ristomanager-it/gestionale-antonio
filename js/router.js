@@ -1,3 +1,4 @@
+// router.js
 import "./state.js";
 import "./stateActions.js";
 import "./supabaseClient.js";
@@ -14,6 +15,7 @@ const routes = {
   setPassword: () => import("./views/set-password.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
+  timbrature: () => import("./views/timbrature.js"),
 
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
