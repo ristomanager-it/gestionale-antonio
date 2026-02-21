@@ -514,3 +514,68 @@ textarea {
   color: #6b7280;
   margin: 6px 0 0;
 }
+
+/* ========================================================= */
+/* =================== [TIMBRATURA - BOTTONI] ============== */
+/* ========================================================= */
+
+/* Pulsante rotondo per la timbratura */
+.btn-timbratura {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  text-align: center;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  margin: 10px;
+}
+
+.btn-timbratura:hover {
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-timbratura:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* Pulsante Entrata (verde) */
+.btn-green {
+  background-color: #28a745;
+}
+
+.btn-green:hover {
+  background-color: #218838;
+}
+
+/* Pulsante Pausa (grigio chiaro) */
+.btn-gray {
+  background-color: #6c757d;
+}
+
+.btn-gray:hover {
+  background-color: #5a6268;
+}
+
+/* Pulsante Fine Turno (rosso) */
+.btn-red {
+  background-color: #dc3545;
+}
+
+.btn-red:hover {
+  background-color: #c82333;
+}
+
+/* Aggiunta delle icone per i pulsanti */
+i {
+  margin-right: 8px;
+}
