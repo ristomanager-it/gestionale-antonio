@@ -116,7 +116,7 @@ textarea {
 
 /* 3 linee grandi */
 .menu-icon {
-  font-size: 36px;
+  font-size: 40px;
   line-height: 1;
   color: var(--color-text);
   font-weight: 600;
@@ -124,7 +124,7 @@ textarea {
 
 /* scritta sotto */
 .menu-label {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--color-text-muted);
 }
@@ -174,12 +174,12 @@ textarea {
   justify-content: center;
 
   font-weight: 600;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 /* nome */
 .header-user-name {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   white-space: nowrap;
 }
