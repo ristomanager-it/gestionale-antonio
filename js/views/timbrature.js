@@ -1,4 +1,4 @@
-// views/timbrature.js
+/* views/timbrature.js */
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -23,7 +23,7 @@ function toNum(n) {
 }
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
+  const R = 6371000; // Radius of Earth in meters
   const toRad = (d) => (d * Math.PI) / 180;
 
   const p1 = toRad(lat1);
@@ -36,7 +36,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
     Math.cos(p1) * Math.cos(p2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * c; // Returns distance in meters
 }
 
 function getPosition(options = {}) {
@@ -106,13 +106,13 @@ async function fetchRecent(aziendaId, dipendenteId, limit = 10) {
 function tipoToLabel(tipo) {
   switch (tipo) {
     case "inizio_turno":
-      return "Entrata";
+      return "Entrata 🟢";
     case "inizio_pausa":
-      return "Inizia pausa";
+      return "Inizia pausa ⏸️";
     case "fine_pausa":
-      return "Rientro da pausa";
+      return "Rientro da pausa 🛑";
     case "fine_turno":
-      return "Fine turno";
+      return "Fine turno ❌";
     default:
       return tipo || "-";
   }
@@ -136,7 +136,7 @@ function computeUiFromLastTipo(lastTipo) {
     ui.stato = "In turno";
     ui.primaryLabel = "Entrata 🟢";
     ui.primaryAction = "inizio_turno";
-    ui.primaryEnabled = false; // entrata non ripetibile in turno
+    ui.primaryEnabled = false; // Entrata non ripetibile in turno
     ui.pausaEnabled = true;
     ui.fineEnabled = true;
     return ui;
@@ -195,6 +195,18 @@ export async function render(app) {
   const dipendenteId = user.id;
   const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
 
+  // Nascondiamo le timbrature per utenti senza permessi di admin, superadmin, manager
+  if (!["admin", "superadmin", "manager"].includes(ruolo)) {
+    app.innerHTML = `
+      <div class="login-wrapper">
+        <div class="login-card">
+          <h3>Le timbrature sono visibili solo a utenti con permessi di amministrazione o manager.</h3>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   app.innerHTML = `
     <div class="page">
       <div class="page-header">
@@ -206,9 +218,9 @@ export async function render(app) {
         <div id="tb-status" style="opacity:.75;">Caricamento stato...</div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-          <button id="btn-primary" class="btn-green">Entrata 🟢</button>
-          <button id="btn-pausa" class="btn-gray">Inizia Pausa ⏸️</button>
-          <button id="btn-fine" class="btn-red">Fine Turno ❌</button>
+          <button id="btn-primary" class="btn-large btn-green">Entrata 🟢</button>
+          <button id="btn-pausa" class="btn-large btn-gray">Inizia Pausa ⏸️</button>
+          <button id="btn-fine" class="btn-large btn-red">Fine Turno ❌</button>
         </div>
 
         <div id="tb-last-geo" style="margin-top:12px; opacity:.75;"></div>
@@ -422,18 +434,3 @@ export async function render(app) {
   });
 
   elPausa.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato !== "In turno") return;
-    await doTimbratura("inizio_pausa");
-  });
-
-  elFine.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato === "Fuori turno") return;
-    await doTimbratura("fine_turno");
-  });
-
-  await refreshUi();
-}
