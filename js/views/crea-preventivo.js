@@ -225,3 +225,57 @@ export async function render(container) {
     window.location.hash = "#/preventivi";
   }
 }
+// Funzione per inviare il preventivo via email
+async function emailCurrentPreventivoViaMailto() {
+  const clienteEmail = document.getElementById('preventivo-cliente-email').value;
+  if (!clienteEmail) {
+    alert("Inserisci l'email del cliente.");
+    return;
+  }
+
+  const clienteNome = document.getElementById('preventivo-cliente-nome').value;
+  const clienteCognome = document.getElementById('preventivo-cliente-cognome').value;
+  const dataEvento = document.getElementById('preventivo-data-evento').value;
+  const tipologiaEvento = document.getElementById('preventivo-titolo').value;
+  const totale = document.getElementById('preventivo-totale').value;
+
+  const subject = `Preventivo per il tuo evento - ${tipologiaEvento}`;
+  const body = `
+    Gentile ${clienteNome} ${clienteCognome},<br><br>
+    Ti inviamo il preventivo per il tuo evento:<br>
+    Tipo di evento: ${tipologiaEvento}<br>
+    Data evento: ${dataEvento}<br>
+    Totale: €${totale}<br><br>
+    Grazie,<br>Il team.
+  `;
+
+  const mailtoLink = `mailto:${clienteEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoLink;
+}
+// Funzione per la stampa del preventivo
+function printCurrentPreventivo() {
+  const clienteNome = document.getElementById('preventivo-cliente-nome').value;
+  const clienteCognome = document.getElementById('preventivo-cliente-cognome').value;
+  const dataEvento = document.getElementById('preventivo-data-evento').value;
+  const tipologiaEvento = document.getElementById('preventivo-titolo').value;
+  const totale = document.getElementById('preventivo-totale').value;
+
+  const menuElenco = currentPreventivoMenu.map(r => r.nome_piatto).join(', ');
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html>
+      <head><title>Preventivo</title></head>
+      <body>
+        <h1>Preventivo per il tuo evento</h1>
+        <p><strong>Cliente:</strong> ${clienteNome} ${clienteCognome}</p>
+        <p><strong>Data evento:</strong> ${dataEvento}</p>
+        <p><strong>Tipo evento:</strong> ${tipologiaEvento}</p>
+        <p><strong>Menù proposto:</strong> ${menuElenco}</p>
+        <p><strong>Totale:</strong> €${totale}</p>
+        <button onclick="window.print()">Stampa</button>
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
