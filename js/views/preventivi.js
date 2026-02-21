@@ -1,135 +1,160 @@
-import { sb } from "../supabaseClient.js"; // Importa il client Supabase
+// ============================================================
+// PREVENTIVI – Lista e Dettaglio Preventivo
+// ============================================================
 
-const preventiviListContainer = document.getElementById('preventivi-list');
-const preventivoForm = document.getElementById('preventivo-form');
-const inputPrevId = document.getElementById('preventivo-id');
-const btnSavePreventivo = document.getElementById('btn-save-preventivo');
-const btnNewPreventivo = document.getElementById('btn-new-preventivo');
-const inputClienteId = document.getElementById('preventivo-cliente-id');
+let preventiviCache = [];
 
-// Gestione della visualizzazione dei preventivi
+export async function render(app) {
+
+  app.innerHTML = `
+    <section class="view">
+
+      <div style="margin-bottom:12px;">
+        <button class="app-button small gray"
+          onclick="window.location.hash='#/home'">
+          ← Torna alla Home
+        </button>
+      </div>
+
+      <h2>📑 Preventivi</h2>
+
+      <div style="margin-bottom:20px;">
+        <button class="app-button small"
+          onclick="window.location.hash='#/creaPreventivo'">
+          + Crea Nuovo Preventivo
+        </button>
+      </div>
+
+      <div id="preventivi-list"></div> <!-- Qui visualizzeremo la lista dei preventivi -->
+
+    </section>
+  `;
+
+  // Carichiamo i preventivi
+  await loadPreventivi();
+}
+
+/* ============================================================ */
+/* LOAD PREVENTIVI */
+/* ============================================================ */
+
 async function loadPreventivi() {
-  preventiviListContainer.innerHTML = '<p class="small-muted">Caricamento preventivi...</p>';
 
-  const { data, error } = await sb
-    .from('preventivi')
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+
+  if (!aziendaId) {
+    console.warn("Nessuna azienda attiva per i preventivi");
+    preventiviCache = [];
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("preventivi")
     .select(`
       id,
       titolo_evento,
       data_evento,
-      n_invitati,
-      stato,
       totale,
-      contatti:cliente_id (
-        id,
+      stato,
+      cliente_id (
         nome,
         cognome
       )
     `)
-    .eq('azienda_id', window.state.azienda.id) // Filtro per azienda
-    .order('data_evento', { ascending: true });
+    .eq("azienda_id", aziendaId)  // Filtro per azienda
+    .order("data_evento", { ascending: true });
 
   if (error) {
-    console.error('Errore nel caricamento dei preventivi:', error);
-    preventiviListContainer.innerHTML = '<p class="text-error">Errore nel caricamento dei preventivi.</p>';
+    console.error("Errore caricamento preventivi:", error);
+    preventiviCache = [];
     return;
   }
 
-  renderPreventiviList(data);
+  preventiviCache = data || [];
+
+  renderPreventiviList();
 }
 
-// Funzione per renderizzare la lista dei preventivi
-function renderPreventiviList(preventivi) {
-  preventiviListContainer.innerHTML = preventivi.length
-    ? preventivi.map(p => `
-        <div class="preventivo-list-item" data-id="${p.id}">
-          <span class="preventivo-titolo">${p.titolo_evento}</span>
-          <span class="preventivo-data">${new Date(p.data_evento).toLocaleDateString()}</span>
-          <span class="preventivo-stato">${p.stato}</span>
-        </div>
-      `).join('')
-    : '<p class="small-muted">Nessun preventivo trovato.</p>';
+/* ============================================================ */
+/* RENDER LISTA PREVENTIVI */
+/* ============================================================ */
 
-  // Aggiungi il listener per aprire il preventivo selezionato
-  document.querySelectorAll('.preventivo-list-item').forEach(item => {
-    item.addEventListener('click', () => openPreventivo(item.dataset.id));
+function renderPreventiviList() {
+  const preventiviListContainer = document.getElementById("preventivi-list");
+  if (!preventiviListContainer) return;
+
+  if (!preventiviCache.length) {
+    preventiviListContainer.innerHTML = `
+      <p class="small-muted">Nessun preventivo trovato.</p>
+    `;
+    return;
+  }
+
+  const html = preventiviCache
+    .map((p) => {
+      const clienteNome = p.cliente_id
+        ? `${p.cliente_id.nome || ''} ${p.cliente_id.cognome || ''}`.trim()
+        : 'Senza cliente';
+      const dataEvento = p.data_evento
+        ? new Date(p.data_evento).toLocaleDateString()
+        : '—';
+      const totale = Number(p.totale || 0).toFixed(2);
+
+      return `
+        <div class="preventivo-list-item" data-id="${p.id}">
+          <div class="preventivo-list-main">
+            <span class="preventivo-data">${dataEvento}</span>
+            <span class="preventivo-titolo">${p.titolo_evento || '(Senza tipologia)'}</span>
+          </div>
+          <div class="preventivo-list-sub">
+            <span class="preventivo-cliente">${clienteNome}</span>
+            <span class="preventivo-totale">€ ${totale}</span>
+            <span class="preventivo-stato badge stato-${p.stato}">${p.stato}</span>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  preventiviListContainer.innerHTML = html;
+
+  preventiviListContainer.querySelectorAll('.preventivo-list-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      const id = Number(el.getAttribute('data-id'));
+      openPreventivo(id);  // Funzione per aprire il preventivo
+    });
   });
 }
 
-// Funzione per aprire un preventivo (per modifica o dettaglio)
-async function openPreventivo(id) {
-  const { data: preventivo, error } = await sb
+/* ============================================================ */
+/* VISUALIZZAZIONE DETTAGLI PREVENTIVO */
+/* ============================================================ */
+
+async function openPreventivo(preventivoId) {
+  // Funzione per caricare e mostrare i dettagli di un preventivo
+  const supabase = window.supabaseClient;
+
+  const { data: preventivo, error } = await supabase
     .from('preventivi')
     .select('*')
-    .eq('id', id)
-    .eq('azienda_id', window.state.azienda.id) // Verifica che l'azienda sia corretta
+    .eq('id', preventivoId)
     .single();
 
   if (error || !preventivo) {
-    alert('Preventivo non trovato o non appartiene all\'azienda.');
+    alert('Preventivo non trovato.');
     return;
   }
 
-  fillPreventivoForm(preventivo);
+  // Render dettagli preventivo
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <section class="view">
+      <h2>Preventivo #${preventivoId}</h2>
+      <p><strong>Cliente:</strong> ${preventivo.cliente_id.nome} ${preventivo.cliente_id.cognome}</p>
+      <p><strong>Data evento:</strong> ${new Date(preventivo.data_evento).toLocaleDateString()}</p>
+      <p><strong>Totale:</strong> € ${preventivo.totale}</p>
+      <button class="app-button small gray" onclick="window.location.hash='#/preventivi'">← Indietro</button>
+    </section>
+  `;
 }
-
-// Funzione per riempire il form con i dati del preventivo
-function fillPreventivoForm(preventivo) {
-  inputPrevId.value = preventivo.id;
-  inputClienteId.value = preventivo.cliente_id;
-
-  // Popola i campi del form con i dati del preventivo
-  document.getElementById('preventivo-titolo').value = preventivo.titolo_evento;
-  document.getElementById('preventivo-data-evento').value = preventivo.data_evento;
-  document.getElementById('preventivo-n-invitati').value = preventivo.n_invitati;
-  document.getElementById('preventivo-location').value = preventivo.location;
-  document.getElementById('preventivo-stato').value = preventivo.stato;
-  document.getElementById('preventivo-acconto').value = preventivo.acconto;
-  document.getElementById('preventivo-totale').value = preventivo.totale;
-}
-
-// Funzione per creare un nuovo preventivo
-function createNewPreventivo() {
-  preventivoForm.reset();
-  inputPrevId.value = '';
-  loadPreventivi(); // Ricarica la lista per vedere il nuovo preventivo appena creato
-}
-
-// Funzione per salvare un preventivo
-async function savePreventivo() {
-  const clienteId = inputClienteId.value;
-  const titoloEvento = document.getElementById('preventivo-titolo').value;
-  const dataEvento = document.getElementById('preventivo-data-evento').value;
-  const nInvitati = document.getElementById('preventivo-n-invitati').value;
-  const stato = document.getElementById('preventivo-stato').value;
-  const totale = document.getElementById('preventivo-totale').value;
-
-  const preventivoData = {
-    cliente_id: clienteId,
-    titolo_evento: titoloEvento,
-    data_evento: dataEvento,
-    n_invitati: nInvitati,
-    stato: stato,
-    totale: totale,
-    azienda_id: window.state.azienda.id // Associa l'azienda attiva
-  };
-
-  if (inputPrevId.value) {
-    // Modifica un preventivo esistente
-    await sb.from('preventivi').update(preventivoData).eq('id', inputPrevId.value);
-  } else {
-    // Crea un nuovo preventivo
-    await sb.from('preventivi').insert(preventivoData);
-  }
-
-  loadPreventivi(); // Ricarica la lista dei preventivi
-}
-
-// Ascoltatore per il salvataggio del preventivo
-btnSavePreventivo.addEventListener('click', savePreventivo);
-
-// Ascoltatore per il nuovo preventivo
-btnNewPreventivo.addEventListener('click', createNewPreventivo);
-
-// Inizializza la vista dei preventivi al caricamento della pagina
-loadPreventivi();
