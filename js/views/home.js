@@ -1,7 +1,7 @@
 // js/views/home.js
 // =======================================
 // Dashboard Operativa Dinamica SaaS
-// Versione con Sezioni (senza refactor architetturale)
+// Versione con Sezioni (senza refactor architettale)
 // =======================================
 
 export async function render(container) {
@@ -20,7 +20,9 @@ export async function render(container) {
         { key: "produzione", label: "Produzione", icon: "🏭" },
         { key: "magazzino", label: "Magazzino", icon: "📦" },
         { key: "ricettario", label: "Ricettario", icon: "📖" },
-        { key: "preparazioni", label: "Preparazioni", icon: "🥣" }
+        { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
+        // Aggiunto il modulo Timbrature qui
+        { key: "timbrature", label: "Timbrature", icon: "🕒" } // Modulo Timbrature
       ]
     },
     {
@@ -58,7 +60,6 @@ export async function render(container) {
     <div class="view">
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
-
         ${
           azienda.stato === "piattaforma"
             ? `
@@ -88,7 +89,6 @@ export async function render(container) {
         margin-bottom:32px;
         flex-wrap:wrap;
       ">
-
         ${
           azienda.logo_url
             ? `<img 
