@@ -125,7 +125,7 @@ function computeUiFromLastTipo(lastTipo) {
   // - Fine turno (solo quando in turno o in pausa)
   const ui = {
     stato: "Fuori turno",
-    primaryLabel: "Entrata",
+    primaryLabel: "Entrata 🟢",
     primaryAction: "inizio_turno",
     primaryEnabled: true,
     pausaEnabled: false,
@@ -134,7 +134,7 @@ function computeUiFromLastTipo(lastTipo) {
 
   if (lastTipo === "inizio_turno" || lastTipo === "fine_pausa") {
     ui.stato = "In turno";
-    ui.primaryLabel = "Entrata";
+    ui.primaryLabel = "Entrata 🟢";
     ui.primaryAction = "inizio_turno";
     ui.primaryEnabled = false; // entrata non ripetibile in turno
     ui.pausaEnabled = true;
@@ -144,7 +144,7 @@ function computeUiFromLastTipo(lastTipo) {
 
   if (lastTipo === "inizio_pausa") {
     ui.stato = "In pausa";
-    ui.primaryLabel = "Rientro da pausa";
+    ui.primaryLabel = "Rientro da pausa ⏸️";
     ui.primaryAction = "fine_pausa";
     ui.primaryEnabled = true;
     ui.pausaEnabled = false;
@@ -153,6 +153,7 @@ function computeUiFromLastTipo(lastTipo) {
   }
 
   if (lastTipo === "fine_turno") {
+    ui.primaryLabel = "Fine turno ❌";
     return ui;
   }
 
@@ -178,6 +179,7 @@ function buildGeoResultView(geo_esito, geo_motivo) {
 export async function render(app) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
+  const ruolo = window.state?.ruolo;
 
   if (!azienda || !user) {
     app.innerHTML = `
@@ -204,9 +206,9 @@ export async function render(app) {
         <div id="tb-status" style="opacity:.75;">Caricamento stato...</div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-          <button id="btn-primary">...</button>
-          <button id="btn-pausa">Inizia pausa</button>
-          <button id="btn-fine">Fine turno</button>
+          <button id="btn-primary" class="btn-green">Entrata 🟢</button>
+          <button id="btn-pausa" class="btn-gray">Inizia Pausa ⏸️</button>
+          <button id="btn-fine" class="btn-red">Fine Turno ❌</button>
         </div>
 
         <div id="tb-last-geo" style="margin-top:12px; opacity:.75;"></div>
@@ -244,12 +246,7 @@ export async function render(app) {
           : "rgba(0,0,0,.10)";
 
     elMsg.innerHTML = `
-      <div style="
-        padding:10px 12px;
-        border-radius:10px;
-        background:${bg};
-        border:1px solid ${border};
-      ">${text}</div>
+      <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">${text}</div>
     `;
   }
 
@@ -285,12 +282,9 @@ export async function render(app) {
             ? `<span style="opacity:.7;">• ${Number(r.lat).toFixed(6)}, ${Number(r.lon).toFixed(6)} ± ${r.accuracy_m != null ? Number(r.accuracy_m).toFixed(0) : "?"}m</span>`
             : `<span style="opacity:.7;">• posizione non disponibile</span>`;
 
-        return `
+        return `        
           <div style="padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.06);">
-            <div>
-              <strong>${escapeHtml(tipoToLabel(r.tipo))}</strong>
-              <span style="opacity:.7;">• ${escapeHtml(formatDateTime(r.timestamp))}</span>
-            </div>
+            <div><strong>${escapeHtml(tipoToLabel(r.tipo))}</strong> • ${escapeHtml(formatDateTime(r.timestamp))}</div>
             <div style="opacity:.7;">${geo} ${coords}</div>
           </div>
         `;
