@@ -60,7 +60,7 @@ textarea {
 }
 
 /* ========================================================= */
-/* ================= HEADER DEFINITIVA ===================== */
+/* ================= HEADER DEFINITIVA V2 ================== */
 /* ========================================================= */
 
 .app-header {
@@ -68,7 +68,7 @@ textarea {
   top: 0;
   left: 0;
   width: 100%;
-  height: 80px;
+  height: 95px;
 
   background: var(--color-bg-header);
 
@@ -76,7 +76,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 24px;
+  padding: 0 28px;
 
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-soft);
@@ -94,7 +94,7 @@ textarea {
   align-items: center;
 }
 
-/* SINISTRA */
+/* ================= SINISTRA ================= */
 
 .header-left {
   justify-content: flex-start;
@@ -104,33 +104,51 @@ textarea {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 26px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+}
+
+/* Hamburger più grande */
+.menu-icon {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
   color: var(--color-text);
 }
 
+/* Scritta Menù sotto */
 .menu-label {
-  display: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
-/* CENTRO */
+/* ================= CENTRO ================= */
 
 .header-center {
   justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .header-logo {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
 .header-azienda-nome {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
+  text-align: center;
 }
 
-/* DESTRA */
+/* ================= DESTRA ================= */
 
 .header-right {
   justify-content: flex-end;
@@ -138,32 +156,35 @@ textarea {
 
 .header-profile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
 .header-avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--color-primary-dark);
   color: #ffffff;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .header-user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .logout-link {
   background: none;
   border: none;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-muted);
   cursor: pointer;
 }
