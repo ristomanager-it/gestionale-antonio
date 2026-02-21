@@ -2,12 +2,12 @@
 /* ================= RISTOFLOW DESIGN SYSTEM =============== */
 /* ========================================================= */
 
- :root {
+:root {
 
   /* ===== BRAND VERDE ANTICO ===== */
 
-  --color-primary: #4F6228;        /* Verde oliva antico */
-  --color-primary-soft: #5C7030;   /* sfumatura più chiara */
+  --color-primary: #4F6228;
+  --color-primary-soft: #5C7030;
   --color-primary-dark: #3E4D1F;
 
   --color-accent: #E67E22;
@@ -29,6 +29,7 @@
   --radius-card: 18px;
   --radius-button: 14px;
 }
+
 /* ========================================================= */
 /* ================= RESET BASE ============================ */
 /* ========================================================= */
@@ -43,19 +44,13 @@ html,
 body {
   margin: 0;
   padding: 0;
-
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
   color: var(--color-text);
-
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-
   -webkit-font-smoothing: antialiased;
 }
-
-/* Safari mobile zoom fix */
 
 button,
 input,
@@ -65,7 +60,7 @@ textarea {
 }
 
 /* ========================================================= */
-/* ================= HEADER ================================ */
+/* ================= HEADER DEFINITIVA ===================== */
 /* ========================================================= */
 
 .app-header {
@@ -73,7 +68,7 @@ textarea {
   top: 0;
   left: 0;
   width: 100%;
-  height: 120px;
+  height: 80px;
 
   background: var(--color-bg-header);
 
@@ -81,7 +76,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 30px;
+  padding: 0 24px;
 
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-soft);
@@ -89,69 +84,80 @@ textarea {
   z-index: 1000;
 }
 
-/* LEFT */
+/* 3 COLONNE */
+
+.header-left,
+.header-center,
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* SINISTRA */
 
 .header-left {
-  width: 140px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: flex-start;
 }
 
 .menu-toggle {
   background: none;
   border: none;
   cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  font-size: 28px;
+  font-size: 26px;
   color: var(--color-text);
 }
 
 .menu-label {
-  font-size: 13px;
-  margin-top: 6px;
-  color: var(--color-text-muted);
+  display: none;
 }
 
-/* CENTER */
+/* CENTRO */
 
 .header-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .header-logo {
-  width: 64px;
-  height: 64px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  margin-bottom: 8px;
 }
 
 .header-azienda-nome {
   font-size: 18px;
-  font-weight: 700;
-  text-align: center;
+  font-weight: 600;
 }
 
-/* RIGHT */
+/* DESTRA */
 
 .header-right {
-  width: 140px;
+  justify-content: flex-end;
+}
+
+.header-profile {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 10px;
+}
+
+.header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary-dark);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .header-user-name {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .logout-link {
@@ -173,7 +179,7 @@ textarea {
 #app {
   width: 100%;
   padding: 24px 16px;
-  margin-top: 130px;
+  margin-top: 80px;
 
   display: flex;
   justify-content: center;
@@ -184,7 +190,7 @@ textarea {
     var(--color-primary-soft) 100%
   );
 
-  min-height: calc(100vh - 130px);
+  min-height: calc(100vh - 80px);
 }
 
 /* ========================================================= */
@@ -194,12 +200,9 @@ textarea {
 .view {
   width: 100%;
   max-width: 100%;
-
   background: var(--color-card);
   border-radius: var(--radius-card);
-
   padding: 22px;
-
   box-shadow: var(--shadow-medium);
 }
 
@@ -229,8 +232,6 @@ textarea {
   transition: all 0.2s ease;
 }
 
-/* Verde oliva */
-
 .app-button.primary {
   background: var(--color-primary);
   color: #ffffff;
@@ -239,8 +240,6 @@ textarea {
 .app-button.primary:hover {
   background: var(--color-primary-dark);
 }
-
-/* Arancio */
 
 .app-button.accent {
   background: var(--color-accent);
@@ -251,14 +250,10 @@ textarea {
   background: var(--color-accent-dark);
 }
 
-/* Neutro */
-
 .app-button.gray {
   background: #ECEDE9;
   color: var(--color-text);
 }
-
-/* Danger */
 
 .app-button.red {
   background: #B91C1C;
@@ -318,27 +313,4 @@ textarea {
     max-width: 1100px;
   }
 
-}
-/* ========================================================= */
-/* ================= AVATAR HEADER ========================= */
-/* ========================================================= */
-
-.header-profile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.header-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: var(--color-primary-dark);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 14px;
 }
