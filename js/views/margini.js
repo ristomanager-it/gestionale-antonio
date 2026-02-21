@@ -14,6 +14,16 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
+      <!-- Torna Indietro Button -->
+      <div style="margin-bottom:20px;">
+        <button 
+          class="app-button small gray"
+          onclick="window.history.back();"
+        >
+          ⬅ Torna alla Dashboard
+        </button>
+      </div>
+
       <h2 style="margin-bottom:20px;">💰 Margini & Profit Intelligence</h2>
 
       <!-- KPI SUMMARY -->
