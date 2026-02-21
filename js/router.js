@@ -21,6 +21,8 @@ const routes = {
   ricettario: () => import("./views/ricettario.js"),
   creaRicetta: () => import("./views/crea-ricetta.js"),
   preparazioni: () => import("./views/preparazioni.js"),
+
+  venduto: () => import("./views/venduto.js"),
 };
 
 /* =========================================================
