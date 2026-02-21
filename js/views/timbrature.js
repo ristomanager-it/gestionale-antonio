@@ -1,445 +1,347 @@
 /* views/timbrature.js */
 
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+// Funzione per caricare le timbrature da Supabase
+async function caricaTimbratureDaSupabase() {
+  if (!supabase) return;
 
-function formatDateTime(value) {
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return String(value ?? "");
-  }
-}
-
-function toNum(n) {
-  const x = Number(n);
-  return Number.isFinite(x) ? x : null;
-}
-
-function haversineMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // Radius of Earth in meters
-  const toRad = (d) => (d * Math.PI) / 180;
-
-  const p1 = toRad(lat1);
-  const p2 = toRad(lat2);
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(p1) * Math.cos(p2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Returns distance in meters
-}
-
-function getPosition(options = {}) {
-  return new Promise((resolve, reject) => {
-    if (!("geolocation" in navigator)) {
-      const err = new Error("GEO_UNSUPPORTED");
-      err.code = "GEO_UNSUPPORTED";
-      reject(err);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve(pos),
-      (err) => reject(err),
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
-        ...options,
-      }
-    );
-  });
-}
-
-async function fetchActiveGeofences(aziendaId) {
-  const { data, error } = await window.supabaseClient
-    .from("geofence_aziende")
-    .select("id, nome, lat, lon, raggio_m, attivo")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true);
-
-  if (error) throw error;
-  return data || [];
-}
-
-async function insertTimbratura(payload) {
-  const { error } = await window.supabaseClient.from("timbrature").insert([payload]);
-  if (error) throw error;
-}
-
-async function fetchLastTipo(aziendaId, dipendenteId) {
-  const { data, error } = await window.supabaseClient
+  const { data, error } = await supabase
     .from("timbrature")
-    .select("tipo, timestamp")
-    .eq("azienda_id", aziendaId)
-    .eq("dipendente_id", dipendenteId)
-    .order("timestamp", { ascending: false })
-    .limit(1);
+    .select("*")
+    .order("timestamp", { ascending: true });
 
-  if (error) throw error;
-  const row = (data || [])[0];
-  return row?.tipo || null;
-}
-
-async function fetchRecent(aziendaId, dipendenteId, limit = 10) {
-  const { data, error } = await window.supabaseClient
-    .from("timbrature")
-    .select("tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m")
-    .eq("azienda_id", aziendaId)
-    .eq("dipendente_id", dipendenteId)
-    .order("timestamp", { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return data || [];
-}
-
-function tipoToLabel(tipo) {
-  switch (tipo) {
-    case "inizio_turno":
-      return "Entrata 🟢";
-    case "inizio_pausa":
-      return "Inizia pausa ⏸️";
-    case "fine_pausa":
-      return "Rientro da pausa 🛑";
-    case "fine_turno":
-      return "Fine turno ❌";
-    default:
-      return tipo || "-";
-  }
-}
-
-function computeUiFromLastTipo(lastTipo) {
-  const ui = {
-    stato: "Fuori turno",
-    primaryLabel: "Entrata 🟢",
-    primaryAction: "inizio_turno",
-    primaryEnabled: true,
-    pausaEnabled: false,
-    fineEnabled: false,
-  };
-
-  if (lastTipo === "inizio_turno" || lastTipo === "fine_pausa") {
-    ui.stato = "In turno";
-    ui.primaryLabel = "Entrata 🟢";
-    ui.primaryAction = "inizio_turno";
-    ui.primaryEnabled = false;
-    ui.pausaEnabled = true;
-    ui.fineEnabled = true;
-    return ui;
-  }
-
-  if (lastTipo === "inizio_pausa") {
-    ui.stato = "In pausa";
-    ui.primaryLabel = "Rientro da pausa ⏸️";
-    ui.primaryAction = "fine_pausa";
-    ui.primaryEnabled = true;
-    ui.pausaEnabled = false;
-    ui.fineEnabled = true;
-    return ui;
-  }
-
-  if (lastTipo === "fine_turno") {
-    ui.primaryLabel = "Fine turno ❌";
-    return ui;
-  }
-
-  return ui;
-}
-
-function buildGeoResultView(geo_esito, geo_motivo) {
-  if (!geo_esito) return `<span style="opacity:.7;">—</span>`;
-  const ok = geo_esito === "OK";
-  const badge = `<span style="
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:700;
-    border:1px solid rgba(0,0,0,.12);
-  ">${escapeHtml(geo_esito)}</span>`;
-
-  const motive = geo_motivo ? ` <span style="opacity:.7;">(${escapeHtml(geo_motivo)})</span>` : "";
-  return `${ok ? badge : badge}${motive}`;
-}
-
-export async function render(app) {
-  const azienda = window.state?.azienda;
-  const user = window.state?.user;
-  const ruolo = window.state?.ruolo;
-
-  if (!azienda || !user) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Sessione non valida</h3>
-        </div>
-      </div>
-    `;
+  if (error) {
+    console.error("Errore caricamento timbrature:", error);
+    alert("Errore nel caricare le timbrature da Supabase");
     return;
   }
 
-  const dipendenteId = user.id;
-  const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
+  timbrature = (data || []).map((row) => ({
+    id: row.id,
+    dipendente_id: row.dipendente_id || null,
+    dip: row.dip_nome,
+    canale: row.canale,
+    tipo: row.tipo,
+    ora: row.ora,
+    timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
+  }));
 
-  // Nascondiamo le timbrature per utenti senza permessi di admin, superadmin, manager
-  if (!["admin", "superadmin", "manager"].includes(ruolo)) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Le timbrature sono visibili solo a utenti con permessi di amministrazione o manager.</h3>
-        </div>
-      </div>
+  aggiornaTabellaTimbrature();
+  aggiornaRiepilogo();
+}
+
+// Funzione per formattare la durata in ore e minuti
+function formatDurationMinutes(totalMinutes) {
+  const ore = Math.floor(totalMinutes / 60);
+  const min = Math.round(totalMinutes % 60);
+  return `${ore}h ${min.toString().padStart(2, "0")}m`;
+}
+
+// Funzione per aggiornare la tabella delle timbrature
+function aggiornaTabellaTimbrature() {
+  if (!lista) return;
+  lista.innerHTML = "";
+
+  timbrature.forEach((t) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.ora || ""}</td>
+      <td>${t.dip}</td>
+      <td>${t.canale}</td>
+      <td>${t.tipo}</td>
     `;
-    return;
+    lista.appendChild(tr);
+  });
+}
+
+// Funzione per ottenere lo stato corrente di un dipendente
+function getStatoCorrenteDipendente(nomeDip) {
+  const eventiDip = timbrature
+    .filter((t) => t.dip === nomeDip && t.timestamp)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  let inside = false;
+  let canaleCorrente = null;
+
+  for (const ev of eventiDip) {
+    if (ev.tipo === "Entrata") {
+      inside = true;
+      canaleCorrente = ev.canale;
+    } else if (ev.tipo === "Uscita") {
+      inside = false;
+      canaleCorrente = null;
+    }
   }
 
-  app.innerHTML = `
-    <div class="page" style="background-color: white;">
-      <div class="page-header">
-        <h2>Timbrature</h2>
-        <div style="opacity:.7; margin-top:4px;">Azienda: ${escapeHtml(azienda.nome || "")}</div>
-      </div>
+  return { inside, canaleCorrente };
+}
 
-      <div class="card" style="margin-top:12px;">
-        <div id="tb-status" style="opacity:.75;">Caricamento stato...</div>
+// Funzione per aggiornare la lista delle presenze dei dipendenti
+function aggiornaPresenzeDipendenti() {
+  if (!presenzeListaEl) return;
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-          <button id="btn-primary" class="btn-large btn-green">Entrata 🟢</button>
-          <button id="btn-pausa" class="btn-large btn-gray">Inizia Pausa ⏸️</button>
-          <button id="btn-fine" class="btn-large btn-red">Fine Turno ❌</button>
-        </div>
+  presenzeListaEl.innerHTML = "";
 
-        <div id="tb-last-geo" style="margin-top:12px; opacity:.75;"></div>
-        <div id="tb-msg" style="margin-top:10px;"></div>
-      </div>
+  dipendenti.forEach((d) => {
+    if (!d || !d.nome) return;
+    const stato = getStatoCorrenteDipendente(d.nome);
+    const inside = stato.inside;
+    const canale = inside ? stato.canaleCorrente || "-" : "-";
 
-      <!-- Sezione per timbrature -->
-      <div class="card" id="timbrature-section" style="margin-top:12px; display:none;">
-        <h3 style="margin:0 0 10px 0;">Ultime timbrature</h3>
-        <div id="tb-list" style="opacity:.75;">Caricamento...</div>
-      </div>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.nome}</td>
+      <td>${canale}</td>
+      <td>${inside ? "Dentro" : "Fuori"}</td>
+    `;
+    presenzeListaEl.appendChild(tr);
+  });
+}
 
-      <!-- Pulsante per mostrare timbrature -->
-      <div style="margin-top:20px;">
-        <button id="btn-show-timbrature" class="btn-large btn-gray">Mostra Timbrature 📋</button>
-      </div>
-    </div>
-  `;
+// Funzione per aggiornare il riepilogo delle presenze
+function aggiornaRiepilogo() {
+  if (
+    !riepilogoDipEl ||
+    !riepilogoCanaliEl ||
+    !attiviListaEl ||
+    !costoDipEl ||
+    !costoCanaliEl
+  )
+    return;
 
-  const elStatus = app.querySelector("#tb-status");
-  const elPrimary = app.querySelector("#btn-primary");
-  const elPausa = app.querySelector("#btn-pausa");
-  const elFine = app.querySelector("#btn-fine");
-  const elShowTimbrature = app.querySelector("#btn-show-timbrature");
-  const elMsg = app.querySelector("#tb-msg");
-  const elList = app.querySelector("#tb-list");
-  const elLastGeo = app.querySelector("#tb-last-geo");
-  const elTimbratureSection = app.querySelector("#timbrature-section");
+  const perDip = {};
+  const perCanale = {};
 
-  // Funzione per mostrare/nascondere le timbrature
-  elShowTimbrature.addEventListener("click", () => {
-    elTimbratureSection.style.display =
-      elTimbratureSection.style.display === "none" ? "block" : "none";
-    elShowTimbrature.textContent =
-      elTimbratureSection.style.display === "none"
-        ? "Mostra Timbrature 📋"
-        : "Nascondi Timbrature ❌";
+  const adessoDate = new Date();
+  const adesso = adessoDate.getTime();
+
+  const startGiorno = new Date(adessoDate);
+  startGiorno.setHours(0, 0, 0, 0);
+
+  const startSettimana = new Date(startGiorno);
+  const day = startSettimana.getDay() || 7;
+  startSettimana.setDate(startSettimana.getDate() - (day - 1));
+
+  const startMese = new Date(
+    adessoDate.getFullYear(),
+    adessoDate.getMonth(),
+    1
+  );
+  startMese.setHours(0, 0, 0, 0);
+
+  let startPeriodoMs = startGiorno.getTime();
+  if (periodoCorrente === "settimana")
+    startPeriodoMs = startSettimana.getTime();
+  if (periodoCorrente === "mese") startPeriodoMs = startMese.getTime();
+
+  const eventiPeriodo = timbrature.filter((t) => {
+    if (!t.timestamp) return false;
+    const ts = t.timestamp;
+    return ts >= startPeriodoMs && ts <= adesso;
   });
 
-  async function refreshUi() {
-    elMsg.innerHTML = "";
+  const eventsByKey = {};
+  eventiPeriodo.forEach((t) => {
+    const key = `${t.dip}|${t.canale}`;
+    if (!eventsByKey[key]) eventsByKey[key] = [];
+    eventsByKey[key].push(t);
+  });
 
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
+  Object.entries(eventsByKey).forEach(([key, events]) => {
+    const [dip, canale] = key.split("|");
+    events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-    elStatus.textContent = `Stato attuale: ${ui.stato}`;
+    let aperto = null;
 
-    elPrimary.textContent = ui.primaryLabel;
-    elPrimary.disabled = !ui.primaryEnabled;
+    events.forEach((ev) => {
+      if (!ev.timestamp) return;
 
-    elPausa.disabled = !ui.pausaEnabled;
-    elFine.disabled = !ui.fineEnabled;
-
-    const rows = await fetchRecent(azienda.id, dipendenteId, 10);
-    if (!rows.length) {
-      elList.innerHTML = `<div style="opacity:.7;">Nessuna timbratura trovata.</div>`;
-      elLastGeo.innerHTML = "";
-      return;
-    }
-
-    const last = rows[0];
-    elLastGeo.innerHTML = `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`;
-
-    elList.innerHTML = rows
-      .map((r) => {
-        const geo = buildGeoResultView(r.geo_esito, r.geo_motivo);
-        const coords =
-          r.lat != null && r.lon != null
-            ? `<span style="opacity:.7;">• ${Number(r.lat).toFixed(6)}, ${Number(r.lon).toFixed(6)} ± ${r.accuracy_m != null ? Number(r.accuracy_m).toFixed(0) : "?"}m</span>`
-            : `<span style="opacity:.7;">• posizione non disponibile</span>`;
-
-        return `        
-          <div style="padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.06);">
-            <div><strong>${escapeHtml(tipoToLabel(r.tipo))}</strong> • ${escapeHtml(formatDateTime(r.timestamp))}</div>
-            <div style="opacity:.7;">${geo} ${coords}</div>
-          </div>
-        `;
-      })
-      .join("");
-  }
-
-  async function doTimbratura(tipo) {
-    elPrimary.disabled = true;
-    elPausa.disabled = true;
-    elFine.disabled = true;
-
-    setMsg("Acquisizione posizione...", "info");
-
-    const basePayload = {
-      azienda_id: azienda.id,
-      dipendente_id: dipendenteId,
-      dip_nome: dipNome,
-      canale: "web",
-      tipo,
-      timestamp: new Date().toISOString(),
-      device_info: navigator.userAgent || "unknown",
-      geo_ts: new Date().toISOString(),
-    };
-
-    let lat = null;
-    let lon = null;
-    let accuracy_m = null;
-
-    try {
-      const pos = await getPosition();
-      lat = toNum(pos?.coords?.latitude);
-      lon = toNum(pos?.coords?.longitude);
-      accuracy_m = toNum(pos?.coords?.accuracy);
-    } catch (err) {
-      const code = typeof err?.code === "number" ? err.code : null;
-      let motivo = "GEO_UNAVAILABLE";
-      if (err?.message === "GEO_UNSUPPORTED" || err?.code === "GEO_UNSUPPORTED") motivo = "GEO_UNSUPPORTED";
-      else if (code === 1) motivo = "GEO_DENIED";
-      else if (code === 2) motivo = "GEO_UNAVAILABLE";
-      else if (code === 3) motivo = "GEO_TIMEOUT";
-
-      try {
-        await insertTimbratura({
-          ...basePayload,
-          lat,
-          lon,
-          accuracy_m,
-          geo_esito: "KO",
-          geo_motivo: motivo,
-        });
-        setMsg(`Timbratura registrata, ma geolocalizzazione non disponibile (${escapeHtml(motivo)}).`, "error");
-      } catch (e2) {
-        setMsg(`Errore salvataggio timbratura: ${escapeHtml(e2.message || e2)}`, "error");
-      }
-
-      await refreshUi();
-      return;
-    }
-
-    let geo_esito = "KO";
-    let geo_motivo = "NO_GEOFENCE_CONFIGURED";
-
-    try {
-      const fences = await fetchActiveGeofences(azienda.id);
-
-      if (!fences.length) {
-        geo_esito = "KO";
-        geo_motivo = "NO_GEOFENCE_CONFIGURED";
-      } else if (lat == null || lon == null) {
-        geo_esito = "KO";
-        geo_motivo = "GEO_UNAVAILABLE";
-      } else {
-        let best = null;
-
-        for (const f of fences) {
-          const fLat = toNum(f.lat);
-          const fLon = toNum(f.lon);
-          const raggio = Number(f.raggio_m ?? 0);
-          if (fLat == null || fLon == null || !Number.isFinite(raggio) || raggio <= 0) continue;
-
-          const dist = haversineMeters(lat, lon, fLat, fLon);
-          if (!best || dist < best.dist) best = { f, dist, raggio };
+      if (ev.tipo === "Entrata") {
+        aperto = ev;
+      } else if (ev.tipo === "Uscita") {
+        if (aperto && aperto.timestamp) {
+          const diffMin = (ev.timestamp - aperto.timestamp) / 60000;
+          if (diffMin > 0) {
+            perDip[key] = (perDip[key] || 0) + diffMin;
+            perCanale[canale] = (perCanale[canale] || 0) + diffMin;
+          }
         }
-
-        if (!best) {
-          geo_esito = "KO";
-          geo_motivo = "GEOFENCE_INVALID_CONFIG";
-        } else if (best.dist <= best.raggio) {
-          geo_esito = "OK";
-          geo_motivo = `IN (${Math.round(best.dist)}m <= ${best.raggio}m) ${best.f.nome || ""}`.trim();
-        } else {
-          geo_esito = "KO";
-          geo_motivo = `OUT (${Math.round(best.dist)}m > ${best.raggio}m) ${best.f.nome || ""}`.trim();
-        }
+        aperto = null;
       }
-    } catch (e) {
-      geo_esito = "KO";
-      geo_motivo = "GEOFENCE_ERROR";
-    }
+    });
 
-    try {
-      await insertTimbratura({
-        ...basePayload,
-        lat,
-        lon,
-        accuracy_m,
-        geo_esito,
-        geo_motivo,
+    if (aperto && aperto.timestamp) {
+      const diffMin = (adesso - aperto.timestamp) / 60000;
+      if (diffMin > 0) {
+        perDip[key] = (perDip[key] || 0) + diffMin;
+        perCanale[canale] = (perCanale[canale] || 0) + diffMin;
+      }
+    }
+  });
+
+  const costoPerDip = {};
+  const costoPerCanale = {};
+
+  Object.entries(perDip).forEach(([key, minuti]) => {
+    const [nome, canale] = key.split("|");
+    const dip = dipendenti.find((d) => d.nome === nome);
+    const costoOrario = dip?.costoOrario || 0;
+    const ore = minuti / 60;
+    const costo = ore * costoOrario;
+    costoPerDip[key] = costo;
+    costoPerCanale[canale] = (costoPerCanale[canale] || 0) + costo;
+  });
+
+  riepilogoDipEl.innerHTML = "";
+  Object.entries(perDip).forEach(([key, minuti]) => {
+    const [nome, canale] = key.split("|");
+    const ore = minuti / 60;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${nome}</td>
+      <td>${canale}</td>
+      <td>${ore.toFixed(2)}</td>
+    `;
+    riepilogoDipEl.appendChild(tr);
+  });
+
+  riepilogoCanaliEl.innerHTML = "";
+  Object.entries(perCanale).forEach(([canale, minuti]) => {
+    const ore = minuti / 60;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${canale}</td>
+      <td>${ore.toFixed(2)}</td>
+    `;
+    riepilogoCanaliEl.appendChild(tr);
+  });
+
+  costoDipEl.innerHTML = "";
+  Object.entries(perDip).forEach(([key, minuti]) => {
+    const [nome, canale] = key.split("|");
+    const ore = minuti / 60;
+    const costo = costoPerDip[key] || 0;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${nome}</td>
+      <td>${canale}</td>
+      <td>${ore.toFixed(2)}</td>
+      <td>${costo.toFixed(2)}</td>
+    `;
+    costoDipEl.appendChild(tr);
+  });
+
+  costoCanaliEl.innerHTML = "";
+  Object.entries(costoPerCanale).forEach(([canale, costo]) => {
+    const minuti = perCanale[canale] || 0;
+    const ore = minuti / 60;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${canale}</td>
+      <td>${ore.toFixed(2)}</td>
+      <td>${costo.toFixed(2)}</td>
+    `;
+    costoCanaliEl.appendChild(tr);
+  });
+
+  attiviListaEl.innerHTML = "";
+  const ultimoEventoPerChiave = {};
+  timbrature.forEach((t) => {
+    const key = `${t.dip}|${t.canale}`;
+    if (
+      !ultimoEventoPerChiave[key] ||
+      (t.timestamp || 0) > (ultimoEventoPerChiave[key].timestamp || 0)
+    ) {
+      ultimoEventoPerChiave[key] = t;
+    }
+  });
+
+  Object.entries(ultimoEventoPerChiave).forEach(([key, ev]) => {
+    if (ev.tipo === "Entrata" && ev.timestamp) {
+      const [dip, canale] = key.split("|");
+      const durataMin = (adesso - ev.timestamp) / 60000;
+      const durataTxt = formatDurationMinutes(durataMin);
+
+      const oraDa = new Date(ev.timestamp).toLocaleTimeString("it-IT", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
-      setMsg(
-        `Timbratura registrata: <strong>${escapeHtml(tipoToLabel(tipo))}</strong> • Geofence: <strong>${escapeHtml(geo_esito)}</strong>`,
-        geo_esito === "OK" ? "ok" : "error"
-      );
-    } catch (err) {
-      setMsg(`Errore salvataggio timbratura: ${escapeHtml(err.message || err)}`, "error");
-    }
-
-    await refreshUi();
-  }
-
-  elPrimary.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-
-    if (ui.stato === "Fuori turno") {
-      await doTimbratura("inizio_turno");
-      return;
-    }
-    if (ui.stato === "In pausa") {
-      await doTimbratura("fine_pausa");
-      return;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${dip}</td>
+        <td>${canale}</td>
+        <td>${oraDa}</td>
+        <td>${durataTxt}</td>
+      `;
+      attiviListaEl.appendChild(tr);
     }
   });
 
-  elPausa.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato !== "In turno") return;
-    await doTimbratura("inizio_pausa");
-  });
-
-  elFine.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato === "Fuori turno") return;
-    await doTimbratura("fine_turno");
-  });
-
-  await refreshUi();
+  aggiornaPresenzeDipendenti();
 }
+
+// Funzione per rendere visibili i pulsanti grandi e colorati
+function renderPulsantiStato() {
+  const container = document.getElementById("pulsanti-timbratura");
+  container.innerHTML = `
+    <button id="btn-entrata" class="btn-large green">Entrata 🟢</button>
+    <button id="btn-pausa" class="btn-large gray">Inizia Pausa ⏸️</button>
+    <button id="btn-fine" class="btn-large red">Fine Turno ❌</button>
+  `;
+
+  document.getElementById("btn-entrata").addEventListener("click", () => {
+    registraTimbratura("Entrata");
+  });
+
+  document.getElementById("btn-pausa").addEventListener("click", () => {
+    registraTimbratura("Pausa");
+  });
+
+  document.getElementById("btn-fine").addEventListener("click", () => {
+    registraTimbratura("Uscita");
+  });
+}
+
+// Funzione per aggiornare la visibilità e stato attuale dei dipendenti
+function aggiornaStatoDipendenti() {
+  const statoDipendentiEl = document.getElementById("stato-dipendenti");
+  statoDipendentiEl.innerHTML = "";
+  dipendenti.forEach((dipendente) => {
+    const stato = getStatoCorrenteDipendente(dipendente.nome);
+    const statoTesto = stato.inside ? "Dentro" : "Fuori";
+    const canale = stato.canaleCorrente || "-";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dipendente.nome}</td>
+      <td>${canale}</td>
+      <td>${statoTesto}</td>
+    `;
+    statoDipendentiEl.appendChild(tr);
+  });
+}
+
+// Funzione per mostrare il riepilogo con il tempo lavorato
+function aggiornaRiepilogo() {
+  const riepilogoEl = document.getElementById("riepilogo-lavoro");
+  riepilogoEl.innerHTML = "";
+
+  timbrature.forEach((t) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.dip}</td>
+      <td>${t.canale}</td>
+      <td>${t.tipo}</td>
+      <td>${new Date(t.timestamp).toLocaleTimeString()}</td>
+    `;
+    riepilogoEl.appendChild(tr);
+  });
+}
+
+// Visualizza pulsanti
+renderPulsantiStato();
+aggiornaStatoDipendenti();
+aggiornaRiepilogo();
