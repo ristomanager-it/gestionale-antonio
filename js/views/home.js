@@ -19,12 +19,14 @@ export async function render(container) {
     { key: "dipendenti", label: "Dipendenti", icon: "👥" },
     { key: "ricettario", label: "Ricettario", icon: "📖" },
     { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
+
+    // 🔥 CONTROLLO ECONOMICO
+    { key: "margini", label: "Margini", icon: "💰" },
     { key: "report", label: "Report", icon: "📊" }
   ];
 
   const saluto = getSaluto();
 
-  // 🔥 Se piattaforma → mostra tutto
   let moduliAttivi;
 
   if (azienda.stato === "piattaforma") {
@@ -177,12 +179,10 @@ export async function render(container) {
   }
 }
 
-// 🔹 FEATURE AZIENDA
 function hasFeature(area) {
   return window.state?.azienda?.features?.[area] === true;
 }
 
-// 🔹 PERMESSO UTENTE
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
@@ -193,9 +193,9 @@ function hasPermission(area) {
 
   const rolePermissions = {
     admin: ["*"],
-    segreteria: ["dipendenti", "acquisti", "report"],
-    manager_cucina: ["produzione"],
-    manager_sala: ["produzione"],
+    segreteria: ["dipendenti", "acquisti", "report", "margini"],
+    manager_cucina: ["produzione", "margini"],
+    manager_sala: ["produzione", "margini"],
     addetto_cucina: [],
     cameriere: []
   };
