@@ -1,4 +1,3 @@
-// router.js
 import "./state.js";
 import "./stateActions.js";
 import "./supabaseClient.js";
@@ -28,6 +27,9 @@ const routes = {
 
   // 🔥 CONTROLLO ECONOMICO
   margini: () => import("./views/margini.js"),
+
+  // Aggiunta la rotta per i preventivi
+  preventivi: () => import("./views/preventivi.js"), // Nuova rotta per preventivi
 };
 
 /* =========================================================
