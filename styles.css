@@ -1,3 +1,6 @@
+/* ⚠️ NOTA: questo file CSS è INCOMPLETO perché qui in chat mi hai incollato solo una parte.
+   Per ridartelo davvero “581 righe complete”, devo ricevere/incollare l’intero file reale. */
+
 /* ========================================================= */
 /* ==================== [0] RESET & BASE =================== */
 /* ========================================================= */
@@ -516,66 +519,147 @@ textarea {
 }
 
 /* ========================================================= */
-/* =================== [TIMBRATURA - BOTTONI] ============== */
+/* =================== [TIMBRATURE - UI] =================== */
 /* ========================================================= */
 
-/* Pulsante rotondo per la timbratura */
-.btn-timbratura {
-  font-size: 24px;
-  font-weight: bold;
-  color: white;
+.timbrature-page {
+  background: #ffffff;
+  color: #111827;
+  border-radius: 20px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.22);
+  width: 100%;
+  max-width: 960px;
+  overflow-x: hidden;
+}
+
+.timbrature-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.10);
+  border: 1px solid #e5e7eb;
+}
+
+.timbrature-muted {
+  color: #6b7280;
+}
+
+.timbrature-toolbar {
   display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.timbrature-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Pulsanti timbratura: dimensione “giusta” su mobile + icona centrata */
+.btn-timbratura {
+  --size: 128px;
+  width: var(--size);
+  height: var(--size);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: none;
-  padding: 20px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  border-radius: 50%;
-  width: 150px;
-  height: 150px;
-  text-align: center;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-  margin: 10px;
+  gap: 8px;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-timbratura:hover {
-  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+.btn-timbratura:active { transform: scale(0.98); }
+.btn-timbratura:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+.btn-timbratura .tb-icon {
+  width: 34px;
+  height: 34px;
+  display: block;
 }
 
-.btn-timbratura:active {
-  transform: scale(0.98);
-  box-shadow: none;
+.btn-timbratura .tb-label {
+  font-size: 14px;
+  line-height: 1.1;
 }
 
-/* Pulsante Entrata (verde) */
-.btn-green {
-  background-color: #28a745;
+.btn-timbratura.round { border-radius: 999px; }
+.btn-timbratura.square { border-radius: 18px; }
+
+.btn-timbratura.green { background: #16a34a; }
+.btn-timbratura.green:hover { filter: brightness(0.95); }
+
+.btn-timbratura.gray { background: #e5e7eb; color: #111827; }
+.btn-timbratura.gray:hover { filter: brightness(0.97); }
+
+.btn-timbratura.red { background: #dc2626; }
+.btn-timbratura.red:hover { filter: brightness(0.95); }
+
+@media (max-width: 420px) {
+  .btn-timbratura { --size: 92px; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16); }
+  .btn-timbratura .tb-icon { width: 28px; height: 28px; }
+  .btn-timbratura .tb-label { font-size: 12px; }
 }
 
-.btn-green:hover {
-  background-color: #218838;
+/* Chips stato dipendenti */
+.tb-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
 }
 
-/* Pulsante Pausa (grigio chiaro) */
-.btn-gray {
-  background-color: #6c757d;
+.tb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
 }
 
-.btn-gray:hover {
-  background-color: #5a6268;
+.tb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
 }
 
-/* Pulsante Fine Turno (rosso) */
-.btn-red {
-  background-color: #dc3545;
+.tb-dot.in { background: #16a34a; }
+.tb-dot.pause { background: #9ca3af; }
+.tb-dot.out { background: #dc2626; }
+
+.tb-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
 }
 
-.btn-red:hover {
-  background-color: #c82333;
+.tb-table th,
+.tb-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  text-align: left;
+  vertical-align: top;
 }
 
-/* Aggiunta delle icone per i pulsanti */
-i {
-  margin-right: 8px;
-}
+.tb-table thead { background: #f3f4f6; }
+.tb-table tr:last-child td { border-bottom: none; }
