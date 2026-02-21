@@ -23,6 +23,9 @@ const routes = {
   preparazioni: () => import("./views/preparazioni.js"),
 
   venduto: () => import("./views/venduto.js"),
+
+  // 🔥 CONTROLLO ECONOMICO
+  margini: () => import("./views/margini.js"),
 };
 
 /* =========================================================
@@ -125,16 +128,11 @@ async function resolve() {
     session = refreshed?.session;
   }
 
-  /* =====================================
-     🔒 NESSUNA SESSIONE → LOGIN
-  ===================================== */
-
   if (!session) {
     window.stateActions.setUser(null);
     window.stateActions.setAziende([]);
     window.stateActions.resetAzienda();
 
-    // 🔥 NASCONDI HEADER
     const header = document.querySelector(".app-header");
     if (header) header.style.display = "none";
 
@@ -142,15 +140,10 @@ async function resolve() {
     return;
   }
 
-  // 🔥 SESSIONE VALIDA → MOSTRA HEADER
   const header = document.querySelector(".app-header");
   if (header) header.style.display = "block";
 
   window.stateActions.setUser(session.user);
-
-  /* =====================================
-     🔎 CARICAMENTO AZIENDE
-  ===================================== */
 
   const { data: aziende } = await window.supabaseClient
     .from("utenti_aziende")
@@ -190,10 +183,6 @@ async function resolve() {
     return;
   }
 
-  /* =====================================
-     🔥 SALVA RUOLO + OVERRIDE
-  ===================================== */
-
   const recordAttivo = aziendePulite.find(
     a => a.aziende.id === azienda.id
   );
@@ -201,16 +190,8 @@ async function resolve() {
   window.stateActions.setRuolo(recordAttivo?.ruolo || null);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
-  /* =====================================
-     🔥 CARICA PERMESSI + REPARTI
-  ===================================== */
-
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
-
-  /* =====================================
-     🔒 BLOCCO ROUTE
-  ===================================== */
 
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
@@ -218,10 +199,6 @@ async function resolve() {
       return;
     }
   }
-
-  /* =====================================
-     🔁 REDIRECT COERENTI
-  ===================================== */
 
   if (azienda.stato === "piattaforma" && route === "login") {
     window.location.hash = "#/homePiattaforma";
