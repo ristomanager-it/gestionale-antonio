@@ -321,3 +321,26 @@ textarea {
   }
 
 }
+/* ========================================================= */
+/* ================= AVATAR HEADER ========================= */
+/* ========================================================= */
+
+.header-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-primary-dark);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
