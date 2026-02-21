@@ -204,7 +204,7 @@ export async function render(app) {
   }
 
   app.innerHTML = `
-    <div class="page">
+    <div class="page" style="background-color: white;">
       <div class="page-header">
         <h2>Timbrature</h2>
         <div style="opacity:.7; margin-top:4px;">Azienda: ${escapeHtml(azienda.nome || "")}</div>
