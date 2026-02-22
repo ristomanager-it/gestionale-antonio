@@ -1,12 +1,13 @@
 // js/views/home.js
 // =======================================
 // Dashboard Operativa Dinamica SaaS
-// Versione con Sezioni (superadmin fix)
+// Superadmin Hard Bypass Definitivo
 // =======================================
 
 export async function render(container) {
   const user = window.state.user;
   const azienda = window.state.azienda;
+  const ruolo = window.state?.ruolo;
 
   if (!user || !azienda) {
     container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
@@ -42,12 +43,11 @@ export async function render(container) {
   ];
 
   const saluto = getSaluto();
-  const ruolo = window.state?.ruolo;
 
   let sezioniAttive;
 
-  // 🔥 SUPERADMIN e PIATTAFORMA = bypass totale
-  if (ruolo === "superadmin" || azienda.stato === "piattaforma") {
+  // 🔥 SUPERADMIN = bypass totale senza condizioni
+  if (ruolo === "superadmin") {
     sezioniAttive = SEZIONI;
   } else {
     sezioniAttive = SEZIONI.map(sezione => ({
@@ -62,18 +62,7 @@ export async function render(container) {
     <div class="view">
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
-        ${
-          azienda.stato === "piattaforma"
-            ? `
-          <button 
-            class="app-button small gray"
-            onclick="window.location.hash='#/homePiattaforma'"
-          >
-            ⬅ Torna alla Piattaforma
-          </button>
-        `
-            : `<div></div>`
-        }
+        <div></div>
 
         <button 
           id="btn-logout-dashboard"
@@ -107,10 +96,9 @@ export async function render(container) {
         sezioniAttive.length === 0
           ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
           : sezioniAttive.map((sezione, sIndex) => `
-
         <div style="margin-bottom:40px;">
           
-          <h3 style="margin-bottom:18px; font-weight:600; letter-spacing:0.3px;">
+          <h3 style="margin-bottom:18px; font-weight:600;">
             ${sezione.label}
           </h3>
 
@@ -119,9 +107,7 @@ export async function render(container) {
               sezione.moduli.map((m, index) => `
                 <div 
                   onclick="window.location.hash='#/${m.key}'"
-                  style="background:white; padding:28px 18px; border-radius:22px; text-align:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.05); transition: all 0.25s ease; animation: fadeInUp 0.4s ease forwards; animation-delay:${(sIndex * 0.1) + (index * 0.05)}s; opacity:0;"
-                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
-                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
+                  style="background:white; padding:28px 18px; border-radius:22px; text-align:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.05); transition: all 0.25s ease; opacity:1;"
                 >
                   <div style="font-size:30px; margin-bottom:14px;">${m.icon}</div>
                   <div style="font-weight:500;">${m.label}</div>
@@ -130,16 +116,8 @@ export async function render(container) {
             }
           </div>
         </div>
-
       `).join("")
       }
-
-      <style>
-        @keyframes fadeInUp {
-          from { transform: translateY(15px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-      </style>
 
     </div>
   `;
@@ -167,25 +145,16 @@ function hasFeature(area) {
 
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
-  const override = window.state?.permessiOverride || {};
 
-  // 🔥 SUPERADMIN BYPASS TOTALE
-  if (ruolo === "superadmin") return true;
-
-  if (override.hasOwnProperty(area)) {
-    return override[area] === true;
-  }
+  if (ruolo === "admin") return true;
 
   const rolePermissions = {
-    admin: ["*"],
     segreteria: ["dipendenti", "acquisti", "report", "margini"],
     manager_cucina: ["produzione", "margini"],
     manager_sala: ["produzione", "margini"],
     addetto_cucina: [],
     cameriere: []
   };
-
-  if (rolePermissions[ruolo]?.includes("*")) return true;
 
   return rolePermissions[ruolo]?.includes(area) === true;
 }
