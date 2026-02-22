@@ -1,6 +1,12 @@
 // js/router.js
 
+import { supabase } from "./supabaseClient.js";
+
 const app = document.getElementById("app");
+
+/* =========================================================
+   ROUTES
+========================================================= */
 
 const routes = {
   login: () => import("./views/login.js"),
@@ -28,7 +34,9 @@ const routes = {
   creaPreventivo: () => import("./views/crea-preventivo.js"),
 };
 
-/* ================= PARSE HASH ================= */
+/* =========================================================
+   PARSE HASH
+========================================================= */
 
 function parseHash() {
   const raw = window.location.hash || "#/login";
@@ -52,7 +60,9 @@ function parseHash() {
   };
 }
 
-/* ================= RENDER VIEW ================= */
+/* =========================================================
+   RENDER VIEW
+========================================================= */
 
 async function renderView(routeName) {
   if (!routes[routeName]) routeName = "home";
@@ -68,11 +78,14 @@ async function renderView(routeName) {
   await module.render(app);
 }
 
-/* ================= PERMESSI ================= */
+/* =========================================================
+   PERMESSI
+========================================================= */
 
 function hasFeature(area) {
   const azienda = window.state?.azienda;
   if (azienda?.stato === "piattaforma") return true;
+
   const features = azienda?.features || {};
   return features[area] === true;
 }
@@ -93,7 +106,9 @@ function hasPermission(area) {
   return permessi[`${area}.read`] === true;
 }
 
-/* ================= ROUTER ================= */
+/* =========================================================
+   ROUTER CORE
+========================================================= */
 
 async function resolve() {
 
@@ -106,30 +121,36 @@ async function resolve() {
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
-  let { data } = await window.supabaseClient.auth.getSession();
+  // 🔐 SESSIONE
+  let { data } = await supabase.auth.getSession();
   let session = data.session;
 
   if (!session) {
-    const { data: refreshed } =
-      await window.supabaseClient.auth.refreshSession();
+    const { data: refreshed } = await supabase.auth.refreshSession();
     session = refreshed?.session;
   }
 
+  // ❌ NON LOGGATO
   if (!session) {
     window.stateActions.setUser(null);
     window.stateActions.setAziende([]);
     window.stateActions.resetAzienda();
 
-    document.querySelector(".app-header").style.display = "none";
+    const header = document.querySelector(".app-header");
+    if (header) header.style.display = "none";
+
     await renderView("login");
     return;
   }
 
-  document.querySelector(".app-header").style.display = "flex";
+  // ✅ LOGGATO
+  const header = document.querySelector(".app-header");
+  if (header) header.style.display = "flex";
 
   window.stateActions.setUser(session.user);
 
-  const { data: aziende } = await window.supabaseClient
+  // 🔎 Carica aziende utente
+  const { data: aziende } = await supabase
     .from("utenti_aziende")
     .select(`
       ruolo,
@@ -155,6 +176,7 @@ async function resolve() {
   window.stateActions.autoSetAzienda();
 
   const azienda = window.state.azienda;
+
   if (!azienda) {
     app.innerHTML = "<h3>Nessuna azienda associata</h3>";
     return;
@@ -170,6 +192,7 @@ async function resolve() {
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
+  // 🔐 Controllo permessi
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -177,6 +200,7 @@ async function resolve() {
     }
   }
 
+  // 🔄 Redirect login
   if (route === "login") {
     window.location.hash =
       azienda.stato === "piattaforma"
@@ -187,6 +211,8 @@ async function resolve() {
 
   await renderView(route);
 }
+
+/* ========================================================= */
 
 window.addEventListener("hashchange", resolve);
 resolve();
