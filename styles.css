@@ -416,3 +416,74 @@ textarea {
   }
 
 }
+/* ================= GLOBAL SIDE MENU ================= */
+
+.global-menu {
+  position: fixed;
+  top: 110px; /* uguale altezza header */
+  left: -280px;
+  width: 260px;
+  height: calc(100vh - 110px);
+
+  background: #ffffff;
+  box-shadow: 8px 0 30px rgba(0,0,0,0.08);
+  border-right: 1px solid var(--color-border);
+
+  padding: 20px 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  transition: left 0.3s ease;
+  z-index: 999;
+}
+
+.global-menu.open {
+  left: 0;
+}
+
+.menu-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-item:hover {
+  background: #f3f4f6;
+}
+
+.menu-item.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.menu-overlay {
+  position: fixed;
+  top: 110px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 110px);
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 998;
+}
+
+.menu-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Mobile */
+@media (max-width:1080px) {
+
+  .global-menu {
+    width: 240px;
+  }
+
+}
