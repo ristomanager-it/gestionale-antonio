@@ -1,7 +1,7 @@
 // js/views/home.js
 // =======================================
 // Dashboard Operativa Dinamica SaaS
-// Versione con Sezioni (senza refactor architettale)
+// Versione con Sezioni (superadmin fix)
 // =======================================
 
 export async function render(container) {
@@ -21,7 +21,7 @@ export async function render(container) {
         { key: "magazzino", label: "Magazzino", icon: "📦" },
         { key: "ricettario", label: "Ricettario", icon: "📖" },
         { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
-        { key: "timbrature", label: "Timbrature", icon: "🕒" } // Modulo Timbrature
+        { key: "timbrature", label: "Timbrature", icon: "🕒" }
       ]
     },
     {
@@ -36,17 +36,18 @@ export async function render(container) {
       moduli: [
         { key: "acquisti", label: "Acquisti", icon: "🧾" },
         { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-        // Aggiunto Preventivi qui sotto la sezione Gestione
         { key: "preventivi", label: "Preventivi", icon: "📑" }
       ]
     }
   ];
 
   const saluto = getSaluto();
+  const ruolo = window.state?.ruolo;
 
   let sezioniAttive;
 
-  if (azienda.stato === "piattaforma") {
+  // 🔥 SUPERADMIN e PIATTAFORMA = bypass totale
+  if (ruolo === "superadmin" || azienda.stato === "piattaforma") {
     sezioniAttive = SEZIONI;
   } else {
     sezioniAttive = SEZIONI.map(sezione => ({
@@ -80,7 +81,6 @@ export async function render(container) {
         >
           Esci
         </button>
-
       </div>
 
       <div style="display:flex; align-items:center; gap:16px; margin-bottom:32px; flex-wrap:wrap;">
@@ -101,7 +101,6 @@ export async function render(container) {
             ${saluto} 👋 Benvenuto nella dashboard operativa
           </p>
         </div>
-
       </div>
 
       ${
@@ -170,6 +169,9 @@ function hasPermission(area) {
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
 
+  // 🔥 SUPERADMIN BYPASS TOTALE
+  if (ruolo === "superadmin") return true;
+
   if (override.hasOwnProperty(area)) {
     return override[area] === true;
   }
@@ -185,7 +187,7 @@ function hasPermission(area) {
 
   if (rolePermissions[ruolo]?.includes("*")) return true;
 
-  return rolePermissions[ruolo]?.includes(area);
+  return rolePermissions[ruolo]?.includes(area) === true;
 }
 
 function getSaluto() {
