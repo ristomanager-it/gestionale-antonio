@@ -50,6 +50,7 @@ body {
   width: 100%;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  font-size: 17px;
 }
 
 button,
@@ -215,8 +216,9 @@ textarea {
 
   background: linear-gradient(
     180deg,
-    var(--color-primary) 0%,
-    var(--color-primary-soft) 100%
+    #3E4D1F 0%,
+    #344219 50%,
+    #2B3514 100%
   );
 
   min-height: calc(100vh - 80px);
@@ -229,10 +231,10 @@ textarea {
 .view {
   width: 100%;
   max-width: 100%;
-  background: var(--color-card);
-  border-radius: var(--radius-card);
-  padding: 22px;
-  box-shadow: var(--shadow-medium);
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
 }
 
 /* ========================================================= */
@@ -240,11 +242,11 @@ textarea {
 /* ========================================================= */
 
 .card {
-  background: var(--color-card);
-  border-radius: var(--radius-card);
-  padding: 18px;
-  box-shadow: var(--shadow-soft);
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  border: none;
   margin-bottom: 18px;
 }
 
@@ -254,11 +256,12 @@ textarea {
 
 .app-button {
   padding: 14px 20px;
-  border-radius: var(--radius-button);
+  border-radius: 16px;
   border: none;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 16px;
 }
 
 .app-button.primary {
@@ -294,10 +297,11 @@ textarea {
 /* ========================================================= */
 
 .collapsible {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border: none;
+  border-radius: 20px;
   margin-bottom: 16px;
   overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
 }
 
 .collapsible-header {
@@ -343,30 +347,11 @@ textarea {
   }
 
 }
+
 /* ========================================================= */
-/* ================= MOBILE FIRST IMPROVEMENT ============== */
+/* ================= MOBILE IMPROVEMENT ==================== */
 /* ========================================================= */
 
-/* Tipografia più leggibile mobile */
-body {
-  font-size: 17px;
-}
-
-.view {
-  padding: 24px 18px;
-  border-radius: 20px;
-}
-
-/* Titoli più grandi */
-.view h2 {
-  font-size: 22px;
-}
-
-.view h3 {
-  font-size: 18px;
-}
-
-/* Card full width su mobile */
 @media (max-width: 768px) {
 
   .view div[style*="display:grid"] {
@@ -393,22 +378,4 @@ body {
     font-weight: 600;
   }
 
-}
-
-/* Card più solide */
-.card,
-.view > div > div[style*="background:white"] {
-  border-radius: 20px !important;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.06) !important;
-}
-
-/* Bottoni più grandi mobile */
-.app-button {
-  font-size: 16px;
-  padding: 14px 20px;
-}
-
-/* Header più leggibile */
-.header-azienda-nome {
-  font-size: 16px;
 }
