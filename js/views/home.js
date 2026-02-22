@@ -46,8 +46,10 @@ export async function render(container) {
 
   let sezioniAttive;
 
-  // 🔥 SUPERADMIN e PIATTAFORMA = bypass totale
-  if (ruolo === "superadmin" || azienda.stato === "piattaforma") {
+  // ✅ FIX: superadmin bypass totale (anche se la piattaforma non è impostata)
+  if (ruolo === "superadmin") {
+    sezioniAttive = SEZIONI;
+  } else if (azienda.stato === "piattaforma") {
     sezioniAttive = SEZIONI;
   } else {
     sezioniAttive = SEZIONI.map(sezione => ({
@@ -195,4 +197,4 @@ function getSaluto() {
   if (ora < 12) return "Buongiorno";
   if (ora < 18) return "Buon pomeriggio";
   return "Buonasera";
-} cambialo tu
+}
