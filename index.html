@@ -15,25 +15,24 @@
 
 <body>
 
-  <!-- ===================================================== -->
-  <!-- ================= HEADER GLOBALE ==================== -->
-  <!-- ===================================================== -->
+  <!-- ================= HEADER ================= -->
 
   <header class="app-header">
 
     <!-- SINISTRA -->
     <div class="header-left">
-
       <button id="menu-toggle" class="menu-toggle" type="button">
-        <div class="menu-icon">☰</div>
+        <div class="menu-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         <div class="menu-label">Menù</div>
       </button>
-
     </div>
 
     <!-- CENTRO -->
     <div class="header-center">
-
       <img
         id="header-logo"
         class="header-logo"
@@ -41,58 +40,38 @@
         alt="Logo azienda"
         style="display:none;"
       />
-
-      <div id="header-azienda-nome" class="header-azienda-nome">
-        <!-- Nome azienda caricato dinamicamente -->
-      </div>
-
+      <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
     <!-- DESTRA -->
     <div class="header-right">
-
       <div class="header-profile">
-
-        <!-- Avatar iniziali -->
-        <div id="header-avatar" class="header-avatar">
-          <!-- JS mette iniziali -->
-        </div>
-
-        <div id="header-user-name" class="header-user-name">
-          <!-- Nome utente -->
-        </div>
-
+        <div id="header-avatar" class="header-avatar"></div>
+        <div id="header-user-name" class="header-user-name"></div>
         <button id="logout-btn" class="logout-link" type="button">
           Esci
         </button>
-
       </div>
-
     </div>
 
   </header>
 
-  <!-- ===================================================== -->
-  <!-- ================= MENU LATERALE ===================== -->
-  <!-- ===================================================== -->
+  <!-- ================= MENU LATERALE ================= -->
 
-  <nav id="global-menu" class="global-menu">
-    <!-- Popolato dinamicamente via JS -->
-  </nav>
+  <nav id="global-menu" class="global-menu"></nav>
 
-  <!-- ===================================================== -->
-  <!-- ================= ROOT SPA ========================== -->
-  <!-- ===================================================== -->
+  <!-- ================= ROOT SPA ================= -->
 
   <div id="app"></div>
 
-  <!-- STATE -->
+  <!-- ================= SCRIPT GLOBALI ================= -->
+  <!-- (NO supabaseClient qui) -->
+
   <script src="js/state.js"></script>
   <script src="js/stateActions.js"></script>
-  <!-- UI REPARTO -->
   <script src="js/ui-reparto.js"></script>
 
-  <!-- ROUTER -->
+  <!-- ================= ROUTER (Modulo ES) ================= -->
   <script type="module" src="js/router.js"></script>
 
 </body>
