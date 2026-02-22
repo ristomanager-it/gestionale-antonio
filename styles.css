@@ -190,11 +190,11 @@ body {
 }
 /* Micro-allineamento verticale (pixel-perfect) */
 .menu-toggle {
-  transform: translateY(3px);   /* abbassa leggermente hamburger + Menù */
+  transform: translateY(4px);   /* abbassa leggermente hamburger + Menù */
 }
 
 .header-profile {
-  transform: translateY(-3px);  /* alza leggermente profilo */
+  transform: translateY(-4px);  /* alza leggermente profilo */
 }
 /* ========================================================= */
 /* ================= AREA FEATURES ========================= */
