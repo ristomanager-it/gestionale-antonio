@@ -35,6 +35,76 @@ const routes = {
 };
 
 /* =========================================================
+   MENU LATERALE
+========================================================= */
+
+function initMenu() {
+  const menu = document.getElementById("global-menu");
+  const toggle = document.getElementById("menu-toggle");
+
+  if (!menu || !toggle) return;
+
+  // Overlay
+  let overlay = document.querySelector(".menu-overlay");
+
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "menu-overlay";
+    document.body.appendChild(overlay);
+  }
+
+  const items = [
+    { label: "Home", route: "home" },
+    { label: "Produzione", route: "produzione" },
+    { label: "Magazzino", route: "magazzino" },
+    { label: "Ricettario", route: "ricettario" },
+    { label: "Dipendenti", route: "dipendenti" },
+    { label: "Report", route: "report" },
+  ];
+
+  menu.innerHTML = items.map(i => `
+    <div class="menu-item" data-route="${i.route}">
+      ${i.label}
+    </div>
+  `).join("");
+
+  function openMenu() {
+    menu.classList.add("open");
+    overlay.classList.add("open");
+  }
+
+  function closeMenu() {
+    menu.classList.remove("open");
+    overlay.classList.remove("open");
+  }
+
+  toggle.onclick = () => {
+    if (menu.classList.contains("open")) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  };
+
+  overlay.onclick = closeMenu;
+
+  menu.querySelectorAll(".menu-item").forEach(item => {
+    item.onclick = () => {
+      const route = item.dataset.route;
+      window.location.hash = "#/" + route;
+      closeMenu();
+    };
+  });
+
+  window.addEventListener("hashchange", () => {
+    const current = window.location.hash.replace("#/", "");
+    menu.querySelectorAll(".menu-item").forEach(i => {
+      i.classList.toggle("active", i.dataset.route === current);
+    });
+  });
+}
+
+/* =========================================================
    PARSE HASH
 ========================================================= */
 
@@ -93,7 +163,6 @@ function hasFeature(area) {
 
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
-
   if (ruolo === "superadmin") return true;
 
   const azienda = window.state?.azienda;
@@ -124,9 +193,7 @@ async function resolve() {
     return;
   }
 
-  const { route, segments, params } = parseHash();
-  window.routeParams = params || {};
-  window.routeSegments = segments || [];
+  const { route } = parseHash();
 
   let { data } = await supabase.auth.getSession();
   let session = data.session;
@@ -136,70 +203,15 @@ async function resolve() {
     session = refreshed?.session;
   }
 
-  // ❌ NON LOGGATO
   if (!session) {
-    window.stateActions.setUser(null);
-    window.stateActions.setAziende([]);
-    window.stateActions.resetAzienda();
-
-    const header = document.querySelector(".app-header");
-    if (header) header.style.display = "none";
-
+    document.querySelector(".app-header").style.display = "none";
     await renderView("login");
     return;
   }
 
-  // ✅ LOGGATO
-  const header = document.querySelector(".app-header");
-  if (header) header.style.display = "flex";
+  document.querySelector(".app-header").style.display = "flex";
 
-  window.stateActions.setUser(session.user);
-
-  const { data: aziende } = await supabase
-    .from("utenti_aziende")
-    .select(`
-      ruolo,
-      permessi_override,
-      aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        attiva,
-        data_scadenza,
-        features,
-        logo_path,
-        logo_url
-      )
-    `)
-    .eq("user_id", session.user.id)
-    .eq("attivo", true);
-
-  const aziendePulite = (aziende || []).filter(a => a.aziende);
-
-  window.stateActions.setAziende(aziendePulite);
-  window.stateActions.autoSetAzienda();
-
-  const azienda = window.state.azienda;
-
-  if (!azienda) {
-    app.innerHTML = "<h3>Nessuna azienda associata</h3>";
-    return;
-  }
-
-  const recordAttivo = aziendePulite.find(
-    a => a.aziende.id === azienda.id
-  );
-
-  window.stateActions.setRuolo(recordAttivo?.ruolo || null);
-  window.state.permessiOverride = recordAttivo?.permessi_override || {};
-
-  await window.stateActions.caricaPermessiEffettivi();
-  await window.stateActions.caricaRuoloEReparti();
-
-  /* =========================================================
-     POPOLA HEADER
-  ========================================================= */
+  /* HEADER POPOLAMENTO */
 
   const nomeAziendaEl = document.getElementById("header-azienda-nome");
   const logoEl = document.getElementById("header-logo");
@@ -207,13 +219,13 @@ async function resolve() {
   const userNameEl = document.getElementById("header-user-name");
   const logoutBtn = document.getElementById("logout-btn");
 
-  if (nomeAziendaEl) {
-    nomeAziendaEl.textContent = azienda.nome || "";
+  if (window.state?.azienda && nomeAziendaEl) {
+    nomeAziendaEl.textContent = window.state.azienda.nome || "";
   }
 
-  if (logoEl) {
-    if (azienda.logo_url) {
-      logoEl.src = azienda.logo_url;
+  if (window.state?.azienda && logoEl) {
+    if (window.state.azienda.logo_url) {
+      logoEl.src = window.state.azienda.logo_url;
       logoEl.style.display = "block";
     } else {
       logoEl.style.display = "none";
@@ -223,7 +235,6 @@ async function resolve() {
   if (userNameEl && avatarEl) {
     const email = session.user.email || "";
     const nome = email.split("@")[0];
-
     userNameEl.textContent = nome;
     avatarEl.textContent = nome.substring(0, 2).toUpperCase();
   }
@@ -235,21 +246,11 @@ async function resolve() {
     };
   }
 
-  /* ========================================================= */
-
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
       return;
     }
-  }
-
-  if (route === "login") {
-    window.location.hash =
-      azienda.stato === "piattaforma"
-        ? "#/homePiattaforma"
-        : "#/home";
-    return;
   }
 
   await renderView(route);
@@ -263,5 +264,6 @@ window.addEventListener("hashchange", resolve);
 
 window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
+  initMenu();
   resolve();
 });
