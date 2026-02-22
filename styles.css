@@ -344,90 +344,71 @@ textarea {
 
 }
 /* ========================================================= */
-/* ============== FLOATING iOS CARD SYSTEM ================= */
+/* ================= MOBILE FIRST IMPROVEMENT ============== */
 /* ========================================================= */
 
-/* Variabili ombra iOS */
-:root {
-  --shadow-floating-soft: 0 18px 40px rgba(0,0,0,0.06);
-  --shadow-floating-strong: 0 30px 70px rgba(0,0,0,0.12);
+/* Tipografia più leggibile mobile */
+body {
+  font-size: 17px;
 }
 
-/* View principale più morbida */
 .view {
-  border-radius: 28px;
-  padding: 36px;
-  background: #ffffff;
-  box-shadow: var(--shadow-floating-soft);
-  transition: all 0.3s ease;
+  padding: 24px 18px;
+  border-radius: 20px;
 }
 
-/* Tutte le card bianche (anche inline style) */
-.card,
-.view > div > div[style*="background:white"] {
-  border-radius: 28px !important;
-  box-shadow: var(--shadow-floating-soft) !important;
-  border: none !important;
-  transition: all 0.3s ease !important;
-  background: #ffffff;
-  backdrop-filter: saturate(180%) blur(2px);
-}
-
-/* Hover effetto sollevamento iOS */
-.card:hover,
-.view > div > div[style*="background:white"]:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-floating-strong) !important;
-}
-
-/* Titoli più “airy” */
+/* Titoli più grandi */
 .view h2 {
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 22px;
 }
 
 .view h3 {
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 18px;
 }
 
-/* Bottoni più soft iOS */
+/* Card full width su mobile */
+@media (max-width: 768px) {
+
+  .view div[style*="display:grid"] {
+    display: block !important;
+  }
+
+  .view > div > div[style*="background:white"] {
+    width: 100% !important;
+    margin-bottom: 18px;
+    padding: 22px !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .view > div > div[style*="background:white"] div:first-child {
+    font-size: 28px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .view > div > div[style*="background:white"] div:last-child {
+    font-size: 17px !important;
+    font-weight: 600;
+  }
+
+}
+
+/* Card più solide */
+.card,
+.view > div > div[style*="background:white"] {
+  border-radius: 20px !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06) !important;
+}
+
+/* Bottoni più grandi mobile */
 .app-button {
-  border-radius: 20px;
-  padding: 14px 22px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  transition: all 0.25s ease;
+  font-size: 16px;
+  padding: 14px 20px;
 }
 
-.app-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
-}
-
-/* Input iOS style */
-input,
-select,
-textarea {
-  border-radius: 18px;
-  border: 1px solid var(--color-border);
-  background: #fafafa;
-  transition: all 0.2s ease;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  background: #ffffff;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(79,98,40,0.15);
-}
-
-/* Leggero effetto profondità su tutto */
-#app {
-  background: linear-gradient(
-    180deg,
-    #f7f9f6 0%,
-    #eef2ec 100%
-  );
+/* Header più leggibile */
+.header-azienda-nome {
+  font-size: 16px;
 }
