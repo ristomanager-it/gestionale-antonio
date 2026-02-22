@@ -1,5 +1,5 @@
-import "./state.js";
-import "./stateActions.js";
+// js/router.js
+
 import "./supabaseClient.js";
 
 const app = document.getElementById("app");
@@ -24,14 +24,10 @@ const routes = {
   preparazioni: () => import("./views/preparazioni.js"),
 
   venduto: () => import("./views/venduto.js"),
-
   margini: () => import("./views/margini.js"),
 
-  // Aggiunta la rotta per i preventivi
-  preventivi: () => import("./views/preventivi.js"), // Nuova rotta per preventivi
-
-  // Nuova rotta per creare un preventivo
-  creaPreventivo: () => import("./views/crea-preventivo.js"), // Nuova rotta per creare un preventivo
+  preventivi: () => import("./views/preventivi.js"),
+  creaPreventivo: () => import("./views/crea-preventivo.js"),
 };
 
 /* =========================================================
@@ -60,6 +56,10 @@ function parseHash() {
   };
 }
 
+/* =========================================================
+   RENDER VIEW
+========================================================= */
+
 async function renderView(routeName) {
   if (!routes[routeName]) {
     routeName = "home";
@@ -77,7 +77,7 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   🔐 PERMESSI DEFINITIVI
+   PERMESSI
 ========================================================= */
 
 function hasFeature(area) {
@@ -111,7 +111,7 @@ function hasPermission(area) {
 }
 
 /* =========================================================
-   RESOLVE ROUTER
+   ROUTER
 ========================================================= */
 
 async function resolve() {
