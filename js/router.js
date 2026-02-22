@@ -2,7 +2,7 @@
 
 import { supabase } from "./supabaseClient.js";
 
-const app = document.getElementById("app");
+let app = null;
 
 /* =========================================================
    ROUTES
@@ -67,6 +67,8 @@ function parseHash() {
 async function renderView(routeName) {
   if (!routes[routeName]) routeName = "home";
 
+  if (!app) return;
+
   app.innerHTML = "";
 
   const module = await routes[routeName]();
@@ -112,6 +114,8 @@ function hasPermission(area) {
 
 async function resolve() {
 
+  if (!app) return;
+
   if (!window.location.hash) {
     window.location.hash = "#/login";
     return;
@@ -121,7 +125,6 @@ async function resolve() {
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
-  // 🔐 SESSIONE
   let { data } = await supabase.auth.getSession();
   let session = data.session;
 
@@ -149,7 +152,6 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  // 🔎 Carica aziende utente
   const { data: aziende } = await supabase
     .from("utenti_aziende")
     .select(`
@@ -192,7 +194,6 @@ async function resolve() {
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
-  // 🔐 Controllo permessi
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -200,7 +201,6 @@ async function resolve() {
     }
   }
 
-  // 🔄 Redirect login
   if (route === "login") {
     window.location.hash =
       azienda.stato === "piattaforma"
@@ -212,7 +212,13 @@ async function resolve() {
   await renderView(route);
 }
 
-/* ========================================================= */
+/* =========================================================
+   INIT
+========================================================= */
 
 window.addEventListener("hashchange", resolve);
-resolve();
+
+window.addEventListener("DOMContentLoaded", () => {
+  app = document.getElementById("app");
+  resolve();
+});
