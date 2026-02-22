@@ -15,74 +15,69 @@
 
 <body>
 
-  <!-- ===================================================== -->
-  <!-- ================= HEADER GLOBALE ==================== -->
-  <!-- ===================================================== -->
-
+  <!-- HEADER GLOBALE SaaS -->
   <header class="app-header">
 
-    <!-- SINISTRA -->
     <div class="header-left">
+
+      <!-- Toggle menu globale -->
       <button id="menu-toggle" class="menu-toggle" type="button">
-        <div class="menu-icon">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div class="menu-label">Menù</div>
+        ☰
       </button>
-    </div>
 
-    <!-- CENTRO -->
-    <div class="header-center">
-      <img
-        id="header-logo"
-        class="header-logo"
-        src=""
-        alt="Logo azienda"
-        style="display:none;"
-      />
-      <div id="header-azienda-nome" class="header-azienda-nome">
-        <!-- Nome azienda caricato dinamicamente -->
+      <!-- Logo + Nome azienda -->
+      <div class="header-azienda">
+        <img
+          id="header-logo"
+          class="header-logo"
+          src=""
+          alt="Logo azienda"
+          style="display:none;"
+        />
+        <span id="header-azienda-nome" class="header-azienda-nome"></span>
       </div>
+
     </div>
 
-    <!-- DESTRA -->
     <div class="header-right">
-      <div class="header-profile">
 
-        <!-- Avatar -->
+      <!-- Selettore Reparto -->
+      <select
+        id="header-reparto-select"
+        class="input-pill"
+        style="max-width:180px; display:none;"
+      ></select>
+
+      <!-- Profilo utente -->
+      <div id="header-user" class="header-user-box">
+
         <div id="header-avatar" class="header-avatar">
-          <!-- Iniziali utente via JS -->
+          <!-- Iniziali utente -->
         </div>
 
-        <!-- Nome -->
-        <div id="header-user-name" class="header-user-name">
-          <!-- Nome utente -->
-        </div>
+        <span id="header-user-name" class="header-user-name"></span>
 
-        <!-- Logout -->
-        <button id="logout-btn" class="logout-link" type="button">
-          Esci
-        </button>
+        <div id="user-dropdown" class="user-dropdown">
+          <button id="profile-btn" class="dropdown-item" type="button">
+            Profilo
+          </button>
+          <button id="logout-btn" class="dropdown-item" type="button">
+            Logout
+          </button>
+        </div>
 
       </div>
+
     </div>
 
   </header>
 
-  <!-- ===================================================== -->
-  <!-- ================= MENU LATERALE ===================== -->
-  <!-- ===================================================== -->
-
+  <!-- MENU GLOBALE LATERALE -->
   <nav id="global-menu" class="global-menu">
     <!-- Popolato dinamicamente via JS -->
   </nav>
 
-  <!-- ===================================================== -->
-  <!-- ================= ROOT SPA ========================== -->
-  <!-- ===================================================== -->
-
+  <!-- ROOT SPA -->
   <div id="app"></div>
 
   <!-- STATE -->
@@ -92,7 +87,7 @@
   <!-- UI REPARTO -->
   <script src="js/ui-reparto.js"></script>
 
-  <!-- ROUTER -->
+  <!-- ROUTER (SPA) -->
   <script type="module" src="js/router.js"></script>
 
 </body>
