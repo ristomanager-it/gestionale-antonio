@@ -160,26 +160,32 @@ textarea {
 /* ================= DESTRA ================= */
 
 .header-right {
+  display: flex;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .header-profile {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  align-items: center;   /* CENTRA ORIZZONTALMENTE */
+  justify-content: center;
+  gap: 4px;
   text-align: center;
+  min-width: 80px;       /* evita spostamenti */
 }
 
 .header-avatar {
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--color-primary-dark);
   color: #ffffff;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   font-weight: 700;
   font-size: 16px;
 }
@@ -187,23 +193,42 @@ textarea {
 .header-user-name {
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .logout-link {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
   cursor: pointer;
   padding: 0;
-  transition: all 0.2s ease;
 }
 
 .logout-link:hover {
   color: var(--color-primary-dark);
 }
+@media (max-width: 1080px) {
 
+  .header-profile {
+    min-width: 70px;
+  }
+
+  .header-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .header-user-name {
+    font-size: 12px;
+  }
+
+  .logout-link {
+    font-size: 12px;
+  }
+}
 /* ================= MOBILE ADAPT ================= */
 
 @media (max-width: 1080px) {
