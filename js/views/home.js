@@ -1,12 +1,13 @@
 // js/views/home.js
 // =======================================
 // Dashboard Operativa Dinamica SaaS
-// Versione con Sezioni (superadmin fix)
+// Versione stabile con accesso piattaforma
 // =======================================
 
 export async function render(container) {
   const user = window.state.user;
   const azienda = window.state.azienda;
+  const ruolo = window.state?.ruolo;
 
   if (!user || !azienda) {
     container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
@@ -42,14 +43,11 @@ export async function render(container) {
   ];
 
   const saluto = getSaluto();
-  const ruolo = window.state?.ruolo;
 
   let sezioniAttive;
 
-  // ✅ FIX: superadmin bypass totale (anche se la piattaforma non è impostata)
+  // 🔥 SUPERADMIN vede tutto
   if (ruolo === "superadmin") {
-    sezioniAttive = SEZIONI;
-  } else if (azienda.stato === "piattaforma") {
     sezioniAttive = SEZIONI;
   } else {
     sezioniAttive = SEZIONI.map(sezione => ({
@@ -63,17 +61,19 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view">
 
+      <!-- TOP BAR -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+
         ${
-          azienda.stato === "piattaforma"
+          ruolo === "superadmin"
             ? `
-          <button 
-            class="app-button small gray"
-            onclick="window.location.hash='#/homePiattaforma'"
-          >
-            ⬅ Torna alla Piattaforma
-          </button>
-        `
+            <button 
+              class="app-button small gray"
+              onclick="window.location.hash='#/homePiattaforma'"
+            >
+              ⚙ Piattaforma
+            </button>
+          `
             : `<div></div>`
         }
 
@@ -83,8 +83,10 @@ export async function render(container) {
         >
           Esci
         </button>
+
       </div>
 
+      <!-- LOGO + NOME -->
       <div style="display:flex; align-items:center; gap:16px; margin-bottom:32px; flex-wrap:wrap;">
         ${
           azienda.logo_url
@@ -171,7 +173,6 @@ function hasPermission(area) {
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
 
-  // 🔥 SUPERADMIN BYPASS TOTALE
   if (ruolo === "superadmin") return true;
 
   if (override.hasOwnProperty(area)) {
