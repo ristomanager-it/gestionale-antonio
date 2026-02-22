@@ -66,7 +66,6 @@ function parseHash() {
 
 async function renderView(routeName) {
   if (!routes[routeName]) routeName = "home";
-
   if (!app) return;
 
   app.innerHTML = "";
@@ -93,6 +92,11 @@ function hasFeature(area) {
 }
 
 function hasPermission(area) {
+  const ruolo = window.state?.ruolo;
+
+  // 🔥 SUPERADMIN BYPASS TOTALE
+  if (ruolo === "superadmin") return true;
+
   const azienda = window.state?.azienda;
   if (azienda?.stato === "piattaforma") return true;
 
@@ -194,6 +198,7 @@ async function resolve() {
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
+  // 🔐 Controllo permessi route
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -201,6 +206,7 @@ async function resolve() {
     }
   }
 
+  // 🔄 Redirect login
   if (route === "login") {
     window.location.hash =
       azienda.stato === "piattaforma"
