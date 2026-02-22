@@ -9,85 +9,65 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
 
-  <!-- CSS globale -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
 
-  <!-- HEADER GLOBALE SaaS -->
+  <!-- ================= HEADER ================= -->
+
   <header class="app-header">
 
+    <!-- SINISTRA -->
     <div class="header-left">
-
-      <!-- Toggle menu globale -->
       <button id="menu-toggle" class="menu-toggle" type="button">
-        ☰
+        <div class="menu-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="menu-label">Menù</div>
       </button>
-
-      <!-- Logo + Nome azienda -->
-      <div class="header-azienda">
-        <img
-          id="header-logo"
-          class="header-logo"
-          src=""
-          alt="Logo azienda"
-          style="display:none;"
-        />
-        <span id="header-azienda-nome" class="header-azienda-nome"></span>
-      </div>
-
     </div>
 
+    <!-- CENTRO -->
+    <div class="header-center">
+      <img
+        id="header-logo"
+        class="header-logo"
+        src=""
+        alt="Logo azienda"
+        style="display:none;"
+      />
+      <div id="header-azienda-nome" class="header-azienda-nome"></div>
+    </div>
+
+    <!-- DESTRA -->
     <div class="header-right">
-
-      <!-- Selettore Reparto -->
-      <select
-        id="header-reparto-select"
-        class="input-pill"
-        style="max-width:180px; display:none;"
-      ></select>
-
-      <!-- Profilo utente -->
-      <div id="header-user" class="header-user-box">
-
-        <div id="header-avatar" class="header-avatar">
-          <!-- Iniziali utente -->
-        </div>
-
-        <span id="header-user-name" class="header-user-name"></span>
-
-        <div id="user-dropdown" class="user-dropdown">
-          <button id="profile-btn" class="dropdown-item" type="button">
-            Profilo
-          </button>
-          <button id="logout-btn" class="dropdown-item" type="button">
-            Logout
-          </button>
-        </div>
-
+      <div class="header-profile">
+        <div id="header-avatar" class="header-avatar"></div>
+        <div id="header-user-name" class="header-user-name"></div>
+        <button id="logout-btn" class="logout-link" type="button">
+          Esci
+        </button>
       </div>
-
     </div>
 
   </header>
 
-  <!-- MENU GLOBALE LATERALE -->
-  <nav id="global-menu" class="global-menu">
-    <!-- Popolato dinamicamente via JS -->
-  </nav>
+  <!-- MENU LATERALE -->
+  <nav id="global-menu" class="global-menu"></nav>
 
   <!-- ROOT SPA -->
   <div id="app"></div>
 
-  <!-- STATE -->
+  <!-- GLOBAL STATE -->
   <script src="js/state.js"></script>
   <script src="js/stateActions.js"></script>
-
-  <!-- UI REPARTO -->
+  <script src="js/supabaseClient.js"></script>
   <script src="js/ui-reparto.js"></script>
 
-  <!-- ROUTER (SPA) -->
+  <!-- ROUTER (MODULE SOLO QUI) -->
   <script type="module" src="js/router.js"></script>
 
 </body>
