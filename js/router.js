@@ -94,7 +94,6 @@ function hasFeature(area) {
 function hasPermission(area) {
   const ruolo = window.state?.ruolo;
 
-  // 🔥 SUPERADMIN BYPASS TOTALE
   if (ruolo === "superadmin") return true;
 
   const azienda = window.state?.azienda;
@@ -198,7 +197,46 @@ async function resolve() {
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
-  // 🔐 Controllo permessi route
+  /* =========================================================
+     POPOLA HEADER
+  ========================================================= */
+
+  const nomeAziendaEl = document.getElementById("header-azienda-nome");
+  const logoEl = document.getElementById("header-logo");
+  const avatarEl = document.getElementById("header-avatar");
+  const userNameEl = document.getElementById("header-user-name");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  if (nomeAziendaEl) {
+    nomeAziendaEl.textContent = azienda.nome || "";
+  }
+
+  if (logoEl) {
+    if (azienda.logo_url) {
+      logoEl.src = azienda.logo_url;
+      logoEl.style.display = "block";
+    } else {
+      logoEl.style.display = "none";
+    }
+  }
+
+  if (userNameEl && avatarEl) {
+    const email = session.user.email || "";
+    const nome = email.split("@")[0];
+
+    userNameEl.textContent = nome;
+    avatarEl.textContent = nome.substring(0, 2).toUpperCase();
+  }
+
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.hash = "#/login";
+    };
+  }
+
+  /* ========================================================= */
+
   if (routes[route] && route !== "home" && route !== "homePiattaforma") {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
@@ -206,7 +244,6 @@ async function resolve() {
     }
   }
 
-  // 🔄 Redirect login
   if (route === "login") {
     window.location.hash =
       azienda.stato === "piattaforma"
