@@ -9,12 +9,15 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
 
+  <!-- CSS globale -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
 
-  <!-- ================= HEADER ================= -->
+  <!-- ===================================================== -->
+  <!-- ================= HEADER GLOBALE ==================== -->
+  <!-- ===================================================== -->
 
   <header class="app-header">
 
@@ -39,35 +42,57 @@
         alt="Logo azienda"
         style="display:none;"
       />
-      <div id="header-azienda-nome" class="header-azienda-nome"></div>
+      <div id="header-azienda-nome" class="header-azienda-nome">
+        <!-- Nome azienda caricato dinamicamente -->
+      </div>
     </div>
 
     <!-- DESTRA -->
     <div class="header-right">
       <div class="header-profile">
-        <div id="header-avatar" class="header-avatar"></div>
-        <div id="header-user-name" class="header-user-name"></div>
+
+        <!-- Avatar -->
+        <div id="header-avatar" class="header-avatar">
+          <!-- Iniziali utente via JS -->
+        </div>
+
+        <!-- Nome -->
+        <div id="header-user-name" class="header-user-name">
+          <!-- Nome utente -->
+        </div>
+
+        <!-- Logout -->
         <button id="logout-btn" class="logout-link" type="button">
           Esci
         </button>
+
       </div>
     </div>
 
   </header>
 
-  <!-- MENU LATERALE -->
-  <nav id="global-menu" class="global-menu"></nav>
+  <!-- ===================================================== -->
+  <!-- ================= MENU LATERALE ===================== -->
+  <!-- ===================================================== -->
 
-  <!-- ROOT SPA -->
+  <nav id="global-menu" class="global-menu">
+    <!-- Popolato dinamicamente via JS -->
+  </nav>
+
+  <!-- ===================================================== -->
+  <!-- ================= ROOT SPA ========================== -->
+  <!-- ===================================================== -->
+
   <div id="app"></div>
 
-  <!-- GLOBAL STATE -->
+  <!-- STATE -->
   <script src="js/state.js"></script>
   <script src="js/stateActions.js"></script>
-  <script src="js/supabaseClient.js"></script>
+
+  <!-- UI REPARTO -->
   <script src="js/ui-reparto.js"></script>
 
-  <!-- ROUTER (MODULE SOLO QUI) -->
+  <!-- ROUTER -->
   <script type="module" src="js/router.js"></script>
 
 </body>
