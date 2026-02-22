@@ -109,14 +109,14 @@ body {
 }
 
 .menu-icon span {
-  width: 22px;
+  width: 26px;
   height: 2px;
   background-color: var(--color-text);
   border-radius: 2px;
 }
 
 .menu-label {
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 500;
   color: var(--color-text-muted);
 }
