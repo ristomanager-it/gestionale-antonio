@@ -188,7 +188,14 @@ body {
 .logout-link:hover {
   color: var(--color-primary);
 }
+/* Micro-allineamento verticale (pixel-perfect) */
+.menu-toggle {
+  transform: translateY(3px);   /* abbassa leggermente hamburger + Menù */
+}
 
+.header-profile {
+  transform: translateY(-3px);  /* alza leggermente profilo */
+}
 /* ========================================================= */
 /* ================= AREA FEATURES ========================= */
 /* ========================================================= */
