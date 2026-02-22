@@ -1,7 +1,5 @@
 // js/router.js
 
-import "./supabaseClient.js";
-
 const app = document.getElementById("app");
 
 const routes = {
@@ -30,9 +28,7 @@ const routes = {
   creaPreventivo: () => import("./views/crea-preventivo.js"),
 };
 
-/* =========================================================
-   PARSE HASH
-========================================================= */
+/* ================= PARSE HASH ================= */
 
 function parseHash() {
   const raw = window.location.hash || "#/login";
@@ -56,14 +52,10 @@ function parseHash() {
   };
 }
 
-/* =========================================================
-   RENDER VIEW
-========================================================= */
+/* ================= RENDER VIEW ================= */
 
 async function renderView(routeName) {
-  if (!routes[routeName]) {
-    routeName = "home";
-  }
+  if (!routes[routeName]) routeName = "home";
 
   app.innerHTML = "";
 
@@ -76,25 +68,20 @@ async function renderView(routeName) {
   await module.render(app);
 }
 
-/* =========================================================
-   PERMESSI
-========================================================= */
+/* ================= PERMESSI ================= */
 
 function hasFeature(area) {
   const azienda = window.state?.azienda;
-
   if (azienda?.stato === "piattaforma") return true;
-
   const features = azienda?.features || {};
   return features[area] === true;
 }
 
 function hasPermission(area) {
   const azienda = window.state?.azienda;
-
   if (azienda?.stato === "piattaforma") return true;
 
-  const permessiEffettivi = window.state?.permessi || {};
+  const permessi = window.state?.permessi || {};
   const override = window.state?.permessiOverride || {};
 
   if (!hasFeature(area)) return false;
@@ -103,16 +90,10 @@ function hasPermission(area) {
     return override[area] === true;
   }
 
-  if (permessiEffettivi[`${area}.read`] === true) {
-    return true;
-  }
-
-  return false;
+  return permessi[`${area}.read`] === true;
 }
 
-/* =========================================================
-   ROUTER
-========================================================= */
+/* ================= ROUTER ================= */
 
 async function resolve() {
 
@@ -139,15 +120,12 @@ async function resolve() {
     window.stateActions.setAziende([]);
     window.stateActions.resetAzienda();
 
-    const header = document.querySelector(".app-header");
-    if (header) header.style.display = "none";
-
+    document.querySelector(".app-header").style.display = "none";
     await renderView("login");
     return;
   }
 
-  const header = document.querySelector(".app-header");
-  if (header) header.style.display = "block";
+  document.querySelector(".app-header").style.display = "flex";
 
   window.stateActions.setUser(session.user);
 
@@ -171,21 +149,14 @@ async function resolve() {
     .eq("user_id", session.user.id)
     .eq("attivo", true);
 
-  const aziendePulite = (aziende || []).filter(a => a.aziende !== null);
+  const aziendePulite = (aziende || []).filter(a => a.aziende);
 
   window.stateActions.setAziende(aziendePulite);
   window.stateActions.autoSetAzienda();
 
   const azienda = window.state.azienda;
-
   if (!azienda) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Nessuna azienda associata</h3>
-        </div>
-      </div>
-    `;
+    app.innerHTML = "<h3>Nessuna azienda associata</h3>";
     return;
   }
 
@@ -204,16 +175,6 @@ async function resolve() {
       window.location.hash = "#/home";
       return;
     }
-  }
-
-  if (azienda.stato === "piattaforma" && route === "login") {
-    window.location.hash = "#/homePiattaforma";
-    return;
-  }
-
-  if (azienda.stato !== "piattaforma" && route === "homePiattaforma") {
-    window.location.hash = "#/home";
-    return;
   }
 
   if (route === "login") {
