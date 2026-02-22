@@ -4,21 +4,16 @@
 
 :root {
 
-  /* ===== BRAND VERDE ANTICO ===== */
-
   --color-primary: #4F6228;
   --color-primary-soft: #5C7030;
   --color-primary-dark: #3E4D1F;
 
   --color-accent: #E67E22;
-  --color-accent-dark: #D35400;
-
-  /* ===== NEUTRI ===== */
 
   --color-bg-header: #FFFFFF;
   --color-card: #FFFFFF;
 
-  --color-text: #2F2F2F;
+  --color-text: #1C1C1E;
   --color-text-muted: #6B7280;
 
   --color-border: #E5E7EB;
@@ -52,15 +47,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-textarea {
-  font-size: 16px;
-}
-
 /* ========================================================= */
-/* ================= HEADER MINIMAL DEFINITIVA ============= */
+/* ================= HEADER APPLE MINIMAL ================== */
 /* ========================================================= */
 
 .app-header {
@@ -68,33 +56,29 @@ textarea {
   top: 0;
   left: 0;
   width: 100%;
-  height: 95px;
+  height: 88px;
 
-  background: var(--color-bg-header);
+  background: #ffffff;
 
   display: flex;
-  align-items: center;              /* 🔥 centra verticalmente */
+  align-items: center;
   justify-content: space-between;
 
-  padding: 0 32px;
+  padding: 0 28px;
 
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-soft);
 
   z-index: 9999;
-  flex-wrap: nowrap;
 }
 
-/* ========================================================= */
-/* ================= 3 COLONNE ============================= */
-/* ========================================================= */
+/* 3 colonne */
 
 .header-left,
 .header-center,
 .header-right {
   flex: 1;
   display: flex;
-  align-items: center;              /* 🔥 allineamento verticale uniforme */
+  align-items: center;
 }
 
 /* ================= SINISTRA ================= */
@@ -109,23 +93,30 @@ textarea {
   cursor: pointer;
 
   display: flex;
-  flex-direction: column;           /* hamburger sopra, testo sotto */
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 8px;
 
   padding: 0;
 }
 
+/* Hamburger minimal */
+
 .menu-icon {
-  font-size: 40px;
-  line-height: 1;
-  color: var(--color-text);
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.menu-icon span {
+  width: 22px;
+  height: 2px;
+  background-color: var(--color-text);
+  border-radius: 2px;
 }
 
 .menu-label {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-muted);
 }
@@ -139,13 +130,13 @@ textarea {
 }
 
 .header-logo {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
 .header-azienda-nome {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   text-align: center;
 }
@@ -158,15 +149,13 @@ textarea {
 
 .header-profile {
   display: flex;
-  align-items: center;              /* 🔥 stessa altezza hamburger */
+  align-items: center;
   gap: 12px;
 }
 
 .header-avatar {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--color-primary-dark);
   color: #ffffff;
@@ -175,12 +164,12 @@ textarea {
   align-items: center;
   justify-content: center;
 
+  font-size: 15px;
   font-weight: 600;
-  font-size: 18px;
 }
 
 .header-user-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -192,7 +181,6 @@ textarea {
 
   font-size: 14px;
   font-weight: 500;
-
   color: var(--color-text-muted);
   cursor: pointer;
 }
@@ -200,14 +188,15 @@ textarea {
 .logout-link:hover {
   color: var(--color-primary);
 }
+
 /* ========================================================= */
-/* ================= AREA FEATURES (SFONDO) ================ */
+/* ================= AREA FEATURES ========================= */
 /* ========================================================= */
 
 #app {
   width: 100%;
   padding: 24px 16px;
-  margin-top: 95px;
+  margin-top: 88px;
 
   display: flex;
   justify-content: center;
@@ -218,7 +207,7 @@ textarea {
     var(--color-primary-soft) 100%
   );
 
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 88px);
 }
 
 /* ========================================================= */
@@ -227,15 +216,15 @@ textarea {
 
 .view {
   width: 100%;
-  max-width: 100%;
+  max-width: 1100px;
   background: var(--color-card);
   border-radius: var(--radius-card);
-  padding: 22px;
+  padding: 24px;
   box-shadow: var(--shadow-medium);
 }
 
 /* ========================================================= */
-/* ================= CARD COMPONENT ======================== */
+/* ================= CARD ================================ */
 /* ========================================================= */
 
 .card {
@@ -252,7 +241,7 @@ textarea {
 /* ========================================================= */
 
 .app-button {
-  padding: 14px 20px;
+  padding: 12px 18px;
   border-radius: var(--radius-button);
   border: none;
   font-weight: 600;
@@ -274,10 +263,6 @@ textarea {
   color: #ffffff;
 }
 
-.app-button.accent:hover {
-  background: var(--color-accent-dark);
-}
-
 .app-button.gray {
   background: #ECEDE9;
   color: var(--color-text);
@@ -286,59 +271,4 @@ textarea {
 .app-button.red {
   background: #B91C1C;
   color: #ffffff;
-}
-
-/* ========================================================= */
-/* ================= COLLAPSABLE SECTION =================== */
-/* ========================================================= */
-
-.collapsible {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  margin-bottom: 16px;
-  overflow: hidden;
-}
-
-.collapsible-header {
-  padding: 16px;
-  background: #F9FAF8;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.collapsible-body {
-  padding: 18px;
-  display: none;
-}
-
-.collapsible.open .collapsible-body {
-  display: block;
-}
-
-/* ========================================================= */
-/* ================= RESPONSIVE ============================ */
-/* ========================================================= */
-
-@media (min-width: 768px) {
-
-  #app {
-    padding: 40px;
-  }
-
-  .view {
-    max-width: 900px;
-    padding: 32px;
-  }
-
-}
-
-@media (min-width: 1200px) {
-
-  .view {
-    max-width: 1100px;
-  }
-
 }
