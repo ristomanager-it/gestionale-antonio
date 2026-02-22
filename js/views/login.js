@@ -1,17 +1,18 @@
 // js/views/login.js
 import { supabase } from "../supabaseClient.js";
 
-async function collegaUserAUtenteAzienda() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/* =========================================================
+   TRACKING ACCESSI CORRETTO (NO EMAIL)
+========================================================= */
 
-  if (!user) return;
+async function aggiornaAccessoUtente(userId) {
+  if (!userId) return;
 
   const { data, error } = await supabase
     .from("utenti_aziende")
-    .select("*")
-    .eq("email", user.email)
+    .select("id, numero_accessi")
+    .eq("user_id", userId)
+    .eq("attivo", true)
     .single();
 
   if (error || !data) return;
@@ -19,13 +20,16 @@ async function collegaUserAUtenteAzienda() {
   await supabase
     .from("utenti_aziende")
     .update({
-      user_id: user.id,
-      stato_invito: "attivo",
       ultimo_accesso: new Date().toISOString(),
       numero_accessi: (data.numero_accessi || 0) + 1,
+      stato_invito: "attivo",
     })
     .eq("id", data.id);
 }
+
+/* =========================================================
+   RENDER LOGIN
+========================================================= */
 
 export async function render(container) {
   container.innerHTML = `
@@ -33,7 +37,6 @@ export async function render(container) {
 
       <div class="login-card-modern">
 
-        <!-- LOGO -->
         <div class="login-logo">
           <img src="Logo Gestionale Antonio.png" alt="Logo" />
         </div>
@@ -159,14 +162,8 @@ export async function render(container) {
         }
 
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(15px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(15px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       </style>
 
@@ -202,9 +199,6 @@ export async function render(container) {
       return;
     }
 
-    // 1️⃣ Collega utente ↔ utenti_aziende
-    await collegaUserAUtenteAzienda();
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -216,7 +210,16 @@ export async function render(container) {
       return;
     }
 
-    // 2️⃣ Recupero azienda + ruolo
+    /* =========================================================
+       TRACKING ACCESSO
+    ========================================================= */
+
+    await aggiornaAccessoUtente(user.id);
+
+    /* =========================================================
+       RECUPERO AZIENDA + RUOLO
+    ========================================================= */
+
     const { data: utenteAzienda, error: uaError } = await supabase
       .from("utenti_aziende")
       .select("azienda_id, ruolo")
@@ -231,18 +234,22 @@ export async function render(container) {
       return;
     }
 
-    // 3️⃣ Recupero permessi effettivi
-    const { data: permessiEffettivi, error: permError } = await supabase
-      .rpc("permessi_effettivi", {
+    /* =========================================================
+       RECUPERO PERMESSI
+    ========================================================= */
+
+    const { data: permessiEffettivi } = await supabase.rpc(
+      "permessi_effettivi",
+      {
         p_user_id: user.id,
         p_azienda_id: utenteAzienda.azienda_id,
-      });
+      }
+    );
 
-    if (permError) {
-      console.error("Errore caricamento permessi:", permError);
-    }
+    /* =========================================================
+       STATO GLOBALE
+    ========================================================= */
 
-    // 4️⃣ Salvo stato globale
     window.state.user = user;
     window.state.azienda = { id: utenteAzienda.azienda_id };
     window.state.ruolo = utenteAzienda.ruolo;
