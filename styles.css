@@ -53,34 +53,46 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: var(--color-text);
   min-height: 100%;
-  height: 100%;
   width: 100%;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  font-size: 17px;
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-text);
+
+  font-size: 18px;              /* ↑ più autorevole */
+  line-height: 1.6;             /* ↑ leggibilità SaaS */
+  font-weight: 500;             /* leggermente più solido */
 }
 
+/* Uniformiamo controlli form */
 button,
 input,
 select,
 textarea {
-  font-size: 16px;
+  font-family: inherit;
+  font-size: 17px;
 }
 
+/* Media responsive safe */
 img,
 video,
 canvas,
 svg {
   max-width: 100%;
+  display: block;
 }
 
+/* Evita overflow layout */
 #app,
 .view,
 .page {
@@ -92,7 +104,6 @@ svg {
 .card {
   overflow-wrap: anywhere;
 }
-
 /* ========================================================= */
 /* ================= HEADER DEFINITIVA ===================== */
 /* ========================================================= */
@@ -110,10 +121,10 @@ svg {
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 20px;
+  padding: 0 32px;
 
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 
   z-index: 1000;
 }
@@ -157,11 +168,15 @@ svg {
   background-color: var(--color-text);
   border-radius: 2px;
   display: block;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+}
+
+.menu-toggle:hover .menu-icon span {
+  background-color: var(--color-primary);
 }
 
 .menu-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -170,21 +185,21 @@ svg {
 
 .header-center {
   justify-content: center;
-  gap: 10px;
+  gap: 16px;
   text-align: center;
 }
 
 .header-logo {
-  width: 70px;
-  height: 70px;
+  width: 74px;
+  height: 74px;
   object-fit: contain;
 }
 
 .header-azienda-nome {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  max-width: 180px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  max-width: 240px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -203,16 +218,16 @@ svg {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   text-align: center;
-  min-width: 80px;
+  min-width: 90px;
 }
 
 .header-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--color-primary-dark);
+  background: var(--color-primary);
   color: #ffffff;
 
   display: flex;
@@ -220,28 +235,33 @@ svg {
   justify-content: center;
 
   font-weight: 700;
-  font-size: 16px;
+  font-size: 17px;
+
+  box-shadow: 0 4px 12px rgba(14, 90, 122, 0.25);
 }
 
 .header-user-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .logout-link {
   background: none;
   border: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-primary);
   cursor: pointer;
   padding: 0;
+  transition: color 0.2s ease;
 }
 
 .logout-link:hover {
   color: var(--color-primary-dark);
 }
+
+/* ================= MOBILE ADAPT ================= */
 
 @media (max-width: 1080px) {
 
@@ -253,8 +273,18 @@ svg {
     --card-padding: 16px;
   }
 
-  .header-profile {
-    min-width: 70px;
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .header-logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .header-azienda-nome {
+    font-size: 17px;
+    max-width: 160px;
   }
 
   .header-avatar {
@@ -264,48 +294,13 @@ svg {
   }
 
   .header-user-name {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .logout-link {
     font-size: 12px;
   }
 }
-
-/* ================= MOBILE ADAPT ================= */
-
-@media (max-width: 1080px) {
-
-  .app-header {
-    padding: 0 12px;
-  }
-
-  .header-logo {
-    width: 48px;
-    height: 48px;
-  }
-
-  .header-azienda-nome {
-    font-size: 15px;
-    max-width: 140px;
-  }
-
-  .header-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 13px;
-  }
-
-  .header-user-name {
-    font-size: 11px;
-  }
-
-  .logout-link {
-    font-size: 13px;
-    padding: 4px 6px;
-  }
-}
-
 /* ========================================================= */
 /* ================= AREA FEATURES (SFONDO) ================ */
 /* ========================================================= */
@@ -321,9 +316,8 @@ svg {
 
   background: linear-gradient(
     180deg,
-    #3E4D1F 0%,
-    #344219 50%,
-    #2B3514 100%
+    var(--color-bg-app) 0%,
+    var(--color-bg-app-soft) 100%
   );
 
   min-height: calc(100vh - var(--header-height));
@@ -339,9 +333,10 @@ svg {
   width: 100%;
   max-width: var(--container-max-width);
   background: #ffffff;
-  border-radius: 22px;
+  border-radius: 24px;
   padding: var(--view-padding);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
 
   min-height: calc(100vh - var(--header-height) - (var(--app-padding-y) * 2));
   min-height: calc(100dvh - var(--header-height) - (var(--app-padding-y) * 2));
@@ -355,9 +350,11 @@ svg {
   background: #ffffff;
   border-radius: 20px;
   padding: var(--card-padding);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-  border: none;
-  margin-bottom: 18px;
+
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0,0,0,0.03);
+
+  margin-bottom: 22px;
 }
 
 /* ========================================================= */
@@ -365,35 +362,39 @@ svg {
 /* ========================================================= */
 
 .app-button {
-  padding: 14px 20px;
-  border-radius: 16px;
+  padding: 16px 24px;
+  border-radius: 18px;
   border: none;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .app-button.primary {
   background: var(--color-primary);
   color: #ffffff;
+  box-shadow: 0 6px 16px rgba(14, 90, 122, 0.25);
 }
 
 .app-button.primary:hover {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
 }
 
 .app-button.accent {
   background: var(--color-accent);
   color: #ffffff;
+  box-shadow: 0 6px 16px rgba(230, 126, 34, 0.25);
 }
 
 .app-button.accent:hover {
   background: var(--color-accent-dark);
+  transform: translateY(-1px);
 }
 
 .app-button.gray {
-  background: #ECEDE9;
+  background: #EEF2F7;
   color: var(--color-text);
 }
 
@@ -407,31 +408,49 @@ svg {
 /* ========================================================= */
 
 .collapsible {
-  border: none;
   border-radius: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+
+  transition: all 0.2s ease;
+}
+
+.collapsible:hover {
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
 }
 
 .collapsible-header {
-  padding: 16px;
-  background: #F9FAF8;
+  padding: 18px 20px;
+  background: #F8FAFC;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 16px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  transition: background 0.2s ease;
+}
+
+.collapsible-header:hover {
+  background: #EEF2F7;
 }
 
 .collapsible-body {
-  padding: 18px;
+  padding: 22px;
   display: none;
+  border-top: 1px solid rgba(0,0,0,0.04);
 }
 
 .collapsible.open .collapsible-body {
   display: block;
 }
+
 
 /* ========================================================= */
 /* ================ RESPONSIVE BREAKPOINTS ================= */
@@ -443,13 +462,13 @@ svg {
   :root {
     --app-padding-x: 24px;
     --app-padding-y: 28px;
-    --view-padding: 24px;
-    --card-padding: 18px;
+    --view-padding: 26px;
+    --card-padding: 20px;
   }
 
   .view,
   .page {
-    max-width: 980px;
+    max-width: 1000px;
   }
 }
 
@@ -459,8 +478,8 @@ svg {
   :root {
     --app-padding-x: 40px;
     --app-padding-y: 40px;
-    --view-padding: 32px;
-    --card-padding: 20px;
+    --view-padding: 34px;
+    --card-padding: 24px;
   }
 
   .view,
@@ -473,10 +492,10 @@ svg {
 @media (max-width: 767px) {
 
   :root {
-    --app-padding-x: 12px;
-    --app-padding-y: 12px;
-    --view-padding: 16px;
-    --card-padding: 16px;
+    --app-padding-x: 14px;
+    --app-padding-y: 14px;
+    --view-padding: 18px;
+    --card-padding: 18px;
   }
 
   .view,
@@ -488,9 +507,10 @@ svg {
 
   .card {
     border-radius: 18px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
 }
+
 
 /* ========================================================= */
 /* ================= MOBILE IMPROVEMENT ==================== */
@@ -513,17 +533,16 @@ svg {
   }
 
   .view > div > div[style*="background:white"] div:first-child {
-    font-size: 28px !important;
+    font-size: 30px !important;
     margin-bottom: 0 !important;
   }
 
   .view > div > div[style*="background:white"] div:last-child {
-    font-size: 17px !important;
+    font-size: 18px !important;
     font-weight: 600;
   }
 
 }
-
 /* ========================================================= */
 /* ================= GLOBAL SIDE MENU ====================== */
 /* ========================================================= */
@@ -533,20 +552,20 @@ svg {
   top: var(--header-height);
   left: -280px;
   width: 260px;
-  height: calc(100vh - var(--header-height));
   height: calc(100dvh - var(--header-height));
 
   background: #ffffff;
-  box-shadow: 8px 0 30px rgba(0,0,0,0.08);
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid rgba(0,0,0,0.05);
 
-  padding: 20px 16px;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.06);
+
+  padding: 24px 18px;
 
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 
-  transition: left 0.3s ease;
+  transition: left 0.25s ease;
   z-index: 999;
 }
 
@@ -555,20 +574,23 @@ svg {
 }
 
 .menu-item {
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
   font-weight: 600;
+  font-size: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--color-text);
 }
 
 .menu-item:hover {
-  background: #f3f4f6;
+  background: #F3F6FA;
 }
 
 .menu-item.active {
-  background: var(--color-primary);
-  color: white;
+  background: rgba(14, 90, 122, 0.08);
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .menu-overlay {
@@ -576,13 +598,12 @@ svg {
   top: var(--header-height);
   left: 0;
   width: 100%;
-  height: calc(100vh - var(--header-height));
   height: calc(100dvh - var(--header-height));
-  background: rgba(0,0,0,0.3);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
   z-index: 998;
 }
 
@@ -593,12 +614,11 @@ svg {
 
 /* Mobile */
 @media (max-width:1080px) {
-
   .global-menu {
     width: 240px;
   }
-
 }
+
 
 /* ========================================================= */
 /* ============== RISTOFLOW PAGE + FORM SYSTEM ============= */
@@ -609,55 +629,57 @@ svg {
   width: 100%;
   max-width: var(--container-max-width);
   background: #ffffff;
-  border-radius: 22px;
+  border-radius: 24px;
   padding: var(--view-padding);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.06);
 
-  min-height: calc(100vh - var(--header-height) - (var(--app-padding-y) * 2));
   min-height: calc(100dvh - var(--header-height) - (var(--app-padding-y) * 2));
 }
 
 /* Header pagina */
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
 }
 
 .page-subtitle {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text-muted);
 }
 
-/* Card estensione (non modifica .card esistente) */
+/* Card estensione */
 .card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-  background: #f9faf8;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  background: #F8FAFC;
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .card-body {
-  padding: 20px;
+  padding: 22px;
 }
 
-/* Form layout */
+/* ========================================================= */
+/* ================= FORM LAYOUT =========================== */
+/* ========================================================= */
+
 .form-grid {
   display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 22px;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
@@ -669,7 +691,7 @@ svg {
 @media (max-width: 767px) {
   .form-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 18px;
   }
 }
 
@@ -679,26 +701,26 @@ svg {
 }
 
 .form-group label {
-  font-size: 13px;
-  font-weight: 800;
-  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
   color: var(--color-text-muted);
 }
 
-/* Input moderno coerente con brand */
 .input {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid var(--color-border);
   background: #ffffff;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
   max-width: 100%;
+  font-size: 17px;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary-soft);
-  box-shadow: 0 0 0 4px rgba(79, 98, 40, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(14, 90, 122, 0.12);
 }
 
 .checkbox-group {
@@ -707,9 +729,9 @@ svg {
 
 /* Azioni */
 .form-actions {
-  margin-top: 26px;
+  margin-top: 30px;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -718,7 +740,7 @@ svg {
   .form-actions {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 12px;
   }
 
   .form-actions .app-button,
@@ -729,8 +751,8 @@ svg {
 }
 
 .form-result {
-  margin-top: 12px;
-  font-weight: 800;
+  margin-top: 14px;
+  font-weight: 700;
 }
 
 .success-text {
@@ -746,8 +768,8 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 .feature-row:last-child {
@@ -756,22 +778,22 @@ svg {
 
 /* Logo preview */
 .logo-preview {
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   object-fit: cover;
-  border-radius: 18px;
-  margin-bottom: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  border-radius: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
 /* Variante bottone secondario */
 .app-button.secondary {
-  background: #ECEDE9;
+  background: #EEF2F7;
   color: var(--color-text);
 }
 
 .app-button.secondary:hover {
-  filter: brightness(0.97);
+  background: #E2E8F0;
 }
 
 /* ========================================================= */
@@ -780,29 +802,50 @@ svg {
 
 .tabs-wrapper {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
   align-items: center;
+  margin-bottom: 18px;
 }
 
 .tabs-wrapper .tab-btn,
 .tabs-wrapper .app-button {
   border-radius: 999px;
-  padding: 10px 18px;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 15px;
   white-space: nowrap;
+  background: #EEF2F7;
+  color: var(--color-text);
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.tabs-wrapper .tab-btn:hover,
+.tabs-wrapper .app-button:hover {
+  background: #E2E8F0;
+}
+
+.tabs-wrapper .tab-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(14, 90, 122, 0.25);
 }
 
 @media (max-width: 767px) {
+
   .tabs-wrapper {
-    gap: 8px;
+    gap: 10px;
   }
 
   .tabs-wrapper .tab-btn,
   .tabs-wrapper .app-button {
     flex: 1 1 auto;
     min-width: max-content;
+    text-align: center;
   }
 }
+
 
 /* ========================================================= */
 /* ================== TABLE RESPONSIVE ===================== */
@@ -813,37 +856,40 @@ svg {
 .card table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.view table,
-.page table,
-.card table {
   display: block;
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-}
-
-.view table thead,
-.page table thead,
-.card table thead,
-.view table tbody,
-.page table tbody,
-.card table tbody,
-.view table tr,
-.page table tr,
-.card table tr {
-  width: max-content;
+  font-size: 15px;
 }
 
 .view table th,
 .page table th,
-.card table th,
+.card table th {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-text-muted);
+  padding: 12px 16px;
+  background: #F8FAFC;
+  white-space: nowrap;
+}
+
 .view table td,
 .page table td,
 .card table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
   white-space: nowrap;
 }
+
+.view table tr:last-child td,
+.page table tr:last-child td,
+.card table tr:last-child td {
+  border-bottom: none;
+}
+
 
 /* ========================================================= */
 /* ================= ACQUISTI HEADER ======================= */
@@ -854,29 +900,39 @@ svg {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 18px;
+  margin-bottom: 18px;
 }
 
 .acquisti-title {
   margin: 0;
+  font-size: 24px;
+  font-weight: 800;
 }
+
 
 /* ========================================================= */
 /* ================== ACQUISTI RIGHE ======================= */
 /* ========================================================= */
 
 .acquisto-riga-card {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .acquisto-riga-card.ok {
   border-left: 4px solid #22c55e;
+  background: rgba(34, 197, 94, 0.03);
 }
 
 .acquisto-riga-card.partial {
   border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.03);
 }
 
 .acquisto-riga-card.missing {
   border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.03);
 }
