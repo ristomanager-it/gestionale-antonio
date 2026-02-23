@@ -76,6 +76,20 @@ container.innerHTML = `
   <div class="card">
     <h3>Nuova Fattura</h3>
 
+    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
+      <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
+      <button class="app-button tiny mode-btn" data-mode="import_api">Import API</button>
+    </div>
+
+    <div id="ocr-upload-section" style="display:none; margin-bottom:16px;">
+      <label>Carica immagine fattura</label>
+      <input type="file" id="fattura-file" accept="image/*,.pdf" class="input"/>
+      <button id="btn-esegui-ocr" class="app-button small gray" style="margin-top:8px;">
+        Esegui OCR
+      </button>
+    </div>
+
     <div class="form-grid">
       <div class="form-group">
         <label>Fornitore</label>
@@ -123,7 +137,6 @@ container.innerHTML = `
 
   <datalist id="prodotti-suggestions"></datalist>
 `;
-
   let mode = "manuale";
   let allegatoPath = null;
   let righe = [];
