@@ -1,37 +1,52 @@
 // js/views/ricettario.js
 // ============================================================
-// RICETTARIO – Ricerca autocompilante + Viewer completo
-// Coerente con struttura industriale ricette
+// RICETTARIO – Layout standard Ristoflow
+// Ricerca autocompilante + Viewer completo
 // ============================================================
+
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 let ricetteCache = [];
 
 export async function render(app) {
 
-  app.innerHTML = `
-    <section class="view">
+  app.innerHTML = createPageLayout({
+    title: "📖 Ricettario",
+    subtitle: "Ricerca e consultazione ricette",
+    content: `
 
-      <div style="margin-bottom:12px;">
-        <button class="app-button small gray"
-          onclick="window.location.hash='#/produzione'">
-          ← Centro Produzione
-        </button>
-      </div>
+      ${createCard({
+        title: "Navigazione",
+        body: `
+          <button class="app-button secondary"
+            onclick="window.location.hash='#/produzione'">
+            ← Centro Produzione
+          </button>
+        `
+      })}
 
-      <h2>📖 Ricettario</h2>
+      ${createCard({
+        title: "Ricerca Ricetta",
+        body: `
+          <div class="input-wrap">
+            <input id="ric-search"
+              class="input"
+              placeholder="Cerca ricetta..."
+              autocomplete="off" />
+            <div id="ric-suggest" class="suggest-list"></div>
+          </div>
+        `
+      })}
 
-      <div class="input-wrap">
-        <input id="ric-search"
-          class="input-pill"
-          placeholder="Cerca ricetta..."
-          autocomplete="off" />
-        <div id="ric-suggest" class="suggest-list"></div>
-      </div>
+      ${createCard({
+        title: "Dettaglio Ricetta",
+        body: `
+          <div id="ric-viewer"></div>
+        `
+      })}
 
-      <div id="ric-viewer" style="margin-top:20px;"></div>
-
-    </section>
-  `;
+    `
+  });
 
   await loadRicette();
   setupAutocomplete();
@@ -86,8 +101,6 @@ async function loadRicette() {
       um: out?.unita_misura ?? null
     };
   });
-
-  console.log("Ricette caricate:", ricetteCache.length);
 }
 
 /* ============================================================ */
@@ -141,7 +154,6 @@ function setupAutocomplete() {
     suggest.classList.add("open");
   });
 
-  // chiusura clic esterno
   document.addEventListener("click", (e) => {
     const wrap = input.closest(".input-wrap");
     if (!wrap) return;
@@ -191,18 +203,19 @@ async function mostraRicetta(id) {
   const viewer = document.getElementById("ric-viewer");
 
   viewer.innerHTML = `
-    <div class="azienda-card">
+
+    <div>
 
       <h3>${escapeHtml(ricetta.nome)}</h3>
 
       ${ricetta.descrizione ? `
-        <div class="small-muted" style="margin-bottom:10px;">
+        <div class="page-subtitle" style="margin-bottom:12px;">
           ${escapeHtml(ricetta.descrizione)}
         </div>
       ` : ""}
 
       ${ricetta.note_procedimento ? `
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:14px;">
           <strong>Procedimento:</strong><br>
           ${escapeHtml(ricetta.note_procedimento)}
         </div>
@@ -216,7 +229,7 @@ async function mostraRicetta(id) {
       </ul>
 
       ${fasi.length ? `
-        <h4 style="margin-top:15px;">Fasi</h4>
+        <h4 style="margin-top:18px;">Fasi</h4>
         <ol>
           ${fasi.map(f =>
             `<li>${escapeHtml(f.nome_fase)}</li>`
@@ -224,8 +237,8 @@ async function mostraRicetta(id) {
         </ol>
       ` : ""}
 
-      <div style="margin-top:15px;">
-        <button class="app-button small"
+      <div style="margin-top:18px;">
+        <button class="app-button"
           onclick="window.location.hash='#/creaRicetta?id=${id}'">
           ✏️ Modifica
         </button>
