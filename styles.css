@@ -121,57 +121,82 @@ svg {
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 24px;
+  padding: 0 20px;
 
   border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 
   z-index: 1000;
 }
 
-/* 3 COLONNE DESKTOP */
+/* ===== DESKTOP ===== */
 
 .header-left,
 .header-center,
 .header-right {
-  flex: 1;
   display: flex;
   align-items: center;
 }
 
-.header-left { justify-content: flex-start; }
-.header-center { justify-content: center; gap: 14px; }
-.header-right { justify-content: flex-end; }
+.header-left {
+  flex: 0 0 auto;
+}
 
-/* LOGO + AZIENDA */
+.header-center {
+  flex: 1;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.header-right {
+  flex: 0 0 auto;
+}
+
+/* ===== MENU ===== */
+
+.menu-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.menu-icon span {
+  width: 26px;
+  height: 3px;
+  background-color: var(--color-text);
+  border-radius: 2px;
+}
+
+/* ===== LOGO + NOME ===== */
 
 .header-logo {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
 }
 
 .header-azienda-nome {
   font-size: 20px;
   font-weight: 800;
-  max-width: 280px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;   /* mai più tagliato */
+  max-width: 100%;
 }
 
-/* PROFILO */
+/* ===== PROFILO ===== */
 
 .header-profile {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 10px;
 }
 
 .header-avatar {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
@@ -180,19 +205,19 @@ svg {
   align-items: center;
   justify-content: center;
 
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .header-user-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .logout-link {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-primary);
   cursor: pointer;
@@ -200,74 +225,67 @@ svg {
 
 
 /* ========================================================= */
-/* ================= MOBILE VERSION PULITA ================= */
+/* ================= MOBILE VERSION ======================== */
 /* ========================================================= */
 
 @media (max-width: 768px) {
 
   :root {
-    --header-height: 140px;   /* più basso, non copre tabs */
+    --header-height: 120px; /* più basso */
   }
 
   .app-header {
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    padding: 10px 16px;
+    justify-content: center;
+    padding: 8px 12px;
     gap: 6px;
     height: auto;
     min-height: var(--header-height);
   }
 
-  /* Riga superiore: menu + avatar */
   .header-left,
   .header-right {
     position: absolute;
     top: 10px;
   }
 
-  .header-left { left: 16px; }
-  .header-right { right: 16px; }
+  .header-left { left: 12px; }
+  .header-right { right: 12px; }
 
-  /* Centro */
   .header-center {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    margin-top: 10px;
   }
 
   .header-logo {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
 
   .header-azienda-nome {
-    font-size: 17px;
-    max-width: 95%;
-    white-space: normal;
+    font-size: 16px;
     text-align: center;
   }
 
-  /* Profilo compatto */
   .header-profile {
-    flex-direction: column;
-    gap: 2px;
-    align-items: center;
+    flex-direction: row;
+    gap: 6px;
   }
 
   .header-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     font-size: 16px;
   }
 
   .header-user-name {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .logout-link {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 /* ========================================================= */
