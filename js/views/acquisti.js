@@ -77,7 +77,25 @@ container.innerHTML = `
     <h3>Nuova Fattura</h3>
 
     <div class="form-grid">
-      ...
+      <div class="form-group">
+        <label>Fornitore</label>
+        <select id="fattura-fornitore" class="input">
+          <option value="">Seleziona fornitore</option>
+          ${(fornitori || []).map(f =>
+            `<option value="${f.id}">${escapeHtml(f.ragione_sociale)}</option>`
+          ).join("")}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Numero</label>
+        <input id="fattura-numero" class="input" />
+      </div>
+
+      <div class="form-group">
+        <label>Data</label>
+        <input id="fattura-data" type="date" class="input" />
+      </div>
     </div>
   </div>
 
@@ -86,18 +104,24 @@ container.innerHTML = `
 
     <div id="righe-container"></div>
 
-    <button id="btn-add-riga" class="app-button small gray">
-      + Riga
-    </button>
+    <div class="form-actions">
+      <button id="btn-add-riga" class="app-button gray small">
+        + Riga
+      </button>
+    </div>
   </div>
 
   <div class="card">
-    <button id="btn-salva-fattura" class="app-button small green">
-      Salva e Processa
-    </button>
+    <div class="form-actions">
+      <button id="btn-salva-fattura" class="app-button green small">
+        Salva e Processa
+      </button>
+    </div>
 
-    <div id="fattura-feedback" style="margin-top:10px;"></div>
+    <div id="fattura-feedback" class="form-result"></div>
   </div>
+
+  <datalist id="prodotti-suggestions"></datalist>
 `;
 
   let mode = "manuale";
