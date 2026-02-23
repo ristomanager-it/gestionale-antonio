@@ -228,9 +228,6 @@ async function renderFatture(container, azienda) {
   function setRowStatus(rowEl, status) {
     rowEl.classList.remove("ok", "partial", "missing");
     if (status) rowEl.classList.add(status);
-    rowEl.style.borderRadius = "14px";
-    rowEl.style.padding = "10px";
-    rowEl.style.boxShadow = "0 6px 18px rgba(15, 23, 42, 0.12)";
   }
 
   function setRowHint(rowEl, text) {
