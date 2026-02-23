@@ -5,10 +5,6 @@
 
 window.stateActions = {
 
-  // ================================
-  // USER
-  // ================================
-
   setUser(user) {
     window.state.user = user;
   },
@@ -17,22 +13,20 @@ window.stateActions = {
     window.state.profilo = profilo || null;
   },
 
-  // ================================
-  // AZIENDE
-  // ================================
-
   setAziende(aziende) {
     window.state.aziende = Array.isArray(aziende) ? aziende : [];
   },
 
   setAzienda(azienda) {
-    window.state.azienda = azienda;
+    window.state.azienda = azienda || null;
   },
 
   resetAzienda() {
     window.state.azienda = null;
     window.state.permessi = null;
     window.state.ruolo = null;
+    window.state.isSuperadmin = false;
+    window.state.permessiOverride = {};
     window.state.reparti = [];
     window.state.repartoAttivo = null;
 
@@ -40,10 +34,6 @@ window.stateActions = {
       window.uiActions.renderRepartoSelector();
     }
   },
-
-  // ================================
-  // RUOLI E PERMESSI
-  // ================================
 
   setPermessi(permessi) {
     window.state.permessi = permessi || {};
@@ -59,6 +49,18 @@ window.stateActions = {
 
     if (!user || !azienda) {
       window.state.permessi = null;
+      return;
+    }
+
+    const ruolo = window.state.ruolo;
+
+    // Superadmin e Admin non dipendono dai permessi granulari
+    if (
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin"
+    ) {
+      window.state.permessi = window.state.permessi || {};
       return;
     }
 
@@ -78,10 +80,6 @@ window.stateActions = {
 
     window.state.permessi = data || {};
   },
-
-  // ================================
-  // REPARTI
-  // ================================
 
   setReparti(reparti) {
     const lista = Array.isArray(reparti) ? reparti : [];
@@ -124,64 +122,41 @@ window.stateActions = {
       return;
     }
 
-    // 1️⃣ Carica ruolo
-    const { data: ruoloData, error: ruoloError } =
-      await window.supabaseClient
-        .from("utenti_aziende")
-        .select("ruolo")
-        .eq("user_id", user.id)
-        .eq("azienda_id", azienda.id)
-        .eq("attivo", true)
-        .single();
-
-    if (ruoloError) {
-      console.error("Errore caricamento ruolo:", ruoloError);
-      window.state.ruolo = null;
-      window.state.reparti = [];
-      window.state.repartoAttivo = null;
-      return;
-    }
+    const { data: ruoloData } = await window.supabaseClient
+      .from("utenti_aziende")
+      .select("ruolo")
+      .eq("user_id", user.id)
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
+      .single();
 
     const ruolo = ruoloData?.ruolo || null;
     window.state.ruolo = ruolo;
 
-    // 2️⃣ Admin / Superadmin → tutti i reparti azienda
-    if (ruolo === "admin" || ruolo === "superadmin") {
-
-      const { data: repartiData, error: repartiError } =
-        await window.supabaseClient
-          .from("reparti")
-          .select("id, nome")
-          .eq("azienda_id", azienda.id)
-          .eq("attivo", true)
-          .order("sort_order", { ascending: true });
-
-      if (repartiError) {
-        console.error("Errore caricamento reparti:", repartiError);
-        window.state.reparti = [];
-        window.state.repartoAttivo = null;
-        return;
-      }
+    // Superadmin e Admin → tutti reparti
+    if (
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin"
+    ) {
+      const { data: repartiData } = await window.supabaseClient
+        .from("reparti")
+        .select("id, nome")
+        .eq("azienda_id", azienda.id)
+        .eq("attivo", true)
+        .order("sort_order", { ascending: true });
 
       this.setReparti(repartiData || []);
       return;
     }
 
-    // 3️⃣ Manager / Operatore → solo reparti assegnati
-    const { data: urData, error: urError } =
-      await window.supabaseClient
-        .from("utenti_reparti")
-        .select("reparto_id, reparti(id, nome)")
-        .eq("user_id", user.id)
-        .eq("azienda_id", azienda.id)
-        .eq("attivo", true);
-
-    if (urError) {
-      console.error("Errore caricamento utenti_reparti:", urError);
-      window.state.reparti = [];
-      window.state.repartoAttivo = null;
-      return;
-    }
+    // Manager e Operatore → solo assegnati
+    const { data: urData } = await window.supabaseClient
+      .from("utenti_reparti")
+      .select("reparto_id, reparti(id, nome)")
+      .eq("user_id", user.id)
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true);
 
     const reparti = (urData || [])
       .map(r => r.reparti)
@@ -189,10 +164,6 @@ window.stateActions = {
 
     this.setReparti(reparti);
   },
-
-  // ================================
-  // AUTO AZIENDA
-  // ================================
 
   autoSetAzienda() {
     const aziendeLink = window.state.aziende || [];
@@ -218,15 +189,4 @@ window.stateActions = {
 
     window.state.azienda = null;
   }
-
-};
-
-// ================================
-// Helper globale permessi
-// ================================
-
-window.hasPermesso = function (key) {
-  const p = window.state.permessi;
-  if (!p) return false;
-  return p[key] === true;
 };
