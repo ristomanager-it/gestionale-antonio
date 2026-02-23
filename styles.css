@@ -266,36 +266,68 @@ svg {
 @media (max-width: 1080px) {
 
   :root {
-    --header-height: 120px;
+    --header-height: 170px;
   }
 
   .app-header {
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    align-items: stretch;
+    justify-content: flex-start;
     padding: 12px 16px;
-    gap: 6px;
+    gap: 10px;
     height: auto;
     min-height: var(--header-height);
   }
 
+  /* PRIMA RIGA: MENU + PROFILO */
   .header-left,
   .header-right {
-    position: absolute;
-    top: 14px;
+    position: static;
+    flex: none;
+    width: 100%;
   }
 
   .header-left {
-    left: 16px;
+    display: flex;
+    justify-content: flex-start;
   }
 
   .header-right {
-    right: 16px;
+    display: flex;
+    justify-content: flex-end;
   }
 
+  /* PROFILO ORIZZONTALE */
+  .header-profile {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 18px;
+  }
+
+  .header-user-name {
+    display: block;
+    font-size: 15px;
+  }
+
+  .logout-link {
+    display: block;
+    font-size: 14px;
+  }
+
+  /* SECONDA RIGA: LOGO + NOME AZIENDA */
   .header-center {
+    width: 100%;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
   }
 
   .header-logo {
@@ -305,10 +337,11 @@ svg {
 
   .header-azienda-nome {
     font-size: 18px;
-    max-width: 90%;
+    max-width: 95%;
     white-space: normal;
     text-align: center;
   }
+}
 
   .header-avatar {
     width: 44px;
