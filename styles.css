@@ -690,3 +690,22 @@ textarea {
 .acquisti-title {
   margin: 0;
 }
+/* ========================================================= */
+/* ================== ACQUISTI RIGHE ======================= */
+/* ========================================================= */
+
+.acquisto-riga-card {
+  margin-bottom: 16px;
+}
+
+.acquisto-riga-card.ok {
+  border-left: 4px solid #22c55e;
+}
+
+.acquisto-riga-card.partial {
+  border-left: 4px solid #f59e0b;
+}
+
+.acquisto-riga-card.missing {
+  border-left: 4px solid #ef4444;
+}
