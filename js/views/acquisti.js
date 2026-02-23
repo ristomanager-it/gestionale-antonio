@@ -21,12 +21,12 @@ export async function render(container) {
       ${createCard({
         title: "Sezioni",
         body: `
-          <div class="tabs-wrapper">
-            <button class="app-button primary tab-btn" data-tab="fatture">Fatture</button>
-            <button class="app-button gray tab-btn" data-tab="fornitori">Fornitori</button>
-            <button class="app-button gray tab-btn" data-tab="ordini">Ordini</button>
-            <button class="app-button gray tab-btn" data-tab="riordino">Riordino</button>
-          </div>
+         <div class="tabs-wrapper">
+  <button class="tab-btn active" data-tab="fatture">Fatture</button>
+  <button class="tab-btn" data-tab="fornitori">Fornitori</button>
+  <button class="tab-btn" data-tab="ordini">Ordini</button>
+  <button class="tab-btn" data-tab="riordino">Riordino</button>
+</div>
         `
       })}
       <div id="acquisti-content"></div>
