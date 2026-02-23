@@ -72,59 +72,33 @@ async function renderFatture(container, azienda) {
     .eq("azienda_id", azienda.id)
     .eq("attivo", true);
 
-  container.innerHTML = `
+container.innerHTML = `
+  <div class="card">
     <h3>Nuova Fattura</h3>
 
-    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-      <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
-      <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
-      <button class="app-button tiny mode-btn" data-mode="import_api">Import API</button>
+    <div class="form-grid">
+      ...
     </div>
+  </div>
 
-    <div id="ocr-upload-section" style="display:none; margin-bottom:16px;">
-      <label>Carica immagine fattura</label>
-      <input type="file" id="fattura-file" accept="image/*,.pdf" class="input-pill"/>
-      <button id="btn-esegui-ocr" class="app-button small gray" style="margin-top:8px;">
-        Esegui OCR
-      </button>
-    </div>
+  <div class="card">
+    <h3>Righe Fattura</h3>
 
-    <label>Fornitore</label>
-    <select id="fattura-fornitore" class="input-pill">
-      <option value="">Seleziona fornitore</option>
-      ${(fornitori || []).map(f =>
-        `<option value="${f.id}">${escapeHtml(f.ragione_sociale)}</option>`
-      ).join("")}
-    </select>
-
-    <label>Numero</label>
-    <input id="fattura-numero" class="input-pill" />
-
-    <label>Data</label>
-    <input id="fattura-data" type="date" class="input-pill" />
-
-    <div style="margin-top:14px;">
-      <small style="display:block; margin-bottom:6px; color:#6b7280;">
-        Suggerimento: righe <span style="font-weight:700;">verdi</span> = match forte, <span style="font-weight:700;">gialle</span> = verifica, <span style="font-weight:700;">rosse</span> = manca prodotto.
-      </small>
-    </div>
-
-    <div id="righe-container" style="margin-top:10px;"></div>
-
-    <datalist id="prodotti-suggestions"></datalist>
+    <div id="righe-container"></div>
 
     <button id="btn-add-riga" class="app-button small gray">
       + Riga
     </button>
+  </div>
 
-    <hr style="margin:16px 0;" />
-
+  <div class="card">
     <button id="btn-salva-fattura" class="app-button small green">
       Salva e Processa
     </button>
 
     <div id="fattura-feedback" style="margin-top:10px;"></div>
-  `;
+  </div>
+`;
 
   let mode = "manuale";
   let allegatoPath = null;
