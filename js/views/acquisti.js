@@ -427,9 +427,9 @@ async function renderFatture(container, azienda) {
     righeContainer.innerHTML = "";
 
     righe.forEach((r, index) => {
-      const row = document.createElement("div");
-      row.style.marginBottom = "10px";
-      row.dataset.i = String(index);
+     const row = document.createElement("div");
+row.className = "card acquisto-riga-card";
+row.dataset.i = String(index);
 
       setRowStatus(row, computeStatusFromRiga(r));
 
