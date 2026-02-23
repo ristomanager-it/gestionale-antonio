@@ -1,6 +1,7 @@
 // js/router.js
 
 import { supabase } from "./supabaseClient.js";
+import { initMenu } from "./menu.js";
 
 let app = null;
 
@@ -11,6 +12,7 @@ let app = null;
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
+
   homePiattaforma: () => import("./views/home-piattaforma.js"),
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
@@ -35,38 +37,17 @@ const routes = {
 };
 
 /* =========================================================
-   MENU SEMPLICE
+   ROUTE SCOPE
 ========================================================= */
 
-function initMenu() {
+const PUBLIC_ROUTES = new Set(["login", "setPassword"]);
 
-  const menu = document.getElementById("global-menu");
-  const toggle = document.getElementById("menu-toggle");
-
-  if (!menu || !toggle) return;
-
-  menu.innerHTML = `
-    <div class="menu-item" data-route="home">Home</div>
-    <div class="menu-item" data-route="produzione">Produzione</div>
-    <div class="menu-item" data-route="magazzino">Magazzino</div>
-    <div class="menu-item" data-route="ricettario">Ricettario</div>
-    <div class="menu-item" data-route="dipendenti">Dipendenti</div>
-    <div class="menu-item" data-route="report">Report</div>
-  `;
-
-  toggle.onclick = () => {
-    menu.classList.toggle("open");
-  };
-
-  menu.querySelectorAll(".menu-item").forEach(item => {
-    item.onclick = () => {
-      const route = item.dataset.route;
-      window.location.hash = "#/" + route;
-      menu.classList.remove("open");
-    };
-  });
-
-}
+const PLATFORM_ROUTES = new Set([
+  "homePiattaforma",
+  "gestioneAziende",
+  "creaAzienda",
+  "modificaAzienda",
+]);
 
 /* =========================================================
    PARSE HASH
@@ -114,31 +95,26 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   PERMESSI
+   PERMISSION CHECK
 ========================================================= */
 
-function hasFeature(area) {
-  const azienda = window.state?.azienda;
-  if (azienda?.stato === "piattaforma") return true;
-
-  const features = azienda?.features || {};
-  return features[area] === true;
+function isSuperadmin() {
+  return window.state?.isSuperadmin === true;
 }
 
 function hasPermission(area) {
-  const ruolo = window.state?.ruolo;
+  if (isSuperadmin()) return true;
 
-  if (ruolo === "superadmin") return true;
+  const ruolo = window.state?.ruolo;
+  if (ruolo === "admin") return true;
 
   const azienda = window.state?.azienda;
-  if (azienda?.stato === "piattaforma") return true;
+  if (!azienda) return false;
 
   const permessi = window.state?.permessi || {};
   const override = window.state?.permessiOverride || {};
 
-  if (!hasFeature(area)) return false;
-
-  if (override.hasOwnProperty(area)) {
+  if (Object.prototype.hasOwnProperty.call(override, area)) {
     return override[area] === true;
   }
 
@@ -150,7 +126,6 @@ function hasPermission(area) {
 ========================================================= */
 
 async function resolve() {
-
   if (!app) return;
 
   if (!window.location.hash) {
@@ -178,7 +153,8 @@ async function resolve() {
     const header = document.querySelector(".app-header");
     if (header) header.style.display = "none";
 
-    await renderView("login");
+    const target = PUBLIC_ROUTES.has(route) ? route : "login";
+    await renderView(target);
     return;
   }
 
@@ -210,6 +186,9 @@ async function resolve() {
   const aziendePulite = (aziende || []).filter(a => a.aziende);
 
   window.stateActions.setAziende(aziendePulite);
+
+  window.state.isSuperadmin = aziendePulite.some(a => a.ruolo === "superadmin");
+
   window.stateActions.autoSetAzienda();
 
   const azienda = window.state.azienda;
@@ -223,13 +202,15 @@ async function resolve() {
     a => a.aziende.id === azienda.id
   );
 
-  window.stateActions.setRuolo(recordAttivo?.ruolo || null);
+  const ruoloEffettivo = window.state.isSuperadmin
+    ? "superadmin"
+    : (recordAttivo?.ruolo || null);
+
+  window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
-
-  /* HEADER */
 
   const nomeAziendaEl = document.getElementById("header-azienda-nome");
   const logoEl = document.getElementById("header-logo");
@@ -250,9 +231,9 @@ async function resolve() {
 
   if (userNameEl && avatarEl) {
     const email = session.user.email || "";
-    const nome = email.split("@")[0];
+    const nome = email.split("@")[0] || "";
     userNameEl.textContent = nome;
-    avatarEl.textContent = nome.substring(0, 2).toUpperCase();
+    avatarEl.textContent = (nome.substring(0, 2) || "U").toUpperCase();
   }
 
   if (logoutBtn) {
@@ -262,19 +243,28 @@ async function resolve() {
     };
   }
 
-  if (routes[route] && route !== "home" && route !== "homePiattaforma") {
+  if (route === "login") {
+    window.location.hash =
+      azienda.stato === "piattaforma" || isSuperadmin()
+        ? "#/homePiattaforma"
+        : "#/home";
+    return;
+  }
+
+  if (PLATFORM_ROUTES.has(route)) {
+    if (!isSuperadmin()) {
+      window.location.hash = "#/home";
+      return;
+    }
+    await renderView(route);
+    return;
+  }
+
+  if (routes[route] && !PUBLIC_ROUTES.has(route)) {
     if (!hasPermission(route)) {
       window.location.hash = "#/home";
       return;
     }
-  }
-
-  if (route === "login") {
-    window.location.hash =
-      azienda.stato === "piattaforma"
-        ? "#/homePiattaforma"
-        : "#/home";
-    return;
   }
 
   await renderView(route);
@@ -284,10 +274,16 @@ async function resolve() {
    INIT
 ========================================================= */
 
+window.router = {
+  reloadCurrentRoute() {
+    resolve();
+  },
+};
+
 window.addEventListener("hashchange", resolve);
 
 window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
-  initMenu();   // 👈 menu attivo
+  initMenu();
   resolve();
 });
