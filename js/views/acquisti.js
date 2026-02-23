@@ -36,16 +36,14 @@ export async function render(container) {
   const content = document.getElementById("acquisti-content");
   const tabButtons = document.querySelectorAll(".tab-btn");
 
-  function setActiveTab(tab) {
-    tabButtons.forEach(btn => {
-      btn.classList.remove("primary");
-      btn.classList.add("gray");
-      if (btn.dataset.tab === tab) {
-        btn.classList.remove("gray");
-        btn.classList.add("primary");
-      }
-    });
-  }
+ function setActiveTab(tab) {
+  tabButtons.forEach(btn => {
+    btn.classList.remove("active");
+    if (btn.dataset.tab === tab) {
+      btn.classList.add("active");
+    }
+  });
+}
 
   function renderTab(tab) {
     setActiveTab(tab);
