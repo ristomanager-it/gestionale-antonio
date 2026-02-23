@@ -660,3 +660,33 @@ textarea {
     padding: 22px;
   }
 }
+/* ========================================================= */
+/* ===================== TABS SYSTEM ======================= */
+/* ========================================================= */
+
+.tabs-wrapper {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs-wrapper .app-button {
+  border-radius: 999px;
+  padding: 10px 18px;
+}
+
+/* ========================================================= */
+/* ================= ACQUISTI HEADER ======================= */
+/* ========================================================= */
+
+.acquisti-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.acquisti-title {
+  margin: 0;
+}
