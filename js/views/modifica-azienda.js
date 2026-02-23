@@ -34,13 +34,19 @@ export async function render(container) {
     .single();
 
   if (error || !azienda) {
-    container.innerHTML = `<div class="view">Azienda non trovata</div>`;
+    container.innerHTML = `<div class="page"><h2>Azienda non trovata</h2></div>`;
     return;
   }
 
   container.innerHTML = `
-    <div class="view">
-      <h2>Modifica Azienda</h2>
+    <div class="page">
+
+      <div class="page-header">
+        <div>
+          <h1>Modifica Azienda</h1>
+          <p class="page-subtitle">Gestione completa configurazione aziendale</p>
+        </div>
+      </div>
 
       ${cardLogo(azienda)}
       ${cardAnagrafica(azienda)}
@@ -49,12 +55,13 @@ export async function render(container) {
       ${cardSaaS(azienda)}
       ${cardFeatures()}
 
-      <div style="margin-top:24px; display:flex; gap:12px;">
+      <div class="form-actions">
         <button class="app-button" id="btn-save">💾 Salva modifiche</button>
-        <button class="app-button small gray" id="btn-back">⬅ Indietro</button>
+        <button class="app-button secondary" id="btn-back">⬅ Indietro</button>
       </div>
 
-      <div id="save-result" style="margin-top:12px;"></div>
+      <div id="save-result" class="form-result"></div>
+
     </div>
   `;
 
@@ -97,16 +104,15 @@ export async function render(container) {
     const result = document.getElementById("save-result");
 
     if (error) {
-      result.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`;
+      result.innerHTML = `<span class="error-text">Errore: ${error.message}</span>`;
       return;
     }
 
-    result.innerHTML = `<span style="color:#16a34a;">Salvato correttamente ✔</span>`;
+    result.innerHTML = `<span class="success-text">Salvato correttamente ✔</span>`;
   };
 
   renderFeatures(azienda);
 
-  // Upload Logo
   document.getElementById("logo-upload")?.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -138,21 +144,11 @@ export async function render(container) {
   });
 }
 
-/* =========================================================
-   🔥 FEATURES CORRETTE E STABILI
-========================================================= */
-
 function renderFeatures(azienda) {
   const container = document.getElementById("features-container");
 
   container.innerHTML = MODULI.map(m => `
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px 0;
-      border-bottom:1px solid #e5e7eb;
-    ">
+    <div class="feature-row">
       <span>${m.label}</span>
       <input 
         type="checkbox"
@@ -183,16 +179,11 @@ function renderFeatures(azienda) {
           azienda.features = nuoveFeatures;
         } else {
           alert("Errore aggiornamento feature");
-          console.error(error);
         }
 
       });
     });
 }
-
-/* =========================================================
-   Utility
-========================================================= */
 
 function val(id) {
   return document.getElementById(id)?.value.trim() || null;
@@ -209,18 +200,18 @@ function boolVal(id) {
 
 function input(id,label,value,type="text"){
   return `
-    <div style="margin-top:10px;">
-      <label class="small-muted">${label}</label>
-      <input class="input-pill" type="${type}" id="${id}" value="${value ?? ""}" />
+    <div class="form-group">
+      <label>${label}</label>
+      <input class="input" type="${type}" id="${id}" value="${value ?? ""}" />
     </div>
   `;
 }
 
 function select(id,label,value,options){
   return `
-    <div style="margin-top:10px;">
-      <label class="small-muted">${label}</label>
-      <select class="input-pill" id="${id}">
+    <div class="form-group">
+      <label>${label}</label>
+      <select class="input" id="${id}">
         ${options.map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
       </select>
     </div>
@@ -229,80 +220,94 @@ function select(id,label,value,options){
 
 function cardLogo(a){
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Logo Azienda</h3>
-      ${
-        a.logo_url
-          ? `<img src="${a.logo_url}" style="width:120px; height:120px; object-fit:cover; border-radius:16px; margin-bottom:10px;" />`
-          : `<p class="small-muted">Nessun logo caricato</p>`
-      }
-      <input type="file" id="logo-upload" accept="image/*" />
+    <div class="card">
+      <div class="card-header">
+        <h3>Logo Azienda</h3>
+      </div>
+      <div class="card-body">
+        ${
+          a.logo_url
+            ? `<img src="${a.logo_url}" class="logo-preview" />`
+            : `<p class="small-muted">Nessun logo caricato</p>`
+        }
+        <input type="file" id="logo-upload" accept="image/*" />
+      </div>
     </div>
   `;
 }
 
 function cardAnagrafica(a) {
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Dati Anagrafici</h3>
-      ${input("nome","Nome",a.nome)}
-      ${input("ragione_sociale","Ragione Sociale",a.ragione_sociale)}
-      ${input("referente","Referente",a.referente)}
+    <div class="card">
+      <div class="card-header"><h3>Dati Anagrafici</h3></div>
+      <div class="card-body form-grid">
+        ${input("nome","Nome",a.nome)}
+        ${input("ragione_sociale","Ragione Sociale",a.ragione_sociale)}
+        ${input("referente","Referente",a.referente)}
+      </div>
     </div>
   `;
 }
 
 function cardFiscale(a) {
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Dati Fiscali</h3>
-      ${input("partita_iva","Partita IVA",a.partita_iva)}
-      ${input("codice_fiscale","Codice Fiscale",a.codice_fiscale)}
-      ${input("codice_univoco","Codice Univoco",a.codice_univoco)}
-      ${input("pec","PEC",a.pec)}
+    <div class="card">
+      <div class="card-header"><h3>Dati Fiscali</h3></div>
+      <div class="card-body form-grid">
+        ${input("partita_iva","Partita IVA",a.partita_iva)}
+        ${input("codice_fiscale","Codice Fiscale",a.codice_fiscale)}
+        ${input("codice_univoco","Codice Univoco",a.codice_univoco)}
+        ${input("pec","PEC",a.pec)}
+      </div>
     </div>
   `;
 }
 
 function cardContatti(a) {
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Contatti</h3>
-      ${input("email","Email",a.email)}
-      ${input("telefono","Telefono",a.telefono)}
-      ${input("email_amministrativa","Email Amministrativa",a.email_amministrativa)}
-      ${input("telefono_amministrativo","Telefono Amministrativo",a.telefono_amministrativo)}
-      ${input("indirizzo","Indirizzo",a.indirizzo)}
-      ${input("citta","Città",a.citta)}
-      ${input("cap","CAP",a.cap)}
-      ${input("provincia","Provincia",a.provincia)}
-      ${input("nazione","Nazione",a.nazione)}
+    <div class="card">
+      <div class="card-header"><h3>Contatti</h3></div>
+      <div class="card-body form-grid">
+        ${input("email","Email",a.email)}
+        ${input("telefono","Telefono",a.telefono)}
+        ${input("email_amministrativa","Email Amministrativa",a.email_amministrativa)}
+        ${input("telefono_amministrativo","Telefono Amministrativo",a.telefono_amministrativo)}
+        ${input("indirizzo","Indirizzo",a.indirizzo)}
+        ${input("citta","Città",a.citta)}
+        ${input("cap","CAP",a.cap)}
+        ${input("provincia","Provincia",a.provincia)}
+        ${input("nazione","Nazione",a.nazione)}
+      </div>
     </div>
   `;
 }
 
 function cardSaaS(a) {
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Configurazione SaaS</h3>
-      ${select("piano","Piano",a.piano,["basic","pro","premium"])}
-      ${input("numero_massimo_utenti","Max Utenti",a.numero_massimo_utenti,"number")}
-      ${input("numero_massimo_ricette","Max Ricette",a.numero_massimo_ricette,"number")}
-      ${input("data_scadenza","Data Scadenza",a.data_scadenza,"date")}
-      ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
-      ${select("stato","Stato",a.stato,["attiva","sospesa"])}
-      <label style="display:block;margin-top:10px;">
-        <input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva
-      </label>
+    <div class="card">
+      <div class="card-header"><h3>Configurazione SaaS</h3></div>
+      <div class="card-body form-grid">
+        ${select("piano","Piano",a.piano,["basic","pro","premium"])}
+        ${input("numero_massimo_utenti","Max Utenti",a.numero_massimo_utenti,"number")}
+        ${input("numero_massimo_ricette","Max Ricette",a.numero_massimo_ricette,"number")}
+        ${input("data_scadenza","Data Scadenza",a.data_scadenza,"date")}
+        ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
+        ${select("stato","Stato",a.stato,["attiva","sospesa"])}
+        <div class="form-group checkbox-group">
+          <label><input type="checkbox" id="attiva" ${a.attiva ? "checked":""}/> Attiva</label>
+        </div>
+      </div>
     </div>
   `;
 }
 
 function cardFeatures(){
   return `
-    <div class="view" style="margin-top:20px;">
-      <h3>Moduli Attivi</h3>
-      <div id="features-container"></div>
+    <div class="card">
+      <div class="card-header"><h3>Moduli Attivi</h3></div>
+      <div class="card-body">
+        <div id="features-container"></div>
+      </div>
     </div>
   `;
 }
