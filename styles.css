@@ -28,6 +28,17 @@
 
   --radius-card: 18px;
   --radius-button: 14px;
+
+  /* ===== RESPONSIVE SYSTEM ===== */
+
+  --container-max-width: 1200px;
+
+  --header-height: 110px;
+  --app-padding-x: 16px;
+  --app-padding-y: 24px;
+
+  --view-padding: 26px;
+  --card-padding: 20px;
 }
 
 /* ========================================================= */
@@ -46,7 +57,8 @@ body {
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--color-text);
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
   width: 100%;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -60,6 +72,25 @@ textarea {
   font-size: 16px;
 }
 
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+#app,
+.view,
+.page {
+  max-width: 100%;
+}
+
+.view,
+.page,
+.card {
+  overflow-wrap: anywhere;
+}
+
 /* ========================================================= */
 /* ================= HEADER DEFINITIVA ===================== */
 /* ========================================================= */
@@ -69,7 +100,7 @@ textarea {
   top: 0;
   left: 0;
   width: 100%;
-  height: 110px; /* aumentata */
+  height: var(--header-height);
 
   background: var(--color-bg-header);
 
@@ -168,11 +199,11 @@ textarea {
 .header-profile {
   display: flex;
   flex-direction: column;
-  align-items: center;   /* CENTRA ORIZZONTALMENTE */
+  align-items: center;
   justify-content: center;
   gap: 4px;
   text-align: center;
-  min-width: 80px;       /* evita spostamenti */
+  min-width: 80px;
 }
 
 .header-avatar {
@@ -209,7 +240,16 @@ textarea {
 .logout-link:hover {
   color: var(--color-primary-dark);
 }
+
 @media (max-width: 1080px) {
+
+  :root {
+    --header-height: 85px;
+    --app-padding-x: 12px;
+    --app-padding-y: 16px;
+    --view-padding: 18px;
+    --card-padding: 16px;
+  }
 
   .header-profile {
     min-width: 70px;
@@ -229,12 +269,12 @@ textarea {
     font-size: 12px;
   }
 }
+
 /* ================= MOBILE ADAPT ================= */
 
 @media (max-width: 1080px) {
 
   .app-header {
-    height: 85px;
     padding: 0 12px;
   }
 
@@ -270,11 +310,12 @@ textarea {
 
 #app {
   width: 100%;
-  padding: 24px 16px;
-  margin-top: 110px;
+  padding: var(--app-padding-y) var(--app-padding-x);
+  margin-top: var(--header-height);
 
   display: flex;
   justify-content: center;
+  align-items: stretch;
 
   background: linear-gradient(
     180deg,
@@ -283,7 +324,9 @@ textarea {
     #2B3514 100%
   );
 
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
+  overflow-x: hidden;
 }
 
 /* ========================================================= */
@@ -292,11 +335,14 @@ textarea {
 
 .view {
   width: 100%;
-  max-width: 100%;
+  max-width: var(--container-max-width);
   background: #ffffff;
   border-radius: 22px;
-  padding: 26px;
+  padding: var(--view-padding);
   box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+
+  min-height: calc(100vh - var(--header-height) - (var(--app-padding-y) * 2));
+  min-height: calc(100dvh - var(--header-height) - (var(--app-padding-y) * 2));
 }
 
 /* ========================================================= */
@@ -306,7 +352,7 @@ textarea {
 .card {
   background: #ffffff;
   border-radius: 20px;
-  padding: 20px;
+  padding: var(--card-padding);
   box-shadow: 0 12px 30px rgba(0,0,0,0.08);
   border: none;
   margin-bottom: 18px;
@@ -386,28 +432,62 @@ textarea {
 }
 
 /* ========================================================= */
-/* ================= RESPONSIVE ============================ */
+/* ================ RESPONSIVE BREAKPOINTS ================= */
 /* ========================================================= */
 
-@media (min-width: 768px) {
+/* TABLET: 768px – 1199px */
+@media (min-width: 768px) and (max-width: 1199px) {
 
-  #app {
-    padding: 40px;
+  :root {
+    --app-padding-x: 24px;
+    --app-padding-y: 28px;
+    --view-padding: 24px;
+    --card-padding: 18px;
   }
 
-  .view {
-    max-width: 900px;
-    padding: 32px;
+  .view,
+  .page {
+    max-width: 980px;
   }
-
 }
 
+/* DESKTOP: ≥ 1200px */
 @media (min-width: 1200px) {
 
-  .view {
-    max-width: 1100px;
+  :root {
+    --app-padding-x: 40px;
+    --app-padding-y: 40px;
+    --view-padding: 32px;
+    --card-padding: 20px;
   }
 
+  .view,
+  .page {
+    max-width: var(--container-max-width);
+  }
+}
+
+/* MOBILE: < 768px */
+@media (max-width: 767px) {
+
+  :root {
+    --app-padding-x: 12px;
+    --app-padding-y: 12px;
+    --view-padding: 16px;
+    --card-padding: 16px;
+  }
+
+  .view,
+  .page {
+    border-radius: 18px;
+    min-height: calc(100vh - var(--header-height) - (var(--app-padding-y) * 2));
+    min-height: calc(100dvh - var(--header-height) - (var(--app-padding-y) * 2));
+  }
+
+  .card {
+    border-radius: 18px;
+    margin-bottom: 14px;
+  }
 }
 
 /* ========================================================= */
@@ -441,14 +521,18 @@ textarea {
   }
 
 }
-/* ================= GLOBAL SIDE MENU ================= */
+
+/* ========================================================= */
+/* ================= GLOBAL SIDE MENU ====================== */
+/* ========================================================= */
 
 .global-menu {
   position: fixed;
-  top: 110px; /* uguale altezza header */
+  top: var(--header-height);
   left: -280px;
   width: 260px;
-  height: calc(100vh - 110px);
+  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
 
   background: #ffffff;
   box-shadow: 8px 0 30px rgba(0,0,0,0.08);
@@ -487,10 +571,11 @@ textarea {
 
 .menu-overlay {
   position: fixed;
-  top: 110px;
+  top: var(--header-height);
   left: 0;
   width: 100%;
-  height: calc(100vh - 110px);
+  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   background: rgba(0,0,0,0.3);
   backdrop-filter: blur(2px);
   opacity: 0;
@@ -512,6 +597,7 @@ textarea {
   }
 
 }
+
 /* ========================================================= */
 /* ============== RISTOFLOW PAGE + FORM SYSTEM ============= */
 /* ========================================================= */
@@ -519,11 +605,14 @@ textarea {
 /* Page wrapper moderno */
 .page {
   width: 100%;
-  max-width: 1100px;
+  max-width: var(--container-max-width);
   background: #ffffff;
   border-radius: 22px;
-  padding: 32px;
+  padding: var(--view-padding);
   box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+
+  min-height: calc(100vh - var(--header-height) - (var(--app-padding-y) * 2));
+  min-height: calc(100dvh - var(--header-height) - (var(--app-padding-y) * 2));
 }
 
 /* Header pagina */
@@ -565,8 +654,21 @@ textarea {
 /* Form layout */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 18px;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
 .form-group {
@@ -588,6 +690,7 @@ textarea {
   border: 1px solid var(--color-border);
   background: #ffffff;
   transition: border 0.2s ease, box-shadow 0.2s ease;
+  max-width: 100%;
 }
 
 .input:focus {
@@ -606,6 +709,21 @@ textarea {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 767px) {
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .form-actions .app-button,
+  .form-actions button,
+  .form-actions a {
+    width: 100%;
+  }
 }
 
 .form-result {
@@ -654,12 +772,6 @@ textarea {
   filter: brightness(0.97);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .page {
-    padding: 22px;
-  }
-}
 /* ========================================================= */
 /* ===================== TABS SYSTEM ======================= */
 /* ========================================================= */
@@ -668,11 +780,67 @@ textarea {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
+.tabs-wrapper .tab-btn,
 .tabs-wrapper .app-button {
   border-radius: 999px;
   padding: 10px 18px;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .tabs-wrapper {
+    gap: 8px;
+  }
+
+  .tabs-wrapper .tab-btn,
+  .tabs-wrapper .app-button {
+    flex: 1 1 auto;
+    min-width: max-content;
+  }
+}
+
+/* ========================================================= */
+/* ================== TABLE RESPONSIVE ===================== */
+/* ========================================================= */
+
+.view table,
+.page table,
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.view table,
+.page table,
+.card table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.view table thead,
+.page table thead,
+.card table thead,
+.view table tbody,
+.page table tbody,
+.card table tbody,
+.view table tr,
+.page table tr,
+.card table tr {
+  width: max-content;
+}
+
+.view table th,
+.page table th,
+.card table th,
+.view table td,
+.page table td,
+.card table td {
+  white-space: nowrap;
 }
 
 /* ========================================================= */
@@ -690,6 +858,7 @@ textarea {
 .acquisti-title {
   margin: 0;
 }
+
 /* ========================================================= */
 /* ================== ACQUISTI RIGHE ======================= */
 /* ========================================================= */
