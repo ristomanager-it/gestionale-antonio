@@ -10,7 +10,7 @@ async function aggiornaAccessoUtente(userId) {
 
   const { data, error } = await supabase
     .from("utenti_aziende")
-    .select("id, numero_accessi")
+    .select("numero_accessi, azienda_id")
     .eq("user_id", userId)
     .eq("attivo", true)
     .single();
@@ -24,7 +24,8 @@ async function aggiornaAccessoUtente(userId) {
       numero_accessi: (data.numero_accessi || 0) + 1,
       stato_invito: "attivo",
     })
-    .eq("id", data.id);
+    .eq("user_id", userId)
+    .eq("azienda_id", data.azienda_id);
 }
 
 /* =========================================================
@@ -210,15 +211,7 @@ export async function render(container) {
       return;
     }
 
-    /* =========================================================
-       TRACKING ACCESSO
-    ========================================================= */
-
     await aggiornaAccessoUtente(user.id);
-
-    /* =========================================================
-       RECUPERO AZIENDA + RUOLO
-    ========================================================= */
 
     const { data: utenteAzienda, error: uaError } = await supabase
       .from("utenti_aziende")
@@ -234,10 +227,6 @@ export async function render(container) {
       return;
     }
 
-    /* =========================================================
-       RECUPERO PERMESSI
-    ========================================================= */
-
     const { data: permessiEffettivi } = await supabase.rpc(
       "permessi_effettivi",
       {
@@ -245,10 +234,6 @@ export async function render(container) {
         p_azienda_id: utenteAzienda.azienda_id,
       }
     );
-
-    /* =========================================================
-       STATO GLOBALE
-    ========================================================= */
 
     window.state.user = user;
     window.state.azienda = { id: utenteAzienda.azienda_id };
