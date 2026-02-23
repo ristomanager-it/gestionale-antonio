@@ -2,31 +2,43 @@ export async function render(container) {
   const azienda = window.state.azienda;
 
   if (!azienda) {
-    container.innerHTML = `<div class="view"><h3>Nessuna azienda attiva</h3></div>`;
+    container.innerHTML = `
+      <section class="view">
+        <div class="card">
+          <h3>Nessuna azienda attiva</h3>
+        </div>
+      </section>
+    `;
     return;
   }
 
   container.innerHTML = `
-    <div class="view">
+    <section class="view">
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <button class="app-button tiny gray" id="btn-back-dashboard">
-          ← Dashboard
-        </button>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="margin:0;">Modulo Acquisti</h2>
+            <div class="small-muted">Gestione fatture, fornitori e riordino</div>
+          </div>
+          <button class="app-button gray" id="btn-back-dashboard">
+            ← Dashboard
+          </button>
+        </div>
       </div>
 
-      <h2>Modulo Acquisti</h2>
-
-      <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
-        <button class="app-button tiny tab-btn active" data-tab="fatture">Fatture</button>
-        <button class="app-button tiny tab-btn" data-tab="fornitori">Fornitori</button>
-        <button class="app-button tiny tab-btn" data-tab="ordini">Ordini</button>
-        <button class="app-button tiny tab-btn" data-tab="riordino">Riordino</button>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="app-button tab-btn active" data-tab="fatture">Fatture</button>
+          <button class="app-button tab-btn" data-tab="fornitori">Fornitori</button>
+          <button class="app-button tab-btn" data-tab="ordini">Ordini</button>
+          <button class="app-button tab-btn" data-tab="riordino">Riordino</button>
+        </div>
       </div>
 
       <div id="acquisti-content"></div>
 
-    </div>
+    </section>
   `;
 
   const btnDashboard = document.getElementById("btn-back-dashboard");
@@ -41,8 +53,12 @@ export async function render(container) {
 
   function setActiveTab(tab) {
     tabButtons.forEach(btn => {
-      btn.classList.remove("active");
-      if (btn.dataset.tab === tab) btn.classList.add("active");
+      btn.classList.remove("primary");
+      btn.classList.add("gray");
+      if (btn.dataset.tab === tab) {
+        btn.classList.remove("gray");
+        btn.classList.add("primary");
+      }
     });
   }
 
@@ -61,7 +77,6 @@ export async function render(container) {
 
   renderTab("fatture");
 }
-
 /* ===================================================== */
 /* ================== TAB FATTURE ====================== */
 /* ===================================================== */
