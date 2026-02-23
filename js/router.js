@@ -99,7 +99,7 @@ async function renderView(routeName) {
 ========================================================= */
 
 function isSuperadmin() {
-  return window.state?.ruolo === "superadmin";
+  return window.state?.isSuperadmin === true;
 }
 
 function hasPermission(area) {
@@ -120,6 +120,9 @@ function hasPermission(area) {
 
   return permessi[`${area}.read`] === true;
 }
+
+// 🔥 Allineamento sistema permessi router ↔ view
+window.hasPermesso = hasPermission;
 
 /* =========================================================
    ROUTER CORE
@@ -187,6 +190,8 @@ async function resolve() {
 
   window.stateActions.setAziende(aziendePulite);
 
+  window.state.isSuperadmin = aziendePulite.some(a => a.ruolo === "superadmin");
+
   window.stateActions.autoSetAzienda();
 
   const azienda = window.state.azienda;
@@ -200,7 +205,11 @@ async function resolve() {
     a => a.aziende.id === azienda.id
   );
 
-  window.stateActions.setRuolo(recordAttivo?.ruolo || null);
+  const ruoloEffettivo = window.state.isSuperadmin
+    ? "superadmin"
+    : (recordAttivo?.ruolo || null);
+
+  window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
   await window.stateActions.caricaPermessiEffettivi();
@@ -245,8 +254,12 @@ async function resolve() {
     return;
   }
 
-  if (PLATFORM_ROUTES.has(route) && !isSuperadmin()) {
-    window.location.hash = "#/home";
+  if (PLATFORM_ROUTES.has(route)) {
+    if (!isSuperadmin()) {
+      window.location.hash = "#/home";
+      return;
+    }
+    await renderView(route);
     return;
   }
 
