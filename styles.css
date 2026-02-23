@@ -4,43 +4,45 @@
 
 :root {
 
-  /* ===== BRAND VERDE ANTICO ===== */
+  /* ===== PALETTE SaaS (derivata dal logo) ===== */
 
-  --color-primary: #4F6228;
-  --color-primary-soft: #5C7030;
-  --color-primary-dark: #3E4D1F;
+  --color-primary: #0E5A7A;
+  --color-primary-soft: #1F6D8F;
+  --color-primary-dark: #0A4A64;
 
   --color-accent: #E67E22;
   --color-accent-dark: #D35400;
 
-  /* ===== NEUTRI ===== */
+  /* ===== NEUTRI MODERNI ===== */
 
   --color-bg-header: #FFFFFF;
+  --color-bg-app: #F8FAFC;
+  --color-bg-app-soft: #EEF2F7;
+
   --color-card: #FFFFFF;
 
-  --color-text: #2F2F2F;
+  --color-text: #1F2937;
   --color-text-muted: #6B7280;
 
   --color-border: #E5E7EB;
 
-  --shadow-soft: 0 6px 20px rgba(0,0,0,0.06);
-  --shadow-medium: 0 10px 30px rgba(0,0,0,0.08);
+  --shadow-soft: 0 4px 16px rgba(0,0,0,0.05);
+  --shadow-medium: 0 12px 32px rgba(0,0,0,0.08);
 
-  --radius-card: 18px;
-  --radius-button: 14px;
+  --radius-card: 20px;
+  --radius-button: 16px;
 
   /* ===== RESPONSIVE SYSTEM ===== */
 
   --container-max-width: 1200px;
 
   --header-height: 110px;
-  --app-padding-x: 16px;
-  --app-padding-y: 24px;
+  --app-padding-x: 20px;
+  --app-padding-y: 32px;
 
-  --view-padding: 26px;
-  --card-padding: 20px;
+  --view-padding: 32px;
+  --card-padding: 24px;
 }
-
 /* ========================================================= */
 /* ================= RESET BASE ============================ */
 /* ========================================================= */
