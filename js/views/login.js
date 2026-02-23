@@ -39,7 +39,7 @@ export async function render(container) {
       <div class="login-card-modern">
 
         <div class="login-logo">
-          <img src="favicon-192.png?v=4" alt="Ristoflow Logo" />
+          <img src="favicon-192.png?v=2" alt="Ristoflow Logo" />
         </div>
 
         <h2>Accedi a Ristoflow</h2>
@@ -72,49 +72,42 @@ export async function render(container) {
 
       <style>
         .login-wrapper-modern {
-          min-height: 100vh;
           min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
           background: linear-gradient(
-            180deg,
-            #0E5A7A 0%,
-            #0C4E6A 50%,
-            #083E55 100%
+            135deg,
+            #3E4D1F 0%,
+            #344219 50%,
+            #2B3514 100%
           );
           padding: 24px;
         }
 
         .login-card-modern {
           background: white;
-          padding: 52px 42px;
+          padding: 48px 40px;
           border-radius: 28px;
           width: 100%;
-          max-width: 500px;
-          box-shadow: 0 30px 70px rgba(0,0,0,0.25);
+          max-width: 480px;
+          box-shadow: 0 30px 60px rgba(0,0,0,0.15);
           text-align: center;
           animation: fadeIn 0.4s ease;
         }
 
-        .login-logo {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
         .login-logo img {
-          width: 140px;
-          height: 140px;
+          width: 120px;
+          height: 120px;
           object-fit: contain;
+          margin-bottom: 28px;
         }
 
         .login-card-modern h2 {
-          margin-bottom: 34px;
+          margin-bottom: 32px;
           font-weight: 700;
           font-size: 24px;
-          color: #1f2937;
+          color: #2F2F2F;
         }
 
         .login-field {
@@ -140,27 +133,27 @@ export async function render(container) {
         }
 
         .login-field input:focus {
-          border-color: #0E5A7A;
+          border-color: #4F6228;
           outline: none;
-          box-shadow: 0 0 0 4px rgba(14,90,122,0.15);
+          box-shadow: 0 0 0 4px rgba(79,98,40,0.15);
         }
 
         .login-button {
           width: 100%;
-          padding: 18px;
-          border-radius: 20px;
+          padding: 16px;
+          border-radius: 18px;
           border: none;
-          background: #0E5A7A;
+          background: #4F6228;
           color: white;
           font-weight: 700;
           font-size: 17px;
-          margin-top: 18px;
+          margin-top: 16px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .login-button:hover {
-          background: #083E55;
+          background: #3E4D1F;
           transform: translateY(-2px);
         }
 
@@ -178,14 +171,14 @@ export async function render(container) {
 
         @media (max-width: 768px) {
           .login-card-modern {
-            padding: 64px 28px;
+            padding: 56px 28px;
             max-width: 100%;
             border-radius: 24px;
           }
 
           .login-logo img {
-            width: 160px;
-            height: 160px;
+            width: 140px;
+            height: 140px;
           }
 
           .login-card-modern h2 {
@@ -198,7 +191,7 @@ export async function render(container) {
           }
 
           .login-button {
-            padding: 20px;
+            padding: 18px;
             font-size: 18px;
           }
         }
