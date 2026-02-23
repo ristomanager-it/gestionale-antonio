@@ -12,34 +12,34 @@ export async function render(container) {
     return;
   }
 
-  container.innerHTML = `
-    <section class="view">
+container.innerHTML = `
+  <section class="view acquisti-view">
 
-      <div class="card" style="margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h2 style="margin:0;">Modulo Acquisti</h2>
-            <div class="small-muted">Gestione fatture, fornitori e riordino</div>
-          </div>
-          <button class="app-button gray" id="btn-back-dashboard">
-            ← Dashboard
-          </button>
+    <div class="card">
+      <div class="acquisti-header">
+        <div>
+          <h2 class="acquisti-title">Modulo Acquisti</h2>
+          <div class="small-muted">Gestione fatture, fornitori e riordino</div>
         </div>
+        <button class="app-button gray" id="btn-back-dashboard">
+          ← Dashboard
+        </button>
       </div>
+    </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="app-button tab-btn active" data-tab="fatture">Fatture</button>
-          <button class="app-button tab-btn" data-tab="fornitori">Fornitori</button>
-          <button class="app-button tab-btn" data-tab="ordini">Ordini</button>
-          <button class="app-button tab-btn" data-tab="riordino">Riordino</button>
-        </div>
+    <div class="card">
+      <div class="tabs-wrapper">
+        <button class="app-button primary tab-btn" data-tab="fatture">Fatture</button>
+        <button class="app-button gray tab-btn" data-tab="fornitori">Fornitori</button>
+        <button class="app-button gray tab-btn" data-tab="ordini">Ordini</button>
+        <button class="app-button gray tab-btn" data-tab="riordino">Riordino</button>
       </div>
+    </div>
 
-      <div id="acquisti-content"></div>
+    <div id="acquisti-content"></div>
 
-    </section>
-  `;
+  </section>
+`;
 
   const btnDashboard = document.getElementById("btn-back-dashboard");
   if (btnDashboard) {
