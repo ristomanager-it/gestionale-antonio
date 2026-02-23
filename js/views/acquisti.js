@@ -1,3 +1,5 @@
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
+
 export async function render(container) {
   const azienda = window.state.azienda;
 
@@ -12,41 +14,24 @@ export async function render(container) {
     return;
   }
 
-container.innerHTML = `
-  <section class="view acquisti-view">
-
-    <div class="card">
-      <div class="acquisti-header">
-        <div>
-          <h2 class="acquisti-title">Modulo Acquisti</h2>
-          <div class="small-muted">Gestione fatture, fornitori e riordino</div>
-        </div>
-        <button class="app-button gray" id="btn-back-dashboard">
-          ← Dashboard
-        </button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="tabs-wrapper">
-        <button class="app-button primary tab-btn" data-tab="fatture">Fatture</button>
-        <button class="app-button gray tab-btn" data-tab="fornitori">Fornitori</button>
-        <button class="app-button gray tab-btn" data-tab="ordini">Ordini</button>
-        <button class="app-button gray tab-btn" data-tab="riordino">Riordino</button>
-      </div>
-    </div>
-
-    <div id="acquisti-content"></div>
-
-  </section>
-`;
-
-  const btnDashboard = document.getElementById("btn-back-dashboard");
-  if (btnDashboard) {
-    btnDashboard.addEventListener("click", () => {
-      window.location.hash = "#/home";
-    });
-  }
+  container.innerHTML = createPageLayout({
+    title: "Modulo Acquisti",
+    subtitle: "Gestione fatture, fornitori e riordino",
+    content: `
+      ${createCard({
+        title: "Sezioni",
+        body: `
+          <div class="tabs-wrapper">
+            <button class="app-button primary tab-btn" data-tab="fatture">Fatture</button>
+            <button class="app-button gray tab-btn" data-tab="fornitori">Fornitori</button>
+            <button class="app-button gray tab-btn" data-tab="ordini">Ordini</button>
+            <button class="app-button gray tab-btn" data-tab="riordino">Riordino</button>
+          </div>
+        `
+      })}
+      <div id="acquisti-content"></div>
+    `
+  });
 
   const content = document.getElementById("acquisti-content");
   const tabButtons = document.querySelectorAll(".tab-btn");
@@ -77,6 +62,7 @@ container.innerHTML = `
 
   renderTab("fatture");
 }
+
 /* ===================================================== */
 /* ================== TAB FATTURE ====================== */
 /* ===================================================== */
@@ -127,7 +113,6 @@ async function renderFatture(container, azienda) {
 
     <div id="righe-container" style="margin-top:10px;"></div>
 
-    <!-- fallback datalist (alcuni device lo mostrano poco/zero, ma lo teniamo) -->
     <datalist id="prodotti-suggestions"></datalist>
 
     <button id="btn-add-riga" class="app-button small gray">
@@ -157,14 +142,9 @@ async function renderFatture(container, azienda) {
   const datalistProdotti = document.getElementById("prodotti-suggestions");
   const selectFornitore = document.getElementById("fattura-fornitore");
 
-  // Cache prodotti per autocomplete
   let prodottiCache = [];
   let prodottiCacheLastLoad = 0;
-
-  // Debounce map per input
   const debounceTimers = new Map();
-
-  /* ================= MODE SWITCH ================= */
 
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -174,8 +154,6 @@ async function renderFatture(container, azienda) {
       ocrSection.style.display = mode === "ocr" ? "block" : "none";
     });
   });
-
-  /* ================= PRODOTTI CACHE ================= */
 
   async function loadProdottiCache(force = false) {
     const now = Date.now();
@@ -199,7 +177,6 @@ async function renderFatture(container, azienda) {
     }));
     prodottiCacheLastLoad = now;
 
-    // Datalist fallback
     datalistProdotti.innerHTML = prodottiCache
       .filter(p => p.descrizione)
       .slice(0, 800)
@@ -234,8 +211,6 @@ async function renderFatture(container, azienda) {
     return out;
   }
 
-  /* ================= UTIL ================= */
-
   function escapeHtml(str) {
     return String(str || "")
       .replaceAll("&", "&amp;")
@@ -253,7 +228,6 @@ async function renderFatture(container, azienda) {
   }
 
   function setRowStatus(rowEl, status) {
-    // status: ok | partial | missing
     rowEl.classList.remove("ok", "partial", "missing");
     if (status) rowEl.classList.add(status);
     rowEl.style.borderRadius = "14px";
@@ -272,10 +246,6 @@ async function renderFatture(container, azienda) {
 
   function isStrongMatch(score) {
     return typeof score === "number" && score >= 0.72;
-  }
-
-  function isWeakMatch(score) {
-    return typeof score === "number" && score >= 0.50;
   }
 
   async function tryMatchProdottoFornitore(fornitoreId, descrizioneRiga) {
@@ -438,7 +408,6 @@ async function renderFatture(container, azienda) {
     righe[idx].match_reason = "manual_select";
     righe[idx].match_score = 0.70;
 
-    // Autocompilazione UM (se presente nel DB prodotti)
     if (prodotto.um) {
       righe[idx].um = prodotto.um;
     }
@@ -570,8 +539,6 @@ async function renderFatture(container, azienda) {
     if (umEl) umEl.textContent = righe[index].um ? `UM: ${righe[index].um}` : "";
   }
 
-  /* ================= OCR FLOW ================= */
-
   btnOcr?.addEventListener("click", async () => {
     const fileInput = document.getElementById("fattura-file");
     if (!fileInput.files.length) return;
@@ -619,8 +586,6 @@ async function renderFatture(container, azienda) {
     await applyOcrResult(ocrResult);
     feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
   });
-
-  /* ================= APPLY OCR RESULT ================= */
 
   async function applyOcrResult(result) {
     await loadProdottiCache(false);
@@ -693,8 +658,6 @@ async function renderFatture(container, azienda) {
     renderRigheUI();
   }
 
-  /* ================= MANUAL RIGHE ================= */
-
   btnAddRiga.addEventListener("click", async () => {
     await loadProdottiCache(false);
 
@@ -713,8 +676,6 @@ async function renderFatture(container, azienda) {
     renderRigheUI();
     updateRowComputedUI(index);
   });
-
-  /* ================= EVENTI RIGHE (delegation) ================= */
 
   righeContainer.addEventListener("input", async (e) => {
     const i = e.target?.dataset?.i;
@@ -749,32 +710,27 @@ async function renderFatture(container, azienda) {
       const q = e.target.value || "";
       righe[idx].prodotto_nome = q;
 
-      // supporto: se l'utente scrive direttamente un codice interno
       const byCod = findProdottoInCacheByCodice(q);
       if (byCod?.id) {
         await selectProdottoForRow(idx, byCod);
         return;
       }
 
-      // se coincide esattamente con descrizione, aggancia subito
       const foundExact = findProdottoInCacheByDescrizione(q);
       if (foundExact?.id) {
         await selectProdottoForRow(idx, foundExact);
         return;
       }
 
-      // altrimenti apri suggerimenti (min 2 caratteri)
       const query = q.trim();
       if (query.length >= 2) {
         const items = filterProdottiForSuggest(query, 12);
-        // chiudi altri e apri questo
         closeAllSuggest();
         openSuggestForIndex(idx, items);
       } else {
         closeAllSuggest();
       }
 
-      // non tenere un id se il testo non è esatto (evitiamo salvataggi errati)
       righe[idx].prodotto_id = null;
       righe[idx].match_reason = null;
       righe[idx].match_score = null;
@@ -788,7 +744,6 @@ async function renderFatture(container, azienda) {
     const el = e.target;
     if (!(el instanceof HTMLElement)) return;
 
-    // click su elemento suggerimento
     if (el.classList.contains("suggest-item") && el.closest(".prod-suggest")) {
       const rowEl = el.closest("div[data-i]");
       const idx = rowEl ? Number(rowEl.dataset.i) : NaN;
@@ -805,7 +760,6 @@ async function renderFatture(container, azienda) {
       return;
     }
 
-    // click sui bottoni riga
     const btn = el;
     const i = btn.dataset?.i;
     if (i === undefined) return;
@@ -944,7 +898,6 @@ async function renderFatture(container, azienda) {
     }
   });
 
-  // Chiudi suggest se clicchi fuori
   document.addEventListener("click", (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
@@ -954,13 +907,10 @@ async function renderFatture(container, azienda) {
     closeAllSuggest();
   });
 
-  // Se cambia fornitore, i match "fornitore" potrebbero cambiare
   selectFornitore?.addEventListener("change", async () => {
     await loadProdottiCache(false);
     righe.forEach((_, idx) => updateRowComputedUI(idx));
   });
-
-  /* ================= SALVATAGGIO ================= */
 
   btnSalva.addEventListener("click", async () => {
     feedback.innerHTML = "Salvataggio...";
@@ -1030,7 +980,6 @@ async function renderFatture(container, azienda) {
     }
   });
 
-  // init
   loadProdottiCache(false);
 }
 
