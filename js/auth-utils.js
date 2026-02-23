@@ -7,10 +7,27 @@
 // 🔐 Verifica singolo permesso
 // ============================================================
 export function hasPermesso(perm) {
+  const ruolo = window.state?.ruolo;
 
-  // 🔥 SUPERADMIN = ACCESSO TOTALE
-  if (window.state?.ruolo === "superadmin") {
+  // 🔥 SUPERADMIN = ACCESSO TOTALE (piattaforma + tutte aziende)
+  if (window.state?.isSuperadmin === true || ruolo === "superadmin") {
     return true;
+  }
+
+  // 🔥 ADMIN = tutto nella propria azienda
+  if (ruolo === "admin") {
+    return true;
+  }
+
+  // 🔥 SEGRETERIA = solo gestione (preventivi, acquisti, dipendenti, timbrature)
+  if (ruolo === "segreteria") {
+    const allowed = [
+      "preventivi.read", "preventivi.create", "preventivi.update",
+      "acquisti.read", "acquisti.create", "acquisti.update",
+      "dipendenti.read", "dipendenti.update",
+      "timbrature.read"
+    ];
+    return allowed.includes(perm);
   }
 
   if (!window.state?.permessi) return false;
@@ -18,16 +35,17 @@ export function hasPermesso(perm) {
   return window.state.permessi[perm] === true;
 }
 
-
 // ============================================================
 // 🏢 Verifica accesso reparto
 // ============================================================
 export function hasReparto(repartoId) {
+  const ruolo = window.state?.ruolo;
 
-  // 🔥 SUPERADMIN e ADMIN vedono tutti i reparti
+  // Superadmin e Admin vedono tutti i reparti
   if (
-    window.state?.ruolo === "superadmin" ||
-    window.state?.ruolo === "admin"
+    window.state?.isSuperadmin === true ||
+    ruolo === "superadmin" ||
+    ruolo === "admin"
   ) {
     return true;
   }
@@ -39,12 +57,10 @@ export function hasReparto(repartoId) {
   return window.state.reparti.some(r => r.id === repartoId);
 }
 
-
 // ============================================================
 // 🚫 Render standard access denied
 // ============================================================
 export function renderAccessDenied(container, message = "Accesso negato") {
-
   if (!container) return;
 
   container.innerHTML = `
@@ -57,22 +73,18 @@ export function renderAccessDenied(container, message = "Accesso negato") {
   `;
 }
 
-
 // ============================================================
 // 🛡️ Controllo completo CRUD
 // ============================================================
 export function requirePermessi({
   container = null,
-  resource,     // es: "ricette"
-  action        // "read" | "create" | "update" | "delete"
+  resource,
+  action
 }) {
-
   const perm = `${resource}.${action}`;
 
   if (!hasPermesso(perm)) {
-    if (container) {
-      renderAccessDenied(container);
-    }
+    if (container) renderAccessDenied(container);
     return false;
   }
 
