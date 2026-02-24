@@ -894,3 +894,30 @@ svg {
   border-left: 4px solid #ef4444;
   background: rgba(239, 68, 68, 0.03);
 }
+/* ============================= */
+/* MOBILE FIX MENU PORTATE */
+/* ============================= */
+
+.menu-card {
+  margin-bottom: 16px;
+}
+
+.menu-select {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+
+  .view {
+    padding: 16px !important;
+  }
+
+  .card {
+    padding: 16px !important;
+  }
+
+  .menu-card {
+    border-radius: 14px;
+  }
+
+}
