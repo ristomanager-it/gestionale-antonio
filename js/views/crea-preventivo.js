@@ -70,17 +70,27 @@ ${createCard({
                 <label>Email Cliente</label>
                 <input class="input" type="email" id="preventivo-cliente-email">
               </div>
-
               <div class="form-group">
-                <label>Titolo Evento</label>
-                <input class="input" type="text" id="preventivo-titolo" required>
-              </div>
+  <label>Telefono Cliente</label>
+  <input class="input" type="text" id="preventivo-cliente-telefono">
+</div>
 
-              <div class="form-group">
-                <label>Tipo Servizio</label>
-                <input class="input" type="text" id="preventivo-tipo-servizio">
-              </div>
+              <select class="input" id="preventivo-titolo" required>
+  <option value="">Seleziona evento</option>
+  <option value="Matrimonio">Matrimonio</option>
+  <option value="Compleanno">Compleanno</option>
+  <option value="Evento Aziendale">Evento Aziendale</option>
+  <option value="Battesimo">Battesimo</option>
+  <option value="Comunione">Comunione</option>
+  <option value="Altro">Altro</option>
+</select>
 
+              <select class="input" id="preventivo-tipo-servizio">
+  <option value="Servizio Completo" selected>Servizio Completo</option>
+  <option value="Solo Catering">Solo Catering</option>
+  <option value="Buffet">Buffet</option>
+  <option value="Finger Food">Finger Food</option>
+</select>
               <div class="form-group">
                 <label>Data Evento</label>
                 <input class="input" type="date" id="preventivo-data-evento" required>
