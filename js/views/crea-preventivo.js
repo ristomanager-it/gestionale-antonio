@@ -254,12 +254,13 @@ async function loadRicetteEPrezzi() {
 /* ============================================================ */
 /* BIND EVENTS */
 /* ============================================================ */
-function bindPreventivoEvents() {
+const btnBack = document.getElementById("btn-back");
 
-  const btnBack = document.getElementById("btn-back");
-  btnBack?.addEventListener("click", () => {
+if (btnBack) {
+  btnBack.addEventListener("click", () => {
     window.location.hash = "#/amministrazione";
   });
+
 
   // resto dei listener...
 }
