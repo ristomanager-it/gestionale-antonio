@@ -285,7 +285,25 @@ function bindPreventivoEvents() {
     lastDiscountEdited = "euro";
     recalcPreventivoTotali();
   });
+const statoSelect = document.getElementById("preventivo-stato");
+const statoBadge = document.getElementById("preventivo-stato-badge");
 
+statoSelect?.addEventListener("change", () => {
+  const val = statoSelect.value;
+
+  statoBadge.className = "status-badge";
+
+  if (val === "accettato") {
+    statoBadge.classList.add("badge-accettato");
+    statoBadge.textContent = "Accettato";
+  } else if (val === "rifiutato") {
+    statoBadge.classList.add("badge-rifiutato");
+    statoBadge.textContent = "Rifiutato";
+  } else {
+    statoBadge.classList.add("badge-trattativa");
+    statoBadge.textContent = "In trattativa";
+  }
+});
   /* ================= MENU ================= */
   document.getElementById("btn-add-menu-row")?.addEventListener("click", addMenuRow);
 
