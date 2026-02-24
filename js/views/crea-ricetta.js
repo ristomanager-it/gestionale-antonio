@@ -28,6 +28,9 @@ let outputSecondariCache = [];
 
 let _autocompleteDocBound = false;
 
+// mini-tab fasi
+let faseTabAttiva = "preparazione";
+
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
   const aziendaId = window.state?.azienda?.id;
@@ -68,7 +71,7 @@ export async function render(app) {
           onclick="window.location.hash='#/produzione'">
           ← Centro Produzione
         </button>
-        <h2>${ricettaId ? "✏️ Modifica Ricetta" : "🆕 Crea Ricetta"}</h2>
+        <h2>${ricettaId ? "Modifica Ricetta" : "Crea Ricetta"}</h2>
       </div>
 
       <div class="editor-stack">
@@ -111,7 +114,7 @@ export async function render(app) {
         <!-- ================= OUTPUT PRINCIPALE ================= -->
         <div class="editor-section open">
           <div class="editor-section-header">
-            <strong>Output (prodotto + resa)</strong>
+            <strong>Output</strong>
           </div>
           <div class="editor-section-body editor-grid-2">
 
@@ -165,7 +168,7 @@ export async function render(app) {
         <!-- ================= OUTPUT SECONDARI (COPRODOTTI) ================= -->
         <div class="editor-section open">
           <div class="editor-section-header">
-            <strong>Output secondari (rifili / coproduct)</strong>
+            <strong>Coprodotti / Rifili (non sfrido)</strong>
           </div>
           <div class="editor-section-body">
             <div id="output-secondari-container"></div>
@@ -174,11 +177,11 @@ export async function render(app) {
               class="app-button small gray"
               type="button"
               style="margin-top:10px;">
-              + Aggiungi output secondario
+              + Aggiungi coprodotto
             </button>
 
             <div class="small-muted" style="margin-top:10px;">
-              Usa questa sezione per rifili riutilizzabili (es: rifili manzo per ragù). Non è “sfrido”: è un coprodotto.
+              Esempio: rifili riutilizzabili (ragù, fondi, ecc.). Lo sfrido vero è la parte non riutilizzabile.
             </div>
           </div>
         </div>
@@ -200,11 +203,19 @@ export async function render(app) {
           </div>
         </div>
 
-        <!-- ================= FASI ================= -->
+        <!-- ================= FASI (MINI-TAB) ================= -->
         <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Fasi di preparazione</strong>
+          <div class="editor-section-header" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <strong>Fasi</strong>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="app-button small gray fase-tab" data-tab="preparazione">Preparazione</button>
+              <button type="button" class="app-button small gray fase-tab" data-tab="cottura">Cottura</button>
+              <button type="button" class="app-button small gray fase-tab" data-tab="attesa">Attesa</button>
+              <button type="button" class="app-button small gray fase-tab" data-tab="raffreddamento">Raffredd.</button>
+            </div>
           </div>
+
           <div class="editor-section-body">
             <div id="fasi-container"></div>
 
@@ -237,7 +248,7 @@ export async function render(app) {
             </button>
 
             <div class="small-muted" style="margin-top:10px;">
-              Gli scenari vengono poi scelti in Preparazioni per calcolare automaticamente la scadenza.
+              Gli scenari vengono poi scelti in Produzione per calcolare automaticamente la scadenza.
             </div>
           </div>
         </div>
@@ -296,7 +307,7 @@ export async function render(app) {
             </button>
 
             <div class="small-muted" style="margin-top:10px;">
-              Esempio: "Trattoria 200g", "Ricevimento 120g", "Vasetto 280g". In Produzione potrai creare più confezioni nello stesso lotto.
+              Esempio: Trattoria 220g / Ristorante 180g / Ricevimento 140g.
             </div>
           </div>
         </div>
@@ -306,7 +317,7 @@ export async function render(app) {
           <button id="btn-salva"
             class="app-button green"
             type="button">
-            💾 Salva Ricetta
+            Salva Ricetta
           </button>
 
           <button id="btn-torna-ricettario"
@@ -324,17 +335,22 @@ export async function render(app) {
 
   await loadProdotti();
   bindUI();
+  initFasiTabs(); // mini-tab fasi
 
   if (ricettaId) {
     await caricaRicettaCompleta();
+    // dopo il load, riapplico il filtro
+    initFasiTabs();
+    filterFasiByTab();
   } else {
     // default UI
-    aggiungiOutputSecondario(); // opzionale: lascia una riga vuota pronta
+    aggiungiOutputSecondario();
     aggiungiIngrediente();
     aggiungiFase({ ordine: 1, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
     aggiungiScenarioConservazione();
     aggiungiPorzione();
     aggiornaOutputInfo();
+    filterFasiByTab();
   }
 }
 
@@ -345,7 +361,6 @@ async function loadProdotti() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
-  // includo costo_medio per calcolo food cost reale
   const { data, error } = await supabase
     .from("prodotti")
     .select("id, descrizione, um, costo_medio")
@@ -368,7 +383,6 @@ async function loadProdotti() {
     document.getElementById("r-output-id"),
     document.getElementById("r-output-suggest"),
     (p) => {
-      // quando scelgo output: suggerisco UM
       const umSel = document.getElementById("r-output-um");
       if (p?.um && umSel) {
         const val = String(p.um).toLowerCase();
@@ -384,7 +398,6 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
   if (!_autocompleteDocBound) {
     _autocompleteDocBound = true;
     document.addEventListener("click", (e) => {
-      // chiude tutte le suggest se clicchi fuori
       document.querySelectorAll(".suggest-list.open").forEach(box => {
         const wrap = box.closest(".input-wrap") || box.parentElement;
         if (wrap && !wrap.contains(e.target)) box.classList.remove("open");
@@ -446,6 +459,46 @@ function aggiornaOutputInfo() {
 }
 
 /* ============================================================
+   MINI-TAB FASI
+============================================================ */
+function initFasiTabs() {
+  const tabs = document.querySelectorAll(".fase-tab");
+  if (!tabs.length) return;
+
+  // default
+  if (!faseTabAttiva) faseTabAttiva = "preparazione";
+
+  tabs.forEach(btn => {
+    btn.onclick = () => {
+      faseTabAttiva = btn.dataset.tab || "preparazione";
+      refreshFasiTabUI();
+      filterFasiByTab();
+    };
+  });
+
+  refreshFasiTabUI();
+}
+
+function refreshFasiTabUI() {
+  document.querySelectorAll(".fase-tab").forEach(btn => {
+    const isActive = (btn.dataset.tab === faseTabAttiva);
+
+    // attiva = bottone standard, inattive = gray (nessun colore nuovo)
+    btn.className = isActive
+      ? "app-button small"
+      : "app-button small gray";
+  });
+}
+
+function filterFasiByTab() {
+  const rows = document.querySelectorAll("#fasi-container .azienda-card");
+  rows.forEach(row => {
+    const tipo = row.dataset.tipoFase || "preparazione";
+    row.style.display = (tipo === faseTabAttiva) ? "" : "none";
+  });
+}
+
+/* ============================================================
    OUTPUT SECONDARI (COPRODOTTI)
 ============================================================ */
 function aggiungiOutputSecondario(initial = {}) {
@@ -461,7 +514,7 @@ function aggiungiOutputSecondario(initial = {}) {
 
       <div style="grid-column:1/-1;">
         <label>
-          Prodotto coprodotto (rifilo / fondo) *
+          Prodotto coprodotto *
           <div class="input-wrap">
             <input class="out2-search input-pill"
               placeholder="Cerca prodotto..."
@@ -502,7 +555,7 @@ function aggiungiOutputSecondario(initial = {}) {
       </label>
 
       <label>
-        % allocazione (se percentuale)
+        % allocazione (solo percentuale)
         <input class="out2-percent input-pill"
           type="number" min="0" max="100" step="0.01"
           value="${escapeAttr(initial.percentuale_allocazione ? Number(initial.percentuale_allocazione) * 100 : "")}"
@@ -516,7 +569,6 @@ function aggiungiOutputSecondario(initial = {}) {
     </div>
   `;
 
-  // set select defaults
   row.querySelector(".out2-um").value = (initial.unita_misura || "kg");
   row.querySelector(".out2-metodo").value = (initial.metodo_allocazione || "peso");
 
@@ -592,7 +644,6 @@ function aggiungiIngrediente(initial = {}) {
     }
   );
 
-  // se già valorizzato
   if (ingId.value) {
     const p = prodottiMap.get(String(ingId.value));
     if (p) umLabel.textContent = p.um || "pz";
@@ -608,6 +659,9 @@ function aggiungiFase(initial = {}) {
   const row = document.createElement("div");
   row.className = "azienda-card";
   row.style.marginBottom = "8px";
+
+  // per filtro tab
+  row.dataset.tipoFase = initial.tipo_fase || "preparazione";
 
   row.innerHTML = `
     <div class="editor-grid-2">
@@ -664,10 +718,21 @@ function aggiungiFase(initial = {}) {
     </div>
   `;
 
-  row.querySelector(".fase-tipo").value = initial.tipo_fase || "preparazione";
+  const tipoSel = row.querySelector(".fase-tipo");
+  tipoSel.value = initial.tipo_fase || "preparazione";
+
+  // se cambio tipo fase, aggiorno dataset e rifiltro
+  tipoSel.addEventListener("change", () => {
+    row.dataset.tipoFase = tipoSel.value || "preparazione";
+    filterFasiByTab();
+  });
+
   row.querySelector("button").onclick = () => row.remove();
 
   container.appendChild(row);
+
+  // applico filtro subito
+  filterFasiByTab();
 }
 
 /* ============================================================
@@ -811,14 +876,12 @@ async function caricaRicettaCompleta() {
     return;
   }
 
-  // anagrafica
   setVal("r-nome", ricetta.nome || "");
   setVal("r-pezzi-base", ricetta.pezzi_base ?? "");
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
 
-  // prodotto output
   if (ricetta.prodotto_output_id) {
     const p = prodottiMap.get(String(ricetta.prodotto_output_id));
     if (p) {
@@ -868,27 +931,6 @@ async function caricaRicettaCompleta() {
   if (conservazioniCache.length) conservazioniCache.forEach(c => aggiungiScenarioConservazione(c));
   else aggiungiScenarioConservazione();
 
-  // cottura (1 record)
-  const { data: cottura } = await supabase
-    .from("ricette_cottura")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .maybeSingle();
-
-  cotturaCache = cottura || null;
-  if (cotturaCache) {
-    setVal("r-cottura-tipologia", cotturaCache.tipologia || "nessuna");
-    setVal("r-cottura-temperatura", cotturaCache.temperatura || "");
-    setVal("r-cottura-tempo", cotturaCache.tempo_minuti ?? "");
-    setVal("r-cottura-note", cotturaCache.note || "");
-  } else {
-    setVal("r-cottura-tipologia", "nessuna");
-    setVal("r-cottura-temperatura", "");
-    setVal("r-cottura-tempo", "");
-    setVal("r-cottura-note", "");
-  }
-
   // output (1 record)
   const { data: output } = await supabase
     .from("ricette_output")
@@ -921,8 +963,6 @@ async function caricaRicettaCompleta() {
   if (out2Container) out2Container.innerHTML = "";
   if (outputSecondariCache.length) {
     outputSecondariCache.forEach(o => aggiungiOutputSecondario(o));
-  } else {
-    // lascia vuoto: non tutti hanno coprodotti
   }
 
   // porzioni
@@ -938,7 +978,6 @@ async function caricaRicettaCompleta() {
   if (porzioniCache.length) porzioniCache.forEach(p => aggiungiPorzione(p));
   else aggiungiPorzione();
 
-  // preview costo (legge dal DB se già calcolato)
   const prev = document.getElementById("r-cost-preview");
   if (prev) {
     const cm = ricetta.costo_materia_prima ?? 0;
@@ -952,10 +991,6 @@ async function caricaRicettaCompleta() {
 async function salvaTutto() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
-
-  // ============================================================
-  // 🔐 BLOCCO DIFENSIVO PERMESSI (Enterprise)
-  // ============================================================
 
   if (!ricettaId) {
     if (!requirePermessi({ resource: "ricette", action: "create" })) {
@@ -988,7 +1023,6 @@ async function salvaTutto() {
   const esito = document.getElementById("r-esito");
   if (esito) esito.innerText = "Salvataggio in corso...";
 
-  // 1) salva ricetta
   let savedId = ricettaId;
 
   if (!ricettaId) {
@@ -1044,7 +1078,7 @@ async function salvaTutto() {
 
   const ricettaIdNum = Number(savedId);
 
-  // 2) salva output principale
+  // output principale
   {
     const payloadOut = {
       ricetta_id: ricettaIdNum,
@@ -1065,7 +1099,7 @@ async function salvaTutto() {
     }
   }
 
-  // 3) salva output secondari (coprodotti)
+  // output secondari
   {
     const { error: delOut2Err } = await supabase
       .from("ricette_output_secondari")
@@ -1076,7 +1110,7 @@ async function salvaTutto() {
     if (delOut2Err) {
       console.error(delOut2Err);
       if (esito) esito.innerText = "";
-      return alert("Errore reset output secondari.");
+      return alert("Errore reset coprodotti.");
     }
 
     const out2Rows = [];
@@ -1110,12 +1144,12 @@ async function salvaTutto() {
       if (insOut2Err) {
         console.error(insOut2Err);
         if (esito) esito.innerText = "";
-        return alert("Errore salvataggio output secondari.");
+        return alert("Errore salvataggio coprodotti.");
       }
     }
   }
 
-  // 4) ingredienti
+  // ingredienti
   let ingredientRowsForCost = [];
   {
     const { error: delErr } = await supabase
@@ -1170,16 +1204,13 @@ async function salvaTutto() {
     }
   }
 
-  // 5) calcolo costo industriale (MP reale) + allocazione coprodotti
+  // calcolo costo + snapshot ricetta
   const computed = computeCostoIndustriale({
-    ricettaId: ricettaIdNum,
-    prodottoOutputId: Number(prodotto_output_id),
     outputPrincipale: { peso: output_peso, um: output_um },
     ingredienti: ingredientRowsForCost,
     outputSecondariDom: readOutputSecondariFromDOM()
   });
 
-  // update snapshot ricetta
   {
     const payloadSnap = {
       costo_materia_prima: computed.costoTotaleInput,
@@ -1194,39 +1225,27 @@ async function salvaTutto() {
       .eq("id", ricettaIdNum)
       .eq("azienda_id", aziendaId);
 
-    if (upErr) {
-      console.error(upErr);
-      // non blocco salvataggio, ma avviso
-      console.warn("Snapshot costi non aggiornato.");
-    }
+    if (upErr) console.error(upErr);
   }
 
-  // preview UI
   const prev = document.getElementById("r-cost-preview");
   if (prev) {
     if (computed.ok) {
       prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — Costo unitario output: € ${formatMoney(computed.costoUnitarioPrincipale)} / ${computed.baseUnitLabel}`;
     } else {
-      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ⚠️ ${computed.warning || "Verifica unità output/ingredienti"}`;
+      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ${computed.warning || "Verifica unità output/ingredienti"}`;
     }
   }
 
-  if (esito) esito.innerText = "Ricetta salvata ✔️";
-  alert("Ricetta salvata ✔️");
+  if (esito) esito.innerText = "Ricetta salvata";
+  alert("Ricetta salvata");
   window.location.hash = "#/ricettario";
 }
 
 /* ============================================================
-   COSTO INDUSTRIALE (MP reale + coprodotti)
-   - usa prodotti.costo_medio
-   - allocazione per peso o percentuale
+   COSTO INDUSTRIALE
 ============================================================ */
-function computeCostoIndustriale({
-  outputPrincipale,
-  ingredienti,
-  outputSecondariDom
-}) {
-  // 1) costo totale input (MP reale)
+function computeCostoIndustriale({ outputPrincipale, ingredienti, outputSecondariDom }) {
   let costoTotale = 0;
   for (const r of (ingredienti || [])) {
     const p = prodottiMap.get(String(r.prodotto_id));
@@ -1235,17 +1254,19 @@ function computeCostoIndustriale({
     costoTotale += (costoMedio * qta);
   }
 
-  // 2) convertiamo output in un'unità base coerente
   const p1 = convertToBase(outputPrincipale.peso, outputPrincipale.um);
   if (!p1.ok) {
-    return { ok: false, costoTotaleInput: round4(costoTotale), costoUnitarioPrincipale: 0, baseUnitLabel: "unità", warning: p1.warning };
+    return {
+      ok: false,
+      costoTotaleInput: round4(costoTotale),
+      costoUnitarioPrincipale: 0,
+      baseUnitLabel: "unità",
+      warning: p1.warning
+    };
   }
 
-  let outputs = [
-    { kind: "principale", baseQty: p1.baseQty, unitLabel: p1.baseUnitLabel, metodo: "peso" }
-  ];
+  let outputs = [{ kind: "principale", baseQty: p1.baseQty, unitLabel: p1.baseUnitLabel, metodo: "peso" }];
 
-  // secondari
   for (const o of (outputSecondariDom || [])) {
     const conv = convertToBase(o.peso, o.unita_misura);
     if (!conv.ok || conv.baseUnitLabel !== p1.baseUnitLabel) {
@@ -1254,20 +1275,17 @@ function computeCostoIndustriale({
         costoTotaleInput: round4(costoTotale),
         costoUnitarioPrincipale: 0,
         baseUnitLabel: p1.baseUnitLabel,
-        warning: "Unità output secondari non coerenti con output principale (kg/g oppure l/ml oppure pz)."
+        warning: "Unità coprodotti non coerenti con output (kg/g oppure l/ml oppure pz)."
       };
     }
     outputs.push({
       kind: "secondario",
       baseQty: conv.baseQty,
-      prodotto_id: o.prodotto_id,
       metodo: o.metodo_allocazione,
       percentuale_allocazione: o.percentuale_allocazione
     });
   }
 
-  // 3) allocazione costo
-  // - se qualcuno è percentuale: somma percentuali su secondari, resto al principale
   const percentSecondari = outputs
     .filter(x => x.kind === "secondario" && x.metodo === "percentuale" && Number.isFinite(x.percentuale_allocazione))
     .reduce((a, x) => a + Number(x.percentuale_allocazione), 0);
@@ -1275,17 +1293,11 @@ function computeCostoIndustriale({
   let costoPrincipale = costoTotale;
 
   if (percentSecondari > 0) {
-    // clamp 0..1
     const perc = Math.max(0, Math.min(1, percentSecondari));
-    // in questo modello: percentuale sul totale destinata ai secondari "percentuale"
-    // il resto (1-perc) al principale, e i secondari non-percentuale restano per ora solo informativi (peso)
     costoPrincipale = costoTotale * (1 - perc);
   } else {
-    // metodo peso: costo proporzionale al peso
     const totBase = outputs.reduce((a, x) => a + (Number(x.baseQty) || 0), 0);
-    if (totBase > 0) {
-      costoPrincipale = costoTotale * (p1.baseQty / totBase);
-    }
+    if (totBase > 0) costoPrincipale = costoTotale * (p1.baseQty / totBase);
   }
 
   const costoUnitarioPrincipale = (p1.baseQty > 0) ? (costoPrincipale / p1.baseQty) : 0;
@@ -1332,15 +1344,12 @@ function convertToBase(qty, um) {
     return { ok: false, warning: "Peso/Qtà output non valido." };
   }
 
-  // mass -> base = g
   if (u === "kg") return { ok: true, baseQty: n * 1000, baseUnitLabel: "g" };
   if (u === "g") return { ok: true, baseQty: n, baseUnitLabel: "g" };
 
-  // volume -> base = ml
   if (u === "l") return { ok: true, baseQty: n * 1000, baseUnitLabel: "ml" };
   if (u === "ml") return { ok: true, baseQty: n, baseUnitLabel: "ml" };
 
-  // pieces -> base = pz
   if (u === "pz") return { ok: true, baseQty: n, baseUnitLabel: "pz" };
 
   return { ok: false, warning: "Unità output non supportata (usa kg/g oppure l/ml oppure pz)." };
@@ -1359,7 +1368,7 @@ function bindUI() {
   document.getElementById("btn-add-fase")
     .addEventListener("click", () => {
       const next = nextOrdineFase();
-      aggiungiFase({ ordine: next, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
+      aggiungiFase({ ordine: next, tipo_fase: faseTabAttiva, durata_min: 0, lavoro_umano_min: 0 });
     });
 
   document.getElementById("btn-add-conservazione")
@@ -1374,7 +1383,6 @@ function bindUI() {
   document.getElementById("btn-torna-ricettario")
     .addEventListener("click", () => window.location.hash = "#/ricettario");
 
-  // output info refresh
   document.getElementById("r-output-search")
     .addEventListener("input", () => {
       if (!getVal("r-output-id")) document.getElementById("r-output-info").innerText = "Nessun prodotto output selezionato";
