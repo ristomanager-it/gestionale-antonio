@@ -82,33 +82,28 @@ export async function render(container) {
 
         ${
           repartiVisibili.map((rep, index) => {
-            const firstModule = rep.moduli[0];
-            const clickable = firstModule ? `onclick="window.location.hash='#/${firstModule}'"` : "";
-            const cursor = firstModule ? "pointer" : "default";
-            const opacity = firstModule ? "1" : "0.6";
-
             return `
               <div
-                ${clickable}
+                onclick="window.location.hash='#/${rep.key}'"
                 style="
                   background:white;
                   padding:40px 24px;
                   border-radius:24px;
                   box-shadow:0 12px 30px rgba(0,0,0,0.06);
                   text-align:center;
-                  cursor:${cursor};
+                  cursor:pointer;
                   transition: all 0.25s ease;
                   animation: fadeInUp 0.4s ease forwards;
                   animation-delay:${index * 0.08}s;
                   opacity:0;
                 "
-                onmouseover="if('${firstModule}') { this.style.transform='translateY(-6px)'; this.style.boxShadow='0 18px 40px rgba(0,0,0,0.10)'; }"
-                onmouseout="if('${firstModule}') { this.style.transform='translateY(0px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.06)'; }"
+                onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 18px 40px rgba(0,0,0,0.10)'"
+                onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.06)'"
               >
                 <div style="font-size:42px; margin-bottom:18px;">
                   ${rep.icon}
                 </div>
-                <div style="font-size:18px; font-weight:600; opacity:${opacity};">
+                <div style="font-size:18px; font-weight:600;">
                   ${rep.label}
                 </div>
               </div>
