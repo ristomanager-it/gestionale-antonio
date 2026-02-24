@@ -199,7 +199,6 @@ export async function render(container) {
   renderExtraRows();
   recalcPreventivoTotali();
 }
-
 /* ============================================================ */
 /* DATA LOAD */
 /* ============================================================ */
