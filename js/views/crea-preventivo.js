@@ -224,6 +224,9 @@ async function loadRicetteEPrezzi() {
 /* ============================================================ */
 
 function bindPreventivoEvents() {
+
+  /* ================= MENU ================= */
+
   const btnAddMenuRow = document.getElementById("btn-add-menu-row");
   btnAddMenuRow?.addEventListener("click", addMenuRow);
 
@@ -234,8 +237,21 @@ function bindPreventivoEvents() {
   document
     .getElementById("preventivo-menu-tbody")
     ?.addEventListener("click", onMenuTableClick);
-}
 
+
+  /* ================= EXTRA ================= */
+
+  const btnAddExtra = document.getElementById("btn-add-extra");
+  btnAddExtra?.addEventListener("click", addExtraRow);
+
+  document
+    .getElementById("preventivo-extra-tbody")
+    ?.addEventListener("input", onExtraTableInput);
+
+  document
+    .getElementById("preventivo-extra-tbody")
+    ?.addEventListener("click", onExtraTableClick);
+}
 /* ============================================================ */
 /* MENU ROWS (PORTATE) */
 /* ============================================================ */
