@@ -294,7 +294,6 @@ function renderMenuRows() {
 function addExtraRow() {
   extraRows.push({
     descrizione: "",
-    quantita: 1,
     prezzo_unitario: 0,
     totale: 0
   });
@@ -314,70 +313,22 @@ function renderExtraRows() {
   if (!body) return;
 
   body.innerHTML = extraRows
-    .map((row, index) => {
-      const totale = toNumber(row.totale);
-      return `
-        <tr data-index="${index}">
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="text" data-field="descrizione" value="${escapeAttr(row.descrizione)}" placeholder="Descrizione extra">
-          </td>
+    .map((row, index) => `
+      <div class="card menu-card" data-index="${index}">
 
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" data-field="quantita" value="${escapeAttr(String(row.quantita ?? 1))}" min="1" step="1">
-          </td>
+        <div class="form-group">
+          <label>Descrizione Extra</label>
+          <input 
+            class="input"
+            type="text"
+            data-field="descrizione"
+            value="${escapeAttr(row.descrizione || "")}"
+            placeholder="Es. Servizio camerieri, Allestimento..."
+          >
+        </div>
 
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" data-field="prezzo_unitario" value="${escapeAttr(String(toNumber(row.prezzo_unitario).toFixed(2)))}" min="0" step="0.01">
-          </td>
-
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" value="${totale.toFixed(2)}" readonly>
-          </td>
-
-          <td style="padding:10px; border-bottom:1px solid var(--color-border); white-space:nowrap;">
-            <button type="button" class="app-button secondary" data-action="remove-extra">Rimuovi</button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function onExtraTableInput(e) {
-  const input = e.target;
-  if (!(input instanceof HTMLInputElement)) return;
-
-  const tr = input.closest("tr");
-  if (!tr) return;
-
-  const index = Number(tr.dataset.index);
-  const field = input.dataset.field;
-  if (!Number.isFinite(index) || !field) return;
-
-  const row = extraRows[index];
-  if (!row) return;
-
-  if (field === "descrizione") row.descrizione = input.value || "";
-  if (field === "quantita") row.quantita = Math.max(1, Math.floor(toNumber(input.value)));
-  if (field === "prezzo_unitario") row.prezzo_unitario = Math.max(0, toNumber(input.value));
-
-  recalcPreventivoTotali();
-}
-
-function onExtraTableClick(e) {
-  const btn = e.target?.closest("button");
-  if (!btn) return;
-  if (btn.dataset.action !== "remove-extra") return;
-
-  const tr = btn.closest("tr");
-  if (!tr) return;
-
-  const index = Number(tr.dataset.index);
-  if (!Number.isFinite(index)) return;
-
-  removeExtraRow(index);
-}
-
+        <div class="form-group">
+          <label>C
 /* ============================================================ */
 /* TOTALS & DISCOUNT */
 /* ============================================================ */
