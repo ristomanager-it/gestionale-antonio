@@ -39,7 +39,7 @@ export async function render(container) {
       <div class="login-card-modern">
 
         <div class="login-logo">
-          <img src="favicon-192.png?v=4" alt="Ristoflow Logo" />
+          <img src="favicon-192.png?v=5" alt="Ristoflow Logo" />
         </div>
 
         <h2>Accedi a Ristoflow</h2>
@@ -72,8 +72,7 @@ export async function render(container) {
 
       <style>
         .login-wrapper-modern {
-          min-height: 100vh;
-          min-height: 100dvh;
+          height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -83,16 +82,17 @@ export async function render(container) {
             #0C4E6A 50%,
             #083E55 100%
           );
-          padding: 24px;
+          padding: 16px;
+          overflow: hidden;
         }
 
         .login-card-modern {
           background: white;
-          padding: 52px 42px;
-          border-radius: 28px;
+          padding: 36px 32px;
+          border-radius: 24px;
           width: 100%;
-          max-width: 500px;
-          box-shadow: 0 30px 70px rgba(0,0,0,0.25);
+          max-width: 420px;
+          box-shadow: 0 25px 60px rgba(0,0,0,0.25);
           text-align: center;
           animation: fadeIn 0.4s ease;
         }
@@ -101,110 +101,96 @@ export async function render(container) {
           display: flex;
           justify-content: center;
           align-items: center;
-          margin-bottom: 30px;
+          margin-bottom: 18px;
         }
 
         .login-logo img {
-          width: 140px;
-          height: 140px;
+          width: 100px;
+          height: 100px;
           object-fit: contain;
         }
 
         .login-card-modern h2 {
-          margin-bottom: 34px;
-          font-weight: 700;
-          font-size: 24px;
+          margin-bottom: 22px;
+          font-weight: 600;
+          font-size: 22px;
           color: #1f2937;
         }
 
         .login-field {
           text-align: left;
-          margin-bottom: 22px;
+          margin-bottom: 16px;
         }
 
         .login-field label {
           display: block;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           color: #6B7280;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .login-field input {
           width: 100%;
-          padding: 16px 18px;
-          border-radius: 16px;
+          padding: 14px 16px;
+          border-radius: 14px;
           border: 1px solid #E5E7EB;
-          font-size: 16px;
+          font-size: 15px;
           transition: all 0.2s ease;
         }
 
         .login-field input:focus {
           border-color: #0E5A7A;
           outline: none;
-          box-shadow: 0 0 0 4px rgba(14,90,122,0.15);
+          box-shadow: 0 0 0 3px rgba(14,90,122,0.15);
         }
 
         .login-button {
           width: 100%;
-          padding: 18px;
-          border-radius: 20px;
+          padding: 14px;
+          border-radius: 16px;
           border: none;
           background: #0E5A7A;
           color: white;
-          font-weight: 700;
-          font-size: 17px;
-          margin-top: 18px;
+          font-weight: 600;
+          font-size: 15px;
+          margin-top: 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
         }
 
         .login-button:hover {
           background: #083E55;
-          transform: translateY(-2px);
         }
 
         .login-button:disabled {
           background: #94a3b8;
           cursor: not-allowed;
-          transform: none;
         }
 
         .login-error {
-          margin-top: 18px;
+          margin-top: 14px;
           color: #dc2626;
-          font-size: 15px;
+          font-size: 14px;
         }
 
         @media (max-width: 768px) {
           .login-card-modern {
-            padding: 64px 28px;
-            max-width: 100%;
-            border-radius: 24px;
+            padding: 32px 24px;
           }
 
           .login-logo img {
-            width: 160px;
-            height: 160px;
+            width: 90px;
+            height: 90px;
           }
 
           .login-card-modern h2 {
-            font-size: 26px;
-          }
-
-          .login-field input {
-            padding: 18px;
-            font-size: 17px;
-          }
-
-          .login-button {
-            padding: 20px;
-            font-size: 18px;
+            font-size: 20px;
           }
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(15px); }
           to { opacity: 1; transform: translateY(0); }
         }
       </style>
