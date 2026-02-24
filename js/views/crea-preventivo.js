@@ -337,9 +337,18 @@ function renderMenuRows() {
 
   body.innerHTML = menuRows
     .map((row, index) => {
+      return `function renderMenuRows() {
+  const body = document.getElementById("preventivo-menu-tbody");
+  if (!body) return;
+
+  body.innerHTML = menuRows
+    .map((row, index) => {
+
       return `
-        <tr data-index="${index}">
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
+        <div class="card" style="margin-bottom:16px;" data-index="${index}">
+
+          <div class="form-group">
+            <label>Portata</label>
             <select class="input" data-field="ricetta_id">
               <option value="">Seleziona portata</option>
               ${ricetteCache.map(r => {
@@ -349,60 +358,21 @@ function renderMenuRows() {
                 </option>`;
               }).join("")}
             </select>
-          </td>
+          </div>
 
-          <td style="padding:10px; border-bottom:1px solid var(--color-border); width:120px;">
+          <div class="form-actions" style="margin-top:12px;">
             <button type="button"
               class="app-button secondary"
               data-action="remove-menu">
               Rimuovi
             </button>
-          </td>
-        </tr>
+          </div>
+
+        </div>
       `;
     })
     .join("");
 }
-
-function onMenuTableChange(e) {
-  const select = e.target;
-  if (!(select instanceof HTMLSelectElement)) return;
-
-  const tr = select.closest("tr");
-  if (!tr) return;
-
-  const index = Number(tr.dataset.index);
-  if (!Number.isFinite(index)) return;
-
-  const row = menuRows[index];
-  if (!row) return;
-
-  const ricettaId = (select.value || "").toString();
-  row.ricetta_id = ricettaId;
-
-  const ricetta = ricetteCache.find(r => String(r.id) === ricettaId);
-  row.ricetta_nome = ricetta?.nome || "";
-
-  // Prezzo banchetto (interno)
-  row.prezzo_pp = prezziByRicettaId.get(ricettaId) ?? 0;
-
-  recalcPreventivoTotali();
-}
-
-function onMenuTableClick(e) {
-  const btn = e.target?.closest("button");
-  if (!btn) return;
-  if (btn.dataset.action !== "remove-menu") return;
-
-  const tr = btn.closest("tr");
-  if (!tr) return;
-
-  const index = Number(tr.dataset.index);
-  if (!Number.isFinite(index)) return;
-
-  removeMenuRow(index);
-}
-
 /* ============================================================ */
 /* EXTRA ROWS */
 /* ============================================================ */
