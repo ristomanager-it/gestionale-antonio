@@ -25,6 +25,11 @@ export async function render(container) {
     subtitle: "Cliente, evento, portate, extra e calcolo economico",
     content: `
       <form id="preventivo-form">
+<div class="form-actions" style="margin-bottom:16px;">
+  <button type="button" id="btn-back" class="app-button secondary">
+    ← Torna ai Preventivi
+  </button>
+</div>
 
 ${createCard({
   title: "Stato Preventivo",
