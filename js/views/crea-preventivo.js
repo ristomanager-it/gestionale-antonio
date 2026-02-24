@@ -254,7 +254,15 @@ async function loadRicetteEPrezzi() {
 /* ============================================================ */
 /* BIND EVENTS */
 /* ============================================================ */
+function bindPreventivoEvents() {
 
+  const btnBack = document.getElementById("btn-back");
+  btnBack?.addEventListener("click", () => {
+    window.location.hash = "#/amministrazione";
+  });
+
+  // resto dei listener...
+}
 function bindPreventivoEvents() {
   const form = document.getElementById("preventivo-form");
   form?.addEventListener("submit", async (e) => {
