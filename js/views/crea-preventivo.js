@@ -210,7 +210,11 @@ ${createCard({
       </form>
     `
   });
-});
+bindPreventivoEvents();
+  renderMenuRows();
+  renderExtraRows();
+  recalcPreventivoTotali();
+}
  
 /* ============================================================ */
 /* DATA LOAD */
