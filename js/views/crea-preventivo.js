@@ -499,6 +499,7 @@ function onExtraTableClick(e) {
 /* ============================================================ */
 
 function recalcPreventivoTotali() {
+
   const invitati = Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1));
   const locationPrezzo = Math.max(0, toNumber(getVal("preventivo-location-prezzo")));
   const acconto = Math.max(0, toNumber(getVal("preventivo-acconto")));
@@ -512,6 +513,8 @@ function recalcPreventivoTotali() {
     row.totale = prezzoPP * invitati;
     subtMenu += row.totale;
   });
+
+  const prezzoMedioPP = invitati > 0 ? subtMenu / invitati : 0;
 
   /* ================= EXTRA ================= */
 
@@ -557,6 +560,8 @@ function recalcPreventivoTotali() {
   /* ================= UI UPDATE ================= */
 
   setNumber("preventivo-subtotale-menu", subtMenu);
+  setNumber("preventivo-prezzo-medio-pp", prezzoMedioPP);
+
   setNumber("preventivo-subtotale-extra", subtExtra);
   setNumber("preventivo-subtotale-location", locationPrezzo);
 
