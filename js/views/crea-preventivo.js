@@ -86,10 +86,10 @@ ${createCard({
 </select>
 
               <select class="input" id="preventivo-tipo-servizio">
-  <option value="Servizio Completo" selected>Servizio Completo</option>
-  <option value="Solo Catering">Solo Catering</option>
+  <option value="Servizio Completo" selected>Servito</option>
+  <option value="Solo Catering">Catering</option>
   <option value="Buffet">Buffet</option>
-  <option value="Finger Food">Finger Food</option>
+  <option value="misto">Finger Food</option>
 </select>
               <div class="form-group">
                 <label>Data Evento</label>
