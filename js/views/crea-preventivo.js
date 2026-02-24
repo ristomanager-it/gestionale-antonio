@@ -26,6 +26,26 @@ export async function render(container) {
     content: `
       <form id="preventivo-form">
 
+${createCard({
+  title: "Stato Preventivo",
+  body: `
+    <div class="form-group">
+      <label>Stato</label>
+      <select class="input" id="preventivo-stato">
+        <option value="in_trattativa" selected>In trattativa</option>
+        <option value="accettato">Accettato</option>
+        <option value="rifiutato">Rifiutato</option>
+      </select>
+    </div>
+
+    <div style="margin-top:12px;">
+      <span id="preventivo-stato-badge" class="status-badge badge-trattativa">
+        In trattativa
+      </span>
+    </div>
+  `
+})}
+
         ${createCard({
           title: "Dati Cliente e Evento",
           body: `
