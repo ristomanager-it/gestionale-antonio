@@ -635,6 +635,7 @@ async function savePreventivo() {
 /* ============================================================ */
 
 function emailCurrentPreventivoViaMailto() {
+
   const clienteEmail = getVal("preventivo-cliente-email");
   if (!clienteEmail) {
     alert("Inserisci l'email del cliente.");
@@ -643,24 +644,28 @@ function emailCurrentPreventivoViaMailto() {
 
   recalcPreventivoTotali();
 
+  const azienda = window.state?.azienda;
+  const nomeAzienda = azienda?.nome || "La nostra azienda";
+
   const clienteNome = getVal("preventivo-cliente-nome");
   const clienteCognome = getVal("preventivo-cliente-cognome");
   const dataEvento = getVal("preventivo-data-evento");
   const tipologiaEvento = getVal("preventivo-titolo");
-  const totale = getVal("preventivo-totale");
   const location = getVal("preventivo-location");
+  const totale = getVal("preventivo-totale");
 
   const righeMenu = menuRows
     .filter(r => r.ricetta_nome)
-    .map(r => `- ${r.ricetta_nome} x${Math.max(1, Math.floor(toNumber(r.quantita)))} (Tot. €${toNumber(r.totale).toFixed(2)})`)
+    .map(r => `- ${r.ricetta_nome}`)
     .join("\n");
 
   const righeExtra = extraRows
     .filter(r => (r.descrizione || "").trim())
-    .map(r => `- ${r.descrizione} x${Math.max(1, Math.floor(toNumber(r.quantita)))} (Tot. €${toNumber(r.totale).toFixed(2)})`)
+    .map(r => `- ${r.descrizione}`)
     .join("\n");
 
-  const subject = `Preventivo evento - ${tipologiaEvento || ""}`.trim();
+  const subject = `Preventivo ${tipologiaEvento || ""} - ${nomeAzienda}`.trim();
+
   const body = `
 Gentile ${clienteNome} ${clienteCognome},
 
@@ -670,24 +675,39 @@ Evento: ${tipologiaEvento || "—"}
 Data: ${dataEvento || "—"}
 Location: ${location || "—"}
 
-Menù:
+Menù proposto:
 ${righeMenu || "- (nessuna portata selezionata)"}
 
 Extra:
 ${righeExtra || "- (nessun extra)"}
 
-Totale: € ${totale}
+Totale complessivo: € ${totale}
 
-Grazie,
-Il team.
+Per qualsiasi informazione rimaniamo a disposizione.
+
+Cordiali saluti,
+${nomeAzienda}
   `.trim();
 
-  const mailtoLink = `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailtoLink =
+    `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
   window.location.href = mailtoLink;
 }
 
+
+
+/* ============================================================ */
+/* PRINT */
+/* ============================================================ */
+
 function printCurrentPreventivo() {
+
   recalcPreventivoTotali();
+
+  const azienda = window.state?.azienda;
+  const nomeAzienda = azienda?.nome || "Azienda";
+  const logo = azienda?.logo_url || "";
 
   const clienteNome = getVal("preventivo-cliente-nome");
   const clienteCognome = getVal("preventivo-cliente-cognome");
@@ -698,12 +718,12 @@ function printCurrentPreventivo() {
 
   const menuHtml = menuRows
     .filter(r => r.ricetta_nome)
-    .map(r => `<li>${escapeHtml(r.ricetta_nome)} × ${escapeHtml(String(Math.max(1, Math.floor(toNumber(r.quantita)))))} — € ${escapeHtml(toNumber(r.totale).toFixed(2))}</li>`)
+    .map(r => `<li>${escapeHtml(r.ricetta_nome)}</li>`)
     .join("");
 
   const extraHtml = extraRows
     .filter(r => (r.descrizione || "").trim())
-    .map(r => `<li>${escapeHtml(r.descrizione)} × ${escapeHtml(String(Math.max(1, Math.floor(toNumber(r.quantita)))))} — € ${escapeHtml(toNumber(r.totale).toFixed(2))}</li>`)
+    .map(r => `<li>${escapeHtml(r.descrizione)}</li>`)
     .join("");
 
   const win = window.open("", "_blank");
@@ -715,18 +735,61 @@ function printCurrentPreventivo() {
         <title>Preventivo</title>
         <meta charset="utf-8" />
         <style>
-          body{font-family:Arial, sans-serif; padding:24px;}
-          h1{margin:0 0 12px 0;}
-          h2{margin:22px 0 10px 0; font-size:16px;}
-          .muted{color:#666; font-size:12px;}
-          .box{border:1px solid #ddd; padding:12px; border-radius:10px; margin-top:12px;}
-          ul{margin:8px 0 0 18px;}
-          .tot{font-size:18px; font-weight:700;}
+          body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            color: #111;
+          }
+
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+          }
+
+          .logo {
+            max-height: 90px;
+            margin-bottom: 12px;
+          }
+
+          h1 {
+            margin: 0;
+            font-size: 24px;
+          }
+
+          h2 {
+            margin: 28px 0 10px 0;
+            font-size: 16px;
+          }
+
+          .muted {
+            color: #666;
+            font-size: 12px;
+          }
+
+          .box {
+            border: 1px solid #ddd;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 12px;
+          }
+
+          ul {
+            margin: 8px 0 0 18px;
+          }
+
+          .tot {
+            font-size: 20px;
+            font-weight: 700;
+          }
         </style>
       </head>
+
       <body>
-        <h1>Preventivo</h1>
-        <div class="muted">Canale prezzo ricette: ${escapeHtml(CANALE_PREVENTIVO)}</div>
+
+        <div class="header">
+          ${logo ? `<img src="${logo}" class="logo" />` : ""}
+          <h1>${escapeHtml(nomeAzienda)}</h1>
+        </div>
 
         <div class="box">
           <div><strong>Cliente:</strong> ${escapeHtml(clienteNome)} ${escapeHtml(clienteCognome)}</div>
@@ -746,14 +809,18 @@ function printCurrentPreventivo() {
         </div>
 
         <h2>Totale</h2>
-        <div class="box tot">€ ${escapeHtml(String(totale))}</div>
+        <div class="box tot">
+          € ${escapeHtml(String(totale))}
+        </div>
 
-        <div style="margin-top:18px;">
+        <div style="margin-top:30px;">
           <button onclick="window.print()">Stampa</button>
         </div>
+
       </body>
     </html>
   `);
+
   win.document.close();
 }
 
