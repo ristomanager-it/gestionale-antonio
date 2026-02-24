@@ -1,7 +1,7 @@
 // js/views/home.js
 // =======================================
-// Dashboard Operativa Dinamica SaaS
-// Versione stabile con accesso piattaforma
+// Dashboard Reparti SaaS - Ristoflow
+// Versione con Hero blu + divisione per reparti
 // =======================================
 
 export async function render(container) {
@@ -14,7 +14,7 @@ export async function render(container) {
     return;
   }
 
-  const SEZIONI = [
+  const REPARTI = [
     {
       label: "Operativo",
       moduli: [
@@ -26,117 +26,164 @@ export async function render(container) {
       ]
     },
     {
-      label: "Controllo Economico",
+      label: "Amministrazione",
+      moduli: [
+        { key: "acquisti", label: "Acquisti", icon: "🧾" },
+        { key: "dipendenti", label: "Dipendenti", icon: "👥" },
+        { key: "preventivi", label: "Preventivi", icon: "📑" }
+      ]
+    },
+    {
+      label: "Gestione",
       moduli: [
         { key: "margini", label: "Margini", icon: "💰" },
         { key: "report", label: "Report", icon: "📊" }
       ]
     },
     {
-      label: "Gestione",
-      moduli: [
-        { key: "acquisti", label: "Acquisti", icon: "🧾" },
-        { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-        { key: "preventivi", label: "Preventivi", icon: "📑" }
-      ]
+      label: "Marketing",
+      moduli: []
     }
   ];
 
   const saluto = getSaluto();
 
-  let sezioniAttive;
+  let repartiAttivi;
 
-  // 🔥 SUPERADMIN vede tutto
   if (ruolo === "superadmin") {
-    sezioniAttive = SEZIONI;
+    repartiAttivi = REPARTI;
   } else {
-    sezioniAttive = SEZIONI.map(sezione => ({
-      ...sezione,
-      moduli: sezione.moduli.filter(m =>
+    repartiAttivi = REPARTI.map(reparto => ({
+      ...reparto,
+      moduli: reparto.moduli.filter(m =>
         hasFeature(m.key) && hasPermission(m.key)
       )
-    })).filter(sezione => sezione.moduli.length > 0);
+    })).filter(reparto => reparto.moduli.length > 0);
   }
 
   container.innerHTML = `
-    <div class="view">
+    <div class="view" style="padding:0;">
 
-      <!-- TOP BAR -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+      <!-- HERO BLU -->
+      <div style="
+        background: var(--color-primary);
+        color: white;
+        padding: 40px 32px 80px 32px;
+        border-bottom-left-radius: 32px;
+        border-bottom-right-radius: 32px;
+        position: relative;
+      ">
 
-        ${
-          ruolo === "superadmin"
-            ? `
-            <button 
-              class="app-button small gray"
-              onclick="window.location.hash='#/homePiattaforma'"
-            >
-              ⚙ Piattaforma
-            </button>
-          `
-            : `<div></div>`
-        }
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
 
-        <button 
-          id="btn-logout-dashboard"
-          class="app-button small red"
-        >
-          Esci
-        </button>
-
-      </div>
-
-      <!-- LOGO + NOME -->
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:32px; flex-wrap:wrap;">
-        ${
-          azienda.logo_url
-            ? `<img 
-                src="${azienda.logo_url}" 
-                style="width:64px; height:64px; object-fit:cover; border-radius:18px; box-shadow:0 6px 18px rgba(0,0,0,0.08);" />
-              `
-            : `<div style="width:64px; height:64px; border-radius:18px; background:linear-gradient(135deg,#e5e7eb,#f3f4f6);"></div>`
-        }
-
-        <div>
-          <h2 style="margin:0; font-weight:600;">
-            ${azienda.nome}
-          </h2>
-          <p class="small-muted" style="margin:6px 0 0 0;">
-            ${saluto} 👋 Benvenuto nella dashboard operativa
-          </p>
-        </div>
-      </div>
-
-      ${
-        sezioniAttive.length === 0
-          ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
-          : sezioniAttive.map((sezione, sIndex) => `
-
-        <div style="margin-bottom:40px;">
-          
-          <h3 style="margin-bottom:18px; font-weight:600; letter-spacing:0.3px;">
-            ${sezione.label}
-          </h3>
-
-          <div style="display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
-            ${
-              sezione.moduli.map((m, index) => `
-                <div 
-                  onclick="window.location.hash='#/${m.key}'"
-                  style="background:white; padding:28px 18px; border-radius:22px; text-align:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.05); transition: all 0.25s ease; animation: fadeInUp 0.4s ease forwards; animation-delay:${(sIndex * 0.1) + (index * 0.05)}s; opacity:0;"
-                  onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 18px 40px rgba(0,0,0,0.08)'"
-                  onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.05)'"
-                >
-                  <div style="font-size:30px; margin-bottom:14px;">${m.icon}</div>
-                  <div style="font-weight:500;">${m.label}</div>
-                </div>
-              `).join(" ")
-            }
+          <div>
+            <h2 style="margin:0; font-weight:600;">
+              ${saluto} 👋
+            </h2>
+            <p style="margin:8px 0 0 0; opacity:0.9;">
+              Benvenuto nella dashboard operativa
+            </p>
           </div>
-        </div>
 
-      `).join("")
-      }
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            ${
+              ruolo === "superadmin"
+                ? `
+                <button 
+                  class="app-button small"
+                  style="background:white; color:var(--color-primary);"
+                  onclick="window.location.hash='#/homePiattaforma'"
+                >
+                  ⚙ Piattaforma
+                </button>
+              `
+                : ``
+            }
+
+            <button 
+              id="btn-logout-dashboard"
+              class="app-button small"
+              style="background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3);"
+            >
+              Esci
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CONTENUTO REPARTI -->
+      <div style="padding: 0 32px 40px 32px; margin-top:-60px;">
+
+        ${
+          repartiAttivi.length === 0
+            ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
+            : repartiAttivi.map((reparto, rIndex) => `
+
+          <div style="
+            background:white;
+            padding:28px;
+            border-radius:24px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.05);
+            margin-bottom:28px;
+            animation: fadeInUp 0.4s ease forwards;
+            animation-delay:${rIndex * 0.08}s;
+            opacity:0;
+          ">
+
+            <h3 style="
+              margin:0 0 20px 0;
+              font-weight:600;
+              border-left:4px solid var(--color-primary);
+              padding-left:12px;
+            ">
+              ${reparto.label}
+            </h3>
+
+            ${
+              reparto.moduli.length === 0
+                ? `<p class="small-muted">Nessun modulo disponibile.</p>`
+                : `
+                  <div style="
+                    display:grid;
+                    gap:18px;
+                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                  ">
+                    ${
+                      reparto.moduli.map((m, index) => `
+                        <div 
+                          onclick="window.location.hash='#/${m.key}'"
+                          style="
+                            background:#ffffff;
+                            padding:26px 18px;
+                            border-radius:20px;
+                            text-align:center;
+                            cursor:pointer;
+                            box-shadow:0 8px 24px rgba(0,0,0,0.04);
+                            transition: all 0.25s ease;
+                          "
+                          onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 16px 36px rgba(0,0,0,0.08)'"
+                          onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.04)'"
+                        >
+                          <div style="font-size:30px; margin-bottom:14px;">
+                            ${m.icon}
+                          </div>
+                          <div style="font-weight:500;">
+                            ${m.label}
+                          </div>
+                        </div>
+                      `).join("")
+                    }
+                  </div>
+                `
+            }
+
+          </div>
+
+        `).join("")
+        }
+
+      </div>
 
       <style>
         @keyframes fadeInUp {
