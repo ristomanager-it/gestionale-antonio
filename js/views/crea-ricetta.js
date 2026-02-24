@@ -9,8 +9,10 @@
 // - ricette_cottura (1 record per ricetta)
 // - ricette_output (1 record per ricetta)
 // - ricette_porzione
+// + ricette_output_secondari (coprodotti / rifili)
 // ============================================================
 import { requirePermessi } from "../auth-utils.js";
+
 let ricettaId = null;
 
 let prodottiCache = [];
@@ -22,6 +24,9 @@ let conservazioniCache = [];
 let porzioniCache = [];
 let cotturaCache = null;
 let outputCache = null;
+let outputSecondariCache = [];
+
+let _autocompleteDocBound = false;
 
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
@@ -103,7 +108,7 @@ export async function render(app) {
           </div>
         </div>
 
-        <!-- ================= OUTPUT ================= -->
+        <!-- ================= OUTPUT PRINCIPALE ================= -->
         <div class="editor-section open">
           <div class="editor-section-header">
             <strong>Output (prodotto + resa)</strong>
@@ -148,6 +153,33 @@ export async function render(app) {
               <input id="r-output-note" class="input-pill" placeholder="Es: resa dopo cottura / sgocciolato / ecc." />
             </label>
 
+            <div style="grid-column:1/-1;">
+              <div id="r-cost-preview" class="small-muted" style="margin-top:8px;">
+                Food cost: — (salva per calcolare)
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= OUTPUT SECONDARI (COPRODOTTI) ================= -->
+        <div class="editor-section open">
+          <div class="editor-section-header">
+            <strong>Output secondari (rifili / coproduct)</strong>
+          </div>
+          <div class="editor-section-body">
+            <div id="output-secondari-container"></div>
+
+            <button id="btn-add-out2"
+              class="app-button small gray"
+              type="button"
+              style="margin-top:10px;">
+              + Aggiungi output secondario
+            </button>
+
+            <div class="small-muted" style="margin-top:10px;">
+              Usa questa sezione per rifili riutilizzabili (es: rifili manzo per ragù). Non è “sfrido”: è un coprodotto.
+            </div>
           </div>
         </div>
 
@@ -297,6 +329,7 @@ export async function render(app) {
     await caricaRicettaCompleta();
   } else {
     // default UI
+    aggiungiOutputSecondario(); // opzionale: lascia una riga vuota pronta
     aggiungiIngrediente();
     aggiungiFase({ ordine: 1, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
     aggiungiScenarioConservazione();
@@ -312,9 +345,10 @@ async function loadProdotti() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
+  // includo costo_medio per calcolo food cost reale
   const { data, error } = await supabase
     .from("prodotti")
-    .select("id, descrizione, um")
+    .select("id, descrizione, um, costo_medio")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("descrizione");
@@ -347,6 +381,17 @@ async function loadProdotti() {
 }
 
 function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
+  if (!_autocompleteDocBound) {
+    _autocompleteDocBound = true;
+    document.addEventListener("click", (e) => {
+      // chiude tutte le suggest se clicchi fuori
+      document.querySelectorAll(".suggest-list.open").forEach(box => {
+        const wrap = box.closest(".input-wrap") || box.parentElement;
+        if (wrap && !wrap.contains(e.target)) box.classList.remove("open");
+      });
+    });
+  }
+
   input.addEventListener("input", () => {
     const q = (input.value || "").toLowerCase().trim();
     hidden.value = "";
@@ -379,12 +424,6 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
 
     suggestBox.classList.add("open");
   });
-
-  document.addEventListener("click", (e) => {
-    const wrap = input.closest(".input-wrap") || input.parentElement;
-    if (!wrap) return;
-    if (!wrap.contains(e.target)) suggestBox.classList.remove("open");
-  });
 }
 
 function aggiornaOutputInfo() {
@@ -404,6 +443,91 @@ function aggiornaOutputInfo() {
   }
 
   outInfo.innerText = `Output: ${p.descrizione} — UM: ${p.um || "-"}`;
+}
+
+/* ============================================================
+   OUTPUT SECONDARI (COPRODOTTI)
+============================================================ */
+function aggiungiOutputSecondario(initial = {}) {
+  const container = document.getElementById("output-secondari-container");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "azienda-card";
+  row.style.marginBottom = "8px";
+
+  row.innerHTML = `
+    <div class="editor-grid-2">
+
+      <div style="grid-column:1/-1;">
+        <label>
+          Prodotto coprodotto (rifilo / fondo) *
+          <div class="input-wrap">
+            <input class="out2-search input-pill"
+              placeholder="Cerca prodotto..."
+              autocomplete="off"
+              value="${escapeAttr(initial.prodotto_nome || initial.nome_prodotto || "")}" />
+            <input class="out2-id" type="hidden" value="${escapeAttr(initial.prodotto_id || "")}" />
+            <div class="suggest-list out2-suggest"></div>
+          </div>
+        </label>
+      </div>
+
+      <label>
+        Peso/Qtà *
+        <input class="out2-peso input-pill"
+          type="number" step="0.001" min="0"
+          value="${escapeAttr(initial.peso ?? "")}"
+          placeholder="Es: 0.700" />
+      </label>
+
+      <label>
+        UM *
+        <select class="out2-um input-pill">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="pz">pz</option>
+          <option value="l">l</option>
+          <option value="ml">ml</option>
+        </select>
+      </label>
+
+      <label>
+        Allocazione costo
+        <select class="out2-metodo input-pill">
+          <option value="peso">peso</option>
+          <option value="percentuale">percentuale</option>
+          <option value="manuale">manuale</option>
+        </select>
+      </label>
+
+      <label>
+        % allocazione (se percentuale)
+        <input class="out2-percent input-pill"
+          type="number" min="0" max="100" step="0.01"
+          value="${escapeAttr(initial.percentuale_allocazione ? Number(initial.percentuale_allocazione) * 100 : "")}"
+          placeholder="Es: 20" />
+      </label>
+
+    </div>
+
+    <div style="margin-top:6px; display:flex; justify-content:flex-end;">
+      <button class="app-button tiny red" type="button">✕</button>
+    </div>
+  `;
+
+  // set select defaults
+  row.querySelector(".out2-um").value = (initial.unita_misura || "kg");
+  row.querySelector(".out2-metodo").value = (initial.metodo_allocazione || "peso");
+
+  row.querySelector("button").onclick = () => row.remove();
+  container.appendChild(row);
+
+  const inSearch = row.querySelector(".out2-search");
+  const inId = row.querySelector(".out2-id");
+  const box = row.querySelector(".out2-suggest");
+
+  setupAutocomplete(inSearch, inId, box, null);
 }
 
 /* ============================================================
@@ -710,7 +834,7 @@ async function caricaRicettaCompleta() {
   const { data: ingredienti } = await supabase
     .from("ricetta_ingredienti")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId);
 
   ingredientiCache = ingredienti || [];
@@ -722,7 +846,7 @@ async function caricaRicettaCompleta() {
   const { data: fasi } = await supabase
     .from("ricette_preparazione_fasi")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId)
     .order("ordine", { ascending: true });
 
@@ -735,7 +859,7 @@ async function caricaRicettaCompleta() {
   const { data: cons } = await supabase
     .from("ricette_conservazione")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId)
     .order("id", { ascending: true });
 
@@ -748,7 +872,7 @@ async function caricaRicettaCompleta() {
   const { data: cottura } = await supabase
     .from("ricette_cottura")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId)
     .maybeSingle();
 
@@ -769,7 +893,7 @@ async function caricaRicettaCompleta() {
   const { data: output } = await supabase
     .from("ricette_output")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId)
     .maybeSingle();
 
@@ -784,11 +908,28 @@ async function caricaRicettaCompleta() {
     setVal("r-output-note", "");
   }
 
+  // output secondari
+  const { data: out2 } = await supabase
+    .from("ricette_output_secondari")
+    .select("*")
+    .eq("ricetta_id", Number(ricettaId))
+    .eq("azienda_id", aziendaId)
+    .order("id", { ascending: true });
+
+  outputSecondariCache = out2 || [];
+  const out2Container = document.getElementById("output-secondari-container");
+  if (out2Container) out2Container.innerHTML = "";
+  if (outputSecondariCache.length) {
+    outputSecondariCache.forEach(o => aggiungiOutputSecondario(o));
+  } else {
+    // lascia vuoto: non tutti hanno coprodotti
+  }
+
   // porzioni
   const { data: porzioni } = await supabase
     .from("ricette_porzione")
     .select("*")
-    .eq("ricetta_id", ricettaId)
+    .eq("ricetta_id", Number(ricettaId))
     .eq("azienda_id", aziendaId)
     .order("id", { ascending: true });
 
@@ -796,6 +937,13 @@ async function caricaRicettaCompleta() {
   document.getElementById("porzioni-container").innerHTML = "";
   if (porzioniCache.length) porzioniCache.forEach(p => aggiungiPorzione(p));
   else aggiungiPorzione();
+
+  // preview costo (legge dal DB se già calcolato)
+  const prev = document.getElementById("r-cost-preview");
+  if (prev) {
+    const cm = ricetta.costo_materia_prima ?? 0;
+    prev.innerText = `Food cost (MP): € ${formatMoney(cm)} (snapshot)`;
+  }
 }
 
 /* ============================================================
@@ -810,18 +958,12 @@ async function salvaTutto() {
   // ============================================================
 
   if (!ricettaId) {
-    if (!requirePermessi({
-      resource: "ricette",
-      action: "create"
-    })) {
+    if (!requirePermessi({ resource: "ricette", action: "create" })) {
       alert("Non hai i permessi per creare ricette.");
       return;
     }
   } else {
-    if (!requirePermessi({
-      resource: "ricette",
-      action: "update"
-    })) {
+    if (!requirePermessi({ resource: "ricette", action: "update" })) {
       alert("Non hai i permessi per modificare ricette.");
       return;
     }
@@ -856,7 +998,7 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id,
+      prodotto_output_id: Number(prodotto_output_id),
       azienda_id: aziendaId,
       attivo: true,
       stato_strutturale: "bozza"
@@ -883,14 +1025,14 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id,
+      prodotto_output_id: Number(prodotto_output_id),
       aggiornato_il: new Date().toISOString()
     };
 
     const { error } = await supabase
       .from("ricette")
       .update(payload)
-      .eq("id", ricettaId)
+      .eq("id", Number(ricettaId))
       .eq("azienda_id", aziendaId);
 
     if (error) {
@@ -900,10 +1042,12 @@ async function salvaTutto() {
     }
   }
 
-  // 2) salva output
+  const ricettaIdNum = Number(savedId);
+
+  // 2) salva output principale
   {
     const payloadOut = {
-      ricetta_id: Number(savedId),
+      ricetta_id: ricettaIdNum,
       peso_finale: output_peso,
       unita_misura: output_um,
       note: output_note,
@@ -921,12 +1065,63 @@ async function salvaTutto() {
     }
   }
 
-  // 3) ingredienti
+  // 3) salva output secondari (coprodotti)
+  {
+    const { error: delOut2Err } = await supabase
+      .from("ricette_output_secondari")
+      .delete()
+      .eq("ricetta_id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (delOut2Err) {
+      console.error(delOut2Err);
+      if (esito) esito.innerText = "";
+      return alert("Errore reset output secondari.");
+    }
+
+    const out2Rows = [];
+    document.querySelectorAll("#output-secondari-container .azienda-card").forEach(r => {
+      const pid = (r.querySelector(".out2-id")?.value || "").trim();
+      const peso = toNumOrNull(r.querySelector(".out2-peso")?.value);
+      const um = (r.querySelector(".out2-um")?.value || "").trim();
+      const metodo = (r.querySelector(".out2-metodo")?.value || "peso").trim();
+      const perc = toNumOrNull(r.querySelector(".out2-percent")?.value);
+
+      if (pid && peso && peso > 0 && um) {
+        out2Rows.push({
+          ricetta_id: ricettaIdNum,
+          prodotto_id: Number(pid),
+          peso,
+          unita_misura: um,
+          metodo_allocazione: metodo,
+          percentuale_allocazione: (metodo === "percentuale" && perc != null)
+            ? (Number(perc) / 100)
+            : null,
+          azienda_id: aziendaId
+        });
+      }
+    });
+
+    if (out2Rows.length) {
+      const { error: insOut2Err } = await supabase
+        .from("ricette_output_secondari")
+        .insert(out2Rows);
+
+      if (insOut2Err) {
+        console.error(insOut2Err);
+        if (esito) esito.innerText = "";
+        return alert("Errore salvataggio output secondari.");
+      }
+    }
+  }
+
+  // 4) ingredienti
+  let ingredientRowsForCost = [];
   {
     const { error: delErr } = await supabase
       .from("ricetta_ingredienti")
       .delete()
-      .eq("ricetta_id", savedId)
+      .eq("ricetta_id", ricettaIdNum)
       .eq("azienda_id", aziendaId);
 
     if (delErr) {
@@ -943,14 +1138,21 @@ async function salvaTutto() {
 
       if (pid && qta && qta > 0) {
         const p = prodottiMap.get(String(pid));
+        const um = p?.um || "pz";
+
         rows.push({
-          ricetta_id: Number(savedId),
+          ricetta_id: ricettaIdNum,
           prodotto_id: Number(pid),
           nome_prodotto: nomeProd || (p?.descrizione || ""),
           quantita: qta,
-          unita_misura: p?.um || "pz",
+          unita_misura: um,
           azienda_id: aziendaId,
           mapping_stato: "ok"
+        });
+
+        ingredientRowsForCost.push({
+          prodotto_id: Number(pid),
+          quantita: qta
         });
       }
     });
@@ -968,9 +1170,180 @@ async function salvaTutto() {
     }
   }
 
+  // 5) calcolo costo industriale (MP reale) + allocazione coprodotti
+  const computed = computeCostoIndustriale({
+    ricettaId: ricettaIdNum,
+    prodottoOutputId: Number(prodotto_output_id),
+    outputPrincipale: { peso: output_peso, um: output_um },
+    ingredienti: ingredientRowsForCost,
+    outputSecondariDom: readOutputSecondariFromDOM()
+  });
+
+  // update snapshot ricetta
+  {
+    const payloadSnap = {
+      costo_materia_prima: computed.costoTotaleInput,
+      costo_tot_snapshot: computed.costoTotaleInput,
+      ultimo_ricalcolo: new Date().toISOString(),
+      stato_costo: computed.ok ? "ok" : "warning"
+    };
+
+    const { error: upErr } = await supabase
+      .from("ricette")
+      .update(payloadSnap)
+      .eq("id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (upErr) {
+      console.error(upErr);
+      // non blocco salvataggio, ma avviso
+      console.warn("Snapshot costi non aggiornato.");
+    }
+  }
+
+  // preview UI
+  const prev = document.getElementById("r-cost-preview");
+  if (prev) {
+    if (computed.ok) {
+      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — Costo unitario output: € ${formatMoney(computed.costoUnitarioPrincipale)} / ${computed.baseUnitLabel}`;
+    } else {
+      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ⚠️ ${computed.warning || "Verifica unità output/ingredienti"}`;
+    }
+  }
+
   if (esito) esito.innerText = "Ricetta salvata ✔️";
   alert("Ricetta salvata ✔️");
   window.location.hash = "#/ricettario";
+}
+
+/* ============================================================
+   COSTO INDUSTRIALE (MP reale + coprodotti)
+   - usa prodotti.costo_medio
+   - allocazione per peso o percentuale
+============================================================ */
+function computeCostoIndustriale({
+  outputPrincipale,
+  ingredienti,
+  outputSecondariDom
+}) {
+  // 1) costo totale input (MP reale)
+  let costoTotale = 0;
+  for (const r of (ingredienti || [])) {
+    const p = prodottiMap.get(String(r.prodotto_id));
+    const costoMedio = Number(p?.costo_medio ?? 0);
+    const qta = Number(r.quantita ?? 0);
+    costoTotale += (costoMedio * qta);
+  }
+
+  // 2) convertiamo output in un'unità base coerente
+  const p1 = convertToBase(outputPrincipale.peso, outputPrincipale.um);
+  if (!p1.ok) {
+    return { ok: false, costoTotaleInput: round4(costoTotale), costoUnitarioPrincipale: 0, baseUnitLabel: "unità", warning: p1.warning };
+  }
+
+  let outputs = [
+    { kind: "principale", baseQty: p1.baseQty, unitLabel: p1.baseUnitLabel, metodo: "peso" }
+  ];
+
+  // secondari
+  for (const o of (outputSecondariDom || [])) {
+    const conv = convertToBase(o.peso, o.unita_misura);
+    if (!conv.ok || conv.baseUnitLabel !== p1.baseUnitLabel) {
+      return {
+        ok: false,
+        costoTotaleInput: round4(costoTotale),
+        costoUnitarioPrincipale: 0,
+        baseUnitLabel: p1.baseUnitLabel,
+        warning: "Unità output secondari non coerenti con output principale (kg/g oppure l/ml oppure pz)."
+      };
+    }
+    outputs.push({
+      kind: "secondario",
+      baseQty: conv.baseQty,
+      prodotto_id: o.prodotto_id,
+      metodo: o.metodo_allocazione,
+      percentuale_allocazione: o.percentuale_allocazione
+    });
+  }
+
+  // 3) allocazione costo
+  // - se qualcuno è percentuale: somma percentuali su secondari, resto al principale
+  const percentSecondari = outputs
+    .filter(x => x.kind === "secondario" && x.metodo === "percentuale" && Number.isFinite(x.percentuale_allocazione))
+    .reduce((a, x) => a + Number(x.percentuale_allocazione), 0);
+
+  let costoPrincipale = costoTotale;
+
+  if (percentSecondari > 0) {
+    // clamp 0..1
+    const perc = Math.max(0, Math.min(1, percentSecondari));
+    // in questo modello: percentuale sul totale destinata ai secondari "percentuale"
+    // il resto (1-perc) al principale, e i secondari non-percentuale restano per ora solo informativi (peso)
+    costoPrincipale = costoTotale * (1 - perc);
+  } else {
+    // metodo peso: costo proporzionale al peso
+    const totBase = outputs.reduce((a, x) => a + (Number(x.baseQty) || 0), 0);
+    if (totBase > 0) {
+      costoPrincipale = costoTotale * (p1.baseQty / totBase);
+    }
+  }
+
+  const costoUnitarioPrincipale = (p1.baseQty > 0) ? (costoPrincipale / p1.baseQty) : 0;
+
+  return {
+    ok: true,
+    costoTotaleInput: round4(costoTotale),
+    costoPrincipale: round4(costoPrincipale),
+    costoUnitarioPrincipale: round4(costoUnitarioPrincipale),
+    baseUnitLabel: p1.baseUnitLabel,
+    warning: null
+  };
+}
+
+function readOutputSecondariFromDOM() {
+  const out = [];
+  document.querySelectorAll("#output-secondari-container .azienda-card").forEach(r => {
+    const pid = (r.querySelector(".out2-id")?.value || "").trim();
+    const peso = toNumOrNull(r.querySelector(".out2-peso")?.value);
+    const um = (r.querySelector(".out2-um")?.value || "").trim();
+    const metodo = (r.querySelector(".out2-metodo")?.value || "peso").trim();
+    const perc = toNumOrNull(r.querySelector(".out2-percent")?.value);
+
+    if (pid && peso && peso > 0 && um) {
+      out.push({
+        prodotto_id: Number(pid),
+        peso,
+        unita_misura: um,
+        metodo_allocazione: metodo,
+        percentuale_allocazione: (metodo === "percentuale" && perc != null)
+          ? (Number(perc) / 100)
+          : null
+      });
+    }
+  });
+  return out;
+}
+
+function convertToBase(qty, um) {
+  const u = String(um || "").toLowerCase().trim();
+  const n = Number(qty ?? 0);
+
+  if (!Number.isFinite(n) || n <= 0) {
+    return { ok: false, warning: "Peso/Qtà output non valido." };
+  }
+
+  // mass -> base = g
+  if (u === "kg") return { ok: true, baseQty: n * 1000, baseUnitLabel: "g" };
+  if (u === "g") return { ok: true, baseQty: n, baseUnitLabel: "g" };
+
+  // volume -> base = ml
+  if (u === "l") return { ok: true, baseQty: n * 1000, baseUnitLabel: "ml" };
+  if (u === "ml") return { ok: true, baseQty: n, baseUnitLabel: "ml" };
+
+  // pieces -> base = pz
+  if (u === "pz") return { ok: true, baseQty: n, baseUnitLabel: "pz" };
+
+  return { ok: false, warning: "Unità output non supportata (usa kg/g oppure l/ml oppure pz)." };
 }
 
 /* ============================================================
@@ -979,6 +1352,9 @@ async function salvaTutto() {
 function bindUI() {
   document.getElementById("btn-add-ing")
     .addEventListener("click", () => aggiungiIngrediente());
+
+  document.getElementById("btn-add-out2")
+    .addEventListener("click", () => aggiungiOutputSecondario());
 
   document.getElementById("btn-add-fase")
     .addEventListener("click", () => {
@@ -1053,4 +1429,14 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return escapeHtml(str).replaceAll("\n", " ");
+}
+
+function round4(n) {
+  const x = Number(n ?? 0);
+  return Math.round(x * 10000) / 10000;
+}
+
+function formatMoney(n) {
+  const x = Number(n ?? 0);
+  return x.toFixed(2);
 }
