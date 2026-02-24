@@ -100,33 +100,20 @@ export async function render(container) {
           `
         })}
 
-        ${createCard({
-          title: "Extra",
-          body: `
-            <div class="table-wrap">
-              <table class="app-table" style="width:100%;">
-                <thead>
-                  <tr>
-                    <th>Descrizione</th>
-                    <th style="width:140px;">Quantità</th>
-                    <th style="width:160px;">Prezzo Unit. (€)</th>
-                    <th style="width:160px;">Totale (€)</th>
-                    <th style="width:120px;"></th>
-                  </tr>
-                </thead>
-                <tbody id="preventivo-extra-tbody"></tbody>
-              </table>
-            </div>
+       ${createCard({
+  title: "Extra",
+  body: `
+    <div id="preventivo-extra-tbody"></div>
 
-            <div class="form-actions">
-              <button type="button"
-                class="app-button secondary"
-                id="btn-add-extra">
-                + Aggiungi Extra
-              </button>
-            </div>
-          `
-        })}
+    <div class="form-actions">
+      <button type="button"
+        class="app-button secondary"
+        id="btn-add-extra">
+        + Aggiungi Extra
+      </button>
+    </div>
+  `
+})}
 
         ${createCard({
           title: "Sezione Economica",
