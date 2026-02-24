@@ -308,7 +308,6 @@ function bindPreventivoEvents() {
   btnEmail?.addEventListener("click", emailCurrentPreventivoViaMailto);
   btnPrint?.addEventListener("click", printCurrentPreventivo);
 }
-
 /* ============================================================ */
 /* MENU ROWS (PORTATE) */
 /* ============================================================ */
@@ -337,12 +336,6 @@ function renderMenuRows() {
 
   body.innerHTML = menuRows
     .map((row, index) => {
-      return `function renderMenuRows() {
-  const body = document.getElementById("preventivo-menu-tbody");
-  if (!body) return;
-
-  body.innerHTML = menuRows
-    .map((row, index) => {
 
       return `
         <div class="card" style="margin-bottom:16px;" data-index="${index}">
@@ -353,15 +346,18 @@ function renderMenuRows() {
               <option value="">Seleziona portata</option>
               ${ricetteCache.map(r => {
                 const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-                return `<option value="${escapeAttr(String(r.id))}" ${selected}>
-                  ${escapeHtml(r.nome || "")}
-                </option>`;
+                return `
+                  <option value="${escapeAttr(String(r.id))}" ${selected}>
+                    ${escapeHtml(r.nome || "")}
+                  </option>
+                `;
               }).join("")}
             </select>
           </div>
 
           <div class="form-actions" style="margin-top:12px;">
-            <button type="button"
+            <button 
+              type="button"
               class="app-button secondary"
               data-action="remove-menu">
               Rimuovi
