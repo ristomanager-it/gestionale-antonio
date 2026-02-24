@@ -6,10 +6,10 @@ const CANALE_PREVENTIVO = "banchetto";
 let menuRows = [];
 let extraRows = [];
 
-let ricetteCache = []; // [{id, nome}]
-let prezziByRicettaId = new Map(); // ricetta_id -> prezzo_vendita (number)
+let ricetteCache = [];
+let prezziByRicettaId = new Map();
 
-let lastDiscountEdited = "perc"; // "perc" | "euro" | null
+let lastDiscountEdited = "perc";
 
 export async function render(container) {
   menuRows = [];
@@ -32,55 +32,55 @@ export async function render(container) {
             <div class="form-grid">
 
               <div class="form-group">
-                <label for="preventivo-cliente-nome">Nome Cliente</label>
-                <input class="input" type="text" id="preventivo-cliente-nome" required placeholder="Nome">
+                <label>Nome Cliente</label>
+                <input class="input" type="text" id="preventivo-cliente-nome" required>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-cliente-cognome">Cognome Cliente</label>
-                <input class="input" type="text" id="preventivo-cliente-cognome" required placeholder="Cognome">
+                <label>Cognome Cliente</label>
+                <input class="input" type="text" id="preventivo-cliente-cognome" required>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-cliente-email">Email Cliente</label>
-                <input class="input" type="email" id="preventivo-cliente-email" placeholder="email@cliente.it">
+                <label>Email Cliente</label>
+                <input class="input" type="email" id="preventivo-cliente-email">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-titolo">Titolo Evento</label>
-                <input class="input" type="text" id="preventivo-titolo" required placeholder="Es. Compleanno, Cena aziendale...">
+                <label>Titolo Evento</label>
+                <input class="input" type="text" id="preventivo-titolo" required>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-tipo-servizio">Tipo Servizio</label>
-                <input class="input" type="text" id="preventivo-tipo-servizio" placeholder="Es. Catering, Banchetto...">
+                <label>Tipo Servizio</label>
+                <input class="input" type="text" id="preventivo-tipo-servizio">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-data-evento">Data Evento</label>
+                <label>Data Evento</label>
                 <input class="input" type="date" id="preventivo-data-evento" required>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-n-invitati">Numero Invitati</label>
-                <input class="input" type="number" id="preventivo-n-invitati" value="1" min="1" step="1">
+                <label>Numero Invitati</label>
+                <input class="input" type="number" id="preventivo-n-invitati" value="1" min="1">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-location">Location</label>
-                <input class="input" type="text" id="preventivo-location" placeholder="Descrizione location">
+                <label>Location</label>
+                <input class="input" type="text" id="preventivo-location">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-location-prezzo">Prezzo Location (€)</label>
+                <label>Prezzo Location (€)</label>
                 <input class="input" type="number" id="preventivo-location-prezzo" value="0" min="0" step="0.01">
               </div>
 
             </div>
 
             <div class="form-group" style="margin-top:16px;">
-              <label for="preventivo-note">Note</label>
-              <textarea class="input" id="preventivo-note" placeholder="Eventuali note..."></textarea>
+              <label>Note</label>
+              <textarea class="input" id="preventivo-note"></textarea>
             </div>
           `
         })}
@@ -88,23 +88,14 @@ export async function render(container) {
         ${createCard({
           title: "Menu Evento",
           body: `
-            <div class="table-wrap">
-              <table class="app-table" style="width:100%; border-collapse:collapse;">
-                <thead>
-                  <tr>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border);">Portata (Ricettario)</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:140px;">Quantità</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:160px;">Prezzo Unit. (€)</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:160px;">Totale (€)</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:120px;"></th>
-                  </tr>
-                </thead>
-                <tbody id="preventivo-menu-tbody"></tbody>
-              </table>
-            </div>
+            <div id="preventivo-menu-tbody"></div>
 
             <div class="form-actions">
-              <button type="button" class="app-button secondary" id="btn-add-portata">+ Aggiungi Portata</button>
+              <button type="button"
+                class="app-button secondary"
+                id="btn-add-menu-row">
+                + Aggiungi Portata
+              </button>
             </div>
           `
         })}
@@ -113,14 +104,14 @@ export async function render(container) {
           title: "Extra",
           body: `
             <div class="table-wrap">
-              <table class="app-table" style="width:100%; border-collapse:collapse;">
+              <table class="app-table" style="width:100%;">
                 <thead>
                   <tr>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border);">Descrizione</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:140px;">Quantità</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:160px;">Prezzo Unit. (€)</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:160px;">Totale (€)</th>
-                    <th style="text-align:left; padding:10px; border-bottom:1px solid var(--color-border); width:120px;"></th>
+                    <th>Descrizione</th>
+                    <th style="width:140px;">Quantità</th>
+                    <th style="width:160px;">Prezzo Unit. (€)</th>
+                    <th style="width:160px;">Totale (€)</th>
+                    <th style="width:120px;"></th>
                   </tr>
                 </thead>
                 <tbody id="preventivo-extra-tbody"></tbody>
@@ -128,7 +119,11 @@ export async function render(container) {
             </div>
 
             <div class="form-actions">
-              <button type="button" class="app-button secondary" id="btn-add-extra">+ Aggiungi Extra</button>
+              <button type="button"
+                class="app-button secondary"
+                id="btn-add-extra">
+                + Aggiungi Extra
+              </button>
             </div>
           `
         })}
@@ -139,43 +134,43 @@ export async function render(container) {
             <div class="form-grid">
 
               <div class="form-group">
-                <label for="preventivo-subtotale-menu">Subtotale Menu (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-menu" value="0" readonly>
+                <label>Subtotale Menu (€)</label>
+                <input class="input" type="number" id="preventivo-subtotale-menu" readonly>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-subtotale-extra">Subtotale Extra (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-extra" value="0" readonly>
+                <label>Subtotale Extra (€)</label>
+                <input class="input" type="number" id="preventivo-subtotale-extra" readonly>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-subtotale-location">Subtotale Location (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-location" value="0" readonly>
+                <label>Subtotale Location (€)</label>
+                <input class="input" type="number" id="preventivo-subtotale-location" readonly>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-sconto-perc">Sconto (%)</label>
-                <input class="input" type="number" id="preventivo-sconto-perc" value="0" min="0" max="100" step="0.01">
+                <label>Sconto (%)</label>
+                <input class="input" type="number" id="preventivo-sconto-perc" value="0">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-sconto-euro">Sconto (€)</label>
-                <input class="input" type="number" id="preventivo-sconto-euro" value="0" min="0" step="0.01">
+                <label>Sconto (€)</label>
+                <input class="input" type="number" id="preventivo-sconto-euro" value="0">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-totale">Totale Finale (€)</label>
-                <input class="input" type="number" id="preventivo-totale" value="0" readonly>
+                <label>Totale Finale (€)</label>
+                <input class="input" type="number" id="preventivo-totale" readonly>
               </div>
 
               <div class="form-group">
-                <label for="preventivo-acconto">Acconto (€)</label>
-                <input class="input" type="number" id="preventivo-acconto" value="0" min="0" step="0.01">
+                <label>Acconto (€)</label>
+                <input class="input" type="number" id="preventivo-acconto" value="0">
               </div>
 
               <div class="form-group">
-                <label for="preventivo-saldo">Saldo (€)</label>
-                <input class="input" type="number" id="preventivo-saldo" value="0" readonly>
+                <label>Saldo (€)</label>
+                <input class="input" type="number" id="preventivo-saldo" readonly>
               </div>
 
             </div>
@@ -183,7 +178,7 @@ export async function render(container) {
         })}
 
         <div class="form-actions">
-          <button type="submit" id="btn-save-preventivo" class="app-button">💾 Salva Preventivo</button>
+          <button type="submit" class="app-button">💾 Salva Preventivo</button>
           <button type="button" id="btn-email-preventivo" class="app-button secondary">✉️ Invia Email</button>
           <button type="button" id="btn-print-preventivo" class="app-button secondary">🖨️ Stampa</button>
         </div>
@@ -199,6 +194,7 @@ export async function render(container) {
   renderExtraRows();
   recalcPreventivoTotali();
 }
+
 /* ============================================================ */
 /* DATA LOAD */
 /* ============================================================ */
@@ -212,34 +208,21 @@ async function loadRicetteEPrezzi() {
 
   if (!supabase || !aziendaId) return;
 
-  /* ---------- RICETTE ---------- */
-
-  const { data: ricette, error: errRic } = await supabase
+  const { data: ricette } = await supabase
     .from("ricette")
     .select("id, nome")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
 
-  if (errRic) {
-    console.error("Errore caricamento ricette:", errRic);
-  } else {
-    ricetteCache = ricette || [];
-  }
+  ricetteCache = ricette || [];
 
-  /* ---------- PREZZI CANALE BANCHETTO ---------- */
-
-  const { data: prezzi, error: errPrez } = await supabase
+  const { data: prezzi } = await supabase
     .from("ricette_prezzi_canale")
     .select("ricetta_id, prezzo_vendita")
     .eq("azienda_id", aziendaId)
-    .eq("canale", CANALE_PREVENTIVO) // es: "banchetto"
+    .eq("canale", CANALE_PREVENTIVO)
     .eq("attivo", true);
-
-  if (errPrez) {
-    console.error("Errore caricamento prezzi canale:", errPrez);
-    return;
-  }
 
   prezziByRicettaId = new Map(
     (prezzi || []).map(p => [
@@ -248,54 +231,14 @@ async function loadRicetteEPrezzi() {
     ])
   );
 }
+
 /* ============================================================ */
 /* BIND EVENTS */
 /* ============================================================ */
 
 function bindPreventivoEvents() {
-  const form = document.getElementById("preventivo-form");
-
   const btnAddMenuRow = document.getElementById("btn-add-menu-row");
-  const btnAddExtraRow = document.getElementById("btn-add-extra");
-
-  const btnEmail = document.getElementById("btn-email-preventivo");
-  const btnPrint = document.getElementById("btn-print-preventivo");
-
-  const invitatiEl = document.getElementById("preventivo-n-invitati");
-  const accontoEl = document.getElementById("preventivo-acconto");
-  const scontoPercEl = document.getElementById("preventivo-sconto-perc");
-  const scontoEuroEl = document.getElementById("preventivo-sconto-euro");
-  const locationPrezzoEl = document.getElementById("preventivo-location-prezzo");
-
-  /* ---------- ADD ROWS ---------- */
-
   btnAddMenuRow?.addEventListener("click", addMenuRow);
-  btnAddExtraRow?.addEventListener("click", addExtraRow);
-
-  /* ---------- INVITATI ---------- */
-
-  invitatiEl?.addEventListener("input", () => {
-    const n = Math.max(1, Math.floor(toNumber(invitatiEl.value)));
-    invitatiEl.value = String(n);
-    recalcPreventivoTotali();
-  });
-
-  /* ---------- TOTALI ---------- */
-
-  accontoEl?.addEventListener("input", recalcPreventivoTotali);
-  locationPrezzoEl?.addEventListener("input", recalcPreventivoTotali);
-
-  scontoPercEl?.addEventListener("input", () => {
-    lastDiscountEdited = "perc";
-    recalcPreventivoTotali();
-  });
-
-  scontoEuroEl?.addEventListener("input", () => {
-    lastDiscountEdited = "euro";
-    recalcPreventivoTotali();
-  });
-
-  /* ---------- MENU ---------- */
 
   document
     .getElementById("preventivo-menu-tbody")
@@ -304,29 +247,8 @@ function bindPreventivoEvents() {
   document
     .getElementById("preventivo-menu-tbody")
     ?.addEventListener("click", onMenuTableClick);
-
-  /* ---------- EXTRA ---------- */
-
-  document
-    .getElementById("preventivo-extra-tbody")
-    ?.addEventListener("input", onExtraTableInput);
-
-  document
-    .getElementById("preventivo-extra-tbody")
-    ?.addEventListener("click", onExtraTableClick);
-
-  /* ---------- SUBMIT ---------- */
-
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    await savePreventivo();
-  });
-
-  /* ---------- EMAIL / PRINT ---------- */
-
-  btnEmail?.addEventListener("click", emailCurrentPreventivoViaMailto);
-  btnPrint?.addEventListener("click", printCurrentPreventivo);
 }
+
 /* ============================================================ */
 /* MENU ROWS (PORTATE) */
 /* ============================================================ */
@@ -335,18 +257,16 @@ function addMenuRow() {
   menuRows.push({
     ricetta_id: "",
     ricetta_nome: "",
-    prezzo_pp: 0,   // interno (banchetto)
-    totale: 0       // interno
+    prezzo_pp: 0,
+    totale: 0
   });
 
   renderMenuRows();
-  recalcPreventivoTotali();
 }
 
 function removeMenuRow(index) {
   menuRows.splice(index, 1);
   renderMenuRows();
-  recalcPreventivoTotali();
 }
 
 function renderMenuRows() {
@@ -359,22 +279,17 @@ function renderMenuRows() {
 
         <div class="form-group">
           <label>Portata</label>
-          <select class="input menu-select" data-field="ricetta_id">
+          <select class="input" data-field="ricetta_id">
             <option value="">Seleziona portata</option>
             ${ricetteCache.map(r => {
               const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-              return `
-                <option value="${escapeAttr(String(r.id))}" ${selected}>
-                  ${escapeHtml(r.nome || "")}
-                </option>
-              `;
+              return `<option value="${r.id}" ${selected}>${r.nome}</option>`;
             }).join("")}
           </select>
         </div>
 
         <div class="form-actions">
-          <button 
-            type="button"
+          <button type="button"
             class="app-button secondary"
             data-action="remove-menu">
             Rimuovi
