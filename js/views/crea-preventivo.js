@@ -432,7 +432,7 @@ async function savePreventivo() {
   const result = document.getElementById("preventivo-result");
   const aziendaId = window.state?.azienda?.id || null;
 
-  if (!supabase || !aziendaId) {
+  if (!supabase || !aziendaId) 
     if (result) result.innerHTML = `<span class="error-text">Errore: azienda non attiva o Supabase non disponibile</span>`;
     return;
   }
