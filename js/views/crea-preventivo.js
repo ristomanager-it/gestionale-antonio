@@ -100,20 +100,20 @@ export async function render(container) {
           `
         })}
 
-       ${createCard({
-  title: "Extra",
-  body: `
-    <div id="preventivo-extra-tbody"></div>
+        ${createCard({
+          title: "Extra",
+          body: `
+            <div id="preventivo-extra-tbody"></div>
 
-    <div class="form-actions">
-      <button type="button"
-        class="app-button secondary"
-        id="btn-add-extra">
-        + Aggiungi Extra
-      </button>
-    </div>
-  `
-})}
+            <div class="form-actions">
+              <button type="button"
+                class="app-button secondary"
+                id="btn-add-extra">
+                + Aggiungi Extra
+              </button>
+            </div>
+          `
+        })}
 
         ${createCard({
           title: "Sezione Economica",
@@ -137,12 +137,12 @@ export async function render(container) {
 
               <div class="form-group">
                 <label>Sconto (%)</label>
-                <input class="input" type="number" id="preventivo-sconto-perc" value="0">
+                <input class="input" type="number" id="preventivo-sconto-perc" value="0" min="0" max="100" step="0.01">
               </div>
 
               <div class="form-group">
                 <label>Sconto (€)</label>
-                <input class="input" type="number" id="preventivo-sconto-euro" value="0">
+                <input class="input" type="number" id="preventivo-sconto-euro" value="0" min="0" step="0.01">
               </div>
 
               <div class="form-group">
@@ -152,7 +152,7 @@ export async function render(container) {
 
               <div class="form-group">
                 <label>Acconto (€)</label>
-                <input class="input" type="number" id="preventivo-acconto" value="0">
+                <input class="input" type="number" id="preventivo-acconto" value="0" min="0" step="0.01">
               </div>
 
               <div class="form-group">
@@ -212,10 +212,7 @@ async function loadRicetteEPrezzi() {
     .eq("attivo", true);
 
   prezziByRicettaId = new Map(
-    (prezzi || []).map(p => [
-      String(p.ricetta_id),
-      toNumber(p.prezzo_vendita)
-    ])
+    (prezzi || []).map((p) => [String(p.ricetta_id), toNumber(p.prezzo_vendita)])
   );
 }
 
@@ -224,34 +221,49 @@ async function loadRicetteEPrezzi() {
 /* ============================================================ */
 
 function bindPreventivoEvents() {
+  const form = document.getElementById("preventivo-form");
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await savePreventivo();
+  });
+
+  document.getElementById("btn-email-preventivo")?.addEventListener("click", emailCurrentPreventivoViaMailto);
+  document.getElementById("btn-print-preventivo")?.addEventListener("click", printCurrentPreventivo);
+
+  const nInv = document.getElementById("preventivo-n-invitati");
+  nInv?.addEventListener("input", () => recalcPreventivoTotali());
+
+  const locPrezzo = document.getElementById("preventivo-location-prezzo");
+  locPrezzo?.addEventListener("input", () => recalcPreventivoTotali());
+
+  const acconto = document.getElementById("preventivo-acconto");
+  acconto?.addEventListener("input", () => recalcPreventivoTotali());
+
+  const sPerc = document.getElementById("preventivo-sconto-perc");
+  sPerc?.addEventListener("input", () => {
+    lastDiscountEdited = "perc";
+    recalcPreventivoTotali();
+  });
+
+  const sEuro = document.getElementById("preventivo-sconto-euro");
+  sEuro?.addEventListener("input", () => {
+    lastDiscountEdited = "euro";
+    recalcPreventivoTotali();
+  });
 
   /* ================= MENU ================= */
+  document.getElementById("btn-add-menu-row")?.addEventListener("click", addMenuRow);
 
-  const btnAddMenuRow = document.getElementById("btn-add-menu-row");
-  btnAddMenuRow?.addEventListener("click", addMenuRow);
-
-  document
-    .getElementById("preventivo-menu-tbody")
-    ?.addEventListener("change", onMenuTableChange);
-
-  document
-    .getElementById("preventivo-menu-tbody")
-    ?.addEventListener("click", onMenuTableClick);
-
+  document.getElementById("preventivo-menu-tbody")?.addEventListener("change", onMenuTableChange);
+  document.getElementById("preventivo-menu-tbody")?.addEventListener("click", onMenuTableClick);
 
   /* ================= EXTRA ================= */
+  document.getElementById("btn-add-extra")?.addEventListener("click", addExtraRow);
 
-  const btnAddExtra = document.getElementById("btn-add-extra");
-  btnAddExtra?.addEventListener("click", addExtraRow);
-
-  document
-    .getElementById("preventivo-extra-tbody")
-    ?.addEventListener("input", onExtraTableInput);
-
-  document
-    .getElementById("preventivo-extra-tbody")
-    ?.addEventListener("click", onExtraTableClick);
+  document.getElementById("preventivo-extra-tbody")?.addEventListener("input", onExtraTableInput);
+  document.getElementById("preventivo-extra-tbody")?.addEventListener("click", onExtraTableClick);
 }
+
 /* ============================================================ */
 /* MENU ROWS (PORTATE) */
 /* ============================================================ */
@@ -265,11 +277,13 @@ function addMenuRow() {
   });
 
   renderMenuRows();
+  recalcPreventivoTotali();
 }
 
 function removeMenuRow(index) {
   menuRows.splice(index, 1);
   renderMenuRows();
+  recalcPreventivoTotali();
 }
 
 function renderMenuRows() {
@@ -277,18 +291,28 @@ function renderMenuRows() {
   if (!body) return;
 
   body.innerHTML = menuRows
-    .map((row, index) => `
+    .map(
+      (row, index) => `
       <div class="card menu-card" data-index="${index}">
 
         <div class="form-group">
           <label>Portata</label>
           <select class="input" data-field="ricetta_id">
             <option value="">Seleziona portata</option>
-            ${ricetteCache.map(r => {
-              const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-              return `<option value="${r.id}" ${selected}>${r.nome}</option>`;
-            }).join("")}
+            ${ricetteCache
+              .map((r) => {
+                const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
+                return `<option value="${r.id}" ${selected}>${escapeHtml(r.nome)}</option>`;
+              })
+              .join("")}
           </select>
+        </div>
+
+        <div class="form-group">
+          <label>Prezzo pp (€)</label>
+          <input class="input" type="number" step="0.01" min="0" data-field="prezzo_pp" value="${toNumber(
+            row.prezzo_pp
+          )}">
         </div>
 
         <div class="form-actions">
@@ -300,191 +324,63 @@ function renderMenuRows() {
         </div>
 
       </div>
-    `)
+    `
+    )
     .join("");
 }
-// js/views/crea-preventivo.js
-import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
-const CANALE_PREVENTIVO = "banchetto";
+function onMenuTableChange(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
 
-let menuRows = [];
-let extraRows = [];
+  const card = target.closest("[data-index]");
+  if (!card) return;
 
-let ricetteCache = [];
-let prezziByRicettaId = new Map();
+  const idx = Number(card.getAttribute("data-index"));
+  if (!Number.isFinite(idx) || !menuRows[idx]) return;
 
-let lastDiscountEdited = "perc";
+  const field = target.getAttribute("data-field");
+  if (!field) return;
 
-export async function render(container) {
-  menuRows = [];
-  extraRows = [];
-  ricetteCache = [];
-  prezziByRicettaId = new Map();
-  lastDiscountEdited = "perc";
+  if (field === "ricetta_id" && target instanceof HTMLSelectElement) {
+    const ricettaId = (target.value || "").toString();
+    menuRows[idx].ricetta_id = ricettaId;
 
-  await loadRicetteEPrezzi();
+    const ricetta = ricetteCache.find((r) => String(r.id) === String(ricettaId));
+    menuRows[idx].ricetta_nome = ricetta?.nome || "";
 
-  container.innerHTML = createPageLayout({
-    title: "Crea Nuovo Preventivo",
-    subtitle: "Cliente, evento, portate, extra e calcolo economico",
-    content: `
-      <form id="preventivo-form">
+    const prezzo = prezziByRicettaId.get(String(ricettaId)) ?? 0;
+    menuRows[idx].prezzo_pp = Math.max(0, toNumber(prezzo));
 
-        ${createCard({
-          title: "Dati Cliente e Evento",
-          body: `
-            <div class="form-grid">
+    renderMenuRows();
+    recalcPreventivoTotali();
+    return;
+  }
 
-              <div class="form-group">
-                <label>Nome Cliente</label>
-                <input class="input" type="text" id="preventivo-cliente-nome" required>
-              </div>
+  if (field === "prezzo_pp" && target instanceof HTMLInputElement) {
+    menuRows[idx].prezzo_pp = Math.max(0, toNumber(target.value));
+    recalcPreventivoTotali();
+    return;
+  }
+}
 
-              <div class="form-group">
-                <label>Cognome Cliente</label>
-                <input class="input" type="text" id="preventivo-cliente-cognome" required>
-              </div>
+function onMenuTableClick(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
 
-              <div class="form-group">
-                <label>Email Cliente</label>
-                <input class="input" type="email" id="preventivo-cliente-email">
-              </div>
+  const btn = target.closest("[data-action]");
+  if (!btn) return;
 
-              <div class="form-group">
-                <label>Titolo Evento</label>
-                <input class="input" type="text" id="preventivo-titolo" required>
-              </div>
+  const action = btn.getAttribute("data-action");
+  const card = btn.closest("[data-index]");
+  if (!card) return;
 
-              <div class="form-group">
-                <label>Tipo Servizio</label>
-                <input class="input" type="text" id="preventivo-tipo-servizio">
-              </div>
+  const idx = Number(card.getAttribute("data-index"));
+  if (!Number.isFinite(idx)) return;
 
-              <div class="form-group">
-                <label>Data Evento</label>
-                <input class="input" type="date" id="preventivo-data-evento" required>
-              </div>
-
-              <div class="form-group">
-                <label>Numero Invitati</label>
-                <input class="input" type="number" id="preventivo-n-invitati" value="1" min="1">
-              </div>
-
-              <div class="form-group">
-                <label>Location</label>
-                <input class="input" type="text" id="preventivo-location">
-              </div>
-
-              <div class="form-group">
-                <label>Prezzo Location (€)</label>
-                <input class="input" type="number" id="preventivo-location-prezzo" value="0" min="0" step="0.01">
-              </div>
-
-            </div>
-
-            <div class="form-group" style="margin-top:16px;">
-              <label>Note</label>
-              <textarea class="input" id="preventivo-note"></textarea>
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "Menu Evento",
-          body: `
-            <div id="preventivo-menu-tbody"></div>
-
-            <div class="form-actions">
-              <button type="button"
-                class="app-button secondary"
-                id="btn-add-menu-row">
-                + Aggiungi Portata
-              </button>
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "Extra",
-          body: `
-            <div id="preventivo-extra-tbody"></div>
-
-            <div class="form-actions">
-              <button type="button"
-                class="app-button secondary"
-                id="btn-add-extra">
-                + Aggiungi Extra
-              </button>
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "Sezione Economica",
-          body: `
-            <div class="form-grid">
-
-              <div class="form-group">
-                <label>Subtotale Menu (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-menu" readonly>
-              </div>
-
-              <div class="form-group">
-                <label>Subtotale Extra (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-extra" readonly>
-              </div>
-
-              <div class="form-group">
-                <label>Subtotale Location (€)</label>
-                <input class="input" type="number" id="preventivo-subtotale-location" readonly>
-              </div>
-
-              <div class="form-group">
-                <label>Sconto (%)</label>
-                <input class="input" type="number" id="preventivo-sconto-perc" value="0">
-              </div>
-
-              <div class="form-group">
-                <label>Sconto (€)</label>
-                <input class="input" type="number" id="preventivo-sconto-euro" value="0">
-              </div>
-
-              <div class="form-group">
-                <label>Totale Finale (€)</label>
-                <input class="input" type="number" id="preventivo-totale" readonly>
-              </div>
-
-              <div class="form-group">
-                <label>Acconto (€)</label>
-                <input class="input" type="number" id="preventivo-acconto" value="0">
-              </div>
-
-              <div class="form-group">
-                <label>Saldo (€)</label>
-                <input class="input" type="number" id="preventivo-saldo" readonly>
-              </div>
-
-            </div>
-          `
-        })}
-
-        <div class="form-actions">
-          <button type="submit" class="app-button">💾 Salva Preventivo</button>
-          <button type="button" id="btn-email-preventivo" class="app-button secondary">✉️ Invia Email</button>
-          <button type="button" id="btn-print-preventivo" class="app-button secondary">🖨️ Stampa</button>
-        </div>
-
-        <div id="preventivo-result" class="form-result"></div>
-
-      </form>
-    `
-  });
-
-  bindPreventivoEvents();
-  renderMenuRows();
-  renderExtraRows();
-  recalcPreventivoTotali();
+  if (action === "remove-menu") {
+    removeMenuRow(idx);
+  }
 }
 
 /* ============================================================ */
@@ -514,7 +410,8 @@ function renderExtraRows() {
   if (!body) return;
 
   body.innerHTML = extraRows
-    .map((row, index) => `
+    .map(
+      (row, index) => `
       <div class="card menu-card" data-index="${index}">
 
         <div class="form-group">
@@ -524,6 +421,7 @@ function renderExtraRows() {
             type="text"
             data-field="descrizione"
             value="${escapeAttr(row.descrizione || "")}"
+            placeholder="Es. Servizio camerieri, Allestimento..."
           >
         </div>
 
@@ -533,8 +431,9 @@ function renderExtraRows() {
             class="input"
             type="number"
             min="1"
+            step="1"
             data-field="quantita"
-            value="${row.quantita || 1}"
+            value="${Math.max(1, Math.floor(toNumber(row.quantita) || 1))}"
           >
         </div>
 
@@ -546,7 +445,7 @@ function renderExtraRows() {
             min="0"
             step="0.01"
             data-field="prezzo_unitario"
-            value="${row.prezzo_unitario || 0}"
+            value="${Math.max(0, toNumber(row.prezzo_unitario))}"
           >
         </div>
 
@@ -555,7 +454,7 @@ function renderExtraRows() {
           <input 
             class="input"
             type="number"
-            value="${row.totale || 0}"
+            value="${Math.max(0, toNumber(row.totale))}"
             readonly
           >
         </div>
@@ -569,28 +468,136 @@ function renderExtraRows() {
         </div>
 
       </div>
-    `)
+    `
+    )
     .join("");
 }
 
-/* ============================================================ */
-/* SAVE FIX */
-/* ============================================================ */
+function onExtraTableInput(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
 
-async function savePreventivo() {
-  const supabase = window.supabaseClient;
-  const result = document.getElementById("preventivo-result");
-  const aziendaId = window.state?.azienda?.id || null;
+  const card = target.closest("[data-index]");
+  if (!card) return;
 
-  if (!supabase || !aziendaId) {
-    if (result) {
-      result.innerHTML = `<span class="error-text">Errore: azienda non attiva o Supabase non disponibile</span>`;
-    }
+  const idx = Number(card.getAttribute("data-index"));
+  if (!Number.isFinite(idx) || !extraRows[idx]) return;
+
+  const field = target.getAttribute("data-field");
+  if (!field) return;
+
+  if (field === "descrizione" && target instanceof HTMLInputElement) {
+    extraRows[idx].descrizione = target.value ?? "";
     return;
   }
 
-  recalcPreventivoTotali();
+  if (field === "quantita" && target instanceof HTMLInputElement) {
+    extraRows[idx].quantita = Math.max(1, Math.floor(toNumber(target.value) || 1));
+    recalcPreventivoTotali();
+    return;
+  }
+
+  if (field === "prezzo_unitario" && target instanceof HTMLInputElement) {
+    extraRows[idx].prezzo_unitario = Math.max(0, toNumber(target.value));
+    recalcPreventivoTotali();
+    return;
+  }
 }
+
+function onExtraTableClick(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const btn = target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.getAttribute("data-action");
+  const card = btn.closest("[data-index]");
+  if (!card) return;
+
+  const idx = Number(card.getAttribute("data-index"));
+  if (!Number.isFinite(idx)) return;
+
+  if (action === "remove-extra") {
+    removeExtraRow(idx);
+  }
+}
+
+/* ============================================================ */
+/* TOTALS & DISCOUNT */
+/* ============================================================ */
+
+function recalcPreventivoTotali() {
+  const invitati = Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1));
+  const locationPrezzo = Math.max(0, toNumber(getVal("preventivo-location-prezzo")));
+  const acconto = Math.max(0, toNumber(getVal("preventivo-acconto")));
+
+  /* ================= MENU ================= */
+  let subtMenu = 0;
+
+  menuRows.forEach((row) => {
+    const prezzoPP = Math.max(0, toNumber(row.prezzo_pp));
+    row.prezzo_pp = prezzoPP;
+    row.totale = prezzoPP * invitati;
+    subtMenu += row.totale;
+  });
+
+  const prezzoMedioPP = invitati > 0 ? subtMenu / invitati : 0;
+
+  /* ================= EXTRA ================= */
+  let subtExtra = 0;
+
+  extraRows.forEach((row) => {
+    const q = Math.max(1, Math.floor(toNumber(row.quantita) || 1));
+    const pu = Math.max(0, toNumber(row.prezzo_unitario));
+
+    row.quantita = q;
+    row.prezzo_unitario = pu;
+    row.totale = q * pu;
+
+    subtExtra += row.totale;
+  });
+
+  /* ================= BASE ================= */
+  const base = subtMenu + subtExtra + locationPrezzo;
+
+  /* ================= SCONTI ================= */
+  let scontoPerc = clamp(toNumber(getVal("preventivo-sconto-perc")), 0, 100);
+  let scontoEuro = Math.max(0, toNumber(getVal("preventivo-sconto-euro")));
+
+  if (base <= 0) {
+    scontoPerc = 0;
+    scontoEuro = 0;
+  } else {
+    if (lastDiscountEdited === "perc") {
+      scontoEuro = (base * scontoPerc) / 100;
+    } else if (lastDiscountEdited === "euro") {
+      scontoEuro = clamp(scontoEuro, 0, base);
+      scontoPerc = (scontoEuro / base) * 100;
+    } else {
+      scontoEuro = (base * scontoPerc) / 100;
+    }
+  }
+
+  const totale = Math.max(0, base - scontoEuro);
+  const saldo = Math.max(0, totale - acconto);
+
+  /* ================= UI UPDATE ================= */
+  setNumber("preventivo-subtotale-menu", subtMenu);
+  setNumber("preventivo-prezzo-medio-pp", prezzoMedioPP);
+
+  setNumber("preventivo-subtotale-extra", subtExtra);
+  setNumber("preventivo-subtotale-location", locationPrezzo);
+
+  setNumber("preventivo-sconto-perc", scontoPerc, { keepTrailing: true });
+  setNumber("preventivo-sconto-euro", scontoEuro, { keepTrailing: true });
+
+  setNumber("preventivo-totale", totale);
+  setNumber("preventivo-saldo", saldo);
+
+  renderExtraRows();
+}
+
 /* ============================================================ */
 /* SAVE */
 /* ============================================================ */
@@ -600,12 +607,11 @@ async function savePreventivo() {
   const result = document.getElementById("preventivo-result");
   const aziendaId = window.state?.azienda?.id || null;
 
-  if (!supabase || !aziendaId) 
+  if (!supabase || !aziendaId) {
     if (result) result.innerHTML = `<span class="error-text">Errore: azienda non attiva o Supabase non disponibile</span>`;
     return;
   }
 
-  // ricalcolo prima di salvare
   recalcPreventivoTotali();
 
   const payload = {
@@ -634,18 +640,18 @@ async function savePreventivo() {
     totale: Math.max(0, toNumber(getVal("preventivo-totale"))),
     saldo: Math.max(0, toNumber(getVal("preventivo-saldo"))),
 
-    // dettaglio
-    menu: menuRows.map(r => ({
+    menu: menuRows.map((r) => ({
       ricetta_id: r.ricetta_id ? Number(r.ricetta_id) : null,
       ricetta_nome: r.ricetta_nome || "",
-      quantita: Math.max(1, Math.floor(toNumber(r.quantita))),
-      prezzo_unitario: Math.max(0, toNumber(r.prezzo_unitario)),
+      quantita: 1,
+      prezzo_unitario: Math.max(0, toNumber(r.prezzo_pp)),
       totale: Math.max(0, toNumber(r.totale)),
-      auto_quantita: r.auto_quantita === true
+      auto_quantita: true
     })),
-    extra: extraRows.map(r => ({
+
+    extra: extraRows.map((r) => ({
       descrizione: r.descrizione || "",
-      quantita: Math.max(1, Math.floor(toNumber(r.quantita))),
+      quantita: Math.max(1, Math.floor(toNumber(r.quantita) || 1)),
       prezzo_unitario: Math.max(0, toNumber(r.prezzo_unitario)),
       totale: Math.max(0, toNumber(r.totale))
     }))
@@ -657,8 +663,7 @@ async function savePreventivo() {
       return;
     }
 
-    // validazione menu: se ci sono righe, ricetta deve essere selezionata
-    const invalidMenu = payload.menu.some(r => !r.ricetta_id);
+    const invalidMenu = payload.menu.some((r) => !r.ricetta_id);
     if (invalidMenu) {
       if (result) result.innerHTML = `<span class="error-text">Seleziona una portata per ogni riga del menù (o rimuovi la riga).</span>`;
       return;
@@ -684,7 +689,6 @@ async function savePreventivo() {
 /* ============================================================ */
 
 function emailCurrentPreventivoViaMailto() {
-
   const clienteEmail = getVal("preventivo-cliente-email");
   if (!clienteEmail) {
     alert("Inserisci l'email del cliente.");
@@ -704,13 +708,13 @@ function emailCurrentPreventivoViaMailto() {
   const totale = getVal("preventivo-totale");
 
   const righeMenu = menuRows
-    .filter(r => r.ricetta_nome)
-    .map(r => `- ${r.ricetta_nome}`)
+    .filter((r) => r.ricetta_nome)
+    .map((r) => `- ${r.ricetta_nome}`)
     .join("\n");
 
   const righeExtra = extraRows
-    .filter(r => (r.descrizione || "").trim())
-    .map(r => `- ${r.descrizione}`)
+    .filter((r) => (r.descrizione || "").trim())
+    .map((r) => `- ${r.descrizione}`)
     .join("\n");
 
   const subject = `Preventivo ${tipologiaEvento || ""} - ${nomeAzienda}`.trim();
@@ -738,20 +742,18 @@ Cordiali saluti,
 ${nomeAzienda}
   `.trim();
 
-  const mailtoLink =
-    `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailtoLink = `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
 
   window.location.href = mailtoLink;
 }
-
-
 
 /* ============================================================ */
 /* PRINT */
 /* ============================================================ */
 
 function printCurrentPreventivo() {
-
   recalcPreventivoTotali();
 
   const azienda = window.state?.azienda;
@@ -766,13 +768,13 @@ function printCurrentPreventivo() {
   const totale = getVal("preventivo-totale");
 
   const menuHtml = menuRows
-    .filter(r => r.ricetta_nome)
-    .map(r => `<li>${escapeHtml(r.ricetta_nome)}</li>`)
+    .filter((r) => r.ricetta_nome)
+    .map((r) => `<li>${escapeHtml(r.ricetta_nome)}</li>`)
     .join("");
 
   const extraHtml = extraRows
-    .filter(r => (r.descrizione || "").trim())
-    .map(r => `<li>${escapeHtml(r.descrizione)}</li>`)
+    .filter((r) => (r.descrizione || "").trim())
+    .map((r) => `<li>${escapeHtml(r.descrizione)}</li>`)
     .join("");
 
   const win = window.open("", "_blank");
@@ -901,7 +903,6 @@ function setNumber(id, value, opts = {}) {
   if (!(el instanceof HTMLInputElement)) return;
   const v = toNumber(value);
 
-  // keepTrailing: non forzare due decimali su input percentuali, ma per euro sì
   if (opts.keepTrailing) {
     el.value = String(Math.round(v * 100) / 100);
     return;
@@ -911,7 +912,8 @@ function setNumber(id, value, opts = {}) {
 }
 
 function escapeHtml(str) {
-  return (str ?? "").toString()
+  return (str ?? "")
+    .toString()
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
