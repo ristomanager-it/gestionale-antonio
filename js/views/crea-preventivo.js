@@ -208,11 +208,12 @@ async function loadRicetteEPrezzi() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
 
-  if (!supabase || !aziendaId) {
-    ricetteCache = [];
-    prezziByRicettaId = new Map();
-    return;
-  }
+  ricetteCache = [];
+  prezziByRicettaId = new Map();
+
+  if (!supabase || !aziendaId) return;
+
+  /* ---------- RICETTE ---------- */
 
   const { data: ricette, error: errRic } = await supabase
     .from("ricette")
@@ -223,37 +224,41 @@ async function loadRicetteEPrezzi() {
 
   if (errRic) {
     console.error("Errore caricamento ricette:", errRic);
-    ricetteCache = [];
   } else {
     ricetteCache = ricette || [];
   }
 
+  /* ---------- PREZZI CANALE BANCHETTO ---------- */
+
   const { data: prezzi, error: errPrez } = await supabase
     .from("ricette_prezzi_canale")
-    .select("ricetta_id, prezzo_vendita, attivo")
+    .select("ricetta_id, prezzo_vendita")
     .eq("azienda_id", aziendaId)
-    .eq("canale", CANALE_PREVENTIVO)
+    .eq("canale", CANALE_PREVENTIVO) // es: "banchetto"
     .eq("attivo", true);
 
   if (errPrez) {
     console.error("Errore caricamento prezzi canale:", errPrez);
-    prezziByRicettaId = new Map();
     return;
   }
 
   prezziByRicettaId = new Map(
-    (prezzi || []).map(p => [String(p.ricetta_id), toNumber(p.prezzo_vendita)])
+    (prezzi || []).map(p => [
+      String(p.ricetta_id),
+      toNumber(p.prezzo_vendita)
+    ])
   );
 }
-
 /* ============================================================ */
 /* BIND EVENTS */
 /* ============================================================ */
 
 function bindPreventivoEvents() {
   const form = document.getElementById("preventivo-form");
-  const btnAddPortata = document.getElementById("btn-add-portata");
-  const btnAddExtra = document.getElementById("btn-add-extra");
+
+  const btnAddMenuRow = document.getElementById("btn-add-menu-row");
+  const btnAddExtraRow = document.getElementById("btn-add-extra");
+
   const btnEmail = document.getElementById("btn-email-preventivo");
   const btnPrint = document.getElementById("btn-print-preventivo");
 
@@ -263,21 +268,20 @@ function bindPreventivoEvents() {
   const scontoEuroEl = document.getElementById("preventivo-sconto-euro");
   const locationPrezzoEl = document.getElementById("preventivo-location-prezzo");
 
-  btnAddPortata?.addEventListener("click", addMenuRow);
-  btnAddExtra?.addEventListener("click", addExtraRow);
+  /* ---------- ADD ROWS ---------- */
+
+  btnAddMenuRow?.addEventListener("click", addMenuRow);
+  btnAddExtraRow?.addEventListener("click", addExtraRow);
+
+  /* ---------- INVITATI ---------- */
 
   invitatiEl?.addEventListener("input", () => {
     const n = Math.max(1, Math.floor(toNumber(invitatiEl.value)));
     invitatiEl.value = String(n);
-
-    // aggiorna solo le righe in auto
-    menuRows.forEach(r => {
-      if (r.auto_quantita) r.quantita = n;
-    });
-
-    renderMenuRows();
     recalcPreventivoTotali();
   });
+
+  /* ---------- TOTALI ---------- */
 
   accontoEl?.addEventListener("input", recalcPreventivoTotali);
   locationPrezzoEl?.addEventListener("input", recalcPreventivoTotali);
@@ -292,18 +296,34 @@ function bindPreventivoEvents() {
     recalcPreventivoTotali();
   });
 
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("input", onMenuTableInput);
-  document.getElementById("preventivo-extra-tbody")?.addEventListener("input", onExtraTableInput);
+  /* ---------- MENU ---------- */
 
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("change", onMenuTableChange);
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("click", onMenuTableClick);
+  document
+    .getElementById("preventivo-menu-tbody")
+    ?.addEventListener("change", onMenuTableChange);
 
-  document.getElementById("preventivo-extra-tbody")?.addEventListener("click", onExtraTableClick);
+  document
+    .getElementById("preventivo-menu-tbody")
+    ?.addEventListener("click", onMenuTableClick);
+
+  /* ---------- EXTRA ---------- */
+
+  document
+    .getElementById("preventivo-extra-tbody")
+    ?.addEventListener("input", onExtraTableInput);
+
+  document
+    .getElementById("preventivo-extra-tbody")
+    ?.addEventListener("click", onExtraTableClick);
+
+  /* ---------- SUBMIT ---------- */
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     await savePreventivo();
   });
+
+  /* ---------- EMAIL / PRINT ---------- */
 
   btnEmail?.addEventListener("click", emailCurrentPreventivoViaMailto);
   btnPrint?.addEventListener("click", printCurrentPreventivo);
@@ -316,7 +336,7 @@ function addMenuRow() {
   menuRows.push({
     ricetta_id: "",
     ricetta_nome: "",
-    prezzo_pp: 0,   // interno, non visibile
+    prezzo_pp: 0,   // interno (banchetto)
     totale: 0       // interno
   });
 
@@ -335,38 +355,35 @@ function renderMenuRows() {
   if (!body) return;
 
   body.innerHTML = menuRows
-    .map((row, index) => {
+    .map((row, index) => `
+      <div class="card menu-card" data-index="${index}">
 
-      return `
-        <div class="card" style="margin-bottom:16px;" data-index="${index}">
-
-          <div class="form-group">
-            <label>Portata</label>
-            <select class="input" data-field="ricetta_id">
-              <option value="">Seleziona portata</option>
-              ${ricetteCache.map(r => {
-                const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-                return `
-                  <option value="${escapeAttr(String(r.id))}" ${selected}>
-                    ${escapeHtml(r.nome || "")}
-                  </option>
-                `;
-              }).join("")}
-            </select>
-          </div>
-
-          <div class="form-actions" style="margin-top:12px;">
-            <button 
-              type="button"
-              class="app-button secondary"
-              data-action="remove-menu">
-              Rimuovi
-            </button>
-          </div>
-
+        <div class="form-group">
+          <label>Portata</label>
+          <select class="input menu-select" data-field="ricetta_id">
+            <option value="">Seleziona portata</option>
+            ${ricetteCache.map(r => {
+              const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
+              return `
+                <option value="${escapeAttr(String(r.id))}" ${selected}>
+                  ${escapeHtml(r.nome || "")}
+                </option>
+              `;
+            }).join("")}
+          </select>
         </div>
-      `;
-    })
+
+        <div class="form-actions">
+          <button 
+            type="button"
+            class="app-button secondary"
+            data-action="remove-menu">
+            Rimuovi
+          </button>
+        </div>
+
+      </div>
+    `)
     .join("");
 }
 /* ============================================================ */
