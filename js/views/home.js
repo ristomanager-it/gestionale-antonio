@@ -1,6 +1,7 @@
 // js/views/home.js
 // =======================================
 // Dashboard Reparti - 4 Card Principali
+// Piattaforma come pulsante (solo superadmin)
 // =======================================
 
 export async function render(container) {
@@ -63,12 +64,43 @@ export async function render(container) {
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
       ">
-        <h2 style="margin:0; font-weight:600;">
-          ${saluto} 👋
-        </h2>
-        <p style="margin:8px 0 0 0; opacity:0.9;">
-          Seleziona un reparto per iniziare
-        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          
+          <div>
+            <h2 style="margin:0; font-weight:600;">
+              ${saluto} 👋
+            </h2>
+            <p style="margin:8px 0 0 0; opacity:0.9;">
+              Seleziona un reparto per iniziare
+            </p>
+          </div>
+
+          ${
+            ruolo === "superadmin"
+              ? `
+                <button
+                  onclick="window.location.hash='#/homePiattaforma'"
+                  style="
+                    background:white;
+                    color:var(--color-primary);
+                    border:none;
+                    padding:10px 18px;
+                    border-radius:14px;
+                    font-weight:600;
+                    cursor:pointer;
+                    box-shadow:0 8px 20px rgba(0,0,0,0.15);
+                    transition:all 0.2s ease;
+                  "
+                  onmouseover="this.style.transform='translateY(-2px)'"
+                  onmouseout="this.style.transform='translateY(0)'"
+                >
+                  ⚙ Piattaforma
+                </button>
+              `
+              : ``
+          }
+
+        </div>
       </div>
 
       <!-- CARD REPARTI -->
@@ -81,8 +113,7 @@ export async function render(container) {
       ">
 
         ${
-          repartiVisibili.map((rep, index) => {
-            return `
+          repartiVisibili.map((rep, index) => `
               <div
                 onclick="window.location.hash='#/${rep.key}'"
                 style="
@@ -107,36 +138,7 @@ export async function render(container) {
                   ${rep.label}
                 </div>
               </div>
-            `;
-          }).join("")
-        }
-
-        ${
-          ruolo === "superadmin"
-            ? `
-              <div
-                onclick="window.location.hash='#/homePiattaforma'"
-                style="
-                  background:white;
-                  padding:40px 24px;
-                  border-radius:24px;
-                  box-shadow:0 12px 30px rgba(0,0,0,0.06);
-                  text-align:center;
-                  cursor:pointer;
-                  transition: all 0.25s ease;
-                "
-                onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 18px 40px rgba(0,0,0,0.10)'"
-                onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.06)'"
-              >
-                <div style="font-size:42px; margin-bottom:18px;">
-                  ⚙
-                </div>
-                <div style="font-size:18px; font-weight:600;">
-                  Piattaforma
-                </div>
-              </div>
-            `
-            : ``
+          `).join("")
         }
 
       </div>
