@@ -314,15 +314,11 @@ function bindPreventivoEvents() {
 /* ============================================================ */
 
 function addMenuRow() {
-  const invitati = Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1));
-
   menuRows.push({
     ricetta_id: "",
     ricetta_nome: "",
-    quantita: invitati,
-    auto_quantita: true,
-    prezzo_unitario: 0,
-    totale: 0
+    prezzo_pp: 0,   // interno, non visibile
+    totale: 0       // interno
   });
 
   renderMenuRows();
@@ -341,9 +337,6 @@ function renderMenuRows() {
 
   body.innerHTML = menuRows
     .map((row, index) => {
-      const prezzo = toNumber(row.prezzo_unitario);
-      const totale = toNumber(row.totale);
-
       return `
         <tr data-index="${index}">
           <td style="padding:10px; border-bottom:1px solid var(--color-border);">
@@ -351,34 +344,19 @@ function renderMenuRows() {
               <option value="">Seleziona portata</option>
               ${ricetteCache.map(r => {
                 const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-                return `<option value="${escapeAttr(String(r.id))}" ${selected}>${escapeHtml(r.nome || "")}</option>`;
+                return `<option value="${escapeAttr(String(r.id))}" ${selected}>
+                  ${escapeHtml(r.nome || "")}
+                </option>`;
               }).join("")}
             </select>
-            <div class="small-muted" style="margin-top:6px;">
-              Canale prezzo: <strong>${escapeHtml(CANALE_PREVENTIVO)}</strong>
-            </div>
           </td>
 
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" data-field="quantita" value="${escapeAttr(String(row.quantita ?? 1))}" min="1" step="1">
-            <div class="small-muted" style="margin-top:6px;">
-              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" data-field="auto_quantita" ${row.auto_quantita ? "checked" : ""}>
-                Usa invitati
-              </label>
-            </div>
-          </td>
-
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" value="${prezzo.toFixed(2)}" readonly>
-          </td>
-
-          <td style="padding:10px; border-bottom:1px solid var(--color-border);">
-            <input class="input" type="number" value="${totale.toFixed(2)}" readonly>
-          </td>
-
-          <td style="padding:10px; border-bottom:1px solid var(--color-border); white-space:nowrap;">
-            <button type="button" class="app-button secondary" data-action="remove-menu">Rimuovi</button>
+          <td style="padding:10px; border-bottom:1px solid var(--color-border); width:120px;">
+            <button type="button"
+              class="app-button secondary"
+              data-action="remove-menu">
+              Rimuovi
+            </button>
           </td>
         </tr>
       `;
@@ -396,56 +374,17 @@ function onMenuTableChange(e) {
   const index = Number(tr.dataset.index);
   if (!Number.isFinite(index)) return;
 
-  const field = select.dataset.field;
-  if (field !== "ricetta_id") return;
-
   const row = menuRows[index];
   if (!row) return;
 
   const ricettaId = (select.value || "").toString();
   row.ricetta_id = ricettaId;
 
-  const r = ricetteCache.find(x => String(x.id) === String(ricettaId));
-  row.ricetta_nome = r?.nome || "";
+  const ricetta = ricetteCache.find(r => String(r.id) === ricettaId);
+  row.ricetta_nome = ricetta?.nome || "";
 
-  const prezzo = prezziByRicettaId.get(String(ricettaId)) ?? 0;
-  row.prezzo_unitario = toNumber(prezzo);
-
-  recalcPreventivoTotali();
-}
-
-function onMenuTableInput(e) {
-  const el = e.target;
-  if (!(el instanceof HTMLInputElement)) return;
-
-  const tr = el.closest("tr");
-  if (!tr) return;
-
-  const index = Number(tr.dataset.index);
-  if (!Number.isFinite(index)) return;
-
-  const field = el.dataset.field;
-  if (!field) return;
-
-  const row = menuRows[index];
-  if (!row) return;
-
-  if (field === "quantita") {
-    row.quantita = Math.max(1, Math.floor(toNumber(el.value)));
-    // se modifico manualmente, disattivo auto
-    row.auto_quantita = false;
-    renderMenuRows();
-  }
-
-  if (field === "auto_quantita") {
-    // checkbox arriva come input ma checked è su HTMLInputElement
-    row.auto_quantita = el.checked === true;
-    if (row.auto_quantita) {
-      const invitati = Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1));
-      row.quantita = invitati;
-      renderMenuRows();
-    }
-  }
+  // Prezzo banchetto (interno)
+  row.prezzo_pp = prezziByRicettaId.get(ricettaId) ?? 0;
 
   recalcPreventivoTotali();
 }
@@ -453,7 +392,6 @@ function onMenuTableInput(e) {
 function onMenuTableClick(e) {
   const btn = e.target?.closest("button");
   if (!btn) return;
-
   if (btn.dataset.action !== "remove-menu") return;
 
   const tr = btn.closest("tr");
@@ -561,32 +499,41 @@ function onExtraTableClick(e) {
 /* ============================================================ */
 
 function recalcPreventivoTotali() {
+  const invitati = Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1));
   const locationPrezzo = Math.max(0, toNumber(getVal("preventivo-location-prezzo")));
   const acconto = Math.max(0, toNumber(getVal("preventivo-acconto")));
 
+  /* ================= MENU ================= */
+
   let subtMenu = 0;
+
   menuRows.forEach((row) => {
-    const q = Math.max(1, Math.floor(toNumber(row.quantita)));
-    const pu = Math.max(0, toNumber(row.prezzo_unitario));
-    row.quantita = q;
-    row.prezzo_unitario = pu;
-    row.totale = q * pu;
+    const prezzoPP = Math.max(0, toNumber(row.prezzo_pp));
+    row.totale = prezzoPP * invitati;
     subtMenu += row.totale;
   });
 
+  /* ================= EXTRA ================= */
+
   let subtExtra = 0;
+
   extraRows.forEach((row) => {
     const q = Math.max(1, Math.floor(toNumber(row.quantita)));
     const pu = Math.max(0, toNumber(row.prezzo_unitario));
+
     row.quantita = q;
     row.prezzo_unitario = pu;
     row.totale = q * pu;
+
     subtExtra += row.totale;
   });
 
+  /* ================= BASE ================= */
+
   const base = subtMenu + subtExtra + locationPrezzo;
 
-  // scontistica a doppio input (perc/euro)
+  /* ================= SCONTI ================= */
+
   let scontoPerc = clamp(toNumber(getVal("preventivo-sconto-perc")), 0, 100);
   let scontoEuro = Math.max(0, toNumber(getVal("preventivo-sconto-euro")));
 
@@ -600,7 +547,6 @@ function recalcPreventivoTotali() {
       scontoEuro = clamp(scontoEuro, 0, base);
       scontoPerc = (scontoEuro / base) * 100;
     } else {
-      // fallback: percent
       scontoEuro = (base * scontoPerc) / 100;
     }
   }
@@ -608,59 +554,17 @@ function recalcPreventivoTotali() {
   const totale = Math.max(0, base - scontoEuro);
   const saldo = Math.max(0, totale - acconto);
 
+  /* ================= UI UPDATE ================= */
+
   setNumber("preventivo-subtotale-menu", subtMenu);
   setNumber("preventivo-subtotale-extra", subtExtra);
   setNumber("preventivo-subtotale-location", locationPrezzo);
 
-  // aggiorno entrambi coerenti, senza cambiare lastDiscountEdited
   setNumber("preventivo-sconto-perc", scontoPerc, { keepTrailing: true });
   setNumber("preventivo-sconto-euro", scontoEuro, { keepTrailing: true });
 
   setNumber("preventivo-totale", totale);
   setNumber("preventivo-saldo", saldo);
-
-  refreshRowTotalsUI();
-}
-
-function refreshRowTotalsUI() {
-  const menuBody = document.getElementById("preventivo-menu-tbody");
-  if (menuBody) {
-    [...menuBody.querySelectorAll("tr")].forEach((tr) => {
-      const index = Number(tr.dataset.index);
-      const row = menuRows[index];
-      if (!row) return;
-
-      const inputs = tr.querySelectorAll("input.input");
-      // Totale è il 4° input della riga (readonly)
-      // ma per sicurezza cerco tutti readonly e prendo l'ultimo
-      const readonlys = [...tr.querySelectorAll("input[readonly]")];
-      const totalEl = readonlys[readonlys.length - 1];
-      if (totalEl instanceof HTMLInputElement) {
-        totalEl.value = toNumber(row.totale).toFixed(2);
-      }
-
-      // Prezzo unitario readonly è il primo readonly della riga (dopo quantita)
-      const prezzoEl = readonlys[0];
-      if (prezzoEl instanceof HTMLInputElement) {
-        prezzoEl.value = toNumber(row.prezzo_unitario).toFixed(2);
-      }
-    });
-  }
-
-  const extraBody = document.getElementById("preventivo-extra-tbody");
-  if (extraBody) {
-    [...extraBody.querySelectorAll("tr")].forEach((tr) => {
-      const index = Number(tr.dataset.index);
-      const row = extraRows[index];
-      if (!row) return;
-
-      const readonlys = [...tr.querySelectorAll("input[readonly]")];
-      const totalEl = readonlys[readonlys.length - 1];
-      if (totalEl instanceof HTMLInputElement) {
-        totalEl.value = toNumber(row.totale).toFixed(2);
-      }
-    });
-  }
 }
 
 /* ============================================================ */
