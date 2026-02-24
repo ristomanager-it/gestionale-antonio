@@ -93,7 +93,7 @@ ${createCard({
   <option value="Servizio Completo" selected>Servito</option>
   <option value="Solo Catering">Catering</option>
   <option value="Buffet">Buffet</option>
-  <option value="misto">Finger Food</option>
+  <option value="misto">Altro</option>
 </select>
               <div class="form-group">
                 <label>Data Evento</label>
