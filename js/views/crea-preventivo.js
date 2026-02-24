@@ -27,7 +27,7 @@ export async function render(container) {
       <form id="preventivo-form">
 <div class="form-actions" style="margin-bottom:16px;">
   <button type="button" id="btn-back" class="app-button secondary">
-    ← Torna ai Preventivi
+    ← Indietro
   </button>
 </div>
 
