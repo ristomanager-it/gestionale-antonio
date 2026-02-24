@@ -216,7 +216,13 @@ ${createCard({
   renderExtraRows();
   recalcPreventivoTotali();
 }
+const btnBack = document.getElementById("btn-back");
 
+if (btnBack) {
+  btnBack.onclick = () => {
+    window.location.hash = "#/amministrazione";
+  };
+}
 /* ============================================================ */
 /* DATA LOAD */
 /* ============================================================ */
