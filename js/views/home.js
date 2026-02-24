@@ -1,7 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Reparti SaaS - Ristoflow
-// Versione con Hero blu + divisione per reparti
+// Dashboard Reparti - 4 Card Principali
 // =======================================
 
 export async function render(container) {
@@ -16,50 +15,42 @@ export async function render(container) {
 
   const REPARTI = [
     {
+      key: "operativo",
       label: "Operativo",
-      moduli: [
-        { key: "produzione", label: "Produzione", icon: "🏭" },
-        { key: "magazzino", label: "Magazzino", icon: "📦" },
-        { key: "ricettario", label: "Ricettario", icon: "📖" },
-        { key: "preparazioni", label: "Preparazioni", icon: "🥣" },
-        { key: "timbrature", label: "Timbrature", icon: "🕒" }
-      ]
+      icon: "🏭",
+      moduli: ["produzione", "magazzino", "ricettario", "preparazioni", "timbrature"]
     },
     {
+      key: "amministrazione",
       label: "Amministrazione",
-      moduli: [
-        { key: "acquisti", label: "Acquisti", icon: "🧾" },
-        { key: "dipendenti", label: "Dipendenti", icon: "👥" },
-        { key: "preventivi", label: "Preventivi", icon: "📑" }
-      ]
+      icon: "🧾",
+      moduli: ["acquisti", "dipendenti", "preventivi"]
     },
     {
+      key: "gestione",
       label: "Gestione",
-      moduli: [
-        { key: "margini", label: "Margini", icon: "💰" },
-        { key: "report", label: "Report", icon: "📊" }
-      ]
+      icon: "📊",
+      moduli: ["margini", "report"]
     },
     {
+      key: "marketing",
       label: "Marketing",
+      icon: "📢",
       moduli: []
     }
   ];
 
   const saluto = getSaluto();
 
-  let repartiAttivi;
+  const repartiVisibili = REPARTI.map(rep => {
+    if (ruolo === "superadmin") return rep;
 
-  if (ruolo === "superadmin") {
-    repartiAttivi = REPARTI;
-  } else {
-    repartiAttivi = REPARTI.map(reparto => ({
-      ...reparto,
-      moduli: reparto.moduli.filter(m =>
-        hasFeature(m.key) && hasPermission(m.key)
-      )
-    })).filter(reparto => reparto.moduli.length > 0);
-  }
+    const moduliFiltrati = rep.moduli.filter(m =>
+      hasFeature(m) && hasPermission(m)
+    );
+
+    return { ...rep, moduli: moduliFiltrati };
+  }).filter(rep => ruolo === "superadmin" || rep.moduli.length > 0);
 
   container.innerHTML = `
     <div class="view" style="padding:0;">
@@ -68,119 +59,89 @@ export async function render(container) {
       <div style="
         background: var(--color-primary);
         color: white;
-        padding: 40px 32px 80px 32px;
+        padding: 40px 32px 60px 32px;
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
-        position: relative;
       ">
-
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-
-          <div>
-            <h2 style="margin:0; font-weight:600;">
-              ${saluto} 👋
-            </h2>
-            <p style="margin:8px 0 0 0; opacity:0.9;">
-              Benvenuto nella dashboard operativa
-            </p>
-          </div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            ${
-              ruolo === "superadmin"
-                ? `
-                <button 
-                  class="app-button small"
-                  style="background:white; color:var(--color-primary);"
-                  onclick="window.location.hash='#/homePiattaforma'"
-                >
-                  ⚙ Piattaforma
-                </button>
-              `
-                : ``
-            }
-
-            <button 
-              id="btn-logout-dashboard"
-              class="app-button small"
-              style="background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.3);"
-            >
-              Esci
-            </button>
-          </div>
-
-        </div>
+        <h2 style="margin:0; font-weight:600;">
+          ${saluto} 👋
+        </h2>
+        <p style="margin:8px 0 0 0; opacity:0.9;">
+          Seleziona un reparto per iniziare
+        </p>
       </div>
 
-      <!-- CONTENUTO REPARTI -->
-      <div style="padding: 0 32px 40px 32px; margin-top:-60px;">
+      <!-- CARD REPARTI -->
+      <div style="
+        padding: 0 32px 40px 32px;
+        margin-top:-40px;
+        display:grid;
+        gap:24px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      ">
 
         ${
-          repartiAttivi.length === 0
-            ? `<p class="small-muted">Nessun modulo attivo per questo utente.</p>`
-            : repartiAttivi.map((reparto, rIndex) => `
+          repartiVisibili.map((rep, index) => {
+            const firstModule = rep.moduli[0];
+            const clickable = firstModule ? `onclick="window.location.hash='#/${firstModule}'"` : "";
+            const cursor = firstModule ? "pointer" : "default";
+            const opacity = firstModule ? "1" : "0.6";
 
-          <div style="
-            background:white;
-            padding:28px;
-            border-radius:24px;
-            box-shadow:0 10px 30px rgba(0,0,0,0.05);
-            margin-bottom:28px;
-            animation: fadeInUp 0.4s ease forwards;
-            animation-delay:${rIndex * 0.08}s;
-            opacity:0;
-          ">
+            return `
+              <div
+                ${clickable}
+                style="
+                  background:white;
+                  padding:40px 24px;
+                  border-radius:24px;
+                  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+                  text-align:center;
+                  cursor:${cursor};
+                  transition: all 0.25s ease;
+                  animation: fadeInUp 0.4s ease forwards;
+                  animation-delay:${index * 0.08}s;
+                  opacity:0;
+                "
+                onmouseover="if('${firstModule}') { this.style.transform='translateY(-6px)'; this.style.boxShadow='0 18px 40px rgba(0,0,0,0.10)'; }"
+                onmouseout="if('${firstModule}') { this.style.transform='translateY(0px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.06)'; }"
+              >
+                <div style="font-size:42px; margin-bottom:18px;">
+                  ${rep.icon}
+                </div>
+                <div style="font-size:18px; font-weight:600; opacity:${opacity};">
+                  ${rep.label}
+                </div>
+              </div>
+            `;
+          }).join("")
+        }
 
-            <h3 style="
-              margin:0 0 20px 0;
-              font-weight:600;
-              border-left:4px solid var(--color-primary);
-              padding-left:12px;
-            ">
-              ${reparto.label}
-            </h3>
-
-            ${
-              reparto.moduli.length === 0
-                ? `<p class="small-muted">Nessun modulo disponibile.</p>`
-                : `
-                  <div style="
-                    display:grid;
-                    gap:18px;
-                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-                  ">
-                    ${
-                      reparto.moduli.map((m, index) => `
-                        <div 
-                          onclick="window.location.hash='#/${m.key}'"
-                          style="
-                            background:#ffffff;
-                            padding:26px 18px;
-                            border-radius:20px;
-                            text-align:center;
-                            cursor:pointer;
-                            box-shadow:0 8px 24px rgba(0,0,0,0.04);
-                            transition: all 0.25s ease;
-                          "
-                          onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 16px 36px rgba(0,0,0,0.08)'"
-                          onmouseout="this.style.transform='translateY(0px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.04)'"
-                        >
-                          <div style="font-size:30px; margin-bottom:14px;">
-                            ${m.icon}
-                          </div>
-                          <div style="font-weight:500;">
-                            ${m.label}
-                          </div>
-                        </div>
-                      `).join("")
-                    }
-                  </div>
-                `
-            }
-
-          </div>
-
-        `).join("")
+        ${
+          ruolo === "superadmin"
+            ? `
+              <div
+                onclick="window.location.hash='#/homePiattaforma'"
+                style="
+                  background:white;
+                  padding:40px 24px;
+                  border-radius:24px;
+                  box-shadow:0 12px 30px rgba(0,0,0,0.06);
+                  text-align:center;
+                  cursor:pointer;
+                  transition: all 0.25s ease;
+                "
+                onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 18px 40px rgba(0,0,0,0.10)'"
+                onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.06)'"
+              >
+                <div style="font-size:42px; margin-bottom:18px;">
+                  ⚙
+                </div>
+                <div style="font-size:18px; font-weight:600;">
+                  Piattaforma
+                </div>
+              </div>
+            `
+            : ``
         }
 
       </div>
@@ -194,22 +155,6 @@ export async function render(container) {
 
     </div>
   `;
-
-  const btnLogout = document.getElementById("btn-logout-dashboard");
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", async () => {
-      try {
-        await window.supabaseClient.auth.signOut();
-        window.state.user = null;
-        window.state.azienda = null;
-        localStorage.removeItem("ristoflow_user");
-        window.location.hash = "#/login";
-      } catch (err) {
-        console.error("Errore logout:", err);
-      }
-    });
-  }
 }
 
 function hasFeature(area) {
