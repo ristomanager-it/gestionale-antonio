@@ -921,3 +921,25 @@ svg {
   }
 
 }
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-trattativa {
+  background: rgba(14,90,122,0.1);
+  color: #0E5A7A;
+}
+
+.badge-accettato {
+  background: rgba(46,125,50,0.12);
+  color: #2e7d32;
+}
+
+.badge-rifiutato {
+  background: rgba(198,40,40,0.12);
+  color: #c62828;
+}
