@@ -19,6 +19,12 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   setPassword: () => import("./views/set-password.js"),
 
+  // 🔹 REPARTI
+  operativo: () => import("./views/operativo.js"),
+  amministrazione: () => import("./views/amministrazione.js"),
+  gestione: () => import("./views/gestione.js"),
+  marketing: () => import("./views/marketing.js"),
+
   dipendenti: () => import("./views/dipendenti.js"),
   timbrature: () => import("./views/timbrature.js"),
 
@@ -121,7 +127,6 @@ function hasPermission(area) {
   return permessi[`${area}.read`] === true;
 }
 
-// 🔥 Allineamento sistema permessi router ↔ view
 window.hasPermesso = hasPermission;
 
 /* =========================================================
