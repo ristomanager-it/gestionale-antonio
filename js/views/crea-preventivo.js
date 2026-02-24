@@ -74,6 +74,10 @@ ${createCard({
   <label>Telefono Cliente</label>
   <input class="input" type="text" id="preventivo-cliente-telefono">
 </div>
+<div class="form-group">
+                <label>nome festeggiato</label>
+                <input class="input" type="text" id="preventivo-cliente-cognome" required>
+              </div>
 
               <select class="input" id="preventivo-titolo" required>
   <option value="">Seleziona evento</option>
