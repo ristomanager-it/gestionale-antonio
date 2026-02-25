@@ -1,5 +1,7 @@
 // views/timbrature.js
 
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -294,61 +296,73 @@ export async function render(app) {
 
   const isManager = canSeeAll(ruolo);
 
-  app.innerHTML = `
-    <div class="timbrature-page">
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h2 style="margin:0;">Timbrature</h2>
-          <div class="timbrature-muted" style="margin-top:4px;">Azienda: ${escapeHtml(azienda.nome || "")}</div>
-        </div>
+  app.innerHTML = createPageLayout({
+    title: "Timbrature",
+    subtitle: `Azienda: ${escapeHtml(azienda.nome || "")}`,
+    content: `
+      <div class="timbrature-page">
 
-        <button id="tb-toggle" class="app-button small">Mostra Timbrature 📋</button>
+        ${createCard({
+          title: "Timbratura",
+          body: `
+            <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
+
+            <div class="timbrature-actions">
+              <button id="btn-primary" class="btn-timbratura round green" type="button">
+                ${svgIcon("play")}
+                <div class="tb-label">Entrata</div>
+              </button>
+
+              <button id="btn-pausa" class="btn-timbratura square gray" type="button">
+                ${svgIcon("pause")}
+                <div class="tb-label">Pausa</div>
+              </button>
+
+              <button id="btn-fine" class="btn-timbratura round red" type="button">
+                ${svgIcon("stop")}
+                <div class="tb-label">Fine turno</div>
+              </button>
+            </div>
+
+            <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
+            <div id="tb-msg" style="margin-top:10px;"></div>
+          `
+        })}
+
+        ${createCard({
+          title: "Stato Dipendenti",
+          body: `
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+              <div class="timbrature-muted" style="font-size:12px;">${isManager ? "Vista azienda" : "Vista personale"}</div>
+            </div>
+
+            <div id="tb-chips" class="tb-chips"></div>
+            <div id="tb-people" style="margin-top:10px;"></div>
+          `
+        })}
+
+        ${createCard({
+          title: "Storico",
+          body: `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <div class="timbrature-muted" style="font-size:12px;">${isManager ? "Filtri azienda disponibili" : "Storico personale"}</div>
+              <button id="tb-toggle" class="app-button small">Mostra Timbrature 📋</button>
+            </div>
+
+            <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
+              <div class="timbrature-toolbar">
+                <input id="tb-search" class="input-pill" placeholder="Cerca per dipendente / tipo / data..." style="flex:1; min-width:220px;" />
+                <select id="tb-filter" class="input-pill" style="max-width:260px; ${isManager ? "" : "display:none;"}"></select>
+              </div>
+
+              <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+            </div>
+          `
+        })}
+
       </div>
-
-      <div class="timbrature-card" style="margin-top:12px;">
-        <div id="tb-status" class="timbrature-muted">Caricamento stato...</div>
-
-        <div class="timbrature-actions">
-          <button id="btn-primary" class="btn-timbratura round green" type="button">
-            ${svgIcon("play")}
-            <div class="tb-label">Entrata</div>
-          </button>
-
-          <button id="btn-pausa" class="btn-timbratura square gray" type="button">
-            ${svgIcon("pause")}
-            <div class="tb-label">Pausa</div>
-          </button>
-
-          <button id="btn-fine" class="btn-timbratura round red" type="button">
-            ${svgIcon("stop")}
-            <div class="tb-label">Fine turno</div>
-          </button>
-        </div>
-
-        <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
-        <div id="tb-msg" style="margin-top:10px;"></div>
-      </div>
-
-      <div class="timbrature-card" style="margin-top:12px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
-          <h3 style="margin:0;">Stato Dipendenti</h3>
-          <div class="timbrature-muted" style="font-size:12px;">${isManager ? "Vista azienda" : "Vista personale"}</div>
-        </div>
-
-        <div id="tb-chips" class="tb-chips"></div>
-        <div id="tb-people" style="margin-top:10px;"></div>
-      </div>
-
-      <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
-        <div class="timbrature-toolbar">
-          <input id="tb-search" class="input-pill" placeholder="Cerca per dipendente / tipo / data..." style="flex:1; min-width:220px;" />
-          <select id="tb-filter" class="input-pill" style="max-width:260px; ${isManager ? "" : "display:none;"}"></select>
-        </div>
-
-        <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
-      </div>
-    </div>
-  `;
+    `
+  });
 
   const elStatus = app.querySelector("#tb-status");
   const elPrimary = app.querySelector("#btn-primary");
