@@ -306,7 +306,12 @@ export async function render(app) {
           title: "Timbratura",
           body: `
             <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
-
+<div class="tb-swipe-wrapper">
+  <div id="tb-swipe-card" class="tb-swipe-card">
+    Swipe per timbrare
+    <div class="tb-swipe-indicator">👉 Entrata • 👈 Uscita • ⬆ Pausa</div>
+  </div>
+</div>
             <div class="tb-scroll-actions">
               <button id="btn-primary" class="btn-timbratura round green" type="button">
                 ${svgIcon("play")}
