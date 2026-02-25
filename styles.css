@@ -943,3 +943,100 @@ svg {
   background: rgba(198,40,40,0.12);
   color: #c62828;
 }
+/* ========================================================= */
+/* ================== TIMBRATURE SYSTEM ==================== */
+/* ========================================================= */
+
+/* Barra azioni swipe */
+.tb-scroll-actions {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 10px 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  justify-content: center;
+}
+
+.tb-scroll-actions::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pulsanti timbratura */
+.btn-timbratura {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+
+  min-width: 120px;
+  height: 110px;
+
+  border-radius: 22px;
+  border: none;
+  cursor: pointer;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  font-weight: 700;
+  font-size: 15px;
+
+  transition: all 0.2s ease;
+}
+
+.btn-timbratura:active {
+  transform: scale(0.97);
+}
+
+/* Colori coerenti con sistema */
+
+.btn-timbratura.green {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(22,163,74,0.25);
+}
+
+.btn-timbratura.green:hover {
+  background: #15803d;
+}
+
+.btn-timbratura.gray {
+  background: #EEF2F7;
+  color: var(--color-text);
+}
+
+.btn-timbratura.gray:hover {
+  background: #E2E8F0;
+}
+
+.btn-timbratura.red {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(220,38,38,0.25);
+}
+
+.btn-timbratura.red:hover {
+  background: #b91c1c;
+}
+
+/* Icone */
+.tb-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Responsive migliorato */
+@media (max-width: 768px) {
+
+  .tb-scroll-actions {
+    justify-content: flex-start;
+    padding-bottom: 6px;
+  }
+
+  .btn-timbratura {
+    min-width: 140px;
+    height: 120px;
+  }
+}
