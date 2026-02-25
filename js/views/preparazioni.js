@@ -236,10 +236,11 @@ async function preloadDipendenti() {
 
   const { data, error } = await supabase
     .from("dipendenti")
-    .select("id, nome, cognome, pin")
+    .select("id, nome, pin")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
-    .order("cognome");
+    .not("pin", "is", null)
+    .order("nome");
 
   if (error) {
     console.error("Errore preload dipendenti:", error);
@@ -257,47 +258,25 @@ async function preloadProdotti() {
   prodottiCache = [];
   if (!supabase || !aziendaId) return;
 
-  // Best-effort: tenta "prodotti", poi fallback "magazzino_prodotti"
-  {
-    const { data, error } = await supabase
-      .from("prodotti")
-      .select("id, nome, unita_misura")
-      .eq("azienda_id", aziendaId)
-      .eq("attivo", true)
-      .order("nome");
+  const { data, error } = await supabase
+    .from("prodotti")
+    .select("id, nome, unita_misura")
+    .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
+    .order("nome");
 
-    if (!error && data) {
-      prodottiCache = data.map((p) => ({
-        id: p.id,
-        nome: p.nome,
-        unita_misura: p.unita_misura || "kg"
-      }));
-      return;
-    }
+  if (error) {
+    console.error("Errore preload prodotti:", error);
+    prodottiCache = [];
+    return;
   }
 
-  {
-    const { data, error } = await supabase
-      .from("magazzino_prodotti")
-      .select("id, nome, unita_misura")
-      .eq("azienda_id", aziendaId)
-      .eq("attivo", true)
-      .order("nome");
-
-    if (error) {
-      console.error("Errore preload prodotti:", error);
-      prodottiCache = [];
-      return;
-    }
-
-    prodottiCache = (data || []).map((p) => ({
-      id: p.id,
-      nome: p.nome,
-      unita_misura: p.unita_misura || "kg"
-    }));
-  }
+  prodottiCache = (data || []).map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    unita_misura: p.unita_misura || "kg"
+  }));
 }
-
 /* ========================================================= */
 /* RICETTA AUTOCOMPLETE */
 /* ========================================================= */
