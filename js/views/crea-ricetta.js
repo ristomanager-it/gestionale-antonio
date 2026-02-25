@@ -1057,6 +1057,41 @@ async function salvaTutto() {
     }
   }
 
+  {
+    const hasIngredienteValido = Array.isArray(ingredientRowsForCost) && ingredientRowsForCost.length > 0;
+
+    let hasFaseValida = false;
+    document.querySelectorAll("#fasi-container .azienda-card").forEach(r => {
+      const nomeFase = (r.querySelector(".fase-nome")?.value || "").trim();
+      if (nomeFase) hasFaseValida = true;
+    });
+
+    const hasOutputProdotto = !!prodotto_output_id;
+    const hasOutputPeso = !!output_peso && output_peso > 0;
+    const hasOutputUm = !!output_um;
+
+    const scheda_completa =
+      hasIngredienteValido &&
+      hasFaseValida &&
+      hasOutputProdotto &&
+      hasOutputPeso &&
+      hasOutputUm;
+
+    const stato_strutturale = scheda_completa ? "strutturata" : "bozza";
+
+    const { error: strutturaErr } = await supabase
+      .from("ricette")
+      .update({
+        scheda_completa,
+        stato_strutturale,
+        aggiornato_il: new Date().toISOString()
+      })
+      .eq("id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (strutturaErr) console.error(strutturaErr);
+  }
+
   if (esito) esito.innerText = "Ricetta salvata";
   alert("Ricetta salvata");
   window.location.hash = "#/ricettario";
