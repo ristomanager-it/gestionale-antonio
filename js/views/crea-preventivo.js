@@ -25,31 +25,31 @@ export async function render(container) {
     subtitle: "Cliente, evento, portate, extra e calcolo economico",
     content: `
       <form id="preventivo-form">
-<div class="form-actions" style="margin-bottom:16px;">
-  <button type="button" id="btn-back" class="app-button secondary">
-    ← Indietro
-  </button>
-</div>
+        <div class="form-actions" style="margin-bottom:16px;">
+          <button type="button" id="btn-back" class="app-button secondary">
+            ← Indietro
+          </button>
+        </div>
 
-${createCard({
-  title: "Stato Preventivo",
-  body: `
-    <div class="form-group">
-      <label>Stato</label>
-      <select class="input" id="preventivo-stato">
-        <option value="in_trattativa" selected>In trattativa</option>
-        <option value="accettato">Accettato</option>
-        <option value="rifiutato">Rifiutato</option>
-      </select>
-    </div>
+        ${createCard({
+          title: "Stato Preventivo",
+          body: `
+            <div class="form-group">
+              <label>Stato</label>
+              <select class="input" id="preventivo-stato">
+                <option value="in_trattativa" selected>In trattativa</option>
+                <option value="accettato">Accettato</option>
+                <option value="rifiutato">Rifiutato</option>
+              </select>
+            </div>
 
-    <div style="margin-top:12px;">
-      <span id="preventivo-stato-badge" class="status-badge badge-trattativa">
-        In trattativa
-      </span>
-    </div>
-  `
-})}
+            <div style="margin-top:12px;">
+              <span id="preventivo-stato-badge" class="status-badge badge-trattativa">
+                In trattativa
+              </span>
+            </div>
+          `
+        })}
 
         ${createCard({
           title: "Dati Cliente e Evento",
@@ -70,31 +70,40 @@ ${createCard({
                 <label>Email Cliente</label>
                 <input class="input" type="email" id="preventivo-cliente-email">
               </div>
+
               <div class="form-group">
-  <label>Telefono Cliente</label>
-  <input class="input" type="text" id="preventivo-cliente-telefono">
-</div>
-<div class="form-group">
-                <label>nome festeggiato</label>
-                <input class="input" type="text" id="preventivo-cliente-cognome" required>
+                <label>Telefono Cliente</label>
+                <input class="input" type="text" id="preventivo-cliente-telefono">
               </div>
 
-              <select class="input" id="preventivo-titolo" required>
-  <option value="">Seleziona evento</option>
-  <option value="Matrimonio">Matrimonio</option>
-  <option value="Compleanno">Compleanno</option>
-  <option value="Evento Aziendale">Evento Aziendale</option>
-  <option value="Battesimo">Battesimo</option>
-  <option value="Comunione">Comunione</option>
-  <option value="Altro">Altro</option>
-</select>
+              <div class="form-group">
+                <label>Nome festeggiato</label>
+                <input class="input" type="text" id="preventivo-nome-festeggiato">
+              </div>
 
-              <select class="input" id="preventivo-tipo-servizio">
-  <option value="Servizio Completo" selected>Servito</option>
-  <option value="Solo Catering">Catering</option>
-  <option value="Buffet">Buffet</option>
-  <option value="misto">Altro</option>
-</select>
+              <div class="form-group">
+                <label>Evento</label>
+                <select class="input" id="preventivo-titolo" required>
+                  <option value="">Seleziona evento</option>
+                  <option value="Matrimonio">Matrimonio</option>
+                  <option value="Compleanno">Compleanno</option>
+                  <option value="Evento Aziendale">Evento Aziendale</option>
+                  <option value="Battesimo">Battesimo</option>
+                  <option value="Comunione">Comunione</option>
+                  <option value="Altro">Altro</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Tipo servizio</label>
+                <select class="input" id="preventivo-tipo-servizio">
+                  <option value="Servizio Completo" selected>Servito</option>
+                  <option value="Solo Catering">Catering</option>
+                  <option value="Buffet">Buffet</option>
+                  <option value="misto">Altro</option>
+                </select>
+              </div>
+
               <div class="form-group">
                 <label>Data Evento</label>
                 <input class="input" type="date" id="preventivo-data-evento" required>
@@ -127,6 +136,12 @@ ${createCard({
         ${createCard({
           title: "Menu Evento",
           body: `
+            <datalist id="ricette-datalist">
+              ${ricetteCache
+                .map((r) => `<option value="${escapeAttr(r.nome)}" data-id="${r.id}"></option>`)
+                .join("")}
+            </datalist>
+
             <div id="preventivo-menu-tbody"></div>
 
             <div class="form-actions">
@@ -214,12 +229,13 @@ ${createCard({
       </form>
     `
   });
-bindPreventivoEvents();
+
+  bindPreventivoEvents();
   renderMenuRows();
   renderExtraRows();
   recalcPreventivoTotali();
 }
- 
+
 /* ============================================================ */
 /* DATA LOAD */
 /* ============================================================ */
@@ -235,7 +251,7 @@ async function loadRicetteEPrezzi() {
 
   const { data: ricette } = await supabase
     .from("ricette")
-    .select("id, nome")
+    .select("id, nome, attivo")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
@@ -249,9 +265,7 @@ async function loadRicetteEPrezzi() {
     .eq("canale", CANALE_PREVENTIVO)
     .eq("attivo", true);
 
-  prezziByRicettaId = new Map(
-    (prezzi || []).map((p) => [String(p.ricetta_id), toNumber(p.prezzo_vendita)])
-  );
+  prezziByRicettaId = new Map((prezzi || []).map((p) => [String(p.ricetta_id), toNumber(p.prezzo_vendita)]));
 }
 
 /* ============================================================ */
@@ -263,6 +277,10 @@ function bindPreventivoEvents() {
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     await savePreventivo();
+  });
+
+  document.getElementById("btn-back")?.addEventListener("click", () => {
+    window.location.hash = "#/preventivi";
   });
 
   document.getElementById("btn-email-preventivo")?.addEventListener("click", emailCurrentPreventivoViaMailto);
@@ -288,29 +306,31 @@ function bindPreventivoEvents() {
     lastDiscountEdited = "euro";
     recalcPreventivoTotali();
   });
-const statoSelect = document.getElementById("preventivo-stato");
-const statoBadge = document.getElementById("preventivo-stato-badge");
 
-statoSelect?.addEventListener("change", () => {
-  const val = statoSelect.value;
+  const statoSelect = document.getElementById("preventivo-stato");
+  const statoBadge = document.getElementById("preventivo-stato-badge");
 
-  statoBadge.className = "status-badge";
+  statoSelect?.addEventListener("change", () => {
+    const val = statoSelect.value;
 
-  if (val === "accettato") {
-    statoBadge.classList.add("badge-accettato");
-    statoBadge.textContent = "Accettato";
-  } else if (val === "rifiutato") {
-    statoBadge.classList.add("badge-rifiutato");
-    statoBadge.textContent = "Rifiutato";
-  } else {
-    statoBadge.classList.add("badge-trattativa");
-    statoBadge.textContent = "In trattativa";
-  }
-});
+    statoBadge.className = "status-badge";
+
+    if (val === "accettato") {
+      statoBadge.classList.add("badge-accettato");
+      statoBadge.textContent = "Accettato";
+    } else if (val === "rifiutato") {
+      statoBadge.classList.add("badge-rifiutato");
+      statoBadge.textContent = "Rifiutato";
+    } else {
+      statoBadge.classList.add("badge-trattativa");
+      statoBadge.textContent = "In trattativa";
+    }
+  });
+
   /* ================= MENU ================= */
   document.getElementById("btn-add-menu-row")?.addEventListener("click", addMenuRow);
 
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("change", onMenuTableChange);
+  document.getElementById("preventivo-menu-tbody")?.addEventListener("input", onMenuTableInput);
   document.getElementById("preventivo-menu-tbody")?.addEventListener("click", onMenuTableClick);
 
   /* ================= EXTRA ================= */
@@ -329,7 +349,8 @@ function addMenuRow() {
     ricetta_id: "",
     ricetta_nome: "",
     prezzo_pp: 0,
-    totale: 0
+    totale: 0,
+    is_placeholder: false
   });
 
   renderMenuRows();
@@ -353,15 +374,19 @@ function renderMenuRows() {
 
         <div class="form-group">
           <label>Portata</label>
-          <select class="input" data-field="ricetta_id">
-            <option value="">Seleziona portata</option>
-            ${ricetteCache
-              .map((r) => {
-                const selected = String(r.id) === String(row.ricetta_id) ? "selected" : "";
-                return `<option value="${r.id}" ${selected}>${escapeHtml(r.nome)}</option>`;
-              })
-              .join("")}
-          </select>
+          <input
+            class="input"
+            type="text"
+            list="ricette-datalist"
+            data-field="ricetta_nome"
+            value="${escapeAttr(row.ricetta_nome || "")}"
+            placeholder="Scrivi o seleziona una portata..."
+          >
+          ${
+            row.is_placeholder
+              ? `<div class="small-muted" style="margin-top:6px;">🟡 Ricetta generata da preventivo (scheda incompleta)</div>`
+              : ``
+          }
         </div>
 
         <div class="form-group">
@@ -385,7 +410,7 @@ function renderMenuRows() {
     .join("");
 }
 
-function onMenuTableChange(e) {
+function onMenuTableInput(e) {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
 
@@ -398,17 +423,22 @@ function onMenuTableChange(e) {
   const field = target.getAttribute("data-field");
   if (!field) return;
 
-  if (field === "ricetta_id" && target instanceof HTMLSelectElement) {
-    const ricettaId = (target.value || "").toString();
-    menuRows[idx].ricetta_id = ricettaId;
+  if (field === "ricetta_nome" && target instanceof HTMLInputElement) {
+    const nome = (target.value ?? "").toString().trim();
+    menuRows[idx].ricetta_nome = nome;
 
-    const ricetta = ricetteCache.find((r) => String(r.id) === String(ricettaId));
-    menuRows[idx].ricetta_nome = ricetta?.nome || "";
+    const match = findRicettaByNome(nome);
+    if (match) {
+      menuRows[idx].ricetta_id = String(match.id);
+      menuRows[idx].is_placeholder = false;
 
-    const prezzo = prezziByRicettaId.get(String(ricettaId)) ?? 0;
-    menuRows[idx].prezzo_pp = Math.max(0, toNumber(prezzo));
+      const prezzo = prezziByRicettaId.get(String(match.id)) ?? 0;
+      menuRows[idx].prezzo_pp = Math.max(0, toNumber(prezzo));
+    } else {
+      menuRows[idx].ricetta_id = "";
+      menuRows[idx].is_placeholder = false;
+    }
 
-    renderMenuRows();
     recalcPreventivoTotali();
     return;
   }
@@ -437,6 +467,20 @@ function onMenuTableClick(e) {
   if (action === "remove-menu") {
     removeMenuRow(idx);
   }
+}
+
+function findRicettaByNome(nome) {
+  const n = normalizeNome(nome);
+  if (!n) return null;
+  return ricetteCache.find((r) => normalizeNome(r.nome) === n) || null;
+}
+
+function normalizeNome(nome) {
+  return (nome ?? "")
+    .toString()
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 /* ============================================================ */
@@ -560,25 +604,6 @@ function onExtraTableInput(e) {
   }
 }
 
-function onExtraTableClick(e) {
-  const target = e.target;
-  if (!(target instanceof HTMLElement)) return;
-
-  const btn = target.closest("[data-action]");
-  if (!btn) return;
-
-  const action = btn.getAttribute("data-action");
-  const card = btn.closest("[data-index]");
-  if (!card) return;
-
-  const idx = Number(card.getAttribute("data-index"));
-  if (!Number.isFinite(idx)) return;
-
-  if (action === "remove-extra") {
-    removeExtraRow(idx);
-  }
-}
-
 /* ============================================================ */
 /* TOTALS & DISCOUNT */
 /* ============================================================ */
@@ -597,8 +622,6 @@ function recalcPreventivoTotali() {
     row.totale = prezzoPP * invitati;
     subtMenu += row.totale;
   });
-
-  const prezzoMedioPP = invitati > 0 ? subtMenu / invitati : 0;
 
   /* ================= EXTRA ================= */
   let subtExtra = 0;
@@ -640,8 +663,6 @@ function recalcPreventivoTotali() {
 
   /* ================= UI UPDATE ================= */
   setNumber("preventivo-subtotale-menu", subtMenu);
-  setNumber("preventivo-prezzo-medio-pp", prezzoMedioPP);
-
   setNumber("preventivo-subtotale-extra", subtExtra);
   setNumber("preventivo-subtotale-location", locationPrezzo);
 
@@ -670,65 +691,81 @@ async function savePreventivo() {
 
   recalcPreventivoTotali();
 
-  const payload = {
+  const clienteNome = getVal("preventivo-cliente-nome");
+  const clienteCognome = getVal("preventivo-cliente-cognome");
+
+  const titoloEvento = getVal("preventivo-titolo");
+  const dataEvento = getVal("preventivo-data-evento") || null;
+
+  if (!clienteNome || !clienteCognome || !titoloEvento || !dataEvento) {
+    if (result) result.innerHTML = `<span class="error-text">Compila i campi obbligatori (cliente, titolo, data).</span>`;
+    return;
+  }
+
+  const stato = getVal("preventivo-stato") || "in_trattativa";
+
+  const payloadTestata = {
     azienda_id: aziendaId,
-
-    cliente_nome: getVal("preventivo-cliente-nome"),
-    cliente_cognome: getVal("preventivo-cliente-cognome"),
-    cliente_email: getVal("preventivo-cliente-email"),
-
-    titolo_evento: getVal("preventivo-titolo"),
+    cliente_id: null,
+    titolo_evento: titoloEvento,
     tipo_servizio: getVal("preventivo-tipo-servizio"),
-    data_evento: getVal("preventivo-data-evento") || null,
+    data_evento: dataEvento,
     n_invitati: Math.max(1, Math.floor(toNumber(getVal("preventivo-n-invitati")) || 1)),
-
     location: getVal("preventivo-location"),
-    location_prezzo: Math.max(0, toNumber(getVal("preventivo-location-prezzo"))),
-
     note: getVal("preventivo-note"),
-
-    canale_prezzo_ricette: CANALE_PREVENTIVO,
-
-    sconto_perc: clamp(toNumber(getVal("preventivo-sconto-perc")), 0, 100),
-    sconto_euro: Math.max(0, toNumber(getVal("preventivo-sconto-euro"))),
-
     acconto: Math.max(0, toNumber(getVal("preventivo-acconto"))),
-    totale: Math.max(0, toNumber(getVal("preventivo-totale"))),
-    saldo: Math.max(0, toNumber(getVal("preventivo-saldo"))),
-
-    menu: menuRows.map((r) => ({
-      ricetta_id: r.ricetta_id ? Number(r.ricetta_id) : null,
-      ricetta_nome: r.ricetta_nome || "",
-      quantita: 1,
-      prezzo_unitario: Math.max(0, toNumber(r.prezzo_pp)),
-      totale: Math.max(0, toNumber(r.totale)),
-      auto_quantita: true
-    })),
-
-    extra: extraRows.map((r) => ({
-      descrizione: r.descrizione || "",
-      quantita: Math.max(1, Math.floor(toNumber(r.quantita) || 1)),
-      prezzo_unitario: Math.max(0, toNumber(r.prezzo_unitario)),
-      totale: Math.max(0, toNumber(r.totale))
-    }))
+    stato: stato,
+    totale: Math.max(0, toNumber(getVal("preventivo-totale")))
   };
 
   try {
-    if (!payload.cliente_nome || !payload.cliente_cognome || !payload.titolo_evento || !payload.data_evento) {
-      if (result) result.innerHTML = `<span class="error-text">Compila i campi obbligatori (cliente, titolo, data).</span>`;
+    if (result) result.innerHTML = `<span class="small-muted">Salvataggio in corso...</span>`;
+
+    const { data: insertedPrev, error: insPrevErr } = await supabase
+      .from("preventivi")
+      .insert([payloadTestata])
+      .select("id")
+      .single();
+
+    if (insPrevErr || !insertedPrev?.id) {
+      if (result) result.innerHTML = `<span class="error-text">Errore salvataggio preventivo: ${escapeHtml(insPrevErr?.message || "operazione non riuscita")}</span>`;
       return;
     }
 
-    const invalidMenu = payload.menu.some((r) => !r.ricetta_id);
-    if (invalidMenu) {
-      if (result) result.innerHTML = `<span class="error-text">Seleziona una portata per ogni riga del menù (o rimuovi la riga).</span>`;
+    const preventivoId = Number(insertedPrev.id);
+
+    const righeToInsert = [];
+    for (const row of menuRows) {
+      const nome = (row.ricetta_nome || "").trim();
+      if (!nome) continue;
+
+      const { ricettaId, isPlaceholder } = await getOrCreateRicettaPlaceholderByNome(nome, aziendaId, preventivoId);
+
+      const prezzo = Math.max(0, toNumber(row.prezzo_pp));
+      righeToInsert.push({
+        azienda_id: aziendaId,
+        preventivo_id: preventivoId,
+        ricetta_id: ricettaId ? Number(ricettaId) : null,
+        nome_portata: nome,
+        quantita: 1,
+        prezzo_unitario: prezzo,
+        ricetta_placeholder: Boolean(isPlaceholder),
+        ricetta_non_strutturata: Boolean(isPlaceholder)
+      });
+
+      row.ricetta_id = ricettaId ? String(ricettaId) : "";
+      row.is_placeholder = Boolean(isPlaceholder);
+    }
+
+    if (!righeToInsert.length) {
+      if (result) result.innerHTML = `<span class="error-text">Inserisci almeno una portata nel menù.</span>`;
       return;
     }
 
-    const { error } = await supabase.from("preventivi").insert([payload]);
+    const { error: insRigheErr } = await supabase.from("preventivi_righe").insert(righeToInsert);
 
-    if (error) {
-      if (result) result.innerHTML = `<span class="error-text">Errore nel salvataggio: ${escapeHtml(error.message)}</span>`;
+    if (insRigheErr) {
+      if (result) result.innerHTML = `<span class="error-text">Errore salvataggio righe: ${escapeHtml(insRigheErr.message)}</span>`;
       return;
     }
 
@@ -738,6 +775,59 @@ async function savePreventivo() {
     console.error(err);
     if (result) result.innerHTML = `<span class="error-text">Errore: ${escapeHtml(err?.message || "Operazione non riuscita")}</span>`;
   }
+}
+
+/* ============================================================ */
+/* PLACEHOLDER RICETTA */
+/* ============================================================ */
+
+async function getOrCreateRicettaPlaceholderByNome(nome, aziendaId, preventivoId) {
+  const supabase = window.supabaseClient;
+  const n = normalizeNome(nome);
+  if (!n) return { ricettaId: null, isPlaceholder: false };
+
+  const cached = ricetteCache.find((r) => normalizeNome(r.nome) === n);
+  if (cached) return { ricettaId: cached.id, isPlaceholder: false };
+
+  const { data: existing, error: selErr } = await supabase
+    .from("ricette")
+    .select("id, nome, generata_da_preventivo, scheda_completa")
+    .eq("azienda_id", aziendaId)
+    .ilike("nome", nome)
+    .limit(1);
+
+  if (!selErr && existing && existing.length) {
+    const r = existing[0];
+    ricetteCache.push({ id: r.id, nome: r.nome });
+    return { ricettaId: r.id, isPlaceholder: Boolean(r.generata_da_preventivo) || !Boolean(r.scheda_completa) };
+  }
+
+  const payload = {
+    azienda_id: aziendaId,
+    nome: nome.trim(),
+    attivo: true,
+    generata_da_preventivo: true,
+    scheda_completa: false,
+    origine: "preventivo",
+    creata_da_preventivo_id: preventivoId
+  };
+
+  const { data: inserted, error: insErr } = await supabase
+    .from("ricette")
+    .insert([payload])
+    .select("id, nome")
+    .single();
+
+  if (insErr || !inserted?.id) {
+    return { ricettaId: null, isPlaceholder: true };
+  }
+
+  ricetteCache.push({ id: inserted.id, nome: inserted.nome });
+
+  const prezzo = prezziByRicettaId.get(String(inserted.id)) ?? 0;
+  prezziByRicettaId.set(String(inserted.id), toNumber(prezzo));
+
+  return { ricettaId: inserted.id, isPlaceholder: true };
 }
 
 /* ============================================================ */
@@ -764,7 +854,7 @@ function emailCurrentPreventivoViaMailto() {
   const totale = getVal("preventivo-totale");
 
   const righeMenu = menuRows
-    .filter((r) => r.ricetta_nome)
+    .filter((r) => (r.ricetta_nome || "").trim())
     .map((r) => `- ${r.ricetta_nome}`)
     .join("\n");
 
@@ -798,10 +888,7 @@ Cordiali saluti,
 ${nomeAzienda}
   `.trim();
 
-  const mailtoLink = `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(
-    subject
-  )}&body=${encodeURIComponent(body)}`;
-
+  const mailtoLink = `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoLink;
 }
 
@@ -824,7 +911,7 @@ function printCurrentPreventivo() {
   const totale = getVal("preventivo-totale");
 
   const menuHtml = menuRows
-    .filter((r) => r.ricetta_nome)
+    .filter((r) => (r.ricetta_nome || "").trim())
     .map((r) => `<li>${escapeHtml(r.ricetta_nome)}</li>`)
     .join("");
 
@@ -842,57 +929,19 @@ function printCurrentPreventivo() {
         <title>Preventivo</title>
         <meta charset="utf-8" />
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            color: #111;
-          }
-
-          .header {
-            text-align: center;
-            margin-bottom: 40px;
-          }
-
-          .logo {
-            max-height: 90px;
-            margin-bottom: 12px;
-          }
-
-          h1 {
-            margin: 0;
-            font-size: 24px;
-          }
-
-          h2 {
-            margin: 28px 0 10px 0;
-            font-size: 16px;
-          }
-
-          .muted {
-            color: #666;
-            font-size: 12px;
-          }
-
-          .box {
-            border: 1px solid #ddd;
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 12px;
-          }
-
-          ul {
-            margin: 8px 0 0 18px;
-          }
-
-          .tot {
-            font-size: 20px;
-            font-weight: 700;
-          }
+          body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
+          .header { text-align: center; margin-bottom: 40px; }
+          .logo { max-height: 90px; margin-bottom: 12px; }
+          h1 { margin: 0; font-size: 24px; }
+          h2 { margin: 28px 0 10px 0; font-size: 16px; }
+          .muted { color: #666; font-size: 12px; }
+          .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; margin-top: 12px; }
+          ul { margin: 8px 0 0 18px; }
+          .tot { font-size: 20px; font-weight: 700; }
         </style>
       </head>
 
       <body>
-
         <div class="header">
           ${logo ? `<img src="${logo}" class="logo" />` : ""}
           <h1>${escapeHtml(nomeAzienda)}</h1>
