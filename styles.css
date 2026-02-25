@@ -1040,3 +1040,61 @@ svg {
     height: 120px;
   }
 }
+/* ========================================================= */
+/* ================== TIMBRATURE SWIPE ===================== */
+/* ========================================================= */
+
+/* Nasconde swipe su desktop */
+.tb-swipe-wrapper {
+  display: none;
+}
+
+/* Mobile: mostra swipe e nasconde bottoni */
+@media (max-width: 768px) {
+
+  .tb-scroll-actions {
+    display: none;
+  }
+
+  .tb-swipe-wrapper {
+    display: block;
+    margin-top: 16px;
+  }
+
+  .tb-swipe-card {
+    position: relative;
+    height: 120px;
+    border-radius: 22px;
+    background: #ffffff;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    overflow: hidden;
+    transition: background 0.2s ease;
+    touch-action: none;
+  }
+
+  .tb-swipe-indicator {
+    position: absolute;
+    bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  .tb-swipe-card.swipe-right {
+    background: rgba(22,163,74,0.15);
+  }
+
+  .tb-swipe-card.swipe-left {
+    background: rgba(220,38,38,0.15);
+  }
+
+  .tb-swipe-card.swipe-up {
+    background: rgba(100,116,139,0.15);
+  }
+}
