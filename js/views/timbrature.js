@@ -561,7 +561,59 @@ export async function render(app) {
       } catch (e2) {
         setMsg(`Errore salvataggio timbratura: ${escapeHtml(e2.message || e2)}`, "error");
       }
+/* ================= SWIPE MOBILE ================= */
 
+if (elSwipeCard && window.innerWidth <= 768) {
+
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let currentY = 0;
+  const threshold = 90;
+
+  elSwipeCard.addEventListener("pointerdown", (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+    elSwipeCard.setPointerCapture(e.pointerId);
+  });
+
+  elSwipeCard.addEventListener("pointermove", (e) => {
+    currentX = e.clientX - startX;
+    currentY = e.clientY - startY;
+
+    elSwipeCard.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+    elSwipeCard.classList.remove("swipe-right", "swipe-left", "swipe-up");
+
+    if (currentX > threshold) elSwipeCard.classList.add("swipe-right");
+    else if (currentX < -threshold) elSwipeCard.classList.add("swipe-left");
+    else if (currentY < -threshold) elSwipeCard.classList.add("swipe-up");
+  });
+
+  elSwipeCard.addEventListener("pointerup", async () => {
+
+    elSwipeCard.style.transform = "translate(0,0)";
+    elSwipeCard.classList.remove("swipe-right", "swipe-left", "swipe-up");
+
+    if (currentX > threshold) {
+      await doTimbratura("inizio_turno");
+    } else if (currentX < -threshold) {
+      await doTimbratura("fine_turno");
+    } else if (currentY < -threshold) {
+      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      const ui = computeUiFromLastTipo(lastTipo);
+
+      if (ui.stato === "In turno") {
+        await doTimbratura("inizio_pausa");
+      } else if (ui.stato === "In pausa") {
+        await doTimbratura("fine_pausa");
+      }
+    }
+
+    currentX = 0;
+    currentY = 0;
+  });
+}
       await refreshUi();
       return;
     }
