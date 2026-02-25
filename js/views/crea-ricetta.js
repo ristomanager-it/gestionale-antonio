@@ -12,7 +12,7 @@
 // + ricette_output_secondari (coprodotti / rifili)
 // ============================================================
 import { requirePermessi } from "../auth-utils.js";
-
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
 let ricettaId = null;
 
 let prodottiCache = [];
@@ -65,208 +65,185 @@ export async function render(app) {
   }
 
   // ============================================================
-  // 🧱 NUOVO LAYOUT GLOBALE (ma stessa logica sotto)
+  // 🧱 LAYOUT DEFINITIVO (COME PREVENTIVO)
   // ============================================================
 
-  app.innerHTML = `
-    <section class="view">
+  app.innerHTML = createPageLayout({
+    title: ricettaId ? "Modifica Ricetta" : "Crea Ricetta",
+    subtitle: "Struttura operativa ed economica",
+    content: `
 
-      <div class="page-topbar">
-        <button class="app-button small gray"
+      <div class="form-actions" style="margin-bottom:16px;">
+        <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
           ← Centro Produzione
         </button>
-
-        <h2>
-          ${ricettaId ? "✏️ Modifica Ricetta" : "🆕 Crea Ricetta"}
-        </h2>
       </div>
 
-      <div class="editor-stack">
+      ${createCard({
+        title: "Anagrafica",
+        body: `
+          <div class="form-grid">
 
-        <!-- ================= OPERATIVA ================= -->
+            <div class="form-group">
+              <label>Nome ricetta *</label>
+              <input id="r-nome" class="input" />
+            </div>
 
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Struttura Ricetta</strong>
-          </div>
-        </div>
+            <div class="form-group">
+              <label>Pezzi base</label>
+              <input id="r-pezzi-base" type="number" min="0" class="input" />
+            </div>
 
-        <!-- ================= ANAGRAFICA ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Anagrafica</strong>
-          </div>
-          <div class="editor-section-body editor-grid-2">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Descrizione</label>
+              <textarea id="r-descrizione" class="input"></textarea>
+            </div>
 
-            <label>
-              Nome ricetta *
-              <input id="r-nome" class="input-pill" />
-            </label>
-
-            <label>
-              Pezzi base (opz.)
-              <input id="r-pezzi-base" type="number" min="0" class="input-pill" />
-            </label>
-
-            <label style="grid-column:1/-1;">
-              Descrizione
-              <textarea id="r-descrizione" class="input-pill" rows="3"></textarea>
-            </label>
-
-            <label style="grid-column:1/-1;">
-              Note procedimento
-              <textarea id="r-note-proc" class="input-pill" rows="4"></textarea>
-            </label>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Note procedimento</label>
+              <textarea id="r-note-proc" class="input"></textarea>
+            </div>
 
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= INGREDIENTI ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Ingredienti</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="ingredienti-container"></div>
+      ${createCard({
+        title: "Ingredienti",
+        body: `
+          <div id="ingredienti-container"></div>
 
+          <div class="form-actions">
             <button id="btn-add-ing"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
+              class="app-button secondary"
+              type="button">
               + Aggiungi ingrediente
             </button>
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= OUTPUT ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Output (Resa)</strong>
-          </div>
-          <div class="editor-section-body editor-grid-2">
+      ${createCard({
+        title: "Output (Resa)",
+        body: `
+          <div class="form-grid">
 
-            <div style="grid-column:1/-1;">
-              <label>
-                Prodotto output *
-                <div class="input-wrap">
-                  <input id="r-output-search"
-                    class="input-pill"
-                    autocomplete="off"
-                    placeholder="Cerca prodotto..." />
-                  <input id="r-output-id" type="hidden" />
-                  <div id="r-output-suggest" class="suggest-list"></div>
-                </div>
-              </label>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Prodotto output *</label>
+              <div class="input-wrap">
+                <input id="r-output-search"
+                  class="input"
+                  autocomplete="off"
+                  placeholder="Cerca prodotto..." />
+                <input id="r-output-id" type="hidden" />
+                <div id="r-output-suggest" class="suggest-list"></div>
+              </div>
             </div>
 
-            <label>
-              Peso finale *
-              <input id="r-output-peso" type="number" min="0" step="0.001" class="input-pill" />
-            </label>
+            <div class="form-group">
+              <label>Peso finale *</label>
+              <input id="r-output-peso"
+                type="number"
+                step="0.001"
+                class="input" />
+            </div>
 
-            <label>
-              UM *
-              <select id="r-output-um" class="input-pill">
+            <div class="form-group">
+              <label>Unità misura *</label>
+              <select id="r-output-um" class="input">
                 <option value="kg">kg</option>
                 <option value="g">g</option>
                 <option value="pz">pz</option>
                 <option value="l">l</option>
                 <option value="ml">ml</option>
               </select>
-            </label>
+            </div>
 
-            <div style="grid-column:1/-1;">
+            <div class="form-group" style="grid-column:1/-1;">
               <div id="r-cost-preview" class="small-muted">
                 Food cost: —
               </div>
             </div>
 
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= PROCEDIMENTO ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Procedimento</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="fasi-container"></div>
+      ${createCard({
+        title: "Procedimento",
+        body: `
+          <div id="fasi-container"></div>
 
+          <div class="form-actions">
             <button id="btn-add-fase"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
+              class="app-button secondary"
+              type="button">
               + Aggiungi fase
             </button>
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= PORZIONI ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Porzionature</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="porzioni-container"></div>
+      ${createCard({
+        title: "Porzionature",
+        body: `
+          <div id="porzioni-container"></div>
 
+          <div class="form-actions">
             <button id="btn-add-porzione"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
+              class="app-button secondary"
+              type="button">
               + Aggiungi porzione
             </button>
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= CONSERVAZIONE ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Conservazione</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="conservazione-container"></div>
+      ${createCard({
+        title: "Conservazione",
+        body: `
+          <div id="conservazione-container"></div>
 
+          <div class="form-actions">
             <button id="btn-add-conservazione"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
+              class="app-button secondary"
+              type="button">
               + Aggiungi scenario
             </button>
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= ECONOMICA (coprodotti + snapshot) ================= -->
-        <div class="editor-section">
-          <div class="editor-section-header">
-            <strong>Area Economica</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="output-secondari-container"></div>
+      ${createCard({
+        title: "Area Economica",
+        body: `
+          <div id="output-secondari-container"></div>
 
+          <div class="form-actions">
             <button id="btn-add-out2"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
+              class="app-button secondary"
+              type="button">
               + Aggiungi coprodotto
             </button>
           </div>
-        </div>
+        `
+      })}
 
-        <!-- ================= AZIONI ================= -->
-        <div style="margin-top:16px;">
-          <button id="btn-salva"
-            class="app-button green"
-            type="button">
-            💾 Salva Ricetta
-          </button>
-        </div>
-
-        <div id="r-esito" class="small-muted" style="margin-top:10px;"></div>
-
+      <div class="form-actions" style="margin-top:20px;">
+        <button id="btn-salva"
+          class="app-button">
+          💾 Salva Ricetta
+        </button>
       </div>
-    </section>
-  `;
+
+      <div id="r-esito" class="form-result"></div>
+    `
+  });
+
+  // ============================================================
+  // 🔄 LOGICA ORIGINALE (NON TOCCATA)
+  // ============================================================
 
   await loadProdotti();
   bindUI();
