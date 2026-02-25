@@ -1,36 +1,55 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
+/*
+  PRODUZIONE (nuovo flusso)
+  - Tabella principale: produzione_lotti (bigserial id, codice_lotto trigger)
+  - Righe: schede_produzione_righe (1 riga per porzione + righe coprodotti)
+  - Magazzino: magazzino_movimenti (scarico ingredienti + carichi output/canali + carichi coprodotti)
+
+  NOTE SCHEMA (necessario):
+  - schede_produzione_righe deve puntare a produzione_lotti:
+      produzione_id BIGINT FK produzione_lotti(id)
+  - per coprodotti in schede_produzione_righe serve:
+      prodotto_id BIGINT NULL FK prodotti(id)
+  - dipendenti deve avere un campo PIN (pin) oppure usiamo fallback su codice
+*/
+
 let ricetteCache = [];
 let ricettaSelezionata = null;
 
-let scenariConservazione = [];
+let porzioniCache = [];
 let dipendentiCache = [];
 let prodottiCache = [];
+let scenariConservazione = [];
 
-let operatoreRisolto = null; // { id, nome, cognome, pin }
+let operatoreRisolto = null;
 
-let coprodottiRows = [];
+let porzioniRows = []; // [{ porzione_id, label, peso_porzione, unita_misura, quantita_pz, note }]
+let coprodottiRows = []; // [{ id, prodotto_id, quantita, unita_misura, data_scadenza, note }]
 
-let savedProduzioneId = null;
-let savedRigaId = null;
+let savedLotto = null; // record produzione_lotti
+let savedRighe = []; // righe inserite
 
 export async function render(container) {
   ricetteCache = [];
   ricettaSelezionata = null;
 
-  scenariConservazione = [];
+  porzioniCache = [];
   dipendentiCache = [];
   prodottiCache = [];
+  scenariConservazione = [];
 
   operatoreRisolto = null;
 
+  porzioniRows = [];
   coprodottiRows = [];
-  savedProduzioneId = null;
-  savedRigaId = null;
+
+  savedLotto = null;
+  savedRighe = [];
 
   container.innerHTML = createPageLayout({
     title: "Produzione",
-    subtitle: "Ricetta, dati produzione, conservazione, coprodotti e registrazione movimenti",
+    subtitle: "Porzioni reali, coprodotti, controllo resa, firma operatore e magazzino",
     content: `
       <div class="form-actions" style="margin-bottom:16px;">
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
@@ -41,7 +60,7 @@ export async function render(container) {
         body: `
           <div class="form-group" style="position:relative;">
             <label>Ricetta</label>
-            <input id="prod-ricetta-search" class="input" placeholder="Cerca ricetta..." autocomplete="off" />
+            <input id="prod-ricetta-search" class="input" placeholder="Cerca ricetta..." autocomplete="off" ${savedLotto ? "disabled" : ""} />
             <input id="prod-ricetta-id" type="hidden" />
             <div id="prod-ricetta-suggest" class="suggest-list"></div>
             <div id="prod-ricetta-info" class="form-help" style="margin-top:10px;">Nessuna ricetta selezionata</div>
@@ -64,21 +83,21 @@ export async function render(container) {
             </div>
 
             <div class="form-group">
-              <label>Peso reale prodotto finito (<span id="prod-unita-label">-</span>)</label>
-              <input id="prod-peso" type="number" min="0" step="0.001" class="input" placeholder="Es: 2.500" />
-              <div class="form-help">Inserisci il peso reale finale (obbligatorio).</div>
-            </div>
-
-            <div class="form-group">
-              <label>Lotto (automatico)</label>
-              <input id="prod-lotto" class="input" readonly />
-              <div class="form-help">Lotto unico per produzione. Dopo salvataggio non sarà modificabile.</div>
+              <label>Lotto</label>
+              <input id="prod-lotto" class="input" readonly placeholder="Generato al salvataggio" />
+              <div class="form-help">Lotto unico per azienda. Dopo salvataggio non modificabile.</div>
             </div>
 
             <div class="form-group">
               <label>PIN operatore</label>
-              <input id="prod-operatore-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." />
+              <input id="prod-operatore-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." ${savedLotto ? "disabled" : ""} />
               <div id="prod-operatore-info" class="form-help">Nessun operatore identificato</div>
+            </div>
+
+            <div class="form-group">
+              <label>Note lotto / destinatario</label>
+              <input id="prod-note-lotto" class="input" placeholder="Es: Battesimo Lucia" ${savedLotto ? "disabled" : ""} />
+              <div class="form-help">Questa nota apparirà anche in stampa.</div>
             </div>
 
           </div>
@@ -92,7 +111,7 @@ export async function render(container) {
 
             <div class="form-group">
               <label>Scenario</label>
-              <select id="prod-conservazione" class="input">
+              <select id="prod-conservazione" class="input" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona...</option>
               </select>
             </div>
@@ -103,12 +122,36 @@ export async function render(container) {
             </div>
 
             <div class="form-group">
-              <label>Confezionamento</label>
-              <select id="prod-confezionamento" class="input">
-                <option value="">Seleziona...</option>
-              </select>
+              <label>Confezionamento (da porzioni ricetta)</label>
+              <input class="input" readonly value="Gestito in confezionamento reale" />
             </div>
 
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Confezionamento reale (porzioni)",
+        body: `
+          <div id="porzioni-wrap"></div>
+
+          <div class="form-help" style="margin-top:10px;">
+            Inserisci quante confezioni reali hai prodotto per ciascuna porzione (Trattoria/Banchetto/Buffet...).
+          </div>
+
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="form-group">
+              <label>Resa teorica</label>
+              <input id="resa-teorica" class="input" readonly />
+            </div>
+            <div class="form-group">
+              <label>Resa reale calcolata</label>
+              <input id="resa-reale" class="input" readonly />
+            </div>
+            <div class="form-group">
+              <label>Scarto</label>
+              <input id="resa-scarto" class="input" readonly />
+            </div>
           </div>
         `
       })}
@@ -119,11 +162,11 @@ export async function render(container) {
           <div id="coprodotti-wrap"></div>
 
           <div class="form-actions">
-            <button type="button" id="btn-add-coprodotto" class="app-button secondary">+ Aggiungi coprodotto</button>
+            <button type="button" id="btn-add-coprodotto" class="app-button secondary" ${savedLotto ? "disabled" : ""}>+ Aggiungi coprodotto</button>
           </div>
 
           <div class="form-help">
-            I coprodotti nascono solo in produzione e condividono lo stesso lotto della produzione.
+            I coprodotti nascono solo in produzione e vengono caricati a magazzino con lo stesso lotto.
           </div>
         `
       })}
@@ -132,8 +175,8 @@ export async function render(container) {
         title: "Azioni",
         body: `
           <div class="form-actions">
-            <button type="button" id="btn-salva-produzione" class="app-button">💾 Registra produzione</button>
-            <button type="button" id="btn-print-finale" class="app-button secondary" disabled>🏷 Stampa etichetta lotto</button>
+            <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra produzione</button>
+            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichetta lotto</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
           </div>
 
@@ -163,14 +206,15 @@ export async function render(container) {
 
   setupAutocompleteRicette();
   setupOperatorePIN();
-
-  renderCoprodottiRows();
-
   bindEvents();
 
   resetConservazioneUI();
-  resetConfezionamentoUI();
   resetScadenza();
+
+  renderPorzioniRows();
+  renderCoprodottiRows();
+
+  recalcResaUI();
 }
 
 function presetDataOggi() {
@@ -221,8 +265,8 @@ async function preloadRicette() {
       nome: r.nome,
       pezzi_base: r.pezzi_base,
       prodotto_output_id: r.prodotto_output_id ?? null,
-      peso_output: out?.peso_finale ?? null,
-      unita_output: out?.unita_misura ?? "kg"
+      resa_teorica: out?.peso_finale ?? null,
+      resa_unita: out?.unita_misura ?? "kg"
     };
   });
 }
@@ -234,12 +278,30 @@ async function preloadDipendenti() {
   dipendentiCache = [];
   if (!supabase || !aziendaId) return;
 
+  // Best-effort: prova pin, altrimenti fallback su codice
+  {
+    const { data, error } = await supabase
+      .from("dipendenti")
+      .select("id, nome, pin, codice")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("nome");
+
+    if (!error) {
+      dipendentiCache = (data || []).map((d) => ({
+        id: d.id,
+        nome: d.nome,
+        pin: (d.pin ?? d.codice ?? "").toString()
+      }));
+      return;
+    }
+  }
+
   const { data, error } = await supabase
     .from("dipendenti")
-    .select("id, nome, pin")
+    .select("id, nome, codice")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
-    .not("pin", "is", null)
     .order("nome");
 
   if (error) {
@@ -248,7 +310,11 @@ async function preloadDipendenti() {
     return;
   }
 
-  dipendentiCache = data || [];
+  dipendentiCache = (data || []).map((d) => ({
+    id: d.id,
+    nome: d.nome,
+    pin: (d.codice ?? "").toString()
+  }));
 }
 
 async function preloadProdotti() {
@@ -277,91 +343,44 @@ async function preloadProdotti() {
     unita_misura: p.unita_misura || "kg"
   }));
 }
-/* ========================================================= */
-/* RICETTA AUTOCOMPLETE */
-/* ========================================================= */
 
-function setupAutocompleteRicette() {
-  const input = document.getElementById("prod-ricetta-search");
-  const suggest = document.getElementById("prod-ricetta-suggest");
-  const hidden = document.getElementById("prod-ricetta-id");
-  const btnVedi = document.getElementById("btn-vedi-ricetta");
+async function loadPorzioniRicetta(ricettaId) {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
 
-  if (!input || !suggest || !hidden || !btnVedi) return;
+  porzioniCache = [];
+  porzioniRows = [];
 
-  input.addEventListener("input", () => {
-    const q = input.value.toLowerCase().trim();
-    suggest.innerHTML = "";
+  if (!supabase || !aziendaId || !ricettaId) return;
 
-    ricettaSelezionata = null;
-    hidden.value = "";
-    btnVedi.disabled = true;
-    setRicettaInfo("Nessuna ricetta selezionata");
-    setUnitaMisuraLabel("-");
-    resetConservazioneUI();
-    resetConfezionamentoUI();
-    resetScadenza();
-    ensureLotto(false);
+  const { data, error } = await supabase
+    .from("ricette_porzione")
+    .select("id, label, peso_porzione, unita_misura, note")
+    .eq("azienda_id", aziendaId)
+    .eq("ricetta_id", ricettaId)
+    .eq("attivo", true)
+    .order("label");
 
-    if (q.length < 2) {
-      suggest.classList.remove("open");
-      return;
-    }
+  if (error) {
+    console.error("Errore load porzioni:", error);
+    porzioniCache = [];
+    porzioniRows = [];
+    return;
+  }
 
-    const risultati = ricetteCache
-      .filter((r) => (r.nome || "").toLowerCase().includes(q))
-      .slice(0, 10);
+  porzioniCache = data || [];
+  porzioniRows = porzioniCache.map((p) => ({
+    porzione_id: p.id,
+    label: p.label,
+    peso_porzione: toNumber(p.peso_porzione),
+    unita_misura: (p.unita_misura || "kg").toString(),
+    quantita_pz: "",
+    note: ""
+  }));
 
-    risultati.forEach((r) => {
-      const div = document.createElement("div");
-      div.className = "suggest-item";
-      div.textContent = r.nome;
-
-      div.onclick = async () => {
-        hidden.value = r.id;
-        input.value = r.nome;
-        suggest.classList.remove("open");
-
-        ricettaSelezionata = r;
-        btnVedi.disabled = false;
-
-        const resaTxt = r.peso_output != null
-          ? ` — Resa: ${r.peso_output} ${r.unita_output || "kg"}`
-          : "";
-
-        setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
-        setUnitaMisuraLabel(r.unita_output || "kg");
-
-        ensureLotto(true);
-        await loadConservazioni(r.id);
-      };
-
-      suggest.appendChild(div);
-    });
-
-    suggest.classList.add("open");
-  });
-
-  document.addEventListener("click", (e) => {
-    const wrap = input.parentElement;
-    if (!wrap) return;
-    if (!wrap.contains(e.target)) suggest.classList.remove("open");
-  });
+  renderPorzioniRows();
+  recalcResaUI();
 }
-
-function setRicettaInfo(text) {
-  const el = document.getElementById("prod-ricetta-info");
-  if (el) el.innerText = text;
-}
-
-function setUnitaMisuraLabel(text) {
-  const el = document.getElementById("prod-unita-label");
-  if (el) el.innerText = text || "-";
-}
-
-/* ========================================================= */
-/* CONSERVAZIONE */
-/* ========================================================= */
 
 async function loadConservazioni(ricettaId) {
   const supabase = window.supabaseClient;
@@ -395,9 +414,94 @@ async function loadConservazioni(ricettaId) {
     select.appendChild(opt);
   });
 
-  resetConfezionamentoUI();
   resetScadenza();
 }
+
+/* ========================================================= */
+/* RICETTA AUTOCOMPLETE + VEDI */
+/* ========================================================= */
+
+function setupAutocompleteRicette() {
+  const input = document.getElementById("prod-ricetta-search");
+  const suggest = document.getElementById("prod-ricetta-suggest");
+  const hidden = document.getElementById("prod-ricetta-id");
+  const btnVedi = document.getElementById("btn-vedi-ricetta");
+
+  if (!input || !suggest || !hidden || !btnVedi) return;
+
+  input.addEventListener("input", () => {
+    if (savedLotto) return;
+
+    const q = (input.value || "").toLowerCase().trim();
+    suggest.innerHTML = "";
+
+    ricettaSelezionata = null;
+    hidden.value = "";
+    btnVedi.disabled = true;
+
+    setRicettaInfo("Nessuna ricetta selezionata");
+    porzioniCache = [];
+    porzioniRows = [];
+    renderPorzioniRows();
+    resetConservazioneUI();
+    resetScadenza();
+    recalcResaUI();
+
+    if (q.length < 2) {
+      suggest.classList.remove("open");
+      return;
+    }
+
+    const risultati = ricetteCache
+      .filter((r) => (r.nome || "").toLowerCase().includes(q))
+      .slice(0, 10);
+
+    risultati.forEach((r) => {
+      const div = document.createElement("div");
+      div.className = "suggest-item";
+      div.textContent = r.nome;
+
+      div.onclick = async () => {
+        hidden.value = r.id;
+        input.value = r.nome;
+        suggest.classList.remove("open");
+
+        ricettaSelezionata = r;
+        btnVedi.disabled = false;
+
+        const resaTxt = r.resa_teorica != null
+          ? ` — Resa teorica: ${String(r.resa_teorica)} ${r.resa_unita || "kg"}`
+          : "";
+
+        setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
+
+        await Promise.all([
+          loadPorzioniRicetta(r.id),
+          loadConservazioni(r.id)
+        ]);
+      };
+
+      suggest.appendChild(div);
+    });
+
+    suggest.classList.add("open");
+  });
+
+  document.addEventListener("click", (e) => {
+    const wrap = input.parentElement;
+    if (!wrap) return;
+    if (!wrap.contains(e.target)) suggest.classList.remove("open");
+  });
+}
+
+function setRicettaInfo(text) {
+  const el = document.getElementById("prod-ricetta-info");
+  if (el) el.innerText = text;
+}
+
+/* ========================================================= */
+/* CONSERVAZIONE */
+/* ========================================================= */
 
 function resetConservazioneUI() {
   const select = document.getElementById("prod-conservazione");
@@ -405,93 +509,33 @@ function resetConservazioneUI() {
   select.innerHTML = `<option value="">Seleziona...</option>`;
 }
 
-function resetConfezionamentoUI() {
-  const sel = document.getElementById("prod-confezionamento");
-  if (!sel) return;
-  sel.innerHTML = `<option value="">Seleziona...</option>`;
-}
-
 function resetScadenza() {
   const el = document.getElementById("prod-scadenza");
   if (el) el.value = "";
 }
 
-function aggiornaConservazione() {
-  const select = document.getElementById("prod-conservazione");
-  if (!select) return;
-
-  const id = select.value;
-  const scenario = scenariConservazione.find((s) => String(s.id) === String(id));
-
-  resetConfezionamentoUI();
-  resetScadenza();
-
-  if (!scenario) return;
-
-  const opzioni = estraiOpzioniConfezionamento(scenario);
-  const sel = document.getElementById("prod-confezionamento");
-  if (!sel) return;
-
-  sel.innerHTML = `<option value="">Seleziona...</option>`;
-  opzioni.forEach((o) => {
-    const opt = document.createElement("option");
-    opt.value = o;
-    opt.textContent = o;
-    sel.appendChild(opt);
-  });
-
-  if (opzioni.length === 1) sel.value = opzioni[0];
-
-  aggiornaScadenza();
-  aggiornaScadenzeCoprodottiDaConservazione();
-}
-
-function estraiOpzioniConfezionamento(scenario) {
-  let raw = [];
-
-  if (Array.isArray(scenario.confezionamento_opzioni)) {
-    raw = scenario.confezionamento_opzioni;
-  } else if (typeof scenario.confezionamento_opzioni === "string" && scenario.confezionamento_opzioni.trim()) {
-    raw = splitMulti(scenario.confezionamento_opzioni);
-  } else if (typeof scenario.confezionamento === "string" && scenario.confezionamento.trim()) {
-    raw = splitMulti(scenario.confezionamento);
-  }
-
-  const clean = raw
-    .map((x) => (x ?? "").toString().trim())
-    .filter(Boolean);
-
-  const seen = new Set();
-  const unique = [];
-  for (const c of clean) {
-    const k = c.toLowerCase();
-    if (seen.has(k)) continue;
-    seen.add(k);
-    unique.push(c);
-  }
-  return unique;
-}
-
-function splitMulti(str) {
-  return (str || "")
-    .split(/[,;|]/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 function aggiornaScadenza() {
-  const id = document.getElementById("prod-conservazione")?.value || "";
-  const scenario = scenariConservazione.find((s) => String(s.id) === String(id));
-  if (!scenario) return;
+  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId));
+  if (!scenario) {
+    resetScadenza();
+    // aggiorna anche coprodotti se avevano scadenza auto
+    return;
+  }
 
   const dataProd = document.getElementById("prod-data")?.value || "";
   if (!dataProd) return;
 
-  const d = new Date(dataProd);
-  d.setDate(d.getDate() + (scenario.shelf_life_giorni || 0));
-
+  const scad = addDaysISO(dataProd, scenario.shelf_life_giorni || 0);
   const scadEl = document.getElementById("prod-scadenza");
-  if (scadEl) scadEl.value = d.toISOString().slice(0, 10);
+  if (scadEl) scadEl.value = scad;
+
+  // imposta scadenza base coprodotti se vuota
+  coprodottiRows = coprodottiRows.map((r) => ({
+    ...r,
+    data_scadenza: r.data_scadenza || scad
+  }));
+  renderCoprodottiRows();
 }
 
 /* ========================================================= */
@@ -507,74 +551,108 @@ function setupOperatorePIN() {
   info.innerText = "Nessun operatore identificato";
 
   pinInput.addEventListener("input", () => {
-    const pin = (pinInput.value || "").trim();
+    if (savedLotto) return;
 
-    // Reset stato base
+    const pin = (pinInput.value || "").trim();
     if (!pin) {
       operatoreRisolto = null;
       info.innerText = "Nessun operatore identificato";
       return;
     }
 
-    // Validazione formato: solo numeri 4-6 cifre
-    if (!/^[0-9]{4,6}$/.test(pin)) {
-      operatoreRisolto = null;
-      info.innerText = "PIN deve essere 4-6 cifre numeriche";
-      return;
-    }
-
-    // Ricerca operatore con PIN
-    const match = dipendentiCache.find(
-      (d) => (d.pin ?? "").toString() === pin
-    );
-
+    const match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
     if (!match) {
       operatoreRisolto = null;
       info.innerText = "PIN non valido ❌";
       return;
     }
 
-    // OK
     operatoreRisolto = match;
     info.innerText = `Operatore: ${match.nome} ✅`;
   });
 }
+
 /* ========================================================= */
-/* LOTTO */
+/* PORZIONI */
 /* ========================================================= */
 
-function ensureLotto(forceRegenerate = false) {
-  const lottoEl = document.getElementById("prod-lotto");
-  if (!lottoEl) return;
+function renderPorzioniRows() {
+  const wrap = document.getElementById("porzioni-wrap");
+  if (!wrap) return;
 
-  if (savedProduzioneId) return;
-
-  if (!ricettaSelezionata) {
-    lottoEl.value = "";
+  if (!ricettaSelezionata?.id) {
+    wrap.innerHTML = `<div class="form-help">Seleziona una ricetta per vedere le porzioni disponibili.</div>`;
     return;
   }
 
-  if (lottoEl.value && !forceRegenerate) return;
+  if (!porzioniRows.length) {
+    wrap.innerHTML = `<div class="form-help">Nessuna porzione configurata per questa ricetta.</div>`;
+    return;
+  }
 
-  const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
-  const prefix = generaPrefissoLotto(ricettaSelezionata);
-  const progressivo = nextProgressivo(prefix, dataProd);
+  wrap.innerHTML = porzioniRows
+    .map((r) => {
+      const pesoTxt = `${formatNumber(r.peso_porzione)} ${escapeHtml(r.unita_misura || "kg")}`;
+      return `
+        <div class="card menu-card" data-porzione-id="${escapeAttr(String(r.porzione_id))}">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>${escapeHtml(r.label)} (${pesoTxt})</label>
+              <input class="input"
+                type="number"
+                min="0"
+                step="1"
+                data-field="quantita_pz"
+                value="${escapeAttr(String(r.quantita_pz ?? ""))}"
+                placeholder="Numero confezioni"
+                ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Inserisci la quantità reale prodotta (pezzi).</div>
+            </div>
 
-  lottoEl.value = `${prefix}-${dataProd.replaceAll("-", "")}-${String(progressivo).padStart(2, "0")}`;
+            <div class="form-group">
+              <label>Note confezionamento</label>
+              <input class="input"
+                type="text"
+                data-field="note"
+                value="${escapeAttr(String(r.note ?? ""))}"
+                placeholder="Es: Battesimo Lucia"
+                ${savedLotto ? "readonly" : ""} />
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
-function generaPrefissoLotto(ricetta) {
-  const nome = (ricetta?.nome || "").trim().toUpperCase();
-  const onlyLetters = nome.replace(/[^A-Z]/g, "");
-  const pref = (onlyLetters.slice(0, 3) || "LOT").padEnd(3, "X");
-  return pref;
-}
+function onPorzioniInput(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
 
-function nextProgressivo(prefix, dataISO) {
-  const key = `rf_lotto_${prefix}_${dataISO}`;
-  const n = Number(localStorage.getItem(key) || "0") + 1;
-  localStorage.setItem(key, String(n));
-  return n;
+  const card = target.closest("[data-porzione-id]");
+  if (!card) return;
+
+  const porzioneId = card.getAttribute("data-porzione-id");
+  if (!porzioneId) return;
+
+  const idx = porzioniRows.findIndex((x) => String(x.porzione_id) === String(porzioneId));
+  if (idx < 0) return;
+
+  const field = target.getAttribute("data-field");
+  if (!field) return;
+
+  if (savedLotto) return;
+
+  if (field === "quantita_pz" && target instanceof HTMLInputElement) {
+    porzioniRows[idx].quantita_pz = target.value ?? "";
+    recalcResaUI();
+    return;
+  }
+
+  if (field === "note" && target instanceof HTMLInputElement) {
+    porzioniRows[idx].note = target.value ?? "";
+    return;
+  }
 }
 
 /* ========================================================= */
@@ -587,11 +665,20 @@ function addCoprodottoRow() {
     prodotto_id: "",
     quantita: "",
     unita_misura: "",
-    data_scadenza: ""
+    data_scadenza: "",
+    note: ""
   });
 
+  // se scadenza lotto esiste, default
+  const scadBase = document.getElementById("prod-scadenza")?.value || "";
+  if (scadBase) {
+    coprodottiRows = coprodottiRows.map((r) => ({
+      ...r,
+      data_scadenza: r.data_scadenza || scadBase
+    }));
+  }
+
   renderCoprodottiRows();
-  aggiornaScadenzeCoprodottiDaConservazione();
 }
 
 function removeCoprodottoRow(rowId) {
@@ -615,19 +702,16 @@ function renderCoprodottiRows() {
 
       return `
         <div class="card menu-card" data-coprodotto-id="${escapeAttr(row.id)}">
-
           <div class="form-grid">
 
             <div class="form-group">
               <label>Prodotto</label>
-              <select class="input" data-field="prodotto_id" ${savedProduzioneId ? "disabled" : ""}>
+              <select class="input" data-field="prodotto_id" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona prodotto</option>
-                ${prodottiCache
-                  .map((p) => {
-                    const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
-                    return `<option value="${escapeAttr(p.id)}" ${selected}>${escapeHtml(p.nome)}</option>`;
-                  })
-                  .join("")}
+                ${prodottiCache.map((p) => {
+                  const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
+                  return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.nome)}</option>`;
+                }).join("")}
               </select>
             </div>
 
@@ -640,7 +724,7 @@ function renderCoprodottiRows() {
                 data-field="quantita"
                 value="${escapeAttr(String(row.quantita ?? ""))}"
                 placeholder="Es: 0.500"
-                ${savedProduzioneId ? "readonly" : ""} />
+                ${savedLotto ? "readonly" : ""} />
             </div>
 
             <div class="form-group">
@@ -650,7 +734,7 @@ function renderCoprodottiRows() {
                 data-field="unita_misura"
                 value="${escapeAttr(String(umDefault || ""))}"
                 placeholder="Es: kg"
-                ${savedProduzioneId ? "readonly" : ""} />
+                ${savedLotto ? "readonly" : ""} />
             </div>
 
             <div class="form-group">
@@ -659,7 +743,17 @@ function renderCoprodottiRows() {
                 type="date"
                 data-field="data_scadenza"
                 value="${escapeAttr(String(row.data_scadenza || ""))}"
-                ${savedProduzioneId ? "readonly" : ""} />
+                ${savedLotto ? "readonly" : ""} />
+            </div>
+
+            <div class="form-group">
+              <label>Note</label>
+              <input class="input"
+                type="text"
+                data-field="note"
+                value="${escapeAttr(String(row.note || ""))}"
+                placeholder="Es: Per salsa / evento..."
+                ${savedLotto ? "readonly" : ""} />
             </div>
 
           </div>
@@ -668,47 +762,141 @@ function renderCoprodottiRows() {
             <button type="button"
               class="app-button secondary"
               data-action="remove-coprodotto"
-              ${savedProduzioneId ? "disabled" : ""}>
+              ${savedLotto ? "disabled" : ""}>
               Rimuovi
             </button>
           </div>
-
         </div>
       `;
     })
     .join("");
 }
 
-function aggiornaScadenzeCoprodottiDaConservazione() {
-  const dataProd = document.getElementById("prod-data")?.value || "";
-  if (!dataProd) return;
+function onCoprodottiChange(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
 
-  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
-  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-  if (!scenario) return;
+  const card = target.closest("[data-coprodotto-id]");
+  if (!card) return;
 
-  const scadenzaBase = addDaysISO(dataProd, scenario.shelf_life_giorni || 0);
+  const rowId = card.getAttribute("data-coprodotto-id");
+  if (!rowId) return;
 
-  coprodottiRows = coprodottiRows.map((r) => ({
-    ...r,
-    data_scadenza: r.data_scadenza || scadenzaBase
-  }));
+  const idx = coprodottiRows.findIndex((r) => String(r.id) === String(rowId));
+  if (idx < 0) return;
 
-  renderCoprodottiRows();
-}
+  const field = target.getAttribute("data-field");
+  if (!field) return;
 
-function addDaysISO(dateISO, days) {
-  const d = new Date(dateISO);
-  if (Number.isFinite(days)) d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+  if (savedLotto) return;
 
-function cryptoRandomId() {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    return `id_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+  if (field === "prodotto_id" && target instanceof HTMLSelectElement) {
+    coprodottiRows[idx].prodotto_id = (target.value || "").toString();
+    const prodotto = prodottiCache.find((p) => String(p.id) === String(coprodottiRows[idx].prodotto_id)) || null;
+    if (prodotto && !coprodottiRows[idx].unita_misura) {
+      coprodottiRows[idx].unita_misura = prodotto.unita_misura || "kg";
+    }
+    renderCoprodottiRows();
+    return;
   }
+
+  if (field === "quantita" && target instanceof HTMLInputElement) {
+    coprodottiRows[idx].quantita = target.value ?? "";
+    return;
+  }
+
+  if (field === "unita_misura" && target instanceof HTMLInputElement) {
+    coprodottiRows[idx].unita_misura = target.value ?? "";
+    return;
+  }
+
+  if (field === "data_scadenza" && target instanceof HTMLInputElement) {
+    coprodottiRows[idx].data_scadenza = target.value ?? "";
+    return;
+  }
+
+  if (field === "note" && target instanceof HTMLInputElement) {
+    coprodottiRows[idx].note = target.value ?? "";
+    return;
+  }
+}
+
+function onCoprodottiClick(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const btn = target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.getAttribute("data-action");
+  const card = btn.closest("[data-coprodotto-id]");
+  if (!card) return;
+
+  const rowId = card.getAttribute("data-coprodotto-id");
+  if (!rowId) return;
+
+  if (action === "remove-coprodotto") {
+    if (savedLotto) return;
+    removeCoprodottoRow(rowId);
+  }
+}
+
+/* ========================================================= */
+/* RESA */
+/* ========================================================= */
+
+function recalcResaUI() {
+  const resaTeoEl = document.getElementById("resa-teorica");
+  const resaReaEl = document.getElementById("resa-reale");
+  const scartoEl = document.getElementById("resa-scarto");
+
+  if (!resaTeoEl || !resaReaEl || !scartoEl) return;
+
+  const resaTeoKg = getResaTeoricaKg();
+  const resaReaKg = getResaRealeKg();
+  const scartoKg = (resaTeoKg != null) ? (resaTeoKg - resaReaKg) : null;
+
+  resaTeoEl.value = resaTeoKg == null ? "" : `${formatNumber(resaTeoKg)} kg`;
+  resaReaEl.value = `${formatNumber(resaReaKg)} kg`;
+  scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
+}
+
+function getResaTeoricaKg() {
+  if (!ricettaSelezionata) return null;
+  if (ricettaSelezionata.resa_teorica == null) return null;
+
+  const v = toNumber(ricettaSelezionata.resa_teorica);
+  const u = (ricettaSelezionata.resa_unita || "kg").toString().toLowerCase().trim();
+
+  if (u === "g" || u === "gr" || u === "grammi") return v / 1000;
+  return v;
+}
+
+function getResaRealeKg() {
+  let totKg = 0;
+
+  for (const r of porzioniRows) {
+    const qPz = Math.max(0, Math.floor(toNumber(r.quantita_pz) || 0));
+    if (qPz <= 0) continue;
+
+    const peso = toNumber(r.peso_porzione);
+    const u = (r.unita_misura || "kg").toString().toLowerCase().trim();
+
+    let pesoKg = peso;
+    if (u === "g" || u === "gr" || u === "grammi") pesoKg = peso / 1000;
+    // assumiamo kg se non g
+    totKg += qPz * pesoKg;
+  }
+
+  return totKg;
+}
+
+function getMoltiplicatoreRicetta() {
+  const teo = getResaTeoricaKg();
+  const rea = getResaRealeKg();
+  if (teo == null || teo <= 0) return 1;
+  if (!Number.isFinite(rea) || rea <= 0) return 1;
+  return rea / teo;
 }
 
 /* ========================================================= */
@@ -814,149 +1002,97 @@ function bindEvents() {
     window.location.hash = "#/produzione";
   });
 
-  document.getElementById("prod-conservazione")?.addEventListener("change", aggiornaConservazione);
-
-  document.getElementById("prod-data")?.addEventListener("change", () => {
-    aggiornaScadenza();
-    if (!savedProduzioneId) ensureLotto(false);
-    aggiornaScadenzeCoprodottiDaConservazione();
-  });
-
-  document.getElementById("btn-add-coprodotto")?.addEventListener("click", () => {
-    if (savedProduzioneId) return;
-    addCoprodottoRow();
-  });
-
-  document.getElementById("coprodotti-wrap")?.addEventListener("change", (e) => onCoprodottiChange(e));
-  document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
-
-  document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
-
-  document.getElementById("btn-print-finale")?.addEventListener("click", stampaEtichettaProdottoFinito);
-  document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
-
   document.getElementById("btn-vedi-ricetta")?.addEventListener("click", apriModalRicetta);
+
   document.getElementById("prod-modal-close")?.addEventListener("click", chiudiModalRicetta);
   document.getElementById("prod-modal-backdrop")?.addEventListener("click", (e) => {
     if (e.target?.id === "prod-modal-backdrop") chiudiModalRicetta();
   });
-}
 
-function onCoprodottiChange(e) {
-  const target = e.target;
-  if (!(target instanceof HTMLElement)) return;
+  document.getElementById("prod-conservazione")?.addEventListener("change", () => {
+    if (savedLotto) return;
+    aggiornaScadenza();
+  });
 
-  const card = target.closest("[data-coprodotto-id]");
-  if (!card) return;
+  document.getElementById("prod-data")?.addEventListener("change", () => {
+    if (savedLotto) return;
+    aggiornaScadenza();
+  });
 
-  const rowId = card.getAttribute("data-coprodotto-id");
-  if (!rowId) return;
+  document.getElementById("porzioni-wrap")?.addEventListener("input", (e) => onPorzioniInput(e));
+  document.getElementById("porzioni-wrap")?.addEventListener("change", (e) => onPorzioniInput(e));
 
-  const idx = coprodottiRows.findIndex((r) => String(r.id) === String(rowId));
-  if (idx < 0) return;
+  document.getElementById("btn-add-coprodotto")?.addEventListener("click", () => {
+    if (savedLotto) return;
+    addCoprodottoRow();
+  });
 
-  const field = target.getAttribute("data-field");
-  if (!field) return;
+  document.getElementById("coprodotti-wrap")?.addEventListener("change", (e) => onCoprodottiChange(e));
+  document.getElementById("coprodotti-wrap")?.addEventListener("input", (e) => onCoprodottiChange(e));
+  document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
 
-  if (field === "prodotto_id" && target instanceof HTMLSelectElement) {
-    coprodottiRows[idx].prodotto_id = (target.value || "").toString();
+  document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
 
-    const prodotto = prodottiCache.find((p) => String(p.id) === String(coprodottiRows[idx].prodotto_id)) || null;
-    if (prodotto && !coprodottiRows[idx].unita_misura) {
-      coprodottiRows[idx].unita_misura = prodotto.unita_misura || "kg";
-    }
-
-    renderCoprodottiRows();
-    return;
-  }
-
-  if (field === "quantita" && target instanceof HTMLInputElement) {
-    coprodottiRows[idx].quantita = target.value ?? "";
-    return;
-  }
-
-  if (field === "unita_misura" && target instanceof HTMLInputElement) {
-    coprodottiRows[idx].unita_misura = target.value ?? "";
-    return;
-  }
-
-  if (field === "data_scadenza" && target instanceof HTMLInputElement) {
-    coprodottiRows[idx].data_scadenza = target.value ?? "";
-    return;
-  }
-}
-
-function onCoprodottiClick(e) {
-  const target = e.target;
-  if (!(target instanceof HTMLElement)) return;
-
-  const btn = target.closest("[data-action]");
-  if (!btn) return;
-
-  const action = btn.getAttribute("data-action");
-  const card = btn.closest("[data-coprodotto-id]");
-  if (!card) return;
-
-  const rowId = card.getAttribute("data-coprodotto-id");
-  if (!rowId) return;
-
-  if (action === "remove-coprodotto") {
-    if (savedProduzioneId) return;
-    removeCoprodottoRow(rowId);
-  }
+  document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichettaLotto);
+  document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
 }
 
 /* ========================================================= */
-/* FORM VALIDATION */
+/* VALIDAZIONE */
 /* ========================================================= */
 
 function raccogliDatiForm() {
-  const ricettaId = document.getElementById("prod-ricetta-id")?.value || "";
   const dataProduzione = document.getElementById("prod-data")?.value || "";
-  const pesoFinale = document.getElementById("prod-peso")?.value || "";
-  const lotto = document.getElementById("prod-lotto")?.value || "";
-
   const scenarioId = document.getElementById("prod-conservazione")?.value || "";
   const scadenza = document.getElementById("prod-scadenza")?.value || "";
+  const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
 
-  const confezionamento = document.getElementById("prod-confezionamento")?.value || "";
-  const unita = document.getElementById("prod-unita-label")?.innerText || "kg";
+  const porzioni = porzioniRows.map((r) => ({
+    porzione_id: r.porzione_id,
+    label: r.label,
+    peso_porzione: toNumber(r.peso_porzione),
+    unita_misura: r.unita_misura,
+    quantita_pz: Math.max(0, Math.floor(toNumber(r.quantita_pz) || 0)),
+    note: (r.note || "").toString()
+  }));
+
+  const coprodotti = coprodottiRows.map((r) => ({
+    ...r,
+    prodotto_id: (r.prodotto_id || "").toString(),
+    quantita: r.quantita,
+    unita_misura: (r.unita_misura || "").toString(),
+    data_scadenza: (r.data_scadenza || "").toString(),
+    note: (r.note || "").toString()
+  }));
 
   return {
-    ricettaId,
     dataProduzione,
-    pesoFinale,
-    lotto,
     scenarioId,
     scadenza,
-    confezionamento,
-    unita,
+    noteLotto,
     operatore: operatoreRisolto,
-    coprodotti: coprodottiRows.map((r) => ({
-      ...r,
-      prodotto_id: (r.prodotto_id || "").toString(),
-      quantita: r.quantita,
-      unita_misura: (r.unita_misura || "").toString(),
-      data_scadenza: (r.data_scadenza || "").toString()
-    }))
+    porzioni,
+    coprodotti
   };
 }
 
 function validaForm(dati) {
-  if (savedProduzioneId) return "Produzione già registrata.";
+  if (savedLotto) return "Produzione già registrata.";
 
-  if (!dati.ricettaId) return "Seleziona una ricetta.";
+  if (!ricettaSelezionata?.id) return "Seleziona una ricetta.";
   if (!dati.dataProduzione) return "Seleziona la data produzione.";
-  if (!dati.pesoFinale || Number(dati.pesoFinale) <= 0) return "Inserisci il peso reale prodotto finito (maggiore di 0).";
-  if (!dati.lotto) return "Lotto non disponibile. Seleziona una ricetta.";
   if (!dati.operatore?.id) return "Inserisci un PIN operatore valido.";
   if (!dati.scenarioId) return "Seleziona lo scenario di conservazione.";
   if (!dati.scadenza) return "Scadenza non disponibile. Controlla conservazione e data produzione.";
-  if (!dati.confezionamento) return "Seleziona il confezionamento.";
 
-  const invalidCop = dati.coprodotti.some((c) => {
+  const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
+  if (!porzioniValide.length) return "Inserisci almeno una porzione con quantità > 0.";
+
+  const invalidCop = (dati.coprodotti || []).some((c) => {
+    const hasProd = !!c.prodotto_id;
+    if (!hasProd) return false;
+
     const q = toNumber(c.quantita);
-    if (!c.prodotto_id) return false;
     if (!Number.isFinite(q) || q <= 0) return true;
     if (!c.unita_misura) return true;
     if (!c.data_scadenza) return true;
@@ -965,11 +1101,16 @@ function validaForm(dati) {
 
   if (invalidCop) return "Compila correttamente i coprodotti (quantità > 0, UM e scadenza).";
 
+  // richiediamo prodotto_output_id per carico prodotto finito
+  if (!ricettaSelezionata?.prodotto_output_id) {
+    return "La ricetta non ha un prodotto output associato (prodotto_output_id).";
+  }
+
   return null;
 }
 
 /* ========================================================= */
-/* SAVE (produzioni + righe + movimenti + coprodotti) */
+/* SAVE */
 /* ========================================================= */
 
 async function salvaProduzione() {
@@ -989,53 +1130,98 @@ async function salvaProduzione() {
   if (result) result.innerHTML = "";
 
   try {
-    const { data: produzione, error: errProduzione } = await supabase
-      .from("produzioni")
+    const resaTeoKg = getResaTeoricaKg();
+    const resaReaKg = getResaRealeKg();
+    const scartoKg = (resaTeoKg != null) ? (resaTeoKg - resaReaKg) : null;
+
+    const moltiplicatore = getMoltiplicatoreRicetta();
+
+    // 1) INSERT LOTTO (produzione_lotti) - codice_lotto generato da trigger
+    const dettaglioConfezionamento = (dati.porzioni || [])
+      .filter((p) => p.quantita_pz > 0)
+      .map((p) => ({
+        porzione_id: p.porzione_id,
+        label: p.label,
+        peso_porzione: p.peso_porzione,
+        unita_misura: p.unita_misura,
+        quantita_pz: p.quantita_pz,
+        note: p.note || ""
+      }));
+
+    const { data: lotto, error: errLotto } = await supabase
+      .from("produzione_lotti")
       .insert({
         azienda_id: aziendaId,
+        ricetta_id: ricettaSelezionata.id,
         data_produzione: dati.dataProduzione,
-        lotto: dati.lotto,
+        data_scadenza: dati.scadenza,
+        quantita_output: resaReaKg, // in kg (coerente col resto)
+        unita_misura: "kg",
+        scenario_conservazione_id: dati.scenarioId || null,
+        porzione_id: null, // multi-porzione
+        stato: "confermato",
+        note: (dati.noteLotto || "").toString(),
         operatore_id: dati.operatore.id,
-        scenario_conservazione_id: dati.scenarioId,
-        scadenza: dati.scadenza,
-        confezionamento: dati.confezionamento
+        firmato_at: new Date().toISOString(),
+        resa_percentuale: null,
+        scarto_percentuale: null,
+        dettaglio_confezionamento: dettaglioConfezionamento,
+        resa_teorica: resaTeoKg,
+        resa_reale: resaReaKg,
+        scarto: scartoKg
       })
       .select()
       .single();
 
-    if (errProduzione) throw errProduzione;
+    if (errLotto) throw errLotto;
 
-    savedProduzioneId = produzione.id;
+    savedLotto = lotto;
 
-    const { data: riga, error: errRiga } = await supabase
+    // UI lotto
+    const lottoEl = document.getElementById("prod-lotto");
+    if (lottoEl && lotto?.codice_lotto) lottoEl.value = lotto.codice_lotto;
+
+    // 2) INSERT RIGHE PORZIONI (schede_produzione_righe)
+    const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
+
+    const righePorzioniPayload = porzioniValide.map((p) => ({
+      azienda_id: aziendaId,
+      produzione_id: lotto.id, // deve essere BIGINT FK produzione_lotti(id)
+      ricetta_id: ricettaSelezionata.id,
+      conservazione_id: dati.scenarioId || null,
+      formato_label: p.label,
+      quantita: p.quantita_pz, // numero pezzi
+      quantita_equivalente: null,
+      unita: "pz",
+      moltiplicatore_ricetta: moltiplicatore,
+      lotto: lotto.codice_lotto,
+      porzione_id: p.porzione_id,
+      note_confezionamento: p.note || null
+    }));
+
+    const { data: righeIns, error: errRighe } = await supabase
       .from("schede_produzione_righe")
-      .insert({
-        azienda_id: aziendaId,
-        produzione_id: savedProduzioneId,
-        ricetta_id: dati.ricettaId,
-        quantita: toNumber(dati.pesoFinale),
-        unita: dati.unita || "kg",
-        lotto: dati.lotto
-      })
-      .select()
-      .single();
+      .insert(righePorzioniPayload)
+      .select("id, porzione_id, formato_label, quantita, unita, note_confezionamento");
 
-    if (errRiga) throw errRiga;
+    if (errRighe) throw errRighe;
+    savedRighe = (righeIns || []);
 
-    savedRigaId = riga.id;
-
+    // 3) SCARICO INGREDIENTI (ricetta_ingredienti * moltiplicatore)
     const { data: ingredienti, error: errIng } = await supabase
       .from("ricetta_ingredienti")
       .select("*")
       .eq("azienda_id", aziendaId)
-      .eq("ricetta_id", dati.ricettaId);
+      .eq("ricetta_id", ricettaSelezionata.id);
 
     if (errIng) throw errIng;
 
     for (const ing of (ingredienti || [])) {
       const prodottoId = ing.prodotto_id;
-      const q = toNumber(ing.quantita ?? ing.qta ?? ing.qta_ingrediente ?? 0);
-      if (!prodottoId || q <= 0) continue;
+      const qBase = toNumber(ing.quantita ?? ing.qta ?? ing.qta_ingrediente ?? 0);
+      if (!prodottoId || qBase <= 0) continue;
+
+      const qScarico = qBase * moltiplicatore;
 
       const { error: errMov } = await supabase
         .from("magazzino_movimenti")
@@ -1043,90 +1229,95 @@ async function salvaProduzione() {
           azienda_id: aziendaId,
           prodotto_id: prodottoId,
           tipo_movimento: "SCARICO",
-          quantita: q,
+          quantita: qScarico,
           data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE",
-          riferimento_id: savedProduzioneId,
-          riferimento_riga_id: savedRigaId,
-          note: `Scarico ingredienti produzione lotto ${dati.lotto}`
+          riferimento_tipo: "PRODUZIONE_LOTTO",
+          riferimento_id: lotto.id,
+          note: `Scarico ingredienti lotto ${lotto.codice_lotto}`
         });
 
       if (errMov) throw errMov;
     }
 
-    if (ricettaSelezionata?.prodotto_output_id) {
+    // 4) CARICO PRODOTTO FINITO (per porzione: quantita = pezzi; note include label + peso + nota)
+    for (const p of porzioniValide) {
+      const pesoTxt = `${formatNumber(p.peso_porzione)} ${String(p.unita_misura || "kg")}`;
+      const noteExtra = (p.note || "").trim();
+      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${p.label} (${pesoTxt})${noteExtra ? ` — ${noteExtra}` : ""}`;
+
       const { error: errCarico } = await supabase
         .from("magazzino_movimenti")
         .insert({
           azienda_id: aziendaId,
           prodotto_id: ricettaSelezionata.prodotto_output_id,
           tipo_movimento: "CARICO",
-          quantita: toNumber(dati.pesoFinale),
+          quantita: p.quantita_pz,
           data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE",
-          riferimento_id: savedProduzioneId,
-          riferimento_riga_id: savedRigaId,
-          note: `Carico prodotto finito lotto ${dati.lotto}`
+          riferimento_tipo: "PRODUZIONE_LOTTO",
+          riferimento_id: lotto.id,
+          note
         });
 
       if (errCarico) throw errCarico;
     }
 
+    // 5) COPRODOTTI: righe + carico magazzino
     const coprodottiValidi = (dati.coprodotti || []).filter((c) => c.prodotto_id);
 
     for (const c of coprodottiValidi) {
       const q = toNumber(c.quantita);
       if (q <= 0) continue;
 
-      const { data: cop, error: errCop } = await supabase
-        .from("produzione_output_secondari")
+      // riga coprodotto in schede_produzione_righe (richiede colonna prodotto_id)
+      const { error: errRigaCop } = await supabase
+        .from("schede_produzione_righe")
         .insert({
           azienda_id: aziendaId,
-          produzione_id: savedProduzioneId,
-          prodotto_id: c.prodotto_id,
-          codice_lotto: dati.lotto,
+          produzione_id: lotto.id,
+          ricetta_id: ricettaSelezionata.id,
+          conservazione_id: dati.scenarioId || null,
+          formato_label: "COPRODOTTO",
           quantita: q,
-          unita_misura: c.unita_misura || "kg",
-          data_produzione: dati.dataProduzione,
-          data_scadenza: c.data_scadenza,
-          costo_allocato: null,
-          stampato: false
-        })
-        .select("id")
-        .single();
+          quantita_equivalente: null,
+          unita: c.unita_misura || "kg",
+          moltiplicatore_ricetta: moltiplicatore,
+          lotto: lotto.codice_lotto,
+          porzione_id: null,
+          note_confezionamento: (c.note || "").trim() || null,
+          prodotto_id: Number(c.prodotto_id)
+        });
 
-      if (errCop) throw errCop;
+      if (errRigaCop) throw errRigaCop;
+
+      const prod = prodottiCache.find((p) => String(p.id) === String(c.prodotto_id));
+      const nomeProd = prod?.nome || "Coprodotto";
+      const noteCop = `Carico coprodotto lotto ${lotto.codice_lotto} — ${nomeProd}${c.note ? ` — ${c.note}` : ""}`;
 
       const { error: errMovCop } = await supabase
         .from("magazzino_movimenti")
         .insert({
           azienda_id: aziendaId,
-          prodotto_id: c.prodotto_id,
+          prodotto_id: Number(c.prodotto_id),
           tipo_movimento: "CARICO",
           quantita: q,
           data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE",
-          riferimento_id: savedProduzioneId,
-          riferimento_riga_id: savedRigaId,
-          note: `Carico coprodotto lotto ${dati.lotto}`
+          riferimento_tipo: "PRODUZIONE_LOTTO",
+          riferimento_id: lotto.id,
+          note: noteCop
         });
 
       if (errMovCop) throw errMovCop;
-
-      void cop;
     }
 
     lockUIAfterSave();
 
     if (result) {
-      result.innerHTML = `<span class="success-text">Produzione registrata ✔ — Lotto: ${escapeHtml(dati.lotto)}</span>`;
+      result.innerHTML = `<span class="success-text">Produzione registrata ✔ — Lotto: ${escapeHtml(lotto.codice_lotto || "")}</span>`;
     }
 
-    alert(`Produzione registrata ✔️\nLotto: ${dati.lotto}`);
+    alert(`Produzione registrata ✔️\nLotto: ${lotto.codice_lotto || "(generato)"}`);
   } catch (error) {
     console.error("Errore registrazione produzione:", error);
-    savedProduzioneId = null;
-    savedRigaId = null;
 
     if (result) {
       result.innerHTML = `<span class="error-text">Errore: ${escapeHtml(error?.message || "Operazione non riuscita")}</span>`;
@@ -1143,18 +1334,17 @@ function lockUIAfterSave() {
   const btnAddCop = document.getElementById("btn-add-coprodotto");
   if (btnAddCop) btnAddCop.setAttribute("disabled", "disabled");
 
-  const printFin = document.getElementById("btn-print-finale");
+  const printLotto = document.getElementById("btn-print-lotto");
   const printCop = document.getElementById("btn-print-coprodotti");
-  if (printFin) printFin.removeAttribute("disabled");
+  if (printLotto) printLotto.removeAttribute("disabled");
   if (printCop) printCop.removeAttribute("disabled");
 
   const lockIds = [
     "prod-ricetta-search",
     "prod-data",
-    "prod-peso",
     "prod-operatore-pin",
-    "prod-conservazione",
-    "prod-confezionamento"
+    "prod-note-lotto",
+    "prod-conservazione"
   ];
 
   for (const id of lockIds) {
@@ -1165,6 +1355,7 @@ function lockUIAfterSave() {
     }
   }
 
+  renderPorzioniRows();
   renderCoprodottiRows();
 }
 
@@ -1172,26 +1363,41 @@ function lockUIAfterSave() {
 /* PRINT */
 /* ========================================================= */
 
-function stampaEtichettaProdottoFinito() {
-  const dati = raccogliDatiForm();
-  const err = validaFormForPrint(dati);
-  if (err) return alert(err);
+function stampaEtichettaLotto() {
+  if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
-  const ricettaNome = ricettaSelezionata?.nome || "Ricetta";
-  const operatoreNome = `${dati.operatore?.cognome || ""} ${dati.operatore?.nome || ""}`.trim();
-  const unita = dati.unita || "";
+  const dataProd = document.getElementById("prod-data")?.value || "";
+  const scadenza = document.getElementById("prod-scadenza")?.value || "";
+  const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
+  const operatoreNome = operatoreRisolto?.nome || "";
+
+  const porzioniValide = porzioniRows
+    .map((p) => ({
+      ...p,
+      q: Math.max(0, Math.floor(toNumber(p.quantita_pz) || 0))
+    }))
+    .filter((p) => p.q > 0);
+
+  const righePorzioniTxt = porzioniValide
+    .map((p) => {
+      const note = (p.note || "").trim();
+      const pesoTxt = `${formatNumber(toNumber(p.peso_porzione))}${p.unita_misura?.toLowerCase().trim() === "g" ? "g" : "kg"}`;
+      return `${escapeHtml(p.label)} → ${escapeHtml(String(p.q))} pz (${escapeHtml(pesoTxt)})${note ? ` — ${escapeHtml(note)}` : ""}`;
+    })
+    .join("<br>");
 
   const html = buildPrintHtml({
-    title: "Etichetta Prodotto Finito",
+    title: "Etichetta Lotto",
     labels: [
       buildLabelHtml({
-        header: escapeHtml(ricettaNome),
+        header: escapeHtml(ricettaSelezionata?.nome || "Ricetta"),
         rows: [
-          { k: "Lotto", v: dati.lotto, big: true },
-          { k: "Data produzione", v: dati.dataProduzione },
-          { k: "Scadenza", v: dati.scadenza },
-          { k: "Peso", v: `${String(dati.pesoFinale)} ${unita}` },
-          { k: "Operatore", v: operatoreNome }
+          { k: "Lotto", v: savedLotto.codice_lotto, big: true },
+          { k: "Data produzione", v: dataProd },
+          { k: "Scadenza", v: scadenza },
+          { k: "Operatore", v: operatoreNome },
+          noteLotto ? { k: "Destinazione / Note", v: noteLotto } : null,
+          { k: "Confezionamento", v: righePorzioniTxt || "—" }
         ],
         footer: "Generato da Ristoflow — Produzione"
       })
@@ -1202,26 +1408,35 @@ function stampaEtichettaProdottoFinito() {
 }
 
 function stampaEtichetteCoprodotti() {
-  const dati = raccogliDatiForm();
-  const err = validaFormForPrint(dati);
-  if (err) return alert(err);
+  if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
-  const coprodottiValidi = (dati.coprodotti || []).filter((c) => c.prodotto_id && toNumber(c.quantita) > 0);
+  const dataProd = document.getElementById("prod-data")?.value || "";
+  const scadenzaLotto = document.getElementById("prod-scadenza")?.value || "";
+
+  const coprodottiValidi = coprodottiRows
+    .map((c) => ({
+      ...c,
+      q: toNumber(c.quantita),
+      prod: prodottiCache.find((p) => String(p.id) === String(c.prodotto_id)) || null
+    }))
+    .filter((c) => c.prodotto_id && c.q > 0);
+
   if (!coprodottiValidi.length) return alert("Nessun coprodotto valido da stampare.");
 
   const labels = coprodottiValidi.map((c) => {
-    const prod = prodottiCache.find((p) => String(p.id) === String(c.prodotto_id));
-    const nomeProd = prod?.nome || "Coprodotto";
-    const unita = c.unita_misura || prod?.unita_misura || "";
+    const nomeProd = c.prod?.nome || "Coprodotto";
+    const unita = c.unita_misura || c.prod?.unita_misura || "kg";
+    const scad = c.data_scadenza || scadenzaLotto;
 
     return buildLabelHtml({
       header: escapeHtml(nomeProd),
       rows: [
-        { k: "Lotto", v: dati.lotto, big: true },
-        { k: "Data produzione", v: dati.dataProduzione },
-        { k: "Scadenza", v: c.data_scadenza || dati.scadenza },
-        { k: "Peso", v: `${String(c.quantita)} ${unita}` },
-        { k: "", v: "Coprodotto da lavorazione" }
+        { k: "Lotto", v: savedLotto.codice_lotto, big: true },
+        { k: "Data produzione", v: dataProd },
+        { k: "Scadenza", v: scad },
+        { k: "Quantità", v: `${formatNumber(c.q)} ${escapeHtml(unita)}` },
+        { k: "", v: "Coprodotto da lavorazione" },
+        c.note ? { k: "Note", v: c.note } : null
       ],
       footer: "Generato da Ristoflow — Produzione"
     });
@@ -1233,15 +1448,6 @@ function stampaEtichetteCoprodotti() {
   });
 
   openPrintWindow(html);
-}
-
-function validaFormForPrint(dati) {
-  if (!dati.ricettaId) return "Seleziona una ricetta.";
-  if (!dati.dataProduzione) return "Seleziona la data produzione.";
-  if (!dati.lotto) return "Lotto non disponibile.";
-  if (!dati.scadenza) return "Scadenza non disponibile.";
-  if (!dati.operatore?.id) return "PIN operatore non valido.";
-  return null;
 }
 
 function buildPrintHtml({ title, labels }) {
@@ -1311,9 +1517,20 @@ function openPrintWindow(html) {
 /* HELPERS */
 /* ========================================================= */
 
+function addDaysISO(dateISO, days) {
+  const d = new Date(dateISO);
+  if (Number.isFinite(days)) d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function toNumber(v) {
   const n = parseFloat((v ?? "").toString().replace(",", "."));
   return Number.isFinite(n) ? n : 0;
+}
+
+function formatNumber(n) {
+  const x = toNumber(n);
+  return String(Math.round(x * 1000) / 1000).replace(".", ",");
 }
 
 function escapeHtml(str) {
@@ -1328,4 +1545,12 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return escapeHtml(str).replaceAll("`", "&#096;");
+}
+
+function cryptoRandomId() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `id_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+  }
 }
