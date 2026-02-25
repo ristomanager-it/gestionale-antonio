@@ -529,24 +529,37 @@ function setupOperatorePIN() {
 
   pinInput.addEventListener("input", () => {
     const pin = (pinInput.value || "").trim();
+
+    // Reset stato base
     if (!pin) {
       operatoreRisolto = null;
       info.innerText = "Nessun operatore identificato";
       return;
     }
 
-    const match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
+    // Validazione formato: solo numeri 4-6 cifre
+    if (!/^[0-9]{4,6}$/.test(pin)) {
+      operatoreRisolto = null;
+      info.innerText = "PIN deve essere 4-6 cifre numeriche";
+      return;
+    }
+
+    // Ricerca operatore con PIN
+    const match = dipendentiCache.find(
+      (d) => (d.pin ?? "").toString() === pin
+    );
+
     if (!match) {
       operatoreRisolto = null;
       info.innerText = "PIN non valido ❌";
       return;
     }
 
+    // OK
     operatoreRisolto = match;
-    info.innerText = `Operatore: ${match.cognome} ${match.nome} ✅`;
+    info.innerText = `Operatore: ${match.nome} ✅`;
   });
 }
-
 /* ========================================================= */
 /* LOTTO */
 /* ========================================================= */
