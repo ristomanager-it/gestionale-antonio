@@ -307,7 +307,7 @@ export async function render(app) {
           body: `
             <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
 
-            <div class="timbrature-actions">
+            <div class="tb-scroll-actions">
               <button id="btn-primary" class="btn-timbratura round green" type="button">
                 ${svgIcon("play")}
                 <div class="tb-label">Entrata</div>
