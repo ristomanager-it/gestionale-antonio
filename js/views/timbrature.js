@@ -373,6 +373,7 @@ export async function render(app) {
   const elPrimary = app.querySelector("#btn-primary");
   const elPausa = app.querySelector("#btn-pausa");
   const elFine = app.querySelector("#btn-fine");
+  const elSwipeCard = app.querySelector("#tb-swipe-card");
   const elMsg = app.querySelector("#tb-msg");
   const elList = app.querySelector("#tb-list");
   const elLastGeo = app.querySelector("#tb-last-geo");
