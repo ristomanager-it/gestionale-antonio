@@ -1,10 +1,12 @@
+// FILE: js/pages/preparazioni.js
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 /*
   PRODUZIONE (nuovo flusso)
   - Tabella principale: produzione_lotti (bigserial id, codice_lotto trigger)
   - Righe: schede_produzione_righe (1 riga per porzione + righe coprodotti)
-  - Magazzino: magazzino_movimenti (scarico ingredienti + carichi output/canali + carichi coprodotti)
+  - Magazzino: magazzino_movimenti (scarico ingredienti + carichi output + carichi coprodotti)
+  - HACCP: produzione_eventi_log (opzionale, best-effort)
 
   NOTE SCHEMA (necessario):
   - schede_produzione_righe deve puntare a produzione_lotti:
@@ -12,6 +14,7 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
   - per coprodotti in schede_produzione_righe serve:
       prodotto_id BIGINT NULL FK prodotti(id)
   - dipendenti deve avere un campo PIN (pin) oppure usiamo fallback su codice
+  - ricette_conservazione: (opz) fasi_operativo TEXT
 */
 
 let ricetteCache = [];
@@ -49,7 +52,7 @@ export async function render(container) {
 
   container.innerHTML = createPageLayout({
     title: "Produzione",
-    subtitle: "Porzioni reali, coprodotti, controllo resa, firma operatore e magazzino",
+    subtitle: "Peso reale, porzioni reali, coprodotti, controllo resa, firma operatore e magazzino (HACCP-ready)",
     content: `
       <div class="form-actions" style="margin-bottom:16px;">
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
@@ -122,10 +125,50 @@ export async function render(container) {
             </div>
 
             <div class="form-group">
-              <label>Confezionamento (da porzioni ricetta)</label>
-              <input class="input" readonly value="Gestito in confezionamento reale" />
+              <label>Temperatura</label>
+              <input id="prod-temp" class="input" readonly placeholder="—" />
             </div>
 
+          </div>
+
+          <div class="form-group" style="margin-top:10px;">
+            <label>Fasi operative (lettura)</label>
+            <textarea id="prod-fasi" class="input" rows="5" readonly placeholder="—"></textarea>
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Totale prodotto (controllo resa)",
+        body: `
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Resa teorica (da ricetta)</label>
+              <input id="resa-teorica" class="input" readonly />
+              <div class="form-help">Valore di riferimento (ricette_output).</div>
+            </div>
+
+            <div class="form-group">
+              <label>Peso totale reale (kg)</label>
+              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
+              <div class="form-help">Inserisci il peso reale misurato in laboratorio.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Peso allocato in porzioni (kg)</label>
+              <input id="peso-allocato" class="input" readonly />
+            </div>
+
+            <div class="form-group">
+              <label>Differenza (reale - allocato) (kg)</label>
+              <input id="peso-differenza" class="input" readonly />
+              <div class="form-help">Solo informativo (ritagli/calo/extra).</div>
+            </div>
+
+            <div class="form-group">
+              <label>Scarto (teorica - reale) (kg)</label>
+              <input id="resa-scarto" class="input" readonly />
+            </div>
           </div>
         `
       })}
@@ -137,21 +180,6 @@ export async function render(container) {
 
           <div class="form-help" style="margin-top:10px;">
             Inserisci quante confezioni reali hai prodotto per ciascuna porzione (Trattoria/Banchetto/Buffet...).
-          </div>
-
-          <div class="form-grid" style="margin-top:12px;">
-            <div class="form-group">
-              <label>Resa teorica</label>
-              <input id="resa-teorica" class="input" readonly />
-            </div>
-            <div class="form-group">
-              <label>Resa reale calcolata</label>
-              <input id="resa-reale" class="input" readonly />
-            </div>
-            <div class="form-group">
-              <label>Scarto</label>
-              <input id="resa-scarto" class="input" readonly />
-            </div>
           </div>
         `
       })}
@@ -209,6 +237,7 @@ export async function render(container) {
   bindEvents();
 
   resetConservazioneUI();
+  resetConservazioneDettagli();
   resetScadenza();
 
   renderPorzioniRows();
@@ -278,7 +307,6 @@ async function preloadDipendenti() {
   dipendentiCache = [];
   if (!supabase || !aziendaId) return;
 
-  // Best-effort: prova pin, altrimenti fallback su codice
   {
     const { data, error } = await supabase
       .from("dipendenti")
@@ -415,6 +443,7 @@ async function loadConservazioni(ricettaId) {
   });
 
   resetScadenza();
+  resetConservazioneDettagli();
 }
 
 /* ========================================================= */
@@ -444,6 +473,7 @@ function setupAutocompleteRicette() {
     porzioniRows = [];
     renderPorzioniRows();
     resetConservazioneUI();
+    resetConservazioneDettagli();
     resetScadenza();
     recalcResaUI();
 
@@ -479,6 +509,8 @@ function setupAutocompleteRicette() {
           loadPorzioniRicetta(r.id),
           loadConservazioni(r.id)
         ]);
+
+        recalcResaUI();
       };
 
       suggest.appendChild(div);
@@ -509,6 +541,13 @@ function resetConservazioneUI() {
   select.innerHTML = `<option value="">Seleziona...</option>`;
 }
 
+function resetConservazioneDettagli() {
+  const t = document.getElementById("prod-temp");
+  const f = document.getElementById("prod-fasi");
+  if (t) t.value = "";
+  if (f) f.value = "";
+}
+
 function resetScadenza() {
   const el = document.getElementById("prod-scadenza");
   if (el) el.value = "";
@@ -519,7 +558,7 @@ function aggiornaScadenza() {
   const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId));
   if (!scenario) {
     resetScadenza();
-    // aggiorna anche coprodotti se avevano scadenza auto
+    resetConservazioneDettagli();
     return;
   }
 
@@ -530,7 +569,12 @@ function aggiornaScadenza() {
   const scadEl = document.getElementById("prod-scadenza");
   if (scadEl) scadEl.value = scad;
 
-  // imposta scadenza base coprodotti se vuota
+  const tempEl = document.getElementById("prod-temp");
+  if (tempEl) tempEl.value = (scenario.temperatura ?? "").toString();
+
+  const fasiEl = document.getElementById("prod-fasi");
+  if (fasiEl) fasiEl.value = (scenario.fasi_operativo ?? "").toString();
+
   coprodottiRows = coprodottiRows.map((r) => ({
     ...r,
     data_scadenza: r.data_scadenza || scad
@@ -669,7 +713,6 @@ function addCoprodottoRow() {
     note: ""
   });
 
-  // se scadenza lotto esiste, default
   const scadBase = document.getElementById("prod-scadenza")?.value || "";
   if (scadBase) {
     coprodottiRows = coprodottiRows.map((r) => ({
@@ -847,17 +890,23 @@ function onCoprodottiClick(e) {
 
 function recalcResaUI() {
   const resaTeoEl = document.getElementById("resa-teorica");
-  const resaReaEl = document.getElementById("resa-reale");
+  const pesoRealeEl = document.getElementById("prod-peso-reale");
+  const pesoAllocEl = document.getElementById("peso-allocato");
+  const diffEl = document.getElementById("peso-differenza");
   const scartoEl = document.getElementById("resa-scarto");
 
-  if (!resaTeoEl || !resaReaEl || !scartoEl) return;
+  if (!resaTeoEl || !pesoRealeEl || !pesoAllocEl || !diffEl || !scartoEl) return;
 
   const resaTeoKg = getResaTeoricaKg();
-  const resaReaKg = getResaRealeKg();
-  const scartoKg = (resaTeoKg != null) ? (resaTeoKg - resaReaKg) : null;
+  const pesoRealeKg = getPesoRealeKg();
+  const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
+
+  const diffKg = (Number.isFinite(pesoRealeKg) ? (pesoRealeKg - pesoAllocatoKg) : 0);
+  const scartoKg = (resaTeoKg != null) ? (resaTeoKg - pesoRealeKg) : null;
 
   resaTeoEl.value = resaTeoKg == null ? "" : `${formatNumber(resaTeoKg)} kg`;
-  resaReaEl.value = `${formatNumber(resaReaKg)} kg`;
+  pesoAllocEl.value = `${formatNumber(pesoAllocatoKg)} kg`;
+  diffEl.value = `${formatNumber(diffKg)} kg`;
   scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
 }
 
@@ -872,7 +921,7 @@ function getResaTeoricaKg() {
   return v;
 }
 
-function getResaRealeKg() {
+function getPesoAllocatoDaPorzioniKg() {
   let totKg = 0;
 
   for (const r of porzioniRows) {
@@ -884,19 +933,26 @@ function getResaRealeKg() {
 
     let pesoKg = peso;
     if (u === "g" || u === "gr" || u === "grammi") pesoKg = peso / 1000;
-    // assumiamo kg se non g
     totKg += qPz * pesoKg;
   }
 
   return totKg;
 }
 
+function getPesoRealeKg() {
+  const el = document.getElementById("prod-peso-reale");
+  const raw = (el?.value ?? "").toString().trim();
+  const n = parseFloat(raw.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+}
+
 function getMoltiplicatoreRicetta() {
   const teo = getResaTeoricaKg();
-  const rea = getResaRealeKg();
+  const reale = getPesoRealeKg();
   if (teo == null || teo <= 0) return 1;
-  if (!Number.isFinite(rea) || rea <= 0) return 1;
-  return rea / teo;
+  if (!Number.isFinite(reale) || reale <= 0) return 1;
+  return reale / teo;
 }
 
 /* ========================================================= */
@@ -1019,6 +1075,11 @@ function bindEvents() {
     aggiornaScadenza();
   });
 
+  document.getElementById("prod-peso-reale")?.addEventListener("input", () => {
+    if (savedLotto) return;
+    recalcResaUI();
+  });
+
   document.getElementById("porzioni-wrap")?.addEventListener("input", (e) => onPorzioniInput(e));
   document.getElementById("porzioni-wrap")?.addEventListener("change", (e) => onPorzioniInput(e));
 
@@ -1046,6 +1107,7 @@ function raccogliDatiForm() {
   const scenarioId = document.getElementById("prod-conservazione")?.value || "";
   const scadenza = document.getElementById("prod-scadenza")?.value || "";
   const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
+  const pesoRealeKg = getPesoRealeKg();
 
   const porzioni = porzioniRows.map((r) => ({
     porzione_id: r.porzione_id,
@@ -1071,6 +1133,7 @@ function raccogliDatiForm() {
     scadenza,
     noteLotto,
     operatore: operatoreRisolto,
+    pesoRealeKg,
     porzioni,
     coprodotti
   };
@@ -1084,6 +1147,10 @@ function validaForm(dati) {
   if (!dati.operatore?.id) return "Inserisci un PIN operatore valido.";
   if (!dati.scenarioId) return "Seleziona lo scenario di conservazione.";
   if (!dati.scadenza) return "Scadenza non disponibile. Controlla conservazione e data produzione.";
+
+  if (!Number.isFinite(dati.pesoRealeKg) || dati.pesoRealeKg <= 0) {
+    return "Inserisci il peso totale reale (kg) > 0.";
+  }
 
   const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
   if (!porzioniValide.length) return "Inserisci almeno una porzione con quantità > 0.";
@@ -1101,12 +1168,32 @@ function validaForm(dati) {
 
   if (invalidCop) return "Compila correttamente i coprodotti (quantità > 0, UM e scadenza).";
 
-  // richiediamo prodotto_output_id per carico prodotto finito
   if (!ricettaSelezionata?.prodotto_output_id) {
     return "La ricetta non ha un prodotto output associato (prodotto_output_id).";
   }
 
   return null;
+}
+
+/* ========================================================= */
+/* HACCP LOG (best-effort) */
+/* ========================================================= */
+
+async function logEventoHaccp({ aziendaId, produzioneId, tipo, payload }) {
+  const supabase = window.supabaseClient;
+  if (!supabase || !aziendaId || !produzioneId || !tipo) return;
+
+  try {
+    await supabase
+      .from("produzione_eventi_log")
+      .insert({
+        azienda_id: aziendaId,
+        produzione_id: produzioneId,
+        tipo_evento: tipo,
+        payload: payload ?? null
+      });
+  } catch {
+  }
 }
 
 /* ========================================================= */
@@ -1131,12 +1218,13 @@ async function salvaProduzione() {
 
   try {
     const resaTeoKg = getResaTeoricaKg();
-    const resaReaKg = getResaRealeKg();
-    const scartoKg = (resaTeoKg != null) ? (resaTeoKg - resaReaKg) : null;
+    const pesoRealeKg = dati.pesoRealeKg;
+    const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
+    const differenzaKg = pesoRealeKg - pesoAllocatoKg;
+    const scartoKg = (resaTeoKg != null) ? (resaTeoKg - pesoRealeKg) : null;
 
     const moltiplicatore = getMoltiplicatoreRicetta();
 
-    // 1) INSERT LOTTO (produzione_lotti) - codice_lotto generato da trigger
     const dettaglioConfezionamento = (dati.porzioni || [])
       .filter((p) => p.quantita_pz > 0)
       .map((p) => ({
@@ -1148,6 +1236,8 @@ async function salvaProduzione() {
         note: p.note || ""
       }));
 
+    const scenario = scenariConservazione.find((s) => String(s.id) === String(dati.scenarioId)) || null;
+
     const { data: lotto, error: errLotto } = await supabase
       .from("produzione_lotti")
       .insert({
@@ -1155,19 +1245,17 @@ async function salvaProduzione() {
         ricetta_id: ricettaSelezionata.id,
         data_produzione: dati.dataProduzione,
         data_scadenza: dati.scadenza,
-        quantita_output: resaReaKg, // in kg (coerente col resto)
+        quantita_output: pesoRealeKg,
         unita_misura: "kg",
         scenario_conservazione_id: dati.scenarioId || null,
-        porzione_id: null, // multi-porzione
-        stato: "confermato",
+        porzione_id: null,
+        stato: "firmato",
         note: (dati.noteLotto || "").toString(),
         operatore_id: dati.operatore.id,
         firmato_at: new Date().toISOString(),
-        resa_percentuale: null,
-        scarto_percentuale: null,
         dettaglio_confezionamento: dettaglioConfezionamento,
         resa_teorica: resaTeoKg,
-        resa_reale: resaReaKg,
+        resa_reale: pesoRealeKg,
         scarto: scartoKg
       })
       .select()
@@ -1177,20 +1265,37 @@ async function salvaProduzione() {
 
     savedLotto = lotto;
 
-    // UI lotto
+    await logEventoHaccp({
+      aziendaId,
+      produzioneId: lotto.id,
+      tipo: "LOTTO_CREATO",
+      payload: {
+        ricetta_id: ricettaSelezionata.id,
+        data_produzione: dati.dataProduzione,
+        data_scadenza: dati.scadenza,
+        scenario_id: dati.scenarioId || null,
+        scenario_label: scenario?.scenario_label ?? null,
+        temperatura: scenario?.temperatura ?? null,
+        peso_reale_kg: pesoRealeKg,
+        peso_allocato_kg: pesoAllocatoKg,
+        differenza_kg: differenzaKg,
+        scarto_kg: scartoKg,
+        operatore_id: dati.operatore.id
+      }
+    });
+
     const lottoEl = document.getElementById("prod-lotto");
     if (lottoEl && lotto?.codice_lotto) lottoEl.value = lotto.codice_lotto;
 
-    // 2) INSERT RIGHE PORZIONI (schede_produzione_righe)
     const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
 
     const righePorzioniPayload = porzioniValide.map((p) => ({
       azienda_id: aziendaId,
-      produzione_id: lotto.id, // deve essere BIGINT FK produzione_lotti(id)
+      produzione_id: lotto.id,
       ricetta_id: ricettaSelezionata.id,
       conservazione_id: dati.scenarioId || null,
       formato_label: p.label,
-      quantita: p.quantita_pz, // numero pezzi
+      quantita: p.quantita_pz,
       quantita_equivalente: null,
       unita: "pz",
       moltiplicatore_ricetta: moltiplicatore,
@@ -1207,7 +1312,22 @@ async function salvaProduzione() {
     if (errRighe) throw errRighe;
     savedRighe = (righeIns || []);
 
-    // 3) SCARICO INGREDIENTI (ricetta_ingredienti * moltiplicatore)
+    await logEventoHaccp({
+      aziendaId,
+      produzioneId: lotto.id,
+      tipo: "PORZIONI_INSERITE",
+      payload: {
+        righe: porzioniValide.map((p) => ({
+          porzione_id: p.porzione_id,
+          label: p.label,
+          qta_pz: p.quantita_pz,
+          peso_porzione: p.peso_porzione,
+          unita_misura: p.unita_misura,
+          note: p.note || ""
+        }))
+      }
+    });
+
     const { data: ingredienti, error: errIng } = await supabase
       .from("ricetta_ingredienti")
       .select("*")
@@ -1215,6 +1335,13 @@ async function salvaProduzione() {
       .eq("ricetta_id", ricettaSelezionata.id);
 
     if (errIng) throw errIng;
+
+    await supabase
+      .from("magazzino_movimenti")
+      .delete()
+      .eq("azienda_id", aziendaId)
+      .eq("riferimento_tipo", "PRODUZIONE_LOTTO")
+      .eq("riferimento_id", lotto.id);
 
     for (const ing of (ingredienti || [])) {
       const prodottoId = ing.prodotto_id;
@@ -1239,11 +1366,13 @@ async function salvaProduzione() {
       if (errMov) throw errMov;
     }
 
-    // 4) CARICO PRODOTTO FINITO (per porzione: quantita = pezzi; note include label + peso + nota)
     for (const p of porzioniValide) {
-      const pesoTxt = `${formatNumber(p.peso_porzione)} ${String(p.unita_misura || "kg")}`;
+      const qPz = p.quantita_pz;
+      const pesoKg = toKg(toNumber(p.peso_porzione), p.unita_misura);
+      const qKg = qPz * pesoKg;
+
       const noteExtra = (p.note || "").trim();
-      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${p.label} (${pesoTxt})${noteExtra ? ` — ${noteExtra}` : ""}`;
+      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${p.label} — ${qPz} pz x ${formatNumber(pesoKg)} kg${noteExtra ? ` — ${noteExtra}` : ""}`;
 
       const { error: errCarico } = await supabase
         .from("magazzino_movimenti")
@@ -1251,7 +1380,7 @@ async function salvaProduzione() {
           azienda_id: aziendaId,
           prodotto_id: ricettaSelezionata.prodotto_output_id,
           tipo_movimento: "CARICO",
-          quantita: p.quantita_pz,
+          quantita: qKg,
           data_movimento: dati.dataProduzione,
           riferimento_tipo: "PRODUZIONE_LOTTO",
           riferimento_id: lotto.id,
@@ -1261,14 +1390,29 @@ async function salvaProduzione() {
       if (errCarico) throw errCarico;
     }
 
-    // 5) COPRODOTTI: righe + carico magazzino
     const coprodottiValidi = (dati.coprodotti || []).filter((c) => c.prodotto_id);
+
+    if (coprodottiValidi.length) {
+      await logEventoHaccp({
+        aziendaId,
+        produzioneId: lotto.id,
+        tipo: "COPRODOTTI_INSERITI",
+        payload: {
+          righe: coprodottiValidi.map((c) => ({
+            prodotto_id: c.prodotto_id,
+            quantita: toNumber(c.quantita),
+            unita_misura: c.unita_misura || "",
+            data_scadenza: c.data_scadenza || "",
+            note: (c.note || "").trim()
+          }))
+        }
+      });
+    }
 
     for (const c of coprodottiValidi) {
       const q = toNumber(c.quantita);
       if (q <= 0) continue;
 
-      // riga coprodotto in schede_produzione_righe (richiede colonna prodotto_id)
       const { error: errRigaCop } = await supabase
         .from("schede_produzione_righe")
         .insert({
@@ -1309,6 +1453,27 @@ async function salvaProduzione() {
       if (errMovCop) throw errMovCop;
     }
 
+    await logEventoHaccp({
+      aziendaId,
+      produzioneId: lotto.id,
+      tipo: "MOVIMENTI_MAGAZZINO_GENERATI",
+      payload: {
+        moltiplicatore_ricetta: moltiplicatore,
+        prodotto_output_id: ricettaSelezionata.prodotto_output_id,
+        coprodotti_count: coprodottiValidi.length
+      }
+    });
+
+    await logEventoHaccp({
+      aziendaId,
+      produzioneId: lotto.id,
+      tipo: "LOTTO_FIRMATO",
+      payload: {
+        operatore_id: dati.operatore.id,
+        firmato_at: lotto.firmato_at ?? new Date().toISOString()
+      }
+    });
+
     lockUIAfterSave();
 
     if (result) {
@@ -1319,6 +1484,7 @@ async function salvaProduzione() {
   } catch (error) {
     console.error("Errore registrazione produzione:", error);
 
+    const result = document.getElementById("produzione-result");
     if (result) {
       result.innerHTML = `<span class="error-text">Errore: ${escapeHtml(error?.message || "Operazione non riuscita")}</span>`;
     }
@@ -1344,7 +1510,8 @@ function lockUIAfterSave() {
     "prod-data",
     "prod-operatore-pin",
     "prod-note-lotto",
-    "prod-conservazione"
+    "prod-conservazione",
+    "prod-peso-reale"
   ];
 
   for (const id of lockIds) {
@@ -1371,6 +1538,16 @@ function stampaEtichettaLotto() {
   const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
   const operatoreNome = operatoreRisolto?.nome || "";
 
+  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
+  const scenarioLabel = scenario?.scenario_label || "";
+  const temperatura = (scenario?.temperatura ?? "").toString();
+  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 420);
+
+  const pesoRealeKg = getPesoRealeKg();
+  const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
+  const diffKg = pesoRealeKg - pesoAllocatoKg;
+
   const porzioniValide = porzioniRows
     .map((p) => ({
       ...p,
@@ -1381,8 +1558,8 @@ function stampaEtichettaLotto() {
   const righePorzioniTxt = porzioniValide
     .map((p) => {
       const note = (p.note || "").trim();
-      const pesoTxt = `${formatNumber(toNumber(p.peso_porzione))}${p.unita_misura?.toLowerCase().trim() === "g" ? "g" : "kg"}`;
-      return `${escapeHtml(p.label)} → ${escapeHtml(String(p.q))} pz (${escapeHtml(pesoTxt)})${note ? ` — ${escapeHtml(note)}` : ""}`;
+      const pesoKg = toKg(toNumber(p.peso_porzione), p.unita_misura);
+      return `${escapeHtml(p.label)} → ${escapeHtml(String(p.q))} pz (x ${escapeHtml(formatNumber(pesoKg))} kg)${note ? ` — ${escapeHtml(note)}` : ""}`;
     })
     .join("<br>");
 
@@ -1395,6 +1572,12 @@ function stampaEtichettaLotto() {
           { k: "Lotto", v: savedLotto.codice_lotto, big: true },
           { k: "Data produzione", v: dataProd },
           { k: "Scadenza", v: scadenza },
+          scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
+          temperatura ? { k: "Temperatura", v: temperatura } : null,
+          fasi ? { k: "Fasi operative", v: fasi } : null,
+          { k: "Peso reale", v: `${formatNumber(pesoRealeKg)} kg` },
+          { k: "Peso porzionato", v: `${formatNumber(pesoAllocatoKg)} kg` },
+          { k: "Differenza", v: `${formatNumber(diffKg)} kg` },
           { k: "Operatore", v: operatoreNome },
           noteLotto ? { k: "Destinazione / Note", v: noteLotto } : null,
           { k: "Confezionamento", v: righePorzioniTxt || "—" }
@@ -1412,6 +1595,12 @@ function stampaEtichetteCoprodotti() {
 
   const dataProd = document.getElementById("prod-data")?.value || "";
   const scadenzaLotto = document.getElementById("prod-scadenza")?.value || "";
+
+  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
+  const scenarioLabel = scenario?.scenario_label || "";
+  const temperatura = (scenario?.temperatura ?? "").toString();
+  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 320);
 
   const coprodottiValidi = coprodottiRows
     .map((c) => ({
@@ -1434,6 +1623,9 @@ function stampaEtichetteCoprodotti() {
         { k: "Lotto", v: savedLotto.codice_lotto, big: true },
         { k: "Data produzione", v: dataProd },
         { k: "Scadenza", v: scad },
+        scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
+        temperatura ? { k: "Temperatura", v: temperatura } : null,
+        fasi ? { k: "Fasi operative", v: fasi } : null,
         { k: "Quantità", v: `${formatNumber(c.q)} ${escapeHtml(unita)}` },
         { k: "", v: "Coprodotto da lavorazione" },
         c.note ? { k: "Note", v: c.note } : null
@@ -1528,9 +1720,23 @@ function toNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function toKg(value, unita) {
+  const v = toNumber(value);
+  const u = (unita || "kg").toString().toLowerCase().trim();
+  if (u === "g" || u === "gr" || u === "grammi") return v / 1000;
+  return v;
+}
+
 function formatNumber(n) {
   const x = toNumber(n);
   return String(Math.round(x * 1000) / 1000).replace(".", ",");
+}
+
+function compactText(text, maxLen) {
+  const t = (text || "").toString().replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  if (!maxLen || t.length <= maxLen) return t;
+  return t.slice(0, Math.max(0, maxLen - 1)).trimEnd() + "…";
 }
 
 function escapeHtml(str) {
