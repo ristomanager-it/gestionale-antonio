@@ -2,18 +2,22 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 /*
-  PRODUZIONE (nuovo flusso)
+  PRODUZIONE (flusso industriale)
   - Tabella principale: produzione_lotti (bigserial id, codice_lotto trigger)
-  - Righe: schede_produzione_righe (1 riga per porzione + righe coprodotti)
+  - Righe: schede_produzione_righe (1 riga per tipologia confezione + righe coprodotti)
   - Magazzino: magazzino_movimenti (scarico ingredienti + carichi output + carichi coprodotti)
   - HACCP: produzione_eventi_log (opzionale, best-effort)
 
+  Confezionamento (modello A):
+  - 1 riga = 1 tipologia di confezione (porzionatura) scelta da ricette_porzione
+  - Campi: porzione, pezzi_per_confezione, numero_confezioni, note
+  - kg_riga = peso_porzione_kg * pezzi_per_confezione * numero_confezioni
+  - Stampa etichette: numero etichette = numero_confezioni (una per confezione)
+
   NOTE SCHEMA (necessario):
-  - schede_produzione_righe deve puntare a produzione_lotti:
-      produzione_id BIGINT FK produzione_lotti(id)
-  - per coprodotti in schede_produzione_righe serve:
-      prodotto_id BIGINT NULL FK prodotti(id)
-  - dipendenti deve avere un campo PIN (pin) oppure usiamo fallback su codice
+  - schede_produzione_righe.produzione_id BIGINT FK produzione_lotti(id)
+  - per coprodotti in schede_produzione_righe: prodotto_id BIGINT NULL FK prodotti(id)
+  - dipendenti: pin (fallback su codice)
   - ricette_conservazione: (opz) fasi_operativo TEXT
 */
 
@@ -27,11 +31,11 @@ let scenariConservazione = [];
 
 let operatoreRisolto = null;
 
-let porzioniRows = []; // [{ porzione_id, label, peso_porzione, unita_misura, quantita_pz, note }]
+let confezioniRows = []; // [{ id, porzione_id, pezzi_per_confezione, numero_confezioni, note }]
 let coprodottiRows = []; // [{ id, prodotto_id, quantita, unita_misura, data_scadenza, note }]
 
-let savedLotto = null; // record produzione_lotti
-let savedRighe = []; // righe inserite
+let savedLotto = null;
+let savedRighe = [];
 
 export async function render(container) {
   ricetteCache = [];
@@ -44,7 +48,7 @@ export async function render(container) {
 
   operatoreRisolto = null;
 
-  porzioniRows = [];
+  confezioniRows = [];
   coprodottiRows = [];
 
   savedLotto = null;
@@ -52,10 +56,11 @@ export async function render(container) {
 
   container.innerHTML = createPageLayout({
     title: "Produzione",
-    subtitle: "Peso reale, porzioni reali, coprodotti, controllo resa, firma operatore e magazzino (HACCP-ready)",
+    subtitle: "Peso reale, confezionamento a porzionature, coprodotti, firma e magazzino (HACCP-ready)",
     content: `
-      <div class="form-actions" style="margin-bottom:16px;">
+      <div class="form-actions" style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
+        <button type="button" id="btn-scheda-tecnica" class="app-button secondary">📘 Scheda tecnica</button>
       </div>
 
       ${createCard({
@@ -76,7 +81,49 @@ export async function render(container) {
       })}
 
       ${createCard({
-        title: "Dati Produzione",
+        title: "Totale prodotto (peso reale + controllo)",
+        body: `
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Resa teorica batch base</label>
+              <input id="resa-teorica" class="input" readonly />
+              <div class="form-help">Serve per il moltiplicatore e lo scarico ingredienti.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Peso totale reale prodotto (kg)</label>
+              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
+              <div class="form-help">Peso misurato in laboratorio.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Totale confezionato (kg)</label>
+              <input id="peso-allocato" class="input" readonly />
+              <div class="form-help">Somma delle righe confezionamento.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Differenza (reale - confezionato) (kg)</label>
+              <input id="peso-differenza" class="input" readonly />
+              <div class="form-help">Solo informativo (ritagli/calo/extra).</div>
+            </div>
+
+            <div class="form-group">
+              <label>Scarto (teorica - reale) (kg)</label>
+              <input id="resa-scarto" class="input" readonly />
+            </div>
+
+            <div class="form-group">
+              <label>Moltiplicatore produzione</label>
+              <input id="moltiplicatore" class="input" readonly />
+              <div class="form-help">Moltiplica gli ingredienti per lo scarico magazzino.</div>
+            </div>
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Dati Lotto",
         body: `
           <div class="form-grid">
 
@@ -117,6 +164,7 @@ export async function render(container) {
               <select id="prod-conservazione" class="input" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona...</option>
               </select>
+              <div id="prod-conservazione-help" class="form-help">Seleziona una ricetta per caricare gli scenari.</div>
             </div>
 
             <div class="form-group">
@@ -139,47 +187,16 @@ export async function render(container) {
       })}
 
       ${createCard({
-        title: "Totale prodotto (controllo resa)",
+        title: "Confezionamento reale (porzionature)",
         body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Resa teorica (da ricetta)</label>
-              <input id="resa-teorica" class="input" readonly />
-              <div class="form-help">Valore di riferimento (ricette_output).</div>
-            </div>
+          <div id="confezioni-wrap"></div>
 
-            <div class="form-group">
-              <label>Peso totale reale (kg)</label>
-              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
-              <div class="form-help">Inserisci il peso reale misurato in laboratorio.</div>
-            </div>
-
-            <div class="form-group">
-              <label>Peso allocato in porzioni (kg)</label>
-              <input id="peso-allocato" class="input" readonly />
-            </div>
-
-            <div class="form-group">
-              <label>Differenza (reale - allocato) (kg)</label>
-              <input id="peso-differenza" class="input" readonly />
-              <div class="form-help">Solo informativo (ritagli/calo/extra).</div>
-            </div>
-
-            <div class="form-group">
-              <label>Scarto (teorica - reale) (kg)</label>
-              <input id="resa-scarto" class="input" readonly />
-            </div>
+          <div class="form-actions" style="margin-top:10px;">
+            <button type="button" id="btn-add-confezione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>+ Aggiungi confezione</button>
           </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Confezionamento reale (porzioni)",
-        body: `
-          <div id="porzioni-wrap"></div>
 
           <div class="form-help" style="margin-top:10px;">
-            Inserisci quante confezioni reali hai prodotto per ciascuna porzione (Trattoria/Banchetto/Buffet...).
+            1 riga = 1 tipologia confezione. Stampa: 1 etichetta per confezione.
           </div>
         `
       })}
@@ -194,7 +211,7 @@ export async function render(container) {
           </div>
 
           <div class="form-help">
-            I coprodotti nascono solo in produzione e vengono caricati a magazzino con lo stesso lotto.
+            I coprodotti vengono caricati a magazzino con lo stesso lotto.
           </div>
         `
       })}
@@ -204,7 +221,7 @@ export async function render(container) {
         body: `
           <div class="form-actions">
             <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra produzione</button>
-            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichetta lotto</button>
+            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette confezioni</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
           </div>
 
@@ -221,16 +238,22 @@ export async function render(container) {
           <div id="prod-modal-body" style="margin-top:12px;"></div>
         </div>
       </div>
+
+      <div id="prod-tech-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
+        <div class="view" style="max-width:920px; margin:0 auto; background:var(--card-bg, #111); border-radius:14px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
+            <h3 style="margin:0;">📘 Scheda tecnica — Modulo Produzione</h3>
+            <button id="prod-tech-close" class="app-button secondary">✕ Chiudi</button>
+          </div>
+          <div id="prod-tech-body" style="margin-top:12px;"></div>
+        </div>
+      </div>
     `
   });
 
   presetDataOggi();
 
-  await Promise.all([
-    preloadRicette(),
-    preloadDipendenti(),
-    preloadProdotti()
-  ]);
+  await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 
   setupAutocompleteRicette();
   setupOperatorePIN();
@@ -240,9 +263,10 @@ export async function render(container) {
   resetConservazioneDettagli();
   resetScadenza();
 
-  renderPorzioniRows();
+  renderConfezioniRows();
   renderCoprodottiRows();
 
+  renderSchedaTecnica();
   recalcResaUI();
 }
 
@@ -264,7 +288,8 @@ async function preloadRicette() {
 
   const { data, error } = await supabase
     .from("ricette")
-    .select(`
+    .select(
+      `
       id,
       nome,
       pezzi_base,
@@ -273,7 +298,8 @@ async function preloadRicette() {
         peso_finale,
         unita_misura
       )
-    `)
+    `
+    )
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome");
@@ -285,9 +311,7 @@ async function preloadRicette() {
   }
 
   ricetteCache = (data || []).map((r) => {
-    const out = Array.isArray(r.ricette_output)
-      ? (r.ricette_output[0] || null)
-      : (r.ricette_output || null);
+    const out = Array.isArray(r.ricette_output) ? r.ricette_output[0] || null : r.ricette_output || null;
 
     return {
       id: r.id,
@@ -377,7 +401,7 @@ async function loadPorzioniRicetta(ricettaId) {
   const aziendaId = window.state?.azienda?.id;
 
   porzioniCache = [];
-  porzioniRows = [];
+  confezioniRows = [];
 
   if (!supabase || !aziendaId || !ricettaId) return;
 
@@ -392,21 +416,15 @@ async function loadPorzioniRicetta(ricettaId) {
   if (error) {
     console.error("Errore load porzioni:", error);
     porzioniCache = [];
-    porzioniRows = [];
+    confezioniRows = [];
+    renderConfezioniRows();
+    recalcResaUI();
     return;
   }
 
   porzioniCache = data || [];
-  porzioniRows = porzioniCache.map((p) => ({
-    porzione_id: p.id,
-    label: p.label,
-    peso_porzione: toNumber(p.peso_porzione),
-    unita_misura: (p.unita_misura || "kg").toString(),
-    quantita_pz: "",
-    note: ""
-  }));
-
-  renderPorzioniRows();
+  confezioniRows = [];
+  renderConfezioniRows();
   recalcResaUI();
 }
 
@@ -422,7 +440,8 @@ async function loadConservazioni(ricettaId) {
     .select("*")
     .eq("azienda_id", aziendaId)
     .eq("ricetta_id", ricettaId)
-    .eq("attivo", true);
+    .eq("attivo", true)
+    .order("scenario_label");
 
   if (error) {
     console.error("Errore load conservazioni:", error);
@@ -432,6 +451,7 @@ async function loadConservazioni(ricettaId) {
   }
 
   const select = document.getElementById("prod-conservazione");
+  const help = document.getElementById("prod-conservazione-help");
   if (!select) return;
 
   select.innerHTML = `<option value="">Seleziona...</option>`;
@@ -441,6 +461,12 @@ async function loadConservazioni(ricettaId) {
     opt.textContent = s.scenario_label || "Scenario";
     select.appendChild(opt);
   });
+
+  if (help) {
+    help.innerText = scenariConservazione.length
+      ? "Seleziona uno scenario per calcolare scadenza e dettagli."
+      : "Nessuno scenario attivo per questa ricetta.";
+  }
 
   resetScadenza();
   resetConservazioneDettagli();
@@ -470,8 +496,9 @@ function setupAutocompleteRicette() {
 
     setRicettaInfo("Nessuna ricetta selezionata");
     porzioniCache = [];
-    porzioniRows = [];
-    renderPorzioniRows();
+    confezioniRows = [];
+    renderConfezioniRows();
+
     resetConservazioneUI();
     resetConservazioneDettagli();
     resetScadenza();
@@ -482,9 +509,7 @@ function setupAutocompleteRicette() {
       return;
     }
 
-    const risultati = ricetteCache
-      .filter((r) => (r.nome || "").toLowerCase().includes(q))
-      .slice(0, 10);
+    const risultati = ricetteCache.filter((r) => (r.nome || "").toLowerCase().includes(q)).slice(0, 10);
 
     risultati.forEach((r) => {
       const div = document.createElement("div");
@@ -499,17 +524,10 @@ function setupAutocompleteRicette() {
         ricettaSelezionata = r;
         btnVedi.disabled = false;
 
-        const resaTxt = r.resa_teorica != null
-          ? ` — Resa teorica: ${String(r.resa_teorica)} ${r.resa_unita || "kg"}`
-          : "";
-
+        const resaTxt = r.resa_teorica != null ? ` — Resa teorica batch base: ${String(r.resa_teorica)} ${r.resa_unita || "kg"}` : "";
         setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
 
-        await Promise.all([
-          loadPorzioniRicetta(r.id),
-          loadConservazioni(r.id)
-        ]);
-
+        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id)]);
         recalcResaUI();
       };
 
@@ -537,8 +555,10 @@ function setRicettaInfo(text) {
 
 function resetConservazioneUI() {
   const select = document.getElementById("prod-conservazione");
+  const help = document.getElementById("prod-conservazione-help");
   if (!select) return;
   select.innerHTML = `<option value="">Seleziona...</option>`;
+  if (help) help.innerText = "Seleziona una ricetta per caricare gli scenari.";
 }
 
 function resetConservazioneDettagli() {
@@ -617,51 +637,126 @@ function setupOperatorePIN() {
 }
 
 /* ========================================================= */
-/* PORZIONI */
+/* CONFEZIONI */
 /* ========================================================= */
 
-function renderPorzioniRows() {
-  const wrap = document.getElementById("porzioni-wrap");
+function addConfezioneRow() {
+  confezioniRows.push({
+    id: cryptoRandomId(),
+    porzione_id: "",
+    pezzi_per_confezione: "",
+    numero_confezioni: "",
+    note: ""
+  });
+  renderConfezioniRows();
+  recalcResaUI();
+}
+
+function removeConfezioneRow(rowId) {
+  confezioniRows = confezioniRows.filter((r) => String(r.id) !== String(rowId));
+  renderConfezioniRows();
+  recalcResaUI();
+}
+
+function renderConfezioniRows() {
+  const wrap = document.getElementById("confezioni-wrap");
   if (!wrap) return;
 
   if (!ricettaSelezionata?.id) {
-    wrap.innerHTML = `<div class="form-help">Seleziona una ricetta per vedere le porzioni disponibili.</div>`;
+    wrap.innerHTML = `<div class="form-help">Seleziona una ricetta per gestire le porzionature.</div>`;
     return;
   }
 
-  if (!porzioniRows.length) {
-    wrap.innerHTML = `<div class="form-help">Nessuna porzione configurata per questa ricetta.</div>`;
+  if (!porzioniCache.length) {
+    wrap.innerHTML = `<div class="form-help">Nessuna porzionatura attiva per questa ricetta (ricette_porzione).</div>`;
     return;
   }
 
-  wrap.innerHTML = porzioniRows
-    .map((r) => {
-      const pesoTxt = `${formatNumber(r.peso_porzione)} ${escapeHtml(r.unita_misura || "kg")}`;
+  if (!confezioniRows.length) {
+    wrap.innerHTML = `<div class="form-help">Nessuna confezione inserita. Premi “+ Aggiungi confezione”.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = confezioniRows
+    .map((row) => {
+      const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id)) || null;
+      const pesoKg = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
+      const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 0));
+      const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
+      const kgConf = pesoKg * pezzi;
+      const kgTot = kgConf * numConf;
+
       return `
-        <div class="card menu-card" data-porzione-id="${escapeAttr(String(r.porzione_id))}">
+        <div class="card menu-card" data-confezione-id="${escapeAttr(String(row.id))}">
           <div class="form-grid">
+
             <div class="form-group">
-              <label>${escapeHtml(r.label)} (${pesoTxt})</label>
+              <label>Porzionatura</label>
+              <select class="input" data-field="porzione_id" ${savedLotto ? "disabled" : ""}>
+                <option value="">Seleziona...</option>
+                ${porzioniCache
+                  .map((p) => {
+                    const pKg = toKg(p.peso_porzione, p.unita_misura);
+                    const selected = String(p.id) === String(row.porzione_id) ? "selected" : "";
+                    return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.label)} (${escapeHtml(formatNumber(pKg))} kg)</option>`;
+                  })
+                  .join("")}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Pezzi per confezione</label>
               <input class="input"
                 type="number"
                 min="0"
                 step="1"
-                data-field="quantita_pz"
-                value="${escapeAttr(String(r.quantita_pz ?? ""))}"
-                placeholder="Numero confezioni"
+                data-field="pezzi_per_confezione"
+                value="${escapeAttr(String(row.pezzi_per_confezione ?? ""))}"
+                placeholder="Es: 10"
                 ${savedLotto ? "readonly" : ""} />
-              <div class="form-help">Inserisci la quantità reale prodotta (pezzi).</div>
             </div>
 
             <div class="form-group">
-              <label>Note confezionamento</label>
+              <label>Numero confezioni</label>
+              <input class="input"
+                type="number"
+                min="0"
+                step="1"
+                data-field="numero_confezioni"
+                value="${escapeAttr(String(row.numero_confezioni ?? ""))}"
+                placeholder="Es: 3"
+                ${savedLotto ? "readonly" : ""} />
+            </div>
+
+            <div class="form-group">
+              <label>Kg per confezione</label>
+              <input class="input" readonly value="${escapeAttr(formatNumber(kgConf))} kg" />
+            </div>
+
+            <div class="form-group">
+              <label>Kg totali riga</label>
+              <input class="input" readonly value="${escapeAttr(formatNumber(kgTot))} kg" />
+            </div>
+
+            <div class="form-group">
+              <label>Note</label>
               <input class="input"
                 type="text"
                 data-field="note"
-                value="${escapeAttr(String(r.note ?? ""))}"
+                value="${escapeAttr(String(row.note ?? ""))}"
                 placeholder="Es: Battesimo Lucia"
                 ${savedLotto ? "readonly" : ""} />
             </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button type="button"
+              class="app-button secondary"
+              data-action="remove-confezione"
+              ${savedLotto ? "disabled" : ""}>
+              Rimuovi
+            </button>
           </div>
         </div>
       `;
@@ -669,17 +764,17 @@ function renderPorzioniRows() {
     .join("");
 }
 
-function onPorzioniInput(e) {
+function onConfezioniChange(e) {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
 
-  const card = target.closest("[data-porzione-id]");
+  const card = target.closest("[data-confezione-id]");
   if (!card) return;
 
-  const porzioneId = card.getAttribute("data-porzione-id");
-  if (!porzioneId) return;
+  const rowId = card.getAttribute("data-confezione-id");
+  if (!rowId) return;
 
-  const idx = porzioniRows.findIndex((x) => String(x.porzione_id) === String(porzioneId));
+  const idx = confezioniRows.findIndex((r) => String(r.id) === String(rowId));
   if (idx < 0) return;
 
   const field = target.getAttribute("data-field");
@@ -687,15 +782,50 @@ function onPorzioniInput(e) {
 
   if (savedLotto) return;
 
-  if (field === "quantita_pz" && target instanceof HTMLInputElement) {
-    porzioniRows[idx].quantita_pz = target.value ?? "";
+  if (field === "porzione_id" && target instanceof HTMLSelectElement) {
+    confezioniRows[idx].porzione_id = (target.value || "").toString();
+    renderConfezioniRows();
+    recalcResaUI();
+    return;
+  }
+
+  if (field === "pezzi_per_confezione" && target instanceof HTMLInputElement) {
+    confezioniRows[idx].pezzi_per_confezione = target.value ?? "";
+    renderConfezioniRows();
+    recalcResaUI();
+    return;
+  }
+
+  if (field === "numero_confezioni" && target instanceof HTMLInputElement) {
+    confezioniRows[idx].numero_confezioni = target.value ?? "";
+    renderConfezioniRows();
     recalcResaUI();
     return;
   }
 
   if (field === "note" && target instanceof HTMLInputElement) {
-    porzioniRows[idx].note = target.value ?? "";
+    confezioniRows[idx].note = target.value ?? "";
     return;
+  }
+}
+
+function onConfezioniClick(e) {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const btn = target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.getAttribute("data-action");
+  const card = btn.closest("[data-confezione-id]");
+  if (!card) return;
+
+  const rowId = card.getAttribute("data-confezione-id");
+  if (!rowId) return;
+
+  if (action === "remove-confezione") {
+    if (savedLotto) return;
+    removeConfezioneRow(rowId);
   }
 }
 
@@ -751,10 +881,12 @@ function renderCoprodottiRows() {
               <label>Prodotto</label>
               <select class="input" data-field="prodotto_id" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona prodotto</option>
-                ${prodottiCache.map((p) => {
-                  const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
-                  return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.nome)}</option>`;
-                }).join("")}
+                ${prodottiCache
+                  .map((p) => {
+                    const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
+                    return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.nome)}</option>`;
+                  })
+                  .join("")}
               </select>
             </div>
 
@@ -794,7 +926,7 @@ function renderCoprodottiRows() {
               <input class="input"
                 type="text"
                 data-field="note"
-                value="${escapeAttr(String(row.note || ""))}"
+                value="${escapeAttr(String(row.note ?? ""))}"
                 placeholder="Es: Per salsa / evento..."
                 ${savedLotto ? "readonly" : ""} />
             </div>
@@ -885,7 +1017,7 @@ function onCoprodottiClick(e) {
 }
 
 /* ========================================================= */
-/* RESA */
+/* RESA / TOTALI */
 /* ========================================================= */
 
 function recalcResaUI() {
@@ -894,20 +1026,23 @@ function recalcResaUI() {
   const pesoAllocEl = document.getElementById("peso-allocato");
   const diffEl = document.getElementById("peso-differenza");
   const scartoEl = document.getElementById("resa-scarto");
+  const moltEl = document.getElementById("moltiplicatore");
 
-  if (!resaTeoEl || !pesoRealeEl || !pesoAllocEl || !diffEl || !scartoEl) return;
+  if (!resaTeoEl || !pesoRealeEl || !pesoAllocEl || !diffEl || !scartoEl || !moltEl) return;
 
   const resaTeoKg = getResaTeoricaKg();
   const pesoRealeKg = getPesoRealeKg();
-  const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
+  const confezionatoKg = getTotaleConfezionatoKg();
 
-  const diffKg = (Number.isFinite(pesoRealeKg) ? (pesoRealeKg - pesoAllocatoKg) : 0);
-  const scartoKg = (resaTeoKg != null) ? (resaTeoKg - pesoRealeKg) : null;
+  const diffKg = pesoRealeKg - confezionatoKg;
+  const scartoKg = resaTeoKg == null ? null : resaTeoKg - pesoRealeKg;
+  const moltiplicatore = getMoltiplicatoreRicetta();
 
   resaTeoEl.value = resaTeoKg == null ? "" : `${formatNumber(resaTeoKg)} kg`;
-  pesoAllocEl.value = `${formatNumber(pesoAllocatoKg)} kg`;
+  pesoAllocEl.value = `${formatNumber(confezionatoKg)} kg`;
   diffEl.value = `${formatNumber(diffKg)} kg`;
   scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
+  moltEl.value = `${formatNumber(moltiplicatore)} x`;
 }
 
 function getResaTeoricaKg() {
@@ -919,24 +1054,6 @@ function getResaTeoricaKg() {
 
   if (u === "g" || u === "gr" || u === "grammi") return v / 1000;
   return v;
-}
-
-function getPesoAllocatoDaPorzioniKg() {
-  let totKg = 0;
-
-  for (const r of porzioniRows) {
-    const qPz = Math.max(0, Math.floor(toNumber(r.quantita_pz) || 0));
-    if (qPz <= 0) continue;
-
-    const peso = toNumber(r.peso_porzione);
-    const u = (r.unita_misura || "kg").toString().toLowerCase().trim();
-
-    let pesoKg = peso;
-    if (u === "g" || u === "gr" || u === "grammi") pesoKg = peso / 1000;
-    totKg += qPz * pesoKg;
-  }
-
-  return totKg;
 }
 
 function getPesoRealeKg() {
@@ -953,6 +1070,25 @@ function getMoltiplicatoreRicetta() {
   if (teo == null || teo <= 0) return 1;
   if (!Number.isFinite(reale) || reale <= 0) return 1;
   return reale / teo;
+}
+
+function getTotaleConfezionatoKg() {
+  let tot = 0;
+
+  for (const r of confezioniRows) {
+    const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
+    if (!porz) continue;
+
+    const pesoKg = toKg(porz.peso_porzione, porz.unita_misura);
+    const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+    const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
+
+    if (pezzi <= 0 || numConf <= 0) continue;
+
+    tot += pesoKg * pezzi * numConf;
+  }
+
+  return tot;
 }
 
 /* ========================================================= */
@@ -990,13 +1126,19 @@ async function apriModalRicetta() {
     supabase
       .from("ricette")
       .select("descrizione, note_procedimento")
+      .eq("azienda_id", aziendaId)
       .eq("id", ricettaSelezionata.id)
       .maybeSingle()
   ]);
 
   const ingredienti = ingRes.data || [];
   const fasi = fasiRes.data || [];
-  const ricettaDett = ricRes.data || {};
+  const ricettaDett = ricRes.data || null;
+
+  if (!ricettaDett) {
+    body.innerHTML = `<div class="form-help">Ricetta non disponibile (permessi/RLS o record mancante).</div>`;
+    return;
+  }
 
   body.innerHTML = `
     <div style="display:grid; gap:12px;">
@@ -1050,12 +1192,101 @@ function formatQta(i) {
 }
 
 /* ========================================================= */
+/* SCHEDA TECNICA */
+/* ========================================================= */
+
+function renderSchedaTecnica() {
+  const body = document.getElementById("prod-tech-body");
+  if (!body) return;
+
+  body.innerHTML = `
+    <div style="display:grid; gap:12px;">
+
+      <div class="card">
+        <div class="form-group">
+          <label>Obiettivo</label>
+          <div class="form-help">
+            Registrare un lotto di produzione tracciato, con confezionamento a porzionature, coprodotti, firma operatore, movimenti magazzino e stampa etichette.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>Flusso operativo</label>
+          <ol style="margin:0; padding-left:18px;">
+            <li>Seleziona la ricetta (autocomplete) e, se serve, apri “Vedi ricetta”.</li>
+            <li>Inserisci il <b>peso reale totale</b> (kg).</li>
+            <li>Compila i dati lotto (data, PIN operatore, note).</li>
+            <li>Seleziona lo <b>scenario conservazione</b> per calcolare scadenza e mostrare temperatura/fasi.</li>
+            <li>Inserisci le righe di <b>confezionamento</b> (porzionatura, pezzi per confezione, numero confezioni, note).</li>
+            <li>Inserisci eventuali <b>coprodotti</b>.</li>
+            <li>Registra produzione: lotto firmato, righe inserite, movimenti magazzino generati, log HACCP (se tabella presente).</li>
+            <li>Stampa etichette: 1 etichetta per confezione (numero confezioni).</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>Logica resa</label>
+          <div class="form-help">
+            <b>Resa teorica</b> è la resa del batch base della ricetta (ricette_output).<br>
+            <b>Moltiplicatore</b> = peso reale / resa teorica → scala lo scarico ingredienti.<br>
+            <b>Totale confezionato</b> = somma righe confezionamento (kg).<br>
+            <b>Differenza</b> = peso reale - confezionato (solo informativa).
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>Magazzino automatico</label>
+          <div class="form-help">
+            1) Scarico ingredienti (ricetta_ingredienti × moltiplicatore).<br>
+            2) Carico prodotto finito (totale kg confezionato, suddiviso per righe confezione).<br>
+            3) Carico coprodotti (quantità/UM inserite).<br>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>HACCP / Tracciabilità</label>
+          <div class="form-help">
+            Il lotto è univoco (codice_lotto trigger). La firma avviene tramite PIN operatore (firmato_at).<br>
+            Se esiste la tabella <b>produzione_eventi_log</b>, vengono registrati eventi di processo (best-effort).
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+function apriSchedaTecnica() {
+  const backdrop = document.getElementById("prod-tech-backdrop");
+  if (backdrop) backdrop.style.display = "block";
+}
+
+function chiudiSchedaTecnica() {
+  const backdrop = document.getElementById("prod-tech-backdrop");
+  if (backdrop) backdrop.style.display = "none";
+}
+
+/* ========================================================= */
 /* EVENTS */
 /* ========================================================= */
 
 function bindEvents() {
   document.getElementById("btn-back")?.addEventListener("click", () => {
     window.location.hash = "#/produzione";
+  });
+
+  document.getElementById("btn-scheda-tecnica")?.addEventListener("click", apriSchedaTecnica);
+  document.getElementById("prod-tech-close")?.addEventListener("click", chiudiSchedaTecnica);
+  document.getElementById("prod-tech-backdrop")?.addEventListener("click", (e) => {
+    if (e.target?.id === "prod-tech-backdrop") chiudiSchedaTecnica();
   });
 
   document.getElementById("btn-vedi-ricetta")?.addEventListener("click", apriModalRicetta);
@@ -1080,8 +1311,14 @@ function bindEvents() {
     recalcResaUI();
   });
 
-  document.getElementById("porzioni-wrap")?.addEventListener("input", (e) => onPorzioniInput(e));
-  document.getElementById("porzioni-wrap")?.addEventListener("change", (e) => onPorzioniInput(e));
+  document.getElementById("btn-add-confezione")?.addEventListener("click", () => {
+    if (savedLotto) return;
+    addConfezioneRow();
+  });
+
+  document.getElementById("confezioni-wrap")?.addEventListener("change", (e) => onConfezioniChange(e));
+  document.getElementById("confezioni-wrap")?.addEventListener("input", (e) => onConfezioniChange(e));
+  document.getElementById("confezioni-wrap")?.addEventListener("click", (e) => onConfezioniClick(e));
 
   document.getElementById("btn-add-coprodotto")?.addEventListener("click", () => {
     if (savedLotto) return;
@@ -1094,7 +1331,7 @@ function bindEvents() {
 
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
 
-  document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichettaLotto);
+  document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
   document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
 }
 
@@ -1109,12 +1346,11 @@ function raccogliDatiForm() {
   const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
   const pesoRealeKg = getPesoRealeKg();
 
-  const porzioni = porzioniRows.map((r) => ({
-    porzione_id: r.porzione_id,
-    label: r.label,
-    peso_porzione: toNumber(r.peso_porzione),
-    unita_misura: r.unita_misura,
-    quantita_pz: Math.max(0, Math.floor(toNumber(r.quantita_pz) || 0)),
+  const confezioni = confezioniRows.map((r) => ({
+    id: r.id,
+    porzione_id: (r.porzione_id || "").toString(),
+    pezzi_per_confezione: Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0)),
+    numero_confezioni: Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0)),
     note: (r.note || "").toString()
   }));
 
@@ -1134,7 +1370,7 @@ function raccogliDatiForm() {
     noteLotto,
     operatore: operatoreRisolto,
     pesoRealeKg,
-    porzioni,
+    confezioni,
     coprodotti
   };
 }
@@ -1152,8 +1388,17 @@ function validaForm(dati) {
     return "Inserisci il peso totale reale (kg) > 0.";
   }
 
-  const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
-  if (!porzioniValide.length) return "Inserisci almeno una porzione con quantità > 0.";
+  if (!ricettaSelezionata?.prodotto_output_id) {
+    return "La ricetta non ha un prodotto output associato (prodotto_output_id).";
+  }
+
+  const confezioniValide = (dati.confezioni || []).filter((c) => c.porzione_id && c.pezzi_per_confezione > 0 && c.numero_confezioni > 0);
+  if (!confezioniValide.length) return "Inserisci almeno una confezione valida (porzionatura + pezzi + numero confezioni).";
+
+  const totConfezionato = getTotaleConfezionatoKg();
+  if (!Number.isFinite(totConfezionato) || totConfezionato <= 0) {
+    return "Totale confezionato non valido. Controlla le righe confezionamento.";
+  }
 
   const invalidCop = (dati.coprodotti || []).some((c) => {
     const hasProd = !!c.prodotto_id;
@@ -1168,10 +1413,6 @@ function validaForm(dati) {
 
   if (invalidCop) return "Compila correttamente i coprodotti (quantità > 0, UM e scadenza).";
 
-  if (!ricettaSelezionata?.prodotto_output_id) {
-    return "La ricetta non ha un prodotto output associato (prodotto_output_id).";
-  }
-
   return null;
 }
 
@@ -1184,14 +1425,12 @@ async function logEventoHaccp({ aziendaId, produzioneId, tipo, payload }) {
   if (!supabase || !aziendaId || !produzioneId || !tipo) return;
 
   try {
-    await supabase
-      .from("produzione_eventi_log")
-      .insert({
-        azienda_id: aziendaId,
-        produzione_id: produzioneId,
-        tipo_evento: tipo,
-        payload: payload ?? null
-      });
+    await supabase.from("produzione_eventi_log").insert({
+      azienda_id: aziendaId,
+      produzione_id: produzioneId,
+      tipo_evento: tipo,
+      payload: payload ?? null
+    });
   } catch {
   }
 }
@@ -1219,24 +1458,32 @@ async function salvaProduzione() {
   try {
     const resaTeoKg = getResaTeoricaKg();
     const pesoRealeKg = dati.pesoRealeKg;
-    const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
-    const differenzaKg = pesoRealeKg - pesoAllocatoKg;
-    const scartoKg = (resaTeoKg != null) ? (resaTeoKg - pesoRealeKg) : null;
+    const confezionatoKg = getTotaleConfezionatoKg();
+    const differenzaKg = pesoRealeKg - confezionatoKg;
+    const scartoKg = resaTeoKg == null ? null : resaTeoKg - pesoRealeKg;
 
     const moltiplicatore = getMoltiplicatoreRicetta();
-
-    const dettaglioConfezionamento = (dati.porzioni || [])
-      .filter((p) => p.quantita_pz > 0)
-      .map((p) => ({
-        porzione_id: p.porzione_id,
-        label: p.label,
-        peso_porzione: p.peso_porzione,
-        unita_misura: p.unita_misura,
-        quantita_pz: p.quantita_pz,
-        note: p.note || ""
-      }));
-
     const scenario = scenariConservazione.find((s) => String(s.id) === String(dati.scenarioId)) || null;
+
+    const dettaglioConfezionamento = (dati.confezioni || [])
+      .filter((c) => c.porzione_id && c.pezzi_per_confezione > 0 && c.numero_confezioni > 0)
+      .map((c) => {
+        const porz = porzioniCache.find((p) => String(p.id) === String(c.porzione_id)) || null;
+        const pesoPorzKg = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
+        const kgConf = pesoPorzKg * c.pezzi_per_confezione;
+        const kgTot = kgConf * c.numero_confezioni;
+
+        return {
+          porzione_id: c.porzione_id,
+          label: porz?.label ?? "",
+          peso_porzione_kg: pesoPorzKg,
+          pezzi_per_confezione: c.pezzi_per_confezione,
+          numero_confezioni: c.numero_confezioni,
+          kg_per_confezione: kgConf,
+          kg_totali_riga: kgTot,
+          note: c.note || ""
+        };
+      });
 
     const { data: lotto, error: errLotto } = await supabase
       .from("produzione_lotti")
@@ -1262,7 +1509,6 @@ async function salvaProduzione() {
       .single();
 
     if (errLotto) throw errLotto;
-
     savedLotto = lotto;
 
     await logEventoHaccp({
@@ -1277,9 +1523,10 @@ async function salvaProduzione() {
         scenario_label: scenario?.scenario_label ?? null,
         temperatura: scenario?.temperatura ?? null,
         peso_reale_kg: pesoRealeKg,
-        peso_allocato_kg: pesoAllocatoKg,
+        confezionato_kg: confezionatoKg,
         differenza_kg: differenzaKg,
         scarto_kg: scartoKg,
+        moltiplicatore_ricetta: moltiplicatore,
         operatore_id: dati.operatore.id
       }
     });
@@ -1287,45 +1534,34 @@ async function salvaProduzione() {
     const lottoEl = document.getElementById("prod-lotto");
     if (lottoEl && lotto?.codice_lotto) lottoEl.value = lotto.codice_lotto;
 
-    const porzioniValide = (dati.porzioni || []).filter((p) => p.quantita_pz > 0);
-
-    const righePorzioniPayload = porzioniValide.map((p) => ({
+    const righeConfezioniPayload = dettaglioConfezionamento.map((c) => ({
       azienda_id: aziendaId,
       produzione_id: lotto.id,
       ricetta_id: ricettaSelezionata.id,
       conservazione_id: dati.scenarioId || null,
-      formato_label: p.label,
-      quantita: p.quantita_pz,
+      formato_label: c.label || "CONFEZIONE",
+      quantita: c.kg_totali_riga,
       quantita_equivalente: null,
-      unita: "pz",
+      unita: "kg",
       moltiplicatore_ricetta: moltiplicatore,
       lotto: lotto.codice_lotto,
-      porzione_id: p.porzione_id,
-      note_confezionamento: p.note || null
+      porzione_id: Number(c.porzione_id),
+      note_confezionamento: `Confezioni=${c.numero_confezioni} | Pezzi/Conf=${c.pezzi_per_confezione} | Kg/Conf=${formatNumber(c.kg_per_confezione)}${c.note ? ` | ${c.note}` : ""}`
     }));
 
     const { data: righeIns, error: errRighe } = await supabase
       .from("schede_produzione_righe")
-      .insert(righePorzioniPayload)
+      .insert(righeConfezioniPayload)
       .select("id, porzione_id, formato_label, quantita, unita, note_confezionamento");
 
     if (errRighe) throw errRighe;
-    savedRighe = (righeIns || []);
+    savedRighe = righeIns || [];
 
     await logEventoHaccp({
       aziendaId,
       produzioneId: lotto.id,
-      tipo: "PORZIONI_INSERITE",
-      payload: {
-        righe: porzioniValide.map((p) => ({
-          porzione_id: p.porzione_id,
-          label: p.label,
-          qta_pz: p.quantita_pz,
-          peso_porzione: p.peso_porzione,
-          unita_misura: p.unita_misura,
-          note: p.note || ""
-        }))
-      }
+      tipo: "CONFEZIONAMENTO_INSERITO",
+      payload: { righe: dettaglioConfezionamento }
     });
 
     const { data: ingredienti, error: errIng } = await supabase
@@ -1343,55 +1579,46 @@ async function salvaProduzione() {
       .eq("riferimento_tipo", "PRODUZIONE_LOTTO")
       .eq("riferimento_id", lotto.id);
 
-    for (const ing of (ingredienti || [])) {
+    for (const ing of ingredienti || []) {
       const prodottoId = ing.prodotto_id;
       const qBase = toNumber(ing.quantita ?? ing.qta ?? ing.qta_ingrediente ?? 0);
       if (!prodottoId || qBase <= 0) continue;
 
       const qScarico = qBase * moltiplicatore;
 
-      const { error: errMov } = await supabase
-        .from("magazzino_movimenti")
-        .insert({
-          azienda_id: aziendaId,
-          prodotto_id: prodottoId,
-          tipo_movimento: "SCARICO",
-          quantita: qScarico,
-          data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE_LOTTO",
-          riferimento_id: lotto.id,
-          note: `Scarico ingredienti lotto ${lotto.codice_lotto}`
-        });
+      const { error: errMov } = await supabase.from("magazzino_movimenti").insert({
+        azienda_id: aziendaId,
+        prodotto_id: prodottoId,
+        tipo_movimento: "SCARICO",
+        quantita: qScarico,
+        data_movimento: dati.dataProduzione,
+        riferimento_tipo: "PRODUZIONE_LOTTO",
+        riferimento_id: lotto.id,
+        note: `Scarico ingredienti lotto ${lotto.codice_lotto}`
+      });
 
       if (errMov) throw errMov;
     }
 
-    for (const p of porzioniValide) {
-      const qPz = p.quantita_pz;
-      const pesoKg = toKg(toNumber(p.peso_porzione), p.unita_misura);
-      const qKg = qPz * pesoKg;
+    for (const c of dettaglioConfezionamento) {
+      const noteExtra = (c.note || "").trim();
+      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${c.label} — ${c.numero_confezioni} conf x ${c.pezzi_per_confezione} pz (kg/conf ${formatNumber(c.kg_per_confezione)})${noteExtra ? ` — ${noteExtra}` : ""}`;
 
-      const noteExtra = (p.note || "").trim();
-      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${p.label} — ${qPz} pz x ${formatNumber(pesoKg)} kg${noteExtra ? ` — ${noteExtra}` : ""}`;
-
-      const { error: errCarico } = await supabase
-        .from("magazzino_movimenti")
-        .insert({
-          azienda_id: aziendaId,
-          prodotto_id: ricettaSelezionata.prodotto_output_id,
-          tipo_movimento: "CARICO",
-          quantita: qKg,
-          data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE_LOTTO",
-          riferimento_id: lotto.id,
-          note
-        });
+      const { error: errCarico } = await supabase.from("magazzino_movimenti").insert({
+        azienda_id: aziendaId,
+        prodotto_id: ricettaSelezionata.prodotto_output_id,
+        tipo_movimento: "CARICO",
+        quantita: c.kg_totali_riga,
+        data_movimento: dati.dataProduzione,
+        riferimento_tipo: "PRODUZIONE_LOTTO",
+        riferimento_id: lotto.id,
+        note
+      });
 
       if (errCarico) throw errCarico;
     }
 
     const coprodottiValidi = (dati.coprodotti || []).filter((c) => c.prodotto_id);
-
     if (coprodottiValidi.length) {
       await logEventoHaccp({
         aziendaId,
@@ -1413,23 +1640,21 @@ async function salvaProduzione() {
       const q = toNumber(c.quantita);
       if (q <= 0) continue;
 
-      const { error: errRigaCop } = await supabase
-        .from("schede_produzione_righe")
-        .insert({
-          azienda_id: aziendaId,
-          produzione_id: lotto.id,
-          ricetta_id: ricettaSelezionata.id,
-          conservazione_id: dati.scenarioId || null,
-          formato_label: "COPRODOTTO",
-          quantita: q,
-          quantita_equivalente: null,
-          unita: c.unita_misura || "kg",
-          moltiplicatore_ricetta: moltiplicatore,
-          lotto: lotto.codice_lotto,
-          porzione_id: null,
-          note_confezionamento: (c.note || "").trim() || null,
-          prodotto_id: Number(c.prodotto_id)
-        });
+      const { error: errRigaCop } = await supabase.from("schede_produzione_righe").insert({
+        azienda_id: aziendaId,
+        produzione_id: lotto.id,
+        ricetta_id: ricettaSelezionata.id,
+        conservazione_id: dati.scenarioId || null,
+        formato_label: "COPRODOTTO",
+        quantita: q,
+        quantita_equivalente: null,
+        unita: c.unita_misura || "kg",
+        moltiplicatore_ricetta: moltiplicatore,
+        lotto: lotto.codice_lotto,
+        porzione_id: null,
+        note_confezionamento: (c.note || "").trim() || null,
+        prodotto_id: Number(c.prodotto_id)
+      });
 
       if (errRigaCop) throw errRigaCop;
 
@@ -1437,18 +1662,16 @@ async function salvaProduzione() {
       const nomeProd = prod?.nome || "Coprodotto";
       const noteCop = `Carico coprodotto lotto ${lotto.codice_lotto} — ${nomeProd}${c.note ? ` — ${c.note}` : ""}`;
 
-      const { error: errMovCop } = await supabase
-        .from("magazzino_movimenti")
-        .insert({
-          azienda_id: aziendaId,
-          prodotto_id: Number(c.prodotto_id),
-          tipo_movimento: "CARICO",
-          quantita: q,
-          data_movimento: dati.dataProduzione,
-          riferimento_tipo: "PRODUZIONE_LOTTO",
-          riferimento_id: lotto.id,
-          note: noteCop
-        });
+      const { error: errMovCop } = await supabase.from("magazzino_movimenti").insert({
+        azienda_id: aziendaId,
+        prodotto_id: Number(c.prodotto_id),
+        tipo_movimento: "CARICO",
+        quantita: q,
+        data_movimento: dati.dataProduzione,
+        riferimento_tipo: "PRODUZIONE_LOTTO",
+        riferimento_id: lotto.id,
+        note: noteCop
+      });
 
       if (errMovCop) throw errMovCop;
     }
@@ -1460,6 +1683,7 @@ async function salvaProduzione() {
       payload: {
         moltiplicatore_ricetta: moltiplicatore,
         prodotto_output_id: ricettaSelezionata.prodotto_output_id,
+        confezionato_kg: confezionatoKg,
         coprodotti_count: coprodottiValidi.length
       }
     });
@@ -1500,6 +1724,9 @@ function lockUIAfterSave() {
   const btnAddCop = document.getElementById("btn-add-coprodotto");
   if (btnAddCop) btnAddCop.setAttribute("disabled", "disabled");
 
+  const btnAddConf = document.getElementById("btn-add-confezione");
+  if (btnAddConf) btnAddConf.setAttribute("disabled", "disabled");
+
   const printLotto = document.getElementById("btn-print-lotto");
   const printCop = document.getElementById("btn-print-coprodotti");
   if (printLotto) printLotto.removeAttribute("disabled");
@@ -1522,7 +1749,7 @@ function lockUIAfterSave() {
     }
   }
 
-  renderPorzioniRows();
+  renderConfezioniRows();
   renderCoprodottiRows();
 }
 
@@ -1530,7 +1757,7 @@ function lockUIAfterSave() {
 /* PRINT */
 /* ========================================================= */
 
-function stampaEtichettaLotto() {
+function stampaEtichetteConfezioni() {
   if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
   const dataProd = document.getElementById("prod-data")?.value || "";
@@ -1542,49 +1769,60 @@ function stampaEtichettaLotto() {
   const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
   const scenarioLabel = scenario?.scenario_label || "";
   const temperatura = (scenario?.temperatura ?? "").toString();
-  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 420);
+  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 360);
 
-  const pesoRealeKg = getPesoRealeKg();
-  const pesoAllocatoKg = getPesoAllocatoDaPorzioniKg();
-  const diffKg = pesoRealeKg - pesoAllocatoKg;
+  const rows = confezioniRows
+    .map((r) => {
+      const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
+      const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+      const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
+      if (!porz || pezzi <= 0 || numConf <= 0) return null;
 
-  const porzioniValide = porzioniRows
-    .map((p) => ({
-      ...p,
-      q: Math.max(0, Math.floor(toNumber(p.quantita_pz) || 0))
-    }))
-    .filter((p) => p.q > 0);
+      const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
+      const kgConf = pesoPorzKg * pezzi;
 
-  const righePorzioniTxt = porzioniValide
-    .map((p) => {
-      const note = (p.note || "").trim();
-      const pesoKg = toKg(toNumber(p.peso_porzione), p.unita_misura);
-      return `${escapeHtml(p.label)} → ${escapeHtml(String(p.q))} pz (x ${escapeHtml(formatNumber(pesoKg))} kg)${note ? ` — ${escapeHtml(note)}` : ""}`;
+      return {
+        label: porz.label,
+        porzione_id: porz.id,
+        pezzi_per_confezione: pezzi,
+        numero_confezioni: numConf,
+        kg_per_confezione: kgConf,
+        note: (r.note || "").toString()
+      };
     })
-    .join("<br>");
+    .filter(Boolean);
+
+  if (!rows.length) return alert("Nessuna confezione valida da stampare.");
+
+  const labels = [];
+  for (const r of rows) {
+    for (let i = 0; i < r.numero_confezioni; i++) {
+      labels.push(
+        buildLabelHtml({
+          header: escapeHtml(ricettaSelezionata?.nome || "Ricetta"),
+          rows: [
+            { k: "Lotto", v: savedLotto.codice_lotto, big: true },
+            { k: "Porzionatura", v: r.label },
+            { k: "Pezzi in confezione", v: String(r.pezzi_per_confezione) },
+            { k: "Peso confezione", v: `${formatNumber(r.kg_per_confezione)} kg` },
+            { k: "Data produzione", v: dataProd },
+            { k: "Scadenza", v: scadenza },
+            scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
+            temperatura ? { k: "Temperatura", v: temperatura } : null,
+            fasi ? { k: "Fasi operative", v: fasi } : null,
+            { k: "Operatore", v: operatoreNome },
+            noteLotto ? { k: "Destinazione / Note lotto", v: noteLotto } : null,
+            r.note ? { k: "Note confezione", v: r.note } : null
+          ],
+          footer: "Generato da Ristoflow — Produzione"
+        })
+      );
+    }
+  }
 
   const html = buildPrintHtml({
-    title: "Etichetta Lotto",
-    labels: [
-      buildLabelHtml({
-        header: escapeHtml(ricettaSelezionata?.nome || "Ricetta"),
-        rows: [
-          { k: "Lotto", v: savedLotto.codice_lotto, big: true },
-          { k: "Data produzione", v: dataProd },
-          { k: "Scadenza", v: scadenza },
-          scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
-          temperatura ? { k: "Temperatura", v: temperatura } : null,
-          fasi ? { k: "Fasi operative", v: fasi } : null,
-          { k: "Peso reale", v: `${formatNumber(pesoRealeKg)} kg` },
-          { k: "Peso porzionato", v: `${formatNumber(pesoAllocatoKg)} kg` },
-          { k: "Differenza", v: `${formatNumber(diffKg)} kg` },
-          { k: "Operatore", v: operatoreNome },
-          noteLotto ? { k: "Destinazione / Note", v: noteLotto } : null,
-          { k: "Confezionamento", v: righePorzioniTxt || "—" }
-        ],
-        footer: "Generato da Ristoflow — Produzione"
-      })
-    ]
+    title: "Etichette Confezioni",
+    labels
   });
 
   openPrintWindow(html);
@@ -1600,7 +1838,7 @@ function stampaEtichetteCoprodotti() {
   const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
   const scenarioLabel = scenario?.scenario_label || "";
   const temperatura = (scenario?.temperatura ?? "").toString();
-  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 320);
+  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
   const coprodottiValidi = coprodottiRows
     .map((c) => ({
@@ -1698,7 +1936,7 @@ function buildLabelHtml({ header, rows, footer }) {
 }
 
 function openPrintWindow(html) {
-  const w = window.open("", "_blank");
+  const w = window.open("about:blank", "_blank");
   if (!w) return alert("Popup bloccato dal browser. Consenti i popup per stampare.");
   w.document.open();
   w.document.write(html);
