@@ -34,13 +34,14 @@ let faseTabAttiva = "preparazione";
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
   const aziendaId = window.state?.azienda?.id;
+
   if (!aziendaId) {
     app.innerHTML = `<section class="view"><h3>Nessuna azienda attiva</h3></section>`;
     return;
   }
 
   // ============================================================
-  // 🔐 CONTROLLO PERMESSI RICETTE (Enterprise Layer)
+  // 🔐 CONTROLLO PERMESSI
   // ============================================================
 
   if (!requirePermessi({
@@ -63,6 +64,10 @@ export async function render(app) {
     })) return;
   }
 
+  // ============================================================
+  // 🧱 NUOVO LAYOUT GLOBALE (ma stessa logica sotto)
+  // ============================================================
+
   app.innerHTML = `
     <section class="view">
 
@@ -71,10 +76,21 @@ export async function render(app) {
           onclick="window.location.hash='#/produzione'">
           ← Centro Produzione
         </button>
-        <h2>${ricettaId ? "Modifica Ricetta" : "Crea Ricetta"}</h2>
+
+        <h2>
+          ${ricettaId ? "✏️ Modifica Ricetta" : "🆕 Crea Ricetta"}
+        </h2>
       </div>
 
       <div class="editor-stack">
+
+        <!-- ================= OPERATIVA ================= -->
+
+        <div class="editor-section open">
+          <div class="editor-section-header">
+            <strong>Struttura Ricetta</strong>
+          </div>
+        </div>
 
         <!-- ================= ANAGRAFICA ================= -->
         <div class="editor-section open">
@@ -94,95 +110,15 @@ export async function render(app) {
             </label>
 
             <label style="grid-column:1/-1;">
-              Descrizione (opz.)
-              <textarea id="r-descrizione" class="input-pill" rows="3" style="resize:vertical;"></textarea>
+              Descrizione
+              <textarea id="r-descrizione" class="input-pill" rows="3"></textarea>
             </label>
 
             <label style="grid-column:1/-1;">
-              Note procedimento (opz.)
-              <textarea id="r-note-proc" class="input-pill" rows="4" style="resize:vertical;"></textarea>
+              Note procedimento
+              <textarea id="r-note-proc" class="input-pill" rows="4"></textarea>
             </label>
 
-            <label style="grid-column:1/-1;">
-              Foto URL (opz.)
-              <input id="r-foto-url" class="input-pill" placeholder="https://..." />
-            </label>
-
-          </div>
-        </div>
-
-        <!-- ================= OUTPUT PRINCIPALE ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Output</strong>
-          </div>
-          <div class="editor-section-body editor-grid-2">
-
-            <div style="grid-column:1/-1;">
-              <label>
-                Prodotto output *
-                <div class="input-wrap">
-                  <input id="r-output-search"
-                    class="input-pill"
-                    autocomplete="off"
-                    placeholder="Cerca prodotto output..." />
-                  <input id="r-output-id" type="hidden" />
-                  <div id="r-output-suggest" class="suggest-list"></div>
-                </div>
-              </label>
-              <div id="r-output-info" class="small-muted" style="margin-top:6px;">
-                Nessun prodotto output selezionato
-              </div>
-            </div>
-
-            <label>
-              Peso finale (resa) *
-              <input id="r-output-peso" type="number" min="0" step="0.001" class="input-pill" placeholder="Es: 10.000" />
-            </label>
-
-            <label>
-              Unità misura output *
-              <select id="r-output-um" class="input-pill">
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="pz">pz</option>
-                <option value="l">l</option>
-                <option value="ml">ml</option>
-              </select>
-            </label>
-
-            <label style="grid-column:1/-1;">
-              Note output (opz.)
-              <input id="r-output-note" class="input-pill" placeholder="Es: resa dopo cottura / sgocciolato / ecc." />
-            </label>
-
-            <div style="grid-column:1/-1;">
-              <div id="r-cost-preview" class="small-muted" style="margin-top:8px;">
-                Food cost: — (salva per calcolare)
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- ================= OUTPUT SECONDARI (COPRODOTTI) ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Coprodotti / Rifili (non sfrido)</strong>
-          </div>
-          <div class="editor-section-body">
-            <div id="output-secondari-container"></div>
-
-            <button id="btn-add-out2"
-              class="app-button small gray"
-              type="button"
-              style="margin-top:10px;">
-              + Aggiungi coprodotto
-            </button>
-
-            <div class="small-muted" style="margin-top:10px;">
-              Esempio: rifili riutilizzabili (ragù, fondi, ecc.). Lo sfrido vero è la parte non riutilizzabile.
-            </div>
           </div>
         </div>
 
@@ -203,19 +139,57 @@ export async function render(app) {
           </div>
         </div>
 
-        <!-- ================= FASI (MINI-TAB) ================= -->
+        <!-- ================= OUTPUT ================= -->
         <div class="editor-section open">
-          <div class="editor-section-header" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-            <strong>Fasi</strong>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" class="app-button small gray fase-tab" data-tab="preparazione">Preparazione</button>
-              <button type="button" class="app-button small gray fase-tab" data-tab="cottura">Cottura</button>
-              <button type="button" class="app-button small gray fase-tab" data-tab="attesa">Attesa</button>
-              <button type="button" class="app-button small gray fase-tab" data-tab="raffreddamento">Raffredd.</button>
-            </div>
+          <div class="editor-section-header">
+            <strong>Output (Resa)</strong>
           </div>
+          <div class="editor-section-body editor-grid-2">
 
+            <div style="grid-column:1/-1;">
+              <label>
+                Prodotto output *
+                <div class="input-wrap">
+                  <input id="r-output-search"
+                    class="input-pill"
+                    autocomplete="off"
+                    placeholder="Cerca prodotto..." />
+                  <input id="r-output-id" type="hidden" />
+                  <div id="r-output-suggest" class="suggest-list"></div>
+                </div>
+              </label>
+            </div>
+
+            <label>
+              Peso finale *
+              <input id="r-output-peso" type="number" min="0" step="0.001" class="input-pill" />
+            </label>
+
+            <label>
+              UM *
+              <select id="r-output-um" class="input-pill">
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="pz">pz</option>
+                <option value="l">l</option>
+                <option value="ml">ml</option>
+              </select>
+            </label>
+
+            <div style="grid-column:1/-1;">
+              <div id="r-cost-preview" class="small-muted">
+                Food cost: —
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= PROCEDIMENTO ================= -->
+        <div class="editor-section open">
+          <div class="editor-section-header">
+            <strong>Procedimento</strong>
+          </div>
           <div class="editor-section-body">
             <div id="fasi-container"></div>
 
@@ -225,17 +199,30 @@ export async function render(app) {
               style="margin-top:10px;">
               + Aggiungi fase
             </button>
+          </div>
+        </div>
 
-            <div class="small-muted" style="margin-top:10px;">
-              Suggerimento: usa ordine 1,2,3... e indica durata e lavoro umano (minuti).
-            </div>
+        <!-- ================= PORZIONI ================= -->
+        <div class="editor-section open">
+          <div class="editor-section-header">
+            <strong>Porzionature</strong>
+          </div>
+          <div class="editor-section-body">
+            <div id="porzioni-container"></div>
+
+            <button id="btn-add-porzione"
+              class="app-button small gray"
+              type="button"
+              style="margin-top:10px;">
+              + Aggiungi porzione
+            </button>
           </div>
         </div>
 
         <!-- ================= CONSERVAZIONE ================= -->
         <div class="editor-section open">
           <div class="editor-section-header">
-            <strong>Conservazione (scenari)</strong>
+            <strong>Conservazione</strong>
           </div>
           <div class="editor-section-body">
             <div id="conservazione-container"></div>
@@ -246,84 +233,32 @@ export async function render(app) {
               style="margin-top:10px;">
               + Aggiungi scenario
             </button>
-
-            <div class="small-muted" style="margin-top:10px;">
-              Gli scenari vengono poi scelti in Produzione per calcolare automaticamente la scadenza.
-            </div>
           </div>
         </div>
 
-        <!-- ================= COTTURA ================= -->
-        <div class="editor-section open">
+        <!-- ================= ECONOMICA (coprodotti + snapshot) ================= -->
+        <div class="editor-section">
           <div class="editor-section-header">
-            <strong>Cottura (opzionale)</strong>
-          </div>
-          <div class="editor-section-body editor-grid-2">
-
-            <label>
-              Tipologia
-              <select id="r-cottura-tipologia" class="input-pill">
-                <option value="nessuna">nessuna</option>
-                <option value="pentola">pentola</option>
-                <option value="forno">forno</option>
-                <option value="vapore">vapore</option>
-                <option value="brasato">brasato</option>
-                <option value="CBT">CBT</option>
-                <option value="mista">mista</option>
-              </select>
-            </label>
-
-            <label>
-              Temperatura (opz.)
-              <input id="r-cottura-temperatura" class="input-pill" placeholder="Es: 160°C" />
-            </label>
-
-            <label>
-              Tempo (minuti) (opz.)
-              <input id="r-cottura-tempo" type="number" min="0" class="input-pill" />
-            </label>
-
-            <label style="grid-column:1/-1;">
-              Note cottura (opz.)
-              <input id="r-cottura-note" class="input-pill" />
-            </label>
-
-          </div>
-        </div>
-
-        <!-- ================= PORZIONATURE ================= -->
-        <div class="editor-section open">
-          <div class="editor-section-header">
-            <strong>Porzionature / Confezioni</strong>
+            <strong>Area Economica</strong>
           </div>
           <div class="editor-section-body">
-            <div id="porzioni-container"></div>
+            <div id="output-secondari-container"></div>
 
-            <button id="btn-add-porzione"
+            <button id="btn-add-out2"
               class="app-button small gray"
               type="button"
               style="margin-top:10px;">
-              + Aggiungi porzionatura
+              + Aggiungi coprodotto
             </button>
-
-            <div class="small-muted" style="margin-top:10px;">
-              Esempio: Trattoria 220g / Ristorante 180g / Ricevimento 140g.
-            </div>
           </div>
         </div>
 
         <!-- ================= AZIONI ================= -->
-        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="margin-top:16px;">
           <button id="btn-salva"
             class="app-button green"
             type="button">
-            Salva Ricetta
-          </button>
-
-          <button id="btn-torna-ricettario"
-            class="app-button small gray"
-            type="button">
-            ← Torna al Ricettario
+            💾 Salva Ricetta
           </button>
         </div>
 
@@ -335,25 +270,17 @@ export async function render(app) {
 
   await loadProdotti();
   bindUI();
-  initFasiTabs(); // mini-tab fasi
 
   if (ricettaId) {
     await caricaRicettaCompleta();
-    // dopo il load, riapplico il filtro
-    initFasiTabs();
-    filterFasiByTab();
   } else {
-    // default UI
-    aggiungiOutputSecondario();
     aggiungiIngrediente();
     aggiungiFase({ ordine: 1, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
     aggiungiScenarioConservazione();
     aggiungiPorzione();
     aggiornaOutputInfo();
-    filterFasiByTab();
   }
 }
-
 /* ============================================================
    PRODOTTI + AUTOCOMPLETE
 ============================================================ */
