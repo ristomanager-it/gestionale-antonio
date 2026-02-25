@@ -1,12 +1,11 @@
 // js/views/ricettario.js
-// ============================================================
-// RICETTARIO – Layout standard Ristoflow
-// Ricerca autocompilante + Viewer completo
-// ============================================================
 
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 let ricetteCache = [];
+let filtroIncomplete = false;
+let filtroGenerate = false;
+let filtroComplete = false;
 
 export async function render(app) {
 
@@ -22,6 +21,26 @@ export async function render(app) {
             onclick="window.location.hash='#/produzione'">
             ← Centro Produzione
           </button>
+        `
+      })}
+
+      ${createCard({
+        title: "Filtri",
+        body: `
+          <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <label>
+              <input type="checkbox" id="f-incomplete">
+              Solo incomplete
+            </label>
+            <label>
+              <input type="checkbox" id="f-generate">
+              Generate da preventivo
+            </label>
+            <label>
+              <input type="checkbox" id="f-complete">
+              Solo complete
+            </label>
+          </div>
         `
       })}
 
@@ -48,13 +67,24 @@ export async function render(app) {
     `
   });
 
+  bindFiltri();
   await loadRicette();
   setupAutocomplete();
 }
 
-/* ============================================================ */
-/* LOAD RICETTE */
-/* ============================================================ */
+function bindFiltri() {
+  document.getElementById("f-incomplete")?.addEventListener("change", e => {
+    filtroIncomplete = e.target.checked;
+  });
+
+  document.getElementById("f-generate")?.addEventListener("change", e => {
+    filtroGenerate = e.target.checked;
+  });
+
+  document.getElementById("f-complete")?.addEventListener("change", e => {
+    filtroComplete = e.target.checked;
+  });
+}
 
 async function loadRicette() {
 
@@ -62,7 +92,6 @@ async function loadRicette() {
   const aziendaId = window.state?.azienda?.id;
 
   if (!aziendaId) {
-    console.warn("Nessuna azienda attiva nel ricettario");
     ricetteCache = [];
     return;
   }
@@ -73,6 +102,8 @@ async function loadRicette() {
       id,
       nome,
       stato_strutturale,
+      generata_da_preventivo,
+      scheda_completa,
       ricette_output (
         peso_finale,
         unita_misura
@@ -83,7 +114,7 @@ async function loadRicette() {
     .order("nome");
 
   if (error) {
-    console.error("Errore caricamento ricette:", error);
+    console.error(error);
     ricetteCache = [];
     return;
   }
@@ -98,14 +129,12 @@ async function loadRicette() {
       nome: r.nome || "",
       stato: r.stato_strutturale || "bozza",
       resa: out?.peso_finale ?? null,
-      um: out?.unita_misura ?? null
+      um: out?.unita_misura ?? null,
+      generata: !!r.generata_da_preventivo,
+      completa: !!r.scheda_completa
     };
   });
 }
-
-/* ============================================================ */
-/* AUTOCOMPLETE */
-/* ============================================================ */
 
 function setupAutocomplete() {
 
@@ -122,9 +151,19 @@ function setupAutocomplete() {
       return;
     }
 
-    const risultati = ricetteCache
-      .filter(r => (r.nome || "").toLowerCase().includes(q))
-      .slice(0, 10);
+    let risultati = ricetteCache
+      .filter(r => (r.nome || "").toLowerCase().includes(q));
+
+    if (filtroIncomplete)
+      risultati = risultati.filter(r => !r.completa);
+
+    if (filtroGenerate)
+      risultati = risultati.filter(r => r.generata);
+
+    if (filtroComplete)
+      risultati = risultati.filter(r => r.completa);
+
+    risultati = risultati.slice(0, 15);
 
     if (!risultati.length) {
       suggest.classList.remove("open");
@@ -140,7 +179,15 @@ function setupAutocomplete() {
         ? ` — ${r.resa} ${r.um || ""}`
         : "";
 
-      div.textContent = `${r.nome}${resaTxt}`;
+      const badgeIncomplete = !r.completa
+        ? ` 🔴`
+        : "";
+
+      const badgeGenerated = r.generata
+        ? ` 🟡`
+        : "";
+
+      div.textContent = `${r.nome}${resaTxt}${badgeIncomplete}${badgeGenerated}`;
 
       div.onclick = () => {
         suggest.innerHTML = "";
@@ -162,10 +209,6 @@ function setupAutocomplete() {
     }
   });
 }
-
-/* ============================================================ */
-/* VIEWER */
-/* ============================================================ */
 
 async function mostraRicetta(id) {
 
@@ -202,9 +245,24 @@ async function mostraRicetta(id) {
 
   const viewer = document.getElementById("ric-viewer");
 
+  const bannerIncomplete = ricetta.scheda_completa === false
+    ? `<div style="background:#ffe5e5;padding:8px;border-radius:6px;margin-bottom:10px;">
+         🔴 Scheda incompleta – Completa ingredienti e fasi
+       </div>`
+    : "";
+
+  const bannerGenerated = ricetta.generata_da_preventivo
+    ? `<div style="background:#fff6d6;padding:8px;border-radius:6px;margin-bottom:10px;">
+         🟡 Ricetta generata automaticamente da preventivo
+       </div>`
+    : "";
+
   viewer.innerHTML = `
 
     <div>
+
+      ${bannerIncomplete}
+      ${bannerGenerated}
 
       <h3>${escapeHtml(ricetta.nome)}</h3>
 
@@ -247,10 +305,6 @@ async function mostraRicetta(id) {
     </div>
   `;
 }
-
-/* ============================================================ */
-/* HELPERS */
-/* ============================================================ */
 
 function escapeHtml(str) {
   return (str ?? "").toString()
