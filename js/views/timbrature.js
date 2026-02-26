@@ -684,47 +684,5 @@ if (ui.stato === "In pausa") {
     await doTimbratura("fine_turno");
   });
 
- 
-
-    elSwipeCard.addEventListener("pointermove", (e) => {
-      if (!isDragging) return;
-
-      currentX = e.clientX - startX;
-      currentY = e.clientY - startY;
-
-      elSwipeCard.style.transform = `translate(${currentX}px, ${currentY}px)`;
-    });
-
-    elSwipeCard.addEventListener("pointerup", async () => {
-      if (!isDragging) return;
-      isDragging = false;
-
-      elSwipeCard.style.transition = "transform 0.25s ease";
-      elSwipeCard.style.transform = "translate(0,0)";
-
-      if (currentX > threshold) {
-        await doTimbratura("inizio_turno");
-      } else if (currentX < -threshold) {
-        await doTimbratura("fine_turno");
-      } else if (currentY < -threshold) {
-        const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-        const ui = computeUiFromLastTipo(lastTipo);
-
-        if (ui.stato === "In turno") {
-          await doTimbratura("inizio_pausa");
-        } else if (ui.stato === "In pausa") {
-          await doTimbratura("fine_pausa");
-        }
-      }
-
-      setTimeout(() => {
-        elSwipeCard.style.transition = "";
-      }, 250);
-
-      currentX = 0;
-      currentY = 0;
-    });
-  }
-
   await refreshUi();
 }
