@@ -359,7 +359,7 @@ if (!isManager) {
 
   </div>
 `
-
+});
   const elStatus = app.querySelector("#tb-status");
   const elPrimary = app.querySelector("#btn-primary");
   const elPausa = app.querySelector("#btn-pausa");
