@@ -297,92 +297,96 @@ container.innerHTML = `
   }
 
   async function tryMatchFuzzy(descrizioneRiga) {
-    const q = normalizeText(descrizioneRiga);
-    if (!q) return null;
+  const q = normalizeText(descrizioneRiga);
+  if (!q) return null;
 
-    try {
-      const { data, error } = await window.supabaseClient.rpc("match_prodotto_fuzzy", {
-        p_azienda_id: azienda.id,
-        p_query: q
-      });
+  const fornitoreIdRaw = getCurrentFornitoreId();
+  const fornitoreId = fornitoreIdRaw ? Number(fornitoreIdRaw) : null;
+  if (!fornitoreId || !Number.isFinite(fornitoreId)) return null;
 
-      if (error || !data) return null;
+  try {
+    const { data, error } = await window.supabaseClient.rpc("match_prodotto_fuzzy", {
+      p_azienda_id: azienda.id,
+      p_fornitore_id: fornitoreId,
+      p_descrizione: q
+    });
 
-      const best = Array.isArray(data) ? data[0] : data;
-      if (!best) return null;
+    if (error || !data) return null;
 
-      const prodottoId = best.prodotto_id || best.id || null;
-      const score = typeof best.score === "number"
-        ? best.score
-        : (typeof best.similarity === "number" ? best.similarity : null);
+    const best = Array.isArray(data) ? data[0] : data;
+    if (!best) return null;
 
-      if (!prodottoId) return null;
+    const prodottoId = best.prodotto_id || best.id || null;
+    const score = typeof best.score === "number"
+      ? best.score
+      : (typeof best.similarity === "number" ? best.similarity : null);
 
-      return {
-        prodotto_id: prodottoId,
-        reason: "match_fuzzy",
-        score: score ?? 0.55
-      };
-    } catch (_) {
-      return null;
-    }
-  }
+    if (!prodottoId) return null;
 
-  async function matchRigaToProdotto(descrizioneRiga) {
-    const fornitoreId = getCurrentFornitoreId();
-
-    const m1 = await tryMatchProdottoFornitore(fornitoreId, descrizioneRiga);
-    if (m1?.prodotto_id) return m1;
-
-    const m2 = await tryMatchProdottiDirect(descrizioneRiga);
-    if (m2?.prodotto_id) return m2;
-
-    const m3 = await tryMatchFuzzy(descrizioneRiga);
-    if (m3?.prodotto_id) return m3;
-
+    return {
+      prodotto_id: prodottoId,
+      reason: "match_fuzzy",
+      score: score ?? 0.55
+    };
+  } catch (_) {
     return null;
   }
+}
 
-  async function loadProdottoNomeById(id) {
-    if (!id) return "";
-    const cached = prodottiCache.find(p => p.id === id);
-    if (cached) return cached.descrizione || "";
+async function matchRigaToProdotto(descrizioneRiga) {
+  const fornitoreId = getCurrentFornitoreId();
 
-    const { data, error } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, descrizione")
-      .eq("azienda_id", azienda.id)
-      .eq("id", id)
-      .single();
+  const m1 = await tryMatchProdottoFornitore(fornitoreId, descrizioneRiga);
+  if (m1?.prodotto_id) return m1;
 
-    if (error || !data) return "";
-    return data.descrizione || "";
-  }
+  const m2 = await tryMatchProdottiDirect(descrizioneRiga);
+  if (m2?.prodotto_id) return m2;
 
-  function computeStatusFromRiga(riga) {
-    if (!riga?.prodotto_id) return "missing";
-    if (isStrongMatch(riga.match_score)) return "ok";
-    return "partial";
-  }
+  const m3 = await tryMatchFuzzy(descrizioneRiga);
+  if (m3?.prodotto_id) return m3;
 
-  function computeHintFromRiga(riga) {
-    if (!riga?.prodotto_id) return "Prodotto non riconosciuto: seleziona o crea un prodotto.";
-    if (riga.match_reason === "match_fornitore") return "Match forte (fornitore).";
-    if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
-    if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
-    if (riga.match_reason === "match_cache") return "Match cache (esatto).";
-    return "Prodotto selezionato manualmente.";
-  }
+  return null;
+}
 
-  function closeAllSuggest() {
-    const all = righeContainer.querySelectorAll(".prod-suggest");
-    all.forEach(x => {
-      x.classList.remove("open");
-      x.innerHTML = "";
-      x.style.display = "none";
-    });
-  }
+async function loadProdottoNomeById(id) {
+  if (!id) return "";
+  const cached = prodottiCache.find(p => p.id === id);
+  if (cached) return cached.descrizione || "";
 
+  const { data, error } = await window.supabaseClient
+    .from("prodotti")
+    .select("id, descrizione")
+    .eq("azienda_id", azienda.id)
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return "";
+  return data.descrizione || "";
+}
+
+function computeStatusFromRiga(riga) {
+  if (!riga?.prodotto_id) return "missing";
+  if (isStrongMatch(riga.match_score)) return "ok";
+  return "partial";
+}
+
+function computeHintFromRiga(riga) {
+  if (!riga?.prodotto_id) return "Prodotto non riconosciuto: seleziona o crea un prodotto.";
+  if (riga.match_reason === "match_fornitore") return "Match forte (fornitore).";
+  if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
+  if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
+  if (riga.match_reason === "match_cache") return "Match cache (esatto).";
+  return "Prodotto selezionato manualmente.";
+}
+
+function closeAllSuggest() {
+  const all = righeContainer.querySelectorAll(".prod-suggest");
+  all.forEach(x => {
+    x.classList.remove("open");
+    x.innerHTML = "";
+    x.style.display = "none";
+  });
+}
   function openSuggestForIndex(idx, items) {
     const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const suggest = rowEl?.querySelector(".prod-suggest");
