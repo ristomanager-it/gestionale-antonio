@@ -1,52 +1,53 @@
 // js/views/gestione-aziende.js
 import { supabase } from "../supabaseClient.js";
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 export async function render(container) {
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
-    container.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Accesso negato</h3>
-          <p>Sezione riservata alla piattaforma.</p>
-        </div>
-      </div>
-    `;
+    container.innerHTML = createPageLayout({
+      title: "Accesso negato",
+      content: createCard({
+        body: `<p>Sezione riservata alla piattaforma.</p>`
+      })
+    });
     return;
   }
 
-  container.innerHTML = `
-    <div class="view">
-      <h2 style="margin-top:0;">Gestione Aziende</h2>
+  const content = `
+    <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:center; margin-top:20px;">
+      <canvas id="grafico-scadenze" width="180" height="180"></canvas>
+      <div id="status-cards" style="flex:1; display:flex; gap:14px; flex-wrap:wrap;"></div>
+    </div>
 
-      <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:center; margin-top:20px;">
-        <canvas id="grafico-scadenze" width="180" height="180"></canvas>
-        <div id="status-cards" style="flex:1; display:flex; gap:14px; flex-wrap:wrap;"></div>
-      </div>
+    <div id="lista-dettaglio"
+         style="margin-top:20px; overflow:hidden; max-height:0; transition:max-height 0.4s ease;">
+    </div>
 
-      <div id="lista-dettaglio"
-           style="margin-top:20px; overflow:hidden; max-height:0; transition:max-height 0.4s ease;">
-      </div>
+    <div style="margin-top:30px;">
+      <input 
+        id="search-input" 
+        class="input-pill"
+        placeholder="Cerca azienda (min 2 caratteri)"
+      />
+    </div>
 
-      <div style="margin-top:30px;">
-        <input 
-          id="search-input" 
-          class="input-pill"
-          placeholder="Cerca azienda (min 2 caratteri)"
-        />
-      </div>
+    <div id="search-results" style="margin-top:16px;"></div>
 
-      <div id="search-results" style="margin-top:16px;"></div>
-
-      <div style="margin-top:24px;">
-        <button class="app-button small gray" id="btn-home">
-          ⬅ Dashboard
-        </button>
-      </div>
+    <div style="margin-top:24px;">
+      <button class="app-button small gray" id="btn-home">
+        ⬅ Dashboard
+      </button>
     </div>
   `;
+
+  container.innerHTML = createPageLayout({
+    title: "Gestione Aziende",
+    subtitle: "Controllo stato attivazione e scadenze",
+    content: createCard({ body: content })
+  });
 
   document.getElementById("btn-home").onclick = () => {
     window.location.hash = "#/home";
@@ -58,8 +59,8 @@ export async function render(container) {
 async function caricaStatoScadenzeAziende() {
   const { data } = await supabase
     .from("aziende")
-    .select("id,nome,data_scadenza")
-    .eq("stato_attivazione", "attiva");
+    .select("id,nome,data_scadenza,stato_attivazione")
+    .neq("stato", "piattaforma"); // mostra tutte tranne la piattaforma
 
   const oggi = new Date();
   oggi.setHours(0,0,0,0);
@@ -91,7 +92,7 @@ async function caricaStatoScadenzeAziende() {
   };
 
   creaGrafico(percentuali);
-  creaCard(gruppi, percentuali);
+  creaCardStato(gruppi, percentuali);
 }
 
 function creaGrafico(percentuali) {
@@ -125,7 +126,7 @@ function creaGrafico(percentuali) {
   ctx.fill();
 }
 
-function creaCard(gruppi, percentuali) {
+function creaCardStato(gruppi, percentuali) {
   const container = document.getElementById("status-cards");
   const dettaglio = document.getElementById("lista-dettaglio");
 
@@ -139,28 +140,23 @@ function creaCard(gruppi, percentuali) {
 
   config.forEach((c) => {
     const card = document.createElement("div");
+    card.className = "card";
     card.style.flex = "1";
     card.style.minWidth = "160px";
-    card.style.padding = "16px";
-    card.style.borderRadius = "18px";
-    card.style.background = "#ffffff";
-    card.style.boxShadow = "0 10px 25px rgba(0,0,0,0.08)";
     card.style.cursor = "pointer";
-    card.style.transition = "transform 0.2s ease";
-
-    card.onmouseenter = () => card.style.transform = "translateY(-4px)";
-    card.onmouseleave = () => card.style.transform = "translateY(0px)";
 
     card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="width:12px; height:12px; border-radius:50%; background:${c.colore};"></div>
-          <strong>${c.label}</strong>
+      <div class="card-body">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:12px; height:12px; border-radius:50%; background:${c.colore};"></div>
+            <strong>${c.label}</strong>
+          </div>
+          <span style="font-size:13px; color:#6b7280;">${percentuali[c.key]}%</span>
         </div>
-        <span style="font-size:13px; color:#6b7280;">${percentuali[c.key]}%</span>
-      </div>
-      <div style="font-size:26px; margin-top:8px;">
-        ${gruppi[c.key].length}
+        <div style="font-size:26px; margin-top:8px;">
+          ${gruppi[c.key].length}
+        </div>
       </div>
     `;
 
@@ -172,12 +168,12 @@ function creaCard(gruppi, percentuali) {
   });
 
   function mostraDettaglio(lista, titolo) {
-    dettaglio.innerHTML = `
-      <div class="view">
-        <h3>${titolo}</h3>
+    dettaglio.innerHTML = createCard({
+      title: titolo,
+      body: `
         <div id="lista-interna"></div>
-      </div>
-    `;
+      `
+    });
 
     const interno = document.getElementById("lista-interna");
 
