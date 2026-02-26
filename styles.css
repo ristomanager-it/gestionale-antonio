@@ -1035,3 +1035,21 @@ svg {
   }
 
 }
+.acquisto-riga-card {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.acquisto-riga-card input {
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .acquisto-riga-card {
+    padding: 18px;
+  }
+
+  .acquisto-riga-card .input-pill {
+    width: 100%;
+  }
+}
