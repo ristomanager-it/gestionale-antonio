@@ -501,7 +501,23 @@ export async function render(app) {
     elPrimary.disabled = !ui.primaryEnabled;
     elPausa.disabled = !ui.pausaEnabled;
     elFine.disabled = !ui.fineEnabled;
+// Reset stato active
+elPrimary.classList.remove("active");
+elPausa.classList.remove("active");
+elFine.classList.remove("active");
 
+// Evidenzia pulsante coerente con stato
+if (ui.stato === "Fuori turno") {
+  elPrimary.classList.add("active");
+}
+
+if (ui.stato === "In turno") {
+  elPausa.classList.add("active");
+}
+
+if (ui.stato === "In pausa") {
+  elPrimary.classList.add("active");
+}
     await loadData();
     refreshDipendentiSummary();
     if (panelOpen) refreshTimbratureList();
