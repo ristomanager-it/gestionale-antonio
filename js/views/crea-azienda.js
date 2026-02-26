@@ -92,7 +92,7 @@ export async function render(container) {
     const telefono = document.getElementById("az-telefono").value.trim();
 
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { error } = await supabase.functions.invoke(
         "create-azienda",
         {
           body: {
@@ -107,11 +107,21 @@ export async function render(container) {
 
       if (error) throw error;
 
+      // 🔥 INVIO EMAIL PER CREARE PASSWORD
+      const { error: resetError } =
+        await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo:
+            window.location.origin + "/#/reset-password",
+        });
+
+      if (resetError) throw resetError;
+
       alert(
-        "Azienda creata con successo.\n\nÈ stata inviata un'email per impostare la password dell'admin."
+        "Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password."
       );
 
       window.location.hash = "#/gestione-aziende";
+
     } catch (err) {
       console.error("create-azienda error:", err);
       errorEl.textContent =
