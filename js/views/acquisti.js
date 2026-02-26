@@ -93,12 +93,26 @@ container.innerHTML = `
     <div class="form-grid">
       <div class="form-group">
         <label>Fornitore</label>
-        <select id="fattura-fornitore" class="input">
-          <option value="">Seleziona fornitore</option>
+
+        <input
+          id="fattura-fornitore-text"
+          class="input"
+          list="fornitori-suggestions"
+          placeholder="Scrivi o seleziona fornitore..."
+          autocomplete="off"
+        />
+
+        <input type="hidden" id="fattura-fornitore-id" value="" />
+
+        <datalist id="fornitori-suggestions">
           ${(fornitori || []).map(f =>
-            `<option value="${f.id}">${escapeHtml(f.ragione_sociale)}</option>`
+            `<option value="${escapeHtml(f.ragione_sociale)}" data-id="${escapeHtml(f.id)}"></option>`
           ).join("")}
-        </select>
+        </datalist>
+
+        <div class="small-muted" style="margin-top:6px; color:#6b7280;">
+          Se non esiste in anagrafica, verrà creato automaticamente al salvataggio.
+        </div>
       </div>
 
       <div class="form-group">
@@ -149,7 +163,9 @@ container.innerHTML = `
   const feedback = document.getElementById("fattura-feedback");
   const btnOcr = document.getElementById("btn-esegui-ocr");
   const datalistProdotti = document.getElementById("prodotti-suggestions");
-  const selectFornitore = document.getElementById("fattura-fornitore");
+
+  const inputFornitore = document.getElementById("fattura-fornitore-text");
+  const hiddenFornitoreId = document.getElementById("fattura-fornitore-id");
 
   let prodottiCache = [];
   let prodottiCacheLastLoad = 0;
@@ -192,6 +208,44 @@ container.innerHTML = `
       .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
       .join("");
   }
+
+  function findFornitoreByRagioneSociale(nome) {
+    const n = (nome || "").trim().toLowerCase();
+    if (!n) return null;
+    return (fornitori || []).find(f => ((f.ragione_sociale || "").trim().toLowerCase() === n)) || null;
+  }
+
+  function syncFornitoreHiddenFromInput() {
+    const txt = (inputFornitore?.value || "").trim();
+    if (!txt) {
+      if (hiddenFornitoreId) hiddenFornitoreId.value = "";
+      return;
+    }
+
+    const match = findFornitoreByRagioneSociale(txt);
+    if (match?.id) {
+      if (hiddenFornitoreId) hiddenFornitoreId.value = String(match.id);
+    } else {
+      if (hiddenFornitoreId) hiddenFornitoreId.value = "";
+    }
+  }
+
+  function getCurrentFornitoreId() {
+    const v = (hiddenFornitoreId?.value || "").trim();
+    return v || null;
+  }
+
+  function getCurrentFornitoreName() {
+    return (inputFornitore?.value || "").trim();
+  }
+
+  inputFornitore?.addEventListener("input", () => {
+    syncFornitoreHiddenFromInput();
+  });
+  inputFornitore?.addEventListener("change", () => {
+    syncFornitoreHiddenFromInput();
+    righe.forEach((_, idx) => updateRowComputedUI(idx));
+  });
 
   function findProdottoInCacheByDescrizione(nome) {
     const n = (nome || "").trim().toLowerCase();
@@ -246,10 +300,6 @@ container.innerHTML = `
     if (hint) hint.textContent = text || "";
   }
 
-  function getCurrentFornitoreId() {
-    return (selectFornitore?.value || "").trim() || null;
-  }
-
   function isStrongMatch(score) {
     return typeof score === "number" && score >= 0.72;
   }
@@ -297,96 +347,96 @@ container.innerHTML = `
   }
 
   async function tryMatchFuzzy(descrizioneRiga) {
-  const q = normalizeText(descrizioneRiga);
-  if (!q) return null;
+    const q = normalizeText(descrizioneRiga);
+    if (!q) return null;
 
-  const fornitoreIdRaw = getCurrentFornitoreId();
-  const fornitoreId = fornitoreIdRaw ? Number(fornitoreIdRaw) : null;
-  if (!fornitoreId || !Number.isFinite(fornitoreId)) return null;
+    const fornitoreIdRaw = getCurrentFornitoreId();
+    const fornitoreId = fornitoreIdRaw ? Number(fornitoreIdRaw) : null;
+    if (!fornitoreId || !Number.isFinite(fornitoreId)) return null;
 
-  try {
-    const { data, error } = await window.supabaseClient.rpc("match_prodotto_fuzzy", {
-      p_azienda_id: azienda.id,
-      p_fornitore_id: fornitoreId,
-      p_descrizione: q
-    });
+    try {
+      const { data, error } = await window.supabaseClient.rpc("match_prodotto_fuzzy", {
+        p_azienda_id: azienda.id,
+        p_fornitore_id: fornitoreId,
+        p_descrizione: q
+      });
 
-    if (error || !data) return null;
+      if (error || !data) return null;
 
-    const best = Array.isArray(data) ? data[0] : data;
-    if (!best) return null;
+      const best = Array.isArray(data) ? data[0] : data;
+      if (!best) return null;
 
-    const prodottoId = best.prodotto_id || best.id || null;
-    const score = typeof best.score === "number"
-      ? best.score
-      : (typeof best.similarity === "number" ? best.similarity : null);
+      const prodottoId = best.prodotto_id || best.id || null;
+      const score = typeof best.score === "number"
+        ? best.score
+        : (typeof best.similarity === "number" ? best.similarity : null);
 
-    if (!prodottoId) return null;
+      if (!prodottoId) return null;
 
-    return {
-      prodotto_id: prodottoId,
-      reason: "match_fuzzy",
-      score: score ?? 0.55
-    };
-  } catch (_) {
+      return {
+        prodotto_id: prodottoId,
+        reason: "match_fuzzy",
+        score: score ?? 0.55
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function matchRigaToProdotto(descrizioneRiga) {
+    const fornitoreId = getCurrentFornitoreId();
+
+    const m1 = await tryMatchProdottoFornitore(fornitoreId, descrizioneRiga);
+    if (m1?.prodotto_id) return m1;
+
+    const m2 = await tryMatchProdottiDirect(descrizioneRiga);
+    if (m2?.prodotto_id) return m2;
+
+    const m3 = await tryMatchFuzzy(descrizioneRiga);
+    if (m3?.prodotto_id) return m3;
+
     return null;
   }
-}
 
-async function matchRigaToProdotto(descrizioneRiga) {
-  const fornitoreId = getCurrentFornitoreId();
+  async function loadProdottoNomeById(id) {
+    if (!id) return "";
+    const cached = prodottiCache.find(p => p.id === id);
+    if (cached) return cached.descrizione || "";
 
-  const m1 = await tryMatchProdottoFornitore(fornitoreId, descrizioneRiga);
-  if (m1?.prodotto_id) return m1;
+    const { data, error } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, descrizione")
+      .eq("azienda_id", azienda.id)
+      .eq("id", id)
+      .single();
 
-  const m2 = await tryMatchProdottiDirect(descrizioneRiga);
-  if (m2?.prodotto_id) return m2;
+    if (error || !data) return "";
+    return data.descrizione || "";
+  }
 
-  const m3 = await tryMatchFuzzy(descrizioneRiga);
-  if (m3?.prodotto_id) return m3;
+  function computeStatusFromRiga(riga) {
+    if (!riga?.prodotto_id) return "missing";
+    if (isStrongMatch(riga.match_score)) return "ok";
+    return "partial";
+  }
 
-  return null;
-}
+  function computeHintFromRiga(riga) {
+    if (!riga?.prodotto_id) return "Prodotto non riconosciuto: seleziona o crea un prodotto.";
+    if (riga.match_reason === "match_fornitore") return "Match forte (fornitore).";
+    if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
+    if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
+    if (riga.match_reason === "match_cache") return "Match cache (esatto).";
+    return "Prodotto selezionato manualmente.";
+  }
 
-async function loadProdottoNomeById(id) {
-  if (!id) return "";
-  const cached = prodottiCache.find(p => p.id === id);
-  if (cached) return cached.descrizione || "";
-
-  const { data, error } = await window.supabaseClient
-    .from("prodotti")
-    .select("id, descrizione")
-    .eq("azienda_id", azienda.id)
-    .eq("id", id)
-    .single();
-
-  if (error || !data) return "";
-  return data.descrizione || "";
-}
-
-function computeStatusFromRiga(riga) {
-  if (!riga?.prodotto_id) return "missing";
-  if (isStrongMatch(riga.match_score)) return "ok";
-  return "partial";
-}
-
-function computeHintFromRiga(riga) {
-  if (!riga?.prodotto_id) return "Prodotto non riconosciuto: seleziona o crea un prodotto.";
-  if (riga.match_reason === "match_fornitore") return "Match forte (fornitore).";
-  if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
-  if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
-  if (riga.match_reason === "match_cache") return "Match cache (esatto).";
-  return "Prodotto selezionato manualmente.";
-}
-
-function closeAllSuggest() {
-  const all = righeContainer.querySelectorAll(".prod-suggest");
-  all.forEach(x => {
-    x.classList.remove("open");
-    x.innerHTML = "";
-    x.style.display = "none";
-  });
-}
+  function closeAllSuggest() {
+    const all = righeContainer.querySelectorAll(".prod-suggest");
+    all.forEach(x => {
+      x.classList.remove("open");
+      x.innerHTML = "";
+      x.style.display = "none";
+    });
+  }
   function openSuggestForIndex(idx, items) {
     const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const suggest = rowEl?.querySelector(".prod-suggest");
@@ -618,12 +668,15 @@ row.dataset.i = String(index);
         result.documento.data_documento;
 
     if (result.fornitore?.ragione_sociale) {
-      const nome = result.fornitore.ragione_sociale.toLowerCase();
-      const match = (fornitori || []).find(f =>
-        (f.ragione_sociale || "").toLowerCase().includes(nome)
-      );
-      if (match)
-        document.getElementById("fattura-fornitore").value = match.id;
+      const nome = (result.fornitore.ragione_sociale || "").trim();
+      if (inputFornitore) inputFornitore.value = nome;
+
+      const match = findFornitoreByRagioneSociale(nome);
+      if (match?.id) {
+        if (hiddenFornitoreId) hiddenFornitoreId.value = String(match.id);
+      } else {
+        if (hiddenFornitoreId) hiddenFornitoreId.value = "";
+      }
     }
 
     righe = [];
@@ -926,19 +979,47 @@ row.dataset.i = String(index);
     closeAllSuggest();
   });
 
-  selectFornitore?.addEventListener("change", async () => {
-    await loadProdottiCache(false);
-    righe.forEach((_, idx) => updateRowComputedUI(idx));
-  });
-
   btnSalva.addEventListener("click", async () => {
     feedback.innerHTML = "Salvataggio...";
 
     try {
       await loadProdottiCache(false);
 
-      const fornitoreId = document.getElementById("fattura-fornitore").value;
-      if (!fornitoreId) throw new Error("Seleziona fornitore");
+      syncFornitoreHiddenFromInput();
+
+      let fornitoreId = getCurrentFornitoreId();
+      const fornitoreNome = getCurrentFornitoreName();
+
+      if (!fornitoreId) {
+        if (!fornitoreNome) throw new Error("Seleziona o scrivi un fornitore");
+
+        const existing = findFornitoreByRagioneSociale(fornitoreNome);
+        if (existing?.id) {
+          fornitoreId = String(existing.id);
+          if (hiddenFornitoreId) hiddenFornitoreId.value = fornitoreId;
+        } else {
+          const { data: createdForn, error: errCreateForn } = await window.supabaseClient
+            .from("fornitori")
+            .insert({
+              azienda_id: azienda.id,
+              ragione_sociale: fornitoreNome,
+              attivo: true
+            })
+            .select("id, ragione_sociale")
+            .single();
+
+          if (errCreateForn || !createdForn?.id) {
+            throw new Error("Errore creazione fornitore");
+          }
+
+          fornitoreId = String(createdForn.id);
+          if (hiddenFornitoreId) hiddenFornitoreId.value = fornitoreId;
+
+          if (Array.isArray(fornitori)) {
+            fornitori.unshift({ id: createdForn.id, ragione_sociale: createdForn.ragione_sociale });
+          }
+        }
+      }
 
       const righePulite = righe
         .map(r => ({
@@ -960,7 +1041,7 @@ row.dataset.i = String(index);
         .from("fatture_acquisto")
         .insert({
           azienda_id: azienda.id,
-          fornitore_id: fornitoreId,
+          fornitore_id: Number(fornitoreId),
           numero_documento: document.getElementById("fattura-numero").value,
           data_documento: document.getElementById("fattura-data").value,
           origine: mode,
