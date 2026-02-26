@@ -4,33 +4,33 @@ export async function render(container) {
   const azienda = window.state.azienda;
 
   if (!azienda) {
-    container.innerHTML = 
+    container.innerHTML = `
       <section class="view">
         <div class="card">
           <h3>Nessuna azienda attiva</h3>
         </div>
       </section>
-    ;
+    `;
     return;
   }
 
   container.innerHTML = createPageLayout({
     title: "Modulo Acquisti",
     subtitle: "Gestione fatture, fornitori e riordino",
-    content: 
+    content: `
       ${createCard({
         title: "Sezioni",
-        body: 
+        body: `
          <div class="tabs-wrapper">
   <button class="tab-btn active" data-tab="fatture">Fatture</button>
   <button class="tab-btn" data-tab="fornitori">Fornitori</button>
   <button class="tab-btn" data-tab="ordini">Ordini</button>
   <button class="tab-btn" data-tab="riordino">Riordino</button>
 </div>
-        
+        `
       })}
       <div id="acquisti-content"></div>
-    
+    `
   });
 
   const content = document.getElementById("acquisti-content");
@@ -72,7 +72,7 @@ async function renderFatture(container, azienda) {
     .eq("azienda_id", azienda.id)
     .eq("attivo", true);
 
-  container.innerHTML = 
+  container.innerHTML = `
   <div class="card">
     <h3>Nuova Fattura</h3>
 
@@ -106,7 +106,7 @@ async function renderFatture(container, azienda) {
 
         <datalist id="fornitori-suggestions">
           ${(fornitori || []).map(f =>
-            <option value="${escapeHtml(f.ragione_sociale)}" data-id="${escapeHtml(f.id)}"></option>
+            `<option value="${escapeHtml(f.ragione_sociale)}" data-id="${escapeHtml(f.id)}"></option>`
           ).join("")}
         </datalist>
 
@@ -150,7 +150,7 @@ async function renderFatture(container, azienda) {
   </div>
 
   <datalist id="prodotti-suggestions"></datalist>
-;
+`;
 
   let mode = "manuale";
   let allegatoPath = null;
@@ -272,7 +272,7 @@ async function renderFatture(container, azienda) {
     datalistProdotti.innerHTML = prodottiCache
       .filter(p => p.descrizione)
       .slice(0, 800)
-      .map(p => <option value="${escapeHtml(p.descrizione)}"></option>)
+      .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
       .join("");
   }
 
@@ -364,7 +364,7 @@ async function renderFatture(container, azienda) {
       .select("prodotto_id, descrizione_fornitore")
       .eq("azienda_id", azienda.id)
       .eq("fornitore_id", fornitoreId)
-      .ilike("descrizione_fornitore", %${q}%)
+      .ilike("descrizione_fornitore", `%${q}%`)
       .limit(1);
 
     if (error || !data || !data.length) return null;
@@ -384,7 +384,7 @@ async function renderFatture(container, azienda) {
       .from("prodotti")
       .select("id, nome, descrizione")
       .eq("azienda_id", azienda.id)
-      .ilike("nome", %${q}%)
+      .ilike("nome", `%${q}%`)
       .order("nome", { ascending: true })
       .limit(1);
 
@@ -491,7 +491,7 @@ async function renderFatture(container, azienda) {
   }
 
   function openSuggestForIndex(idx, items) {
-    const rowEl = righeContainer.querySelector(div[data-i="${idx}"]);
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const suggest = rowEl?.querySelector(".prod-suggest");
     if (!suggest) return;
 
@@ -504,9 +504,9 @@ async function renderFatture(container, azienda) {
 
     suggest.innerHTML = items.map(p => {
       const label = p.codice_interno
-        ? ${escapeHtml(p.descrizione)} · ${escapeHtml(p.codice_interno)}
-        : ${escapeHtml(p.descrizione)};
-      return <div class="suggest-item" data-prod-id="${escapeHtml(p.id)}">${label}</div>;
+        ? `${escapeHtml(p.descrizione)} · ${escapeHtml(p.codice_interno)}`
+        : `${escapeHtml(p.descrizione)}`;
+      return `<div class="suggest-item" data-prod-id="${escapeHtml(p.id)}">${label}</div>`;
     }).join("");
 
     suggest.style.display = "block";
@@ -525,14 +525,14 @@ async function renderFatture(container, azienda) {
       righe[idx].um = prodotto.um;
     }
 
-    const rowEl = righeContainer.querySelector(div[data-i="${idx}"]);
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
     const hidId = rowEl?.querySelector(".riga-prodotto-id");
     const umEl = rowEl?.querySelector(".riga-um");
 
     if (inpProd) inpProd.value = righe[idx].prodotto_nome;
     if (hidId) hidId.value = righe[idx].prodotto_id || "";
-    if (umEl) umEl.textContent = righe[idx].um ? UM: ${righe[idx].um} : "";
+    if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
 
     closeAllSuggest();
     await updateRowComputedUI(idx);
@@ -577,7 +577,7 @@ async function renderFatture(container, azienda) {
     if (document.getElementById("rf-mini-modal-style")) return;
     const style = document.createElement("style");
     style.id = "rf-mini-modal-style";
-    style.textContent = 
+    style.textContent = `
       .rf-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9999;padding:14px;}
       .rf-modal{width:min(560px,100%);background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;}
       .rf-modal-header{padding:14px 14px 10px 14px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:10px;align-items:flex-start;justify-content:space-between;}
@@ -601,7 +601,7 @@ async function renderFatture(container, azienda) {
       .acquisto-riga-card.missing{border:1px solid rgba(239,68,68,.35);}
       .acquisto-riga-card.partial{border:1px solid rgba(245,158,11,.35);}
       .acquisto-riga-card.ok{border:1px solid rgba(34,197,94,.35);}
-    ;
+    `;
     document.head.appendChild(style);
   }
 
@@ -610,7 +610,7 @@ async function renderFatture(container, azienda) {
 
     const modalRoot = document.createElement("div");
     modalRoot.className = "rf-modal-backdrop";
-    modalRoot.innerHTML = 
+    modalRoot.innerHTML = `
       <div class="rf-modal" role="dialog" aria-modal="true">
         <div class="rf-modal-header">
           <div>
@@ -647,7 +647,7 @@ async function renderFatture(container, azienda) {
           <button class="app-button small green rf-modal-save" type="button">Crea prodotto</button>
         </div>
       </div>
-    ;
+    `;
 
     document.body.appendChild(modalRoot);
 
@@ -666,14 +666,14 @@ async function renderFatture(container, azienda) {
       loadCategorieInterne()
     ]);
 
-    selBilancio.innerHTML = 
+    selBilancio.innerHTML = `
       <option value="">Seleziona...</option>
-      ${catsBilancio.map(c => <option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>).join("")}
-    ;
-    selInterna.innerHTML = 
+      ${catsBilancio.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
+    `;
+    selInterna.innerHTML = `
       <option value="">Seleziona...</option>
-      ${catsInterne.map(c => <option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.sigla ?  · ${escapeHtml(c.sigla)} : ""}</option>).join("")}
-    ;
+      ${catsInterne.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.sigla ? ` · ${escapeHtml(c.sigla)}` : ""}</option>`).join("")}
+    `;
 
     function close() {
       destroyModal(modalRoot);
@@ -705,9 +705,9 @@ async function renderFatture(container, azienda) {
         const near = findNearDuplicate(nome);
         if (near?.prodotto?.id) {
           const suggestLabel = near.prodotto.codice_interno
-            ? ${near.prodotto.descrizione} (${near.prodotto.codice_interno})
-            : ${near.prodotto.descrizione};
-          const useExisting = window.confirm(Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque);
+            ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+            : `${near.prodotto.descrizione}`;
+          const useExisting = window.confirm(`Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`);
           if (useExisting) {
             close();
             resolve({ action: "use_existing", prodotto: near.prodotto });
@@ -784,7 +784,7 @@ async function renderFatture(container, azienda) {
       const quantitaVal = Number.isFinite(r.quantita) ? r.quantita : (r.quantita || 0);
       const prezzoVal = Number.isFinite(r.prezzo_unitario) ? r.prezzo_unitario : (r.prezzo_unitario || 0);
 
-      row.innerHTML = 
+      row.innerHTML = `
         <div class="acquisto-riga-stack">
 
           <div class="acquisto-riga-top">
@@ -812,7 +812,7 @@ async function renderFatture(container, azienda) {
               <input type="hidden" class="riga-prodotto-id" data-i="${index}" value="${escapeHtml(r.prodotto_id || "")}" />
 
               <div class="small-muted riga-um" style="margin-top:6px;">
-                ${r.um ? UM: ${escapeHtml(r.um)} : ""}
+                ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
               </div>
             </div>
           </div>
@@ -864,7 +864,7 @@ async function renderFatture(container, azienda) {
 
           <small class="riga-hint acquisto-riga-hint"></small>
         </div>
-      ;
+      `;
 
       setRowHint(row, computeHintFromRiga(r));
       righeContainer.appendChild(row);
@@ -872,7 +872,7 @@ async function renderFatture(container, azienda) {
   }
 
   async function updateRowComputedUI(index) {
-    const rowEl = righeContainer.querySelector(div[data-i="${index}"]);
+    const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
     if (!rowEl) return;
     setRowStatus(rowEl, computeStatusFromRiga(righe[index]));
     setRowHint(rowEl, computeHintFromRiga(righe[index]));
@@ -883,7 +883,7 @@ async function renderFatture(container, azienda) {
     if (btnRinomina) btnRinomina.style.display = righe[index].prodotto_id ? "" : "none";
 
     const umEl = rowEl.querySelector(".riga-um");
-    if (umEl) umEl.textContent = righe[index].um ? UM: ${righe[index].um} : "";
+    if (umEl) umEl.textContent = righe[index].um ? `UM: ${righe[index].um}` : "";
   }
 
   btnOcr?.addEventListener("click", async () => {
@@ -899,7 +899,7 @@ async function renderFatture(container, azienda) {
       .replace(/\s+/g, "_")
       .replace(/[^\w.-]/g, "");
 
-    const path = ${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${cleanName};
+    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${cleanName}`;
 
     feedback.innerHTML = "Upload in corso...";
 
@@ -911,7 +911,7 @@ async function renderFatture(container, azienda) {
       });
 
     if (uploadError) {
-      feedback.innerHTML = <span style="color:red;">Upload fallito</span>;
+      feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
       return;
     }
 
@@ -923,7 +923,7 @@ async function renderFatture(container, azienda) {
         .createSignedUrl(path, 60);
 
     if (signedError) {
-      feedback.innerHTML = <span style="color:red;">Errore signed URL</span>;
+      feedback.innerHTML = `<span style="color:red;">Errore signed URL</span>`;
       return;
     }
 
@@ -935,12 +935,12 @@ async function renderFatture(container, azienda) {
       });
 
     if (ocrError || !ocrResult?.success) {
-      feedback.innerHTML = <span style="color:red;">OCR fallito</span>;
+      feedback.innerHTML = `<span style="color:red;">OCR fallito</span>`;
       return;
     }
 
     await applyOcrResult(ocrResult);
-    feedback.innerHTML = <span style="color:green;">OCR completato. Verifica dati.</span>;
+    feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
   });
 
   async function applyOcrResult(result) {
@@ -1046,7 +1046,7 @@ async function renderFatture(container, azienda) {
     if (e.target.classList.contains("riga-descrizione")) {
       righe[idx].descrizione = e.target.value;
 
-      const key = desc_${idx};
+      const key = `desc_${idx}`;
       if (debounceTimers.has(key)) clearTimeout(debounceTimers.get(key));
       debounceTimers.set(key, setTimeout(async () => {
         await updateRowComputedUI(idx);
@@ -1143,7 +1143,7 @@ async function renderFatture(container, azienda) {
           const cached = prodottiCache.find(p => p.id === match.prodotto_id);
           righe[idx].um = cached?.um || "";
 
-          const rowEl = righeContainer.querySelector(div[data-i="${idx}"]);
+          const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
           const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
           const hidId = rowEl?.querySelector(".riga-prodotto-id");
           if (inpProd && righe[idx].prodotto_nome) inpProd.value = righe[idx].prodotto_nome;
@@ -1177,7 +1177,7 @@ async function renderFatture(container, azienda) {
 
         if (res.action === "use_existing" && res.prodotto?.id) {
           await selectProdottoForRow(idx, res.prodotto);
-          feedback.innerHTML = <span style="color:green;">Prodotto esistente agganciato alla riga.</span>;
+          feedback.innerHTML = `<span style="color:green;">Prodotto esistente agganciato alla riga.</span>`;
           return;
         }
 
@@ -1199,13 +1199,13 @@ async function renderFatture(container, azienda) {
 
           await updateRowComputedUI(idx);
 
-          const rowEl = righeContainer.querySelector(div[data-i="${idx}"]);
+          const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
           const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
           const hidId = rowEl?.querySelector(".riga-prodotto-id");
           if (inpProd) inpProd.value = righe[idx].prodotto_nome;
           if (hidId) hidId.value = righe[idx].prodotto_id || "";
 
-          feedback.innerHTML = <span style="color:green;">Prodotto creato e agganciato alla riga.</span>;
+          feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
         }
       } finally {
         btn.removeAttribute("disabled");
@@ -1223,9 +1223,9 @@ async function renderFatture(container, azienda) {
       const near = findNearDuplicate(nuovoNome);
       if (near?.prodotto?.id && String(near.prodotto.id) !== String(prodottoId)) {
         const suggestLabel = near.prodotto.codice_interno
-          ? ${near.prodotto.descrizione} (${near.prodotto.codice_interno})
-          : ${near.prodotto.descrizione};
-        const ok = window.confirm(Possibile duplicato: esiste già "${suggestLabel}".\n\nVuoi continuare con la rinomina?);
+          ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+          : `${near.prodotto.descrizione}`;
+        const ok = window.confirm(`Possibile duplicato: esiste già "${suggestLabel}".\n\nVuoi continuare con la rinomina?`);
         if (!ok) return;
       }
 
@@ -1240,7 +1240,7 @@ async function renderFatture(container, azienda) {
           .eq("id", prodottoId);
 
         if (error) {
-          feedback.innerHTML = <span style="color:red;">Errore rinomina prodotto</span>;
+          feedback.innerHTML = `<span style="color:red;">Errore rinomina prodotto</span>`;
           return;
         }
 
@@ -1255,7 +1255,7 @@ async function renderFatture(container, azienda) {
 
         await updateRowComputedUI(idx);
 
-        feedback.innerHTML = <span style="color:green;">Prodotto rinominato.</span>;
+        feedback.innerHTML = `<span style="color:green;">Prodotto rinominato.</span>`;
       } finally {
         btn.removeAttribute("disabled");
         btn.textContent = "Rinomina prodotto";
