@@ -36,14 +36,14 @@ export async function render(container) {
   const content = document.getElementById("acquisti-content");
   const tabButtons = document.querySelectorAll(".tab-btn");
 
- function setActiveTab(tab) {
-  tabButtons.forEach(btn => {
-    btn.classList.remove("active");
-    if (btn.dataset.tab === tab) {
-      btn.classList.add("active");
-    }
-  });
-}
+  function setActiveTab(tab) {
+    tabButtons.forEach(btn => {
+      btn.classList.remove("active");
+      if (btn.dataset.tab === tab) {
+        btn.classList.add("active");
+      }
+    });
+  }
 
   function renderTab(tab) {
     setActiveTab(tab);
@@ -72,7 +72,7 @@ async function renderFatture(container, azienda) {
     .eq("azienda_id", azienda.id)
     .eq("attivo", true);
 
-container.innerHTML = `
+  container.innerHTML = `
   <div class="card">
     <h3>Nuova Fattura</h3>
 
@@ -151,6 +151,7 @@ container.innerHTML = `
 
   <datalist id="prodotti-suggestions"></datalist>
 `;
+
   let mode = "manuale";
   let allegatoPath = null;
   let righe = [];
@@ -180,26 +181,92 @@ container.innerHTML = `
     });
   });
 
+  function normalizeText(str) {
+    return String(str || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function normalizeKey(str) {
+    return normalizeText(str)
+      .replace(/[’']/g, "")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function tokens(str) {
+    const s = normalizeKey(str);
+    if (!s) return [];
+    return s.split(" ").filter(Boolean);
+  }
+
+  function computeTokenOverlap(a, b) {
+    const ta = new Set(tokens(a));
+    const tb = new Set(tokens(b));
+    if (ta.size === 0 || tb.size === 0) return 0;
+    let inter = 0;
+    for (const t of ta) if (tb.has(t)) inter++;
+    return inter / Math.max(ta.size, tb.size);
+  }
+
+  function findNearDuplicate(nome) {
+    const q = normalizeKey(nome);
+    if (!q || !prodottiCache.length) return null;
+
+    let best = null;
+    let bestScore = 0;
+
+    for (const p of prodottiCache) {
+      const cand = p.descrizione || "";
+      const c = normalizeKey(cand);
+      if (!c) continue;
+
+      if (c === q) {
+        return { prodotto: p, score: 1, reason: "exact" };
+      }
+
+      const contains = (c.includes(q) || q.includes(c)) ? 0.65 : 0;
+      const overlap = computeTokenOverlap(q, c);
+      const lenPenalty = Math.min(1, Math.max(0, 1 - (Math.abs(c.length - q.length) / 40)));
+      const score = Math.max(contains, overlap) * (0.6 + 0.4 * lenPenalty);
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = p;
+      }
+    }
+
+    if (best && bestScore >= 0.62) {
+      return { prodotto: best, score: bestScore, reason: "similar" };
+    }
+    return null;
+  }
+
   async function loadProdottiCache(force = false) {
     const now = Date.now();
     if (!force && prodottiCache.length > 0 && (now - prodottiCacheLastLoad) < 60_000) return;
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione, codice_interno, um")
+      .select("id, nome, descrizione, codice_interno, um")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
-      .order("descrizione", { ascending: true })
+      .order("nome", { ascending: true })
       .limit(2000);
 
     if (error) return;
 
-    prodottiCache = (data || []).map(p => ({
-      id: p.id,
-      descrizione: p.descrizione || "",
-      codice_interno: p.codice_interno || "",
-      um: p.um || ""
-    }));
+    prodottiCache = (data || []).map(p => {
+      const label = (p.descrizione || p.nome || "").trim();
+      return {
+        id: p.id,
+        descrizione: label,
+        codice_interno: p.codice_interno || "",
+        um: p.um || ""
+      };
+    });
     prodottiCacheLastLoad = now;
 
     datalistProdotti.innerHTML = prodottiCache
@@ -274,22 +341,6 @@ container.innerHTML = `
     return out;
   }
 
-  function escapeHtml(str) {
-    return String(str || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function normalizeText(str) {
-    return String(str || "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLowerCase();
-  }
-
   function setRowStatus(rowEl, status) {
     rowEl.classList.remove("ok", "partial", "missing");
     if (status) rowEl.classList.add(status);
@@ -331,10 +382,10 @@ container.innerHTML = `
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, nome, descrizione")
       .eq("azienda_id", azienda.id)
-      .ilike("descrizione", `%${q}%`)
-      .order("descrizione", { ascending: true })
+      .ilike("nome", `%${q}%`)
+      .order("nome", { ascending: true })
       .limit(1);
 
     if (error || !data || !data.length) return null;
@@ -405,13 +456,13 @@ container.innerHTML = `
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, nome, descrizione")
       .eq("azienda_id", azienda.id)
       .eq("id", id)
       .single();
 
     if (error || !data) return "";
-    return data.descrizione || "";
+    return (data.descrizione || data.nome || "") || "";
   }
 
   function computeStatusFromRiga(riga) {
@@ -426,6 +477,7 @@ container.innerHTML = `
     if (riga.match_reason === "match_prodotti") return "Match medio (anagrafica prodotti). Verifica.";
     if (riga.match_reason === "match_fuzzy") return "Match fuzzy. Verifica con attenzione.";
     if (riga.match_reason === "match_cache") return "Match cache (esatto).";
+    if (riga.match_reason === "created") return "Prodotto creato ora.";
     return "Prodotto selezionato manualmente.";
   }
 
@@ -437,6 +489,7 @@ container.innerHTML = `
       x.style.display = "none";
     });
   }
+
   function openSuggestForIndex(idx, items) {
     const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const suggest = rowEl?.querySelector(".prod-suggest");
@@ -485,13 +538,244 @@ container.innerHTML = `
     await updateRowComputedUI(idx);
   }
 
+  async function loadCategorieBilancio() {
+    const { data, error } = await window.supabaseClient
+      .from("categorie_bilancio")
+      .select("id, nome, attivo")
+      .eq("attivo", true)
+      .order("nome", { ascending: true });
+
+    if (error) return [];
+    return (data || []).map(x => ({
+      id: x.id,
+      nome: x.nome
+    }));
+  }
+
+  async function loadCategorieInterne() {
+    const { data, error } = await window.supabaseClient
+      .from("categorie_interne_prodotti")
+      .select("id, nome, sigla, attiva")
+      .eq("azienda_id", azienda.id)
+      .eq("attiva", true)
+      .order("nome", { ascending: true });
+
+    if (error) return [];
+    return (data || []).map(x => ({
+      id: x.id,
+      nome: x.nome,
+      sigla: x.sigla
+    }));
+  }
+
+  function destroyModal(modalRoot) {
+    if (!modalRoot) return;
+    modalRoot.remove();
+  }
+
+  function ensureModalStyles() {
+    if (document.getElementById("rf-mini-modal-style")) return;
+    const style = document.createElement("style");
+    style.id = "rf-mini-modal-style";
+    style.textContent = `
+      .rf-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9999;padding:14px;}
+      .rf-modal{width:min(560px,100%);background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;}
+      .rf-modal-header{padding:14px 14px 10px 14px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:10px;align-items:flex-start;justify-content:space-between;}
+      .rf-modal-title{margin:0;font-size:16px;}
+      .rf-modal-sub{margin:4px 0 0 0;color:#6b7280;font-size:12px;line-height:1.35;}
+      .rf-modal-body{padding:14px;display:grid;gap:12px;}
+      .rf-modal-row{display:grid;gap:6px;}
+      .rf-modal-actions{padding:12px 14px;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+      .rf-modal-error{color:#b91c1c;font-size:12px;min-height:16px;}
+      .rf-select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.16);background:#fff;}
+      .rf-input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.16);background:#fff;}
+      @media (min-width: 640px){ .rf-modal-backdrop{align-items:center;} }
+      .acquisto-riga-card{padding:14px;}
+      .acquisto-riga-stack{display:grid;gap:12px;}
+      .acquisto-riga-top{display:grid;gap:10px;}
+      .acquisto-riga-grid2{display:grid;gap:10px;grid-template-columns:1fr 1fr;}
+      @media (max-width: 460px){ .acquisto-riga-grid2{grid-template-columns:1fr;} }
+      .acquisto-riga-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+      .acquisto-riga-label{display:block;font-size:12px;margin-bottom:4px;color:#6b7280;}
+      .acquisto-riga-hint{display:block;margin-top:6px;color:#6b7280;}
+      .acquisto-riga-card.missing{border:1px solid rgba(239,68,68,.35);}
+      .acquisto-riga-card.partial{border:1px solid rgba(245,158,11,.35);}
+      .acquisto-riga-card.ok{border:1px solid rgba(34,197,94,.35);}
+    `;
+    document.head.appendChild(style);
+  }
+
+  async function openCreateProductModal({ prefillName }) {
+    ensureModalStyles();
+
+    const modalRoot = document.createElement("div");
+    modalRoot.className = "rf-modal-backdrop";
+    modalRoot.innerHTML = `
+      <div class="rf-modal" role="dialog" aria-modal="true">
+        <div class="rf-modal-header">
+          <div>
+            <h3 class="rf-modal-title">Crea prodotto</h3>
+            <p class="rf-modal-sub">Seleziona le categorie obbligatorie prima di creare il prodotto.</p>
+          </div>
+          <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
+        </div>
+        <div class="rf-modal-body">
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Nome prodotto</label>
+            <input class="rf-input" id="rf-prod-nome" />
+            <div class="small-muted" style="color:#6b7280;font-size:12px;">Verrà salvato in <b>nome</b> e <b>descrizione</b>.</div>
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Categoria bilancio</label>
+            <select class="rf-select" id="rf-cat-bilancio">
+              <option value="">Seleziona...</option>
+            </select>
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Categoria interna</label>
+            <select class="rf-select" id="rf-cat-interna">
+              <option value="">Seleziona...</option>
+            </select>
+          </div>
+
+          <div class="rf-modal-error" id="rf-modal-error"></div>
+        </div>
+        <div class="rf-modal-actions">
+          <button class="app-button small gray rf-modal-cancel" type="button">Annulla</button>
+          <button class="app-button small green rf-modal-save" type="button">Crea prodotto</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalRoot);
+
+    const btnClose = modalRoot.querySelector(".rf-modal-close");
+    const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
+    const btnSave = modalRoot.querySelector(".rf-modal-save");
+    const inputNome = modalRoot.querySelector("#rf-prod-nome");
+    const selBilancio = modalRoot.querySelector("#rf-cat-bilancio");
+    const selInterna = modalRoot.querySelector("#rf-cat-interna");
+    const errEl = modalRoot.querySelector("#rf-modal-error");
+
+    inputNome.value = (prefillName || "").trim();
+
+    const [catsBilancio, catsInterne] = await Promise.all([
+      loadCategorieBilancio(),
+      loadCategorieInterne()
+    ]);
+
+    selBilancio.innerHTML = `
+      <option value="">Seleziona...</option>
+      ${catsBilancio.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
+    `;
+    selInterna.innerHTML = `
+      <option value="">Seleziona...</option>
+      ${catsInterne.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.sigla ? ` · ${escapeHtml(c.sigla)}` : ""}</option>`).join("")}
+    `;
+
+    function close() {
+      destroyModal(modalRoot);
+    }
+
+    function setError(msg) {
+      if (errEl) errEl.textContent = msg || "";
+    }
+
+    modalRoot.addEventListener("click", (e) => {
+      if (e.target === modalRoot) close();
+    });
+
+    btnClose?.addEventListener("click", close);
+    btnCancel?.addEventListener("click", close);
+
+    const result = await new Promise((resolve) => {
+      btnSave?.addEventListener("click", async () => {
+        setError("");
+
+        const nome = (inputNome?.value || "").trim();
+        const categoriaBilancioId = (selBilancio?.value || "").trim();
+        const categoriaInternaId = (selInterna?.value || "").trim();
+
+        if (!nome) return setError("Inserisci il nome prodotto.");
+        if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio.");
+        if (!categoriaInternaId) return setError("Seleziona una categoria interna.");
+
+        const near = findNearDuplicate(nome);
+        if (near?.prodotto?.id) {
+          const suggestLabel = near.prodotto.codice_interno
+            ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+            : `${near.prodotto.descrizione}`;
+          const useExisting = window.confirm(`Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`);
+          if (useExisting) {
+            close();
+            resolve({ action: "use_existing", prodotto: near.prodotto });
+            return;
+          }
+        }
+
+        btnSave.setAttribute("disabled", "disabled");
+        btnSave.textContent = "Creo...";
+
+        try {
+          const payload = {
+            azienda_id: azienda.id,
+            nome,
+            descrizione: nome,
+            attivo: true,
+            categoria_id: Number(categoriaBilancioId),
+            categoria_interna_id: categoriaInternaId,
+            tipo_prodotto: "materia_prima",
+            um: "pz",
+            unita_misura: "pz",
+            costo_medio: 0,
+            costo_ultimo: 0,
+            iva_percentuale: 0,
+            iva_perc: 0
+          };
+
+          const { data: created, error } = await window.supabaseClient
+            .from("prodotti")
+            .insert(payload)
+            .select("id, nome, descrizione, codice_interno, um")
+            .single();
+
+          if (error || !created?.id) {
+            setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
+            return;
+          }
+
+          const label = (created.descrizione || created.nome || nome).trim();
+
+          close();
+          resolve({
+            action: "created",
+            prodotto: {
+              id: created.id,
+              descrizione: label,
+              codice_interno: created.codice_interno || "",
+              um: created.um || ""
+            }
+          });
+        } finally {
+          btnSave.removeAttribute("disabled");
+          btnSave.textContent = "Crea prodotto";
+        }
+      });
+    });
+
+    return result;
+  }
+
   function renderRigheUI() {
+    ensureModalStyles();
     righeContainer.innerHTML = "";
 
     righe.forEach((r, index) => {
-     const row = document.createElement("div");
-row.className = "card acquisto-riga-card";
-row.dataset.i = String(index);
+      const row = document.createElement("div");
+      row.className = "card acquisto-riga-card";
+      row.dataset.i = String(index);
 
       setRowStatus(row, computeStatusFromRiga(r));
 
@@ -501,56 +785,59 @@ row.dataset.i = String(index);
       const prezzoVal = Number.isFinite(r.prezzo_unitario) ? r.prezzo_unitario : (r.prezzo_unitario || 0);
 
       row.innerHTML = `
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <div style="flex: 1 1 260px;">
-            <label style="display:block; font-size:12px; margin-bottom:4px; color:#6b7280;">Descrizione (modificabile)</label>
-            <input type="text"
-              value="${descrizioneVal}"
-              class="input-pill riga-descrizione"
-              data-i="${index}" />
-          </div>
+        <div class="acquisto-riga-stack">
 
-          <div style="flex: 1 1 260px; position:relative;">
-            <label style="display:block; font-size:12px; margin-bottom:4px; color:#6b7280;">Prodotto (autocomplete)</label>
+          <div class="acquisto-riga-top">
+            <div>
+              <label class="acquisto-riga-label">Descrizione (modificabile)</label>
+              <input type="text"
+                value="${descrizioneVal}"
+                class="input-pill riga-descrizione"
+                data-i="${index}" />
+            </div>
 
-            <input type="text"
-              value="${prodottoNomeVal}"
-              list="prodotti-suggestions"
-              placeholder="Cerca o scrivi prodotto..."
-              class="input-pill riga-prodotto-nome"
-              data-i="${index}"
-              autocomplete="off" />
+            <div style="position:relative;">
+              <label class="acquisto-riga-label">Prodotto (autocomplete)</label>
 
-            <div class="prod-suggest suggest-list" style="display:none; position:absolute; left:0; right:0; top:62px; z-index:50;"></div>
+              <input type="text"
+                value="${prodottoNomeVal}"
+                list="prodotti-suggestions"
+                placeholder="Cerca o scrivi prodotto..."
+                class="input-pill riga-prodotto-nome"
+                data-i="${index}"
+                autocomplete="off" />
 
-            <input type="hidden" class="riga-prodotto-id" data-i="${index}" value="${escapeHtml(r.prodotto_id || "")}" />
+              <div class="prod-suggest suggest-list" style="display:none; position:absolute; left:0; right:0; top:62px; z-index:50;"></div>
 
-            <div class="small-muted riga-um" style="margin-top:6px;">
-              ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
+              <input type="hidden" class="riga-prodotto-id" data-i="${index}" value="${escapeHtml(r.prodotto_id || "")}" />
+
+              <div class="small-muted riga-um" style="margin-top:6px;">
+                ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-          <div style="flex: 0 0 160px;">
-            <label style="display:block; font-size:12px; margin-bottom:4px; color:#6b7280;">Quantità</label>
-            <input type="number"
-              step="0.001"
-              value="${escapeHtml(quantitaVal)}"
-              class="input-pill riga-quantita"
-              data-i="${index}" />
+          <div class="acquisto-riga-grid2">
+            <div>
+              <label class="acquisto-riga-label">Quantità</label>
+              <input type="number"
+                step="0.001"
+                value="${escapeHtml(quantitaVal)}"
+                class="input-pill riga-quantita"
+                data-i="${index}" />
+            </div>
+
+            <div>
+              <label class="acquisto-riga-label">Costo unitario</label>
+              <input type="number"
+                step="0.0001"
+                value="${escapeHtml(prezzoVal)}"
+                class="input-pill riga-prezzo"
+                data-i="${index}" />
+            </div>
           </div>
 
-          <div style="flex: 0 0 160px;">
-            <label style="display:block; font-size:12px; margin-bottom:4px; color:#6b7280;">Costo unitario</label>
-            <input type="number"
-              step="0.0001"
-              value="${escapeHtml(prezzoVal)}"
-              class="input-pill riga-prezzo"
-              data-i="${index}" />
-          </div>
-
-          <div style="flex: 1 1 240px; display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;">
+          <div class="acquisto-riga-actions">
             <button type="button"
               class="app-button tiny gray btn-match-riga"
               data-i="${index}"
@@ -574,9 +861,9 @@ row.dataset.i = String(index);
               Rinomina prodotto
             </button>
           </div>
-        </div>
 
-        <small class="riga-hint" style="display:block; margin-top:8px; color:#6b7280;"></small>
+          <small class="riga-hint acquisto-riga-hint"></small>
+        </div>
       `;
 
       setRowHint(row, computeHintFromRiga(r));
@@ -881,48 +1168,45 @@ row.dataset.i = String(index);
       if (!nome) return;
 
       btn.setAttribute("disabled", "disabled");
-      btn.textContent = "Creo...";
+      btn.textContent = "Apro...";
 
       try {
-        const { data: created, error } = await window.supabaseClient
-          .from("prodotti")
-          .insert({
-            azienda_id: azienda.id,
-            descrizione: nome,
-            attivo: true
-          })
-          .select("id, descrizione, codice_interno, um")
-          .single();
+        const res = await openCreateProductModal({ prefillName: nome });
 
-        if (error || !created?.id) {
-          feedback.innerHTML = `<span style="color:red;">Errore creazione prodotto</span>`;
+        if (!res) return;
+
+        if (res.action === "use_existing" && res.prodotto?.id) {
+          await selectProdottoForRow(idx, res.prodotto);
+          feedback.innerHTML = `<span style="color:green;">Prodotto esistente agganciato alla riga.</span>`;
           return;
         }
 
-        prodottiCache.unshift({
-          id: created.id,
-          descrizione: created.descrizione || nome,
-          codice_interno: created.codice_interno || "",
-          um: created.um || ""
-        });
+        if (res.action === "created" && res.prodotto?.id) {
+          prodottiCache.unshift({
+            id: res.prodotto.id,
+            descrizione: res.prodotto.descrizione || nome,
+            codice_interno: res.prodotto.codice_interno || "",
+            um: res.prodotto.um || ""
+          });
 
-        await loadProdottiCache(true);
+          await loadProdottiCache(true);
 
-        righe[idx].prodotto_id = created.id;
-        righe[idx].prodotto_nome = created.descrizione || nome;
-        righe[idx].um = created.um || "";
-        righe[idx].match_reason = "created";
-        righe[idx].match_score = 0.80;
+          righe[idx].prodotto_id = res.prodotto.id;
+          righe[idx].prodotto_nome = res.prodotto.descrizione || nome;
+          righe[idx].um = res.prodotto.um || "";
+          righe[idx].match_reason = "created";
+          righe[idx].match_score = 0.80;
 
-        await updateRowComputedUI(idx);
+          await updateRowComputedUI(idx);
 
-        const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
-        const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
-        const hidId = rowEl?.querySelector(".riga-prodotto-id");
-        if (inpProd) inpProd.value = righe[idx].prodotto_nome;
-        if (hidId) hidId.value = righe[idx].prodotto_id || "";
+          const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+          const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+          const hidId = rowEl?.querySelector(".riga-prodotto-id");
+          if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+          if (hidId) hidId.value = righe[idx].prodotto_id || "";
 
-        feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
+          feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
+        }
       } finally {
         btn.removeAttribute("disabled");
         btn.textContent = "Crea prodotto";
@@ -936,13 +1220,22 @@ row.dataset.i = String(index);
       const nuovoNome = (righe[idx].prodotto_nome || "").trim();
       if (!prodottoId || !nuovoNome) return;
 
+      const near = findNearDuplicate(nuovoNome);
+      if (near?.prodotto?.id && String(near.prodotto.id) !== String(prodottoId)) {
+        const suggestLabel = near.prodotto.codice_interno
+          ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+          : `${near.prodotto.descrizione}`;
+        const ok = window.confirm(`Possibile duplicato: esiste già "${suggestLabel}".\n\nVuoi continuare con la rinomina?`);
+        if (!ok) return;
+      }
+
       btn.setAttribute("disabled", "disabled");
       btn.textContent = "Rinomino...";
 
       try {
         const { error } = await window.supabaseClient
           .from("prodotti")
-          .update({ descrizione: nuovoNome })
+          .update({ nome: nuovoNome, descrizione: nuovoNome })
           .eq("azienda_id", azienda.id)
           .eq("id", prodottoId);
 
