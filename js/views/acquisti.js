@@ -552,13 +552,22 @@ row.dataset.i = String(index);
     await loadProdottiCache(false);
 
     const file = fileInput.files[0];
-    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${file.name}`;
+
+    const cleanName = file.name
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^\w.-]/g, "");
+
+    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${cleanName}`;
 
     feedback.innerHTML = "Upload in corso...";
 
     const { error: uploadError } = await window.supabaseClient.storage
-      .from("fatture-acquisto")
-      .upload(path, file);
+      .from("fatture")
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false
+      });
 
     if (uploadError) {
       feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
@@ -569,7 +578,7 @@ row.dataset.i = String(index);
 
     const { data: signedData, error: signedError } =
       await window.supabaseClient.storage
-        .from("fatture-acquisto")
+        .from("fatture")
         .createSignedUrl(path, 60);
 
     if (signedError) {
