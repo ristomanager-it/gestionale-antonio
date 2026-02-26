@@ -668,23 +668,7 @@ export async function render(app) {
     await doTimbratura("fine_turno");
   });
 
-  /* ================= SWIPE MOBILE ================= */
-  if (elSwipeCard) {
-    elSwipeCard.style.touchAction = "none";
-
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    const threshold = 80;
-    let isDragging = false;
-
-    elSwipeCard.addEventListener("pointerdown", (e) => {
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      elSwipeCard.setPointerCapture(e.pointerId);
-    });
+ 
 
     elSwipeCard.addEventListener("pointermove", (e) => {
       if (!isDragging) return;
