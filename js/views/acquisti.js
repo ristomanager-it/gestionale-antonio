@@ -529,30 +529,30 @@ async function renderFatture(container, azienda) {
     suggest.classList.add("open");
   }
 
-  async function selectProdottoForRow(idx, prodotto) {
-    if (!righe[idx] || !prodotto?.id) return;
+ async function selectProdottoForRow(idx, prodotto) {
+  if (!righe[idx] || !prodotto?.id) return;
 
-    righe[idx].prodotto_id = prodotto.id;
-    righe[idx].prodotto_nome = prodotto.descrizione || "";
-    righe[idx].match_reason = "manual_select";
-    righe[idx].match_score = 0.70;
+  righe[idx].prodotto_id = prodotto.id;
+  righe[idx].prodotto_nome = prodotto.descrizione || "";
+  righe[idx].match_reason = "manual_select";
+  righe[idx].match_score = 0.70;
 
-    if (prodotto.um) {
-      righe[idx].um = prodotto.um;
-    }
+  righe[idx].um = prodotto.um || "";
+  righe[idx].codice_interno = prodotto.codice_interno || "";
+  righe[idx].categoria_nome = prodotto.categoria_nome || "";
+  righe[idx].categoria_interna_nome = prodotto.categoria_interna_nome || "";
+  righe[idx].categoria_interna_sigla = prodotto.categoria_interna_sigla || "";
 
-    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
-    const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
-    const hidId = rowEl?.querySelector(".riga-prodotto-id");
-    const umEl = rowEl?.querySelector(".riga-um");
+  const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+  const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+  const hidId = rowEl?.querySelector(".riga-prodotto-id");
 
-    if (inpProd) inpProd.value = righe[idx].prodotto_nome;
-    if (hidId) hidId.value = righe[idx].prodotto_id || "";
-    if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
+  if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+  if (hidId) hidId.value = righe[idx].prodotto_id || "";
 
-    closeAllSuggest();
-    await updateRowComputedUI(idx);
-  }
+  closeAllSuggest();
+  renderRigheUI();
+}
 
   async function loadCategorieBilancio() {
     const { data, error } = await window.supabaseClient
