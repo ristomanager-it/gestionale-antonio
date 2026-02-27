@@ -832,6 +832,11 @@ async function renderFatture(container, azienda) {
               </div>
             </div>
           </div>
+ <div class="acquisto-riga-meta">
+  <div><b>Codice:</b> ${escapeHtml(r.codice_interno || "")}</div>
+  <div><b>Cat. Interna:</b> ${escapeHtml(r.categoria_interna_nome || "")}${r.categoria_interna_sigla ? ` (${escapeHtml(r.categoria_interna_sigla)})` : ""}</div>
+  <div><b>Cat. Bilancio:</b> ${escapeHtml(r.categoria_nome || "")}</div>
+</div>
 
           <div class="acquisto-riga-grid2">
             <div>
@@ -860,7 +865,7 @@ async function renderFatture(container, azienda) {
               title="Riprova matching automatico sulla descrizione">
               Riprova match
             </button>
-
+            
             <button type="button"
               class="app-button tiny green btn-crea-prodotto"
               data-i="${index}"
