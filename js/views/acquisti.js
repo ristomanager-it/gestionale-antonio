@@ -181,6 +181,13 @@ async function renderFatture(container, azienda) {
     });
   });
 
+  function toBigintNumber(v) {
+    const s = String(v ?? "").trim();
+    if (!s) return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function normalizeText(str) {
     return String(str || "")
       .trim()
@@ -250,7 +257,7 @@ async function renderFatture(container, azienda) {
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um")
+      .select("id, nome, descrizione, codice_interno, um, categoria_id")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
       .order("nome", { ascending: true })
@@ -264,7 +271,8 @@ async function renderFatture(container, azienda) {
         id: p.id,
         descrizione: label,
         codice_interno: p.codice_interno || "",
-        um: p.um || ""
+        um: p.um || "",
+        categoria_id: p.categoria_id ?? null
       };
     });
     prodottiCacheLastLoad = now;
@@ -274,6 +282,46 @@ async function renderFatture(container, azienda) {
       .slice(0, 800)
       .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
       .join("");
+  }
+
+  async function ensureProdottoCategoriaInCache(prodottoId) {
+    if (!prodottoId) return null;
+    const cached = prodottiCache.find(p => String(p.id) === String(prodottoId));
+    if (cached && cached.categoria_id !== undefined) return cached;
+
+    const { data, error } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, nome, descrizione, codice_interno, um, categoria_id")
+      .eq("azienda_id", azienda.id)
+      .eq("id", prodottoId)
+      .single();
+
+    if (error || !data) return cached || null;
+
+    const label = (data.descrizione || data.nome || "").trim();
+    const merged = {
+      id: data.id,
+      descrizione: label,
+      codice_interno: data.codice_interno || "",
+      um: data.um || "",
+      categoria_id: data.categoria_id ?? null
+    };
+
+    if (cached) {
+      cached.descrizione = merged.descrizione;
+      cached.codice_interno = merged.codice_interno;
+      cached.um = merged.um;
+      cached.categoria_id = merged.categoria_id;
+      return cached;
+    }
+
+    prodottiCache.unshift(merged);
+    return merged;
+  }
+
+  async function getCategoriaBilancioIdForProdotto(prodottoId) {
+    const p = await ensureProdottoCategoriaInCache(prodottoId);
+    return p?.categoria_id ?? null;
   }
 
   function findFornitoreByRagioneSociale(nome) {
@@ -738,7 +786,7 @@ async function renderFatture(container, azienda) {
           const { data: created, error } = await window.supabaseClient
             .from("prodotti")
             .insert(payload)
-            .select("id, nome, descrizione, codice_interno, um")
+            .select("id, nome, descrizione, codice_interno, um, categoria_id")
             .single();
 
           if (error || !created?.id) {
@@ -755,7 +803,8 @@ async function renderFatture(container, azienda) {
               id: created.id,
               descrizione: label,
               codice_interno: created.codice_interno || "",
-              um: created.um || ""
+              um: created.um || "",
+              categoria_id: created.categoria_id ?? null
             }
           });
         } finally {
@@ -1112,7 +1161,7 @@ async function renderFatture(container, azienda) {
       if (!prodId) return;
 
       await loadProdottiCache(false);
-      const prodotto = prodottiCache.find(p => p.id === prodId);
+      const prodotto = prodottiCache.find(p => String(p.id) === String(prodId));
       if (prodotto) {
         await selectProdottoForRow(idx, prodotto);
       }
@@ -1186,7 +1235,8 @@ async function renderFatture(container, azienda) {
             id: res.prodotto.id,
             descrizione: res.prodotto.descrizione || nome,
             codice_interno: res.prodotto.codice_interno || "",
-            um: res.prodotto.um || ""
+            um: res.prodotto.um || "",
+            categoria_id: res.prodotto.categoria_id ?? null
           });
 
           await loadProdottiCache(true);
@@ -1244,9 +1294,9 @@ async function renderFatture(container, azienda) {
           return;
         }
 
-        const p = prodottiCache.find(x => x.id === prodottoId);
+        const p = prodottiCache.find(x => String(x.id) === String(prodottoId));
         if (p) p.descrizione = nuovoNome;
-        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "" });
+        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "", categoria_id: null });
 
         await loadProdottiCache(true);
 
@@ -1330,6 +1380,24 @@ async function renderFatture(container, azienda) {
         throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
       }
 
+      // Costruisco righe con categoria_bilancio_id = prodotti.categoria_id
+      const righeDaInserire = [];
+      for (const r of righePulite) {
+        const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
+        if (!catId) {
+          throw new Error(`Prodotto senza categoria bilancio: "${r.descrizione}". Apri il prodotto e assegna la categoria bilancio, oppure crea un nuovo prodotto con categoria.`);
+        }
+
+        righeDaInserire.push({
+          azienda_id: azienda.id,
+          prodotto_id: toBigintNumber(r.prodotto_id),
+          descrizione: r.descrizione,
+          quantita: r.quantita,
+          prezzo_unitario: r.prezzo_unitario || 0,
+          categoria_bilancio_id: Number(catId)
+        });
+      }
+
       const { data: fattura, error: errInsFattura } = await window.supabaseClient
         .from("fatture_acquisto")
         .insert({
@@ -1346,16 +1414,15 @@ async function renderFatture(container, azienda) {
 
       if (errInsFattura) throw new Error("Errore salvataggio fattura");
 
-      if (righePulite.length > 0) {
+      if (righeDaInserire.length > 0) {
+        const payloadRighe = righeDaInserire.map(x => ({
+          ...x,
+          fattura_id: fattura.id
+        }));
+
         const { error: errRighe } = await window.supabaseClient
           .from("fatture_acquisto_righe")
-          .insert(righePulite.map(r => ({
-            azienda_id: azienda.id,
-            fattura_id: fattura.id,
-            prodotto_id: r.prodotto_id,
-            quantita: r.quantita,
-            prezzo_unitario: r.prezzo_unitario || 0
-          })));
+          .insert(payloadRighe);
 
         if (errRighe) throw new Error("Errore salvataggio righe fattura");
       }
