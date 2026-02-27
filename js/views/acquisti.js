@@ -86,7 +86,7 @@ async function renderFatture(container, azienda) {
       <label>Carica immagine fattura</label>
       <input type="file" id="fattura-file" accept="image/*,.pdf" class="input"/>
       <button id="btn-esegui-ocr" class="app-button small gray" style="margin-top:8px;">
-        Esegui OCR
+       Carica foto
       </button>
     </div>
 
