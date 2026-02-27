@@ -245,36 +245,52 @@ async function renderFatture(container, azienda) {
   }
 
   async function loadProdottiCache(force = false) {
-    const now = Date.now();
-    if (!force && prodottiCache.length > 0 && (now - prodottiCacheLastLoad) < 60_000) return;
+  const now = Date.now();
+  if (!force && prodottiCache.length > 0 && (now - prodottiCacheLastLoad) < 60_000) return;
 
-    const { data, error } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um")
-      .eq("azienda_id", azienda.id)
-      .eq("attivo", true)
-      .order("nome", { ascending: true })
-      .limit(2000);
+  const { data, error } = await window.supabaseClient
+    .from("prodotti")
+    .select(`
+      id,
+      nome,
+      descrizione,
+      codice_interno,
+      um,
+      categoria_id,
+      categoria_interna_id,
+      categorie_bilancio(nome),
+      categorie_interne_prodotti(nome,sigla)
+    `)
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("nome", { ascending: true })
+    .limit(2000);
 
-    if (error) return;
+  if (error) return;
 
-    prodottiCache = (data || []).map(p => {
-      const label = (p.descrizione || p.nome || "").trim();
-      return {
-        id: p.id,
-        descrizione: label,
-        codice_interno: p.codice_interno || "",
-        um: p.um || ""
-      };
-    });
-    prodottiCacheLastLoad = now;
+  prodottiCache = (data || []).map(p => {
+    const label = (p.descrizione || p.nome || "").trim();
+    return {
+      id: p.id,
+      descrizione: label,
+      codice_interno: p.codice_interno || "",
+      um: p.um || "",
+      categoria_id: p.categoria_id || null,
+      categoria_nome: p.categorie_bilancio?.nome || "",
+      categoria_interna_id: p.categoria_interna_id || null,
+      categoria_interna_nome: p.categorie_interne_prodotti?.nome || "",
+      categoria_interna_sigla: p.categorie_interne_prodotti?.sigla || ""
+    };
+  });
 
-    datalistProdotti.innerHTML = prodottiCache
-      .filter(p => p.descrizione)
-      .slice(0, 800)
-      .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
-      .join("");
-  }
+  prodottiCacheLastLoad = now;
+
+  datalistProdotti.innerHTML = prodottiCache
+    .filter(p => p.descrizione)
+    .slice(0, 800)
+    .map(p => `<option value="${escapeHtml(p.descrizione)}"></option>`)
+    .join("");
+}
 
   function findFornitoreByRagioneSociale(nome) {
     const n = (nome || "").trim().toLowerCase();
