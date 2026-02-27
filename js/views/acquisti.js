@@ -621,171 +621,196 @@ async function renderFatture(container, azienda) {
     document.head.appendChild(style);
   }
 
-  async function openCreateProductModal({ prefillName }) {
-    ensureModalStyles();
+ async function openCreateProductModal({ prefillName }) {
+  ensureModalStyles();
 
-    const modalRoot = document.createElement("div");
-    modalRoot.className = "rf-modal-backdrop";
-    modalRoot.innerHTML = `
-      <div class="rf-modal" role="dialog" aria-modal="true">
-        <div class="rf-modal-header">
-          <div>
-            <h3 class="rf-modal-title">Crea prodotto</h3>
-            <p class="rf-modal-sub">Seleziona le categorie obbligatorie prima di creare il prodotto.</p>
-          </div>
-          <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
+  const modalRoot = document.createElement("div");
+  modalRoot.className = "rf-modal-backdrop";
+  modalRoot.innerHTML = `
+    <div class="rf-modal" role="dialog" aria-modal="true">
+      <div class="rf-modal-header">
+        <div>
+          <h3 class="rf-modal-title">Crea prodotto</h3>
+          <p class="rf-modal-sub">Seleziona le categorie obbligatorie prima di creare il prodotto.</p>
         </div>
-        <div class="rf-modal-body">
-          <div class="rf-modal-row">
-            <label class="acquisto-riga-label">Nome prodotto</label>
-            <input class="rf-input" id="rf-prod-nome" />
-            <div class="small-muted" style="color:#6b7280;font-size:12px;">Verrà salvato in <b>nome</b> e <b>descrizione</b>.</div>
-          </div>
-
-          <div class="rf-modal-row">
-            <label class="acquisto-riga-label">Categoria bilancio</label>
-            <select class="rf-select" id="rf-cat-bilancio">
-              <option value="">Seleziona...</option>
-            </select>
-          </div>
-
-          <div class="rf-modal-row">
-            <label class="acquisto-riga-label">Categoria interna</label>
-            <select class="rf-select" id="rf-cat-interna">
-              <option value="">Seleziona...</option>
-            </select>
-          </div>
-
-          <div class="rf-modal-error" id="rf-modal-error"></div>
-        </div>
-        <div class="rf-modal-actions">
-          <button class="app-button small gray rf-modal-cancel" type="button">Annulla</button>
-          <button class="app-button small green rf-modal-save" type="button">Crea prodotto</button>
-        </div>
+        <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
       </div>
-    `;
+      <div class="rf-modal-body">
+        <div class="rf-modal-row">
+          <label class="acquisto-riga-label">Nome prodotto</label>
+          <input class="rf-input" id="rf-prod-nome" />
+          <div class="small-muted" style="color:#6b7280;font-size:12px;">
+            Verrà salvato in <b>nome</b> e <b>descrizione</b>.
+          </div>
+        </div>
 
-    document.body.appendChild(modalRoot);
+        <div class="rf-modal-row">
+          <label class="acquisto-riga-label">Categoria bilancio</label>
+          <select class="rf-select" id="rf-cat-bilancio">
+            <option value="">Seleziona...</option>
+          </select>
+        </div>
 
-    const btnClose = modalRoot.querySelector(".rf-modal-close");
-    const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
-    const btnSave = modalRoot.querySelector(".rf-modal-save");
-    const inputNome = modalRoot.querySelector("#rf-prod-nome");
-    const selBilancio = modalRoot.querySelector("#rf-cat-bilancio");
-    const selInterna = modalRoot.querySelector("#rf-cat-interna");
-    const errEl = modalRoot.querySelector("#rf-modal-error");
+        <div class="rf-modal-row">
+          <label class="acquisto-riga-label">Categoria interna</label>
+          <select class="rf-select" id="rf-cat-interna">
+            <option value="">Seleziona...</option>
+          </select>
+        </div>
 
-    inputNome.value = (prefillName || "").trim();
+        <div class="rf-modal-error" id="rf-modal-error"></div>
+      </div>
+      <div class="rf-modal-actions">
+        <button class="app-button small gray rf-modal-cancel" type="button">Annulla</button>
+        <button class="app-button small green rf-modal-save" type="button">Crea prodotto</button>
+      </div>
+    </div>
+  `;
 
-    const [catsBilancio, catsInterne] = await Promise.all([
-      loadCategorieBilancio(),
-      loadCategorieInterne()
-    ]);
+  document.body.appendChild(modalRoot);
 
-    selBilancio.innerHTML = `
-      <option value="">Seleziona...</option>
-      ${catsBilancio.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
-    `;
-    selInterna.innerHTML = `
-      <option value="">Seleziona...</option>
-      ${catsInterne.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.sigla ? ` · ${escapeHtml(c.sigla)}` : ""}</option>`).join("")}
-    `;
+  const btnClose = modalRoot.querySelector(".rf-modal-close");
+  const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
+  const btnSave = modalRoot.querySelector(".rf-modal-save");
+  const inputNome = modalRoot.querySelector("#rf-prod-nome");
+  const selBilancio = modalRoot.querySelector("#rf-cat-bilancio");
+  const selInterna = modalRoot.querySelector("#rf-cat-interna");
+  const errEl = modalRoot.querySelector("#rf-modal-error");
 
-    function close() {
-      destroyModal(modalRoot);
-    }
+  inputNome.value = (prefillName || "").trim();
 
-    function setError(msg) {
-      if (errEl) errEl.textContent = msg || "";
-    }
+  const [catsBilancio, catsInterne] = await Promise.all([
+    loadCategorieBilancio(),
+    loadCategorieInterne()
+  ]);
 
-    modalRoot.addEventListener("click", (e) => {
-      if (e.target === modalRoot) close();
-    });
+  selBilancio.innerHTML = `
+    <option value="">Seleziona...</option>
+    ${catsBilancio.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
+  `;
 
-    btnClose?.addEventListener("click", close);
-    btnCancel?.addEventListener("click", close);
+  selInterna.innerHTML = `
+    <option value="">Seleziona...</option>
+    ${catsInterne.map(c =>
+      `<option value="${escapeHtml(c.id)}">
+        ${escapeHtml(c.nome)}${c.sigla ? ` · ${escapeHtml(c.sigla)}` : ""}
+      </option>`
+    ).join("")}
+  `;
 
-    const result = await new Promise((resolve) => {
-      btnSave?.addEventListener("click", async () => {
-        setError("");
-
-        const nome = (inputNome?.value || "").trim();
-        const categoriaBilancioId = (selBilancio?.value || "").trim();
-        const categoriaInternaId = (selInterna?.value || "").trim();
-
-        if (!nome) return setError("Inserisci il nome prodotto.");
-        if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio.");
-        if (!categoriaInternaId) return setError("Seleziona una categoria interna.");
-
-        const near = findNearDuplicate(nome);
-        if (near?.prodotto?.id) {
-          const suggestLabel = near.prodotto.codice_interno
-            ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
-            : `${near.prodotto.descrizione}`;
-          const useExisting = window.confirm(`Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`);
-          if (useExisting) {
-            close();
-            resolve({ action: "use_existing", prodotto: near.prodotto });
-            return;
-          }
-        }
-
-        btnSave.setAttribute("disabled", "disabled");
-        btnSave.textContent = "Creo...";
-
-        try {
-          const payload = {
-  azienda_id: azienda.id,
-  nome,
-  descrizione: nome,
-  attivo: true,
-  categoria_id: Number(categoriaBilancioId),
-  categoria_interna_id: categoriaInternaId,
-  tipo_prodotto: "materia_prima",
-
-  entra_in_magazzino: true,   // ← QUI
-
-  um: "pz",
-  unita_misura: "pz",
-  costo_medio: 0,
-  costo_ultimo: 0,
-  iva_percentuale: 0,
-  iva_perc: 0
-};
-
-          const { data: created, error } = await window.supabaseClient
-            .from("prodotti")
-            .insert(payload)
-            .select("id, nome, descrizione, codice_interno, um")
-            .single();
-
-          if (error || !created?.id) {
-            setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
-            return;
-          }
-
-          const label = (created.descrizione || created.nome || nome).trim();
-
-          close();
-          resolve({
-            action: "created",
-            prodotto: {
-              id: created.id,
-              descrizione: label,
-              codice_interno: created.codice_interno || "",
-              um: created.um || ""
-            }
-          });
-        } finally {
-          btnSave.removeAttribute("disabled");
-          btnSave.textContent = "Crea prodotto";
-        }
-      });
-    });
-
-    return result;
+  function close() {
+    destroyModal(modalRoot);
   }
+
+  function setError(msg) {
+    if (errEl) errEl.textContent = msg || "";
+  }
+
+  modalRoot.addEventListener("click", (e) => {
+    if (e.target === modalRoot) close();
+  });
+
+  btnClose?.addEventListener("click", close);
+  btnCancel?.addEventListener("click", close);
+
+  const result = await new Promise((resolve) => {
+    btnSave?.addEventListener("click", async () => {
+      setError("");
+
+      const nome = (inputNome?.value || "").trim();
+      const categoriaBilancioId = (selBilancio?.value || "").trim();
+      const categoriaInternaId = (selInterna?.value || "").trim();
+
+      if (!nome) return setError("Inserisci il nome prodotto.");
+      if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio.");
+      if (!categoriaInternaId) return setError("Seleziona una categoria interna.");
+
+      const near = findNearDuplicate(nome);
+      if (near?.prodotto?.id) {
+        const suggestLabel = near.prodotto.codice_interno
+          ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+          : `${near.prodotto.descrizione}`;
+
+        const useExisting = window.confirm(
+          `Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`
+        );
+
+        if (useExisting) {
+          close();
+          resolve({ action: "use_existing", prodotto: near.prodotto });
+          return;
+        }
+      }
+
+      btnSave.setAttribute("disabled", "disabled");
+      btnSave.textContent = "Creo...";
+
+      try {
+        const { data: created, error } = await window.supabaseClient
+          .from("prodotti")
+          .insert({
+            azienda_id: azienda.id,
+            nome,
+            descrizione: nome,
+            attivo: true,
+            categoria_id: Number(categoriaBilancioId),
+            categoria_interna_id: categoriaInternaId,
+            tipo_prodotto: "materia_prima",
+
+            entra_in_magazzino: true, // ✅ OBBLIGATORIO
+
+            um: "pz",
+            unita_misura: "pz",
+            costo_medio: 0,
+            costo_ultimo: 0,
+            iva_percentuale: 0,
+            iva_perc: 0
+          })
+          .select(`
+            id,
+            nome,
+            descrizione,
+            codice_interno,
+            um,
+            categoria_id,
+            categoria_interna_id,
+            categorie_bilancio(nome),
+            categorie_interne_prodotti(nome,sigla)
+          `)
+          .single();
+
+        if (error || !created?.id) {
+          setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
+          return;
+        }
+
+        const label = (created.descrizione || created.nome || nome).trim();
+
+        close();
+        resolve({
+          action: "created",
+          prodotto: {
+            id: created.id,
+            descrizione: label,
+            codice_interno: created.codice_interno || "",
+            um: created.um || "",
+            categoria_id: created.categoria_id || null,
+            categoria_nome: created.categorie_bilancio?.nome || "",
+            categoria_interna_id: created.categoria_interna_id || null,
+            categoria_interna_nome: created.categorie_interne_prodotti?.nome || "",
+            categoria_interna_sigla: created.categorie_interne_prodotti?.sigla || ""
+          }
+        });
+
+      } finally {
+        btnSave.removeAttribute("disabled");
+        btnSave.textContent = "Crea prodotto";
+      }
+    });
+  });
+
+  return result;
+}
 
   function renderRigheUI() {
     ensureModalStyles();
