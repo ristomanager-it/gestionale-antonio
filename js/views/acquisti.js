@@ -1202,13 +1202,17 @@ async function renderFatture(container, azienda) {
           return;
         }
 
-        if (res.action === "created" && res.prodotto?.id) {
-          prodottiCache.unshift({
-            id: res.prodotto.id,
-            descrizione: res.prodotto.descrizione || nome,
-            codice_interno: res.prodotto.codice_interno || "",
-            um: res.prodotto.um || ""
-          });
+      prodottiCache.unshift({
+  id: res.prodotto.id,
+  descrizione: res.prodotto.descrizione || nome,
+  codice_interno: res.prodotto.codice_interno || "",
+  um: res.prodotto.um || "",
+  categoria_id: res.prodotto.categoria_id || null,
+  categoria_nome: res.prodotto.categoria_nome || "",
+  categoria_interna_id: res.prodotto.categoria_interna_id || null,
+  categoria_interna_nome: res.prodotto.categoria_interna_nome || "",
+  categoria_interna_sigla: res.prodotto.categoria_interna_sigla || ""
+});
 
           await loadProdottiCache(true);
 
