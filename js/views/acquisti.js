@@ -188,6 +188,68 @@ async function renderFatture(container, azienda) {
     return Number.isFinite(n) ? n : null;
   }
 
+  function parseLocaleNumber(value, fallback = 0) {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+
+    let s = String(value).trim();
+    if (!s) return fallback;
+
+    s = s.replace(/[€\s]/g, "");
+
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
+    if (lastComma !== -1 && lastDot !== -1) {
+      if (lastComma > lastDot) {
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else {
+        s = s.replace(/,/g, "");
+      }
+    } else if (lastComma !== -1) {
+      s = s.replace(",", ".");
+    }
+
+    s = s.replace(/[^0-9.\-]/g, "");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function roundTo3(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 0;
+    return Math.round(x * 1000) / 1000;
+  }
+
+  function cleanOcrDescrizione(raw) {
+    let s = String(raw || "").trim();
+    if (!s) return "";
+
+    s = s.replace(/^merce\s+non\s+deperibile\s*[-–—:]\s*/i, "");
+    s = s.replace(/^merce\s+deperibile\s*[-–—:]\s*/i, "");
+    s = s.replace(/^beni\s*[-–—:]\s*/i, "");
+    s = s.replace(/^servizi\s*[-–—:]\s*/i, "");
+
+    if (/^(merce|beni|servizi)\b/i.test(s) && /[-–—]/.test(s)) {
+      s = s.replace(/^[^-–—]*[-–—]\s*/, "");
+    }
+
+    return s.replace(/\s+/g, " ").trim();
+  }
+
+  function extractOcrLineTotal(r) {
+    if (!r || typeof r !== "object") return null;
+    const candidates = [
+      r.totale_riga, r.totaleRiga, r.totale,
+      r.importo, r.amount, r.valore, r.prezzo_totale, r.prezzoTotale,
+      r.subtotale, r.subTotal, r.line_total, r.lineTotal
+    ];
+    for (const c of candidates) {
+      const n = parseLocaleNumber(c, NaN);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return null;
+  }
+
   function normalizeText(str) {
     return String(str || "")
       .trim()
@@ -663,7 +725,7 @@ async function renderFatture(container, azienda) {
         <div class="rf-modal-header">
           <div>
             <h3 class="rf-modal-title">Crea prodotto</h3>
-            <p class="rf-modal-sub">Seleziona le categorie obbligatorie prima di creare il prodotto.</p>
+            <p class="rf-modal-sub">Inserisci o cerca le categorie obbligatorie prima di creare il prodotto.</p>
           </div>
           <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
         </div>
@@ -676,16 +738,16 @@ async function renderFatture(container, azienda) {
 
           <div class="rf-modal-row">
             <label class="acquisto-riga-label">Categoria bilancio</label>
-            <select class="rf-select" id="rf-cat-bilancio">
-              <option value="">Seleziona...</option>
-            </select>
+            <input class="rf-input" id="rf-cat-bilancio-text" list="rf-cat-bilancio-list" placeholder="Cerca categoria bilancio..." autocomplete="off" />
+            <input type="hidden" id="rf-cat-bilancio-id" value="" />
+            <datalist id="rf-cat-bilancio-list"></datalist>
           </div>
 
           <div class="rf-modal-row">
             <label class="acquisto-riga-label">Categoria interna</label>
-            <select class="rf-select" id="rf-cat-interna">
-              <option value="">Seleziona...</option>
-            </select>
+            <input class="rf-input" id="rf-cat-interna-text" list="rf-cat-interna-list" placeholder="Cerca categoria interna..." autocomplete="off" />
+            <input type="hidden" id="rf-cat-interna-id" value="" />
+            <datalist id="rf-cat-interna-list"></datalist>
           </div>
 
           <div class="rf-modal-error" id="rf-modal-error"></div>
@@ -703,8 +765,15 @@ async function renderFatture(container, azienda) {
     const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
     const btnSave = modalRoot.querySelector(".rf-modal-save");
     const inputNome = modalRoot.querySelector("#rf-prod-nome");
-    const selBilancio = modalRoot.querySelector("#rf-cat-bilancio");
-    const selInterna = modalRoot.querySelector("#rf-cat-interna");
+
+    const inputBilancioText = modalRoot.querySelector("#rf-cat-bilancio-text");
+    const hiddenBilancioId = modalRoot.querySelector("#rf-cat-bilancio-id");
+    const dlBilancio = modalRoot.querySelector("#rf-cat-bilancio-list");
+
+    const inputInternaText = modalRoot.querySelector("#rf-cat-interna-text");
+    const hiddenInternaId = modalRoot.querySelector("#rf-cat-interna-id");
+    const dlInterna = modalRoot.querySelector("#rf-cat-interna-list");
+
     const errEl = modalRoot.querySelector("#rf-modal-error");
 
     inputNome.value = (prefillName || "").trim();
@@ -714,14 +783,26 @@ async function renderFatture(container, azienda) {
       loadCategorieInterne()
     ]);
 
-    selBilancio.innerHTML = `
-      <option value="">Seleziona...</option>
-      ${catsBilancio.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
-    `;
-    selInterna.innerHTML = `
-      <option value="">Seleziona...</option>
-      ${catsInterne.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.sigla ? ` · ${escapeHtml(c.sigla)}` : ""}</option>`).join("")}
-    `;
+    const bilancioByLabel = new Map(
+      (catsBilancio || []).map(c => [String(c.nome || "").trim().toLowerCase(), String(c.id)])
+    );
+
+    const interneLabels = (catsInterne || []).map(c => ({
+      id: String(c.id),
+      label: `${c.nome}${c.sigla ? ` · ${c.sigla}` : ""}`.trim()
+    }));
+
+    const internaByLabel = new Map(
+      interneLabels.map(x => [x.label.toLowerCase(), x.id])
+    );
+
+    dlBilancio.innerHTML = (catsBilancio || [])
+      .map(c => `<option value="${escapeHtml(c.nome)}"></option>`)
+      .join("");
+
+    dlInterna.innerHTML = interneLabels
+      .map(x => `<option value="${escapeHtml(x.label)}"></option>`)
+      .join("");
 
     function close() {
       destroyModal(modalRoot);
@@ -730,6 +811,21 @@ async function renderFatture(container, azienda) {
     function setError(msg) {
       if (errEl) errEl.textContent = msg || "";
     }
+
+    function syncBilancioId() {
+      const v = String(inputBilancioText?.value || "").trim().toLowerCase();
+      hiddenBilancioId.value = bilancioByLabel.get(v) || "";
+    }
+
+    function syncInternaId() {
+      const v = String(inputInternaText?.value || "").trim().toLowerCase();
+      hiddenInternaId.value = internaByLabel.get(v) || "";
+    }
+
+    inputBilancioText?.addEventListener("input", syncBilancioId);
+    inputBilancioText?.addEventListener("change", syncBilancioId);
+    inputInternaText?.addEventListener("input", syncInternaId);
+    inputInternaText?.addEventListener("change", syncInternaId);
 
     modalRoot.addEventListener("click", (e) => {
       if (e.target === modalRoot) close();
@@ -742,13 +838,16 @@ async function renderFatture(container, azienda) {
       btnSave?.addEventListener("click", async () => {
         setError("");
 
+        syncBilancioId();
+        syncInternaId();
+
         const nome = (inputNome?.value || "").trim();
-        const categoriaBilancioId = (selBilancio?.value || "").trim();
-        const categoriaInternaId = (selInterna?.value || "").trim();
+        const categoriaBilancioId = (hiddenBilancioId?.value || "").trim();
+        const categoriaInternaId = (hiddenInternaId?.value || "").trim();
 
         if (!nome) return setError("Inserisci il nome prodotto.");
-        if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio.");
-        if (!categoriaInternaId) return setError("Seleziona una categoria interna.");
+        if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio (scegliendo una voce esistente).");
+        if (!categoriaInternaId) return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
 
         const near = findNearDuplicate(nome);
         if (near?.prodotto?.id) {
@@ -1018,16 +1117,27 @@ async function renderFatture(container, azienda) {
     righe = [];
     righeContainer.innerHTML = "";
 
-    const righeInput = (result.righe || []).map(r => ({
-      descrizione: (r.descrizione || "").trim(),
-      quantita: Number(r.quantita || 0),
-      prezzo_unitario: Number(r.prezzo_unitario || 0),
-      prodotto_id: null,
-      prodotto_nome: "",
-      um: "",
-      match_reason: null,
-      match_score: null
-    }));
+    const righeInput = (result.righe || []).map(r => {
+      const descr = cleanOcrDescrizione(r.descrizione || "");
+      const qta = parseLocaleNumber(r.quantita, 0);
+      const prezzoUnitRaw = parseLocaleNumber(r.prezzo_unitario, 0);
+      const totaleRiga = extractOcrLineTotal(r);
+
+      const prezzoUnit = (totaleRiga && qta > 0)
+        ? roundTo3(totaleRiga / qta)
+        : roundTo3(prezzoUnitRaw);
+
+      return {
+        descrizione: descr,
+        quantita: qta,
+        prezzo_unitario: prezzoUnit,
+        prodotto_id: null,
+        prodotto_nome: "",
+        um: "",
+        match_reason: null,
+        match_score: null
+      };
+    });
 
     for (let i = 0; i < righeInput.length; i++) {
       const descr = righeInput[i].descrizione;
@@ -1380,7 +1490,6 @@ async function renderFatture(container, azienda) {
         throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
       }
 
-      // Costruisco righe con categoria_bilancio_id = prodotti.categoria_id
       const righeDaInserire = [];
       for (const r of righePulite) {
         const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
