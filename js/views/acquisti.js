@@ -1211,61 +1211,61 @@ async function renderFatture(container, azienda) {
     }
 
     if (btn.classList.contains("btn-crea-prodotto")) {
-      await loadProdottiCache(false);
+  await loadProdottiCache(false);
 
-      const nome = (righe[idx].prodotto_nome || righe[idx].descrizione || "").trim();
-      if (!nome) return;
+  const nome = (righe[idx].prodotto_nome || righe[idx].descrizione || "").trim();
+  if (!nome) return;
 
-      btn.setAttribute("disabled", "disabled");
-      btn.textContent = "Apro...";
+  btn.setAttribute("disabled", "disabled");
+  btn.textContent = "Apro...";
 
-      try {
-        const res = await openCreateProductModal({ prefillName: nome });
+  try {
 
-        if (!res) return;
+    const res = await openCreateProductModal({ prefillName: nome });
 
-        if (res.action === "use_existing" && res.prodotto?.id) {
-          await selectProdottoForRow(idx, res.prodotto);
-          feedback.innerHTML = `<span style="color:green;">Prodotto esistente agganciato alla riga.</span>`;
-          return;
-        }
+    if (!res) return;
 
-      prodottiCache.unshift({
-  id: res.prodotto.id,
-  descrizione: res.prodotto.descrizione || nome,
-  codice_interno: res.prodotto.codice_interno || "",
-  um: res.prodotto.um || "",
-  categoria_id: res.prodotto.categoria_id || null,
-  categoria_nome: res.prodotto.categoria_nome || "",
-  categoria_interna_id: res.prodotto.categoria_interna_id || null,
-  categoria_interna_nome: res.prodotto.categoria_interna_nome || "",
-  categoria_interna_sigla: res.prodotto.categoria_interna_sigla || ""
-});
-
-          await loadProdottiCache(true);
-
-          righe[idx].prodotto_id = res.prodotto.id;
-          righe[idx].prodotto_nome = res.prodotto.descrizione || nome;
-          righe[idx].um = res.prodotto.um || "";
-          righe[idx].match_reason = "created";
-          righe[idx].match_score = 0.80;
-
-          await updateRowComputedUI(idx);
-
-          const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
-          const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
-          const hidId = rowEl?.querySelector(".riga-prodotto-id");
-          if (inpProd) inpProd.value = righe[idx].prodotto_nome;
-          if (hidId) hidId.value = righe[idx].prodotto_id || "";
-
-          feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
-        }
-      } finally {
-        btn.removeAttribute("disabled");
-        btn.textContent = "Crea prodotto";
-      }
+    if (res.action === "use_existing" && res.prodotto?.id) {
+      await selectProdottoForRow(idx, res.prodotto);
+      feedback.innerHTML = `<span style="color:green;">Prodotto esistente agganciato alla riga.</span>`;
+      return;
     }
 
+    prodottiCache.unshift({
+      id: res.prodotto.id,
+      descrizione: res.prodotto.descrizione || nome,
+      codice_interno: res.prodotto.codice_interno || "",
+      um: res.prodotto.um || "",
+      categoria_id: res.prodotto.categoria_id || null,
+      categoria_nome: res.prodotto.categoria_nome || "",
+      categoria_interna_id: res.prodotto.categoria_interna_id || null,
+      categoria_interna_nome: res.prodotto.categoria_interna_nome || "",
+      categoria_interna_sigla: res.prodotto.categoria_interna_sigla || ""
+    });
+
+    await loadProdottiCache(true);
+
+    righe[idx].prodotto_id = res.prodotto.id;
+    righe[idx].prodotto_nome = res.prodotto.descrizione || nome;
+    righe[idx].um = res.prodotto.um || "";
+    righe[idx].match_reason = "created";
+    righe[idx].match_score = 0.80;
+
+    await updateRowComputedUI(idx);
+
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+    const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+    const hidId = rowEl?.querySelector(".riga-prodotto-id");
+    if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+    if (hidId) hidId.value = righe[idx].prodotto_id || "";
+
+    feedback.innerHTML = `<span style="color:green;">Prodotto creato e agganciato alla riga.</span>`;
+
+  } finally {
+    btn.removeAttribute("disabled");
+    btn.textContent = "Crea prodotto";
+  }
+}
     if (btn.classList.contains("btn-rinomina-prodotto")) {
       await loadProdottiCache(false);
 
