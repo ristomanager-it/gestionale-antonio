@@ -907,179 +907,124 @@ async function renderFatture(container, azienda) {
         }
 
         if (!categoriaInternaId) {
-          if (!internaText) return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
-          return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
-        }
 
-        const near = findNearDuplicate(nome);
-        if (near?.prodotto?.id) {
-          const suggestLabel = near.prodotto.codice_interno
-            ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
-            : `${near.prodotto.descrizione}`;
-          const useExisting = window.confirm(`Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`);
-          if (useExisting) {
-            close();
-            resolve({ action: "use_existing", prodotto: near.prodotto });
-            return;
-          }
-        }
-
-        btnSave.setAttribute("disabled", "disabled");
-        btnSave.textContent = "Creo...";
-
-        try {
-          const payload = {
-            azienda_id: azienda.id,
-            nome,
-            descrizione: nome,
-            attivo: true,
-            categoria_id: Number(categoriaBilancioId),
-            categoria_interna_id: categoriaInternaId,
-            tipo_prodotto: "materia_prima",
-            um: "pz",
-            unita_misura: "pz",
-            costo_medio: 0,
-            costo_ultimo: 0,
-            iva_percentuale: 0,
-            iva_perc: 0
-          };
-
-          const { data: created, error } = await window.supabaseClient
-            .from("prodotti")
-            .insert(payload)
-            .select("id, nome, descrizione, codice_interno, um, categoria_id")
-            .single();
-
-          if (error || !created?.id) {
-            setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
-            return;
-          }
-
-          const label = (created.descrizione || created.nome || nome).trim();
-
-          close();
-          resolve({
-            action: "created",
-            prodotto: {
-              id: created.id,
-              descrizione: label,
-              codice_interno: created.codice_interno || "",
-              um: created.um || "",
-              categoria_id: created.categoria_id ?? null
-            }
-          });
-        } finally {
-          btnSave.removeAttribute("disabled");
-          btnSave.textContent = "Crea prodotto";
-        }
-      });
-    });
-
-    return result;
+  if (!internaText) {
+    return setError("Inserisci una categoria interna.");
   }
 
-  function renderRigheUI() {
-    ensureModalStyles();
-    righeContainer.innerHTML = "";
+  // 1️⃣ Verifica se esiste già (case-insensitive) per questa azienda
+  const { data: existingInt, error: errExistingInt } = await window.supabaseClient
+    .from("categorie_interne_prodotti")
+    .select("id, nome")
+    .eq("azienda_id", azienda.id)
+    .ilike("nome", internaText)
+    .limit(1);
 
-    righe.forEach((r, index) => {
-      const row = document.createElement("div");
-      row.className = "card acquisto-riga-card";
-      row.dataset.i = String(index);
-
-      setRowStatus(row, computeStatusFromRiga(r));
-
-      const descrizioneVal = escapeHtml(r.descrizione || "");
-      const prodottoNomeVal = escapeHtml(r.prodotto_nome || "");
-      const quantitaVal = Number.isFinite(r.quantita) ? r.quantita : (r.quantita || 0);
-      const prezzoVal = Number.isFinite(r.prezzo_unitario) ? r.prezzo_unitario : (r.prezzo_unitario || 0);
-
-      row.innerHTML = `
-        <div class="acquisto-riga-stack">
-
-          <div class="acquisto-riga-top">
-            <div>
-              <label class="acquisto-riga-label">Descrizione (modificabile)</label>
-              <input type="text"
-                value="${descrizioneVal}"
-                class="input-pill riga-descrizione"
-                data-i="${index}" />
-            </div>
-
-            <div style="position:relative;">
-              <label class="acquisto-riga-label">Prodotto (autocomplete)</label>
-
-              <input type="text"
-                value="${prodottoNomeVal}"
-                list="prodotti-suggestions"
-                placeholder="Cerca o scrivi prodotto..."
-                class="input-pill riga-prodotto-nome"
-                data-i="${index}"
-                autocomplete="off" />
-
-              <div class="prod-suggest suggest-list" style="display:none; position:absolute; left:0; right:0; top:62px; z-index:50;"></div>
-
-              <input type="hidden" class="riga-prodotto-id" data-i="${index}" value="${escapeHtml(r.prodotto_id || "")}" />
-
-              <div class="small-muted riga-um" style="margin-top:6px;">
-                ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
-              </div>
-            </div>
-          </div>
-
-          <div class="acquisto-riga-grid2">
-            <div>
-              <label class="acquisto-riga-label">Quantità</label>
-              <input type="number"
-                step="0.001"
-                value="${escapeHtml(quantitaVal)}"
-                class="input-pill riga-quantita"
-                data-i="${index}" />
-            </div>
-
-            <div>
-              <label class="acquisto-riga-label">Costo unitario</label>
-              <input type="number"
-                step="0.0001"
-                value="${escapeHtml(prezzoVal)}"
-                class="input-pill riga-prezzo"
-                data-i="${index}" />
-            </div>
-          </div>
-
-          <div class="acquisto-riga-actions">
-            <button type="button"
-              class="app-button tiny gray btn-match-riga"
-              data-i="${index}"
-              title="Riprova matching automatico sulla descrizione">
-              Riprova match
-            </button>
-
-            <button type="button"
-              class="app-button tiny green btn-crea-prodotto"
-              data-i="${index}"
-              style="${r.prodotto_id ? "display:none;" : ""}"
-              title="Crea un nuovo prodotto con questo nome e aggancia la riga">
-              Crea prodotto
-            </button>
-
-            <button type="button"
-              class="app-button tiny gray btn-rinomina-prodotto"
-              data-i="${index}"
-              style="${r.prodotto_id ? "" : "display:none;"}"
-              title="Rinomina il prodotto selezionato usando il nome scritto nel campo Prodotto">
-              Rinomina prodotto
-            </button>
-          </div>
-
-          <small class="riga-hint acquisto-riga-hint"></small>
-        </div>
-      `;
-
-      setRowHint(row, computeHintFromRiga(r));
-      righeContainer.appendChild(row);
-    });
+  if (errExistingInt) {
+    console.error(errExistingInt);
+    return setError("Errore verifica categoria interna.");
   }
+
+  if (existingInt && existingInt.length > 0) {
+    categoriaInternaId = String(existingInt[0].id);
+  } else {
+    // 2️⃣ Crea nuova categoria interna (primo inserimento)
+    const { data: createdInt, error: errCreateInt } = await window.supabaseClient
+      .from("categorie_interne_prodotti")
+      .insert({
+        azienda_id: azienda.id,
+        nome: internaText,
+        sigla: null,
+        attiva: true
+      })
+      .select("id, nome, sigla")
+      .single();
+
+    if (errCreateInt || !createdInt?.id) {
+      console.error(errCreateInt);
+      return setError("Impossibile creare la categoria interna. Verifica permessi o duplicati.");
+    }
+
+    categoriaInternaId = String(createdInt.id);
+
+    // Aggiorna mappa locale per riutilizzo immediato nel modal
+    internaByKey.set(internaText.toLowerCase(), categoriaInternaId);
+
+    if (dlInterna) {
+      dlInterna.insertAdjacentHTML(
+        "beforeend",
+        `<option value="${escapeHtml(internaText)}"></option>`
+      );
+    }
+  }
+
+  hiddenInternaId.value = categoriaInternaId;
+}
+
+const near = findNearDuplicate(nome);
+if (near?.prodotto?.id) {
+  const suggestLabel = near.prodotto.codice_interno
+    ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+    : `${near.prodotto.descrizione}`;
+  const useExisting = window.confirm(
+    `Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`
+  );
+  if (useExisting) {
+    close();
+    resolve({ action: "use_existing", prodotto: near.prodotto });
+    return;
+  }
+}
+
+btnSave.setAttribute("disabled", "disabled");
+btnSave.textContent = "Creo...";
+
+try {
+  const payload = {
+    azienda_id: azienda.id,
+    nome,
+    descrizione: nome,
+    attivo: true,
+    categoria_id: Number(categoriaBilancioId),
+    categoria_interna_id: categoriaInternaId, // UUID string, corretto
+    tipo_prodotto: "materia_prima",
+    um: "pz",
+    unita_misura: "pz",
+    costo_medio: 0,
+    costo_ultimo: 0,
+    iva_percentuale: 0,
+    iva_perc: 0
+  };
+
+  const { data: created, error } = await window.supabaseClient
+    .from("prodotti")
+    .insert(payload)
+    .select("id, nome, descrizione, codice_interno, um, categoria_id")
+    .single();
+
+  if (error || !created?.id) {
+    console.error(error);
+    setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
+    return;
+  }
+
+  const label = (created.descrizione || created.nome || nome).trim();
+
+  close();
+  resolve({
+    action: "created",
+    prodotto: {
+      id: created.id,
+      descrizione: label,
+      codice_interno: created.codice_interno || "",
+      um: created.um || "",
+      categoria_id: created.categoria_id ?? null
+    }
+  });
+} finally {
+  btnSave.removeAttribute("disabled");
+  btnSave.textContent = "Crea prodotto";
+}
 
   async function updateRowComputedUI(index) {
     const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
