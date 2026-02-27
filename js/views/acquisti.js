@@ -195,28 +195,20 @@ async function renderFatture(container, azienda) {
     let s = String(value).trim();
     if (!s) return fallback;
 
-    // Remove currency symbols and spaces
     s = s.replace(/[€\s]/g, "");
 
-    // If both separators exist, assume last one is decimal separator
     const lastComma = s.lastIndexOf(",");
     const lastDot = s.lastIndexOf(".");
     if (lastComma !== -1 && lastDot !== -1) {
       if (lastComma > lastDot) {
-        // comma decimal, dot thousands
         s = s.replace(/\./g, "").replace(",", ".");
       } else {
-        // dot decimal, comma thousands
         s = s.replace(/,/g, "");
       }
     } else if (lastComma !== -1) {
-      // comma decimal
       s = s.replace(",", ".");
-    } else {
-      // dot decimal or integer, ok
     }
 
-    // Keep only digits, minus, and dot
     s = s.replace(/[^0-9.\-]/g, "");
     const n = Number(s);
     return Number.isFinite(n) ? n : fallback;
@@ -232,14 +224,11 @@ async function renderFatture(container, azienda) {
     let s = String(raw || "").trim();
     if (!s) return "";
 
-    // Remove common leading classifications / bucket labels
-    // Example: "Merce non deperibile - Congelato ..." -> "Congelato ..."
     s = s.replace(/^merce\s+non\s+deperibile\s*[-–—:]\s*/i, "");
     s = s.replace(/^merce\s+deperibile\s*[-–—:]\s*/i, "");
     s = s.replace(/^beni\s*[-–—:]\s*/i, "");
     s = s.replace(/^servizi\s*[-–—:]\s*/i, "");
 
-    // If there's still a leading bucket like "Merce ... -", drop up to first dash (only if it looks like a bucket)
     if (/^(merce|beni|servizi)\b/i.test(s) && /[-–—]/.test(s)) {
       s = s.replace(/^[^-–—]*[-–—]\s*/, "");
     }
@@ -876,12 +865,51 @@ async function renderFatture(container, azienda) {
         syncInternaId();
 
         const nome = (inputNome?.value || "").trim();
-        const categoriaBilancioId = (hiddenBilancioId?.value || "").trim();
+
+        const bilancioText = String(inputBilancioText?.value || "").trim();
+        let categoriaBilancioId = (hiddenBilancioId?.value || "").trim();
+
+        const internaText = String(inputInternaText?.value || "").trim();
         const categoriaInternaId = (hiddenInternaId?.value || "").trim();
 
         if (!nome) return setError("Inserisci il nome prodotto.");
-        if (!categoriaBilancioId) return setError("Seleziona una categoria bilancio (scegliendo una voce esistente).");
-        if (!categoriaInternaId) return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
+
+        if (!categoriaBilancioId) {
+          if (!bilancioText) return setError("Inserisci una categoria bilancio.");
+
+          const { data: existingCats, error: errExisting } = await window.supabaseClient
+            .from("categorie_bilancio")
+            .select("id, nome")
+            .ilike("nome", bilancioText)
+            .limit(1);
+
+          if (!errExisting && existingCats && existingCats.length) {
+            categoriaBilancioId = String(existingCats[0].id);
+          } else {
+            const { data: createdCat, error: errCreate } = await window.supabaseClient
+              .from("categorie_bilancio")
+              .insert({ nome: bilancioText, attivo: true })
+              .select("id, nome")
+              .single();
+
+            if (errCreate || !createdCat?.id) {
+              return setError("Impossibile creare la categoria bilancio. Verifica permessi/RLS o il nome.");
+            }
+
+            categoriaBilancioId = String(createdCat.id);
+
+            const key = String(createdCat.nome || bilancioText).trim().toLowerCase();
+            bilancioByLabel.set(key, categoriaBilancioId);
+            if (dlBilancio) dlBilancio.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(createdCat.nome || bilancioText)}"></option>`);
+          }
+
+          if (hiddenBilancioId) hiddenBilancioId.value = categoriaBilancioId;
+        }
+
+        if (!categoriaInternaId) {
+          if (!internaText) return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
+          return setError("Seleziona una categoria interna (scegliendo una voce esistente).");
+        }
 
         const near = findNearDuplicate(nome);
         if (near?.prodotto?.id) {
@@ -1157,8 +1185,6 @@ async function renderFatture(container, azienda) {
       const prezzoUnitRaw = parseLocaleNumber(r.prezzo_unitario, 0);
       const totaleRiga = extractOcrLineTotal(r);
 
-      // Se abbiamo un totale riga affidabile, ricalcoliamo il prezzo unitario
-      // (migliora molto i casi in cui l'OCR sbaglia di pochi millesimi)
       const prezzoUnit = (totaleRiga && qta > 0)
         ? roundTo3(totaleRiga / qta)
         : roundTo3(prezzoUnitRaw);
@@ -1529,7 +1555,6 @@ async function renderFatture(container, azienda) {
         throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
       }
 
-      // Costruisco righe con categoria_bilancio_id = prodotti.categoria_id
       const righeDaInserire = [];
       for (const r of righePulite) {
         const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
