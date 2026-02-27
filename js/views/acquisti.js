@@ -195,20 +195,28 @@ async function renderFatture(container, azienda) {
     let s = String(value).trim();
     if (!s) return fallback;
 
+    // Remove currency symbols and spaces
     s = s.replace(/[€\s]/g, "");
 
+    // If both separators exist, assume last one is decimal separator
     const lastComma = s.lastIndexOf(",");
     const lastDot = s.lastIndexOf(".");
     if (lastComma !== -1 && lastDot !== -1) {
       if (lastComma > lastDot) {
+        // comma decimal, dot thousands
         s = s.replace(/\./g, "").replace(",", ".");
       } else {
+        // dot decimal, comma thousands
         s = s.replace(/,/g, "");
       }
     } else if (lastComma !== -1) {
+      // comma decimal
       s = s.replace(",", ".");
+    } else {
+      // dot decimal or integer, ok
     }
 
+    // Keep only digits, minus, and dot
     s = s.replace(/[^0-9.\-]/g, "");
     const n = Number(s);
     return Number.isFinite(n) ? n : fallback;
@@ -224,11 +232,14 @@ async function renderFatture(container, azienda) {
     let s = String(raw || "").trim();
     if (!s) return "";
 
+    // Remove common leading classifications / bucket labels
+    // Example: "Merce non deperibile - Congelato ..." -> "Congelato ..."
     s = s.replace(/^merce\s+non\s+deperibile\s*[-–—:]\s*/i, "");
     s = s.replace(/^merce\s+deperibile\s*[-–—:]\s*/i, "");
     s = s.replace(/^beni\s*[-–—:]\s*/i, "");
     s = s.replace(/^servizi\s*[-–—:]\s*/i, "");
 
+    // If there's still a leading bucket like "Merce ... -", drop up to first dash (only if it looks like a bucket)
     if (/^(merce|beni|servizi)\b/i.test(s) && /[-–—]/.test(s)) {
       s = s.replace(/^[^-–—]*[-–—]\s*/, "");
     }
@@ -804,8 +815,11 @@ async function renderFatture(container, azienda) {
       .map(x => `<option value="${escapeHtml(x.label)}"></option>`)
       .join("");
 
+    let externalResolve = null;
+
     function close() {
       destroyModal(modalRoot);
+      if (externalResolve) externalResolve(null);
     }
 
     function setError(msg) {
@@ -813,13 +827,31 @@ async function renderFatture(container, azienda) {
     }
 
     function syncBilancioId() {
-      const v = String(inputBilancioText?.value || "").trim().toLowerCase();
-      hiddenBilancioId.value = bilancioByLabel.get(v) || "";
+      const raw = String(inputBilancioText?.value || "").trim().toLowerCase();
+
+      if (bilancioByLabel.has(raw)) {
+        hiddenBilancioId.value = bilancioByLabel.get(raw);
+        return;
+      }
+
+      const found = [...bilancioByLabel.entries()]
+        .find(([label]) => label.includes(raw));
+
+      hiddenBilancioId.value = found ? found[1] : "";
     }
 
     function syncInternaId() {
-      const v = String(inputInternaText?.value || "").trim().toLowerCase();
-      hiddenInternaId.value = internaByLabel.get(v) || "";
+      const raw = String(inputInternaText?.value || "").trim().toLowerCase();
+
+      if (internaByLabel.has(raw)) {
+        hiddenInternaId.value = internaByLabel.get(raw);
+        return;
+      }
+
+      const found = [...internaByLabel.entries()]
+        .find(([label]) => label.includes(raw));
+
+      hiddenInternaId.value = found ? found[1] : "";
     }
 
     inputBilancioText?.addEventListener("input", syncBilancioId);
@@ -835,6 +867,8 @@ async function renderFatture(container, azienda) {
     btnCancel?.addEventListener("click", close);
 
     const result = await new Promise((resolve) => {
+      externalResolve = resolve;
+
       btnSave?.addEventListener("click", async () => {
         setError("");
 
@@ -1123,6 +1157,8 @@ async function renderFatture(container, azienda) {
       const prezzoUnitRaw = parseLocaleNumber(r.prezzo_unitario, 0);
       const totaleRiga = extractOcrLineTotal(r);
 
+      // Se abbiamo un totale riga affidabile, ricalcoliamo il prezzo unitario
+      // (migliora molto i casi in cui l'OCR sbaglia di pochi millesimi)
       const prezzoUnit = (totaleRiga && qta > 0)
         ? roundTo3(totaleRiga / qta)
         : roundTo3(prezzoUnitRaw);
@@ -1357,6 +1393,9 @@ async function renderFatture(container, azienda) {
           righe[idx].match_reason = "created";
           righe[idx].match_score = 0.80;
 
+          righe[idx].match_reason = "manual_select";
+          righe[idx].match_score = 0.75;
+
           await updateRowComputedUI(idx);
 
           const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
@@ -1490,6 +1529,7 @@ async function renderFatture(container, azienda) {
         throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
       }
 
+      // Costruisco righe con categoria_bilancio_id = prodotti.categoria_id
       const righeDaInserire = [];
       for (const r of righePulite) {
         const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
