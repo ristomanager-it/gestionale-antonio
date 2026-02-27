@@ -1053,3 +1053,20 @@ svg {
     width: 100%;
   }
 }
+/* ========================================= */
+/* Modulo Acquisti – Meta Prodotto Riga     */
+/* ========================================= */
+
+.acquisto-riga-meta{
+  font-size:12px;
+  color:#374151;
+  background:#f9fafb;
+  border-radius:10px;
+  padding:8px 10px;
+  line-height:1.4;
+  margin-top:6px;
+}
+
+.acquisto-riga-meta b{
+  font-weight:600;
+}
