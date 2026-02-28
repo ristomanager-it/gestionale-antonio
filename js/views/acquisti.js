@@ -1238,15 +1238,22 @@ function renderRigheUI() {
 
     feedback.innerHTML = "OCR in elaborazione...";
 
-    const { data: ocrResult, error: ocrError } =
-      await window.supabaseClient.functions.invoke("ocr-fattura", {
-        body: { imageUrl: signedData.signedUrl }
-      });
+   const res = await fetch(
+  "https://ristoflo-ocr1-production.up.railway.app/ocr",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      imageUrl: signedData.signedUrl
+    })
+  }
+);
 
-    if (ocrError || !ocrResult?.success) {
-      feedback.innerHTML = `<span style="color:red;">OCR fallito</span>`;
-      return;
-    }
+const ocrResult = await res.json();
+
+if (!ocrResult.success) {
+  throw new Error("OCR fallito");
+}
 
     await applyOcrResult(ocrResult);
     feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
