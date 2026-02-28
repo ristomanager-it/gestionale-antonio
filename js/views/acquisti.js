@@ -319,7 +319,7 @@ async function renderFatture(container, azienda) {
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um, categoria_id")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
       .order("nome", { ascending: true })
@@ -334,7 +334,7 @@ async function renderFatture(container, azienda) {
         descrizione: label,
         codice_interno: p.codice_interno || "",
         um: p.um || "",
-        categoria_id: p.categoria_id ?? null
+        categoria_bilancio_id: p.categoria_bilancio_id ?? null
       };
     });
     prodottiCacheLastLoad = now;
@@ -349,11 +349,11 @@ async function renderFatture(container, azienda) {
   async function ensureProdottoCategoriaInCache(prodottoId) {
     if (!prodottoId) return null;
     const cached = prodottiCache.find(p => String(p.id) === String(prodottoId));
-    if (cached && cached.categoria_id !== undefined) return cached;
+    if (cached && cached.categoria_bilancio_id !== undefined) return cached;
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um, categoria_id")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id")
       .eq("azienda_id", azienda.id)
       .eq("id", prodottoId)
       .single();
@@ -366,14 +366,14 @@ async function renderFatture(container, azienda) {
       descrizione: label,
       codice_interno: data.codice_interno || "",
       um: data.um || "",
-      categoria_id: data.categoria_id ?? null
+      categoria_bilancio_id: data.categoria_bilancio_id ?? null
     };
 
     if (cached) {
       cached.descrizione = merged.descrizione;
       cached.codice_interno = merged.codice_interno;
       cached.um = merged.um;
-      cached.categoria_id = merged.categoria_id;
+      cached.categoria_bilancio_id = merged.categoria_bilancio_id;
       return cached;
     }
 
@@ -383,7 +383,7 @@ async function renderFatture(container, azienda) {
 
   async function getCategoriaBilancioIdForProdotto(prodottoId) {
     const p = await ensureProdottoCategoriaInCache(prodottoId);
-    return p?.categoria_id ?? null;
+    return p?.categoria_bilancio_id ?? null;
   }
 
   function findFornitoreByRagioneSociale(nome) {
@@ -1069,8 +1069,8 @@ btnSave.setAttribute("disabled", "disabled");
             nome,
             descrizione: nome,
 
-            // categoria_id = categoria bilancio (bigint)
-            categoria_id: categoriaBilancioId ? Number(categoriaBilancioId) : null,
+            // categoria_bilancio_id = categoria bilancio (bigint)
+            categoria_bilancio_id: categoriaBilancioId ? Number(categoriaBilancioId) : null,
 
             // categoria interna (uuid) — deve essere valorizzata per generare il codice interno
             categoria_interna_id: categoriaInternaId || null,
@@ -1085,16 +1085,13 @@ btnSave.setAttribute("disabled", "disabled");
             costo_medio: 0,
             costo_ultimo: 0,
 
-            iva_percentuale: 0,
-            iva_perc: 0,
-
             attivo: true
           };
 
           const { data: created, error } = await window.supabaseClient
             .from("prodotti")
             .insert(payload)
-            .select("id, nome, descrizione, codice_interno, um, categoria_id, categoria_interna_id, scorta_minima")
+            .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id, scorta_minima")
             .single();
 
           if (error || !created?.id) {
@@ -1105,7 +1102,9 @@ btnSave.setAttribute("disabled", "disabled");
               error?.message ? `Dettaglio: ${error.message}` : "",
               error?.details ? `Details: ${error.details}` : "",
               error?.hint ? `Hint: ${error.hint}` : ""
-           ].filter(Boolean).join("\n");
+            ].filter(Boolean).join("
+");
+
             setError(msg);
             return;
           }
@@ -1120,7 +1119,7 @@ btnSave.setAttribute("disabled", "disabled");
               descrizione: label,
               codice_interno: created.codice_interno || "",
               um: created.um || "",
-              categoria_id: created.categoria_id ?? null
+              categoria_bilancio_id: created.categoria_bilancio_id ?? null
             }
           });
         } finally {
@@ -1149,6 +1148,54 @@ btnSave.setAttribute("disabled", "disabled");
     if (umEl) umEl.textContent = righe[index].um ? `UM: ${righe[index].um}` : "";
   }
 
+
+function renderRigheUI() {
+  righeContainer.innerHTML = righe.map((r, i) => `
+    <div class="acquisto-riga-card ${computeStatusFromRiga(r)}" data-i="${i}">
+      <div class="acquisto-riga-stack">
+        <div class="acquisto-riga-top">
+          <div>
+            <label class="acquisto-riga-label">Descrizione (OCR)</label>
+            <input class="input riga-descrizione" data-i="${i}" value="${escapeHtml(r.descrizione || "")}" />
+          </div>
+
+          <div class="acquisto-riga-grid2">
+            <div>
+              <label class="acquisto-riga-label">Quantità</label>
+              <input type="number" step="0.001" class="input riga-quantita" data-i="${i}" value="${Number(r.quantita || 0)}" />
+            </div>
+            <div>
+              <label class="acquisto-riga-label">Prezzo unit.</label>
+              <input type="number" step="0.001" class="input riga-prezzo" data-i="${i}" value="${Number(r.prezzo_unitario || 0)}" />
+            </div>
+          </div>
+        </div>
+
+        <div style="position:relative;">
+          <label class="acquisto-riga-label">Prodotto interno</label>
+          <input
+            class="input riga-prodotto-nome"
+            data-i="${i}"
+            value="${escapeHtml(r.prodotto_nome || "")}"
+            autocomplete="off"
+          />
+          <input type="hidden" class="riga-prodotto-id" value="${escapeHtml(r.prodotto_id || "")}" />
+          <div class="riga-um small-muted" style="margin-top:4px;">${r.um ? `UM: ${escapeHtml(r.um)}` : ""}</div>
+          <div class="riga-hint small-muted acquisto-riga-hint"></div>
+          <div class="prod-suggest"></div>
+        </div>
+
+        <div class="acquisto-riga-actions">
+          <button class="app-button tiny gray btn-match-riga" data-i="${i}">Riprova match</button>
+          <button class="app-button tiny gray btn-crea-prodotto" data-i="${i}">Crea prodotto</button>
+          <button class="app-button tiny gray btn-rinomina-prodotto" data-i="${i}">Rinomina prodotto</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  righe.forEach((_, idx) => updateRowComputedUI(idx));
+}
   btnOcr?.addEventListener("click", async () => {
     const fileInput = document.getElementById("fattura-file");
     if (!fileInput.files.length) return;
@@ -1461,7 +1508,7 @@ btnSave.setAttribute("disabled", "disabled");
             descrizione: res.prodotto.descrizione || nome,
             codice_interno: res.prodotto.codice_interno || "",
             um: res.prodotto.um || "",
-            categoria_id: res.prodotto.categoria_id ?? null
+            categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null
           });
 
           await loadProdottiCache(true);
@@ -1524,7 +1571,7 @@ btnSave.setAttribute("disabled", "disabled");
 
         const p = prodottiCache.find(x => String(x.id) === String(prodottoId));
         if (p) p.descrizione = nuovoNome;
-        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "", categoria_id: null });
+        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "", categoria_bilancio_id: null });
 
         await loadProdottiCache(true);
 
