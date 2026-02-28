@@ -1265,87 +1265,148 @@ async function renderFatture(container, azienda) {
     renderRigheUI();
   }
 
-  btnAddRiga.addEventListener("click", async () => {
+  function renderRigheUI() {
+  righeContainer.innerHTML = righe.map((r, i) => `
+    <div class="acquisto-riga-card ${computeStatusFromRiga(r)}" data-i="${i}">
+      <div class="acquisto-riga-stack">
+
+        <div>
+          <label class="acquisto-riga-label">Descrizione</label>
+          <input class="input riga-descrizione" data-i="${i}" value="${escapeHtml(r.descrizione || "")}" />
+        </div>
+
+        <div class="acquisto-riga-grid2">
+          <div>
+            <label class="acquisto-riga-label">Quantità</label>
+            <input type="number" step="0.001" class="input riga-quantita" data-i="${i}" value="${r.quantita || 0}" />
+          </div>
+          <div>
+            <label class="acquisto-riga-label">Prezzo unit.</label>
+            <input type="number" step="0.001" class="input riga-prezzo" data-i="${i}" value="${r.prezzo_unitario || 0}" />
+          </div>
+        </div>
+
+        <div style="position:relative;">
+          <label class="acquisto-riga-label">Prodotto interno</label>
+          <input 
+            class="input riga-prodotto-nome" 
+            data-i="${i}" 
+            value="${escapeHtml(r.prodotto_nome || "")}" 
+            autocomplete="off"
+          />
+          <input type="hidden" class="riga-prodotto-id" value="${r.prodotto_id || ""}" />
+          <div class="riga-um small-muted" style="margin-top:4px;">
+            ${r.um ? `UM: ${escapeHtml(r.um)}` : ""}
+          </div>
+          <div class="riga-hint small-muted acquisto-riga-hint">
+            ${escapeHtml(computeHintFromRiga(r))}
+          </div>
+          <div class="prod-suggest"></div>
+        </div>
+
+        <div class="acquisto-riga-actions">
+          <button class="app-button tiny gray btn-match-riga" data-i="${i}">
+            Riprova match
+          </button>
+          <button class="app-button tiny gray btn-crea-prodotto" data-i="${i}">
+            Crea prodotto
+          </button>
+          <button class="app-button tiny gray btn-rinomina-prodotto" data-i="${i}">
+            Rinomina prodotto
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `).join("");
+
+  righe.forEach((_, idx) => updateRowComputedUI(idx));
+}
+
+
+btnAddRiga.addEventListener("click", async () => {
+  await loadProdottiCache(false);
+
+  const index = righe.length;
+
+  righe.push({
+    descrizione: "",
+    quantita: 0,
+    prezzo_unitario: 0,
+    prodotto_id: null,
+    prodotto_nome: "",
+    um: "",
+    match_reason: null,
+    match_score: null
+  });
+
+  renderRigheUI();
+  updateRowComputedUI(index);
+});
+
+
+righeContainer.addEventListener("input", async (e) => {
+  const i = e.target?.dataset?.i;
+  if (i === undefined) return;
+
+  const idx = Number(i);
+  if (!righe[idx]) return;
+
+  if (e.target.classList.contains("riga-descrizione")) {
+    righe[idx].descrizione = e.target.value;
+
+    const key = `desc_${idx}`;
+    if (debounceTimers.has(key)) clearTimeout(debounceTimers.get(key));
+    debounceTimers.set(key, setTimeout(async () => {
+      await updateRowComputedUI(idx);
+    }, 250));
+  }
+
+  if (e.target.classList.contains("riga-quantita")) {
+    righe[idx].quantita = Number(e.target.value || 0);
+    await updateRowComputedUI(idx);
+  }
+
+  if (e.target.classList.contains("riga-prezzo")) {
+    righe[idx].prezzo_unitario = Number(e.target.value || 0);
+    await updateRowComputedUI(idx);
+  }
+
+  if (e.target.classList.contains("riga-prodotto-nome")) {
     await loadProdottiCache(false);
 
-    const index = righe.length;
-    righe.push({
-      descrizione: "",
-      quantita: 0,
-      prezzo_unitario: 0,
-      prodotto_id: null,
-      prodotto_nome: "",
-      um: "",
-      match_reason: null,
-      match_score: null
-    });
+    const q = e.target.value || "";
+    righe[idx].prodotto_nome = q;
 
-    renderRigheUI();
-    updateRowComputedUI(index);
-  });
-
-  righeContainer.addEventListener("input", async (e) => {
-    const i = e.target?.dataset?.i;
-    if (i === undefined) return;
-    const idx = Number(i);
-
-    if (!righe[idx]) return;
-
-    if (e.target.classList.contains("riga-descrizione")) {
-      righe[idx].descrizione = e.target.value;
-
-      const key = `desc_${idx}`;
-      if (debounceTimers.has(key)) clearTimeout(debounceTimers.get(key));
-      debounceTimers.set(key, setTimeout(async () => {
-        await updateRowComputedUI(idx);
-      }, 250));
+    const byCod = findProdottoInCacheByCodice(q);
+    if (byCod?.id) {
+      await selectProdottoForRow(idx, byCod);
+      return;
     }
 
-    if (e.target.classList.contains("riga-quantita")) {
-      righe[idx].quantita = Number(e.target.value || 0);
-      await updateRowComputedUI(idx);
+    const foundExact = findProdottoInCacheByDescrizione(q);
+    if (foundExact?.id) {
+      await selectProdottoForRow(idx, foundExact);
+      return;
     }
 
-    if (e.target.classList.contains("riga-prezzo")) {
-      righe[idx].prezzo_unitario = Number(e.target.value || 0);
-      await updateRowComputedUI(idx);
+    const query = q.trim();
+    if (query.length >= 2) {
+      const items = filterProdottiForSuggest(query, 12);
+      closeAllSuggest();
+      openSuggestForIndex(idx, items);
+    } else {
+      closeAllSuggest();
     }
 
-    if (e.target.classList.contains("riga-prodotto-nome")) {
-      await loadProdottiCache(false);
+    righe[idx].prodotto_id = null;
+    righe[idx].match_reason = null;
+    righe[idx].match_score = null;
+    righe[idx].um = "";
 
-      const q = e.target.value || "";
-      righe[idx].prodotto_nome = q;
-
-      const byCod = findProdottoInCacheByCodice(q);
-      if (byCod?.id) {
-        await selectProdottoForRow(idx, byCod);
-        return;
-      }
-
-      const foundExact = findProdottoInCacheByDescrizione(q);
-      if (foundExact?.id) {
-        await selectProdottoForRow(idx, foundExact);
-        return;
-      }
-
-      const query = q.trim();
-      if (query.length >= 2) {
-        const items = filterProdottiForSuggest(query, 12);
-        closeAllSuggest();
-        openSuggestForIndex(idx, items);
-      } else {
-        closeAllSuggest();
-      }
-
-      righe[idx].prodotto_id = null;
-      righe[idx].match_reason = null;
-      righe[idx].match_score = null;
-      righe[idx].um = "";
-
-      await updateRowComputedUI(idx);
-    }
-  });
+    await updateRowComputedUI(idx);
+  }
+});
 
   righeContainer.addEventListener("click", async (e) => {
     const el = e.target;
