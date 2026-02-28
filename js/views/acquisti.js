@@ -106,7 +106,7 @@ async function renderFatture(container, azienda) {
 
         <datalist id="fornitori-suggestions">
           ${(fornitori || []).map(f =>
-            `<option value="${escapeHtml(f.ragione_sociale)}" data-id="${escapeHtml(f.id)}"></option>`
+            `<option value="${escapeHtml(f.ragione_sociale)}"></option>`
           ).join("")}
         </datalist>
 
@@ -195,7 +195,7 @@ async function renderFatture(container, azienda) {
     let s = String(value).trim();
     if (!s) return fallback;
 
-    s = s.replace(/[€\s]/g, "");
+    s = s.replace(/[\s]/g, "");
 
     const lastComma = s.lastIndexOf(",");
     const lastDot = s.lastIndexOf(".");
@@ -224,13 +224,13 @@ async function renderFatture(container, azienda) {
     let s = String(raw || "").trim();
     if (!s) return "";
 
-    s = s.replace(/^merce\s+non\s+deperibile\s*[-–—:]\s*/i, "");
-    s = s.replace(/^merce\s+deperibile\s*[-–—:]\s*/i, "");
-    s = s.replace(/^beni\s*[-–—:]\s*/i, "");
-    s = s.replace(/^servizi\s*[-–—:]\s*/i, "");
+    s = s.replace(/^merce\s+non\s+deperibile\s*[-:]\s*/i, "");
+    s = s.replace(/^merce\s+deperibile\s*[-:]\s*/i, "");
+    s = s.replace(/^beni\s*[-:]\s*/i, "");
+    s = s.replace(/^servizi\s*[-:]\s*/i, "");
 
-    if (/^(merce|beni|servizi)\b/i.test(s) && /[-–—]/.test(s)) {
-      s = s.replace(/^[^-–—]*[-–—]\s*/, "");
+    if (/^(merce|beni|servizi)\b/i.test(s) && /[-]/.test(s)) {
+      s = s.replace(/^[^-]*[-]\s*/, "");
     }
 
     return s.replace(/\s+/g, " ").trim();
@@ -259,7 +259,7 @@ async function renderFatture(container, azienda) {
 
   function normalizeKey(str) {
     return normalizeText(str)
-      .replace(/[’']/g, "")
+      .replace(/[']/g, "")
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -700,7 +700,7 @@ async function renderFatture(container, azienda) {
       .rf-select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.16);background:#fff;}
       .rf-input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.16);background:#fff;}
       @media (min-width: 640px){ .rf-modal-backdrop{align-items:center;} }
-      .acquisto-riga-card{padding:14px;}
+      .acquisto-riga-card{padding:18px;min-height:150px;}
       .acquisto-riga-stack{display:grid;gap:12px;}
       .acquisto-riga-top{display:grid;gap:10px;}
       .acquisto-riga-grid2{display:grid;gap:10px;grid-template-columns:1fr 1fr;}
@@ -711,6 +711,14 @@ async function renderFatture(container, azienda) {
       .acquisto-riga-card.missing{border:1px solid rgba(239,68,68,.35);}
       .acquisto-riga-card.partial{border:1px solid rgba(245,158,11,.35);}
       .acquisto-riga-card.ok{border:1px solid rgba(34,197,94,.35);}
+      .tabs-wrapper{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+      .tab-btn{border-radius:10px;}
+      .prod-suggest{position:relative;}
+      .prod-suggest.open{display:block;}
+      .prod-suggest{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.08);z-index:20;max-height:220px;overflow:auto;}
+      .suggest-item{padding:10px 12px;cursor:pointer;font-size:13px;}
+      .suggest-item:hover{background:rgba(0,0,0,.04);}
+
     `;
     document.head.appendChild(style);
   }
@@ -750,6 +758,12 @@ async function renderFatture(container, azienda) {
             <datalist id="rf-cat-interna-list"></datalist>
           </div>
 
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Scorta minima (riordino)</label>
+            <input class="rf-input" id="rf-scorta-minima" type="number" step="0.001" placeholder="Es. 2" />
+            <div class="small-muted" style="color:#6b7280;font-size:12px;">Valore usato per alert sottoscorta e riordino.</div>
+          </div>
+
           <div class="rf-modal-error" id="rf-modal-error"></div>
         </div>
         <div class="rf-modal-actions">
@@ -765,6 +779,7 @@ async function renderFatture(container, azienda) {
     const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
     const btnSave = modalRoot.querySelector(".rf-modal-save");
     const inputNome = modalRoot.querySelector("#rf-prod-nome");
+    const inputScortaMinima = modalRoot.querySelector("#rf-scorta-minima");
 
     const inputBilancioText = modalRoot.querySelector("#rf-cat-bilancio-text");
     const hiddenBilancioId = modalRoot.querySelector("#rf-cat-bilancio-id");
@@ -789,11 +804,21 @@ async function renderFatture(container, azienda) {
 
     const interneLabels = (catsInterne || []).map(c => ({
       id: String(c.id),
+      nome: String(c.nome || ""),
+      sigla: String(c.sigla || ""),
       label: `${c.nome}${c.sigla ? ` · ${c.sigla}` : ""}`.trim()
     }));
 
     const internaByLabel = new Map(
       interneLabels.map(x => [x.label.toLowerCase(), x.id])
+    );
+
+    const internaByNome = new Map(
+      interneLabels.map(x => [String(x.nome || "").trim().toLowerCase(), x.id])
+    );
+
+    const interneSigleSet = new Set(
+      interneLabels.map(x => String(x.sigla || "").trim().toUpperCase()).filter(Boolean)
     );
 
     dlBilancio.innerHTML = (catsBilancio || [])
@@ -837,10 +862,47 @@ async function renderFatture(container, azienda) {
         return;
       }
 
+      if (internaByNome.has(raw)) {
+        hiddenInternaId.value = internaByNome.get(raw);
+        return;
+      }
+
       const found = [...internaByLabel.entries()]
         .find(([label]) => label.includes(raw));
 
       hiddenInternaId.value = found ? found[1] : "";
+    }
+
+    function makeBaseSigla(nome) {
+      const raw = String(nome || "").trim().toUpperCase();
+      if (!raw) return "CAT";
+      const words = raw
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .split(/\s+/)
+        .filter(Boolean);
+
+      let base = "";
+      if (words.length >= 2) {
+        base = (words[0][0] || "") + (words[1][0] || "");
+        if (words[2]?.[0]) base += words[2][0];
+      } else if (words.length === 1) {
+        base = words[0].slice(0, 4);
+      }
+      base = base.replace(/[^A-Z0-9]/g, "");
+      if (base.length < 2) base = (words[0] || "CAT").slice(0, 3).replace(/[^A-Z0-9]/g, "");
+      if (!base) base = "CAT";
+      return base.slice(0, 6);
+    }
+
+    function nextAvailableSigla(nome) {
+      const base = makeBaseSigla(nome);
+      if (!interneSigleSet.has(base)) return base;
+
+      for (let i = 2; i <= 50; i++) {
+        const candidate = (base + String(i)).slice(0, 10);
+        if (!interneSigleSet.has(candidate)) return candidate;
+      }
+      return (base + "_" + String(Date.now()).slice(-4)).slice(0, 10);
     }
 
     inputBilancioText?.addEventListener("input", syncBilancioId);
@@ -870,161 +932,181 @@ async function renderFatture(container, azienda) {
         let categoriaBilancioId = (hiddenBilancioId?.value || "").trim();
 
         const internaText = String(inputInternaText?.value || "").trim();
-        const categoriaInternaId = (hiddenInternaId?.value || "").trim();
+        let categoriaInternaId = (hiddenInternaId?.value || "").trim();
+
+        const scortaMinima = parseLocaleNumber(inputScortaMinima?.value, 0);
 
         if (!nome) return setError("Inserisci il nome prodotto.");
 
+        // Categoria bilancio (obbligatoria)
         if (!categoriaBilancioId) {
           if (!bilancioText) return setError("Inserisci una categoria bilancio.");
 
-          const { data: existingCats, error: errExisting } = await window.supabaseClient
-            .from("categorie_bilancio")
-            .select("id, nome")
-            .ilike("nome", bilancioText)
-            .limit(1);
-
-          if (!errExisting && existingCats && existingCats.length) {
-            categoriaBilancioId = String(existingCats[0].id);
+          const bilancioExactKey = bilancioText.trim().toLowerCase();
+          if (bilancioByLabel.has(bilancioExactKey)) {
+            categoriaBilancioId = String(bilancioByLabel.get(bilancioExactKey));
           } else {
-            const { data: createdCat, error: errCreate } = await window.supabaseClient
+            const { data: existingCats, error: errExisting } = await window.supabaseClient
               .from("categorie_bilancio")
-              .insert({ nome: bilancioText, attivo: true })
               .select("id, nome")
-              .single();
+              .ilike("nome", bilancioText)
+              .limit(1);
 
-            if (errCreate || !createdCat?.id) {
-              return setError("Impossibile creare la categoria bilancio. Verifica permessi/RLS o il nome.");
+            if (!errExisting && existingCats && existingCats.length) {
+              categoriaBilancioId = String(existingCats[0].id);
+            } else {
+              const { data: createdCat, error: errCreate } = await window.supabaseClient
+                .from("categorie_bilancio")
+                .insert({ nome: bilancioText, attivo: true })
+                .select("id, nome")
+                .single();
+
+              if (errCreate || !createdCat?.id) {
+                return setError("Impossibile creare la categoria bilancio. Verifica permessi/RLS o il nome.");
+              }
+
+              categoriaBilancioId = String(createdCat.id);
+
+              const key = String(createdCat.nome || bilancioText).trim().toLowerCase();
+              bilancioByLabel.set(key, categoriaBilancioId);
+              if (dlBilancio) dlBilancio.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(createdCat.nome || bilancioText)}"></option>`);
             }
-
-            categoriaBilancioId = String(createdCat.id);
-
-            const key = String(createdCat.nome || bilancioText).trim().toLowerCase();
-            bilancioByLabel.set(key, categoriaBilancioId);
-            if (dlBilancio) dlBilancio.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(createdCat.nome || bilancioText)}"></option>`);
           }
 
           if (hiddenBilancioId) hiddenBilancioId.value = categoriaBilancioId;
         }
 
+        // Categoria interna (obbligatoria)
         if (!categoriaInternaId) {
+          if (!internaText) return setError("Inserisci una categoria interna.");
 
-  if (!internaText) {
-    return setError("Inserisci una categoria interna.");
+          const internaKey = internaText.trim().toLowerCase();
+          if (internaByNome.has(internaKey)) {
+            categoriaInternaId = String(internaByNome.get(internaKey));
+          } else {
+            const { data: existingInt, error: errExistingInt } = await window.supabaseClient
+              .from("categorie_interne_prodotti")
+              .select("id, nome, sigla")
+              .eq("azienda_id", azienda.id)
+              .ilike("nome", internaText)
+              .limit(1);
+
+            if (errExistingInt) {
+              console.error(errExistingInt);
+              return setError("Errore verifica categoria interna.");
+            }
+
+            if (existingInt && existingInt.length > 0) {
+              categoriaInternaId = String(existingInt[0].id);
+            } else {
+              const sigla = nextAvailableSigla(internaText);
+
+              const { data: createdInt, error: errCreateInt } = await window.supabaseClient
+                .from("categorie_interne_prodotti")
+                .insert({
+                  azienda_id: azienda.id,
+                  nome: internaText,
+                  sigla,
+                  attiva: true
+                })
+                .select("id, nome, sigla")
+                .single();
+
+              if (errCreateInt || !createdInt?.id) {
+                console.error(errCreateInt);
+                return setError("Impossibile creare la categoria interna. Verifica permessi o duplicati.");
+              }
+
+              categoriaInternaId = String(createdInt.id);
+
+              interneSigleSet.add(String(createdInt.sigla || sigla).trim().toUpperCase());
+              internaByNome.set(internaKey, categoriaInternaId);
+              internaByLabel.set(`${String(createdInt.nome)} · ${String(createdInt.sigla || sigla)}`.trim().toLowerCase(), categoriaInternaId);
+
+              if (dlInterna) {
+                dlInterna.insertAdjacentHTML(
+                  "beforeend",
+                  `<option value="${escapeHtml(`${createdInt.nome}${(createdInt.sigla || sigla) ? ` · ${createdInt.sigla || sigla}` : ""}`.trim())}"></option>`
+                );
+              }
+            }
+          }
+
+          if (hiddenInternaId) hiddenInternaId.value = categoriaInternaId;
+        }
+
+        // Duplicati
+        const near = findNearDuplicate(nome);
+        if (near?.prodotto?.id) {
+          const suggestLabel = near.prodotto.codice_interno
+            ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
+            : `${near.prodotto.descrizione}`;
+          const useExisting = window.confirm(
+            `Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`
+          );
+          if (useExisting) {
+            close();
+            resolve({ action: "use_existing", prodotto: near.prodotto });
+            return;
+          }
+        }
+
+        btnSave.setAttribute("disabled", "disabled");
+        btnSave.textContent = "Creo...";
+
+        try {
+          const payload = {
+            azienda_id: azienda.id,
+            nome,
+            descrizione: nome,
+            attivo: true,
+            categoria_id: Number(categoriaBilancioId),
+            categoria_interna_id: categoriaInternaId,
+            scorta_minima: scortaMinima,
+            tipo_prodotto: "materia_prima",
+            um: "pz",
+            unita_misura: "pz",
+            costo_medio: 0,
+            costo_ultimo: 0,
+            iva_percentuale: 0,
+            iva_perc: 0
+          };
+
+          const { data: created, error } = await window.supabaseClient
+            .from("prodotti")
+            .insert(payload)
+            .select("id, nome, descrizione, codice_interno, um, categoria_id, categoria_interna_id, scorta_minima")
+            .single();
+
+          if (error || !created?.id) {
+            console.error(error);
+            setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
+            return;
+          }
+
+          const label = (created.descrizione || created.nome || nome).trim();
+
+          close();
+          resolve({
+            action: "created",
+            prodotto: {
+              id: created.id,
+              descrizione: label,
+              codice_interno: created.codice_interno || "",
+              um: created.um || "",
+              categoria_id: created.categoria_id ?? null
+            }
+          });
+        } finally {
+          btnSave.removeAttribute("disabled");
+          btnSave.textContent = "Crea prodotto";
+        }
+      });
+    });
+
+    return result;
   }
 
-  // 1️⃣ Verifica se esiste già (case-insensitive) per questa azienda
-  const { data: existingInt, error: errExistingInt } = await window.supabaseClient
-    .from("categorie_interne_prodotti")
-    .select("id, nome")
-    .eq("azienda_id", azienda.id)
-    .ilike("nome", internaText)
-    .limit(1);
-
-  if (errExistingInt) {
-    console.error(errExistingInt);
-    return setError("Errore verifica categoria interna.");
-  }
-
-  if (existingInt && existingInt.length > 0) {
-    categoriaInternaId = String(existingInt[0].id);
-  } else {
-    // 2️⃣ Crea nuova categoria interna (primo inserimento)
-    const { data: createdInt, error: errCreateInt } = await window.supabaseClient
-      .from("categorie_interne_prodotti")
-      .insert({
-        azienda_id: azienda.id,
-        nome: internaText,
-        sigla: null,
-        attiva: true
-      })
-      .select("id, nome, sigla")
-      .single();
-
-    if (errCreateInt || !createdInt?.id) {
-      console.error(errCreateInt);
-      return setError("Impossibile creare la categoria interna. Verifica permessi o duplicati.");
-    }
-
-    categoriaInternaId = String(createdInt.id);
-
-    // Aggiorna mappa locale per riutilizzo immediato nel modal
-    internaByKey.set(internaText.toLowerCase(), categoriaInternaId);
-
-    if (dlInterna) {
-      dlInterna.insertAdjacentHTML(
-        "beforeend",
-        `<option value="${escapeHtml(internaText)}"></option>`
-      );
-    }
-  }
-
-  hiddenInternaId.value = categoriaInternaId;
-}
-
-const near = findNearDuplicate(nome);
-if (near?.prodotto?.id) {
-  const suggestLabel = near.prodotto.codice_interno
-    ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
-    : `${near.prodotto.descrizione}`;
-  const useExisting = window.confirm(
-    `Possibile duplicato: intendevi "${suggestLabel}"?\n\nOK = usa esistente\nAnnulla = crea comunque`
-  );
-  if (useExisting) {
-    close();
-    resolve({ action: "use_existing", prodotto: near.prodotto });
-    return;
-  }
-}
-
-btnSave.setAttribute("disabled", "disabled");
-btnSave.textContent = "Creo...";
-
-try {
-  const payload = {
-    azienda_id: azienda.id,
-    nome,
-    descrizione: nome,
-    attivo: true,
-    categoria_id: Number(categoriaBilancioId),
-    categoria_interna_id: categoriaInternaId, // UUID string, corretto
-    tipo_prodotto: "materia_prima",
-    um: "pz",
-    unita_misura: "pz",
-    costo_medio: 0,
-    costo_ultimo: 0,
-    iva_percentuale: 0,
-    iva_perc: 0
-  };
-
-  const { data: created, error } = await window.supabaseClient
-    .from("prodotti")
-    .insert(payload)
-    .select("id, nome, descrizione, codice_interno, um, categoria_id")
-    .single();
-
-  if (error || !created?.id) {
-    console.error(error);
-    setError("Errore creazione prodotto (verifica campi obbligatori e trigger codice).");
-    return;
-  }
-
-  const label = (created.descrizione || created.nome || nome).trim();
-
-  close();
-  resolve({
-    action: "created",
-    prodotto: {
-      id: created.id,
-      descrizione: label,
-      codice_interno: created.codice_interno || "",
-      um: created.um || "",
-      categoria_id: created.categoria_id ?? null
-    }
-  });
-} finally {
-  btnSave.removeAttribute("disabled");
-  btnSave.textContent = "Crea prodotto";
-}
 
   async function updateRowComputedUI(index) {
     const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
