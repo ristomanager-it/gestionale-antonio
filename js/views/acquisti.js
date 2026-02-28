@@ -1056,21 +1056,21 @@ async function renderFatture(container, azienda) {
 
         try {
           const payload = {
-            azienda_id: azienda.id,
-            nome,
-            descrizione: nome,
-            attivo: true,
-            categoria_id: Number(categoriaBilancioId),
-            categoria_interna_id: categoriaInternaId,
-            scorta_minima: scortaMinima,
-            tipo_prodotto: "materia_prima",
-            um: "pz",
-            unita_misura: "pz",
-            costo_medio: 0,
-            costo_ultimo: 0,
-            iva_percentuale: 0,
-            iva_perc: 0
-          };
+  azienda_id: azienda.id,
+  codice_interno: codiceInterno,
+  nome,
+  descrizione: nome,
+  categoria_id: categoriaBilancioId ? Number(categoriaBilancioId) : null,
+  categoria_interna_id: categoriaInternaId || null,
+  scorta_minima: scortaMinima,
+  tipo_prodotto: "materia_prima",
+  um: "pz",
+  unita_misura: "pz",
+  costo_medio: 0,
+  costo_ultimo: 0,
+  iva_percentuale: 0,
+  attivo: true
+};
 
           const { data: created, error } = await window.supabaseClient
             .from("prodotti")
