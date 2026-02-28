@@ -1662,13 +1662,18 @@ function renderRigheUI() {
         }
 
         righeDaInserire.push({
-          azienda_id: azienda.id,
-          prodotto_id: toBigintNumber(r.prodotto_id),
-          descrizione: r.descrizione,
-          quantita: r.quantita,
-          prezzo_unitario: r.prezzo_unitario || 0,
-          categoria_bilancio_id: Number(catId)
-        });
+  azienda_id: azienda.id,
+  fattura_id: fattura.id,
+  riga_numero: index + 1,
+  prodotto_id: toBigintNumber(r.prodotto_id),
+  descrizione: r.descrizione,
+  quantita: r.quantita,
+  unita_misura: r.unita_misura || "pz",
+  prezzo_unitario: r.prezzo_unitario || 0,
+  totale_riga: r.quantita * r.prezzo_unitario,
+  iva_percent: r.iva_percent ?? null,
+  categoria_bilancio_id: Number(catId)
+});
       }
 
       const { data: fattura, error: errInsFattura } = await window.supabaseClient
