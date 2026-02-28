@@ -1105,9 +1105,7 @@ btnSave.setAttribute("disabled", "disabled");
               error?.message ? `Dettaglio: ${error.message}` : "",
               error?.details ? `Details: ${error.details}` : "",
               error?.hint ? `Hint: ${error.hint}` : ""
-            ].filter(Boolean).join("
-");
-
+           ].filter(Boolean).join("\n");
             setError(msg);
             return;
           }
