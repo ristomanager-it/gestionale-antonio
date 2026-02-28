@@ -1057,18 +1057,31 @@ async function renderFatture(container, azienda) {
         try {
           const payload = {
   azienda_id: azienda.id,
-  codice_interno: codiceInterno,
+
+  // 🔥 LASCIARLO NULL → deve generarlo il trigger
+  codice_interno: null,
+
   nome,
   descrizione: nome,
+
+  // categoria bilancio
   categoria_id: categoriaBilancioId ? Number(categoriaBilancioId) : null,
+
+  // categoria interna (IMPORTANTE per il trigger)
   categoria_interna_id: categoriaInternaId || null,
-  scorta_minima: scortaMinima,
+
+  scorta_minima: scortaMinima || 0,
+
   tipo_prodotto: "materia_prima",
+
   um: "pz",
   unita_misura: "pz",
+
   costo_medio: 0,
   costo_ultimo: 0,
+
   iva_percentuale: 0,
+
   attivo: true
 };
 
