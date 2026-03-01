@@ -2018,27 +2018,56 @@ async function applyOcrResult(result) {
         }
       }
 
-      // --- Normalizzazione righe: consideriamo SOLO righe con quantita > 0 ---
+      // --- Normalizzazione righe: consideriamo SOLO righe realmente valide (qta > 0 + descrizione) ---
       const righeAttive = [];
       const mapIndexOriginale = []; // idx originale di "righe" per evidenziare correttamente
 
+      // reset highlight precedente
+      righeContainer.querySelectorAll(".acquisto-riga-card.missing").forEach(el => el.classList.remove("missing"));
+
       for (let i = 0; i < righe.length; i++) {
         const r = righe[i] || {};
+        const descr = String(r.descrizione || "").trim();
         const qta = Number(r.quantita || 0);
+
         if (!(qta > 0)) continue;
+        if (!descr) continue;
+
+        // Risolvi prodotto_id anche se l'utente ha solo scritto il nome/codice senza selezionare la suggestion
+        let prodottoId = r.prodotto_id || null;
+
+        if (!prodottoId) {
+          const nomeInserito = String(r.prodotto_nome || "").trim();
+          if (nomeInserito) {
+            const byCod = findProdottoInCacheByCodice(nomeInserito);
+            const byDesc = findProdottoInCacheByDescrizione(nomeInserito);
+            const found = byCod || byDesc;
+
+            if (found?.id) {
+              prodottoId = found.id;
+
+              // sync nello state per coerenza UI ↔ state
+              r.prodotto_id = found.id;
+              r.prodotto_nome = found.descrizione || nomeInserito;
+              r.um = found.um || r.um || "";
+              r.match_reason = r.match_reason || "match_cache";
+              r.match_score = r.match_score ?? 0.80;
+            }
+          }
+        }
 
         righeAttive.push({
-          descrizione: (r.descrizione || "").trim(),
-          prodotto_id: r.prodotto_id || null,
+          descrizione: descr,
+          prodotto_id: prodottoId,
           quantita: qta,
           prezzo_unitario: Number(r.prezzo_unitario || 0)
         });
         mapIndexOriginale.push(i);
       }
 
-      if (righeAttive.length === 0) throw new Error("Inserisci almeno una riga con quantità > 0");
+      if (righeAttive.length === 0) throw new Error("Inserisci almeno una riga valida (descrizione + quantità > 0)");
 
-      // --- Evidenzia righe senza prodotto (validazione assistita) ---
+      // --- Evidenzia righe senza prodotto (validazione assistita) --- (validazione assistita) ---
       let firstMissingIdx = null;
       for (let j = 0; j < righeAttive.length; j++) {
         if (!righeAttive[j].prodotto_id) {
