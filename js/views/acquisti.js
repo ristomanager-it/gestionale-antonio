@@ -79,15 +79,14 @@ async function renderFatture(container, azienda) {
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
       <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
       <button class="app-button tiny mode-btn" data-mode="ocr">Carica Foto (OCR)</button>
-      <button class="app-button tiny mode-btn" data-mode="import_api">Import API</button>
-    </div>
+</div>
 
     <div id="ocr-upload-section" style="display:none; margin-bottom:16px;">
-      <label>Carica immagine fattura</label>
-      <input type="file" id="fattura-file" accept="image/*,.pdf" class="input"/>
-      <button id="btn-esegui-ocr" class="app-button small gray" style="margin-top:8px;">
-       Carica foto
+      <input type="file" id="fattura-file" accept="image/*,.pdf" class="input" multiple style="display:none;"/>
+      <button id="btn-esegui-ocr" class="app-button small gray" type="button">
+        Carica e analizza fattura
       </button>
+      <div class="small-muted" style="margin-top:6px; color:#6b7280;">Puoi selezionare più immagini (fattura multi-pagina).</div>
     </div>
 
     <div class="form-grid">
@@ -154,7 +153,14 @@ async function renderFatture(container, azienda) {
 
   let mode = "manuale";
   let allegatoPath = null;
-  let righe = [];
+
+  // Stato condiviso (coerenza UI ↔ state)
+  window.state.fatturaCorrente = window.state.fatturaCorrente || {};
+  window.state.fatturaCorrente.immagini = window.state.fatturaCorrente.immagini || [];
+  window.state.fatturaCorrente.righe = window.state.fatturaCorrente.righe || [];
+
+  let righe = window.state.fatturaCorrente.righe;
+
 
   const modeButtons = document.querySelectorAll(".mode-btn");
   const ocrSection = document.getElementById("ocr-upload-section");
@@ -164,6 +170,18 @@ async function renderFatture(container, azienda) {
   const feedback = document.getElementById("fattura-feedback");
   const btnOcr = document.getElementById("btn-esegui-ocr");
   const datalistProdotti = document.getElementById("prodotti-suggestions");
+
+  const btnIndietro = document.getElementById("btn-indietro-admin");
+  const btnGuida = document.getElementById("btn-guida");
+
+  btnIndietro?.addEventListener("click", () => {
+    window.location.hash = "#/amministrazione";
+  });
+
+  btnGuida?.addEventListener("click", () => {
+    openGuidaModal();
+  });
+
 
   const inputFornitore = document.getElementById("fattura-fornitore-text");
   const hiddenFornitoreId = document.getElementById("fattura-fornitore-id");
@@ -195,7 +213,7 @@ async function renderFatture(container, azienda) {
     let s = String(value).trim();
     if (!s) return fallback;
 
-    s = s.replace(/[\s]/g, "");
+    s = s.replace(/[?\s]/g, "");
 
     const lastComma = s.lastIndexOf(",");
     const lastDot = s.lastIndexOf(".");
@@ -224,13 +242,13 @@ async function renderFatture(container, azienda) {
     let s = String(raw || "").trim();
     if (!s) return "";
 
-    s = s.replace(/^merce\s+non\s+deperibile\s*[-:]\s*/i, "");
-    s = s.replace(/^merce\s+deperibile\s*[-:]\s*/i, "");
-    s = s.replace(/^beni\s*[-:]\s*/i, "");
-    s = s.replace(/^servizi\s*[-:]\s*/i, "");
+    s = s.replace(/^merce\s+non\s+deperibile\s*[-??:]\s*/i, "");
+    s = s.replace(/^merce\s+deperibile\s*[-??:]\s*/i, "");
+    s = s.replace(/^beni\s*[-??:]\s*/i, "");
+    s = s.replace(/^servizi\s*[-??:]\s*/i, "");
 
-    if (/^(merce|beni|servizi)\b/i.test(s) && /[-]/.test(s)) {
-      s = s.replace(/^[^-]*[-]\s*/, "");
+    if (/^(merce|beni|servizi)\b/i.test(s) && /[-??]/.test(s)) {
+      s = s.replace(/^[^-??]*[-??]\s*/, "");
     }
 
     return s.replace(/\s+/g, " ").trim();
@@ -259,7 +277,7 @@ async function renderFatture(container, azienda) {
 
   function normalizeKey(str) {
     return normalizeText(str)
-      .replace(/[']/g, "")
+      .replace(/[?']/g, "")
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -723,7 +741,57 @@ async function renderFatture(container, azienda) {
     document.head.appendChild(style);
   }
 
-  async function openCreateProductModal({ prefillName }) {
+  
+  function openGuidaModal() {
+    ensureModalStyles();
+
+    const modalRoot = document.createElement("div");
+    modalRoot.className = "rf-modal-backdrop";
+    modalRoot.innerHTML = `
+      <div class="rf-modal" role="dialog" aria-modal="true">
+        <div class="rf-modal-header">
+          <div>
+            <h3 class="rf-modal-title">Guida operativa – Fatture</h3>
+            <p class="rf-modal-sub">Procedura rapida per caricare, controllare e processare una fattura.</p>
+          </div>
+          <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
+        </div>
+        <div class="rf-modal-body" style="gap:10px;">
+          <div style="font-size:13px;line-height:1.45;">
+            <ol style="margin:0;padding-left:18px;display:grid;gap:8px;">
+              <li><b>Seleziona modalità</b>: Manuale oppure <b>Carica e analizza fattura</b> (OCR).</li>
+              <li><b>Caricamento OCR</b>: puoi selezionare <b>più immagini</b> se la fattura è multi-pagina.</li>
+              <li><b>Controlla le righe</b>: quantità, prezzo e descrizione.</li>
+              <li><b>Assegna prodotto interno</b>: usa autocomplete o <b>Crea prodotto</b>.</li>
+              <li><b>Righe incomplete</b>: se mancano prodotti, la riga viene evidenziata in rosso.</li>
+              <li><b>Salva e processa</b>: crea fattura, salva righe e lancia la processazione.</li>
+            </ol>
+            <div style="margin-top:10px;color:#6b7280;">
+              Suggerimento: se un prodotto ha dati errati, usa <b>Modifica prodotto</b> direttamente dalla riga.
+            </div>
+          </div>
+        </div>
+        <div class="rf-modal-actions">
+          <button class="app-button small gray rf-modal-cancel" type="button">Chiudi</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalRoot);
+
+    function close() {
+      destroyModal(modalRoot);
+    }
+
+    modalRoot.addEventListener("click", (e) => {
+      if (e.target === modalRoot) close();
+    });
+
+    modalRoot.querySelector(".rf-modal-close")?.addEventListener("click", close);
+    modalRoot.querySelector(".rf-modal-cancel")?.addEventListener("click", close);
+  }
+
+async function openCreateProductModal({ prefillName }) {
     ensureModalStyles();
 
     const modalRoot = document.createElement("div");
@@ -1072,7 +1140,7 @@ btnSave.setAttribute("disabled", "disabled");
             // categoria_bilancio_id = categoria bilancio (bigint)
             categoria_bilancio_id: categoriaBilancioId ? Number(categoriaBilancioId) : null,
 
-            // categoria interna (uuid) — deve essere valorizzata per generare il codice interno
+            // categoria interna (uuid)  deve essere valorizzata per generare il codice interno
             categoria_interna_id: categoriaInternaId || null,
 
             scorta_minima: (Number.isFinite(scortaMinima) ? scortaMinima : 0),
@@ -1102,7 +1170,7 @@ btnSave.setAttribute("disabled", "disabled");
               error?.message ? `Dettaglio: ${error.message}` : "",
               error?.details ? `Details: ${error.details}` : "",
               error?.hint ? `Hint: ${error.hint}` : ""
-            ].filter(Boolean).join("\n");
+           ].filter(Boolean).join("\n");
 
             setError(msg);
             return;
@@ -1132,6 +1200,235 @@ btnSave.setAttribute("disabled", "disabled");
   }
 
 
+
+  async function openEditProductModal({ prodottoId }) {
+    ensureModalStyles();
+
+    const { data: prod, error: errProd } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id")
+      .eq("azienda_id", azienda.id)
+      .eq("id", prodottoId)
+      .single();
+
+    if (errProd || !prod) {
+      feedback.innerHTML = `<span style="color:red;">Errore caricamento prodotto</span>`;
+      return null;
+    }
+
+    const modalRoot = document.createElement("div");
+    modalRoot.className = "rf-modal-backdrop";
+    modalRoot.innerHTML = `
+      <div class="rf-modal" role="dialog" aria-modal="true">
+        <div class="rf-modal-header">
+          <div>
+            <h3 class="rf-modal-title">Modifica prodotto</h3>
+            <p class="rf-modal-sub">Aggiorna nome, codice interno e categorie.</p>
+          </div>
+          <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
+        </div>
+        <div class="rf-modal-body">
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Nome</label>
+            <input class="rf-input" id="rf-edit-nome" />
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Codice interno</label>
+            <input class="rf-input" id="rf-edit-codice" placeholder="(opzionale se gestito da trigger)" />
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Unità di misura (UM)</label>
+            <input class="rf-input" id="rf-edit-um" placeholder="pz, kg, lt..." />
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Categoria bilancio</label>
+            <input class="rf-input" id="rf-edit-cat-bilancio-text" list="rf-edit-cat-bilancio-list" placeholder="Cerca categoria bilancio..." autocomplete="off" />
+            <input type="hidden" id="rf-edit-cat-bilancio-id" value="" />
+            <datalist id="rf-edit-cat-bilancio-list"></datalist>
+          </div>
+
+          <div class="rf-modal-row">
+            <label class="acquisto-riga-label">Categoria interna</label>
+            <input class="rf-input" id="rf-edit-cat-interna-text" list="rf-edit-cat-interna-list" placeholder="Cerca categoria interna..." autocomplete="off" />
+            <input type="hidden" id="rf-edit-cat-interna-id" value="" />
+            <datalist id="rf-edit-cat-interna-list"></datalist>
+          </div>
+
+          <div class="rf-modal-error" id="rf-edit-error"></div>
+        </div>
+        <div class="rf-modal-actions">
+          <button class="app-button small gray rf-edit-cancel" type="button">Annulla</button>
+          <button class="app-button small green rf-edit-save" type="button">Salva</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalRoot);
+
+    const inputNome = modalRoot.querySelector("#rf-edit-nome");
+    const inputCod = modalRoot.querySelector("#rf-edit-codice");
+    const inputUm = modalRoot.querySelector("#rf-edit-um");
+
+    const inputBilText = modalRoot.querySelector("#rf-edit-cat-bilancio-text");
+    const hiddenBilId = modalRoot.querySelector("#rf-edit-cat-bilancio-id");
+    const dlBil = modalRoot.querySelector("#rf-edit-cat-bilancio-list");
+
+    const inputIntText = modalRoot.querySelector("#rf-edit-cat-interna-text");
+    const hiddenIntId = modalRoot.querySelector("#rf-edit-cat-interna-id");
+    const dlInt = modalRoot.querySelector("#rf-edit-cat-interna-list");
+
+    const errEl = modalRoot.querySelector("#rf-edit-error");
+
+    inputNome.value = (prod.descrizione || prod.nome || "").trim();
+    inputCod.value = (prod.codice_interno || "").trim();
+    inputUm.value = (prod.um || "").trim();
+
+    const [catsBilancio, catsInterne] = await Promise.all([
+      loadCategorieBilancio(),
+      loadCategorieInterne()
+    ]);
+
+    const bilancioByLabel = new Map(
+      (catsBilancio || []).map(c => [String(c.nome || "").trim().toLowerCase(), String(c.id)])
+    );
+
+    const interneLabels = (catsInterne || []).map(c => ({
+      id: String(c.id),
+      nome: String(c.nome || ""),
+      sigla: String(c.sigla || ""),
+      label: `${c.nome}${c.sigla ? ` · ${c.sigla}` : ""}`.trim()
+    }));
+
+    const internaByLabel = new Map(
+      interneLabels.map(x => [x.label.toLowerCase(), x.id])
+    );
+
+    const internaByNome = new Map(
+      interneLabels.map(x => [String(x.nome || "").trim().toLowerCase(), x.id])
+    );
+
+    dlBil.innerHTML = (catsBilancio || [])
+      .map(c => `<option value="${escapeHtml(c.nome)}"></option>`)
+      .join("");
+
+    dlInt.innerHTML = interneLabels
+      .map(x => `<option value="${escapeHtml(x.label)}"></option>`)
+      .join("");
+
+    // Pre-fill categorie if presenti
+    const preBil = catsBilancio?.find(c => String(c.id) === String(prod.categoria_bilancio_id));
+    if (preBil?.nome) {
+      inputBilText.value = preBil.nome;
+      hiddenBilId.value = String(preBil.id);
+    }
+
+    const preInt = interneLabels?.find(x => String(x.id) === String(prod.categoria_interna_id));
+    if (preInt?.label) {
+      inputIntText.value = preInt.label;
+      hiddenIntId.value = String(preInt.id);
+    }
+
+    function setError(msg) {
+      if (errEl) errEl.textContent = msg || "";
+    }
+
+    function close(res) {
+      destroyModal(modalRoot);
+      return res || null;
+    }
+
+    function syncBil() {
+      const raw = String(inputBilText?.value || "").trim().toLowerCase();
+      if (bilancioByLabel.has(raw)) {
+        hiddenBilId.value = bilancioByLabel.get(raw);
+        return;
+      }
+      const found = [...bilancioByLabel.entries()].find(([label]) => label.includes(raw));
+      hiddenBilId.value = found ? found[1] : "";
+    }
+
+    function syncInt() {
+      const raw = String(inputIntText?.value || "").trim().toLowerCase();
+      if (internaByLabel.has(raw)) {
+        hiddenIntId.value = internaByLabel.get(raw);
+        return;
+      }
+      if (internaByNome.has(raw)) {
+        hiddenIntId.value = internaByNome.get(raw);
+        return;
+      }
+      const found = [...internaByLabel.entries()].find(([label]) => label.includes(raw));
+      hiddenIntId.value = found ? found[1] : "";
+    }
+
+    inputBilText?.addEventListener("input", syncBil);
+    inputBilText?.addEventListener("change", syncBil);
+    inputIntText?.addEventListener("input", syncInt);
+    inputIntText?.addEventListener("change", syncInt);
+
+    modalRoot.addEventListener("click", (e) => {
+      if (e.target === modalRoot) close(null);
+    });
+
+    modalRoot.querySelector(".rf-modal-close")?.addEventListener("click", () => close(null));
+    modalRoot.querySelector(".rf-edit-cancel")?.addEventListener("click", () => close(null));
+
+    return await new Promise((resolve) => {
+      modalRoot.querySelector(".rf-edit-save")?.addEventListener("click", async () => {
+        setError("");
+        syncBil();
+        syncInt();
+
+        const nome = (inputNome?.value || "").trim();
+        const codice = (inputCod?.value || "").trim();
+        const um = (inputUm?.value || "").trim();
+
+        const catBilId = (hiddenBilId?.value || "").trim();
+        const catIntId = (hiddenIntId?.value || "").trim();
+
+        if (!nome) return setError("Inserisci il nome.");
+
+        if (!catBilId) return setError("Categoria bilancio obbligatoria.");
+        if (!catIntId) return setError("Categoria interna obbligatoria.");
+
+        const payload = {
+          nome,
+          descrizione: nome,
+          um: um || null,
+          codice_interno: codice || null,
+          categoria_bilancio_id: Number(catBilId),
+          categoria_interna_id: catIntId
+        };
+
+        const btnSave = modalRoot.querySelector(".rf-edit-save");
+        btnSave?.setAttribute("disabled", "disabled");
+        if (btnSave) btnSave.textContent = "Salvo...";
+
+        try {
+          const { error } = await window.supabaseClient
+            .from("prodotti")
+            .update(payload)
+            .eq("azienda_id", azienda.id)
+            .eq("id", prodottoId);
+
+          if (error) {
+            console.error(error);
+            setError(error.message || "Errore salvataggio prodotto.");
+            return;
+          }
+
+          resolve(close({ saved: true }));
+        } finally {
+          btnSave?.removeAttribute("disabled");
+          if (btnSave) btnSave.textContent = "Salva";
+        }
+      });
+    });
+  }
+
   async function updateRowComputedUI(index) {
     const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
     if (!rowEl) return;
@@ -1139,9 +1436,9 @@ btnSave.setAttribute("disabled", "disabled");
     setRowHint(rowEl, computeHintFromRiga(righe[index]));
 
     const btnCrea = rowEl.querySelector(".btn-crea-prodotto");
-    const btnRinomina = rowEl.querySelector(".btn-rinomina-prodotto");
+    const btnModifica = rowEl.querySelector(".btn-modifica-prodotto");
     if (btnCrea) btnCrea.style.display = righe[index].prodotto_id ? "none" : "";
-    if (btnRinomina) btnRinomina.style.display = righe[index].prodotto_id ? "" : "none";
+    if (btnModifica) btnModifica.style.display = righe[index].prodotto_id ? "" : "none";
 
     const umEl = rowEl.querySelector(".riga-um");
     if (umEl) umEl.textContent = righe[index].um ? `UM: ${righe[index].um}` : "";
@@ -1187,7 +1484,7 @@ function renderRigheUI() {
         <div class="acquisto-riga-actions">
           <button class="app-button tiny gray btn-match-riga" data-i="${i}">Riprova match</button>
           <button class="app-button tiny gray btn-crea-prodotto" data-i="${i}">Crea prodotto</button>
-          <button class="app-button tiny gray btn-rinomina-prodotto" data-i="${i}">Rinomina prodotto</button>
+          <button class="app-button tiny gray btn-modifica-prodotto" data-i="${i}">Modifica prodotto</button>
         </div>
       </div>
     </div>
@@ -1195,71 +1492,137 @@ function renderRigheUI() {
 
   righe.forEach((_, idx) => updateRowComputedUI(idx));
 }
-  btnOcr?.addEventListener("click", async () => {
+  
+  async function uploadFilesAndGetSignedUrls(files) {
+    const uploads = [];
+    const paths = [];
+
+    for (const file of files) {
+      const cleanName = String(file.name || "fattura")
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^\w.-]/g, "");
+
+      const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${cleanName}`;
+
+      const { error: uploadError } = await window.supabaseClient.storage
+        .from("fatture")
+        .upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error("Upload fallito");
+      }
+
+      paths.push(path);
+
+      const { data: signedData, error: signedError } =
+        await window.supabaseClient.storage
+          .from("fatture")
+          .createSignedUrl(path, 60);
+
+      if (signedError || !signedData?.signedUrl) {
+        throw new Error("Errore signed URL");
+      }
+
+      uploads.push(signedData.signedUrl);
+    }
+
+    // salva nello state per coerenza
+    window.state.fatturaCorrente.immagini = paths.map(p => ({ path: p }));
+    allegatoPath = paths[0] || null;
+
+    return uploads;
+  }
+
+  async function callOcrRailway(imageUrls) {
+    const url = "https://ristoflo-ocr1-production.up.railway.app/ocr";
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrls })
+    });
+
+    let json;
+    try {
+      json = await res.json();
+    } catch (_) {
+      json = null;
+    }
+
+    if (!res.ok) {
+      const msg = json?.error || json?.message || `OCR error (${res.status})`;
+      throw new Error(msg);
+    }
+
+    // compatibilità: alcuni server rispondono {success, ...} altri direttamente il payload
+    if (json && typeof json === "object" && "success" in json) {
+      if (!json.success) throw new Error(json.error || "OCR fallito");
+      return json;
+    }
+
+    // fallback
+    return { success: true, ...json };
+  }
+
+  // UX: unico pulsante → apre picker
+  btnOcr?.addEventListener("click", () => {
     const fileInput = document.getElementById("fattura-file");
-    if (!fileInput.files.length) return;
+    fileInput?.click();
+  });
+
+  // Selezione file → upload + OCR automatico
+  document.getElementById("fattura-file")?.addEventListener("change", async (e) => {
+    const fileInput = e.target;
+    if (!fileInput?.files || fileInput.files.length === 0) return;
 
     await loadProdottiCache(false);
 
-    const file = fileInput.files[0];
-
-    const cleanName = file.name
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^\w.-]/g, "");
-
-    const path = `${azienda.id}/${new Date().getFullYear()}/${crypto.randomUUID()}_${cleanName}`;
-
     feedback.innerHTML = "Upload in corso...";
 
-    const { error: uploadError } = await window.supabaseClient.storage
-      .from("fatture")
-      .upload(path, file, {
-        contentType: file.type,
-        upsert: false
-      });
+    try {
+      const files = Array.from(fileInput.files || []);
+      const signedUrls = await uploadFilesAndGetSignedUrls(files);
 
-    if (uploadError) {
-      feedback.innerHTML = `<span style="color:red;">Upload fallito</span>`;
-      return;
+      feedback.innerHTML = "OCR in elaborazione...";
+      const ocrResult = await callOcrRailway(signedUrls);
+
+      await applyOcrResult(ocrResult);
+      feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
+    } catch (err) {
+      feedback.innerHTML = `<span style="color:red;">${escapeHtml(err?.message || "OCR fallito")}</span>`;
+    } finally {
+      // reset input per permettere stesso file due volte
+      fileInput.value = "";
     }
-
-    allegatoPath = path;
-
-    const { data: signedData, error: signedError } =
-      await window.supabaseClient.storage
-        .from("fatture")
-        .createSignedUrl(path, 60);
-
-    if (signedError) {
-      feedback.innerHTML = `<span style="color:red;">Errore signed URL</span>`;
-      return;
-    }
-
-    feedback.innerHTML = "OCR in elaborazione...";
-
-   const res = await fetch(
-  "https://ristoflo-ocr1-production.up.railway.app/ocr",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      imageUrl: signedData.signedUrl
-    })
-  }
-);
-
-const ocrResult = await res.json();
-
-if (!ocrResult.success) {
-  throw new Error("OCR fallito");
-}
-
-    await applyOcrResult(ocrResult);
-    feedback.innerHTML = `<span style="color:green;">OCR completato. Verifica dati.</span>`;
   });
 
-  async function applyOcrResult(result) {
+
+  function dedupeRighe(rows) {
+    const seen = new Set();
+    const out = [];
+
+    for (const r of rows || []) {
+      const desc = normalizeKey(r.descrizione || "");
+      const q = roundTo3(Number(r.quantita || 0));
+      const pu = roundTo3(Number(r.prezzo_unitario || 0));
+      const tot = roundTo3(q * pu);
+
+      const key = `${desc}|${q}|${pu}|${tot}`;
+      if (!desc && q === 0 && pu === 0) continue;
+
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(r);
+    }
+
+    return out;
+  }
+
+async function applyOcrResult(result) {
     await loadProdottiCache(false);
 
     if (result.documento?.numero_documento)
@@ -1282,10 +1645,11 @@ if (!ocrResult.success) {
       }
     }
 
-    righe = [];
+    righe.length = 0;
+    window.state.fatturaCorrente.righe = righe;
     righeContainer.innerHTML = "";
 
-    const righeInput = (result.righe || []).map(r => {
+    let righeInput = (result.righe || []).map(r => {
       const descr = cleanOcrDescrizione(r.descrizione || "");
       const qta = parseLocaleNumber(r.quantita, 0);
       const prezzoUnitRaw = parseLocaleNumber(r.prezzo_unitario, 0);
@@ -1306,6 +1670,8 @@ if (!ocrResult.success) {
         match_score: null
       };
     });
+
+    righeInput = dedupeRighe(righeInput);
 
     for (let i = 0; i < righeInput.length; i++) {
       const descr = righeInput[i].descrizione;
@@ -1544,52 +1910,35 @@ if (!ocrResult.success) {
       }
     }
 
-    if (btn.classList.contains("btn-rinomina-prodotto")) {
+    if (btn.classList.contains("btn-modifica-prodotto")) {
       await loadProdottiCache(false);
 
       const prodottoId = righe[idx].prodotto_id;
-      const nuovoNome = (righe[idx].prodotto_nome || "").trim();
-      if (!prodottoId || !nuovoNome) return;
-
-      const near = findNearDuplicate(nuovoNome);
-      if (near?.prodotto?.id && String(near.prodotto.id) !== String(prodottoId)) {
-        const suggestLabel = near.prodotto.codice_interno
-          ? `${near.prodotto.descrizione} (${near.prodotto.codice_interno})`
-          : `${near.prodotto.descrizione}`;
-        const ok = window.confirm(`Possibile duplicato: esiste già "${suggestLabel}".\n\nVuoi continuare con la rinomina?`);
-        if (!ok) return;
-      }
+      if (!prodottoId) return;
 
       btn.setAttribute("disabled", "disabled");
-      btn.textContent = "Rinomino...";
+      btn.textContent = "Apro...";
 
       try {
-        const { error } = await window.supabaseClient
-          .from("prodotti")
-          .update({ nome: nuovoNome, descrizione: nuovoNome })
-          .eq("azienda_id", azienda.id)
-          .eq("id", prodottoId);
-
-        if (error) {
-          feedback.innerHTML = `<span style="color:red;">Errore rinomina prodotto</span>`;
-          return;
-        }
-
-        const p = prodottiCache.find(x => String(x.id) === String(prodottoId));
-        if (p) p.descrizione = nuovoNome;
-        else prodottiCache.unshift({ id: prodottoId, descrizione: nuovoNome, codice_interno: "", um: "", categoria_bilancio_id: null });
+        const res = await openEditProductModal({ prodottoId });
+        if (!res) return;
 
         await loadProdottiCache(true);
 
-        righe[idx].match_reason = righe[idx].match_reason || "manual_rename";
-        righe[idx].match_score = righe[idx].match_score ?? 0.70;
+        // Aggiorna label riga dal cache
+        const updated = prodottiCache.find(p => String(p.id) === String(prodottoId));
+        if (updated?.descrizione) {
+          righe[idx].prodotto_nome = updated.descrizione;
+          const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+          const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+          if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+        }
 
+        feedback.innerHTML = `<span style="color:green;">Prodotto aggiornato.</span>`;
         await updateRowComputedUI(idx);
-
-        feedback.innerHTML = `<span style="color:green;">Prodotto rinominato.</span>`;
       } finally {
         btn.removeAttribute("disabled");
-        btn.textContent = "Rinomina prodotto";
+        btn.textContent = "Modifica prodotto";
       }
     }
   });
@@ -1603,6 +1952,7 @@ if (!ocrResult.success) {
     closeAllSuggest();
   });
 
+
   btnSalva.addEventListener("click", async () => {
     feedback.innerHTML = "Salvataggio...";
 
@@ -1614,6 +1964,7 @@ if (!ocrResult.success) {
       let fornitoreId = getCurrentFornitoreId();
       const fornitoreNome = getCurrentFornitoreName();
 
+      // --- Fornitore (crea se non esiste) ---
       if (!fornitoreId) {
         if (!fornitoreNome) throw new Error("Seleziona o scrivi un fornitore");
 
@@ -1645,39 +1996,44 @@ if (!ocrResult.success) {
         }
       }
 
-      const righePulite = righe
-        .map(r => ({
+      // --- Normalizzazione righe: consideriamo SOLO righe con quantita > 0 ---
+      const righeAttive = [];
+      const mapIndexOriginale = []; // idx originale di "righe" per evidenziare correttamente
+
+      for (let i = 0; i < righe.length; i++) {
+        const r = righe[i] || {};
+        const qta = Number(r.quantita || 0);
+        if (!(qta > 0)) continue;
+
+        righeAttive.push({
           descrizione: (r.descrizione || "").trim(),
           prodotto_id: r.prodotto_id || null,
-          quantita: Number(r.quantita || 0),
+          quantita: qta,
           prezzo_unitario: Number(r.prezzo_unitario || 0)
-        }))
-        .filter(r => r.quantita && r.quantita > 0);
-
-      if (righePulite.length === 0) throw new Error("Inserisci almeno una riga con quantità > 0");
-
-      const righeNonValide = righePulite.filter(r => !r.prodotto_id);
-      if (righeNonValide.length > 0) {
-        throw new Error("Ci sono righe senza prodotto: seleziona un prodotto (autocomplete) o crea il prodotto.");
-      }
-
-      const righeDaInserire = [];
-      for (const r of righePulite) {
-        const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
-        if (!catId) {
-          throw new Error(`Prodotto senza categoria bilancio: "${r.descrizione}". Apri il prodotto e assegna la categoria bilancio, oppure crea un nuovo prodotto con categoria.`);
-        }
-
-        righeDaInserire.push({
-          azienda_id: azienda.id,
-          prodotto_id: toBigintNumber(r.prodotto_id),
-          descrizione: r.descrizione,
-          quantita: r.quantita,
-          prezzo_unitario: r.prezzo_unitario || 0,
-          categoria_bilancio_id: Number(catId)
         });
+        mapIndexOriginale.push(i);
       }
 
+      if (righeAttive.length === 0) throw new Error("Inserisci almeno una riga con quantità > 0");
+
+      // --- Evidenzia righe senza prodotto (validazione assistita) ---
+      let firstMissingIdx = null;
+      for (let j = 0; j < righeAttive.length; j++) {
+        if (!righeAttive[j].prodotto_id) {
+          const idxOrig = mapIndexOriginale[j];
+          const rowEl = righeContainer.querySelector(`div[data-i="${idxOrig}"]`);
+          if (rowEl) rowEl.classList.add("missing");
+          if (firstMissingIdx === null) firstMissingIdx = idxOrig;
+        }
+      }
+
+      if (firstMissingIdx !== null) {
+        const rowEl = righeContainer.querySelector(`div[data-i="${firstMissingIdx}"]`);
+        rowEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+        throw new Error("Ci sono righe senza prodotto: seleziona un prodotto o crea il prodotto.");
+      }
+
+      // --- Salva fattura PRIMA delle righe ---
       const { data: fattura, error: errInsFattura } = await window.supabaseClient
         .from("fatture_acquisto")
         .insert({
@@ -1692,21 +2048,42 @@ if (!ocrResult.success) {
         .select()
         .single();
 
-      if (errInsFattura) throw new Error("Errore salvataggio fattura");
+      if (errInsFattura || !fattura?.id) throw new Error("Errore salvataggio fattura");
 
-      if (righeDaInserire.length > 0) {
-        const payloadRighe = righeDaInserire.map(x => ({
-          ...x,
-          fattura_id: fattura.id
-        }));
+      // --- Costruisci payload righe ---
+      const righeDaInserire = [];
+      for (let k = 0; k < righeAttive.length; k++) {
+        const r = righeAttive[k];
+        const catId = await getCategoriaBilancioIdForProdotto(r.prodotto_id);
 
-        const { error: errRighe } = await window.supabaseClient
-          .from("fatture_acquisto_righe")
-          .insert(payloadRighe);
+        if (!catId) {
+          throw new Error(
+            `Prodotto senza categoria bilancio: "${r.descrizione}". Apri il prodotto e assegna la categoria bilancio, oppure crea un nuovo prodotto con categoria.`
+          );
+        }
 
-        if (errRighe) throw new Error("Errore salvataggio righe fattura");
+        righeDaInserire.push({
+          azienda_id: azienda.id,
+          fattura_id: fattura.id,
+          riga_numero: k + 1,
+          prodotto_id: toBigintNumber(r.prodotto_id),
+          descrizione: r.descrizione,
+          quantita: r.quantita,
+          unita_misura: "pz",
+          prezzo_unitario: r.prezzo_unitario || 0,
+          totale_riga: r.quantita * (r.prezzo_unitario || 0),
+          iva_percent: null,
+          categoria_bilancio_id: Number(catId)
+        });
       }
 
+      const { error: errRighe } = await window.supabaseClient
+        .from("fatture_acquisto_righe")
+        .insert(righeDaInserire);
+
+      if (errRighe) throw new Error("Errore salvataggio righe fattura");
+
+      // --- Processazione ---
       const { error: errProc } = await window.supabaseClient.rpc("processa_fattura_acquisto", {
         p_azienda_id: azienda.id,
         p_fattura_id: fattura.id
@@ -1716,7 +2093,7 @@ if (!ocrResult.success) {
 
       feedback.innerHTML = "<span style='color:green;'>Fattura salvata e processata.</span>";
     } catch (err) {
-      feedback.innerHTML = "<span style='color:red;'>" + (err?.message || "Errore") + "</span>";
+      feedback.innerHTML = "<span style='color:red;'>" + escapeHtml(err?.message || "Errore") + "</span>";
     }
   });
 
