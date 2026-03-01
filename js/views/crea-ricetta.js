@@ -24,6 +24,7 @@ let fasiTemplateMap = new Map();
 let ingredientiCache = [];
 let fasiCache = [];
 let conservazioniCache = [];
+let conservazionePassaggiMap = new Map();
 let porzioniCache = [];
 let cotturaCache = null;
 let outputCache = null;
@@ -76,13 +77,10 @@ export async function render(app) {
     subtitle: "Struttura operativa ed economica",
     content: `
 
-      <div class="form-actions" style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="btn-torna-ricettario" class="app-button secondary" type="button">
-          ← Torna al Ricettario
-        </button>
-        <button class="app-button secondary" type="button"
+      <div class="form-actions" style="margin-bottom:16px;">
+        <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
-          🏭 Centro Produzione
+          ? Centro Produzione
         </button>
       </div>
 
@@ -167,10 +165,6 @@ export async function render(app) {
             </div>
 
             <div class="form-group" style="grid-column:1/-1;">
-              <div id="r-output-info" class="small-muted">Nessun prodotto output selezionato</div>
-            </div>
-
-            <div class="form-group" style="grid-column:1/-1;">
               <div id="r-cost-preview" class="small-muted">
                 Food cost: —
               </div>
@@ -183,35 +177,14 @@ export async function render(app) {
       ${createCard({
         title: "Procedimento",
         body: `
-          <div class="form-actions" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-            <button id="btn-add-fase-manuale" class="app-button secondary" type="button">
-              + Nuova fase
-            </button>
-            <button id="btn-add-fase-standard" class="app-button secondary" type="button">
-              + Inserisci da standard aziendale
-            </button>
-          </div>
-
           <div id="fasi-container"></div>
 
-          <!-- Modal selezione template fase -->
-          <div id="modal-fasi-template" class="modal-overlay" style="display:none;">
-            <div class="modal-card" style="max-width:820px; width:100%; border-radius:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-                <h3 style="margin:0;">Standard aziendali (fasi)</h3>
-                <button id="btn-close-modal-fasi-template" class="app-button tiny gray" type="button">Chiudi</button>
-              </div>
-
-              <div style="margin-top:10px;">
-                <input id="tpl-fase-search" class="input" placeholder="Cerca fase standard..." autocomplete="off" />
-              </div>
-
-              <div id="tpl-fase-list" style="margin-top:10px; display:flex; flex-direction:column; gap:8px; max-height:420px; overflow:auto;"></div>
-
-              <div class="small-muted" style="margin-top:10px;">
-                Seleziona una fase standard per inserirla nel procedimento. Potrai modificarla liberamente.
-              </div>
-            </div>
+          <div class="form-actions">
+            <button id="btn-add-fase"
+              class="app-button secondary"
+              type="button">
+              + Aggiungi fase
+            </button>
           </div>
         `
       })}
@@ -435,8 +408,25 @@ function aggiornaOutputInfo() {
 }
 
 /* ============================================================
-   MINI-TAB FASI (deprecato: procedimento unificato)
+   MINI-TAB FASI
 ============================================================ */
+function initFasiTabs() {
+  const tabs = document.querySelectorAll(".fase-tab");
+  if (!tabs.length) return;
+
+  // default
+  if (!faseTabAttiva) faseTabAttiva = "preparazione";
+
+  tabs.forEach(btn => {
+    btn.onclick = () => {
+      faseTabAttiva = btn.dataset.tab || "preparazione";
+      refreshFasiTabUI();
+      filterFasiByTab();
+    };
+  });
+
+  refreshFasiTabUI();
+}
 
 function refreshFasiTabUI() {
   document.querySelectorAll(".fase-tab").forEach(btn => {
@@ -463,67 +453,106 @@ function filterFasiByTab() {
 function aggiungiIngrediente(initial = {}) {
   const container = document.getElementById("ingredienti-container");
 
-  const row = document.createElement("div");
-  row.className = "azienda-card";
-  row.style.marginBottom = "8px";
+  const card = document.createElement("div");
+  card.className = "azienda-card";
+  card.style.marginBottom = "12px";
+  card.style.padding = "14px";
 
-  row.innerHTML = `
-    <div class="editor-grid-2">
-
-      <div>
-        <div class="input-wrap">
-          <input class="ing-search input-pill"
-            placeholder="Ingrediente..."
-            autocomplete="off"
-            value="${escapeAttr(initial.nome_prodotto || "")}" />
-          <input class="ing-id"
-            type="hidden"
-            value="${escapeAttr(initial.prodotto_id || "")}" />
-          <div class="suggest-list ing-suggest"></div>
-        </div>
+  card.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-weight:700; font-size:16px;">Ingrediente</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="app-button tiny" type="button" data-action="up">↑</button>
+        <button class="app-button tiny" type="button" data-action="down">↓</button>
+        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
       </div>
-
-      <div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input class="ing-qta input-pill"
-            type="number"
-            step="0.001"
-            min="0"
-            placeholder="Quantità"
-            value="${escapeAttr(initial.quantita ?? initial.quantità ?? "")}" />
-          <span class="small-muted ing-um-label" style="min-width:34px; text-align:right;">${escapeHtml(initial.unita_misura || "")}</span>
-        </div>
-      </div>
-
     </div>
 
-    <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
+    <div class="form-grid" style="margin-top:10px;">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Prodotto / ingrediente *</label>
+        <div class="input-wrap">
+          <input class="ing-search input"
+            placeholder="Cerca prodotto..."
+            autocomplete="off"
+            value="${escapeAttr(initial.nome_prodotto || "")}" />
+          <input class="ing-id" type="hidden" value="${escapeAttr(initial.prodotto_id ?? "")}" />
+          <div class="ing-suggest suggest-list"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Quantità *</label>
+        <input class="ing-qta input" type="number" step="0.001" value="${escapeAttr(initial.quantita ?? "")}" />
+      </div>
+
+      <div class="form-group">
+        <label>UM *</label>
+        <select class="ing-um input">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="pz">pz</option>
+          <option value="l">l</option>
+          <option value="ml">ml</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Note (opz.)</label>
+        <input class="ing-note input" value="${escapeAttr(initial.note || "")}" />
+      </div>
     </div>
   `;
 
-  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
-  container.appendChild(row);
+  // riordino
+  card.querySelector('[data-action="up"]').addEventListener("click", () => {
+    const prev = card.previousElementSibling;
+    if (prev) container.insertBefore(card, prev);
+    rinumeraOrdineIngredienti();
+  });
+  card.querySelector('[data-action="down"]').addEventListener("click", () => {
+    const next = card.nextElementSibling;
+    if (next) container.insertBefore(next, card);
+    rinumeraOrdineIngredienti();
+  });
 
-  const ingSearch = row.querySelector(".ing-search");
-  const ingId = row.querySelector(".ing-id");
-  const ingSuggest = row.querySelector(".ing-suggest");
-  const umLabel = row.querySelector(".ing-um-label");
+  card.querySelector('[data-action="delete"]').addEventListener("click", () => {
+    card.remove();
+    rinumeraOrdineIngredienti();
+    aggiornaOutputInfo();
+  });
 
-  setupAutocomplete(
-    ingSearch,
-    ingId,
-    ingSuggest,
-    (p) => {
-      umLabel.textContent = p?.um || "pz";
+  const umSel = card.querySelector(".ing-um");
+  umSel.value = (initial.unita_misura || "kg").toLowerCase();
+
+  const ingSearch = card.querySelector(".ing-search");
+  const ingHidden = card.querySelector(".ing-id");
+  const ingSuggest = card.querySelector(".ing-suggest");
+
+  setupAutocomplete(ingSearch, ingHidden, ingSuggest, (p) => {
+    // se il prodotto ha UM, proponila
+    if (p?.um && umSel) {
+      const val = String(p.um).toLowerCase();
+      const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
+      if (ok) umSel.value = val;
     }
-  );
+    aggiornaOutputInfo();
+  });
 
-  if (ingId.value) {
-    const p = prodottiMap.get(String(ingId.value));
-    if (p) umLabel.textContent = p.um || "pz";
-  }
+  // aggiorna food cost su change qty/um
+  card.querySelector(".ing-qta").addEventListener("input", () => aggiornaOutputInfo());
+  umSel.addEventListener("change", () => aggiornaOutputInfo());
+
+  container.appendChild(card);
+  rinumeraOrdineIngredienti();
 }
+
+function rinumeraOrdineIngredienti() {
+  const container = document.getElementById("ingredienti-container");
+  if (!container) return;
+  // non abbiamo campo ordine visibile: l'ordine verrà salvato in base alla posizione DOM
+}
+
 
 /* ============================================================
    FASI
@@ -531,178 +560,144 @@ function aggiungiIngrediente(initial = {}) {
 function aggiungiFase(initial = {}) {
   const container = document.getElementById("fasi-container");
 
-  const fase = {
-    ordine: Number(initial.ordine ?? 1),
-    tipo_fase: String(initial.tipo_fase || "preparazione"),
-    nome_fase: String(initial.nome_fase || ""),
-    descrizione_operativa: String(initial.descrizione_operativa || ""),
-    durata_min: Number(initial.durata_min ?? 0),
-    lavoro_umano_min: Number(initial.lavoro_umano_min ?? 0),
-    tecnologia: initial.tecnologia ?? "",
-    temperatura: (initial.temperatura ?? ""),
-    note: initial.note ?? "",
-    richiede_conferma: Boolean(initial.richiede_conferma ?? false),
-    fase_template_id: (initial.fase_template_id ?? "")
-  };
+  const row = document.createElement("div");
+  row.className = "azienda-card";
+  row.style.marginBottom = "8px";
 
-  const card = document.createElement("div");
-  card.className = "azienda-card";
-  card.style.marginBottom = "12px";
-  card.style.padding = "12px";
-  card.style.borderRadius = "16px";
+  // per filtro tab
+  row.dataset.tipoFase = initial.tipo_fase || "preparazione";
 
-  card.innerHTML = `
-    <div class="fase-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer;">
-      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <div class="fase-num" style="font-weight:800; font-size:18px; white-space:nowrap;">FASE ${escapeHtml(String(fase.ordine))}</div>
-        <div class="fase-title-preview" style="font-weight:700; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-          ${escapeHtml(fase.nome_fase || "—")}
-        </div>
-      </div>
+  row.innerHTML = `
+    <div class="editor-grid-2">
 
-      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-        <button class="app-button tiny gray" type="button" data-action="up">↑</button>
-        <button class="app-button tiny gray" type="button" data-action="down">↓</button>
-        <button class="app-button tiny gray" type="button" data-action="toggle">Apri</button>
-        <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
-      </div>
+      <label style="grid-column:1/-1;">
+        Template fase (opz.)
+        <select class="fase-template input-pill"></select>
+      </label>
+
+      <label>
+        Ordine *
+        <input class="fase-ordine input-pill" type="number" min="1" value="${escapeAttr(initial.ordine ?? 1)}" />
+      </label>
+
+      <label>
+        Tipo fase *
+        <select class="fase-tipo input-pill">
+          <option value="preparazione">preparazione</option>
+          <option value="cottura">cottura</option>
+          <option value="attesa">attesa</option>
+          <option value="raffreddamento">raffreddamento</option>
+        </select>
+      </label>
+
+      <label style="grid-column:1/-1;">
+        Nome fase *
+        <input class="fase-nome input-pill" value="${escapeAttr(initial.nome_fase || "")}" />
+      </label>
+
+      <label style="grid-column:1/-1;">
+        Descrizione operativa (per operatore)
+        <textarea class="fase-descrizione input-pill" rows="3"
+          placeholder="Istruzioni operative chiare per l'operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
+      </label>
+
+      <label>
+        Durata (min) *
+        <input class="fase-durata input-pill" type="number" min="0" value="${escapeAttr(initial.durata_min ?? 0)}" />
+      </label>
+
+      <label>
+        Lavoro umano (min) *
+        <input class="fase-lavoro input-pill" type="number" min="0" value="${escapeAttr(initial.lavoro_umano_min ?? 0)}" />
+      </label>
+
+      <label>
+        Tecnologia (opz.)
+        <input class="fase-tecnologia input-pill" value="${escapeAttr(initial.tecnologia || "")}" />
+      </label>
+
+      <label>
+        Temperatura (opz.)
+        <input class="fase-temperatura input-pill" type="number" step="0.1" value="${escapeAttr(initial.temperatura ?? "")}" />
+      </label>
+
+      <label>
+        Richiede conferma
+        <select class="fase-conferma input-pill">
+          <option value="false">no</option>
+          <option value="true">sì</option>
+        </select>
+      </label>
+
+      <label style="grid-column:1/-1;">
+        Note (opz.)
+        <input class="fase-note input-pill" value="${escapeAttr(initial.note || "")}" />
+      </label>
+
     </div>
 
-    <div class="fase-body" style="margin-top:10px; display:none;">
-      <div class="form-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
-
-        <input class="fase-ordine" type="hidden" value="${escapeAttr(String(fase.ordine))}" />
-        <input class="fase-tipo" type="hidden" value="${escapeAttr(String(fase.tipo_fase))}" />
-        <input class="fase-template-id" type="hidden" value="${escapeAttr(String(fase.fase_template_id || ""))}" />
-
-        <div class="form-group" style="grid-column:1/-1;">
-          <label>Titolo fase *</label>
-          <input class="input fase-nome" value="${escapeAttr(fase.nome_fase)}" placeholder="Es: Soffriggere" />
-        </div>
-
-        <div class="form-group" style="grid-column:1/-1;">
-          <label>Descrizione operativa (per operatore)</label>
-          <textarea class="input fase-descrizione" rows="5"
-            placeholder="Istruzioni operative chiare e sequenziali...">${escapeHtml(fase.descrizione_operativa)}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Tempo stimato totale (min)</label>
-          <input class="input fase-durata" type="number" min="0" value="${escapeAttr(String(fase.durata_min))}" />
-        </div>
-
-        <div class="form-group">
-          <label>Tempo lavoro umano (min)</label>
-          <input class="input fase-lavoro" type="number" min="0" value="${escapeAttr(String(fase.lavoro_umano_min))}" />
-        </div>
-
-        <div class="form-group">
-          <label>Tecnologia (opz.)</label>
-          <input class="input fase-tecnologia" value="${escapeAttr(String(fase.tecnologia || ""))}" placeholder="Es: forno, piastra, robot..." />
-        </div>
-
-        <div class="form-group">
-          <label>Temperatura (opz.)</label>
-          <input class="input fase-temperatura" type="number" step="0.1" value="${escapeAttr(String(fase.temperatura ?? ""))}" />
-        </div>
-
-        <div class="form-group" style="grid-column:1/-1;">
-          <label>Note (opz.)</label>
-          <input class="input fase-note" value="${escapeAttr(String(fase.note || ""))}" />
-        </div>
-
-        <div class="form-group" style="grid-column:1/-1;">
-          <label>Step critico (richiede conferma operatore)</label>
-          <select class="input fase-conferma">
-            <option value="false">No</option>
-            <option value="true">Sì</option>
-          </select>
-        </div>
-
-        <div class="form-group" style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-          <button class="app-button tiny" type="button" data-action="save-template">Salva come standard aziendale</button>
-        </div>
-
-      </div>
+    <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <button class="app-button tiny" type="button" data-action="save-template">Salva come template</button>
+      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
     </div>
   `;
 
-  // toggle open/close
-  const header = card.querySelector(".fase-header");
-  const body = card.querySelector(".fase-body");
-  const btnToggle = card.querySelector('[data-action="toggle"]');
-  const confSel = card.querySelector(".fase-conferma");
-  confSel.value = String(fase.richiede_conferma);
+  const tipoSel = row.querySelector(".fase-tipo");
+  tipoSel.value = initial.tipo_fase || "preparazione";
 
-  function setOpen(open) {
-    body.style.display = open ? "" : "none";
-    btnToggle.textContent = open ? "Chiudi" : "Apri";
-  }
+  // template select (filtrato per tipo fase)
+  const tplSel = row.querySelector(".fase-template");
+  rebuildFasiTemplateOptions(tplSel, tipoSel.value, initial.fase_template_id || "");
 
-  // header click (except buttons)
-  header.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (btn) return;
-    // open this, close others
-    closeAllFasiExcept(card);
-    setOpen(true);
+  // richiede conferma
+  const confSel = row.querySelector(".fase-conferma");
+  if (confSel) confSel.value = String(initial.richiede_conferma ?? false);
+
+  // se selezioni template → autopopola (ma sempre modificabile)
+  tplSel.addEventListener("change", () => {
+    const tplId = tplSel.value;
+    if (!tplId) return;
+    const tpl = fasiTemplateMap.get(String(tplId));
+    if (!tpl) return;
+
+    // allinea anche tipo fase (coerente col template)
+    if (tpl.tipo_fase) {
+      tipoSel.value = tpl.tipo_fase;
+      row.dataset.tipoFase = tipoSel.value || "preparazione";
+      rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplId);
+      filterFasiByTab();
+    }
+
+    row.querySelector(".fase-nome").value = tpl.titolo || "";
+    row.querySelector(".fase-descrizione").value = tpl.descrizione_operativa || "";
+    row.querySelector(".fase-durata").value = tpl.durata_min_default ?? 0;
+    row.querySelector(".fase-lavoro").value = tpl.lavoro_umano_min_default ?? 0;
+    row.querySelector(".fase-tecnologia").value = tpl.tecnologia_default || "";
+    row.querySelector(".fase-temperatura").value = tpl.temperatura_default ?? "";
+    confSel.value = String(tpl.richiede_conferma ?? false);
   });
 
-  btnToggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const isOpen = body.style.display !== "none";
-    if (!isOpen) closeAllFasiExcept(card);
-    setOpen(!isOpen);
-  });
-
-  // delete
-  card.querySelector('[data-action="delete"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    card.remove();
-    renumberFasi();
-  });
-
-  // reorder
-  card.querySelector('[data-action="up"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    const prev = card.previousElementSibling;
-    if (prev) container.insertBefore(card, prev);
-    renumberFasi();
-  });
-
-  card.querySelector('[data-action="down"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    const next = card.nextElementSibling;
-    if (next) container.insertBefore(next, card);
-    renumberFasi();
-  });
-
-  // live preview title
-  const titoloInput = card.querySelector(".fase-nome");
-  const preview = card.querySelector(".fase-title-preview");
-  titoloInput.addEventListener("input", () => {
-    preview.textContent = titoloInput.value.trim() || "—";
-  });
-
-  // save as template
-  card.querySelector('[data-action="save-template"]').addEventListener("click", async (e) => {
-    e.stopPropagation();
+  // salva come template
+  row.querySelector('[data-action="save-template"]').addEventListener("click", async () => {
     const supabase = window.supabaseClient;
     const aziendaId = window.state.azienda.id;
 
-    const titolo = (card.querySelector(".fase-nome")?.value || "").trim();
-    if (!titolo) return alert("Titolo fase obbligatorio per salvare uno standard.");
+    const titolo = (row.querySelector(".fase-nome")?.value || "").trim();
+    const descrizione_operativa = (row.querySelector(".fase-descrizione")?.value || "").trim();
+    const tipo_fase = (row.querySelector(".fase-tipo")?.value || "preparazione").trim();
+
+    if (!titolo) return alert("Nome fase obbligatorio per salvare un template.");
 
     const payload = {
       azienda_id: aziendaId,
       titolo,
-      descrizione_operativa: (card.querySelector(".fase-descrizione")?.value || "").trim() || titolo,
-      tipo_fase: (card.querySelector(".fase-tipo")?.value || "preparazione").trim(),
-      durata_min_default: toIntOrNull(card.querySelector(".fase-durata")?.value) ?? 0,
-      lavoro_umano_min_default: toIntOrNull(card.querySelector(".fase-lavoro")?.value) ?? 0,
-      tecnologia_default: (card.querySelector(".fase-tecnologia")?.value || "").trim() || null,
-      temperatura_default: toNumOrNull(card.querySelector(".fase-temperatura")?.value),
-      richiede_conferma: (card.querySelector(".fase-conferma")?.value === "true"),
+      descrizione_operativa: descrizione_operativa || titolo,
+      tipo_fase,
+      durata_min_default: toIntOrNull(row.querySelector(".fase-durata")?.value) ?? 0,
+      lavoro_umano_min_default: toIntOrNull(row.querySelector(".fase-lavoro")?.value) ?? 0,
+      tecnologia_default: (row.querySelector(".fase-tecnologia")?.value || "").trim() || null,
+      temperatura_default: toNumOrNull(row.querySelector(".fase-temperatura")?.value),
+      richiede_conferma: (row.querySelector(".fase-conferma")?.value === "true"),
       parametri: {},
       attiva: true
     };
@@ -715,84 +710,389 @@ function aggiungiFase(initial = {}) {
 
     if (error) {
       console.error(error);
-      return alert("Errore salvataggio standard (verifica duplicati o permessi).");
+      return alert("Errore salvataggio template (verifica duplicati o permessi).");
     }
 
-    // aggiorna cache e collega la fase al template appena creato
     await loadFasiTemplate();
-    card.querySelector(".fase-template-id").value = String(data?.id || "");
-    alert("Standard salvato.");
+
+    // aggiorna tutte le select template delle fasi (mantiene selezione corrente)
+    document.querySelectorAll("#fasi-container .azienda-card").forEach(card => {
+      const tSel = card.querySelector(".fase-template");
+      const tTipo = card.querySelector(".fase-tipo")?.value || "preparazione";
+      const current = tSel?.value || "";
+      rebuildFasiTemplateOptions(tSel, tTipo, current);
+    });
+
+    // seleziona il nuovo template su questa fase
+    rebuildFasiTemplateOptions(tplSel, tipoSel.value, data?.id);
+    alert("Template salvato.");
   });
 
-  container.appendChild(card);
-
-  // apertura automatica della fase appena creata (chiude le altre)
-  closeAllFasiExcept(card);
-  setOpen(true);
-  renumberFasi();
-}
 
 
-/* ============================================================
-   CONSERVAZIONE
-/* ============================================================
-   CONSERVAZIONE
-============================================================ */
-function aggiungiScenarioConservazione(initial = {}) {
-  const container = document.getElementById("conservazione-container");
+  // se cambio tipo fase, aggiorno dataset e rifiltro
+  tipoSel.addEventListener("change", () => {
+    row.dataset.tipoFase = tipoSel.value || "preparazione";
+    rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplSel.value);
+    filterFasiByTab();
+  });
 
-  const row = document.createElement("div");
-  row.className = "azienda-card";
-  row.style.marginBottom = "8px";
-
-  row.innerHTML = `
-    <div class="editor-grid-2">
-
-      <label style="grid-column:1/-1;">
-        Label scenario *
-        <input class="cons-label input-pill" value="${escapeAttr(initial.scenario_label || "")}" placeholder="Es: Frigo 0-4°C, Abbattuto e congelato..." />
-      </label>
-
-      <label>
-        Shelf life (giorni) *
-        <input class="cons-shelf input-pill" type="number" min="0" value="${escapeAttr(initial.shelf_life_giorni ?? "")}" />
-      </label>
-
-      <label>
-        Abbattimento (opz.)
-        <input class="cons-abbatt input-pill" value="${escapeAttr(initial.abbattimento || "")}" placeholder="Es: sì/no, +3°C..." />
-      </label>
-
-      <label style="grid-column:1/-1;">
-        Confezionamento (opz.)
-        <input class="cons-confez input-pill" value="${escapeAttr(initial.confezionamento || "")}" placeholder="Es: vaschetta, sottovuoto, vasetto..." />
-      </label>
-
-      <label style="grid-column:1/-1;">
-        Note (opz.)
-        <input class="cons-note input-pill" value="${escapeAttr(initial.note || "")}" />
-      </label>
-
-      <label>
-        Attivo
-        <select class="cons-attivo input-pill">
-          <option value="true">sì</option>
-          <option value="false">no</option>
-        </select>
-      </label>
-
-    </div>
-
-    <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
-    </div>
-  `;
-
-  row.querySelector(".cons-attivo").value = String(initial.attivo ?? true);
   row.querySelector('[data-action="delete"]').onclick = () => row.remove();
 
   container.appendChild(row);
+
+  // applico filtro subito
+  filterFasiByTab();
 }
+
+
+/* ============================================================
+   COPRODOTTI / OUTPUT SECONDARI (Area economica tecnica)
+   Nota: la parte economica è gestita in amministrazione, ma qui
+   teniamo i coprodotti per la resa e lo scarico/costo materia.
+============================================================ */
+function aggiungiOutputSecondario(initial = {}) {
+  const container = document.getElementById("output-secondari-container");
+
+  const card = document.createElement("div");
+  card.className = "azienda-card";
+  card.style.marginBottom = "12px";
+  card.style.padding = "14px";
+
+  card.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-weight:700; font-size:16px;">Coprodotto</div>
+      <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+    </div>
+
+    <div class="form-grid" style="margin-top:10px;">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Prodotto coprodotto *</label>
+        <div class="input-wrap">
+          <input class="out2-search input"
+            placeholder="Cerca prodotto..."
+            autocomplete="off"
+            value="${escapeAttr(initial.nome_prodotto || "")}" />
+          <input class="out2-id" type="hidden" value="${escapeAttr(initial.prodotto_id ?? "")}" />
+          <div class="out2-suggest suggest-list"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Peso *</label>
+        <input class="out2-peso input" type="number" step="0.001" value="${escapeAttr(initial.peso ?? "")}" />
+      </div>
+
+      <div class="form-group">
+        <label>UM *</label>
+        <select class="out2-um input">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="pz">pz</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Metodo allocazione</label>
+        <select class="out2-metodo input">
+          <option value="peso">peso</option>
+          <option value="percentuale">percentuale</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>% allocazione (se percentuale)</label>
+        <input class="out2-percent input" type="number" step="0.01" min="0" max="100" value="${escapeAttr((initial.percentuale_allocazione != null) ? (Number(initial.percentuale_allocazione) * 100) : "")}" />
+      </div>
+    </div>
+  `;
+
+  card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
+
+  // default values
+  card.querySelector(".out2-um").value = (initial.unita_misura || "kg").toLowerCase();
+  card.querySelector(".out2-metodo").value = (initial.metodo_allocazione || "peso");
+
+  const s = card.querySelector(".out2-search");
+  const hid = card.querySelector(".out2-id");
+  const sug = card.querySelector(".out2-suggest");
+  setupAutocomplete(s, hid, sug, (p) => {
+    if (p?.um) {
+      const val = String(p.um).toLowerCase();
+      const ok = ["kg", "g", "pz"].includes(val);
+      if (ok) card.querySelector(".out2-um").value = val;
+    }
+  });
+
+  // abilita/disabilita percent
+  const metodoSel = card.querySelector(".out2-metodo");
+  const percInp = card.querySelector(".out2-percent");
+  const syncPerc = () => {
+    const isPerc = metodoSel.value === "percentuale";
+    percInp.disabled = !isPerc;
+    if (!isPerc) percInp.value = "";
+  };
+  metodoSel.addEventListener("change", syncPerc);
+  syncPerc();
+
+  container.appendChild(card);
+}
+
+
+/* ============================================================
+   CONSERVAZIONE
+============================================================ */
+function aggiungiScenarioConservazione(initial = {}, passaggi = []) {
+  const container = document.getElementById("conservazione-container");
+
+  const card = document.createElement("div");
+  card.className = "azienda-card";
+  card.style.marginBottom = "12px";
+  card.style.padding = "14px";
+
+  const titolo = initial.scenario_label || "";
+  const shelf = (initial.shelf_life_giorni ?? "") === null ? "" : (initial.shelf_life_giorni ?? "");
+  const attivoVal = String(initial.attivo ?? true);
+
+  card.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-weight:700; font-size:16px;">
+        Scenario conservazione
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="app-button tiny" type="button" data-action="toggle">▾</button>
+        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+      </div>
+    </div>
+
+    <div class="cons-body" style="margin-top:10px;">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Nome scenario *</label>
+          <input class="cons-label input" value="${escapeAttr(titolo)}" placeholder="Es: Abbattimento +3°C / Abbattimento -18°C / Sottovuoto frigo..." />
+        </div>
+
+        <div class="form-group">
+          <label>Shelf life (giorni) *</label>
+          <input class="cons-shelf input" type="number" min="0" value="${escapeAttr(shelf)}" />
+        </div>
+
+        <div class="form-group">
+          <label>Attivo</label>
+          <select class="cons-attivo input">
+            <option value="true">sì</option>
+            <option value="false">no</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Note (opz.)</label>
+          <input class="cons-note input" value="${escapeAttr(initial.note || "")}" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px; font-weight:700;">Passaggi (post-cottura)</div>
+      <div class="cons-passaggi" style="margin-top:8px;"></div>
+
+      <div class="form-actions" style="margin-top:10px;">
+        <button class="app-button secondary" type="button" data-action="add-passaggio">
+          + Aggiungi passaggio
+        </button>
+      </div>
+    </div>
+  `;
+
+  card.querySelector(".cons-attivo").value = attivoVal;
+
+  // toggle collapse
+  const body = card.querySelector(".cons-body");
+  const btnToggle = card.querySelector('[data-action="toggle"]');
+  if (btnToggle && body) {
+    btnToggle.addEventListener("click", () => {
+      const isHidden = body.style.display === "none";
+      body.style.display = isHidden ? "" : "none";
+      btnToggle.textContent = isHidden ? "▾" : "▸";
+    });
+  }
+
+  // delete
+  card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
+
+  // passaggi container
+  const passContainer = card.querySelector(".cons-passaggi");
+
+  // render existing passaggi
+  if (Array.isArray(passaggi) && passaggi.length) {
+    // group by posizione then by gruppo_alternativa
+    const sorted = [...passaggi].sort((a,b) => {
+      const pa = a.posizione ?? 0, pb = b.posizione ?? 0;
+      if (pa !== pb) return pa - pb;
+      const ga = a.gruppo_alternativa ?? 0, gb = b.gruppo_alternativa ?? 0;
+      if (ga !== gb) return ga - gb;
+      return String(a.titolo||"").localeCompare(String(b.titolo||""));
+    });
+    sorted.forEach(p => aggiungiConservazionePassaggio(passContainer, p));
+  }
+
+  // add passaggio
+  card.querySelector('[data-action="add-passaggio"]').addEventListener("click", () => {
+    const nextPos = nextPosizionePassaggio(passContainer);
+    aggiungiConservazionePassaggio(passContainer, { posizione: nextPos, gruppo_alternativa: null });
+  });
+
+  container.appendChild(card);
+}
+
+function nextPosizionePassaggio(passContainer) {
+  let max = 0;
+  passContainer.querySelectorAll(".cons-passaggio").forEach(r => {
+    const pos = parseInt(r.dataset.posizione || "0", 10);
+    if (pos > max) max = pos;
+  });
+  return max + 1;
+}
+
+function aggiungiConservazionePassaggio(passContainer, initial = {}) {
+  const row = document.createElement("div");
+  row.className = "cons-passaggio";
+  row.style.border = "1px solid rgba(0,0,0,0.08)";
+  row.style.borderRadius = "10px";
+  row.style.padding = "12px";
+  row.style.marginBottom = "10px";
+  row.style.background = "rgba(255,255,255,0.6)";
+
+  const posizione = initial.posizione ?? 1;
+  const gruppo = initial.gruppo_alternativa ?? null;
+
+  row.dataset.posizione = String(posizione);
+  row.dataset.gruppo = (gruppo == null) ? "" : String(gruppo);
+
+  const headerLabel = (gruppo == null)
+    ? `Passaggio ${posizione}`
+    : `Passaggio ${posizione} – Alternativa ${String.fromCharCode(65 + ((parseInt(gruppo,10) || 1) - 1))}`;
+
+  row.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-weight:700;">${escapeHtml(headerLabel)}</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="app-button tiny" type="button" data-action="up">↑</button>
+        <button class="app-button tiny" type="button" data-action="down">↓</button>
+        <button class="app-button tiny" type="button" data-action="alt">+ Alternativa</button>
+        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:10px;">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Titolo *</label>
+        <input class="cp-titolo input" value="${escapeAttr(initial.titolo || "")}" placeholder="Es: Abbattimento positivo / Sottovuoto / Pastorizzazione..." />
+      </div>
+
+      <div class="form-group">
+        <label>Tipo</label>
+        <select class="cp-tipo input">
+          <option value="abbattimento">abbattimento</option>
+          <option value="confezionamento">confezionamento</option>
+          <option value="pastorizzazione">pastorizzazione</option>
+          <option value="stoccaggio">stoccaggio</option>
+          <option value="altro">altro</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Attrezzatura</label>
+        <input class="cp-attrezz input" value="${escapeAttr(initial.attrezzatura || "")}" placeholder="Es: teglia inox / roner / abbattitore..." />
+      </div>
+
+      <div class="form-group">
+        <label>Temp (°C)</label>
+        <input class="cp-temp input" type="number" step="0.1" value="${escapeAttr(initial.temperatura_c ?? "")}" />
+      </div>
+
+      <div class="form-group">
+        <label>Durata (min)</label>
+        <input class="cp-durata input" type="number" min="0" value="${escapeAttr(initial.durata_min ?? "")}" />
+      </div>
+
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Descrizione operativa (popup operatore)</label>
+        <textarea class="cp-desc input" rows="2">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
+      </div>
+    </div>
+  `;
+
+  row.querySelector(".cp-tipo").value = initial.tipo_passaggio || "altro";
+
+  // actions
+  row.querySelector('[data-action="delete"]').addEventListener("click", () => row.remove());
+
+  row.querySelector('[data-action="up"]').addEventListener("click", () => {
+    const prev = row.previousElementSibling;
+    if (prev) passContainer.insertBefore(row, prev);
+    rinumeraPassaggi(passContainer);
+  });
+
+  row.querySelector('[data-action="down"]').addEventListener("click", () => {
+    const next = row.nextElementSibling;
+    if (next) passContainer.insertBefore(next, row);
+    rinumeraPassaggi(passContainer);
+  });
+
+  row.querySelector('[data-action="alt"]').addEventListener("click", () => {
+    // crea alternativa nello stesso slot (stessa posizione) con gruppo incrementale
+    const pos = parseInt(row.dataset.posizione || "1", 10);
+    const existingGroups = [...passContainer.querySelectorAll(`.cons-passaggio[data-posizione="${pos}"]`)]
+      .map(el => parseInt(el.dataset.gruppo || "0", 10))
+      .filter(n => n > 0);
+    const nextGroup = (existingGroups.length ? Math.max(...existingGroups) : 0) + 1;
+    const altRow = {
+      posizione: pos,
+      gruppo_alternativa: nextGroup,
+      tipo_passaggio: row.querySelector(".cp-tipo").value,
+      titolo: "",
+      attrezzatura: "",
+      temperatura_c: null,
+      durata_min: null,
+      descrizione_operativa: ""
+    };
+    // inserisci subito dopo
+    const newEl = aggiungiConservazionePassaggio(passContainer, altRow);
+    passContainer.insertBefore(newEl, row.nextElementSibling);
+    rinumeraPassaggi(passContainer);
+  });
+
+  passContainer.appendChild(row);
+  rinumeraPassaggi(passContainer);
+  return row;
+}
+
+function rinumeraPassaggi(passContainer) {
+  // Rinumera in base all'ordine visuale, mantenendo le alternative sullo stesso numero se hanno stessa data-posizione.
+  // Se l'utente sposta un passaggio, aggiorniamo le posizioni in sequenza.
+  let pos = 1;
+  const rows = [...passContainer.querySelectorAll(".cons-passaggio")];
+
+  // raggruppa per blocchi: ogni row che non è alternativa (gruppo vuoto) inizia un nuovo pos,
+  // ma se un row ha gruppo >0 e la precedente ha stesso dataset.posizione, la lasciamo nello stesso pos.
+  // Regola semplice: se una riga ha gruppo vuoto -> nuova posizione incrementale.
+  // Se ha gruppo >0 -> usa la posizione della riga precedente con gruppo vuoto più vicina sopra.
+  let currentPos = 0;
+  rows.forEach(r => {
+    const grp = parseInt(r.dataset.gruppo || "0", 10);
+    if (!grp) {
+      currentPos = pos++;
+      r.dataset.posizione = String(currentPos);
+    } else {
+      r.dataset.posizione = String(currentPos || 1);
+    }
+    const header = r.querySelector("div > div");
+    if (header) {
+      const g = grp ? ` – Alternativa ${String.fromCharCode(65 + (grp - 1))}` : "";
+      header.textContent = `Passaggio ${r.dataset.posizione}${g}`;
+    }
+  });
+}
+
 
 /* ============================================================
    PORZIONATURE
@@ -800,60 +1100,61 @@ function aggiungiScenarioConservazione(initial = {}) {
 function aggiungiPorzione(initial = {}) {
   const container = document.getElementById("porzioni-container");
 
-  const row = document.createElement("div");
-  row.className = "azienda-card";
-  row.style.marginBottom = "8px";
+  const card = document.createElement("div");
+  card.className = "azienda-card";
+  card.style.marginBottom = "12px";
+  card.style.padding = "14px";
 
-  row.innerHTML = `
-    <div class="editor-grid-2">
+  card.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-weight:700; font-size:16px;">Porzione</div>
+      <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+    </div>
 
-      <label style="grid-column:1/-1;">
-        Label porzione *
-        <input class="porz-label input-pill" value="${escapeAttr(initial.label || "")}" placeholder="Es: Trattoria 200g / Ricevimento 120g / Vasetto 280g" />
-      </label>
+    <div class="form-grid" style="margin-top:10px;">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Label porzione *</label>
+        <input class="porz-label input" value="${escapeAttr(initial.label || "")}" placeholder="Es: Trattoria 200g / Ricevimento 120g / Vasetto 280g" />
+      </div>
 
-      <label>
-        Peso porzione *
-        <input class="porz-peso input-pill" type="number" min="0" step="0.001" value="${escapeAttr(initial.peso_porzione ?? "")}" />
-      </label>
+      <div class="form-group">
+        <label>Peso porzione *</label>
+        <input class="porz-peso input" type="number" min="0" step="0.001" value="${escapeAttr(initial.peso_porzione ?? "")}" />
+      </div>
 
-      <label>
-        Unità misura *
-        <select class="porz-um input-pill">
+      <div class="form-group">
+        <label>Unità misura *</label>
+        <select class="porz-um input">
           <option value="g">g</option>
           <option value="kg">kg</option>
           <option value="pz">pz</option>
           <option value="ml">ml</option>
           <option value="l">l</option>
         </select>
-      </label>
+      </div>
 
-      <label style="grid-column:1/-1;">
-        Note (opz.)
-        <input class="porz-note input-pill" value="${escapeAttr(initial.note || "")}" />
-      </label>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Note (opz.)</label>
+        <input class="porz-note input" value="${escapeAttr(initial.note || "")}" />
+      </div>
 
-      <label>
-        Attivo
-        <select class="porz-attivo input-pill">
+      <div class="form-group">
+        <label>Attivo</label>
+        <select class="porz-attivo input">
           <option value="true">sì</option>
           <option value="false">no</option>
         </select>
-      </label>
-
-    </div>
-
-    <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
+      </div>
     </div>
   `;
 
-  row.querySelector(".porz-um").value = initial.unita_misura || "g";
-  row.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
-  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
+  card.querySelector(".porz-um").value = initial.unita_misura || "g";
+  card.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
+  card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
 
-  container.appendChild(row);
+  container.appendChild(card);
 }
+
 
 /* ============================================================
    CARICA RICETTA COMPLETA
@@ -927,8 +1228,31 @@ async function caricaRicettaCompleta() {
     .order("id", { ascending: true });
 
   conservazioniCache = cons || [];
-  document.getElementById("conservazione-container").innerHTML = "";
-  if (conservazioniCache.length) conservazioniCache.forEach(c => aggiungiScenarioConservazione(c));
+  // passaggi conservazione (nuovo modello a fasi)
+  conservazionePassaggiMap = new Map();
+  const { data: consPass } = await supabase
+    .from("ricette_conservazione_passaggi")
+    .select("*")
+    .eq("ricetta_id", Number(ricettaId))
+    .eq("azienda_id", aziendaId)
+    .order("ricette_conservazione_id", { ascending: true })
+    .order("posizione", { ascending: true })
+    .order("gruppo_alternativa", { ascending: true });
+
+  (consPass || []).forEach(p => {
+    const sid = String(p.ricette_conservazione_id);
+    if (!conservazionePassaggiMap.has(sid)) conservazionePassaggiMap.set(sid, []);
+    conservazionePassaggiMap.get(sid).push(p);
+  });
+
+  const consContainer = document.getElementById("conservazione-container");
+  if (consContainer) consContainer.innerHTML = "";
+  if (conservazioniCache.length) {
+    conservazioniCache.forEach(c => {
+      const passaggi = conservazionePassaggiMap.get(String(c.id)) || [];
+      aggiungiScenarioConservazione(c, passaggi);
+    });
+  }
   else aggiungiScenarioConservazione();
 
   // output (1 record)
@@ -1172,7 +1496,7 @@ async function salvaTutto() {
 
       if (pid && qta && qta > 0) {
         const p = prodottiMap.get(String(pid));
-        const um = p?.um || "pz";
+        const um = (r.querySelector(".ing-um")?.value || p?.um || "pz");
 
         rows.push({
           ricetta_id: ricettaIdNum,
@@ -1230,7 +1554,7 @@ async function salvaTutto() {
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
       const richiede_conferma = (r.querySelector(".fase-conferma")?.value === "true");
-      const fase_template_id = toIntOrNull(r.querySelector(".fase-template-id")?.value);
+      const fase_template_id = toIntOrNull(r.querySelector(".fase-template")?.value);
 
       if (!nome_fase) return;
 
@@ -1265,8 +1589,22 @@ async function salvaTutto() {
     }
   }
 
-  // conservazione (scenari)
+
+  // conservazione (scenari + passaggi)
   {
+    // reset passaggi prima (dipendono dagli scenari)
+    const { error: delPassErr } = await supabase
+      .from("ricette_conservazione_passaggi")
+      .delete()
+      .eq("ricetta_id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (delPassErr) {
+      console.error(delPassErr);
+      if (esito) esito.innerText = "";
+      return alert("Errore reset passaggi conservazione.");
+    }
+
     const { error: delConsErr } = await supabase
       .from("ricette_conservazione")
       .delete()
@@ -1279,22 +1617,20 @@ async function salvaTutto() {
       return alert("Errore reset conservazione.");
     }
 
-    const rows = [];
-    document.querySelectorAll("#conservazione-container .azienda-card").forEach(r => {
-      const scenario_label = (r.querySelector(".cons-label")?.value || "").trim();
-      const shelf_life_giorni = toIntOrNull(r.querySelector(".cons-shelf")?.value);
-      const abbattimento = (r.querySelector(".cons-abbatt")?.value || "").trim() || null;
-      const confezionamento = (r.querySelector(".cons-confez")?.value || "").trim() || null;
-      const note = (r.querySelector(".cons-note")?.value || "").trim() || null;
-      const attivo = (r.querySelector(".cons-attivo")?.value !== "false");
+    const scenarioDom = [...document.querySelectorAll("#conservazione-container .azienda-card")];
+
+    const scenarioRows = [];
+    scenarioDom.forEach(card => {
+      const scenario_label = (card.querySelector(".cons-label")?.value || "").trim();
+      const shelf_life_giorni = toIntOrNull(card.querySelector(".cons-shelf")?.value);
+      const note = (card.querySelector(".cons-note")?.value || "").trim() || null;
+      const attivo = (card.querySelector(".cons-attivo")?.value !== "false");
 
       if (!scenario_label) return;
 
-      rows.push({
+      scenarioRows.push({
         ricetta_id: ricettaIdNum,
         scenario_label,
-        abbattimento,
-        confezionamento,
         shelf_life_giorni,
         note,
         attivo,
@@ -1302,15 +1638,91 @@ async function salvaTutto() {
       });
     });
 
-    if (rows.length) {
-      const { error: insConsErr } = await supabase
+    let insertedScenari = [];
+    if (scenarioRows.length) {
+      const { data: insData, error: insConsErr } = await supabase
         .from("ricette_conservazione")
-        .insert(rows);
+        .insert(scenarioRows)
+        .select("id, scenario_label");
 
       if (insConsErr) {
         console.error(insConsErr);
         if (esito) esito.innerText = "";
         return alert("Errore salvataggio conservazione.");
+      }
+      insertedScenari = insData || [];
+    }
+
+    // passaggi
+    const passRows = [];
+    // associamo per indice: i card DOM sono nello stesso ordine dei row inseriti (scenarioRows)
+    let insIdx = 0;
+    scenarioDom.forEach(card => {
+      const scenario_label = (card.querySelector(".cons-label")?.value || "").trim();
+      if (!scenario_label) return;
+
+      const scenarioRecord = insertedScenari[insIdx++];
+      if (!scenarioRecord?.id) return;
+
+      const passContainer = card.querySelector(".cons-passaggi");
+      if (!passContainer) return;
+
+      // calcola gruppi alternativa per posizione: se esistono più righe con stessa posizione, assegna gruppo_alternativa 1..N
+      const rows = [...passContainer.querySelectorAll(".cons-passaggio")];
+
+      // mappa pos -> count alt encountered
+      const posCounts = new Map();
+
+      rows.forEach(r => {
+        const posizione = toIntOrNull(r.dataset.posizione) || 1;
+
+        // gruppo: se la riga ha dataset.gruppo (numero) usalo, altrimenti null (passaggio principale)
+        let gruppo_alternativa = toIntOrNull(r.dataset.gruppo);
+        if (!gruppo_alternativa) gruppo_alternativa = null;
+
+        // Se esistono più righe con stesso pos e gruppo null, la seconda diventerebbe alt: preveniamo
+        if (gruppo_alternativa == null) {
+          const c = (posCounts.get(posizione) || 0) + 1;
+          posCounts.set(posizione, c);
+          if (c > 1) gruppo_alternativa = c - 1; // fallback
+        }
+
+        const titolo = (r.querySelector(".cp-titolo")?.value || "").trim();
+        const tipo_passaggio = (r.querySelector(".cp-tipo")?.value || "altro").trim();
+        const attrezzatura = (r.querySelector(".cp-attrezz")?.value || "").trim() || null;
+        const temperatura_c = toNumOrNull(r.querySelector(".cp-temp")?.value);
+        const durata_min = toIntOrNull(r.querySelector(".cp-durata")?.value);
+        const descrizione_operativa = (r.querySelector(".cp-desc")?.value || "").trim() || null;
+
+        if (!titolo) return;
+
+        passRows.push({
+          azienda_id: aziendaId,
+          ricette_conservazione_id: Number(scenarioRecord.id),
+          ricetta_id: ricettaIdNum,
+          posizione,
+          gruppo_alternativa,
+          titolo,
+          tipo_passaggio,
+          attrezzatura,
+          temperatura_c,
+          durata_min,
+          descrizione_operativa,
+          note: null,
+          parametri: {}
+        });
+      });
+    });
+
+    if (passRows.length) {
+      const { error: insPassErr } = await supabase
+        .from("ricette_conservazione_passaggi")
+        .insert(passRows);
+
+      if (insPassErr) {
+        console.error(insPassErr);
+        if (esito) esito.innerText = "";
+        return alert("Errore salvataggio passaggi conservazione.");
       }
     }
   }
@@ -1555,165 +1967,37 @@ function convertToBase(qty, um) {
    BIND UI
 ============================================================ */
 function bindUI() {
-  document.getElementById("btn-add-ing")
-    .addEventListener("click", () => aggiungiIngrediente());
+  safeOn("btn-add-ing", "click", () => aggiungiIngrediente());
+  safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
+  safeOn("btn-add-fase", "click", () => {
+    const next = nextOrdineFase();
+    aggiungiFase({ ordine: next, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
+  });
+  safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
+  safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
+  safeOn("btn-salva", "click", () => salvaTutto());
 
-  document.getElementById("btn-add-out2")
-    .addEventListener("click", () => aggiungiOutputSecondario());
-
-  document.getElementById("btn-add-fase-manuale")
-    .addEventListener("click", () => {
-      const next = nextOrdineFase();
-      aggiungiFase({ ordine: next, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
-      openOnlyLastFase();
-      renumberFasi();
-    });
-
-  document.getElementById("btn-add-fase-standard")
-    .addEventListener("click", () => {
-      openModalFasiTemplate();
-    });
-
-  document.getElementById("btn-add-conservazione")
-    .addEventListener("click", () => aggiungiScenarioConservazione());
-
-  document.getElementById("btn-add-porzione")
-    .addEventListener("click", () => aggiungiPorzione());
-
-  document.getElementById("btn-salva")
-    .addEventListener("click", salvaTutto);
-
-  const backBtn = document.getElementById("btn-torna-ricettario");
-  if (backBtn) backBtn.addEventListener("click", () => window.location.hash = "#/ricettario");
-
-  document.getElementById("r-output-search")
-    .addEventListener("input", () => {
-      if (!getVal("r-output-id")) document.getElementById("r-output-info").innerText = "Nessun prodotto output selezionato";
-    });
-
-  document.getElementById("r-output-id")
-    .addEventListener("change", aggiornaOutputInfo);
+  // Autocomplete output (già inizializzato in loadProdotti) ma reinforziamo in caso di render tardivo
+  const outSearch = document.getElementById("r-output-search");
+  const outHidden = document.getElementById("r-output-id");
+  const outSuggest = document.getElementById("r-output-suggest");
+  if (outSearch && outHidden && outSuggest) {
+    // evita doppio bind
+    if (!outSearch.dataset.acBound) {
+      outSearch.dataset.acBound = "1";
+      setupAutocomplete(outSearch, outHidden, outSuggest, () => aggiornaOutputInfo());
+    }
+  }
 }
+
 
 function nextOrdineFase() {
-  return (document.querySelectorAll("#fasi-container .azienda-card").length || 0) + 1;
-}
-
-
-/* ============================================================
-   MODAL TEMPLATE FASI (inserimento da standard)
-============================================================ */
-function openModalFasiTemplate() {
-  const modal = document.getElementById("modal-fasi-template");
-  const search = document.getElementById("tpl-fase-search");
-  const list = document.getElementById("tpl-fase-list");
-  const btnClose = document.getElementById("btn-close-modal-fasi-template");
-
-  if (!modal || !search || !list || !btnClose) return;
-
-  modal.style.display = "";
-
-  const renderList = () => {
-    const q = (search.value || "").toLowerCase().trim();
-    const items = (fasiTemplateCache || [])
-      .filter(t => {
-        const titolo = String(t.titolo || "").toLowerCase();
-        const desc = String(t.descrizione_operativa || "").toLowerCase();
-        return !q || titolo.includes(q) || desc.includes(q);
-      })
-      .slice(0, 80);
-
-    list.innerHTML = "";
-    if (!items.length) {
-      list.innerHTML = `<div class="small-muted">Nessun risultato</div>`;
-      return;
-    }
-
-    items.forEach(t => {
-      const row = document.createElement("div");
-      row.className = "azienda-card";
-      row.style.padding = "10px";
-      row.style.borderRadius = "14px";
-      row.style.cursor = "pointer";
-
-      row.innerHTML = `
-        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
-          <div style="min-width:0;">
-            <div style="font-weight:800;">${escapeHtml(t.titolo)}</div>
-            <div class="small-muted" style="margin-top:4px; white-space:pre-wrap;">${escapeHtml(String(t.descrizione_operativa || "").slice(0, 180))}</div>
-          </div>
-          <div class="small-muted" style="white-space:nowrap;">${escapeHtml(t.tipo_fase || "")}</div>
-        </div>
-      `;
-
-      row.addEventListener("click", () => {
-        const next = nextOrdineFase();
-        aggiungiFase({
-          ordine: next,
-          tipo_fase: t.tipo_fase || "preparazione",
-          nome_fase: t.titolo || "",
-          descrizione_operativa: t.descrizione_operativa || "",
-          durata_min: t.durata_min_default ?? 0,
-          lavoro_umano_min: t.lavoro_umano_min_default ?? 0,
-          tecnologia: t.tecnologia_default || "",
-          temperatura: t.temperatura_default ?? "",
-          richiede_conferma: Boolean(t.richiede_conferma),
-          fase_template_id: t.id
-        });
-        closeModalFasiTemplate();
-        openOnlyLastFase();
-      });
-
-      list.appendChild(row);
-    });
-  };
-
-  renderList();
-  search.focus();
-  search.oninput = renderList;
-
-  btnClose.onclick = closeModalFasiTemplate;
-
-  modal.onclick = (e) => {
-    if (e.target === modal) closeModalFasiTemplate();
-  };
-}
-
-function closeModalFasiTemplate() {
-  const modal = document.getElementById("modal-fasi-template");
-  if (modal) modal.style.display = "none";
-}
-
-function closeAllFasiExcept(cardEl) {
-  document.querySelectorAll("#fasi-container .azienda-card").forEach(c => {
-    if (c === cardEl) return;
-    const body = c.querySelector(".fase-body");
-    const btn = c.querySelector('[data-action="toggle"]');
-    if (body) body.style.display = "none";
-    if (btn) btn.textContent = "Apri";
+  let max = 0;
+  document.querySelectorAll("#fasi-container .fase-ordine").forEach(el => {
+    const n = toIntOrNull(el.value);
+    if (n && n > max) max = n;
   });
-}
-
-function openOnlyLastFase() {
-  const cards = document.querySelectorAll("#fasi-container .azienda-card");
-  if (!cards.length) return;
-  const last = cards[cards.length - 1];
-  closeAllFasiExcept(last);
-  const body = last.querySelector(".fase-body");
-  const btn = last.querySelector('[data-action="toggle"]');
-  if (body) body.style.display = "";
-  if (btn) btn.textContent = "Chiudi";
-}
-
-function renumberFasi() {
-  const cards = Array.from(document.querySelectorAll("#fasi-container .azienda-card"));
-  cards.forEach((card, idx) => {
-    const ordine = idx + 1;
-    const ordineHidden = card.querySelector(".fase-ordine");
-    if (ordineHidden) ordineHidden.value = String(ordine);
-    const num = card.querySelector(".fase-num");
-    if (num) num.textContent = `FASE ${ordine}`;
-  });
+  return max + 1;
 }
 
 /* ============================================================
@@ -1739,6 +2023,12 @@ function toNumOrNull(v) {
   if (!s) return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
+}
+
+function safeOn(id, evt, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener(evt, fn);
 }
 
 function escapeHtml(str) {
