@@ -1883,8 +1883,13 @@ function convertToBase(qty, um) {
 function bindUI() {
   safeOn("btn-add-ing", "click", () => aggiungiIngrediente());
   safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
-  safeOn("btn-add-fase", "click", () => aggiungiFase({ tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 }));
-  });
+  safeOn("btn-add-fase", "click", () =>
+  aggiungiFase({
+    tipo_fase: "preparazione",
+    durata_min: 0,
+    lavoro_umano_min: 0
+  })
+);
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
   safeOn("btn-salva", "click", () => salvaTutto());
