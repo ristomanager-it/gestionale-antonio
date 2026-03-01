@@ -74,7 +74,13 @@ async function renderFatture(container, azienda) {
 
   container.innerHTML = `
   <div class="card">
-    <h3>Nuova Fattura</h3>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <h3 style="margin:0;">Nuova Fattura</h3>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="btn-indietro-admin" class="app-button tiny gray" type="button">← Indietro</button>
+        <button id="btn-guida" class="app-button tiny gray" type="button">Guida</button>
+      </div>
+    </div>
 
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
       <button class="app-button tiny mode-btn active" data-mode="manuale">Manuale</button>
@@ -86,7 +92,7 @@ async function renderFatture(container, azienda) {
       <button id="btn-esegui-ocr" class="app-button small gray" type="button">
         Carica e analizza fattura
       </button>
-      <div class="small-muted" style="margin-top:6px; color:#6b7280;">Puoi selezionare più immagini (fattura multi-pagina).</div>
+      <div class="small-muted" style="margin-top:6px; color:#6b7280;">Puoi selezionare più file (immagini e/o PDF, anche multi-pagina).</div>
     </div>
 
     <div class="form-grid">
@@ -1498,10 +1504,12 @@ function renderRigheUI() {
     const paths = [];
 
     for (const file of files) {
-      // Railway OCR accetta solo immagini. PDF non supportato lato frontend (per ora).
+      // Supporta immagini e PDF (conversione PDF gestita dal microservizio OCR)
       const mime = String(file?.type || "").toLowerCase();
-      if (!mime.startsWith("image/")) {
-        throw new Error("Formato non supportato: carica solo immagini (JPG/PNG/WEBP). PDF non ancora supportato.");
+      const isImage = mime.startsWith("image/");
+      const isPdf = mime === "application/pdf";
+      if (!isImage && !isPdf) {
+        throw new Error("Formato non supportato: carica immagini (JPG/PNG/WEBP) o PDF.");
       }
       const cleanName = String(file.name || "fattura")
         .toLowerCase()
