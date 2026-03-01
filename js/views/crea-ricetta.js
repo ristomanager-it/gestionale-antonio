@@ -18,6 +18,9 @@ let ricettaId = null;
 let prodottiCache = [];
 let prodottiMap = new Map();
 
+let fasiTemplateCache = [];
+let fasiTemplateMap = new Map();
+
 let ingredientiCache = [];
 let fasiCache = [];
 let conservazioniCache = [];
@@ -41,7 +44,7 @@ export async function render(app) {
   }
 
   // ============================================================
-  // 🔐 CONTROLLO PERMESSI
+  // ? CONTROLLO PERMESSI
   // ============================================================
 
   if (!requirePermessi({
@@ -65,7 +68,7 @@ export async function render(app) {
   }
 
   // ============================================================
-  // 🧱 LAYOUT DEFINITIVO (COME PREVENTIVO)
+  // ? LAYOUT DEFINITIVO (COME PREVENTIVO)
   // ============================================================
 
   app.innerHTML = createPageLayout({
@@ -76,7 +79,7 @@ export async function render(app) {
       <div class="form-actions" style="margin-bottom:16px;">
         <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
-          ← Centro Produzione
+          ? Centro Produzione
         </button>
       </div>
 
@@ -233,7 +236,7 @@ export async function render(app) {
       <div class="form-actions" style="margin-top:20px;">
         <button id="btn-salva"
           class="app-button">
-          💾 Salva Ricetta
+          ? Salva Ricetta
         </button>
       </div>
 
@@ -242,10 +245,11 @@ export async function render(app) {
   });
 
   // ============================================================
-  // 🔄 LOGICA ORIGINALE (NON TOCCATA)
+  // ? LOGICA ORIGINALE (NON TOCCATA)
   // ============================================================
 
   await loadProdotti();
+  await loadFasiTemplate();
   bindUI();
 
   if (ricettaId) {
@@ -297,6 +301,46 @@ async function loadProdotti() {
     }
   );
 }
+/* ============================================================
+   FASI TEMPLATE
+============================================================ */
+async function loadFasiTemplate() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state.azienda.id;
+
+  const { data, error } = await supabase
+    .from("fasi_template")
+    .select("id, titolo, descrizione_operativa, tipo_fase, durata_min_default, lavoro_umano_min_default, tecnologia_default, temperatura_default, richiede_conferma, parametri")
+    .eq("azienda_id", aziendaId)
+    .eq("attiva", true)
+    .order("titolo");
+
+  if (error) {
+    console.error(error);
+    fasiTemplateCache = [];
+    fasiTemplateMap = new Map();
+    return;
+  }
+
+  fasiTemplateCache = data || [];
+  fasiTemplateMap = new Map(fasiTemplateCache.map(t => [String(t.id), t]));
+}
+
+function rebuildFasiTemplateOptions(selectEl, tipoFase = null, selectedId = "") {
+  if (!selectEl) return;
+
+  const selId = selectedId ? String(selectedId) : "";
+
+  const baseOpt = `<option value="">— Nessun template —</option>`;
+  const opts = (fasiTemplateCache || [])
+    .filter(t => !tipoFase || String(t.tipo_fase || "") === String(tipoFase || ""))
+    .map(t => `<option value="${t.id}">${escapeHtml(t.titolo)}</option>`)
+    .join("");
+
+  selectEl.innerHTML = baseOpt + opts;
+  if (selId) selectEl.value = selId;
+}
+
 
 function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
   if (!_autocompleteDocBound) {
@@ -443,11 +487,11 @@ function aggiungiIngrediente(initial = {}) {
     </div>
 
     <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button">✕</button>
+      <button class="app-button tiny red" type="button">?</button>
     </div>
   `;
 
-  row.querySelector("button").onclick = () => row.remove();
+  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
   container.appendChild(row);
 
   const ingSearch = row.querySelector(".ing-search");
@@ -486,6 +530,11 @@ function aggiungiFase(initial = {}) {
   row.innerHTML = `
     <div class="editor-grid-2">
 
+      <label style="grid-column:1/-1;">
+        Template fase (opz.)
+        <select class="fase-template input-pill"></select>
+      </label>
+
       <label>
         Ordine *
         <input class="fase-ordine input-pill" type="number" min="1" value="${escapeAttr(initial.ordine ?? 1)}" />
@@ -504,6 +553,12 @@ function aggiungiFase(initial = {}) {
       <label style="grid-column:1/-1;">
         Nome fase *
         <input class="fase-nome input-pill" value="${escapeAttr(initial.nome_fase || "")}" />
+      </label>
+
+      <label style="grid-column:1/-1;">
+        Descrizione operativa (per operatore)
+        <textarea class="fase-descrizione input-pill" rows="3"
+          placeholder="Istruzioni operative chiare per l'operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
       </label>
 
       <label>
@@ -526,6 +581,14 @@ function aggiungiFase(initial = {}) {
         <input class="fase-temperatura input-pill" type="number" step="0.1" value="${escapeAttr(initial.temperatura ?? "")}" />
       </label>
 
+      <label>
+        Richiede conferma
+        <select class="fase-conferma input-pill">
+          <option value="false">no</option>
+          <option value="true">sì</option>
+        </select>
+      </label>
+
       <label style="grid-column:1/-1;">
         Note (opz.)
         <input class="fase-note input-pill" value="${escapeAttr(initial.note || "")}" />
@@ -533,21 +596,108 @@ function aggiungiFase(initial = {}) {
 
     </div>
 
-    <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button">✕</button>
+    <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <button class="app-button tiny" type="button" data-action="save-template">Salva come template</button>
+      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
     </div>
   `;
 
   const tipoSel = row.querySelector(".fase-tipo");
   tipoSel.value = initial.tipo_fase || "preparazione";
 
+  // template select (filtrato per tipo fase)
+  const tplSel = row.querySelector(".fase-template");
+  rebuildFasiTemplateOptions(tplSel, tipoSel.value, initial.fase_template_id || "");
+
+  // richiede conferma
+  const confSel = row.querySelector(".fase-conferma");
+  if (confSel) confSel.value = String(initial.richiede_conferma ?? false);
+
+  // se selezioni template → autopopola (ma sempre modificabile)
+  tplSel.addEventListener("change", () => {
+    const tplId = tplSel.value;
+    if (!tplId) return;
+    const tpl = fasiTemplateMap.get(String(tplId));
+    if (!tpl) return;
+
+    // allinea anche tipo fase (coerente col template)
+    if (tpl.tipo_fase) {
+      tipoSel.value = tpl.tipo_fase;
+      row.dataset.tipoFase = tipoSel.value || "preparazione";
+      rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplId);
+      filterFasiByTab();
+    }
+
+    row.querySelector(".fase-nome").value = tpl.titolo || "";
+    row.querySelector(".fase-descrizione").value = tpl.descrizione_operativa || "";
+    row.querySelector(".fase-durata").value = tpl.durata_min_default ?? 0;
+    row.querySelector(".fase-lavoro").value = tpl.lavoro_umano_min_default ?? 0;
+    row.querySelector(".fase-tecnologia").value = tpl.tecnologia_default || "";
+    row.querySelector(".fase-temperatura").value = tpl.temperatura_default ?? "";
+    confSel.value = String(tpl.richiede_conferma ?? false);
+  });
+
+  // salva come template
+  row.querySelector('[data-action="save-template"]').addEventListener("click", async () => {
+    const supabase = window.supabaseClient;
+    const aziendaId = window.state.azienda.id;
+
+    const titolo = (row.querySelector(".fase-nome")?.value || "").trim();
+    const descrizione_operativa = (row.querySelector(".fase-descrizione")?.value || "").trim();
+    const tipo_fase = (row.querySelector(".fase-tipo")?.value || "preparazione").trim();
+
+    if (!titolo) return alert("Nome fase obbligatorio per salvare un template.");
+
+    const payload = {
+      azienda_id: aziendaId,
+      titolo,
+      descrizione_operativa: descrizione_operativa || titolo,
+      tipo_fase,
+      durata_min_default: toIntOrNull(row.querySelector(".fase-durata")?.value) ?? 0,
+      lavoro_umano_min_default: toIntOrNull(row.querySelector(".fase-lavoro")?.value) ?? 0,
+      tecnologia_default: (row.querySelector(".fase-tecnologia")?.value || "").trim() || null,
+      temperatura_default: toNumOrNull(row.querySelector(".fase-temperatura")?.value),
+      richiede_conferma: (row.querySelector(".fase-conferma")?.value === "true"),
+      parametri: {},
+      attiva: true
+    };
+
+    const { data, error } = await supabase
+      .from("fasi_template")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error(error);
+      return alert("Errore salvataggio template (verifica duplicati o permessi).");
+    }
+
+    await loadFasiTemplate();
+
+    // aggiorna tutte le select template delle fasi (mantiene selezione corrente)
+    document.querySelectorAll("#fasi-container .azienda-card").forEach(card => {
+      const tSel = card.querySelector(".fase-template");
+      const tTipo = card.querySelector(".fase-tipo")?.value || "preparazione";
+      const current = tSel?.value || "";
+      rebuildFasiTemplateOptions(tSel, tTipo, current);
+    });
+
+    // seleziona il nuovo template su questa fase
+    rebuildFasiTemplateOptions(tplSel, tipoSel.value, data?.id);
+    alert("Template salvato.");
+  });
+
+
+
   // se cambio tipo fase, aggiorno dataset e rifiltro
   tipoSel.addEventListener("change", () => {
     row.dataset.tipoFase = tipoSel.value || "preparazione";
+    rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplSel.value);
     filterFasiByTab();
   });
 
-  row.querySelector("button").onclick = () => row.remove();
+  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
 
   container.appendChild(row);
 
@@ -604,12 +754,12 @@ function aggiungiScenarioConservazione(initial = {}) {
     </div>
 
     <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button">✕</button>
+      <button class="app-button tiny red" type="button">?</button>
     </div>
   `;
 
   row.querySelector(".cons-attivo").value = String(initial.attivo ?? true);
-  row.querySelector("button").onclick = () => row.remove();
+  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
 
   container.appendChild(row);
 }
@@ -664,13 +814,13 @@ function aggiungiPorzione(initial = {}) {
     </div>
 
     <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-      <button class="app-button tiny red" type="button">✕</button>
+      <button class="app-button tiny red" type="button">?</button>
     </div>
   `;
 
   row.querySelector(".porz-um").value = initial.unita_misura || "g";
   row.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
-  row.querySelector("button").onclick = () => row.remove();
+  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
 
   container.appendChild(row);
 }
@@ -1023,6 +1173,167 @@ async function salvaTutto() {
       }
     }
   }
+
+  // fasi (procedimento)
+  {
+    const { error: delFasiErr } = await supabase
+      .from("ricette_preparazione_fasi")
+      .delete()
+      .eq("ricetta_id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (delFasiErr) {
+      console.error(delFasiErr);
+      if (esito) esito.innerText = "";
+      return alert("Errore reset fasi.");
+    }
+
+    const rows = [];
+    document.querySelectorAll("#fasi-container .azienda-card").forEach(r => {
+      const ordine = toIntOrNull(r.querySelector(".fase-ordine")?.value) ?? 1;
+      const tipo_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
+      const nome_fase = (r.querySelector(".fase-nome")?.value || "").trim();
+      const descrizione_operativa = (r.querySelector(".fase-descrizione")?.value || "").trim() || null;
+      const durata_min = toIntOrNull(r.querySelector(".fase-durata")?.value) ?? 0;
+      const lavoro_umano_min = toIntOrNull(r.querySelector(".fase-lavoro")?.value) ?? 0;
+      const tecnologia = (r.querySelector(".fase-tecnologia")?.value || "").trim() || null;
+      const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
+      const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
+      const richiede_conferma = (r.querySelector(".fase-conferma")?.value === "true");
+      const fase_template_id = toIntOrNull(r.querySelector(".fase-template")?.value);
+
+      if (!nome_fase) return;
+
+      rows.push({
+        ricetta_id: ricettaIdNum,
+        ordine,
+        nome_fase,
+        tipo_fase,
+        durata_min,
+        lavoro_umano_min,
+        tecnologia,
+        temperatura,
+        note,
+        descrizione_operativa,
+        richiede_conferma,
+        fase_template_id: fase_template_id ?? null,
+        parametri: {},
+        azienda_id: aziendaId
+      });
+    });
+
+    if (rows.length) {
+      const { error: insFasiErr } = await supabase
+        .from("ricette_preparazione_fasi")
+        .insert(rows);
+
+      if (insFasiErr) {
+        console.error(insFasiErr);
+        if (esito) esito.innerText = "";
+        return alert("Errore salvataggio fasi.");
+      }
+    }
+  }
+
+  // conservazione (scenari)
+  {
+    const { error: delConsErr } = await supabase
+      .from("ricette_conservazione")
+      .delete()
+      .eq("ricetta_id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (delConsErr) {
+      console.error(delConsErr);
+      if (esito) esito.innerText = "";
+      return alert("Errore reset conservazione.");
+    }
+
+    const rows = [];
+    document.querySelectorAll("#conservazione-container .azienda-card").forEach(r => {
+      const scenario_label = (r.querySelector(".cons-label")?.value || "").trim();
+      const shelf_life_giorni = toIntOrNull(r.querySelector(".cons-shelf")?.value);
+      const abbattimento = (r.querySelector(".cons-abbatt")?.value || "").trim() || null;
+      const confezionamento = (r.querySelector(".cons-confez")?.value || "").trim() || null;
+      const note = (r.querySelector(".cons-note")?.value || "").trim() || null;
+      const attivo = (r.querySelector(".cons-attivo")?.value !== "false");
+
+      if (!scenario_label) return;
+
+      rows.push({
+        ricetta_id: ricettaIdNum,
+        scenario_label,
+        abbattimento,
+        confezionamento,
+        shelf_life_giorni,
+        note,
+        attivo,
+        azienda_id: aziendaId
+      });
+    });
+
+    if (rows.length) {
+      const { error: insConsErr } = await supabase
+        .from("ricette_conservazione")
+        .insert(rows);
+
+      if (insConsErr) {
+        console.error(insConsErr);
+        if (esito) esito.innerText = "";
+        return alert("Errore salvataggio conservazione.");
+      }
+    }
+  }
+
+  // porzionature
+  {
+    const { error: delPorzErr } = await supabase
+      .from("ricette_porzione")
+      .delete()
+      .eq("ricetta_id", ricettaIdNum)
+      .eq("azienda_id", aziendaId);
+
+    if (delPorzErr) {
+      console.error(delPorzErr);
+      if (esito) esito.innerText = "";
+      return alert("Errore reset porzionature.");
+    }
+
+    const rows = [];
+    document.querySelectorAll("#porzioni-container .azienda-card").forEach(r => {
+      const label = (r.querySelector(".porz-label")?.value || "").trim();
+      const peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
+      const unita_misura = (r.querySelector(".porz-um")?.value || "g").trim();
+      const note = (r.querySelector(".porz-note")?.value || "").trim() || null;
+      const attivo = (r.querySelector(".porz-attivo")?.value !== "false");
+
+      if (!label) return;
+      if (!peso_porzione || peso_porzione <= 0) return;
+
+      rows.push({
+        ricetta_id: ricettaIdNum,
+        label,
+        peso_porzione,
+        unita_misura,
+        note,
+        attivo,
+        azienda_id: aziendaId
+      });
+    });
+
+    if (rows.length) {
+      const { error: insPorzErr } = await supabase
+        .from("ricette_porzione")
+        .insert(rows);
+
+      if (insPorzErr) {
+        console.error(insPorzErr);
+        if (esito) esito.innerText = "";
+        return alert("Errore salvataggio porzionature.");
+      }
+    }
+  }
+
 
   // calcolo costo + snapshot ricetta
   const computed = computeCostoIndustriale({
