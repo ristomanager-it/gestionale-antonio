@@ -1498,6 +1498,11 @@ function renderRigheUI() {
     const paths = [];
 
     for (const file of files) {
+      // Railway OCR accetta solo immagini. PDF non supportato lato frontend (per ora).
+      const mime = String(file?.type || "").toLowerCase();
+      if (!mime.startsWith("image/")) {
+        throw new Error("Formato non supportato: carica solo immagini (JPG/PNG/WEBP). PDF non ancora supportato.");
+      }
       const cleanName = String(file.name || "fattura")
         .toLowerCase()
         .replace(/\s+/g, "_")
@@ -1540,21 +1545,30 @@ function renderRigheUI() {
   async function callOcrRailway(imageUrls) {
     const url = "https://ristoflo-ocr1-production.up.railway.app/ocr";
 
+    const payload = {
+      // compat: alcuni server accettano imageUrl singolo, altri imageUrls array
+      imageUrls: Array.isArray(imageUrls) ? imageUrls : [imageUrls].filter(Boolean),
+      imageUrl: Array.isArray(imageUrls) ? (imageUrls[0] || null) : (imageUrls || null)
+    };
+
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageUrls })
+      body: JSON.stringify(payload)
     });
 
-    let json;
-    try {
-      json = await res.json();
-    } catch (_) {
-      json = null;
+    const rawText = await res.text();
+    let json = null;
+    if (rawText) {
+      try {
+        json = JSON.parse(rawText);
+      } catch (_) {
+        json = null;
+      }
     }
 
     if (!res.ok) {
-      const msg = json?.error || json?.message || `OCR error (${res.status})`;
+      const msg = json?.error || json?.message || (rawText ? rawText.slice(0, 180) : `OCR error (${res.status})`);
       throw new Error(msg);
     }
 
