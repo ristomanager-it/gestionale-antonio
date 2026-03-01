@@ -559,191 +559,107 @@ function rinumeraOrdineIngredienti() {
 ============================================================ */
 function aggiungiFase(initial = {}) {
   const container = document.getElementById("fasi-container");
+  if (!container) return;
 
-  const row = document.createElement("div");
-  row.className = "azienda-card";
-  row.style.marginBottom = "8px";
+  const card = document.createElement("div");
+  card.className = "azienda-card";
+  card.style.marginBottom = "14px";
+  card.style.padding = "16px";
 
-  // per filtro tab
-  row.dataset.tipoFase = initial.tipo_fase || "preparazione";
+  card.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div class="fase-title" style="font-weight:700; font-size:18px;">Fase</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button class="app-button tiny" type="button" data-action="up">↑</button>
+        <button class="app-button tiny" type="button" data-action="down">↓</button>
+        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+      </div>
+    </div>
 
-  row.innerHTML = `
-    <div class="editor-grid-2">
+    <div class="form-grid" style="margin-top:12px;">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Titolo fase *</label>
+        <input class="fase-nome input" value="${escapeAttr(initial.nome_fase || "")}" />
+      </div>
 
-      <label style="grid-column:1/-1;">
-        Template fase (opz.)
-        <select class="fase-template input-pill"></select>
-      </label>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Descrizione operativa</label>
+        <textarea class="fase-descrizione input" rows="4" placeholder="Istruzioni operative per l’operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
+      </div>
 
-      <label>
-        Ordine *
-        <input class="fase-ordine input-pill" type="number" min="1" value="${escapeAttr(initial.ordine ?? 1)}" />
-      </label>
+      <div class="form-group">
+        <label>Durata totale (min)</label>
+        <input class="fase-durata input" type="number" min="0" value="${escapeAttr(initial.durata_min ?? 0)}" />
+      </div>
 
-      <label>
-        Tipo fase *
-        <select class="fase-tipo input-pill">
+      <div class="form-group">
+        <label>Lavoro umano (min)</label>
+        <input class="fase-lavoro input" type="number" min="0" value="${escapeAttr(initial.lavoro_umano_min ?? 0)}" />
+      </div>
+
+      <div class="form-group">
+        <label>Tecnologia (opz.)</label>
+        <input class="fase-tecnologia input" value="${escapeAttr(initial.tecnologia || "")}" />
+      </div>
+
+      <div class="form-group">
+        <label>Temperatura (°C)</label>
+        <input class="fase-temperatura input" type="number" step="0.1" value="${escapeAttr(initial.temperatura ?? "")}" />
+      </div>
+
+      <div class="form-group">
+        <label>Tipo fase</label>
+        <select class="fase-tipo input">
           <option value="preparazione">preparazione</option>
           <option value="cottura">cottura</option>
           <option value="attesa">attesa</option>
           <option value="raffreddamento">raffreddamento</option>
         </select>
-      </label>
+      </div>
 
-      <label style="grid-column:1/-1;">
-        Nome fase *
-        <input class="fase-nome input-pill" value="${escapeAttr(initial.nome_fase || "")}" />
-      </label>
-
-      <label style="grid-column:1/-1;">
-        Descrizione operativa (per operatore)
-        <textarea class="fase-descrizione input-pill" rows="3"
-          placeholder="Istruzioni operative chiare per l'operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
-      </label>
-
-      <label>
-        Durata (min) *
-        <input class="fase-durata input-pill" type="number" min="0" value="${escapeAttr(initial.durata_min ?? 0)}" />
-      </label>
-
-      <label>
-        Lavoro umano (min) *
-        <input class="fase-lavoro input-pill" type="number" min="0" value="${escapeAttr(initial.lavoro_umano_min ?? 0)}" />
-      </label>
-
-      <label>
-        Tecnologia (opz.)
-        <input class="fase-tecnologia input-pill" value="${escapeAttr(initial.tecnologia || "")}" />
-      </label>
-
-      <label>
-        Temperatura (opz.)
-        <input class="fase-temperatura input-pill" type="number" step="0.1" value="${escapeAttr(initial.temperatura ?? "")}" />
-      </label>
-
-      <label>
-        Richiede conferma
-        <select class="fase-conferma input-pill">
-          <option value="false">no</option>
-          <option value="true">sì</option>
-        </select>
-      </label>
-
-      <label style="grid-column:1/-1;">
-        Note (opz.)
-        <input class="fase-note input-pill" value="${escapeAttr(initial.note || "")}" />
-      </label>
-
-    </div>
-
-    <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-      <button class="app-button tiny" type="button" data-action="save-template">Salva come template</button>
-      <button class="app-button tiny red" type="button" data-action="delete">🗑</button>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Note (opz.)</label>
+        <input class="fase-note input" value="${escapeAttr(initial.note || "")}" />
+      </div>
     </div>
   `;
 
-  const tipoSel = row.querySelector(".fase-tipo");
-  tipoSel.value = initial.tipo_fase || "preparazione";
+  const selTipo = card.querySelector(".fase-tipo");
+  if (selTipo) selTipo.value = initial.tipo_fase || "preparazione";
 
-  // template select (filtrato per tipo fase)
-  const tplSel = row.querySelector(".fase-template");
-  rebuildFasiTemplateOptions(tplSel, tipoSel.value, initial.fase_template_id || "");
+  const btnUp = card.querySelector('[data-action="up"]');
+  const btnDown = card.querySelector('[data-action="down"]');
+  const btnDel = card.querySelector('[data-action="delete"]');
 
-  // richiede conferma
-  const confSel = row.querySelector(".fase-conferma");
-  if (confSel) confSel.value = String(initial.richiede_conferma ?? false);
-
-  // se selezioni template → autopopola (ma sempre modificabile)
-  tplSel.addEventListener("change", () => {
-    const tplId = tplSel.value;
-    if (!tplId) return;
-    const tpl = fasiTemplateMap.get(String(tplId));
-    if (!tpl) return;
-
-    // allinea anche tipo fase (coerente col template)
-    if (tpl.tipo_fase) {
-      tipoSel.value = tpl.tipo_fase;
-      row.dataset.tipoFase = tipoSel.value || "preparazione";
-      rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplId);
-      filterFasiByTab();
-    }
-
-    row.querySelector(".fase-nome").value = tpl.titolo || "";
-    row.querySelector(".fase-descrizione").value = tpl.descrizione_operativa || "";
-    row.querySelector(".fase-durata").value = tpl.durata_min_default ?? 0;
-    row.querySelector(".fase-lavoro").value = tpl.lavoro_umano_min_default ?? 0;
-    row.querySelector(".fase-tecnologia").value = tpl.tecnologia_default || "";
-    row.querySelector(".fase-temperatura").value = tpl.temperatura_default ?? "";
-    confSel.value = String(tpl.richiede_conferma ?? false);
+  if (btnUp) btnUp.addEventListener("click", () => {
+    const prev = card.previousElementSibling;
+    if (prev) container.insertBefore(card, prev);
+    renumberFasi();
   });
 
-  // salva come template
-  row.querySelector('[data-action="save-template"]').addEventListener("click", async () => {
-    const supabase = window.supabaseClient;
-    const aziendaId = window.state.azienda.id;
-
-    const titolo = (row.querySelector(".fase-nome")?.value || "").trim();
-    const descrizione_operativa = (row.querySelector(".fase-descrizione")?.value || "").trim();
-    const tipo_fase = (row.querySelector(".fase-tipo")?.value || "preparazione").trim();
-
-    if (!titolo) return alert("Nome fase obbligatorio per salvare un template.");
-
-    const payload = {
-      azienda_id: aziendaId,
-      titolo,
-      descrizione_operativa: descrizione_operativa || titolo,
-      tipo_fase,
-      durata_min_default: toIntOrNull(row.querySelector(".fase-durata")?.value) ?? 0,
-      lavoro_umano_min_default: toIntOrNull(row.querySelector(".fase-lavoro")?.value) ?? 0,
-      tecnologia_default: (row.querySelector(".fase-tecnologia")?.value || "").trim() || null,
-      temperatura_default: toNumOrNull(row.querySelector(".fase-temperatura")?.value),
-      richiede_conferma: (row.querySelector(".fase-conferma")?.value === "true"),
-      parametri: {},
-      attiva: true
-    };
-
-    const { data, error } = await supabase
-      .from("fasi_template")
-      .insert(payload)
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error(error);
-      return alert("Errore salvataggio template (verifica duplicati o permessi).");
-    }
-
-    await loadFasiTemplate();
-
-    // aggiorna tutte le select template delle fasi (mantiene selezione corrente)
-    document.querySelectorAll("#fasi-container .azienda-card").forEach(card => {
-      const tSel = card.querySelector(".fase-template");
-      const tTipo = card.querySelector(".fase-tipo")?.value || "preparazione";
-      const current = tSel?.value || "";
-      rebuildFasiTemplateOptions(tSel, tTipo, current);
-    });
-
-    // seleziona il nuovo template su questa fase
-    rebuildFasiTemplateOptions(tplSel, tipoSel.value, data?.id);
-    alert("Template salvato.");
+  if (btnDown) btnDown.addEventListener("click", () => {
+    const next = card.nextElementSibling;
+    if (next) container.insertBefore(next, card);
+    renumberFasi();
   });
 
-
-
-  // se cambio tipo fase, aggiorno dataset e rifiltro
-  tipoSel.addEventListener("change", () => {
-    row.dataset.tipoFase = tipoSel.value || "preparazione";
-    rebuildFasiTemplateOptions(tplSel, tipoSel.value, tplSel.value);
-    filterFasiByTab();
+  if (btnDel) btnDel.addEventListener("click", () => {
+    card.remove();
+    renumberFasi();
   });
 
-  row.querySelector('[data-action="delete"]').onclick = () => row.remove();
-
-  container.appendChild(row);
-
-  // applico filtro subito
-  filterFasiByTab();
+  container.appendChild(card);
+  renumberFasi();
 }
+
+function renumberFasi() {
+  const rows = document.querySelectorAll("#fasi-container .azienda-card");
+  rows.forEach((card, idx) => {
+    const t = card.querySelector(".fase-title");
+    if (t) t.textContent = `Fase ${idx + 1}`;
+  });
+}
+
 
 
 /* ============================================================
@@ -1543,8 +1459,8 @@ async function salvaTutto() {
     }
 
     const rows = [];
-    document.querySelectorAll("#fasi-container .azienda-card").forEach(r => {
-      const ordine = toIntOrNull(r.querySelector(".fase-ordine")?.value) ?? 1;
+    document.querySelectorAll("#fasi-container .azienda-card").forEach((r, idx) => {
+      const ordine = idx + 1;
       const tipo_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
       const nome_fase = (r.querySelector(".fase-nome")?.value || "").trim();
       const descrizione_operativa = (r.querySelector(".fase-descrizione")?.value || "").trim() || null;
@@ -1553,8 +1469,6 @@ async function salvaTutto() {
       const tecnologia = (r.querySelector(".fase-tecnologia")?.value || "").trim() || null;
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
-      const richiede_conferma = (r.querySelector(".fase-conferma")?.value === "true");
-      const fase_template_id = toIntOrNull(r.querySelector(".fase-template")?.value);
 
       if (!nome_fase) return;
 
@@ -1569,8 +1483,8 @@ async function salvaTutto() {
         temperatura,
         note,
         descrizione_operativa,
-        richiede_conferma,
-        fase_template_id: fase_template_id ?? null,
+        richiede_conferma: false,
+        fase_template_id: null,
         parametri: {},
         azienda_id: aziendaId
       });
@@ -1969,9 +1883,7 @@ function convertToBase(qty, um) {
 function bindUI() {
   safeOn("btn-add-ing", "click", () => aggiungiIngrediente());
   safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
-  safeOn("btn-add-fase", "click", () => {
-    const next = nextOrdineFase();
-    aggiungiFase({ ordine: next, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
+  safeOn("btn-add-fase", "click", () => aggiungiFase({ tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 }));
   });
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
@@ -1992,13 +1904,9 @@ function bindUI() {
 
 
 function nextOrdineFase() {
-  let max = 0;
-  document.querySelectorAll("#fasi-container .fase-ordine").forEach(el => {
-    const n = toIntOrNull(el.value);
-    if (n && n > max) max = n;
-  });
-  return max + 1;
+  return (document.querySelectorAll("#fasi-container .azienda-card").length || 0) + 1;
 }
+
 
 /* ============================================================
    HELPERS
