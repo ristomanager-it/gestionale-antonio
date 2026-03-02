@@ -15,7 +15,7 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
   - Stampa etichette: numero etichette = numero_confezioni (una per confezione)
 
   NOTE SCHEMA (necessario):
-  - schede_produzione_righe.produzione_id BIGINT FK produzione_lotti(id)
+  - schede_produzione_righe.produzione_id UUID FK produzione_lotti(lotto_uuid)
   - per coprodotti in schede_produzione_righe: prodotto_id BIGINT NULL FK prodotti(id)
   - dipendenti: pin (fallback su codice)
   - ricette_conservazione: (opz) fasi_operativo TEXT
@@ -35,6 +35,7 @@ let confezioniRows = []; // [{ id, porzione_id, pezzi_per_confezione, numero_con
 let coprodottiRows = []; // [{ id, prodotto_id, quantita, unita_misura, data_scadenza, note }]
 
 let savedLotto = null;
+let savedLottoUUID = null;
 let savedRighe = [];
 
 export async function render(container) {
@@ -52,6 +53,7 @@ export async function render(container) {
   coprodottiRows = [];
 
   savedLotto = null;
+  savedLottoUUID = null;
   savedRighe = [];
 
   container.innerHTML = createPageLayout({
@@ -1416,6 +1418,12 @@ function validaForm(dati) {
   return null;
 }
 
+
+function getLottoRefId(lotto) {
+  // Usa lotto_uuid se presente (tracciabilità universale), fallback su id.
+  return lotto?.lotto_uuid ?? lotto?.id ?? null;
+}
+
 /* ========================================================= */
 /* HACCP LOG (best-effort) */
 /* ========================================================= */
@@ -1501,19 +1509,23 @@ async function salvaProduzione() {
         operatore_id: dati.operatore.id,
         firmato_at: new Date().toISOString(),
         dettaglio_confezionamento: dettaglioConfezionamento,
-        resa_teorica: resaTeoKg,
-        resa_reale: pesoRealeKg,
-        scarto: scartoKg
+        resa_percentuale: (resaTeoKg && resaTeoKg > 0) ? (pesoRealeKg / resaTeoKg) * 100 : null,
+        scarto_percentuale: (resaTeoKg && resaTeoKg > 0) ? ((resaTeoKg - pesoRealeKg) / resaTeoKg) * 100 : null
       })
       .select()
       .single();
 
     if (errLotto) throw errLotto;
     savedLotto = lotto;
+    savedLottoUUID = getLottoRefId(lotto);
+
+    if (!savedLottoUUID) {
+      throw new Error("lotto_uuid non disponibile: esegui la migrazione UUID su produzione_lotti e verifica la select().");
+    }
 
     await logEventoHaccp({
       aziendaId,
-      produzioneId: lotto.id,
+      produzioneId: savedLottoUUID,
       tipo: "LOTTO_CREATO",
       payload: {
         ricetta_id: ricettaSelezionata.id,
@@ -1536,7 +1548,7 @@ async function salvaProduzione() {
 
     const righeConfezioniPayload = dettaglioConfezionamento.map((c) => ({
       azienda_id: aziendaId,
-      produzione_id: lotto.id,
+      produzione_id: savedLottoUUID,
       ricetta_id: ricettaSelezionata.id,
       conservazione_id: dati.scenarioId || null,
       formato_label: c.label || "CONFEZIONE",
@@ -1559,7 +1571,7 @@ async function salvaProduzione() {
 
     await logEventoHaccp({
       aziendaId,
-      produzioneId: lotto.id,
+      produzioneId: savedLottoUUID,
       tipo: "CONFEZIONAMENTO_INSERITO",
       payload: { righe: dettaglioConfezionamento }
     });
@@ -1576,8 +1588,8 @@ async function salvaProduzione() {
       .from("magazzino_movimenti")
       .delete()
       .eq("azienda_id", aziendaId)
-      .eq("riferimento_tipo", "PRODUZIONE_LOTTO")
-      .eq("riferimento_id", lotto.id);
+      .eq("riferimento_tipo", "LOTTO_PRODUZIONE")
+      .eq("riferimento_id", savedLottoUUID);
 
     for (const ing of ingredienti || []) {
       const prodottoId = ing.prodotto_id;
@@ -1592,8 +1604,8 @@ async function salvaProduzione() {
         tipo_movimento: "SCARICO",
         quantita: qScarico,
         data_movimento: dati.dataProduzione,
-        riferimento_tipo: "PRODUZIONE_LOTTO",
-        riferimento_id: lotto.id,
+        riferimento_tipo: "LOTTO_PRODUZIONE",
+        riferimento_id: savedLottoUUID,
         note: `Scarico ingredienti lotto ${lotto.codice_lotto}`
       });
 
@@ -1610,8 +1622,8 @@ async function salvaProduzione() {
         tipo_movimento: "CARICO",
         quantita: c.kg_totali_riga,
         data_movimento: dati.dataProduzione,
-        riferimento_tipo: "PRODUZIONE_LOTTO",
-        riferimento_id: lotto.id,
+        riferimento_tipo: "LOTTO_PRODUZIONE",
+        riferimento_id: savedLottoUUID,
         note
       });
 
@@ -1622,7 +1634,7 @@ async function salvaProduzione() {
     if (coprodottiValidi.length) {
       await logEventoHaccp({
         aziendaId,
-        produzioneId: lotto.id,
+        produzioneId: savedLottoUUID,
         tipo: "COPRODOTTI_INSERITI",
         payload: {
           righe: coprodottiValidi.map((c) => ({
@@ -1642,7 +1654,7 @@ async function salvaProduzione() {
 
       const { error: errRigaCop } = await supabase.from("schede_produzione_righe").insert({
         azienda_id: aziendaId,
-        produzione_id: lotto.id,
+        produzione_id: savedLottoUUID,
         ricetta_id: ricettaSelezionata.id,
         conservazione_id: dati.scenarioId || null,
         formato_label: "COPRODOTTO",
@@ -1668,8 +1680,8 @@ async function salvaProduzione() {
         tipo_movimento: "CARICO",
         quantita: q,
         data_movimento: dati.dataProduzione,
-        riferimento_tipo: "PRODUZIONE_LOTTO",
-        riferimento_id: lotto.id,
+        riferimento_tipo: "LOTTO_PRODUZIONE",
+        riferimento_id: savedLottoUUID,
         note: noteCop
       });
 
@@ -1678,7 +1690,7 @@ async function salvaProduzione() {
 
     await logEventoHaccp({
       aziendaId,
-      produzioneId: lotto.id,
+      produzioneId: savedLottoUUID,
       tipo: "MOVIMENTI_MAGAZZINO_GENERATI",
       payload: {
         moltiplicatore_ricetta: moltiplicatore,
@@ -1690,7 +1702,7 @@ async function salvaProduzione() {
 
     await logEventoHaccp({
       aziendaId,
-      produzioneId: lotto.id,
+      produzioneId: savedLottoUUID,
       tipo: "LOTTO_FIRMATO",
       payload: {
         operatore_id: dati.operatore.id,
