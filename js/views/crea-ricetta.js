@@ -172,8 +172,28 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
+              <label>Tipo ricetta *</label>
+              <select id="r-tipo" class="input">
+                <option value="base">Base (semilavorato)</option>
+                <option value="finita">Piatto finito</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="categoria-wrapper" style="display:none;">
+              <label>Categoria portata *</label>
+              <select id="r-categoria" class="input">
+                <option value="">Seleziona categoria</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label>Pezzi base</label>
               <input id="r-pezzi-base" type="number" min="0" class="input" />
+            </div>
+
+            <div class="form-group">
+              <label>Foto piatto (URL)</label>
+              <input id="r-foto-url" class="input" placeholder="https://..." />
             </div>
 
             <div class="form-group" style="grid-column:1/-1;">
@@ -327,12 +347,18 @@ export async function render(app) {
   // ============================================================
 
   await loadProdotti();
+  await loadCategoriePortata();
   await loadFasiTemplate();
   bindUI();
 
   if (ricettaId) {
     await caricaRicettaCompleta();
   } else {
+    // default: finita (coerente con default DB). Cambia qui se preferisci "base".
+    setVal("r-tipo", "finita");
+    const wrapCat = document.getElementById("categoria-wrapper");
+    if (wrapCat) wrapCat.style.display = "";
+
     aggiungiIngrediente();
     aggiungiFase({ ordine: 1, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
     aggiungiScenarioConservazione();
@@ -378,6 +404,31 @@ async function loadProdotti() {
       aggiornaOutputInfo();
     }
   );
+}
+
+/* ============================================================
+   CATEGORIE PORTATA
+============================================================ */
+async function loadCategoriePortata() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state.azienda.id;
+
+  const { data, error } = await supabase
+    .from("categorie_portata")
+    .select("id, nome")
+    .eq("azienda_id", aziendaId)
+    .order("nome");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const sel = document.getElementById("r-categoria");
+  if (!sel) return;
+
+  sel.innerHTML = '<option value="">Seleziona categoria</option>' +
+    (data || []).map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
 }
 /* ============================================================
    FASI TEMPLATE
@@ -1187,6 +1238,10 @@ async function caricaRicettaCompleta() {
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
+  setVal("r-tipo", ricetta.tipo_ricetta || "base");
+  setVal("r-categoria", ricetta.categoria_portata_id ? String(ricetta.categoria_portata_id) : "");
+  const wrapCat = document.getElementById("categoria-wrapper");
+  if (wrapCat) wrapCat.style.display = ((ricetta.tipo_ricetta || "base") === "finita") ? "" : "none";
 
   if (ricetta.prodotto_output_id) {
     const p = prodottiMap.get(String(ricetta.prodotto_output_id));
@@ -1345,6 +1400,13 @@ async function salvaTutto() {
   const output_note = getVal("r-output-note").trim() || null;
 
   if (!nome) return alert("Nome ricetta obbligatorio.");
+
+  if (tipo_ricetta === "finita" && !categoria_portata_id) {
+    return alert("Se la ricetta è FINITA devi selezionare la categoria (antipasti, primi, ...).");
+  }
+  if (tipo_ricetta === "base" && categoria_portata_id) {
+    return alert("Una ricetta BASE non può avere categoria portata.");
+  }
   if (!prodotto_output_id) return alert("Seleziona il prodotto output.");
   if (!output_peso || output_peso <= 0) return alert("Inserisci il peso finale (resa) dell'output.");
   if (!output_um) return alert("Seleziona unità misura output.");
@@ -1364,7 +1426,9 @@ async function salvaTutto() {
       prodotto_output_id: Number(prodotto_output_id),
       azienda_id: aziendaId,
       attivo: true,
-      stato_strutturale: "bozza"
+      stato_strutturale: "bozza",
+      tipo_ricetta,
+      categoria_portata_id
     };
 
     const { data, error } = await supabase
@@ -1389,7 +1453,9 @@ async function salvaTutto() {
       foto_url,
       pezzi_base,
       prodotto_output_id: Number(prodotto_output_id),
-      aggiornato_il: new Date().toISOString()
+      aggiornato_il: new Date().toISOString(),
+      tipo_ricetta,
+      categoria_portata_id
     };
 
     const { error } = await supabase
@@ -1982,6 +2048,19 @@ function bindUI() {
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
   safeOn("btn-salva", "click", () => salvaTutto());
+
+  // Tipo ricetta -> mostra/nasconde categoria
+  safeOn("r-tipo", "change", () => {
+    const tipo = getVal("r-tipo") || "base";
+    const wrap = document.getElementById("categoria-wrapper");
+    if (wrap) wrap.style.display = (tipo === "finita") ? "" : "none";
+    if (tipo !== "finita") setVal("r-categoria", "");
+  });
+
+  // init visibilità
+  const wrapInit = document.getElementById("categoria-wrapper");
+  const tipoInit = getVal("r-tipo") || "base";
+  if (wrapInit) wrapInit.style.display = (tipoInit === "finita") ? "" : "none";
 
   // Autocomplete output (già inizializzato in loadProdotti) ma reinforziamo in caso di render tardivo
   const outSearch = document.getElementById("r-output-search");
