@@ -80,7 +80,7 @@ export async function render(app) {
       <div class="form-actions" style="margin-bottom:16px;">
         <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
-          ? Centro Produzione
+          Indietro
         </button>
       </div>
 
@@ -237,7 +237,7 @@ export async function render(app) {
       <div class="form-actions" style="margin-top:20px;">
         <button id="btn-salva"
           class="app-button">
-          ? Salva Ricetta
+          Salva Ricetta
         </button>
       </div>
 
