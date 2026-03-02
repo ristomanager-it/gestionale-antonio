@@ -1938,13 +1938,20 @@ function bindUI() {
   const outSearch = document.getElementById("r-output-search");
   const outHidden = document.getElementById("r-output-id");
   const outSuggest = document.getElementById("r-output-suggest");
-  if (outSearch && outHidden && outSuggest) {
-    // evita doppio bind
+    if (outSearch && outHidden && outSuggest) {
     if (!outSearch.dataset.acBound) {
       outSearch.dataset.acBound = "1";
       setupAutocomplete(outSearch, outHidden, outSuggest, () => aggiornaOutputInfo());
     }
   }
+
+  safeOn("btn-help", "click", () => {
+    const box = document.getElementById("help-box");
+    if (box) {
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    }
+  });
+
 }
 
 
