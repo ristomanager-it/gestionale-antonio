@@ -1769,127 +1769,342 @@ function lockUIAfterSave() {
 /* PRINT */
 /* ========================================================= */
 
+/* ========================================================= */
+/* STAMPA ETICHETTE – PDF + QR (Orgsta T003)                  */
+/* Richiede in index.html:                                    */
+/*  - jspdf.umd.min.js  (window.jspdf.jsPDF)                  */
+/*  - qrcodejs          (QRCode)                              */
+/* Formati: 50x50, 70x40, 100x150 (mm)                        */
+/* ========================================================= */
+
+const RF_LABEL_FORMATS = [
+  { id: "50x50", label: "50 x 50 mm", w: 50, h: 50 },
+  { id: "70x40", label: "70 x 40 mm", w: 70, h: 40 },
+  { id: "100x150", label: "100 x 150 mm", w: 100, h: 150 }
+];
+
+function rfFormatDateITA(dateISO) {
+  const s = (dateISO || "").toString().trim();
+  if (!s) return "";
+  const d = new Date(s.length === 10 ? s + "T00:00:00" : s);
+  if (Number.isNaN(d.getTime())) return s;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+function rfGetLabelFormatById(id) {
+  return RF_LABEL_FORMATS.find(f => f.id === id) || RF_LABEL_FORMATS[0];
+}
+
+function rfChooseLabelFormat() {
+  const last = (localStorage.getItem("rf_label_format") || "50x50").toString();
+  return new Promise((resolve) => {
+    const backdrop = document.createElement("div");
+    backdrop.style.cssText =
+      "position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;";
+    backdrop.innerHTML = `
+      <div class="view" style="width:min(520px,100%); border-radius:14px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <h3 style="margin:0;">🖨️ Formato etichetta</h3>
+          <button type="button" id="rf-lbl-close" class="app-button tiny gray">✕</button>
+        </div>
+
+        <div class="form-help" style="margin-top:8px;">
+          Seleziona la misura dell'etichetta (in millimetri). Il PDF generato avrà esattamente questa dimensione.
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label>Formato</label>
+          <select id="rf-lbl-format" class="input">
+            ${RF_LABEL_FORMATS.map(f => `<option value="${f.id}">${escapeHtml(f.label)}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="form-actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" id="rf-lbl-ok" class="app-button">✅ Genera PDF</button>
+          <button type="button" id="rf-lbl-cancel" class="app-button gray">Annulla</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+
+    const sel = backdrop.querySelector("#rf-lbl-format");
+    const btnOk = backdrop.querySelector("#rf-lbl-ok");
+    const btnCancel = backdrop.querySelector("#rf-lbl-cancel");
+    const btnClose = backdrop.querySelector("#rf-lbl-close");
+
+    if (sel) sel.value = RF_LABEL_FORMATS.some(f => f.id === last) ? last : "50x50";
+
+    const close = (result) => {
+      try { document.body.removeChild(backdrop); } catch {}
+      resolve(result);
+    };
+
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) close(null);
+    });
+
+    btnCancel?.addEventListener("click", () => close(null));
+    btnClose?.addEventListener("click", () => close(null));
+
+    btnOk?.addEventListener("click", () => {
+      const id = (sel?.value || "50x50").toString();
+      localStorage.setItem("rf_label_format", id);
+      close(rfGetLabelFormatById(id));
+    });
+  });
+}
+
+async function rfMakeQrDataUrl(text, sizePx = 220) {
+  try {
+    if (typeof QRCode === "undefined") return null;
+
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed; left:-9999px; top:-9999px; width:0; height:0; overflow:hidden;";
+    document.body.appendChild(host);
+
+    // qrcodejs renders either canvas or img depending on browser
+    const qr = new QRCode(host, {
+      text: (text || "").toString(),
+      width: sizePx,
+      height: sizePx,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // allow render
+    await new Promise(r => setTimeout(r, 0));
+
+    const img = host.querySelector("img");
+    const canvas = host.querySelector("canvas");
+
+    let dataUrl = null;
+    if (img?.src) dataUrl = img.src;
+    else if (canvas?.toDataURL) dataUrl = canvas.toDataURL("image/png");
+
+    try { qr.clear(); } catch {}
+    document.body.removeChild(host);
+
+    return dataUrl;
+  } catch (e) {
+    console.warn("QR generation failed:", e);
+    return null;
+  }
+}
+
+async function rfPrintLabelsPdf({ format, title, labels }) {
+  if (!labels?.length) return;
+
+  if (!window.jspdf?.jsPDF) {
+    alert("Libreria jsPDF non disponibile. Controlla index.html (cdn jspdf).");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: [format.w, format.h] });
+
+  for (let i = 0; i < labels.length; i++) {
+    if (i > 0) doc.addPage([format.w, format.h]);
+    await rfRenderLabelPdfPage(doc, format, labels[i]);
+  }
+
+  const nomeFile = `${(title || "etichette").toString().replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(nomeFile);
+}
+
+async function rfRenderLabelPdfPage(doc, format, label) {
+  const w = Number(format.w || 50);
+  const h = Number(format.h || 50);
+
+  const margin = w >= 100 ? 6 : 3;
+  const qrSize = w >= 100 ? 26 : w >= 70 ? 18 : 16;
+
+  const headerMaxW = w - margin * 2 - qrSize - 2;
+
+  const payload = JSON.stringify({
+    lotto: label.lotto || "",
+    lotto_uuid: label.lotto_uuid || "",
+    titolo: label.titolo || "",
+    produzione: label.dataProduzione || "",
+    scadenza: label.dataScadenza || "",
+    azienda_id: window.state?.azienda?.id || "",
+    azienda: window.state?.azienda?.nome || "",
+    ts: new Date().toISOString()
+  });
+
+  const qrDataUrl = await rfMakeQrDataUrl(payload, 220);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(w >= 100 ? 16 : 12);
+
+  const headerLines = doc.splitTextToSize((label.titolo || "").toString(), headerMaxW);
+  doc.text(headerLines.slice(0, w >= 100 ? 3 : 2), margin, margin + (w >= 100 ? 6 : 5));
+
+  if (qrDataUrl) {
+    doc.addImage(qrDataUrl, "PNG", w - margin - qrSize, margin, qrSize, qrSize);
+  }
+
+  let y = w >= 100 ? margin + 24 : margin + 18;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(w >= 100 ? 14 : 11);
+  doc.text(`LOTTO: ${(label.lotto || "").toString()}`, margin, y);
+  y += w >= 100 ? 9 : 7;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(w >= 100 ? 11 : 9);
+
+  const lineDate = `Prod: ${(label.dataProduzione || "").toString()}   Scad: ${(label.dataScadenza || "").toString()}`;
+  doc.text(doc.splitTextToSize(lineDate, w - margin * 2), margin, y);
+  y += w >= 100 ? 8 : 6;
+
+  for (const r of (label.rows || [])) {
+    if (!r) continue;
+    const k = (r.k || "").toString().trim();
+    const v = (r.v || "").toString();
+    if (!k && !v) continue;
+
+    const txt = k ? `${k}: ${v}` : v;
+    const lines = doc.splitTextToSize(txt, w - margin * 2);
+    doc.text(lines, margin, y);
+    y += lines.length * (w >= 100 ? 5 : 4.5);
+    if (y > h - margin - 10) break;
+  }
+
+  if (label.footer) {
+    doc.setFontSize(w >= 100 ? 9 : 7.5);
+    doc.text(doc.splitTextToSize(label.footer, w - margin * 2), margin, h - margin);
+  }
+}
+
 function stampaEtichetteConfezioni() {
   if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
-  const dataProd = document.getElementById("prod-data")?.value || "";
-  const scadenza = document.getElementById("prod-scadenza")?.value || "";
-  const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
-  const operatoreNome = operatoreRisolto?.nome || "";
+  rfChooseLabelFormat().then(async (format) => {
+    if (!format) return;
 
-  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
-  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-  const scenarioLabel = scenario?.scenario_label || "";
-  const temperatura = (scenario?.temperatura ?? "").toString();
-  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 360);
+    const dataProdISO = document.getElementById("prod-data")?.value || "";
+    const scadenzaISO = document.getElementById("prod-scadenza")?.value || "";
+    const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
+    const operatoreNome = operatoreRisolto?.nome || "";
 
-  const rows = confezioniRows
-    .map((r) => {
-      const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
-      const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
-      const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
-      if (!porz || pezzi <= 0 || numConf <= 0) return null;
+    const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+    const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
+    const scenarioLabel = scenario?.scenario_label || "";
+    const temperatura = (scenario?.temperatura ?? "").toString();
+    const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
-      const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
-      const kgConf = pesoPorzKg * pezzi;
+    const rows = confezioniRows
+      .map((r) => {
+        const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
+        const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+        const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
+        if (!porz || pezzi <= 0 || numConf <= 0) return null;
 
-      return {
-        label: porz.label,
-        porzione_id: porz.id,
-        pezzi_per_confezione: pezzi,
-        numero_confezioni: numConf,
-        kg_per_confezione: kgConf,
-        note: (r.note || "").toString()
-      };
-    })
-    .filter(Boolean);
+        const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
+        const kgConf = pesoPorzKg * pezzi;
 
-  if (!rows.length) return alert("Nessuna confezione valida da stampare.");
+        return {
+          label: porz.label,
+          pezzi_per_confezione: pezzi,
+          numero_confezioni: numConf,
+          kg_per_confezione: kgConf,
+          note: (r.note || "").toString()
+        };
+      })
+      .filter(Boolean);
 
-  const labels = [];
-  for (const r of rows) {
-    for (let i = 0; i < r.numero_confezioni; i++) {
-      labels.push(
-        buildLabelHtml({
-          header: escapeHtml(ricettaSelezionata?.nome || "Ricetta"),
+    if (!rows.length) return alert("Nessuna confezione valida da stampare.");
+
+    const labels = [];
+    for (const r of rows) {
+      for (let i = 0; i < r.numero_confezioni; i++) {
+        labels.push({
+          titolo: (ricettaSelezionata?.nome || "Ricetta").toString(),
+          lotto: savedLotto.codice_lotto,
+          lotto_uuid: savedLottoUUID || null,
+          dataProduzione: rfFormatDateITA(dataProdISO),
+          dataScadenza: rfFormatDateITA(scadenzaISO),
           rows: [
-            { k: "Lotto", v: savedLotto.codice_lotto, big: true },
-            { k: "Porzionatura", v: r.label },
-            { k: "Pezzi in confezione", v: String(r.pezzi_per_confezione) },
-            { k: "Peso confezione", v: `${formatNumber(r.kg_per_confezione)} kg` },
-            { k: "Data produzione", v: dataProd },
-            { k: "Scadenza", v: scadenza },
+            { k: "Porzionatura", v: r.label || "" },
+            { k: "Pezzi", v: String(r.pezzi_per_confezione) },
+            { k: "Peso", v: `${formatNumber(r.kg_per_confezione)} kg` },
             scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
             temperatura ? { k: "Temperatura", v: temperatura } : null,
-            fasi ? { k: "Fasi operative", v: fasi } : null,
-            { k: "Operatore", v: operatoreNome },
-            noteLotto ? { k: "Destinazione / Note lotto", v: noteLotto } : null,
+            fasi ? { k: "Fasi", v: fasi } : null,
+            operatoreNome ? { k: "Operatore", v: operatoreNome } : null,
+            noteLotto ? { k: "Note lotto", v: noteLotto } : null,
             r.note ? { k: "Note confezione", v: r.note } : null
           ],
           footer: "Generato da Ristoflow — Produzione"
-        })
-      );
+        });
+      }
     }
-  }
 
-  const html = buildPrintHtml({
-    title: "Etichette Confezioni",
-    labels
+    await rfPrintLabelsPdf({
+      format,
+      title: "Etichette Confezioni",
+      labels
+    });
   });
-
-  openPrintWindow(html);
 }
 
 function stampaEtichetteCoprodotti() {
   if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
-  const dataProd = document.getElementById("prod-data")?.value || "";
-  const scadenzaLotto = document.getElementById("prod-scadenza")?.value || "";
+  rfChooseLabelFormat().then(async (format) => {
+    if (!format) return;
 
-  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
-  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-  const scenarioLabel = scenario?.scenario_label || "";
-  const temperatura = (scenario?.temperatura ?? "").toString();
-  const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
+    const dataProdISO = document.getElementById("prod-data")?.value || "";
+    const scadenzaLottoISO = document.getElementById("prod-scadenza")?.value || "";
 
-  const coprodottiValidi = coprodottiRows
-    .map((c) => ({
-      ...c,
-      q: toNumber(c.quantita),
-      prod: prodottiCache.find((p) => String(p.id) === String(c.prodotto_id)) || null
-    }))
-    .filter((c) => c.prodotto_id && c.q > 0);
+    const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+    const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
+    const scenarioLabel = scenario?.scenario_label || "";
+    const temperatura = (scenario?.temperatura ?? "").toString();
+    const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
-  if (!coprodottiValidi.length) return alert("Nessun coprodotto valido da stampare.");
+    const coprodottiValidi = coprodottiRows
+      .map((c) => ({
+        ...c,
+        q: toNumber(c.quantita),
+        prod: prodottiCache.find((p) => String(p.id) === String(c.prodotto_id)) || null
+      }))
+      .filter((c) => c.prodotto_id && c.q > 0);
 
-  const labels = coprodottiValidi.map((c) => {
-    const nomeProd = c.prod?.nome || "Coprodotto";
-    const unita = c.unita_misura || c.prod?.unita_misura || "kg";
-    const scad = c.data_scadenza || scadenzaLotto;
+    if (!coprodottiValidi.length) return alert("Nessun coprodotto valido da stampare.");
 
-    return buildLabelHtml({
-      header: escapeHtml(nomeProd),
-      rows: [
-        { k: "Lotto", v: savedLotto.codice_lotto, big: true },
-        { k: "Data produzione", v: dataProd },
-        { k: "Scadenza", v: scad },
-        scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
-        temperatura ? { k: "Temperatura", v: temperatura } : null,
-        fasi ? { k: "Fasi operative", v: fasi } : null,
-        { k: "Quantità", v: `${formatNumber(c.q)} ${escapeHtml(unita)}` },
-        { k: "", v: "Coprodotto da lavorazione" },
-        c.note ? { k: "Note", v: c.note } : null
-      ],
-      footer: "Generato da Ristoflow — Produzione"
+    const labels = coprodottiValidi.map((c) => {
+      const nomeProd = c.prod?.nome || "Coprodotto";
+      const unita = c.unita_misura || c.prod?.unita_misura || "kg";
+      const scadISO = c.data_scadenza || scadenzaLottoISO;
+
+      return {
+        titolo: (nomeProd || "Coprodotto").toString(),
+        lotto: savedLotto.codice_lotto,
+        lotto_uuid: savedLottoUUID || null,
+        dataProduzione: rfFormatDateITA(dataProdISO),
+        dataScadenza: rfFormatDateITA(scadISO),
+        rows: [
+          { k: "Quantità", v: `${formatNumber(c.q)} ${unita}` },
+          scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
+          temperatura ? { k: "Temperatura", v: temperatura } : null,
+          fasi ? { k: "Fasi", v: fasi } : null,
+          { k: "", v: "Coprodotto da lavorazione" },
+          c.note ? { k: "Note", v: c.note } : null
+        ],
+        footer: "Generato da Ristoflow — Produzione"
+      };
+    });
+
+    await rfPrintLabelsPdf({
+      format,
+      title: "Etichette Coprodotti",
+      labels
     });
   });
-
-  const html = buildPrintHtml({
-    title: "Etichette Coprodotti",
-    labels
-  });
-
-  openPrintWindow(html);
 }
 
 function buildPrintHtml({ title, labels }) {
