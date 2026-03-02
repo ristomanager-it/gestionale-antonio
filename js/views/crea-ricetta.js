@@ -91,18 +91,67 @@ export async function render(app) {
         font-size:14px;
         line-height:1.5;
       ">
-        <strong>Struttura della scheda:</strong><br><br>
+        <strong>Guida compilazione ricetta</strong><br><br>
 
-        • Ingredienti → calcolo food cost materia prima<br>
-        • Procedimento → istruzioni operative per operatori<br>
-        • Output → resa reale produzione<br>
-        • Porzionature → utilizzo ristorante / banchetto<br>
-        • Conservazione → determina shelf life ed etichetta lotto<br>
-        • Coprodotti → gestione rifili<br><br>
+  <strong>1️⃣ Anagrafica</strong><br>
+  Definisce identità e quantità base della ricetta.<br>
+  <em>Esempio:</em> Ragù classico – 10 porzioni base.<br><br>
 
-        Questa parte è OPERATIVA.<br>
-        La parte economica verrà gestita in Amministrazione.
-      </div>
+  <strong>2️⃣ Ingredienti</strong><br>
+  Inserire solo prodotti codificati con quantità REALI utilizzate.<br>
+  Questo genera il food cost.<br>
+  <em>Esempio:</em><br>
+  • Carne macinata 5 kg<br>
+  • Passata pomodoro 3 kg<br>
+  • Olio EVO 0,25 kg<br><br>
+
+  <strong>3️⃣ Output (Resa)</strong><br>
+  Indicare il prodotto finale e il peso reale dopo la lavorazione.<br>
+  Serve per calcolare il costo unitario.<br>
+  <em>Esempio:</em><br>
+  Input totale 8,5 kg → Resa reale 7,2 kg<br><br>
+
+  <strong>4️⃣ Procedimento</strong><br>
+  Standard operativo replicabile da qualsiasi operatore.<br>
+  Per ogni fase indicare titolo, durata, lavoro umano, tecnologia e temperatura.<br>
+  <em>Esempio:</em><br>
+  Fase 1 – Soffritto (15 min, 15 min lavoro umano, pentola)<br>
+  Fase 2 – Cottura lenta (180 min, 10 min lavoro umano, 90°C)<br><br>
+
+  <strong>5️⃣ Porzionature</strong><br>
+  Definisce utilizzo commerciale della ricetta.<br>
+  <em>Esempio:</em><br>
+  • Ristorante → 180 g<br>
+  • Evento → 130 g<br>
+  • Trattoria → 220 g<br><br>
+
+  <strong>6️⃣ Conservazione</strong><br>
+  Inserire scenari completi con tutti i passaggi tecnici.<br>
+  Determina shelf life ed etichetta lotto.<br>
+  <em>Esempio scenario 1:</em><br>
+  • Abbattimento +3°C – 90 min<br>
+  • Sottovuoto – 15 min<br>
+  • Conservazione frigo 0/+3°C – 5 giorni<br><br>
+
+  <em>Esempio scenario 2:</em><br>
+  • Abbattimento -18°C – 120 min<br>
+  • Conservazione freezer – 90 giorni<br><br>
+
+  <strong>7️⃣ Coprodotti</strong><br>
+  Inserire eventuali output secondari per corretta allocazione costi.<br>
+  <em>Esempio:</em><br>
+  • Fondo bruno 1,2 kg<br>
+  • Grasso filtrato 0,4 kg<br><br>
+
+  <strong>⚙️ Regola generale</strong><br>
+  Questa è una scheda operativa.<br>
+  Se compilata correttamente permette:<br>
+  • Calcolo preciso costi<br>
+  • Standardizzazione produzione<br>
+  • Tracciabilità lotti<br>
+  • Controllo qualità
+
+</div>
 
       <div class="form-actions" style="margin-bottom:16px;">
       <div class="form-actions" style="margin-bottom:16px;">
