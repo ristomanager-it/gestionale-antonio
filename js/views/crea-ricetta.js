@@ -78,7 +78,7 @@ export async function render(app) {
     content: `
  <div style="margin-bottom:16px;">
         <button id="btn-help" class="app-button gray small" type="button">
-          ℹ Come funziona questa scheda
+         Come funziona questa scheda
         </button>
       </div>
 
