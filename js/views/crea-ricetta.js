@@ -76,7 +76,35 @@ export async function render(app) {
     title: ricettaId ? "Modifica Ricetta" : "Crea Ricetta",
     subtitle: "Struttura operativa ed economica",
     content: `
+ <div style="margin-bottom:16px;">
+        <button id="btn-help" class="app-button gray small" type="button">
+          ℹ Come funziona questa scheda
+        </button>
+      </div>
 
+      <div id="help-box" style="
+        display:none;
+        background:#f4f4f4;
+        border-radius:12px;
+        padding:16px;
+        margin-bottom:20px;
+        font-size:14px;
+        line-height:1.5;
+      ">
+        <strong>Struttura della scheda:</strong><br><br>
+
+        • Ingredienti → calcolo food cost materia prima<br>
+        • Procedimento → istruzioni operative per operatori<br>
+        • Output → resa reale produzione<br>
+        • Porzionature → utilizzo ristorante / banchetto<br>
+        • Conservazione → determina shelf life ed etichetta lotto<br>
+        • Coprodotti → gestione rifili<br><br>
+
+        Questa parte è OPERATIVA.<br>
+        La parte economica verrà gestita in Amministrazione.
+      </div>
+
+      <div class="form-actions" style="margin-bottom:16px;">
       <div class="form-actions" style="margin-bottom:16px;">
         <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
