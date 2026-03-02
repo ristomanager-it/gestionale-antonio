@@ -464,7 +464,9 @@ function aggiungiIngrediente(initial = {}) {
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="app-button tiny" type="button" data-action="up">↑</button>
         <button class="app-button tiny" type="button" data-action="down">↓</button>
-        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+        <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
       </div>
     </div>
 
@@ -572,7 +574,9 @@ function aggiungiFase(initial = {}) {
       <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
         <button class="app-button tiny" type="button" data-action="up">↑</button>
         <button class="app-button tiny" type="button" data-action="down">↓</button>
-        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+        <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
       </div>
     </div>
 
@@ -678,7 +682,9 @@ function aggiungiOutputSecondario(initial = {}) {
   card.innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
       <div style="font-weight:700; font-size:16px;">Coprodotto</div>
-      <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+     <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
     </div>
 
     <div class="form-grid" style="margin-top:10px;">
@@ -777,7 +783,9 @@ function aggiungiScenarioConservazione(initial = {}, passaggi = []) {
       </div>
       <div style="display:flex; gap:8px;">
         <button class="app-button tiny" type="button" data-action="toggle">▾</button>
-        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+        <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
       </div>
     </div>
 
@@ -894,7 +902,9 @@ function aggiungiConservazionePassaggio(passContainer, initial = {}) {
         <button class="app-button tiny" type="button" data-action="up">↑</button>
         <button class="app-button tiny" type="button" data-action="down">↓</button>
         <button class="app-button tiny" type="button" data-action="alt">+ Alternativa</button>
-        <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+        <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
       </div>
     </div>
 
@@ -1024,7 +1034,9 @@ function aggiungiPorzione(initial = {}) {
   card.innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
       <div style="font-weight:700; font-size:16px;">Porzione</div>
-      <button class="app-button tiny red" type="button" data-action="delete">Elimina</button>
+      <button class="delete-icon-btn" type="button" data-action="delete" title="Elimina">
+  🗑
+</button>
     </div>
 
     <div class="form-grid" style="margin-top:10px;">
