@@ -28,6 +28,32 @@ export async function render(container) {
     return;
   }
 
+  // 🔹 Carica piani dinamicamente
+  const { data: piani, error: pianiError } = await supabase
+    .from("piani_abbonamento")
+    .select("id, nome, prezzo_mensile, sedi_max")
+    .order("prezzo_mensile", { ascending: true });
+
+  if (pianiError) {
+    container.innerHTML = createPageLayout({
+      title: "Errore",
+      content: createCard({
+        body: `<p>Errore caricamento piani abbonamento.</p>`
+      })
+    });
+    return;
+  }
+
+  const optionsPiani = (piani || [])
+    .map(
+      (p) => `
+        <option value="${p.id}">
+          ${p.nome.toUpperCase()} — ${p.sedi_max} sedi max — €${p.prezzo_mensile}/mese
+        </option>
+      `
+    )
+    .join("");
+
   const content = `
     <form id="azienda-form" class="form-stack">
 
@@ -39,6 +65,14 @@ export async function render(container) {
       <label>
         Codice azienda
         <input id="az-codice" class="input-pill" required />
+      </label>
+
+      <label>
+        Piano abbonamento
+        <select id="az-piano" class="input-pill" required>
+          <option value="">Seleziona piano</option>
+          ${optionsPiani}
+        </select>
       </label>
 
       <label>
@@ -85,11 +119,17 @@ export async function render(container) {
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
+    const pianoId = document.getElementById("az-piano").value;
     const email = document
       .getElementById("az-email-amministrativa")
       .value.trim()
       .toLowerCase();
     const telefono = document.getElementById("az-telefono").value.trim();
+
+    if (!pianoId) {
+      errorEl.textContent = "Seleziona un piano abbonamento.";
+      return;
+    }
 
     try {
       const { error } = await supabase.functions.invoke(
@@ -98,6 +138,7 @@ export async function render(container) {
           body: {
             nome,
             codice,
+            piano_id: pianoId,
             email_amministrativa: email,
             telefono_amministrativo: telefono || null,
             features: DEFAULT_FEATURES,
@@ -107,7 +148,6 @@ export async function render(container) {
 
       if (error) throw error;
 
-      // 🔥 INVIO EMAIL PER CREARE PASSWORD
       const { error: resetError } =
         await supabase.auth.resetPasswordForEmail(email, {
           redirectTo:
