@@ -29,6 +29,7 @@ export function initMenu() {
       { label: "Home", route: "home" },
       { label: "Produzione", route: "produzione" },
       { label: "Magazzino", route: "magazzino" },
+      { label: "Storico Lotti", route: "storicoLotto" }, // ✅ AGGIUNTA
       { label: "Ricettario", route: "ricettario" },
       { label: "Preparazioni", route: "preparazioni" },
       { label: "Acquisti", route: "acquisti" },
@@ -51,7 +52,7 @@ export function initMenu() {
 
     // Manager / Operatore
     return allItems.filter(i =>
-      ["produzione", "magazzino", "ricettario", "preparazioni", "home"].includes(i.route)
+      ["produzione", "magazzino", "storicoLotto", "ricettario", "preparazioni", "home"].includes(i.route)
     );
   }
 
