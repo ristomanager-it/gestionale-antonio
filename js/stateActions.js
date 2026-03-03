@@ -19,6 +19,88 @@ window.stateActions = {
 
   setAzienda(azienda) {
     window.state.azienda = azienda || null;
+
+    // Reset contesto multi-sede quando cambia azienda
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+
+    if (window.uiActions?.renderSedeSelector) {
+      window.uiActions.renderSedeSelector();
+    }
+  },
+
+  setSedi(sedi) {
+    const lista = Array.isArray(sedi) ? sedi : [];
+    window.state.sedi = lista;
+
+    // Auto-select se c'è una sola sede o se la sede attiva non esiste più
+    if (lista.length === 1) {
+      window.state.sedeAttiva = lista[0];
+    } else if (window.state.sedeAttiva) {
+      const exists = lista.some(s => String(s.id) === String(window.state.sedeAttiva.id));
+      if (!exists) window.state.sedeAttiva = null;
+    }
+
+    if (window.uiActions?.renderSedeSelector) {
+      window.uiActions.renderSedeSelector();
+    }
+  },
+
+  setSedeAttiva(sedeId) {
+    const sedi = window.state.sedi || [];
+    const sede = sedi.find(s => String(s.id) === String(sedeId));
+    if (!sede) return;
+
+    window.state.sedeAttiva = sede;
+
+    if (window.uiActions?.renderSedeSelector) {
+      window.uiActions.renderSedeSelector();
+    }
+
+    if (window.router?.reloadCurrentRoute) {
+      window.router.reloadCurrentRoute();
+    }
+  },
+
+  async caricaSedi() {
+    const azienda = window.state.azienda;
+    if (!azienda) {
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
+      return;
+    }
+
+    const { data, error } = await window.supabaseClient
+      .from("sedi")
+      .select("id, nome, indirizzo, latitudine, longitudine")
+      .eq("azienda_id", azienda.id)
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Errore caricamento sedi:", error);
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
+      return;
+    }
+
+    this.setSedi(data || []);
+
+    // Se non c'è sede attiva e c'è almeno una sede, seleziona la prima
+    if (!window.state.sedeAttiva && (window.state.sedi || []).length > 0) {
+      window.state.sedeAttiva = window.state.sedi[0];
+
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
+    }
   },
 
   resetAzienda() {
@@ -29,6 +111,14 @@ window.stateActions = {
     window.state.permessiOverride = {};
     window.state.reparti = [];
     window.state.repartoAttivo = null;
+
+    // Reset multi-sede
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+
+    if (window.uiActions?.renderSedeSelector) {
+      window.uiActions.renderSedeSelector();
+    }
 
     if (window.uiActions?.renderRepartoSelector) {
       window.uiActions.renderRepartoSelector();
@@ -170,6 +260,12 @@ window.stateActions = {
 
     if (aziendeLink.length === 0) {
       window.state.azienda = null;
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
       return;
     }
 
