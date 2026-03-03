@@ -17,6 +17,7 @@ const routes = {
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
+  gestionePiani: () => import("./views/gestione-piani.js"),
   setPassword: () => import("./views/set-password.js"),
 
   // 🔹 REPARTI
@@ -53,6 +54,7 @@ const PLATFORM_ROUTES = new Set([
   "gestioneAziende",
   "creaAzienda",
   "modificaAzienda",
+  "gestionePiani",
 ]);
 
 /* =========================================================
@@ -185,7 +187,15 @@ async function resolve() {
         data_scadenza,
         features,
         logo_path,
-        logo_url
+        logo_url,
+        piani_abbonamento:piano_id (
+          id,
+          nome,
+          prezzo_mensile,
+          sedi_max,
+          features,
+          attivo
+        )
       )
     `)
     .eq("user_id", session.user.id)
@@ -216,6 +226,16 @@ async function resolve() {
 
   window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
+
+  // 🔹 CALCOLO FEATURE EFFETTIVE DA PIANO + OVERRIDE AZIENDA
+  const piano = azienda.piani_abbonamento || {};
+  const pianoFeatures = piano.features || {};
+  const aziendaOverride = azienda.features || {};
+
+  window.state.featuresEffettive = {
+    ...pianoFeatures,
+    ...aziendaOverride
+  };
 
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
@@ -251,7 +271,6 @@ async function resolve() {
     };
   }
 
-  // 🔒 BLOCCO OPERATIVITÀ SE AZIENDA SOSPESA
   if (
     azienda.stato === "sospesa" &&
     !isSuperadmin() &&
