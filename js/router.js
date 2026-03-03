@@ -251,6 +251,26 @@ async function resolve() {
     };
   }
 
+  // 🔒 BLOCCO OPERATIVITÀ SE AZIENDA SOSPESA
+  if (
+    azienda.stato === "sospesa" &&
+    !isSuperadmin() &&
+    !PLATFORM_ROUTES.has(route)
+  ) {
+    app.innerHTML = `
+      <div class="view" style="padding:40px; text-align:center;">
+        <h2 style="color:#dc2626;">Azienda sospesa</h2>
+        <p style="margin-top:12px;">
+          L'operatività di questa azienda è stata sospesa dalla piattaforma.
+        </p>
+        <p style="margin-top:6px; opacity:0.7;">
+          Contatta l'amministratore per maggiori informazioni.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
   if (route === "login") {
     window.location.hash =
       azienda.stato === "piattaforma" || isSuperadmin()
