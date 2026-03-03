@@ -1,6 +1,7 @@
 // js/db.js
 // =====================================
 // Wrapper centrale query multi-azienda / multi-sede
+// + Blocco operatività se azienda sospesa
 // =====================================
 
 (function () {
@@ -11,8 +12,13 @@
     }
   }
 
+  function requireAziendaAttiva() {
+    if (window.state?.azienda?.stato === "sospesa") {
+      throw new Error("Azienda sospesa. Contatta l'amministratore della piattaforma.");
+    }
+  }
+
   function requireSedeIfNeeded() {
-    // Se esistono più sedi e nessuna è selezionata → blocca
     if (
       Array.isArray(window.state?.sedi) &&
       window.state.sedi.length > 1 &&
@@ -22,27 +28,12 @@
     }
   }
 
-  function baseQuery(table) {
-    requireAzienda();
-
-    let query = window.supabaseClient
-      .from(table)
-      .select("*")
-      .eq("azienda_id", window.state.azienda.id);
-
-    // Applica filtro sede solo se esiste sedeAttiva
-    if (window.state?.sedeAttiva?.id) {
-      query = query.eq("sede_id", window.state.sedeAttiva.id);
-    }
-
-    return query;
-  }
-
   window.db = {
 
     // SELECT con filtro automatico
     select(table, selectString = "*") {
       requireAzienda();
+      requireAziendaAttiva();
 
       let query = window.supabaseClient
         .from(table)
@@ -59,6 +50,7 @@
     // INSERT con azienda_id + sede_id automatici
     insert(table, payload) {
       requireAzienda();
+      requireAziendaAttiva();
       requireSedeIfNeeded();
 
       const data = {
@@ -79,6 +71,7 @@
     // UPDATE con filtro automatico
     update(table, payload, idField = "id", idValue) {
       requireAzienda();
+      requireAziendaAttiva();
       requireSedeIfNeeded();
 
       let query = window.supabaseClient
@@ -97,6 +90,7 @@
     // DELETE con filtro automatico
     delete(table, idField = "id", idValue) {
       requireAzienda();
+      requireAziendaAttiva();
       requireSedeIfNeeded();
 
       let query = window.supabaseClient
