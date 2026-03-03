@@ -20,7 +20,6 @@ const routes = {
   gestionePiani: () => import("./views/gestione-piani.js"),
   setPassword: () => import("./views/set-password.js"),
 
-  // 🔹 REPARTI
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
@@ -116,9 +115,6 @@ function hasPermission(area) {
   const ruolo = window.state?.ruolo;
   if (ruolo === "admin") return true;
 
-  const azienda = window.state?.azienda;
-  if (!azienda) return false;
-
   const permessi = window.state?.permessi || {};
   const override = window.state?.permessiOverride || {};
 
@@ -173,6 +169,10 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
+  /* =========================================================
+     🔥 CARICAMENTO AZIENDE (SENZA EMBEDDED PROFONDE)
+  ========================================================= */
+
   const { data: aziende } = await supabase
     .from("utenti_aziende")
     .select(`
@@ -188,14 +188,7 @@ async function resolve() {
         features,
         logo_path,
         logo_url,
-        piani_abbonamento:piano_id (
-          id,
-          nome,
-          prezzo_mensile,
-          sedi_max,
-          features,
-          attivo
-        )
+        piano_id
       )
     `)
     .eq("user_id", session.user.id)
@@ -227,9 +220,27 @@ async function resolve() {
   window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 
-  // 🔹 CALCOLO FEATURE EFFETTIVE DA PIANO + OVERRIDE AZIENDA
-  const piano = azienda.piani_abbonamento || {};
-  const pianoFeatures = piano.features || {};
+  /* =========================================================
+     🔥 CARICAMENTO PIANO SEPARATO (STABILE)
+  ========================================================= */
+
+  if (azienda.piano_id) {
+    const { data: piano } = await supabase
+      .from("piani_abbonamento")
+      .select("*")
+      .eq("id", azienda.piano_id)
+      .single();
+
+    window.state.piano = piano || null;
+  } else {
+    window.state.piano = null;
+  }
+
+  /* =========================================================
+     🔹 FEATURE EFFETTIVE
+  ========================================================= */
+
+  const pianoFeatures = window.state.piano?.features || {};
   const aziendaOverride = azienda.features || {};
 
   window.state.featuresEffettive = {
@@ -240,36 +251,9 @@ async function resolve() {
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
-  const nomeAziendaEl = document.getElementById("header-azienda-nome");
-  const logoEl = document.getElementById("header-logo");
-  const avatarEl = document.getElementById("header-avatar");
-  const userNameEl = document.getElementById("header-user-name");
-  const logoutBtn = document.getElementById("logout-btn");
-
-  if (nomeAziendaEl) nomeAziendaEl.textContent = azienda.nome || "";
-
-  if (logoEl) {
-    if (azienda.logo_url) {
-      logoEl.src = azienda.logo_url;
-      logoEl.style.display = "block";
-    } else {
-      logoEl.style.display = "none";
-    }
-  }
-
-  if (userNameEl && avatarEl) {
-    const email = session.user.email || "";
-    const nome = email.split("@")[0] || "";
-    userNameEl.textContent = nome;
-    avatarEl.textContent = (nome.substring(0, 2) || "U").toUpperCase();
-  }
-
-  if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      await supabase.auth.signOut();
-      window.location.hash = "#/login";
-    };
-  }
+  /* =========================================================
+     BLOCCO SOSPESA
+  ========================================================= */
 
   if (
     azienda.stato === "sospesa" &&
@@ -279,16 +263,15 @@ async function resolve() {
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
         <h2 style="color:#dc2626;">Azienda sospesa</h2>
-        <p style="margin-top:12px;">
-          L'operatività di questa azienda è stata sospesa dalla piattaforma.
-        </p>
-        <p style="margin-top:6px; opacity:0.7;">
-          Contatta l'amministratore per maggiori informazioni.
-        </p>
+        <p>L'operatività di questa azienda è stata sospesa.</p>
       </div>
     `;
     return;
   }
+
+  /* =========================================================
+     REDIRECT LOGIN
+  ========================================================= */
 
   if (route === "login") {
     window.location.hash =
