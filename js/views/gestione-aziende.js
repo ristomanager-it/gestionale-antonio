@@ -59,8 +59,8 @@ export async function render(container) {
 async function caricaStatoScadenzeAziende() {
   const { data } = await supabase
     .from("aziende")
-    .select("id,nome,data_scadenza,stato_attivazione")
-    .neq("stato", "piattaforma"); // mostra tutte tranne la piattaforma
+    .select("id,nome,data_scadenza,stato")
+    .neq("stato", "piattaforma");
 
   const oggi = new Date();
   oggi.setHours(0,0,0,0);
@@ -170,9 +170,7 @@ function creaCardStato(gruppi, percentuali) {
   function mostraDettaglio(lista, titolo) {
     dettaglio.innerHTML = createCard({
       title: titolo,
-      body: `
-        <div id="lista-interna"></div>
-      `
+      body: `<div id="lista-interna"></div>`
     });
 
     const interno = document.getElementById("lista-interna");
@@ -198,12 +196,47 @@ function creaCardStato(gruppi, percentuali) {
         }
 
         riga.innerHTML = `
-          <span>${testo}</span>
-          <button class="app-button small gray">Apri</button>
+          <div>
+            <div><strong>${testo}</strong></div>
+            <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+              Stato: ${az.stato}
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="app-button small gray">Apri</button>
+            <button class="app-button small ${az.stato === "sospesa" ? "green" : "red"}">
+              ${az.stato === "sospesa" ? "Riattiva" : "Sospendi"}
+            </button>
+          </div>
         `;
 
-        riga.querySelector("button").onclick = () => {
+        const [btnApri, btnToggle] = riga.querySelectorAll("button");
+
+        btnApri.onclick = () => {
           window.location.hash = "#/modificaAzienda?id=" + az.id;
+        };
+
+        btnToggle.onclick = async () => {
+          const nuovoStato = az.stato === "sospesa" ? "attiva" : "sospesa";
+
+          const conferma = confirm(
+            `Sei sicuro di voler impostare questa azienda come "${nuovoStato}"?`
+          );
+
+          if (!conferma) return;
+
+          const { error } = await supabase
+            .from("aziende")
+            .update({ stato: nuovoStato })
+            .eq("id", az.id);
+
+          if (error) {
+            alert("Errore aggiornamento stato.");
+            return;
+          }
+
+          alert("Stato aggiornato con successo.");
+          window.router.reloadCurrentRoute();
         };
 
         interno.appendChild(riga);
