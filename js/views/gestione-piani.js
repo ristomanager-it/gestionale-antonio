@@ -23,8 +23,8 @@ export async function render(container) {
     container.innerHTML = createPageLayout({
       title: "Accesso negato",
       content: createCard({
-        body: `<p>Sezione riservata alla piattaforma.</p>`
-      })
+        body: `<p>Sezione riservata alla piattaforma.</p>`,
+      }),
     });
     return;
   }
@@ -53,7 +53,7 @@ export async function render(container) {
   container.innerHTML = createPageLayout({
     title: "Gestione Piani",
     subtitle: "Piattaforma",
-    content: createCard({ body: content })
+    content: createCard({ body: content }),
   });
 
   document.getElementById("btn-home").onclick = () => {
@@ -70,7 +70,7 @@ export async function render(container) {
 async function caricaPiani() {
   const { data, error } = await supabase
     .from("piani_abbonamento")
-    .select("*")
+    .select("id, nome, prezzo_mensile, sedi_max, features")
     .order("prezzo_mensile", { ascending: true });
 
   const container = document.getElementById("piani-list");
@@ -86,7 +86,7 @@ async function caricaPiani() {
     return;
   }
 
-  data.forEach(p => {
+  data.forEach((p) => {
     const div = document.createElement("div");
     div.style.background = "white";
     div.style.border = "1px solid #e5e7eb";
@@ -96,23 +96,13 @@ async function caricaPiani() {
     div.style.boxShadow = "0 10px 26px rgba(0,0,0,0.04)";
 
     const feats = p.features || {};
-    const enabled = AVAILABLE_FEATURES.filter(k => feats[k] === true);
+    const enabled = AVAILABLE_FEATURES.filter((k) => feats[k] === true);
 
     div.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div style="min-width:220px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div style="font-weight:900; font-size:16px;">${String(p.nome || "").toUpperCase()}</div>
-            <span style="
-              font-size:12px;
-              padding:4px 10px;
-              border-radius:999px;
-              border:1px solid #e5e7eb;
-              background:${p.attivo === false ? "#f3f4f6" : "#ecfdf5"};
-              color:${p.attivo === false ? "#6b7280" : "#166534"};
-            ">
-              ${p.attivo === false ? "Disattivo" : "Attivo"}
-            </span>
           </div>
 
           <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -131,9 +121,6 @@ async function caricaPiani() {
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="app-button small gray" data-edit="${p.id}">Modifica</button>
-          <button class="app-button small ${p.attivo === false ? "green" : "red"}" data-toggle="${p.id}">
-            ${p.attivo === false ? "Attiva" : "Disattiva"}
-          </button>
         </div>
       </div>
 
@@ -141,12 +128,21 @@ async function caricaPiani() {
         enabled.length
           ? `
             <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">
-              ${enabled.slice(0, 14).map(f => `
+              ${enabled
+                .slice(0, 14)
+                .map(
+                  (f) => `
                 <span style="font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#ffffff;">
                   ${f}
                 </span>
-              `).join("")}
-              ${enabled.length > 14 ? `<span style="font-size:12px; color:#6b7280;">+${enabled.length - 14}</span>` : ""}
+              `
+                )
+                .join("")}
+              ${
+                enabled.length > 14
+                  ? `<span style="font-size:12px; color:#6b7280;">+${enabled.length - 14}</span>`
+                  : ""
+              }
             </div>
           `
           : `<div style="margin-top:12px; font-size:12px; color:#6b7280;">Nessuna feature attiva.</div>`
@@ -156,27 +152,15 @@ async function caricaPiani() {
     container.appendChild(div);
   });
 
-  container.querySelectorAll("[data-edit]").forEach(btn => {
+  container.querySelectorAll("[data-edit]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-edit");
-      const { data: piano } = await supabase.from("piani_abbonamento").select("*").eq("id", id).single();
+      const { data: piano } = await supabase
+        .from("piani_abbonamento")
+        .select("id, nome, prezzo_mensile, sedi_max, features")
+        .eq("id", id)
+        .single();
       renderEditor(piano || null);
-    });
-  });
-
-  container.querySelectorAll("[data-toggle]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.getAttribute("data-toggle");
-      const { data: piano } = await supabase.from("piani_abbonamento").select("id, attivo").eq("id", id).single();
-
-      if (!piano) return;
-
-      const nuovoStato = piano.attivo === false ? true : false;
-      const conferma = confirm(`Confermi ${nuovoStato ? "ATTIVAZIONE" : "DISATTIVAZIONE"} piano?`);
-      if (!conferma) return;
-
-      await supabase.from("piani_abbonamento").update({ attivo: nuovoStato }).eq("id", id);
-      window.router.reloadCurrentRoute();
     });
   });
 }
@@ -186,7 +170,7 @@ function renderEditor(piano) {
   const isEdit = !!piano?.id;
 
   const features = piano?.features || {};
-  const checks = AVAILABLE_FEATURES.map(k => {
+  const checks = AVAILABLE_FEATURES.map((k) => {
     const checked = features[k] === true ? "checked" : "";
     return `
       <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:14px; background:#ffffff;">
@@ -225,11 +209,6 @@ function renderEditor(piano) {
             Sedi max
             <input id="p-sedi" type="number" class="input-pill" value="${piano?.sedi_max ?? 1}" />
           </label>
-
-          <label style="display:flex; align-items:center; gap:10px; margin-top:12px;">
-            <input id="p-attivo" type="checkbox" ${piano?.attivo === false ? "" : "checked"} />
-            <span style="font-weight:700;">Piano attivo</span>
-          </label>
         </div>
 
         <div style="background:white; border:1px solid #e5e7eb; border-radius:18px; padding:14px;">
@@ -261,7 +240,6 @@ function renderEditor(piano) {
     const nome = document.getElementById("p-nome").value.trim();
     const prezzo = Number(document.getElementById("p-prezzo").value || 0);
     const sedi = Number(document.getElementById("p-sedi").value || 1);
-    const attivo = document.getElementById("p-attivo").checked;
 
     if (!nome) {
       errorEl.textContent = "Inserisci un nome piano.";
@@ -270,7 +248,7 @@ function renderEditor(piano) {
 
     const inputs = editor.querySelectorAll("[data-feature]");
     const featuresObj = {};
-    inputs.forEach(i => {
+    inputs.forEach((i) => {
       featuresObj[i.getAttribute("data-feature")] = i.checked;
     });
 
@@ -282,7 +260,6 @@ function renderEditor(piano) {
           prezzo_mensile: prezzo,
           sedi_max: sedi,
           features: featuresObj,
-          attivo
         })
         .eq("id", piano.id);
 
@@ -291,15 +268,12 @@ function renderEditor(piano) {
         return;
       }
     } else {
-      const { error } = await supabase
-        .from("piani_abbonamento")
-        .insert({
-          nome,
-          prezzo_mensile: prezzo,
-          sedi_max: sedi,
-          features: featuresObj,
-          attivo
-        });
+      const { error } = await supabase.from("piani_abbonamento").insert({
+        nome,
+        prezzo_mensile: prezzo,
+        sedi_max: sedi,
+        features: featuresObj,
+      });
 
       if (error) {
         errorEl.textContent = error.message || "Errore creazione piano.";
@@ -313,10 +287,15 @@ function renderEditor(piano) {
   const btnDelete = document.getElementById("btn-delete-piano");
   if (btnDelete) {
     btnDelete.onclick = async () => {
-      const ok = confirm("Confermi eliminazione piano? Questa azione non è reversibile.");
+      const ok = confirm(
+        "Confermi eliminazione piano? Questa azione non è reversibile."
+      );
       if (!ok) return;
 
-      const { error } = await supabase.from("piani_abbonamento").delete().eq("id", piano.id);
+      const { error } = await supabase
+        .from("piani_abbonamento")
+        .delete()
+        .eq("id", piano.id);
       if (error) {
         errorEl.textContent = error.message || "Errore eliminazione piano.";
         return;
