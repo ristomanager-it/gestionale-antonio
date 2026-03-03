@@ -709,11 +709,7 @@ function aggiungiFase(initial = {}) {
     </div>
 
     <div class="form-grid" style="margin-top:12px;">
-      <div class="form-group" style="grid-column:1/-1;">
-        <label>Titolo fase *</label>
-        <input class="fase-nome input" value="${escapeAttr(initial.nome_fase || "")}" />
-      </div>
-
+      
       <div class="form-group" style="grid-column:1/-1;">
         <label>Descrizione operativa</label>
         <textarea class="fase-descrizione input" rows="4" placeholder="Istruzioni operative per l’operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
@@ -1037,11 +1033,7 @@ function aggiungiConservazionePassaggio(passContainer, initial = {}) {
     </div>
 
     <div class="form-grid" style="margin-top:10px;">
-      <div class="form-group" style="grid-column:1/-1;">
-        <label>Titolo *</label>
-        <input class="cp-titolo input" value="${escapeAttr(initial.titolo || "")}" placeholder="Es: Abbattimento positivo / Sottovuoto / Pastorizzazione..." />
-      </div>
-
+      
       <div class="form-group">
         <label>Tipo</label>
         <select class="cp-tipo input">
@@ -1623,7 +1615,7 @@ async function salvaTutto() {
     document.querySelectorAll("#fasi-container .azienda-card").forEach((r, idx) => {
       const ordine = idx + 1;
       const tipo_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
-      const nome_fase = (r.querySelector(".fase-nome")?.value || "").trim();
+      const nome_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
       const descrizione_operativa = (r.querySelector(".fase-descrizione")?.value || "").trim() || null;
       const durata_min = toIntOrNull(r.querySelector(".fase-durata")?.value) ?? 0;
       const lavoro_umano_min = toIntOrNull(r.querySelector(".fase-lavoro")?.value) ?? 0;
@@ -1631,7 +1623,7 @@ async function salvaTutto() {
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
 
-      if (!nome_fase) return;
+      
 
       rows.push({
         ricetta_id: ricettaIdNum,
@@ -1762,14 +1754,14 @@ async function salvaTutto() {
           if (c > 1) gruppo_alternativa = c - 1; // fallback
         }
 
-        const titolo = (r.querySelector(".cp-titolo")?.value || "").trim();
+        const titolo = (r.querySelector(".cp-tipo")?.value || "altro").trim();
         const tipo_passaggio = (r.querySelector(".cp-tipo")?.value || "altro").trim();
         const attrezzatura = (r.querySelector(".cp-attrezz")?.value || "").trim() || null;
         const temperatura_c = toNumOrNull(r.querySelector(".cp-temp")?.value);
         const durata_min = toIntOrNull(r.querySelector(".cp-durata")?.value);
         const descrizione_operativa = (r.querySelector(".cp-desc")?.value || "").trim() || null;
 
-        if (!titolo) return;
+        
 
         passRows.push({
           azienda_id: aziendaId,
