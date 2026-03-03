@@ -30,7 +30,7 @@ export async function render(container) {
 
   const { data: piani, error: pianiError } = await supabase
     .from("piani_abbonamento")
-    .select("id, nome, prezzo_mensile, sedi_max, features")
+    .select("id, nome, prezzo_mensile, sedi_max")
     .order("prezzo_mensile", { ascending: true });
 
   if (pianiError) {
