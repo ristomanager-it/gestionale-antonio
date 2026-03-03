@@ -31,6 +31,7 @@ const routes = {
   acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
+  storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js"),
   creaRicetta: () => import("./views/crea-ricetta.js"),
   preparazioni: () => import("./views/preparazioni.js"),
