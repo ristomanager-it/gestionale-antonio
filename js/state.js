@@ -13,6 +13,10 @@ window.state = {
   aziende: [],
   azienda: null,
 
+  // 🔥 Multi-sede
+  sedi: [],              // elenco sedi dell’azienda attiva
+  sedeAttiva: null,      // sede attualmente selezionata
+
   // Identità applicativa
   ruolo: null,
 
