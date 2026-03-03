@@ -1393,6 +1393,12 @@ async function salvaTutto() {
   const descrizione = getVal("r-descrizione").trim() || null;
   const note_procedimento = getVal("r-note-proc").trim() || null;
   const foto_url = getVal("r-foto-url").trim() || null;
+  const tipo_ricetta = getVal("r-tipo") || "base";
+  const categoria_portata_id_raw = getVal("r-categoria");
+  const categoria_portata_id = categoria_portata_id_raw
+    ? Number(categoria_portata_id_raw)
+    : null;
+
 
   const prodotto_output_id = getVal("r-output-id");
   const output_peso = toNumOrNull(getVal("r-output-peso"));
