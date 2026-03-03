@@ -22,30 +22,30 @@ export async function render(container) {
     container.innerHTML = createPageLayout({
       title: "Accesso negato",
       content: createCard({
-        body: `<p>Sezione riservata alla piattaforma.</p>`
-      })
+        body: `<p>Sezione riservata alla piattaforma.</p>`,
+      }),
     });
     return;
   }
 
   const { data: piani, error: pianiError } = await supabase
     .from("piani_abbonamento")
-    .select("id, nome, prezzo_mensile, sedi_max, attivo")
+    .select("id, nome, prezzo_mensile, sedi_max, features")
     .order("prezzo_mensile", { ascending: true });
 
   if (pianiError) {
     container.innerHTML = createPageLayout({
       title: "Errore",
       content: createCard({
-        body: `<p>Errore caricamento piani abbonamento.</p>`
-      })
+        body: `<p>Errore caricamento piani abbonamento.</p>`,
+      }),
     });
     return;
   }
 
-  const pianiAttivi = (piani || []).filter(p => p.attivo !== false);
+  const listaPiani = Array.isArray(piani) ? piani : [];
 
-  const optionsPiani = pianiAttivi
+  const optionsPiani = listaPiani
     .map(
       (p) => `
         <option value="${p.id}">
@@ -138,7 +138,7 @@ export async function render(container) {
   container.innerHTML = createPageLayout({
     title: "Crea Azienda",
     subtitle: "Piattaforma",
-    content: createCard({ body: content })
+    content: createCard({ body: content }),
   });
 
   const goHome = () => (window.location.hash = "#/homePiattaforma");
@@ -156,7 +156,7 @@ export async function render(container) {
       pianoHint.textContent = "Seleziona un piano per vedere il riepilogo.";
       return;
     }
-    const p = pianiAttivi.find(x => x.id === id);
+    const p = listaPiani.find((x) => x.id === id);
     if (!p) {
       pianoHint.textContent = "";
       return;
@@ -216,17 +216,23 @@ export async function render(container) {
 
       if (error) throw error;
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/#/reset-password",
-      });
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: window.location.origin + "/#/reset-password",
+        }
+      );
 
       if (resetError) throw resetError;
 
-      alert("Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password.");
+      alert(
+        "Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password."
+      );
       window.location.hash = "#/gestioneAziende";
     } catch (err) {
       console.error("create-azienda error:", err);
-      errorEl.textContent = err?.message || "Errore durante la creazione dell'azienda.";
+      errorEl.textContent =
+        err?.message || "Errore durante la creazione dell'azienda.";
     } finally {
       btnSubmit.disabled = false;
       btnSubmit.textContent = prevText;
