@@ -201,7 +201,7 @@ function renderSedeSelector() {
 }
 
 function hasFeature(area) {
-  return window.state?.azienda?.features?.[area] === true;
+  return window.state?.featuresEffettive?.[area] === true;
 }
 
 function hasPermission(area) {
