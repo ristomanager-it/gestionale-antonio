@@ -1,0 +1,205 @@
+import { supabase } from "../supabaseClient.js";
+
+export async function render(container) {
+  const azienda = window.state?.azienda;
+  const mode = window.routeParams?.mode || "select";
+
+  if (!azienda?.id) {
+    container.innerHTML = `
+      <div class="view" style="padding:40px; text-align:center;">
+        <h2 style="color:#dc2626;">Contesto mancante</h2>
+        <p>Nessuna azienda attiva.</p>
+        <button id="btn-home" style="margin-top:18px; padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
+          Vai a scelta azienda
+        </button>
+      </div>
+    `;
+    const b = document.getElementById("btn-home");
+    if (b) b.onclick = () => (window.location.hash = "#/sceltaAzienda");
+    return;
+  }
+
+  const sedi = await caricaSedi(azienda.id);
+
+  if (window.stateActions?.setSedi) {
+    window.stateActions.setSedi(sedi);
+  } else {
+    window.state.sedi = sedi;
+  }
+
+  if ((sedi || []).length === 0 || mode === "first") {
+    renderWizardPrimaSede(container, azienda.id);
+    return;
+  }
+
+  if ((sedi || []).length === 1) {
+    localStorage.setItem("active_sede_id", String(sedi[0].id));
+    window.location.hash = "#/home";
+    return;
+  }
+
+  renderSelezioneSede(container, sedi);
+}
+
+async function caricaSedi(aziendaId) {
+  const { data, error } = await supabase
+    .from("sedi")
+    .select("id, nome, indirizzo, latitudine, longitudine")
+    .eq("azienda_id", aziendaId)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento sedi:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+function renderWizardPrimaSede(container, aziendaId) {
+  container.innerHTML = `
+    <div class="view" style="padding:24px; max-width:760px; margin:0 auto;">
+      <h2 style="margin:0 0 8px 0;">Crea la tua prima sede</h2>
+      <p style="margin:0 0 18px 0; opacity:0.7;">
+        Non risultano sedi per questa azienda. Creane una per iniziare.
+      </p>
+
+      <div style="background:white; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
+        <div style="display:grid; gap:12px;">
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Nome sede</label>
+            <input id="sede-nome" placeholder="Es. Sede Centrale" style="width:100%; padding:12px 12px; border-radius:12px; border:1px solid #e5e7eb; font-size:15px;" />
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Indirizzo (opzionale)</label>
+            <input id="sede-indirizzo" placeholder="Es. Via Roma 10, Milano" style="width:100%; padding:12px 12px; border-radius:12px; border:1px solid #e5e7eb; font-size:15px;" />
+          </div>
+
+          <button id="btn-crea" style="margin-top:6px; padding:12px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:700; cursor:pointer;">
+            Crea sede
+          </button>
+
+          <div id="err" style="color:#dc2626; font-size:13px;"></div>
+
+          <button id="btn-logout" style="margin-top:4px; padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const btn = document.getElementById("btn-crea");
+  const err = document.getElementById("err");
+  const logoutBtn = document.getElementById("btn-logout");
+
+  if (logoutBtn) logoutBtn.onclick = () => window.router?.logout?.();
+
+  if (btn) {
+    btn.onclick = async () => {
+      err.textContent = "";
+
+      const nome = document.getElementById("sede-nome").value.trim();
+      const indirizzo = document.getElementById("sede-indirizzo").value.trim();
+
+      if (!nome) {
+        err.textContent = "Inserisci il nome della sede.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Creazione in corso...";
+
+      const payload = {
+        azienda_id: aziendaId,
+        nome,
+        indirizzo: indirizzo || null,
+      };
+
+      const { data, error } = await supabase.from("sedi").insert(payload).select("id").single();
+
+      if (error || !data?.id) {
+        console.error("Errore creazione sede:", error);
+        err.textContent = "Errore creazione sede. Verifica permessi/RLS.";
+        btn.disabled = false;
+        btn.textContent = "Crea sede";
+        return;
+      }
+
+      localStorage.setItem("active_sede_id", String(data.id));
+      window.location.hash = "#/home";
+    };
+  }
+}
+
+function renderSelezioneSede(container, sedi) {
+  container.innerHTML = `
+    <div class="view" style="padding:24px; max-width:980px; margin:0 auto;">
+      <h2 style="margin:0 0 8px 0;">Seleziona sede</h2>
+      <p style="margin:0 0 18px 0; opacity:0.7;">
+        Scegli la sede con cui vuoi operare.
+      </p>
+
+      <div style="
+        display:grid;
+        gap:14px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      ">
+        ${(sedi || [])
+          .map(
+            (s) => `
+              <button
+                data-sede-id="${s.id}"
+                style="
+                  text-align:left;
+                  background:white;
+                  border:1px solid #e5e7eb;
+                  border-radius:18px;
+                  padding:16px;
+                  cursor:pointer;
+                  box-shadow:0 10px 22px rgba(0,0,0,0.04);
+                "
+              >
+                <div style="font-weight:700; font-size:16px; color:#111827;">
+                  ${escapeHtml(s.nome || "Sede")}
+                </div>
+                <div style="margin-top:8px; font-size:13px; opacity:0.75;">
+                  ${escapeHtml(s.indirizzo || "")}
+                </div>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+
+      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
+          Logout
+        </button>
+      </div>
+    </div>
+  `;
+
+  container.querySelectorAll("[data-sede-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-sede-id");
+      if (!id) return;
+
+      localStorage.setItem("active_sede_id", String(id));
+      window.location.hash = "#/home";
+    });
+  });
+
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) logoutBtn.onclick = () => window.router?.logout?.();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
