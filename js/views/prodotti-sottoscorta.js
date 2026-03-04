@@ -52,6 +52,7 @@ export async function render(container) {
           scorta_minima,
           quantita_riordino,
           unita_misura,
+          fornitore_preferito_id,
           fornitori ( ragione_sociale )
         )
       `)
@@ -96,6 +97,7 @@ export async function render(container) {
             <th>UM</th>
             <th>Fornitore</th>
             <th>Riordino</th>
+            <th></th>
           </tr>
         </thead>
 
@@ -120,6 +122,14 @@ export async function render(container) {
 
                 <td>${qRiordino}</td>
 
+                <td>
+                  <button
+                    class="app-button tiny green btn-riordina"
+                    data-id="${r.prodotto_id}">
+                    ➕ Crea Ordine
+                  </button>
+                </td>
+
               </tr>
             `;
 
@@ -127,6 +137,65 @@ export async function render(container) {
         </tbody>
       </table>
     `;
+
+    wrap.querySelectorAll(".btn-riordina").forEach(btn => {
+
+      btn.addEventListener("click", async () => {
+
+        const prodottoId = btn.getAttribute("data-id");
+
+        const row = state.rows.find(r => r.prodotto_id == prodottoId);
+        const p = row?.prodotti;
+
+        if (!p?.fornitore_preferito_id) {
+          alert("Prodotto senza fornitore preferito.");
+          return;
+        }
+
+        const quantita =
+          p.quantita_riordino ||
+          Math.max((p.scorta_minima || 0) - (row.giacenza || 0), 1);
+
+        const { data: ordine, error } = await window.supabaseClient
+          .from("ordini_fornitore")
+          .insert({
+            azienda_id: azienda.id,
+            fornitore_id: p.fornitore_preferito_id,
+            stato: "bozza"
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Errore creazione ordine:", error);
+          alert("Errore creazione ordine.");
+          return;
+        }
+
+        const { error: errRiga } = await window.supabaseClient
+          .from("ordini_fornitore_righe")
+          .insert({
+            azienda_id: azienda.id,
+            ordine_id: ordine.id,
+            prodotto_id: prodottoId,
+            quantita: quantita,
+            unita_misura: p.unita_misura
+          });
+
+        if (errRiga) {
+          console.error("Errore creazione riga ordine:", errRiga);
+          alert("Errore creazione riga ordine.");
+          return;
+        }
+
+        alert("Ordine creato ✔");
+
+        window.location.hash = `#/ordine?id=${ordine.id}`;
+
+      });
+
+    });
+
   }
 
 }
@@ -135,7 +204,6 @@ function escapeHtml(str) {
   return String(str || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
