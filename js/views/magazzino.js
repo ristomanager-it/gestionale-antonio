@@ -97,13 +97,15 @@ function renderHome(azienda) {
 /* ===================================================== */
 
 async function renderMateriePrime(container, azienda) {
-  container.innerHTML = `<p>Caricamento materie prime...</p>`;
+  container.innerHTML = `<p>Caricamento magazzino...</p>`;
 
-  const { data, error } = await window.supabaseClient
+  const { data: sottoScorta, error } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
     .select("*")
     .eq("azienda_id", azienda.id)
-    .order("descrizione");
+    .lte("giacenza_attuale", "scorta_minima")
+    .order("descrizione")
+    .limit(50);
 
   if (error) {
     container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
@@ -124,87 +126,42 @@ async function renderMateriePrime(container, azienda) {
       <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
     </div>
 
-    <div id="magazzino-table-container"></div>
+    <div id="magazzino-risultati"></div>
+
+    <h4 style="margin-top:20px;">⚠️ Prodotti Sottoscorta</h4>
+    <div id="magazzino-sottoscorta"></div>
 
     ${renderCaricoModal()}
   `;
 
-  const tableContainer = document.getElementById("magazzino-table-container");
   const searchInput = document.getElementById("magazzino-search");
-  const btnBackHome = document.getElementById("btn-back-mag-home");
+  const risultati = document.getElementById("magazzino-risultati");
+  const sottoScortaBox = document.getElementById("magazzino-sottoscorta");
 
-  btnBackHome?.addEventListener("click", () => renderHome(azienda));
+  document
+    .getElementById("btn-back-mag-home")
+    ?.addEventListener("click", () => renderHome(azienda));
 
-  function renderTable(filteredData) {
-    tableContainer.innerHTML = `
-      <table class="table-timbrature">
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-            <th>Giacenza</th>
-            <th>Scorta Min.</th>
-            <th>Fornitore</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${(filteredData || []).map(p => `
-            <tr ${Number(p.giacenza_attuale) <= Number(p.scorta_minima || 0) ? "style='background:#fee2e2;'" : ""}>
-              <td>${escapeHtml(p.codice_interno || "")}</td>
-              <td>${escapeHtml(p.descrizione || "")}</td>
-              <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
-              <td>${Number(p.scorta_minima || 0)}</td>
-              <td>${escapeHtml(p.fornitore_nome || "")}</td>
-              <td>
-                <button class="app-button tiny gray btn-apri-carico"
-                  data-prodotto-id="${escapeHtml(p.prodotto_id || "")}"
-                  data-prodotto-label="${escapeHtml((p.codice_interno ? p.codice_interno + " · " : "") + (p.descrizione || ""))}">
-                  + Carico
-                </button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
+  renderTable(sottoScortaBox, sottoScorta, azienda, container, renderMateriePrime);
 
-    tableContainer.querySelectorAll(".btn-apri-carico").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const prodottoId = btn.getAttribute("data-prodotto-id");
-        const prodottoLabel = btn.getAttribute("data-prodotto-label");
-
-        apriCaricoModal({
-          aziendaId: azienda.id,
-          prodottoId,
-          prodottoLabel,
-          onSuccess: () => renderMateriePrime(container, azienda)
-        });
-      });
-    });
-  }
-
-  renderTable(data);
-
-  searchInput.addEventListener("input", () => {
-    const value = searchInput.value.toLowerCase().trim();
-
-    if (value.length === 0) {
-      renderTable(data);
-      return;
-    }
+  searchInput.addEventListener("input", async () => {
+    const value = searchInput.value.trim();
 
     if (value.length < 2) {
-      tableContainer.innerHTML = `<p style="opacity:0.6;">Digita almeno 2 lettere...</p>`;
+      risultati.innerHTML = "";
       return;
     }
 
-    const filtered = data.filter(p =>
-      (p.descrizione || "").toLowerCase().includes(value) ||
-      (p.codice_interno || "").toLowerCase().includes(value)
-    );
+    risultati.innerHTML = "Ricerca...";
 
-    renderTable(filtered);
+    const { data } = await window.supabaseClient
+      .from("v_magazzino_materie_prime")
+      .select("*")
+      .eq("azienda_id", azienda.id)
+      .or(`descrizione.ilike.%${value}%,codice_interno.ilike.%${value}%`)
+      .limit(50);
+
+    renderTable(risultati, data || [], azienda, container, renderMateriePrime);
   });
 }
 
@@ -304,6 +261,59 @@ async function renderProdottiFiniti(container, azienda) {
   document
     .getElementById("btn-back-mag-home")
     ?.addEventListener("click", () => renderHome(azienda));
+}
+
+/* ===================================================== */
+/* ================== TABELLA GENERICA ================== */
+/* ===================================================== */
+
+function renderTable(target, data, azienda, container, refreshFn) {
+  target.innerHTML = `
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Codice</th>
+          <th>Descrizione</th>
+          <th>Giacenza</th>
+          <th>Scorta Min.</th>
+          <th>Fornitore</th>
+          <th>Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(data || []).map(p => `
+          <tr ${Number(p.giacenza_attuale) <= Number(p.scorta_minima || 0) ? "style='background:#fee2e2;'" : ""}>
+            <td>${escapeHtml(p.codice_interno || "")}</td>
+            <td>${escapeHtml(p.descrizione || "")}</td>
+            <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
+            <td>${Number(p.scorta_minima || 0)}</td>
+            <td>${escapeHtml(p.fornitore_nome || "")}</td>
+            <td>
+              <button class="app-button tiny gray btn-apri-carico"
+                data-prodotto-id="${escapeHtml(p.prodotto_id || "")}"
+                data-prodotto-label="${escapeHtml((p.codice_interno ? p.codice_interno + " · " : "") + (p.descrizione || ""))}">
+                + Carico
+              </button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+
+  target.querySelectorAll(".btn-apri-carico").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const prodottoId = btn.getAttribute("data-prodotto-id");
+      const prodottoLabel = btn.getAttribute("data-prodotto-label");
+
+      apriCaricoModal({
+        aziendaId: azienda.id,
+        prodottoId,
+        prodottoLabel,
+        onSuccess: () => refreshFn(container, azienda)
+      });
+    });
+  });
 }
 
 /* ===================================================== */
@@ -431,9 +441,16 @@ async function renderMapping(container, azienda) {
   container.innerHTML = `<p>Caricamento mapping...</p>`;
 
   const { data, error } = await window.supabaseClient
-    .from("v_mapping_fornitori")
-    .select("*")
-    .eq("azienda_id", azienda.id);
+    .from("prodotti_fornitore")
+    .select(`
+      codice_fornitore,
+      descrizione_fornitore,
+      prezzo_ultimo_acquisto,
+      fornitori:fornitore_id ( ragione_sociale ),
+      prodotti:prodotto_id ( descrizione, codice_interno )
+    `)
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true);
 
   if (error) {
     container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
@@ -458,11 +475,11 @@ async function renderMapping(container, azienda) {
       <tbody>
         ${(data || []).map(m => `
           <tr>
-            <td>${escapeHtml(m.prodotto || "")}</td>
-            <td>${escapeHtml(m.fornitore || "")}</td>
+            <td>${escapeHtml((m.prodotti?.codice_interno || "") + " " + (m.prodotti?.descrizione || ""))}</td>
+            <td>${escapeHtml(m.fornitori?.ragione_sociale || "")}</td>
             <td>${escapeHtml(m.codice_fornitore || "")}</td>
-            <td>${escapeHtml(m.descrizione_fattura || "")}</td>
-            <td>${Number(m.ultimo_prezzo || 0).toFixed(2)}</td>
+            <td>${escapeHtml(m.descrizione_fornitore || "")}</td>
+            <td>${Number(m.prezzo_ultimo_acquisto || 0).toFixed(2)}</td>
           </tr>
         `).join("")}
       </tbody>
