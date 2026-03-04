@@ -1,9 +1,8 @@
-// js/stateActions.js
-// ================================
-// Azioni su stato globale
-// ================================
-
 window.stateActions = {
+  LS_KEYS: {
+    ACTIVE_AZIENDA_ID: "active_azienda_id",
+    ACTIVE_SEDE_ID: "active_sede_id",
+  },
 
   setUser(user) {
     window.state.user = user;
@@ -20,7 +19,12 @@ window.stateActions = {
   setAzienda(azienda) {
     window.state.azienda = azienda || null;
 
-    // Reset contesto multi-sede quando cambia azienda
+    if (azienda?.id) {
+      localStorage.setItem(this.LS_KEYS.ACTIVE_AZIENDA_ID, String(azienda.id));
+    }
+
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
     window.state.sedi = [];
     window.state.sedeAttiva = null;
 
@@ -33,12 +37,17 @@ window.stateActions = {
     const lista = Array.isArray(sedi) ? sedi : [];
     window.state.sedi = lista;
 
-    // Auto-select se c'è una sola sede o se la sede attiva non esiste più
+    const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
     if (lista.length === 1) {
       window.state.sedeAttiva = lista[0];
-    } else if (window.state.sedeAttiva) {
-      const exists = lista.some(s => String(s.id) === String(window.state.sedeAttiva.id));
-      if (!exists) window.state.sedeAttiva = null;
+      localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(lista[0].id));
+    } else if (storedSedeId) {
+      const match = lista.find((s) => String(s.id) === String(storedSedeId));
+      window.state.sedeAttiva = match || null;
+      if (!match) localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    } else {
+      window.state.sedeAttiva = null;
     }
 
     if (window.uiActions?.renderSedeSelector) {
@@ -48,10 +57,11 @@ window.stateActions = {
 
   setSedeAttiva(sedeId) {
     const sedi = window.state.sedi || [];
-    const sede = sedi.find(s => String(s.id) === String(sedeId));
+    const sede = sedi.find((s) => String(s.id) === String(sedeId));
     if (!sede) return;
 
     window.state.sedeAttiva = sede;
+    localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sede.id));
 
     if (window.uiActions?.renderSedeSelector) {
       window.uiActions.renderSedeSelector();
@@ -67,6 +77,8 @@ window.stateActions = {
     if (!azienda) {
       window.state.sedi = [];
       window.state.sedeAttiva = null;
+
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
       if (window.uiActions?.renderSedeSelector) {
         window.uiActions.renderSedeSelector();
@@ -85,6 +97,8 @@ window.stateActions = {
       window.state.sedi = [];
       window.state.sedeAttiva = null;
 
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
       if (window.uiActions?.renderSedeSelector) {
         window.uiActions.renderSedeSelector();
       }
@@ -92,15 +106,6 @@ window.stateActions = {
     }
 
     this.setSedi(data || []);
-
-    // Se non c'è sede attiva e c'è almeno una sede, seleziona la prima
-    if (!window.state.sedeAttiva && (window.state.sedi || []).length > 0) {
-      window.state.sedeAttiva = window.state.sedi[0];
-
-      if (window.uiActions?.renderSedeSelector) {
-        window.uiActions.renderSedeSelector();
-      }
-    }
   },
 
   resetAzienda() {
@@ -112,7 +117,9 @@ window.stateActions = {
     window.state.reparti = [];
     window.state.repartoAttivo = null;
 
-    // Reset multi-sede
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
     window.state.sedi = [];
     window.state.sedeAttiva = null;
 
@@ -144,7 +151,6 @@ window.stateActions = {
 
     const ruolo = window.state.ruolo;
 
-    // Superadmin e Admin non dipendono dai permessi granulari
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
@@ -154,13 +160,10 @@ window.stateActions = {
       return;
     }
 
-    const { data, error } = await window.supabaseClient.rpc(
-      "permessi_effettivi",
-      {
-        p_user_id: user.id,
-        p_azienda_id: azienda.id,
-      }
-    );
+    const { data, error } = await window.supabaseClient.rpc("permessi_effettivi", {
+      p_user_id: user.id,
+      p_azienda_id: azienda.id,
+    });
 
     if (error) {
       console.error("Errore caricamento permessi:", error);
@@ -187,7 +190,7 @@ window.stateActions = {
   },
 
   setRepartoAttivo(repartoId) {
-    const reparto = window.state.reparti.find(r => r.id === repartoId);
+    const reparto = window.state.reparti.find((r) => r.id === repartoId);
     if (!reparto) return;
 
     window.state.repartoAttivo = reparto;
@@ -223,7 +226,6 @@ window.stateActions = {
     const ruolo = ruoloData?.ruolo || null;
     window.state.ruolo = ruolo;
 
-    // Superadmin e Admin → tutti reparti
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
@@ -240,7 +242,6 @@ window.stateActions = {
       return;
     }
 
-    // Manager e Operatore → solo assegnati
     const { data: urData } = await window.supabaseClient
       .from("utenti_reparti")
       .select("reparto_id, reparti(id, nome)")
@@ -248,20 +249,22 @@ window.stateActions = {
       .eq("azienda_id", azienda.id)
       .eq("attivo", true);
 
-    const reparti = (urData || [])
-      .map(r => r.reparti)
-      .filter(Boolean);
+    const reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
 
     this.setReparti(reparti);
   },
 
   autoSetAzienda() {
     const aziendeLink = window.state.aziende || [];
+    const storedId = localStorage.getItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
 
     if (aziendeLink.length === 0) {
       window.state.azienda = null;
       window.state.sedi = [];
       window.state.sedeAttiva = null;
+
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
       if (window.uiActions?.renderSedeSelector) {
         window.uiActions.renderSedeSelector();
@@ -269,20 +272,31 @@ window.stateActions = {
       return;
     }
 
+    if (storedId) {
+      const match = aziendeLink.find((a) => String(a.aziende?.id) === String(storedId));
+      if (match?.aziende) {
+        window.state.azienda = match.aziende;
+        return;
+      }
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
+    }
+
     const piattaformaLink = aziendeLink.find(
-      a => a.aziende && a.aziende.stato === "piattaforma"
+      (a) => a.aziende && a.aziende.stato === "piattaforma"
     );
 
     if (piattaformaLink) {
       window.state.azienda = piattaformaLink.aziende;
+      localStorage.setItem(this.LS_KEYS.ACTIVE_AZIENDA_ID, String(piattaformaLink.aziende.id));
       return;
     }
 
     if (aziendeLink.length === 1) {
       window.state.azienda = aziendeLink[0].aziende;
+      localStorage.setItem(this.LS_KEYS.ACTIVE_AZIENDA_ID, String(aziendeLink[0].aziende.id));
       return;
     }
 
     window.state.azienda = null;
-  }
+  },
 };
