@@ -669,6 +669,47 @@ async function renderFatture(container, azienda) {
     if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
 
     closeAllSuggest();
+
+    // ==============================
+    // SALVA MAPPING FORNITORE AUTO
+    // ==============================
+    const fornitoreId = getCurrentFornitoreId();
+    const descrFornitore = (righe[idx].descrizione || "").trim();
+
+    if (fornitoreId && descrFornitore) {
+      try {
+        await window.supabaseClient
+          .from("prodotti_fornitore")
+          .upsert(
+            {
+              azienda_id: azienda.id,
+              fornitore_id: Number(fornitoreId),
+              prodotto_id: prodotto.id,
+              descrizione_fornitore: descrFornitore,
+              attivo: true
+            },
+            {
+              onConflict: "azienda_id,fornitore_id,descrizione_fornitore"
+            }
+          );
+      } catch (e) {
+        console.warn("Errore salvataggio mapping fornitore", e);
+      }
+    }
+
+    await updateRowComputedUI(idx);
+  }
+
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+    const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
+    const hidId = rowEl?.querySelector(".riga-prodotto-id");
+    const umEl = rowEl?.querySelector(".riga-um");
+
+    if (inpProd) inpProd.value = righe[idx].prodotto_nome;
+    if (hidId) hidId.value = righe[idx].prodotto_id || "";
+    if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
+
+    closeAllSuggest();
     await updateRowComputedUI(idx);
   }
 
