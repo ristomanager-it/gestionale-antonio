@@ -1,36 +1,32 @@
-// js/views/login.js
 import { supabase } from "../supabaseClient.js";
-
-/* =========================================================
-   TRACKING ACCESSI CORRETTO (NO EMAIL)
-========================================================= */
 
 async function aggiornaAccessoUtente(userId) {
   if (!userId) return;
 
   const { data, error } = await supabase
     .from("utenti_aziende")
-    .select("numero_accessi, azienda_id")
+    .select("azienda_id, numero_accessi")
     .eq("user_id", userId)
-    .eq("attivo", true)
-    .single();
+    .eq("attivo", true);
 
-  if (error || !data) return;
+  if (error || !Array.isArray(data)) return;
 
-  await supabase
-    .from("utenti_aziende")
-    .update({
-      ultimo_accesso: new Date().toISOString(),
-      numero_accessi: (data.numero_accessi || 0) + 1,
-      stato_invito: "attivo",
-    })
-    .eq("user_id", userId)
-    .eq("azienda_id", data.azienda_id);
+  for (const row of data) {
+    try {
+      await supabase
+        .from("utenti_aziende")
+        .update({
+          ultimo_accesso: new Date().toISOString(),
+          numero_accessi: (row.numero_accessi || 0) + 1,
+          stato_invito: "attivo",
+        })
+        .eq("user_id", userId)
+        .eq("azienda_id", row.azienda_id);
+    } catch (e) {
+      console.error("Errore aggiornamento accesso:", e);
+    }
+  }
 }
-
-/* =========================================================
-   RENDER LOGIN
-========================================================= */
 
 export async function render(container) {
   container.innerHTML = `
@@ -83,16 +79,16 @@ export async function render(container) {
             #0C4E6A 50%,
             #083E55 100%
           );
-          padding: 32px; /* stessa fascia su tutti i lati */
+          padding: 32px;
           box-sizing: border-box;
         }
 
         .login-card-modern {
           background: white;
-          padding: 42px 60px; /* più grande lateralmente */
+          padding: 42px 60px;
           border-radius: 24px;
           width: 100%;
-          max-width: 640px; /* più larga */
+          max-width: 640px;
           box-shadow: 0 30px 70px rgba(0,0,0,0.25);
           text-align: center;
           display: flex;
@@ -108,7 +104,7 @@ export async function render(container) {
         }
 
         .login-logo img {
-          width: 130px; /* logo più grande */
+          width: 130px;
           height: 130px;
           object-fit: contain;
         }
@@ -198,7 +194,7 @@ export async function render(container) {
   const btn = document.getElementById("btn-login");
   const errorBox = document.getElementById("login-error");
 
-  btn.onclick = async () => {
+  const doLogin = async () => {
     errorBox.textContent = "";
 
     const email = document.getElementById("login-email").value.trim();
@@ -226,9 +222,10 @@ export async function render(container) {
 
     const {
       data: { user },
+      error: userErr,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userErr || !user) {
       errorBox.textContent = "Errore recupero utente.";
       btn.disabled = false;
       btn.textContent = "Entra";
@@ -237,33 +234,19 @@ export async function render(container) {
 
     await aggiornaAccessoUtente(user.id);
 
-    const { data: utenteAzienda, error: uaError } = await supabase
-      .from("utenti_aziende")
-      .select("azienda_id, ruolo")
-      .eq("user_id", user.id)
-      .eq("attivo", true)
-      .single();
-
-    if (uaError || !utenteAzienda) {
-      errorBox.textContent = "Utente non associato ad azienda attiva.";
-      btn.disabled = false;
-      btn.textContent = "Entra";
-      return;
-    }
-
-    const { data: permessiEffettivi } = await supabase.rpc(
-      "permessi_effettivi",
-      {
-        p_user_id: user.id,
-        p_azienda_id: utenteAzienda.azienda_id,
-      }
-    );
-
-    window.state.user = user;
-    window.state.azienda = { id: utenteAzienda.azienda_id };
-    window.state.ruolo = utenteAzienda.ruolo;
-    window.state.permessi = permessiEffettivi || {};
-
     window.location.hash = "#/home";
   };
+
+  btn.onclick = doLogin;
+
+  const emailInput = document.getElementById("login-email");
+  const passInput = document.getElementById("login-password");
+
+  passInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+
+  emailInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
 }
