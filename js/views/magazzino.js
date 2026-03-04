@@ -99,18 +99,25 @@ function renderHome(azienda) {
 async function renderMateriePrime(container, azienda) {
   container.innerHTML = `<p>Caricamento magazzino...</p>`;
 
-  const { data: sottoScorta, error } = await window.supabaseClient
+  // Nota: Supabase non permette confronti colonna-vs-colonna (giacenza_attuale <= scorta_minima).
+  // Quindi: carichiamo solo candidati con scorta_minima > 0, ordinati per giacenza,
+  // poi filtriamo lato client per mostrare i sottoscorta.
+  const { data: candidati, error } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
     .select("*")
     .eq("azienda_id", azienda.id)
-    .lte("giacenza_attuale", "scorta_minima")
-    .order("descrizione")
-    .limit(50);
+    .gt("scorta_minima", 0)
+    .order("giacenza_attuale", { ascending: true })
+    .limit(200);
 
   if (error) {
     container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
     return;
   }
+
+  const sottoScorta = (candidati || [])
+    .filter(p => Number(p.giacenza_attuale || 0) <= Number(p.scorta_minima || 0))
+    .slice(0, 50);
 
   container.innerHTML = `
     <h3>Magazzino Materie Prime</h3>
@@ -142,26 +149,46 @@ async function renderMateriePrime(container, azienda) {
     .getElementById("btn-back-mag-home")
     ?.addEventListener("click", () => renderHome(azienda));
 
-  renderTable(sottoScortaBox, sottoScorta, azienda, container, renderMateriePrime);
+  if (!sottoScorta || sottoScorta.length === 0) {
+    sottoScortaBox.innerHTML = `<p style="opacity:0.7;">Nessun sottoscorta 🎉</p>`;
+  } else {
+    renderTable(sottoScortaBox, sottoScorta, azienda, container, renderMateriePrime);
+  }
 
-  searchInput.addEventListener("input", async () => {
+  let debounceTimer = null;
+
+  searchInput.addEventListener("input", () => {
     const value = searchInput.value.trim();
+
+    if (debounceTimer) clearTimeout(debounceTimer);
 
     if (value.length < 2) {
       risultati.innerHTML = "";
       return;
     }
 
-    risultati.innerHTML = "Ricerca...";
+    debounceTimer = setTimeout(async () => {
+      risultati.innerHTML = `<p style="opacity:0.7;">Ricerca...</p>`;
 
-    const { data } = await window.supabaseClient
-      .from("v_magazzino_materie_prime")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .or(`descrizione.ilike.%${value}%,codice_interno.ilike.%${value}%`)
-      .limit(50);
+      const { data, error: searchError } = await window.supabaseClient
+        .from("v_magazzino_materie_prime")
+        .select("*")
+        .eq("azienda_id", azienda.id)
+        .or(`descrizione.ilike.%${value}%,codice_interno.ilike.%${value}%`)
+        .limit(50);
 
-    renderTable(risultati, data || [], azienda, container, renderMateriePrime);
+      if (searchError) {
+        risultati.innerHTML = `<p style="color:red;">Errore: ${searchError.message}</p>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        risultati.innerHTML = `<p style="opacity:0.7;">Nessun risultato.</p>`;
+        return;
+      }
+
+      renderTable(risultati, data || [], azienda, container, renderMateriePrime);
+    }, 250);
   });
 }
 
