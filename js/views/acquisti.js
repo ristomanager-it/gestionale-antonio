@@ -625,17 +625,26 @@ async function renderFatture(container, azienda) {
   }
 
   function openSuggestForIndex(idx, items) {
-const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
-    const inpProd = rowEl?.querySelector(".riga-prodotto-nome");
-    const hidId = rowEl?.querySelector(".riga-prodotto-id");
-    const umEl = rowEl?.querySelector(".riga-um");
+    const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
+    const suggest = rowEl?.querySelector(".prod-suggest");
+    if (!suggest) return;
 
-    if (inpProd) inpProd.value = righe[idx].prodotto_nome;
-    if (hidId) hidId.value = righe[idx].prodotto_id || "";
-    if (umEl) umEl.textContent = righe[idx].um ? `UM: ${righe[idx].um}` : "";
+    if (!items || !items.length) {
+      suggest.classList.remove("open");
+      suggest.innerHTML = "";
+      suggest.style.display = "none";
+      return;
+    }
 
-    closeAllSuggest();
-    await updateRowComputedUI(idx);
+    suggest.innerHTML = items.map(p => {
+      const label = p.codice_interno
+        ? `${escapeHtml(p.descrizione)} · ${escapeHtml(p.codice_interno)}`
+        : `${escapeHtml(p.descrizione)}`;
+      return `<div class="suggest-item" data-prod-id="${escapeHtml(p.id)}">${label}</div>`;
+    }).join("");
+
+    suggest.style.display = "block";
+    suggest.classList.add("open");
   }
 
   async function loadCategorieBilancio() {
