@@ -16,8 +16,9 @@ export async function render(container) {
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
         <h3 style="margin:0;">Prodotti Sottoscorta</h3>
 
-        <div style="margin-left:auto;">
+        <div style="margin-left:auto; display:flex; gap:8px;">
           <button class="app-button tiny gray" id="btn-refresh">↻ Aggiorna</button>
+          <button class="app-button tiny orange" id="btn-auto-ordini">⚡ Crea Ordini Automatici</button>
         </div>
       </div>
 
@@ -31,10 +32,15 @@ export async function render(container) {
   };
 
   const btnRefresh = document.getElementById("btn-refresh");
+  const btnAutoOrdini = document.getElementById("btn-auto-ordini");
 
   btnRefresh?.addEventListener("click", async () => {
     await loadData(state);
     renderTable(state);
+  });
+
+  btnAutoOrdini?.addEventListener("click", async () => {
+    await creaOrdiniAutomatici();
   });
 
   await loadData(state);
@@ -167,12 +173,12 @@ export async function render(container) {
           .single();
 
         if (error) {
-          console.error("Errore creazione ordine:", error);
+          console.error(error);
           alert("Errore creazione ordine.");
           return;
         }
 
-        const { error: errRiga } = await window.supabaseClient
+        await window.supabaseClient
           .from("ordini_fornitore_righe")
           .insert({
             azienda_id: azienda.id,
@@ -182,12 +188,6 @@ export async function render(container) {
             unita_misura: p.unita_misura
           });
 
-        if (errRiga) {
-          console.error("Errore creazione riga ordine:", errRiga);
-          alert("Errore creazione riga ordine.");
-          return;
-        }
-
         alert("Ordine creato ✔");
 
         window.location.hash = `#/ordine?id=${ordine.id}`;
@@ -195,6 +195,87 @@ export async function render(container) {
       });
 
     });
+
+  }
+
+  async function creaOrdiniAutomatici() {
+
+    if (!state.rows.length) {
+      alert("Nessun prodotto sottoscorta.");
+      return;
+    }
+
+    const gruppi = {};
+
+    for (const r of state.rows) {
+
+      const p = r.prodotti;
+
+      if (!p?.fornitore_preferito_id) continue;
+
+      const fid = p.fornitore_preferito_id;
+
+      if (!gruppi[fid]) gruppi[fid] = [];
+
+      const quantita =
+        p.quantita_riordino ||
+        Math.max((p.scorta_minima || 0) - (r.giacenza || 0), 1);
+
+      gruppi[fid].push({
+        prodotto_id: r.prodotto_id,
+        quantita,
+        unita_misura: p.unita_misura
+      });
+
+    }
+
+    const fornitori = Object.keys(gruppi);
+
+    if (!fornitori.length) {
+      alert("Nessun prodotto con fornitore preferito.");
+      return;
+    }
+
+    let primoOrdine = null;
+
+    for (const fid of fornitori) {
+
+      const { data: ordine, error } = await window.supabaseClient
+        .from("ordini_fornitore")
+        .insert({
+          azienda_id: azienda.id,
+          fornitore_id: fid,
+          stato: "bozza"
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Errore ordine:", error);
+        continue;
+      }
+
+      if (!primoOrdine) primoOrdine = ordine.id;
+
+      const righe = gruppi[fid].map(r => ({
+        azienda_id: azienda.id,
+        ordine_id: ordine.id,
+        prodotto_id: r.prodotto_id,
+        quantita: r.quantita,
+        unita_misura: r.unita_misura
+      }));
+
+      await window.supabaseClient
+        .from("ordini_fornitore_righe")
+        .insert(righe);
+
+    }
+
+    alert("Ordini creati automaticamente ✔");
+
+    if (primoOrdine) {
+      window.location.hash = `#/ordine?id=${primoOrdine}`;
+    }
 
   }
 
