@@ -82,7 +82,10 @@ function renderHome(azienda) {
       const type = card.dataset.type;
       const tab = card.dataset.tab;
 
-      if (type) renderProdotti(content, azienda, type);
+      if (type === "materia_prima") renderMateriePrime(content, azienda);
+      if (type === "semilavorato") renderPreparazioni(content, azienda);
+      if (type === "prodotto_finito") renderProdottiFiniti(content, azienda);
+
       if (tab === "mapping") renderMapping(content, azienda);
       if (tab === "anagrafica") renderAnagraficaProdotti(content);
     });
@@ -90,17 +93,16 @@ function renderHome(azienda) {
 }
 
 /* ===================================================== */
-/* ===================== PRODOTTI ======================= */
+/* =================== MATERIE PRIME ==================== */
 /* ===================================================== */
 
-async function renderProdotti(container, azienda, tipoProdotto) {
-  container.innerHTML = `<p>Caricamento prodotti...</p>`;
+async function renderMateriePrime(container, azienda) {
+  container.innerHTML = `<p>Caricamento materie prime...</p>`;
 
   const { data, error } = await window.supabaseClient
-    .from("v_magazzino_giacenze")
+    .from("v_magazzino_materie_prime")
     .select("*")
     .eq("azienda_id", azienda.id)
-    .eq("tipo_prodotto", tipoProdotto)
     .order("descrizione");
 
   if (error) {
@@ -108,21 +110,15 @@ async function renderProdotti(container, azienda, tipoProdotto) {
     return;
   }
 
-  const titolo = {
-    materia_prima: "Magazzino Materie Prime",
-    semilavorato: "Magazzino Preparazioni",
-    prodotto_finito: "Magazzino Prodotti Finiti"
-  }[tipoProdotto] || "Magazzino";
-
   container.innerHTML = `
-    <h3>${titolo}</h3>
+    <h3>Magazzino Materie Prime</h3>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
       <input 
         type="text" 
         id="magazzino-search" 
         class="input-pill" 
-        placeholder="🔎 Cerca prodotto..."
+        placeholder="🔎 Cerca materia prima..."
         style="flex:1 1 260px;"
       />
       <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
@@ -130,6 +126,192 @@ async function renderProdotti(container, azienda, tipoProdotto) {
 
     <div id="magazzino-table-container"></div>
 
+    ${renderCaricoModal()}
+  `;
+
+  const tableContainer = document.getElementById("magazzino-table-container");
+  const searchInput = document.getElementById("magazzino-search");
+  const btnBackHome = document.getElementById("btn-back-mag-home");
+
+  btnBackHome?.addEventListener("click", () => renderHome(azienda));
+
+  function renderTable(filteredData) {
+    tableContainer.innerHTML = `
+      <table class="table-timbrature">
+        <thead>
+          <tr>
+            <th>Codice</th>
+            <th>Descrizione</th>
+            <th>Giacenza</th>
+            <th>Scorta Min.</th>
+            <th>Fornitore</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(filteredData || []).map(p => `
+            <tr ${Number(p.giacenza_attuale) <= Number(p.scorta_minima || 0) ? "style='background:#fee2e2;'" : ""}>
+              <td>${escapeHtml(p.codice_interno || "")}</td>
+              <td>${escapeHtml(p.descrizione || "")}</td>
+              <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
+              <td>${Number(p.scorta_minima || 0)}</td>
+              <td>${escapeHtml(p.fornitore_nome || "")}</td>
+              <td>
+                <button class="app-button tiny gray btn-apri-carico"
+                  data-prodotto-id="${escapeHtml(p.prodotto_id || "")}"
+                  data-prodotto-label="${escapeHtml((p.codice_interno ? p.codice_interno + " · " : "") + (p.descrizione || ""))}">
+                  + Carico
+                </button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    tableContainer.querySelectorAll(".btn-apri-carico").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const prodottoId = btn.getAttribute("data-prodotto-id");
+        const prodottoLabel = btn.getAttribute("data-prodotto-label");
+
+        apriCaricoModal({
+          aziendaId: azienda.id,
+          prodottoId,
+          prodottoLabel,
+          onSuccess: () => renderMateriePrime(container, azienda)
+        });
+      });
+    });
+  }
+
+  renderTable(data);
+
+  searchInput.addEventListener("input", () => {
+    const value = searchInput.value.toLowerCase().trim();
+
+    if (value.length === 0) {
+      renderTable(data);
+      return;
+    }
+
+    if (value.length < 2) {
+      tableContainer.innerHTML = `<p style="opacity:0.6;">Digita almeno 2 lettere...</p>`;
+      return;
+    }
+
+    const filtered = data.filter(p =>
+      (p.descrizione || "").toLowerCase().includes(value) ||
+      (p.codice_interno || "").toLowerCase().includes(value)
+    );
+
+    renderTable(filtered);
+  });
+}
+
+/* ===================================================== */
+/* ==================== PREPARAZIONI ==================== */
+/* ===================================================== */
+
+async function renderPreparazioni(container, azienda) {
+  container.innerHTML = `<p>Caricamento preparazioni...</p>`;
+
+  const { data, error } = await window.supabaseClient
+    .from("v_magazzino_preparazioni")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .order("descrizione");
+
+  if (error) {
+    container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <h3>Magazzino Preparazioni</h3>
+
+    <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
+
+    <table class="table-timbrature" style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>Preparazione</th>
+          <th>Giacenza</th>
+          <th>Ricetta</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(data || []).map(p => `
+          <tr>
+            <td>${escapeHtml(p.descrizione || "")}</td>
+            <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
+            <td>${escapeHtml(p.ricetta_nome || "")}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+
+  document
+    .getElementById("btn-back-mag-home")
+    ?.addEventListener("click", () => renderHome(azienda));
+}
+
+/* ===================================================== */
+/* ================== PRODOTTI FINITI =================== */
+/* ===================================================== */
+
+async function renderProdottiFiniti(container, azienda) {
+  container.innerHTML = `<p>Caricamento prodotti finiti...</p>`;
+
+  const { data, error } = await window.supabaseClient
+    .from("v_magazzino_prodotti_finiti")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .order("descrizione");
+
+  if (error) {
+    container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <h3>Prodotti Finiti</h3>
+
+    <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
+
+    <table class="table-timbrature" style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>Piatto</th>
+          <th>Costo Materia Prima</th>
+          <th>Prezzo Vendita</th>
+          <th>Giacenza</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(data || []).map(p => `
+          <tr>
+            <td>${escapeHtml(p.descrizione || "")}</td>
+            <td>${Number(p.costo_materia_prima || 0).toFixed(2)}</td>
+            <td>${Number(p.prezzo_vendita || 0).toFixed(2)}</td>
+            <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+
+  document
+    .getElementById("btn-back-mag-home")
+    ?.addEventListener("click", () => renderHome(azienda));
+}
+
+/* ===================================================== */
+/* =================== CARICO MODALE ==================== */
+/* ===================================================== */
+
+function renderCaricoModal() {
+  return `
     <div id="magazzino-carico-backdrop"
       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
       <div class="view"
@@ -167,86 +349,7 @@ async function renderProdotti(container, azienda, tipoProdotto) {
       </div>
     </div>
   `;
-
-  const tableContainer = document.getElementById("magazzino-table-container");
-  const searchInput = document.getElementById("magazzino-search");
-  const btnBackHome = document.getElementById("btn-back-mag-home");
-
-  btnBackHome?.addEventListener("click", () => renderHome(azienda));
-
-  function renderTable(filteredData) {
-    tableContainer.innerHTML = `
-      <table class="table-timbrature">
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-            <th>Giacenza</th>
-            <th>Scorta Min.</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${(filteredData || []).map(p => `
-            <tr ${Number(p.giacenza_attuale) <= Number(p.scorta_minima || 0) ? "style='background:#fee2e2;'" : ""}>
-              <td>${escapeHtml(p.codice_interno || "")}</td>
-              <td>${escapeHtml(p.descrizione || "")}</td>
-              <td>${Number(p.giacenza_attuale || 0).toFixed(3)}</td>
-              <td>${Number(p.scorta_minima || 0)}</td>
-              <td>
-                <button class="app-button tiny gray btn-apri-carico"
-                  data-prodotto-id="${escapeHtml(p.prodotto_id || "")}"
-                  data-prodotto-label="${escapeHtml((p.codice_interno ? p.codice_interno + " · " : "") + (p.descrizione || ""))}">
-                  + Carica
-                </button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-
-    tableContainer.querySelectorAll(".btn-apri-carico").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const prodottoId = btn.getAttribute("data-prodotto-id");
-        const prodottoLabel = btn.getAttribute("data-prodotto-label");
-        apriCaricoModal({
-          aziendaId: azienda.id,
-          prodottoId,
-          prodottoLabel,
-          onSuccess: () => renderProdotti(container, azienda, tipoProdotto)
-        });
-      });
-    });
-  }
-
-  renderTable(data);
-
-  searchInput.addEventListener("input", () => {
-    const value = searchInput.value.toLowerCase().trim();
-
-    if (value.length === 0) {
-      renderTable(data);
-      return;
-    }
-
-    if (value.length < 2) {
-      tableContainer.innerHTML = `<p style="opacity:0.6;">Digita almeno 2 lettere...</p>`;
-      return;
-    }
-
-    const filtered = data.filter(p =>
-      (p.descrizione || "").toLowerCase().includes(value) ||
-      (p.codice_interno || "").toLowerCase().includes(value)
-    );
-
-    renderTable(filtered);
-  });
 }
-
-/* ===================================================== */
-/* =================== CARICO GIACENZA ================== */
-/* ===================================================== */
 
 function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
   const backdrop = document.getElementById("magazzino-carico-backdrop");
@@ -260,15 +363,7 @@ function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
   const noteEl = document.getElementById("carico-note");
   const esitoEl = document.getElementById("carico-esito");
 
-  if (!backdrop || !btnClose || !btnAnnulla || !btnConferma || !label || !qtaEl || !dataEl || !noteEl || !esitoEl) {
-    alert("UI carico non disponibile.");
-    return;
-  }
-
-  if (!prodottoId) {
-    alert("Prodotto non valido.");
-    return;
-  }
+  if (!backdrop) return;
 
   esitoEl.innerText = "";
   label.innerText = prodottoLabel ? `Prodotto: ${prodottoLabel}` : "Prodotto selezionato";
@@ -315,7 +410,7 @@ function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
 
     if (error) {
       console.error("Errore carico magazzino:", error);
-      esitoEl.innerText = "Errore durante il carico. Controlla console.";
+      esitoEl.innerText = "Errore durante il carico.";
       btnConferma.removeAttribute("disabled");
       return;
     }
@@ -328,15 +423,6 @@ function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
   };
 }
 
-function escapeHtml(str) {
-  return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 /* ===================================================== */
 /* =================== MAPPING FORNITORI =============== */
 /* ===================================================== */
@@ -345,17 +431,9 @@ async function renderMapping(container, azienda) {
   container.innerHTML = `<p>Caricamento mapping...</p>`;
 
   const { data, error } = await window.supabaseClient
-    .from("prodotti_fornitore")
-    .select(`
-      id,
-      codice_fornitore,
-      descrizione_fornitore,
-      prezzo_ultimo_acquisto,
-      fornitori:fornitore_id ( ragione_sociale ),
-      prodotti:prodotto_id ( descrizione )
-    `)
-    .eq("azienda_id", azienda.id)
-    .eq("attivo", true);
+    .from("v_mapping_fornitori")
+    .select("*")
+    .eq("azienda_id", azienda.id);
 
   if (error) {
     container.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
@@ -365,25 +443,46 @@ async function renderMapping(container, azienda) {
   container.innerHTML = `
     <h3>Mapping Fornitori</h3>
 
-    <table class="table-timbrature">
+    <button class="app-button tiny gray" id="btn-back-mag-home">← Menu Magazzino</button>
+
+    <table class="table-timbrature" style="margin-top:10px;">
       <thead>
         <tr>
-          <th>Prodotto Interno</th>
+          <th>Prodotto</th>
           <th>Fornitore</th>
           <th>Codice Fornitore</th>
+          <th>Descrizione Fattura</th>
           <th>Ultimo Prezzo</th>
         </tr>
       </thead>
       <tbody>
         ${(data || []).map(m => `
           <tr>
-            <td>${escapeHtml(m.prodotti?.descrizione || "")}</td>
-            <td>${escapeHtml(m.fornitori?.ragione_sociale || "")}</td>
+            <td>${escapeHtml(m.prodotto || "")}</td>
+            <td>${escapeHtml(m.fornitore || "")}</td>
             <td>${escapeHtml(m.codice_fornitore || "")}</td>
-            <td>${Number(m.prezzo_ultimo_acquisto || 0)}</td>
+            <td>${escapeHtml(m.descrizione_fattura || "")}</td>
+            <td>${Number(m.ultimo_prezzo || 0).toFixed(2)}</td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
+
+  document
+    .getElementById("btn-back-mag-home")
+    ?.addEventListener("click", () => renderHome(azienda));
+}
+
+/* ===================================================== */
+/* ====================== UTILS ========================= */
+/* ===================================================== */
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
