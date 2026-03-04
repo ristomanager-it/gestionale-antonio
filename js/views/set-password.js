@@ -9,89 +9,101 @@ export async function render(container) {
     </div>
   `;
 
-  // 🔐 Ascolta evento recovery
-  const { data: listener } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
+  const showForm = () => {
+    container.innerHTML = `
+      <div class="view">
+        <h2 style="margin-top:0;">Crea la tua password</h2>
 
-      if (event === "PASSWORD_RECOVERY") {
+        <form id="set-password-form" class="form-stack">
 
-        container.innerHTML = `
-          <div class="view">
-            <h2 style="margin-top:0;">Crea la tua password</h2>
+          <label>
+            Nuova password
+            <input 
+              id="new-password" 
+              type="password" 
+              class="input-pill" 
+              required 
+              minlength="8"
+            />
+          </label>
 
-            <form id="set-password-form" class="form-stack">
+          <label>
+            Conferma password
+            <input 
+              id="confirm-password" 
+              type="password" 
+              class="input-pill" 
+              required 
+              minlength="8"
+            />
+          </label>
 
-              <label>
-                Nuova password
-                <input 
-                  id="new-password" 
-                  type="password" 
-                  class="input-pill" 
-                  required 
-                  minlength="8"
-                />
-              </label>
+          <button type="submit" class="app-button green">
+            Salva password
+          </button>
 
-              <label>
-                Conferma password
-                <input 
-                  id="confirm-password" 
-                  type="password" 
-                  class="input-pill" 
-                  required 
-                  minlength="8"
-                />
-              </label>
+        </form>
 
-              <button type="submit" class="app-button green">
-                Salva password
-              </button>
+        <p id="password-error" style="color:#dc2626;"></p>
+      </div>
+    `;
 
-            </form>
+    document
+      .getElementById("set-password-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-            <p id="password-error" style="color:#dc2626;"></p>
-          </div>
-        `;
+        const newPassword =
+          document.getElementById("new-password").value.trim();
+        const confirmPassword =
+          document.getElementById("confirm-password").value.trim();
+        const errorEl = document.getElementById("password-error");
 
-        document
-          .getElementById("set-password-form")
-          .addEventListener("submit", async (e) => {
-            e.preventDefault();
+        errorEl.textContent = "";
 
-            const newPassword =
-              document.getElementById("new-password").value.trim();
-            const confirmPassword =
-              document.getElementById("confirm-password").value.trim();
-            const errorEl = document.getElementById("password-error");
+        if (newPassword.length < 8) {
+          errorEl.textContent =
+            "La password deve contenere almeno 8 caratteri.";
+          return;
+        }
 
-            errorEl.textContent = "";
+        if (newPassword !== confirmPassword) {
+          errorEl.textContent = "Le password non coincidono.";
+          return;
+        }
 
-            if (newPassword.length < 8) {
-              errorEl.textContent =
-                "La password deve contenere almeno 8 caratteri.";
-              return;
-            }
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
 
-            if (newPassword !== confirmPassword) {
-              errorEl.textContent = "Le password non coincidono.";
-              return;
-            }
+        if (error) {
+          errorEl.textContent = error.message;
+          return;
+        }
 
-            const { error } = await supabase.auth.updateUser({
-              password: newPassword,
-            });
+        alert("Password impostata correttamente.");
 
-            if (error) {
-              errorEl.textContent = error.message;
-              return;
-            }
+        window.location.hash = "#/home";
+      });
+  };
 
-            alert("Password impostata correttamente. Ora puoi accedere.");
+  // 🔐 Controlla sessione attuale
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
 
-            window.location.hash = "#/login";
-          });
-      }
+  if (session) {
+    // Se arrivo qui da invite → utente è già loggato
+    showForm();
+  }
+
+  // 🔁 Ascolta eventuali eventi (recovery flow)
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      showForm();
     }
-  );
 
+    if (event === "SIGNED_IN") {
+      showForm();
+    }
+  });
 }
