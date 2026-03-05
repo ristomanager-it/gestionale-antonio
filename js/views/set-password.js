@@ -51,12 +51,15 @@ export async function render(container) {
     document
       .getElementById("set-password-form")
       .addEventListener("submit", async (e) => {
+
         e.preventDefault();
 
         const newPassword =
           document.getElementById("new-password").value.trim();
+
         const confirmPassword =
           document.getElementById("confirm-password").value.trim();
+
         const errorEl = document.getElementById("password-error");
 
         errorEl.textContent = "";
@@ -87,17 +90,50 @@ export async function render(container) {
       });
   };
 
-  // 🔐 Controlla sessione attuale
-  const { data } = await supabase.auth.getSession();
-  const session = data?.session;
+  /* ============================
+     RECOVERY FLOW SUPABASE
+  ============================ */
 
-  if (session) {
-    // Se arrivo qui da invite → utente è già loggato
-    showForm();
+  try {
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (data?.session) {
+      showForm();
+      return;
+    }
+
+    const hash = window.location.hash || "";
+
+    if (hash.includes("access_token")) {
+
+      const params = new URLSearchParams(hash.substring(1));
+
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      if (access_token && refresh_token) {
+
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+
+        showForm();
+        return;
+      }
+    }
+
+  } catch (err) {
+    console.error(err);
   }
 
-  // 🔁 Ascolta eventuali eventi (recovery flow)
+  /* ============================
+     EVENTI AUTH
+  ============================ */
+
   supabase.auth.onAuthStateChange((event, session) => {
+
     if (event === "PASSWORD_RECOVERY") {
       showForm();
     }
@@ -105,5 +141,7 @@ export async function render(container) {
     if (event === "SIGNED_IN") {
       showForm();
     }
+
   });
+
 }
