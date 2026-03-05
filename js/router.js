@@ -45,6 +45,7 @@ acquisti: () => import("./views/acquisti.js"),
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
+   ai: () => import("./views/ai.js"),
 };
 
 /* =========================================================
