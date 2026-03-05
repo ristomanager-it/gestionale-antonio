@@ -636,12 +636,42 @@ async function renderFatture(container, azienda) {
       return;
     }
 
+  function selectProdottoForRow(index, prodotto) {
+
+    const riga = righe[index];
+    if (!riga) return;
+
+    riga.prodotto_id = prodotto.id;
+    riga.match_reason = "manual";
+    riga.match_score = 1;
+
+    const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
+    if (!rowEl) return;
+
+    const input = rowEl.querySelector(".input-prodotto");
+    if (input) input.value = prodotto.descrizione || "";
+
+    closeAllSuggest();
+    updateRowComputedUI(index);
+  }
+
+
+
     suggest.innerHTML = items.map(p => {
       const label = p.codice_interno
         ? `${escapeHtml(p.descrizione)} · ${escapeHtml(p.codice_interno)}`
         : `${escapeHtml(p.descrizione)}`;
       return `<div class="suggest-item" data-prod-id="${escapeHtml(p.id)}">${label}</div>`;
     }).join("");
+
+    suggest.querySelectorAll(".suggest-item").forEach(el => {
+      el.addEventListener("click", () => {
+        const prodId = el.dataset.prodId;
+        const prodotto = prodottiCache.find(p => String(p.id) === String(prodId));
+        if (!prodotto) return;
+        selectProdottoForRow(idx, prodotto);
+      });
+    });
 
     suggest.style.display = "block";
     suggest.classList.add("open");
