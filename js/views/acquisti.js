@@ -723,6 +723,104 @@ async function renderFatture(container, azienda) {
   }
 
   
+
+  // ================================
+  // Categorie di gestione (Acquisti)
+  // ================================
+  const CATEGORIE_GESTIONE_ACQUISTI = [
+    {
+      id: "attrezzature_516",
+      nome: "Attrezzature < 516€",
+      descrizione: "Tutte le attrezzature con costo inferiore a €516.",
+      categoriaBilancioSuggerita: "BENI STRUM. INF. 516,46"
+    },
+    {
+      id: "materiale_consumo",
+      nome: "Materiale di consumo",
+      descrizione: "Prodotti uso cucina/pulizie che NON fanno parte del food cost (compresi allestimenti giornalieri tipo centrotavola).",
+      categoriaBilancioSuggerita: "MATERIALE DI CONSUMO"
+    },
+    {
+      id: "allestimenti_lungo_termine",
+      nome: "Allestimenti lungo termine",
+      descrizione: "Tutto ciò che serve per allestimenti a lungo termine (esclusi costi di abbellimento giornaliero).",
+      categoriaBilancioSuggerita: "ABBELLIMENTO LOCALE"
+    },
+    {
+      id: "servizi_terzi",
+      nome: "Servizi di terzi",
+      descrizione: "Costi servizi terzi: aziende esterne per lavori, trasporti, ecc.",
+      categoriaBilancioSuggerita: "SERVIZI DI TERZI"
+    },
+    {
+      id: "costi_gestionali",
+      nome: "Costi gestionali / software",
+      descrizione: "Costi gestionali ricorrenti (software, pratiche, costi fissi).",
+      categoriaBilancioSuggerita: "SOFTWARE APPLICATIVI"
+    }
+  ];
+
+  function openGuidaCategorieGestioneModal() {
+    ensureModalStyles();
+
+    const modalRoot = document.createElement("div");
+    modalRoot.className = "rf-modal-backdrop";
+    modalRoot.innerHTML = `
+      <div class="rf-modal" role="dialog" aria-modal="true">
+        <div class="rf-modal-header">
+          <div>
+            <h3 class="rf-modal-title">Guida – Categorie di gestione (Acquisti)</h3>
+            <p class="rf-modal-sub">Seleziona la categoria che descrive meglio la natura del costo. La categoria bilancio viene proposta in automatico.</p>
+          </div>
+          <button class="app-button tiny gray rf-modal-close" type="button">Chiudi</button>
+        </div>
+        <div class="rf-modal-body" style="gap:10px;">
+          <div style="font-size:13px;line-height:1.45;">
+            <ol style="margin:0;padding-left:18px;display:grid;gap:10px;">
+              ${CATEGORIE_GESTIONE_ACQUISTI.map(c => `
+                <li>
+                  <b>${escapeHtml(c.nome)}</b><br/>
+                  <span style="color:#6b7280;">${escapeHtml(c.descrizione)}</span><br/>
+                  <span style="color:#111827;">Suggerita → Categoria bilancio: <b>${escapeHtml(c.categoriaBilancioSuggerita)}</b></span>
+                </li>
+              `).join("")}
+            </ol>
+          </div>
+        </div>
+        <div class="rf-modal-actions">
+          <button class="app-button small gray rf-modal-cancel" type="button">Chiudi</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalRoot);
+
+    function close() {
+      destroyModal(modalRoot);
+    }
+
+    modalRoot.addEventListener("click", (e) => {
+      if (e.target === modalRoot) close();
+    });
+
+    modalRoot.querySelector(".rf-modal-close")?.addEventListener("click", close);
+    modalRoot.querySelector(".rf-modal-cancel")?.addEventListener("click", close);
+  }
+
+  function fillCategorieGestioneSelect(selectEl) {
+    if (!selectEl) return;
+    selectEl.innerHTML = `
+      <option value="">-- Seleziona --</option>
+      ${CATEGORIE_GESTIONE_ACQUISTI.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join("")}
+    `;
+  }
+
+  function getCategoriaGestioneById(id) {
+    const x = String(id || "").trim();
+    if (!x) return null;
+    return CATEGORIE_GESTIONE_ACQUISTI.find(c => c.id === x) || null;
+  }
+
   function openGuidaModal() {
     ensureModalStyles();
 
@@ -793,6 +891,16 @@ async function openCreateProductModal({ prefillName }) {
             <div class="small-muted" style="color:#6b7280;font-size:12px;">Verrà salvato in <b>nome</b> e <b>descrizione</b>.</div>
           </div>
 
+          
+          <div class="rf-modal-row">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <label class="acquisto-riga-label" style="margin:0;">Categoria gestione</label>
+              <button class="app-button tiny gray" id="rf-cat-gestione-help" type="button">?</button>
+            </div>
+            <select class="rf-select" id="rf-cat-gestione"></select>
+            <div class="small-muted" style="color:#6b7280;font-size:12px;">Suggerimento automatico categoria bilancio in base alla gestione.</div>
+          </div>
+
           <div class="rf-modal-row">
             <label class="acquisto-riga-label">Categoria bilancio</label>
             <input class="rf-input" id="rf-cat-bilancio-text" list="rf-cat-bilancio-list" placeholder="Cerca categoria bilancio..." autocomplete="off" />
@@ -828,6 +936,8 @@ async function openCreateProductModal({ prefillName }) {
     const btnCancel = modalRoot.querySelector(".rf-modal-cancel");
     const btnSave = modalRoot.querySelector(".rf-modal-save");
     const inputNome = modalRoot.querySelector("#rf-prod-nome");
+    const selectGestione = modalRoot.querySelector("#rf-cat-gestione");
+    const btnGestioneHelp = modalRoot.querySelector("#rf-cat-gestione-help");
     const inputScortaMinima = modalRoot.querySelector("#rf-scorta-minima");
 
     const inputBilancioText = modalRoot.querySelector("#rf-cat-bilancio-text");
@@ -841,6 +951,21 @@ async function openCreateProductModal({ prefillName }) {
     const errEl = modalRoot.querySelector("#rf-modal-error");
 
     inputNome.value = (prefillName || "").trim();
+
+    fillCategorieGestioneSelect(selectGestione);
+
+    btnGestioneHelp?.addEventListener("click", () => {
+      openGuidaCategorieGestioneModal();
+    });
+
+    selectGestione?.addEventListener("change", () => {
+      const selected = getCategoriaGestioneById(selectGestione.value);
+      if (!selected) return;
+
+      // Auto-popola categoria bilancio (resta comunque modificabile a mano)
+      if (inputBilancioText) inputBilancioText.value = selected.categoriaBilancioSuggerita || "";
+      syncBilancioId();
+    });
 
     const [catsBilancio, catsInterne] = await Promise.all([
       loadCategorieBilancio(),
@@ -1224,6 +1349,16 @@ btnSave.setAttribute("disabled", "disabled");
             <input class="rf-input" id="rf-edit-um" placeholder="pz, kg, lt..." />
           </div>
 
+          
+          <div class="rf-modal-row">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <label class="acquisto-riga-label" style="margin:0;">Categoria gestione</label>
+              <button class="app-button tiny gray" id="rf-edit-cat-gestione-help" type="button">?</button>
+            </div>
+            <select class="rf-select" id="rf-edit-cat-gestione"></select>
+            <div class="small-muted" style="color:#6b7280;font-size:12px;">Suggerimento automatico categoria bilancio in base alla gestione.</div>
+          </div>
+
           <div class="rf-modal-row">
             <label class="acquisto-riga-label">Categoria bilancio</label>
             <input class="rf-input" id="rf-edit-cat-bilancio-text" list="rf-edit-cat-bilancio-list" placeholder="Cerca categoria bilancio..." autocomplete="off" />
@@ -1253,6 +1388,9 @@ btnSave.setAttribute("disabled", "disabled");
     const inputCod = modalRoot.querySelector("#rf-edit-codice");
     const inputUm = modalRoot.querySelector("#rf-edit-um");
 
+    const selectGestione = modalRoot.querySelector("#rf-edit-cat-gestione");
+    const btnGestioneHelp = modalRoot.querySelector("#rf-edit-cat-gestione-help");
+
     const inputBilText = modalRoot.querySelector("#rf-edit-cat-bilancio-text");
     const hiddenBilId = modalRoot.querySelector("#rf-edit-cat-bilancio-id");
     const dlBil = modalRoot.querySelector("#rf-edit-cat-bilancio-list");
@@ -1266,6 +1404,20 @@ btnSave.setAttribute("disabled", "disabled");
     inputNome.value = (prod.descrizione || prod.nome || "").trim();
     inputCod.value = (prod.codice_interno || "").trim();
     inputUm.value = (prod.um || "").trim();
+
+    fillCategorieGestioneSelect(selectGestione);
+
+    btnGestioneHelp?.addEventListener("click", () => {
+      openGuidaCategorieGestioneModal();
+    });
+
+    selectGestione?.addEventListener("change", () => {
+      const selected = getCategoriaGestioneById(selectGestione.value);
+      if (!selected) return;
+
+      if (inputBilText) inputBilText.value = selected.categoriaBilancioSuggerita || "";
+      syncBil();
+    });
 
     const [catsBilancio, catsInterne] = await Promise.all([
       loadCategorieBilancio(),
