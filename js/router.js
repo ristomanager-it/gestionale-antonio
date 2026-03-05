@@ -29,7 +29,9 @@ const routes = {
   dipendenti: () => import("./views/dipendenti.js"),
   timbrature: () => import("./views/timbrature.js"),
 
-  acquisti: () => import("./views/acquisti.js"),
+  
+  completaProfilo: () => import("./views/completa-profilo.js"),
+acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
@@ -58,7 +60,7 @@ const PLATFORM_ROUTES = new Set([
   "gestionePiani",
 ]);
 
-const PREHOME_ROUTES = new Set(["sceltaAzienda", "gestioneSedi"]);
+const PREHOME_ROUTES = new Set(["sceltaAzienda", "gestioneSedi", "completaProfilo"]);
 
 /* =========================================================
    STORAGE KEYS
@@ -491,6 +493,29 @@ async function resolve() {
     return;
   }
 
+
+  /* ------------------------------------------------------
+     ONBOARDING DIPENDENTE: PROFILO DA COMPLETARE
+     Se esiste un record in "dipendenti" per questo user_id
+     e profilo_completato = false, forza la route completaProfilo.
+  ------------------------------------------------------ */
+  try {
+    const { data: dipCheck, error: dipCheckErr } = await supabase
+      .from("dipendenti")
+      .select("profilo_completato")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (!dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
+      if (route !== "completaProfilo") {
+        window.location.hash = "#/completaProfilo";
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Check profilo dipendente fallito:", e);
+  }
+
   setHeaderVisible(true);
 
   const aziendaRes = await ensureAziendaContext(route);
@@ -560,7 +585,7 @@ async function resolve() {
     return;
   }
 
-  if (!PLATFORM_ROUTES.has(route)) {
+  if (!PLATFORM_ROUTES.has(route) && route !== "completaProfilo") {
     const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
