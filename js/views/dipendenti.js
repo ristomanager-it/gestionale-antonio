@@ -446,6 +446,7 @@ async function salvaDipendente(isEdit) {
       email,
       aziendaId: azienda.id,
       ruolo: ruoloApp,
+      dipendenteId: res.data.id,
     });
 
     if (!invio.ok) {
@@ -560,7 +561,7 @@ window._dipDelete = async function (id) {
    Invito (Edge Function)
 ========================================================= */
 
-async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode = "invite" }) {
+async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipendenteId, mode = "invite" }) {
   try {
     const supa = window.supabaseClient;
 
@@ -582,6 +583,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, mode =
       email,
       azienda_id: aziendaId,
       ruolo,
+      dipendente_id: dipendenteId,
       mode,
     });
 
