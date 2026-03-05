@@ -724,41 +724,69 @@ async function renderFatture(container, azienda) {
 
   
 
+  
   // ================================
   // Categorie di gestione (Acquisti)
   // ================================
   const CATEGORIE_GESTIONE_ACQUISTI = [
-    {
-      id: "attrezzature_516",
-      nome: "Attrezzature < 516€",
-      descrizione: "Tutte le attrezzature con costo inferiore a €516.",
-      categoriaBilancioSuggerita: "BENI STRUM. INF. 516,46"
-    },
-    {
-      id: "materiale_consumo",
-      nome: "Materiale di consumo",
-      descrizione: "Prodotti uso cucina/pulizie che NON fanno parte del food cost (compresi allestimenti giornalieri tipo centrotavola).",
-      categoriaBilancioSuggerita: "MATERIALE DI CONSUMO"
-    },
-    {
-      id: "allestimenti_lungo_termine",
-      nome: "Allestimenti lungo termine",
-      descrizione: "Tutto ciò che serve per allestimenti a lungo termine (esclusi costi di abbellimento giornaliero).",
-      categoriaBilancioSuggerita: "ABBELLIMENTO LOCALE"
-    },
-    {
-      id: "servizi_terzi",
-      nome: "Servizi di terzi",
-      descrizione: "Costi servizi terzi: aziende esterne per lavori, trasporti, ecc.",
-      categoriaBilancioSuggerita: "SERVIZI DI TERZI"
-    },
-    {
-      id: "costi_gestionali",
-      nome: "Costi gestionali / software",
-      descrizione: "Costi gestionali ricorrenti (software, pratiche, costi fissi).",
-      categoriaBilancioSuggerita: "SOFTWARE APPLICATIVI"
-    }
+    { id:"acquisto_merci", nome:"ACQUISTO DI MERCI", descrizione:"Acquisto merci per cucina e ristorante.", categoriaBilancioSuggerita:"ACQUISTO DI MERCI"},
+    { id:"acquisto_propano", nome:"ACQUISTO PROPANO", descrizione:"Gas e combustibili per cucina o impianti.", categoriaBilancioSuggerita:"ACQUISTO PROPANO"},
+
+    { id:"servizi_terzi", nome:"SERVIZI DI TERZI", descrizione:"Servizi forniti da aziende esterne.", categoriaBilancioSuggerita:"SERVIZI DI TERZI"},
+    { id:"consulenze", nome:"CONSULENZE", descrizione:"Consulenze professionali.", categoriaBilancioSuggerita:"CONSULENZE"},
+    { id:"consulenza_tributaria", nome:"CONSULENZA TRIBUTARIA", descrizione:"Consulenza fiscale o contabile.", categoriaBilancioSuggerita:"CONSULENZA TRIBUTARIA"},
+    { id:"consulente_lavoro", nome:"CONSULENTE LAVORO/SICUREZZA", descrizione:"Consulenze su lavoro e sicurezza.", categoriaBilancioSuggerita:"CONSULENTE LAVORO/SICUREZZA"},
+    { id:"servizi_telematici", nome:"SERVIZI TELEMATICI", descrizione:"Servizi digitali e telematici.", categoriaBilancioSuggerita:"SERVIZI TELEMATICI"},
+    { id:"corsi_professionali", nome:"CORSI PROFESSIONALI", descrizione:"Formazione e corsi professionali.", categoriaBilancioSuggerita:"CORSI PROFESSIONALI"},
+
+    { id:"energia_elettrica", nome:"ENERGIA ELETTRICA", descrizione:"Fornitura energia elettrica.", categoriaBilancioSuggerita:"ENERGIA ELETTRICA"},
+    { id:"spese_telefoniche", nome:"SPESE TELEFONICHE", descrizione:"Telefonia e comunicazioni.", categoriaBilancioSuggerita:"SPESE TELEFONICHE"},
+
+    { id:"spese_pubblicita", nome:"SPESE PUBBLICITA'", descrizione:"Costi pubblicitari e marketing.", categoriaBilancioSuggerita:"SPESE PUBBLICITA'"},
+    { id:"commissioni_booking", nome:"COMMISSIONI BOOKING", descrizione:"Commissioni portali prenotazioni.", categoriaBilancioSuggerita:"COMMISSIONI BOOKING"},
+
+    { id:"materiale_consumo", nome:"MATERIALE DI CONSUMO", descrizione:"Materiali di consumo cucina e pulizie.", categoriaBilancioSuggerita:"MATERIALE DI CONSUMO"},
+    { id:"spese_accessorie", nome:"SPESE ACCESSORIE", descrizione:"Spese minori accessorie.", categoriaBilancioSuggerita:"SPESE ACCESSORIE"},
+    { id:"spese_cancelleria", nome:"SPESE CANCELLERIA", descrizione:"Materiale ufficio.", categoriaBilancioSuggerita:"SPESE CANCELLERIA"},
+    { id:"abbigliamento_lavoro", nome:"ABBIGLIAMENTO LAVORO", descrizione:"Divise e abbigliamento lavoro.", categoriaBilancioSuggerita:"ABBIGLIAMENTO LAVORO"},
+
+    { id:"abbellimento_locale", nome:"ABBELLIMENTO LOCALE", descrizione:"Allestimenti e decorazioni.", categoriaBilancioSuggerita:"ABBELLIMENTO LOCALE"},
+    { id:"manutenzione_estintori", nome:"MANUTENZIONE ESTINTORI", descrizione:"Manutenzione estintori.", categoriaBilancioSuggerita:"MANUTENZIONE ESTINTORI"},
+    { id:"manutenzione_riparazione", nome:"MANUTENZIONE E RIPARAZIONE", descrizione:"Manutenzioni varie.", categoriaBilancioSuggerita:"SPESE MANUTENZIONE E RIPARAZIONE"},
+
+    { id:"software", nome:"SOFTWARE APPLICATIVI", descrizione:"Software e gestionali.", categoriaBilancioSuggerita:"SOFTWARE APPLICATIVI"},
+    { id:"assistenza_tecnica", nome:"SPESE ASSISTENZA TECNICA", descrizione:"Assistenza tecnica sistemi.", categoriaBilancioSuggerita:"SPESE ASSISTENZA TECNICA"},
+    { id:"servizio_allarme", nome:"SPESE SERV. ALLARME", descrizione:"Servizi sicurezza e allarme.", categoriaBilancioSuggerita:"SPESE SERV. ALLARME"},
+    { id:"spese_amministrative", nome:"SPESE AMMINISTRATIVE", descrizione:"Costi amministrativi.", categoriaBilancioSuggerita:"SPESE AMMINISTRATIVE"},
+    { id:"quota_associativa", nome:"QUOTA ASSOCIATIVA", descrizione:"Quote associative.", categoriaBilancioSuggerita:"QUOTA ASSOCIATIVA"},
+
+    { id:"biancheria", nome:"NOLEGGIO E LAVAGGIO BIANCHERIA", descrizione:"Lavaggio e noleggio biancheria.", categoriaBilancioSuggerita:"SPESE NOLEGGIO E LAVAGGIO BIANCHERIA"},
+    { id:"noleggio_attrezzatura", nome:"NOLEGGIO ATTREZZATURA", descrizione:"Noleggio attrezzature.", categoriaBilancioSuggerita:"NOLEGGIO ATTREZZATURA"},
+    { id:"locazione_sala", nome:"LOCAZIONE SALA", descrizione:"Affitto sale eventi.", categoriaBilancioSuggerita:"LOCAZIONE SALA"},
+
+    { id:"carburante", nome:"CARBURANTE", descrizione:"Carburante mezzi.", categoriaBilancioSuggerita:"CARBURANTE"},
+    { id:"manutenzione_autocarro", nome:"MANUTENZIONE AUTOCARRO", descrizione:"Manutenzione veicoli.", categoriaBilancioSuggerita:"MANUTENZIONE AUTOCARRO/ASSICURAZIONE"},
+    { id:"noleggio_autocarro", nome:"NOLEGGIO AUTOCARRO", descrizione:"Noleggio mezzi.", categoriaBilancioSuggerita:"NOLEGGIO AUTOCARRO"},
+
+    { id:"interessi_passivi", nome:"INTERESSI PASSIVI", descrizione:"Interessi e oneri bancari.", categoriaBilancioSuggerita:"INTERESSI PASSIVI / ONERI BANCARI"},
+    { id:"canone_pos", nome:"CANONE POS", descrizione:"Canone POS e commissioni bancarie.", categoriaBilancioSuggerita:"CANONE POS / ONERI BANCARI"},
+    { id:"mutuo_ismea", nome:"INTERESSI MUTUO ISMEA", descrizione:"Interessi mutuo.", categoriaBilancioSuggerita:"INTERESSI MUTUO ISMEA"},
+
+    { id:"salari", nome:"SALARI", descrizione:"Stipendi dipendenti.", categoriaBilancioSuggerita:"SALARI"},
+    { id:"contributi", nome:"CONTRIBUTI", descrizione:"Contributi previdenziali.", categoriaBilancioSuggerita:"CONTRIBUTI"},
+    { id:"inail", nome:"INAIL", descrizione:"Assicurazione INAIL.", categoriaBilancioSuggerita:"INAIL"},
+    { id:"compenso_amministratori", nome:"COMPENSO AMMINISTRATORI", descrizione:"Compenso amministratori.", categoriaBilancioSuggerita:"COMPENSO AMMINISTRATORI"},
+
+    { id:"tasse", nome:"TASSE", descrizione:"Imposte e tasse.", categoriaBilancioSuggerita:"TASSE"},
+    { id:"assicurazioni", nome:"ASSICURAZIONI", descrizione:"Polizze assicurative.", categoriaBilancioSuggerita:"ASSICURAZIONI"},
+
+    { id:"beni_strumentali", nome:"BENI STRUM. INF. 516,46", descrizione:"Beni strumentali inferiori a 516,46.", categoriaBilancioSuggerita:"BENI STRUM. INF. 516,46"},
+    { id:"ammortamento_materiale", nome:"QUOTA AMM.TO MAT.", descrizione:"Quota ammortamento materiale.", categoriaBilancioSuggerita:"QUOTA AMM.TO MAT."},
+    { id:"ammortamento_immobili", nome:"QUOTA AMM.TO IMM.", descrizione:"Quota ammortamento immobili.", categoriaBilancioSuggerita:"QUOTA AMM.TO IMM."},
+
+    { id:"rimanenze_iniziali", nome:"RIMANENZE INIZIALI", descrizione:"Rimanenze iniziali magazzino.", categoriaBilancioSuggerita:"RIMANENZE INIZIALI"}
   ];
+
 
   function openGuidaCategorieGestioneModal() {
     ensureModalStyles();
@@ -895,7 +923,7 @@ async function openCreateProductModal({ prefillName }) {
           <div class="rf-modal-row">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
               <label class="acquisto-riga-label" style="margin:0;">Categoria gestione</label>
-              <button class="app-button tiny gray" id="rf-cat-gestione-help" type="button">?</button>
+              <button class="app-button tiny gray" id="rf-cat-gestione-help" type="button">Guida</button>
             </div>
             <select class="rf-select" id="rf-cat-gestione"></select>
             <div class="small-muted" style="color:#6b7280;font-size:12px;">Suggerimento automatico categoria bilancio in base alla gestione.</div>
@@ -1353,7 +1381,7 @@ btnSave.setAttribute("disabled", "disabled");
           <div class="rf-modal-row">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
               <label class="acquisto-riga-label" style="margin:0;">Categoria gestione</label>
-              <button class="app-button tiny gray" id="rf-edit-cat-gestione-help" type="button">?</button>
+              <button class="app-button tiny gray" id="rf-edit-cat-gestione-help" type="button">Guida</button>
             </div>
             <select class="rf-select" id="rf-edit-cat-gestione"></select>
             <div class="small-muted" style="color:#6b7280;font-size:12px;">Suggerimento automatico categoria bilancio in base alla gestione.</div>
