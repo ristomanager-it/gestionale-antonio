@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+
+  <base href="/gestionale-antonio/">
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-  <title>OPERANDI-la ristorazione organizzata</title>
+  <title>OPERANDI - la ristorazione organizzata</title>
 
   <!-- ================= ICONS ================= -->
 
@@ -24,6 +27,7 @@
   <!-- ================= CSS ================= -->
 
   <link rel="stylesheet" href="styles.css?v=3" />
+
 </head>
 
 <body>
@@ -32,7 +36,6 @@
 
   <header class="app-header">
 
-    <!-- SINISTRA -->
     <div class="header-left">
       <button id="menu-toggle" class="menu-toggle" type="button">
         <div class="menu-icon">
@@ -44,7 +47,6 @@
       </button>
     </div>
 
-    <!-- CENTRO -->
     <div class="header-center">
       <img
         id="header-logo"
@@ -55,7 +57,6 @@
       <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
-    <!-- DESTRA -->
     <div class="header-right">
       <div class="header-profile">
         <div class="profile-vertical">
@@ -70,7 +71,7 @@
 
   </header>
 
-  <!-- ================= MENU LATERALE ================= -->
+  <!-- ================= MENU ================= -->
 
   <nav id="global-menu" class="global-menu"></nav>
 
@@ -82,14 +83,17 @@
 
   <script src="js/state.js?v=3"></script>
   <script src="js/stateActions.js?v=3"></script>
+  <script src="js/supabaseClient.js?v=3"></script>
   <script src="js/ui-reparto.js?v=3"></script>
   <script src="js/db.js?v=3"></script>
 
-  <!-- ================= LIB STAMPA ETICHETTE (PDF + QR) ================= -->
+  <!-- ================= LIB STAMPA ETICHETTE ================= -->
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ================= ROUTER (Modulo ES) ================= -->
+  <!-- ================= ROUTER ================= -->
+
   <script type="module" src="js/router.js?v=3"></script>
 
 </body>
