@@ -1,5 +1,3 @@
-// js/menu.js
-
 export function initMenu() {
   const menu = document.getElementById("global-menu");
   const toggle = document.getElementById("menu-toggle");
@@ -29,15 +27,16 @@ export function initMenu() {
       { label: "Home", route: "home" },
       { label: "Produzione", route: "produzione" },
       { label: "Magazzino", route: "magazzino" },
-      { label: "Storico Lotti", route: "storicoLotto" }, // ✅ AGGIUNTA
+      { label: "Storico Lotti", route: "storicoLotto" },
       { label: "Ricettario", route: "ricettario" },
       { label: "Preparazioni", route: "preparazioni" },
       { label: "Acquisti", route: "acquisti" },
-      { label: "Dipendenti", route: "dipendenti" },
-      { label: "Timbrature", route: "timbrature" },
       { label: "Venduto", route: "venduto" },
       { label: "Margini", route: "margini" },
-      { label: "Preventivi", route: "preventivi" }
+      { label: "Preventivi", route: "preventivi" },
+      { label: "AI Assistente", route: "ai" },
+      { label: "Dipendenti", route: "dipendenti" },
+      { label: "Timbrature", route: "timbrature" }
     ];
 
     if (isSuperadmin() || ruolo === "admin") {
@@ -46,13 +45,12 @@ export function initMenu() {
 
     if (ruolo === "segreteria") {
       return allItems.filter(i =>
-        ["preventivi", "acquisti", "dipendenti", "timbrature", "home"].includes(i.route)
+        ["preventivi", "acquisti", "dipendenti", "timbrature", "home", "ai"].includes(i.route)
       );
     }
 
-    // Manager / Operatore
     return allItems.filter(i =>
-      ["produzione", "magazzino", "storicoLotto", "ricettario", "preparazioni", "home"].includes(i.route)
+      ["produzione", "magazzino", "storicoLotto", "ricettario", "preparazioni", "home", "ai"].includes(i.route)
     );
   }
 
