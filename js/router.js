@@ -31,6 +31,7 @@ const routes = {
 
   
   completaProfilo: () => import("./views/completa-profilo.js"),
+  completaAzienda: () => import("./views/completa-azienda.js"),
 acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
@@ -60,7 +61,7 @@ const PLATFORM_ROUTES = new Set([
   "gestionePiani",
 ]);
 
-const PREHOME_ROUTES = new Set(["sceltaAzienda", "gestioneSedi", "completaProfilo"]);
+const PREHOME_ROUTES = new Set(["sceltaAzienda", "gestioneSedi", "completaProfilo", "completaAzienda"]);
 
 /* =========================================================
    STORAGE KEYS
@@ -516,6 +517,30 @@ async function resolve() {
     console.warn("Check profilo dipendente fallito:", e);
   }
 
+
+  /* ------------------------------------------------------
+     ONBOARDING AZIENDA: PROFILO AZIENDA DA COMPLETARE
+  ------------------------------------------------------ */
+  try {
+    const aziendaIdTmp = window.state?.azienda?.id;
+    if (aziendaIdTmp) {
+      const { data: azCheck, error: azErr } = await supabase
+        .from("aziende")
+        .select("profilo_completato")
+        .eq("id", aziendaIdTmp)
+        .maybeSingle();
+
+      if (!azErr && azCheck && azCheck.profilo_completato === false) {
+        if (route !== "completaAzienda") {
+          window.location.hash = "#/completaAzienda";
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Check profilo azienda fallito:", e);
+  }
+
   setHeaderVisible(true);
 
   const aziendaRes = await ensureAziendaContext(route);
@@ -585,7 +610,7 @@ async function resolve() {
     return;
   }
 
-  if (!PLATFORM_ROUTES.has(route) && route !== "completaProfilo") {
+  if (!PLATFORM_ROUTES.has(route) && route !== "completaProfilo" && route !== "completaAzienda") {
     const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
