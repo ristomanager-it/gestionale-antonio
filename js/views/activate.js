@@ -1,96 +1,68 @@
 import { supabase } from "../supabaseClient.js";
 
-function readTokensFromCurrentUrl() {
-  const hash = window.location.hash || "";
-
-  let tokenString = "";
-
-  if (hash.startsWith("#/activate?")) {
-    tokenString = hash.slice("#/activate?".length);
-  } else if (hash.startsWith("#/activate#")) {
-    tokenString = hash.slice("#/activate#".length);
-  } else if (hash.startsWith("#access_token=")) {
-    tokenString = hash.slice(1);
-  } else if (hash.includes("access_token=")) {
-    tokenString = hash.slice(hash.indexOf("access_token="));
-  }
-
-  const params = new URLSearchParams(tokenString);
-
-  return {
-    access_token: params.get("access_token"),
-    refresh_token: params.get("refresh_token"),
-    expires_in: params.get("expires_in"),
-    expires_at: params.get("expires_at"),
-    token_type: params.get("token_type"),
-    type: params.get("type"),
-  };
-}
-
 export async function render(container) {
+
   container.innerHTML = `
     <div class="view" style="text-align:center">
+
       <div style="margin-bottom:20px">
-        <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
+        <img src="/assets/logo-ristoflow.png" height="60">
       </div>
 
       <h2>Attivazione account</h2>
 
       <p style="margin-top:10px">
-        Stiamo verificando il tuo invito...
+        Verifica del link in corso...
       </p>
+
     </div>
   `;
 
   try {
-    const {
-      access_token,
-      refresh_token,
-    } = readTokensFromCurrentUrl();
 
-    if (access_token && refresh_token) {
-      const { error: setSessionError } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+    const hash = window.location.hash;
 
-      if (setSessionError) {
-        throw setSessionError;
-      }
+    const params =
+      new URLSearchParams(hash.split("?")[1]);
 
-      window.location.hash = "#/setPassword";
-      return;
+    const token_hash = params.get("token_hash");
+    const type = params.get("type");
+
+    if (!token_hash) {
+      throw new Error("Token mancante");
     }
 
-    const { data, error } = await supabase.auth.getSession();
+    const { error } =
+      await supabase.auth.verifyOtp({
+        token_hash,
+        type
+      });
 
     if (error) {
       throw error;
     }
 
-    if (data?.session) {
-      window.location.hash = "#/setPassword";
-      return;
-    }
+    window.location.hash = "#/setPassword";
+
   } catch (err) {
-    console.error("Errore attivazione:", err);
+
+    console.error(err);
+
+    container.innerHTML = `
+      <div class="view" style="text-align:center">
+
+        <h2>Link non valido</h2>
+
+        <p>
+          Il link di attivazione è scaduto o non valido.
+        </p>
+
+        <p>
+          Contatta il supporto Ristoflow.
+        </p>
+
+      </div>
+    `;
   }
 
-  container.innerHTML = `
-    <div class="view" style="text-align:center">
-      <div style="margin-bottom:20px">
-        <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
-      </div>
-
-      <h2>Link non valido</h2>
-
-      <p>
-        Il link di attivazione è scaduto o non valido.
-      </p>
-
-      <p>
-        Contatta il supporto Ristoflow.
-      </p>
-    </div>
-  `;
 }
