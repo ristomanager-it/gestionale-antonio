@@ -71,57 +71,11 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view" style="padding:0;">
 
-      <!-- WIDGET INFO -->
-      <div style="
-        display:flex;
-        gap:12px;
-        padding:16px 32px;
-        flex-wrap:wrap;
-      ">
-
-        <div onclick="window.location.hash='#/meteo'"
-          style="
-            background:white;
-            padding:12px 18px;
-            border-radius:16px;
-            box-shadow:0 6px 16px rgba(0,0,0,0.08);
-            cursor:pointer;
-            font-weight:600;
-          ">
-          ☀ Meteo
-        </div>
-
-        <div onclick="window.location.hash='#/gastronomia'"
-          style="
-            background:white;
-            padding:12px 18px;
-            border-radius:16px;
-            box-shadow:0 6px 16px rgba(0,0,0,0.08);
-            cursor:pointer;
-            font-weight:600;
-          ">
-          🍝 Gastronomia
-        </div>
-
-        <div onclick="window.location.hash='#/agenda'"
-          style="
-            background:white;
-            padding:12px 18px;
-            border-radius:16px;
-            box-shadow:0 6px 16px rgba(0,0,0,0.08);
-            cursor:pointer;
-            font-weight:600;
-          ">
-          📅 Agenda
-        </div>
-
-      </div>
-
       <!-- HERO -->
       <div style="
         background: var(--color-primary);
         color: white;
-        padding: 40px 32px 60px 32px;
+        padding: 40px 32px 80px 32px;
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
       ">
@@ -167,12 +121,40 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- ICON TOOLBAR -->
+      <div style="
+        display:flex;
+        justify-content:center;
+        gap:36px;
+        margin-top:-32px;
+        margin-bottom:20px;
+      ">
+
+        <div onclick="window.location.hash='#/meteo'"
+             style="cursor:pointer;text-align:center;">
+          <div style="font-size:26px;">☀️</div>
+          <div style="font-size:12px;opacity:0.7;">Meteo</div>
+        </div>
+
+        <div onclick="window.location.hash='#/gastronomia'"
+             style="cursor:pointer;text-align:center;">
+          <div style="font-size:26px;">🍝</div>
+          <div style="font-size:12px;opacity:0.7;">Gastronomia</div>
+        </div>
+
+        <div onclick="window.location.hash='#/agenda'"
+             style="cursor:pointer;text-align:center;">
+          <div style="font-size:26px;">📅</div>
+          <div style="font-size:12px;opacity:0.7;">Agenda</div>
+        </div>
+
+      </div>
+
       ${
         window.state.sedeAttiva
           ? `
       <div style="
         padding: 0 32px 40px 32px;
-        margin-top:-40px;
         display:grid;
         gap:24px;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
