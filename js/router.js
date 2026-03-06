@@ -1,6 +1,19 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
 
+/* =========================================================
+   FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
+========================================================= */
+(function fixSupabaseHash(){
+  const h = window.location.hash || "";
+  if (h.startsWith("#/activate#")) {
+    const tokens = h.split("#")[2];
+    window.location.hash = "#/activate?" + tokens;
+  }
+})();
+
+
+
 let app = null;
 
 /* =========================================================
