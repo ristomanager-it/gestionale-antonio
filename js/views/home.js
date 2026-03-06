@@ -3,6 +3,8 @@
 // Dashboard Reparti + Selettore Sede
 // =======================================
 
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+
 export async function render(container) {
   const user = window.state.user;
   const azienda = window.state.azienda;
@@ -71,16 +73,15 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view" style="padding:0;">
 
-      <!-- HERO -->
       <div style="
         background: var(--color-primary);
         color: white;
-        padding: 40px 32px 80px 32px;
+        padding: 40px 32px 88px 32px;
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
       ">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-          
+
           <div>
             <h2 style="margin:0; font-weight:600;">
               ${saluto} 👋
@@ -121,33 +122,18 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- ICON TOOLBAR -->
       <div style="
         display:flex;
         justify-content:center;
-        gap:36px;
-        margin-top:-32px;
-        margin-bottom:20px;
+        gap:40px;
+        margin-top:-34px;
+        margin-bottom:24px;
+        padding:0 20px;
+        flex-wrap:wrap;
       ">
-
-        <div onclick="window.location.hash='#/meteo'"
-             style="cursor:pointer;text-align:center;">
-          <div style="font-size:26px;">☀️</div>
-          <div style="font-size:12px;opacity:0.7;">Meteo</div>
-        </div>
-
-        <div onclick="window.location.hash='#/gastronomia'"
-             style="cursor:pointer;text-align:center;">
-          <div style="font-size:26px;">🍝</div>
-          <div style="font-size:12px;opacity:0.7;">Gastronomia</div>
-        </div>
-
-        <div onclick="window.location.hash='#/agenda'"
-             style="cursor:pointer;text-align:center;">
-          <div style="font-size:26px;">📅</div>
-          <div style="font-size:12px;opacity:0.7;">Agenda</div>
-        </div>
-
+        ${renderToolbarItem("home-weather", "⏳", "Meteo", "#/meteo")}
+        ${renderToolbarItem("home-dish", "🍽️", "Piatto del giorno", "#/ai")}
+        ${renderToolbarItem("home-calendar", "📅", "Calendario", "#/calendario")}
       </div>
 
       ${
@@ -204,6 +190,174 @@ export async function render(container) {
 
     </div>
   `;
+
+  await hydrateToolbar();
+}
+
+function renderToolbarItem(id, icon, label, route) {
+  return `
+    <div
+      id="${id}"
+      onclick="window.location.hash='${route}'"
+      style="
+        min-width:92px;
+        cursor:pointer;
+        text-align:center;
+        user-select:none;
+      "
+    >
+      <div style="
+        width:58px;
+        height:58px;
+        margin:0 auto 8px auto;
+        border-radius:18px;
+        background:white;
+        box-shadow:0 10px 25px rgba(0,0,0,0.10);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:24px;
+      ">
+        ${icon}
+      </div>
+      <div style="
+        font-size:12px;
+        font-weight:600;
+        color:#111827;
+        line-height:1.2;
+      ">
+        ${label}
+      </div>
+      <div style="
+        margin-top:4px;
+        font-size:12px;
+        color:#6b7280;
+        line-height:1.2;
+        min-height:28px;
+      ">
+        Caricamento...
+      </div>
+    </div>
+  `;
+}
+
+async function hydrateToolbar() {
+  await Promise.allSettled([
+    hydrateWeatherWidget(),
+    hydrateDishWidget(),
+    hydrateCalendarWidget()
+  ]);
+}
+
+async function hydrateWeatherWidget() {
+  const root = document.getElementById("home-weather");
+  if (!root) return;
+
+  const detail = root.querySelector("div:last-child");
+  const iconBox = root.querySelector("div:first-child");
+
+  const lat = window.state?.sedeAttiva?.latitudine;
+  const lon = window.state?.sedeAttiva?.longitudine;
+
+  if (!lat || !lon) {
+    if (detail) detail.textContent = "Manca sede";
+    if (iconBox) iconBox.textContent = "📍";
+    root.onclick = null;
+    root.style.cursor = "default";
+    return;
+  }
+
+  try {
+    const url = `${OPEN_METEO_URL}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code&timezone=auto`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const temperature = data?.current?.temperature_2m;
+    const weatherCode = data?.current?.weather_code;
+
+    if (typeof temperature !== "number") {
+      throw new Error("Temperatura non disponibile");
+    }
+
+    if (detail) {
+      detail.textContent = `${Math.round(temperature)}°`;
+    }
+
+    if (iconBox) {
+      iconBox.textContent = mapWeatherCodeToIcon(weatherCode);
+    }
+  } catch (err) {
+    console.error("Errore meteo home:", err);
+    if (detail) detail.textContent = "Non disponibile";
+    if (iconBox) iconBox.textContent = "☁️";
+  }
+}
+
+async function hydrateDishWidget() {
+  const root = document.getElementById("home-dish");
+  if (!root) return;
+
+  const detail = root.querySelector("div:last-child");
+
+  if (detail) detail.textContent = "Apri AI";
+}
+
+async function hydrateCalendarWidget() {
+  const root = document.getElementById("home-calendar");
+  if (!root) return;
+
+  const detail = root.querySelector("div:last-child");
+
+  const label = getCalendarPreviewLabel();
+  if (detail) detail.textContent = label;
+}
+
+function getCalendarPreviewLabel() {
+  const today = new Date();
+  const thisYear = today.getFullYear();
+
+  const fixedEvents = [
+    { nome: "San Valentino", mese: 2, giorno: 14 },
+    { nome: "Ferragosto", mese: 8, giorno: 15 },
+    { nome: "Halloween", mese: 10, giorno: 31 },
+    { nome: "Natale", mese: 12, giorno: 25 },
+    { nome: "Capodanno", mese: 12, giorno: 31 }
+  ];
+
+  const candidates = fixedEvents.map(event => {
+    const date = new Date(thisYear, event.mese - 1, event.giorno);
+    if (date < today) {
+      date.setFullYear(thisYear + 1);
+    }
+    return { ...event, date };
+  });
+
+  candidates.sort((a, b) => a.date - b.date);
+
+  const next = candidates[0];
+  const days = diffInDays(today, next.date);
+
+  if (days <= 30) {
+    return `${days} gg · ${next.nome}`;
+  }
+
+  return "30 giorni";
+}
+
+function diffInDays(a, b) {
+  const start = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  const ms = end.getTime() - start.getTime();
+  return Math.round(ms / 86400000);
+}
+
+function mapWeatherCodeToIcon(code) {
+  if ([0, 1].includes(code)) return "☀️";
+  if ([2, 3, 45, 48].includes(code)) return "☁️";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "🌧️";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "❄️";
+  if ([95, 96, 99].includes(code)) return "⛈️";
+  return "☁️";
 }
 
 function renderSedeSelector() {
@@ -241,7 +395,7 @@ function hasPermission(area) {
 
   if (ruolo === "superadmin") return true;
 
-  if (override.hasOwnProperty(area)) {
+  if (Object.prototype.hasOwnProperty.call(override, area)) {
     return override[area] === true;
   }
 
