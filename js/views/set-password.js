@@ -3,49 +3,44 @@ import { supabase } from "../supabaseClient.js";
 export async function render(container) {
 
   container.innerHTML = `
-    <div class="view">
-      <h2 style="margin-top:0;">Verifica in corso...</h2>
-      <p>Attendere qualche secondo...</p>
-    </div>
+  <div class="view">
+    <h2>Verifica in corso...</h2>
+  </div>
   `;
 
   const showForm = () => {
+
     container.innerHTML = `
-      <div class="view">
-        <h2 style="margin-top:0;">Crea la tua password</h2>
 
-        <form id="set-password-form" class="form-stack">
+    <div class="view">
 
-          <label>
-            Nuova password
-            <input 
-              id="new-password" 
-              type="password" 
-              class="input-pill" 
-              required 
-              minlength="8"
-            />
-          </label>
-
-          <label>
-            Conferma password
-            <input 
-              id="confirm-password" 
-              type="password" 
-              class="input-pill" 
-              required 
-              minlength="8"
-            />
-          </label>
-
-          <button type="submit" class="app-button green">
-            Salva password
-          </button>
-
-        </form>
-
-        <p id="password-error" style="color:#dc2626;"></p>
+      <div style="text-align:center;margin-bottom:20px">
+        <img src="/assets/logo-ristoflow.png" height="50">
       </div>
+
+      <h2>Crea la tua password</h2>
+
+      <form id="set-password-form" class="form-stack">
+
+        <label>
+          Nuova password
+          <input id="new-password" type="password" class="input-pill" required minlength="8">
+        </label>
+
+        <label>
+          Conferma password
+          <input id="confirm-password" type="password" class="input-pill" required minlength="8">
+        </label>
+
+        <button type="submit" class="app-button green">
+          Salva password
+        </button>
+
+      </form>
+
+      <p id="password-error" style="color:#dc2626"></p>
+
+    </div>
     `;
 
     document
@@ -60,7 +55,8 @@ export async function render(container) {
         const confirmPassword =
           document.getElementById("confirm-password").value.trim();
 
-        const errorEl = document.getElementById("password-error");
+        const errorEl =
+          document.getElementById("password-error");
 
         errorEl.textContent = "";
 
@@ -71,75 +67,76 @@ export async function render(container) {
         }
 
         if (newPassword !== confirmPassword) {
-          errorEl.textContent = "Le password non coincidono.";
+          errorEl.textContent =
+            "Le password non coincidono.";
           return;
         }
 
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
+        const { error } =
+          await supabase.auth.updateUser({
+            password: newPassword,
+          });
 
         if (error) {
           errorEl.textContent = error.message;
           return;
         }
 
-        alert("Password impostata correttamente.");
+        alert("Password impostata correttamente");
 
-        window.location.replace("#/home");
+        window.location.hash = "#/home";
+
       });
+
   };
 
   /* ============================
-     RECOVERY FLOW SUPABASE
+     LETTURA TOKEN SUPABASE
   ============================ */
 
-  try {
+  const hash = window.location.hash;
 
-    const { data } = await supabase.auth.getSession();
+  if (hash.includes("access_token")) {
 
-    if (data?.session) {
+    const params =
+      new URLSearchParams(hash.split("?")[1]);
+
+    const access_token =
+      params.get("access_token");
+
+    const refresh_token =
+      params.get("refresh_token");
+
+    if (access_token && refresh_token) {
+
+      await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
       showForm();
       return;
+
     }
 
-    const url = window.location.href;
-
-    if (url.includes("access_token")) {
-
-      const hashParams = url.split("#")[2];
-
-      if (hashParams) {
-
-        const params = new URLSearchParams(hashParams);
-
-        const access_token = params.get("access_token");
-        const refresh_token = params.get("refresh_token");
-
-        if (access_token && refresh_token) {
-
-          await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-
-          showForm();
-          return;
-        }
-      }
-    }
-
-  } catch (err) {
-    console.error(err);
   }
 
-  /* ============================
-     EVENTI AUTH
-  ============================ */
+  const { data } =
+    await supabase.auth.getSession();
+
+  if (data?.session) {
+
+    showForm();
+    return;
+
+  }
 
   supabase.auth.onAuthStateChange((event) => {
 
-    if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+    if (
+      event === "PASSWORD_RECOVERY" ||
+      event === "SIGNED_IN"
+    ) {
       showForm();
     }
 
