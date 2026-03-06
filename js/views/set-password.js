@@ -86,7 +86,7 @@ export async function render(container) {
 
         alert("Password impostata correttamente.");
 
-        window.location.hash = "#/home";
+        window.location.replace("#/home");
       });
   };
 
@@ -96,31 +96,36 @@ export async function render(container) {
 
   try {
 
-    const { data, error } = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
 
     if (data?.session) {
       showForm();
       return;
     }
 
-    const hash = window.location.hash || "";
+    const url = window.location.href;
 
-    if (hash.includes("access_token")) {
+    if (url.includes("access_token")) {
 
-      const params = new URLSearchParams(hash.substring(1));
+      const hashParams = url.split("#")[2];
 
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
+      if (hashParams) {
 
-      if (access_token && refresh_token) {
+        const params = new URLSearchParams(hashParams);
 
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
 
-        showForm();
-        return;
+        if (access_token && refresh_token) {
+
+          await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          showForm();
+          return;
+        }
       }
     }
 
@@ -132,13 +137,9 @@ export async function render(container) {
      EVENTI AUTH
   ============================ */
 
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabase.auth.onAuthStateChange((event) => {
 
-    if (event === "PASSWORD_RECOVERY") {
-      showForm();
-    }
-
-    if (event === "SIGNED_IN") {
+    if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
       showForm();
     }
 
