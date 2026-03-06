@@ -1,18 +1,18 @@
 import { supabase } from "../supabaseClient.js";
 
-function readSupabaseTokensFromHash() {
+function readTokensFromCurrentUrl() {
   const hash = window.location.hash || "";
 
   let tokenString = "";
 
-  if (hash.startsWith("#/activate#")) {
-    tokenString = hash.slice("#/activate#".length);
-  } else if (hash.startsWith("#/activate?")) {
+  if (hash.startsWith("#/activate?")) {
     tokenString = hash.slice("#/activate?".length);
+  } else if (hash.startsWith("#/activate#")) {
+    tokenString = hash.slice("#/activate#".length);
   } else if (hash.startsWith("#access_token=")) {
     tokenString = hash.slice(1);
   } else if (hash.includes("access_token=")) {
-    tokenString = hash.substring(hash.indexOf("access_token="));
+    tokenString = hash.slice(hash.indexOf("access_token="));
   }
 
   const params = new URLSearchParams(tokenString);
@@ -20,6 +20,9 @@ function readSupabaseTokensFromHash() {
   return {
     access_token: params.get("access_token"),
     refresh_token: params.get("refresh_token"),
+    expires_in: params.get("expires_in"),
+    expires_at: params.get("expires_at"),
+    token_type: params.get("token_type"),
     type: params.get("type"),
   };
 }
@@ -40,23 +43,35 @@ export async function render(container) {
   `;
 
   try {
-    const { access_token, refresh_token } = readSupabaseTokensFromHash();
-
-    if (!access_token || !refresh_token) {
-      throw new Error("Token invito mancanti");
-    }
-
-    const { error } = await supabase.auth.setSession({
+    const {
       access_token,
       refresh_token,
-    });
+    } = readTokensFromCurrentUrl();
+
+    if (access_token && refresh_token) {
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (setSessionError) {
+        throw setSessionError;
+      }
+
+      window.location.hash = "#/setPassword";
+      return;
+    }
+
+    const { data, error } = await supabase.auth.getSession();
 
     if (error) {
       throw error;
     }
 
-    window.location.hash = "#/setPassword";
-    return;
+    if (data?.session) {
+      window.location.hash = "#/setPassword";
+      return;
+    }
   } catch (err) {
     console.error("Errore attivazione:", err);
   }
