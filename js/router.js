@@ -4,21 +4,38 @@ import { initMenu } from "./menu.js";
 /* =========================================================
    FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
 ========================================================= */
-(function fixSupabaseEmailLink(){
+/* =========================================================
+   SUPABASE EMAIL LINK HANDLER
+========================================================= */
+
+(function fixSupabaseEmailLink() {
 
   const path = window.location.pathname;
   const hash = window.location.hash || "";
 
+  // caso 1: #access_token diretto
+  if (hash.startsWith("#access_token")) {
+
+    const tokens = hash.substring(1);
+
+    window.location.replace(
+      "/#/activate?" + tokens
+    );
+
+    return;
+  }
+
+  // caso 2: /activate#access_token
   if (path === "/activate" && hash.startsWith("#access_token")) {
 
     window.location.replace(
       "/#/activate?" + hash.substring(1)
     );
 
+    return;
   }
 
 })();
-
 
 let app = null;
 
