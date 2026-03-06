@@ -1,5 +1,23 @@
 import { supabase } from "../supabaseClient.js";
 
+function getHashParams() {
+  const hash = window.location.hash.substring(1);
+
+  const parts = hash.split("&");
+
+  const params = {};
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+
+    if (key && value) {
+      params[key] = decodeURIComponent(value);
+    }
+  }
+
+  return params;
+}
+
 export async function render(container) {
 
   container.innerHTML = `
@@ -90,34 +108,17 @@ export async function render(container) {
 
   };
 
-  /* ============================
-     LETTURA TOKEN SUPABASE
-  ============================ */
+  const params = getHashParams();
 
-  const hash = window.location.hash;
+  if (params.access_token && params.refresh_token) {
 
-  if (hash.includes("access_token")) {
+    await supabase.auth.setSession({
+      access_token: params.access_token,
+      refresh_token: params.refresh_token,
+    });
 
-    const params =
-      new URLSearchParams(hash.split("?")[1]);
-
-    const access_token =
-      params.get("access_token");
-
-    const refresh_token =
-      params.get("refresh_token");
-
-    if (access_token && refresh_token) {
-
-      await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
-
-      showForm();
-      return;
-
-    }
+    showForm();
+    return;
 
   }
 
