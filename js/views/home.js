@@ -13,14 +13,12 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 Caricamento sedi se non presenti
   if (!window.state.sedi || window.state.sedi.length === 0) {
     await window.stateActions.caricaSedi();
   }
 
   const sedi = window.state.sedi || [];
 
-  // Se una sola sede → auto selezione
   if (sedi.length === 1 && !window.state.sedeAttiva) {
     window.stateActions.setSedeAttiva(sedi[0].id);
   }
@@ -49,6 +47,12 @@ export async function render(container) {
       label: "Marketing",
       icon: "📢",
       moduli: []
+    },
+    {
+      key: "ai",
+      label: "AI Operandi",
+      icon: "🤖",
+      moduli: []
     }
   ];
 
@@ -62,12 +66,11 @@ export async function render(container) {
     );
 
     return { ...rep, moduli: moduliFiltrati };
-  }).filter(rep => ruolo === "superadmin" || rep.moduli.length > 0);
+  }).filter(rep => ruolo === "superadmin" || rep.moduli.length > 0 || rep.key === "ai");
 
   container.innerHTML = `
     <div class="view" style="padding:0;">
 
-      <!-- HERO -->
       <div style="
         background: var(--color-primary);
         color: white;
@@ -117,7 +120,6 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- CARD REPARTI -->
       ${
         window.state.sedeAttiva
           ? `
