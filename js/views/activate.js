@@ -1,30 +1,34 @@
 import { supabase } from "../supabaseClient.js";
 
-function getHashParams() {
-  const hash = window.location.hash.substring(1); // rimuove #
+function readSupabaseTokensFromHash() {
+  const hash = window.location.hash || "";
 
-  const parts = hash.split("&");
+  let tokenString = "";
 
-  const params = {};
-
-  for (const part of parts) {
-    const [key, value] = part.split("=");
-
-    if (key && value) {
-      params[key] = decodeURIComponent(value);
-    }
+  if (hash.startsWith("#/activate#")) {
+    tokenString = hash.slice("#/activate#".length);
+  } else if (hash.startsWith("#/activate?")) {
+    tokenString = hash.slice("#/activate?".length);
+  } else if (hash.startsWith("#access_token=")) {
+    tokenString = hash.slice(1);
+  } else if (hash.includes("access_token=")) {
+    tokenString = hash.substring(hash.indexOf("access_token="));
   }
 
-  return params;
+  const params = new URLSearchParams(tokenString);
+
+  return {
+    access_token: params.get("access_token"),
+    refresh_token: params.get("refresh_token"),
+    type: params.get("type"),
+  };
 }
 
 export async function render(container) {
-
   container.innerHTML = `
     <div class="view" style="text-align:center">
-
       <div style="margin-bottom:20px">
-        <img src="/assets/logo-ristoflow.png" height="60">
+        <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
       </div>
 
       <h2>Attivazione account</h2>
@@ -32,37 +36,36 @@ export async function render(container) {
       <p style="margin-top:10px">
         Stiamo verificando il tuo invito...
       </p>
-
     </div>
   `;
 
   try {
+    const { access_token, refresh_token } = readSupabaseTokensFromHash();
 
-    const params = getHashParams();
-
-    const access_token = params.access_token;
-    const refresh_token = params.refresh_token;
-
-    if (access_token && refresh_token) {
-
-      await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
-
-      window.location.hash = "#/setPassword";
-      return;
-
+    if (!access_token || !refresh_token) {
+      throw new Error("Token invito mancanti");
     }
 
+    const { error } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    window.location.hash = "#/setPassword";
+    return;
   } catch (err) {
-
     console.error("Errore attivazione:", err);
-
   }
 
   container.innerHTML = `
     <div class="view" style="text-align:center">
+      <div style="margin-bottom:20px">
+        <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
+      </div>
 
       <h2>Link non valido</h2>
 
@@ -73,7 +76,6 @@ export async function render(container) {
       <p>
         Contatta il supporto Ristoflow.
       </p>
-
     </div>
   `;
 }
