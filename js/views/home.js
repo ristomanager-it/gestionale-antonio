@@ -6,6 +6,7 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
 export async function render(container) {
+
   const user = window.state.user;
   const azienda = window.state.azienda;
   const ruolo = window.state?.ruolo;
@@ -61,6 +62,7 @@ export async function render(container) {
   const saluto = getSaluto();
 
   const repartiVisibili = REPARTI.map(rep => {
+
     if (ruolo === "superadmin") return rep;
 
     const moduliFiltrati = rep.moduli.filter(m =>
@@ -68,7 +70,12 @@ export async function render(container) {
     );
 
     return { ...rep, moduli: moduliFiltrati };
-  }).filter(rep => ruolo === "superadmin" || rep.moduli.length > 0 || rep.key === "ai");
+
+  }).filter(rep =>
+    ruolo === "superadmin" ||
+    rep.moduli.length > 0 ||
+    rep.key === "ai"
+  );
 
   container.innerHTML = `
     <div class="view" style="padding:0;">
@@ -80,14 +87,20 @@ export async function render(container) {
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
       ">
+
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
 
           <div>
             <h2 style="margin:0; font-weight:600;">
               ${saluto} 👋
             </h2>
+
             <p style="margin:8px 0 0 0; opacity:0.9;">
-              ${window.state.sedeAttiva ? `Stai gestendo: <strong>${window.state.sedeAttiva.nome}</strong>` : `Seleziona una sede per iniziare`}
+              ${
+                window.state.sedeAttiva
+                  ? `Stai gestendo: <strong>${window.state.sedeAttiva.nome}</strong>`
+                  : `Seleziona una sede per iniziare`
+              }
             </p>
           </div>
 
@@ -98,21 +111,21 @@ export async function render(container) {
             ${
               ruolo === "superadmin"
                 ? `
-                  <button
-                    onclick="window.location.hash='#/homePiattaforma'"
-                    style="
-                      background:white;
-                      color:var(--color-primary);
-                      border:none;
-                      padding:10px 18px;
-                      border-radius:14px;
-                      font-weight:600;
-                      cursor:pointer;
-                      box-shadow:0 8px 20px rgba(0,0,0,0.15);
-                    "
-                  >
-                    ⚙ Piattaforma
-                  </button>
+                <button
+                  onclick="window.location.hash='#/homePiattaforma'"
+                  style="
+                    background:white;
+                    color:var(--color-primary);
+                    border:none;
+                    padding:10px 18px;
+                    border-radius:14px;
+                    font-weight:600;
+                    cursor:pointer;
+                    box-shadow:0 8px 20px rgba(0,0,0,0.15);
+                  "
+                >
+                  ⚙ Piattaforma
+                </button>
                 `
                 : ``
             }
@@ -120,6 +133,7 @@ export async function render(container) {
           </div>
 
         </div>
+
       </div>
 
       <div style="
@@ -131,60 +145,64 @@ export async function render(container) {
         padding:0 20px;
         flex-wrap:wrap;
       ">
-        ${renderToolbarItem("home-weather", "⏳", "Meteo", "#/meteo")}
-        ${renderToolbarItem("home-dish", "🍽️", "Piatto del giorno", "#/ai")}
-        ${renderToolbarItem("home-calendar", "📅", "Calendario", "#/calendario")}
+
+        ${renderToolbarItem("home-weather","⏳","Meteo","#/meteo")}
+        ${renderToolbarItem("home-dish","🍽️","Piatto del giorno","#/ai")}
+        ${renderToolbarItem("home-calendar","📅","Calendario","#/calendario")}
+
       </div>
 
       ${
         window.state.sedeAttiva
           ? `
-      <div style="
-        padding: 0 32px 40px 32px;
-        display:grid;
-        gap:24px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      ">
-        ${
-          repartiVisibili.map((rep, index) => `
-            <div
-              onclick="window.location.hash='#/${rep.key}'"
-              style="
-                background:white;
-                padding:40px 24px;
-                border-radius:24px;
-                box-shadow:0 12px 30px rgba(0,0,0,0.06);
-                text-align:center;
-                cursor:pointer;
-                transition: all 0.25s ease;
-                animation: fadeInUp 0.4s ease forwards;
-                animation-delay:${index * 0.08}s;
-                opacity:0;
-              "
-            >
-              <div style="font-size:42px; margin-bottom:18px;">
-                ${rep.icon}
-              </div>
-              <div style="font-size:18px; font-weight:600;">
-                ${rep.label}
-              </div>
-            </div>
-          `).join("")}
-      </div>
-      `
+          <div style="
+            padding:0 32px 40px 32px;
+            display:grid;
+            gap:24px;
+            grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+          ">
+
+            ${
+              repartiVisibili.map((rep,index)=>`
+                <div
+                  onclick="window.location.hash='#/${rep.key}'"
+                  style="
+                    background:white;
+                    padding:40px 24px;
+                    border-radius:24px;
+                    box-shadow:0 12px 30px rgba(0,0,0,0.06);
+                    text-align:center;
+                    cursor:pointer;
+                    transition:all 0.25s ease;
+                    animation:fadeInUp 0.4s ease forwards;
+                    animation-delay:${index * 0.08}s;
+                    opacity:0;
+                  "
+                >
+                  <div style="font-size:42px;margin-bottom:18px;">
+                    ${rep.icon}
+                  </div>
+
+                  <div style="font-size:18px;font-weight:600;">
+                    ${rep.label}
+                  </div>
+                </div>
+              `).join("")}
+          </div>
+        `
           : `
-      <div style="padding:60px 32px; text-align:center;">
-        <p style="font-size:18px; opacity:0.7;">
-          Seleziona una sede per accedere ai moduli operativi.
-        </p>
-      </div>
-      `
+          <div style="padding:60px 32px;text-align:center;">
+            <p style="font-size:18px;opacity:0.7;">
+              Seleziona una sede per accedere ai moduli operativi.
+            </p>
+          </div>
+        `
       }
 
       <style>
-        @keyframes fadeInUp {
-          from { transform: translateY(15px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        @keyframes fadeInUp{
+          from{transform:translateY(15px);opacity:0;}
+          to{transform:translateY(0);opacity:1;}
         }
       </style>
 
@@ -194,7 +212,8 @@ export async function render(container) {
   await hydrateToolbar();
 }
 
-function renderToolbarItem(id, icon, label, route) {
+function renderToolbarItem(id,icon,label,route){
+
   return `
     <div
       id="${id}"
@@ -206,6 +225,7 @@ function renderToolbarItem(id, icon, label, route) {
         user-select:none;
       "
     >
+
       <div style="
         width:58px;
         height:58px;
@@ -220,150 +240,227 @@ function renderToolbarItem(id, icon, label, route) {
       ">
         ${icon}
       </div>
+
       <div style="
         font-size:12px;
         font-weight:600;
         color:#111827;
-        line-height:1.2;
       ">
         ${label}
       </div>
+
       <div style="
         margin-top:4px;
         font-size:12px;
         color:#6b7280;
-        line-height:1.2;
         min-height:28px;
       ">
         Caricamento...
       </div>
+
     </div>
   `;
 }
 
-async function hydrateToolbar() {
+async function hydrateToolbar(){
+
   await Promise.allSettled([
     hydrateWeatherWidget(),
     hydrateDishWidget(),
     hydrateCalendarWidget()
   ]);
+
 }
 
-async function hydrateWeatherWidget() {
+async function hydrateWeatherWidget(){
+
   const root = document.getElementById("home-weather");
-  if (!root) return;
+  if(!root) return;
 
   const detail = root.querySelector("div:last-child");
   const iconBox = root.querySelector("div:first-child");
 
-  const lat = window.state?.sedeAttiva?.latitudine;
-  const lon = window.state?.sedeAttiva?.longitudine;
+  function getPosition(){
+    return new Promise((resolve,reject)=>{
 
-  if (!lat || !lon) {
-    if (detail) detail.textContent = "Manca sede";
-    if (iconBox) iconBox.textContent = "📍";
-    root.onclick = null;
-    root.style.cursor = "default";
+      if(!navigator.geolocation){
+        reject();
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        pos=>resolve({
+          lat:pos.coords.latitude,
+          lon:pos.coords.longitude
+        }),
+        ()=>reject(),
+        {enableHighAccuracy:true}
+      );
+
+    });
+  }
+
+  let lat;
+  let lon;
+
+  try{
+
+    const pos = await getPosition();
+
+    lat = pos.lat;
+    lon = pos.lon;
+
+  }catch{
+
+    lat = window.state?.sedeAttiva?.latitudine;
+    lon = window.state?.sedeAttiva?.longitudine;
+
+  }
+
+  if(!lat || !lon){
+
+    if(detail) detail.textContent = "Posizione";
+    if(iconBox) iconBox.textContent = "📍";
+
     return;
   }
 
-  try {
-    const url = `${OPEN_METEO_URL}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code&timezone=auto`;
+  try{
+
+    const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`;
+
     const res = await fetch(url);
     const data = await res.json();
 
     const temperature = data?.current?.temperature_2m;
     const weatherCode = data?.current?.weather_code;
 
-    if (typeof temperature !== "number") {
-      throw new Error("Temperatura non disponibile");
-    }
+    if(detail) detail.textContent = `${Math.round(temperature)}°`;
 
-    if (detail) {
-      detail.textContent = `${Math.round(temperature)}°`;
-    }
+    if(iconBox) iconBox.textContent = mapWeatherCodeToIcon(weatherCode);
 
-    if (iconBox) {
-      iconBox.textContent = mapWeatherCodeToIcon(weatherCode);
-    }
-  } catch (err) {
-    console.error("Errore meteo home:", err);
-    if (detail) detail.textContent = "Non disponibile";
-    if (iconBox) iconBox.textContent = "☁️";
+  }catch{
+
+    if(detail) detail.textContent = "Errore";
+    if(iconBox) iconBox.textContent = "☁️";
+
   }
+
 }
 
-async function hydrateDishWidget() {
+async function hydrateDishWidget(){
+
   const root = document.getElementById("home-dish");
-  if (!root) return;
+  if(!root) return;
 
   const detail = root.querySelector("div:last-child");
 
-  if (detail) detail.textContent = "Apri AI";
+  try{
+
+    const res = await fetch(
+      "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          prompt:"Suggerisci un piatto del giorno per ristorante",
+          azienda:window.state?.azienda?.nome
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if(detail) detail.textContent = data.reply?.slice(0,40) || "Piatto AI";
+
+  }catch{
+
+    if(detail) detail.textContent = "Suggerisci";
+
+  }
+
 }
 
-async function hydrateCalendarWidget() {
+async function hydrateCalendarWidget(){
+
   const root = document.getElementById("home-calendar");
-  if (!root) return;
+  if(!root) return;
 
   const detail = root.querySelector("div:last-child");
 
   const label = getCalendarPreviewLabel();
-  if (detail) detail.textContent = label;
+
+  if(detail) detail.textContent = label;
+
 }
 
-function getCalendarPreviewLabel() {
+function getCalendarPreviewLabel(){
+
   const today = new Date();
   const thisYear = today.getFullYear();
 
   const fixedEvents = [
-    { nome: "San Valentino", mese: 2, giorno: 14 },
-    { nome: "Ferragosto", mese: 8, giorno: 15 },
-    { nome: "Halloween", mese: 10, giorno: 31 },
-    { nome: "Natale", mese: 12, giorno: 25 },
-    { nome: "Capodanno", mese: 12, giorno: 31 }
+    {nome:"San Valentino",mese:2,giorno:14},
+    {nome:"Ferragosto",mese:8,giorno:15},
+    {nome:"Halloween",mese:10,giorno:31},
+    {nome:"Natale",mese:12,giorno:25},
+    {nome:"Capodanno",mese:12,giorno:31}
   ];
 
-  const candidates = fixedEvents.map(event => {
-    const date = new Date(thisYear, event.mese - 1, event.giorno);
-    if (date < today) {
-      date.setFullYear(thisYear + 1);
+  const candidates = fixedEvents.map(e=>{
+
+    const date = new Date(thisYear,e.mese-1,e.giorno);
+
+    if(date < today){
+      date.setFullYear(thisYear+1);
     }
-    return { ...event, date };
+
+    return {...e,date};
+
   });
 
-  candidates.sort((a, b) => a.date - b.date);
+  candidates.sort((a,b)=>a.date-b.date);
 
   const next = candidates[0];
-  const days = diffInDays(today, next.date);
+  const days = diffInDays(today,next.date);
 
-  if (days <= 30) {
+  if(days <= 30){
     return `${days} gg · ${next.nome}`;
   }
 
   return "30 giorni";
+
 }
 
-function diffInDays(a, b) {
-  const start = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+function diffInDays(a,b){
+
+  const start = new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  const end = new Date(b.getFullYear(),b.getMonth(),b.getDate());
+
   const ms = end.getTime() - start.getTime();
-  return Math.round(ms / 86400000);
+
+  return Math.round(ms/86400000);
+
 }
 
-function mapWeatherCodeToIcon(code) {
-  if ([0, 1].includes(code)) return "☀️";
-  if ([2, 3, 45, 48].includes(code)) return "☁️";
-  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "🌧️";
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return "❄️";
-  if ([95, 96, 99].includes(code)) return "⛈️";
+function mapWeatherCodeToIcon(code){
+
+  if([0,1].includes(code)) return "☀️";
+  if([2,3,45,48].includes(code)) return "☁️";
+  if([51,53,55,61,63,65,80,81,82].includes(code)) return "🌧️";
+  if([95,96,99].includes(code)) return "⛈️";
+
   return "☁️";
+
 }
 
-function renderSedeSelector() {
+function renderSedeSelector(){
+
   const sedi = window.state.sedi || [];
 
-  if (sedi.length <= 1) return "";
+  if(sedi.length <= 1) return "";
 
   return `
     <select
@@ -376,46 +473,62 @@ function renderSedeSelector() {
       "
     >
       <option value="">Seleziona sede</option>
-      ${sedi.map(s => `
-        <option value="${s.id}" ${window.state.sedeAttiva?.id == s.id ? "selected" : ""}>
-          ${s.nome}
-        </option>
-      `).join("")}
+
+      ${
+        sedi.map(s=>`
+          <option
+            value="${s.id}"
+            ${window.state.sedeAttiva?.id == s.id ? "selected" : ""}
+          >
+            ${s.nome}
+          </option>
+        `).join("")
+      }
+
     </select>
   `;
+
 }
 
-function hasFeature(area) {
+function hasFeature(area){
+
   return window.state?.featuresEffettive?.[area] === true;
+
 }
 
-function hasPermission(area) {
+function hasPermission(area){
+
   const ruolo = window.state?.ruolo;
   const override = window.state?.permessiOverride || {};
 
-  if (ruolo === "superadmin") return true;
+  if(ruolo === "superadmin") return true;
 
-  if (Object.prototype.hasOwnProperty.call(override, area)) {
+  if(Object.prototype.hasOwnProperty.call(override,area)){
     return override[area] === true;
   }
 
   const rolePermissions = {
-    admin: ["*"],
-    segreteria: ["dipendenti", "acquisti", "report", "margini"],
-    manager_cucina: ["produzione", "margini"],
-    manager_sala: ["produzione", "margini"],
-    addetto_cucina: [],
-    cameriere: []
+    admin:["*"],
+    segreteria:["dipendenti","acquisti","report","margini"],
+    manager_cucina:["produzione","margini"],
+    manager_sala:["produzione","margini"],
+    addetto_cucina:[],
+    cameriere:[]
   };
 
-  if (rolePermissions[ruolo]?.includes("*")) return true;
+  if(rolePermissions[ruolo]?.includes("*")) return true;
 
   return rolePermissions[ruolo]?.includes(area) === true;
+
 }
 
-function getSaluto() {
+function getSaluto(){
+
   const ora = new Date().getHours();
-  if (ora < 12) return "Buongiorno";
-  if (ora < 18) return "Buon pomeriggio";
+
+  if(ora < 12) return "Buongiorno";
+  if(ora < 18) return "Buon pomeriggio";
+
   return "Buonasera";
+
 }
