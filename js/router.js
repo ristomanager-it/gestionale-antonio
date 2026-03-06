@@ -2,39 +2,35 @@ import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
 
 /* =========================================================
-   FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
-========================================================= */
-/* =========================================================
    SUPABASE EMAIL LINK HANDLER
+   gestisce link tipo:
+   https://dominio.com/#access_token=...
 ========================================================= */
 
 (function fixSupabaseEmailLink() {
 
-  const path = window.location.pathname;
   const hash = window.location.hash || "";
 
-  // caso 1: #access_token diretto
-  if (hash.startsWith("#access_token")) {
+  if (hash.startsWith("#access_token=")) {
 
     const tokens = hash.substring(1);
 
-    window.location.replace(
-      "/#/activate?" + tokens
-    );
+    window.location.hash = "#/activate?" + tokens;
 
-    return;
   }
 
-  // caso 2: /activate#access_token
-  if (path === "/activate" && hash.startsWith("#access_token")) {
+})();
 
-    window.location.replace(
-      "/#/activate?" + hash.substring(1)
-    );
+/* =========================================================
+   FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
+========================================================= */
 
-    return;
+(function fixSupabaseHash(){
+  const h = window.location.hash || "";
+  if (h.startsWith("#/activate#")) {
+    const tokens = h.split("#")[2];
+    window.location.hash = "#/activate?" + tokens;
   }
-
 })();
 
 let app = null;
