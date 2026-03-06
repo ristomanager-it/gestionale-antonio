@@ -1,5 +1,8 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
+const API_URL =
+  "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai";
+
 export async function render(app) {
 
   const html = createPageLayout({
@@ -9,6 +12,21 @@ export async function render(app) {
     content: `
 
       <div class="grid-cards">
+
+        ${createCard({
+          title: "☀ Meteo oggi",
+          body: `<div id="ai-weather">Caricamento...</div>`
+        })}
+
+        ${createCard({
+          title: "📺 Eventi TV",
+          body: `<div id="ai-events">Caricamento...</div>`
+        })}
+
+        ${createCard({
+          title: "💰 Suggerimenti Operandi",
+          body: `<div id="ai-suggestions">Caricamento...</div>`
+        })}
 
         ${createCard({
           title: "🤖 Chiedi a Operandi AI",
@@ -27,35 +45,8 @@ export async function render(app) {
         })}
 
         ${createCard({
-          title: "⚡ Azioni rapide",
-          body: `
-            <div class="ai-actions">
-
-              <button class="btn-secondary ai-action" data-prompt="Suggerisci 3 piatti con ingredienti stagionali per un ristorante italiano">
-                🍝 Suggerisci piatti
-              </button>
-
-              <button class="btn-secondary ai-action" data-prompt="Genera calendario social settimanale per un ristorante">
-                📅 Calendario social
-              </button>
-
-              <button class="btn-secondary ai-action" data-prompt="Suggerisci una promozione per il weekend per aumentare gli incassi di un ristorante">
-                📣 Idee promozione
-              </button>
-
-              <button class="btn-secondary ai-action" data-prompt="Suggerisci un piatto del giorno con alto margine per un ristorante italiano">
-                🍽 Piatto del giorno
-              </button>
-
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "💬 Risposta Operandi AI",
-          body: `
-            <div id="ai-result" style="white-space:pre-wrap;"></div>
-          `
+          title: "💬 Risposta AI",
+          body: `<div id="ai-result" style="white-space:pre-wrap;"></div>`
         })}
 
       </div>
@@ -65,49 +56,89 @@ export async function render(app) {
 
   app.innerHTML = html;
 
-  initAI();
+  loadAI();
+  initChat();
 }
 
-function initAI() {
+async function loadAI() {
+
+  const weatherBox = document.getElementById("ai-weather");
+  const eventsBox = document.getElementById("ai-events");
+  const suggestionsBox = document.getElementById("ai-suggestions");
+
+  try {
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: "Dammi suggerimenti operativi per oggi",
+        azienda: window.state?.azienda?.nome ?? "ristorante",
+        lat: window.state?.sedeAttiva?.latitudine,
+        lon: window.state?.sedeAttiva?.longitudine
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.weather) {
+      weatherBox.innerHTML =
+        `${data.weather.temperatura}°C<br>${data.weather.meteo}`;
+    } else {
+      weatherBox.innerHTML = "Dati meteo non disponibili";
+    }
+
+    if (data.events?.length) {
+      eventsBox.innerHTML =
+        data.events.map(e => `• ${e.nome}`).join("<br>");
+    } else {
+      eventsBox.innerHTML = "Nessun evento rilevante";
+    }
+
+    suggestionsBox.innerHTML =
+      data.reply || "Nessun suggerimento disponibile";
+
+  } catch (err) {
+
+    console.error(err);
+
+    weatherBox.innerHTML = "Errore meteo";
+    eventsBox.innerHTML = "Errore eventi";
+    suggestionsBox.innerHTML = "Errore AI";
+
+  }
+
+}
+
+function initChat() {
 
   const input = document.getElementById("ai-prompt");
   const sendBtn = document.getElementById("ai-send");
   const result = document.getElementById("ai-result");
 
-  const actions = document.querySelectorAll(".ai-action");
-
-  actions.forEach(btn => {
-    btn.onclick = () => {
-      input.value = btn.dataset.prompt;
-    };
-  });
-
   sendBtn.onclick = async () => {
 
     const prompt = input.value.trim();
-
     if (!prompt) return;
 
     result.innerHTML = "⏳ Operandi AI sta pensando...";
 
     try {
 
-      const res = await fetch(
-        https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            prompt,
-            azienda: window.state?.azienda?.nome ?? "ristorante",
-            ingredienti: [],
-            stagione: "",
-            evento: ""
-          })
-        }
-      );
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt,
+          azienda: window.state?.azienda?.nome ?? "ristorante",
+          lat: window.state?.sedeAttiva?.latitudine,
+          lon: window.state?.sedeAttiva?.longitudine
+        })
+      });
 
       const data = await res.json();
 
@@ -120,10 +151,10 @@ function initAI() {
     } catch (err) {
 
       console.error(err);
-
       result.innerHTML = "Errore connessione AI";
 
     }
 
   };
+
 }
