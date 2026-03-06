@@ -93,7 +93,7 @@ function initAI() {
     try {
 
       const res = await fetch(
-        "https://TUO-PROGETTO.supabase.co/functions/v1/operandi-ai",
+        https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai
         {
           method: "POST",
           headers: {
