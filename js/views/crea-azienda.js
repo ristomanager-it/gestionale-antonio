@@ -1,4 +1,5 @@
 // js/views/crea-azienda.js
+
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
@@ -15,6 +16,7 @@ const DEFAULT_FEATURES = {
 };
 
 export async function render(container) {
+
   const user = window.state.user;
   const aziendaAttiva = window.state.azienda;
 
@@ -142,56 +144,30 @@ export async function render(container) {
   });
 
   const goHome = () => (window.location.hash = "#/homePiattaforma");
-  const btnHome = document.getElementById("btn-home");
-  const btnHomeTop = document.getElementById("btn-home-top");
-  if (btnHome) btnHome.onclick = goHome;
-  if (btnHomeTop) btnHomeTop.onclick = goHome;
 
-  const pianoSelect = document.getElementById("az-piano");
-  const pianoHint = document.getElementById("piano-hint");
-
-  const renderPianoHint = () => {
-    const id = pianoSelect.value;
-    if (!id) {
-      pianoHint.textContent = "Seleziona un piano per vedere il riepilogo.";
-      return;
-    }
-    const p = listaPiani.find((x) => x.id === id);
-    if (!p) {
-      pianoHint.textContent = "";
-      return;
-    }
-    pianoHint.innerHTML = `
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <span style="background:white; border:1px solid #e5e7eb; border-radius:999px; padding:6px 10px;">
-          Sedi max: <strong>${p.sedi_max}</strong>
-        </span>
-        <span style="background:white; border:1px solid #e5e7eb; border-radius:999px; padding:6px 10px;">
-          Prezzo: <strong>€${p.prezzo_mensile}/mese</strong>
-        </span>
-      </div>
-    `;
-  };
-
-  renderPianoHint();
-  pianoSelect.addEventListener("change", renderPianoHint);
+  document.getElementById("btn-home")?.addEventListener("click", goHome);
+  document.getElementById("btn-home-top")?.addEventListener("click", goHome);
 
   const form = document.getElementById("azienda-form");
   const errorEl = document.getElementById("azienda-error");
   const btnSubmit = document.getElementById("btn-submit");
 
   form.addEventListener("submit", async (e) => {
+
     e.preventDefault();
     errorEl.textContent = "";
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
     const pianoId = document.getElementById("az-piano").value;
+
     const email = document
       .getElementById("az-email-amministrativa")
       .value.trim()
       .toLowerCase();
-    const telefono = document.getElementById("az-telefono").value.trim();
+
+    const telefono =
+      document.getElementById("az-telefono").value.trim();
 
     if (!pianoId) {
       errorEl.textContent = "Seleziona un piano abbonamento.";
@@ -203,39 +179,44 @@ export async function render(container) {
     btnSubmit.textContent = "Creazione in corso...";
 
     try {
-      const { error } = await supabase.functions.invoke("create-azienda", {
-        body: {
-          nome,
-          codice,
-          piano_id: pianoId,
-          email_amministrativa: email,
-          telefono_amministrativo: telefono || null,
-          features: DEFAULT_FEATURES,
-        },
-      });
+
+      const { data, error } =
+        await supabase.functions.invoke("create-azienda", {
+          body: {
+            nome,
+            codice,
+            piano: pianoId,
+            email_amministrativa: email,
+            telefono_amministrativo: telefono || null,
+            features: DEFAULT_FEATURES,
+          },
+        });
 
       if (error) throw error;
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email,
-        {
-          redirectTo: window.location.origin + "/#/reset-password",
-        }
-      );
-
-      if (resetError) throw resetError;
+      console.log("create-azienda result:", data);
 
       alert(
         "Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password."
       );
+
       window.location.hash = "#/gestioneAziende";
+
     } catch (err) {
+
       console.error("create-azienda error:", err);
+
       errorEl.textContent =
-        err?.message || "Errore durante la creazione dell'azienda.";
+        err?.message ||
+        "Errore durante la creazione dell'azienda.";
+
     } finally {
+
       btnSubmit.disabled = false;
       btnSubmit.textContent = prevText;
+
     }
+
   });
+
 }
