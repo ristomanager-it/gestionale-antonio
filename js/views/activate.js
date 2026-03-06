@@ -1,5 +1,23 @@
 import { supabase } from "../supabaseClient.js";
 
+function getHashParams() {
+  const hash = window.location.hash.substring(1); // rimuove #
+
+  const parts = hash.split("&");
+
+  const params = {};
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+
+    if (key && value) {
+      params[key] = decodeURIComponent(value);
+    }
+  }
+
+  return params;
+}
+
 export async function render(container) {
 
   container.innerHTML = `
@@ -20,36 +38,26 @@ export async function render(container) {
 
   try {
 
-    const hash = window.location.hash;
+    const params = getHashParams();
 
-    if (hash.includes("access_token")) {
+    const access_token = params.access_token;
+    const refresh_token = params.refresh_token;
 
-      const params =
-        new URLSearchParams(hash.split("?")[1]);
+    if (access_token && refresh_token) {
 
-      const access_token =
-        params.get("access_token");
+      await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
 
-      const refresh_token =
-        params.get("refresh_token");
-
-      if (access_token && refresh_token) {
-
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
-
-        window.location.hash = "#/setPassword";
-        return;
-
-      }
+      window.location.hash = "#/setPassword";
+      return;
 
     }
 
   } catch (err) {
 
-    console.error(err);
+    console.error("Errore attivazione:", err);
 
   }
 
@@ -59,7 +67,7 @@ export async function render(container) {
       <h2>Link non valido</h2>
 
       <p>
-        Il link di attivazione è scaduto.
+        Il link di attivazione è scaduto o non valido.
       </p>
 
       <p>
