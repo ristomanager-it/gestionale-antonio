@@ -509,7 +509,7 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  if (PUBLIC_ROUTES.has(route)) {
+  if (PUBLIC_ROUTES.has(route) && route !== "activate" && route !== "setPassword") {
     const tmpAziende = await loadAziendeForUser(session.user.id);
     const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
     const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
