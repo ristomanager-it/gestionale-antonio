@@ -71,6 +71,53 @@ export async function render(container) {
   container.innerHTML = `
     <div class="view" style="padding:0;">
 
+      <!-- WIDGET INFO -->
+      <div style="
+        display:flex;
+        gap:12px;
+        padding:16px 32px;
+        flex-wrap:wrap;
+      ">
+
+        <div onclick="window.location.hash='#/meteo'"
+          style="
+            background:white;
+            padding:12px 18px;
+            border-radius:16px;
+            box-shadow:0 6px 16px rgba(0,0,0,0.08);
+            cursor:pointer;
+            font-weight:600;
+          ">
+          ☀ Meteo
+        </div>
+
+        <div onclick="window.location.hash='#/gastronomia'"
+          style="
+            background:white;
+            padding:12px 18px;
+            border-radius:16px;
+            box-shadow:0 6px 16px rgba(0,0,0,0.08);
+            cursor:pointer;
+            font-weight:600;
+          ">
+          🍝 Gastronomia
+        </div>
+
+        <div onclick="window.location.hash='#/agenda'"
+          style="
+            background:white;
+            padding:12px 18px;
+            border-radius:16px;
+            box-shadow:0 6px 16px rgba(0,0,0,0.08);
+            cursor:pointer;
+            font-weight:600;
+          ">
+          📅 Agenda
+        </div>
+
+      </div>
+
+      <!-- HERO -->
       <div style="
         background: var(--color-primary);
         color: white;
