@@ -16,6 +16,7 @@ const routes = {
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
+  activate: () => import("./views/activate.js"),
   setPassword: () => import("./views/set-password.js"),
 
   sceltaAzienda: () => import("./views/scelta-azienda.js"),
@@ -29,7 +30,7 @@ const routes = {
   dipendenti: () => import("./views/dipendenti.js"),
   timbrature: () => import("./views/timbrature.js"),
 
-  
+
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
 acquisti: () => import("./views/acquisti.js"),
@@ -52,7 +53,7 @@ acquisti: () => import("./views/acquisti.js"),
    ROUTE SCOPE
 ========================================================= */
 
-const PUBLIC_ROUTES = new Set(["login", "setPassword"]);
+const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword"]);
 
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
