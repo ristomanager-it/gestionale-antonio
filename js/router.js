@@ -4,14 +4,20 @@ import { initMenu } from "./menu.js";
 /* =========================================================
    FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
 ========================================================= */
-(function fixSupabaseHash(){
-  const h = window.location.hash || "";
-  if (h.startsWith("#/activate#")) {
-    const tokens = h.split("#")[2];
-    window.location.hash = "#/activate?" + tokens;
-  }
-})();
+(function fixSupabaseEmailLink(){
 
+  const path = window.location.pathname;
+  const hash = window.location.hash || "";
+
+  if (path === "/activate" && hash.startsWith("#access_token")) {
+
+    window.location.replace(
+      "/#/activate?" + hash.substring(1)
+    );
+
+  }
+
+})();
 
 
 let app = null;
