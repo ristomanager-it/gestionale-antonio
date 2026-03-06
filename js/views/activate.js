@@ -33,10 +33,10 @@ export async function render(container) {
     }
 
     const { error } =
-      await supabase.auth.verifyOtp({
-        token_hash,
-        type
-      });
+  await supabase.auth.verifyOtp({
+    token_hash,
+    type: "invite"
+  });
 
     if (error) {
       throw error;
