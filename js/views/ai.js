@@ -6,7 +6,11 @@ let conversation = [];
 const TONY_AVATAR =
   "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png";
 
+const USER_AVATAR =
+  "https://ui-avatars.com/api/?name=U&background=0E5A7A&color=fff";
+
 export async function render(app) {
+
   conversation = [];
 
   const html = createPageLayout({
@@ -14,261 +18,207 @@ export async function render(app) {
     subtitle: "Il tuo assistente AI Ristoflow",
 
     content: `
-      <div class="chat-shell">
 
-        <div class="chat-header">
-          <div class="chat-header-left">
-            <img src="${TONY_AVATAR}" alt="Tony" class="chat-avatar-img" />
-            <div class="chat-header-meta">
-              <div class="chat-name">Tony</div>
-              <div class="chat-status">Assistente operativo del gestionale</div>
-            </div>
-          </div>
-        </div>
+<div class="chat-shell">
 
-        <div id="chat-messages" class="chat-messages"></div>
+<div class="chat-header">
 
-        <div class="chat-quick-actions">
-          <button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">Briefing oggi</button>
-          <button class="chat-chip" data-prompt="Aiutami a usare gli ingredienti che ho nel frigo">Usa il frigo</button>
-          <button class="chat-chip" data-prompt="Guidami nell'inserimento di una ricetta">Nuova ricetta</button>
-          <button class="chat-chip" data-prompt="Guidami nel caricamento di una fattura">Carica fattura</button>
-        </div>
+<div class="chat-header-left">
 
-        <div class="chat-input-bar">
-          <textarea
-            id="chat-input"
-            rows="1"
-            placeholder="Scrivi a Tony..."
-          ></textarea>
+<img src="${TONY_AVATAR}" class="chat-avatar-img"/>
 
-          <button id="chat-send" class="chat-send-btn">
-            ➤
-          </button>
-        </div>
+<div class="chat-header-meta">
+<div class="chat-name">Tony</div>
+<div class="chat-status">Assistente operativo</div>
+</div>
 
-      </div>
+</div>
 
-      <style>
-        .chat-shell{
-          display:flex;
-          flex-direction:column;
-          height:78vh;
-          background:#e5ddd5;
-          border-radius:18px;
-          overflow:hidden;
-          box-shadow:0 10px 30px rgba(0,0,0,0.08);
-        }
+</div>
 
-        .chat-header{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          padding:14px 18px;
-          background:#0E5A7A;
-          color:#fff;
-        }
+<div id="chat-messages" class="chat-messages"></div>
 
-        .chat-header-left{
-          display:flex;
-          align-items:center;
-          gap:12px;
-        }
+<div class="chat-quick-actions">
 
-        .chat-avatar-img{
-          width:42px;
-          height:42px;
-          border-radius:50%;
-          object-fit:cover;
-          background:rgba(255,255,255,0.18);
-          border:2px solid rgba(255,255,255,0.18);
-          flex:0 0 42px;
-        }
+<button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">
+Briefing oggi
+</button>
 
-        .chat-header-meta{
-          display:flex;
-          flex-direction:column;
-        }
+<button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">
+Produzione
+</button>
 
-        .chat-name{
-          font-size:16px;
-          font-weight:700;
-          line-height:1.1;
-        }
+<button class="chat-chip" data-prompt="Analizza le vendite degli ultimi giorni">
+Vendite
+</button>
 
-        .chat-status{
-          font-size:12px;
-          opacity:0.9;
-          margin-top:3px;
-        }
+<button class="chat-chip" data-prompt="Dimmi se ho prodotti sottoscorta">
+Magazzino
+</button>
 
-        .chat-messages{
-          flex:1;
-          overflow-y:auto;
-          padding:18px 16px;
-          display:flex;
-          flex-direction:column;
-          gap:10px;
-          background:
-            linear-gradient(rgba(229,221,213,0.92), rgba(229,221,213,0.92)),
-            radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0);
-          background-size:auto, 22px 22px;
-        }
+</div>
 
-        .msg-row{
-          display:flex;
-          width:100%;
-          align-items:flex-end;
-          gap:8px;
-        }
+<div class="chat-input-bar">
 
-        .msg-row.user{
-          justify-content:flex-end;
-        }
+<textarea
+id="chat-input"
+rows="1"
+placeholder="Scrivi a Tony..."
+></textarea>
 
-        .msg-row.ai{
-          justify-content:flex-start;
-        }
+<button id="chat-send" class="chat-send-btn">
+➤
+</button>
 
-        .msg-avatar{
-          width:34px;
-          height:34px;
-          border-radius:50%;
-          object-fit:cover;
-          flex:0 0 34px;
-          box-shadow:0 1px 2px rgba(0,0,0,0.08);
-          margin-bottom:2px;
-        }
+</div>
 
-        .msg-bubble{
-          max-width:min(78%, 760px);
-          padding:10px 12px;
-          border-radius:14px;
-          font-size:14px;
-          line-height:1.5;
-          white-space:pre-wrap;
-          word-break:break-word;
-          box-shadow:0 1px 2px rgba(0,0,0,0.08);
-          position:relative;
-        }
+</div>
 
-        .msg-row.ai .msg-bubble{
-          background:#ffffff;
-          color:#1f2937;
-          border-top-left-radius:4px;
-        }
+<style>
 
-        .msg-row.user .msg-bubble{
-          background:#dcf8c6;
-          color:#111827;
-          border-top-right-radius:4px;
-        }
+.chat-shell{
+display:flex;
+flex-direction:column;
+height:calc(100vh - 140px);
+background:#e5ddd5;
+border-radius:18px;
+overflow:hidden;
+box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
 
-        .msg-meta{
-          margin-top:6px;
-          font-size:11px;
-          color:#6b7280;
-          text-align:right;
-        }
+.chat-header{
+display:flex;
+align-items:center;
+padding:14px 18px;
+background:#0E5A7A;
+color:#fff;
+}
 
-        .chat-quick-actions{
-          display:flex;
-          gap:8px;
-          padding:10px 12px;
-          background:#f8fafc;
-          border-top:1px solid rgba(0,0,0,0.06);
-          overflow-x:auto;
-        }
+.chat-header-left{
+display:flex;
+align-items:center;
+gap:12px;
+}
 
-        .chat-chip{
-          border:none;
-          background:#ffffff;
-          color:#0E5A7A;
-          border-radius:999px;
-          padding:9px 12px;
-          font-size:12px;
-          white-space:nowrap;
-          cursor:pointer;
-          box-shadow:0 1px 3px rgba(0,0,0,0.08);
-        }
+.chat-avatar-img{
+width:42px;
+height:42px;
+border-radius:50%;
+object-fit:cover;
+}
 
-        .chat-chip:hover{
-          background:#eef6fa;
-        }
+.chat-name{
+font-size:16px;
+font-weight:700;
+}
 
-        .chat-input-bar{
-          display:flex;
-          align-items:flex-end;
-          gap:10px;
-          padding:12px;
-          background:#f0f2f5;
-          border-top:1px solid rgba(0,0,0,0.08);
-        }
+.chat-status{
+font-size:12px;
+opacity:0.9;
+}
 
-        #chat-input{
-          flex:1;
-          resize:none;
-          max-height:120px;
-          min-height:46px;
-          padding:12px 14px;
-          border-radius:22px;
-          border:1px solid #d1d5db;
-          outline:none;
-          font-size:14px;
-          line-height:1.4;
-          background:#fff;
-        }
+.chat-messages{
+flex:1;
+overflow-y:auto;
+padding:18px;
+display:flex;
+flex-direction:column;
+gap:14px;
+}
 
-        #chat-input:focus{
-          border-color:#0E5A7A;
-          box-shadow:0 0 0 3px rgba(14,90,122,0.12);
-        }
+.msg-row{
+display:flex;
+gap:10px;
+align-items:flex-end;
+}
 
-        .chat-send-btn{
-          width:46px;
-          height:46px;
-          border:none;
-          border-radius:50%;
-          background:#0E5A7A;
-          color:#fff;
-          font-size:18px;
-          cursor:pointer;
-          flex:0 0 auto;
-        }
+.msg-row.user{
+flex-direction:row-reverse;
+}
 
-        .chat-send-btn:disabled{
-          opacity:0.6;
-          cursor:not-allowed;
-        }
+.msg-avatar{
+width:34px;
+height:34px;
+border-radius:50%;
+object-fit:cover;
+}
 
-        @media (max-width: 768px){
-          .chat-shell{
-            height:calc(100vh - 170px);
-            border-radius:14px;
-          }
+.msg-bubble{
+max-width:min(88%,900px);
+padding:12px 14px;
+border-radius:14px;
+font-size:14px;
+line-height:1.5;
+white-space:pre-wrap;
+box-shadow:0 1px 2px rgba(0,0,0,0.1);
+}
 
-          .msg-bubble{
-            max-width:88%;
-          }
+.msg-row.ai .msg-bubble{
+background:white;
+}
 
-          .chat-quick-actions{
-            padding:8px 10px;
-          }
+.msg-row.user .msg-bubble{
+background:#dcf8c6;
+}
 
-          .msg-avatar{
-            width:30px;
-            height:30px;
-            flex:0 0 30px;
-          }
+.msg-meta{
+font-size:11px;
+margin-top:6px;
+color:#6b7280;
+text-align:right;
+}
 
-          .chat-avatar-img{
-            width:38px;
-            height:38px;
-            flex:0 0 38px;
-          }
-        }
-      </style>
-    `,
+.chat-quick-actions{
+display:flex;
+gap:8px;
+padding:10px;
+overflow-x:auto;
+background:#f8fafc;
+}
+
+.chat-chip{
+border:none;
+background:white;
+padding:8px 12px;
+border-radius:999px;
+font-size:12px;
+cursor:pointer;
+}
+
+.chat-input-bar{
+display:flex;
+gap:10px;
+padding:12px;
+background:#f0f2f5;
+}
+
+#chat-input{
+flex:1;
+resize:none;
+padding:12px;
+border-radius:20px;
+border:1px solid #ccc;
+font-size:14px;
+}
+
+.chat-send-btn{
+width:46px;
+height:46px;
+border-radius:50%;
+border:none;
+background:#0E5A7A;
+color:white;
+font-size:18px;
+cursor:pointer;
+}
+
+.typing{
+opacity:0.6;
+font-style:italic;
+}
+
+</style>
+`,
   });
 
   app.innerHTML = html;
@@ -277,183 +227,175 @@ export async function render(app) {
 }
 
 function getNowTime() {
+
   const now = new Date();
+
   return now.toLocaleTimeString("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
   });
+
 }
 
 function scrollChatToBottom() {
+
   const container = document.getElementById("chat-messages");
-  if (!container) return;
+
   container.scrollTop = container.scrollHeight;
+
 }
 
-function addMessage(text, type) {
-  const container = document.getElementById("chat-messages");
-  if (!container) return null;
+function addMessage(text,type){
 
-  const row = document.createElement("div");
-  row.className = `msg-row ${type}`;
+const container=document.getElementById("chat-messages");
 
-  if (type === "ai") {
-    const avatar = document.createElement("img");
-    avatar.className = "msg-avatar";
-    avatar.src = TONY_AVATAR;
-    avatar.alt = "Tony";
-    row.appendChild(avatar);
-  }
+const row=document.createElement("div");
+row.className=`msg-row ${type}`;
 
-  const bubble = document.createElement("div");
-  bubble.className = "msg-bubble";
-  bubble.innerText = text;
+const avatar=document.createElement("img");
+avatar.className="msg-avatar";
+avatar.src= type==="ai" ? TONY_AVATAR : USER_AVATAR;
 
-  const meta = document.createElement("div");
-  meta.className = "msg-meta";
-  meta.innerText = getNowTime();
+row.appendChild(avatar);
 
-  bubble.appendChild(meta);
-  row.appendChild(bubble);
-  container.appendChild(row);
+const bubble=document.createElement("div");
+bubble.className="msg-bubble";
+bubble.innerText=text;
 
-  scrollChatToBottom();
+const meta=document.createElement("div");
+meta.className="msg-meta";
+meta.innerText=getNowTime();
 
-  return bubble;
+bubble.appendChild(meta);
+
+row.appendChild(bubble);
+container.appendChild(row);
+
+scrollChatToBottom();
+
+return bubble;
+
 }
 
-async function callTony(messages) {
-  const { data, error } = await supabase.functions.invoke("assistente-ai", {
-    body: {
-      messages,
-      azienda_id: window.state?.azienda?.id,
-      azienda: window.state?.azienda?.nome ?? "ristorante",
-      lat: window.state?.sedeAttiva?.latitudine,
-      lon: window.state?.sedeAttiva?.longitudine,
-      current_page: window.location.hash || "#/ai",
-    },
-  });
+async function callTony(messages){
 
-  if (error) {
-    throw error;
-  }
+const {data,error}=await supabase.functions.invoke("assistente-ai",{
 
-  return data;
+body:{
+messages,
+azienda_id:window.state?.azienda?.id,
+azienda:window.state?.azienda?.nome,
+lat:window.state?.sedeAttiva?.latitudine,
+lon:window.state?.sedeAttiva?.longitudine
 }
 
-async function loadInitialBriefing() {
-  try {
-    const initialMessages = [
-      {
-        role: "user",
-        content: "Dammi il briefing operativo di oggi e guidami nell'uso del gestionale se serve.",
-      },
-    ];
+});
 
-    const data = await callTony(initialMessages);
+if(error) throw error;
 
-    const reply =
-      data?.reply ||
-      "Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing, ricette, fatture e uso del gestionale.";
+return data;
 
-    addMessage(reply, "ai");
-
-    conversation.push({
-      role: "assistant",
-      content: reply,
-    });
-  } catch {
-    const fallback =
-      "Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing, ricette, fatture e gestione del ristorante.";
-
-    addMessage(fallback, "ai");
-
-    conversation.push({
-      role: "assistant",
-      content: fallback,
-    });
-  }
 }
 
-function initChat() {
-  const input = document.getElementById("chat-input");
-  const send = document.getElementById("chat-send");
-  const chips = document.querySelectorAll(".chat-chip");
+async function loadInitialBriefing(){
 
-  loadInitialBriefing();
+try{
 
-  async function sendMessage(forcedPrompt = "") {
-    const prompt = (forcedPrompt || input.value || "").trim();
-    if (!prompt) return;
+const initialMessages=[{
+role:"user",
+content:"Dammi il briefing operativo di oggi"
+}];
 
-    addMessage(prompt, "user");
+const data=await callTony(initialMessages);
 
-    conversation.push({
-      role: "user",
-      content: prompt,
-    });
+const reply=data?.reply || "Ciao! Sono Tony.";
 
-    input.value = "";
-    input.style.height = "46px";
+addMessage(reply,"ai");
 
-    send.disabled = true;
+conversation.push({
+role:"assistant",
+content:reply
+});
 
-    const loadingBubble = addMessage("Tony sta pensando...", "ai");
+}catch{
 
-    try {
-      const data = await callTony(conversation);
-      const reply = data?.reply || "Non ho una risposta utile in questo momento.";
+addMessage("Ciao! Sono Tony.","ai");
 
-      if (loadingBubble) {
-        const newMeta = document.createElement("div");
-        newMeta.className = "msg-meta";
-        newMeta.innerText = getNowTime();
+}
 
-        loadingBubble.innerText = reply;
-        loadingBubble.appendChild(newMeta);
-      }
+}
 
-      conversation.push({
-        role: "assistant",
-        content: reply,
-      });
+function initChat(){
 
-      scrollChatToBottom();
-    } catch (err) {
-      if (loadingBubble) {
-        const newMeta = document.createElement("div");
-        newMeta.className = "msg-meta";
-        newMeta.innerText = getNowTime();
+const input=document.getElementById("chat-input");
+const send=document.getElementById("chat-send");
+const chips=document.querySelectorAll(".chat-chip");
 
-        loadingBubble.innerText = "Errore connessione Tony";
-        loadingBubble.appendChild(newMeta);
-      }
+loadInitialBriefing();
 
-      console.error("Tony chat error:", err);
-    } finally {
-      send.disabled = false;
-      input.focus();
-    }
-  }
+async function sendMessage(forcedPrompt=""){
 
-  send.onclick = () => sendMessage();
+const prompt=(forcedPrompt||input.value||"").trim();
 
-  input.addEventListener("input", () => {
-    input.style.height = "46px";
-    input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
-  });
+if(!prompt) return;
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+addMessage(prompt,"user");
 
-  chips.forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const prompt = chip.dataset.prompt || "";
-      sendMessage(prompt);
-    });
-  });
+conversation.push({
+role:"user",
+content:prompt
+});
+
+input.value="";
+
+send.disabled=true;
+
+const loadingBubble=addMessage("Tony sta scrivendo...","ai");
+
+try{
+
+const data=await callTony(conversation);
+
+const reply=data?.reply || "Nessuna risposta.";
+
+loadingBubble.innerText=reply;
+
+conversation.push({
+role:"assistant",
+content:reply
+});
+
+}catch{
+
+loadingBubble.innerText="Errore Tony";
+
+}
+
+send.disabled=false;
+
+scrollChatToBottom();
+
+}
+
+send.onclick=()=>sendMessage();
+
+input.addEventListener("keydown",(e)=>{
+
+if(e.key==="Enter" && !e.shiftKey){
+
+e.preventDefault();
+sendMessage();
+
+}
+
+});
+
+chips.forEach(chip=>{
+
+chip.onclick=()=>{
+sendMessage(chip.dataset.prompt);
+};
+
+});
+
 }
