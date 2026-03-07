@@ -84,7 +84,7 @@ export async function render(container) {
       <div style="
         background: var(--color-primary);
         color: white;
-        padding: 40px 32px 88px 32px;
+        padding: 28px 24px 28px 24px;
         border-bottom-left-radius: 32px;
         border-bottom-right-radius: 32px;
       ">
@@ -93,21 +93,38 @@ export async function render(container) {
 
           <div>
 
-            <h2 style="margin:0; font-weight:600;">
-              ${saluto} 👋
-            </h2>
+            <div>
 
-            <div style="margin-top:6px;font-size:14px;opacity:0.9;">
-              ${dataOggi}
-            </div>
+  <h2 style="margin:0;font-weight:600;">
+    ${saluto} 👋
+  </h2>
 
-            <p style="margin:8px 0 0 0; opacity:0.9;">
-              ${
-                window.state.sedeAttiva
-                  ? `Sede: <strong>${window.state.sedeAttiva.nome}</strong>`
-                  : `Seleziona una sede`
-              }
-            </p>
+  <div style="
+    margin-top:6px;
+    font-size:14px;
+    opacity:0.9;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  ">
+
+    <span id="home-date">
+      ${dataOggi}
+    </span>
+
+    <span id="home-weather-inline">
+      ⏳
+    </span>
+
+  </div>
+
+  <div style="margin-top:6px;font-size:14px;opacity:0.9;">
+    ${
+      window.state.sedeAttiva
+        ? `Sede: <strong>${window.state.sedeAttiva.nome}</strong>`
+        : `Seleziona una sede`
+    }
+  </div>
 
           </div>
 
