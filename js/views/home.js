@@ -90,7 +90,7 @@ export async function render(container) {
         </h2>
 
         <div class="home-meta">
-
+<span style="font-size:15px;">
           <span>${dataOggi}</span>
 
           <span id="home-weather-inline">
