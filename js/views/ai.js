@@ -138,15 +138,56 @@ async function getIngredientiFrigo(){
 
 }
 
+async function loadInitialBriefing(){
+
+  try{
+
+    const ingredienti = await getIngredientiFrigo();
+
+    const {data,error} = await supabase.functions.invoke(
+      "assistente-ai",
+      {
+        body:{
+          messages:[
+            {
+              role:"user",
+              content:"Dammi il briefing operativo di oggi"
+            }
+          ],
+          azienda:window.state?.azienda?.nome ?? "ristorante",
+          ingredienti,
+          lat:window.state?.sedeAttiva?.latitudine,
+          lon:window.state?.sedeAttiva?.longitudine
+        }
+      }
+    );
+
+    if(error) throw error;
+
+    addMessage(data.reply,"ai");
+
+    conversation.push({
+      role:"assistant",
+      content:data.reply
+    });
+
+  }catch{
+
+    addMessage(
+      "Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing e gestione del ristorante.",
+      "ai"
+    );
+
+  }
+
+}
+
 function initChat(){
 
   const input = document.getElementById("chat-input");
   const send = document.getElementById("chat-send");
 
-  addMessage(
-    "Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing e gestione del ristorante.",
-    "ai"
-  );
+  loadInitialBriefing();
 
   async function sendMessage(){
 
@@ -204,9 +245,14 @@ function initChat(){
   send.onclick = sendMessage;
 
   input.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter"){
+
+    if(e.key==="Enter" && !e.shiftKey){
+
+      e.preventDefault();
       sendMessage();
+
     }
+
   });
 
 }
