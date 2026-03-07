@@ -20,23 +20,29 @@ export async function render(container) {
 
   try {
 
-    const hash = window.location.hash;
+    const hash = window.location.hash || "";
 
-    const params =
-      new URLSearchParams(hash.split("?")[1]);
+    const queryIndex = hash.indexOf("?");
+
+    if (queryIndex === -1) {
+      throw new Error("Token mancante");
+    }
+
+    const query = hash.substring(queryIndex + 1);
+
+    const params = new URLSearchParams(query);
 
     const token_hash = params.get("token_hash");
-    const type = params.get("type");
 
     if (!token_hash) {
       throw new Error("Token mancante");
     }
 
     const { error } =
-  await supabase.auth.verifyOtp({
-    token_hash,
-    type: "invite"
-  });
+      await supabase.auth.verifyOtp({
+        token_hash,
+        type: "invite"
+      });
 
     if (error) {
       throw error;
@@ -46,7 +52,7 @@ export async function render(container) {
 
   } catch (err) {
 
-    console.error(err);
+    console.error("Errore attivazione:", err);
 
     container.innerHTML = `
       <div class="view" style="text-align:center">
