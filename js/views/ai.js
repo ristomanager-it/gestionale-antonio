@@ -82,7 +82,7 @@ async function loadAI() {
       throw error;
     }
 
-    if (data.weather) {
+    if (data?.weather) {
 
       weatherBox.innerHTML =
         `${data.weather.temperatura}°C<br>${data.weather.meteo}`;
@@ -93,7 +93,7 @@ async function loadAI() {
 
     }
 
-    if (data.events?.length) {
+    if (data?.events?.length) {
 
       eventsBox.innerHTML =
         data.events.map(e => `• ${e.nome}`).join("<br>");
@@ -105,11 +105,11 @@ async function loadAI() {
     }
 
     suggestionsBox.innerHTML =
-      data.reply || "Nessun suggerimento disponibile";
+      data?.reply || "Nessun suggerimento disponibile";
 
   } catch (err) {
 
-    console.error("AI load error:", err);
+    console.error("Ristoflow-AI load error:", err);
 
     weatherBox.innerHTML = "Errore meteo";
     eventsBox.innerHTML = "Errore eventi";
@@ -131,7 +131,7 @@ function initChat() {
 
     if (!prompt) return;
 
-    result.innerHTML = "⏳ Operandi AI sta pensando...";
+    result.innerHTML = "⏳ Ristoflow-AI sta pensando...";
 
     try {
 
@@ -151,7 +151,7 @@ function initChat() {
         throw error;
       }
 
-      if (data.success) {
+      if (data?.success) {
 
         result.innerHTML = data.reply;
 
@@ -163,7 +163,7 @@ function initChat() {
 
     } catch (err) {
 
-      console.error("AI chat error:", err);
+      console.error("Ristoflow-AI chat error:", err);
 
       result.innerHTML = "Errore connessione AI";
 
