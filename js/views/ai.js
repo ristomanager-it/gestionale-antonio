@@ -4,7 +4,7 @@ import { supabase } from "../supabaseClient.js";
 export async function render(app) {
 
   const html = createPageLayout({
-    title: "Operandi AI",
+    title: "Ristoflow-AI",
     subtitle: "Assistente intelligente per il ristorante",
 
     content: `
@@ -22,12 +22,12 @@ export async function render(app) {
         })}
 
         ${createCard({
-          title: "💰 Suggerimenti Operandi",
+          title: "💰 Suggerimenti Ristoflow-AI",
           body: `<div id="ai-suggestions">Caricamento...</div>`
         })}
 
         ${createCard({
-          title: "🤖 Chiedi a Operandi AI",
+          title: "🤖 Chiedi a Ristoflow-AI",
           body: `
             <textarea 
               id="ai-prompt"
