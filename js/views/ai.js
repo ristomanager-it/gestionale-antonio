@@ -4,20 +4,21 @@ import { supabase } from "../supabaseClient.js";
 let conversation = [];
 
 const TONY_AVATAR =
-  "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png";
+"https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png";
 
 const USER_AVATAR =
-  "https://ui-avatars.com/api/?name=U&background=0E5A7A&color=fff";
+"https://ui-avatars.com/api/?name=U&background=0E5A7A&color=fff";
 
-export async function render(app) {
+export async function render(app){
 
-  conversation = [];
+conversation=[];
 
-  const html = createPageLayout({
-    title: "Tony",
-    subtitle: "Il tuo assistente AI Ristoflow",
+const html=createPageLayout({
 
-    content: `
+title:"Tony",
+subtitle:"Il tuo assistente AI Ristoflow",
+
+content:`
 
 <div class="chat-shell">
 
@@ -151,9 +152,6 @@ font-size:14px;
 line-height:1.5;
 white-space:pre-wrap;
 box-shadow:0 1px 2px rgba(0,0,0,0.1);
-}
-
-.msg-row.ai .msg-bubble{
 background:white;
 }
 
@@ -166,6 +164,12 @@ font-size:11px;
 margin-top:6px;
 color:#6b7280;
 text-align:right;
+}
+
+.chart-box{
+width:100%;
+max-width:650px;
+margin-top:10px;
 }
 
 .chat-quick-actions{
@@ -218,30 +222,31 @@ font-style:italic;
 }
 
 </style>
-`,
-  });
+`
+});
 
-  app.innerHTML = html;
+app.innerHTML=html;
 
-  initChat();
-}
-
-function getNowTime() {
-
-  const now = new Date();
-
-  return now.toLocaleTimeString("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+initChat();
 
 }
 
-function scrollChatToBottom() {
+function getNowTime(){
 
-  const container = document.getElementById("chat-messages");
+const now=new Date();
 
-  container.scrollTop = container.scrollHeight;
+return now.toLocaleTimeString("it-IT",{
+hour:"2-digit",
+minute:"2-digit"
+});
+
+}
+
+function scrollChatToBottom(){
+
+const container=document.getElementById("chat-messages");
+
+container.scrollTop=container.scrollHeight;
 
 }
 
@@ -269,11 +274,40 @@ meta.innerText=getNowTime();
 bubble.appendChild(meta);
 
 row.appendChild(bubble);
+
 container.appendChild(row);
 
 scrollChatToBottom();
 
 return bubble;
+
+}
+
+function renderChart(chart){
+
+const container=document.getElementById("chat-messages");
+
+const box=document.createElement("div");
+box.className="chart-box";
+
+const canvas=document.createElement("canvas");
+
+box.appendChild(canvas);
+
+container.appendChild(box);
+
+new Chart(canvas,{
+type:"bar",
+data:{
+labels:chart.labels,
+datasets:[{
+label:chart.label || "Vendite",
+data:chart.data
+}]
+}
+});
+
+scrollChatToBottom();
 
 }
 
@@ -311,6 +345,10 @@ const data=await callTony(initialMessages);
 const reply=data?.reply || "Ciao! Sono Tony.";
 
 addMessage(reply,"ai");
+
+if(data?.chart){
+renderChart(data.chart);
+}
 
 conversation.push({
 role:"assistant",
@@ -356,9 +394,15 @@ try{
 
 const data=await callTony(conversation);
 
+loadingBubble.remove();
+
 const reply=data?.reply || "Nessuna risposta.";
 
-loadingBubble.innerText=reply;
+addMessage(reply,"ai");
+
+if(data?.chart){
+renderChart(data.chart);
+}
 
 conversation.push({
 role:"assistant",
