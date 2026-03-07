@@ -5,13 +5,7 @@ function readSupabaseTokensFromHash() {
 
   let tokenString = "";
 
-  if (hash.startsWith("#/setPassword#")) {
-    tokenString = hash.slice("#/setPassword#".length);
-  } else if (hash.startsWith("#/setPassword?")) {
-    tokenString = hash.slice("#/setPassword?".length);
-  } else if (hash.startsWith("#access_token=")) {
-    tokenString = hash.slice(1);
-  } else if (hash.includes("access_token=")) {
+  if (hash.includes("access_token=")) {
     tokenString = hash.substring(hash.indexOf("access_token="));
   }
 
@@ -33,29 +27,45 @@ export async function render(container) {
   const showForm = () => {
     container.innerHTML = `
       <div class="view">
+
         <div style="text-align:center;margin-bottom:20px">
-          <img src="/assets/logo-ristoflow.png" height="50" alt="Ristoflow">
+          <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
         </div>
 
         <h2>Crea la tua password</h2>
 
         <form id="set-password-form" class="form-stack">
+
           <label>
             Nuova password
-            <input id="new-password" type="password" class="input-pill" required minlength="8">
+            <input 
+              id="new-password"
+              type="password"
+              class="input-pill"
+              required
+              minlength="8"
+            >
           </label>
 
           <label>
             Conferma password
-            <input id="confirm-password" type="password" class="input-pill" required minlength="8">
+            <input 
+              id="confirm-password"
+              type="password"
+              class="input-pill"
+              required
+              minlength="8"
+            >
           </label>
 
           <button type="submit" class="app-button green">
             Salva password
           </button>
+
         </form>
 
-        <p id="password-error" style="color:#dc2626"></p>
+        <p id="password-error" style="color:#dc2626;margin-top:10px"></p>
+
       </div>
     `;
 
@@ -64,14 +74,19 @@ export async function render(container) {
       .addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const newPassword = document.getElementById("new-password").value.trim();
-        const confirmPassword = document.getElementById("confirm-password").value.trim();
+        const newPassword =
+          document.getElementById("new-password").value.trim();
+
+        const confirmPassword =
+          document.getElementById("confirm-password").value.trim();
+
         const errorEl = document.getElementById("password-error");
 
         errorEl.textContent = "";
 
         if (newPassword.length < 8) {
-          errorEl.textContent = "La password deve contenere almeno 8 caratteri.";
+          errorEl.textContent =
+            "La password deve contenere almeno 8 caratteri.";
           return;
         }
 
@@ -90,6 +105,7 @@ export async function render(container) {
         }
 
         alert("Password impostata correttamente");
+
         window.location.hash = "#/home";
       });
   };
@@ -103,19 +119,13 @@ export async function render(container) {
         refresh_token,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       showForm();
       return;
     }
 
-    const { data, error } = await supabase.auth.getSession();
-
-    if (error) {
-      throw error;
-    }
+    const { data } = await supabase.auth.getSession();
 
     if (data?.session) {
       showForm();
@@ -127,12 +137,14 @@ export async function render(container) {
         showForm();
       }
     });
+
   } catch (err) {
     console.error("Errore set-password:", err);
   }
 
   container.innerHTML = `
     <div class="view" style="text-align:center">
+
       <div style="margin-bottom:20px">
         <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
       </div>
@@ -140,8 +152,9 @@ export async function render(container) {
       <h2>Sessione non valida</h2>
 
       <p>
-        Apri di nuovo il link ricevuto via email.
+        Apri nuovamente il link ricevuto via email.
       </p>
+
     </div>
   `;
 }
