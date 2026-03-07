@@ -27,36 +27,11 @@ export async function render(container) {
   }
 
   const REPARTI = [
-    {
-      key: "operativo",
-      label: "Operativo",
-      icon: "🏭",
-      moduli: ["produzione", "magazzino", "ricettario", "preparazioni", "timbrature"]
-    },
-    {
-      key: "amministrazione",
-      label: "Amministrazione",
-      icon: "🧾",
-      moduli: ["acquisti", "dipendenti", "preventivi"]
-    },
-    {
-      key: "gestione",
-      label: "Gestione",
-      icon: "📊",
-      moduli: ["margini", "report"]
-    },
-    {
-      key: "marketing",
-      label: "Marketing",
-      icon: "📢",
-      moduli: []
-    },
-    {
-      key: "ai",
-      label: "AI Ristoflow",
-      icon: "🤖",
-      moduli: []
-    }
+    { key:"operativo", label:"Operativo", icon:"🏭", moduli:["produzione","magazzino","ricettario","preparazioni","timbrature"] },
+    { key:"amministrazione", label:"Amministrazione", icon:"🧾", moduli:["acquisti","dipendenti","preventivi"] },
+    { key:"gestione", label:"Gestione", icon:"📊", moduli:["margini","report"] },
+    { key:"marketing", label:"Marketing", icon:"📢", moduli:[] },
+    { key:"ai", label:"AI Ristoflow", icon:"🤖", moduli:[] }
   ];
 
   const saluto = getSaluto();
@@ -79,6 +54,7 @@ export async function render(container) {
   );
 
   container.innerHTML = `
+
   <div class="view" style="padding:0;">
 
     <div class="home-header">
@@ -90,10 +66,12 @@ export async function render(container) {
         </h2>
 
         <div class="home-meta">
-<span style="font-size:15px;">
-          <span>${dataOggi}</span>
 
-          <span id="home-weather-inline">
+          <span class="home-date">
+            ${dataOggi}
+          </span>
+
+          <span id="home-weather-inline" class="home-weather">
             ⏳
           </span>
 
@@ -162,9 +140,7 @@ export async function render(container) {
         `
         : `
         <div class="home-empty">
-
           Seleziona una sede per accedere ai moduli operativi.
-
         </div>
         `
     }
@@ -176,9 +152,9 @@ export async function render(container) {
   .home-header{
     background:var(--color-primary);
     color:white;
-    padding:24px;
-    border-bottom-left-radius:24px;
-    border-bottom-right-radius:24px;
+    padding:22px;
+    border-bottom-left-radius:22px;
+    border-bottom-right-radius:22px;
 
     display:flex;
     justify-content:space-between;
@@ -190,16 +166,24 @@ export async function render(container) {
   .home-title{
     margin:0;
     font-weight:600;
+    font-size:20px;
   }
 
   .home-meta{
     margin-top:4px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+
+  .home-date{
     font-size:14px;
     opacity:0.9;
+  }
 
-    display:flex;
-    gap:10px;
-    align-items:center;
+  .home-weather{
+    font-size:22px;
+    font-weight:600;
   }
 
   .home-sede{
@@ -240,7 +224,6 @@ export async function render(container) {
     cursor:pointer;
 
     box-shadow:0 10px 30px rgba(0,0,0,0.08);
-
     transition:all .25s ease;
 
     animation:fadeInUp .4s ease forwards;
@@ -291,12 +274,10 @@ async function hydrateWeather(){
   try{
 
     const pos = await new Promise((resolve,reject)=>{
-
       navigator.geolocation.getCurrentPosition(
         p=>resolve(p.coords),
         ()=>reject()
       );
-
     });
 
     lat = pos.latitude;
@@ -310,7 +291,7 @@ async function hydrateWeather(){
   }
 
   if(!lat || !lon){
-    box.textContent = "📍";
+    box.innerHTML = "📍";
     return;
   }
 
@@ -325,8 +306,11 @@ async function hydrateWeather(){
     const temp = Math.round(data?.current?.temperature_2m);
     const code = data?.current?.weather_code;
 
-    box.textContent =
-      mapWeatherCodeToIcon(code) + " " + temp + "°";
+    const icon = mapWeatherCodeToIcon(code);
+
+    box.innerHTML =
+      `<span style="font-size:26px">${icon}</span>
+       <span style="font-size:20px;font-weight:600">${temp}°</span>`;
 
   }catch{
 
