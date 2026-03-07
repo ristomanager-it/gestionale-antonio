@@ -3,6 +3,9 @@ import { supabase } from "../supabaseClient.js";
 
 let conversation = [];
 
+const TONY_AVATAR =
+  "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png";
+
 export async function render(app) {
   conversation = [];
 
@@ -15,7 +18,7 @@ export async function render(app) {
 
         <div class="chat-header">
           <div class="chat-header-left">
-            <div class="chat-avatar">T</div>
+            <img src="${TONY_AVATAR}" alt="Tony" class="chat-avatar-img" />
             <div class="chat-header-meta">
               <div class="chat-name">Tony</div>
               <div class="chat-status">Assistente operativo del gestionale</div>
@@ -72,16 +75,14 @@ export async function render(app) {
           gap:12px;
         }
 
-        .chat-avatar{
+        .chat-avatar-img{
           width:42px;
           height:42px;
           border-radius:50%;
+          object-fit:cover;
           background:rgba(255,255,255,0.18);
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-weight:700;
-          font-size:18px;
+          border:2px solid rgba(255,255,255,0.18);
+          flex:0 0 42px;
         }
 
         .chat-header-meta{
@@ -117,6 +118,8 @@ export async function render(app) {
         .msg-row{
           display:flex;
           width:100%;
+          align-items:flex-end;
+          gap:8px;
         }
 
         .msg-row.user{
@@ -125,6 +128,16 @@ export async function render(app) {
 
         .msg-row.ai{
           justify-content:flex-start;
+        }
+
+        .msg-avatar{
+          width:34px;
+          height:34px;
+          border-radius:50%;
+          object-fit:cover;
+          flex:0 0 34px;
+          box-shadow:0 1px 2px rgba(0,0,0,0.08);
+          margin-bottom:2px;
         }
 
         .msg-bubble{
@@ -241,6 +254,18 @@ export async function render(app) {
           .chat-quick-actions{
             padding:8px 10px;
           }
+
+          .msg-avatar{
+            width:30px;
+            height:30px;
+            flex:0 0 30px;
+          }
+
+          .chat-avatar-img{
+            width:38px;
+            height:38px;
+            flex:0 0 38px;
+          }
         }
       </style>
     `,
@@ -272,6 +297,14 @@ function addMessage(text, type) {
   const row = document.createElement("div");
   row.className = `msg-row ${type}`;
 
+  if (type === "ai") {
+    const avatar = document.createElement("img");
+    avatar.className = "msg-avatar";
+    avatar.src = TONY_AVATAR;
+    avatar.alt = "Tony";
+    row.appendChild(avatar);
+  }
+
   const bubble = document.createElement("div");
   bubble.className = "msg-bubble";
   bubble.innerText = text;
@@ -289,31 +322,12 @@ function addMessage(text, type) {
   return bubble;
 }
 
-async function getIngredientiFrigo() {
-  const aziendaId = window.state?.azienda?.id;
-  if (!aziendaId) return [];
-
-  const { data, error } = await supabase
-    .from("ingredienti")
-    .select("nome,quantita")
-    .eq("azienda_id", aziendaId)
-    .gt("quantita", 0)
-    .limit(20);
-
-  if (error || !data) return [];
-
-  return data.map((i) => i.nome);
-}
-
 async function callTony(messages) {
-  const ingredienti = await getIngredientiFrigo();
-
   const { data, error } = await supabase.functions.invoke("assistente-ai", {
     body: {
       messages,
       azienda_id: window.state?.azienda?.id,
       azienda: window.state?.azienda?.nome ?? "ristorante",
-      ingredienti,
       lat: window.state?.sedeAttiva?.latitudine,
       lon: window.state?.sedeAttiva?.longitudine,
       current_page: window.location.hash || "#/ai",
@@ -391,14 +405,12 @@ function initChat() {
       const reply = data?.reply || "Non ho una risposta utile in questo momento.";
 
       if (loadingBubble) {
-        const meta = loadingBubble.querySelector(".msg-meta");
+        const newMeta = document.createElement("div");
+        newMeta.className = "msg-meta";
+        newMeta.innerText = getNowTime();
+
         loadingBubble.innerText = reply;
-        if (meta) {
-          const newMeta = document.createElement("div");
-          newMeta.className = "msg-meta";
-          newMeta.innerText = getNowTime();
-          loadingBubble.appendChild(newMeta);
-        }
+        loadingBubble.appendChild(newMeta);
       }
 
       conversation.push({
@@ -409,14 +421,12 @@ function initChat() {
       scrollChatToBottom();
     } catch (err) {
       if (loadingBubble) {
-        const meta = loadingBubble.querySelector(".msg-meta");
+        const newMeta = document.createElement("div");
+        newMeta.className = "msg-meta";
+        newMeta.innerText = getNowTime();
+
         loadingBubble.innerText = "Errore connessione Tony";
-        if (meta) {
-          const newMeta = document.createElement("div");
-          newMeta.className = "msg-meta";
-          newMeta.innerText = getNowTime();
-          loadingBubble.appendChild(newMeta);
-        }
+        loadingBubble.appendChild(newMeta);
       }
 
       console.error("Tony chat error:", err);
