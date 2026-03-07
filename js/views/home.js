@@ -60,6 +60,7 @@ export async function render(container) {
   ];
 
   const saluto = getSaluto();
+  const dataOggi = getDataFormattata();
 
   const repartiVisibili = REPARTI.map(rep => {
 
@@ -91,17 +92,23 @@ export async function render(container) {
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
 
           <div>
+
             <h2 style="margin:0; font-weight:600;">
               ${saluto} 👋
             </h2>
 
+            <div style="margin-top:6px;font-size:14px;opacity:0.9;">
+              ${dataOggi}
+            </div>
+
             <p style="margin:8px 0 0 0; opacity:0.9;">
               ${
                 window.state.sedeAttiva
-                  ? `Stai gestendo: <strong>${window.state.sedeAttiva.nome}</strong>`
-                  : `Seleziona una sede per iniziare`
+                  ? `Sede: <strong>${window.state.sedeAttiva.nome}</strong>`
+                  : `Seleziona una sede`
               }
             </p>
+
           </div>
 
           <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
@@ -147,8 +154,6 @@ export async function render(container) {
       ">
 
         ${renderToolbarItem("home-weather","⏳","Meteo","#/meteo")}
-        ${renderToolbarItem("home-dish","🍽️","Piatto del giorno","#/ai")}
-        ${renderToolbarItem("home-calendar","📅","Calendario","#/calendario")}
 
       </div>
 
@@ -265,9 +270,7 @@ function renderToolbarItem(id,icon,label,route){
 async function hydrateToolbar(){
 
   await Promise.allSettled([
-    hydrateWeatherWidget(),
-    hydrateDishWidget(),
-    hydrateCalendarWidget()
+    hydrateWeatherWidget()
   ]);
 
 }
@@ -345,103 +348,6 @@ async function hydrateWeatherWidget(){
     if(iconBox) iconBox.textContent = "☁️";
 
   }
-
-}
-
-async function hydrateDishWidget(){
-
-  const root = document.getElementById("home-dish");
-  if(!root) return;
-
-  const detail = root.querySelector("div:last-child");
-
-  try{
-
-    const res = await fetch(
-      "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai",
-      {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          prompt:"Suggerisci un piatto del giorno per ristorante",
-          azienda:window.state?.azienda?.nome
-        })
-      }
-    );
-
-    const data = await res.json();
-
-    if(detail) detail.textContent = data.reply?.slice(0,40) || "Piatto AI";
-
-  }catch{
-
-    if(detail) detail.textContent = "Suggerisci";
-
-  }
-
-}
-
-async function hydrateCalendarWidget(){
-
-  const root = document.getElementById("home-calendar");
-  if(!root) return;
-
-  const detail = root.querySelector("div:last-child");
-
-  const label = getCalendarPreviewLabel();
-
-  if(detail) detail.textContent = label;
-
-}
-
-function getCalendarPreviewLabel(){
-
-  const today = new Date();
-  const thisYear = today.getFullYear();
-
-  const fixedEvents = [
-    {nome:"San Valentino",mese:2,giorno:14},
-    {nome:"Ferragosto",mese:8,giorno:15},
-    {nome:"Halloween",mese:10,giorno:31},
-    {nome:"Natale",mese:12,giorno:25},
-    {nome:"Capodanno",mese:12,giorno:31}
-  ];
-
-  const candidates = fixedEvents.map(e=>{
-
-    const date = new Date(thisYear,e.mese-1,e.giorno);
-
-    if(date < today){
-      date.setFullYear(thisYear+1);
-    }
-
-    return {...e,date};
-
-  });
-
-  candidates.sort((a,b)=>a.date-b.date);
-
-  const next = candidates[0];
-  const days = diffInDays(today,next.date);
-
-  if(days <= 30){
-    return `${days} gg · ${next.nome}`;
-  }
-
-  return "30 giorni";
-
-}
-
-function diffInDays(a,b){
-
-  const start = new Date(a.getFullYear(),a.getMonth(),a.getDate());
-  const end = new Date(b.getFullYear(),b.getMonth(),b.getDate());
-
-  const ms = end.getTime() - start.getTime();
-
-  return Math.round(ms/86400000);
 
 }
 
@@ -530,5 +436,28 @@ function getSaluto(){
   if(ora < 18) return "Buon pomeriggio";
 
   return "Buonasera";
+
+}
+
+function getDataFormattata(){
+
+  const giorni = [
+    "Domenica","Lunedì","Martedì","Mercoledì",
+    "Giovedì","Venerdì","Sabato"
+  ];
+
+  const mesi = [
+    "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+    "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
+  ];
+
+  const now = new Date();
+
+  const giorno = giorni[now.getDay()];
+  const numero = now.getDate();
+  const mese = mesi[now.getMonth()];
+  const anno = now.getFullYear();
+
+  return `${giorno} ${numero} ${mese} ${anno}`;
 
 }
