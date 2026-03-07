@@ -1,27 +1,29 @@
 import { createPageLayout } from "../utils/pageLayout.js";
 import { supabase } from "../supabaseClient.js";
 
+let conversation = [];
+
 export async function render(app){
 
   const html = createPageLayout({
     title:"Tony",
-    subtitle:"Il tuo assistente intelligente",
+    subtitle:"Il tuo assistente AI Ristoflow",
 
     content:`
 
-      <div class="ai-chat-wrapper">
+      <div class="chat-container">
 
-        <div id="chat-messages" class="ai-chat-messages"></div>
+        <div id="chat-messages" class="chat-messages"></div>
 
-        <div class="ai-chat-input">
+        <div class="chat-input-bar">
 
           <input
-            id="ai-prompt"
-            placeholder="Chiedi a Tony..."
+            id="chat-input"
+            placeholder="Scrivi a Tony..."
           />
 
-          <button id="ai-send">
-            Invia
+          <button id="chat-send">
+            ➤
           </button>
 
         </div>
@@ -30,58 +32,66 @@ export async function render(app){
 
       <style>
 
-      .ai-chat-wrapper{
+      .chat-container{
         display:flex;
         flex-direction:column;
-        height:70vh;
-        background:white;
-        border-radius:12px;
+        height:75vh;
+        background:#ece5dd;
+        border-radius:14px;
         overflow:hidden;
       }
 
-      .ai-chat-messages{
+      .chat-messages{
         flex:1;
         padding:20px;
         overflow-y:auto;
-        background:#f7f7f7;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
       }
 
-      .msg{
+      .message{
         max-width:70%;
         padding:12px 14px;
-        border-radius:10px;
-        margin-bottom:12px;
+        border-radius:12px;
+        font-size:15px;
         line-height:1.4;
       }
 
-      .msg.user{
-        background:#0E5A7A;
-        color:white;
-        margin-left:auto;
+      .message.user{
+        align-self:flex-end;
+        background:#dcf8c6;
       }
 
-      .msg.ai{
+      .message.ai{
+        align-self:flex-start;
         background:white;
         border:1px solid #ddd;
       }
 
-      .ai-chat-input{
+      .chat-input-bar{
         display:flex;
+        padding:10px;
+        background:white;
         border-top:1px solid #ddd;
       }
 
-      .ai-chat-input input{
+      .chat-input-bar input{
         flex:1;
-        padding:14px;
-        border:none;
+        padding:12px;
+        border-radius:20px;
+        border:1px solid #ccc;
         outline:none;
       }
 
-      .ai-chat-input button{
-        padding:0 20px;
+      .chat-input-bar button{
+        margin-left:10px;
+        padding:0 18px;
         border:none;
+        border-radius:20px;
         background:#0E5A7A;
         color:white;
+        font-size:18px;
         cursor:pointer;
       }
 
@@ -90,49 +100,61 @@ export async function render(app){
     `
   });
 
-  app.innerHTML=html;
+  app.innerHTML = html;
 
   initChat();
+
 }
 
 function addMessage(text,type){
 
-  const box=document.getElementById("chat-messages");
+  const container = document.getElementById("chat-messages");
 
-  const div=document.createElement("div");
-  div.className="msg "+type;
-  div.innerText=text;
+  const div = document.createElement("div");
+  div.className = "message "+type;
+  div.innerText = text;
 
-  box.appendChild(div);
-  box.scrollTop=box.scrollHeight;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
 
 }
 
 function initChat(){
 
-  const input=document.getElementById("ai-prompt");
-  const send=document.getElementById("ai-send");
+  const input = document.getElementById("chat-input");
+  const send = document.getElementById("chat-send");
 
-  addMessage("Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing e gestione del ristorante.", "ai");
+  addMessage(
+    "Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing e gestione del ristorante.",
+    "ai"
+  );
 
-  send.onclick=async()=>{
+  async function sendMessage(){
 
-    const prompt=input.value.trim();
+    const prompt = input.value.trim();
     if(!prompt) return;
 
     addMessage(prompt,"user");
 
+    conversation.push({
+      role:"user",
+      content:prompt
+    });
+
     input.value="";
 
-    addMessage("Tony sta pensando...","ai");
+    const loadingMsg = document.createElement("div");
+    loadingMsg.className="message ai";
+    loadingMsg.innerText="Tony sta pensando...";
+    document.getElementById("chat-messages").appendChild(loadingMsg);
 
     try{
 
-      const {data,error}=await supabase.functions.invoke(
+      const {data,error} = await supabase.functions.invoke(
         "assistente-ai",
         {
           body:{
-            prompt,
+            messages:conversation,
             azienda:window.state?.azienda?.nome ?? "ristorante",
             ingredienti:window.state?.ingredienti ?? [],
             lat:window.state?.sedeAttiva?.latitudine,
@@ -143,16 +165,27 @@ function initChat(){
 
       if(error) throw error;
 
-      const messages=document.querySelectorAll(".msg.ai");
-      messages[messages.length-1].innerText=data.reply;
+      loadingMsg.innerText = data.reply;
+
+      conversation.push({
+        role:"assistant",
+        content:data.reply
+      });
 
     }catch(err){
 
-      const messages=document.querySelectorAll(".msg.ai");
-      messages[messages.length-1].innerText="Errore connessione AI";
+      loadingMsg.innerText="Errore connessione Tony";
 
     }
 
-  };
+  }
+
+  send.onclick = sendMessage;
+
+  input.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+      sendMessage();
+    }
+  });
 
 }
