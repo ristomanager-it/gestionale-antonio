@@ -1,6 +1,7 @@
 import { supabase } from "../supabaseClient.js";
 
 function readSupabaseTokensFromHash() {
+
   const hash = window.location.hash || "";
 
   let tokenString = "";
@@ -15,9 +16,11 @@ function readSupabaseTokensFromHash() {
     access_token: params.get("access_token"),
     refresh_token: params.get("refresh_token"),
   };
+
 }
 
 export async function render(container) {
+
   container.innerHTML = `
     <div class="view">
       <h2>Verifica in corso...</h2>
@@ -25,11 +28,13 @@ export async function render(container) {
   `;
 
   const showForm = () => {
+
     container.innerHTML = `
+
       <div class="view">
 
         <div style="text-align:center;margin-bottom:20px">
-          <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
+          <img src="/assets/logo-ristoflow.png" height="60">
         </div>
 
         <h2>Crea la tua password</h2>
@@ -38,7 +43,7 @@ export async function render(container) {
 
           <label>
             Nuova password
-            <input 
+            <input
               id="new-password"
               type="password"
               class="input-pill"
@@ -49,7 +54,7 @@ export async function render(container) {
 
           <label>
             Conferma password
-            <input 
+            <input
               id="confirm-password"
               type="password"
               class="input-pill"
@@ -64,89 +69,134 @@ export async function render(container) {
 
         </form>
 
-        <p id="password-error" style="color:#dc2626;margin-top:10px"></p>
+        <p id="password-error"
+           style="color:#dc2626;margin-top:10px">
+        </p>
 
       </div>
     `;
 
-    document
-      .getElementById("set-password-form")
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
+    const form = document.getElementById("set-password-form");
 
-        const newPassword =
-          document.getElementById("new-password").value.trim();
+    form.addEventListener("submit", async (e) => {
 
-        const confirmPassword =
-          document.getElementById("confirm-password").value.trim();
+      e.preventDefault();
 
-        const errorEl = document.getElementById("password-error");
+      const newPassword =
+        document.getElementById("new-password").value.trim();
 
-        errorEl.textContent = "";
+      const confirmPassword =
+        document.getElementById("confirm-password").value.trim();
 
-        if (newPassword.length < 8) {
-          errorEl.textContent =
-            "La password deve contenere almeno 8 caratteri.";
-          return;
-        }
+      const errorEl =
+        document.getElementById("password-error");
 
-        if (newPassword !== confirmPassword) {
-          errorEl.textContent = "Le password non coincidono.";
-          return;
-        }
+      errorEl.textContent = "";
 
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
+      if (newPassword.length < 8) {
 
-        if (error) {
-          errorEl.textContent = error.message;
-          return;
-        }
+        errorEl.textContent =
+          "La password deve contenere almeno 8 caratteri.";
 
-        alert("Password impostata correttamente");
+        return;
+      }
 
-        window.location.hash = "#/home";
+      if (newPassword !== confirmPassword) {
+
+        errorEl.textContent =
+          "Le password non coincidono.";
+
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
       });
+
+      if (error) {
+
+        errorEl.textContent = error.message;
+        return;
+      }
+
+      alert("Password impostata correttamente");
+
+      window.location.hash = "#/home";
+
+    });
+
   };
 
   try {
-    const { access_token, refresh_token } = readSupabaseTokensFromHash();
+
+    const { access_token, refresh_token } =
+      readSupabaseTokensFromHash();
+
+    /* -----------------------------
+       CASO 1
+       redirect email con token
+    ----------------------------- */
 
     if (access_token && refresh_token) {
-      const { error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+
+      const { error } =
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
 
       if (error) throw error;
 
       showForm();
       return;
+
     }
 
-    const { data } = await supabase.auth.getSession();
+    /* -----------------------------
+       CASO 2
+       sessione già attiva
+    ----------------------------- */
+
+    const { data } =
+      await supabase.auth.getSession();
 
     if (data?.session) {
+
       showForm();
       return;
+
     }
 
+    /* -----------------------------
+       CASO 3
+       evento Supabase
+    ----------------------------- */
+
     supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+
+      if (
+        event === "PASSWORD_RECOVERY" ||
+        event === "SIGNED_IN"
+      ) {
+
         showForm();
+
       }
+
     });
 
   } catch (err) {
+
     console.error("Errore set-password:", err);
+
   }
 
   container.innerHTML = `
+
     <div class="view" style="text-align:center">
 
       <div style="margin-bottom:20px">
-        <img src="/assets/logo-ristoflow.png" height="60" alt="Ristoflow">
+        <img src="/assets/logo-ristoflow.png" height="60">
       </div>
 
       <h2>Sessione non valida</h2>
@@ -156,5 +206,7 @@ export async function render(container) {
       </p>
 
     </div>
+
   `;
+
 }
