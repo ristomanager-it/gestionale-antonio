@@ -53,7 +53,7 @@ export async function render(container) {
     },
     {
       key: "ai",
-      label: "AI Operandi",
+      label: "AI Ristoflow",
       icon: "🤖",
       moduli: []
     }
