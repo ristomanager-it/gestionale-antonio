@@ -119,6 +119,25 @@ function addMessage(text,type){
 
 }
 
+async function getIngredientiFrigo(){
+
+  const aziendaId = window.state?.azienda?.id;
+
+  if(!aziendaId) return [];
+
+  const {data,error} = await supabase
+    .from("ingredienti")
+    .select("nome,quantita")
+    .eq("azienda_id",aziendaId)
+    .gt("quantita",0)
+    .limit(20);
+
+  if(error || !data) return [];
+
+  return data.map(i => i.nome);
+
+}
+
 function initChat(){
 
   const input = document.getElementById("chat-input");
@@ -150,13 +169,15 @@ function initChat(){
 
     try{
 
+      const ingredienti = await getIngredientiFrigo();
+
       const {data,error} = await supabase.functions.invoke(
         "assistente-ai",
         {
           body:{
             messages:conversation,
             azienda:window.state?.azienda?.nome ?? "ristorante",
-            ingredienti:window.state?.ingredienti ?? [],
+            ingredienti,
             lat:window.state?.sedeAttiva?.latitudine,
             lon:window.state?.sedeAttiva?.longitudine
           }
