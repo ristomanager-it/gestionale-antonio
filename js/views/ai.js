@@ -1,170 +1,155 @@
-import { createPageLayout, createCard } from "../utils/pageLayout.js";
+import { createPageLayout } from "../utils/pageLayout.js";
 import { supabase } from "../supabaseClient.js";
 
-export async function render(app) {
+export async function render(app){
 
   const html = createPageLayout({
-    title: "Assistente AI Ristoflow",
-    subtitle: "Copilota intelligente per il ristorante",
+    title:"Tony",
+    subtitle:"Il tuo assistente intelligente",
 
-    content: `
+    content:`
 
-      <div class="grid-cards">
+      <div class="ai-chat-wrapper">
 
-        ${createCard({
-          title: "☀ Meteo oggi",
-          body: `<div id="ai-weather">Caricamento...</div>`
-        })}
+        <div id="chat-messages" class="ai-chat-messages"></div>
 
-        ${createCard({
-          title: "💡 Suggerimenti AI",
-          body: `<div id="ai-suggestions">Caricamento...</div>`
-        })}
+        <div class="ai-chat-input">
 
-        ${createCard({
-          title: "🤖 Chiedi all'Assistente",
-          body: `
-            <textarea 
-              id="ai-prompt"
-              class="input"
-              rows="4"
-              placeholder="Es: Suggerisci 3 piatti con mozzarella e zucchine">
-            </textarea>
+          <input
+            id="ai-prompt"
+            placeholder="Chiedi a Tony..."
+          />
 
-            <button 
-              id="ai-send" 
-              class="btn-primary"
-              style="margin-top:12px;"
-            >
-              Invia richiesta
-            </button>
-          `
-        })}
+          <button id="ai-send">
+            Invia
+          </button>
 
-        ${createCard({
-          title: "💬 Risposta AI",
-          body: `
-            <div 
-              id="ai-result"
-              style="white-space:pre-wrap;"
-            ></div>
-          `
-        })}
+        </div>
 
       </div>
+
+      <style>
+
+      .ai-chat-wrapper{
+        display:flex;
+        flex-direction:column;
+        height:70vh;
+        background:white;
+        border-radius:12px;
+        overflow:hidden;
+      }
+
+      .ai-chat-messages{
+        flex:1;
+        padding:20px;
+        overflow-y:auto;
+        background:#f7f7f7;
+      }
+
+      .msg{
+        max-width:70%;
+        padding:12px 14px;
+        border-radius:10px;
+        margin-bottom:12px;
+        line-height:1.4;
+      }
+
+      .msg.user{
+        background:#0E5A7A;
+        color:white;
+        margin-left:auto;
+      }
+
+      .msg.ai{
+        background:white;
+        border:1px solid #ddd;
+      }
+
+      .ai-chat-input{
+        display:flex;
+        border-top:1px solid #ddd;
+      }
+
+      .ai-chat-input input{
+        flex:1;
+        padding:14px;
+        border:none;
+        outline:none;
+      }
+
+      .ai-chat-input button{
+        padding:0 20px;
+        border:none;
+        background:#0E5A7A;
+        color:white;
+        cursor:pointer;
+      }
+
+      </style>
 
     `
   });
 
-  app.innerHTML = html;
+  app.innerHTML=html;
 
-  loadAI();
   initChat();
 }
 
-/* -----------------------------
-   CARICAMENTO SUGGERIMENTI
--------------------------------- */
+function addMessage(text,type){
 
-async function loadAI() {
+  const box=document.getElementById("chat-messages");
 
-  const weatherBox = document.getElementById("ai-weather");
-  const suggestionsBox = document.getElementById("ai-suggestions");
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.innerText=text;
 
-  try {
-
-    const { data, error } = await supabase.functions.invoke(
-      "assistente-ai",
-      {
-        body: {
-          prompt: "Dammi suggerimenti operativi per oggi",
-          azienda: window.state?.azienda?.nome ?? "ristorante",
-          lat: window.state?.sedeAttiva?.latitudine,
-          lon: window.state?.sedeAttiva?.longitudine
-        }
-      }
-    );
-
-    if (error) {
-      throw error;
-    }
-
-    if (data?.weather) {
-
-      weatherBox.innerHTML =
-        `${data.weather.temperatura}°C<br>${data.weather.meteo}`;
-
-    } else {
-
-      weatherBox.innerHTML = "Meteo non disponibile";
-
-    }
-
-    suggestionsBox.innerHTML =
-      data?.reply || "Nessun suggerimento disponibile";
-
-  } catch (err) {
-
-    console.error("AI load error:", err);
-
-    weatherBox.innerHTML = "Errore meteo";
-    suggestionsBox.innerHTML = "Errore caricamento AI";
-
-  }
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
 
 }
 
-/* -----------------------------
-   CHAT AI
--------------------------------- */
+function initChat(){
 
-function initChat() {
+  const input=document.getElementById("ai-prompt");
+  const send=document.getElementById("ai-send");
 
-  const input = document.getElementById("ai-prompt");
-  const sendBtn = document.getElementById("ai-send");
-  const result = document.getElementById("ai-result");
+  addMessage("Ciao! Sono Tony 👋 Posso aiutarti con menu, marketing e gestione del ristorante.", "ai");
 
-  sendBtn.onclick = async () => {
+  send.onclick=async()=>{
 
-    const prompt = input.value.trim();
+    const prompt=input.value.trim();
+    if(!prompt) return;
 
-    if (!prompt) return;
+    addMessage(prompt,"user");
 
-    result.innerHTML = "⏳ L'assistente AI sta pensando...";
+    input.value="";
 
-    try {
+    addMessage("Tony sta pensando...","ai");
 
-      const { data, error } = await supabase.functions.invoke(
+    try{
+
+      const {data,error}=await supabase.functions.invoke(
         "assistente-ai",
         {
-          body: {
+          body:{
             prompt,
-            azienda: window.state?.azienda?.nome ?? "ristorante",
-            lat: window.state?.sedeAttiva?.latitudine,
-            lon: window.state?.sedeAttiva?.longitudine
+            azienda:window.state?.azienda?.nome ?? "ristorante",
+            ingredienti:window.state?.ingredienti ?? [],
+            lat:window.state?.sedeAttiva?.latitudine,
+            lon:window.state?.sedeAttiva?.longitudine
           }
         }
       );
 
-      if (error) {
-        throw error;
-      }
+      if(error) throw error;
 
-      if (data?.success) {
+      const messages=document.querySelectorAll(".msg.ai");
+      messages[messages.length-1].innerText=data.reply;
 
-        result.innerHTML = data.reply;
+    }catch(err){
 
-      } else {
-
-        result.innerHTML = "Errore nella risposta AI";
-
-      }
-
-    } catch (err) {
-
-      console.error("AI chat error:", err);
-
-      result.innerHTML = "Errore connessione assistente AI";
+      const messages=document.querySelectorAll(".msg.ai");
+      messages[messages.length-1].innerText="Errore connessione AI";
 
     }
 
