@@ -62,6 +62,12 @@ export async function render(container) {
           Entra
         </button>
 
+        <div class="login-forgot">
+          <button id="btn-reset" class="reset-button">
+            Password dimenticata?
+          </button>
+        </div>
+
         <div id="login-error" class="login-error"></div>
 
       </div>
@@ -161,6 +167,19 @@ export async function render(container) {
           background: #083E55;
         }
 
+        .login-forgot {
+          margin-top: 14px;
+        }
+
+        .reset-button {
+          background: none;
+          border: none;
+          color: #0E5A7A;
+          font-size: 14px;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+
         .login-error {
           margin-top: 16px;
           color: #dc2626;
@@ -192,6 +211,7 @@ export async function render(container) {
   `;
 
   const btn = document.getElementById("btn-login");
+  const resetBtn = document.getElementById("btn-reset");
   const errorBox = document.getElementById("login-error");
 
   const doLogin = async () => {
@@ -237,7 +257,39 @@ export async function render(container) {
     window.location.hash = "#/home";
   };
 
+  const resetPassword = async () => {
+    errorBox.textContent = "";
+
+    const email = document.getElementById("login-email").value.trim();
+
+    if (!email) {
+      errorBox.textContent = "Inserisci prima la tua email.";
+      return;
+    }
+
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Invio email...";
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://ristoflow-ai.com/#/setPassword",
+    });
+
+    if (error) {
+      errorBox.textContent = error.message;
+      resetBtn.disabled = false;
+      resetBtn.textContent = "Password dimenticata?";
+      return;
+    }
+
+    errorBox.style.color = "#16a34a";
+    errorBox.textContent = "Email di reset inviata. Controlla la tua posta.";
+
+    resetBtn.disabled = false;
+    resetBtn.textContent = "Password dimenticata?";
+  };
+
   btn.onclick = doLogin;
+  resetBtn.onclick = resetPassword;
 
   const emailInput = document.getElementById("login-email");
   const passInput = document.getElementById("login-password");
