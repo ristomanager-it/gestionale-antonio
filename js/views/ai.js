@@ -1,7 +1,5 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
-
-const API_URL =
-  "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/operandi-ai";
+import { supabase } from "../supabaseClient.js";
 
 export async function render(app) {
 
@@ -19,7 +17,7 @@ export async function render(app) {
         })}
 
         ${createCard({
-          title: "📺 Eventi TV",
+          title: "📺 Eventi",
           body: `<div id="ai-events">Caricamento...</div>`
         })}
 
@@ -68,33 +66,42 @@ async function loadAI() {
 
   try {
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: "Dammi suggerimenti operativi per oggi",
-        azienda: window.state?.azienda?.nome ?? "ristorante",
-        lat: window.state?.sedeAttiva?.latitudine,
-        lon: window.state?.sedeAttiva?.longitudine
-      })
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "supabase-functions-operandi-ai-index-ts",
+      {
+        body:{
+          prompt: "Dammi suggerimenti operativi per oggi",
+          azienda: window.state?.azienda?.nome ?? "ristorante",
+          lat: window.state?.sedeAttiva?.latitudine,
+          lon: window.state?.sedeAttiva?.longitudine
+        }
+      }
+    );
 
-    const data = await res.json();
+    if(error){
+      throw error;
+    }
 
     if (data.weather) {
+
       weatherBox.innerHTML =
         `${data.weather.temperatura}°C<br>${data.weather.meteo}`;
+
     } else {
+
       weatherBox.innerHTML = "Dati meteo non disponibili";
+
     }
 
     if (data.events?.length) {
+
       eventsBox.innerHTML =
         data.events.map(e => `• ${e.nome}`).join("<br>");
+
     } else {
+
       eventsBox.innerHTML = "Nessun evento rilevante";
+
     }
 
     suggestionsBox.innerHTML =
@@ -102,7 +109,7 @@ async function loadAI() {
 
   } catch (err) {
 
-    console.error(err);
+    console.error("AI load error:", err);
 
     weatherBox.innerHTML = "Errore meteo";
     eventsBox.innerHTML = "Errore eventi";
@@ -121,36 +128,43 @@ function initChat() {
   sendBtn.onclick = async () => {
 
     const prompt = input.value.trim();
+
     if (!prompt) return;
 
     result.innerHTML = "⏳ Operandi AI sta pensando...";
 
     try {
 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          prompt,
-          azienda: window.state?.azienda?.nome ?? "ristorante",
-          lat: window.state?.sedeAttiva?.latitudine,
-          lon: window.state?.sedeAttiva?.longitudine
-        })
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-operandi-ai-index-ts",
+        {
+          body:{
+            prompt,
+            azienda: window.state?.azienda?.nome ?? "ristorante",
+            lat: window.state?.sedeAttiva?.latitudine,
+            lon: window.state?.sedeAttiva?.longitudine
+          }
+        }
+      );
 
-      const data = await res.json();
+      if(error){
+        throw error;
+      }
 
       if (data.success) {
+
         result.innerHTML = data.reply;
+
       } else {
+
         result.innerHTML = "Errore AI";
+
       }
 
     } catch (err) {
 
-      console.error(err);
+      console.error("AI chat error:", err);
+
       result.innerHTML = "Errore connessione AI";
 
     }
