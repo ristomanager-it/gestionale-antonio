@@ -1,3 +1,4 @@
+```javascript
 import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
@@ -27,25 +28,25 @@ export async function render(container) {
 
     <div class="form-grid">
 
-      <label>Ragione sociale</label>
+      <label>Ragione sociale *</label>
       <input id="ragione_sociale" type="text">
 
-      <label>Partita IVA</label>
+      <label>Partita IVA *</label>
       <input id="partita_iva" type="text">
 
       <label>Codice fiscale</label>
       <input id="codice_fiscale" type="text">
 
-      <label>Indirizzo</label>
+      <label>Indirizzo *</label>
       <input id="indirizzo" type="text">
 
-      <label>Città</label>
+      <label>Città *</label>
       <input id="citta" type="text">
 
-      <label>CAP</label>
+      <label>CAP *</label>
       <input id="cap" type="text">
 
-      <label>Provincia</label>
+      <label>Provincia *</label>
       <input id="provincia" type="text">
 
       <label>PEC</label>
@@ -54,10 +55,10 @@ export async function render(container) {
       <label>Codice univoco SDI</label>
       <input id="codice_univoco" type="text">
 
-      <label>Referente</label>
+      <label>Referente *</label>
       <input id="referente" type="text">
 
-      <label>Telefono</label>
+      <label>Telefono *</label>
       <input id="telefono" type="text">
 
     </div>
@@ -74,7 +75,7 @@ export async function render(container) {
       <label>Chi siete?</label>
       <textarea id="chi_siamo" placeholder="Descrivi brevemente il tuo locale"></textarea>
 
-      <label>Tipo di locale</label>
+      <label>Tipo di locale *</label>
       <select id="tipo_locale">
         <option value="">Seleziona</option>
         <option>Ristorante</option>
@@ -127,6 +128,36 @@ export async function render(container) {
   const msg = document.getElementById("msg");
 
   btn.onclick = async () => {
+
+    msg.innerHTML = "";
+
+    const requiredFields = [
+      { id: "ragione_sociale", label: "Ragione sociale" },
+      { id: "partita_iva", label: "Partita IVA" },
+      { id: "indirizzo", label: "Indirizzo" },
+      { id: "citta", label: "Città" },
+      { id: "cap", label: "CAP" },
+      { id: "provincia", label: "Provincia" },
+      { id: "referente", label: "Referente" },
+      { id: "telefono", label: "Telefono" },
+      { id: "tipo_locale", label: "Tipo locale" }
+    ];
+
+    for (const field of requiredFields) {
+
+      const value = document.getElementById(field.id)?.value.trim();
+
+      if (!value) {
+
+        msg.innerHTML = `
+          <div style="color:red;">
+            Il campo "${field.label}" è obbligatorio.
+          </div>
+        `;
+
+        return;
+      }
+    }
 
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
@@ -199,3 +230,4 @@ export async function render(container) {
   };
 
 }
+```
