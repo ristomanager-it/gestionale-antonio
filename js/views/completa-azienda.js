@@ -15,13 +15,23 @@ export async function render(container) {
     return;
   }
 
+  const titolo = azienda.profilo_completato
+    ? "Modifica dati azienda"
+    : "Completa configurazione azienda";
+
+  const btnText = azienda.profilo_completato
+    ? "Salva modifiche"
+    : "Attiva azienda";
+
+  const visione = azienda.visione_ai || {};
+
   container.innerHTML = `
   <div class="view">
 
-    <h1>Completa configurazione azienda</h1>
+    <h1>${titolo}</h1>
 
     <p style="margin-bottom:20px;">
-      Inserisci i dati per attivare il gestionale.
+      Inserisci o modifica i dati aziendali.
     </p>
 
     <h3>Dati fiscali</h3>
@@ -29,93 +39,93 @@ export async function render(container) {
     <div class="form-grid">
 
       <label>Ragione sociale *</label>
-      <input id="ragione_sociale" type="text">
+      <input id="ragione_sociale" type="text" value="${azienda.ragione_sociale || ""}">
 
       <label>Partita IVA *</label>
-      <input id="partita_iva" type="text">
+      <input id="partita_iva" type="text" value="${azienda.partita_iva || ""}">
 
       <label>Codice fiscale</label>
-      <input id="codice_fiscale" type="text">
+      <input id="codice_fiscale" type="text" value="${azienda.codice_fiscale || ""}">
 
       <label>Indirizzo *</label>
-      <input id="indirizzo" type="text">
+      <input id="indirizzo" type="text" value="${azienda.indirizzo || ""}">
 
       <label>Città *</label>
-      <input id="citta" type="text">
+      <input id="citta" type="text" value="${azienda.citta || ""}">
 
       <label>CAP *</label>
-      <input id="cap" type="text">
+      <input id="cap" type="text" value="${azienda.cap || ""}">
 
       <label>Provincia *</label>
-      <input id="provincia" type="text">
+      <input id="provincia" type="text" value="${azienda.provincia || ""}">
 
       <label>PEC</label>
-      <input id="pec" type="text">
+      <input id="pec" type="text" value="${azienda.pec || ""}">
 
       <label>Codice univoco SDI</label>
-      <input id="codice_univoco" type="text">
+      <input id="codice_univoco" type="text" value="${azienda.codice_univoco || ""}">
 
       <label>Referente *</label>
-      <input id="referente" type="text">
+      <input id="referente" type="text" value="${azienda.referente || ""}">
 
       <label>Telefono *</label>
-      <input id="telefono" type="text">
+      <input id="telefono" type="text" value="${azienda.telefono || ""}">
 
     </div>
 
 
-    <h3 style="margin-top:40px;">Visione aziendale (per AI Tony)</h3>
+    <h3 style="margin-top:40px;">Visione aziendale (AI Tony)</h3>
 
     <p style="margin-bottom:16px;color:#6b7280;">
-      Queste informazioni aiutano l'assistente AI a capire il tuo locale e darti suggerimenti migliori.
+      Queste informazioni aiutano l'assistente AI a capire il tuo locale.
     </p>
 
     <div class="form-grid">
 
       <label>Chi siete?</label>
-      <textarea id="chi_siamo" placeholder="Descrivi brevemente il tuo locale"></textarea>
+      <textarea id="chi_siamo">${visione.chi_siamo || ""}</textarea>
 
       <label>Tipo di locale *</label>
       <select id="tipo_locale">
         <option value="">Seleziona</option>
-        <option>Ristorante</option>
-        <option>Pizzeria</option>
-        <option>Bar</option>
-        <option>Bistrot</option>
-        <option>Street food</option>
+        <option ${visione.tipo_locale === "Ristorante" ? "selected" : ""}>Ristorante</option>
+        <option ${visione.tipo_locale === "Pizzeria" ? "selected" : ""}>Pizzeria</option>
+        <option ${visione.tipo_locale === "Bar" ? "selected" : ""}>Bar</option>
+        <option ${visione.tipo_locale === "Bistrot" ? "selected" : ""}>Bistrot</option>
+        <option ${visione.tipo_locale === "Street food" ? "selected" : ""}>Street food</option>
       </select>
 
       <label>Target clienti</label>
-      <textarea id="target_clienti" placeholder="Famiglie, giovani, turisti..."></textarea>
+      <textarea id="target_clienti">${visione.target_clienti || ""}</textarea>
 
       <label>Tono comunicazione</label>
       <select id="tono">
         <option value="">Seleziona</option>
-        <option>Elegante</option>
-        <option>Amichevole</option>
-        <option>Familiare</option>
-        <option>Professionale</option>
+        <option ${visione.tono === "Elegante" ? "selected" : ""}>Elegante</option>
+        <option ${visione.tono === "Amichevole" ? "selected" : ""}>Amichevole</option>
+        <option ${visione.tono === "Familiare" ? "selected" : ""}>Familiare</option>
+        <option ${visione.tono === "Professionale" ? "selected" : ""}>Professionale</option>
       </select>
 
       <label>Valori del locale</label>
-      <textarea id="valori" placeholder="Qualità, tradizione, innovazione..."></textarea>
+      <textarea id="valori">${visione.valori || ""}</textarea>
 
-      <label>Esperienza che vuoi dare al cliente</label>
-      <textarea id="esperienza"></textarea>
+      <label>Esperienza cliente</label>
+      <textarea id="esperienza">${visione.esperienza || ""}</textarea>
 
       <label>Posizionamento</label>
       <select id="posizionamento">
         <option value="">Seleziona</option>
-        <option>Economico</option>
-        <option>Medio</option>
-        <option>Premium</option>
+        <option ${visione.posizionamento === "Economico" ? "selected" : ""}>Economico</option>
+        <option ${visione.posizionamento === "Medio" ? "selected" : ""}>Medio</option>
+        <option ${visione.posizionamento === "Premium" ? "selected" : ""}>Premium</option>
       </select>
 
     </div>
 
     <div style="margin-top:30px;">
       <button id="salva-azienda" class="btn-primary">
-        Attiva azienda
+        ${btnText}
       </button>
     </div>
 
@@ -148,13 +158,11 @@ export async function render(container) {
       const value = document.getElementById(field.id)?.value.trim();
 
       if (!value) {
-
         msg.innerHTML = `
           <div style="color:red;">
             Il campo "${field.label}" è obbligatorio.
           </div>
         `;
-
         return;
       }
     }
@@ -194,7 +202,7 @@ export async function render(container) {
       visione_ai: visioneAI,
 
       profilo_completato: true,
-      stato_attivazione: "attiva"
+      stato_attivazione: azienda.stato_attivazione || "attiva"
 
     };
 
@@ -212,14 +220,14 @@ export async function render(container) {
       `;
 
       btn.disabled = false;
-      btn.innerText = "Attiva azienda";
+      btn.innerText = btnText;
       return;
 
     }
 
     msg.innerHTML = `
       <div style="color:green;">
-        Azienda attivata correttamente.
+        Dati azienda salvati correttamente.
       </div>
     `;
 
