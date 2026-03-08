@@ -29,6 +29,7 @@ async function aggiornaAccessoUtente(userId) {
 }
 
 export async function render(container) {
+
   container.innerHTML = `
     <div class="login-wrapper-modern">
 
@@ -185,26 +186,6 @@ export async function render(container) {
           color: #dc2626;
           font-size: 14px;
         }
-
-        @media (max-width: 768px) {
-          .login-wrapper-modern {
-            padding: 24px;
-          }
-
-          .login-card-modern {
-            max-width: 100%;
-            padding: 32px 26px;
-          }
-
-          .login-logo img {
-            width: 110px;
-            height: 110px;
-          }
-
-          .login-card-modern h2 {
-            font-size: 22px;
-          }
-        }
       </style>
 
     </div>
@@ -215,6 +196,7 @@ export async function render(container) {
   const errorBox = document.getElementById("login-error");
 
   const doLogin = async () => {
+
     errorBox.textContent = "";
 
     const email = document.getElementById("login-email").value.trim();
@@ -240,24 +222,49 @@ export async function render(container) {
       return;
     }
 
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-
-    if (userErr || !user) {
-      errorBox.textContent = "Errore recupero utente.";
-      btn.disabled = false;
-      btn.textContent = "Entra";
-      return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
 
     await aggiornaAccessoUtente(user.id);
 
-    window.location.hash = "#/home";
+    // carica azienda utente
+    const { data: relazione } = await supabase
+      .from("utenti_aziende")
+      .select("azienda_id")
+      .eq("user_id", user.id)
+      .eq("attivo", true)
+      .single();
+
+    if (!relazione) {
+      errorBox.textContent = "Azienda non trovata.";
+      return;
+    }
+
+    const { data: azienda } = await supabase
+      .from("aziende")
+      .select("*")
+      .eq("id", relazione.azienda_id)
+      .single();
+
+    if (!azienda) {
+      errorBox.textContent = "Errore caricamento azienda.";
+      return;
+    }
+
+    window.state.user = user;
+    window.state.azienda = azienda;
+
+    localStorage.setItem("azienda_session", JSON.stringify(azienda));
+
+    // controllo onboarding
+    if (!azienda.profilo_completato) {
+      window.location.hash = "#/completa-azienda";
+    } else {
+      window.location.hash = "#/home";
+    }
   };
 
   const resetPassword = async () => {
+
     errorBox.textContent = "";
 
     const email = document.getElementById("login-email").value.trim();
