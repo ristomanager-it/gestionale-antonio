@@ -100,6 +100,7 @@ export async function render(container) {
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
+
     const email = document
       .getElementById("az-email-amministrativa")
       .value.trim()
@@ -114,10 +115,10 @@ export async function render(container) {
       const { data, error } =
         await supabase.functions.invoke("create-azienda", {
           body: {
-            nome,
-            codice,
-            email
-          },
+            nome: nome,
+            codice: codice,
+            email_amministrativa: email
+          }
         });
 
       if (error) throw error;
