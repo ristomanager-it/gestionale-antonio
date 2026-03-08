@@ -1,4 +1,3 @@
-```javascript
 import { supabase } from "../supabaseClient.js";
 
 async function aggiornaAccessoUtente(userId) {
@@ -30,7 +29,6 @@ async function aggiornaAccessoUtente(userId) {
 }
 
 export async function render(container) {
-
   container.innerHTML = `
     <div class="login-wrapper-modern">
 
@@ -48,6 +46,7 @@ export async function render(container) {
             id="login-email" 
             type="email" 
             placeholder="Inserisci email"
+            autocomplete="username"
           />
         </div>
 
@@ -57,6 +56,7 @@ export async function render(container) {
             id="login-password" 
             type="password" 
             placeholder="Inserisci password"
+            autocomplete="current-password"
           />
         </div>
 
@@ -76,7 +76,7 @@ export async function render(container) {
 
       <style>
         .login-wrapper-modern {
-          height: 100dvh;
+          min-height: 100dvh;
           width: 100%;
           display: flex;
           align-items: center;
@@ -102,6 +102,7 @@ export async function render(container) {
           display: flex;
           flex-direction: column;
           align-items: center;
+          box-sizing: border-box;
         }
 
         .login-logo {
@@ -118,7 +119,7 @@ export async function render(container) {
         }
 
         .login-card-modern h2 {
-          margin-bottom: 26px;
+          margin: 0 0 26px 0;
           font-weight: 600;
           font-size: 26px;
           color: #1f2937;
@@ -144,6 +145,7 @@ export async function render(container) {
           border-radius: 14px;
           border: 1px solid #E5E7EB;
           font-size: 16px;
+          box-sizing: border-box;
         }
 
         .login-field input:focus {
@@ -163,10 +165,16 @@ export async function render(container) {
           font-size: 16px;
           margin-top: 18px;
           cursor: pointer;
+          transition: background 0.2s ease, opacity 0.2s ease;
         }
 
         .login-button:hover {
           background: #083E55;
+        }
+
+        .login-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .login-forgot {
@@ -180,12 +188,60 @@ export async function render(container) {
           font-size: 14px;
           cursor: pointer;
           text-decoration: underline;
+          transition: opacity 0.2s ease;
+        }
+
+        .reset-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .login-error {
           margin-top: 16px;
           color: #dc2626;
           font-size: 14px;
+          min-height: 20px;
+        }
+
+        @media (max-width: 768px) {
+          .login-wrapper-modern {
+            padding: 20px;
+          }
+
+          .login-card-modern {
+            padding: 28px 22px;
+            border-radius: 20px;
+            max-width: 100%;
+          }
+
+          .login-logo img {
+            width: 100px;
+            height: 100px;
+          }
+
+          .login-card-modern h2 {
+            font-size: 22px;
+            margin-bottom: 22px;
+          }
+
+          .login-field label {
+            font-size: 13px;
+          }
+
+          .login-field input {
+            font-size: 16px;
+            padding: 13px 14px;
+          }
+
+          .login-button {
+            font-size: 15px;
+            padding: 14px;
+            border-radius: 14px;
+          }
+
+          .reset-button {
+            font-size: 13px;
+          }
         }
       </style>
 
@@ -195,13 +251,20 @@ export async function render(container) {
   const btn = document.getElementById("btn-login");
   const resetBtn = document.getElementById("btn-reset");
   const errorBox = document.getElementById("login-error");
+  const emailInput = document.getElementById("login-email");
+  const passInput = document.getElementById("login-password");
+
+  const resetLoginButton = () => {
+    btn.disabled = false;
+    btn.textContent = "Entra";
+  };
 
   const doLogin = async () => {
-
+    errorBox.style.color = "#dc2626";
     errorBox.textContent = "";
 
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value.trim();
+    const email = emailInput.value.trim().toLowerCase();
+    const password = passInput.value.trim();
 
     if (!email || !password) {
       errorBox.textContent = "Inserisci email e password.";
@@ -211,67 +274,99 @@ export async function render(container) {
     btn.disabled = true;
     btn.textContent = "Accesso in corso...";
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      errorBox.textContent = error.message;
-      btn.disabled = false;
-      btn.textContent = "Entra";
-      return;
-    }
+      if (signInError) {
+        errorBox.textContent = signInError.message || "Credenziali non valide.";
+        resetLoginButton();
+        return;
+      }
 
-    const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    await aggiornaAccessoUtente(user.id);
+      if (userError || !user) {
+        errorBox.textContent = "Errore recupero utente.";
+        resetLoginButton();
+        return;
+      }
 
-    const { data: relazioni, error: relError } = await supabase
-      .from("utenti_aziende")
-      .select("azienda_id")
-      .eq("user_id", user.id)
-      .eq("attivo", true);
+      await aggiornaAccessoUtente(user.id);
 
-    if (relError || !relazioni || relazioni.length === 0) {
-      errorBox.textContent = "Azienda non trovata.";
-      btn.disabled = false;
-      btn.textContent = "Entra";
-      return;
-    }
+      const { data: relazioni, error: relError } = await supabase
+        .from("utenti_aziende")
+        .select("azienda_id, ruolo, attivo")
+        .eq("user_id", user.id)
+        .eq("attivo", true);
 
-    const relazione = relazioni[0];
+      if (relError) {
+        console.error("Errore lettura utenti_aziende:", relError);
+        errorBox.textContent = "Errore caricamento relazione azienda.";
+        resetLoginButton();
+        return;
+      }
 
-    const { data: azienda, error: azError } = await supabase
-      .from("aziende")
-      .select("*")
-      .eq("id", relazione.azienda_id)
-      .single();
+      if (!relazioni || relazioni.length === 0) {
+        errorBox.textContent = "Azienda non trovata.";
+        resetLoginButton();
+        return;
+      }
 
-    if (azError || !azienda) {
-      errorBox.textContent = "Errore caricamento azienda.";
-      btn.disabled = false;
-      btn.textContent = "Entra";
-      return;
-    }
+      const relazione = relazioni[0];
 
-    window.state.user = user;
-    window.state.azienda = azienda;
+      const { data: azienda, error: aziendaError } = await supabase
+        .from("aziende")
+        .select("*")
+        .eq("id", relazione.azienda_id)
+        .single();
 
-    localStorage.setItem("azienda_session", JSON.stringify(azienda));
+      if (aziendaError) {
+        console.error("Errore lettura azienda:", aziendaError);
+        errorBox.textContent = "Errore caricamento azienda.";
+        resetLoginButton();
+        return;
+      }
 
-    if (!azienda.profilo_completato) {
-      window.location.hash = "#/completa-azienda";
-    } else {
-      window.location.hash = "#/home";
+      if (!azienda) {
+        errorBox.textContent = "Azienda non trovata.";
+        resetLoginButton();
+        return;
+      }
+
+      window.state.user = user;
+      window.state.azienda = azienda;
+
+      localStorage.setItem("ristoflow_user", JSON.stringify(user));
+      localStorage.setItem("azienda_session", JSON.stringify(azienda));
+
+      if (azienda.stato === "piattaforma") {
+        window.location.hash = "#/homePiattaforma";
+        return;
+      }
+
+      if (!azienda.profilo_completato) {
+        window.location.hash = "#/completa-azienda";
+      } else {
+        window.location.hash = "#/home";
+      }
+    } catch (err) {
+      console.error("Errore login:", err);
+      errorBox.textContent = err?.message || "Errore durante il login.";
+      resetLoginButton();
     }
   };
 
   const resetPassword = async () => {
-
+    errorBox.style.color = "#dc2626";
     errorBox.textContent = "";
 
-    const email = document.getElementById("login-email").value.trim();
+    const email = emailInput.value.trim().toLowerCase();
 
     if (!email) {
       errorBox.textContent = "Inserisci prima la tua email.";
@@ -281,29 +376,33 @@ export async function render(container) {
     resetBtn.disabled = true;
     resetBtn.textContent = "Invio email...";
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://ristoflow-ai.com/#/setPassword",
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://ristoflow-ai.com/#/setPassword",
+      });
 
-    if (error) {
-      errorBox.textContent = error.message;
+      if (error) {
+        errorBox.textContent = error.message || "Errore invio email reset.";
+        resetBtn.disabled = false;
+        resetBtn.textContent = "Password dimenticata?";
+        return;
+      }
+
+      errorBox.style.color = "#16a34a";
+      errorBox.textContent = "Email di reset inviata. Controlla la tua posta.";
+
       resetBtn.disabled = false;
       resetBtn.textContent = "Password dimenticata?";
-      return;
+    } catch (err) {
+      console.error("Errore reset password:", err);
+      errorBox.textContent = err?.message || "Errore durante il reset password.";
+      resetBtn.disabled = false;
+      resetBtn.textContent = "Password dimenticata?";
     }
-
-    errorBox.style.color = "#16a34a";
-    errorBox.textContent = "Email di reset inviata. Controlla la tua posta.";
-
-    resetBtn.disabled = false;
-    resetBtn.textContent = "Password dimenticata?";
   };
 
   btn.onclick = doLogin;
   resetBtn.onclick = resetPassword;
-
-  const emailInput = document.getElementById("login-email");
-  const passInput = document.getElementById("login-password");
 
   passInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") doLogin();
@@ -313,4 +412,3 @@ export async function render(container) {
     if (e.key === "Enter") doLogin();
   });
 }
-```
