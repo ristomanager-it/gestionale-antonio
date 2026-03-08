@@ -25,6 +25,8 @@ export async function render(container) {
 
   const visione = azienda.visione_ai || {};
 
+  const pianoNome = azienda.piano_nome || azienda.piano || "Starter";
+
   container.innerHTML = `
   <div class="view">
 
@@ -33,6 +35,30 @@ export async function render(container) {
     <p style="margin-bottom:20px;">
       Inserisci o modifica i dati aziendali.
     </p>
+
+    <div style="
+      background:#f9fafb;
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      padding:18px;
+      margin-bottom:30px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+    ">
+      <div>
+        <div style="font-size:13px;color:#6b7280;">Piano attivo</div>
+        <div style="font-size:20px;font-weight:700;">
+          ${pianoNome}
+        </div>
+      </div>
+
+      <div style="font-size:13px;color:#6b7280;">
+        Il piano può essere modificato solo dalla piattaforma
+      </div>
+    </div>
 
     <h3>Dati fiscali</h3>
 
