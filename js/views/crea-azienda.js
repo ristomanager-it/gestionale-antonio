@@ -1,19 +1,5 @@
-// js/views/crea-azienda.js
-
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
-
-const DEFAULT_FEATURES = {
-  timbrature: true,
-  dipendenti: true,
-  ricette: true,
-  ricettario: true,
-  magazzino: true,
-  acquisti: true,
-  preventivi: true,
-  venduto: true,
-  report: true,
-};
 
 export async function render(container) {
 
@@ -29,33 +15,6 @@ export async function render(container) {
     });
     return;
   }
-
-  const { data: piani, error: pianiError } = await supabase
-    .from("piani_abbonamento")
-    .select("id, nome, prezzo_mensile, sedi_max")
-    .order("prezzo_mensile", { ascending: true });
-
-  if (pianiError) {
-    container.innerHTML = createPageLayout({
-      title: "Errore",
-      content: createCard({
-        body: `<p>Errore caricamento piani abbonamento.</p>`,
-      }),
-    });
-    return;
-  }
-
-  const listaPiani = Array.isArray(piani) ? piani : [];
-
-  const optionsPiani = listaPiani
-    .map(
-      (p) => `
-        <option value="${p.id}">
-          ${String(p.nome || "").toUpperCase()} — ${p.sedi_max} sedi max — €${p.prezzo_mensile}/mese
-        </option>
-      `
-    )
-    .join("");
 
   const content = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
@@ -93,20 +52,6 @@ export async function render(container) {
         </div>
 
         <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
-          <div style="font-weight:700; margin-bottom:10px;">Piano</div>
-
-          <label>
-            Piano abbonamento
-            <select id="az-piano" class="input-pill" required>
-              <option value="">Seleziona piano</option>
-              ${optionsPiani}
-            </select>
-          </label>
-
-          <div id="piano-hint" style="margin-top:10px; font-size:13px; color:#6b7280;"></div>
-        </div>
-
-        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
           <div style="font-weight:700; margin-bottom:10px;">Admin</div>
 
           <label>
@@ -114,10 +59,6 @@ export async function render(container) {
             <input id="az-email-amministrativa" type="email" class="input-pill" required placeholder="Es. admin@cliente.it" />
           </label>
 
-          <label>
-            Telefono amministrativo
-            <input id="az-telefono" class="input-pill" placeholder="Opzionale" />
-          </label>
         </div>
 
       </div>
@@ -159,20 +100,10 @@ export async function render(container) {
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
-    const pianoId = document.getElementById("az-piano").value;
-
     const email = document
       .getElementById("az-email-amministrativa")
       .value.trim()
       .toLowerCase();
-
-    const telefono =
-      document.getElementById("az-telefono").value.trim();
-
-    if (!pianoId) {
-      errorEl.textContent = "Seleziona un piano abbonamento.";
-      return;
-    }
 
     const prevText = btnSubmit.textContent;
     btnSubmit.disabled = true;
@@ -185,16 +116,11 @@ export async function render(container) {
           body: {
             nome,
             codice,
-            piano: pianoId,
-            email_amministrativa: email,
-            telefono_amministrativo: telefono || null,
-            features: DEFAULT_FEATURES,
+            email
           },
         });
 
       if (error) throw error;
-
-      console.log("create-azienda result:", data);
 
       alert(
         "Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password."
