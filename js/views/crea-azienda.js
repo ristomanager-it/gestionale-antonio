@@ -22,7 +22,7 @@ export async function render(container) {
         <div style="font-size:14px; color:#6b7280;">Provisioning</div>
         <div style="margin-top:4px; font-weight:700; font-size:18px;">Nuova azienda cliente</div>
         <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-          Crea azienda + utente admin. Verrà inviata email per impostare la password.
+          Crea azienda cliente e assegna password admin.
         </div>
       </div>
 
@@ -52,11 +52,16 @@ export async function render(container) {
         </div>
 
         <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
-          <div style="font-weight:700; margin-bottom:10px;">Admin</div>
+          <div style="font-weight:700; margin-bottom:10px;">Accesso admin</div>
 
           <label>
             Email amministrativa
             <input id="az-email-amministrativa" type="email" class="input-pill" required placeholder="Es. admin@cliente.it" />
+          </label>
+
+          <label>
+            Password admin
+            <input id="az-password-admin" type="text" class="input-pill" required placeholder="Password iniziale cliente" />
           </label>
 
         </div>
@@ -106,6 +111,10 @@ export async function render(container) {
       .value.trim()
       .toLowerCase();
 
+    const password = document
+      .getElementById("az-password-admin")
+      .value.trim();
+
     const prevText = btnSubmit.textContent;
     btnSubmit.disabled = true;
     btnSubmit.textContent = "Creazione in corso...";
@@ -117,14 +126,16 @@ export async function render(container) {
           body: {
             nome: nome,
             codice: codice,
-            email_amministrativa: email
+            slug: codice.toLowerCase(),
+            email_amministrativa: email,
+            password_admin: password
           }
         });
 
       if (error) throw error;
 
       alert(
-        "Azienda creata con successo.\n\nÈ stata inviata un'email per creare la password."
+        "Azienda creata con successo.\n\nInvia ora le credenziali al cliente."
       );
 
       window.location.hash = "#/gestioneAziende";
