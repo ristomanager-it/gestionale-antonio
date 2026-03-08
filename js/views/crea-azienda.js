@@ -1,3 +1,4 @@
+```javascript
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
@@ -17,12 +18,12 @@ export async function render(container) {
   }
 
   const content = `
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
       <div>
-        <div style="font-size:14px; color:#6b7280;">Provisioning</div>
-        <div style="margin-top:4px; font-weight:700; font-size:18px;">Nuova azienda cliente</div>
-        <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-          Crea azienda cliente e assegna password admin.
+        <div style="font-size:16px; color:#6b7280;">Provisioning</div>
+        <div style="margin-top:4px; font-weight:700; font-size:22px;">Nuova azienda cliente</div>
+        <div style="margin-top:6px; font-size:15px; color:#6b7280;">
+          Crea azienda cliente e assegna accesso admin.
         </div>
       </div>
 
@@ -33,42 +34,57 @@ export async function render(container) {
 
       <div style="
         display:grid;
-        gap:14px;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap:20px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       ">
 
-        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
-          <div style="font-weight:700; margin-bottom:10px;">Dati azienda</div>
+        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:20px; padding:22px;">
+          <div style="font-weight:700; font-size:18px; margin-bottom:16px;">Dati azienda</div>
 
-          <label>
+          <label style="font-size:15px;">
             Nome azienda
-            <input id="az-nome" class="input-pill" required placeholder="Es. Ristorante Demo SRL" />
+            <input id="az-nome" class="input-pill" required placeholder="Es. Ristorante Demo SRL" style="font-size:16px; padding:12px;" />
           </label>
 
-          <label>
+          <label style="font-size:15px;">
             Codice azienda
-            <input id="az-codice" class="input-pill" required placeholder="Es. DEMO001" />
+            <input id="az-codice" class="input-pill" required placeholder="Es. DEMO001" style="font-size:16px; padding:12px;" />
           </label>
+
+          <label style="font-size:15px;">
+            Piano di affiliazione
+            <select id="az-piano" class="input-pill" style="font-size:16px; padding:12px;">
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </label>
+
         </div>
 
-        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
-          <div style="font-weight:700; margin-bottom:10px;">Accesso admin</div>
+        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:20px; padding:22px;">
+          <div style="font-weight:700; font-size:18px; margin-bottom:16px;">Accesso admin</div>
 
-          <label>
-            Email amministrativa
-            <input id="az-email-amministrativa" type="email" class="input-pill" required placeholder="Es. admin@cliente.it" />
+          <label style="font-size:15px;">
+            Username
+            <input value="admin" disabled class="input-pill" style="font-size:16px; padding:12px;" />
           </label>
 
-          <label>
+          <label style="font-size:15px;">
             Password admin
-            <input id="az-password-admin" type="text" class="input-pill" required placeholder="Password iniziale cliente" />
+            <input id="az-password-admin" type="text" class="input-pill" required placeholder="Password iniziale cliente" style="font-size:16px; padding:12px;" />
+          </label>
+
+          <label style="font-size:15px;">
+            Email amministrativa (contatto)
+            <input id="az-email-amministrativa" type="email" class="input-pill" required placeholder="Es. admin@cliente.it" style="font-size:16px; padding:12px;" />
           </label>
 
         </div>
 
       </div>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
         <button type="submit" class="app-button green" id="btn-submit">
           Crea azienda
         </button>
@@ -80,7 +96,7 @@ export async function render(container) {
 
     </form>
 
-    <div id="azienda-error" style="margin-top:12px; color:#dc2626;"></div>
+    <div id="azienda-error" style="margin-top:16px; color:#dc2626; font-size:15px;"></div>
   `;
 
   container.innerHTML = createPageLayout({
@@ -105,6 +121,7 @@ export async function render(container) {
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
+    const piano = document.getElementById("az-piano").value;
 
     const email = document
       .getElementById("az-email-amministrativa")
@@ -127,6 +144,8 @@ export async function render(container) {
             nome: nome,
             codice: codice,
             slug: codice.toLowerCase(),
+            piano: piano,
+            username: "admin",
             email_amministrativa: email,
             password_admin: password
           }
@@ -134,9 +153,22 @@ export async function render(container) {
 
       if (error) throw error;
 
-      alert(
-        "Azienda creata con successo.\n\nInvia ora le credenziali al cliente."
-      );
+      const messaggio = `
+Accesso Ristoflow
+
+Username: admin
+Password: ${password}
+
+Login:
+https://ristoflow-ai.com
+
+Email contatto:
+${email}
+`;
+
+      navigator.clipboard.writeText(messaggio);
+
+      alert("Azienda creata.\nCredenziali copiate negli appunti.");
 
       window.location.hash = "#/gestioneAziende";
 
@@ -158,3 +190,4 @@ export async function render(container) {
   });
 
 }
+```
