@@ -1,3 +1,4 @@
+```javascript
 import { supabase } from "../supabaseClient.js";
 
 async function aggiornaAccessoUtente(userId) {
@@ -226,27 +227,31 @@ export async function render(container) {
 
     await aggiornaAccessoUtente(user.id);
 
-    // carica azienda utente
-    const { data: relazione } = await supabase
+    const { data: relazioni, error: relError } = await supabase
       .from("utenti_aziende")
       .select("azienda_id")
       .eq("user_id", user.id)
-      .eq("attivo", true)
-      .single();
+      .eq("attivo", true);
 
-    if (!relazione) {
+    if (relError || !relazioni || relazioni.length === 0) {
       errorBox.textContent = "Azienda non trovata.";
+      btn.disabled = false;
+      btn.textContent = "Entra";
       return;
     }
 
-    const { data: azienda } = await supabase
+    const relazione = relazioni[0];
+
+    const { data: azienda, error: azError } = await supabase
       .from("aziende")
       .select("*")
       .eq("id", relazione.azienda_id)
       .single();
 
-    if (!azienda) {
+    if (azError || !azienda) {
       errorBox.textContent = "Errore caricamento azienda.";
+      btn.disabled = false;
+      btn.textContent = "Entra";
       return;
     }
 
@@ -255,7 +260,6 @@ export async function render(container) {
 
     localStorage.setItem("azienda_session", JSON.stringify(azienda));
 
-    // controllo onboarding
     if (!azienda.profilo_completato) {
       window.location.hash = "#/completa-azienda";
     } else {
@@ -309,3 +313,4 @@ export async function render(container) {
     if (e.key === "Enter") doLogin();
   });
 }
+```
