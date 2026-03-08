@@ -20,8 +20,10 @@ export async function render(container) {
     <h1>Completa configurazione azienda</h1>
 
     <p style="margin-bottom:20px;">
-      Inserisci i dati fiscali e amministrativi per attivare il gestionale.
+      Inserisci i dati per attivare il gestionale.
     </p>
+
+    <h3>Dati fiscali</h3>
 
     <div class="form-grid">
 
@@ -60,6 +62,56 @@ export async function render(container) {
 
     </div>
 
+
+    <h3 style="margin-top:40px;">Visione aziendale (per AI Tony)</h3>
+
+    <p style="margin-bottom:16px;color:#6b7280;">
+      Queste informazioni aiutano l'assistente AI a capire il tuo locale e darti suggerimenti migliori.
+    </p>
+
+    <div class="form-grid">
+
+      <label>Chi siete?</label>
+      <textarea id="chi_siamo" placeholder="Descrivi brevemente il tuo locale"></textarea>
+
+      <label>Tipo di locale</label>
+      <select id="tipo_locale">
+        <option value="">Seleziona</option>
+        <option>Ristorante</option>
+        <option>Pizzeria</option>
+        <option>Bar</option>
+        <option>Bistrot</option>
+        <option>Street food</option>
+      </select>
+
+      <label>Target clienti</label>
+      <textarea id="target_clienti" placeholder="Famiglie, giovani, turisti..."></textarea>
+
+      <label>Tono comunicazione</label>
+      <select id="tono">
+        <option value="">Seleziona</option>
+        <option>Elegante</option>
+        <option>Amichevole</option>
+        <option>Familiare</option>
+        <option>Professionale</option>
+      </select>
+
+      <label>Valori del locale</label>
+      <textarea id="valori" placeholder="Qualità, tradizione, innovazione..."></textarea>
+
+      <label>Esperienza che vuoi dare al cliente</label>
+      <textarea id="esperienza"></textarea>
+
+      <label>Posizionamento</label>
+      <select id="posizionamento">
+        <option value="">Seleziona</option>
+        <option>Economico</option>
+        <option>Medio</option>
+        <option>Premium</option>
+      </select>
+
+    </div>
+
     <div style="margin-top:30px;">
       <button id="salva-azienda" class="btn-primary">
         Attiva azienda
@@ -79,6 +131,18 @@ export async function render(container) {
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
 
+    const visioneAI = {
+
+      chi_siamo: document.getElementById("chi_siamo").value,
+      tipo_locale: document.getElementById("tipo_locale").value,
+      target_clienti: document.getElementById("target_clienti").value,
+      tono: document.getElementById("tono").value,
+      valori: document.getElementById("valori").value,
+      esperienza: document.getElementById("esperienza").value,
+      posizionamento: document.getElementById("posizionamento").value
+
+    };
+
     const payload = {
 
       ragione_sociale: document.getElementById("ragione_sociale").value,
@@ -95,6 +159,8 @@ export async function render(container) {
 
       referente: document.getElementById("referente").value,
       telefono: document.getElementById("telefono").value,
+
+      visione_ai: visioneAI,
 
       profilo_completato: true,
       stato_attivazione: "attiva"
@@ -116,8 +182,8 @@ export async function render(container) {
 
       btn.disabled = false;
       btn.innerText = "Attiva azienda";
-
       return;
+
     }
 
     msg.innerHTML = `
