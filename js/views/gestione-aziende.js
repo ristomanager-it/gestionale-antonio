@@ -1,6 +1,3 @@
-```javascript
-// js/views/gestione-aziende.js
-
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
@@ -13,14 +10,14 @@ export async function render(container) {
     container.innerHTML = createPageLayout({
       title: "Accesso negato",
       content: createCard({
-        body: `<p>Sezione riservata alla piattaforma.</p>`
+        body: "<p>Sezione riservata alla piattaforma.</p>"
       })
     });
     return;
   }
 
   const content = `
-    <div style="display:flex; gap:26px; flex-wrap:wrap; align-items:center; margin-top:20px;">
+    <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-top:20px;">
 
       <canvas id="grafico-scadenze" width="200" height="200"></canvas>
 
@@ -49,7 +46,7 @@ export async function render(container) {
         id="search-input"
         class="input-pill"
         placeholder="Cerca azienda (min 2 caratteri)"
-        style="font-size:16px; padding:12px 16px;"
+        style="font-size:16px;padding:12px 16px;"
       />
     </div>
 
@@ -69,7 +66,7 @@ export async function render(container) {
   });
 
   document.getElementById("btn-home").onclick = () => {
-    window.location.hash = "#/home";
+    window.location.hash = "#/homePiattaforma";
   };
 
   await caricaStatoScadenzeAziende();
@@ -79,15 +76,21 @@ export async function render(container) {
 
 async function caricaStatoScadenzeAziende() {
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("aziende")
     .select("id,nome,data_scadenza,stato")
     .neq("stato", "piattaforma");
 
+  if (error || !data) return;
+
   const oggi = new Date();
   oggi.setHours(0,0,0,0);
 
-  const gruppi = { verde: [], giallo: [], rosso: [] };
+  const gruppi = {
+    verde: [],
+    giallo: [],
+    rosso: []
+  };
 
   data.forEach((az) => {
 
@@ -101,9 +104,13 @@ async function caricaStatoScadenzeAziende() {
 
     const diff = Math.floor((scadenza - oggi) / (1000*60*60*24));
 
-    if (diff < 0) gruppi.rosso.push({ ...az, giorni: diff });
-    else if (diff <= 15) gruppi.giallo.push({ ...az, giorni: diff });
-    else gruppi.verde.push({ ...az, giorni: diff });
+    if (diff < 0) {
+      gruppi.rosso.push({ ...az, giorni: diff });
+    } else if (diff <= 15) {
+      gruppi.giallo.push({ ...az, giorni: diff });
+    } else {
+      gruppi.verde.push({ ...az, giorni: diff });
+    }
 
   });
 
@@ -117,6 +124,7 @@ async function caricaStatoScadenzeAziende() {
 
   creaGrafico(percentuali);
   creaCardStato(gruppi, percentuali);
+
 }
 
 
@@ -153,6 +161,7 @@ function creaGrafico(percentuali) {
   ctx.arc(100,100,60,0,Math.PI*2);
   ctx.fillStyle = "#ffffff";
   ctx.fill();
+
 }
 
 
@@ -183,8 +192,8 @@ function creaCardStato(gruppi, percentuali) {
     card.style.cursor = "pointer";
 
     card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:12px;height:12px;border-radius:50%;background:${c.colore};"></div>
           <strong>${c.label}</strong>
         </div>
@@ -213,14 +222,14 @@ function creaCardStato(gruppi, percentuali) {
 
     dettaglio.innerHTML = createCard({
       title: titolo,
-      body: `<div id="lista-interna"></div>`
+      body: '<div id="lista-interna"></div>'
     });
 
     const interno = document.getElementById("lista-interna");
 
     if (lista.length === 0) {
 
-      interno.innerHTML = `<p class="small-muted">Nessuna azienda.</p>`;
+      interno.innerHTML = '<p class="small-muted">Nessuna azienda.</p>';
 
     } else {
 
@@ -240,10 +249,11 @@ function creaCardStato(gruppi, percentuali) {
 
         if (az.giorni !== undefined) {
 
-          if (az.giorni < 0)
-            testo += ` — scaduta da ${Math.abs(az.giorni)} giorni`;
-          else
-            testo += ` — scade tra ${az.giorni} giorni`;
+          if (az.giorni < 0) {
+            testo += " — scaduta da " + Math.abs(az.giorni) + " giorni";
+          } else {
+            testo += " — scade tra " + az.giorni + " giorni";
+          }
 
         }
 
@@ -271,12 +281,11 @@ function creaCardStato(gruppi, percentuali) {
           </div>
         `;
 
-        const [btnApri, btnToggle] = riga.querySelectorAll("button");
+        const btnApri = riga.querySelector(".btn-open");
+        const btnToggle = riga.querySelectorAll("button")[1];
 
         btnApri.onclick = () => {
-
           window.location.hash = "#/completa-azienda?id=" + az.id;
-
         };
 
         btnToggle.onclick = async () => {
@@ -286,7 +295,7 @@ function creaCardStato(gruppi, percentuali) {
             : "sospesa";
 
           const conferma = confirm(
-            `Sei sicuro di voler impostare questa azienda come "${nuovoStato}"?`
+            'Sei sicuro di voler impostare questa azienda come "' + nuovoStato + '"?'
           );
 
           if (!conferma) return;
@@ -317,4 +326,3 @@ function creaCardStato(gruppi, percentuali) {
   }
 
 }
-```
