@@ -8,25 +8,29 @@ import { initMenu } from "./menu.js";
 ========================================================= */
 
 (function fixSupabaseEmailLink() {
-
   const hash = window.location.hash || "";
 
   if (hash.startsWith("#access_token=")) {
-
     const tokens = hash.substring(1);
-
-    window.location.hash = "#/activate?" + tokens;
-
+    window.location.hash = "#/set-password?" + tokens;
   }
-
 })();
 
 /* =========================================================
-   FIX SUPABASE HASH (#/activate#access_token → #/activate?access_token)
+   FIX SUPABASE HASH
+   #/set-password#access_token -> #/set-password?access_token
+   #/activate#access_token     -> #/activate?access_token
 ========================================================= */
 
-(function fixSupabaseHash(){
+(function fixSupabaseHash() {
   const h = window.location.hash || "";
+
+  if (h.startsWith("#/set-password#")) {
+    const tokens = h.split("#")[2];
+    window.location.hash = "#/set-password?" + tokens;
+    return;
+  }
+
   if (h.startsWith("#/activate#")) {
     const tokens = h.split("#")[2];
     window.location.hash = "#/activate?" + tokens;
@@ -50,6 +54,7 @@ const routes = {
   gestionePiani: () => import("./views/gestione-piani.js"),
   activate: () => import("./views/activate.js"),
   setPassword: () => import("./views/set-password.js"),
+  "set-password": () => import("./views/set-password.js"),
 
   sceltaAzienda: () => import("./views/scelta-azienda.js"),
   gestioneSedi: () => import("./views/gestione-sedi.js"),
@@ -62,10 +67,9 @@ const routes = {
   dipendenti: () => import("./views/dipendenti.js"),
   timbrature: () => import("./views/timbrature.js"),
 
-
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
-acquisti: () => import("./views/acquisti.js"),
+  acquisti: () => import("./views/acquisti.js"),
   magazzino: () => import("./views/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
@@ -78,14 +82,14 @@ acquisti: () => import("./views/acquisti.js"),
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
-   ai: () => import("./views/ai.js"),
+  ai: () => import("./views/ai.js"),
 };
 
 /* =========================================================
    ROUTE SCOPE
 ========================================================= */
 
-const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword"]);
+const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword", "set-password"]);
 
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
@@ -95,7 +99,12 @@ const PLATFORM_ROUTES = new Set([
   "gestionePiani",
 ]);
 
-const PREHOME_ROUTES = new Set(["sceltaAzienda", "gestioneSedi", "completaProfilo", "completaAzienda"]);
+const PREHOME_ROUTES = new Set([
+  "sceltaAzienda",
+  "gestioneSedi",
+  "completaProfilo",
+  "completaAzienda",
+]);
 
 /* =========================================================
    STORAGE KEYS
@@ -246,7 +255,8 @@ async function loadAziendeForUser(userId) {
         logo_path,
         logo_url,
         piano_id,
-        stato_attivazione
+        stato_attivazione,
+        profilo_completato
       )
     `
     )
@@ -269,7 +279,10 @@ function pickActiveAzienda(aziendePulite) {
   }
 
   const piattaformaLink = aziendePulite.find((a) => a.aziende?.stato === "piattaforma");
-  if (piattaformaLink && (window.state?.isSuperadmin === true || piattaformaLink.ruolo === "superadmin")) {
+  if (
+    piattaformaLink &&
+    (window.state?.isSuperadmin === true || piattaformaLink.ruolo === "superadmin")
+  ) {
     return piattaformaLink.aziende;
   }
 
@@ -300,6 +313,7 @@ function isAziendaBlockedForUser(azienda, routeName) {
   if (isSuperadmin()) return false;
 
   if (PLATFORM_ROUTES.has(routeName)) return false;
+  if (routeName === "completaAzienda") return false;
 
   if (azienda.stato === "piattaforma") return false;
 
@@ -509,7 +523,7 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  if (PUBLIC_ROUTES.has(route) && route !== "activate" && route !== "setPassword") {
+  if (PUBLIC_ROUTES.has(route) && route !== "activate" && route !== "setPassword" && route !== "set-password") {
     const tmpAziende = await loadAziendeForUser(session.user.id);
     const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
     const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
@@ -528,12 +542,6 @@ async function resolve() {
     return;
   }
 
-
-  /* ------------------------------------------------------
-     ONBOARDING DIPENDENTE: PROFILO DA COMPLETARE
-     Se esiste un record in "dipendenti" per questo user_id
-     e profilo_completato = false, forza la route completaProfilo.
-  ------------------------------------------------------ */
   try {
     const { data: dipCheck, error: dipCheckErr } = await supabase
       .from("dipendenti")
@@ -549,30 +557,6 @@ async function resolve() {
     }
   } catch (e) {
     console.warn("Check profilo dipendente fallito:", e);
-  }
-
-
-  /* ------------------------------------------------------
-     ONBOARDING AZIENDA: PROFILO AZIENDA DA COMPLETARE
-  ------------------------------------------------------ */
-  try {
-    const aziendaIdTmp = window.state?.azienda?.id;
-    if (aziendaIdTmp) {
-      const { data: azCheck, error: azErr } = await supabase
-        .from("aziende")
-        .select("profilo_completato")
-        .eq("id", aziendaIdTmp)
-        .maybeSingle();
-
-      if (!azErr && azCheck && azCheck.profilo_completato === false) {
-        if (route !== "completaAzienda") {
-          window.location.hash = "#/completaAzienda";
-          return;
-        }
-      }
-    }
-  } catch (e) {
-    console.warn("Check profilo azienda fallito:", e);
   }
 
   setHeaderVisible(true);
@@ -606,6 +590,31 @@ async function resolve() {
   }
 
   const azienda = window.state.azienda;
+
+  try {
+    if (
+      azienda &&
+      azienda.stato !== "piattaforma" &&
+      (azienda.profilo_completato === false || azienda.stato_attivazione === "bozza")
+    ) {
+      if (route !== "completaAzienda") {
+        window.location.hash = "#/completaAzienda";
+        return;
+      }
+    }
+
+    if (
+      azienda &&
+      azienda.stato !== "piattaforma" &&
+      azienda.profilo_completato === true &&
+      route === "completaAzienda"
+    ) {
+      window.location.hash = "#/home";
+      return;
+    }
+  } catch (e) {
+    console.warn("Check profilo azienda fallito:", e);
+  }
 
   await loadPianoForAzienda(azienda);
 
