@@ -603,15 +603,6 @@ async function resolve() {
       }
     }
 
-    if (
-      azienda &&
-      azienda.stato !== "piattaforma" &&
-      azienda.profilo_completato === true &&
-      route === "completaAzienda"
-    ) {
-      window.location.hash = "#/home";
-      return;
-    }
   } catch (e) {
     console.warn("Check profilo azienda fallito:", e);
   }
