@@ -1,6 +1,6 @@
 // js/views/home.js
 // =======================================
-// Dashboard Reparti + Header Smart
+// Dashboard intelligente ruolo-based
 // =======================================
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
@@ -26,36 +26,18 @@ export async function render(container) {
     window.stateActions.setSedeAttiva(sedi[0].id);
   }
 
-  const REPARTI = [
-    { key:"operativo", label:"Operativo", icon:"🏭", moduli:["produzione","magazzino","ricettario","preparazioni","timbrature"] },
-    { key:"amministrazione", label:"Amministrazione", icon:"🧾", moduli:["acquisti","dipendenti","preventivi"] },
-    { key:"gestione", label:"Gestione", icon:"📊", moduli:["margini","report"] },
-    { key:"marketing", label:"Marketing", icon:"📢", moduli:[] },
-    { key:"ai", label:"AI Ristoflow", icon:"🤖", moduli:[] }
-  ];
-
   const saluto = getSaluto();
   const dataOggi = getDataFormattata();
 
-  const repartiVisibili = REPARTI.map(rep => {
+  const briefingTony = getTonyBriefing(ruolo);
 
-    if (ruolo === "superadmin") return rep;
-
-    const moduliFiltrati = rep.moduli.filter(m =>
-      hasFeature(m) && hasPermission(m)
-    );
-
-    return { ...rep, moduli: moduliFiltrati };
-
-  }).filter(rep =>
-    ruolo === "superadmin" ||
-    rep.moduli.length > 0 ||
-    rep.key === "ai"
-  );
+  const repartiVisibili = getRepartiVisibili(ruolo);
 
   container.innerHTML = `
 
   <div class="view" style="padding:0;">
+
+    <!-- HEADER -->
 
     <div class="home-header">
 
@@ -110,6 +92,22 @@ export async function render(container) {
 
     </div>
 
+    <!-- TONY BRIEFING -->
+
+    <div class="home-tony">
+
+      <div class="home-tony-icon">
+        🤖
+      </div>
+
+      <div class="home-tony-text">
+        ${briefingTony}
+      </div>
+
+    </div>
+
+    <!-- ACCESSO RAPIDO SETTORI -->
+
     ${
       window.state.sedeAttiva
         ? `
@@ -145,6 +143,35 @@ export async function render(container) {
         `
     }
 
+    <!-- CARD OPERATIVE RUOLO -->
+
+    <div class="home-role-cards">
+
+      ${renderRoleCards(ruolo)}
+
+    </div>
+
+    <!-- CHAT TONY -->
+
+    <div class="home-tony-chat">
+
+      <div class="home-tony-chat-title">
+        🤖 Tony AI
+      </div>
+
+      <div class="home-tony-chat-body">
+        Hai bisogno di aiuto operativo?
+      </div>
+
+      <button
+        onclick="window.location.hash='#/ai'"
+        class="btn-tony-chat"
+      >
+        Apri Tony
+      </button>
+
+    </div>
+
   </div>
 
   <style>
@@ -178,35 +205,32 @@ export async function render(container) {
 
   .home-date{
     font-size:14px;
-    opacity:0.9;
   }
 
   .home-weather{
     font-size:22px;
-    font-weight:600;
   }
 
-  .home-sede{
-    margin-top:4px;
-    font-size:14px;
-    opacity:0.9;
-  }
+  .home-tony{
+    margin:24px;
+    background:#fff;
+    border-radius:18px;
+    padding:20px;
 
-  .home-header-right{
     display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
+    gap:16px;
+    align-items:flex-start;
+
+    box-shadow:0 10px 30px rgba(0,0,0,0.08);
   }
 
-  .btn-platform{
-    background:white;
-    color:var(--color-primary);
-    border:none;
-    padding:8px 14px;
-    border-radius:12px;
-    font-weight:600;
-    cursor:pointer;
+  .home-tony-icon{
+    font-size:28px;
+  }
+
+  .home-tony-text{
+    font-size:15px;
+    line-height:1.5;
   }
 
   .home-grid{
@@ -232,7 +256,6 @@ export async function render(container) {
 
   .home-card:hover{
     transform:translateY(-4px);
-    box-shadow:0 16px 40px rgba(0,0,0,0.12);
   }
 
   .home-card-icon{
@@ -245,11 +268,36 @@ export async function render(container) {
     font-weight:600;
   }
 
-  .home-empty{
-    padding:60px;
-    text-align:center;
-    font-size:18px;
-    opacity:0.7;
+  .home-role-cards{
+    padding:20px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:18px;
+  }
+
+  .role-card{
+    background:white;
+    padding:18px;
+    border-radius:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+  }
+
+  .home-tony-chat{
+    margin:30px;
+    padding:20px;
+    background:#0f172a;
+    color:white;
+    border-radius:16px;
+  }
+
+  .btn-tony-chat{
+    margin-top:10px;
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    background:white;
+    color:black;
+    cursor:pointer;
   }
 
   @keyframes fadeInUp{
@@ -263,72 +311,100 @@ export async function render(container) {
   hydrateWeather();
 }
 
-async function hydrateWeather(){
+function renderRoleCards(ruolo){
 
-  const box = document.getElementById("home-weather-inline");
-  if(!box) return;
+  if(ruolo === "admin"){
 
-  let lat;
-  let lon;
+    return `
+    <div class="role-card">
+      <strong>📊 Controllo azienda</strong>
+      <div>Controlla KPI e marginalità.</div>
+    </div>
 
-  try{
-
-    const pos = await new Promise((resolve,reject)=>{
-      navigator.geolocation.getCurrentPosition(
-        p=>resolve(p.coords),
-        ()=>reject()
-      );
-    });
-
-    lat = pos.latitude;
-    lon = pos.longitude;
-
-  }catch{
-
-    lat = window.state?.sedeAttiva?.latitudine;
-    lon = window.state?.sedeAttiva?.longitudine;
-
+    <div class="role-card">
+      <strong>🧾 Ordini fornitori</strong>
+      <div>Gestisci ordini e acquisti.</div>
+    </div>
+    `;
   }
 
-  if(!lat || !lon){
-    box.innerHTML = "📍";
-    return;
+  if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
+
+    return `
+    <div class="role-card">
+      <strong>👨‍🍳 Produzione oggi</strong>
+      <div>Controlla preparazioni e produzioni.</div>
+    </div>
+
+    <div class="role-card">
+      <strong>📦 Scorte critiche</strong>
+      <div>Controlla materie prime.</div>
+    </div>
+    `;
   }
 
-  try{
+  if(ruolo === "segreteria"){
 
-    const url =
-      `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const temp = Math.round(data?.current?.temperature_2m);
-    const code = data?.current?.weather_code;
-
-    const icon = mapWeatherCodeToIcon(code);
-
-    box.innerHTML =
-      `<span style="font-size:26px">${icon}</span>
-       <span style="font-size:20px;font-weight:600">${temp}°</span>`;
-
-  }catch{
-
-    box.textContent = "☁️";
-
+    return `
+    <div class="role-card">
+      <strong>🧾 Fatture</strong>
+      <div>Gestione amministrativa.</div>
+    </div>
+    `;
   }
 
+  return `
+  <div class="role-card">
+    <strong>📋 Attività operative</strong>
+    <div>Consulta i moduli operativi.</div>
+  </div>
+  `;
 }
 
-function mapWeatherCodeToIcon(code){
+function getTonyBriefing(ruolo){
 
-  if([0,1].includes(code)) return "☀️";
-  if([2,3,45,48].includes(code)) return "☁️";
-  if([51,53,55,61,63,65,80,81,82].includes(code)) return "🌧️";
-  if([95,96,99].includes(code)) return "⛈️";
+  if(ruolo === "admin"){
+    return "Buongiorno. Oggi controlla margini, ordini fornitori e andamento vendite.";
+  }
 
-  return "☁️";
+  if(ruolo === "manager_cucina"){
+    return "Briefing cucina: verifica produzioni e scorte critiche.";
+  }
 
+  if(ruolo === "segreteria"){
+    return "Briefing amministrazione: controlla ordini, fornitori e contabilità.";
+  }
+
+  return "Briefing operativo del giorno.";
+}
+
+function getRepartiVisibili(ruolo){
+
+  const REPARTI = [
+    { key:"operativo", label:"Operativo", icon:"🏭" },
+    { key:"amministrazione", label:"Amministrazione", icon:"🧾" },
+    { key:"gestione", label:"Gestione", icon:"📊" },
+    { key:"marketing", label:"Marketing", icon:"📢" },
+    { key:"ai", label:"AI Ristoflow", icon:"🤖" }
+  ];
+
+  if(ruolo === "admin") return REPARTI;
+
+  if(ruolo === "manager_cucina"){
+    return REPARTI.filter(r =>
+      ["operativo","gestione","ai"].includes(r.key)
+    );
+  }
+
+  if(ruolo === "segreteria"){
+    return REPARTI.filter(r =>
+      ["amministrazione","gestione"].includes(r.key)
+    );
+  }
+
+  return REPARTI.filter(r =>
+    ["operativo","ai"].includes(r.key)
+  );
 }
 
 function renderSedeSelector(){
@@ -361,35 +437,6 @@ function renderSedeSelector(){
 
   </select>
   `;
-}
-
-function hasFeature(area){
-  return window.state?.featuresEffettive?.[area] === true;
-}
-
-function hasPermission(area){
-
-  const ruolo = window.state?.ruolo;
-  const override = window.state?.permessiOverride || {};
-
-  if(ruolo === "superadmin") return true;
-
-  if(Object.prototype.hasOwnProperty.call(override,area)){
-    return override[area] === true;
-  }
-
-  const rolePermissions = {
-    admin:["*"],
-    segreteria:["dipendenti","acquisti","report","margini"],
-    manager_cucina:["produzione","margini"],
-    manager_sala:["produzione","margini"],
-    addetto_cucina:[],
-    cameriere:[]
-  };
-
-  if(rolePermissions[ruolo]?.includes("*")) return true;
-
-  return rolePermissions[ruolo]?.includes(area) === true;
 }
 
 function getSaluto(){
