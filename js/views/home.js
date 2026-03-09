@@ -1,4 +1,10 @@
 // js/views/home.js
+// Home dashboard con:
+// - header utente + meteo
+// - home admin con grafico margini
+// - task operativi per altri ruoli
+// - mini chat Tony
+// - footer con azioni rapide
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
@@ -40,21 +46,16 @@ export async function render(container) {
         </div>
 
         <div class="home-meta">
-
           <span>${dataOggi}</span>
-
           <span id="home-weather-inline">⏳</span>
-
         </div>
 
         <div class="home-sede">
-
           ${
             window.state.sedeAttiva
               ? `Sede: <strong>${window.state.sedeAttiva.nome}</strong>`
               : `Seleziona una sede`
           }
-
         </div>
 
       </div>
@@ -82,15 +83,11 @@ height:100%;
 }
 
 .home-header{
-
 background:var(--color-primary);
 color:white;
-
 padding:22px;
-
 border-bottom-left-radius:22px;
 border-bottom-right-radius:22px;
-
 }
 
 .home-title{
@@ -115,21 +112,14 @@ padding:20px;
 }
 
 .task-card{
-
 background:white;
-
 padding:16px;
-
 border-radius:12px;
-
 margin-bottom:10px;
-
 box-shadow:0 4px 16px rgba(0,0,0,0.06);
-
 display:flex;
 justify-content:space-between;
 align-items:center;
-
 }
 
 .task-title{
@@ -137,128 +127,96 @@ font-weight:600;
 }
 
 .home-chat{
-
 margin:20px;
-
 background:#0f172a;
-
 color:white;
-
 padding:16px;
-
 border-radius:14px;
-
 }
 
 .home-footer{
-
 position:fixed;
-
 bottom:0;
-
 left:0;
-
 right:0;
-
 background:white;
-
 border-top:1px solid #eee;
-
 display:flex;
-
 justify-content:space-around;
-
 padding:10px 0;
-
 box-shadow:0 -4px 12px rgba(0,0,0,0.08);
-
 }
 
 .home-footer div{
-
 font-size:22px;
-
 cursor:pointer;
-
 }
 
 .admin-chart{
-
 background:white;
-
 padding:20px;
-
 border-radius:14px;
-
 box-shadow:0 4px 16px rgba(0,0,0,0.06);
-
 margin:20px;
-
 }
 
 </style>
-
 `;
 
-hydrateWeather();
+  hydrateWeather();
 
-if(ruolo === "admin" || ruolo === "superadmin"){
-renderAdminChart();
-}
-
+  if (ruolo === "admin" || ruolo === "superadmin") {
+    renderAdminChart();
+  }
 }
 
 function renderMainSection(ruolo){
 
-if(ruolo === "admin" || ruolo === "superadmin"){
+  if(ruolo === "admin" || ruolo === "superadmin"){
 
-return `
+    return `
 
-<div class="admin-chart">
+    <div class="admin-chart">
 
-<h3>Margini azienda</h3>
+      <h3>Margini azienda</h3>
 
-<canvas id="marginiChart"></canvas>
+      <canvas id="marginiChart"></canvas>
 
-</div>
+    </div>
 
-`;
+    `;
 
-}
+  }
 
-const tasks = getTasksByRole(ruolo);
+  const tasks = getTasksByRole(ruolo);
 
-return `
+  return `
 
-<div class="home-main">
+  <div class="home-main">
 
-<h3>Compiti assegnati</h3>
+  <h3>Compiti assegnati</h3>
 
-${tasks.map(t=>`
+  ${tasks.map(t=>`
 
-<div class="task-card">
+  <div class="task-card">
 
-<div>
+  <div>
 
-<div class="task-title">${t.title}</div>
+  <div class="task-title">${t.title}</div>
 
-<div>${t.desc}</div>
+  <div>${t.desc}</div>
 
-</div>
+  </div>
 
-<button onclick="window.location.hash='${t.route}'">
+  <button onclick="window.location.hash='${t.route}'">Apri</button>
 
-Apri
+  </div>
 
-</button>
+  `).join("")}
 
-</div>
+  </div>
 
-`).join("")}
-
-</div>
-
-`;
+  `;
 
 }
 
@@ -417,21 +375,13 @@ const ctx=document.getElementById("marginiChart");
 if(!ctx) return;
 
 new Chart(ctx,{
-
 type:"doughnut",
-
 data:{
-
 labels:["Materie prime","Lavoro","Spese generali","Margine"],
-
 datasets:[{
-
 data:[30,25,20,25]
-
 }]
-
 }
-
 });
 
 }
@@ -443,9 +393,7 @@ if(!user) return "";
 if(user.nome) return user.nome;
 
 if(user.email){
-
 return user.email.split("@")[0];
-
 }
 
 return "";
@@ -460,23 +408,11 @@ if(sedi.length<=1) return "";
 
 return `
 
-<select
-
-onchange="window.stateActions.setSedeAttiva(this.value)"
-
-style="padding:8px;border-radius:10px;border:none"
-
->
+<select onchange="window.stateActions.setSedeAttiva(this.value)" style="padding:8px;border-radius:10px;border:none">
 
 ${sedi.map(s=>`
 
-<option
-
-value="${s.id}"
-
-${window.state.sedeAttiva?.id==s.id?"selected":""}
-
->
+<option value="${s.id}" ${window.state.sedeAttiva?.id==s.id?"selected":""}>
 
 ${s.nome}
 
@@ -497,38 +433,30 @@ const box=document.getElementById("home-weather-inline");
 if(!box) return;
 
 let lat;
-
 let lon;
 
 try{
 
 const pos=await new Promise((resolve,reject)=>{
-
 navigator.geolocation.getCurrentPosition(
-
 p=>resolve(p.coords),
-
 ()=>reject()
-
 );
-
 });
 
 lat=pos.latitude;
-
 lon=pos.longitude;
 
 }catch{
 
 lat=41.9028;
-
 lon=12.4964;
 
 }
 
 try{
 
-const url=\`\${OPEN_METEO_URL}?latitude=\${lat}&longitude=\${lon}&current=temperature_2m,weather_code\`;
+const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
 
 const res=await fetch(url);
 
@@ -540,7 +468,7 @@ const code=data?.current?.weather_code;
 
 const icon=mapWeatherCodeToIcon(code);
 
-box.innerHTML=\`\${icon} \${temp}°\`;
+box.innerHTML=`${icon} ${temp}°`;
 
 }catch{
 
@@ -584,6 +512,6 @@ const mesi=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Ag
 
 const now=new Date();
 
-return \`\${giorni[now.getDay()]} \${now.getDate()} \${mesi[now.getMonth()]} \${now.getFullYear()}\`;
+return `${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]} ${now.getFullYear()}`;
 
 }
