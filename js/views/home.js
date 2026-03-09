@@ -6,6 +6,7 @@ const user = window.state?.user
 const ruolo = window.state?.ruolo
 const azienda = window.state?.azienda
 const sede = window.state?.sedeAttiva
+const isSuperadmin = window.state?.isSuperadmin === true
 
 updateHeader(azienda,sede)
 initTopbar(user)
@@ -14,7 +15,7 @@ container.innerHTML = `
 
 <div class="home-container">
 
-${renderAdminDashboard(ruolo)}
+${renderAdminDashboard()}
 
 ${renderTonyAvatar()}
 
@@ -38,11 +39,9 @@ gap:20px;
 }
 
 @media(min-width:900px){
-
 .dashboard-grid{
 grid-template-columns:1fr 1fr;
 }
-
 }
 
 .card{
@@ -75,7 +74,7 @@ border-bottom:1px solid #eee;
 
 `
 
-if(ruolo==="admin" || ruolo==="superadmin"){
+if(ruolo==="admin" || isSuperadmin){
 loadAdminDashboard()
 }
 
@@ -93,11 +92,15 @@ if(!nomeBox) return
 
 if(sede){
 nomeBox.innerText = sede.nome
-}else if(azienda){
-nomeBox.innerText = azienda.nome
-}else{
-nomeBox.innerText = "Ristoflow"
+return
 }
+
+if(azienda){
+nomeBox.innerText = azienda.nome
+return
+}
+
+nomeBox.innerText="Ristoflow"
 
 }
 
@@ -138,9 +141,12 @@ hydrateWeather()
 DASHBOARD ADMIN
 =============================== */
 
-function renderAdminDashboard(ruolo){
+function renderAdminDashboard(){
 
-if(!(ruolo==="admin" || ruolo==="superadmin")) return ""
+const ruolo = window.state?.ruolo
+const isSuperadmin = window.state?.isSuperadmin === true
+
+if(!(ruolo==="admin" || isSuperadmin)) return ""
 
 return `
 
