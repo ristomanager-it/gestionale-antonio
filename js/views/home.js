@@ -6,18 +6,78 @@ export async function render(container){
 
 const user = window.state.user
 const ruolo = window.state?.ruolo
+const azienda = window.state?.azienda
 
 const saluto = getSaluto()
 const nome = getUserName(user)
 const data = getDataFormattata()
 
+const nomeLocale = azienda?.nome || "Ristoflow"
+
 container.innerHTML = `
 
 <div class="home-container">
 
-<header class="home-header">
+<div class="app-header">
 
 <div class="header-left">
+
+<div class="hamburger" onclick="toggleMenu()">☰</div>
+
+<div class="logo">🍝</div>
+
+<div class="locale-name">
+${nomeLocale}
+</div>
+
+</div>
+
+</div>
+
+<div class="menu-overlay" id="hamburgerMenu">
+
+<div class="menu-content">
+
+${renderMenuSection("OPERATIVO",[
+["Produzione","#/produzione"],
+["Magazzino","#/magazzino"],
+["Ricette","#/ricette"],
+["Preparazioni","#/preparazioni"],
+["Vendite","#/vendite"]
+])}
+
+${renderMenuSection("AMMINISTRAZIONE",[
+["Acquisti","#/acquisti"],
+["Fornitori","#/fornitori"],
+["Dipendenti","#/dipendenti"]
+])}
+
+${renderMenuSection("GESTIONE",[
+["Margini","#/margini"],
+["Report","#/report"],
+["BEP","#/bep"]
+])}
+
+${renderMenuSection("MARKETING",[
+["Promo","#/promo"],
+["Clienti","#/clienti"]
+])}
+
+${renderMenuSection("AI",[
+["Tony","#/ai"]
+])}
+
+<div class="menu-bottom">
+
+<div onclick="logoutUser()">Logout</div>
+
+</div>
+
+</div>
+
+</div>
+
+<header class="home-header">
 
 <div class="home-title">
 ${saluto} ${nome} 👋
@@ -26,8 +86,6 @@ ${saluto} ${nome} 👋
 <div class="home-meta">
 <span>${data}</span>
 <span id="home-weather-inline">⏳</span>
-</div>
-
 </div>
 
 </header>
@@ -48,29 +106,110 @@ margin:auto;
 padding-bottom:90px;
 }
 
+.app-header{
+height:56px;
+display:flex;
+align-items:center;
+padding:0 16px;
+background:#111827;
+color:white;
+}
+
+.header-left{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.hamburger{
+font-size:22px;
+cursor:pointer;
+}
+
+.logo{
+font-size:20px;
+}
+
+.locale-name{
+font-weight:600;
+}
+
+.menu-overlay{
+position:fixed;
+top:0;
+left:-100%;
+width:260px;
+height:100%;
+background:white;
+box-shadow:4px 0 16px rgba(0,0,0,0.1);
+transition:0.3s;
+z-index:999;
+padding:20px;
+overflow:auto;
+}
+
+.menu-overlay.open{
+left:0;
+}
+
+.menu-section{
+margin-bottom:14px;
+}
+
+.menu-title{
+font-weight:700;
+cursor:pointer;
+padding:8px 0;
+}
+
+.menu-items{
+display:none;
+padding-left:10px;
+}
+
+.menu-items div{
+padding:6px 0;
+cursor:pointer;
+color:#374151;
+}
+
+.menu-items.open{
+display:block;
+}
+
+.menu-bottom{
+margin-top:30px;
+border-top:1px solid #eee;
+padding-top:14px;
+font-weight:600;
+cursor:pointer;
+}
+
 .home-header{
 background:var(--color-primary);
 color:white;
-padding:20px;
-border-radius:18px;
-margin-bottom:20px;
+padding:16px;
+border-radius:14px;
+margin:16px;
 }
 
 .home-title{
-font-size:22px;
+font-size:20px;
 font-weight:600;
 }
 
 .home-meta{
-margin-top:6px;
+margin-top:4px;
 display:flex;
-gap:12px;
+gap:10px;
+font-size:14px;
 }
 
 .dashboard-grid{
 display:grid;
 grid-template-columns:1fr;
 gap:20px;
+padding:16px;
 }
 
 @media(min-width:900px){
@@ -86,38 +225,6 @@ background:white;
 padding:20px;
 border-radius:14px;
 box-shadow:0 4px 14px rgba(0,0,0,0.06);
-}
-
-.incassi-value{
-font-size:34px;
-font-weight:700;
-margin-top:10px;
-}
-
-.kpi-row{
-display:flex;
-justify-content:space-between;
-margin-top:8px;
-}
-
-.gauge-box{
-display:flex;
-justify-content:center;
-}
-
-.prodotti-row{
-display:flex;
-justify-content:space-between;
-padding:6px 0;
-border-bottom:1px solid #eee;
-}
-
-.home-chat{
-background:#0f172a;
-color:white;
-padding:16px;
-border-radius:12px;
-margin-top:20px;
 }
 
 .home-footer{
@@ -150,11 +257,59 @@ loadAdminDashboard()
 
 }
 
+function renderMenuSection(titolo,items){
+
+return`
+
+<div class="menu-section">
+
+<div class="menu-title" onclick="toggleSection(this)">
+${titolo}
+</div>
+
+<div class="menu-items">
+
+${items.map(i=>`<div onclick="location.hash='${i[1]}'">${i[0]}</div>`).join("")}
+
+</div>
+
+</div>
+
+`
+
+}
+
+window.toggleMenu=function(){
+
+const menu=document.getElementById("hamburgerMenu")
+
+menu.classList.toggle("open")
+
+}
+
+window.toggleSection=function(el){
+
+const box=el.nextElementSibling
+
+box.classList.toggle("open")
+
+}
+
+window.logoutUser=async function(){
+
+await window.supabaseClient.auth.signOut()
+
+localStorage.removeItem("ristoflow_user")
+
+window.location.hash="#/login"
+
+}
+
 function renderAdminDashboard(ruolo){
 
 if(!(ruolo==="admin"||ruolo==="superadmin")) return ""
 
-return `
+return`
 
 <div class="dashboard-grid">
 
@@ -180,127 +335,9 @@ return `
 
 </div>
 
-<div class="card">
-
-<div class="kpi-row">
-<span>Materie prime</span>
-<strong id="mpValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>Costo lavoro</span>
-<strong id="lavoroValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>Spese generali</span>
-<strong id="speseValue">€0</strong>
-</div>
-
-</div>
-
-<div class="card">
-
-<div class="kpi-row">
-<span>Margine netto</span>
-<strong id="margineValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>BEP</span>
-<strong id="bepValue">€0</strong>
-</div>
-
-</div>
-
-<div class="card">
-
-<h3>Prodotti venduti</h3>
-
-<select id="prodottiFiltro">
-<option value="incasso">Incasso</option>
-<option value="margine">Margine</option>
-<option value="numero">Numero</option>
-</select>
-
-<div id="prodottiVenduti"></div>
-
-</div>
-
 </div>
 
 `
-
-}
-
-function loadAdminDashboard(){
-
-const incasso = 12000
-const mp = 3500
-const lavoro = 3000
-const spese = 1500
-
-const costi = mp + lavoro + spese
-const margine = incasso - costi
-
-const perc = Math.round((margine/incasso)*100)
-
-document.getElementById("incassiTotali").innerHTML="€ "+incasso
-document.getElementById("mpValue").innerHTML="€ "+mp
-document.getElementById("lavoroValue").innerHTML="€ "+lavoro
-document.getElementById("speseValue").innerHTML="€ "+spese
-document.getElementById("margineValue").innerHTML="€ "+margine
-document.getElementById("bepValue").innerHTML="€ "+costi
-
-renderGauge(perc)
-
-renderProdotti()
-
-}
-
-function renderGauge(percentuale){
-
-const ctx=document.getElementById("margineGauge")
-
-new Chart(ctx,{
-type:"doughnut",
-data:{
-datasets:[{
-data:[percentuale,100-percentuale],
-backgroundColor:["#16a34a","#e5e7eb"],
-borderWidth:0
-}]
-},
-options:{
-rotation:-90,
-circumference:180,
-cutout:"70%",
-plugins:{legend:{display:false}}
-}
-})
-
-}
-
-function renderProdotti(){
-
-const prodotti=[
-{nome:"Carbonara",incasso:3200,margine:1200,numero:140},
-{nome:"Amatriciana",incasso:2100,margine:900,numero:100},
-{nome:"Tiramisù",incasso:1500,margine:700,numero:80}
-]
-
-const container=document.getElementById("prodottiVenduti")
-
-container.innerHTML=prodotti.map(p=>`
-
-<div class="prodotti-row">
-
-<div>${p.nome}</div>
-<div>€${p.incasso}</div>
-
-</div>
-
-`).join("")
 
 }
 
@@ -308,17 +345,25 @@ function renderTonyMiniChat(){
 
 return`
 
-<div class="home-chat">
+<div style="
+position:fixed;
+bottom:90px;
+right:20px;
+width:60px;
+height:60px;
+border-radius:50%;
+background:#111827;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+font-size:26px;
+cursor:pointer;
+box-shadow:0 6px 16px rgba(0,0,0,0.2);
+"
+onclick="location.hash='#/ai'">
 
-<strong>🤖 Tony</strong>
-
-<div>Hai bisogno di aiuto?</div>
-
-<input
-placeholder="Scrivi a Tony..."
-onclick="window.location.hash='#/ai'"
-style="width:100%;padding:8px;border-radius:8px;border:none;margin-top:8px"
-/>
+🤖
 
 </div>
 
@@ -326,7 +371,7 @@ style="width:100%;padding:8px;border-radius:8px;border:none;margin-top:8px"
 
 }
 
-function renderFooter(ruolo){
+function renderFooter(){
 
 return`
 
@@ -353,14 +398,14 @@ let lon=12.49
 
 try{
 
-const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
+const url = \`\${OPEN_METEO_URL}?latitude=\${lat}&longitude=\${lon}&current=temperature_2m,weather_code\`
 
 const res = await fetch(url)
 const data = await res.json()
 
 const temp=Math.round(data.current.temperature_2m)
 
-box.innerHTML=`🌤 ${temp}°`
+box.innerHTML=\`🌤 \${temp}°\`
 
 }catch{
 
@@ -400,6 +445,6 @@ const mesi=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Ag
 
 const now=new Date()
 
-return `${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]} ${now.getFullYear()}`
+return \`\${giorni[now.getDay()]} \${now.getDate()} \${mesi[now.getMonth()]} \${now.getFullYear()}\`
 
 }
