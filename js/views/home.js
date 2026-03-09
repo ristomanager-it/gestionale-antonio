@@ -26,10 +26,19 @@ ${renderFooter()}
 <style>
 
 .home-container{
-max-width:1300px;
+max-width:1200px;
 margin:auto;
 padding:16px;
 padding-bottom:90px;
+}
+
+.topbar-info{
+margin-top:64px;
+padding:6px 16px;
+font-size:13px;
+display:flex;
+gap:12px;
+align-items:center;
 }
 
 .dashboard-grid{
@@ -38,29 +47,39 @@ grid-template-columns:1fr;
 gap:20px;
 }
 
-@media(min-width:900px){
-.dashboard-grid{
-grid-template-columns:1fr 1fr;
-}
-}
-
 .card{
 background:white;
-padding:20px;
+padding:16px;
 border-radius:14px;
 box-shadow:0 4px 14px rgba(0,0,0,0.06);
 }
 
 .incassi-value{
-font-size:34px;
+font-size:24px;
 font-weight:700;
-margin-top:10px;
+margin-top:6px;
 }
 
-.kpi-row{
-display:flex;
-justify-content:space-between;
-margin-top:8px;
+.kpi-bar{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:10px;
+margin-top:14px;
+text-align:center;
+}
+
+.kpi-name{
+font-size:12px;
+color:#6b7280;
+}
+
+.kpi-value{
+font-weight:600;
+}
+
+.kpi-perc{
+font-size:11px;
+color:#6b7280;
 }
 
 .prodotti-row{
@@ -68,6 +87,25 @@ display:flex;
 justify-content:space-between;
 padding:6px 0;
 border-bottom:1px solid #eee;
+}
+
+.home-footer{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:white;
+border-top:1px solid #eee;
+display:flex;
+flex-direction:row;
+justify-content:space-around;
+align-items:center;
+padding:10px 0;
+}
+
+.home-footer div{
+font-size:22px;
+cursor:pointer;
 }
 
 </style>
@@ -80,9 +118,7 @@ loadAdminDashboard()
 
 }
 
-/* ===============================
-HEADER
-=============================== */
+/* HEADER */
 
 function updateHeader(azienda,sede){
 
@@ -104,9 +140,7 @@ nomeBox.innerText="Ristoflow"
 
 }
 
-/* ===============================
-TOPBAR
-=============================== */
+/* TOPBAR */
 
 function initTopbar(user){
 
@@ -122,7 +156,7 @@ let saluto="Buongiorno"
 if(ora>=12 && ora<18) saluto="Buon pomeriggio"
 if(ora>=18) saluto="Buonasera"
 
-const nome = user?.nome || ""
+const nome = user?.email?.split("@")[0] || ""
 
 salutoBox.innerText=`${saluto} ${nome}`
 
@@ -137,9 +171,7 @@ hydrateWeather()
 
 }
 
-/* ===============================
-DASHBOARD ADMIN
-=============================== */
+/* DASHBOARD */
 
 function renderAdminDashboard(){
 
@@ -148,7 +180,7 @@ const isSuperadmin = window.state?.isSuperadmin === true
 
 if(!(ruolo==="admin" || isSuperadmin)) return ""
 
-return `
+return`
 
 <div class="dashboard-grid">
 
@@ -158,11 +190,11 @@ return `
 
 <div class="incassi-value" id="incassiTotali">€0</div>
 
-<div style="font-size:13px;color:#6b7280;margin-top:6px">
+<div style="font-size:12px;color:#6b7280">
 con IVA <span id="incassiIva">€0</span>
 </div>
 
-<div style="margin-top:10px">
+<div style="margin-top:6px">
 
 <button onclick="loadIncassi('giorno')">GG</button>
 <button onclick="loadIncassi('mese')">MM</button>
@@ -176,51 +208,48 @@ con IVA <span id="incassiIva">€0</span>
 
 <canvas id="margineGauge"></canvas>
 
+<div style="text-align:center;margin-top:10px;font-weight:600">
+BEP € <span id="bepValue">0</span>
+</div>
+
+<div class="kpi-bar">
+
+<div>
+<div class="kpi-name">MP</div>
+<div class="kpi-value" id="mpValue">0</div>
+<div class="kpi-perc" id="mpPerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Personale</div>
+<div class="kpi-value" id="lavoroValue">0</div>
+<div class="kpi-perc" id="lavoroPerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Costi fissi</div>
+<div class="kpi-value" id="speseValue">0</div>
+<div class="kpi-perc" id="spesePerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Margine</div>
+<div class="kpi-value" id="margineValue">0</div>
+<div class="kpi-perc" id="marginePerc">0%</div>
+</div>
+
+</div>
+
 </div>
 
 <div class="card">
 
-<div class="kpi-row">
-<span>Materie prime</span>
-<strong id="mpValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>Personale</span>
-<strong id="lavoroValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>Costi fissi</span>
-<strong id="speseValue">€0</strong>
-</div>
-
-</div>
-
-<div class="card">
-
-<div class="kpi-row">
-<span>Margine netto</span>
-<strong id="margineValue">€0</strong>
-</div>
-
-<div class="kpi-row">
-<span>BEP</span>
-<strong id="bepValue">€0</strong>
-</div>
-
-</div>
-
-<div class="card">
-
-<h3>Vendite per prodotto</h3>
+<h3>Vendite</h3>
 
 <select id="prodottiFiltro">
-
 <option value="incasso">Incasso</option>
-<option value="margine">Margine</option>
 <option value="numero">Numero</option>
-
+<option value="margine">Margine</option>
 </select>
 
 <div id="prodottiVenduti"></div>
@@ -233,9 +262,7 @@ con IVA <span id="incassiIva">€0</span>
 
 }
 
-/* ===============================
-LOAD DASHBOARD
-=============================== */
+/* LOAD DASHBOARD */
 
 function loadAdminDashboard(){
 
@@ -246,30 +273,33 @@ const mp = 3500
 const lavoro = 3000
 const spese = 1500
 
-const costi = mp + lavoro + spese
-const margine = incasso - costi
+const costi = mp+lavoro+spese
+const margine = incasso-costi
 
-const perc = Math.round((margine/incasso)*100)
+document.getElementById("incassiTotali").innerHTML="€"+incasso
+document.getElementById("incassiIva").innerHTML="€"+iva
 
-document.getElementById("incassiTotali").innerHTML="€ "+incasso
-document.getElementById("incassiIva").innerHTML="€ "+iva
+document.getElementById("mpValue").innerHTML="€"+mp
+document.getElementById("lavoroValue").innerHTML="€"+lavoro
+document.getElementById("speseValue").innerHTML="€"+spese
+document.getElementById("margineValue").innerHTML="€"+margine
+document.getElementById("bepValue").innerHTML=costi
 
-document.getElementById("mpValue").innerHTML="€ "+mp
-document.getElementById("lavoroValue").innerHTML="€ "+lavoro
-document.getElementById("speseValue").innerHTML="€ "+spese
+document.getElementById("mpPerc").innerHTML=Math.round(mp/incasso*100)+"%"
+document.getElementById("lavoroPerc").innerHTML=Math.round(lavoro/incasso*100)+"%"
+document.getElementById("spesePerc").innerHTML=Math.round(spese/incasso*100)+"%"
+document.getElementById("marginePerc").innerHTML=Math.round(margine/incasso*100)+"%"
 
-document.getElementById("margineValue").innerHTML="€ "+margine
-document.getElementById("bepValue").innerHTML="€ "+costi
-
-renderGauge(perc)
-
+renderGauge(Math.round(margine/incasso*100))
 renderProdotti()
+
+document
+.getElementById("prodottiFiltro")
+.addEventListener("change",renderProdotti)
 
 }
 
-/* ===============================
-GAUGE
-=============================== */
+/* GAUGE */
 
 function renderGauge(percentuale){
 
@@ -279,8 +309,14 @@ new Chart(ctx,{
 type:"doughnut",
 data:{
 datasets:[{
-data:[percentuale,100-percentuale],
-backgroundColor:["#22c55e","#e5e7eb"],
+data:[20,20,20,20,20],
+backgroundColor:[
+"#ef4444",
+"#f97316",
+"#eab308",
+"#22c55e",
+"#16a34a"
+],
 borderWidth:0
 }]
 },
@@ -294,36 +330,34 @@ plugins:{legend:{display:false}}
 
 }
 
-/* ===============================
-PRODOTTI
-=============================== */
+/* PRODOTTI */
 
 function renderProdotti(){
 
-const prodotti=[
+const filtro=document.getElementById("prodottiFiltro").value
+
+let prodotti=[
 {nome:"Carbonara",incasso:3200,margine:1200,numero:140},
 {nome:"Amatriciana",incasso:2100,margine:900,numero:100},
 {nome:"Tiramisù",incasso:1500,margine:700,numero:80}
 ]
+
+prodotti.sort((a,b)=>b[filtro]-a[filtro])
 
 const container=document.getElementById("prodottiVenduti")
 
 container.innerHTML=prodotti.map(p=>`
 
 <div class="prodotti-row">
-
 <div>${p.nome}</div>
-<div>€${p.incasso}</div>
-
+<div>${p[filtro]}</div>
 </div>
 
 `).join("")
 
 }
 
-/* ===============================
-TONY
-=============================== */
+/* TONY */
 
 function renderTonyAvatar(){
 
@@ -343,7 +377,6 @@ justify-content:center;
 color:white;
 font-size:26px;
 cursor:pointer;
-box-shadow:0 6px 16px rgba(0,0,0,0.2);
 "
 onclick="location.hash='#/ai'">
 
@@ -355,9 +388,7 @@ onclick="location.hash='#/ai'">
 
 }
 
-/* ===============================
-FOOTER
-=============================== */
+/* FOOTER */
 
 function renderFooter(){
 
@@ -377,9 +408,7 @@ return`
 
 }
 
-/* ===============================
-METEO
-=============================== */
+/* METEO */
 
 async function hydrateWeather(){
 
@@ -390,14 +419,14 @@ let lon=12.49
 
 try{
 
-const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+const url=\`${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m\`
 
-const res = await fetch(url)
-const data = await res.json()
+const res=await fetch(url)
+const data=await res.json()
 
 const temp=Math.round(data.current.temperature_2m)
 
-box.innerHTML=`🌤 ${temp}°`
+box.innerHTML=\`🌤 ${temp}°\`
 
 }catch{
 
