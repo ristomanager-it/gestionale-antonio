@@ -202,7 +202,7 @@ margin:20px;
 
 hydrateWeather();
 
-if(ruolo === "admin"){
+if(ruolo === "admin" || ruolo === "superadmin"){
 renderAdminChart();
 }
 
@@ -210,7 +210,7 @@ renderAdminChart();
 
 function renderMainSection(ruolo){
 
-if(ruolo === "admin"){
+if(ruolo === "admin" || ruolo === "superadmin"){
 
 return `
 
@@ -290,7 +290,7 @@ style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:none"
 
 function renderFooterNav(ruolo){
 
-if(ruolo === "admin"){
+if(ruolo === "admin" || ruolo === "superadmin"){
 
 return `
 
