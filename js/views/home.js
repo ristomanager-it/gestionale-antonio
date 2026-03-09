@@ -1,215 +1,40 @@
-// js/views/home.js
-
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 export async function render(container){
 
-const user = window.state.user
+const user = window.state?.user
 const ruolo = window.state?.ruolo
 const azienda = window.state?.azienda
+const sede = window.state?.sedeAttiva
 
-const saluto = getSaluto()
-const nome = getUserName(user)
-const data = getDataFormattata()
-
-const nomeLocale = azienda?.nome || "Ristoflow"
+updateHeader(azienda,sede)
+initTopbar(user)
 
 container.innerHTML = `
 
 <div class="home-container">
 
-<div class="app-header">
-
-<div class="header-left">
-
-<div class="hamburger" onclick="toggleMenu()">☰</div>
-
-<div class="logo">🍝</div>
-
-<div class="locale-name">
-${nomeLocale}
-</div>
-
-</div>
-
-</div>
-
-<div class="menu-overlay" id="hamburgerMenu">
-
-<div class="menu-content">
-
-${renderMenuSection("OPERATIVO",[
-["Produzione","#/produzione"],
-["Magazzino","#/magazzino"],
-["Ricette","#/ricette"],
-["Preparazioni","#/preparazioni"],
-["Vendite","#/vendite"]
-])}
-
-${renderMenuSection("AMMINISTRAZIONE",[
-["Acquisti","#/acquisti"],
-["Fornitori","#/fornitori"],
-["Dipendenti","#/dipendenti"]
-])}
-
-${renderMenuSection("GESTIONE",[
-["Margini","#/margini"],
-["Report","#/report"],
-["BEP","#/bep"]
-])}
-
-${renderMenuSection("MARKETING",[
-["Promo","#/promo"],
-["Clienti","#/clienti"]
-])}
-
-${renderMenuSection("AI",[
-["Tony","#/ai"]
-])}
-
-<div class="menu-bottom">
-
-<div onclick="logoutUser()">Logout</div>
-
-</div>
-
-</div>
-
-</div>
-
-<header class="home-header">
-
-<div class="home-title">
-${saluto} ${nome} 👋
-</div>
-
-<div class="home-meta">
-<span>${data}</span>
-<span id="home-weather-inline">⏳</span>
-</div>
-
-</header>
-
 ${renderAdminDashboard(ruolo)}
 
-${renderTonyMiniChat()}
+${renderTonyAvatar()}
 
-${renderFooter(ruolo)}
+${renderFooter()}
 
 </div>
 
 <style>
 
 .home-container{
-max-width:1400px;
+max-width:1300px;
 margin:auto;
-padding-bottom:90px;
-}
-
-.app-header{
-height:56px;
-display:flex;
-align-items:center;
-padding:0 16px;
-background:#111827;
-color:white;
-}
-
-.header-left{
-display:flex;
-align-items:center;
-gap:10px;
-}
-
-.hamburger{
-font-size:22px;
-cursor:pointer;
-}
-
-.logo{
-font-size:20px;
-}
-
-.locale-name{
-font-weight:600;
-}
-
-.menu-overlay{
-position:fixed;
-top:0;
-left:-100%;
-width:260px;
-height:100%;
-background:white;
-box-shadow:4px 0 16px rgba(0,0,0,0.1);
-transition:0.3s;
-z-index:999;
-padding:20px;
-overflow:auto;
-}
-
-.menu-overlay.open{
-left:0;
-}
-
-.menu-section{
-margin-bottom:14px;
-}
-
-.menu-title{
-font-weight:700;
-cursor:pointer;
-padding:8px 0;
-}
-
-.menu-items{
-display:none;
-padding-left:10px;
-}
-
-.menu-items div{
-padding:6px 0;
-cursor:pointer;
-color:#374151;
-}
-
-.menu-items.open{
-display:block;
-}
-
-.menu-bottom{
-margin-top:30px;
-border-top:1px solid #eee;
-padding-top:14px;
-font-weight:600;
-cursor:pointer;
-}
-
-.home-header{
-background:var(--color-primary);
-color:white;
 padding:16px;
-border-radius:14px;
-margin:16px;
-}
-
-.home-title{
-font-size:20px;
-font-weight:600;
-}
-
-.home-meta{
-margin-top:4px;
-display:flex;
-gap:10px;
-font-size:14px;
+padding-bottom:90px;
 }
 
 .dashboard-grid{
 display:grid;
 grid-template-columns:1fr;
 gap:20px;
-padding:16px;
 }
 
 @media(min-width:900px){
@@ -227,99 +52,111 @@ border-radius:14px;
 box-shadow:0 4px 14px rgba(0,0,0,0.06);
 }
 
-.home-footer{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:white;
-border-top:1px solid #eee;
-display:flex;
-justify-content:space-around;
-padding:10px 0;
-box-shadow:0 -4px 12px rgba(0,0,0,0.08);
+.incassi-value{
+font-size:34px;
+font-weight:700;
+margin-top:10px;
 }
 
-.home-footer div{
-font-size:22px;
-cursor:pointer;
+.kpi-row{
+display:flex;
+justify-content:space-between;
+margin-top:8px;
+}
+
+.prodotti-row{
+display:flex;
+justify-content:space-between;
+padding:6px 0;
+border-bottom:1px solid #eee;
 }
 
 </style>
 
 `
 
-hydrateWeather()
-
-if(ruolo==="admin"||ruolo==="superadmin"){
+if(ruolo==="admin" || ruolo==="superadmin"){
 loadAdminDashboard()
 }
 
 }
 
-function renderMenuSection(titolo,items){
+/* ===============================
+HEADER
+=============================== */
 
-return`
+function updateHeader(azienda,sede){
 
-<div class="menu-section">
+const nomeBox = document.getElementById("header-azienda-nome")
 
-<div class="menu-title" onclick="toggleSection(this)">
-${titolo}
-</div>
+if(!nomeBox) return
 
-<div class="menu-items">
-
-${items.map(i=>`<div onclick="location.hash='${i[1]}'">${i[0]}</div>`).join("")}
-
-</div>
-
-</div>
-
-`
+if(sede){
+nomeBox.innerText = sede.nome
+}else if(azienda){
+nomeBox.innerText = azienda.nome
+}else{
+nomeBox.innerText = "Ristoflow"
+}
 
 }
 
-window.toggleMenu=function(){
+/* ===============================
+TOPBAR
+=============================== */
 
-const menu=document.getElementById("hamburgerMenu")
+function initTopbar(user){
 
-menu.classList.toggle("open")
+const salutoBox = document.getElementById("topbar-saluto")
+const dataBox = document.getElementById("topbar-data")
+
+if(!salutoBox) return
+
+const ora = new Date().getHours()
+
+let saluto="Buongiorno"
+
+if(ora>=12 && ora<18) saluto="Buon pomeriggio"
+if(ora>=18) saluto="Buonasera"
+
+const nome = user?.nome || ""
+
+salutoBox.innerText=`${saluto} ${nome}`
+
+const giorni=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"]
+const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]
+
+const now=new Date()
+
+dataBox.innerText=`${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]}`
+
+hydrateWeather()
 
 }
 
-window.toggleSection=function(el){
-
-const box=el.nextElementSibling
-
-box.classList.toggle("open")
-
-}
-
-window.logoutUser=async function(){
-
-await window.supabaseClient.auth.signOut()
-
-localStorage.removeItem("ristoflow_user")
-
-window.location.hash="#/login"
-
-}
+/* ===============================
+DASHBOARD ADMIN
+=============================== */
 
 function renderAdminDashboard(ruolo){
 
-if(!(ruolo==="admin"||ruolo==="superadmin")) return ""
+if(!(ruolo==="admin" || ruolo==="superadmin")) return ""
 
-return`
+return `
 
 <div class="dashboard-grid">
 
 <div class="card">
 
-<div>Incassi</div>
+<div>Incassi netti</div>
 
 <div class="incassi-value" id="incassiTotali">€0</div>
 
-<div>
+<div style="font-size:13px;color:#6b7280;margin-top:6px">
+con IVA <span id="incassiIva">€0</span>
+</div>
+
+<div style="margin-top:10px">
 
 <button onclick="loadIncassi('giorno')">GG</button>
 <button onclick="loadIncassi('mese')">MM</button>
@@ -329,9 +166,58 @@ return`
 
 </div>
 
-<div class="card gauge-box">
+<div class="card">
 
 <canvas id="margineGauge"></canvas>
+
+</div>
+
+<div class="card">
+
+<div class="kpi-row">
+<span>Materie prime</span>
+<strong id="mpValue">€0</strong>
+</div>
+
+<div class="kpi-row">
+<span>Personale</span>
+<strong id="lavoroValue">€0</strong>
+</div>
+
+<div class="kpi-row">
+<span>Costi fissi</span>
+<strong id="speseValue">€0</strong>
+</div>
+
+</div>
+
+<div class="card">
+
+<div class="kpi-row">
+<span>Margine netto</span>
+<strong id="margineValue">€0</strong>
+</div>
+
+<div class="kpi-row">
+<span>BEP</span>
+<strong id="bepValue">€0</strong>
+</div>
+
+</div>
+
+<div class="card">
+
+<h3>Vendite per prodotto</h3>
+
+<select id="prodottiFiltro">
+
+<option value="incasso">Incasso</option>
+<option value="margine">Margine</option>
+<option value="numero">Numero</option>
+
+</select>
+
+<div id="prodottiVenduti"></div>
 
 </div>
 
@@ -341,7 +227,99 @@ return`
 
 }
 
-function renderTonyMiniChat(){
+/* ===============================
+LOAD DASHBOARD
+=============================== */
+
+function loadAdminDashboard(){
+
+const incasso = 12000
+const iva = 14400
+
+const mp = 3500
+const lavoro = 3000
+const spese = 1500
+
+const costi = mp + lavoro + spese
+const margine = incasso - costi
+
+const perc = Math.round((margine/incasso)*100)
+
+document.getElementById("incassiTotali").innerHTML="€ "+incasso
+document.getElementById("incassiIva").innerHTML="€ "+iva
+
+document.getElementById("mpValue").innerHTML="€ "+mp
+document.getElementById("lavoroValue").innerHTML="€ "+lavoro
+document.getElementById("speseValue").innerHTML="€ "+spese
+
+document.getElementById("margineValue").innerHTML="€ "+margine
+document.getElementById("bepValue").innerHTML="€ "+costi
+
+renderGauge(perc)
+
+renderProdotti()
+
+}
+
+/* ===============================
+GAUGE
+=============================== */
+
+function renderGauge(percentuale){
+
+const ctx=document.getElementById("margineGauge")
+
+new Chart(ctx,{
+type:"doughnut",
+data:{
+datasets:[{
+data:[percentuale,100-percentuale],
+backgroundColor:["#22c55e","#e5e7eb"],
+borderWidth:0
+}]
+},
+options:{
+rotation:-90,
+circumference:180,
+cutout:"70%",
+plugins:{legend:{display:false}}
+}
+})
+
+}
+
+/* ===============================
+PRODOTTI
+=============================== */
+
+function renderProdotti(){
+
+const prodotti=[
+{nome:"Carbonara",incasso:3200,margine:1200,numero:140},
+{nome:"Amatriciana",incasso:2100,margine:900,numero:100},
+{nome:"Tiramisù",incasso:1500,margine:700,numero:80}
+]
+
+const container=document.getElementById("prodottiVenduti")
+
+container.innerHTML=prodotti.map(p=>`
+
+<div class="prodotti-row">
+
+<div>${p.nome}</div>
+<div>€${p.incasso}</div>
+
+</div>
+
+`).join("")
+
+}
+
+/* ===============================
+TONY
+=============================== */
+
+function renderTonyAvatar(){
 
 return`
 
@@ -371,6 +349,10 @@ onclick="location.hash='#/ai'">
 
 }
 
+/* ===============================
+FOOTER
+=============================== */
+
 function renderFooter(){
 
 return`
@@ -379,8 +361,8 @@ return`
 
 <div onclick="location.hash='#/produzione'">🏭</div>
 <div onclick="location.hash='#/magazzino'">📦</div>
-<div onclick="location.hash='#/ricette'">📖</div>
-<div onclick="location.hash='#/report'">📊</div>
+<div onclick="location.hash='#/ricettario'">📖</div>
+<div onclick="location.hash='#/venduto'">📊</div>
 <div onclick="location.hash='#/ai'">🤖</div>
 
 </div>
@@ -389,62 +371,32 @@ return`
 
 }
 
+/* ===============================
+METEO
+=============================== */
+
 async function hydrateWeather(){
 
-const box=document.getElementById("home-weather-inline")
+const box=document.getElementById("topbar-weather")
 
 let lat=41.9
 let lon=12.49
 
 try{
 
-const url = \`\${OPEN_METEO_URL}?latitude=\${lat}&longitude=\${lon}&current=temperature_2m,weather_code\`
+const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m`
 
 const res = await fetch(url)
 const data = await res.json()
 
 const temp=Math.round(data.current.temperature_2m)
 
-box.innerHTML=\`🌤 \${temp}°\`
+box.innerHTML=`🌤 ${temp}°`
 
 }catch{
 
 box.innerHTML="☁️"
 
 }
-
-}
-
-function getUserName(user){
-
-if(!user) return ""
-
-if(user.nome) return user.nome
-
-if(user.email) return user.email.split("@")[0]
-
-return ""
-
-}
-
-function getSaluto(){
-
-const ora=new Date().getHours()
-
-if(ora<12) return "Buongiorno"
-if(ora<18) return "Buon pomeriggio"
-
-return "Buonasera"
-
-}
-
-function getDataFormattata(){
-
-const giorni=["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"]
-const mesi=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-
-const now=new Date()
-
-return \`\${giorni[now.getDay()]} \${now.getDate()} \${mesi[now.getMonth()]} \${now.getFullYear()}\`
 
 }
