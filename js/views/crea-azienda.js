@@ -16,66 +16,79 @@ export async function render(container) {
     return;
   }
 
+  /* -----------------------------
+     CARICA PIANI ABBONAMENTO
+  ----------------------------- */
+
+  const { data: piani } = await supabase
+    .from("piani_abbonamento")
+    .select("id,nome,prezzo_mensile")
+    .order("prezzo_mensile");
+
+  const optionsPiani = (piani || [])
+    .map(p =>
+      `<option value="${p.id}">
+        ${p.nome} - €${p.prezzo_mensile}
+      </option>`
+    ).join("");
+
+  /* -----------------------------
+     UI
+  ----------------------------- */
+
   const content = `
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      
+
+  <div style="max-width:900px;margin:auto;">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
       <div>
-        <div style="font-size:16px;color:#6b7280;">
-          Provisioning
-        </div>
-
-        <div style="margin-top:4px;font-weight:700;font-size:22px;">
-          Nuova azienda cliente
-        </div>
-
-        <div style="margin-top:6px;font-size:15px;color:#6b7280;">
-          Crea azienda cliente e assegna accesso admin.
-        </div>
+        <div style="font-size:14px;color:#6b7280;">Provisioning</div>
+        <div style="font-size:26px;font-weight:700;">Nuova azienda</div>
       </div>
 
-      <button class="app-button small gray" id="btn-home-top">
+      <button class="app-button small gray" id="btn-home">
         ⬅ Dashboard
       </button>
-
     </div>
 
 
-    <form id="azienda-form" class="form-stack">
+    <form id="azienda-form">
 
       <div style="
         display:grid;
-        gap:20px;
-        grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+        gap:22px;
+        grid-template-columns:1fr 1fr;
       ">
 
+        <div class="card-soft">
 
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:20px;padding:22px;">
-
-          <div style="font-weight:700;font-size:18px;margin-bottom:16px;">
+          <div class="card-title">
             Dati azienda
           </div>
 
           <label>
             Nome azienda
-            <input id="az-nome" class="input-pill" required>
+            <input id="az-nome" required class="input-pill">
           </label>
 
           <label>
             Codice azienda
-            <input id="az-codice" class="input-pill" required>
+            <input id="az-codice" required class="input-pill">
           </label>
 
           <label>
-            Piano di affiliazione
-            <select id="az-piano" class="input-pill"></select>
+            Piano abbonamento
+            <select id="az-piano" class="input-pill">
+              ${optionsPiani}
+            </select>
           </label>
 
         </div>
 
 
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:20px;padding:22px;">
+        <div class="card-soft">
 
-          <div style="font-weight:700;font-size:18px;margin-bottom:16px;">
+          <div class="card-title">
             Accesso admin
           </div>
 
@@ -85,13 +98,13 @@ export async function render(container) {
           </label>
 
           <label>
-            Password admin
-            <input id="az-password-admin" type="text" class="input-pill">
+            Password
+            <input id="az-password" required class="input-pill">
           </label>
 
           <label>
-            Email amministrativa
-            <input id="az-email-amministrativa" type="email" class="input-pill" required>
+            Email contatto
+            <input id="az-email" type="email" required class="input-pill">
           </label>
 
         </div>
@@ -99,21 +112,22 @@ export async function render(container) {
       </div>
 
 
-      <div style="display:flex;gap:10px;margin-top:18px;">
+      <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
 
-        <button type="submit" class="app-button green" id="btn-submit">
+        <button class="app-button green" id="btn-submit">
           Crea azienda
-        </button>
-
-        <button type="button" class="app-button small gray" id="btn-home">
-          ⬅ Dashboard
         </button>
 
       </div>
 
     </form>
 
-    <div id="azienda-error" style="margin-top:16px;color:#dc2626;"></div>
+    <div id="error-box"
+      style="margin-top:16px;color:#dc2626;font-size:14px;">
+    </div>
+
+  </div>
+
   `;
 
   container.innerHTML = createPageLayout({
@@ -122,110 +136,93 @@ export async function render(container) {
     content: createCard({ body: content })
   });
 
-
-  const goHome = () => {
+  document.getElementById("btn-home").onclick = () => {
     window.location.hash = "#/homePiattaforma";
   };
 
-  document.getElementById("btn-home")?.addEventListener("click", goHome);
-  document.getElementById("btn-home-top")?.addEventListener("click", goHome);
-
-
-  /* -------------------------
-     CARICA PIANI DAL DB
-  ------------------------- */
-
-  const pianoSelect = document.getElementById("az-piano");
-
-  const { data: piani } = await supabase
-    .from("piani_abbonamento")
-    .select("id,nome")
-    .eq("attivo", true)
-    .order("nome");
-
-  if (piani) {
-
-    pianoSelect.innerHTML = "";
-
-    piani.forEach(p => {
-
-      const option = document.createElement("option");
-
-      option.value = p.id;
-      option.textContent = p.nome;
-
-      pianoSelect.appendChild(option);
-
-    });
-
-  }
-
-
-  /* -------------------------
-     SUBMIT FORM
-  ------------------------- */
-
   const form = document.getElementById("azienda-form");
-  const errorEl = document.getElementById("azienda-error");
-  const btnSubmit = document.getElementById("btn-submit");
+  const errorBox = document.getElementById("error-box");
+  const btn = document.getElementById("btn-submit");
 
+  /* -----------------------------
+     SUBMIT
+  ----------------------------- */
 
   form.addEventListener("submit", async (e) => {
 
     e.preventDefault();
 
-    errorEl.textContent = "";
+    errorBox.textContent = "";
 
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
-    const piano = document.getElementById("az-piano").value;
+    const piano_id = document.getElementById("az-piano").value;
+    const email = document.getElementById("az-email").value.trim();
+    const password = document.getElementById("az-password").value.trim();
 
-    const email = document
-      .getElementById("az-email-amministrativa")
-      .value
-      .trim()
-      .toLowerCase();
-
-    let password = document
-      .getElementById("az-password-admin")
-      .value
-      .trim();
-
-
-    if (!nome || !codice || !email) {
-      errorEl.textContent = "Compila tutti i campi obbligatori.";
-      return;
-    }
-
-    if (!password) {
-      password = crypto.randomUUID().slice(0,10);
-    }
-
-    const prevText = btnSubmit.textContent;
-
-    btnSubmit.disabled = true;
-    btnSubmit.textContent = "Creazione in corso...";
-
+    btn.disabled = true;
+    btn.textContent = "Creazione...";
 
     try {
 
-      const { error } =
-        await supabase.functions.invoke("create-azienda", {
-          body: {
-            nome,
-            codice,
+      /* -----------------------------
+         CREA AZIENDA
+      ----------------------------- */
+
+      const { data: azienda, error: aziendaError } =
+        await supabase
+          .from("aziende")
+          .insert({
+            nome: nome,
+            codice: codice,
             slug: codice.toLowerCase(),
-            piano_id: piano,
-            username: "admin",
+            piano_id: piano_id,
             email_amministrativa: email,
-            password_admin: password
-          }
+            stato: "attiva",
+            stato_attivazione: "bozza"
+          })
+          .select()
+          .single();
+
+      if (aziendaError) throw aziendaError;
+
+      /* -----------------------------
+         CREA UTENTE ADMIN
+      ----------------------------- */
+
+      const { data: userData, error: userError } =
+        await supabase.auth.signUp({
+          email: email,
+          password: password
         });
 
-      if (error) throw error;
+      if (userError) throw userError;
 
+      const userId = userData.user.id;
 
-      const messaggio =
+      /* -----------------------------
+         COLLEGA UTENTE AZIENDA
+      ----------------------------- */
+
+      const { error: linkError } =
+        await supabase
+          .from("utenti_aziende")
+          .insert({
+            user_id: userId,
+            azienda_id: azienda.id,
+            ruolo: "admin",
+            attivo: true,
+            stato_invito: "attivo",
+            email: email
+          });
+
+      if (linkError) throw linkError;
+
+      /* -----------------------------
+         COPIA CREDENZIALI
+      ----------------------------- */
+
+      const testo =
 `Accesso Ristoflow
 
 Username: admin
@@ -238,7 +235,7 @@ Email contatto:
 ${email}
 `;
 
-      navigator.clipboard.writeText(messaggio);
+      navigator.clipboard.writeText(testo);
 
       alert("Azienda creata.\nCredenziali copiate negli appunti.");
 
@@ -246,16 +243,15 @@ ${email}
 
     } catch (err) {
 
-      console.error("create-azienda error:", err);
+      console.error(err);
 
-      errorEl.textContent =
-        err?.message ||
-        "Errore durante la creazione dell'azienda.";
+      errorBox.textContent =
+        err.message || "Errore creazione azienda";
 
     } finally {
 
-      btnSubmit.disabled = false;
-      btnSubmit.textContent = prevText;
+      btn.disabled = false;
+      btn.textContent = "Crea azienda";
 
     }
 
