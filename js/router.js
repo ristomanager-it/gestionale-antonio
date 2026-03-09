@@ -165,7 +165,10 @@ async function renderView(routeName) {
 ========================================================= */
 
 function isSuperadmin() {
-  return window.state?.isSuperadmin === true;
+  if (window.state?.isSuperadmin === true) return true;
+
+  const aziende = window.state?.aziende || [];
+  return aziende.some(a => a.ruolo === "superadmin");
 }
 
 function hasPermission(area) {
