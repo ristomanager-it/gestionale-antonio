@@ -1,137 +1,123 @@
 // js/views/home.js
-// Home dashboard con:
-// - header utente + meteo
-// - home admin con grafico margini
-// - task operativi per altri ruoli
-// - mini chat Tony
-// - footer con azioni rapide
 
-const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-export async function render(container) {
+export async function render(container){
 
-  const user = window.state.user;
-  const azienda = window.state.azienda;
-  const ruolo = window.state?.ruolo;
+const user = window.state.user
+const ruolo = window.state?.ruolo
 
-  if (!user || !azienda) {
-    container.innerHTML = `<div class="view">Errore caricamento dashboard</div>`;
-    return;
-  }
+const saluto = getSaluto()
+const nome = getUserName(user)
+const data = getDataFormattata()
 
-  if (!window.state.sedi || window.state.sedi.length === 0) {
-    await window.stateActions.caricaSedi();
-  }
+container.innerHTML = `
 
-  const sedi = window.state.sedi || [];
+<div class="home-container">
 
-  if (sedi.length === 1 && !window.state.sedeAttiva) {
-    window.stateActions.setSedeAttiva(sedi[0]);
-  }
+<header class="home-header">
 
-  const saluto = getSaluto();
-  const dataOggi = getDataFormattata();
-  const nomeUtente = getUserName(user);
+<div class="header-left">
 
-  container.innerHTML = `
+<div class="home-title">
+${saluto} ${nome} 👋
+</div>
 
-  <div class="view home-view">
+<div class="home-meta">
+<span>${data}</span>
+<span id="home-weather-inline">⏳</span>
+</div>
 
-    <div class="home-header">
+</div>
 
-      <div>
+</header>
 
-        <div class="home-title">
-          ${saluto} ${nomeUtente} 👋
-        </div>
+${renderAdminDashboard(ruolo)}
 
-        <div class="home-meta">
-          <span>${dataOggi}</span>
-          <span id="home-weather-inline">⏳</span>
-        </div>
+${renderTonyMiniChat()}
 
-        <div class="home-sede">
-          ${
-            window.state.sedeAttiva
-              ? `Sede: <strong>${window.state.sedeAttiva.nome}</strong>`
-              : `Seleziona una sede`
-          }
-        </div>
+${renderFooter(ruolo)}
 
-      </div>
-
-      <div>
-        ${renderSedeSelector()}
-      </div>
-
-    </div>
-
-    ${renderMainSection(ruolo)}
-
-    ${renderTonyMiniChat()}
-
-    ${renderFooterNav(ruolo)}
-
-  </div>
+</div>
 
 <style>
 
-.home-view{
-display:flex;
-flex-direction:column;
-height:100%;
+.home-container{
+max-width:1400px;
+margin:auto;
+padding-bottom:90px;
 }
 
 .home-header{
 background:var(--color-primary);
 color:white;
-padding:22px;
-border-bottom-left-radius:22px;
-border-bottom-right-radius:22px;
+padding:20px;
+border-radius:18px;
+margin-bottom:20px;
 }
 
 .home-title{
-font-size:20px;
+font-size:22px;
 font-weight:600;
 }
 
 .home-meta{
 margin-top:6px;
 display:flex;
-gap:14px;
+gap:12px;
 }
 
-.home-sede{
-margin-top:6px;
-font-size:14px;
-opacity:0.9;
+.dashboard-grid{
+display:grid;
+grid-template-columns:1fr;
+gap:20px;
 }
 
-.home-main{
-padding:20px;
+@media(min-width:900px){
+
+.dashboard-grid{
+grid-template-columns:1fr 1fr;
 }
 
-.task-card{
+}
+
+.card{
 background:white;
-padding:16px;
-border-radius:12px;
-margin-bottom:10px;
-box-shadow:0 4px 16px rgba(0,0,0,0.06);
+padding:20px;
+border-radius:14px;
+box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+
+.incassi-value{
+font-size:34px;
+font-weight:700;
+margin-top:10px;
+}
+
+.kpi-row{
 display:flex;
 justify-content:space-between;
-align-items:center;
+margin-top:8px;
 }
 
-.task-title{
-font-weight:600;
+.gauge-box{
+display:flex;
+justify-content:center;
+}
+
+.prodotti-row{
+display:flex;
+justify-content:space-between;
+padding:6px 0;
+border-bottom:1px solid #eee;
 }
 
 .home-chat{
-margin:20px;
 background:#0f172a;
 color:white;
 padding:16px;
-border-radius:14px;
+border-radius:12px;
+margin-top:20px;
 }
 
 .home-footer{
@@ -152,366 +138,268 @@ font-size:22px;
 cursor:pointer;
 }
 
-.admin-chart{
-background:white;
-padding:20px;
-border-radius:14px;
-box-shadow:0 4px 16px rgba(0,0,0,0.06);
-margin:20px;
-}
-
 </style>
-`;
 
-  hydrateWeather();
+`
 
-  if (ruolo === "admin" || ruolo === "superadmin") {
-    renderAdminChart();
-  }
+hydrateWeather()
+
+if(ruolo==="admin"||ruolo==="superadmin"){
+loadAdminDashboard()
 }
 
-function renderMainSection(ruolo){
+}
 
-  if(ruolo === "admin" || ruolo === "superadmin"){
+function renderAdminDashboard(ruolo){
 
-    return `
+if(!(ruolo==="admin"||ruolo==="superadmin")) return ""
 
-    <div class="admin-chart">
+return `
 
-      <h3>Margini azienda</h3>
+<div class="dashboard-grid">
 
-      <canvas id="marginiChart"></canvas>
+<div class="card">
 
-    </div>
+<div>Incassi</div>
 
-    `;
+<div class="incassi-value" id="incassiTotali">€0</div>
 
-  }
+<div>
 
-  const tasks = getTasksByRole(ruolo);
+<button onclick="loadIncassi('giorno')">GG</button>
+<button onclick="loadIncassi('mese')">MM</button>
+<button onclick="loadIncassi('anno')">AAAA</button>
 
-  return `
+</div>
 
-  <div class="home-main">
+</div>
 
-  <h3>Compiti assegnati</h3>
+<div class="card gauge-box">
 
-  ${tasks.map(t=>`
+<canvas id="margineGauge"></canvas>
 
-  <div class="task-card">
+</div>
 
-  <div>
+<div class="card">
 
-  <div class="task-title">${t.title}</div>
+<div class="kpi-row">
+<span>Materie prime</span>
+<strong id="mpValue">€0</strong>
+</div>
 
-  <div>${t.desc}</div>
+<div class="kpi-row">
+<span>Costo lavoro</span>
+<strong id="lavoroValue">€0</strong>
+</div>
 
-  </div>
+<div class="kpi-row">
+<span>Spese generali</span>
+<strong id="speseValue">€0</strong>
+</div>
 
-  <button onclick="window.location.hash='${t.route}'">Apri</button>
+</div>
 
-  </div>
+<div class="card">
 
-  `).join("")}
+<div class="kpi-row">
+<span>Margine netto</span>
+<strong id="margineValue">€0</strong>
+</div>
 
-  </div>
+<div class="kpi-row">
+<span>BEP</span>
+<strong id="bepValue">€0</strong>
+</div>
 
-  `;
+</div>
+
+<div class="card">
+
+<h3>Prodotti venduti</h3>
+
+<select id="prodottiFiltro">
+<option value="incasso">Incasso</option>
+<option value="margine">Margine</option>
+<option value="numero">Numero</option>
+</select>
+
+<div id="prodottiVenduti"></div>
+
+</div>
+
+</div>
+
+`
+
+}
+
+function loadAdminDashboard(){
+
+const incasso = 12000
+const mp = 3500
+const lavoro = 3000
+const spese = 1500
+
+const costi = mp + lavoro + spese
+const margine = incasso - costi
+
+const perc = Math.round((margine/incasso)*100)
+
+document.getElementById("incassiTotali").innerHTML="€ "+incasso
+document.getElementById("mpValue").innerHTML="€ "+mp
+document.getElementById("lavoroValue").innerHTML="€ "+lavoro
+document.getElementById("speseValue").innerHTML="€ "+spese
+document.getElementById("margineValue").innerHTML="€ "+margine
+document.getElementById("bepValue").innerHTML="€ "+costi
+
+renderGauge(perc)
+
+renderProdotti()
+
+}
+
+function renderGauge(percentuale){
+
+const ctx=document.getElementById("margineGauge")
+
+new Chart(ctx,{
+type:"doughnut",
+data:{
+datasets:[{
+data:[percentuale,100-percentuale],
+backgroundColor:["#16a34a","#e5e7eb"],
+borderWidth:0
+}]
+},
+options:{
+rotation:-90,
+circumference:180,
+cutout:"70%",
+plugins:{legend:{display:false}}
+}
+})
+
+}
+
+function renderProdotti(){
+
+const prodotti=[
+{nome:"Carbonara",incasso:3200,margine:1200,numero:140},
+{nome:"Amatriciana",incasso:2100,margine:900,numero:100},
+{nome:"Tiramisù",incasso:1500,margine:700,numero:80}
+]
+
+const container=document.getElementById("prodottiVenduti")
+
+container.innerHTML=prodotti.map(p=>`
+
+<div class="prodotti-row">
+
+<div>${p.nome}</div>
+<div>€${p.incasso}</div>
+
+</div>
+
+`).join("")
 
 }
 
 function renderTonyMiniChat(){
 
-return `
+return`
 
 <div class="home-chat">
 
 <strong>🤖 Tony</strong>
 
-<div>
-
-Hai bisogno di aiuto? Scrivi a Tony.
-
-</div>
+<div>Hai bisogno di aiuto?</div>
 
 <input
 placeholder="Scrivi a Tony..."
 onclick="window.location.hash='#/ai'"
-style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:none"
+style="width:100%;padding:8px;border-radius:8px;border:none;margin-top:8px"
 />
 
 </div>
 
-`;
+`
 
 }
 
-function renderFooterNav(ruolo){
+function renderFooter(ruolo){
 
-if(ruolo === "admin" || ruolo === "superadmin"){
-
-return `
-
-<div class="home-footer">
-
-<div onclick="location.hash='#/dashboard'">📊</div>
-
-<div onclick="location.hash='#/acquisti'">🧾</div>
-
-<div onclick="location.hash='#/magazzino'">📦</div>
-
-<div onclick="location.hash='#/dipendenti'">👥</div>
-
-<div onclick="location.hash='#/ai'">🤖</div>
-
-</div>
-
-`;
-
-}
-
-if(ruolo === "manager_cucina"){
-
-return `
+return`
 
 <div class="home-footer">
 
 <div onclick="location.hash='#/produzione'">🏭</div>
-
 <div onclick="location.hash='#/magazzino'">📦</div>
-
-<div onclick="location.hash='#/report'">📊</div>
-
-<div onclick="location.hash='#/eventi'">📅</div>
-
-<div onclick="location.hash='#/ai'">🤖</div>
-
-</div>
-
-`;
-
-}
-
-if(ruolo === "segreteria"){
-
-return `
-
-<div class="home-footer">
-
-<div onclick="location.hash='#/acquisti'">🧾</div>
-
-<div onclick="location.hash='#/fornitori'">👥</div>
-
-<div onclick="location.hash='#/report'">📊</div>
-
-<div onclick="location.hash='#/fatture'">📄</div>
-
-<div onclick="location.hash='#/ai'">🤖</div>
-
-</div>
-
-`;
-
-}
-
-return `
-
-<div class="home-footer">
-
-<div onclick="location.hash='#/timbrature'">⌚</div>
-
-<div onclick="location.hash='#/produzione'">🏭</div>
-
-<div onclick="location.hash='#/magazzino'">📦</div>
-
 <div onclick="location.hash='#/ricette'">📖</div>
-
+<div onclick="location.hash='#/report'">📊</div>
 <div onclick="location.hash='#/ai'">🤖</div>
 
 </div>
 
-`;
-
-}
-
-function getTasksByRole(ruolo){
-
-if(ruolo === "manager_cucina"){
-
-return [
-
-{title:"Produzione cucina",desc:"Controlla preparazioni oggi",route:"#/produzione"},
-
-{title:"Scorte ingredienti",desc:"Verifica magazzino",route:"#/magazzino"}
-
-];
-
-}
-
-if(ruolo === "segreteria"){
-
-return [
-
-{title:"Registrare fatture",desc:"Gestione amministrativa",route:"#/acquisti"},
-
-{title:"Controllare fornitori",desc:"Aggiornamento fornitori",route:"#/fornitori"}
-
-];
-
-}
-
-return [
-
-{title:"Produzione",desc:"Gestione operativa",route:"#/produzione"}
-
-];
-
-}
-
-function renderAdminChart(){
-
-const ctx=document.getElementById("marginiChart");
-
-if(!ctx) return;
-
-new Chart(ctx,{
-type:"doughnut",
-data:{
-labels:["Materie prime","Lavoro","Spese generali","Margine"],
-datasets:[{
-data:[30,25,20,25]
-}]
-}
-});
-
-}
-
-function getUserName(user){
-
-if(!user) return "";
-
-if(user.nome) return user.nome;
-
-if(user.email){
-return user.email.split("@")[0];
-}
-
-return "";
-
-}
-
-function renderSedeSelector(){
-
-const sedi=window.state.sedi || [];
-
-if(sedi.length<=1) return "";
-
-return `
-
-<select onchange="window.stateActions.setSedeAttiva(this.value)" style="padding:8px;border-radius:10px;border:none">
-
-${sedi.map(s=>`
-
-<option value="${s.id}" ${window.state.sedeAttiva?.id==s.id?"selected":""}>
-
-${s.nome}
-
-</option>
-
-`).join("")}
-
-</select>
-
-`;
+`
 
 }
 
 async function hydrateWeather(){
 
-const box=document.getElementById("home-weather-inline");
+const box=document.getElementById("home-weather-inline")
 
-if(!box) return;
-
-let lat;
-let lon;
+let lat=41.9
+let lon=12.49
 
 try{
 
-const pos=await new Promise((resolve,reject)=>{
-navigator.geolocation.getCurrentPosition(
-p=>resolve(p.coords),
-()=>reject()
-);
-});
+const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
 
-lat=pos.latitude;
-lon=pos.longitude;
+const res = await fetch(url)
+const data = await res.json()
 
-}catch{
+const temp=Math.round(data.current.temperature_2m)
 
-lat=41.9028;
-lon=12.4964;
-
-}
-
-try{
-
-const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
-
-const res=await fetch(url);
-
-const data=await res.json();
-
-const temp=Math.round(data?.current?.temperature_2m);
-
-const code=data?.current?.weather_code;
-
-const icon=mapWeatherCodeToIcon(code);
-
-box.innerHTML=`${icon} ${temp}°`;
+box.innerHTML=`🌤 ${temp}°`
 
 }catch{
 
-box.innerHTML="☁️";
+box.innerHTML="☁️"
 
 }
 
 }
 
-function mapWeatherCodeToIcon(code){
+function getUserName(user){
 
-if([0,1].includes(code)) return "☀️";
+if(!user) return ""
 
-if([2,3,45,48].includes(code)) return "☁️";
+if(user.nome) return user.nome
 
-if([51,53,55,61,63,65,80,81,82].includes(code)) return "🌧️";
+if(user.email) return user.email.split("@")[0]
 
-if([95,96,99].includes(code)) return "⛈️";
-
-return "☁️";
+return ""
 
 }
 
 function getSaluto(){
 
-const ora=new Date().getHours();
+const ora=new Date().getHours()
 
-if(ora<12) return "Buongiorno";
+if(ora<12) return "Buongiorno"
+if(ora<18) return "Buon pomeriggio"
 
-if(ora<18) return "Buon pomeriggio";
-
-return "Buonasera";
+return "Buonasera"
 
 }
 
 function getDataFormattata(){
 
-const giorni=["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+const giorni=["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"]
+const mesi=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
 
-const mesi=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const now=new Date()
 
-const now=new Date();
-
-return `${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]} ${now.getFullYear()}`;
+return `${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]} ${now.getFullYear()}`
 
 }
