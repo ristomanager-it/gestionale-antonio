@@ -1,95 +1,119 @@
-export function initMenu() {
-  const menu = document.getElementById("global-menu");
-  const toggle = document.getElementById("menu-toggle");
+export function initMenu(){
 
-  if (!menu || !toggle) return;
+const menu=document.getElementById("global-menu")
+const toggle=document.getElementById("menu-toggle")
 
-  let overlay = document.querySelector(".menu-overlay");
+if(!menu || !toggle) return
 
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.className = "menu-overlay";
-    document.body.appendChild(overlay);
-  }
+let overlay=document.querySelector(".menu-overlay")
 
-  function isSuperadmin() {
-    return window.state?.isSuperadmin === true;
-  }
+if(!overlay){
+overlay=document.createElement("div")
+overlay.className="menu-overlay"
+document.body.appendChild(overlay)
+}
 
-  function getRole() {
-    return window.state?.ruolo;
-  }
+const sections=[
 
-  function buildItems() {
-    const ruolo = getRole();
+{
+nome:"OPERATIVO",
+items:[
+["Produzione","produzione"],
+["Magazzino","magazzino"],
+["Ricettario","ricettario"],
+["Preparazioni","preparazioni"]
+]
+},
 
-    const allItems = [
-      { label: "Home", route: "home" },
-      { label: "Produzione", route: "produzione" },
-      { label: "Magazzino", route: "magazzino" },
-      { label: "Storico Lotti", route: "storicoLotto" },
-      { label: "Ricettario", route: "ricettario" },
-      { label: "Preparazioni", route: "preparazioni" },
-      { label: "Acquisti", route: "acquisti" },
-      { label: "Venduto", route: "venduto" },
-      { label: "Margini", route: "margini" },
-      { label: "Preventivi", route: "preventivi" },
-      { label: "AI Assistente", route: "ai" },
-      { label: "Dipendenti", route: "dipendenti" },
-      { label: "Timbrature", route: "timbrature" }
-    ];
+{
+nome:"AMMINISTRAZIONE",
+items:[
+["Acquisti","acquisti"],
+["Dipendenti","dipendenti"],
+["Timbrature","timbrature"]
+]
+},
 
-    if (isSuperadmin() || ruolo === "admin") {
-      return allItems;
-    }
+{
+nome:"GESTIONE",
+items:[
+["Venduto","venduto"],
+["Margini","margini"],
+["Preventivi","preventivi"]
+]
+},
 
-    if (ruolo === "segreteria") {
-      return allItems.filter(i =>
-        ["preventivi", "acquisti", "dipendenti", "timbrature", "home", "ai"].includes(i.route)
-      );
-    }
+{
+nome:"AI",
+items:[
+["Tony","ai"]
+]
+}
 
-    return allItems.filter(i =>
-      ["produzione", "magazzino", "storicoLotto", "ricettario", "preparazioni", "home", "ai"].includes(i.route)
-    );
-  }
+]
 
-  function renderMenu() {
-    const items = buildItems();
+function renderMenu(){
 
-    menu.innerHTML = items.map(i => `
-      <div class="menu-item" data-route="${i.route}">
-        ${i.label}
-      </div>
-    `).join("");
+menu.innerHTML=sections.map(sec=>`
 
-    menu.querySelectorAll(".menu-item").forEach(item => {
-      item.onclick = () => {
-        const route = item.dataset.route;
-        window.location.hash = "#/" + route;
-        closeMenu();
-      };
-    });
-  }
+<div class="menu-section">
 
-  function openMenu() {
-    renderMenu();
-    menu.classList.add("open");
-    overlay.classList.add("open");
-  }
+<div class="menu-title">${sec.nome}</div>
 
-  function closeMenu() {
-    menu.classList.remove("open");
-    overlay.classList.remove("open");
-  }
+<div class="menu-items">
 
-  toggle.onclick = () => {
-    if (menu.classList.contains("open")) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  };
+${sec.items.map(i=>`
+<div class="menu-item" data-route="${i[1]}">
+${i[0]}
+</div>
+`).join("")}
 
-  overlay.onclick = closeMenu;
+</div>
+
+</div>
+
+`).join("")+
+
+`<div class="menu-logout">Logout</div>`
+
+menu.querySelectorAll(".menu-title").forEach(title=>{
+
+title.onclick=()=>{
+title.nextElementSibling.classList.toggle("open")
+}
+
+})
+
+menu.querySelectorAll(".menu-item").forEach(item=>{
+
+item.onclick=()=>{
+window.location.hash="#/"+item.dataset.route
+closeMenu()
+}
+
+})
+
+document.querySelector(".menu-logout").onclick=()=>{
+window.router.logout()
+}
+
+}
+
+function openMenu(){
+renderMenu()
+menu.classList.add("open")
+overlay.classList.add("open")
+}
+
+function closeMenu(){
+menu.classList.remove("open")
+overlay.classList.remove("open")
+}
+
+toggle.onclick=()=>{
+menu.classList.contains("open") ? closeMenu() : openMenu()
+}
+
+overlay.onclick=closeMenu
+
 }
