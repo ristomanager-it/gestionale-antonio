@@ -1,6 +1,10 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
-export async function render(container) {
+/* ======================================================
+   VIEW RENDER
+====================================================== */
+
+export async function render(container){
 
   const user = window.state?.user;
   const ruolo = window.state?.ruolo;
@@ -12,24 +16,26 @@ export async function render(container) {
   initTopbar(user);
 
   container.innerHTML = `
-  
-  <div class="view home-view">
 
-    ${renderAdminDashboard(ruolo, isSuperadmin)}
+  <div class="home-container">
 
-    <div class="tony-avatar" onclick="location.hash='#/ai'">
-      🤖
-    </div>
+    ${renderAdminDashboard(ruolo,isSuperadmin)}
+
+    ${renderVenditeCard()}
+
+    ${renderTonyAvatar()}
+
+    ${renderFooter()}
 
   </div>
 
   <style>
 
-  .home-view{
+  .home-container{
     max-width:1200px;
     margin:auto;
     padding:16px;
-    padding-bottom:90px;
+    padding-bottom:100px;
   }
 
   .card{
@@ -37,62 +43,127 @@ export async function render(container) {
     padding:16px;
     border-radius:14px;
     box-shadow:0 4px 14px rgba(0,0,0,0.06);
-    margin-bottom:16px;
+    margin-bottom:18px;
+  }
+
+  .incassi-title{
+    font-size:14px;
+    color:#6b7280;
   }
 
   .incassi-value{
-    font-size:22px;
+    font-size:24px;
     font-weight:700;
-    margin-top:6px;
+    margin-top:4px;
   }
 
-  .kpi-row{
+  .incassi-iva{
+    font-size:12px;
+    color:#6b7280;
+  }
+
+  .gauge-container{
+    margin-top:12px;
+  }
+
+  .kpi-bar{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-top:14px;
+    text-align:center;
+  }
+
+  .kpi-name{
+    font-size:12px;
+    color:#6b7280;
+  }
+
+  .kpi-value{
+    font-weight:600;
+  }
+
+  .kpi-perc{
+    font-size:11px;
+    color:#6b7280;
+  }
+
+  .vendite-header{
     display:flex;
     justify-content:space-between;
-    font-size:13px;
-    margin-top:4px;
+    align-items:center;
+    margin-bottom:10px;
+  }
+
+  .vendite-list{
+    font-size:14px;
+  }
+
+  .vendite-row{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    border-bottom:1px solid #eee;
   }
 
   .tony-avatar{
     position:fixed;
-    bottom:80px;
+    bottom:90px;
     right:18px;
-    width:56px;
-    height:56px;
+    width:58px;
+    height:58px;
     border-radius:50%;
     background:#111827;
     color:white;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:24px;
+    font-size:26px;
+    cursor:pointer;
+  }
+
+  .home-footer{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:white;
+    border-top:1px solid #eee;
+    display:flex;
+    justify-content:space-around;
+    padding:10px 0;
+  }
+
+  .home-footer div{
+    font-size:22px;
     cursor:pointer;
   }
 
   </style>
-  
   `;
 
-  if (ruolo === "admin" || isSuperadmin) {
+  if(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin){
     loadAdminDashboard();
   }
 
 }
 
-/* HEADER */
+/* ======================================================
+   HEADER UPDATE
+====================================================== */
 
-function updateHeader(azienda, sede) {
+function updateHeader(azienda,sede){
 
   const box = document.getElementById("header-azienda-nome");
 
-  if (!box) return;
+  if(!box) return;
 
-  if (sede) {
+  if(sede){
     box.innerText = sede.nome;
     return;
   }
 
-  if (azienda) {
+  if(azienda){
     box.innerText = azienda.nome;
     return;
   }
@@ -101,52 +172,54 @@ function updateHeader(azienda, sede) {
 
 }
 
-/* TOPBAR */
+/* ======================================================
+   TOPBAR
+====================================================== */
 
-function initTopbar(user) {
+function initTopbar(user){
 
   const salutoBox = document.getElementById("topbar-saluto");
   const dataBox = document.getElementById("topbar-data");
 
-  if (!salutoBox) return;
+  if(!salutoBox) return;
 
   const ora = new Date().getHours();
 
-  let saluto = "Buongiorno";
+  let saluto="Buongiorno";
 
-  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
-  if (ora >= 18) saluto = "Buonasera";
+  if(ora>=12 && ora<18) saluto="Buon pomeriggio";
+  if(ora>=18) saluto="Buonasera";
 
   const nome = user?.email?.split("@")[0] || "";
 
-  salutoBox.innerText = `${saluto} ${nome}`;
+  salutoBox.innerText=`${saluto} ${nome}`;
 
-  const giorni = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
-  const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  const giorni=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+  const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
 
-  const now = new Date();
+  const now=new Date();
 
-  dataBox.innerText = `${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]}`;
+  dataBox.innerText=`${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]}`;
 
   hydrateWeather();
 
 }
 
-/* DASHBOARD */
+/* ======================================================
+   DASHBOARD ADMIN
+====================================================== */
 
-function renderAdminDashboard(ruolo, isSuperadmin){
+function renderAdminDashboard(ruolo,isSuperadmin){
 
-  if(!(ruolo==="admin" || isSuperadmin)) return "";
+  if(!(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin)) return "";
 
   return `
 
   <div class="card">
 
-    <div>Incassi netti</div>
-
+    <div class="incassi-title">Incassi netti</div>
     <div class="incassi-value" id="incassiTotali">€0</div>
-
-    <div style="font-size:12px;color:#6b7280">
+    <div class="incassi-iva">
       con IVA <span id="incassiIva">€0</span>
     </div>
 
@@ -154,26 +227,40 @@ function renderAdminDashboard(ruolo, isSuperadmin){
 
   <div class="card">
 
-    <canvas id="margineGauge"></canvas>
-
-    <div class="kpi-row">
-      <span>Materie prime</span>
-      <span id="mpValue">€0</span>
+    <div class="gauge-container">
+      <canvas id="margineGauge"></canvas>
     </div>
 
-    <div class="kpi-row">
-      <span>Personale</span>
-      <span id="lavoroValue">€0</span>
+    <div style="text-align:center;margin-top:8px;font-weight:600">
+      BEP € <span id="bepValue">0</span>
     </div>
 
-    <div class="kpi-row">
-      <span>Costi fissi</span>
-      <span id="speseValue">€0</span>
-    </div>
+    <div class="kpi-bar">
 
-    <div class="kpi-row">
-      <strong>Margine</strong>
-      <strong id="margineValue">€0</strong>
+      <div>
+        <div class="kpi-name">Materie prime</div>
+        <div class="kpi-value" id="mpValue">0</div>
+        <div class="kpi-perc" id="mpPerc">0%</div>
+      </div>
+
+      <div>
+        <div class="kpi-name">Personale</div>
+        <div class="kpi-value" id="lavoroValue">0</div>
+        <div class="kpi-perc" id="lavoroPerc">0%</div>
+      </div>
+
+      <div>
+        <div class="kpi-name">Costi fissi</div>
+        <div class="kpi-value" id="speseValue">0</div>
+        <div class="kpi-perc" id="spesePerc">0%</div>
+      </div>
+
+      <div>
+        <div class="kpi-name">Margine</div>
+        <div class="kpi-value" id="margineValue">0</div>
+        <div class="kpi-perc" id="marginePerc">0%</div>
+      </div>
+
     </div>
 
   </div>
@@ -182,88 +269,201 @@ function renderAdminDashboard(ruolo, isSuperadmin){
 
 }
 
-/* LOAD DASHBOARD */
+/* ======================================================
+   VENDITE
+====================================================== */
+
+function renderVenditeCard(){
+
+return`
+
+<div class="card">
+
+<div class="vendite-header">
+
+<h3>Vendite</h3>
+
+<select id="prodottiFiltro">
+<option value="incasso">Incasso</option>
+<option value="numero">Numero</option>
+<option value="margine">Margine</option>
+</select>
+
+</div>
+
+<div id="prodottiVenduti" class="vendite-list"></div>
+
+</div>
+
+`;
+
+}
+
+/* ======================================================
+   LOAD DASHBOARD
+====================================================== */
 
 function loadAdminDashboard(){
 
-  const incasso = 12000;
-  const iva = 14400;
+const incasso = 12000;
+const iva = 14400;
 
-  const mp = 3500;
-  const lavoro = 3000;
-  const spese = 1500;
+const mp = 3500;
+const lavoro = 3000;
+const spese = 1500;
 
-  const costi = mp + lavoro + spese;
-  const margine = incasso - costi;
+const costi = mp + lavoro + spese;
+const margine = incasso - costi;
 
-  document.getElementById("incassiTotali").innerHTML = "€ " + incasso;
-  document.getElementById("incassiIva").innerHTML = "€ " + iva;
+document.getElementById("incassiTotali").innerHTML="€"+incasso;
+document.getElementById("incassiIva").innerHTML="€"+iva;
 
-  document.getElementById("mpValue").innerHTML = "€ " + mp;
-  document.getElementById("lavoroValue").innerHTML = "€ " + lavoro;
-  document.getElementById("speseValue").innerHTML = "€ " + spese;
+document.getElementById("mpValue").innerHTML="€"+mp;
+document.getElementById("lavoroValue").innerHTML="€"+lavoro;
+document.getElementById("speseValue").innerHTML="€"+spese;
+document.getElementById("margineValue").innerHTML="€"+margine;
+document.getElementById("bepValue").innerHTML=costi;
 
-  document.getElementById("margineValue").innerHTML = "€ " + margine;
+document.getElementById("mpPerc").innerHTML=Math.round(mp/incasso*100)+"%";
+document.getElementById("lavoroPerc").innerHTML=Math.round(lavoro/incasso*100)+"%";
+document.getElementById("spesePerc").innerHTML=Math.round(spese/incasso*100)+"%";
+document.getElementById("marginePerc").innerHTML=Math.round(margine/incasso*100)+"%";
 
-  renderGauge();
+renderGauge(Math.round(margine/incasso*100));
+
+renderProdotti();
+
+document
+.getElementById("prodottiFiltro")
+.addEventListener("change",renderProdotti);
 
 }
 
-/* GAUGE */
+/* ======================================================
+   GAUGE
+====================================================== */
 
 function renderGauge(){
 
-  const ctx = document.getElementById("margineGauge");
+const ctx=document.getElementById("margineGauge");
 
-  if (!ctx) return;
-
-  new Chart(ctx,{
-    type:"doughnut",
-    data:{
-      datasets:[{
-        data:[25,25,25,25],
-        backgroundColor:[
-          "#ef4444",
-          "#f97316",
-          "#eab308",
-          "#22c55e"
-        ],
-        borderWidth:0
-      }]
-    },
-    options:{
-      rotation:-90,
-      circumference:180,
-      cutout:"70%",
-      plugins:{legend:{display:false}}
-    }
-  });
+new Chart(ctx,{
+type:"doughnut",
+data:{
+datasets:[{
+data:[20,20,20,20,20],
+backgroundColor:[
+"#ef4444",
+"#f97316",
+"#eab308",
+"#22c55e",
+"#16a34a"
+],
+borderWidth:0
+}]
+},
+options:{
+rotation:-90,
+circumference:180,
+cutout:"70%",
+plugins:{legend:{display:false}}
+}
+});
 
 }
 
-/* METEO */
+/* ======================================================
+   PRODOTTI
+====================================================== */
+
+function renderProdotti(){
+
+const filtro=document.getElementById("prodottiFiltro")?.value || "incasso";
+
+let prodotti=[
+{nome:"Carbonara",incasso:3200,margine:1200,numero:140},
+{nome:"Amatriciana",incasso:2100,margine:900,numero:100},
+{nome:"Tiramisù",incasso:1500,margine:700,numero:80}
+];
+
+prodotti.sort((a,b)=>b[filtro]-a[filtro]);
+
+const container=document.getElementById("prodottiVenduti");
+
+container.innerHTML=prodotti.map(p=>`
+
+<div class="vendite-row">
+<div>${p.nome}</div>
+<div>${p[filtro]}</div>
+</div>
+
+`).join("");
+
+}
+
+/* ======================================================
+   TONY
+====================================================== */
+
+function renderTonyAvatar(){
+
+return`
+
+<div class="tony-avatar" onclick="location.hash='#/ai'">
+🤖
+</div>
+
+`;
+
+}
+
+/* ======================================================
+   FOOTER
+====================================================== */
+
+function renderFooter(){
+
+return`
+
+<div class="home-footer">
+
+<div onclick="location.hash='#/produzione'">🏭</div>
+<div onclick="location.hash='#/magazzino'">📦</div>
+<div onclick="location.hash='#/ricettario'">📖</div>
+<div onclick="location.hash='#/venduto'">📊</div>
+<div onclick="location.hash='#/ai'">🤖</div>
+
+</div>
+
+`;
+
+}
+
+/* ======================================================
+   METEO
+====================================================== */
 
 async function hydrateWeather(){
 
-  const box=document.getElementById("topbar-weather");
+const box=document.getElementById("topbar-weather");
 
-  if(!box) return;
+if(!box) return;
 
-  try{
+try{
 
-    const url=`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`;
+const url=`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`;
 
-    const res=await fetch(url);
-    const data=await res.json();
+const res=await fetch(url);
+const data=await res.json();
 
-    const temp=Math.round(data.current.temperature_2m);
+const temp=Math.round(data.current.temperature_2m);
 
-    box.innerHTML=`🌤 ${temp}°`;
+box.innerHTML=`🌤 ${temp}°`;
 
-  }catch{
+}catch{
 
-    box.innerHTML="☁️";
+box.innerHTML="☁️";
 
-  }
+}
 
 }
