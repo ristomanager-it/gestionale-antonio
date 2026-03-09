@@ -1,6 +1,11 @@
 // js/views/home.js
 // =======================================
-// Dashboard intelligente ruolo-based
+// Home operativa ruolo-based con:
+// - header con nome utente + meteo
+// - briefing Tony
+// - task operativi
+// - accesso rapido
+// - mini chat Tony
 // =======================================
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
@@ -23,19 +28,20 @@ export async function render(container) {
   const sedi = window.state.sedi || [];
 
   if (sedi.length === 1 && !window.state.sedeAttiva) {
-    window.stateActions.setSedeAttiva(sedi[0].id);
+    window.stateActions.setSedeAttiva(sedi[0]);
   }
 
   const saluto = getSaluto();
   const dataOggi = getDataFormattata();
+  const nomeUtente = getUserName(user);
 
   const briefingTony = getTonyBriefing(ruolo);
 
-  const repartiVisibili = getRepartiVisibili(ruolo);
+  const tasks = getTasksByRole(ruolo);
 
   container.innerHTML = `
 
-  <div class="view" style="padding:0;">
+  <div class="view" style="padding:0;display:flex;flex-direction:column;height:100%;">
 
     <!-- HEADER -->
 
@@ -44,7 +50,7 @@ export async function render(container) {
       <div class="home-header-left">
 
         <h2 class="home-title">
-          ${saluto} 👋
+          ${saluto} ${nomeUtente} 👋
         </h2>
 
         <div class="home-meta">
@@ -75,24 +81,12 @@ export async function render(container) {
 
         ${renderSedeSelector()}
 
-        ${
-          ruolo === "superadmin"
-            ? `
-            <button
-              onclick="window.location.hash='#/homePiattaforma'"
-              class="btn-platform"
-            >
-              ⚙ Piattaforma
-            </button>
-            `
-            : ``
-        }
-
       </div>
 
     </div>
 
-    <!-- TONY BRIEFING -->
+
+    <!-- BRIEFING TONY -->
 
     <div class="home-tony">
 
@@ -106,69 +100,69 @@ export async function render(container) {
 
     </div>
 
-    <!-- ACCESSO RAPIDO SETTORI -->
 
-    ${
-      window.state.sedeAttiva
-        ? `
-        <div class="home-grid">
+    <!-- TASK OPERATIVI -->
 
-          ${
-            repartiVisibili.map((rep,index)=>`
+    <div class="home-tasks">
 
-              <div
-                onclick="window.location.hash='#/${rep.key}'"
-                class="home-card"
-                style="animation-delay:${index * 0.08}s"
-              >
+      <div class="tasks-title">
+        Compiti assegnati
+      </div>
 
-                <div class="home-card-icon">
-                  ${rep.icon}
-                </div>
+      ${tasks.map(task=>`
 
-                <div class="home-card-title">
-                  ${rep.label}
-                </div>
+        <div class="task-card">
 
-              </div>
+          <div class="task-icon">
+            ${task.icon}
+          </div>
 
-            `).join("")}
+          <div class="task-body">
+
+            <div class="task-title">
+              ${task.title}
+            </div>
+
+            <div class="task-desc">
+              ${task.desc}
+            </div>
+
+          </div>
+
+          <button
+            onclick="window.location.hash='${task.route}'"
+            class="task-btn"
+          >
+            Apri
+          </button>
 
         </div>
-        `
-        : `
-        <div class="home-empty">
-          Seleziona una sede per accedere ai moduli operativi.
-        </div>
-        `
-    }
 
-    <!-- CARD OPERATIVE RUOLO -->
-
-    <div class="home-role-cards">
-
-      ${renderRoleCards(ruolo)}
+      `).join("")}
 
     </div>
 
+
     <!-- CHAT TONY -->
 
-    <div class="home-tony-chat">
+    <div class="home-chat">
 
-      <div class="home-tony-chat-title">
-        🤖 Tony AI
+      <div class="chat-header">
+        🤖 Tony
       </div>
 
-      <div class="home-tony-chat-body">
-        Hai bisogno di aiuto operativo?
+      <div class="chat-body">
+        Hai bisogno di aiuto? Chiedi a Tony.
       </div>
 
-      <button
-        onclick="window.location.hash='#/ai'"
-        class="btn-tony-chat"
-      >
-        Apri Tony
-      </button>
+      <div class="chat-input">
+
+        <input
+          placeholder="Scrivi a Tony..."
+          onclick="window.location.hash='#/ai'"
+        />
+
+      </div>
 
     </div>
 
@@ -199,110 +193,104 @@ export async function render(container) {
   .home-meta{
     margin-top:4px;
     display:flex;
+    gap:12px;
     align-items:center;
-    gap:14px;
-  }
-
-  .home-date{
-    font-size:14px;
   }
 
   .home-weather{
-    font-size:22px;
+    font-size:20px;
   }
 
   .home-tony{
-    margin:24px;
-    background:#fff;
-    border-radius:18px;
-    padding:20px;
+    margin:20px;
+    background:white;
+    border-radius:16px;
+    padding:18px;
 
     display:flex;
-    gap:16px;
-    align-items:flex-start;
+    gap:12px;
 
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    box-shadow:0 8px 20px rgba(0,0,0,0.06);
   }
 
   .home-tony-icon{
-    font-size:28px;
+    font-size:24px;
   }
 
   .home-tony-text{
-    font-size:15px;
-    line-height:1.5;
+    font-size:14px;
+    line-height:1.4;
   }
 
-  .home-grid{
-    padding:28px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:20px;
+  .home-tasks{
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
   }
 
-  .home-card{
-    background:white;
-    border-radius:20px;
-    padding:30px;
-    text-align:center;
-    cursor:pointer;
-
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
-    transition:all .25s ease;
-
-    animation:fadeInUp .4s ease forwards;
-    opacity:0;
-  }
-
-  .home-card:hover{
-    transform:translateY(-4px);
-  }
-
-  .home-card-icon{
-    font-size:36px;
-    margin-bottom:12px;
-  }
-
-  .home-card-title{
-    font-size:16px;
+  .tasks-title{
     font-weight:600;
+    margin-bottom:6px;
   }
 
-  .home-role-cards{
-    padding:20px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-    gap:18px;
-  }
-
-  .role-card{
+  .task-card{
     background:white;
-    padding:18px;
-    border-radius:14px;
-    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+    border-radius:12px;
+    padding:14px;
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    box-shadow:0 4px 14px rgba(0,0,0,0.05);
   }
 
-  .home-tony-chat{
-    margin:30px;
-    padding:20px;
+  .task-icon{
+    font-size:20px;
+  }
+
+  .task-body{
+    flex:1;
+  }
+
+  .task-title{
+    font-weight:600;
+    font-size:14px;
+  }
+
+  .task-desc{
+    font-size:13px;
+    opacity:0.7;
+  }
+
+  .task-btn{
+    background:var(--color-primary);
+    color:white;
+    border:none;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+
+  .home-chat{
+    margin:20px;
     background:#0f172a;
     color:white;
     border-radius:16px;
+    padding:16px;
   }
 
-  .btn-tony-chat{
-    margin-top:10px;
-    padding:10px 14px;
+  .chat-header{
+    font-weight:600;
+    margin-bottom:8px;
+  }
+
+  .chat-input input{
+    width:100%;
+    padding:8px;
+    border-radius:8px;
     border:none;
-    border-radius:10px;
-    background:white;
-    color:black;
-    cursor:pointer;
-  }
-
-  @keyframes fadeInUp{
-    from{transform:translateY(12px);opacity:0}
-    to{transform:translateY(0);opacity:1}
   }
 
   </style>
@@ -311,101 +299,68 @@ export async function render(container) {
   hydrateWeather();
 }
 
-function renderRoleCards(ruolo){
 
-  if(ruolo === "admin"){
+function getTasksByRole(ruolo){
 
-    return `
-    <div class="role-card">
-      <strong>📊 Controllo azienda</strong>
-      <div>Controlla KPI e marginalità.</div>
-    </div>
-
-    <div class="role-card">
-      <strong>🧾 Ordini fornitori</strong>
-      <div>Gestisci ordini e acquisti.</div>
-    </div>
-    `;
-  }
-
-  if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
-
-    return `
-    <div class="role-card">
-      <strong>👨‍🍳 Produzione oggi</strong>
-      <div>Controlla preparazioni e produzioni.</div>
-    </div>
-
-    <div class="role-card">
-      <strong>📦 Scorte critiche</strong>
-      <div>Controlla materie prime.</div>
-    </div>
-    `;
+  if(ruolo === "manager_cucina"){
+    return [
+      { icon:"🍳", title:"Produzione cucina", desc:"Controlla produzioni di oggi", route:"#/produzione" },
+      { icon:"📦", title:"Scorte cucina", desc:"Verifica ingredienti critici", route:"#/magazzino" }
+    ];
   }
 
   if(ruolo === "segreteria"){
-
-    return `
-    <div class="role-card">
-      <strong>🧾 Fatture</strong>
-      <div>Gestione amministrativa.</div>
-    </div>
-    `;
+    return [
+      { icon:"🧾", title:"Registrare fatture", desc:"Gestione amministrativa", route:"#/acquisti" },
+      { icon:"👥", title:"Fornitori", desc:"Gestisci fornitori", route:"#/fornitori" }
+    ];
   }
 
-  return `
-  <div class="role-card">
-    <strong>📋 Attività operative</strong>
-    <div>Consulta i moduli operativi.</div>
-  </div>
-  `;
+  if(ruolo === "admin"){
+    return [
+      { icon:"📊", title:"Controllo margini", desc:"Analisi economica", route:"#/margini" },
+      { icon:"🧾", title:"Ordini fornitori", desc:"Gestisci acquisti", route:"#/acquisti" }
+    ];
+  }
+
+  return [
+    { icon:"🏭", title:"Produzione", desc:"Gestione operativa", route:"#/produzione" }
+  ];
+
 }
+
 
 function getTonyBriefing(ruolo){
 
   if(ruolo === "admin"){
-    return "Buongiorno. Oggi controlla margini, ordini fornitori e andamento vendite.";
+    return "Tony: oggi controlla margini e andamento vendite.";
   }
 
   if(ruolo === "manager_cucina"){
-    return "Briefing cucina: verifica produzioni e scorte critiche.";
+    return "Tony: controlla produzioni e ingredienti sottoscorta.";
   }
 
   if(ruolo === "segreteria"){
-    return "Briefing amministrazione: controlla ordini, fornitori e contabilità.";
+    return "Tony: verifica fatture e ordini fornitori.";
   }
 
-  return "Briefing operativo del giorno.";
+  return "Tony: briefing operativo del giorno.";
 }
 
-function getRepartiVisibili(ruolo){
 
-  const REPARTI = [
-    { key:"operativo", label:"Operativo", icon:"🏭" },
-    { key:"amministrazione", label:"Amministrazione", icon:"🧾" },
-    { key:"gestione", label:"Gestione", icon:"📊" },
-    { key:"marketing", label:"Marketing", icon:"📢" },
-    { key:"ai", label:"AI Ristoflow", icon:"🤖" }
-  ];
+function getUserName(user){
 
-  if(ruolo === "admin") return REPARTI;
+  if(!user) return "";
 
-  if(ruolo === "manager_cucina"){
-    return REPARTI.filter(r =>
-      ["operativo","gestione","ai"].includes(r.key)
-    );
+  if(user.nome) return user.nome;
+
+  if(user.email){
+    return user.email.split("@")[0];
   }
 
-  if(ruolo === "segreteria"){
-    return REPARTI.filter(r =>
-      ["amministrazione","gestione"].includes(r.key)
-    );
-  }
-
-  return REPARTI.filter(r =>
-    ["operativo","ai"].includes(r.key)
-  );
+  return "";
 }
+
 
 function renderSedeSelector(){
 
@@ -439,6 +394,77 @@ function renderSedeSelector(){
   `;
 }
 
+
+async function hydrateWeather(){
+
+  const box = document.getElementById("home-weather-inline");
+  if(!box) return;
+
+  let lat;
+  let lon;
+
+  try{
+
+    const pos = await new Promise((resolve,reject)=>{
+      navigator.geolocation.getCurrentPosition(
+        p=>resolve(p.coords),
+        ()=>reject()
+      );
+    });
+
+    lat = pos.latitude;
+    lon = pos.longitude;
+
+  }catch{
+
+    lat = window.state?.sedeAttiva?.latitudine;
+    lon = window.state?.sedeAttiva?.longitudine;
+
+  }
+
+  if(!lat || !lon){
+    box.innerHTML = "📍";
+    return;
+  }
+
+  try{
+
+    const url =
+      `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const temp = Math.round(data?.current?.temperature_2m);
+    const code = data?.current?.weather_code;
+
+    const icon = mapWeatherCodeToIcon(code);
+
+    box.innerHTML =
+      `<span style="font-size:22px">${icon}</span>
+       <span style="font-size:18px;font-weight:600">${temp}°</span>`;
+
+  }catch{
+
+    box.textContent = "☁️";
+
+  }
+
+}
+
+
+function mapWeatherCodeToIcon(code){
+
+  if([0,1].includes(code)) return "☀️";
+  if([2,3,45,48].includes(code)) return "☁️";
+  if([51,53,55,61,63,65,80,81,82].includes(code)) return "🌧️";
+  if([95,96,99].includes(code)) return "⛈️";
+
+  return "☁️";
+
+}
+
+
 function getSaluto(){
 
   const ora = new Date().getHours();
@@ -448,6 +474,7 @@ function getSaluto(){
 
   return "Buonasera";
 }
+
 
 function getDataFormattata(){
 
