@@ -650,8 +650,13 @@ if (!aziendaRes.ok) {
     return;
   }
 
-  if (!PLATFORM_ROUTES.has(route) && route !== "completaProfilo" && route !== "completaAzienda") {
-    const sedeRes = await ensureSedeContext(route);
+if (
+  !PLATFORM_ROUTES.has(route) &&
+  route !== "completaProfilo" &&
+  route !== "completaAzienda" &&
+  route !== "home"
+) {
+  const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
 
