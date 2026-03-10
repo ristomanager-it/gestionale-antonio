@@ -168,7 +168,7 @@ function isSuperadmin() {
   if (window.state?.isSuperadmin === true) return true;
 
   const aziende = window.state?.aziende || [];
-  return aziende.some(a => a.ruolo === "superadmin");
+  return aziende.some((a) => a.ruolo === "superadmin");
 }
 
 function hasPermission(area) {
@@ -488,6 +488,8 @@ async function doLogout() {
   window.state.featuresEffettive = {};
   window.state.sedi = [];
   window.state.sedeAttiva = null;
+  window.state.permessiOverride = {};
+  window.state.isSuperadmin = false;
 
   setHeaderVisible(false);
 
@@ -506,6 +508,9 @@ async function resolve() {
     return;
   }
 
+  const { route, segments, params } = parseHash();
+  window.routeParams = params || {};
+  window.routeSegments = segments || [];
 
   const session = await getValidSession();
 
@@ -513,6 +518,13 @@ async function resolve() {
     if (window.stateActions?.setUser) window.stateActions.setUser(null);
     if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
     if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+
+    window.state.piano = null;
+    window.state.featuresEffettive = {};
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+    window.state.permessiOverride = {};
+    window.state.isSuperadmin = false;
 
     setHeaderVisible(false);
 
@@ -523,7 +535,12 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  if (PUBLIC_ROUTES.has(route) && route !== "activate" && route !== "setPassword" && route !== "set-password") {
+  if (
+    PUBLIC_ROUTES.has(route) &&
+    route !== "activate" &&
+    route !== "setPassword" &&
+    route !== "set-password"
+  ) {
     const tmpAziende = await loadAziendeForUser(session.user.id);
     const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
     const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
@@ -602,7 +619,6 @@ async function resolve() {
         return;
       }
     }
-
   } catch (e) {
     console.warn("Check profilo azienda fallito:", e);
   }
@@ -611,6 +627,10 @@ async function resolve() {
 
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
+
+  if (window.menuController?.refresh) {
+    window.menuController.refresh();
+  }
 
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
