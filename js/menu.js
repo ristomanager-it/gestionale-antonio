@@ -1,171 +1,224 @@
-export function initMenu() {
+export function initMenu(){
 
-  const menu = document.getElementById("global-menu")
-  const toggle = document.getElementById("menu-toggle")
+const menu = document.getElementById("global-menu")
+const toggle = document.getElementById("menu-toggle")
 
-  if (!menu || !toggle) return
+if(!menu || !toggle) return
 
-  let overlay = document.querySelector(".menu-overlay")
+let overlay=document.querySelector(".menu-overlay")
 
-  if (!overlay) {
-    overlay = document.createElement("div")
-    overlay.className = "menu-overlay"
-    document.body.appendChild(overlay)
-  }
+if(!overlay){
+overlay=document.createElement("div")
+overlay.className="menu-overlay"
+document.body.appendChild(overlay)
+}
 
-  /* =========================
-     STRUTTURA MENU
-  ========================= */
+/* ======================================
+   RUOLO UTENTE
+====================================== */
 
-  const menuStructure = [
+const ruolo = window.state?.ruolo || "operatore"
+const isSuperadmin = window.state?.isSuperadmin === true
 
-    {
-      title: "OPERATIVO",
-      items: [
-        { label: "Produzione", route: "produzione" },
-        { label: "Magazzino", route: "magazzino" },
-        { label: "Ricettario", route: "ricettario" },
-        { label: "Preparazioni", route: "preparazioni" }
-      ]
-    },
+/* ======================================
+   MENU BASE
+====================================== */
 
-    {
-      title: "AMMINISTRAZIONE",
-      items: [
-        { label: "Acquisti", route: "acquisti" },
-        { label: "Dipendenti", route: "dipendenti" },
-        { label: "Timbrature", route: "timbrature" }
-      ]
-    },
+const baseMenu = {
 
-    {
-      title: "GESTIONE",
-      items: [
-        { label: "Venduto", route: "venduto" },
-        { label: "Margini", route: "margini" }
-      ]
-    },
+OPERATIVO:{
+title:"OPERATIVO",
+items:[
+{label:"Produzione",route:"produzione"},
+{label:"Magazzino",route:"magazzino"},
+{label:"Ricettario",route:"ricettario"},
+{label:"Preparazioni",route:"preparazioni"}
+]
+},
 
-    {
-      title: "MARKETING",
-      items: [
-        { label: "Preventivi", route: "preventivi" }
-      ]
-    }
+AMMINISTRAZIONE:{
+title:"AMMINISTRAZIONE",
+items:[
+{label:"Acquisti",route:"acquisti"},
+{label:"Dipendenti",route:"dipendenti"},
+{label:"Timbrature",route:"timbrature"}
+]
+},
 
-  ]
+GESTIONE:{
+title:"GESTIONE",
+items:[
+{label:"Venduto",route:"venduto"},
+{label:"Margini",route:"margini"}
+]
+},
 
-  /* =========================
-     RENDER MENU
-  ========================= */
+MARKETING:{
+title:"MARKETING",
+items:[
+{label:"Preventivi",route:"preventivi"}
+]
+}
 
-  function renderMenu() {
+}
 
-    menu.innerHTML = ""
+/* ======================================
+   MENU PER RUOLO
+====================================== */
 
-    menuStructure.forEach(section => {
+function getMenuForRole(){
 
-      const sectionBox = document.createElement("div")
-      sectionBox.className = "menu-section"
+if(isSuperadmin){
+return [
+baseMenu.OPERATIVO,
+baseMenu.AMMINISTRAZIONE,
+baseMenu.GESTIONE,
+baseMenu.MARKETING
+]
+}
 
-      const title = document.createElement("div")
-      title.className = "menu-category"
-      title.innerHTML = `
+if(ruolo==="admin"){
+return [
+baseMenu.OPERATIVO,
+baseMenu.AMMINISTRAZIONE,
+baseMenu.GESTIONE,
+baseMenu.MARKETING
+]
+}
+
+if(ruolo==="manager_cucina"){
+return [
+baseMenu.OPERATIVO
+]
+}
+
+if(ruolo==="segreteria"){
+return [
+baseMenu.AMMINISTRAZIONE,
+baseMenu.MARKETING
+]
+}
+
+return [
+baseMenu.OPERATIVO
+]
+
+}
+
+/* ======================================
+   RENDER MENU
+====================================== */
+
+function renderMenu(){
+
+menu.innerHTML=""
+
+const structure=getMenuForRole()
+
+structure.forEach(section=>{
+
+const sectionBox=document.createElement("div")
+sectionBox.className="menu-section"
+
+const title=document.createElement("div")
+title.className="menu-category"
+
+title.innerHTML=`
 <span>${section.title}</span>
 <span class="menu-arrow">›</span>
 `
 
-      const itemsBox = document.createElement("div")
-      itemsBox.className = "menu-subitems"
+const itemsBox=document.createElement("div")
+itemsBox.className="menu-subitems"
 
-      section.items.forEach(item => {
+section.items.forEach(item=>{
 
-        const row = document.createElement("div")
-        row.className = "menu-subitem"
-        row.innerText = item.label
+const row=document.createElement("div")
+row.className="menu-subitem"
+row.innerText=item.label
 
-        row.onclick = () => {
-          window.location.hash = "#/" + item.route
-          closeMenu()
-        }
+row.onclick=()=>{
+window.location.hash="#/"+item.route
+closeMenu()
+}
 
-        itemsBox.appendChild(row)
+itemsBox.appendChild(row)
 
-      })
+})
 
-      /* toggle apertura */
+title.onclick=()=>{
 
-    title.onclick = () => {
+const opened=itemsBox.classList.contains("open")
 
-  const opened = itemsBox.classList.contains("open")
+document.querySelectorAll(".menu-subitems").forEach(el=>{
+el.classList.remove("open")
+})
 
-  document.querySelectorAll(".menu-subitems").forEach(el=>{
-    el.classList.remove("open")
-  })
+document.querySelectorAll(".menu-arrow").forEach(el=>{
+el.style.transform="rotate(0deg)"
+})
 
-  document.querySelectorAll(".menu-arrow").forEach(el=>{
-    el.style.transform="rotate(0deg)"
-  })
-
-  if(!opened){
-    itemsBox.classList.add("open")
-    title.querySelector(".menu-arrow").style.transform="rotate(90deg)"
-  }
+if(!opened){
+itemsBox.classList.add("open")
+title.querySelector(".menu-arrow").style.transform="rotate(90deg)"
+}
 
 }
 
-      sectionBox.appendChild(title)
-      sectionBox.appendChild(itemsBox)
+sectionBox.appendChild(title)
+sectionBox.appendChild(itemsBox)
 
-      menu.appendChild(sectionBox)
+menu.appendChild(sectionBox)
 
-    })
+})
 
-    /* logout */
+/* ======================================
+   LOGOUT
+====================================== */
 
-    const logout = document.createElement("div")
-    logout.className = "menu-logout"
-    logout.innerText = "Logout"
+const logout=document.createElement("div")
+logout.className="menu-logout"
+logout.innerText="Logout"
 
-    logout.onclick = () => {
-      if (window.router && window.router.logout) {
-        window.router.logout()
-      }
-    }
+logout.onclick=()=>{
+if(window.router && window.router.logout){
+window.router.logout()
+}
+}
 
-    menu.appendChild(logout)
+menu.appendChild(logout)
 
-  }
+}
 
-  /* =========================
-     OPEN MENU
-  ========================= */
+/* ======================================
+   OPEN MENU
+====================================== */
 
-  function openMenu() {
-    renderMenu()
-    menu.classList.add("open")
-    overlay.classList.add("open")
-  }
+function openMenu(){
+renderMenu()
+menu.classList.add("open")
+overlay.classList.add("open")
+}
 
-  /* =========================
-     CLOSE MENU
-  ========================= */
+/* ======================================
+   CLOSE MENU
+====================================== */
 
-  function closeMenu() {
-    menu.classList.remove("open")
-    overlay.classList.remove("open")
-  }
+function closeMenu(){
+menu.classList.remove("open")
+overlay.classList.remove("open")
+}
 
-  toggle.onclick = () => {
+toggle.onclick=()=>{
 
-    if (menu.classList.contains("open")) {
-      closeMenu()
-    } else {
-      openMenu()
-    }
+if(menu.classList.contains("open")){
+closeMenu()
+}else{
+openMenu()
+}
 
-  }
+}
 
-  overlay.onclick = closeMenu
+overlay.onclick=closeMenu
 
 }
