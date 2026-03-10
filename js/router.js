@@ -106,6 +106,8 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
+const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
+
 /* =========================================================
    STORAGE KEYS
 ========================================================= */
@@ -165,10 +167,14 @@ async function renderView(routeName) {
 ========================================================= */
 
 function isSuperadmin() {
-  return window.state?.isSuperadmin === true;
+  if (window.state?.isSuperadmin === true) return true;
+
+  const aziende = window.state?.aziende || [];
+  return aziende.some((a) => a.ruolo === "superadmin");
 }
 
 function hasPermission(area) {
+  if (area === "home") return true;
   if (isSuperadmin()) return true;
 
   const ruolo = window.state?.ruolo;
@@ -485,6 +491,8 @@ async function doLogout() {
   window.state.featuresEffettive = {};
   window.state.sedi = [];
   window.state.sedeAttiva = null;
+  window.state.permessiOverride = {};
+  window.state.isSuperadmin = false;
 
   setHeaderVisible(false);
 
@@ -514,6 +522,13 @@ async function resolve() {
     if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
     if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
 
+    window.state.piano = null;
+    window.state.featuresEffettive = {};
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+    window.state.permessiOverride = {};
+    window.state.isSuperadmin = false;
+
     setHeaderVisible(false);
 
     const target = PUBLIC_ROUTES.has(route) ? route : "login";
@@ -523,7 +538,12 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  if (PUBLIC_ROUTES.has(route) && route !== "activate" && route !== "setPassword" && route !== "set-password") {
+  if (
+    PUBLIC_ROUTES.has(route) &&
+    route !== "activate" &&
+    route !== "setPassword" &&
+    route !== "set-password"
+  ) {
     const tmpAziende = await loadAziendeForUser(session.user.id);
     const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
     const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
@@ -561,14 +581,8 @@ async function resolve() {
 
   setHeaderVisible(true);
 
- const aziendaRes = await ensureAziendaContext(route);
-
-if(route === "home"){
-  await renderView("home")
-  return
-}
-
-if (!aziendaRes.ok) {
+  const aziendaRes = await ensureAziendaContext(route);
+  if (!aziendaRes.ok) {
     if (aziendaRes.redirected) return;
 
     if (aziendaRes.reason === "no_aziende") {
@@ -608,7 +622,6 @@ if (!aziendaRes.ok) {
         return;
       }
     }
-
   } catch (e) {
     console.warn("Check profilo azienda fallito:", e);
   }
@@ -617,6 +630,10 @@ if (!aziendaRes.ok) {
 
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
+
+  if (window.menuController?.refresh) {
+    window.menuController.refresh();
+  }
 
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
@@ -650,13 +667,13 @@ if (!aziendaRes.ok) {
     return;
   }
 
-if (
-  !PLATFORM_ROUTES.has(route) &&
-  route !== "completaProfilo" &&
-  route !== "completaAzienda" &&
-  route !== "home"
-) {
-  const sedeRes = await ensureSedeContext(route);
+  if (
+    !PLATFORM_ROUTES.has(route) &&
+    route !== "completaProfilo" &&
+    route !== "completaAzienda" &&
+    route !== "home"
+  ) {
+    const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
 
@@ -668,6 +685,20 @@ if (
       window.location.hash = "#/gestioneSedi?mode=select";
       return;
     }
+  }
+
+  if (route === "homePiattaforma") {
+    if (!isSuperadmin()) {
+      window.location.hash = "#/home";
+      return;
+    }
+    await renderView("homePiattaforma");
+    return;
+  }
+
+  if (route === "home") {
+    await renderView("home");
+    return;
   }
 
   if (PLATFORM_ROUTES.has(route)) {
@@ -690,7 +721,7 @@ if (
   }
 
   if (routes[route]) {
-    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route)) {
+    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
       if (!hasPermission(route)) {
         window.location.hash = "#/home";
         return;
