@@ -1070,3 +1070,108 @@ svg {
 .acquisto-riga-meta b{
   font-weight:600;
 }
+/* ========================================================= */
+/* ================ HOME DASHBOARD COMPACT ================= */
+/* ========================================================= */
+
+.home-compact{
+  padding:12px !important;
+}
+
+.home-compact .card{
+  padding:14px !important;
+  margin-bottom:12px !important;
+}
+
+.home-compact .kpi-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.home-compact .period-filter{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.home-compact .period-filter button{
+  border:none;
+  background:#EEF2F7;
+  padding:4px 10px;
+  border-radius:10px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.home-compact .incassi-value{
+  font-size:18px;
+  font-weight:700;
+}
+
+.home-compact .incassi-iva{
+  font-size:11px;
+  color:var(--color-text-muted);
+}
+
+.home-compact canvas{
+  max-height:120px;
+  margin-top:8px;
+}
+
+.home-compact .bep{
+  text-align:center;
+  font-size:13px;
+  font-weight:700;
+  margin-top:6px;
+}
+
+.home-compact .kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-top:10px;
+  text-align:center;
+}
+
+.home-compact .kpi-name{
+  font-size:11px;
+  color:var(--color-text-muted);
+}
+
+.home-compact .kpi-value{
+  font-size:13px;
+  font-weight:700;
+}
+
+.home-compact .kpi-perc{
+  font-size:10px;
+  color:var(--color-text-muted);
+}
+
+/* ===== VENDITE ===== */
+
+.home-compact .vendite-header{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+
+.home-compact .vendite-row{
+  padding:6px 0;
+  border-bottom:1px solid var(--color-border);
+}
+
+.home-compact .vendite-name{
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.home-compact .vendite-meta{
+  font-size:11px;
+  color:var(--color-text-muted);
+}
