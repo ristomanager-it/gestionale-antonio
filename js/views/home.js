@@ -353,7 +353,7 @@ function renderGauge() {
   if (!ctx) return;
   if (typeof Chart === "undefined") return;
 
-  if (window.__homeGaugeChart && typeof window.__homeGaugeChart.destroy === "function") {
+  if (window.__homeGaugeChart) {
     window.__homeGaugeChart.destroy();
   }
 
@@ -368,22 +368,23 @@ function renderGauge() {
             "#f97316",
             "#eab308",
             "#22c55e",
-            "#16a34a",
+            "#16a34a"
           ],
-          borderWidth: 0,
-        },
-      ],
+          borderWidth: 0
+        }
+      ]
     },
     options: {
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       rotation: -90,
       circumference: 180,
       cutout: "70%",
       plugins: {
-        legend: { display: false },
-      },
-    },
+        legend: { display: false }
+      }
+    }
   });
 }
 
@@ -395,7 +396,7 @@ function renderVendite() {
   const prodotti = [
     { nome: "Carbonara", incasso: 3200, margine: 1200, numero: 140 },
     { nome: "Amatriciana", incasso: 2100, margine: 900, numero: 100 },
-    { nome: "Tiramisù", incasso: 1500, margine: 700, numero: 80 },
+    { nome: "Tiramisù", incasso: 1500, margine: 700, numero: 80 }
   ];
 
   const box = document.getElementById("venditeList");
@@ -453,7 +454,7 @@ async function hydrateWeather() {
 
   try {
     const res = await fetch(
-      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+      \`\${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m\`
     );
     const data = await res.json();
 
