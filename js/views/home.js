@@ -1,8 +1,8 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
-/* ======================================================
-   VIEW RENDER
-====================================================== */
+/* =========================================================
+   RENDER VIEW
+========================================================= */
 
 export async function render(container){
 
@@ -12,130 +12,127 @@ export async function render(container){
   const sede = window.state?.sedeAttiva;
   const isSuperadmin = window.state?.isSuperadmin === true;
 
-  updateHeader(azienda, sede);
+  updateHeader(azienda,sede);
   initTopbar(user);
 
   container.innerHTML = `
 
-  <div class="home-container">
+  <div class="view">
 
-    ${renderAdminDashboard(ruolo,isSuperadmin)}
+    ${renderKpiCard(ruolo,isSuperadmin)}
 
     ${renderVenditeCard()}
 
-    ${renderTonyAvatar()}
-
-    ${renderFooter()}
+    ${renderTony()}
 
   </div>
 
   <style>
 
-  .home-container{
-    max-width:1200px;
-    margin:auto;
-    padding:16px;
-    padding-bottom:100px;
-  }
+  /* ================= KPI CARD ================= */
 
-  .card{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-    box-shadow:0 4px 14px rgba(0,0,0,0.06);
-    margin-bottom:18px;
-  }
-
-  .incassi-title{
+  .kpi-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
     font-size:14px;
-    color:#6b7280;
+    color:var(--color-text-muted);
+  }
+
+  .period-filter{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+
+  .period-filter button{
+    border:none;
+    background:#EEF2F7;
+    padding:6px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:13px;
   }
 
   .incassi-value{
-    font-size:16px;
-    font-weight:400;
-    margin-top:4px;
+    font-size:20px;
+    font-weight:700;
   }
 
   .incassi-iva{
     font-size:12px;
-    color:#6b7280;
+    color:var(--color-text-muted);
   }
 
-  .gauge-container{
-    margin-top:12px;
-  }
-
-  .kpi-bar{
+  .kpi-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    gap:8px;
-    margin-top:14px;
+    gap:12px;
+    margin-top:18px;
     text-align:center;
   }
 
   .kpi-name{
     font-size:12px;
-    color:#6b7280;
+    color:var(--color-text-muted);
   }
 
   .kpi-value{
-    font-size:16px;
+    font-size:15px;
+    font-weight:700;
   }
 
   .kpi-perc{
     font-size:11px;
-    color:#6b7280;
+    color:var(--color-text-muted);
   }
+
+  .bep{
+    margin-top:10px;
+    text-align:center;
+    font-weight:700;
+    font-size:14px;
+  }
+
+  /* ================= VENDITE ================= */
 
   .vendite-header{
     display:flex;
     justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  }
-
-  .vendite-list{
-    font-size:14px;
+    margin-bottom:12px;
   }
 
   .vendite-row{
-    display:flex;
-    justify-content:space-between;
-    padding:6px 0;
-    border-bottom:1px solid #eee;
+    padding:10px 0;
+    border-bottom:1px solid var(--color-border);
   }
+
+  .vendite-name{
+    font-weight:600;
+  }
+
+  .vendite-meta{
+    font-size:12px;
+    color:var(--color-text-muted);
+  }
+
+  /* ================= TONY ================= */
 
   .tony-avatar{
     position:fixed;
     bottom:90px;
-    right:18px;
+    right:20px;
     width:58px;
     height:58px;
     border-radius:50%;
-    background:#111827;
+    background:var(--color-primary);
     color:white;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:26px;
-    cursor:pointer;
-  }
-
-  .home-footer{
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    background:white;
-    border-top:1px solid #eee;
-    display:flex;
-    justify-content:space-around;
-    padding:10px 0;
-  }
-
-  .home-footer div{
-    font-size:22px;
+    font-size:24px;
     cursor:pointer;
   }
 
@@ -143,135 +140,155 @@ export async function render(container){
   `;
 
   if(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin){
-    loadAdminDashboard();
+    loadDashboard();
   }
 
 }
 
-/* ======================================================
+/* =========================================================
    HEADER UPDATE
-====================================================== */
+========================================================= */
 
 function updateHeader(azienda,sede){
 
-  const box = document.getElementById("header-azienda-nome");
+  const box=document.getElementById("header-azienda-nome");
 
   if(!box) return;
 
   if(sede){
-    box.innerText = sede.nome;
+    box.innerText=sede.nome;
     return;
   }
 
   if(azienda){
-    box.innerText = azienda.nome;
+    box.innerText=azienda.nome;
     return;
   }
 
-  box.innerText = "Ristoflow";
+  box.innerText="Ristoflow";
 
 }
 
-/* ======================================================
+/* =========================================================
    TOPBAR
-====================================================== */
+========================================================= */
 
 function initTopbar(user){
 
-  const salutoBox = document.getElementById("topbar-saluto");
-  const dataBox = document.getElementById("topbar-data");
+  const salutoBox=document.getElementById("topbar-saluto");
+  const dataBox=document.getElementById("topbar-data");
 
   if(!salutoBox) return;
 
-  const ora = new Date().getHours();
+  const ora=new Date().getHours();
 
   let saluto="Buongiorno";
 
   if(ora>=12 && ora<18) saluto="Buon pomeriggio";
   if(ora>=18) saluto="Buonasera";
 
-  const nome = user?.email?.split("@")[0] || "";
+  const nome=user?.email?.split("@")[0] || "";
 
   salutoBox.innerText=`${saluto} ${nome}`;
 
-  const giorni=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
-  const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-
   const now=new Date();
 
-  dataBox.innerText=`${giorni[now.getDay()]} ${now.getDate()} ${mesi[now.getMonth()]}`;
+  dataBox.innerText=now.toLocaleDateString("it-IT",{
+    weekday:"short",
+    day:"numeric",
+    month:"short"
+  });
 
   hydrateWeather();
 
 }
 
-/* ======================================================
-   DASHBOARD ADMIN
-====================================================== */
+/* =========================================================
+   KPI CARD
+========================================================= */
 
-function renderAdminDashboard(ruolo,isSuperadmin){
+function renderKpiCard(ruolo,isSuperadmin){
 
-  if(!(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin)) return "";
+if(!(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin)) return "";
 
-  return `
+return`
 
-  <div class="card">
+<div class="card">
 
-    <div class="incassi-title">Incassi netti</div>
-    <div class="incassi-value" id="incassiTotali">€0</div>
-    <div class="incassi-iva">
-      con IVA <span id="incassiIva">€0</span>
-    </div>
+<div class="kpi-header">
 
-  </div>
+<div id="topbar-saluto"></div>
+<div id="topbar-data"></div>
+<div id="topbar-weather"></div>
 
-  <div class="card">
+</div>
 
-    <div class="gauge-container">
-      <canvas id="margineGauge"></canvas>
-    </div>
+<div class="period-filter">
 
-    <div style="text-align:center;margin-top:8px;font-weight:600">
-      BEP € <span id="bepValue">0</span>
-    </div>
+<button>Day</button>
+<button>Week</button>
+<button>Month</button>
+<button>Year</button>
 
-    <div class="kpi-bar">
+<input type="date">
 
-      <div>
-        <div class="kpi-name">Materie prime</div>
-        <div class="kpi-value" id="mpValue">0</div>
-        <div class="kpi-perc" id="mpPerc">0%</div>
-      </div>
+</div>
 
-      <div>
-        <div class="kpi-name">Personale</div>
-        <div class="kpi-value" id="lavoroValue">0</div>
-        <div class="kpi-perc" id="lavoroPerc">0%</div>
-      </div>
+<div>
 
-      <div>
-        <div class="kpi-name">Costi fissi</div>
-        <div class="kpi-value" id="speseValue">0</div>
-        <div class="kpi-perc" id="spesePerc">0%</div>
-      </div>
+<div class="incassi-value" id="incassiTotali">€0</div>
 
-      <div>
-        <div class="kpi-name">Margine</div>
-        <div class="kpi-value" id="margineValue">0</div>
-        <div class="kpi-perc" id="marginePerc">0%</div>
-      </div>
+<div class="incassi-iva">
+con IVA <span id="incassiIva">€0</span>
+</div>
 
-    </div>
+</div>
 
-  </div>
+<div style="margin-top:18px">
+<canvas id="gauge"></canvas>
+</div>
 
-  `;
+<div class="bep">
+BEP € <span id="bep">0</span>
+</div>
+
+<div class="kpi-grid">
+
+<div>
+<div class="kpi-name">Materie prime</div>
+<div class="kpi-value" id="mp">0</div>
+<div class="kpi-perc" id="mpPerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Personale</div>
+<div class="kpi-value" id="pers">0</div>
+<div class="kpi-perc" id="persPerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Costi fissi</div>
+<div class="kpi-value" id="fix">0</div>
+<div class="kpi-perc" id="fixPerc">0%</div>
+</div>
+
+<div>
+<div class="kpi-name">Margine</div>
+<div class="kpi-value" id="marg">0</div>
+<div class="kpi-perc" id="margPerc">0%</div>
+</div>
+
+</div>
+
+</div>
+
+`;
 
 }
 
-/* ======================================================
-   VENDITE
-====================================================== */
+/* =========================================================
+   VENDITE CARD
+========================================================= */
 
 function renderVenditeCard(){
 
@@ -283,7 +300,7 @@ return`
 
 <h3>Vendite</h3>
 
-<select id="prodottiFiltro">
+<select id="venditeFiltro">
 <option value="incasso">Incasso</option>
 <option value="numero">Numero</option>
 <option value="margine">Margine</option>
@@ -291,7 +308,7 @@ return`
 
 </div>
 
-<div id="prodottiVenduti" class="vendite-list"></div>
+<div id="venditeList"></div>
 
 </div>
 
@@ -299,53 +316,49 @@ return`
 
 }
 
-/* ======================================================
+/* =========================================================
    LOAD DASHBOARD
-====================================================== */
+========================================================= */
 
-function loadAdminDashboard(){
+function loadDashboard(){
 
-const incasso = 12000;
-const iva = 14400;
+const incasso=12000;
+const iva=14400;
 
-const mp = 3500;
-const lavoro = 3000;
-const spese = 1500;
+const mp=3500;
+const pers=3000;
+const fix=1500;
 
-const costi = mp + lavoro + spese;
-const margine = incasso - costi;
+const costi=mp+pers+fix;
+const marg=incasso-costi;
 
-document.getElementById("incassiTotali").innerHTML="€"+incasso;
-document.getElementById("incassiIva").innerHTML="€"+iva;
+document.getElementById("incassiTotali").innerText="€ "+incasso;
+document.getElementById("incassiIva").innerText="€ "+iva;
 
-document.getElementById("mpValue").innerHTML="€"+mp;
-document.getElementById("lavoroValue").innerHTML="€"+lavoro;
-document.getElementById("speseValue").innerHTML="€"+spese;
-document.getElementById("margineValue").innerHTML="€"+margine;
-document.getElementById("bepValue").innerHTML=costi;
+document.getElementById("mp").innerText="€ "+mp;
+document.getElementById("pers").innerText="€ "+pers;
+document.getElementById("fix").innerText="€ "+fix;
+document.getElementById("marg").innerText="€ "+marg;
 
-document.getElementById("mpPerc").innerHTML=Math.round(mp/incasso*100)+"%";
-document.getElementById("lavoroPerc").innerHTML=Math.round(lavoro/incasso*100)+"%";
-document.getElementById("spesePerc").innerHTML=Math.round(spese/incasso*100)+"%";
-document.getElementById("marginePerc").innerHTML=Math.round(margine/incasso*100)+"%";
+document.getElementById("bep").innerText=costi;
 
-renderGauge(Math.round(margine/incasso*100));
+document.getElementById("mpPerc").innerText=Math.round(mp/incasso*100)+"%";
+document.getElementById("persPerc").innerText=Math.round(pers/incasso*100)+"%";
+document.getElementById("fixPerc").innerText=Math.round(fix/incasso*100)+"%";
+document.getElementById("margPerc").innerText=Math.round(marg/incasso*100)+"%";
 
-renderProdotti();
-
-document
-.getElementById("prodottiFiltro")
-.addEventListener("change",renderProdotti);
+renderGauge();
+renderVendite();
 
 }
 
-/* ======================================================
+/* =========================================================
    GAUGE
-====================================================== */
+========================================================= */
 
 function renderGauge(){
 
-const ctx=document.getElementById("margineGauge");
+const ctx=document.getElementById("gauge");
 
 new Chart(ctx,{
 type:"doughnut",
@@ -372,40 +385,41 @@ plugins:{legend:{display:false}}
 
 }
 
-/* ======================================================
-   PRODOTTI
-====================================================== */
+/* =========================================================
+   VENDITE
+========================================================= */
 
-function renderProdotti(){
+function renderVendite(){
 
-const filtro=document.getElementById("prodottiFiltro")?.value || "incasso";
-
-let prodotti=[
+const prodotti=[
 {nome:"Carbonara",incasso:3200,margine:1200,numero:140},
 {nome:"Amatriciana",incasso:2100,margine:900,numero:100},
 {nome:"Tiramisù",incasso:1500,margine:700,numero:80}
 ];
 
-prodotti.sort((a,b)=>b[filtro]-a[filtro]);
+const box=document.getElementById("venditeList");
 
-const container=document.getElementById("prodottiVenduti");
-
-container.innerHTML=prodotti.map(p=>`
+box.innerHTML=prodotti.map(p=>`
 
 <div class="vendite-row">
-<div>${p.nome}</div>
-<div>${p[filtro]}</div>
+
+<div class="vendite-name">${p.nome}</div>
+
+<div class="vendite-meta">
+€${p.incasso} • margine €${p.margine} • ${p.numero} pz
+</div>
+
 </div>
 
 `).join("");
 
 }
 
-/* ======================================================
+/* =========================================================
    TONY
-====================================================== */
+========================================================= */
 
-function renderTonyAvatar(){
+function renderTony(){
 
 return`
 
@@ -417,48 +431,20 @@ return`
 
 }
 
-/* ======================================================
-   FOOTER
-====================================================== */
-
-function renderFooter(){
-
-return`
-
-<div class="home-footer">
-
-<div onclick="location.hash='#/produzione'">🏭</div>
-<div onclick="location.hash='#/magazzino'">📦</div>
-<div onclick="location.hash='#/ricettario'">📖</div>
-<div onclick="location.hash='#/venduto'">📊</div>
-<div onclick="location.hash='#/ai'">🤖</div>
-
-</div>
-
-`;
-
-}
-
-/* ======================================================
+/* =========================================================
    METEO
-====================================================== */
+========================================================= */
 
 async function hydrateWeather(){
 
 const box=document.getElementById("topbar-weather");
 
-if(!box) return;
-
 try{
 
-const url=`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`;
-
-const res=await fetch(url);
+const res=await fetch(`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`);
 const data=await res.json();
 
-const temp=Math.round(data.current.temperature_2m);
-
-box.innerHTML=`🌤 ${temp}°`;
+box.innerHTML="🌤 "+Math.round(data.current.temperature_2m)+"°";
 
 }catch{
 
