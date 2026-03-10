@@ -17,7 +17,7 @@ export async function render(container){
 
   container.innerHTML = `
 
-  <div class="view">
+ <div class="view home-compact">
 
     ${renderKpiCard(ruolo,isSuperadmin)}
 
