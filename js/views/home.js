@@ -10,11 +10,8 @@ const PERIOD_LABELS = {
   custom: "Personalizzato"
 };
 
-/* =========================================================
-   RENDER VIEW
-========================================================= */
-
 export async function render(container) {
+
   const user = window.state?.user;
   const azienda = window.state?.azienda;
   const sede = window.state?.sedeAttiva;
@@ -25,9 +22,13 @@ export async function render(container) {
 
   container.innerHTML = `
   <div class="view home-admin">
+
     <div class="home-grid">
+
       <section class="card admin-kpi-card">
+
         <div class="admin-kpi-top">
+
           <div>
             <div class="admin-saluto" id="home-saluto"></div>
             <div class="admin-utente" id="home-utente"></div>
@@ -37,9 +38,11 @@ export async function render(container) {
             <div class="admin-data" id="home-data"></div>
             <div class="admin-meteo" id="home-weather">☁️</div>
           </div>
+
         </div>
 
         <div class="admin-filters">
+
           <div class="admin-filter-buttons">
             <button type="button" class="period-btn active" data-period="day">Giorno</button>
             <button type="button" class="period-btn" data-period="week">Settimana</button>
@@ -58,16 +61,23 @@ export async function render(container) {
             </label>
             <button type="button" id="apply-custom-range" class="range-btn">Applica</button>
           </div>
+
         </div>
 
-        <div class="admin-period-label" id="period-label">Periodo: Giorno</div>
+        <div class="admin-period-label" id="period-label">
+          Periodo: Giorno
+        </div>
 
         <div class="admin-incasso-row">
+
           <div>
             <div class="admin-incasso-label">Incasso</div>
             <div class="admin-incasso-value" id="incassoTotale">€ 0</div>
-            <div class="admin-incasso-iva">Con IVA <span id="incassoIva">€ 0</span></div>
+            <div class="admin-incasso-iva">
+              Con IVA <span id="incassoIva">€ 0</span>
+            </div>
           </div>
+
         </div>
 
         <div class="admin-gauge-wrap">
@@ -75,10 +85,12 @@ export async function render(container) {
         </div>
 
         <div class="admin-bep">
-          BEP giornaliero <span id="bepValore">€ 0</span>
+          BEP giornaliero
+          <span id="bepValore">€ 0</span>
         </div>
 
         <div class="admin-kpi-row">
+
           <div class="admin-kpi-col">
             <div class="admin-kpi-name">MP</div>
             <div class="admin-kpi-euro" id="materiaPrimaValore">€ 0</div>
@@ -102,16 +114,23 @@ export async function render(container) {
             <div class="admin-kpi-euro" id="margineValore">€ 0</div>
             <div class="admin-kpi-perc" id="marginePerc">0%</div>
           </div>
+
         </div>
+
       </section>
 
       <section class="card admin-sales-card">
+
         <div class="admin-sales-head">
           <h3>Prodotti venduti</h3>
         </div>
+
         <div id="sales-list" class="admin-sales-list"></div>
+
       </section>
+
     </div>
+
   </div>
   `;
 
@@ -121,24 +140,27 @@ export async function render(container) {
   hydrateWeather();
 
   await refreshDashboard("day");
+
 }
 
-/* =========================================================
+/* ======================================================
    DASHBOARD DATA
-========================================================= */
+====================================================== */
 
 async function fetchDashboardData(period){
 
   const azienda = window.state?.azienda;
   if(!azienda) return null;
 
-  const {from,to} = getDateRange(period);
+  const { from, to } = getDateRange(period);
 
   const res = await fetch(
     `${window.supabaseUrl}/functions/v1/dashboard-kpi`,
     {
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
+      headers:{
+        "Content-Type":"application/json"
+      },
       body:JSON.stringify({
         azienda_id:azienda.id,
         data_da:from,
@@ -150,53 +172,55 @@ async function fetchDashboardData(period){
   if(!res.ok) return null;
 
   return await res.json();
+
 }
 
 async function refreshDashboard(period){
 
   const data = await fetchDashboardData(period);
+
   if(!data) return;
 
   const incasso = data.incasso || 0;
-  const materiaPrima = data.materia_prima || 0;
-  const speseFisse = data.spese_fisse || 0;
-  const costoLavoro = data.costo_lavoro || 0;
+  const mp = data.materia_prima || 0;
+  const sf = data.spese_fisse || 0;
+  const cl = data.costo_lavoro || 0;
   const margine = data.margine || 0;
   const bep = data.bep || 0;
 
-  setText("incassoTotale",formatCurrency(incasso));
-  setText("incassoIva",formatCurrency(Math.round(incasso*1.1)));
+  setText("incassoTotale", formatCurrency(incasso));
+  setText("incassoIva", formatCurrency(Math.round(incasso*1.1)));
 
-  setText("materiaPrimaValore",formatCurrency(materiaPrima));
-  setText("speseFisseValore",formatCurrency(speseFisse));
-  setText("costoLavoroValore",formatCurrency(costoLavoro));
-  setText("margineValore",formatCurrency(margine));
+  setText("materiaPrimaValore", formatCurrency(mp));
+  setText("speseFisseValore", formatCurrency(sf));
+  setText("costoLavoroValore", formatCurrency(cl));
+  setText("margineValore", formatCurrency(margine));
 
-  setText("bepValore",formatCurrency(bep));
+  setText("bepValore", formatCurrency(bep));
 
-  setText("materiaPrimaPerc",toPercent(materiaPrima,incasso)+"%");
-  setText("speseFissePerc",toPercent(speseFisse,incasso)+"%");
-  setText("costoLavoroPerc",toPercent(costoLavoro,incasso)+"%");
-  setText("marginePerc",toPercent(margine,incasso)+"%");
+  setText("materiaPrimaPerc", toPercent(mp,incasso)+"%");
+  setText("speseFissePerc", toPercent(sf,incasso)+"%");
+  setText("costoLavoroPerc", toPercent(cl,incasso)+"%");
+  setText("marginePerc", toPercent(margine,incasso)+"%");
 
   renderGauge({
-    materiaPrima,
-    speseFisse,
-    costoLavoro,
-    margine,
-    marginePerc:toPercent(margine,incasso)
+    materiaPrima:mp,
+    speseFisse:sf,
+    costoLavoro:cl,
+    margine:margine
   });
 
   renderSales(data.prodotti || []);
+
 }
 
-/* =========================================================
+/* ======================================================
    SALES LIST
-========================================================= */
+====================================================== */
 
 function renderSales(prodotti){
 
-  const box = document.getElementById("sales-list");
+  const box=document.getElementById("sales-list");
   if(!box) return;
 
   box.innerHTML = prodotti.map(p=>`
@@ -204,26 +228,28 @@ function renderSales(prodotti){
       <div class="admin-sales-left">
         <div class="admin-sales-name">Prodotto ${p.prodotto_id}</div>
       </div>
+
       <div class="admin-sales-value-card">
         <div class="admin-sales-value-label">Incasso</div>
         <div class="admin-sales-value">${formatCurrency(p.incasso)}</div>
       </div>
     </div>
   `).join("");
+
 }
 
-/* =========================================================
+/* ======================================================
    GAUGE
-========================================================= */
+====================================================== */
 
 function renderGauge(metrics){
 
-  const canvas=document.getElementById("admin-gauge");
+  const canvas = document.getElementById("admin-gauge");
   if(!canvas || typeof Chart==="undefined") return;
 
   destroyGauge();
 
-  gaugeChart=new Chart(canvas,{
+  gaugeChart = new Chart(canvas,{
     type:"doughnut",
     data:{
       datasets:[{
@@ -247,7 +273,7 @@ function renderGauge(metrics){
       maintainAspectRatio:false,
       rotation:-90,
       circumference:180,
-      cutout:"72%"
+      cutout:"70%"
     }
   });
 
@@ -260,9 +286,9 @@ function destroyGauge(){
   }
 }
 
-/* =========================================================
+/* ======================================================
    HEADER
-========================================================= */
+====================================================== */
 
 function hideLegacyTopbar(){
   const bar=document.querySelector(".topbar-info");
@@ -304,9 +330,9 @@ function initTopbar(user){
 
 }
 
-/* =========================================================
+/* ======================================================
    DATE RANGE
-========================================================= */
+====================================================== */
 
 function initDateRangeDefaults(){
 
@@ -352,12 +378,16 @@ function getDateRange(period){
   const fromInput=document.getElementById("filter-from");
   const toInput=document.getElementById("filter-to");
 
-  return {from:fromInput.value,to:toInput.value};
+  return {
+    from:fromInput.value,
+    to:toInput.value
+  };
+
 }
 
-/* =========================================================
+/* ======================================================
    METEO
-========================================================= */
+====================================================== */
 
 async function hydrateWeather(){
 
@@ -382,9 +412,9 @@ async function hydrateWeather(){
 
 }
 
-/* =========================================================
+/* ======================================================
    HELPERS
-========================================================= */
+====================================================== */
 
 function setText(id,value){
   const el=document.getElementById(id);
