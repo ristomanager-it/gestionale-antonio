@@ -17,7 +17,7 @@ document.body.appendChild(overlay)
    RUOLO UTENTE
 ====================================== */
 
-const ruolo = window.state?.ruolo || "operatore"
+const ruolo = window.state?.ruolo
 const isSuperadmin = window.state?.isSuperadmin === true
 
 /* ======================================
@@ -68,6 +68,8 @@ items:[
 
 function getMenuForRole(){
 
+/* superadmin */
+
 if(isSuperadmin){
 return [
 baseMenu.OPERATIVO,
@@ -76,6 +78,20 @@ baseMenu.GESTIONE,
 baseMenu.MARKETING
 ]
 }
+
+/* se ruolo non ancora caricato
+   mostriamo tutto temporaneamente */
+
+if(!ruolo){
+return [
+baseMenu.OPERATIVO,
+baseMenu.AMMINISTRAZIONE,
+baseMenu.GESTIONE,
+baseMenu.MARKETING
+]
+}
+
+/* admin */
 
 if(ruolo==="admin"){
 return [
@@ -86,11 +102,15 @@ baseMenu.MARKETING
 ]
 }
 
+/* manager cucina */
+
 if(ruolo==="manager_cucina"){
 return [
 baseMenu.OPERATIVO
 ]
 }
+
+/* segreteria */
 
 if(ruolo==="segreteria"){
 return [
@@ -98,6 +118,8 @@ baseMenu.AMMINISTRAZIONE,
 baseMenu.MARKETING
 ]
 }
+
+/* default */
 
 return [
 baseMenu.OPERATIVO
@@ -131,6 +153,8 @@ title.innerHTML=`
 const itemsBox=document.createElement("div")
 itemsBox.className="menu-subitems"
 
+/* sottovoci */
+
 section.items.forEach(item=>{
 
 const row=document.createElement("div")
@@ -145,6 +169,8 @@ closeMenu()
 itemsBox.appendChild(row)
 
 })
+
+/* toggle */
 
 title.onclick=()=>{
 
@@ -172,9 +198,7 @@ menu.appendChild(sectionBox)
 
 })
 
-/* ======================================
-   LOGOUT
-====================================== */
+/* logout */
 
 const logout=document.createElement("div")
 logout.className="menu-logout"
