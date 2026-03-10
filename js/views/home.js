@@ -1,5 +1,5 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
-
+let gaugeInitialized = false
 /* =========================================================
    RENDER VIEW
 ========================================================= */
@@ -401,58 +401,45 @@ function setText(id, value) {
    GAUGE
 ========================================================= */
 
-function renderGauge(marg, costi) {
-  const canvas = document.getElementById("gauge");
-  if (!canvas) return;
-  if (typeof Chart === "undefined") return;
+function renderGauge(marg, costi){
 
-  if (window.__homeGaugeChart) {
-    try {
-      window.__homeGaugeChart.destroy();
-    } catch (e) {
-      console.warn("Destroy gauge error:", e);
-    }
-    window.__homeGaugeChart = null;
-  }
+  if(gaugeInitialized) return
+  gaugeInitialized = true
 
-  const parent = canvas.parentNode;
-  const freshCanvas = canvas.cloneNode(false);
-  parent.replaceChild(freshCanvas, canvas);
+  const canvas = document.getElementById("gauge")
 
-  const ctx = freshCanvas.getContext("2d");
-  const total = Math.max(marg + costi, 1);
+  if(!canvas) return
+  if(typeof Chart === "undefined") return
 
-  window.__homeGaugeChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      datasets: [
+  const total = marg + costi || 1
+
+  new Chart(canvas,{
+    type:"doughnut",
+    data:{
+      datasets:[
         {
-          data: [marg, costi],
-          backgroundColor: ["#22c55e", "#e5e7eb"],
-          borderWidth: 0,
-          hoverOffset: 0
+          data:[marg,costi],
+          backgroundColor:["#22c55e","#e5e7eb"],
+          borderWidth:0
         }
       ]
     },
-    options: {
-      animation: false,
-      responsive: true,
-      maintainAspectRatio: false,
-      rotation: -90,
-      circumference: 180,
-      cutout: "70%",
-      events: [],
-      interaction: {
-        mode: null
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      rotation:-90,
+      circumference:180,
+      cutout:"70%",
+      plugins:{
+        legend:{display:false},
+        tooltip:{enabled:false}
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false }
-      }
+      events:[]   // ← IMPORTANTISSIMO
     }
-  });
-}
+  })
 
+}
 /* =========================================================
    VENDITE
 ========================================================= */
