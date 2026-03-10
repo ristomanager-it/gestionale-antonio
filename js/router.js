@@ -722,10 +722,10 @@ async function resolve() {
 
   if (routes[route]) {
     if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
-      if (!hasPermission(route)) {
-        window.location.hash = "#/home";
-        return;
-      }
+     if (!hasPermission(route) && !isSuperadmin()) {
+  window.location.hash = "#/home";
+  return;
+}
     }
     await renderView(route);
     return;
