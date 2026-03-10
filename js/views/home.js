@@ -1,5 +1,35 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
-let gaugeInitialized = false
+
+let gaugeChart = null;
+
+const PERIOD_LABELS = {
+  day: "Giorno",
+  week: "Settimana",
+  month: "Mese",
+  year: "Anno",
+  custom: "Personalizzato"
+};
+
+const FIXED_COST_CATEGORIES_YEAR = [
+  { nome: "Affitto", totale: 18000 },
+  { nome: "Utenze", totale: 7200 },
+  { nome: "Software", totale: 1800 },
+  { nome: "Commercialista", totale: 2400 },
+  { nome: "Assicurazioni", totale: 1200 },
+  { nome: "Pulizie", totale: 4380 }
+];
+
+const SALES_DATA = [
+  { nome: "Margherita", categoria: "Pizze", incassoDay: 420, quantitaDay: 28, foodCostPct: 0.28 },
+  { nome: "Diavola", categoria: "Pizze", incassoDay: 390, quantitaDay: 22, foodCostPct: 0.31 },
+  { nome: "Carbonara", categoria: "Primi", incassoDay: 310, quantitaDay: 18, foodCostPct: 0.29 },
+  { nome: "Amatriciana", categoria: "Primi", incassoDay: 250, quantitaDay: 15, foodCostPct: 0.27 },
+  { nome: "Tagliata", categoria: "Secondi", incassoDay: 360, quantitaDay: 12, foodCostPct: 0.34 },
+  { nome: "Cheesecake", categoria: "Dolci", incassoDay: 160, quantitaDay: 14, foodCostPct: 0.24 },
+  { nome: "Spritz", categoria: "Bar", incassoDay: 210, quantitaDay: 30, foodCostPct: 0.19 },
+  { nome: "Acqua", categoria: "Bevande", incassoDay: 95, quantitaDay: 38, foodCostPct: 0.08 }
+];
+
 /* =========================================================
    RENDER VIEW
 ========================================================= */
@@ -9,171 +39,508 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const sede = window.state?.sedeAttiva;
 
+  destroyGauge();
   updateHeader(azienda, sede);
+  hideLegacyTopbar();
 
   container.innerHTML = `
-  <div class="view home-compact">
-    ${renderKpiCard()}
-    ${renderVenditeCard()}
-    ${renderTony()}
+  <div class="view home-admin">
+    <div class="home-grid">
+      <section class="card admin-kpi-card">
+        <div class="admin-kpi-top">
+          <div>
+            <div class="admin-saluto" id="home-saluto"></div>
+            <div class="admin-utente" id="home-utente"></div>
+          </div>
+          <div class="admin-top-right">
+            <div class="admin-data" id="home-data"></div>
+            <div class="admin-meteo" id="home-weather">☁️</div>
+          </div>
+        </div>
+
+        <div class="admin-filters">
+          <div class="admin-filter-buttons">
+            <button type="button" class="period-btn active" data-period="day">Giorno</button>
+            <button type="button" class="period-btn" data-period="week">Settimana</button>
+            <button type="button" class="period-btn" data-period="month">Mese</button>
+            <button type="button" class="period-btn" data-period="year">Anno</button>
+          </div>
+
+          <div class="admin-filter-range">
+            <label>
+              <span>Dal</span>
+              <input id="filter-from" type="date">
+            </label>
+            <label>
+              <span>Al</span>
+              <input id="filter-to" type="date">
+            </label>
+            <button type="button" id="apply-custom-range" class="range-btn">Applica</button>
+          </div>
+        </div>
+
+        <div class="admin-period-label" id="period-label">Periodo: Giorno</div>
+
+        <div class="admin-incasso-row">
+          <div>
+            <div class="admin-incasso-label">Incasso</div>
+            <div class="admin-incasso-value" id="incassoTotale">€ 0</div>
+            <div class="admin-incasso-iva">Con IVA <span id="incassoIva">€ 0</span></div>
+          </div>
+        </div>
+
+        <div class="admin-gauge-wrap">
+          <canvas id="admin-gauge"></canvas>
+        </div>
+
+        <div class="admin-bep">
+          BEP giornaliero <span id="bepValore">€ 0</span>
+        </div>
+
+        <div class="admin-kpi-grid">
+          <div class="admin-kpi-item">
+            <div class="admin-kpi-name">Materia prima</div>
+            <div class="admin-kpi-value" id="materiaPrimaValore">€ 0</div>
+            <div class="admin-kpi-perc" id="materiaPrimaPerc">0%</div>
+          </div>
+
+          <div class="admin-kpi-item">
+            <div class="admin-kpi-name">Spese fisse</div>
+            <div class="admin-kpi-value" id="speseFisseValore">€ 0</div>
+            <div class="admin-kpi-perc" id="speseFissePerc">0%</div>
+          </div>
+
+          <div class="admin-kpi-item">
+            <div class="admin-kpi-name">Costo lavoro</div>
+            <div class="admin-kpi-value" id="costoLavoroValore">€ 0</div>
+            <div class="admin-kpi-perc" id="costoLavoroPerc">0%</div>
+          </div>
+
+          <div class="admin-kpi-item admin-kpi-item-strong">
+            <div class="admin-kpi-name">Margine</div>
+            <div class="admin-kpi-value" id="margineValore">€ 0</div>
+            <div class="admin-kpi-perc" id="marginePerc">0%</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card admin-sales-card">
+        <div class="admin-sales-head">
+          <div>
+            <h3>Prodotti venduti</h3>
+            <div class="admin-sales-subtitle">Filtro per categoria e ordinamento per KPI</div>
+          </div>
+
+          <div class="admin-sales-filters">
+            <select id="sales-category-filter">
+              <option value="all">Tutte le categorie</option>
+            </select>
+
+            <select id="sales-sort-filter">
+              <option value="incasso">Incasso</option>
+              <option value="numero">Numero</option>
+              <option value="margine">Margine</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="sales-list" class="admin-sales-list"></div>
+      </section>
+    </div>
   </div>
 
   <style>
-  .kpi-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    margin-bottom:12px;
-    font-size:14px;
-    color:var(--color-text-muted);
-    flex-wrap:wrap;
-  }
-
-  .period-filter{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-bottom:14px;
-  }
-
-  .period-filter button{
-    border:none;
-    background:#EEF2F7;
-    padding:6px 12px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:13px;
-  }
-
-  .period-filter button.active{
-    background:var(--color-primary);
-    color:#fff;
-  }
-
-  .period-filter input[type="date"]{
-    border:1px solid var(--color-border);
-    background:#fff;
-    padding:6px 10px;
-    border-radius:10px;
-    min-height:34px;
-  }
-
-  .incassi-value{
-    font-size:20px;
-    font-weight:700;
-  }
-
-  .incassi-iva{
-    font-size:12px;
-    color:var(--color-text-muted);
-  }
-
-  .kpi-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:12px;
-    margin-top:18px;
-    text-align:center;
-  }
-
-  .kpi-name{
-    font-size:12px;
-    color:var(--color-text-muted);
-  }
-
-  .kpi-value{
-    font-size:15px;
-    font-weight:700;
-  }
-
-  .kpi-perc{
-    font-size:11px;
-    color:var(--color-text-muted);
-  }
-
-  .bep{
-    margin-top:10px;
-    text-align:center;
-    font-weight:700;
-    font-size:14px;
-  }
-
-  .vendite-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    margin-bottom:12px;
-    flex-wrap:wrap;
-  }
-
-  .vendite-row{
-    padding:10px 0;
-    border-bottom:1px solid var(--color-border);
-  }
-
-  .vendite-row:last-child{
-    border-bottom:none;
-  }
-
-  .vendite-name{
-    font-weight:600;
-  }
-
-  .vendite-meta{
-    font-size:12px;
-    color:var(--color-text-muted);
-  }
-
-  .tony-avatar{
-    position:fixed;
-    bottom:90px;
-    right:20px;
-    width:58px;
-    height:58px;
-    border-radius:50%;
-    background:var(--color-primary);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:24px;
-    cursor:pointer;
-    box-shadow:0 10px 24px rgba(14,90,122,0.28);
-    z-index:50;
-  }
-
-  @media (max-width: 767px){
-    .kpi-header{
-      align-items:flex-start;
-      flex-direction:column;
-      gap:6px;
+    .home-admin{
+      padding:16px !important;
     }
 
-    .kpi-grid{
-      grid-template-columns:repeat(2,1fr);
+    .home-grid{
+      display:grid;
+      grid-template-columns:1.2fr 0.9fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .admin-kpi-card,
+    .admin-sales-card{
+      padding:18px !important;
+      border-radius:18px;
+    }
+
+    .admin-kpi-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:14px;
+    }
+
+    .admin-saluto{
+      font-size:22px;
+      line-height:1.1;
+      font-weight:800;
+      color:var(--color-text);
+    }
+
+    .admin-utente{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--color-text-muted);
+    }
+
+    .admin-top-right{
+      text-align:right;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:110px;
+    }
+
+    .admin-data{
+      font-size:13px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-meteo{
+      font-size:16px;
+      font-weight:700;
+      color:var(--color-text);
+    }
+
+    .admin-filters{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .admin-filter-buttons{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .period-btn,
+    .range-btn{
+      border:none;
+      background:#EEF2F7;
+      color:var(--color-text);
+      padding:8px 12px;
+      border-radius:10px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .period-btn.active{
+      background:var(--color-primary);
+      color:#fff;
+    }
+
+    .admin-filter-range{
+      display:flex;
+      align-items:end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .admin-filter-range label{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+    }
+
+    .admin-filter-range input{
+      border:1px solid var(--color-border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      min-height:36px;
+      font-size:13px;
+    }
+
+    .admin-period-label{
+      font-size:13px;
+      color:var(--color-text-muted);
+      margin-bottom:14px;
+      font-weight:700;
+    }
+
+    .admin-incasso-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .admin-incasso-label{
+      font-size:12px;
+      color:var(--color-text-muted);
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+      font-weight:700;
+    }
+
+    .admin-incasso-value{
+      font-size:28px;
+      line-height:1;
+      font-weight:900;
+      margin-top:4px;
+      color:var(--color-text);
+    }
+
+    .admin-incasso-iva{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-gauge-wrap{
+      position:relative;
+      height:220px;
+      margin:4px 0 6px;
+    }
+
+    .admin-bep{
+      text-align:center;
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:14px;
+      color:var(--color-text);
+    }
+
+    .admin-kpi-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
       gap:10px;
     }
 
-    .tony-avatar{
-      width:54px;
-      height:54px;
-      right:16px;
-      bottom:84px;
+    .admin-kpi-item{
+      background:#f8fafc;
+      border:1px solid var(--color-border);
+      border-radius:14px;
+      padding:12px;
+      text-align:center;
     }
-  }
+
+    .admin-kpi-item-strong{
+      background:rgba(14,90,122,0.08);
+    }
+
+    .admin-kpi-name{
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+      min-height:32px;
+    }
+
+    .admin-kpi-value{
+      font-size:18px;
+      font-weight:800;
+      margin-top:6px;
+      color:var(--color-text);
+    }
+
+    .admin-kpi-perc{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+    }
+
+    .admin-sales-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .admin-sales-head h3{
+      margin:0;
+      font-size:20px;
+      line-height:1.1;
+    }
+
+    .admin-sales-subtitle{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-sales-filters{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .admin-sales-filters select{
+      border:1px solid var(--color-border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      min-height:38px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .admin-sales-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .admin-sales-row{
+      border:1px solid var(--color-border);
+      border-radius:14px;
+      padding:12px 14px;
+      background:#fff;
+    }
+
+    .admin-sales-row-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+    }
+
+    .admin-sales-name{
+      font-size:15px;
+      font-weight:800;
+      color:var(--color-text);
+    }
+
+    .admin-sales-category{
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+      margin-top:3px;
+    }
+
+    .admin-sales-badge{
+      font-size:12px;
+      font-weight:800;
+      background:#EEF2F7;
+      color:var(--color-text);
+      border-radius:999px;
+      padding:6px 10px;
+      white-space:nowrap;
+    }
+
+    .admin-sales-meta{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .admin-sales-meta-item{
+      background:#f8fafc;
+      border-radius:10px;
+      padding:8px 10px;
+      text-align:center;
+    }
+
+    .admin-sales-meta-label{
+      font-size:11px;
+      color:var(--color-text-muted);
+      font-weight:700;
+    }
+
+    .admin-sales-meta-value{
+      margin-top:4px;
+      font-size:14px;
+      font-weight:800;
+      color:var(--color-text);
+    }
+
+    .tony-avatar{
+      position:fixed;
+      right:18px;
+      bottom:90px;
+      width:56px;
+      height:56px;
+      border-radius:50%;
+      background:var(--color-primary);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(14,90,122,0.28);
+      z-index:60;
+    }
+
+    @media (max-width: 1100px){
+      .home-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 767px){
+      .home-admin{
+        padding:12px !important;
+      }
+
+      .admin-kpi-card,
+      .admin-sales-card{
+        padding:14px !important;
+      }
+
+      .admin-saluto{
+        font-size:18px;
+      }
+
+      .admin-kpi-grid{
+        grid-template-columns:repeat(2,1fr);
+      }
+
+      .admin-sales-meta{
+        grid-template-columns:1fr;
+      }
+
+      .admin-gauge-wrap{
+        height:180px;
+      }
+
+      .tony-avatar{
+        width:52px;
+        height:52px;
+        right:14px;
+        bottom:84px;
+      }
+    }
   </style>
   `;
 
   initTopbar(user);
+  initDateRangeDefaults();
   initPeriodFilter();
-  loadDashboard("day");
+  initSalesFilters();
+  hydrateWeather();
+  refreshDashboard("day");
 }
 
 /* =========================================================
-   HEADER UPDATE
+   HEADER / TOPBAR
 ========================================================= */
+
+function hideLegacyTopbar() {
+  const bar = document.querySelector(".topbar-info");
+  if (bar) {
+    bar.style.display = "none";
+  }
+}
 
 function updateHeader(azienda, sede) {
   const box = document.getElementById("header-azienda-nome");
@@ -193,295 +560,327 @@ function updateHeader(azienda, sede) {
   box.innerText = "Ristoflow";
 }
 
-/* =========================================================
-   TOPBAR
-========================================================= */
-
 function initTopbar(user) {
-  const salutoBox = document.getElementById("topbar-saluto");
-  const dataBox = document.getElementById("topbar-data");
+  const salutoBox = document.getElementById("home-saluto");
+  const utenteBox = document.getElementById("home-utente");
+  const dataBox = document.getElementById("home-data");
 
-  if (!salutoBox || !dataBox) return;
+  if (!salutoBox || !utenteBox || !dataBox) return;
 
   const ora = new Date().getHours();
 
   let saluto = "Buongiorno";
-
   if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
   if (ora >= 18) saluto = "Buonasera";
 
-  const nome = user?.email ? user.email.split("@")[0] : "";
+  const email = user?.email || "";
+  const nomeUtente = email ? email.split("@")[0] : "utente";
 
-  salutoBox.innerText = `${saluto} ${nome}`.trim();
+  salutoBox.innerText = saluto;
+  utenteBox.innerText = nomeUtente;
 
-  const now = new Date();
-
-  dataBox.innerText = now.toLocaleDateString("it-IT", {
-    weekday: "short",
+  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
+    weekday: "long",
     day: "numeric",
-    month: "short",
+    month: "long",
+    year: "numeric"
   });
-
-  hydrateWeather();
 }
 
 /* =========================================================
-   KPI CARD
+   FILTERS
 ========================================================= */
 
-function renderKpiCard() {
-  return `
-  <div class="card">
-    <div class="kpi-header">
-      <div id="topbar-saluto"></div>
-      <div id="topbar-data"></div>
-      <div id="topbar-weather"></div>
-    </div>
+function initDateRangeDefaults() {
+  const fromInput = document.getElementById("filter-from");
+  const toInput = document.getElementById("filter-to");
 
-    <div class="period-filter">
-      <button type="button" data-period="day" class="active">Day</button>
-      <button type="button" data-period="week">Week</button>
-      <button type="button" data-period="month">Month</button>
-      <button type="button" data-period="year">Year</button>
-      <input id="period-date" type="date">
-    </div>
+  if (!fromInput || !toInput) return;
 
-    <div>
-      <div class="incassi-value" id="incassiTotali">€0</div>
-      <div class="incassi-iva">
-        con IVA <span id="incassiIva">€0</span>
-      </div>
-    </div>
+  const today = new Date();
+  const prior = new Date();
+  prior.setDate(today.getDate() - 6);
 
-    <div style="margin-top:18px">
-      <canvas id="gauge"></canvas>
-    </div>
-
-    <div class="bep">
-      BEP € <span id="bep">0</span>
-    </div>
-
-    <div class="kpi-grid">
-      <div>
-        <div class="kpi-name">Materie prime</div>
-        <div class="kpi-value" id="mp">0</div>
-        <div class="kpi-perc" id="mpPerc">0%</div>
-      </div>
-
-      <div>
-        <div class="kpi-name">Personale</div>
-        <div class="kpi-value" id="pers">0</div>
-        <div class="kpi-perc" id="persPerc">0%</div>
-      </div>
-
-      <div>
-        <div class="kpi-name">Costi fissi</div>
-        <div class="kpi-value" id="fix">0</div>
-        <div class="kpi-perc" id="fixPerc">0%</div>
-      </div>
-
-      <div>
-        <div class="kpi-name">Margine</div>
-        <div class="kpi-value" id="marg">0</div>
-        <div class="kpi-perc" id="margPerc">0%</div>
-      </div>
-    </div>
-  </div>
-  `;
+  fromInput.value = toISODate(prior);
+  toInput.value = toISODate(today);
 }
-
-/* =========================================================
-   VENDITE CARD
-========================================================= */
-
-function renderVenditeCard() {
-  return `
-  <div class="card">
-    <div class="vendite-header">
-      <h3 style="margin:0;">Vendite</h3>
-      <select id="venditeFiltro">
-        <option value="incasso">Incasso</option>
-        <option value="numero">Numero</option>
-        <option value="margine">Margine</option>
-      </select>
-    </div>
-
-    <div id="venditeList"></div>
-  </div>
-  `;
-}
-
-/* =========================================================
-   PERIOD FILTER
-========================================================= */
 
 function initPeriodFilter() {
-  const buttons = document.querySelectorAll(".period-filter button");
-  const dateInput = document.getElementById("period-date");
+  const buttons = Array.from(document.querySelectorAll(".period-btn"));
+  const applyBtn = document.getElementById("apply-custom-range");
 
   buttons.forEach((btn) => {
     btn.onclick = () => {
       buttons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      loadDashboard(btn.dataset.period || "day");
+      refreshDashboard(btn.dataset.period || "day");
     };
   });
 
-  if (dateInput) {
-    dateInput.onchange = () => {
+  if (applyBtn) {
+    applyBtn.onclick = () => {
       buttons.forEach((b) => b.classList.remove("active"));
-      loadDashboard("custom");
+      refreshDashboard("custom");
     };
   }
 }
 
-/* =========================================================
-   LOAD DASHBOARD
-========================================================= */
+function initSalesFilters() {
+  const categorySelect = document.getElementById("sales-category-filter");
+  const sortSelect = document.getElementById("sales-sort-filter");
 
-function loadDashboard(period = "day") {
-  let incasso = 12000;
-  let iva = 14400;
-  let mp = 3500;
-  let pers = 3000;
-  let fix = 1500;
+  if (!categorySelect || !sortSelect) return;
 
-  if (period === "week") {
-    incasso = 52000;
-    iva = 62400;
-    mp = 15000;
-    pers = 13000;
-    fix = 7000;
-  }
+  const categories = Array.from(new Set(SALES_DATA.map((item) => item.categoria))).sort();
 
-  if (period === "month") {
-    incasso = 210000;
-    iva = 252000;
-    mp = 62000;
-    pers = 54000;
-    fix = 30000;
-  }
+  categories.forEach((categoria) => {
+    const option = document.createElement("option");
+    option.value = categoria;
+    option.textContent = categoria;
+    categorySelect.appendChild(option);
+  });
 
-  if (period === "year") {
-    incasso = 2520000;
-    iva = 3024000;
-    mp = 744000;
-    pers = 648000;
-    fix = 360000;
-  }
-
-  const costi = mp + pers + fix;
-  const marg = incasso - costi;
-
-  setText("incassiTotali", "€ " + incasso);
-  setText("incassiIva", "€ " + iva);
-
-  setText("mp", "€ " + mp);
-  setText("pers", "€ " + pers);
-  setText("fix", "€ " + fix);
-  setText("marg", "€ " + marg);
-
-  setText("bep", String(costi));
-
-  setText("mpPerc", Math.round((mp / incasso) * 100) + "%");
-  setText("persPerc", Math.round((pers / incasso) * 100) + "%");
-  setText("fixPerc", Math.round((fix / incasso) * 100) + "%");
-  setText("margPerc", Math.round((marg / incasso) * 100) + "%");
-
-  renderGauge(marg, costi);
-  renderVendite();
+  categorySelect.onchange = () => renderSalesList();
+  sortSelect.onchange = () => renderSalesList();
 }
 
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = value;
+/* =========================================================
+   KPI / DASHBOARD
+========================================================= */
+
+function refreshDashboard(period) {
+  const metrics = buildMetrics(period);
+
+  setText("period-label", "Periodo: " + metrics.label);
+  setText("incassoTotale", formatCurrency(metrics.incasso));
+  setText("incassoIva", formatCurrency(metrics.incassoIva));
+  setText("bepValore", formatCurrency(metrics.bep));
+
+  setText("materiaPrimaValore", formatCurrency(metrics.materiaPrima));
+  setText("speseFisseValore", formatCurrency(metrics.speseFisse));
+  setText("costoLavoroValore", formatCurrency(metrics.costoLavoro));
+  setText("margineValore", formatCurrency(metrics.margine));
+
+  setText("materiaPrimaPerc", metrics.materiaPrimaPerc + "%");
+  setText("speseFissePerc", metrics.speseFissePerc + "%");
+  setText("costoLavoroPerc", metrics.costoLavoroPerc + "%");
+  setText("marginePerc", metrics.marginePerc + "%");
+
+  renderGauge(metrics);
+  renderSalesList(period);
+}
+
+function buildMetrics(period) {
+  const days = getDaysByPeriod(period);
+  const sales = buildSalesByPeriod(days);
+
+  const incasso = sales.reduce((acc, item) => acc + item.incasso, 0);
+  const incassoIva = Math.round(incasso * 1.1);
+
+  const materiaPrima = sales.reduce((acc, item) => acc + item.foodCost, 0);
+  const costoLavoroDay = 280;
+  const costoLavoro = roundCurrency(costoLavoroDay * days);
+
+  const speseFisseDay = roundCurrency(
+    FIXED_COST_CATEGORIES_YEAR.reduce((acc, item) => acc + item.totale, 0) / 365
+  );
+  const speseFisse = roundCurrency(speseFisseDay * days);
+
+  const margine = roundCurrency(incasso - materiaPrima - speseFisse - costoLavoro);
+  const bep = roundCurrency(materiaPrima + speseFisse + costoLavoro);
+
+  return {
+    label: getPeriodLabel(period, days),
+    days,
+    incasso,
+    incassoIva,
+    materiaPrima,
+    speseFisse,
+    costoLavoro,
+    margine,
+    bep,
+    materiaPrimaPerc: toPercent(materiaPrima, incasso),
+    speseFissePerc: toPercent(speseFisse, incasso),
+    costoLavoroPerc: toPercent(costoLavoro, incasso),
+    marginePerc: toPercent(margine, incasso)
+  };
 }
 
 /* =========================================================
    GAUGE
 ========================================================= */
 
-function renderGauge(marg, costi){
+function renderGauge(metrics) {
+  const canvas = document.getElementById("admin-gauge");
+  if (!canvas) return;
+  if (typeof Chart === "undefined") return;
 
-  if(gaugeInitialized) return
-  gaugeInitialized = true
+  destroyGauge();
 
-  const canvas = document.getElementById("gauge")
+  const centerTextPlugin = {
+    id: "homeCenterText",
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data || !meta.data.length) return;
 
-  if(!canvas) return
-  if(typeof Chart === "undefined") return
+      const x = chart.getDatasetMeta(0).data[0].x;
+      const y = chart.getDatasetMeta(0).data[0].y + 12;
+      const ctx = chart.ctx;
 
-  const total = marg + costi || 1
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#1F2937";
+      ctx.font = "700 14px system-ui";
+      ctx.fillText("Margine", x, y - 12);
+      ctx.font = "800 20px system-ui";
+      ctx.fillText(metrics.marginePerc + "%", x, y + 16);
+      ctx.restore();
+    }
+  };
 
-  new Chart(canvas,{
-    type:"doughnut",
-    data:{
-      datasets:[
+  gaugeChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: ["Materia prima", "Spese fisse", "Costo lavoro", "Margine"],
+      datasets: [
         {
-          data:[marg,costi],
-          backgroundColor:["#22c55e","#e5e7eb"],
-          borderWidth:0
+          data: [
+            metrics.materiaPrima,
+            metrics.speseFisse,
+            metrics.costoLavoro,
+            Math.max(metrics.margine, 0)
+          ],
+          backgroundColor: [
+            "#f97316",
+            "#8b5cf6",
+            "#ef4444",
+            "#22c55e"
+          ],
+          borderWidth: 0,
+          hoverOffset: 0
         }
       ]
     },
-    options:{
-      animation:false,
-      responsive:true,
-      maintainAspectRatio:false,
-      rotation:-90,
-      circumference:180,
-      cutout:"70%",
-      plugins:{
-        legend:{display:false},
-        tooltip:{enabled:false}
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "72%",
+      events: [],
+      interaction: {
+        mode: null
       },
-      events:[]   // ← IMPORTANTISSIMO
-    }
-  })
-
+      plugins: {
+        legend: {
+          display: true,
+          position: "bottom",
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            padding: 14,
+            font: {
+              size: 11,
+              weight: "700"
+            }
+          }
+        },
+        tooltip: {
+          enabled: false
+        }
+      }
+    },
+    plugins: [centerTextPlugin]
+  });
 }
+
+function destroyGauge() {
+  if (gaugeChart) {
+    try {
+      gaugeChart.destroy();
+    } catch (e) {
+      console.warn("Gauge destroy error:", e);
+    }
+    gaugeChart = null;
+  }
+}
+
 /* =========================================================
-   VENDITE
+   SALES
 ========================================================= */
 
-function renderVendite() {
-  const prodotti = [
-    { nome: "Carbonara", incasso: 3200, margine: 1200, numero: 140 },
-    { nome: "Amatriciana", incasso: 2100, margine: 900, numero: 100 },
-    { nome: "Tiramisù", incasso: 1500, margine: 700, numero: 80 }
-  ];
-
-  const box = document.getElementById("venditeList");
-  const filtro = document.getElementById("venditeFiltro");
+function renderSalesList(period = "day") {
+  const box = document.getElementById("sales-list");
+  const categoryFilter = document.getElementById("sales-category-filter");
+  const sortFilter = document.getElementById("sales-sort-filter");
 
   if (!box) return;
 
-  const renderList = () => {
-    const criterio = filtro?.value || "incasso";
+  const category = categoryFilter?.value || "all";
+  const sortBy = sortFilter?.value || "incasso";
+  const days = getDaysByPeriod(period);
 
-    const ordinati = [...prodotti].sort((a, b) => {
-      return (b[criterio] || 0) - (a[criterio] || 0);
-    });
+  let items = buildSalesByPeriod(days);
 
-    box.innerHTML = ordinati
-      .map(
-        (p) => `
-      <div class="vendite-row">
-        <div class="vendite-name">${p.nome}</div>
-        <div class="vendite-meta">
-          €${p.incasso} • margine €${p.margine} • ${p.numero} pz
+  if (category !== "all") {
+    items = items.filter((item) => item.categoria === category);
+  }
+
+  items.sort((a, b) => {
+    if (sortBy === "numero") return b.numero - a.numero;
+    if (sortBy === "margine") return b.margine - a.margine;
+    return b.incasso - a.incasso;
+  });
+
+  box.innerHTML = items.map((item) => {
+    return `
+      <div class="admin-sales-row">
+        <div class="admin-sales-row-top">
+          <div>
+            <div class="admin-sales-name">${item.nome}</div>
+            <div class="admin-sales-category">${item.categoria}</div>
+          </div>
+          <div class="admin-sales-badge">${sortByLabel(sortBy)}: ${sortBy === "numero" ? item.numero : formatCurrency(item[sortBy])}</div>
+        </div>
+
+        <div class="admin-sales-meta">
+          <div class="admin-sales-meta-item">
+            <div class="admin-sales-meta-label">Incasso</div>
+            <div class="admin-sales-meta-value">${formatCurrency(item.incasso)}</div>
+          </div>
+
+          <div class="admin-sales-meta-item">
+            <div class="admin-sales-meta-label">Numero</div>
+            <div class="admin-sales-meta-value">${item.numero}</div>
+          </div>
+
+          <div class="admin-sales-meta-item">
+            <div class="admin-sales-meta-label">Margine</div>
+            <div class="admin-sales-meta-value">${formatCurrency(item.margine)}</div>
+          </div>
         </div>
       </div>
-    `
-      )
-      .join("");
-  };
+    `;
+  }).join("");
+}
 
-  renderList();
+function buildSalesByPeriod(days) {
+  return SALES_DATA.map((item) => {
+    const incasso = roundCurrency(item.incassoDay * days);
+    const numero = Math.round(item.quantitaDay * days);
+    const foodCost = roundCurrency(incasso * item.foodCostPct);
+    const margine = roundCurrency(incasso - foodCost);
 
-  if (filtro) {
-    filtro.onchange = renderList;
-  }
+    return {
+      nome: item.nome,
+      categoria: item.categoria,
+      incasso,
+      numero,
+      foodCost,
+      margine
+    };
+  });
 }
 
 /* =========================================================
@@ -490,9 +889,7 @@ function renderVendite() {
 
 function renderTony() {
   return `
-  <div class="tony-avatar" onclick="location.hash='#/ai'">
-    🤖
-  </div>
+    <div class="tony-avatar" onclick="location.hash='#/ai'">🤖</div>
   `;
 }
 
@@ -501,7 +898,7 @@ function renderTony() {
 ========================================================= */
 
 async function hydrateWeather() {
-  const box = document.getElementById("topbar-weather");
+  const box = document.getElementById("home-weather");
   if (!box) return;
 
   try {
@@ -519,4 +916,74 @@ async function hydrateWeather() {
   } catch {
     box.innerHTML = "☁️";
   }
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = value;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0
+  }).format(value || 0);
+}
+
+function toPercent(value, total) {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
+}
+
+function roundCurrency(value) {
+  return Math.round(value);
+}
+
+function toISODate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getDaysByPeriod(period) {
+  if (period === "week") return 7;
+  if (period === "month") return 30;
+  if (period === "year") return 365;
+  if (period === "custom") {
+    const fromInput = document.getElementById("filter-from");
+    const toInput = document.getElementById("filter-to");
+
+    if (!fromInput?.value || !toInput?.value) return 1;
+
+    const from = new Date(fromInput.value + "T00:00:00");
+    const to = new Date(toInput.value + "T00:00:00");
+
+    const diff = Math.round((to - from) / 86400000) + 1;
+
+    return diff > 0 ? diff : 1;
+  }
+
+  return 1;
+}
+
+function getPeriodLabel(period, days) {
+  if (period !== "custom") return PERIOD_LABELS[period] || "Giorno";
+
+  const fromInput = document.getElementById("filter-from");
+  const toInput = document.getElementById("filter-to");
+
+  if (!fromInput?.value || !toInput?.value) {
+    return PERIOD_LABELS.custom;
+  }
+
+  return `Dal ${fromInput.value} al ${toInput.value} (${days} gg)`;
+}
+
+function sortByLabel(sortBy) {
+  if (sortBy === "numero") return "Numero";
+  if (sortBy === "margine") return "Margine";
+  return "Incasso";
 }
