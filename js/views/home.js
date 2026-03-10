@@ -454,7 +454,7 @@ async function hydrateWeather() {
 
   try {
     const res = await fetch(
-      \`\${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m\`
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
     );
     const data = await res.json();
 
