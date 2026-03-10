@@ -308,7 +308,7 @@ function renderVenditeCard() {
 /* =========================================================
    LOAD DASHBOARD
 ========================================================= */
-
+let dashboardLoaded = false
 function loadDashboard() {
   const incasso = 12000;
   const iva = 14400;
