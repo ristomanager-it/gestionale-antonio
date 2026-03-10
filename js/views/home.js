@@ -348,46 +348,51 @@ function setText(id, value) {
    GAUGE
 ========================================================= */
 
-function renderGauge() {
-  const ctx = document.getElementById("gauge");
-  if (!ctx) return;
-  if (typeof Chart === "undefined") return;
+function renderGauge(){
 
-  if (window.__homeGaugeChart) {
-    window.__homeGaugeChart.destroy();
+  const canvas = document.getElementById("gauge")
+
+  if(!canvas) return
+  if(typeof Chart === "undefined") return
+
+  const ctx = canvas.getContext("2d")
+
+  if(window.__homeGaugeChart){
+    window.__homeGaugeChart.destroy()
+    window.__homeGaugeChart = null
   }
 
-  window.__homeGaugeChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      datasets: [
+  window.__homeGaugeChart = new Chart(ctx,{
+    type:"doughnut",
+    data:{
+      datasets:[
         {
-          data: [20, 20, 20, 20, 20],
-          backgroundColor: [
+          data:[20,20,20,20,20],
+          backgroundColor:[
             "#ef4444",
             "#f97316",
             "#eab308",
             "#22c55e",
             "#16a34a"
           ],
-          borderWidth: 0
+          borderWidth:0
         }
       ]
     },
-    options: {
-      animation: false,
-      responsive: true,
-      maintainAspectRatio: false,
-      rotation: -90,
-      circumference: 180,
-      cutout: "70%",
-      plugins: {
-        legend: { display: false }
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      rotation:-90,
+      circumference:180,
+      cutout:"70%",
+      plugins:{
+        legend:{display:false}
       }
     }
-  });
-}
+  })
 
+}
 /* =========================================================
    VENDITE
 ========================================================= */
