@@ -561,8 +561,14 @@ async function resolve() {
 
   setHeaderVisible(true);
 
-  const aziendaRes = await ensureAziendaContext(route);
-  if (!aziendaRes.ok) {
+ const aziendaRes = await ensureAziendaContext(route);
+
+if(route === "home"){
+  await renderView("home")
+  return
+}
+
+if (!aziendaRes.ok) {
     if (aziendaRes.redirected) return;
 
     if (aziendaRes.reason === "no_aziende") {
