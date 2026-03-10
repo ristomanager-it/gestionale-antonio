@@ -1,115 +1,198 @@
-export function initMenu(){
+export function initMenu() {
 
-const menu=document.getElementById("global-menu");
-const toggle=document.getElementById("menu-toggle");
+  const menu = document.getElementById("global-menu")
+  const toggle = document.getElementById("menu-toggle")
 
-if(!menu || !toggle) return;
+  if (!menu || !toggle) return
 
-let overlay=document.querySelector(".menu-overlay");
+  let overlay = document.querySelector(".menu-overlay")
 
-if(!overlay){
-overlay=document.createElement("div");
-overlay.className="menu-overlay";
-document.body.appendChild(overlay);
-}
+  if (!overlay) {
+    overlay = document.createElement("div")
+    overlay.className = "menu-overlay"
+    document.body.appendChild(overlay)
+  }
 
-const sections=[
+  /* -------------------------
+     STRUTTURA MENU
+  --------------------------*/
 
-{
-nome:"OPERATIVO",
-items:[
-["Produzione","produzione"],
-["Magazzino","magazzino"],
-["Ricettario","ricettario"],
-["Preparazioni","preparazioni"]
-]
-},
+  const menuStructure = [
 
-{
-nome:"AMMINISTRAZIONE",
-items:[
-["Acquisti","acquisti"],
-["Dipendenti","dipendenti"],
-["Timbrature","timbrature"]
-]
-},
+    {
+      nome: "OPERATIVO",
+      items: [
+        ["Produzione", "produzione"],
+        ["Magazzino", "magazzino"],
+        ["Ricettario", "ricettario"],
+        ["Preparazioni", "preparazioni"]
+      ]
+    },
 
-{
-nome:"GESTIONE",
-items:[
-["Venduto","venduto"],
-["Margini","margini"],
-["Preventivi","preventivi"]
-]
-},
+    {
+      nome: "AMMINISTRAZIONE",
+      items: [
+        ["Acquisti", "acquisti"],
+        ["Dipendenti", "dipendenti"],
+        ["Timbrature", "timbrature"]
+      ]
+    },
 
-{
-nome:"AI",
-items:[
-["Tony","ai"]
-]
-}
+    {
+      nome: "GESTIONE",
+      items: [
+        ["Venduto", "venduto"],
+        ["Margini", "margini"]
+      ]
+    },
 
-];
+    {
+      nome: "MARKETING",
+      items: [
+        ["Preventivi", "preventivi"]
+      ]
+    }
 
-function renderMenu(){
+  ]
 
-menu.innerHTML=sections.map(sec=>`
+  /* -------------------------
+     RENDER MENU
+  --------------------------*/
 
-<div class="menu-section">
+  function renderMenu() {
 
-<div class="menu-title">${sec.nome}</div>
+    menu.innerHTML = `
 
-<div class="menu-items">
+      <div class="menu-scroll">
 
-${sec.items.map(i=>`
-<div class="menu-item" data-route="${i[1]}">
-${i[0]}
-</div>
-`).join("")}
+      ${menuStructure.map(section => `
 
-</div>
+        <div class="menu-section">
 
-</div>
+          <div class="menu-title">
+            ${section.nome}
+          </div>
 
-`).join("")+
+          <div class="menu-items">
 
-`<div class="menu-logout">Logout</div>`;
+            ${section.items.map(item => `
+              <div class="menu-item" data-route="${item[1]}">
+                ${item[0]}
+              </div>
+            `).join("")}
 
-menu.querySelectorAll(".menu-title").forEach(title=>{
-title.onclick=()=>{
-title.nextElementSibling.classList.toggle("open");
-};
-});
+          </div>
 
-menu.querySelectorAll(".menu-item").forEach(item=>{
-item.onclick=()=>{
-window.location.hash="#/"+item.dataset.route;
-closeMenu();
-};
-});
+        </div>
 
-document.querySelector(".menu-logout").onclick=()=>{
-window.router.logout();
-};
+      `).join("")}
 
-}
+      <div class="menu-spacer"></div>
 
-function openMenu(){
-renderMenu();
-menu.classList.add("open");
-overlay.classList.add("open");
-}
+      <div class="menu-logout">
+        Logout
+      </div>
 
-function closeMenu(){
-menu.classList.remove("open");
-overlay.classList.remove("open");
-}
+      </div>
 
-toggle.onclick=()=>{
-menu.classList.contains("open") ? closeMenu() : openMenu();
-};
+    `
 
-overlay.onclick=closeMenu;
+    /* -------------------------
+       TOGGLE CATEGORIE
+    --------------------------*/
+
+    menu.querySelectorAll(".menu-title").forEach(title => {
+
+      title.onclick = () => {
+
+        const items = title.nextElementSibling
+
+        items.classList.toggle("open")
+
+      }
+
+    })
+
+    /* -------------------------
+       CLICK ROUTE
+    --------------------------*/
+
+    menu.querySelectorAll(".menu-item").forEach(item => {
+
+      item.onclick = () => {
+
+        const route = item.dataset.route
+
+        window.location.hash = "#/" + route
+
+        closeMenu()
+
+      }
+
+    })
+
+    /* -------------------------
+       LOGOUT
+    --------------------------*/
+
+    const logoutBtn = menu.querySelector(".menu-logout")
+
+    if (logoutBtn) {
+
+      logoutBtn.onclick = () => {
+
+        window.router.logout()
+
+      }
+
+    }
+
+  }
+
+  /* -------------------------
+     OPEN MENU
+  --------------------------*/
+
+  function openMenu() {
+
+    renderMenu()
+
+    menu.classList.add("open")
+
+    overlay.classList.add("open")
+
+  }
+
+  /* -------------------------
+     CLOSE MENU
+  --------------------------*/
+
+  function closeMenu() {
+
+    menu.classList.remove("open")
+
+    overlay.classList.remove("open")
+
+  }
+
+  /* -------------------------
+     TOGGLE BUTTON
+  --------------------------*/
+
+  toggle.onclick = () => {
+
+    if (menu.classList.contains("open")) {
+
+      closeMenu()
+
+    } else {
+
+      openMenu()
+
+    }
+
+  }
+
+  overlay.onclick = closeMenu
 
 }
