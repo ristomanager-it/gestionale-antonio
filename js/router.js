@@ -505,28 +505,7 @@ async function resolve() {
     window.location.hash = "#/login";
     return;
   }
-const session = await getValidSession()
 
-if(!session){
-
-if(window.stateActions?.setUser){
-window.stateActions.setUser(null)
-}
-
-setHeaderVisible(false)
-
-if(!PUBLIC_ROUTES.has(route)){
-window.location.hash="#/login"
-return
-}
-
-await renderView(route)
-return
-
-}
-  const { route, segments, params } = parseHash();
-  window.routeParams = params || {};
-  window.routeSegments = segments || [];
 
   const session = await getValidSession();
 
