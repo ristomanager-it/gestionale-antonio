@@ -1242,3 +1242,7 @@ font-weight:700;
 color:#b91c1c;
 cursor:pointer;
 }
+.sidebar {
+  overflow-y: auto;
+  height: 100vh;
+}
