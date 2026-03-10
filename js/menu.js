@@ -1,21 +1,21 @@
 export function initMenu() {
 
-  const menu = document.getElementById("global-menu");
-  const toggle = document.getElementById("menu-toggle");
+  const menu = document.getElementById("global-menu")
+  const toggle = document.getElementById("menu-toggle")
 
-  if (!menu || !toggle) return;
+  if (!menu || !toggle) return
 
-  let overlay = document.querySelector(".menu-overlay");
+  let overlay = document.querySelector(".menu-overlay")
 
   if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.className = "menu-overlay";
-    document.body.appendChild(overlay);
+    overlay = document.createElement("div")
+    overlay.className = "menu-overlay"
+    document.body.appendChild(overlay)
   }
 
-  /* ================================
-     STRUTTURA MENU DINAMICA
-  ================================= */
+  /* =========================
+     STRUTTURA MENU
+  ========================= */
 
   const menuStructure = [
 
@@ -53,109 +53,109 @@ export function initMenu() {
       ]
     }
 
-  ];
+  ]
 
-  /* ================================
+  /* =========================
      RENDER MENU
-  ================================= */
+  ========================= */
 
   function renderMenu() {
 
-    menu.innerHTML = "";
+    menu.innerHTML = ""
 
     menuStructure.forEach(section => {
 
-      const sectionDiv = document.createElement("div");
-      sectionDiv.className = "menu-section";
+      const sectionBox = document.createElement("div")
+      sectionBox.className = "menu-section"
 
-      const title = document.createElement("div");
-      title.className = "menu-item";
-      title.innerText = section.title;
+      const title = document.createElement("div")
+      title.className = "menu-category"
+      title.innerText = section.title
 
-      const itemsContainer = document.createElement("div");
-      itemsContainer.className = "menu-items";
+      const itemsBox = document.createElement("div")
+      itemsBox.className = "menu-subitems"
 
       section.items.forEach(item => {
 
-        const itemDiv = document.createElement("div");
-        itemDiv.className = "menu-item";
-        itemDiv.innerText = item.label;
+        const row = document.createElement("div")
+        row.className = "menu-subitem"
+        row.innerText = item.label
 
-        itemDiv.onclick = () => {
-          window.location.hash = "#/" + item.route;
-          closeMenu();
-        };
+        row.onclick = () => {
+          window.location.hash = "#/" + item.route
+          closeMenu()
+        }
 
-        itemsContainer.appendChild(itemDiv);
+        itemsBox.appendChild(row)
 
-      });
+      })
+
+      /* toggle apertura */
 
       title.onclick = () => {
-        itemsContainer.classList.toggle("open");
-      };
 
-      sectionDiv.appendChild(title);
-      sectionDiv.appendChild(itemsContainer);
+        const opened = itemsBox.classList.contains("open")
 
-      menu.appendChild(sectionDiv);
+        document
+          .querySelectorAll(".menu-subitems")
+          .forEach(el => el.classList.remove("open"))
 
-    });
+        if (!opened) itemsBox.classList.add("open")
 
-    /* ================================
-       LOGOUT
-    ================================= */
+      }
 
-    const logout = document.createElement("div");
-    logout.className = "menu-item";
-    logout.innerText = "Logout";
+      sectionBox.appendChild(title)
+      sectionBox.appendChild(itemsBox)
 
-    logout.style.marginTop = "auto";
-    logout.style.color = "#b91c1c";
-    logout.style.fontWeight = "700";
+      menu.appendChild(sectionBox)
+
+    })
+
+    /* logout */
+
+    const logout = document.createElement("div")
+    logout.className = "menu-logout"
+    logout.innerText = "Logout"
 
     logout.onclick = () => {
       if (window.router && window.router.logout) {
-        window.router.logout();
+        window.router.logout()
       }
-    };
+    }
 
-    menu.appendChild(logout);
+    menu.appendChild(logout)
 
   }
 
-  /* ================================
+  /* =========================
      OPEN MENU
-  ================================= */
+  ========================= */
 
   function openMenu() {
-    renderMenu();
-    menu.classList.add("open");
-    overlay.classList.add("open");
+    renderMenu()
+    menu.classList.add("open")
+    overlay.classList.add("open")
   }
 
-  /* ================================
+  /* =========================
      CLOSE MENU
-  ================================= */
+  ========================= */
 
   function closeMenu() {
-    menu.classList.remove("open");
-    overlay.classList.remove("open");
+    menu.classList.remove("open")
+    overlay.classList.remove("open")
   }
-
-  /* ================================
-     TOGGLE
-  ================================= */
 
   toggle.onclick = () => {
 
     if (menu.classList.contains("open")) {
-      closeMenu();
+      closeMenu()
     } else {
-      openMenu();
+      openMenu()
     }
 
-  };
+  }
 
-  overlay.onclick = closeMenu;
+  overlay.onclick = closeMenu
 
 }
