@@ -1,6 +1,4 @@
-from pathlib import Path
-
-code = r'''import { supabase } from "./supabaseClient.js";
+import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
 
 /* =========================================================
@@ -108,11 +106,6 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
-const ALWAYS_ALLOWED_ROUTES = new Set([
-  "home",
-  "homePiattaforma",
-]);
-
 /* =========================================================
    STORAGE KEYS
 ========================================================= */
@@ -179,7 +172,6 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-  if (ALWAYS_ALLOWED_ROUTES.has(area)) return true;
   if (isSuperadmin()) return true;
 
   const ruolo = window.state?.ruolo;
@@ -315,12 +307,7 @@ function applyAziendaContextFromLink(aziendePulite, azienda) {
     ? "superadmin"
     : recordAttivo?.ruolo || null;
 
-  if (window.stateActions?.setRuolo) {
-    window.stateActions.setRuolo(ruoloEffettivo);
-  } else {
-    window.state.ruolo = ruoloEffettivo;
-  }
-
+  window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 }
 
@@ -330,7 +317,6 @@ function isAziendaBlockedForUser(azienda, routeName) {
 
   if (PLATFORM_ROUTES.has(routeName)) return false;
   if (routeName === "completaAzienda") return false;
-  if (ALWAYS_ALLOWED_ROUTES.has(routeName)) return false;
 
   if (azienda.stato === "piattaforma") return false;
 
@@ -349,30 +335,17 @@ async function ensureAziendaContext(routeName) {
 
   const aziendePulite = await loadAziendeForUser(user.id);
 
-  if (window.stateActions?.setAziende) {
-    window.stateActions.setAziende(aziendePulite);
-  } else {
-    window.state.aziende = aziendePulite;
-  }
+  window.stateActions.setAziende(aziendePulite);
 
   if (aziendePulite.length === 0) {
-    if (window.stateActions?.resetAzienda) {
-      window.stateActions.resetAzienda();
-    } else {
-      window.state.azienda = null;
-    }
+    window.stateActions.resetAzienda();
     return { ok: false, reason: "no_aziende" };
   }
 
   const activeAzienda = pickActiveAzienda(aziendePulite);
 
   if (!activeAzienda) {
-    if (window.stateActions?.resetAzienda) {
-      window.stateActions.resetAzienda();
-    } else {
-      window.state.azienda = null;
-    }
-
+    window.stateActions.resetAzienda();
     if (routeName !== "sceltaAzienda") {
       window.location.hash = "#/sceltaAzienda";
       return { ok: false, redirected: true };
@@ -383,11 +356,7 @@ async function ensureAziendaContext(routeName) {
   setStoredAziendaId(activeAzienda.id);
 
   if (!window.state.azienda || window.state.azienda.id !== activeAzienda.id) {
-    if (window.stateActions?.setAzienda) {
-      window.stateActions.setAzienda(activeAzienda);
-    } else {
-      window.state.azienda = activeAzienda;
-    }
+    window.stateActions.setAzienda(activeAzienda);
   } else {
     window.state.azienda = activeAzienda;
   }
@@ -451,9 +420,7 @@ function pickActiveSede(sedi) {
     const match = sedi.find((s) => String(s.id) === String(storedId));
     if (match) return match;
   }
-
   if (sedi.length === 1) return sedi[0];
-
   return null;
 }
 
@@ -473,7 +440,7 @@ async function ensureSedeContext(routeName) {
     clearStoredSedeId();
     window.state.sedeAttiva = null;
 
-    if (routeName !== "gestioneSedi" && !ALWAYS_ALLOWED_ROUTES.has(routeName)) {
+    if (routeName !== "gestioneSedi") {
       window.location.hash = "#/gestioneSedi?mode=first";
       return { ok: false, redirected: true };
     }
@@ -486,7 +453,7 @@ async function ensureSedeContext(routeName) {
     window.state.sedeAttiva = null;
     clearStoredSedeId();
 
-    if (routeName !== "gestioneSedi" && !ALWAYS_ALLOWED_ROUTES.has(routeName)) {
+    if (routeName !== "gestioneSedi") {
       window.location.hash = "#/gestioneSedi?mode=select";
       return { ok: false, redirected: true };
     }
@@ -523,7 +490,6 @@ async function doLogout() {
   window.state.sedeAttiva = null;
   window.state.permessiOverride = {};
   window.state.isSuperadmin = false;
-  window.state.azienda = null;
 
   setHeaderVisible(false);
 
@@ -559,7 +525,6 @@ async function resolve() {
     window.state.sedeAttiva = null;
     window.state.permessiOverride = {};
     window.state.isSuperadmin = false;
-    window.state.azienda = null;
 
     setHeaderVisible(false);
 
@@ -568,11 +533,7 @@ async function resolve() {
     return;
   }
 
-  if (window.stateActions?.setUser) {
-    window.stateActions.setUser(session.user);
-  } else {
-    window.state.user = session.user;
-  }
+  window.stateActions.setUser(session.user);
 
   if (
     PUBLIC_ROUTES.has(route) &&
@@ -585,11 +546,10 @@ async function resolve() {
     const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
 
     if (route === "login") {
-      if (isSa || hasPlatform) {
+      if (hasPlatform || isSa) {
         window.location.hash = "#/homePiattaforma";
         return;
       }
-
       window.location.hash = "#/home";
       return;
     }
@@ -665,13 +625,8 @@ async function resolve() {
 
   await loadPianoForAzienda(azienda);
 
-  if (window.stateActions?.caricaPermessiEffettivi) {
-    await window.stateActions.caricaPermessiEffettivi();
-  }
-
-  if (window.stateActions?.caricaRuoloEReparti) {
-    await window.stateActions.caricaRuoloEReparti();
-  }
+  await window.stateActions.caricaPermessiEffettivi();
+  await window.stateActions.caricaRuoloEReparti();
 
   if (window.menuController?.refresh) {
     window.menuController.refresh();
@@ -698,11 +653,7 @@ async function resolve() {
       bc.onclick = () => {
         clearStoredAziendaId();
         clearStoredSedeId();
-        if (window.stateActions?.resetAzienda) {
-          window.stateActions.resetAzienda();
-        } else {
-          window.state.azienda = null;
-        }
+        window.stateActions.resetAzienda();
         window.location.hash = "#/sceltaAzienda";
       };
     }
@@ -720,11 +671,6 @@ async function resolve() {
 
       if (route === "gestioneSedi") {
         await renderView("gestioneSedi");
-        return;
-      }
-
-      if (ALWAYS_ALLOWED_ROUTES.has(route)) {
-        await renderView(route);
         return;
       }
 
@@ -753,13 +699,12 @@ async function resolve() {
   }
 
   if (routes[route]) {
-    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ALWAYS_ALLOWED_ROUTES.has(route)) {
+    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route)) {
       if (!hasPermission(route)) {
         window.location.hash = "#/home";
         return;
       }
     }
-
     await renderView(route);
     return;
   }
@@ -793,8 +738,3 @@ window.addEventListener("DOMContentLoaded", () => {
 
   resolve();
 });
-'''
-
-path = Path('/mnt/data/router.js')
-path.write_text(code, encoding='utf-8')
-print(path)
