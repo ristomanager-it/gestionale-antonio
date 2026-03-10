@@ -70,7 +70,10 @@ export function initMenu() {
 
       const title = document.createElement("div")
       title.className = "menu-category"
-      title.innerText = section.title
+      title.innerHTML = `
+<span>${section.title}</span>
+<span class="menu-arrow">›</span>
+`
 
       const itemsBox = document.createElement("div")
       itemsBox.className = "menu-subitems"
