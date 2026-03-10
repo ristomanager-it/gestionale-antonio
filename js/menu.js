@@ -95,17 +95,24 @@ export function initMenu() {
 
       /* toggle apertura */
 
-      title.onclick = () => {
+    title.onclick = () => {
 
-        const opened = itemsBox.classList.contains("open")
+  const opened = itemsBox.classList.contains("open")
 
-        document
-          .querySelectorAll(".menu-subitems")
-          .forEach(el => el.classList.remove("open"))
+  document.querySelectorAll(".menu-subitems").forEach(el=>{
+    el.classList.remove("open")
+  })
 
-        if (!opened) itemsBox.classList.add("open")
+  document.querySelectorAll(".menu-arrow").forEach(el=>{
+    el.style.transform="rotate(0deg)"
+  })
 
-      }
+  if(!opened){
+    itemsBox.classList.add("open")
+    title.querySelector(".menu-arrow").style.transform="rotate(90deg)"
+  }
+
+}
 
       sectionBox.appendChild(title)
       sectionBox.appendChild(itemsBox)
