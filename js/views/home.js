@@ -52,6 +52,7 @@ export async function render(container) {
             <div class="admin-saluto" id="home-saluto"></div>
             <div class="admin-utente" id="home-utente"></div>
           </div>
+
           <div class="admin-top-right">
             <div class="admin-data" id="home-data"></div>
             <div class="admin-meteo" id="home-weather">☁️</div>
@@ -97,28 +98,28 @@ export async function render(container) {
           BEP giornaliero <span id="bepValore">€ 0</span>
         </div>
 
-        <div class="admin-kpi-grid">
-          <div class="admin-kpi-item">
-            <div class="admin-kpi-name">Materia prima</div>
-            <div class="admin-kpi-value" id="materiaPrimaValore">€ 0</div>
+        <div class="admin-kpi-row">
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">MP</div>
+            <div class="admin-kpi-euro" id="materiaPrimaValore">€ 0</div>
             <div class="admin-kpi-perc" id="materiaPrimaPerc">0%</div>
           </div>
 
-          <div class="admin-kpi-item">
-            <div class="admin-kpi-name">Spese fisse</div>
-            <div class="admin-kpi-value" id="speseFisseValore">€ 0</div>
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">SF</div>
+            <div class="admin-kpi-euro" id="speseFisseValore">€ 0</div>
             <div class="admin-kpi-perc" id="speseFissePerc">0%</div>
           </div>
 
-          <div class="admin-kpi-item">
-            <div class="admin-kpi-name">Costo lavoro</div>
-            <div class="admin-kpi-value" id="costoLavoroValore">€ 0</div>
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">CL</div>
+            <div class="admin-kpi-euro" id="costoLavoroValore">€ 0</div>
             <div class="admin-kpi-perc" id="costoLavoroPerc">0%</div>
           </div>
 
-          <div class="admin-kpi-item admin-kpi-item-strong">
+          <div class="admin-kpi-col admin-kpi-col-strong">
             <div class="admin-kpi-name">Margine</div>
-            <div class="admin-kpi-value" id="margineValore">€ 0</div>
+            <div class="admin-kpi-euro" id="margineValore">€ 0</div>
             <div class="admin-kpi-perc" id="marginePerc">0%</div>
           </div>
         </div>
@@ -128,7 +129,7 @@ export async function render(container) {
         <div class="admin-sales-head">
           <div>
             <h3>Prodotti venduti</h3>
-            <div class="admin-sales-subtitle">Filtro per categoria e ordinamento per KPI</div>
+            <div class="admin-sales-subtitle">Ordina l’elenco per KPI e filtra per categoria</div>
           </div>
 
           <div class="admin-sales-filters">
@@ -312,40 +313,41 @@ export async function render(container) {
       text-align:center;
       font-size:14px;
       font-weight:800;
-      margin-bottom:14px;
+      margin-bottom:16px;
       color:var(--color-text);
     }
 
-    .admin-kpi-grid{
+    .admin-kpi-row{
       display:grid;
       grid-template-columns:repeat(4,1fr);
-      gap:10px;
-    }
-
-    .admin-kpi-item{
-      background:#f8fafc;
-      border:1px solid var(--color-border);
-      border-radius:14px;
-      padding:12px;
+      gap:12px;
+      align-items:start;
       text-align:center;
     }
 
-    .admin-kpi-item-strong{
-      background:rgba(14,90,122,0.08);
+    .admin-kpi-col{
+      padding:0 4px;
+    }
+
+    .admin-kpi-col-strong .admin-kpi-euro,
+    .admin-kpi-col-strong .admin-kpi-perc{
+      color:var(--color-primary);
     }
 
     .admin-kpi-name{
       font-size:12px;
       color:var(--color-text-muted);
-      font-weight:700;
-      min-height:32px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
     }
 
-    .admin-kpi-value{
+    .admin-kpi-euro{
+      margin-top:6px;
       font-size:18px;
       font-weight:800;
-      margin-top:6px;
       color:var(--color-text);
+      line-height:1.1;
     }
 
     .admin-kpi-perc{
@@ -353,6 +355,7 @@ export async function render(container) {
       font-size:12px;
       color:var(--color-text-muted);
       font-weight:700;
+      line-height:1.1;
     }
 
     .admin-sales-head{
@@ -400,67 +403,59 @@ export async function render(container) {
     }
 
     .admin-sales-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
       border:1px solid var(--color-border);
       border-radius:14px;
       padding:12px 14px;
       background:#fff;
     }
 
-    .admin-sales-row-top{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
+    .admin-sales-left{
+      min-width:0;
+      flex:1;
     }
 
     .admin-sales-name{
       font-size:15px;
       font-weight:800;
       color:var(--color-text);
+      line-height:1.1;
     }
 
     .admin-sales-category{
       font-size:12px;
       color:var(--color-text-muted);
       font-weight:700;
-      margin-top:3px;
+      margin-top:4px;
     }
 
-    .admin-sales-badge{
-      font-size:12px;
-      font-weight:800;
+    .admin-sales-value-card{
+      min-width:110px;
+      padding:10px 12px;
+      border-radius:12px;
       background:#EEF2F7;
-      color:var(--color-text);
-      border-radius:999px;
-      padding:6px 10px;
-      white-space:nowrap;
-    }
-
-    .admin-sales-meta{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:10px;
-      margin-top:10px;
-    }
-
-    .admin-sales-meta-item{
-      background:#f8fafc;
-      border-radius:10px;
-      padding:8px 10px;
       text-align:center;
+      flex-shrink:0;
     }
 
-    .admin-sales-meta-label{
+    .admin-sales-value-label{
       font-size:11px;
       color:var(--color-text-muted);
-      font-weight:700;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+      line-height:1;
     }
 
-    .admin-sales-meta-value{
-      margin-top:4px;
+    .admin-sales-value{
+      margin-top:6px;
       font-size:14px;
       font-weight:800;
       color:var(--color-text);
+      line-height:1.1;
     }
 
     .tony-avatar{
@@ -501,16 +496,21 @@ export async function render(container) {
         font-size:18px;
       }
 
-      .admin-kpi-grid{
-        grid-template-columns:repeat(2,1fr);
-      }
-
-      .admin-sales-meta{
-        grid-template-columns:1fr;
-      }
-
       .admin-gauge-wrap{
         height:180px;
+      }
+
+      .admin-kpi-row{
+        grid-template-columns:repeat(2,1fr);
+        gap:14px 10px;
+      }
+
+      .admin-sales-row{
+        align-items:flex-start;
+      }
+
+      .admin-sales-value-card{
+        min-width:92px;
       }
 
       .tony-avatar{
@@ -836,29 +836,14 @@ function renderSalesList(period = "day") {
   box.innerHTML = items.map((item) => {
     return `
       <div class="admin-sales-row">
-        <div class="admin-sales-row-top">
-          <div>
-            <div class="admin-sales-name">${item.nome}</div>
-            <div class="admin-sales-category">${item.categoria}</div>
-          </div>
-          <div class="admin-sales-badge">${sortByLabel(sortBy)}: ${sortBy === "numero" ? item.numero : formatCurrency(item[sortBy])}</div>
+        <div class="admin-sales-left">
+          <div class="admin-sales-name">${item.nome}</div>
+          <div class="admin-sales-category">${item.categoria}</div>
         </div>
 
-        <div class="admin-sales-meta">
-          <div class="admin-sales-meta-item">
-            <div class="admin-sales-meta-label">Incasso</div>
-            <div class="admin-sales-meta-value">${formatCurrency(item.incasso)}</div>
-          </div>
-
-          <div class="admin-sales-meta-item">
-            <div class="admin-sales-meta-label">Numero</div>
-            <div class="admin-sales-meta-value">${item.numero}</div>
-          </div>
-
-          <div class="admin-sales-meta-item">
-            <div class="admin-sales-meta-label">Margine</div>
-            <div class="admin-sales-meta-value">${formatCurrency(item.margine)}</div>
-          </div>
+        <div class="admin-sales-value-card">
+          <div class="admin-sales-value-label">${sortByLabel(sortBy)}</div>
+          <div class="admin-sales-value">${sortBy === "numero" ? item.numero : formatCurrency(item[sortBy])}</div>
         </div>
       </div>
     `;
