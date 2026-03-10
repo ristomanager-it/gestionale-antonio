@@ -355,12 +355,18 @@ function renderGauge(){
   if(!canvas) return
   if(typeof Chart === "undefined") return
 
-  const ctx = canvas.getContext("2d")
-
+  /* distrugge grafico precedente */
   if(window.__homeGaugeChart){
     window.__homeGaugeChart.destroy()
     window.__homeGaugeChart = null
   }
+
+  /* reset totale del canvas */
+  const parent = canvas.parentNode
+  const newCanvas = canvas.cloneNode(false)
+  parent.replaceChild(newCanvas, canvas)
+
+  const ctx = newCanvas.getContext("2d")
 
   window.__homeGaugeChart = new Chart(ctx,{
     type:"doughnut",
