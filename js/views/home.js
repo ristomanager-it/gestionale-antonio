@@ -4,40 +4,30 @@ const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
    RENDER VIEW
 ========================================================= */
 
-export async function render(container){
-
+export async function render(container) {
   const user = window.state?.user;
-  const ruolo = window.state?.ruolo;
   const azienda = window.state?.azienda;
   const sede = window.state?.sedeAttiva;
-  const isSuperadmin = window.state?.isSuperadmin === true;
 
-  updateHeader(azienda,sede);
-  initTopbar(user);
+  updateHeader(azienda, sede);
 
   container.innerHTML = `
-
- <div class="view home-compact">
-
-    ${renderKpiCard(ruolo,isSuperadmin)}
-
+  <div class="view home-compact">
+    ${renderKpiCard()}
     ${renderVenditeCard()}
-
     ${renderTony()}
-
   </div>
 
   <style>
-
-  /* ================= KPI CARD ================= */
-
   .kpi-header{
     display:flex;
     justify-content:space-between;
     align-items:center;
+    gap:12px;
     margin-bottom:12px;
     font-size:14px;
     color:var(--color-text-muted);
+    flex-wrap:wrap;
   }
 
   .period-filter{
@@ -54,6 +44,14 @@ export async function render(container){
     border-radius:10px;
     cursor:pointer;
     font-size:13px;
+  }
+
+  .period-filter input[type="date"]{
+    border:1px solid var(--color-border);
+    background:#fff;
+    padding:6px 10px;
+    border-radius:10px;
+    min-height:34px;
   }
 
   .incassi-value{
@@ -96,17 +94,22 @@ export async function render(container){
     font-size:14px;
   }
 
-  /* ================= VENDITE ================= */
-
   .vendite-header{
     display:flex;
     justify-content:space-between;
+    align-items:center;
+    gap:12px;
     margin-bottom:12px;
+    flex-wrap:wrap;
   }
 
   .vendite-row{
     padding:10px 0;
     border-bottom:1px solid var(--color-border);
+  }
+
+  .vendite-row:last-child{
+    border-bottom:none;
   }
 
   .vendite-name{
@@ -117,8 +120,6 @@ export async function render(container){
     font-size:12px;
     color:var(--color-text-muted);
   }
-
-  /* ================= TONY ================= */
 
   .tony-avatar{
     position:fixed;
@@ -134,322 +135,335 @@ export async function render(container){
     justify-content:center;
     font-size:24px;
     cursor:pointer;
+    box-shadow:0 10px 24px rgba(14,90,122,0.28);
+    z-index:50;
   }
 
+  @media (max-width: 767px){
+    .kpi-header{
+      align-items:flex-start;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .kpi-grid{
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+    }
+
+    .tony-avatar{
+      width:54px;
+      height:54px;
+      right:16px;
+      bottom:84px;
+    }
+  }
   </style>
   `;
 
-  if(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin){
-    loadDashboard();
-  }
-
+  initTopbar(user);
+  loadDashboard();
 }
 
 /* =========================================================
    HEADER UPDATE
 ========================================================= */
 
-function updateHeader(azienda,sede){
+function updateHeader(azienda, sede) {
+  const box = document.getElementById("header-azienda-nome");
 
-  const box=document.getElementById("header-azienda-nome");
+  if (!box) return;
 
-  if(!box) return;
-
-  if(sede){
-    box.innerText=sede.nome;
+  if (sede) {
+    box.innerText = sede.nome;
     return;
   }
 
-  if(azienda){
-    box.innerText=azienda.nome;
+  if (azienda) {
+    box.innerText = azienda.nome;
     return;
   }
 
-  box.innerText="Ristoflow";
-
+  box.innerText = "Ristoflow";
 }
 
 /* =========================================================
    TOPBAR
 ========================================================= */
 
-function initTopbar(user){
+function initTopbar(user) {
+  const salutoBox = document.getElementById("topbar-saluto");
+  const dataBox = document.getElementById("topbar-data");
 
-  const salutoBox=document.getElementById("topbar-saluto");
-  const dataBox=document.getElementById("topbar-data");
+  if (!salutoBox || !dataBox) return;
 
-  if(!salutoBox) return;
+  const ora = new Date().getHours();
 
-  const ora=new Date().getHours();
+  let saluto = "Buongiorno";
 
-  let saluto="Buongiorno";
+  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
+  if (ora >= 18) saluto = "Buonasera";
 
-  if(ora>=12 && ora<18) saluto="Buon pomeriggio";
-  if(ora>=18) saluto="Buonasera";
+  const nome = user?.email?.split("@")[0] || "";
 
-  const nome=user?.email?.split("@")[0] || "";
+  salutoBox.innerText = `${saluto} ${nome}`.trim();
 
-  salutoBox.innerText=`${saluto} ${nome}`;
+  const now = new Date();
 
-  const now=new Date();
-
-  dataBox.innerText=now.toLocaleDateString("it-IT",{
-    weekday:"short",
-    day:"numeric",
-    month:"short"
+  dataBox.innerText = now.toLocaleDateString("it-IT", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
   });
 
   hydrateWeather();
-
 }
 
 /* =========================================================
    KPI CARD
 ========================================================= */
 
-function renderKpiCard(ruolo,isSuperadmin){
+function renderKpiCard() {
+  return `
+  <div class="card">
+    <div class="kpi-header">
+      <div id="topbar-saluto"></div>
+      <div id="topbar-data"></div>
+      <div id="topbar-weather"></div>
+    </div>
 
-if(!(ruolo==="admin" || ruolo==="superadmin" || isSuperadmin)) return "";
+    <div class="period-filter">
+      <button type="button">Day</button>
+      <button type="button">Week</button>
+      <button type="button">Month</button>
+      <button type="button">Year</button>
+      <input type="date">
+    </div>
 
-return`
+    <div>
+      <div class="incassi-value" id="incassiTotali">€0</div>
+      <div class="incassi-iva">
+        con IVA <span id="incassiIva">€0</span>
+      </div>
+    </div>
 
-<div class="card">
+    <div style="margin-top:18px">
+      <canvas id="gauge"></canvas>
+    </div>
 
-<div class="kpi-header">
+    <div class="bep">
+      BEP € <span id="bep">0</span>
+    </div>
 
-<div id="topbar-saluto"></div>
-<div id="topbar-data"></div>
-<div id="topbar-weather"></div>
+    <div class="kpi-grid">
+      <div>
+        <div class="kpi-name">Materie prime</div>
+        <div class="kpi-value" id="mp">0</div>
+        <div class="kpi-perc" id="mpPerc">0%</div>
+      </div>
 
-</div>
+      <div>
+        <div class="kpi-name">Personale</div>
+        <div class="kpi-value" id="pers">0</div>
+        <div class="kpi-perc" id="persPerc">0%</div>
+      </div>
 
-<div class="period-filter">
+      <div>
+        <div class="kpi-name">Costi fissi</div>
+        <div class="kpi-value" id="fix">0</div>
+        <div class="kpi-perc" id="fixPerc">0%</div>
+      </div>
 
-<button>Day</button>
-<button>Week</button>
-<button>Month</button>
-<button>Year</button>
-
-<input type="date">
-
-</div>
-
-<div>
-
-<div class="incassi-value" id="incassiTotali">€0</div>
-
-<div class="incassi-iva">
-con IVA <span id="incassiIva">€0</span>
-</div>
-
-</div>
-
-<div style="margin-top:18px">
-<canvas id="gauge"></canvas>
-</div>
-
-<div class="bep">
-BEP € <span id="bep">0</span>
-</div>
-
-<div class="kpi-grid">
-
-<div>
-<div class="kpi-name">Materie prime</div>
-<div class="kpi-value" id="mp">0</div>
-<div class="kpi-perc" id="mpPerc">0%</div>
-</div>
-
-<div>
-<div class="kpi-name">Personale</div>
-<div class="kpi-value" id="pers">0</div>
-<div class="kpi-perc" id="persPerc">0%</div>
-</div>
-
-<div>
-<div class="kpi-name">Costi fissi</div>
-<div class="kpi-value" id="fix">0</div>
-<div class="kpi-perc" id="fixPerc">0%</div>
-</div>
-
-<div>
-<div class="kpi-name">Margine</div>
-<div class="kpi-value" id="marg">0</div>
-<div class="kpi-perc" id="margPerc">0%</div>
-</div>
-
-</div>
-
-</div>
-
-`;
-
+      <div>
+        <div class="kpi-name">Margine</div>
+        <div class="kpi-value" id="marg">0</div>
+        <div class="kpi-perc" id="margPerc">0%</div>
+      </div>
+    </div>
+  </div>
+  `;
 }
 
 /* =========================================================
    VENDITE CARD
 ========================================================= */
 
-function renderVenditeCard(){
+function renderVenditeCard() {
+  return `
+  <div class="card">
+    <div class="vendite-header">
+      <h3 style="margin:0;">Vendite</h3>
+      <select id="venditeFiltro">
+        <option value="incasso">Incasso</option>
+        <option value="numero">Numero</option>
+        <option value="margine">Margine</option>
+      </select>
+    </div>
 
-return`
-
-<div class="card">
-
-<div class="vendite-header">
-
-<h3>Vendite</h3>
-
-<select id="venditeFiltro">
-<option value="incasso">Incasso</option>
-<option value="numero">Numero</option>
-<option value="margine">Margine</option>
-</select>
-
-</div>
-
-<div id="venditeList"></div>
-
-</div>
-
-`;
-
+    <div id="venditeList"></div>
+  </div>
+  `;
 }
 
 /* =========================================================
    LOAD DASHBOARD
 ========================================================= */
 
-function loadDashboard(){
+function loadDashboard() {
+  const incasso = 12000;
+  const iva = 14400;
 
-const incasso=12000;
-const iva=14400;
+  const mp = 3500;
+  const pers = 3000;
+  const fix = 1500;
 
-const mp=3500;
-const pers=3000;
-const fix=1500;
+  const costi = mp + pers + fix;
+  const marg = incasso - costi;
 
-const costi=mp+pers+fix;
-const marg=incasso-costi;
+  setText("incassiTotali", "€ " + incasso);
+  setText("incassiIva", "€ " + iva);
 
-document.getElementById("incassiTotali").innerText="€ "+incasso;
-document.getElementById("incassiIva").innerText="€ "+iva;
+  setText("mp", "€ " + mp);
+  setText("pers", "€ " + pers);
+  setText("fix", "€ " + fix);
+  setText("marg", "€ " + marg);
 
-document.getElementById("mp").innerText="€ "+mp;
-document.getElementById("pers").innerText="€ "+pers;
-document.getElementById("fix").innerText="€ "+fix;
-document.getElementById("marg").innerText="€ "+marg;
+  setText("bep", String(costi));
 
-document.getElementById("bep").innerText=costi;
+  setText("mpPerc", Math.round((mp / incasso) * 100) + "%");
+  setText("persPerc", Math.round((pers / incasso) * 100) + "%");
+  setText("fixPerc", Math.round((fix / incasso) * 100) + "%");
+  setText("margPerc", Math.round((marg / incasso) * 100) + "%");
 
-document.getElementById("mpPerc").innerText=Math.round(mp/incasso*100)+"%";
-document.getElementById("persPerc").innerText=Math.round(pers/incasso*100)+"%";
-document.getElementById("fixPerc").innerText=Math.round(fix/incasso*100)+"%";
-document.getElementById("margPerc").innerText=Math.round(marg/incasso*100)+"%";
+  renderGauge();
+  renderVendite();
+}
 
-renderGauge();
-renderVendite();
-
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = value;
 }
 
 /* =========================================================
    GAUGE
 ========================================================= */
 
-function renderGauge(){
+function renderGauge() {
+  const ctx = document.getElementById("gauge");
+  if (!ctx) return;
+  if (typeof Chart === "undefined") return;
 
-const ctx=document.getElementById("gauge");
+  if (window.__homeGaugeChart && typeof window.__homeGaugeChart.destroy === "function") {
+    window.__homeGaugeChart.destroy();
+  }
 
-new Chart(ctx,{
-type:"doughnut",
-data:{
-datasets:[{
-data:[20,20,20,20,20],
-backgroundColor:[
-"#ef4444",
-"#f97316",
-"#eab308",
-"#22c55e",
-"#16a34a"
-],
-borderWidth:0
-}]
-},
-options:{
-rotation:-90,
-circumference:180,
-cutout:"70%",
-plugins:{legend:{display:false}}
-}
-});
-
+  window.__homeGaugeChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      datasets: [
+        {
+          data: [20, 20, 20, 20, 20],
+          backgroundColor: [
+            "#ef4444",
+            "#f97316",
+            "#eab308",
+            "#22c55e",
+            "#16a34a",
+          ],
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "70%",
+      plugins: {
+        legend: { display: false },
+      },
+    },
+  });
 }
 
 /* =========================================================
    VENDITE
 ========================================================= */
 
-function renderVendite(){
+function renderVendite() {
+  const prodotti = [
+    { nome: "Carbonara", incasso: 3200, margine: 1200, numero: 140 },
+    { nome: "Amatriciana", incasso: 2100, margine: 900, numero: 100 },
+    { nome: "Tiramisù", incasso: 1500, margine: 700, numero: 80 },
+  ];
 
-const prodotti=[
-{nome:"Carbonara",incasso:3200,margine:1200,numero:140},
-{nome:"Amatriciana",incasso:2100,margine:900,numero:100},
-{nome:"Tiramisù",incasso:1500,margine:700,numero:80}
-];
+  const box = document.getElementById("venditeList");
+  const filtro = document.getElementById("venditeFiltro");
 
-const box=document.getElementById("venditeList");
+  if (!box) return;
 
-box.innerHTML=prodotti.map(p=>`
+  const renderList = () => {
+    const criterio = filtro?.value || "incasso";
 
-<div class="vendite-row">
+    const ordinati = [...prodotti].sort((a, b) => {
+      return (b[criterio] || 0) - (a[criterio] || 0);
+    });
 
-<div class="vendite-name">${p.nome}</div>
+    box.innerHTML = ordinati
+      .map(
+        (p) => `
+      <div class="vendite-row">
+        <div class="vendite-name">${p.nome}</div>
+        <div class="vendite-meta">
+          €${p.incasso} • margine €${p.margine} • ${p.numero} pz
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  };
 
-<div class="vendite-meta">
-€${p.incasso} • margine €${p.margine} • ${p.numero} pz
-</div>
+  renderList();
 
-</div>
-
-`).join("");
-
+  if (filtro) {
+    filtro.onchange = renderList;
+  }
 }
 
 /* =========================================================
    TONY
 ========================================================= */
 
-function renderTony(){
-
-return`
-
-<div class="tony-avatar" onclick="location.hash='#/ai'">
-🤖
-</div>
-
-`;
-
+function renderTony() {
+  return `
+  <div class="tony-avatar" onclick="location.hash='#/ai'">
+    🤖
+  </div>
+  `;
 }
 
 /* =========================================================
    METEO
 ========================================================= */
 
-async function hydrateWeather(){
+async function hydrateWeather() {
+  const box = document.getElementById("topbar-weather");
+  if (!box) return;
 
-const box=document.getElementById("topbar-weather");
+  try {
+    const res = await fetch(
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+    );
+    const data = await res.json();
 
-try{
+    if (data?.current?.temperature_2m != null) {
+      box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
+      return;
+    }
 
-const res=await fetch(`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`);
-const data=await res.json();
-
-box.innerHTML="🌤 "+Math.round(data.current.temperature_2m)+"°";
-
-}catch{
-
-box.innerHTML="☁️";
-
-}
-
+    box.innerHTML = "☁️";
+  } catch {
+    box.innerHTML = "☁️";
+  }
 }
