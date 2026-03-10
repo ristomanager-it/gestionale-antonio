@@ -50,42 +50,44 @@ export function initMenu() {
     const ruolo = window.state?.ruolo;
     const isSuperadmin = window.state?.isSuperadmin === true;
 
+    const structure = [];
+
     if (isSuperadmin) {
-      return [
-        baseMenu.OPERATIVO,
-        baseMenu.AMMINISTRAZIONE,
-        baseMenu.GESTIONE,
-        baseMenu.MARKETING,
-      ];
+      structure.push({
+        title: "PIATTAFORMA",
+        items: [
+          { label: "Home piattaforma", route: "homePiattaforma" },
+        ],
+      });
     }
 
-    if (!ruolo) {
-      return [
-        baseMenu.OPERATIVO,
-        baseMenu.AMMINISTRAZIONE,
-        baseMenu.GESTIONE,
-        baseMenu.MARKETING,
-      ];
-    }
+    structure.push({
+      title: "GENERALE",
+      items: [{ label: "Home", route: "home" }],
+    });
 
-    if (ruolo === "admin") {
-      return [
-        baseMenu.OPERATIVO,
-        baseMenu.AMMINISTRAZIONE,
-        baseMenu.GESTIONE,
-        baseMenu.MARKETING,
-      ];
+    if (isSuperadmin || ruolo === "admin" || !ruolo) {
+      structure.push(baseMenu.OPERATIVO);
+      structure.push(baseMenu.AMMINISTRAZIONE);
+      structure.push(baseMenu.GESTIONE);
+      structure.push(baseMenu.MARKETING);
+      return structure;
     }
 
     if (ruolo === "manager_cucina") {
-      return [baseMenu.OPERATIVO];
+      structure.push(baseMenu.OPERATIVO);
+      return structure;
     }
 
     if (ruolo === "segreteria") {
-      return [baseMenu.AMMINISTRAZIONE, baseMenu.MARKETING];
+      structure.push(baseMenu.AMMINISTRAZIONE);
+      structure.push(baseMenu.MARKETING);
+      return structure;
     }
 
-    return [baseMenu.OPERATIVO];
+    structure.push(baseMenu.OPERATIVO);
+
+    return structure;
   }
 
   function renderMenu() {
