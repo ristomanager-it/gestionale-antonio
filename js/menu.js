@@ -29,6 +29,7 @@ export function initMenu() {
         { label: "Acquisti", route: "acquisti" },
         { label: "Dipendenti", route: "dipendenti" },
         { label: "Timbrature", route: "timbrature" },
+       { label: "Preventivi", route: "preventivi" },
       ],
     },
 
@@ -42,7 +43,7 @@ export function initMenu() {
 
     MARKETING: {
       title: "MARKETING",
-      items: [{ label: "Preventivi", route: "preventivi" }],
+     
     },
   };
 
