@@ -348,25 +348,17 @@ function setText(id, value) {
    GAUGE
 ========================================================= */
 
+let gaugeInitialized = false
+
 function renderGauge(){
 
-  const canvas = document.getElementById("gauge")
+  if(gaugeInitialized) return
+  gaugeInitialized = true
 
-  if(!canvas) return
+  const ctx = document.getElementById("gauge")
+
+  if(!ctx) return
   if(typeof Chart === "undefined") return
-
-  /* distrugge grafico precedente */
-  if(window.__homeGaugeChart){
-    window.__homeGaugeChart.destroy()
-    window.__homeGaugeChart = null
-  }
-
-  /* reset totale del canvas */
-  const parent = canvas.parentNode
-  const newCanvas = canvas.cloneNode(false)
-  parent.replaceChild(newCanvas, canvas)
-
-  const ctx = newCanvas.getContext("2d")
 
   window.__homeGaugeChart = new Chart(ctx,{
     type:"doughnut",
