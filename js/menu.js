@@ -55,9 +55,7 @@ export function initMenu() {
     if (isSuperadmin) {
       structure.push({
         title: "PIATTAFORMA",
-        items: [
-          { label: "Home piattaforma", route: "homePiattaforma" },
-        ],
+        items: [{ label: "Home piattaforma", route: "homePiattaforma" }],
       });
     }
 
@@ -86,7 +84,6 @@ export function initMenu() {
     }
 
     structure.push(baseMenu.OPERATIVO);
-
     return structure;
   }
 
@@ -142,7 +139,6 @@ export function initMenu() {
 
       sectionBox.appendChild(title);
       sectionBox.appendChild(itemsBox);
-
       menu.appendChild(sectionBox);
     });
 
@@ -151,7 +147,7 @@ export function initMenu() {
     logout.innerText = "Logout";
 
     logout.onclick = () => {
-      if (window.router && window.router.logout) {
+      if (window.router?.logout) {
         window.router.logout();
       }
     };
@@ -182,9 +178,7 @@ export function initMenu() {
 
   window.menuController = {
     refresh() {
-      if (menu.classList.contains("open")) {
-        renderMenu();
-      }
+      if (menu.classList.contains("open")) renderMenu();
     },
     open() {
       openMenu();
