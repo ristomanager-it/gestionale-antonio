@@ -12,7 +12,14 @@ container.innerHTML=`
 
 <div style="max-width:420px;margin:0 auto;text-align:center">
 
-<img src="/logo.png" style="width:90px;margin-bottom:20px">
+<div style="margin-bottom:24px">
+
+<img 
+src="/assets/logo-ristoflow.png"
+style="width:110px;height:auto;margin:0 auto"
+>
+
+</div>
 
 <h2 style="margin-bottom:6px">Accesso</h2>
 
@@ -66,6 +73,10 @@ const reset=document.getElementById("reset-btn")
 
 btn.onclick=doLogin
 reset.onclick=resetPassword
+
+document.getElementById("login-password").addEventListener("keydown",(e)=>{
+if(e.key==="Enter") doLogin()
+})
 
 }
 
