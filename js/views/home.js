@@ -131,6 +131,8 @@ export async function render(container) {
         <div id="sales-list" class="admin-sales-list"></div>
       </section>
     </div>
+
+    ${renderTony()}
   </div>
 
   <style>
@@ -689,7 +691,7 @@ async function refreshDashboard(period) {
     currentProducts = [];
     populateSalesCategoryFilter(currentProducts);
     renderGauge(currentMetrics);
-    renderSalesList(period);
+    renderSalesList();
     return;
   }
 
@@ -713,7 +715,7 @@ async function refreshDashboard(period) {
 
   populateSalesCategoryFilter(currentProducts);
   renderGauge(metrics);
-  renderSalesList(period);
+  renderSalesList();
 }
 
 async function fetchDashboardData(period) {
@@ -812,27 +814,6 @@ function renderGauge(metrics) {
 
   destroyGauge();
 
-  const centerTextPlugin = {
-    id: "homeCenterText",
-    afterDraw(chart) {
-      const meta = chart.getDatasetMeta(0);
-      if (!meta || !meta.data || !meta.data.length) return;
-
-      const x = chart.getDatasetMeta(0).data[0].x;
-      const y = chart.getDatasetMeta(0).data[0].y + 12;
-      const ctx = chart.ctx;
-
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#1F2937";
-      ctx.font = "700 14px system-ui";
-      ctx.fillText("Margine", x, y - 12);
-      ctx.font = "800 20px system-ui";
-      ctx.fillText((metrics.marginePerc || 0) + "%", x, y + 16);
-      ctx.restore();
-    }
-  };
-
   gaugeChart = new Chart(canvas, {
     type: "doughnut",
     data: {
@@ -885,8 +866,7 @@ function renderGauge(metrics) {
           enabled: false
         }
       }
-    },
-    plugins: [centerTextPlugin]
+    }
   });
 }
 
