@@ -502,8 +502,8 @@ async function doLogout() {
 /* =========================================================
    ROUTER CORE
 ========================================================= */
-
 async function resolve() {
+
   if (!app) return;
 
   if (!window.location.hash) {
@@ -512,12 +512,21 @@ async function resolve() {
   }
 
   const { route, segments, params } = parseHash();
+
+  /* PROTEZIONE ANTI LOOP ROUTER */
+  if (route === lastResolvedRoute) {
+    return;
+  }
+
+  lastResolvedRoute = route;
+
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
   const session = await getValidSession();
 
   if (!session) {
+
     if (window.stateActions?.setUser) window.stateActions.setUser(null);
     if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
     if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
@@ -533,6 +542,7 @@ async function resolve() {
 
     const target = PUBLIC_ROUTES.has(route) ? route : "login";
     await renderView(target);
+
     return;
   }
 
@@ -544,25 +554,32 @@ async function resolve() {
     route !== "setPassword" &&
     route !== "set-password"
   ) {
+
     const tmpAziende = await loadAziendeForUser(session.user.id);
-    const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
-    const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
+
+    const hasPlatform = tmpAziende.some(a => a.aziende?.stato === "piattaforma");
+    const isSa = tmpAziende.some(a => a.ruolo === "superadmin");
 
     if (route === "login") {
+
       if (hasPlatform || isSa) {
         window.location.hash = "#/homePiattaforma";
         return;
       }
+
       window.location.hash = "#/home";
       return;
     }
 
     setHeaderVisible(false);
+
     await renderView(route);
+
     return;
   }
 
   try {
+
     const { data: dipCheck, error: dipCheckErr } = await supabase
       .from("dipendenti")
       .select("profilo_completato")
@@ -570,22 +587,30 @@ async function resolve() {
       .maybeSingle();
 
     if (!dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
+
       if (route !== "completaProfilo") {
         window.location.hash = "#/completaProfilo";
         return;
       }
+
     }
+
   } catch (e) {
+
     console.warn("Check profilo dipendente fallito:", e);
+
   }
 
   setHeaderVisible(true);
 
   const aziendaRes = await ensureAziendaContext(route);
+
   if (!aziendaRes.ok) {
+
     if (aziendaRes.redirected) return;
 
     if (aziendaRes.reason === "no_aziende") {
+
       app.innerHTML = `
         <div class="view" style="padding:40px; text-align:center;">
           <h2 style="color:#dc2626;">Accesso non consentito</h2>
@@ -595,35 +620,49 @@ async function resolve() {
           </button>
         </div>
       `;
+
       const b = document.getElementById("btn-logout-force");
+
       if (b) b.onclick = doLogout;
+
       return;
     }
 
     if (route !== "sceltaAzienda") {
+
       window.location.hash = "#/sceltaAzienda";
       return;
+
     }
 
     await renderView("sceltaAzienda");
+
     return;
   }
 
   const azienda = window.state.azienda;
 
   try {
+
     if (
       azienda &&
       azienda.stato !== "piattaforma" &&
       (azienda.profilo_completato === false || azienda.stato_attivazione === "bozza")
     ) {
+
       if (route !== "completaAzienda") {
+
         window.location.hash = "#/completaAzienda";
         return;
+
       }
+
     }
+
   } catch (e) {
+
     console.warn("Check profilo azienda fallito:", e);
+
   }
 
   await loadPianoForAzienda(azienda);
@@ -636,33 +675,13 @@ async function resolve() {
   }
 
   if (isAziendaBlockedForUser(azienda, route)) {
+
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
         <h2 style="color:#dc2626;">Azienda non attiva</h2>
         <p>L'accesso a questa azienda è bloccato (stato/stato_attivazione).</p>
-        <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-          <button id="btn-change-company" style="padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
-            Cambia azienda
-          </button>
-          <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
-            Logout
-          </button>
-        </div>
       </div>
     `;
-
-    const bc = document.getElementById("btn-change-company");
-    if (bc) {
-      bc.onclick = () => {
-        clearStoredAziendaId();
-        clearStoredSedeId();
-        window.stateActions.resetAzienda();
-        window.location.hash = "#/sceltaAzienda";
-      };
-    }
-
-    const bl = document.getElementById("btn-logout");
-    if (bl) bl.onclick = doLogout;
 
     return;
   }
@@ -673,67 +692,101 @@ async function resolve() {
     route !== "completaAzienda" &&
     route !== "home"
   ) {
+
     const sedeRes = await ensureSedeContext(route);
+
     if (!sedeRes.ok) {
+
       if (sedeRes.redirected) return;
 
       if (route === "gestioneSedi") {
+
         await renderView("gestioneSedi");
         return;
+
       }
 
       window.location.hash = "#/gestioneSedi?mode=select";
+
       return;
     }
+
   }
 
   if (route === "homePiattaforma") {
+
     if (!isSuperadmin()) {
+
       window.location.hash = "#/home";
       return;
+
     }
+
     await renderView("homePiattaforma");
+
     return;
   }
 
   if (route === "home") {
+
     await renderView("home");
+
     return;
   }
 
   if (PLATFORM_ROUTES.has(route)) {
+
     if (!isSuperadmin()) {
+
       window.location.hash = "#/home";
       return;
+
     }
+
     await renderView(route);
+
     return;
   }
 
   if (route === "sceltaAzienda") {
+
     await renderView("sceltaAzienda");
+
     return;
   }
 
   if (route === "gestioneSedi") {
+
     await renderView("gestioneSedi");
+
     return;
   }
 
   if (routes[route]) {
-    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
+
+    if (
+      !PUBLIC_ROUTES.has(route) &&
+      !PREHOME_ROUTES.has(route) &&
+      !ROOT_ROUTES.has(route)
+    ) {
+
       if (!hasPermission(route) && !isSuperadmin()) {
+
         window.location.hash = "#/home";
         return;
+
       }
+
     }
+
     await renderView(route);
+
     return;
   }
 
   await renderView("home");
-}
 
+}
 /* =========================================================
    INIT
 ========================================================= */
