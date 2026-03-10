@@ -752,19 +752,22 @@ async function resolve() {
     return;
   }
 
-  if (routes[route]) {
-    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ALWAYS_ALLOWED_ROUTES.has(route)) {
-      if (!hasPermission(route)) {
-        window.location.hash = "#/home";
-        return;
-      }
-    }
+ if (routes[route]) {
 
+  if (route === "home" || route === "homePiattaforma") {
     await renderView(route);
     return;
   }
 
-  await renderView("home");
+  if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route)) {
+    if (!hasPermission(route)) {
+      window.location.hash = "#/home";
+      return;
+    }
+  }
+
+  await renderView(route);
+  return;
 }
 
 /* =========================================================
