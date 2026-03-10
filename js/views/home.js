@@ -46,6 +46,11 @@ export async function render(container) {
     font-size:13px;
   }
 
+  .period-filter button.active{
+    background:var(--color-primary);
+    color:#fff;
+  }
+
   .period-filter input[type="date"]{
     border:1px solid var(--color-border);
     background:#fff;
@@ -162,7 +167,8 @@ export async function render(container) {
   `;
 
   initTopbar(user);
-  loadDashboard();
+  initPeriodFilter();
+  loadDashboard("day");
 }
 
 /* =========================================================
@@ -233,11 +239,11 @@ function renderKpiCard() {
     </div>
 
     <div class="period-filter">
-      <button type="button">Day</button>
-      <button type="button">Week</button>
-      <button type="button">Month</button>
-      <button type="button">Year</button>
-      <input type="date">
+      <button type="button" data-period="day" class="active">Day</button>
+      <button type="button" data-period="week">Week</button>
+      <button type="button" data-period="month">Month</button>
+      <button type="button" data-period="year">Year</button>
+      <input id="period-date" type="date">
     </div>
 
     <div>
@@ -306,16 +312,63 @@ function renderVenditeCard() {
 }
 
 /* =========================================================
+   PERIOD FILTER
+========================================================= */
+
+function initPeriodFilter() {
+  const buttons = document.querySelectorAll(".period-filter button");
+  const dateInput = document.getElementById("period-date");
+
+  buttons.forEach((btn) => {
+    btn.onclick = () => {
+      buttons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      loadDashboard(btn.dataset.period || "day");
+    };
+  });
+
+  if (dateInput) {
+    dateInput.onchange = () => {
+      buttons.forEach((b) => b.classList.remove("active"));
+      loadDashboard("custom");
+    };
+  }
+}
+
+/* =========================================================
    LOAD DASHBOARD
 ========================================================= */
-let dashboardLoaded = false
-function loadDashboard() {
-  const incasso = 12000;
-  const iva = 14400;
 
-  const mp = 3500;
-  const pers = 3000;
-  const fix = 1500;
+function loadDashboard(period = "day") {
+  let incasso = 12000;
+  let iva = 14400;
+  let mp = 3500;
+  let pers = 3000;
+  let fix = 1500;
+
+  if (period === "week") {
+    incasso = 52000;
+    iva = 62400;
+    mp = 15000;
+    pers = 13000;
+    fix = 7000;
+  }
+
+  if (period === "month") {
+    incasso = 210000;
+    iva = 252000;
+    mp = 62000;
+    pers = 54000;
+    fix = 30000;
+  }
+
+  if (period === "year") {
+    incasso = 2520000;
+    iva = 3024000;
+    mp = 744000;
+    pers = 648000;
+    fix = 360000;
+  }
 
   const costi = mp + pers + fix;
   const marg = incasso - costi;
@@ -335,7 +388,7 @@ function loadDashboard() {
   setText("fixPerc", Math.round((fix / incasso) * 100) + "%");
   setText("margPerc", Math.round((marg / incasso) * 100) + "%");
 
-  renderGauge();
+  renderGauge(marg, costi);
   renderVendite();
 }
 
@@ -348,49 +401,58 @@ function setText(id, value) {
    GAUGE
 ========================================================= */
 
-let gaugeInitialized = false
+function renderGauge(marg, costi) {
+  const canvas = document.getElementById("gauge");
+  if (!canvas) return;
+  if (typeof Chart === "undefined") return;
 
-function renderGauge(){
+  if (window.__homeGaugeChart) {
+    try {
+      window.__homeGaugeChart.destroy();
+    } catch (e) {
+      console.warn("Destroy gauge error:", e);
+    }
+    window.__homeGaugeChart = null;
+  }
 
-  if(gaugeInitialized) return
-  gaugeInitialized = true
+  const parent = canvas.parentNode;
+  const freshCanvas = canvas.cloneNode(false);
+  parent.replaceChild(freshCanvas, canvas);
 
-  const ctx = document.getElementById("gauge")
+  const ctx = freshCanvas.getContext("2d");
+  const total = Math.max(marg + costi, 1);
 
-  if(!ctx) return
-  if(typeof Chart === "undefined") return
-
-  window.__homeGaugeChart = new Chart(ctx,{
-    type:"doughnut",
-    data:{
-      datasets:[
+  window.__homeGaugeChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      datasets: [
         {
-          data:[20,20,20,20,20],
-          backgroundColor:[
-            "#ef4444",
-            "#f97316",
-            "#eab308",
-            "#22c55e",
-            "#16a34a"
-          ],
-          borderWidth:0
+          data: [marg, costi],
+          backgroundColor: ["#22c55e", "#e5e7eb"],
+          borderWidth: 0,
+          hoverOffset: 0
         }
       ]
     },
-    options:{
-      animation:false,
-      responsive:true,
-      maintainAspectRatio:false,
-      rotation:-90,
-      circumference:180,
-      cutout:"70%",
-      plugins:{
-        legend:{display:false}
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "70%",
+      events: [],
+      interaction: {
+        mode: null
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
       }
     }
-  })
-
+  });
 }
+
 /* =========================================================
    VENDITE
 ========================================================= */
@@ -459,7 +521,6 @@ async function hydrateWeather() {
     const res = await fetch(
       `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
     );
-
     const data = await res.json();
 
     if (data?.current?.temperature_2m != null) {
