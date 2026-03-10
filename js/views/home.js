@@ -52,8 +52,8 @@ export async function render(container){
   }
 
   .incassi-value{
-    font-size:24px;
-    font-weight:700;
+    font-size:16px;
+    font-weight:400;
     margin-top:4px;
   }
 
@@ -80,7 +80,7 @@ export async function render(container){
   }
 
   .kpi-value{
-    font-weight:600;
+    font-size:16px;
   }
 
   .kpi-perc{
