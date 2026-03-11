@@ -207,6 +207,47 @@ export async function render(container) {
         </div>
 
 
+
+        <div 
+          id="card-tony-piattaforma"
+          style="
+            background:#0ea5e9;
+            color:white;
+            padding:22px;
+            border-radius:22px;
+            cursor:pointer;
+            box-shadow:0 10px 30px rgba(0,0,0,0.12);
+            transition:all 0.25s ease;
+          "
+          onmouseover="this.style.transform='translateY(-6px)'"
+          onmouseout="this.style.transform='translateY(0px)'"
+        >
+
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+
+            <div>
+              <div style="font-size:14px; opacity:0.9;">
+                AI Manager
+              </div>
+
+              <div style="margin-top:6px; font-weight:700; font-size:18px;">
+                Tony Piattaforma
+              </div>
+
+              <div style="margin-top:6px; font-size:13px; opacity:0.9;">
+                Test assistente AI SaaS
+              </div>
+            </div>
+
+            <div style="font-size:28px;">
+              🤖
+            </div>
+
+          </div>
+
+        </div>
+
+
       </div>
 
     </div>
@@ -234,6 +275,55 @@ export async function render(container) {
       } catch (err) {
 
         console.error("Errore logout:", err);
+
+      }
+
+    });
+
+  }
+
+
+
+  const cardTony = document.getElementById("card-tony-piattaforma");
+
+  if (cardTony) {
+
+    cardTony.addEventListener("click", async () => {
+
+      try {
+
+        const domanda = prompt("Chiedi qualcosa a Tony:");
+
+        if (!domanda) return;
+
+        const { data, error } = await window.supabaseClient.functions.invoke(
+          "assistente-ai-piattaforma",
+          {
+            body: {
+              azienda_id: window.state.azienda.id,
+              azienda: window.state.azienda.nome,
+              ruolo: "superadmin",
+              messages: [
+                {
+                  role: "user",
+                  content: domanda
+                }
+              ]
+            }
+          }
+        );
+
+        if (error) {
+          alert("Errore Tony");
+          console.error(error);
+          return;
+        }
+
+        alert(data.reply);
+
+      } catch (err) {
+
+        console.error("Errore Tony:", err);
 
       }
 
