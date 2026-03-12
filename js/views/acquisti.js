@@ -244,6 +244,32 @@ async function renderFatture(container, azienda) {
     return Math.round(x * 1000) / 1000;
   }
 
+  function normalizeInputDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    const m1 = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (m1) {
+      const dd = m1[1].padStart(2, "0");
+      const mm = m1[2].padStart(2, "0");
+      const yyyy = m1[3];
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const m2 = raw.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+    if (m2) {
+      const yyyy = m2[1];
+      const mm = m2[2].padStart(2, "0");
+      const dd = m2[3].padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    return "";
+  }
+
+
   function cleanOcrDescrizione(raw) {
     let s = String(raw || "").trim();
     if (!s) return "";
@@ -624,6 +650,26 @@ async function renderFatture(container, azienda) {
     });
   }
 
+  async function selectProdottoForRow(index, prodotto) {
+    const riga = righe[index];
+    if (!riga || !prodotto) return;
+
+    riga.prodotto_id = prodotto.id;
+    riga.prodotto_nome = prodotto.descrizione || prodotto.nome || riga.prodotto_nome || "";
+    riga.um = prodotto.um || riga.um || "";
+    riga.match_reason = "manual";
+    riga.match_score = 1;
+
+    const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
+    if (rowEl) {
+      const input = rowEl.querySelector(".riga-prodotto-nome");
+      if (input) input.value = riga.prodotto_nome || "";
+    }
+
+    closeAllSuggest();
+    await updateRowComputedUI(index);
+  }
+
   function openSuggestForIndex(idx, items) {
     const rowEl = righeContainer.querySelector(`div[data-i="${idx}"]`);
     const suggest = rowEl?.querySelector(".prod-suggest");
@@ -635,27 +681,6 @@ async function renderFatture(container, azienda) {
       suggest.style.display = "none";
       return;
     }
-
-  function selectProdottoForRow(index, prodotto) {
-
-    const riga = righe[index];
-    if (!riga) return;
-
-    riga.prodotto_id = prodotto.id;
-    riga.match_reason = "manual";
-    riga.match_score = 1;
-
-    const rowEl = righeContainer.querySelector(`div[data-i="${index}"]`);
-    if (!rowEl) return;
-
-    const input = rowEl.querySelector(".input-prodotto");
-    if (input) input.value = prodotto.descrizione || "";
-
-    closeAllSuggest();
-    updateRowComputedUI(index);
-  }
-
-
 
     suggest.innerHTML = items.map(p => {
       const label = p.codice_interno
@@ -1836,9 +1861,12 @@ async function applyOcrResult(result) {
       document.getElementById("fattura-numero").value =
         result.documento.numero_documento;
 
-    if (result.documento?.data_documento)
-      document.getElementById("fattura-data").value =
-        result.documento.data_documento;
+    if (result.documento?.data_documento) {
+      const normalizedDate = normalizeInputDate(result.documento.data_documento);
+      if (normalizedDate) {
+        document.getElementById("fattura-data").value = normalizedDate;
+      }
+    }
 
     if (result.fornitore?.ragione_sociale) {
       const nome = (result.fornitore.ragione_sociale || "").trim();
@@ -2269,14 +2297,28 @@ async function applyOcrResult(result) {
         throw new Error("Ci sono righe senza prodotto: seleziona un prodotto o crea il prodotto.");
       }
 
+      const numeroDocumento = String(document.getElementById("fattura-numero")?.value || "").trim();
+      const dataDocumentoRaw = String(document.getElementById("fattura-data")?.value || "").trim();
+      const dataDocumento = normalizeInputDate(dataDocumentoRaw);
+
+      if (!numeroDocumento) {
+        throw new Error("Inserisci il numero fattura.");
+      }
+
+      if (!dataDocumento) {
+        throw new Error("La data fattura non è valida. Usa il formato yyyy-MM-dd.");
+      }
+
+      document.getElementById("fattura-data").value = dataDocumento;
+
       // --- Salva fattura PRIMA delle righe ---
       const { data: fattura, error: errInsFattura } = await window.supabaseClient
         .from("fatture_acquisto")
         .insert({
           azienda_id: azienda.id,
           fornitore_id: Number(fornitoreId),
-          numero_documento: document.getElementById("fattura-numero").value,
-          data_documento: document.getElementById("fattura-data").value,
+          numero_documento: numeroDocumento,
+          data_documento: dataDocumento,
           origine: mode,
           stato_elaborazione: mode === "manuale" ? "confermata" : "da_verificare",
           allegato_path: allegatoPath
@@ -2284,7 +2326,10 @@ async function applyOcrResult(result) {
         .select()
         .single();
 
-      if (errInsFattura || !fattura?.id) throw new Error("Errore salvataggio fattura");
+      if (errInsFattura || !fattura?.id) {
+        const dettaglio = errInsFattura?.message || errInsFattura?.details || errInsFattura?.hint || "";
+        throw new Error(`Errore salvataggio fattura${dettaglio ? `: ${dettaglio}` : ""}`);
+      }
 
       // --- Costruisci payload righe ---
       const righeDaInserire = [];
