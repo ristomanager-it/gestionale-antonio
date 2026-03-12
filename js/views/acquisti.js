@@ -23,8 +23,9 @@ export async function render(container) {
         body: `
          <div class="tabs-wrapper">
   <button class="tab-btn active" data-tab="fatture">Fatture</button>
+  <button class="tab-btn" data-tab="ddt">DDT</button>
+  <button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
   <button class="tab-btn" data-tab="fornitori">Fornitori</button>
-  <button class="tab-btn" data-tab="ordini">Ordini</button>
   <button class="tab-btn" data-tab="riordino">Riordino</button>
 </div>
         `
@@ -49,8 +50,9 @@ export async function render(container) {
     setActiveTab(tab);
 
     if (tab === "fatture") renderFatture(content, azienda);
+    if (tab === "ddt") renderDDT(content, azienda);
+    if (tab === "pagamenti") renderPagamenti(content, azienda);
     if (tab === "fornitori") renderFornitori(content, azienda);
-    if (tab === "ordini") renderOrdini(content);
     if (tab === "riordino") renderRiordino(content);
   }
 
@@ -2402,4 +2404,94 @@ function escapeHtml(str) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+
+
+/* ===================================================== */
+/* ================== TAB DDT =========================== */
+/* ===================================================== */
+
+async function renderDDT(container, azienda) {
+
+  const { data: ddt } = await window.supabaseClient
+    .from("ddt_acquisto")
+    .select(`
+      id,
+      numero_documento,
+      data_documento,
+      fornitori(ragione_sociale)
+    `)
+    .eq("azienda_id", azienda.id)
+    .order("data_documento", { ascending:false });
+
+  container.innerHTML = `
+  <div class="card">
+    <h3>DDT / Bolle di consegna</h3>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>Numero</th>
+          <th>Data</th>
+          <th>Fornitore</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${(ddt || []).map(d => `
+          <tr>
+            <td>${d.numero_documento || ""}</td>
+            <td>${d.data_documento || ""}</td>
+            <td>${d.fornitori?.ragione_sociale || ""}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  </div>
+  `;
+}
+
+
+/* ===================================================== */
+/* ================== TAB PAGAMENTI ===================== */
+/* ===================================================== */
+
+async function renderPagamenti(container, azienda) {
+
+  const { data } = await window.supabaseClient
+    .from("vw_fatture_acquisto_pagamenti")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .order("data_documento", { ascending:false });
+
+  container.innerHTML = `
+  <div class="card">
+    <h3>Pagamenti fatture</h3>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>Fattura</th>
+          <th>Fornitore</th>
+          <th>Totale</th>
+          <th>Pagato</th>
+          <th>Residuo</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${(data || []).map(f => `
+          <tr>
+            <td>${f.numero_documento || ""}</td>
+            <td>${f.ragione_sociale || ""}</td>
+            <td>${f.totale || 0}</td>
+            <td>${f.importo_pagato || 0}</td>
+            <td>${f.residuo || 0}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  </div>
+  `;
 }
