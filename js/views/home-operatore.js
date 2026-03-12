@@ -1,3 +1,5 @@
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+
 export async function render(container) {
 
   const supabase = window.supabaseClient;
@@ -20,117 +22,85 @@ export async function render(container) {
 
     servizioOggi = data;
 
-  } catch(e){
-    console.log(e);
-  }
+  } catch(e){}
 
   container.innerHTML = `
 
   <div class="view operatore-home">
 
-    <div class="operatore-header">
+    <div class="header">
 
-      <div class="operatore-title">
-        Area operatore
+      <div>
+        <div class="saluto" id="home-saluto"></div>
+        <div class="utente">${user?.email || ""}</div>
       </div>
 
-      <div class="operatore-sub">
-        Benvenuto ${user?.email || ""}
+      <div class="header-right">
+        <div id="home-data"></div>
+        <div id="home-weather">☁️</div>
       </div>
 
     </div>
 
-    <div class="operatore-grid">
+    <div class="grid">
 
       <div class="card big" onclick="location.hash='#/timbrature'">
         ⏱ Timbratura
       </div>
 
       <div class="card">
-
-        <div class="card-title">
-          Servizio di oggi
-        </div>
-
+        <div class="card-title">Servizio oggi</div>
         <div class="card-sub">
           ${servizioOggi ? servizioOggi.tipo_servizio : "Nessun servizio"}
         </div>
-
-      </div>
-
-      <div class="card" onclick="location.hash='#/task'">
-
-        <div class="card-title">
-          Compiti
-        </div>
-
-        <div class="card-sub">
-          Vedi attività assegnate
-        </div>
-
       </div>
 
       <div class="card" onclick="location.hash='#/produzione'">
-
-        <div class="card-title">
-          Produzioni
-        </div>
-
-        <div class="card-sub">
-          Preparazioni cucina
-        </div>
-
+        <div class="card-title">Produzioni</div>
+        <div class="card-sub">Preparazioni</div>
       </div>
 
       <div class="card" onclick="location.hash='#/ferie'">
-
-        <div class="card-title">
-          Permessi
-        </div>
-
-        <div class="card-sub">
-          Richiedi ferie o permessi
-        </div>
-
+        <div class="card-title">Permessi</div>
+        <div class="card-sub">Richiedi ferie</div>
       </div>
 
     </div>
 
-    <div class="tony-box">
-
-      <div class="tony-title">
-        Tony
-      </div>
-
-      <div class="tony-msg">
-        Controlla i compiti del servizio
-      </div>
-
+    <div class="card tony">
+      <div class="card-title">Tony 🤖</div>
+      <div class="card-sub">Chiedi assistenza</div>
     </div>
 
   </div>
 
   <style>
 
-  .operatore-header{
+  .header{
+    display:flex;
+    justify-content:space-between;
     margin-bottom:20px;
   }
 
-  .operatore-title{
+  .saluto{
     font-size:22px;
     font-weight:800;
   }
 
-  .operatore-sub{
+  .utente{
     font-size:13px;
     color:#6b7280;
   }
 
-  .operatore-grid{
+  .header-right{
+    text-align:right;
+    font-size:13px;
+  }
+
+  .grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
     gap:12px;
-    margin-bottom:16px;
   }
 
   .card{
@@ -138,10 +108,9 @@ export async function render(container) {
     padding:16px;
     border-radius:14px;
     box-shadow:0 4px 12px rgba(0,0,0,0.05);
-    cursor:pointer;
   }
 
-  .card.big{
+  .big{
     font-size:18px;
     font-weight:700;
     text-align:center;
@@ -154,21 +123,63 @@ export async function render(container) {
   .card-sub{
     font-size:12px;
     color:#6b7280;
-    margin-top:4px;
   }
 
-  .tony-box{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-  }
-
-  .tony-title{
-    font-weight:700;
-    margin-bottom:6px;
+  .tony{
+    margin-top:16px;
+    background:#0ea5e9;
+    color:white;
   }
 
   </style>
-
   `;
+
+  initHeader();
+  hydrateWeather();
+
+}
+
+function initHeader(){
+
+  const salutoBox = document.getElementById("home-saluto");
+  const dataBox = document.getElementById("home-data");
+
+  const ora = new Date().getHours();
+
+  let saluto = "Buongiorno";
+
+  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
+  if (ora >= 18) saluto = "Buonasera";
+
+  salutoBox.innerText = saluto;
+
+  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
+    weekday:"long",
+    day:"numeric",
+    month:"long",
+    year:"numeric"
+  });
+
+}
+
+async function hydrateWeather(){
+
+  const box = document.getElementById("home-weather");
+
+  if(!box) return;
+
+  try{
+
+    const res = await fetch(
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+    );
+
+    const data = await res.json();
+
+    box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
+
+  }catch{
+    box.innerHTML = "☁️";
+  }
+
 }
