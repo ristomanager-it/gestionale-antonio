@@ -1,9 +1,14 @@
 export async function render(container) {
 
-  const ruolo = window.state?.ruolo || "operatore";
-  const reparto = window.state?.repartoAttivo?.nome || null;
+  const ruolo = window.state?.ruolo;
+  const reparto = window.state?.repartoAttivo?.nome;
 
-  if (ruolo === "admin" || ruolo === "superadmin") {
+  if (ruolo === "superadmin") {
+    const mod = await import("./home-admin.js");
+    return mod.render(container);
+  }
+
+  if (ruolo === "admin") {
     const mod = await import("./home-admin.js");
     return mod.render(container);
   }
