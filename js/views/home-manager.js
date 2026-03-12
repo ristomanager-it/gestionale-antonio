@@ -1,14 +1,15 @@
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+
 export async function render(container, reparto) {
 
   const supabase = window.supabaseClient;
   const azienda = window.state?.azienda;
-  const sede = window.state?.sedeAttiva;
+  const user = window.state?.user;
 
   const today = new Date().toISOString().slice(0,10);
 
   let servizi = [];
   let staff = [];
-  let timbrature = [];
 
   try {
 
@@ -23,24 +24,13 @@ export async function render(container, reparto) {
 
     const { data: staffData } = await supabase
       .from("servizio_staff")
-      .select(`
-        *,
-        dipendenti(nome)
-      `)
+      .select("*")
       .eq("azienda_id", azienda.id);
 
     staff = staffData || [];
 
-    const { data: timbratureData } = await supabase
-      .from("timbrature")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .eq("data", today);
-
-    timbrature = timbratureData || [];
-
   } catch(e) {
-    console.error("home manager load error", e);
+    console.error(e);
   }
 
   const serviziHtml = servizi.map(s => {
@@ -49,62 +39,47 @@ export async function render(container, reparto) {
 
     return `
       <div class="servizio-row">
-        <div class="servizio-tipo">${s.tipo_servizio}</div>
-        <div class="servizio-info">
-          ${s.coperti_previsti || 0} coperti
-        </div>
-        <div class="servizio-staff">
-          brigata ${staffCount}
-        </div>
+        <div>${s.tipo_servizio}</div>
+        <div>${s.coperti_previsti || 0} coperti</div>
+        <div>brigata ${staffCount}</div>
       </div>
     `;
 
   }).join("");
 
-  const timbrati = timbrature.filter(t => t.tipo === "ingresso").length;
-  const pause = timbrature.filter(t => t.tipo === "pausa").length;
-  const usciti = timbrature.filter(t => t.tipo === "uscita").length;
-
   container.innerHTML = `
 
   <div class="view manager-home">
 
-    <div class="manager-header">
+    <div class="header">
 
       <div>
-        <div class="manager-title">Dashboard manager</div>
-        <div class="manager-reparto">${reparto || ""}</div>
+        <div class="saluto" id="home-saluto"></div>
+        <div class="utente">${user?.email || ""}</div>
+      </div>
+
+      <div class="header-right">
+        <div id="home-data"></div>
+        <div id="home-weather">☁️</div>
       </div>
 
     </div>
 
-    <div class="agenda-card">
-
-      <div class="card-title">Programma oggi</div>
-
-      ${serviziHtml || "<div>Nessun servizio oggi</div>"}
-
+    <div class="card">
+      <div class="card-title">Servizi oggi</div>
+      ${serviziHtml || "Nessun servizio"}
     </div>
 
-    <div class="agenda-card">
-
-      <div class="card-title">Urgenze</div>
-
-      <div class="alert">⚠ Controllare brigata servizi</div>
-      <div class="alert">⚠ Verificare produzioni cucina</div>
-
-    </div>
-
-    <div class="manager-grid">
+    <div class="grid">
 
       <div class="card" onclick="location.hash='#/servizi'">
         <div class="card-title">Servizi</div>
-        <div class="card-sub">${servizi.length} servizi oggi</div>
+        <div class="card-sub">${servizi.length} oggi</div>
       </div>
 
       <div class="card" onclick="location.hash='#/produzione'">
         <div class="card-title">Produzioni</div>
-        <div class="card-sub">Gestione cucina</div>
+        <div class="card-sub">Lavorazioni cucina</div>
       </div>
 
       <div class="card" onclick="location.hash='#/dipendenti'">
@@ -114,102 +89,122 @@ export async function render(container, reparto) {
 
       <div class="card" onclick="location.hash='#/timbrature'">
         <div class="card-title">Timbrature</div>
-        <div class="card-sub">
-          ${timbrati} timbrati • ${pause} pausa • ${usciti} usciti
-        </div>
+        <div class="card-sub">Controllo presenze</div>
       </div>
 
     </div>
 
-    <div class="tony-box">
-
-      <div class="card-title">Tony segnala</div>
-
-      <div class="tony-msg">
-        • Controllare coperti cena
-      </div>
-
-      <div class="tony-msg">
-        • Verificare produzioni
-      </div>
-
+    <div class="card tony" id="tony-card">
+      <div class="card-title">Tony 🤖</div>
+      <div class="card-sub">Suggerimenti operativi</div>
     </div>
 
   </div>
 
   <style>
 
-  .manager-header{
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
     margin-bottom:20px;
   }
 
-  .manager-title{
+  .saluto{
     font-size:22px;
     font-weight:800;
   }
 
-  .manager-reparto{
+  .utente{
     font-size:13px;
     color:#6b7280;
   }
 
-  .agenda-card{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-    margin-bottom:14px;
+  .header-right{
+    text-align:right;
+    font-size:13px;
+    color:#6b7280;
   }
 
-  .card-title{
-    font-weight:700;
-    margin-bottom:10px;
-  }
-
-  .servizio-row{
-    display:flex;
-    justify-content:space-between;
-    padding:6px 0;
-    border-bottom:1px solid #eee;
-  }
-
-  .alert{
-    color:#dc2626;
-    font-size:14px;
-  }
-
-  .manager-grid{
+  .grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
     gap:12px;
-    margin-bottom:14px;
+    margin-top:12px;
   }
 
   .card{
     background:white;
     padding:16px;
     border-radius:14px;
-    cursor:pointer;
     box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    cursor:pointer;
+  }
+
+  .card-title{
+    font-weight:700;
   }
 
   .card-sub{
     font-size:12px;
     color:#6b7280;
-    margin-top:4px;
   }
 
-  .tony-box{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-  }
-
-  .tony-msg{
-    font-size:14px;
-    margin-top:6px;
+  .tony{
+    margin-top:16px;
+    background:#0ea5e9;
+    color:white;
   }
 
   </style>
-
   `;
+
+  initHeader();
+  hydrateWeather();
+
+}
+
+function initHeader(){
+
+  const salutoBox = document.getElementById("home-saluto");
+  const dataBox = document.getElementById("home-data");
+
+  const ora = new Date().getHours();
+
+  let saluto = "Buongiorno";
+
+  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
+  if (ora >= 18) saluto = "Buonasera";
+
+  salutoBox.innerText = saluto;
+
+  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
+    weekday:"long",
+    day:"numeric",
+    month:"long",
+    year:"numeric"
+  });
+
+}
+
+async function hydrateWeather(){
+
+  const box = document.getElementById("home-weather");
+
+  if(!box) return;
+
+  try{
+
+    const res = await fetch(
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+    );
+
+    const data = await res.json();
+
+    box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
+
+  }catch{
+    box.innerHTML = "☁️";
+  }
+
 }
