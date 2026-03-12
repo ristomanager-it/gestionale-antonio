@@ -7,6 +7,7 @@ export async function render(container) {
 
   const user = window.state.user;
   const azienda = window.state.azienda;
+  const ruolo = window.state?.ruolo;
 
   if (!user || !azienda) {
     container.innerHTML = `
@@ -30,12 +31,50 @@ export async function render(container) {
           </p>
         </div>
 
-        <button 
-          id="btn-logout-piattaforma"
-          class="app-button small red"
-        >
-          Esci
-        </button>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
+          ${ruolo === "superadmin" ? `
+          <div style="
+            display:flex;
+            gap:6px;
+            background:#f3f4f6;
+            padding:6px;
+            border-radius:12px;
+          ">
+
+            <button 
+              id="view-admin"
+              class="app-button small"
+              style="background:white;"
+            >
+              Vista Admin
+            </button>
+
+            <button 
+              id="view-manager"
+              class="app-button small"
+            >
+              Vista Manager
+            </button>
+
+            <button 
+              id="view-operatore"
+              class="app-button small"
+            >
+              Vista Operatore
+            </button>
+
+          </div>
+          ` : ""}
+
+          <button 
+            id="btn-logout-piattaforma"
+            class="app-button small red"
+          >
+            Esci
+          </button>
+
+        </div>
 
       </div>
 
@@ -280,6 +319,33 @@ export async function render(container) {
 
     });
 
+  }
+
+
+
+  const viewAdmin = document.getElementById("view-admin");
+  const viewManager = document.getElementById("view-manager");
+  const viewOperatore = document.getElementById("view-operatore");
+
+  if (viewAdmin) {
+    viewAdmin.addEventListener("click", () => {
+      window.state.viewAs = "admin";
+      window.location.hash = "#/home";
+    });
+  }
+
+  if (viewManager) {
+    viewManager.addEventListener("click", () => {
+      window.state.viewAs = "manager";
+      window.location.hash = "#/home";
+    });
+  }
+
+  if (viewOperatore) {
+    viewOperatore.addEventListener("click", () => {
+      window.state.viewAs = "operatore";
+      window.location.hash = "#/home";
+    });
   }
 
 
