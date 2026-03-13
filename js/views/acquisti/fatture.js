@@ -15,6 +15,84 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
   { id: "spese_accessorie", nome: "SPESE ACCESSORIE", categoriaBilancioSuggerita: "SPESE ACCESSORIE" }
 ];
 
+function normalizeMatchText(value) {
+  let s = String(value || "").trim().toLowerCase();
+  if (!s) return "";
+
+  s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  s = s.replace(/[.,;:/\\|()[\]{}'"`´’“”]+/g, " ");
+  s = s.replace(/[%€$£]+/g, " ");
+  s = s.replace(/\bgr\b/g, " g ");
+  s = s.replace(/\bgrammi\b/g, " g ");
+  s = s.replace(/\bkg\b/g, " kg ");
+  s = s.replace(/\bkgr\b/g, " kg ");
+  s = s.replace(/\blt\b/g, " l ");
+  s = s.replace(/\bltr\b/g, " l ");
+  s = s.replace(/\bpezzi\b/g, " pz ");
+  s = s.replace(/\bpezzo\b/g, " pz ");
+  s = s.replace(/\bconf\b/g, " confezione ");
+  s = s.replace(/\bconfez\b/g, " confezione ");
+  s = s.replace(/\s+/g, " ").trim();
+
+  return s;
+}
+
+function tokenizeMatchText(value) {
+  return normalizeMatchText(value).split(" ").filter(Boolean);
+}
+
+function computeWordOverlapScore(queryWords, targetWords) {
+  if (!queryWords.length || !targetWords.length) return 0;
+
+  let matches = 0;
+  queryWords.forEach((word) => {
+    if (targetWords.includes(word)) matches += 1;
+  });
+
+  return matches / queryWords.length;
+}
+
+function findBestProductMatch(nome, prodottiCache) {
+  const query = normalizeMatchText(nome);
+  if (!query) return null;
+
+  let best = null;
+  let bestScore = 0;
+
+  const queryWords = tokenizeMatchText(query);
+
+  prodottiCache.forEach((prodotto) => {
+    const target = normalizeMatchText(prodotto.descrizione || prodotto.nome || "");
+    if (!target) return;
+
+    if (target === query) {
+      best = prodotto;
+      bestScore = 100;
+      return;
+    }
+
+    if (target.includes(query) || query.includes(target)) {
+      if (bestScore < 80) {
+        best = prodotto;
+        bestScore = 80;
+      }
+    }
+
+    const targetWords = tokenizeMatchText(target);
+    const overlapScore = computeWordOverlapScore(queryWords, targetWords);
+
+    if (overlapScore >= 0.6) {
+      const weightedScore = overlapScore * 10;
+      if (weightedScore > bestScore) {
+        best = prodotto;
+        bestScore = weightedScore;
+      }
+    }
+  });
+
+  return best;
+}
+
 export async function renderFatture(container, azienda) {
   container.innerHTML = `
     <div class="card">
@@ -191,6 +269,7 @@ async function openDocumentoUploadModal(azienda) {
   const fornitori = fornitoriRes.data || [];
   const prodottiCache = (prodottiRes.data || []).map((p) => ({
     id: p.id,
+    nome: p.nome || "",
     descrizione: String(p.descrizione || p.nome || "").trim(),
     codice_interno: p.codice_interno || "",
     um: p.um || "",
@@ -202,11 +281,11 @@ async function openDocumentoUploadModal(azienda) {
     <div class="rf-modal-backdrop">
       <div class="rf-modal">
         <div class="rf-modal-header">
-          <div>
+          <div class="rf-header-copy">
             <h3 class="rf-modal-title">Carica documento</h3>
             <p class="rf-modal-sub">Il controllo OCR parte al momento del caricamento del documento. Dopo il controllo puoi salvare.</p>
           </div>
-          <button type="button" id="rf-close-top" class="btn-secondary">Chiudi</button>
+          <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
         </div>
 
         <div class="rf-modal-body">
@@ -258,7 +337,7 @@ async function openDocumentoUploadModal(azienda) {
           </div>
 
           <div class="rf-field">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div class="rf-righe-header">
               <label style="margin:0;">Righe documento</label>
               <button type="button" id="btn-add-riga" class="btn-secondary">Aggiungi riga</button>
             </div>
@@ -391,16 +470,7 @@ async function openDocumentoUploadModal(azienda) {
   }
 
   function findProdottoByDescrizione(nome) {
-    const q = normalizeText(nome);
-    if (!q) return null;
-
-    let exact = prodottiCache.find((p) => normalizeText(p.descrizione) === q);
-    if (exact) return exact;
-
-    let contains = prodottiCache.find((p) => normalizeText(p.descrizione).includes(q) || q.includes(normalizeText(p.descrizione)));
-    if (contains) return contains;
-
-    return null;
+    return findBestProductMatch(nome, prodottiCache);
   }
 
   function updateLabels() {
@@ -413,6 +483,7 @@ async function openDocumentoUploadModal(azienda) {
   function updateMetodoUI() {
     const isManuale = elMetodo.value === "manuale";
     elUploadWrap.style.display = isManuale ? "none" : "grid";
+    btnAddRiga.style.display = isManuale ? "inline-flex" : "none";
   }
 
   async function ensureFornitoreId(nome) {
@@ -447,10 +518,10 @@ async function openDocumentoUploadModal(azienda) {
   function addRiga(data = {}) {
     const matched = data.prodotto_id
       ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
-      : findProdottoByDescrizione(data.descrizione);
+      : findProdottoByDescrizione(data.descrizione || data.descrizione_originale || "");
 
     righe.push({
-      descrizione: String(data.descrizione || "").trim(),
+      descrizione: String(data.descrizione_originale || data.descrizione || "").trim(),
       quantita: parseLocaleNumber(data.quantita, 1),
       prezzo_unitario: parseLocaleNumber(data.prezzo_unitario, 0),
       totale_riga: parseLocaleNumber(data.totale_riga, 0),
@@ -522,11 +593,11 @@ async function openDocumentoUploadModal(azienda) {
             </div>
             <div class="rf-field">
               <label>Prezzo unitario</label>
-              <input class="input riga-prezzo" data-i="${i}" value="${escapeHtml(String(row.prezzo_unitario ?? ""))}" ${elTipoDocumento.value === "ddt" ? `disabled` : ""} />
+              <input class="input riga-prezzo" data-i="${i}" value="${escapeHtml(String(row.prezzo_unitario ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
             </div>
             <div class="rf-field">
               <label>Totale riga</label>
-              <input class="input riga-totale" data-i="${i}" value="${escapeHtml(String(row.totale_riga ?? ""))}" ${elTipoDocumento.value === "ddt" ? `disabled` : ""} />
+              <input class="input riga-totale" data-i="${i}" value="${escapeHtml(String(row.totale_riga ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
             </div>
           </div>
 
@@ -619,6 +690,7 @@ async function openDocumentoUploadModal(azienda) {
 
         prodottiCache.unshift({
           id: res.prodotto.id,
+          nome: res.prodotto.descrizione || nome,
           descrizione: res.prodotto.descrizione || nome,
           codice_interno: res.prodotto.codice_interno || "",
           um: res.prodotto.um || "",
@@ -702,7 +774,8 @@ async function openDocumentoUploadModal(azienda) {
     righe = [];
     (result?.righe || []).forEach((row) => {
       addRiga({
-        descrizione: row.descrizione || "",
+        descrizione_originale: row.descrizione_originale || row.descrizione || "",
+        descrizione: row.descrizione_originale || row.descrizione || "",
         quantita: row.quantita ?? 1,
         prezzo_unitario: row.prezzo_unitario ?? 0,
         totale_riga: row.totale_riga ?? 0,
@@ -885,7 +958,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
     <div class="rf-modal-backdrop">
       <div class="rf-modal rf-modal-small">
         <div class="rf-modal-header">
-          <div>
+          <div class="rf-header-copy">
             <h3 class="rf-modal-title">Crea prodotto</h3>
             <p class="rf-modal-sub">Se il prodotto non esiste in anagrafica lo puoi creare qui con le categorie necessarie.</p>
           </div>
@@ -917,7 +990,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
 
           <div class="rf-field">
             <label>Categoria interna</label>
-            <input id="rf-cat-interna-text" class="input" list="rf-cat-interna-list" placeholder="Cerca categoria interna..." autocomplete="off" />
+            <input id="rf-cat-interna-text" class="input" list="rf-cat-interna-list" placeholder="Scrivi o seleziona categoria interna..." autocomplete="off" />
             <input type="hidden" id="rf-cat-interna-id" value="" />
             <datalist id="rf-cat-interna-list">
               ${catsInterne.map((c) => `<option value="${escapeHtml(`${c.nome}${c.sigla ? ` · ${c.sigla}` : ""}`)}"></option>`).join("")}
@@ -950,6 +1023,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
   const hiddenInternaId = modalRoot.querySelector("#rf-cat-interna-id");
   const inputScortaMinima = modalRoot.querySelector("#rf-scorta-minima");
   const feedback = modalRoot.querySelector("#rf-prod-feedback");
+  const datalistInterna = modalRoot.querySelector("#rf-cat-interna-list");
 
   const bilancioByLabel = new Map(
     catsBilancio.map((c) => [String(c.nome || "").trim().toLowerCase(), String(c.id)])
@@ -1008,7 +1082,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
 
       const nome = String(inputNome.value || "").trim();
       const categoriaBilancioId = String(hiddenBilancioId.value || "").trim();
-      const categoriaInternaId = String(hiddenInternaId.value || "").trim();
+      let categoriaInternaId = String(hiddenInternaId.value || "").trim();
       const scortaMinima = Number(inputScortaMinima.value || 0);
 
       if (!nome) {
@@ -1022,8 +1096,35 @@ async function openCreateProductModal({ azienda, prefillName }) {
       }
 
       if (!categoriaInternaId) {
-        setFeedback("Seleziona una categoria interna valida.", true);
-        return;
+        const nomeCategoriaInterna = String(inputInternaText.value || "").trim();
+
+        if (!nomeCategoriaInterna) {
+          setFeedback("Inserisci o seleziona una categoria interna.", true);
+          return;
+        }
+
+        const { data: createdInterna, error: createdInternaError } = await supabase
+          .from("categorie_interne_prodotti")
+          .insert({
+            azienda_id: azienda.id,
+            nome: nomeCategoriaInterna,
+            sigla: null,
+            attiva: true
+          })
+          .select("id, nome, sigla")
+          .single();
+
+        if (createdInternaError || !createdInterna?.id) {
+          setFeedback(createdInternaError?.message || "Errore creazione categoria interna.", true);
+          return;
+        }
+
+        categoriaInternaId = String(createdInterna.id);
+        interneByNome.set(String(createdInterna.nome || "").trim().toLowerCase(), categoriaInternaId);
+        datalistInterna.insertAdjacentHTML(
+          "beforeend",
+          `<option value="${escapeHtml(createdInterna.nome || "")}"></option>`
+        );
       }
 
       const { data: created, error } = await supabase
@@ -1081,17 +1182,21 @@ function ensureAcquistiModalStyles() {
       justify-content:center;
       padding:16px;
       z-index:9999;
+      box-sizing:border-box;
     }
     .rf-modal{
-      width:min(960px,100%);
+      width:100%;
+      max-width:960px;
       max-height:92vh;
       overflow:auto;
       background:#fff;
       border-radius:16px;
       box-shadow:0 18px 50px rgba(0,0,0,.22);
+      box-sizing:border-box;
     }
     .rf-modal-small{
-      width:min(640px,100%);
+      width:100%;
+      max-width:640px;
     }
     .rf-modal-header{
       display:flex;
@@ -1101,9 +1206,17 @@ function ensureAcquistiModalStyles() {
       padding:18px 18px 12px;
       border-bottom:1px solid rgba(0,0,0,.08);
     }
+    .rf-header-copy{
+      min-width:0;
+      flex:1;
+    }
+    .rf-top-close{
+      flex-shrink:0;
+    }
     .rf-modal-title{
       margin:0;
       font-size:18px;
+      line-height:1.25;
     }
     .rf-modal-sub{
       margin:6px 0 0;
@@ -1115,6 +1228,7 @@ function ensureAcquistiModalStyles() {
       padding:18px;
       display:grid;
       gap:14px;
+      box-sizing:border-box;
     }
     .rf-grid-2{
       display:grid;
@@ -1124,11 +1238,19 @@ function ensureAcquistiModalStyles() {
     .rf-field{
       display:grid;
       gap:6px;
+      min-width:0;
     }
     .rf-field label{
       font-size:13px;
       color:#344054;
       font-weight:600;
+    }
+    .rf-righe-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
     }
     .rf-modal-actions{
       display:flex;
@@ -1142,14 +1264,17 @@ function ensureAcquistiModalStyles() {
       min-height:18px;
       font-size:13px;
       font-weight:600;
+      word-break:break-word;
     }
     .rf-mini-note{
       font-size:12px;
       color:#667085;
+      line-height:1.4;
     }
     .rf-righe-wrap{
       display:grid;
       gap:12px;
+      width:100%;
     }
     .rf-empty-righe{
       padding:14px;
@@ -1158,6 +1283,7 @@ function ensureAcquistiModalStyles() {
       background:#f8fafc;
       color:#667085;
       font-size:13px;
+      line-height:1.45;
     }
     .rf-riga-card{
       padding:14px;
@@ -1166,6 +1292,9 @@ function ensureAcquistiModalStyles() {
       background:#fff;
       display:grid;
       gap:10px;
+      box-sizing:border-box;
+      width:100%;
+      min-width:0;
     }
     .rf-riga-card.ok{
       border-color:rgba(34,197,94,.35);
@@ -1176,7 +1305,9 @@ function ensureAcquistiModalStyles() {
     .rf-riga-grid{
       display:grid;
       gap:10px;
-      grid-template-columns:2fr 1fr 1fr 1fr;
+      grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+      width:100%;
+      min-width:0;
     }
     .rf-riga-bottom{
       display:flex;
@@ -1188,6 +1319,7 @@ function ensureAcquistiModalStyles() {
     .rf-riga-status{
       font-size:12px;
       font-weight:600;
+      word-break:break-word;
     }
     .rf-riga-status.ok{
       color:#166534;
@@ -1201,11 +1333,62 @@ function ensureAcquistiModalStyles() {
       flex-wrap:wrap;
     }
     @media (max-width: 760px){
+      .rf-modal-backdrop{
+        padding:8px;
+      }
+      .rf-modal{
+        border-radius:12px;
+        max-height:96vh;
+      }
+      .rf-modal-small{
+        max-width:100%;
+      }
+      .rf-modal-header{
+        padding:14px 14px 10px;
+        gap:10px;
+      }
+      .rf-modal-title{
+        font-size:16px;
+      }
+      .rf-modal-sub{
+        font-size:12px;
+      }
+      .rf-modal-body{
+        padding:14px;
+        gap:12px;
+      }
+      .rf-modal-actions{
+        padding:12px 14px 14px;
+      }
       .rf-grid-2{
         grid-template-columns:1fr;
       }
+      .rf-field label{
+        font-size:12px;
+      }
       .rf-riga-grid{
         grid-template-columns:1fr;
+      }
+      .rf-riga-card{
+        padding:12px;
+      }
+      .rf-riga-status{
+        font-size:11px;
+      }
+      .rf-riga-actions{
+        width:100%;
+      }
+      .rf-riga-actions > button,
+      .rf-modal-actions > button,
+      .rf-righe-header > button,
+      .rf-top-close{
+        width:100%;
+      }
+      .rf-righe-header{
+        align-items:stretch;
+      }
+      .rf-modal-header{
+        flex-direction:column;
       }
     }
   `;
