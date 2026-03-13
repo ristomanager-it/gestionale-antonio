@@ -1,4 +1,20 @@
-import { escapeHtml } from "./utils.js";
+import {
+  escapeHtml,
+  parseLocaleNumber,
+  formatMoney,
+  normalizeInputDate,
+  safeFileName,
+  computeRowsTotal,
+  normalizeText,
+  normalizePiva,
+  normalizeCodiceInterno
+} from "./utils.js";
+
+import {
+  findBestProductMatch,
+  loadProdottiAliasOcr,
+  saveProdottoAliasOcr
+} from "./ocr.js";
 
 const CATEGORIE_GESTIONE_ACQUISTI = [
   { id: "acquisto_merci", nome: "ACQUISTO DI MERCI", categoriaBilancioSuggerita: "ACQUISTO DI MERCI" },
@@ -15,309 +31,35 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
   { id: "spese_accessorie", nome: "SPESE ACCESSORIE", categoriaBilancioSuggerita: "SPESE ACCESSORIE" }
 ];
 
-function normalizeMatchText(value) {
-  let s = String(value || "").trim().toLowerCase();
-  if (!s) return "";
 
-  s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  s = s.replace(/[.,;:/\\|()[\]{}'"`´’“”]+/g, " ");
-  s = s.replace(/[%€$£]+/g, " ");
-  s = s.replace(/\bgr\b/g, " g ");
-  s = s.replace(/\bgrammi\b/g, " g ");
-  s = s.replace(/\bkg\b/g, " kg ");
-  s = s.replace(/\bkgr\b/g, " kg ");
-  s = s.replace(/\blt\b/g, " l ");
-  s = s.replace(/\bltr\b/g, " l ");
-  s = s.replace(/\bpezzi\b/g, " pz ");
-  s = s.replace(/\bpezzo\b/g, " pz ");
-  s = s.replace(/\bconf\b/g, " confezione ");
-  s = s.replace(/\bconfez\b/g, " confezione ");
-  s = s.replace(/\bx\b/g, " ");
-  s = s.replace(/\s+/g, " ").trim();
 
-  return s;
-}
 
-function tokenizeMatchText(value) {
-  return normalizeMatchText(value).split(" ").filter(Boolean);
-}
 
-function computeWordOverlapScore(queryWords, targetWords) {
-  if (!queryWords.length || !targetWords.length) return 0;
 
-  let matches = 0;
-  queryWords.forEach((word) => {
-    if (targetWords.includes(word)) matches += 1;
-  });
 
-  return matches / queryWords.length;
-}
 
-function levenshteinDistance(a, b) {
-  const s = String(a || "");
-  const t = String(b || "");
-  const m = s.length;
-  const n = t.length;
 
-  if (!m) return n;
-  if (!n) return m;
 
-  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
-  for (let i = 0; i <= m; i += 1) dp[i][0] = i;
-  for (let j = 0; j <= n; j += 1) dp[0][j] = j;
 
-  for (let i = 1; i <= m; i += 1) {
-    for (let j = 1; j <= n; j += 1) {
-      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
-    }
-  }
 
-  return dp[m][n];
-}
 
-function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
-  const query = normalizeMatchText(nome);
-  if (!query) return null;
 
-  const aliasExact = aliasCache.find((item) => item.testo_norm === query);
-  if (aliasExact?.prodotto_id) {
-    const matchedByAlias = prodottiCache.find((p) => String(p.id) === String(aliasExact.prodotto_id));
-    if (matchedByAlias) return matchedByAlias;
-  }
 
-  let best = null;
-  let bestScore = 0;
-  const queryWords = tokenizeMatchText(query);
 
-  prodottiCache.forEach((prodotto) => {
-    const targetBase = `${prodotto.nome || ""} ${prodotto.descrizione || ""}`.trim();
-    const target = normalizeMatchText(targetBase);
-    if (!target) return;
 
-    let score = 0;
 
-    if (target === query) {
-      score = 100;
-    } else {
-      if (target.includes(query) || query.includes(target)) {
-        score = Math.max(score, 80);
-      }
 
-      const targetWords = tokenizeMatchText(target);
-      const overlapScore = computeWordOverlapScore(queryWords, targetWords);
-      if (overlapScore >= 0.45) {
-        score = Math.max(score, overlapScore * 70);
-      }
 
-      const distance = levenshteinDistance(query, target);
-      const maxLen = Math.max(query.length, target.length) || 1;
-      const similarity = 1 - (distance / maxLen);
-      if (similarity >= 0.72) {
-        score = Math.max(score, similarity * 60);
-      }
-    }
 
-    const aliasRows = aliasCache.filter((item) => String(item.prodotto_id) === String(prodotto.id));
-    aliasRows.forEach((item) => {
-      if (!item.testo_norm) return;
 
-      if (item.testo_norm === query) {
-        score = Math.max(score, 120);
-        return;
-      }
 
-      if (item.testo_norm.includes(query) || query.includes(item.testo_norm)) {
-        score = Math.max(score, 85);
-      }
 
-      const aliasWords = tokenizeMatchText(item.testo_norm);
-      const overlapScore = computeWordOverlapScore(queryWords, aliasWords);
-      if (overlapScore >= 0.6) {
-        score = Math.max(score, overlapScore * 75);
-      }
-    });
 
-    if (score > bestScore) {
-      best = prodotto;
-      bestScore = score;
-    }
-  });
 
-  return bestScore >= 30 ? best : null;
-}
 
-function parseLocaleNumber(value, fallback = 0) {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
 
-  let s = String(value).trim();
-  if (!s) return fallback;
 
-  s = s.replace(/[€\s]/g, "");
-  const lastComma = s.lastIndexOf(",");
-  const lastDot = s.lastIndexOf(".");
-
-  if (lastComma !== -1 && lastDot !== -1) {
-    if (lastComma > lastDot) {
-      s = s.replace(/\./g, "").replace(",", ".");
-    } else {
-      s = s.replace(/,/g, "");
-    }
-  } else if (lastComma !== -1) {
-    s = s.replace(",", ".");
-  }
-
-  s = s.replace(/[^0-9.\-]/g, "");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function formatMoney(value) {
-  const n = Number(value || 0);
-  if (!Number.isFinite(n)) return "0,00";
-  return n.toLocaleString("it-IT", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
-
-function normalizeInputDate(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-
-  const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-  if (dmy) {
-    const dd = dmy[1].padStart(2, "0");
-    const mm = dmy[2].padStart(2, "0");
-    const yyyy = dmy[3];
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  const ymd = raw.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-  if (ymd) {
-    const yyyy = ymd[1];
-    const mm = ymd[2].padStart(2, "0");
-    const dd = ymd[3].padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  return "";
-}
-
-function safeFileName(name) {
-  return String(name || "documento")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_");
-}
-
-function computeRowsTotal(rows) {
-  return (rows || []).reduce((sum, row) => {
-    const totaleRiga = parseLocaleNumber(row?.totale_riga, NaN);
-    const quantita = parseLocaleNumber(row?.quantita, 0);
-    const prezzo = parseLocaleNumber(row?.prezzo_unitario, 0);
-    if (Number.isFinite(totaleRiga) && totaleRiga > 0) return sum + totaleRiga;
-    return sum + (quantita * prezzo);
-  }, 0);
-}
-
-function normalizeText(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function normalizePiva(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (!digits) return "";
-  return digits.length > 11 ? digits.slice(-11) : digits;
-}
-
-function normalizeCodiceInterno(value) {
-  const base = String(value || "").trim();
-  if (!base) return "PRODOTTO";
-  return base
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .toUpperCase()
-    .slice(0, 80) || "PRODOTTO";
-}
-
-async function loadProdottiAliasOcr(supabase, aziendaId) {
-  try {
-    const { data, error } = await supabase
-      .from("prodotti_alias_ocr")
-      .select("id, testo_ocr, prodotto_id")
-      .eq("azienda_id", aziendaId);
-
-    if (error) {
-      console.warn("prodotti_alias_ocr non disponibile", error.message);
-      return [];
-    }
-
-    return (data || []).map((item) => ({
-      id: item.id,
-      testo_ocr: item.testo_ocr || "",
-      testo_norm: normalizeMatchText(item.testo_ocr || ""),
-      prodotto_id: item.prodotto_id
-    }));
-  } catch (err) {
-    console.warn("Errore caricamento alias OCR", err);
-    return [];
-  }
-}
-
-async function saveProdottoAliasOcr(supabase, aziendaId, testoOcr, prodottoId, aliasCache) {
-  const testo = String(testoOcr || "").trim();
-  const testoNorm = normalizeMatchText(testo);
-
-  if (!testo || !testoNorm || !prodottoId) return;
-
-  try {
-    const existing = aliasCache.find((item) => item.testo_norm === testoNorm);
-
-    if (existing?.id) {
-      const { error } = await supabase
-        .from("prodotti_alias_ocr")
-        .update({ prodotto_id: prodottoId })
-        .eq("id", existing.id);
-
-      if (!error) {
-        existing.prodotto_id = prodottoId;
-      }
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("prodotti_alias_ocr")
-      .insert({
-        azienda_id: aziendaId,
-        testo_ocr: testo,
-        prodotto_id: prodottoId
-      })
-      .select("id, testo_ocr, prodotto_id")
-      .single();
-
-    if (!error && data?.id) {
-      aliasCache.push({
-        id: data.id,
-        testo_ocr: data.testo_ocr || testo,
-        testo_norm: normalizeMatchText(data.testo_ocr || testo),
-        prodotto_id: data.prodotto_id
-      });
-    }
-  } catch (err) {
-    console.warn("Errore salvataggio alias OCR", err);
-  }
-}
 
 export async function renderFatture(container, azienda) {
   ensureAcquistiModalStyles();
