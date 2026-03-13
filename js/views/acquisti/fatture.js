@@ -574,73 +574,72 @@ async function openDocumentoUploadModal(azienda) {
     elTotale.value = total > 0 ? formatMoney(total) : "";
   }
 
-  async function ensureFornitoreId(nome, piva) {
-    const cleanedNome = String(nome || "").trim();
-    const cleanedPiva = String(piva || "").trim();
+async function ensureFornitoreId(nome, piva) {
+  const cleanedNome = String(nome || "").trim();
+  const cleanedPiva = String(piva || "").trim();
 
-    if (!cleanedNome) return null;
+  if (!cleanedNome) return null;
 
-    const exactByPiva = cleanedPiva
-      ? fornitori.find((f) => normalizeText(f.piva) === normalizeText(cleanedPiva))
-      : null;
+  const exactByPiva = cleanedPiva
+    ? fornitori.find((f) => normalizeText(f.partita_iva) === normalizeText(cleanedPiva))
+    : null;
 
-    if (exactByPiva?.id) {
-      if (!exactByPiva.piva && cleanedPiva) {
-        await supabase
-          .from("fornitori")
-          .update({ piva: cleanedPiva })
-          .eq("id", exactByPiva.id)
-          .eq("azienda_id", azienda.id);
-        exactByPiva.piva = cleanedPiva;
-      }
-      return exactByPiva.id;
+  if (exactByPiva?.id) {
+    if (!exactByPiva.partita_iva && cleanedPiva) {
+      await supabase
+        .from("fornitori")
+        .update({ partita_iva: cleanedPiva })
+        .eq("id", exactByPiva.id)
+        .eq("azienda_id", azienda.id);
+      exactByPiva.partita_iva = cleanedPiva;
     }
-
-    const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
-    if (exactByName?.id) {
-      if (!exactByName.piva && cleanedPiva) {
-        await supabase
-          .from("fornitori")
-          .update({ piva: cleanedPiva })
-          .eq("id", exactByName.id)
-          .eq("azienda_id", azienda.id);
-        exactByName.piva = cleanedPiva;
-      }
-      return exactByName.id;
-    }
-
-    const payload = {
-      azienda_id: azienda.id,
-      ragione_sociale: cleanedNome
-    };
-
-    if (cleanedPiva) payload.piva = cleanedPiva;
-
-    const { data: created, error } = await supabase
-      .from("fornitori")
-      .insert(payload)
-      .select("id, ragione_sociale, piva")
-      .single();
-
-    if (error || !created?.id) {
-      throw new Error(error?.message || "Impossibile creare il fornitore");
-    }
-
-    fornitori.push(created);
-    modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
-      "beforeend",
-      `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
-    );
-
-    return created.id;
+    return exactByPiva.id;
   }
 
-  function addRiga(data = {}) {
-    const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
-    const matched = data.prodotto_id
-      ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
-      : findProdottoByDescrizione(descrizione);
+  const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
+  if (exactByName?.id) {
+    if (!exactByName.partita_iva && cleanedPiva) {
+      await supabase
+        .from("fornitori")
+        .update({ partita_iva: cleanedPiva })
+        .eq("id", exactByName.id)
+        .eq("azienda_id", azienda.id);
+      exactByName.partita_iva = cleanedPiva;
+    }
+    return exactByName.id;
+  }
 
+  const payload = {
+    azienda_id: azienda.id,
+    ragione_sociale: cleanedNome
+  };
+
+  if (cleanedPiva) payload.partita_iva = cleanedPiva;
+
+  const { data: created, error } = await supabase
+    .from("fornitori")
+    .insert(payload)
+    .select("id, ragione_sociale, partita_iva")
+    .single();
+
+  if (error || !created?.id) {
+    throw new Error(error?.message || "Impossibile creare il fornitore");
+  }
+
+  fornitori.push(created);
+  modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
+    "beforeend",
+    `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
+  );
+
+  return created.id;
+}
+
+function addRiga(data = {}) {
+  const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
+  const matched = data.prodotto_id
+    ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
+    : findProdottoByDescrizione(descrizione);
     righe.push({
       descrizione,
       quantita: parseLocaleNumber(data.quantita, 1),
