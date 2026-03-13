@@ -27,10 +27,11 @@ export async function render(container) {
 
       <div class="tabs-wrapper">
         <button class="tab-btn active" data-tab="fatture">Fatture</button>
-        <button class="tab-btn" data-tab="ddt">DDT</button>
-        <button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
-        <button class="tab-btn" data-tab="fornitori">Fornitori</button>
-        <button class="tab-btn" data-tab="riordino">Riordino</button>
+<button class="tab-btn" data-tab="ddt">DDT</button>
+<button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
+<button class="tab-btn" data-tab="fornitori">Fornitori</button>
+<button class="tab-btn" data-tab="riordino">Riordino</button>
+<button class="tab-btn" data-tab="ordini">Ordini</button>
       </div>
     </div>
 
