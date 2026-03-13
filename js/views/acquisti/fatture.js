@@ -6,20 +6,19 @@ export async function renderFatture(container, azienda) {
   container.innerHTML = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-        <h3 style="margin:0;">Fatture acquisto</h3>
-        <button id="btn-carica-fattura" class="btn-primary">Carica documento</button>
+        <h3 style="margin:0;">Documenti acquisto</h3>
+        <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
       </div>
 
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:16px;">
-        <input id="filter-numero" class="input" placeholder="Numero fattura" />
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:16px;">
         <input id="filter-fornitore" class="input" placeholder="Fornitore" />
         <input id="filter-data-da" type="date" class="input" />
         <input id="filter-data-a" type="date" class="input" />
       </div>
 
-      <div style="display:flex; gap:8px; margin-top:12px;">
-        <button id="btn-cerca-fatture" class="btn-secondary">Cerca</button>
-        <button id="btn-reset-fatture" class="btn-secondary">Reset</button>
+      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+        <button id="btn-cerca-documenti" class="btn-secondary">Cerca</button>
+        <button id="btn-reset-documenti" class="btn-secondary">Reset</button>
       </div>
     </div>
 
@@ -27,6 +26,7 @@ export async function renderFatture(container, azienda) {
       <table class="app-table" style="margin-top:0;">
         <thead>
           <tr>
+            <th>Tipo</th>
             <th>Numero</th>
             <th>Data</th>
             <th>Fornitore</th>
@@ -34,27 +34,26 @@ export async function renderFatture(container, azienda) {
             <th>Stato</th>
           </tr>
         </thead>
-        <tbody id="fatture-body">
-          <tr><td colspan="5">Caricamento...</td></tr>
+        <tbody id="documenti-body">
+          <tr><td colspan="6">Caricamento...</td></tr>
         </tbody>
       </table>
     </div>
   `;
 
-  const body = container.querySelector("#fatture-body");
-  const inputNumero = container.querySelector("#filter-numero");
+  const body = container.querySelector("#documenti-body");
   const inputFornitore = container.querySelector("#filter-fornitore");
   const inputDataDa = container.querySelector("#filter-data-da");
   const inputDataA = container.querySelector("#filter-data-a");
-  const btnCerca = container.querySelector("#btn-cerca-fatture");
-  const btnReset = container.querySelector("#btn-reset-fatture");
-  const btnCarica = container.querySelector("#btn-carica-fattura");
+  const btnCerca = container.querySelector("#btn-cerca-documenti");
+  const btnReset = container.querySelector("#btn-reset-documenti");
+  const btnCarica = container.querySelector("#btn-carica-documento");
 
   let allRows = [];
 
   function formatMoney(value) {
     const n = Number(value || 0);
-    if (!Number.isFinite(n)) return "0,00";
+    if (!Number.isFinite(n)) return "";
     return n.toLocaleString("it-IT", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -66,17 +65,14 @@ export async function renderFatture(container, azienda) {
   }
 
   function applyFilters() {
-    const numero = normalizeText(inputNumero.value);
     const fornitore = normalizeText(inputFornitore.value);
     const dataDa = inputDataDa.value || "";
     const dataA = inputDataA.value || "";
 
     const filtered = allRows.filter((row) => {
-      const numeroDoc = normalizeText(row.numero_documento);
-      const ragioneSociale = normalizeText(row.fornitori?.ragione_sociale);
-      const dataDoc = String(row.data_documento || "");
+      const ragioneSociale = normalizeText(row.fornitore);
+      const dataDoc = String(row.data || "");
 
-      if (numero && !numeroDoc.includes(numero)) return false;
       if (fornitore && !ragioneSociale.includes(fornitore)) return false;
       if (dataDa && dataDoc && dataDoc < dataDa) return false;
       if (dataA && dataDoc && dataDoc > dataA) return false;
@@ -85,66 +81,114 @@ export async function renderFatture(container, azienda) {
     });
 
     if (!filtered.length) {
-      body.innerHTML = `<tr><td colspan="5">Nessuna fattura trovata</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6">Nessun documento trovato</td></tr>`;
       return;
     }
 
-    body.innerHTML = filtered.map((f) => `
+    body.innerHTML = filtered.map((row) => `
       <tr>
-        <td>${escapeHtml(f.numero_documento || "")}</td>
-        <td>${escapeHtml(f.data_documento || "")}</td>
-        <td>${escapeHtml(f.fornitori?.ragione_sociale || "")}</td>
-        <td>${formatMoney(f.totale)}</td>
-        <td>${escapeHtml(f.stato || "")}</td>
+        <td>${escapeHtml(row.tipo || "")}</td>
+        <td>${escapeHtml(row.numero || "")}</td>
+        <td>${escapeHtml(row.data || "")}</td>
+        <td>${escapeHtml(row.fornitore || "")}</td>
+        <td>${row.totale === null || row.totale === undefined || row.totale === "" ? "" : escapeHtml(formatMoney(row.totale))}</td>
+        <td>${escapeHtml(row.stato || "")}</td>
       </tr>
     `).join("");
   }
 
-  async function loadFatture() {
-    const { data, error } = await supabase
-      .from("fatture_acquisto")
-      .select(`
-        id,
-        numero_documento,
-        data_documento,
-        totale,
-        stato,
-        fornitori:fornitore_id (
-          ragione_sociale
-        )
-      `)
-      .eq("azienda_id", azienda.id)
-      .order("data_documento", { ascending: false });
+  async function loadDocumenti() {
+    const [
+      fattureRes,
+      ddtRes
+    ] = await Promise.all([
+      supabase
+        .from("fatture_acquisto")
+        .select(`
+          id,
+          numero_documento,
+          data_documento,
+          totale,
+          stato,
+          fornitori:fornitore_id (
+            ragione_sociale
+          )
+        `)
+        .eq("azienda_id", azienda.id)
+        .order("data_documento", { ascending: false }),
+      supabase
+        .from("ddt_acquisto")
+        .select(`
+          id,
+          numero_ddt,
+          data_ddt,
+          fornitori:fornitore_id (
+            ragione_sociale
+          )
+        `)
+        .eq("azienda_id", azienda.id)
+        .order("data_ddt", { ascending: false })
+    ]);
 
-    if (error) {
-      console.error(error);
-      body.innerHTML = `<tr><td colspan="5">Errore caricamento fatture</td></tr>`;
+    if (fattureRes.error || ddtRes.error) {
+      console.error(fattureRes.error || ddtRes.error);
+      body.innerHTML = `<tr><td colspan="6">Errore caricamento documenti</td></tr>`;
       return;
     }
 
-    allRows = data || [];
+    const fatture = (fattureRes.data || []).map((f) => ({
+      id: f.id,
+      tipo: "Fattura",
+      numero: f.numero_documento || "",
+      data: f.data_documento || "",
+      fornitore: f.fornitori?.ragione_sociale || "",
+      totale: f.totale ?? "",
+      stato: f.stato || ""
+    }));
+
+    const ddt = (ddtRes.data || []).map((d) => ({
+      id: d.id,
+      tipo: "DDT",
+      numero: d.numero_ddt || "",
+      data: d.data_ddt || "",
+      fornitore: d.fornitori?.ragione_sociale || "",
+      totale: "",
+      stato: ""
+    }));
+
+    allRows = [...fatture, ...ddt].sort((a, b) => {
+      const da = a.data ? new Date(a.data).getTime() : 0;
+      const db = b.data ? new Date(b.data).getTime() : 0;
+      return db - da;
+    });
+
     applyFilters();
   }
 
   btnCerca.addEventListener("click", applyFilters);
 
   btnReset.addEventListener("click", () => {
-    inputNumero.value = "";
     inputFornitore.value = "";
     inputDataDa.value = "";
     inputDataA.value = "";
     applyFilters();
   });
 
+  inputFornitore.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyFilters();
+  });
+  inputDataDa.addEventListener("change", applyFilters);
+  inputDataA.addEventListener("change", applyFilters);
+
   btnCarica.addEventListener("click", async () => {
-    await openFatturaUploadModal(azienda);
-    await loadFatture();
+    await openDocumentoUploadModal(azienda);
+    await loadDocumenti();
   });
 
-  await loadFatture();
+  await loadDocumenti();
 }
 
-async function openFatturaUploadModal(azienda) {
+async function openDocumentoUploadModal(azienda) {
   ensureAcquistiModalStyles();
 
   const supabase = window.supabaseClient;
@@ -163,30 +207,40 @@ async function openFatturaUploadModal(azienda) {
       <div class="rf-modal">
         <div class="rf-modal-header">
           <div>
-            <h3 class="rf-modal-title">Carica fattura</h3>
-            <p class="rf-modal-sub">Puoi inserire la fattura manualmente oppure usare OCR per precompilare i dati.</p>
+            <h3 class="rf-modal-title">Carica documento</h3>
+            <p class="rf-modal-sub">Da qui puoi caricare sia una fattura sia un DDT. In modalità OCR il documento viene analizzato e precompilato.</p>
           </div>
           <button id="rf-close-top" class="btn-secondary" type="button">Chiudi</button>
         </div>
 
         <div class="rf-modal-body">
-          <div class="rf-field">
-            <label>Metodo</label>
-            <select id="rf-metodo" class="input">
-              <option value="manuale">Manuale</option>
-              <option value="ocr">OCR</option>
-            </select>
+          <div class="rf-grid-2">
+            <div class="rf-field">
+              <label>Tipo documento</label>
+              <select id="rf-tipo-documento" class="input">
+                <option value="fattura">Fattura</option>
+                <option value="ddt">DDT</option>
+              </select>
+            </div>
+
+            <div class="rf-field">
+              <label>Metodo</label>
+              <select id="rf-metodo" class="input">
+                <option value="manuale">Manuale</option>
+                <option value="ocr">OCR</option>
+              </select>
+            </div>
           </div>
 
           <div id="rf-upload-wrap" class="rf-field" style="display:none;">
-            <label>File fattura</label>
+            <label>File documento</label>
             <input id="rf-file" type="file" class="input" accept="image/*,.pdf" />
             <div class="rf-mini-note">Il file viene caricato nel bucket "fatture".</div>
           </div>
 
           <div class="rf-field">
             <label>Fornitore</label>
-            <input id="rf-fornitore" class="input" list="rf-fornitori-list" placeholder="Scrivi o seleziona il fornitore" />
+            <input id="rf-fornitore" class="input" list="rf-fornitori-list" placeholder="Scrivi o seleziona il fornitore" autocomplete="off" />
             <datalist id="rf-fornitori-list">
               ${fornitori.map((f) => `<option value="${escapeHtml(f.ragione_sociale || "")}"></option>`).join("")}
             </datalist>
@@ -194,16 +248,16 @@ async function openFatturaUploadModal(azienda) {
 
           <div class="rf-grid-2">
             <div class="rf-field">
-              <label>Numero documento</label>
+              <label id="rf-numero-label">Numero documento</label>
               <input id="rf-numero" class="input" />
             </div>
             <div class="rf-field">
-              <label>Data documento</label>
+              <label id="rf-data-label">Data documento</label>
               <input id="rf-data" type="date" class="input" />
             </div>
           </div>
 
-          <div class="rf-field">
+          <div id="rf-totale-wrap" class="rf-field">
             <label>Totale</label>
             <input id="rf-totale" class="input" placeholder="0,00" />
           </div>
@@ -218,7 +272,7 @@ async function openFatturaUploadModal(azienda) {
 
         <div class="rf-modal-actions">
           <button id="rf-run-ocr" class="btn-secondary" type="button">Esegui OCR</button>
-          <button id="rf-save" class="btn-primary" type="button">Salva fattura</button>
+          <button id="rf-save" class="btn-primary" type="button">Salva documento</button>
           <button id="rf-close-bottom" class="btn-secondary" type="button">Chiudi</button>
         </div>
       </div>
@@ -227,21 +281,27 @@ async function openFatturaUploadModal(azienda) {
 
   document.body.appendChild(modal);
 
+  const elTipoDocumento = modal.querySelector("#rf-tipo-documento");
   const elMetodo = modal.querySelector("#rf-metodo");
   const elUploadWrap = modal.querySelector("#rf-upload-wrap");
   const elFile = modal.querySelector("#rf-file");
   const elFornitore = modal.querySelector("#rf-fornitore");
   const elNumero = modal.querySelector("#rf-numero");
   const elData = modal.querySelector("#rf-data");
+  const elTotaleWrap = modal.querySelector("#rf-totale-wrap");
   const elTotale = modal.querySelector("#rf-totale");
   const elPreview = modal.querySelector("#rf-righe-preview");
   const elFeedback = modal.querySelector("#rf-feedback");
+  const elNumeroLabel = modal.querySelector("#rf-numero-label");
+  const elDataLabel = modal.querySelector("#rf-data-label");
   const btnRunOcr = modal.querySelector("#rf-run-ocr");
   const btnSave = modal.querySelector("#rf-save");
   const btnCloseTop = modal.querySelector("#rf-close-top");
   const btnCloseBottom = modal.querySelector("#rf-close-bottom");
 
   let righeOcr = [];
+  let uploadedFilePath = null;
+  let uploadedPublicUrl = null;
 
   function closeModal() {
     modal.remove();
@@ -354,42 +414,200 @@ async function openFatturaUploadModal(azienda) {
     `;
   }
 
-  elMetodo.addEventListener("change", () => {
-    const isOcr = elMetodo.value === "ocr";
-    elUploadWrap.style.display = isOcr ? "block" : "none";
-    btnRunOcr.style.display = isOcr ? "inline-flex" : "none";
-  });
+  function updateLabels() {
+    const isDDT = elTipoDocumento.value === "ddt";
+    elNumeroLabel.textContent = isDDT ? "Numero DDT" : "Numero documento";
+    elDataLabel.textContent = isDDT ? "Data DDT" : "Data documento";
+    elTotaleWrap.style.display = isDDT ? "none" : "grid";
+  }
 
-  btnRunOcr.style.display = "none";
+  function updateMetodoUI() {
+    const isOcr = elMetodo.value === "ocr";
+    elUploadWrap.style.display = isOcr ? "grid" : "none";
+    btnRunOcr.style.display = isOcr ? "inline-flex" : "none";
+  }
+
+  async function uploadFileIfNeeded() {
+    const file = elFile.files?.[0];
+    const metodo = elMetodo.value;
+    const tipoDocumento = elTipoDocumento.value;
+
+    if (metodo !== "ocr") {
+      return {
+        filePath: uploadedFilePath,
+        publicUrl: uploadedPublicUrl
+      };
+    }
+
+    if (uploadedFilePath && uploadedPublicUrl) {
+      return {
+        filePath: uploadedFilePath,
+        publicUrl: uploadedPublicUrl
+      };
+    }
+
+    if (!file) {
+      throw new Error("Seleziona un file prima di eseguire OCR");
+    }
+
+    const filePath = `${azienda.id}/${tipoDocumento}/${Date.now()}_${safeFileName(file.name)}`;
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from("fatture")
+      .upload(filePath, file, { upsert: false });
+
+    if (uploadError) {
+      throw new Error(uploadError.message || "Errore upload file");
+    }
+
+    const { data: publicData } = supabase
+      .storage
+      .from("fatture")
+      .getPublicUrl(filePath);
+
+    uploadedFilePath = filePath;
+    uploadedPublicUrl = publicData?.publicUrl || null;
+
+    return {
+      filePath: uploadedFilePath,
+      publicUrl: uploadedPublicUrl
+    };
+  }
+
+  async function maybePersistFileManuale() {
+    const file = elFile.files?.[0];
+    const metodo = elMetodo.value;
+    const tipoDocumento = elTipoDocumento.value;
+
+    if (metodo !== "manuale" || !file) {
+      return {
+        filePath: uploadedFilePath,
+        publicUrl: uploadedPublicUrl
+      };
+    }
+
+    if (uploadedFilePath && uploadedPublicUrl) {
+      return {
+        filePath: uploadedFilePath,
+        publicUrl: uploadedPublicUrl
+      };
+    }
+
+    const filePath = `${azienda.id}/${tipoDocumento}/${Date.now()}_${safeFileName(file.name)}`;
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from("fatture")
+      .upload(filePath, file, { upsert: false });
+
+    if (uploadError) {
+      throw new Error(uploadError.message || "Errore upload file");
+    }
+
+    const { data: publicData } = supabase
+      .storage
+      .from("fatture")
+      .getPublicUrl(filePath);
+
+    uploadedFilePath = filePath;
+    uploadedPublicUrl = publicData?.publicUrl || null;
+
+    return {
+      filePath: uploadedFilePath,
+      publicUrl: uploadedPublicUrl
+    };
+  }
+
+  async function saveFatturaConRighe({ fornitoreId, numeroDocumento, dataDocumento, totale }) {
+    const basePayload = {
+      azienda_id: azienda.id,
+      fornitore_id: fornitoreId,
+      numero_documento: numeroDocumento || null,
+      data_documento: dataDocumento,
+      totale: totale || 0,
+      stato: "caricata"
+    };
+
+    const { data: createdFattura, error: fatturaError } = await supabase
+      .from("fatture_acquisto")
+      .insert(basePayload)
+      .select("id")
+      .single();
+
+    if (fatturaError || !createdFattura?.id) {
+      throw new Error(fatturaError?.message || "Errore salvataggio fattura");
+    }
+
+    if (!righeOcr.length) return;
+
+    const righePayload = righeOcr.map((row) => ({
+      fattura_id: createdFattura.id,
+      prodotto_id: null,
+      quantita: parseLocaleNumber(row?.quantita, 0),
+      prezzo_unitario: parseLocaleNumber(row?.prezzo_unitario, 0)
+    }));
+
+    const { error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .insert(righePayload);
+
+    if (righeError) {
+      console.error(righeError);
+      setFeedback("Fattura salvata, ma alcune righe OCR non sono state registrate.", true);
+      return;
+    }
+  }
+
+  async function saveDDTConRighe({ fornitoreId, numeroDocumento, dataDocumento }) {
+    const { data: createdDDT, error: ddtError } = await supabase
+      .from("ddt_acquisto")
+      .insert({
+        azienda_id: azienda.id,
+        fornitore_id: fornitoreId,
+        numero_ddt: numeroDocumento || null,
+        data_ddt: dataDocumento
+      })
+      .select("id")
+      .single();
+
+    if (ddtError || !createdDDT?.id) {
+      throw new Error(ddtError?.message || "Errore salvataggio DDT");
+    }
+
+    if (!righeOcr.length) return;
+
+    const righePayload = righeOcr.map((row) => ({
+      ddt_id: createdDDT.id,
+      prodotto_id: null,
+      quantita: parseLocaleNumber(row?.quantita, 0)
+    }));
+
+    const { error: righeError } = await supabase
+      .from("ddt_acquisto_righe")
+      .insert(righePayload);
+
+    if (righeError) {
+      console.error(righeError);
+      setFeedback("DDT salvato, ma alcune righe OCR non sono state registrate.", true);
+      return;
+    }
+  }
+
+  elTipoDocumento.addEventListener("change", updateLabels);
+  elMetodo.addEventListener("change", updateMetodoUI);
+
+  updateLabels();
+  updateMetodoUI();
 
   btnRunOcr.addEventListener("click", async () => {
     setFeedback("");
-
-    const file = elFile.files?.[0];
-    if (!file) {
-      setFeedback("Seleziona un file prima di eseguire OCR", true);
-      return;
-    }
 
     btnRunOcr.disabled = true;
     btnRunOcr.textContent = "Analizzo...";
 
     try {
-      const fileName = `${azienda.id}/fatture/${Date.now()}_${safeFileName(file.name)}`;
-
-      const { error: uploadError } = await supabase
-        .storage
-        .from("fatture")
-        .upload(fileName, file, { upsert: false });
-
-      if (uploadError) {
-        throw new Error(uploadError.message || "Errore upload file");
-      }
-
-      const { data: publicData } = supabase
-        .storage
-        .from("fatture")
-        .getPublicUrl(fileName);
+      const upload = await uploadFileIfNeeded();
 
       const res = await fetch("/functions/v1/ocr-fattura", {
         method: "POST",
@@ -397,7 +615,7 @@ async function openFatturaUploadModal(azienda) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          imageUrl: publicData?.publicUrl
+          imageUrl: upload.publicUrl
         })
       });
 
@@ -421,9 +639,11 @@ async function openFatturaUploadModal(azienda) {
         elData.value = ocr.documento.data_documento;
       }
 
-      const totaleCalcolato = computeRowsTotal(righeOcr);
-      if (totaleCalcolato > 0) {
-        elTotale.value = formatMoney(totaleCalcolato);
+      if (elTipoDocumento.value === "fattura") {
+        const totaleCalcolato = computeRowsTotal(righeOcr);
+        if (totaleCalcolato > 0) {
+          elTotale.value = formatMoney(totaleCalcolato);
+        }
       }
 
       renderPreviewRows(righeOcr);
@@ -440,6 +660,7 @@ async function openFatturaUploadModal(azienda) {
   btnSave.addEventListener("click", async () => {
     setFeedback("");
 
+    const tipoDocumento = elTipoDocumento.value;
     const fornitoreNome = String(elFornitore.value || "").trim();
     const numeroDocumento = String(elNumero.value || "").trim();
     const dataDocumento = String(elData.value || "").trim();
@@ -451,7 +672,7 @@ async function openFatturaUploadModal(azienda) {
     }
 
     if (!dataDocumento) {
-      setFeedback("Inserisci la data documento", true);
+      setFeedback(tipoDocumento === "ddt" ? "Inserisci la data DDT" : "Inserisci la data documento", true);
       return;
     }
 
@@ -459,33 +680,34 @@ async function openFatturaUploadModal(azienda) {
     btnSave.textContent = "Salvo...";
 
     try {
+      await maybePersistFileManuale();
+
       const fornitoreId = await ensureFornitoreId(fornitoreNome);
 
-      const payload = {
-        azienda_id: azienda.id,
-        fornitore_id: fornitoreId,
-        numero_documento: numeroDocumento || null,
-        data_documento: dataDocumento,
-        totale: totale || 0,
-        stato: "caricata"
-      };
-
-      const { error } = await supabase
-        .from("fatture_acquisto")
-        .insert(payload);
-
-      if (error) {
-        throw new Error(error.message || "Errore salvataggio fattura");
+      if (tipoDocumento === "fattura") {
+        await saveFatturaConRighe({
+          fornitoreId,
+          numeroDocumento,
+          dataDocumento,
+          totale
+        });
+        setFeedback("Fattura salvata correttamente.");
+      } else {
+        await saveDDTConRighe({
+          fornitoreId,
+          numeroDocumento,
+          dataDocumento
+        });
+        setFeedback("DDT salvato correttamente.");
       }
 
-      setFeedback("Fattura salvata correttamente.");
       setTimeout(closeModal, 500);
     } catch (err) {
       console.error(err);
       setFeedback(String(err?.message || err || "Errore salvataggio"), true);
     } finally {
       btnSave.disabled = false;
-      btnSave.textContent = "Salva fattura";
+      btnSave.textContent = "Salva documento";
     }
   });
 
