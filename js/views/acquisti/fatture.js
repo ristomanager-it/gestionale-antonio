@@ -1145,22 +1145,58 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         return;
       }
 
-      if (!categoriaInternaId) {
-        if (!nomeCategoriaInterna) {
-          setFeedback("Inserisci o seleziona una categoria interna.", true);
-          return;
-        }
+    if (!categoriaInternaId) {
 
-        const { data: createdInterna, error: createdInternaError } = await supabase
-          .from("categorie_interne_prodotti")
-          .insert({
-            azienda_id: azienda.id,
-            nome: nomeCategoriaInterna,
-            sigla: null,
-            attiva: true
-          })
-          .select("id, nome")
-          .single();
+  if (!nomeCategoriaInterna) {
+    setFeedback("Inserisci o seleziona una categoria interna.", true);
+    return;
+  }
+
+  const normalized = nomeCategoriaInterna.trim().toLowerCase();
+
+  // ricontrollo sicurezza
+  const existingId = interneByNome.get(normalized);
+
+  if (existingId) {
+    categoriaInternaId = existingId;
+
+  } else {
+
+    const { data: createdInterna, error: createdInternaError } = await supabase
+      .from("categorie_interne_prodotti")
+      .insert({
+        azienda_id: azienda.id,
+        nome: nomeCategoriaInterna,
+        sigla: null,
+        attiva: true
+      })
+      .select("id, nome")
+      .single();
+
+    if (createdInternaError || !createdInterna?.id) {
+      setFeedback(createdInternaError?.message || "Errore creazione categoria interna.", true);
+      return;
+    }
+
+    categoriaInternaId = String(createdInterna.id);
+
+    // aggiorna cache in memoria
+    interneByNome.set(
+      createdInterna.nome.trim().toLowerCase(),
+      categoriaInternaId
+    );
+
+    // aggiorna dropdown
+    datalistInterna.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${escapeHtml(createdInterna.nome)}"></option>`
+    );
+
+    // seleziona automaticamente
+    inputInternaText.value = createdInterna.nome;
+    hiddenInternaId.value = categoriaInternaId;
+  }
+}
 
         if (createdInternaError || !createdInterna?.id) {
           setFeedback(createdInternaError?.message || "Errore creazione categoria interna.", true);
