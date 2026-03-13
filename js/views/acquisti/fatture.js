@@ -826,13 +826,14 @@ async function openDocumentoUploadModal(azienda) {
 
       if (righe.length) {
         const righePayload = righe.map((row, index) => ({
-          fattura_id: created.id,
-          riga_numero: index + 1,
-          prodotto_id: row.prodotto_id || null,
-          quantita: parseLocaleNumber(row.quantita, 0),
-          prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
-          totale_riga: parseLocaleNumber(row.totale_riga, 0)
-        }));
+  fattura_id: created.id,
+  riga_numero: index + 1,
+  descrizione: String(row.descrizione || "").trim(),
+  prodotto_id: row.prodotto_id || null,
+  quantita: parseLocaleNumber(row.quantita, 0),
+  prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+  totale_riga: parseLocaleNumber(row.totale_riga, 0)
+}));
 
         const { error: righeError } = await supabase
           .from("fatture_acquisto_righe")
