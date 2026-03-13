@@ -81,9 +81,15 @@ function levenshteinDistance(a, b) {
   return dp[m][n];
 }
 
-function findBestProductMatch(nome, prodottiCache) {
+function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
   const query = normalizeMatchText(nome);
   if (!query) return null;
+
+  const aliasExact = aliasCache.find((item) => item.testo_norm === query);
+  if (aliasExact?.prodotto_id) {
+    const matchedByAlias = prodottiCache.find((p) => String(p.id) === String(aliasExact.prodotto_id));
+    if (matchedByAlias) return matchedByAlias;
+  }
 
   let best = null;
   let bestScore = 0;
@@ -116,6 +122,26 @@ function findBestProductMatch(nome, prodottiCache) {
         score = Math.max(score, similarity * 60);
       }
     }
+
+    const aliasRows = aliasCache.filter((item) => String(item.prodotto_id) === String(prodotto.id));
+    aliasRows.forEach((item) => {
+      if (!item.testo_norm) return;
+
+      if (item.testo_norm === query) {
+        score = Math.max(score, 120);
+        return;
+      }
+
+      if (item.testo_norm.includes(query) || query.includes(item.testo_norm)) {
+        score = Math.max(score, 85);
+      }
+
+      const aliasWords = tokenizeMatchText(item.testo_norm);
+      const overlapScore = computeWordOverlapScore(queryWords, aliasWords);
+      if (overlapScore >= 0.6) {
+        score = Math.max(score, overlapScore * 75);
+      }
+    });
 
     if (score > bestScore) {
       best = prodotto;
@@ -211,6 +237,86 @@ function normalizePiva(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "";
   return digits.length > 11 ? digits.slice(-11) : digits;
+}
+
+function normalizeCodiceInterno(value) {
+  const base = String(value || "").trim();
+  if (!base) return "PRODOTTO";
+  return base
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase()
+    .slice(0, 80) || "PRODOTTO";
+}
+
+async function loadProdottiAliasOcr(supabase, aziendaId) {
+  try {
+    const { data, error } = await supabase
+      .from("prodotti_alias_ocr")
+      .select("id, testo_ocr, prodotto_id")
+      .eq("azienda_id", aziendaId);
+
+    if (error) {
+      console.warn("prodotti_alias_ocr non disponibile", error.message);
+      return [];
+    }
+
+    return (data || []).map((item) => ({
+      id: item.id,
+      testo_ocr: item.testo_ocr || "",
+      testo_norm: normalizeMatchText(item.testo_ocr || ""),
+      prodotto_id: item.prodotto_id
+    }));
+  } catch (err) {
+    console.warn("Errore caricamento alias OCR", err);
+    return [];
+  }
+}
+
+async function saveProdottoAliasOcr(supabase, aziendaId, testoOcr, prodottoId, aliasCache) {
+  const testo = String(testoOcr || "").trim();
+  const testoNorm = normalizeMatchText(testo);
+
+  if (!testo || !testoNorm || !prodottoId) return;
+
+  try {
+    const existing = aliasCache.find((item) => item.testo_norm === testoNorm);
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("prodotti_alias_ocr")
+        .update({ prodotto_id: prodottoId })
+        .eq("id", existing.id);
+
+      if (!error) {
+        existing.prodotto_id = prodottoId;
+      }
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("prodotti_alias_ocr")
+      .insert({
+        azienda_id: aziendaId,
+        testo_ocr: testo,
+        prodotto_id: prodottoId
+      })
+      .select("id, testo_ocr, prodotto_id")
+      .single();
+
+    if (!error && data?.id) {
+      aliasCache.push({
+        id: data.id,
+        testo_ocr: data.testo_ocr || testo,
+        testo_norm: normalizeMatchText(data.testo_ocr || testo),
+        prodotto_id: data.prodotto_id
+      });
+    }
+  } catch (err) {
+    console.warn("Errore salvataggio alias OCR", err);
+  }
 }
 
 export async function renderFatture(container, azienda) {
@@ -413,20 +519,21 @@ async function openDocumentoUploadModal(azienda) {
 
   const supabase = window.supabaseClient;
 
-const [fornitoriRes, prodottiRes] = await Promise.all([
-  supabase
-    .from("fornitori")
-    .select("id, ragione_sociale, partita_iva")
-    .eq("azienda_id", azienda.id)
-    .order("ragione_sociale", { ascending: true }),
-  supabase
-    .from("prodotti")
-    .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
-    .eq("azienda_id", azienda.id)
-    .eq("attivo", true)
-    .order("nome", { ascending: true })
-    .limit(3000)
-]);
+  const [fornitoriRes, prodottiRes, aliasCache] = await Promise.all([
+    supabase
+      .from("fornitori")
+      .select("id, ragione_sociale, partita_iva")
+      .eq("azienda_id", azienda.id)
+      .order("ragione_sociale", { ascending: true }),
+    supabase
+      .from("prodotti")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
+      .order("nome", { ascending: true })
+      .limit(3000),
+    loadProdottiAliasOcr(supabase, azienda.id)
+  ]);
 
   const fornitori = fornitoriRes.data || [];
   const prodottiCache = (prodottiRes.data || []).map((p) => ({
@@ -558,7 +665,7 @@ const [fornitoriRes, prodottiRes] = await Promise.all([
   }
 
   function findProdottoByDescrizione(nome) {
-    return findBestProductMatch(nome, prodottiCache);
+    return findBestProductMatch(nome, prodottiCache, aliasCache);
   }
 
   function updateLabels() {
@@ -580,81 +687,83 @@ const [fornitoriRes, prodottiRes] = await Promise.all([
     elTotale.value = total > 0 ? formatMoney(total) : "";
   }
 
-async function ensureFornitoreId(nome, piva) {
-  const cleanedNome = String(nome || "").trim();
-  const cleanedPiva = normalizePiva(piva);
+  async function ensureFornitoreId(nome, piva) {
+    const cleanedNome = String(nome || "").trim();
+    const cleanedPiva = normalizePiva(piva);
 
-  if (!cleanedNome) return null;
+    if (!cleanedNome) return null;
 
-  const exactByPiva = cleanedPiva
-    ? fornitori.find((f) => normalizeText(f.partita_iva) === normalizeText(cleanedPiva))
-    : null;
+    const exactByPiva = cleanedPiva
+      ? fornitori.find((f) => normalizeText(f.partita_iva) === normalizeText(cleanedPiva))
+      : null;
 
-  if (exactByPiva?.id) {
-    if (!exactByPiva.partita_iva && cleanedPiva) {
-      await supabase
-        .from("fornitori")
-        .update({ partita_iva: cleanedPiva })
-        .eq("id", exactByPiva.id)
-        .eq("azienda_id", azienda.id);
-      exactByPiva.partita_iva = cleanedPiva;
+    if (exactByPiva?.id) {
+      if (!exactByPiva.partita_iva && cleanedPiva) {
+        await supabase
+          .from("fornitori")
+          .update({ partita_iva: cleanedPiva })
+          .eq("id", exactByPiva.id)
+          .eq("azienda_id", azienda.id);
+        exactByPiva.partita_iva = cleanedPiva;
+      }
+      return exactByPiva.id;
     }
-    return exactByPiva.id;
-  }
 
-  const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
-  if (exactByName?.id) {
-    if (!exactByName.partita_iva && cleanedPiva) {
-      await supabase
-        .from("fornitori")
-        .update({ partita_iva: cleanedPiva })
-        .eq("id", exactByName.id)
-        .eq("azienda_id", azienda.id);
-      exactByName.partita_iva = cleanedPiva;
+    const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
+    if (exactByName?.id) {
+      if (!exactByName.partita_iva && cleanedPiva) {
+        await supabase
+          .from("fornitori")
+          .update({ partita_iva: cleanedPiva })
+          .eq("id", exactByName.id)
+          .eq("azienda_id", azienda.id);
+        exactByName.partita_iva = cleanedPiva;
+      }
+      return exactByName.id;
     }
-    return exactByName.id;
+
+    const payload = {
+      azienda_id: azienda.id,
+      ragione_sociale: cleanedNome
+    };
+
+    if (cleanedPiva) payload.partita_iva = cleanedPiva;
+
+    const { data: created, error } = await supabase
+      .from("fornitori")
+      .insert(payload)
+      .select("id, ragione_sociale, partita_iva")
+      .single();
+
+    if (error || !created?.id) {
+      throw new Error(error?.message || "Impossibile creare il fornitore");
+    }
+
+    fornitori.push(created);
+    modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
+      "beforeend",
+      `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
+    );
+
+    return created.id;
   }
 
-  const payload = {
-    azienda_id: azienda.id,
-    ragione_sociale: cleanedNome
-  };
+  function addRiga(data = {}) {
+    const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
+    const matched = data.prodotto_id
+      ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
+      : findProdottoByDescrizione(descrizione);
 
-  if (cleanedPiva) payload.partita_iva = cleanedPiva;
-
-  const { data: created, error } = await supabase
-    .from("fornitori")
-    .insert(payload)
-    .select("id, ragione_sociale, partita_iva")
-    .single();
-
-  if (error || !created?.id) {
-    throw new Error(error?.message || "Impossibile creare il fornitore");
-  }
-
-  fornitori.push(created);
-  modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
-    "beforeend",
-    `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
-  );
-
-  return created.id;
-}
-
-function addRiga(data = {}) {
-  const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
-  const matched = data.prodotto_id
-    ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
-    : findProdottoByDescrizione(descrizione);
     righe.push({
       descrizione,
+      descrizione_originale: String(data.descrizione_originale || descrizione).trim(),
       quantita: parseLocaleNumber(data.quantita, 1),
       prezzo_unitario: parseLocaleNumber(data.prezzo_unitario, 0),
       totale_riga: parseLocaleNumber(data.totale_riga, 0),
       iva_percent: parseLocaleNumber(data.iva_percent, 0),
       prodotto_id: matched?.id || data.prodotto_id || null,
       prodotto_nome: matched?.nome || "",
-      um: matched?.um || ""
+      um: data.um || matched?.um || "pz"
     });
 
     renderRighe();
@@ -677,7 +786,7 @@ function addRiga(data = {}) {
       const matched = findProdottoByDescrizione(patch.descrizione);
       righe[index].prodotto_id = matched?.id || null;
       righe[index].prodotto_nome = matched?.nome || "";
-      righe[index].um = matched?.um || "";
+      righe[index].um = righe[index].um || matched?.um || "pz";
     }
 
     const q = parseLocaleNumber(righe[index].quantita, 0);
@@ -785,14 +894,14 @@ function addRiga(data = {}) {
           updateRiga(idx, {
             prodotto_id: matched.id,
             prodotto_nome: matched.nome || "",
-            um: matched.um || ""
+            um: matched.um || "pz"
           });
           setFeedback("Prodotto agganciato alla riga.");
         } else {
           updateRiga(idx, {
             prodotto_id: null,
             prodotto_nome: "",
-            um: ""
+            um: righe[idx]?.um || "pz"
           });
           setFeedback("Nessun prodotto trovato per la riga selezionata.", true);
         }
@@ -803,6 +912,7 @@ function addRiga(data = {}) {
       el.addEventListener("click", async (e) => {
         const idx = Number(e.currentTarget.dataset.i);
         const descrizioneFattura = String(righe[idx]?.descrizione || "").trim();
+        const descrizioneOriginale = String(righe[idx]?.descrizione_originale || descrizioneFattura).trim();
 
         if (!descrizioneFattura) {
           setFeedback("Inserisci prima la descrizione della riga.", true);
@@ -827,10 +937,18 @@ function addRiga(data = {}) {
           scorta_minima: res.prodotto.scorta_minima ?? 0
         });
 
+        await saveProdottoAliasOcr(
+          supabase,
+          azienda.id,
+          descrizioneOriginale || descrizioneFattura,
+          res.prodotto.id,
+          aliasCache
+        );
+
         updateRiga(idx, {
           prodotto_id: res.prodotto.id,
           prodotto_nome: res.prodotto.nome || "",
-          um: res.prodotto.um || ""
+          um: res.prodotto.um || "pz"
         });
 
         setFeedback("Prodotto creato e agganciato alla riga.");
@@ -888,20 +1006,25 @@ function addRiga(data = {}) {
   }
 
   function applyOcrResult(result) {
-    if (result?.fornitore?.ragione_sociale) {
-      elFornitore.value = result.fornitore.ragione_sociale;
+    const fornitoreRagioneSociale = result?.fornitore?.ragione_sociale || result?.fornitore?.nome || "";
+    const fornitorePiva = result?.fornitore?.piva || result?.fornitore?.partita_iva || "";
+    const numeroDocumento = result?.documento?.numero_documento || result?.documento?.numero || "";
+    const dataDocumento = result?.documento?.data_documento || result?.documento?.data || "";
+
+    if (fornitoreRagioneSociale) {
+      elFornitore.value = fornitoreRagioneSociale;
     }
 
-    if (result?.fornitore?.piva || result?.fornitore?.partita_iva) {
-      elFornitorePiva.value = normalizePiva(result?.fornitore?.piva || result?.fornitore?.partita_iva);
+    if (fornitorePiva) {
+      elFornitorePiva.value = normalizePiva(fornitorePiva);
     }
 
-    if (result?.documento?.numero_documento) {
-      elNumero.value = result.documento.numero_documento;
+    if (numeroDocumento) {
+      elNumero.value = numeroDocumento;
     }
 
-    if (result?.documento?.data_documento) {
-      const normalizedDate = normalizeInputDate(result.documento.data_documento);
+    if (dataDocumento) {
+      const normalizedDate = normalizeInputDate(dataDocumento);
       if (normalizedDate) elData.value = normalizedDate;
     }
 
@@ -909,11 +1032,13 @@ function addRiga(data = {}) {
     (result?.righe || []).forEach((row) => {
       addRiga({
         descrizione: row.descrizione || "",
+        descrizione_originale: row.descrizione || "",
         quantita: row.quantita ?? 1,
         prezzo_unitario: row.prezzo_unitario ?? 0,
         totale_riga: row.totale_riga ?? 0,
         iva_percent: row.iva_percent ?? 0,
-        prodotto_id: row.prodotto_id || null
+        prodotto_id: row.prodotto_id || null,
+        um: row.um || "pz"
       });
     });
 
@@ -1045,10 +1170,12 @@ function addRiga(data = {}) {
   btnAddRiga.addEventListener("click", () => {
     addRiga({
       descrizione: "",
+      descrizione_originale: "",
       quantita: 1,
       prezzo_unitario: 0,
       totale_riga: 0,
-      iva_percent: 0
+      iva_percent: 0,
+      um: "pz"
     });
   });
 
@@ -1306,9 +1433,11 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         );
       }
 
+      const codiceInterno = normalizeCodiceInterno(nomeInterno);
+
       const prodottoPayload = {
         azienda_id: azienda.id,
-        codice_interno: null,
+        codice_interno: codiceInterno,
         nome: nomeInterno,
         descrizione: descrizioneOriginale || nomeInterno,
         categoria_bilancio_id: Number(categoriaBilancioId),
@@ -1323,13 +1452,35 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         attivo: true
       };
 
-      const { data: created, error } = await supabase
+      let created = null;
+
+      const { data: inserted, error } = await supabase
         .from("prodotti")
         .insert(prodottoPayload)
         .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
         .single();
 
-      if (error || !created?.id) {
+      if (!error && inserted?.id) {
+        created = inserted;
+      }
+
+      if (error && error.code === "23505") {
+        const { data: existing, error: existingError } = await supabase
+          .from("prodotti")
+          .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
+          .eq("azienda_id", azienda.id)
+          .ilike("nome", nomeInterno)
+          .maybeSingle();
+
+        if (existingError || !existing?.id) {
+          setFeedback(error?.message || "Errore creazione prodotto.", true);
+          return;
+        }
+
+        created = existing;
+      }
+
+      if (!created?.id) {
         setFeedback(error?.message || "Errore creazione prodotto.", true);
         return;
       }
@@ -1339,7 +1490,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
           id: created.id,
           nome: created.nome || nomeInterno,
           descrizione: created.descrizione || descrizioneOriginale || nomeInterno,
-          codice_interno: created.codice_interno || "",
+          codice_interno: created.codice_interno || codiceInterno,
           um: created.um || "pz",
           categoria_bilancio_id: created.categoria_bilancio_id ?? null,
           quantita_riordino: created.quantita_riordino ?? 0,
