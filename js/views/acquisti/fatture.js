@@ -32,6 +32,7 @@ function normalizeMatchText(value) {
   s = s.replace(/\bpezzo\b/g, " pz ");
   s = s.replace(/\bconf\b/g, " confezione ");
   s = s.replace(/\bconfez\b/g, " confezione ");
+  s = s.replace(/\bx\b/g, " ");
   s = s.replace(/\s+/g, " ").trim();
 
   return s;
@@ -52,55 +53,170 @@ function computeWordOverlapScore(queryWords, targetWords) {
   return matches / queryWords.length;
 }
 
+function levenshteinDistance(a, b) {
+  const s = String(a || "");
+  const t = String(b || "");
+  const m = s.length;
+  const n = t.length;
+
+  if (!m) return n;
+  if (!n) return m;
+
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i += 1) dp[i][0] = i;
+  for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return dp[m][n];
+}
+
 function findBestProductMatch(nome, prodottiCache) {
   const query = normalizeMatchText(nome);
   if (!query) return null;
 
   let best = null;
   let bestScore = 0;
-
   const queryWords = tokenizeMatchText(query);
 
   prodottiCache.forEach((prodotto) => {
-    const target = normalizeMatchText(prodotto.descrizione || prodotto.nome || "");
+    const targetBase = `${prodotto.nome || ""} ${prodotto.descrizione || ""}`.trim();
+    const target = normalizeMatchText(targetBase);
     if (!target) return;
 
+    let score = 0;
+
     if (target === query) {
+      score = 100;
+    } else {
+      if (target.includes(query) || query.includes(target)) {
+        score = Math.max(score, 80);
+      }
+
+      const targetWords = tokenizeMatchText(target);
+      const overlapScore = computeWordOverlapScore(queryWords, targetWords);
+      if (overlapScore >= 0.45) {
+        score = Math.max(score, overlapScore * 70);
+      }
+
+      const distance = levenshteinDistance(query, target);
+      const maxLen = Math.max(query.length, target.length) || 1;
+      const similarity = 1 - (distance / maxLen);
+      if (similarity >= 0.72) {
+        score = Math.max(score, similarity * 60);
+      }
+    }
+
+    if (score > bestScore) {
       best = prodotto;
-      bestScore = 100;
-      return;
-    }
-
-    if (target.includes(query) || query.includes(target)) {
-      if (bestScore < 80) {
-        best = prodotto;
-        bestScore = 80;
-      }
-    }
-
-    const targetWords = tokenizeMatchText(target);
-    const overlapScore = computeWordOverlapScore(queryWords, targetWords);
-
-    if (overlapScore >= 0.6) {
-      const weightedScore = overlapScore * 10;
-      if (weightedScore > bestScore) {
-        best = prodotto;
-        bestScore = weightedScore;
-      }
+      bestScore = score;
     }
   });
 
-  return best;
+  return bestScore >= 30 ? best : null;
+}
+
+function parseLocaleNumber(value, fallback = 0) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+
+  let s = String(value).trim();
+  if (!s) return fallback;
+
+  s = s.replace(/[€\s]/g, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  } else if (lastComma !== -1) {
+    s = s.replace(",", ".");
+  }
+
+  s = s.replace(/[^0-9.\-]/g, "");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function formatMoney(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0,00";
+  return n.toLocaleString("it-IT", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function normalizeInputDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (dmy) {
+    const dd = dmy[1].padStart(2, "0");
+    const mm = dmy[2].padStart(2, "0");
+    const yyyy = dmy[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const ymd = raw.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if (ymd) {
+    const yyyy = ymd[1];
+    const mm = ymd[2].padStart(2, "0");
+    const dd = ymd[3].padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return "";
+}
+
+function safeFileName(name) {
+  return String(name || "documento")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function computeRowsTotal(rows) {
+  return (rows || []).reduce((sum, row) => {
+    const totaleRiga = parseLocaleNumber(row?.totale_riga, NaN);
+    const quantita = parseLocaleNumber(row?.quantita, 0);
+    const prezzo = parseLocaleNumber(row?.prezzo_unitario, 0);
+    if (Number.isFinite(totaleRiga) && totaleRiga > 0) return sum + totaleRiga;
+    return sum + (quantita * prezzo);
+  }, 0);
+}
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 export async function renderFatture(container, azienda) {
+  ensureAcquistiModalStyles();
+
   container.innerHTML = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
         <div>
-          <h3 style="margin:0;">Documenti acquisto</h3>
+          <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
           <div style="font-size:13px; color:#667085; margin-top:4px;">
-            Caricamento fatture e DDT con gestione manuale o documento da analizzare.
+            Caricamento documento con OCR o inserimento manuale. Salvataggio in bozza con righe collegate ai prodotti.
           </div>
         </div>
         <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
@@ -129,12 +245,12 @@ export async function renderFatture(container, azienda) {
       </div>
 
       <div id="documenti-search-feedback" style="margin-top:12px; font-size:13px; color:#667085;">
-        Inserisci fornitore e/o intervallo date per la ricerca documenti.
+        Inserisci fornitore e/o intervallo date per cercare i documenti.
       </div>
+
+      <div id="documenti-results" style="margin-top:14px;"></div>
     </div>
   `;
-
-  ensureAcquistiModalStyles();
 
   const inputFornitore = container.querySelector("#filter-fornitore");
   const inputDataDa = container.querySelector("#filter-data-da");
@@ -143,6 +259,37 @@ export async function renderFatture(container, azienda) {
   const btnReset = container.querySelector("#btn-reset-documenti");
   const btnCarica = container.querySelector("#btn-carica-documento");
   const feedback = container.querySelector("#documenti-search-feedback");
+  const resultsWrap = container.querySelector("#documenti-results");
+
+  function renderDocumentResults(rows) {
+    if (!rows.length) {
+      resultsWrap.innerHTML = `
+        <div class="rf-empty-righe">
+          Nessun documento trovato con i filtri selezionati.
+        </div>
+      `;
+      return;
+    }
+
+    resultsWrap.innerHTML = `
+      <div class="rf-doc-list">
+        ${rows.map((row) => `
+          <div class="rf-doc-item">
+            <div class="rf-doc-top">
+              <div class="rf-doc-badge ${row.tipo === "ddt" ? "ddt" : "fattura"}">${escapeHtml(row.tipo.toUpperCase())}</div>
+              <div class="rf-doc-date">${escapeHtml(row.data || "-")}</div>
+            </div>
+            <div class="rf-doc-title">${escapeHtml(row.fornitore || "Fornitore non definito")}</div>
+            <div class="rf-doc-meta">
+              <span>Numero: ${escapeHtml(row.numero || "-")}</span>
+              ${row.tipo === "fattura" ? `<span>Totale: € ${escapeHtml(formatMoney(row.totale || 0))}</span>` : ""}
+              ${row.stato ? `<span>Stato: ${escapeHtml(row.stato)}</span>` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
 
   btnCerca.addEventListener("click", async () => {
     const fornitore = String(inputFornitore.value || "").trim();
@@ -151,21 +298,21 @@ export async function renderFatture(container, azienda) {
 
     if (!fornitore && !dataDa && !dataA) {
       feedback.textContent = "Inserisci almeno un filtro per cercare i documenti.";
+      renderDocumentResults([]);
       return;
     }
 
-    const rows = await searchDocumenti(azienda, {
-      fornitore,
-      dataDa,
-      dataA
-    });
+    feedback.textContent = "Ricerca in corso...";
+    const rows = await searchDocumenti(azienda, { fornitore, dataDa, dataA });
 
     if (!rows.length) {
       feedback.textContent = "Nessun documento trovato con i filtri inseriti.";
+      renderDocumentResults([]);
       return;
     }
 
     feedback.textContent = `Trovati ${rows.length} documenti con i filtri selezionati.`;
+    renderDocumentResults(rows);
   });
 
   btnReset.addEventListener("click", () => {
@@ -173,6 +320,7 @@ export async function renderFatture(container, azienda) {
     inputDataDa.value = "";
     inputDataA.value = "";
     feedback.textContent = "Filtri azzerati.";
+    resultsWrap.innerHTML = "";
   });
 
   btnCarica.addEventListener("click", async () => {
@@ -196,7 +344,8 @@ async function searchDocumenti(azienda, filters) {
           ragione_sociale
         )
       `)
-      .eq("azienda_id", azienda.id),
+      .eq("azienda_id", azienda.id)
+      .order("data_documento", { ascending: false }),
     supabase
       .from("ddt_acquisto")
       .select(`
@@ -208,6 +357,7 @@ async function searchDocumenti(azienda, filters) {
         )
       `)
       .eq("azienda_id", azienda.id)
+      .order("data_ddt", { ascending: false })
   ]);
 
   if (fattureRes.error) {
@@ -229,7 +379,8 @@ async function searchDocumenti(azienda, filters) {
     data: f.data_documento || "",
     fornitore: f.fornitori?.ragione_sociale || "",
     numero: f.numero_documento || "",
-    totale: f.totale || 0
+    totale: f.totale || 0,
+    stato: f.stato || ""
   }));
 
   const ddt = (ddtRes.data || []).map((d) => ({
@@ -237,43 +388,50 @@ async function searchDocumenti(azienda, filters) {
     data: d.data_ddt || "",
     fornitore: d.fornitori?.ragione_sociale || "",
     numero: d.numero_ddt || "",
-    totale: 0
+    totale: 0,
+    stato: ""
   }));
 
-  return [...fatture, ...ddt].filter((row) => {
-    const fornitoreOk = !fornitoreNeedle || String(row.fornitore || "").toLowerCase().includes(fornitoreNeedle);
-    const dataOkDa = !dataDa || (row.data && row.data >= dataDa);
-    const dataOkA = !dataA || (row.data && row.data <= dataA);
-    return fornitoreOk && dataOkDa && dataOkA;
-  });
+  return [...fatture, ...ddt]
+    .filter((row) => {
+      const fornitoreOk = !fornitoreNeedle || String(row.fornitore || "").toLowerCase().includes(fornitoreNeedle);
+      const dataOkDa = !dataDa || (row.data && row.data >= dataDa);
+      const dataOkA = !dataA || (row.data && row.data <= dataA);
+      return fornitoreOk && dataOkDa && dataOkA;
+    })
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 }
 
 async function openDocumentoUploadModal(azienda) {
+  ensureAcquistiModalStyles();
+
   const supabase = window.supabaseClient;
 
   const [fornitoriRes, prodottiRes] = await Promise.all([
     supabase
       .from("fornitori")
-      .select("id, ragione_sociale")
+      .select("id, ragione_sociale, piva")
       .eq("azienda_id", azienda.id)
       .order("ragione_sociale", { ascending: true }),
     supabase
       .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
       .order("nome", { ascending: true })
-      .limit(2000)
+      .limit(3000)
   ]);
 
   const fornitori = fornitoriRes.data || [];
   const prodottiCache = (prodottiRes.data || []).map((p) => ({
     id: p.id,
     nome: p.nome || "",
-    descrizione: String(p.descrizione || p.nome || "").trim(),
+    descrizione: String(p.descrizione || "").trim(),
     codice_interno: p.codice_interno || "",
     um: p.um || "",
-    categoria_bilancio_id: p.categoria_bilancio_id ?? null
+    categoria_bilancio_id: p.categoria_bilancio_id ?? null,
+    quantita_riordino: p.quantita_riordino ?? 0,
+    scorta_minima: p.scorta_minima ?? 0
   }));
 
   const modal = document.createElement("div");
@@ -283,7 +441,7 @@ async function openDocumentoUploadModal(azienda) {
         <div class="rf-modal-header">
           <div class="rf-header-copy">
             <h3 class="rf-modal-title">Carica documento</h3>
-            <p class="rf-modal-sub">Il controllo OCR parte al momento del caricamento del documento. Dopo il controllo puoi salvare.</p>
+            <p class="rf-modal-sub">Upload su Storage bucket "fatture", OCR via edge function "ocr-fattura" e salvataggio in bozza.</p>
           </div>
           <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
         </div>
@@ -309,15 +467,21 @@ async function openDocumentoUploadModal(azienda) {
           <div id="rf-upload-wrap" class="rf-field">
             <label>Documento</label>
             <input id="rf-file" type="file" class="input" accept="image/*,.pdf" />
-            <div class="rf-mini-note">Quando scegli il file parte subito l'analisi OCR.</div>
+            <div class="rf-mini-note">Alla selezione del file: upload su bucket "fatture" e chiamata a supabase.functions.invoke("ocr-fattura", { body: { imageUrl } }).</div>
           </div>
 
-          <div class="rf-field">
-            <label>Fornitore</label>
-            <input id="rf-fornitore" class="input" list="rf-fornitori-list" placeholder="Scrivi o seleziona il fornitore" autocomplete="off" />
-            <datalist id="rf-fornitori-list">
-              ${fornitori.map((f) => `<option value="${escapeHtml(f.ragione_sociale || "")}"></option>`).join("")}
-            </datalist>
+          <div class="rf-grid-2">
+            <div class="rf-field">
+              <label>Fornitore</label>
+              <input id="rf-fornitore" class="input" list="rf-fornitori-list" placeholder="Scrivi o seleziona il fornitore" autocomplete="off" />
+              <datalist id="rf-fornitori-list">
+                ${fornitori.map((f) => `<option value="${escapeHtml(f.ragione_sociale || "")}"></option>`).join("")}
+              </datalist>
+            </div>
+            <div class="rf-field">
+              <label>P.IVA fornitore</label>
+              <input id="rf-fornitore-piva" class="input" placeholder="P.IVA OCR o manuale" />
+            </div>
           </div>
 
           <div class="rf-grid-2">
@@ -362,6 +526,7 @@ async function openDocumentoUploadModal(azienda) {
   const elUploadWrap = modal.querySelector("#rf-upload-wrap");
   const elFile = modal.querySelector("#rf-file");
   const elFornitore = modal.querySelector("#rf-fornitore");
+  const elFornitorePiva = modal.querySelector("#rf-fornitore-piva");
   const elNumero = modal.querySelector("#rf-numero");
   const elData = modal.querySelector("#rf-data");
   const elTotaleWrap = modal.querySelector("#rf-totale-wrap");
@@ -376,8 +541,6 @@ async function openDocumentoUploadModal(azienda) {
   const righeContainer = modal.querySelector("#righe-container");
 
   let righe = [];
-  let uploadedFilePath = null;
-  let uploadedPublicUrl = null;
 
   function closeModal() {
     modal.remove();
@@ -386,87 +549,6 @@ async function openDocumentoUploadModal(azienda) {
   function setFeedback(message, isError = false) {
     elFeedback.textContent = message || "";
     elFeedback.style.color = isError ? "#b42318" : "#166534";
-  }
-
-  function normalizeText(value) {
-    return String(value || "").trim().toLowerCase();
-  }
-
-  function parseLocaleNumber(value, fallback = 0) {
-    if (value === null || value === undefined) return fallback;
-    if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
-
-    let s = String(value).trim();
-    if (!s) return fallback;
-
-    s = s.replace(/[€\s]/g, "");
-    const lastComma = s.lastIndexOf(",");
-    const lastDot = s.lastIndexOf(".");
-
-    if (lastComma !== -1 && lastDot !== -1) {
-      if (lastComma > lastDot) {
-        s = s.replace(/\./g, "").replace(",", ".");
-      } else {
-        s = s.replace(/,/g, "");
-      }
-    } else if (lastComma !== -1) {
-      s = s.replace(",", ".");
-    }
-
-    s = s.replace(/[^0-9.\-]/g, "");
-    const n = Number(s);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  function formatMoney(value) {
-    const n = Number(value || 0);
-    if (!Number.isFinite(n)) return "0,00";
-    return n.toLocaleString("it-IT", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
-  function normalizeInputDate(value) {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-
-    const m1 = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-    if (m1) {
-      const dd = m1[1].padStart(2, "0");
-      const mm = m1[2].padStart(2, "0");
-      const yyyy = m1[3];
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    const m2 = raw.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-    if (m2) {
-      const yyyy = m2[1];
-      const mm = m2[2].padStart(2, "0");
-      const dd = m2[3].padStart(2, "0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    return "";
-  }
-
-  function safeFileName(name) {
-    return String(name || "documento")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9._-]/g, "_");
-  }
-
-  function computeRowsTotal(rows) {
-    return (rows || []).reduce((sum, row) => {
-      const totaleRiga = parseLocaleNumber(row?.totale_riga, NaN);
-      const quantita = parseLocaleNumber(row?.quantita, 0);
-      const prezzo = parseLocaleNumber(row?.prezzo_unitario, 0);
-      if (Number.isFinite(totaleRiga)) return sum + totaleRiga;
-      return sum + (quantita * prezzo);
-    }, 0);
   }
 
   function findProdottoByDescrizione(nome) {
@@ -483,23 +565,61 @@ async function openDocumentoUploadModal(azienda) {
   function updateMetodoUI() {
     const isManuale = elMetodo.value === "manuale";
     elUploadWrap.style.display = isManuale ? "none" : "grid";
-    btnAddRiga.style.display = isManuale ? "inline-flex" : "none";
+    btnAddRiga.style.display = "inline-flex";
   }
 
-  async function ensureFornitoreId(nome) {
-    const cleaned = String(nome || "").trim();
-    if (!cleaned) return null;
+  function updateTotaleFromRighe() {
+    if (elTipoDocumento.value !== "fattura") return;
+    const total = computeRowsTotal(righe);
+    elTotale.value = total > 0 ? formatMoney(total) : "";
+  }
 
-    const exact = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleaned));
-    if (exact?.id) return exact.id;
+  async function ensureFornitoreId(nome, piva) {
+    const cleanedNome = String(nome || "").trim();
+    const cleanedPiva = String(piva || "").trim();
+
+    if (!cleanedNome) return null;
+
+    const exactByPiva = cleanedPiva
+      ? fornitori.find((f) => normalizeText(f.piva) === normalizeText(cleanedPiva))
+      : null;
+
+    if (exactByPiva?.id) {
+      if (!exactByPiva.piva && cleanedPiva) {
+        await supabase
+          .from("fornitori")
+          .update({ piva: cleanedPiva })
+          .eq("id", exactByPiva.id)
+          .eq("azienda_id", azienda.id);
+        exactByPiva.piva = cleanedPiva;
+      }
+      return exactByPiva.id;
+    }
+
+    const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
+    if (exactByName?.id) {
+      if (!exactByName.piva && cleanedPiva) {
+        await supabase
+          .from("fornitori")
+          .update({ piva: cleanedPiva })
+          .eq("id", exactByName.id)
+          .eq("azienda_id", azienda.id);
+        exactByName.piva = cleanedPiva;
+      }
+      return exactByName.id;
+    }
+
+    const payload = {
+      azienda_id: azienda.id,
+      ragione_sociale: cleanedNome
+    };
+
+    if (cleanedPiva) payload.piva = cleanedPiva;
 
     const { data: created, error } = await supabase
       .from("fornitori")
-      .insert({
-        azienda_id: azienda.id,
-        ragione_sociale: cleaned
-      })
-      .select("id, ragione_sociale")
+      .insert(payload)
+      .select("id, ragione_sociale, piva")
       .single();
 
     if (error || !created?.id) {
@@ -516,26 +636,30 @@ async function openDocumentoUploadModal(azienda) {
   }
 
   function addRiga(data = {}) {
+    const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
     const matched = data.prodotto_id
       ? prodottiCache.find((p) => String(p.id) === String(data.prodotto_id)) || null
-      : findProdottoByDescrizione(data.descrizione || data.descrizione_originale || "");
+      : findProdottoByDescrizione(descrizione);
 
     righe.push({
-      descrizione: String(data.descrizione_originale || data.descrizione || "").trim(),
+      descrizione,
       quantita: parseLocaleNumber(data.quantita, 1),
       prezzo_unitario: parseLocaleNumber(data.prezzo_unitario, 0),
       totale_riga: parseLocaleNumber(data.totale_riga, 0),
+      iva_percent: parseLocaleNumber(data.iva_percent, 0),
       prodotto_id: matched?.id || data.prodotto_id || null,
-      prodotto_nome: matched?.descrizione || "",
+      prodotto_nome: matched?.nome || "",
       um: matched?.um || ""
     });
 
     renderRighe();
+    updateTotaleFromRighe();
   }
 
   function removeRiga(index) {
     righe.splice(index, 1);
     renderRighe();
+    updateTotaleFromRighe();
   }
 
   function updateRiga(index, patch) {
@@ -544,10 +668,10 @@ async function openDocumentoUploadModal(azienda) {
       ...patch
     };
 
-    if ("descrizione" in patch && !patch.prodotto_id) {
+    if ("descrizione" in patch && !("prodotto_id" in patch)) {
       const matched = findProdottoByDescrizione(patch.descrizione);
       righe[index].prodotto_id = matched?.id || null;
-      righe[index].prodotto_nome = matched?.descrizione || "";
+      righe[index].prodotto_nome = matched?.nome || "";
       righe[index].um = matched?.um || "";
     }
 
@@ -555,23 +679,19 @@ async function openDocumentoUploadModal(azienda) {
     const pu = parseLocaleNumber(righe[index].prezzo_unitario, 0);
     const tr = parseLocaleNumber(righe[index].totale_riga, 0);
 
-    if (q > 0 && pu > 0) {
-      righe[index].totale_riga = tr > 0 ? tr : Number((q * pu).toFixed(2));
-    }
-
-    if (elTipoDocumento.value === "fattura") {
-      const total = computeRowsTotal(righe);
-      if (total > 0) elTotale.value = formatMoney(total);
+    if (q > 0 && pu > 0 && (!tr || tr <= 0)) {
+      righe[index].totale_riga = Number((q * pu).toFixed(2));
     }
 
     renderRighe();
+    updateTotaleFromRighe();
   }
 
   function renderRighe() {
     if (!righe.length) {
       righeContainer.innerHTML = `
         <div class="rf-empty-righe">
-          Nessuna riga presente. In manuale usa "Aggiungi riga", in caricamento documento le righe vengono compilate dopo l'analisi.
+          Nessuna riga presente. In manuale usa "Aggiungi riga", in caricamento documento le righe vengono compilate dopo l'analisi OCR.
         </div>
       `;
       return;
@@ -580,6 +700,7 @@ async function openDocumentoUploadModal(azienda) {
     righeContainer.innerHTML = righe.map((row, i) => {
       const matched = row.prodotto_id ? "Prodotto agganciato" : "Prodotto non trovato";
       const matchedClass = row.prodotto_id ? "ok" : "missing";
+
       return `
         <div class="rf-riga-card ${matchedClass}" data-i="${i}">
           <div class="rf-riga-grid">
@@ -608,7 +729,7 @@ async function openDocumentoUploadModal(azienda) {
 
             <div class="rf-riga-actions">
               <button type="button" class="btn-secondary btn-match-riga" data-i="${i}">Riprova match</button>
-              <button type="button" class="btn-secondary btn-crea-prodotto" data-i="${i}">Crea prodotto</button>
+              ${!row.prodotto_id ? `<button type="button" class="btn-secondary btn-crea-prodotto" data-i="${i}">Crea prodotto</button>` : ""}
               <button type="button" class="btn-secondary btn-remove-riga" data-i="${i}">Rimuovi</button>
             </div>
           </div>
@@ -654,10 +775,11 @@ async function openDocumentoUploadModal(azienda) {
       el.addEventListener("click", (e) => {
         const idx = Number(e.currentTarget.dataset.i);
         const matched = findProdottoByDescrizione(righe[idx]?.descrizione || "");
+
         if (matched?.id) {
           updateRiga(idx, {
             prodotto_id: matched.id,
-            prodotto_nome: matched.descrizione,
+            prodotto_nome: matched.nome || "",
             um: matched.um || ""
           });
           setFeedback("Prodotto agganciato alla riga.");
@@ -675,31 +797,34 @@ async function openDocumentoUploadModal(azienda) {
     righeContainer.querySelectorAll(".btn-crea-prodotto").forEach((el) => {
       el.addEventListener("click", async (e) => {
         const idx = Number(e.currentTarget.dataset.i);
-        const nome = String(righe[idx]?.descrizione || "").trim();
-        if (!nome) {
+        const descrizioneFattura = String(righe[idx]?.descrizione || "").trim();
+
+        if (!descrizioneFattura) {
           setFeedback("Inserisci prima la descrizione della riga.", true);
           return;
         }
 
         const res = await openCreateProductModal({
           azienda,
-          prefillName: nome
+          descrizioneFattura
         });
 
         if (!res?.prodotto?.id) return;
 
         prodottiCache.unshift({
           id: res.prodotto.id,
-          nome: res.prodotto.descrizione || nome,
-          descrizione: res.prodotto.descrizione || nome,
+          nome: res.prodotto.nome || "",
+          descrizione: res.prodotto.descrizione || "",
           codice_interno: res.prodotto.codice_interno || "",
           um: res.prodotto.um || "",
-          categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null
+          categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null,
+          quantita_riordino: res.prodotto.quantita_riordino ?? 0,
+          scorta_minima: res.prodotto.scorta_minima ?? 0
         });
 
         updateRiga(idx, {
           prodotto_id: res.prodotto.id,
-          prodotto_nome: res.prodotto.descrizione || nome,
+          prodotto_nome: res.prodotto.nome || "",
           um: res.prodotto.um || ""
         });
 
@@ -732,14 +857,16 @@ async function openDocumentoUploadModal(azienda) {
       .from("fatture")
       .getPublicUrl(filePath);
 
-    uploadedFilePath = filePath;
-    uploadedPublicUrl = publicData?.publicUrl || null;
+    const imageUrl = publicData?.publicUrl || "";
+    if (!imageUrl) {
+      throw new Error("Impossibile ottenere URL pubblico del documento");
+    }
 
     setFeedback("Documento caricato. Analisi OCR in corso...");
 
     const { data, error } = await supabase.functions.invoke("ocr-fattura", {
       body: {
-        imageUrl: uploadedPublicUrl
+        imageUrl
       }
     });
 
@@ -760,38 +887,38 @@ async function openDocumentoUploadModal(azienda) {
       elFornitore.value = result.fornitore.ragione_sociale;
     }
 
+    if (result?.fornitore?.piva) {
+      elFornitorePiva.value = result.fornitore.piva;
+    }
+
     if (result?.documento?.numero_documento) {
       elNumero.value = result.documento.numero_documento;
     }
 
     if (result?.documento?.data_documento) {
       const normalizedDate = normalizeInputDate(result.documento.data_documento);
-      if (normalizedDate) {
-        elData.value = normalizedDate;
-      }
+      if (normalizedDate) elData.value = normalizedDate;
     }
 
     righe = [];
     (result?.righe || []).forEach((row) => {
       addRiga({
-        descrizione_originale: row.descrizione_originale || row.descrizione || "",
-        descrizione: row.descrizione_originale || row.descrizione || "",
+        descrizione: row.descrizione || "",
         quantita: row.quantita ?? 1,
         prezzo_unitario: row.prezzo_unitario ?? 0,
         totale_riga: row.totale_riga ?? 0,
-        prodotto_id: row.prodotto_id || row.product_id || null
+        iva_percent: row.iva_percent ?? 0,
+        prodotto_id: row.prodotto_id || null
       });
     });
 
-    if (elTipoDocumento.value === "fattura") {
-      const total = computeRowsTotal(righe);
-      if (total > 0) elTotale.value = formatMoney(total);
-    }
+    updateTotaleFromRighe();
   }
 
   async function saveDocumento() {
     const tipoDocumento = elTipoDocumento.value;
     const fornitoreNome = String(elFornitore.value || "").trim();
+    const fornitorePiva = String(elFornitorePiva.value || "").trim();
     const numeroDocumento = String(elNumero.value || "").trim();
     const dataDocumento = String(elData.value || "").trim();
     const totale = parseLocaleNumber(elTotale.value, 0);
@@ -804,7 +931,11 @@ async function openDocumentoUploadModal(azienda) {
       throw new Error(tipoDocumento === "ddt" ? "Inserisci la data DDT" : "Inserisci la data documento");
     }
 
-    const fornitoreId = await ensureFornitoreId(fornitoreNome);
+    if (!righe.length) {
+      throw new Error("Inserisci almeno una riga documento");
+    }
+
+    const fornitoreId = await ensureFornitoreId(fornitoreNome, fornitorePiva);
 
     if (tipoDocumento === "fattura") {
       const { data: created, error } = await supabase
@@ -824,24 +955,22 @@ async function openDocumentoUploadModal(azienda) {
         throw new Error(error?.message || "Errore salvataggio fattura");
       }
 
-      if (righe.length) {
-        const righePayload = righe.map((row, index) => ({
-  fattura_id: created.id,
-  riga_numero: index + 1,
-  descrizione: String(row.descrizione || "").trim(),
-  prodotto_id: row.prodotto_id || null,
-  quantita: parseLocaleNumber(row.quantita, 0),
-  prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
-  totale_riga: parseLocaleNumber(row.totale_riga, 0)
-}));
+      const righePayload = righe.map((row, index) => ({
+        fattura_id: created.id,
+        riga_numero: index + 1,
+        descrizione: String(row.descrizione || "").trim(),
+        prodotto_id: row.prodotto_id || null,
+        quantita: parseLocaleNumber(row.quantita, 0),
+        prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+        totale_riga: parseLocaleNumber(row.totale_riga, 0)
+      }));
 
-        const { error: righeError } = await supabase
-          .from("fatture_acquisto_righe")
-          .insert(righePayload);
+      const { error: righeError } = await supabase
+        .from("fatture_acquisto_righe")
+        .insert(righePayload);
 
-        if (righeError) {
-          throw new Error(righeError.message || "Errore salvataggio righe fattura");
-        }
+      if (righeError) {
+        throw new Error(righeError.message || "Errore salvataggio righe fattura");
       }
     } else {
       const { data: created, error } = await supabase
@@ -859,20 +988,32 @@ async function openDocumentoUploadModal(azienda) {
         throw new Error(error?.message || "Errore salvataggio DDT");
       }
 
-      if (righe.length) {
-        const righePayload = righe.map((row, index) => ({
+      const righePayload = righe.map((row, index) => ({
+        ddt_id: created.id,
+        riga_numero: index + 1,
+        descrizione: String(row.descrizione || "").trim(),
+        prodotto_id: row.prodotto_id || null,
+        quantita: parseLocaleNumber(row.quantita, 0)
+      }));
+
+      const { error: righeError } = await supabase
+        .from("ddt_acquisto_righe")
+        .insert(righePayload);
+
+      if (righeError) {
+        const fallbackPayload = righe.map((row, index) => ({
           ddt_id: created.id,
           riga_numero: index + 1,
           prodotto_id: row.prodotto_id || null,
           quantita: parseLocaleNumber(row.quantita, 0)
         }));
 
-        const { error: righeError } = await supabase
+        const { error: fallbackError } = await supabase
           .from("ddt_acquisto_righe")
-          .insert(righePayload);
+          .insert(fallbackPayload);
 
-        if (righeError) {
-          throw new Error(righeError.message || "Errore salvataggio righe DDT");
+        if (fallbackError) {
+          throw new Error(fallbackError.message || righeError.message || "Errore salvataggio righe DDT");
         }
       }
     }
@@ -883,13 +1024,15 @@ async function openDocumentoUploadModal(azienda) {
       descrizione: "",
       quantita: 1,
       prezzo_unitario: 0,
-      totale_riga: 0
+      totale_riga: 0,
+      iva_percent: 0
     });
   });
 
   elTipoDocumento.addEventListener("change", () => {
     updateLabels();
     renderRighe();
+    updateTotaleFromRighe();
   });
 
   elMetodo.addEventListener("change", () => {
@@ -914,7 +1057,7 @@ async function openDocumentoUploadModal(azienda) {
     try {
       await saveDocumento();
       setFeedback("Documento salvato correttamente.");
-      setTimeout(closeModal, 500);
+      setTimeout(closeModal, 450);
     } catch (err) {
       console.error(err);
       setFeedback(String(err?.message || err || "Errore salvataggio documento"), true);
@@ -935,7 +1078,7 @@ async function openDocumentoUploadModal(azienda) {
   renderRighe();
 }
 
-async function openCreateProductModal({ azienda, prefillName }) {
+async function openCreateProductModal({ azienda, descrizioneFattura }) {
   ensureAcquistiModalStyles();
 
   const supabase = window.supabaseClient;
@@ -964,15 +1107,20 @@ async function openCreateProductModal({ azienda, prefillName }) {
         <div class="rf-modal-header">
           <div class="rf-header-copy">
             <h3 class="rf-modal-title">Crea prodotto</h3>
-            <p class="rf-modal-sub">Se il prodotto non esiste in anagrafica lo puoi creare qui con le categorie necessarie.</p>
+            <p class="rf-modal-sub">Nome interno usato nelle ricette. Nel database: nome = nome interno, descrizione = descrizione fattura.</p>
           </div>
           <button type="button" class="btn-secondary rf-close">Chiudi</button>
         </div>
 
         <div class="rf-modal-body">
           <div class="rf-field">
-            <label>Nome prodotto</label>
-            <input id="rf-prod-nome" class="input" value="${escapeHtml(prefillName || "")}" />
+            <label>Descrizione fattura</label>
+            <input id="rf-prod-descrizione-fattura" class="input" value="${escapeHtml(descrizioneFattura || "")}" disabled />
+          </div>
+
+          <div class="rf-field">
+            <label>Nome prodotto interno</label>
+            <input id="rf-prod-nome-interno" class="input" value="${escapeHtml(descrizioneFattura || "")}" />
           </div>
 
           <div class="rf-field">
@@ -997,13 +1145,19 @@ async function openCreateProductModal({ azienda, prefillName }) {
             <input id="rf-cat-interna-text" class="input" list="rf-cat-interna-list" placeholder="Scrivi o seleziona categoria interna..." autocomplete="off" />
             <input type="hidden" id="rf-cat-interna-id" value="" />
             <datalist id="rf-cat-interna-list">
-              ${catsInterne.map((c) => `<option value="${escapeHtml(`${c.nome}${c.sigla ? ` · ${c.sigla}` : ""}`)}"></option>`).join("")}
+              ${catsInterne.map((c) => `<option value="${escapeHtml(c.nome || "")}"></option>`).join("")}
             </datalist>
           </div>
 
-          <div class="rf-field">
-            <label>Scorta minima</label>
-            <input id="rf-scorta-minima" type="number" step="0.001" class="input" placeholder="Es. 1" />
+          <div class="rf-grid-2">
+            <div class="rf-field">
+              <label>Scorta minima</label>
+              <input id="rf-scorta-minima" type="number" step="0.001" class="input" placeholder="Es. 1" />
+            </div>
+            <div class="rf-field">
+              <label>Quantità riordino</label>
+              <input id="rf-quantita-riordino" type="number" step="0.001" class="input" placeholder="Es. 5" />
+            </div>
           </div>
 
           <div id="rf-prod-feedback" class="rf-feedback"></div>
@@ -1019,22 +1173,19 @@ async function openCreateProductModal({ azienda, prefillName }) {
 
   document.body.appendChild(modalRoot);
 
-  const inputNome = modalRoot.querySelector("#rf-prod-nome");
+  const inputNomeInterno = modalRoot.querySelector("#rf-prod-nome-interno");
   const selectGestione = modalRoot.querySelector("#rf-cat-gestione");
   const inputBilancioText = modalRoot.querySelector("#rf-cat-bilancio-text");
   const hiddenBilancioId = modalRoot.querySelector("#rf-cat-bilancio-id");
   const inputInternaText = modalRoot.querySelector("#rf-cat-interna-text");
   const hiddenInternaId = modalRoot.querySelector("#rf-cat-interna-id");
   const inputScortaMinima = modalRoot.querySelector("#rf-scorta-minima");
+  const inputQuantitaRiordino = modalRoot.querySelector("#rf-quantita-riordino");
   const feedback = modalRoot.querySelector("#rf-prod-feedback");
   const datalistInterna = modalRoot.querySelector("#rf-cat-interna-list");
 
   const bilancioByLabel = new Map(
     catsBilancio.map((c) => [String(c.nome || "").trim().toLowerCase(), String(c.id)])
-  );
-
-  const interneByLabel = new Map(
-    catsInterne.map((c) => [`${String(c.nome || "").trim().toLowerCase()}${c.sigla ? ` · ${String(c.sigla || "").trim().toLowerCase()}` : ""}`.trim(), String(c.id)])
   );
 
   const interneByNome = new Map(
@@ -1058,7 +1209,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
 
   function syncInternaId() {
     const raw = String(inputInternaText.value || "").trim().toLowerCase();
-    hiddenInternaId.value = interneByLabel.get(raw) || interneByNome.get(raw) || "";
+    hiddenInternaId.value = interneByNome.get(raw) || "";
   }
 
   selectGestione.addEventListener("change", () => {
@@ -1084,13 +1235,16 @@ async function openCreateProductModal({ azienda, prefillName }) {
       syncBilancioId();
       syncInternaId();
 
-      const nome = String(inputNome.value || "").trim();
+      const nomeInterno = String(inputNomeInterno.value || "").trim();
+      const descrizioneOriginale = String(descrizioneFattura || "").trim();
       const categoriaBilancioId = String(hiddenBilancioId.value || "").trim();
       let categoriaInternaId = String(hiddenInternaId.value || "").trim();
-      const scortaMinima = Number(inputScortaMinima.value || 0);
+      const nomeCategoriaInterna = String(inputInternaText.value || "").trim();
+      const scortaMinima = parseLocaleNumber(inputScortaMinima.value, 0);
+      const quantitaRiordino = parseLocaleNumber(inputQuantitaRiordino.value, 0);
 
-      if (!nome) {
-        setFeedback("Inserisci il nome prodotto.", true);
+      if (!nomeInterno) {
+        setFeedback("Inserisci il nome prodotto interno.", true);
         return;
       }
 
@@ -1100,8 +1254,6 @@ async function openCreateProductModal({ azienda, prefillName }) {
       }
 
       if (!categoriaInternaId) {
-        const nomeCategoriaInterna = String(inputInternaText.value || "").trim();
-
         if (!nomeCategoriaInterna) {
           setFeedback("Inserisci o seleziona una categoria interna.", true);
           return;
@@ -1115,7 +1267,7 @@ async function openCreateProductModal({ azienda, prefillName }) {
             sigla: null,
             attiva: true
           })
-          .select("id, nome, sigla")
+          .select("id, nome")
           .single();
 
         if (createdInternaError || !createdInterna?.id) {
@@ -1131,24 +1283,27 @@ async function openCreateProductModal({ azienda, prefillName }) {
         );
       }
 
+      const prodottoPayload = {
+        azienda_id: azienda.id,
+        codice_interno: null,
+        nome: nomeInterno,
+        descrizione: descrizioneOriginale || nomeInterno,
+        categoria_bilancio_id: Number(categoriaBilancioId),
+        categoria_interna_id: categoriaInternaId,
+        scorta_minima: Number.isFinite(scortaMinima) ? scortaMinima : 0,
+        quantita_riordino: Number.isFinite(quantitaRiordino) ? quantitaRiordino : 0,
+        tipo_prodotto: "materia_prima",
+        um: "pz",
+        unita_misura: "pz",
+        costo_medio: 0,
+        costo_ultimo: 0,
+        attivo: true
+      };
+
       const { data: created, error } = await supabase
         .from("prodotti")
-        .insert({
-          azienda_id: azienda.id,
-          codice_interno: null,
-          nome,
-          descrizione: nome,
-          categoria_bilancio_id: Number(categoriaBilancioId),
-          categoria_interna_id: categoriaInternaId,
-          scorta_minima: Number.isFinite(scortaMinima) ? scortaMinima : 0,
-          tipo_prodotto: "materia_prima",
-          um: "pz",
-          unita_misura: "pz",
-          costo_medio: 0,
-          costo_ultimo: 0,
-          attivo: true
-        })
-        .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id")
+        .insert(prodottoPayload)
+        .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
         .single();
 
       if (error || !created?.id) {
@@ -1159,10 +1314,13 @@ async function openCreateProductModal({ azienda, prefillName }) {
       resolve({
         prodotto: {
           id: created.id,
-          descrizione: created.descrizione || created.nome || nome,
+          nome: created.nome || nomeInterno,
+          descrizione: created.descrizione || descrizioneOriginale || nomeInterno,
           codice_interno: created.codice_interno || "",
           um: created.um || "pz",
-          categoria_bilancio_id: created.categoria_bilancio_id ?? null
+          categoria_bilancio_id: created.categoria_bilancio_id ?? null,
+          quantita_riordino: created.quantita_riordino ?? 0,
+          scorta_minima: created.scorta_minima ?? 0
         }
       });
 
@@ -1190,7 +1348,7 @@ function ensureAcquistiModalStyles() {
     }
     .rf-modal{
       width:100%;
-      max-width:960px;
+      max-width:1080px;
       max-height:92vh;
       overflow:auto;
       background:#fff;
@@ -1200,7 +1358,7 @@ function ensureAcquistiModalStyles() {
     }
     .rf-modal-small{
       width:100%;
-      max-width:640px;
+      max-width:680px;
     }
     .rf-modal-header{
       display:flex;
@@ -1302,9 +1460,11 @@ function ensureAcquistiModalStyles() {
     }
     .rf-riga-card.ok{
       border-color:rgba(34,197,94,.35);
+      background:rgba(34,197,94,.03);
     }
     .rf-riga-card.missing{
       border-color:rgba(239,68,68,.35);
+      background:rgba(239,68,68,.03);
     }
     .rf-riga-grid{
       display:grid;
@@ -1336,6 +1496,60 @@ function ensureAcquistiModalStyles() {
       gap:8px;
       flex-wrap:wrap;
     }
+    .rf-doc-list{
+      display:grid;
+      gap:10px;
+    }
+    .rf-doc-item{
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:12px;
+      padding:14px;
+      background:#fff;
+      display:grid;
+      gap:8px;
+    }
+    .rf-doc-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .rf-doc-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+    .rf-doc-badge.fattura{
+      background:rgba(59,130,246,.12);
+      color:#1d4ed8;
+    }
+    .rf-doc-badge.ddt{
+      background:rgba(16,185,129,.12);
+      color:#047857;
+    }
+    .rf-doc-date{
+      font-size:12px;
+      color:#667085;
+      font-weight:600;
+    }
+    .rf-doc-title{
+      font-size:15px;
+      font-weight:700;
+      color:#101828;
+    }
+    .rf-doc-meta{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      color:#667085;
+      font-size:12px;
+    }
     @media (max-width: 760px){
       .rf-modal-backdrop{
         padding:8px;
@@ -1350,6 +1564,7 @@ function ensureAcquistiModalStyles() {
       .rf-modal-header{
         padding:14px 14px 10px;
         gap:10px;
+        flex-direction:column;
       }
       .rf-modal-title{
         font-size:16px;
@@ -1391,8 +1606,9 @@ function ensureAcquistiModalStyles() {
       .rf-righe-header{
         align-items:stretch;
       }
-      .rf-modal-header{
+      .rf-doc-meta{
         flex-direction:column;
+        gap:4px;
       }
     }
   `;
