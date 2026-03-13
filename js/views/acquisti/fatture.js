@@ -207,6 +207,12 @@ function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizePiva(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.length > 11 ? digits.slice(-11) : digits;
+}
+
 export async function renderFatture(container, azienda) {
   ensureAcquistiModalStyles();
 
@@ -576,7 +582,7 @@ const [fornitoriRes, prodottiRes] = await Promise.all([
 
 async function ensureFornitoreId(nome, piva) {
   const cleanedNome = String(nome || "").trim();
-  const cleanedPiva = String(piva || "").trim();
+  const cleanedPiva = normalizePiva(piva);
 
   if (!cleanedNome) return null;
 
@@ -886,8 +892,8 @@ function addRiga(data = {}) {
       elFornitore.value = result.fornitore.ragione_sociale;
     }
 
-    if (result?.fornitore?.piva) {
-      elFornitorePiva.value = result.fornitore.piva;
+    if (result?.fornitore?.piva || result?.fornitore?.partita_iva) {
+      elFornitorePiva.value = normalizePiva(result?.fornitore?.piva || result?.fornitore?.partita_iva);
     }
 
     if (result?.documento?.numero_documento) {
@@ -930,6 +936,10 @@ function addRiga(data = {}) {
       throw new Error(tipoDocumento === "ddt" ? "Inserisci la data DDT" : "Inserisci la data documento");
     }
 
+    if (!numeroDocumento) {
+      throw new Error(tipoDocumento === "ddt" ? "Inserisci il numero DDT" : "Inserisci il numero documento");
+    }
+
     if (!righe.length) {
       throw new Error("Inserisci almeno una riga documento");
     }
@@ -956,11 +966,14 @@ function addRiga(data = {}) {
 
       const righePayload = righe.map((row, index) => ({
         fattura_id: created.id,
+        azienda_id: azienda.id,
         riga_numero: index + 1,
         descrizione: String(row.descrizione || "").trim(),
         prodotto_id: row.prodotto_id || null,
         quantita: parseLocaleNumber(row.quantita, 0),
+        unita_misura: row.um || "pz",
         prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+        iva_percent: parseLocaleNumber(row.iva_percent, 0),
         totale_riga: parseLocaleNumber(row.totale_riga, 0)
       }));
 
@@ -989,10 +1002,15 @@ function addRiga(data = {}) {
 
       const righePayload = righe.map((row, index) => ({
         ddt_id: created.id,
+        azienda_id: azienda.id,
         riga_numero: index + 1,
         descrizione: String(row.descrizione || "").trim(),
         prodotto_id: row.prodotto_id || null,
-        quantita: parseLocaleNumber(row.quantita, 0)
+        quantita: parseLocaleNumber(row.quantita, 0),
+        unita_misura: row.um || "pz",
+        prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+        iva_percent: parseLocaleNumber(row.iva_percent, 0),
+        totale_riga: parseLocaleNumber(row.totale_riga, 0)
       }));
 
       const { error: righeError } = await supabase
@@ -1002,9 +1020,15 @@ function addRiga(data = {}) {
       if (righeError) {
         const fallbackPayload = righe.map((row, index) => ({
           ddt_id: created.id,
+          azienda_id: azienda.id,
           riga_numero: index + 1,
+          descrizione: String(row.descrizione || "").trim(),
           prodotto_id: row.prodotto_id || null,
-          quantita: parseLocaleNumber(row.quantita, 0)
+          quantita: parseLocaleNumber(row.quantita, 0),
+          unita_misura: row.um || "pz",
+          prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+          iva_percent: parseLocaleNumber(row.iva_percent, 0),
+          totale_riga: parseLocaleNumber(row.totale_riga, 0)
         }));
 
         const { error: fallbackError } = await supabase
