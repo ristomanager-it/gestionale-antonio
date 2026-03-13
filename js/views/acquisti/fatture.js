@@ -844,11 +844,13 @@ async function openDocumentoUploadModal(azienda) {
       const { data: created, error } = await supabase
         .from("ddt_acquisto")
         .insert({
-          azienda_id: azienda.id,
-          fornitore_id: fornitoreId,
-          numero_ddt: numeroDocumento || null,
-          data_ddt: dataDocumento
-        })
+  azienda_id: azienda.id,
+  fornitore_id: fornitoreId,
+  numero_documento: numeroDocumento || null,
+  data_documento: dataDocumento,
+  totale: totale || computeRowsTotal(righe) || 0,
+  stato: "bozza"
+})
         .select("id")
         .single();
 
