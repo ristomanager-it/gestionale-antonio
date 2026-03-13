@@ -831,6 +831,7 @@ async function openDocumentoUploadModal(azienda) {
   prodotto_id: row.prodotto_id || null,
   quantita: parseLocaleNumber(row.quantita, 0),
   prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0)
+         totale_riga: parseLocaleNumber(row.totale_riga, 0) 
 }));;
 
         const { error: righeError } = await supabase
