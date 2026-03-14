@@ -1,5 +1,5 @@
-import "../supabaseClient.js";
-import "../state.js";
+import "../../supabaseClient.js";
+import "../../state.js";
 
 import { renderMateriePrime } from "./materie_prime.js";
 import { renderPreparazioni } from "./preparazioni.js";
