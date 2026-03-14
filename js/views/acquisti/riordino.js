@@ -3,19 +3,23 @@ export async function renderRiordino(container, azienda) {
   const supabase = window.supabaseClient;
 
   container.innerHTML = `
+
   <div class="card">
 
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3>Riordino prodotti sotto scorta</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center">
 
-      <button id="btn-crea-ordine" class="app-button green">
-        CREA ORDINE
+      <h3>Prodotti sotto scorta</h3>
+
+      <button id="btn-manda-a-ordini" class="app-button green">
+        MANDA A ORDINI
       </button>
+
     </div>
 
     <div id="riordino-results" style="margin-top:16px"></div>
 
   </div>
+
   `;
 
   const results = container.querySelector("#riordino-results");
@@ -25,7 +29,6 @@ export async function renderRiordino(container, azienda) {
     const { data, error } = await supabase
       .from("vw_riordino_prodotti")
       .select("*")
-      .eq("azienda_id", azienda.id)
       .order("nome", { ascending:true });
 
     if (error) {
@@ -34,12 +37,12 @@ export async function renderRiordino(container, azienda) {
         <div>Errore caricamento riordino</div>
       `;
 
+      console.error(error);
       return;
+
     }
 
-    const prodotti = (data || []).filter(
-      p => Number(p.quantita_da_ordinare) > 0
-    );
+    const prodotti = (data || []).filter(p => Number(p.sotto_scorta) > 0);
 
     if (!prodotti.length) {
 
@@ -48,6 +51,7 @@ export async function renderRiordino(container, azienda) {
       `;
 
       return;
+
     }
 
     results.innerHTML = `
@@ -60,7 +64,7 @@ export async function renderRiordino(container, azienda) {
           <th>Prodotto</th>
           <th>Giacenza</th>
           <th>Scorta minima</th>
-          <th>Quantità da ordinare</th>
+          <th>Da ordinare</th>
         </tr>
       </thead>
 
@@ -71,14 +75,16 @@ export async function renderRiordino(container, azienda) {
         <tr>
 
           <td>
+
             <input
               type="checkbox"
               class="chk-riordino"
               data-id="${p.prodotto_id}"
             >
+
           </td>
 
-          <td>${p.nome || ""}</td>
+          <td>${p.nome}</td>
 
           <td>${Number(p.giacenza_attuale || 0).toFixed(2)}</td>
 
@@ -88,10 +94,10 @@ export async function renderRiordino(container, azienda) {
 
             <input
               type="number"
-              class="input-ordine"
+              class="input-qta"
               data-id="${p.prodotto_id}"
               value="${Number(p.quantita_da_ordinare || 0).toFixed(2)}"
-              style="width:90px"
+              style="width:80px"
             >
 
           </td>
@@ -108,83 +114,50 @@ export async function renderRiordino(container, azienda) {
 
   }
 
-  async function creaOrdine() {
-
-    const checkboxes = container.querySelectorAll(".chk-riordino:checked");
-
-    if (!checkboxes.length) {
-      alert("Seleziona almeno un prodotto");
-      return;
-    }
+  function mandaAOrdini(){
 
     const righe = [];
 
-    checkboxes.forEach(c => {
+    container
+      .querySelectorAll(".chk-riordino:checked")
+      .forEach(c => {
 
-      const id = c.dataset.id;
+        const id = c.dataset.id;
 
-      const input = container.querySelector(
-        `.input-ordine[data-id="${id}"]`
-      );
+        const input = container.querySelector(
+          `.input-qta[data-id="${id}"]`
+        );
 
-      const qta = parseFloat(input.value || 0);
+        const qta = parseFloat(input.value || 0);
 
-      if (qta > 0) {
+        if(qta > 0){
 
-        righe.push({
-          prodotto_id:id,
-          quantita:qta
-        });
+          righe.push({
+            prodotto_id:id,
+            quantita:qta
+          });
 
-      }
+        }
 
-    });
+      });
 
-    if (!righe.length) {
-      alert("Quantità non valide");
+    if(!righe.length){
+
+      alert("Seleziona almeno un prodotto");
       return;
+
     }
 
-    const { data: ordine, error } = await supabase
-      .from("ordini_fornitore")
-      .insert({
-        azienda_id:azienda.id,
-        stato:"bozza",
-        data_ordine:new Date().toISOString()
-      })
-      .select()
-      .single();
+    window.state.ordineDraft = righe;
 
-    if (error) {
-      alert("Errore creazione ordine");
-      return;
-    }
+    window.location.hash = "#/acquisti/ordini";
 
-    const ordineId = ordine.id;
-
-    const righeInsert = righe.map(r => ({
-      ordine_id:ordineId,
-      prodotto_id:r.prodotto_id,
-      quantita:r.quantita
-    }));
-
-    const { error:righeError } = await supabase
-      .from("ordini_fornitore_righe")
-      .insert(righeInsert);
-
-    if (righeError) {
-      alert("Errore inserimento righe ordine");
-      return;
-    }
-
-    alert("Ordine creato");
-
-    loadRiordino();
   }
 
   document
-    .getElementById("btn-crea-ordine")
-    .addEventListener("click", creaOrdine);
+    .getElementById("btn-manda-a-ordini")
+    .addEventListener("click", mandaAOrdini);
 
   loadRiordino();
+
 }
