@@ -4,14 +4,14 @@ export function renderCaricoModal() {
 
   <div id="rf-carico-backdrop" class="rf-modal-backdrop" style="display:none;">
 
-    <div class="rf-modal rf-modal-small">
+    <div class="rf-modal" style="max-width:420px; height:auto;">
 
       <div class="rf-modal-header">
         <h3 class="rf-modal-title">Carico Magazzino</h3>
         <button id="btn-close-carico" class="app-button tiny gray">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body">
+      <div class="rf-modal-body" style="display:flex; flex-direction:column; gap:12px;">
 
         <div class="rf-field">
           <label>Prodotto</label>
@@ -23,9 +23,9 @@ export function renderCaricoModal() {
           />
         </div>
 
-        <div id="carico-risultati" style="margin-top:8px;"></div>
+        <div id="carico-risultati"></div>
 
-        <div id="carico-form" style="display:none; margin-top:12px;">
+        <div id="carico-form" style="display:none;">
 
           <div class="rf-field">
             <label>Quantità</label>
@@ -42,7 +42,7 @@ export function renderCaricoModal() {
             <input id="carico-note" class="input" />
           </div>
 
-          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
             <button id="btn-conferma-carico" class="app-button tiny">
               Registra Carico
             </button>
@@ -52,7 +52,7 @@ export function renderCaricoModal() {
             </button>
           </div>
 
-          <div id="carico-esito" style="margin-top:10px; font-size:13px;"></div>
+          <div id="carico-esito" style="margin-top:8px; font-size:13px;"></div>
 
         </div>
 
@@ -92,7 +92,6 @@ export function apriCaricoModal({ aziendaId }) {
 
   backdrop.style.display = "flex";
 
-  // reset stato
   risultati.innerHTML = "";
   form.style.display = "none";
   esitoEl.innerText = "";
