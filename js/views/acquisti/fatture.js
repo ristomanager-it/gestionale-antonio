@@ -1173,7 +1173,6 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
       .insert({
         azienda_id: azienda.id,
         nome: nomeCategoriaInterna,
-        sigla: null,
         attiva: true
       })
       .select("id, nome")
