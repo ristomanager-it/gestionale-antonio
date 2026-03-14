@@ -1,29 +1,62 @@
-export async function renderMapping(container, azienda) {
+export function renderCaricoModal() {
 
-  const modal = document.createElement("div");
+  return `
 
-  modal.innerHTML = `
+  <div id="rf-carico-backdrop" class="rf-overlay-backdrop" style="display:none;">
 
-  <div class="rf-modal-backdrop">
+    <div class="rf-overlay-card">
 
-    <div class="rf-modal">
-
-      <div class="rf-modal-header">
-        <h3 class="rf-modal-title">Mapping Fornitori</h3>
-        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
+      <div class="rf-overlay-header">
+        <h3 class="rf-overlay-title">Carico Magazzino</h3>
+        <button id="btn-close-carico" class="app-button tiny gray">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body">
+      <div class="rf-overlay-body">
 
-        <input
-          id="search-mapping"
-          class="input"
-          placeholder="Cerca prodotto..."
-          autocomplete="off"
-          style="width:100%;"
-        >
+        <div class="rf-field">
+          <label>Prodotto</label>
+          <input
+            id="carico-search"
+            class="input"
+            placeholder="Cerca prodotto..."
+            autocomplete="off"
+          />
+        </div>
 
-        <div id="risultati-mapping" style="margin-top:12px;"></div>
+        <div id="carico-risultati" style="margin-top:8px;"></div>
+
+        <div id="carico-prodotto" style="display:none; margin-top:12px;"></div>
+
+        <div id="carico-form" style="display:none; margin-top:12px;">
+
+          <div class="rf-field">
+            <label>Quantità</label>
+            <input id="carico-quantita" type="number" step="0.001" class="input" />
+          </div>
+
+          <div class="rf-field" style="margin-top:10px;">
+            <label>Data movimento</label>
+            <input id="carico-data" type="date" class="input" />
+          </div>
+
+          <div class="rf-field" style="margin-top:10px;">
+            <label>Note</label>
+            <input id="carico-note" class="input" />
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btn-conferma-carico" class="app-button tiny">
+              Registra Carico
+            </button>
+
+            <button id="btn-annulla-carico" class="app-button tiny gray">
+              Annulla
+            </button>
+          </div>
+
+          <div id="carico-esito" style="margin-top:10px; font-size:13px;"></div>
+
+        </div>
 
       </div>
 
@@ -32,108 +65,174 @@ export async function renderMapping(container, azienda) {
   </div>
 
   `;
+}
 
-  document.body.appendChild(modal);
 
-  const risultati = modal.querySelector("#risultati-mapping");
-  const input = modal.querySelector("#search-mapping");
+export function apriCaricoModal({ aziendaId }) {
 
-  modal.querySelector("#close-modal").onclick = () => {
-    modal.remove();
+  const backdrop = document.getElementById("rf-carico-backdrop");
+
+  if (!backdrop) {
+    console.error("Overlay carico non trovato");
+    return;
+  }
+
+  const search = document.getElementById("carico-search");
+  const risultati = document.getElementById("carico-risultati");
+  const prodottoBox = document.getElementById("carico-prodotto");
+  const form = document.getElementById("carico-form");
+
+  const qtaEl = document.getElementById("carico-quantita");
+  const dataEl = document.getElementById("carico-data");
+  const noteEl = document.getElementById("carico-note");
+  const esitoEl = document.getElementById("carico-esito");
+
+  const btnClose = document.getElementById("btn-close-carico");
+  const btnAnnulla = document.getElementById("btn-annulla-carico");
+  const btnConferma = document.getElementById("btn-conferma-carico");
+
+  let prodottoId = null;
+  let prodottoLabel = "";
+
+  backdrop.style.display = "flex";
+
+  risultati.innerHTML = "";
+  prodottoBox.innerHTML = "";
+  prodottoBox.style.display = "none";
+  form.style.display = "none";
+  esitoEl.innerText = "";
+
+  qtaEl.value = "";
+  dataEl.value = new Date().toISOString().slice(0,10);
+  noteEl.value = "Inventario";
+
+  const close = () => {
+    backdrop.style.display = "none";
   };
 
-  input.addEventListener("input", async () => {
+  btnClose.onclick = close;
+  btnAnnulla.onclick = close;
 
-    const term = input.value.trim();
+  backdrop.onclick = (e) => {
+    if (e.target.id === "rf-carico-backdrop") close();
+  };
+
+  search.oninput = async () => {
+
+    const term = search.value.trim();
 
     if (term.length < 2) {
       risultati.innerHTML = "";
       return;
     }
 
-    const { data } = await window.supabaseClient
+    const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
-      .eq("azienda_id", azienda.id)
-      .ilike("descrizione", `%${term}%`)
+      .select("id, meta, descrizione")
+      .eq("azienda_id", aziendaId)
+      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
       .limit(10);
 
-    risultati.innerHTML = `
+    if (error) {
+      console.error(error);
+      return;
+    }
 
-      <div class="rf-doc-list">
+    risultati.innerHTML = (data || []).map(p => `
 
-        ${(data || []).map(p => `
+      <div class="rf-doc-item carico-item" data-id="${p.id}" data-label="${(p.meta || "")} — ${p.descrizione}">
 
-          <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+
+          <div class="rf-doc-title">
+            ${(p.meta || "")} — ${p.descrizione}
+          </div>
+
+          <div style="font-size:18px;">
+            🔍
+          </div>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+    risultati.querySelectorAll(".carico-item").forEach(row => {
+
+      row.onclick = async () => {
+
+        prodottoId = row.dataset.id;
+        prodottoLabel = row.dataset.label;
+
+        risultati.innerHTML = "";
+
+        prodottoBox.style.display = "block";
+
+        prodottoBox.innerHTML = `
+
+          <div class="rf-doc-item">
 
             <div class="rf-doc-title">
-              ${p.descrizione}
+              ${prodottoLabel}
             </div>
 
           </div>
 
-        `).join("")}
+        `;
 
-      </div>
-
-    `;
-
-    risultati.querySelectorAll(".autocomplete-item").forEach(row => {
-
-      row.onclick = () => {
-
-        const id = row.dataset.id;
-        apriMapping(risultati, azienda, id);
+        form.style.display = "block";
 
       };
 
     });
 
-  });
+  };
 
-}
+  btnConferma.onclick = async () => {
 
-async function apriMapping(box, azienda, prodottoId) {
+    const q = Number(qtaEl.value || 0);
+    const d = dataEl.value;
+    const note = noteEl.value || "";
 
-  const { data } = await window.supabaseClient
-    .from("prodotti_fornitore")
-    .select(`
-      codice_fornitore,
-      descrizione_fornitore,
-      prezzo_ultimo_acquisto,
-      fornitori:fornitore_id (ragione_sociale)
-    `)
-    .eq("prodotto_id", prodottoId)
-    .limit(5);
+    if (!prodottoId) {
+      alert("Seleziona un prodotto");
+      return;
+    }
 
-  if (!data || !data.length) {
-    box.innerHTML = "Nessun mapping trovato";
-    return;
-  }
+    if (!q || q <= 0) {
+      alert("Inserisci una quantità valida");
+      return;
+    }
 
-  box.innerHTML = `
+    esitoEl.innerText = "Salvataggio...";
 
-    <div class="rf-doc-list">
+    const { error } = await window.supabaseClient
+      .from("magazzino_movimenti")
+      .insert({
+        azienda_id: aziendaId,
+        prodotto_id: prodottoId,
+        tipo_movimento: "CARICO",
+        quantita: q,
+        data_movimento: d,
+        riferimento_tipo: "INVENTARIO",
+        note: note
+      });
 
-      ${data.map(m => `
+    if (error) {
 
-        <div class="rf-doc-item">
+      console.error(error);
+      esitoEl.innerText = "Errore durante il salvataggio";
+      return;
 
-          <div class="rf-doc-title">
-            ${m.fornitori?.ragione_sociale || ""}
-          </div>
+    }
 
-          <div class="rf-doc-meta">
-            <span>Codice: ${m.codice_fornitore || ""}</span>
-            <span>Prezzo: ${m.prezzo_ultimo_acquisto || ""}</span>
-          </div>
+    esitoEl.innerText = "Carico registrato ✔";
 
-        </div>
+    setTimeout(() => {
+      close();
+    }, 500);
 
-      `).join("")}
-
-    </div>
-
-  `;
+  };
 
 }
