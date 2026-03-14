@@ -1271,7 +1271,6 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
     });
   });
 }
-
 function ensureAcquistiModalStyles() {
   if (document.getElementById("rf-acquisti-modal-style")) return;
 
@@ -1281,35 +1280,31 @@ function ensureAcquistiModalStyles() {
 
   body.rf-modal-open{
     overflow:hidden;
-    position:fixed;
-    width:100%;
-    height:100%;
   }
 
   .rf-modal-backdrop{
     position:fixed;
     inset:0;
-    width:100vw;
-    height:100dvh;
     background:rgba(0,0,0,.45);
     display:flex;
     align-items:center;
     justify-content:center;
     padding:16px;
     z-index:9999;
-    overflow:hidden;
     box-sizing:border-box;
   }
 
   .rf-modal{
     width:100%;
     max-width:1080px;
-    height:90dvh;
+    max-height:92vh;
     background:#fff;
     border-radius:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.22);
+
     display:flex;
     flex-direction:column;
+
     overflow:hidden;
   }
 
@@ -1331,10 +1326,11 @@ function ensureAcquistiModalStyles() {
     overflow-y:auto;
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
+
     padding:18px;
     display:grid;
     gap:14px;
+    box-sizing:border-box;
   }
 
   .rf-modal-actions{
@@ -1346,29 +1342,48 @@ function ensureAcquistiModalStyles() {
     border-top:1px solid rgba(0,0,0,.08);
   }
 
-  input,select,textarea{
+  .rf-grid-2{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rf-field{
+    min-width:0;
+  }
+
+  .rf-riga-grid{
+    display:grid;
+    gap:10px;
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+    width:100%;
+  }
+
+  input,
+  select,
+  textarea{
     max-width:100%;
     font-size:16px;
     box-sizing:border-box;
   }
 
   @media (max-width:760px){
-  .rf-grid-2{
-    grid-template-columns:1fr;
-  }
-}
+
+    .rf-modal-backdrop{
+      padding:8px;
+    }
+
     .rf-modal{
-      width:100vw;
-      max-width:100vw;
-      height:100dvh;
-      border-radius:0;
+      width:100%;
+      max-width:100%;
+      max-height:96vh;
+      border-radius:12px;
     }
 
     .rf-grid-2{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
+      grid-template-columns:1fr;
+    }
+
     .rf-riga-grid{
       grid-template-columns:1fr;
     }
@@ -1379,6 +1394,7 @@ function ensureAcquistiModalStyles() {
     }
 
   }
+
   `;
 
   document.head.appendChild(style);
