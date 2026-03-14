@@ -294,10 +294,12 @@ async function openDocumentoUploadModal(azienda) {
     <div class="rf-modal-backdrop">
       <div class="rf-modal">
         <div class="rf-modal-header">
-          <div class="rf-header-simple">
-  <h3 class="rf-modal-title">Carica documento</h3>
-  <button type="button" id="rf-close-top" class="rf-close-x">✕</button>
-</div>
+          <div class="rf-header-copy">
+            <h3 class="rf-modal-title">Carica documento</h3>
+            <p class="rf-modal-sub">Upload su Storage bucket "fatture", OCR via edge function "ocr-fattura" e salvataggio in bozza.</p>
+          </div>
+          <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
+        </div>
 
         <div class="rf-modal-body">
           <div class="rf-grid-2">
@@ -320,7 +322,8 @@ async function openDocumentoUploadModal(azienda) {
           <div id="rf-upload-wrap" class="rf-field">
             <label>Documento</label>
             <input id="rf-file" type="file" class="input" accept="image/*,.pdf" />
-          
+            <div class="rf-mini-note">Alla selezione del file: upload su bucket "fatture" e chiamata a supabase.functions.invoke("ocr-fattura", { body: { imageUrl } }).</div>
+          </div>
 
           <div class="rf-grid-2">
             <div class="rf-field">
@@ -1271,12 +1274,17 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
     });
   });
 }
+
 function ensureAcquistiModalStyles() {
   if (document.getElementById("rf-acquisti-modal-style")) return;
 
   const style = document.createElement("style");
   style.id = "rf-acquisti-modal-style";
   style.textContent = `
+
+  body.rf-modal-open{
+    overflow:hidden;
+  }
 
   .rf-modal-backdrop{
     position:fixed;
@@ -1320,6 +1328,7 @@ function ensureAcquistiModalStyles() {
     flex:1;
     overflow-y:auto;
     overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
     padding:18px;
     display:grid;
     gap:14px;
@@ -1355,9 +1364,7 @@ function ensureAcquistiModalStyles() {
     width:100%;
   }
 
-  input,
-  select,
-  textarea{
+  input,select,textarea{
     max-width:100%;
     font-size:16px;
     box-sizing:border-box;
