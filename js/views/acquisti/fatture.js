@@ -531,12 +531,18 @@ async function openDocumentoUploadModal(azienda) {
       righe[index].um = righe[index].um || matched?.um || "pz";
     }
 
-    const q = parseLocaleNumber(righe[index].quantita, 0);
-    const pu = parseLocaleNumber(righe[index].prezzo_unitario, 0);
-    const tr = parseLocaleNumber(righe[index].totale_riga, 0);
+    const q = parseLocaleNumber(righe[index].quantita, NaN);
+    const pu = parseLocaleNumber(righe[index].prezzo_unitario, NaN);
+    const tr = parseLocaleNumber(righe[index].totale_riga, NaN);
 
-    if (q > 0 && pu > 0 && (!tr || tr <= 0)) {
-      righe[index].totale_riga = Number((q * pu).toFixed(2));
+    if (Number.isFinite(q) && Number.isFinite(pu)) {
+
+      const computed = Number((q * pu).toFixed(2));
+
+      if (!Number.isFinite(tr) || Math.abs(tr - computed) > 0.01) {
+        righe[index].totale_riga = computed;
+      }
+
     }
 
     renderRighe();
@@ -1197,7 +1203,6 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
     hiddenInternaId.value = categoriaInternaId;
   }
 }
-       
 
       const codiceInterno = normalizeCodiceInterno(nomeInterno);
 
