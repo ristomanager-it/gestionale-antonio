@@ -1,4 +1,4 @@
-export async function renderAnagraficaProdotti(container) {
+export function renderAnagraficaProdotti(container) {
 
   const azienda = window.state?.azienda;
 
@@ -12,26 +12,22 @@ export async function renderAnagraficaProdotti(container) {
   }
 
   container.innerHTML = `
-
     <h3>Anagrafica Prodotti</h3>
 
-    <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-
+    <div style="display:flex; gap:10px; margin-bottom:12px;">
       <input
         id="search-prodotto"
         class="input-pill"
         placeholder="🔎 Cerca prodotto..."
-        style="flex:1; min-width:220px;"
+        style="flex:1"
       />
 
       <button class="app-button tiny gray" id="btn-back-mag-home">
         ← Menu Magazzino
       </button>
-
     </div>
 
     <div id="lista-prodotti"></div>
-
   `;
 
   document
@@ -40,12 +36,12 @@ export async function renderAnagraficaProdotti(container) {
       window.location.hash = "#/magazzino";
     });
 
-  const searchInput = document.getElementById("search-prodotto");
+  const input = document.getElementById("search-prodotto");
   const lista = document.getElementById("lista-prodotti");
 
-  searchInput.addEventListener("input", async () => {
+  input.addEventListener("input", async () => {
 
-    const term = searchInput.value.trim();
+    const term = input.value.trim();
 
     if (term.length < 2) {
       lista.innerHTML = "";
@@ -60,18 +56,12 @@ export async function renderAnagraficaProdotti(container) {
       .limit(20);
 
     if (error) {
-      lista.innerHTML = `
-        <p style="color:red;">
-          Errore: ${error.message}
-        </p>
-      `;
+      lista.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
       return;
     }
 
     lista.innerHTML = `
-
       <table class="table-timbrature">
-
         <thead>
           <tr>
             <th>Codice</th>
@@ -80,32 +70,17 @@ export async function renderAnagraficaProdotti(container) {
         </thead>
 
         <tbody>
-
           ${(data || []).map(p => `
             <tr>
-              <td>${escapeHtml(p.codice_interno || "")}</td>
-              <td>${escapeHtml(p.descrizione || "")}</td>
+              <td>${p.codice_interno || ""}</td>
+              <td>${p.descrizione || ""}</td>
             </tr>
           `).join("")}
-
         </tbody>
 
       </table>
-
     `;
 
   });
 
 }
-
-function escapeHtml(str) {
-
-  return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
-}
-
