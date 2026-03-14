@@ -20,7 +20,7 @@ export function renderCaricoModal() {
             class="input"
             placeholder="Cerca prodotto..."
             autocomplete="off"
-          >
+          />
         </div>
 
         <div id="carico-risultati" style="margin-top:8px;"></div>
@@ -29,17 +29,17 @@ export function renderCaricoModal() {
 
           <div class="rf-field">
             <label>Quantità</label>
-            <input id="carico-quantita" type="number" step="0.001" class="input">
+            <input id="carico-quantita" type="number" step="0.001" class="input" />
           </div>
 
           <div class="rf-field" style="margin-top:10px;">
             <label>Data movimento</label>
-            <input id="carico-data" type="date" class="input">
+            <input id="carico-data" type="date" class="input" />
           </div>
 
           <div class="rf-field" style="margin-top:10px;">
             <label>Note</label>
-            <input id="carico-note" class="input">
+            <input id="carico-note" class="input" />
           </div>
 
           <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -65,9 +65,16 @@ export function renderCaricoModal() {
   `;
 }
 
+
 export function apriCaricoModal({ aziendaId }) {
 
   const backdrop = document.getElementById("rf-carico-backdrop");
+
+  if (!backdrop) {
+    console.error("Modal carico non trovato nel DOM");
+    return;
+  }
+
   const search = document.getElementById("carico-search");
   const risultati = document.getElementById("carico-risultati");
   const form = document.getElementById("carico-form");
@@ -85,13 +92,16 @@ export function apriCaricoModal({ aziendaId }) {
 
   backdrop.style.display = "flex";
 
+  // reset stato
+  risultati.innerHTML = "";
+  form.style.display = "none";
+  esitoEl.innerText = "";
+  qtaEl.value = "";
   dataEl.value = new Date().toISOString().slice(0, 10);
   noteEl.value = "Inventario";
 
   const close = () => {
     backdrop.style.display = "none";
-    risultati.innerHTML = "";
-    form.style.display = "none";
   };
 
   btnClose.onclick = close;
@@ -110,12 +120,17 @@ export function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    const { data } = await window.supabaseClient
+    const { data, error } = await window.supabaseClient
       .from("prodotti")
       .select("id, descrizione")
       .eq("azienda_id", aziendaId)
       .ilike("descrizione", `%${term}%`)
       .limit(10);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
 
     risultati.innerHTML = `
 
@@ -138,7 +153,13 @@ export function apriCaricoModal({ aziendaId }) {
       row.onclick = () => {
 
         prodottoId = row.dataset.id;
-        risultati.innerHTML = "";
+
+        risultati.innerHTML = `
+          <div class="rf-doc-item">
+            <div class="rf-doc-title">${row.innerText}</div>
+          </div>
+        `;
+
         form.style.display = "block";
 
       };
@@ -147,14 +168,22 @@ export function apriCaricoModal({ aziendaId }) {
 
   };
 
+
   btnConferma.onclick = async () => {
 
     const q = Number(qtaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
 
-    if (!prodottoId) return alert("Seleziona un prodotto");
-    if (!q || q <= 0) return alert("Inserisci quantità valida");
+    if (!prodottoId) {
+      alert("Seleziona un prodotto");
+      return;
+    }
+
+    if (!q || q <= 0) {
+      alert("Inserisci una quantità valida");
+      return;
+    }
 
     esitoEl.innerText = "Salvataggio...";
 
@@ -172,8 +201,8 @@ export function apriCaricoModal({ aziendaId }) {
 
     if (error) {
 
-      esitoEl.innerText = "Errore durante il salvataggio";
       console.error(error);
+      esitoEl.innerText = "Errore durante il salvataggio";
       return;
 
     }
