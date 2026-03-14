@@ -67,14 +67,6 @@ export async function renderOrdini(container, azienda) {
             placeholder="Scrivi o scegli prodotto"
           >
 
-          <datalist id="prodotti-list">
-
-            ${prodotti.map(p=>`
-              <option value="${p.nome}">
-            `).join("")}
-
-          </datalist>
-
         </div>
 
         <div>
@@ -176,7 +168,7 @@ export async function renderOrdini(container, azienda) {
 
     const ordini={};
 
-    document.querySelectorAll("#lista-ordine > .card").forEach(r=>{
+    container.querySelectorAll("#lista-ordine > .card").forEach(r=>{
 
       const nome=r.querySelector(".input-prodotto").value.trim().toLowerCase();
       const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
@@ -298,11 +290,8 @@ export async function renderOrdini(container, azienda) {
 
         <div style="margin-top:10px">
 
-          <button class="btn-primary"
-            onclick="window.location.href='mailto:${forn?.email_referente_ordini}?subject=Ordine&body=${encodeURIComponent(testoMail)}'">
-
+          <button class="btn-primary send-order-btn" data-fornitore="${fid}">
             Invia ordine
-
           </button>
 
         </div>
@@ -314,6 +303,40 @@ export async function renderOrdini(container, azienda) {
     }
 
     wrapperOrdini.innerHTML=html;
+
+    wrapperOrdini.querySelectorAll(".send-order-btn").forEach(btn=>{
+
+      btn.addEventListener("click", async ()=>{
+
+        const fid = btn.dataset.fornitore;
+
+        const forn = fornitori.find(f=>f.id==fid);
+
+        const prodottiForn = ordini[fid];
+
+        if(!forn?.email_referente_ordini){
+          alert("Email fornitore non disponibile");
+          return;
+        }
+
+        const res = await supabase.functions.invoke("send-order-email",{
+          body:{
+            email:forn.email_referente_ordini,
+            fornitore_nome:forn.ragione_sociale,
+            azienda_nome:azienda.nome,
+            prodotti:prodottiForn
+          }
+        });
+
+        if(res.error){
+          alert("Errore invio ordine");
+        }else{
+          alert("Ordine inviato");
+        }
+
+      });
+
+    });
 
   }
 
