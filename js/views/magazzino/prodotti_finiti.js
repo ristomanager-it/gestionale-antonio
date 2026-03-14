@@ -1,29 +1,40 @@
 export async function renderProdottiFiniti(container, azienda) {
 
-  container.innerHTML = `
+  const modal = document.createElement("div");
 
-  <div class="modal-overlay">
+  modal.innerHTML = `
 
-    <div class="modal-box">
+  <div class="rf-modal-backdrop">
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>Prodotti Finiti</h3>
-        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
-      </div>
+    <div class="rf-modal rf-modal-small">
 
-      <div style="margin-top:15px; display:flex; gap:10px;">
+      <div class="rf-modal-header">
 
-        <button class="app-button tiny" id="tab-cerca">
-          🔎 Cerca prodotto
-        </button>
+        <h3 class="rf-modal-title">Prodotti Finiti</h3>
 
-        <button class="app-button tiny gray" id="tab-disponibili">
-          📦 Disponibili
+        <button class="btn-secondary" id="close-modal">
+          Chiudi
         </button>
 
       </div>
 
-      <div id="contenuto-prodotti-finiti" style="margin-top:15px;"></div>
+      <div class="rf-modal-body">
+
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+
+          <button type="button" class="btn-primary" id="tab-cerca">
+            Cerca prodotto
+          </button>
+
+          <button type="button" class="btn-secondary" id="tab-disponibili">
+            Disponibili
+          </button>
+
+        </div>
+
+        <div id="contenuto-prodotti-finiti"></div>
+
+      </div>
 
     </div>
 
@@ -31,19 +42,21 @@ export async function renderProdottiFiniti(container, azienda) {
 
   `;
 
-  const contenuto = document.getElementById("contenuto-prodotti-finiti");
+  document.body.appendChild(modal);
 
-  document.getElementById("close-modal").onclick = () => {
-    container.innerHTML = "";
+  const contenuto = modal.querySelector("#contenuto-prodotti-finiti");
+
+  modal.querySelector("#close-modal").onclick = () => {
+    modal.remove();
   };
 
   loadRicerca(contenuto, azienda);
 
-  document.getElementById("tab-cerca").onclick = () => {
+  modal.querySelector("#tab-cerca").onclick = () => {
     loadRicerca(contenuto, azienda);
   };
 
-  document.getElementById("tab-disponibili").onclick = () => {
+  modal.querySelector("#tab-disponibili").onclick = () => {
     loadDisponibili(contenuto, azienda);
   };
 
@@ -53,19 +66,24 @@ function loadRicerca(box, azienda) {
 
   box.innerHTML = `
 
-    <input
-      id="search-pf"
-      class="input-pill"
-      placeholder="Cerca prodotto finito..."
-      style="width:100%; margin-bottom:10px;"
-    >
+    <div class="form-group">
+
+      <label>Cerca prodotto finito</label>
+
+      <input
+        id="search-pf"
+        class="input"
+        placeholder="Cerca per codice o descrizione..."
+      >
+
+    </div>
 
     <div id="risultati-pf"></div>
 
   `;
 
-  const input = document.getElementById("search-pf");
-  const risultati = document.getElementById("risultati-pf");
+  const input = box.querySelector("#search-pf");
+  const risultati = box.querySelector("#risultati-pf");
 
   input.addEventListener("input", async () => {
 
@@ -78,25 +96,59 @@ function loadRicerca(box, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, meta, descrizione")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "prodotto_finito")
-      .ilike("descrizione", `%${term}%`)
-      .limit(10);
+      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
+      .limit(15);
 
-    risultati.innerHTML = data.map(p => `
+    if (!data || !data.length) {
 
-      <div class="list-row" data-id="${p.id}" style="cursor:pointer;">
-        ${p.descrizione}
-      </div>
+      risultati.innerHTML = `
+        <div class="rf-empty-righe">
+          Nessun prodotto trovato
+        </div>
+      `;
 
-    `).join("");
+      return;
+    }
 
-    risultati.querySelectorAll(".list-row").forEach(row => {
+    risultati.innerHTML = `
+
+      <table class="app-table">
+
+        <thead>
+          <tr>
+            <th>Codice</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${data.map(p => `
+
+            <tr data-id="${p.id}" style="cursor:pointer;">
+
+              <td>${p.meta || ""}</td>
+              <td>${p.descrizione || ""}</td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    `;
+
+    risultati.querySelectorAll("tbody tr").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
+
         apriSchedaProdotto(box, azienda, id);
 
       };
@@ -109,38 +161,68 @@ function loadRicerca(box, azienda) {
 
 async function loadDisponibili(box, azienda) {
 
-  box.innerHTML = "Caricamento...";
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento prodotti disponibili...
+    </div>
+
+  `;
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_prodotti_finiti")
     .select("prodotto_id, descrizione, giacenza_attuale")
     .eq("azienda_id", azienda.id)
     .gt("giacenza_attuale", 0)
-    .order("giacenza_attuale", { ascending:false });
+    .order("giacenza_attuale", { ascending: false });
 
-  if (!data.length) {
-    box.innerHTML = "Nessun prodotto disponibile";
+  if (!data || !data.length) {
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Nessun prodotto disponibile
+      </div>
+    `;
+
     return;
   }
 
-  box.innerHTML = data.map(p => `
+  box.innerHTML = `
 
-    <div class="list-row" data-id="${p.prodotto_id}" style="cursor:pointer;">
+    <table class="app-table">
 
-      <div style="display:flex; justify-content:space-between;">
-        <strong>${p.descrizione}</strong>
-        <span>${p.giacenza_attuale}</span>
-      </div>
+      <thead>
+        <tr>
+          <th>Prodotto</th>
+          <th>Disponibili</th>
+        </tr>
+      </thead>
 
-    </div>
+      <tbody>
 
-  `).join("");
+        ${data.map(p => `
 
-  box.querySelectorAll(".list-row").forEach(row => {
+          <tr data-id="${p.prodotto_id}" style="cursor:pointer;">
+
+            <td>${p.descrizione}</td>
+            <td>${p.giacenza_attuale}</td>
+
+          </tr>
+
+        `).join("")}
+
+      </tbody>
+
+    </table>
+
+  `;
+
+  box.querySelectorAll("tbody tr").forEach(row => {
 
     row.onclick = () => {
 
       const id = row.dataset.id;
+
       apriSchedaProdotto(box, azienda, id);
 
     };
@@ -151,7 +233,13 @@ async function loadDisponibili(box, azienda) {
 
 async function apriSchedaProdotto(box, azienda, prodottoId) {
 
-  box.innerHTML = "Caricamento...";
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento scheda prodotto...
+    </div>
+
+  `;
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_prodotti_finiti")
@@ -161,29 +249,43 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .single();
 
   if (!data) {
-    box.innerHTML = "Prodotto non trovato";
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Prodotto non trovato
+      </div>
+    `;
+
     return;
   }
 
   box.innerHTML = `
 
-    <h4>${data.descrizione}</h4>
+    <div class="card">
 
-    <div style="margin-top:10px;">
-      Disponibili: <strong>${data.giacenza_attuale}</strong>
-    </div>
+      <h3 style="margin-top:0;">
+        ${data.descrizione}
+      </h3>
 
-    <div style="margin-top:20px; display:flex; gap:10px;">
+      <div style="margin-top:10px; font-size:14px;">
 
-      <button class="app-button tiny gray" id="btn-indietro">
-        ← Indietro
-      </button>
+        Disponibili: <strong>${data.giacenza_attuale}</strong>
+
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:8px;">
+
+        <button class="btn-secondary" id="btn-indietro">
+          Indietro
+        </button>
+
+      </div>
 
     </div>
 
   `;
 
-  document.getElementById("btn-indietro").onclick = () => {
+  box.querySelector("#btn-indietro").onclick = () => {
     loadRicerca(box, azienda);
   };
 
