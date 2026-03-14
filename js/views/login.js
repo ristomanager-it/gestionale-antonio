@@ -15,7 +15,7 @@ container.innerHTML=`
 <div class="login-logo-wrap">
 
 <img 
-src="/assets/logo-ristoflow.png"
+src="assets/logo-ristoflow.png"
 class="login-logo"
 >
 
