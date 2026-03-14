@@ -1,4 +1,4 @@
-export async function renderMateriePrime(container, azienda) {
+export async function renderMateriePrime(container, azienda, startTab = "cerca") {
 
   container.innerHTML = `
 
@@ -37,7 +37,11 @@ export async function renderMateriePrime(container, azienda) {
     container.innerHTML = "";
   };
 
-  loadRicerca(contenuto, azienda);
+  if (startTab === "sottoscorta") {
+    loadSottoscorta(contenuto, azienda);
+  } else {
+    loadRicerca(contenuto, azienda);
+  }
 
   document.getElementById("tab-cerca").onclick = () => {
     loadRicerca(contenuto, azienda);
@@ -205,9 +209,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
         ${(movimenti || []).map(m => `
 
           <div style="font-size:13px; padding:4px 0;">
-
             ${m.tipo_movimento} — ${m.quantita}
-
           </div>
 
         `).join("")}
@@ -217,10 +219,6 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     </div>
 
     <div style="margin-top:20px; display:flex; gap:10px;">
-
-      <button class="app-button tiny" id="btn-carico">
-        + Carico
-      </button>
 
       <button class="app-button tiny gray" id="btn-indietro">
         ← Indietro
