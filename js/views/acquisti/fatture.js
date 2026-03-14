@@ -294,12 +294,10 @@ async function openDocumentoUploadModal(azienda) {
     <div class="rf-modal-backdrop">
       <div class="rf-modal">
         <div class="rf-modal-header">
-          <div class="rf-header-copy">
-            <h3 class="rf-modal-title">Carica documento</h3>
-            <p class="rf-modal-sub">Upload su Storage bucket "fatture", OCR via edge function "ocr-fattura" e salvataggio in bozza.</p>
-          </div>
-          <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
-        </div>
+          <div class="rf-header-simple">
+  <h3 class="rf-modal-title">Carica documento</h3>
+  <button type="button" id="rf-close-top" class="rf-close-x">✕</button>
+</div>
 
         <div class="rf-modal-body">
           <div class="rf-grid-2">
