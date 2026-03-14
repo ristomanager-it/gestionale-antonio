@@ -31,36 +31,6 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
   { id: "spese_accessorie", nome: "SPESE ACCESSORIE", categoriaBilancioSuggerita: "SPESE ACCESSORIE" }
 ];
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export async function renderFatture(container, azienda) {
   ensureAcquistiModalStyles();
 
@@ -70,8 +40,7 @@ export async function renderFatture(container, azienda) {
         <div>
           <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
           <div style="font-size:13px; color:#667085; margin-top:4px;">
-            Caricamento documento con OCR o inserimento manuale. Salvataggio in bozza con righe collegate ai prodotti.
-          </div>
+            
         </div>
         <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
       </div>
@@ -296,8 +265,7 @@ async function openDocumentoUploadModal(azienda) {
         <div class="rf-modal-header">
           <div class="rf-header-copy">
             <h3 class="rf-modal-title">Carica documento</h3>
-            <p class="rf-modal-sub">Upload su Storage bucket "fatture", OCR via edge function "ocr-fattura" e salvataggio in bozza.</p>
-          </div>
+            
           <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
         </div>
 
