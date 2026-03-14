@@ -42,6 +42,7 @@ export async function render(container) {
     });
 
   renderHome(azienda);
+
 }
 
 function renderHome(azienda) {
@@ -52,26 +53,26 @@ function renderHome(azienda) {
   home.innerHTML = `
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
 
-      <div class="view mag-card" data-type="materia_prima">
+      <div class="view mag-card" data-route="materie-prime">
         <h3>Materie Prime</h3>
         <p>Magazzino acquisti</p>
       </div>
 
-      <div class="view mag-card" data-type="semilavorato">
+      <div class="view mag-card" data-route="preparazioni">
         <h3>Preparazioni</h3>
         <p>Semilavorati prodotti</p>
       </div>
 
-      <div class="view mag-card" data-type="prodotto_finito">
+      <div class="view mag-card" data-route="prodotti-finiti">
         <h3>Prodotti Finiti</h3>
         <p>Pronti alla vendita</p>
       </div>
 
-      <div class="view mag-card" data-tab="anagrafica">
+      <div class="view mag-card" data-route="anagrafica">
         <h3>Anagrafica Prodotti</h3>
       </div>
 
-      <div class="view mag-card" data-tab="mapping">
+      <div class="view mag-card" data-route="mapping">
         <h3>Mapping Fornitori</h3>
       </div>
 
@@ -84,18 +85,44 @@ function renderHome(azienda) {
 
     card.addEventListener("click", () => {
 
-      const type = card.dataset.type;
-      const tab = card.dataset.tab;
+      const route = card.dataset.route;
 
-      if (type === "materia_prima") renderMateriePrime(content, azienda);
-      if (type === "semilavorato") renderPreparazioni(content, azienda);
-      if (type === "prodotto_finito") renderProdottiFiniti(content, azienda);
+      window.location.hash = `#/magazzino/${route}`;
 
-      if (tab === "mapping") renderMapping(content, azienda);
-      if (tab === "anagrafica") renderAnagraficaProdotti(content);
+      openMagazzinoRoute(route, content, azienda);
 
     });
 
   });
+
+  const hash = window.location.hash.split("/")[2];
+
+  if (hash) {
+    openMagazzinoRoute(hash, content, azienda);
+  }
+
+}
+
+function openMagazzinoRoute(route, container, azienda) {
+
+  if (route === "materie-prime") {
+    renderMateriePrime(container, azienda);
+  }
+
+  if (route === "preparazioni") {
+    renderPreparazioni(container, azienda);
+  }
+
+  if (route === "prodotti-finiti") {
+    renderProdottiFiniti(container, azienda);
+  }
+
+  if (route === "mapping") {
+    renderMapping(container, azienda);
+  }
+
+  if (route === "anagrafica") {
+    renderAnagraficaProdotti(container);
+  }
 
 }
