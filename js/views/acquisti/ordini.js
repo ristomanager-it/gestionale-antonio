@@ -61,17 +61,19 @@ export async function renderOrdini(container, azienda) {
         <div>
           <label>Prodotto</label>
 
-          <select class="input select-prodotto">
+          <input 
+            class="input input-prodotto"
+            list="prodotti-list"
+            placeholder="Scrivi o scegli prodotto"
+          >
 
-            <option value="">Seleziona prodotto</option>
+          <datalist id="prodotti-list">
 
             ${prodotti.map(p=>`
-              <option value="${p.id}">
-                ${p.nome}
-              </option>
+              <option value="${p.nome}">
             `).join("")}
 
-          </select>
+          </datalist>
 
         </div>
 
@@ -93,12 +95,14 @@ export async function renderOrdini(container, azienda) {
 
     lista.appendChild(row);
 
-    const select=row.querySelector(".select-prodotto");
+    const input=row.querySelector(".input-prodotto");
     const um=row.querySelector(".um-prodotto");
 
-    select.addEventListener("change",()=>{
+    input.addEventListener("input",()=>{
 
-      const prod=prodotti.find(p=>p.id==select.value);
+      const nome=input.value.toLowerCase();
+
+      const prod=prodotti.find(p=>p.nome.toLowerCase()===nome);
 
       um.innerText=prod?.unita_misura||"";
 
@@ -108,11 +112,12 @@ export async function renderOrdini(container, azienda) {
 
     if(prodottoId){
 
-      select.value=prodottoId;
-
       const prod=prodotti.find(p=>p.id==prodottoId);
 
-      um.innerText=prod?.unita_misura||"";
+      if(prod){
+        input.value=prod.nome;
+        um.innerText=prod.unita_misura||"";
+      }
 
     }
 
@@ -139,7 +144,6 @@ export async function renderOrdini(container, azienda) {
 
   }
 
-  container.addEventListener("change", generaOrdini);
   container.addEventListener("input", generaOrdini);
 
   function generaOrdini(){
@@ -148,19 +152,19 @@ export async function renderOrdini(container, azienda) {
 
     document.querySelectorAll("#lista-ordine > .card").forEach(r=>{
 
-      const prodottoId=r.querySelector(".select-prodotto").value;
+      const nome=r.querySelector(".input-prodotto").value.trim().toLowerCase();
       const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
 
-      if(!prodottoId || qta<=0) return;
+      if(!nome || qta<=0) return;
 
-      const prodotto=prodotti.find(p=>p.id==prodottoId);
+      const prodotto=prodotti.find(p=>p.nome.toLowerCase()===nome);
 
       if(!prodotto) return;
 
       const fornId=prodotto.fornitore_preferito_id;
 
       if(!fornId){
-        renderSelectFornitore(r,prodottoId);
+        renderSelectFornitore(r,prodotto.id);
         return;
       }
 
