@@ -1,86 +1,141 @@
-export function renderAnagraficaProdotti(container) {
+export async function renderAnagraficaProdotti(container) {
 
   const azienda = window.state?.azienda;
 
-  if (!azienda) {
-    container.innerHTML = `
-      <div class="view">
-        <h3>Nessuna azienda attiva</h3>
-      </div>
-    `;
-    return;
-  }
-
   container.innerHTML = `
-    <h3>Anagrafica Prodotti</h3>
 
-    <div style="display:flex; gap:10px; margin-bottom:12px;">
+  <div class="modal-overlay">
+
+    <div class="modal-box">
+
+      <div style="display:flex; justify-content:space-between;">
+        <h3>Anagrafica Prodotti</h3>
+        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
+      </div>
+
       <input
-        id="search-prodotto"
+        id="search-prodotti"
         class="input-pill"
-        placeholder="🔎 Cerca prodotto..."
-        style="flex:1"
-      />
+        placeholder="Cerca prodotto..."
+        style="width:100%; margin-top:15px;"
+      >
 
-      <button class="app-button tiny gray" id="btn-back-mag-home">
-        ← Menu Magazzino
-      </button>
+      <div id="risultati-prodotti" style="margin-top:10px;"></div>
+
     </div>
 
-    <div id="lista-prodotti"></div>
+  </div>
+
   `;
 
-  document
-    .getElementById("btn-back-mag-home")
-    ?.addEventListener("click", () => {
-      window.location.hash = "#/magazzino";
-    });
+  const risultati = document.getElementById("risultati-prodotti");
 
-  const input = document.getElementById("search-prodotto");
-  const lista = document.getElementById("lista-prodotti");
+  document.getElementById("close-modal").onclick = () => {
+    container.innerHTML = "";
+  };
+
+  const input = document.getElementById("search-prodotti");
 
   input.addEventListener("input", async () => {
 
     const term = input.value.trim();
 
     if (term.length < 2) {
-      lista.innerHTML = "";
+      risultati.innerHTML = "";
       return;
     }
 
-    const { data, error } = await window.supabaseClient
+    const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, descrizione")
+      .select("id, descrizione, tipo_prodotto")
       .eq("azienda_id", azienda.id)
       .ilike("descrizione", `%${term}%`)
-      .limit(20);
+      .limit(15);
 
-    if (error) {
-      lista.innerHTML = `<p style="color:red;">Errore: ${error.message}</p>`;
-      return;
-    }
+    risultati.innerHTML = data.map(p => `
 
-    lista.innerHTML = `
-      <table class="table-timbrature">
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-          </tr>
-        </thead>
+      <div class="list-row" data-id="${p.id}" style="cursor:pointer;">
 
-        <tbody>
-          ${(data || []).map(p => `
-            <tr>
-              <td>${p.codice_interno || ""}</td>
-              <td>${p.descrizione || ""}</td>
-            </tr>
-          `).join("")}
-        </tbody>
+        <div style="display:flex; justify-content:space-between;">
+          <strong>${p.descrizione}</strong>
+          <span style="font-size:12px;">${p.tipo_prodotto}</span>
+        </div>
 
-      </table>
-    `;
+      </div>
+
+    `).join("");
+
+    risultati.querySelectorAll(".list-row").forEach(row => {
+
+      row.onclick = () => {
+
+        const id = row.dataset.id;
+        apriSchedaProdotto(risultati, azienda, id);
+
+      };
+
+    });
 
   });
+
+}
+
+async function apriSchedaProdotto(box, azienda, prodottoId) {
+
+  const { data } = await window.supabaseClient
+    .from("prodotti")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .eq("id", prodottoId)
+    .single();
+
+  box.innerHTML = `
+
+    <h4>${data.descrizione}</h4>
+
+    <div style="margin-top:15px;">
+
+      <label>Unità di misura</label>
+      <input id="um" class="input-pill" value="${data.um || ""}">
+
+      <label style="margin-top:10px;">Scorta minima</label>
+      <input id="scorta" class="input-pill" value="${data.scorta_minima || ""}">
+
+    </div>
+
+    <div style="margin-top:15px; display:flex; gap:10px;">
+
+      <button class="app-button tiny" id="salva-prodotto">
+        Salva
+      </button>
+
+      <button class="app-button tiny gray" id="indietro">
+        Indietro
+      </button>
+
+    </div>
+
+  `;
+
+  document.getElementById("indietro").onclick = () => {
+    renderAnagraficaProdotti(box.parentElement.parentElement.parentElement);
+  };
+
+  document.getElementById("salva-prodotto").onclick = async () => {
+
+    const um = document.getElementById("um").value;
+    const scorta = document.getElementById("scorta").value;
+
+    await window.supabaseClient
+      .from("prodotti")
+      .update({
+        um,
+        scorta_minima: scorta
+      })
+      .eq("id", prodottoId);
+
+    alert("Salvato");
+
+  };
 
 }
