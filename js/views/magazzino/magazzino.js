@@ -24,7 +24,7 @@ export async function render(container) {
         ← Torna alla Dashboard
       </button>
 
-      <h2>Modulo Magazzino</h2>
+      <h2>Magazzino</h2>
 
       <div id="magazzino-home"></div>
       <div id="magazzino-content" style="margin-top:20px;"></div>
@@ -48,41 +48,48 @@ function renderHome(azienda) {
   const content = document.getElementById("magazzino-content");
 
   home.innerHTML = `
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
 
-      <div class="view mag-card" data-route="materie-prime">
-        <h3>Materie Prime</h3>
-        <p>Magazzino acquisti</p>
-      </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
 
-      <div class="view mag-card" data-route="preparazioni">
-        <h3>Preparazioni</h3>
-        <p>Semilavorati prodotti</p>
-      </div>
+      <button class="app-button tiny" data-route="materie-prime">
+        Materie Prime
+      </button>
 
-      <div class="view mag-card" data-route="prodotti-finiti">
-        <h3>Prodotti Finiti</h3>
-        <p>Pronti alla vendita</p>
-      </div>
+      <button class="app-button tiny" data-route="preparazioni">
+        Preparazioni
+      </button>
 
-      <div class="view mag-card" data-route="anagrafica">
-        <h3>Anagrafica Prodotti</h3>
-      </div>
+      <button class="app-button tiny" data-route="prodotti-finiti">
+        Prodotti Finiti
+      </button>
 
-      <div class="view mag-card" data-route="mapping">
-        <h3>Mapping Fornitori</h3>
+      <button class="app-button tiny gray" data-route="anagrafica">
+        Anagrafica Prodotti
+      </button>
+
+      <button class="app-button tiny gray" data-route="mapping">
+        Mapping Fornitori
+      </button>
+
+    </div>
+
+    <div class="view">
+
+      <h3>⚠️ Urgenze Magazzino</h3>
+
+      <div id="magazzino-urgenze">
+        Caricamento...
       </div>
 
     </div>
+
   `;
 
-  document.querySelectorAll(".mag-card").forEach(card => {
+  document.querySelectorAll("[data-route]").forEach(btn => {
 
-    card.style.cursor = "pointer";
+    btn.addEventListener("click", () => {
 
-    card.addEventListener("click", () => {
-
-      const route = card.dataset.route;
+      const route = btn.dataset.route;
 
       window.location.hash = `#/magazzino/${route}`;
 
@@ -92,10 +99,63 @@ function renderHome(azienda) {
 
   });
 
+  loadUrgenze(azienda);
+
   const hash = window.location.hash.split("/")[2];
 
   if (hash) {
     openMagazzinoRoute(hash, content, azienda);
+  }
+
+}
+
+async function loadUrgenze(azienda) {
+
+  const box = document.getElementById("magazzino-urgenze");
+
+  if (!box) return;
+
+  try {
+
+    const { data: sottoscorta } = await window.supabaseClient
+      .from("v_magazzino_materie_prime")
+      .select("prodotto_id")
+      .eq("azienda_id", azienda.id)
+      .lte("giacenza_attuale", "scorta_minima");
+
+    const { data: preparazioni } = await window.supabaseClient
+      .from("v_magazzino_preparazioni")
+      .select("prodotto_id")
+      .eq("azienda_id", azienda.id)
+      .lte("giacenza_attuale", "scorta_minima");
+
+    const prodottiSotto = sottoscorta?.length || 0;
+    const prepSotto = preparazioni?.length || 0;
+
+    box.innerHTML = `
+
+      <div style="display:flex; gap:20px; flex-wrap:wrap;">
+
+        <div class="card-small">
+          <strong>${prodottiSotto}</strong><br>
+          prodotti sottoscorta
+        </div>
+
+        <div class="card-small">
+          <strong>${prepSotto}</strong><br>
+          preparazioni sottoscorta
+        </div>
+
+      </div>
+
+    `;
+
+  } catch (err) {
+
+    box.innerHTML = `
+      <p style="color:red;">Errore nel caricamento urgenze</p>
+    `;
+
   }
 
 }
