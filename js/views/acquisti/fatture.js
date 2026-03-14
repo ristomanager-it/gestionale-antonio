@@ -1243,128 +1243,159 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
   });
 }
 
-function ensureAcquistiModalStyles() {
-  if (document.getElementById("rf-acquisti-modal-style")) return;
+const modal = document.createElement("div");
 
-  const style = document.createElement("style");
-  style.id = "rf-acquisti-modal-style";
-  style.textContent = `
+modal.innerHTML = `
 
-  body.rf-modal-open{
-    overflow:hidden;
-  }
+<div class="rf-modal-backdrop">
 
-  .rf-modal-backdrop{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.45);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:16px;
-    z-index:9999;
-    box-sizing:border-box;
-  }
+  <div class="rf-modal">
 
-  .rf-modal{
-    width:100%;
-    max-width:1080px;
-    max-height:90vh;
-    background:#fff;
-    border-radius:16px;
-    box-shadow:0 18px 50px rgba(0,0,0,.22);
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-  }
+    <div class="rf-modal-header">
 
-  .rf-modal-small{
-    max-width:680px;
-  }
+      <h3 class="rf-modal-title">Carica documento</h3>
 
-  .rf-modal-header{
-    flex-shrink:0;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    padding:18px;
-    border-bottom:1px solid rgba(0,0,0,.08);
-  }
+      <button id="rf-close-top" class="rf-close-icon">
+        ✕
+      </button>
 
-  .rf-modal-body{
-    flex:1;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    padding:18px;
-    display:grid;
-    gap:14px;
-    box-sizing:border-box;
-  }
+    </div>
 
-  .rf-modal-actions{
-    flex-shrink:0;
-    display:flex;
-    justify-content:flex-end;
-    gap:8px;
-    padding:14px 18px 18px;
-    border-top:1px solid rgba(0,0,0,.08);
-    flex-wrap:wrap;
-  }
+    <div class="rf-modal-body">
 
-  .rf-grid-2{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:12px;
-  }
+      <div class="rf-grid-2">
 
-  .rf-field{
-    min-width:0;
-    display:grid;
-    gap:6px;
-  }
+        <div class="rf-field">
+          <label>Tipo documento</label>
+          <select id="rf-tipo-documento" class="input">
+            <option value="fattura">Fattura</option>
+            <option value="ddt">DDT</option>
+          </select>
+        </div>
 
-  .rf-riga-grid{
-    display:grid;
-    gap:10px;
-    grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
-    width:100%;
-  }
+        <div class="rf-field">
+          <label>Metodo</label>
+          <select id="rf-metodo" class="input">
+            <option value="carica_documento">Carica documento</option>
+            <option value="manuale">Manuale</option>
+          </select>
+        </div>
 
-  input,select,textarea{
-    max-width:100%;
-    font-size:16px;
-    box-sizing:border-box;
-  }
+      </div>
 
-  @media (max-width:760px){
+      <div id="rf-upload-wrap" class="rf-field">
 
-    .rf-modal-backdrop{
-      padding:8px;
-    }
+        <label>Documento</label>
 
-    .rf-modal{
-      max-height:95vh;
-      border-radius:12px;
-    }
+        <input
+          id="rf-file"
+          type="file"
+          class="input"
+          accept="image/*,.pdf"
+        >
 
-    .rf-grid-2{
-      grid-template-columns:1fr;
-    }
+      </div>
 
-    .rf-riga-grid{
-      grid-template-columns:1fr;
-    }
+      <div class="rf-grid-2">
 
-    .rf-modal-actions button,
-    .rf-top-close{
-      width:100%;
-    }
+        <div class="rf-field">
+          <label>Fornitore</label>
 
-  }
+          <input
+            id="rf-fornitore"
+            class="input"
+            list="rf-fornitori-list"
+            placeholder="Scrivi o seleziona"
+          >
 
-  `;
+          <datalist id="rf-fornitori-list">
+            ${fornitori.map(f=>`
+              <option value="${escapeHtml(f.ragione_sociale||"")}"></option>
+            `).join("")}
+          </datalist>
+
+        </div>
+
+        <div class="rf-field">
+
+          <label>P.IVA</label>
+
+          <input
+            id="rf-fornitore-piva"
+            class="input"
+            placeholder="Partita IVA"
+          >
+
+        </div>
+
+      </div>
+
+      <div class="rf-grid-2">
+
+        <div class="rf-field">
+          <label id="rf-numero-label">Numero documento</label>
+          <input id="rf-numero" class="input">
+        </div>
+
+        <div class="rf-field">
+          <label id="rf-data-label">Data documento</label>
+          <input id="rf-data" type="date" class="input">
+        </div>
+
+      </div>
+
+      <div id="rf-totale-wrap" class="rf-field">
+
+        <label>Totale</label>
+
+        <input
+          id="rf-totale"
+          class="input"
+          placeholder="0,00"
+        >
+
+      </div>
+
+      <div class="rf-field">
+
+        <div style="display:flex;justify-content:space-between;align-items:center">
+
+          <label>Righe documento</label>
+
+          <button
+            type="button"
+            id="btn-add-riga"
+            class="btn-secondary"
+          >
+            Aggiungi
+          </button>
+
+        </div>
+
+        <div id="righe-container"></div>
+
+      </div>
+
+      <div id="rf-feedback" class="rf-feedback"></div>
+
+    </div>
+
+    <div class="rf-modal-actions">
+
+      <button id="rf-save" class="btn-primary">
+        Salva documento
+      </button>
+
+      <button id="rf-close-bottom" class="btn-secondary">
+        Chiudi
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+`;
 
   document.head.appendChild(style);
 }
