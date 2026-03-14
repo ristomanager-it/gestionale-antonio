@@ -1197,19 +1197,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
     hiddenInternaId.value = categoriaInternaId;
   }
 }
-
-        if (createdInternaError || !createdInterna?.id) {
-          setFeedback(createdInternaError?.message || "Errore creazione categoria interna.", true);
-          return;
-        }
-
-        categoriaInternaId = String(createdInterna.id);
-        interneByNome.set(String(createdInterna.nome || "").trim().toLowerCase(), categoriaInternaId);
-        datalistInterna.insertAdjacentHTML(
-          "beforeend",
-          `<option value="${escapeHtml(createdInterna.nome || "")}"></option>`
-        );
-      }
+       
 
       const codiceInterno = normalizeCodiceInterno(nomeInterno);
 
