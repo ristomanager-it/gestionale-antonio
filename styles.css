@@ -31,9 +31,9 @@ rgba(0,0,0,0.08);
 
 --container-max-width: 1200px;
 
---header-height: 110px; --app-padding-x: 20px; --app-padding-y: 32px;
+--header-height: 96px; --app-padding-x: 20px; --app-padding-y: 32px;
 
---view-padding: 32px; --card-padding: 24px; } /*
+--view-padding: 32px; --card-padding: 20px; } /*
 ========================================================= / /
 ================= RESET BASE ============================ / /
 ========================================================= */
@@ -49,10 +49,10 @@ hidden;
 font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
 sans-serif; color: var(--color-text);
 
-font-size: 14px; line-height: 1.6; font-weight: 500; }
+font-size: 13px; line-height: 1.6; font-weight: 500; }
 
 /* Uniformiamo controlli form */ button, input, select, textarea {
-font-family: inherit; font-size: 17px; }
+font-family: inherit; font-size: 15px; }
 
 /* Media responsive safe */ img, video, canvas, svg { max-width: 100%;
 display: block; }
@@ -112,7 +112,7 @@ display: flex; align-items: center; justify-content: center;
 
 font-size: 18px; font-weight: 700; }
 
-.header-user-name { font-size: 14px; font-weight: 600; }
+.header-user-name { font-size: 13px; font-weight: 600; }
 
 .logout-link { background: none; border: none; font-size: 13px;
 font-weight: 700; color: var(--color-primary); cursor: pointer; }
@@ -243,7 +243,7 @@ rgba(0,0,0,0.04); }
 /* DESKTOP: ≥ 1200px */ @media (min-width: 1200px) {
 
 :root { --app-padding-x: 40px; --app-padding-y: 40px; --view-padding: 34px;
---card-padding: 24px; }
+--card-padding: 20px; }
 
 .view, .page { max-width: var(--container-max-width); } }
 
@@ -343,7 +343,7 @@ gap: 18px; } }
 
 .input { padding: 14px 16px; border-radius: 14px; border: 1px solid
 var(--color-border); background: #ffffff; transition: all 0.2s ease;
-max-width: 100%; font-size: 17px; }
+max-width: 100%; font-size: 15px; }
 
 .input:focus { outline: none; border-color: var(--color-primary);
 box-shadow: 0 0 0 4px rgba(14, 90, 122, 0.12); }
@@ -414,7 +414,7 @@ collapse; display: block; max-width: 100%; overflow-x: auto;
 -webkit-overflow-scrolling: touch; font-size: 15px; }
 
 .view table th, .page table th, .card table th { font-weight: 700;
-font-size: 14px; text-transform: uppercase; letter-spacing: 0.4px;
+font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px;
 color: var(--color-text-muted); padding: 12px 16px; background: #F8FAFC;
 white-space: nowrap; }
 
@@ -515,7 +515,7 @@ scale(1.08); box-shadow: 0 12px 28px rgba(0,0,0,0.15); }
 
 .tb-scroll-actions { gap: 12px; }
 
-.btn-timbratura { height: 105px; font-size: 14px; }
+.btn-timbratura { height: 105px; font-size: 13px; }
 
 } .acquisto-riga-card { padding: 16px; margin-bottom: 16px; }
 
@@ -553,12 +553,12 @@ padding:4px 10px; border-radius:10px; font-size:12px; cursor:pointer; }
 var(--color-border); background:#fff; padding:4px 10px;
 border-radius:10px; font-size:12px; }
 
-.home-compact .incassi-value{ font-size:18px; font-weight:700; }
+.home-compact .incassi-value{ font-size:16px; font-weight:700; }
 
 .home-compact .incassi-iva{ font-size:11px;
 color:var(--color-text-muted); }
 
-.home-compact canvas{ max-height:120px; margin-top:8px; }
+.home-compact canvas{ max-height:100px; margin-top:8px; }
 
 .home-compact .bep{ text-align:center; font-size:13px; font-weight:700;
 margin-top:6px; }
@@ -612,7 +612,7 @@ border-bottom:1px solid #eee; }
 .menu-logout{ margin-top:20px; padding:16px 20px; border-top:1px solid
 #eee; font-weight:700; color:#b91c1c; cursor:pointer; } .sidebar {
 overflow-y: auto; height: 100vh; } .kpi-row{ display:grid;
-grid-template-columns:repeat(4,1fr); gap:12px; margin-top:18px;
+grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px;
 text-align:center; }
 
 .kpi-title{ font-size:13px; font-weight:600; color:#6b7280; }
@@ -627,7 +627,7 @@ text-align:center; }
 
 .incassi-label{ font-size:13px; color:#6b7280; }
 
-.incassi-value{ font-size:22px; font-weight:700; } /* TABLE RESPONSIVE
+.incassi-value{ font-size:18px; font-weight:700; } /* TABLE RESPONSIVE
 */
 
 @media (max-width:760px){
@@ -636,7 +636,7 @@ text-align:center; }
 
 .app-table thead{ display:none; }
 
-.app-table tbody{ display:flex; flex-direction:column; gap:12px; }
+.app-table tbody{ display:flex; flex-direction:column; gap:10px; }
 
 .app-table tr{ display:block; background:#fff; border-radius:10px;
 padding:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
