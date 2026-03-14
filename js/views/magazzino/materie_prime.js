@@ -9,30 +9,25 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     <div class="rf-modal">
 
       <div class="rf-modal-header">
-
         <h3 class="rf-modal-title">Materie Prime</h3>
-
-        <button class="btn-secondary" id="close-modal">
-          Chiudi
-        </button>
-
+        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
       <div class="rf-modal-body">
 
-        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
 
-          <button type="button" class="btn-primary" id="tab-cerca">
+          <button class="app-button tiny" id="tab-cerca">
             Cerca prodotto
           </button>
 
-          <button type="button" class="btn-secondary" id="tab-sottoscorta">
+          <button class="app-button tiny gray" id="tab-sottoscorta">
             Sottoscorta
           </button>
 
         </div>
 
-        <div id="contenuto-magazzino"></div>
+        <div id="contenuto-magazzino" style="margin-top:12px;"></div>
 
       </div>
 
@@ -70,31 +65,30 @@ function loadRicerca(box, azienda) {
 
   box.innerHTML = `
 
-    <div class="form-group">
+    <input
+      id="search-mp"
+      class="input"
+      placeholder="Cerca materia prima..."
+      autocomplete="off"
+      style="width:100%;"
+    >
 
-      <label>Cerca materia prima</label>
+    <div id="autocomplete-results" style="margin-top:8px;"></div>
 
-      <input
-        id="search-mp"
-        class="input"
-        placeholder="Cerca per codice o descrizione..."
-      >
-
-    </div>
-
-    <div id="risultati-mp"></div>
+    <div id="scheda-prodotto" style="margin-top:12px;"></div>
 
   `;
 
   const input = box.querySelector("#search-mp");
-  const risultati = box.querySelector("#risultati-mp");
+  const results = box.querySelector("#autocomplete-results");
+  const scheda = box.querySelector("#scheda-prodotto");
 
   input.addEventListener("input", async () => {
 
     const term = input.value.trim();
 
     if (term.length < 2) {
-      risultati.innerHTML = "";
+      results.innerHTML = "";
       return;
     }
 
@@ -103,57 +97,28 @@ function loadRicerca(box, azienda) {
       .select("id, meta, descrizione")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "materia_prima")
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
-      .limit(15);
+      .or(`meta.ilike.%${term}%,descrizione.ilike.%${term}%`)
+      .limit(8);
 
-    if (!data || !data.length) {
+    results.innerHTML = (data || []).map(p => `
 
-      risultati.innerHTML = `
-        <div class="rf-empty-righe">
-          Nessun prodotto trovato
+      <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
+
+        <div class="rf-doc-title">
+          ${(p.meta || "")} — ${p.descrizione}
         </div>
-      `;
 
-      return;
-    }
+      </div>
 
-    risultati.innerHTML = `
+    `).join("");
 
-      <table class="app-table">
-
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          ${data.map(p => `
-
-            <tr data-id="${p.id}" style="cursor:pointer;">
-
-              <td>${p.meta || ""}</td>
-              <td>${p.descrizione || ""}</td>
-
-            </tr>
-
-          `).join("")}
-
-        </tbody>
-
-      </table>
-
-    `;
-
-    risultati.querySelectorAll("tbody tr").forEach(row => {
+    results.querySelectorAll(".autocomplete-item").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-
-        apriSchedaProdotto(box, azienda, id);
+        apriSchedaProdotto(scheda, azienda, id);
+        results.innerHTML = "";
 
       };
 
@@ -165,13 +130,7 @@ function loadRicerca(box, azienda) {
 
 async function loadSottoscorta(box, azienda) {
 
-  box.innerHTML = `
-
-    <div class="card">
-      Caricamento prodotti sottoscorta...
-    </div>
-
-  `;
+  box.innerHTML = "Caricamento...";
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
@@ -180,60 +139,40 @@ async function loadSottoscorta(box, azienda) {
     .lte("giacenza_attuale", "scorta_minima");
 
   if (!data || !data.length) {
-
-    box.innerHTML = `
-      <div class="rf-empty-righe">
-        Nessun prodotto sottoscorta
-      </div>
-    `;
-
+    box.innerHTML = "Nessun prodotto sottoscorta";
     return;
   }
 
   box.innerHTML = `
 
-    <table class="app-table">
+    <div class="rf-doc-list">
 
-      <thead>
-        <tr>
-          <th>Prodotto</th>
-          <th>Giacenza</th>
-          <th>Scorta minima</th>
-        </tr>
-      </thead>
+      ${data.map(p => `
 
-      <tbody>
+        <div class="rf-doc-item sottoscorta" data-id="${p.prodotto_id}">
 
-        ${data.map(p => `
+          <div class="rf-doc-title">
+            ${p.descrizione}
+          </div>
 
-          <tr data-id="${p.prodotto_id}" style="cursor:pointer;">
+          <div class="rf-doc-meta">
+            <span>Giacenza: ${p.giacenza_attuale}</span>
+            <span>Min: ${p.scorta_minima}</span>
+          </div>
 
-            <td>${p.descrizione}</td>
+        </div>
 
-            <td style="color:#b42318;">
-              ${p.giacenza_attuale}
-            </td>
+      `).join("")}
 
-            <td>
-              ${p.scorta_minima}
-            </td>
-
-          </tr>
-
-        `).join("")}
-
-      </tbody>
-
-    </table>
+    </div>
 
   `;
 
-  box.querySelectorAll("tbody tr").forEach(row => {
+  box.querySelectorAll(".sottoscorta").forEach(row => {
 
     row.onclick = () => {
 
       const id = row.dataset.id;
-
       apriSchedaProdotto(box, azienda, id);
 
     };
@@ -244,13 +183,7 @@ async function loadSottoscorta(box, azienda) {
 
 async function apriSchedaProdotto(box, azienda, prodottoId) {
 
-  box.innerHTML = `
-
-    <div class="card">
-      Caricamento scheda prodotto...
-    </div>
-
-  `;
+  box.innerHTML = "Caricamento scheda...";
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
@@ -273,80 +206,44 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .limit(1)
     .maybeSingle();
 
-  if (!data) {
-
-    box.innerHTML = `
-      <div class="rf-empty-righe">
-        Prodotto non trovato
-      </div>
-    `;
-
-    return;
-  }
-
   box.innerHTML = `
 
-    <div class="card">
+    <div class="rf-doc-item">
 
-      <h3 style="margin-top:0;">
+      <div class="rf-doc-title">
         ${data.descrizione}
-      </h3>
-
-      <div style="margin-top:10px;">
-
-        <div>
-          Giacenza: <strong>${data.giacenza_attuale}</strong>
-        </div>
-
-        <div>
-          Scorta minima: ${data.scorta_minima}
-        </div>
-
       </div>
 
-      <div style="margin-top:16px;">
-
-        <strong>Fornitore preferito</strong><br>
-
-        ${mapping?.fornitori?.ragione_sociale || "—"}
-
-        <br><br>
-
-        <strong>Ultimo prezzo</strong><br>
-
-        ${mapping?.prezzo_ultimo_acquisto || "—"}
-
+      <div class="rf-doc-meta">
+        <span>Giacenza: ${data.giacenza_attuale}</span>
+        <span>Scorta minima: ${data.scorta_minima}</span>
       </div>
 
-      <div style="margin-top:18px;">
+      <div class="rf-doc-meta">
+        <span>Fornitore: ${mapping?.fornitori?.ragione_sociale || "—"}</span>
+        <span>Ultimo prezzo: ${mapping?.prezzo_ultimo_acquisto || "—"}</span>
+      </div>
 
+      <div style="margin-top:10px; font-size:13px;">
         <strong>Ultimi movimenti</strong>
 
-        <div style="margin-top:8px; font-size:13px;">
-
-          ${(movimenti || []).map(m => `
-            <div>
-              ${m.tipo_movimento} — ${m.quantita}
-            </div>
-          `).join("")}
-
-        </div>
+        ${(movimenti || []).map(m => `
+          <div>${m.tipo_movimento} — ${m.quantita}</div>
+        `).join("")}
 
       </div>
 
-      <div style="margin-top:16px; display:flex; gap:8px;">
-
-        <button class="btn-secondary" id="btn-indietro">
-          Indietro
+      <div style="margin-top:12px;">
+        <button class="app-button tiny gray" id="btn-indietro">
+          ← Indietro
         </button>
-
       </div>
 
     </div>
 
   `;
 
-  box.querySelector("#btn-indietro").onclick = () => {
+  document.getElementById("btn-indietro").onclick = () => {
     loadRicerca(box, azienda);
   };
 
