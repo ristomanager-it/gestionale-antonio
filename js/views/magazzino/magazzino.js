@@ -4,8 +4,8 @@ import "../state.js";
 import { renderMateriePrime } from "./materie_prime.js";
 import { renderPreparazioni } from "./preparazioni.js";
 import { renderProdottiFiniti } from "./prodotti_finiti.js";
-import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
 import { renderMapping } from "./mapping_fornitori.js";
+import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
 
 export async function render(container) {
 
