@@ -6,33 +6,24 @@ export async function renderMapping(container, azienda) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal rf-modal-small">
+    <div class="rf-modal">
 
       <div class="rf-modal-header">
-
         <h3 class="rf-modal-title">Mapping Fornitori</h3>
-
-        <button class="btn-secondary" id="close-modal">
-          Chiudi
-        </button>
-
+        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
       <div class="rf-modal-body">
 
-        <div class="form-group">
+        <input
+          id="search-mapping"
+          class="input"
+          placeholder="Cerca prodotto..."
+          autocomplete="off"
+          style="width:100%;"
+        >
 
-          <label>Cerca prodotto</label>
-
-          <input
-            id="search-mapping"
-            class="input"
-            placeholder="Cerca per codice o descrizione..."
-          >
-
-        </div>
-
-        <div id="risultati-mapping"></div>
+        <div id="risultati-mapping" style="margin-top:12px;"></div>
 
       </div>
 
@@ -62,59 +53,37 @@ export async function renderMapping(container, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, meta, descrizione")
+      .select("id, descrizione")
       .eq("azienda_id", azienda.id)
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
-      .limit(15);
-
-    if (!data || !data.length) {
-
-      risultati.innerHTML = `
-        <div class="rf-empty-righe">
-          Nessun prodotto trovato
-        </div>
-      `;
-
-      return;
-    }
+      .ilike("descrizione", `%${term}%`)
+      .limit(10);
 
     risultati.innerHTML = `
 
-      <table class="app-table">
+      <div class="rf-doc-list">
 
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-          </tr>
-        </thead>
+        ${(data || []).map(p => `
 
-        <tbody>
+          <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
 
-          ${data.map(p => `
+            <div class="rf-doc-title">
+              ${p.descrizione}
+            </div>
 
-            <tr data-id="${p.id}" style="cursor:pointer;">
+          </div>
 
-              <td>${p.meta || ""}</td>
-              <td>${p.descrizione || ""}</td>
+        `).join("")}
 
-            </tr>
-
-          `).join("")}
-
-        </tbody>
-
-      </table>
+      </div>
 
     `;
 
-    risultati.querySelectorAll("tbody tr").forEach(row => {
+    risultati.querySelectorAll(".autocomplete-item").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-
-        apriMapping(modal, azienda, id);
+        apriMapping(risultati, azienda, id);
 
       };
 
@@ -124,7 +93,7 @@ export async function renderMapping(container, azienda) {
 
 }
 
-async function apriMapping(modal, azienda, prodottoId) {
+async function apriMapping(box, azienda, prodottoId) {
 
   const { data } = await window.supabaseClient
     .from("prodotti_fornitore")
@@ -135,87 +104,36 @@ async function apriMapping(modal, azienda, prodottoId) {
       fornitori:fornitore_id (ragione_sociale)
     `)
     .eq("prodotto_id", prodottoId)
-    .limit(10);
-
-  const body = modal.querySelector(".rf-modal-body");
+    .limit(5);
 
   if (!data || !data.length) {
-
-    body.innerHTML = `
-
-      <div class="card">
-
-        <h3 style="margin-top:0;">Mapping fornitori</h3>
-
-        <div class="rf-empty-righe">
-          Nessun mapping trovato per questo prodotto
-        </div>
-
-        <div style="margin-top:12px;">
-          <button class="btn-secondary" id="indietro">
-            Indietro
-          </button>
-        </div>
-
-      </div>
-
-    `;
-
-    body.querySelector("#indietro").onclick = () => {
-      modal.remove();
-    };
-
+    box.innerHTML = "Nessun mapping trovato";
     return;
   }
 
-  body.innerHTML = `
+  box.innerHTML = `
 
-    <div class="card">
+    <div class="rf-doc-list">
 
-      <h3 style="margin-top:0;">Mapping fornitori</h3>
+      ${data.map(m => `
 
-      <table class="app-table">
+        <div class="rf-doc-item">
 
-        <thead>
-          <tr>
-            <th>Fornitore</th>
-            <th>Codice Fornitore</th>
-            <th>Prezzo Ultimo Acquisto</th>
-          </tr>
-        </thead>
+          <div class="rf-doc-title">
+            ${m.fornitori?.ragione_sociale || ""}
+          </div>
 
-        <tbody>
+          <div class="rf-doc-meta">
+            <span>Codice: ${m.codice_fornitore || ""}</span>
+            <span>Prezzo: ${m.prezzo_ultimo_acquisto || ""}</span>
+          </div>
 
-          ${data.map(m => `
+        </div>
 
-            <tr>
-
-              <td>${m.fornitori?.ragione_sociale || ""}</td>
-
-              <td>${m.codice_fornitore || ""}</td>
-
-              <td>${m.prezzo_ultimo_acquisto || ""}</td>
-
-            </tr>
-
-          `).join("")}
-
-        </tbody>
-
-      </table>
-
-      <div style="margin-top:12px;">
-        <button class="btn-secondary" id="indietro">
-          Indietro
-        </button>
-      </div>
+      `).join("")}
 
     </div>
 
   `;
-
-  body.querySelector("#indietro").onclick = () => {
-    modal.remove();
-  };
 
 }
