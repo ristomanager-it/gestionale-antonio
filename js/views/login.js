@@ -10,31 +10,41 @@ container.innerHTML=`
 
 <div class="view">
 
-<div style="max-width:420px;margin:0 auto;text-align:center">
+<div class="login-wrapper">
 
-<div style="margin-bottom:24px">
+<div class="login-logo-wrap">
 
 <img 
 src="/assets/logo-ristoflow.png"
-style="width:110px;height:auto;margin:0 auto"
+class="login-logo"
 >
 
 </div>
 
-<h2 style="margin-bottom:6px">Accesso</h2>
+<h2 class="login-title">Accesso</h2>
 
-<div style="color:var(--color-text-muted);margin-bottom:26px">
+<div class="login-subtitle">
 Accedi al tuo gestionale
 </div>
 
 <div class="form-group">
 <label>Email</label>
-<input id="login-email" class="input" type="email" placeholder="email@azienda.it">
+<input 
+id="login-email" 
+class="input" 
+type="email" 
+placeholder="email@azienda.it"
+>
 </div>
 
 <div class="form-group">
 <label>Password</label>
-<input id="login-password" class="input" type="password" placeholder="••••••••">
+<input 
+id="login-password" 
+class="input" 
+type="password" 
+placeholder="••••••••"
+>
 </div>
 
 <div class="form-actions">
@@ -45,11 +55,14 @@ Accedi
 
 <div id="login-msg" class="form-result"></div>
 
-<div style="margin-top:20px;font-size:14px;color:var(--color-text-muted)">
+<div class="login-reset">
+
 Password dimenticata?
-<button id="reset-btn" style="border:none;background:none;color:var(--color-primary);cursor:pointer">
+
+<button id="reset-btn" class="login-reset-btn">
 Recupera accesso
 </button>
+
 </div>
 
 </div>
@@ -74,8 +87,12 @@ const reset=document.getElementById("reset-btn")
 btn.onclick=doLogin
 reset.onclick=resetPassword
 
-document.getElementById("login-password").addEventListener("keydown",(e)=>{
+document
+.getElementById("login-password")
+.addEventListener("keydown",(e)=>{
+
 if(e.key==="Enter") doLogin()
+
 })
 
 }
