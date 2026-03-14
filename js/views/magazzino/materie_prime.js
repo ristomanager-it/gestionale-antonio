@@ -6,16 +6,16 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal">
+    <div class="rf-modal" style="max-width:420px;height:auto;">
 
       <div class="rf-modal-header">
         <h3 class="rf-modal-title">Materie Prime</h3>
         <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body">
+      <div class="rf-modal-body" style="display:flex;flex-direction:column;gap:12px;">
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
 
           <button class="app-button tiny" id="tab-cerca">
             Cerca prodotto
@@ -27,7 +27,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
         </div>
 
-        <div id="contenuto-magazzino" style="margin-top:12px;"></div>
+        <div id="contenuto-magazzino"></div>
 
       </div>
 
@@ -41,9 +41,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
   const contenuto = modal.querySelector("#contenuto-magazzino");
 
-  modal.querySelector("#close-modal").onclick = () => {
-    modal.remove();
-  };
+  modal.querySelector("#close-modal").onclick = () => modal.remove();
 
   if (startTab === "sottoscorta") {
     loadSottoscorta(contenuto, azienda);
@@ -70,12 +68,11 @@ function loadRicerca(box, azienda) {
       class="input"
       placeholder="Cerca materia prima..."
       autocomplete="off"
-      style="width:100%;"
     >
 
-    <div id="autocomplete-results" style="margin-top:8px;"></div>
+    <div id="autocomplete-results"></div>
 
-    <div id="scheda-prodotto" style="margin-top:12px;"></div>
+    <div id="scheda-prodotto"></div>
 
   `;
 
@@ -94,31 +91,46 @@ function loadRicerca(box, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, meta, descrizione")
+      .select("id, meta, descrizione, um")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "materia_prima")
       .or(`meta.ilike.%${term}%,descrizione.ilike.%${term}%`)
       .limit(8);
 
-    results.innerHTML = (data || []).map(p => `
+    results.innerHTML = `
 
-      <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
+      <div class="rf-doc-list">
 
-        <div class="rf-doc-title">
-          ${(p.meta || "")} — ${p.descrizione}
+      ${(data || []).map(p => `
+
+        <div class="rf-doc-item autocomplete-item"
+             data-id="${p.id}"
+             data-um="${p.um || ""}"
+             data-label="${(p.meta || "")} — ${p.descrizione}">
+
+          <div class="rf-doc-title">
+            ${(p.meta || "")} — ${p.descrizione}
+          </div>
+
         </div>
+
+      `).join("")}
 
       </div>
 
-    `).join("");
+    `;
 
     results.querySelectorAll(".autocomplete-item").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-        apriSchedaProdotto(scheda, azienda, id);
+
+        input.value = row.dataset.label;
+
         results.innerHTML = "";
+
+        apriSchedaProdotto(scheda, azienda, id, row.dataset.um, row.dataset.label);
 
       };
 
@@ -181,7 +193,7 @@ async function loadSottoscorta(box, azienda) {
 
 }
 
-async function apriSchedaProdotto(box, azienda, prodottoId) {
+async function apriSchedaProdotto(box, azienda, prodottoId, um = "-", label = "") {
 
   box.innerHTML = "Caricamento scheda...";
 
@@ -211,7 +223,11 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     <div class="rf-doc-item">
 
       <div class="rf-doc-title">
-        ${data.descrizione}
+        ${label || data.descrizione}
+      </div>
+
+      <div class="rf-doc-meta">
+        <span>UM: ${um || "-"}</span>
       </div>
 
       <div class="rf-doc-meta">
@@ -224,7 +240,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
         <span>Ultimo prezzo: ${mapping?.prezzo_ultimo_acquisto || "—"}</span>
       </div>
 
-      <div style="margin-top:10px; font-size:13px;">
+      <div style="margin-top:8px;font-size:13px;">
         <strong>Ultimi movimenti</strong>
 
         ${(movimenti || []).map(m => `
@@ -233,7 +249,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
 
       </div>
 
-      <div style="margin-top:12px;">
+      <div style="margin-top:10px;">
         <button class="app-button tiny gray" id="btn-indietro">
           ← Indietro
         </button>
