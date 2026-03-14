@@ -1,29 +1,40 @@
 export async function renderMateriePrime(container, azienda, startTab = "cerca") {
 
-  container.innerHTML = `
+  const modal = document.createElement("div");
 
-  <div class="modal-overlay" id="modal-magazzino">
+  modal.innerHTML = `
 
-    <div class="modal-box">
+  <div class="rf-modal-backdrop">
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3>Materie Prime</h3>
-        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
-      </div>
+    <div class="rf-modal">
 
-      <div style="display:flex; gap:10px; margin-bottom:15px;">
+      <div class="rf-modal-header">
 
-        <button class="app-button tiny" id="tab-cerca">
-          🔎 Cerca prodotto
-        </button>
+        <h3 class="rf-modal-title">Materie Prime</h3>
 
-        <button class="app-button tiny gray" id="tab-sottoscorta">
-          ⚠️ Sottoscorta
+        <button class="btn-secondary" id="close-modal">
+          Chiudi
         </button>
 
       </div>
 
-      <div id="contenuto-magazzino"></div>
+      <div class="rf-modal-body">
+
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+
+          <button type="button" class="btn-primary" id="tab-cerca">
+            Cerca prodotto
+          </button>
+
+          <button type="button" class="btn-secondary" id="tab-sottoscorta">
+            Sottoscorta
+          </button>
+
+        </div>
+
+        <div id="contenuto-magazzino"></div>
+
+      </div>
 
     </div>
 
@@ -31,10 +42,12 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
   `;
 
-  const contenuto = document.getElementById("contenuto-magazzino");
+  document.body.appendChild(modal);
 
-  document.getElementById("close-modal").onclick = () => {
-    container.innerHTML = "";
+  const contenuto = modal.querySelector("#contenuto-magazzino");
+
+  modal.querySelector("#close-modal").onclick = () => {
+    modal.remove();
   };
 
   if (startTab === "sottoscorta") {
@@ -43,11 +56,11 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     loadRicerca(contenuto, azienda);
   }
 
-  document.getElementById("tab-cerca").onclick = () => {
+  modal.querySelector("#tab-cerca").onclick = () => {
     loadRicerca(contenuto, azienda);
   };
 
-  document.getElementById("tab-sottoscorta").onclick = () => {
+  modal.querySelector("#tab-sottoscorta").onclick = () => {
     loadSottoscorta(contenuto, azienda);
   };
 
@@ -57,19 +70,24 @@ function loadRicerca(box, azienda) {
 
   box.innerHTML = `
 
-    <input
-      id="search-mp"
-      class="input-pill"
-      placeholder="Cerca materia prima..."
-      style="width:100%; margin-bottom:10px;"
-    >
+    <div class="form-group">
+
+      <label>Cerca materia prima</label>
+
+      <input
+        id="search-mp"
+        class="input"
+        placeholder="Cerca per codice o descrizione..."
+      >
+
+    </div>
 
     <div id="risultati-mp"></div>
 
   `;
 
-  const input = document.getElementById("search-mp");
-  const risultati = document.getElementById("risultati-mp");
+  const input = box.querySelector("#search-mp");
+  const risultati = box.querySelector("#risultati-mp");
 
   input.addEventListener("input", async () => {
 
@@ -82,25 +100,59 @@ function loadRicerca(box, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, meta, descrizione")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "materia_prima")
-      .ilike("descrizione", `%${term}%`)
-      .limit(10);
+      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
+      .limit(15);
 
-    risultati.innerHTML = data.map(p => `
+    if (!data || !data.length) {
 
-      <div class="list-row" data-id="${p.id}" style="cursor:pointer;">
-        ${p.descrizione}
-      </div>
+      risultati.innerHTML = `
+        <div class="rf-empty-righe">
+          Nessun prodotto trovato
+        </div>
+      `;
 
-    `).join("");
+      return;
+    }
 
-    risultati.querySelectorAll(".list-row").forEach(row => {
+    risultati.innerHTML = `
+
+      <table class="app-table">
+
+        <thead>
+          <tr>
+            <th>Codice</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${data.map(p => `
+
+            <tr data-id="${p.id}" style="cursor:pointer;">
+
+              <td>${p.meta || ""}</td>
+              <td>${p.descrizione || ""}</td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    `;
+
+    risultati.querySelectorAll("tbody tr").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
+
         apriSchedaProdotto(box, azienda, id);
 
       };
@@ -113,7 +165,13 @@ function loadRicerca(box, azienda) {
 
 async function loadSottoscorta(box, azienda) {
 
-  box.innerHTML = "Caricamento...";
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento prodotti sottoscorta...
+    </div>
+
+  `;
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
@@ -121,31 +179,61 @@ async function loadSottoscorta(box, azienda) {
     .eq("azienda_id", azienda.id)
     .lte("giacenza_attuale", "scorta_minima");
 
-  if (!data.length) {
-    box.innerHTML = "Nessun prodotto sottoscorta 🎉";
+  if (!data || !data.length) {
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Nessun prodotto sottoscorta
+      </div>
+    `;
+
     return;
   }
 
-  box.innerHTML = data.map(p => `
+  box.innerHTML = `
 
-    <div class="list-row" data-id="${p.prodotto_id}" style="cursor:pointer;">
+    <table class="app-table">
 
-      <div style="display:flex; justify-content:space-between;">
-        <strong>${p.descrizione}</strong>
-        <span style="color:red;">
-          ${p.giacenza_attuale} / ${p.scorta_minima}
-        </span>
-      </div>
+      <thead>
+        <tr>
+          <th>Prodotto</th>
+          <th>Giacenza</th>
+          <th>Scorta minima</th>
+        </tr>
+      </thead>
 
-    </div>
+      <tbody>
 
-  `).join("");
+        ${data.map(p => `
 
-  box.querySelectorAll(".list-row").forEach(row => {
+          <tr data-id="${p.prodotto_id}" style="cursor:pointer;">
+
+            <td>${p.descrizione}</td>
+
+            <td style="color:#b42318;">
+              ${p.giacenza_attuale}
+            </td>
+
+            <td>
+              ${p.scorta_minima}
+            </td>
+
+          </tr>
+
+        `).join("")}
+
+      </tbody>
+
+    </table>
+
+  `;
+
+  box.querySelectorAll("tbody tr").forEach(row => {
 
     row.onclick = () => {
 
       const id = row.dataset.id;
+
       apriSchedaProdotto(box, azienda, id);
 
     };
@@ -156,7 +244,13 @@ async function loadSottoscorta(box, azienda) {
 
 async function apriSchedaProdotto(box, azienda, prodottoId) {
 
-  box.innerHTML = "Caricamento scheda...";
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento scheda prodotto...
+    </div>
+
+  `;
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
@@ -179,56 +273,80 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .limit(1)
     .maybeSingle();
 
+  if (!data) {
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Prodotto non trovato
+      </div>
+    `;
+
+    return;
+  }
+
   box.innerHTML = `
 
-    <h4>${data.descrizione}</h4>
+    <div class="card">
 
-    <div style="margin-top:10px;">
-      <div>Giacenza: <strong>${data.giacenza_attuale}</strong></div>
-      <div>Scorta minima: ${data.scorta_minima}</div>
-    </div>
+      <h3 style="margin-top:0;">
+        ${data.descrizione}
+      </h3>
 
-    <div style="margin-top:15px;">
+      <div style="margin-top:10px;">
 
-      <strong>Fornitore preferito</strong><br>
-      ${mapping?.fornitori?.ragione_sociale || "—"}
+        <div>
+          Giacenza: <strong>${data.giacenza_attuale}</strong>
+        </div>
 
-      <br><br>
+        <div>
+          Scorta minima: ${data.scorta_minima}
+        </div>
 
-      <strong>Ultimo prezzo</strong><br>
-      ${mapping?.prezzo_ultimo_acquisto || "—"}
+      </div>
 
-    </div>
+      <div style="margin-top:16px;">
 
-    <div style="margin-top:20px;">
+        <strong>Fornitore preferito</strong><br>
 
-      <strong>Ultimi movimenti</strong>
+        ${mapping?.fornitori?.ragione_sociale || "—"}
 
-      <div style="margin-top:8px;">
+        <br><br>
 
-        ${(movimenti || []).map(m => `
+        <strong>Ultimo prezzo</strong><br>
 
-          <div style="font-size:13px; padding:4px 0;">
-            ${m.tipo_movimento} — ${m.quantita}
-          </div>
+        ${mapping?.prezzo_ultimo_acquisto || "—"}
 
-        `).join("")}
+      </div>
+
+      <div style="margin-top:18px;">
+
+        <strong>Ultimi movimenti</strong>
+
+        <div style="margin-top:8px; font-size:13px;">
+
+          ${(movimenti || []).map(m => `
+            <div>
+              ${m.tipo_movimento} — ${m.quantita}
+            </div>
+          `).join("")}
+
+        </div>
+
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:8px;">
+
+        <button class="btn-secondary" id="btn-indietro">
+          Indietro
+        </button>
 
       </div>
 
     </div>
 
-    <div style="margin-top:20px; display:flex; gap:10px;">
-
-      <button class="app-button tiny gray" id="btn-indietro">
-        ← Indietro
-      </button>
-
-    </div>
-
   `;
 
-  document.getElementById("btn-indietro").onclick = () => {
+  box.querySelector("#btn-indietro").onclick = () => {
     loadRicerca(box, azienda);
   };
 
