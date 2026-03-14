@@ -5,7 +5,6 @@ import { renderMapping } from "./mapping_fornitori.js";
 import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
 
 export async function render(container) {
-
   const azienda = window.state?.azienda;
 
   if (!azienda) {
@@ -18,144 +17,144 @@ export async function render(container) {
   }
 
   container.innerHTML = `
+    <div class="view">
+      <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
+        ← Torna alla Dashboard
+      </button>
 
-  <div class="view">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0;">Magazzino</h3>
+            <div style="font-size:13px; color:#667085; margin-top:4px;">
+              Controllo rapido materie prime, preparazioni, prodotti finiti e urgenze operative.
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
-      ← Torna alla Dashboard
-    </button>
+      <div class="card">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn-primary" data-route="materie-prime">
+            Materie Prime
+          </button>
 
-    <h2>Magazzino</h2>
+          <button type="button" class="btn-secondary" data-route="preparazioni">
+            Preparazioni
+          </button>
 
-    <div id="magazzino-home"></div>
-    <div id="magazzino-content"></div>
+          <button type="button" class="btn-secondary" data-route="prodotti-finiti">
+            Prodotti Finiti
+          </button>
 
-  </div>
+          <button type="button" class="btn-secondary" data-route="anagrafica">
+            Anagrafica Prodotti
+          </button>
 
-  `;
+          <button type="button" class="btn-secondary" data-route="mapping">
+            Mapping Fornitori
+          </button>
+        </div>
+      </div>
 
-  document.getElementById("btn-back-dashboard").onclick = () => {
-    window.location.hash = "#/home";
-  };
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0;">⚠️ Urgenze Magazzino</h3>
+            <div style="font-size:13px; color:#667085; margin-top:4px;">
+              Clicca un indicatore per aprire direttamente il modal corretto.
+            </div>
+          </div>
+        </div>
 
-  renderHome(azienda);
+        <div id="magazzino-urgenze" style="margin-top:14px;">
+          <div class="rf-empty-righe">
+            Caricamento...
+          </div>
+        </div>
+      </div>
 
-}
-
-function renderHome(azienda) {
-
-  const home = document.getElementById("magazzino-home");
-  const content = document.getElementById("magazzino-content");
-
-  home.innerHTML = `
-
-  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-
-    <button class="app-button tiny" data-route="materie-prime">
-      Materie Prime
-    </button>
-
-    <button class="app-button tiny" data-route="preparazioni">
-      Preparazioni
-    </button>
-
-    <button class="app-button tiny" data-route="prodotti-finiti">
-      Prodotti Finiti
-    </button>
-
-    <button class="app-button tiny gray" data-route="anagrafica">
-      Anagrafica
-    </button>
-
-    <button class="app-button tiny gray" data-route="mapping">
-      Mapping
-    </button>
-
-  </div>
-
-  <div class="view">
-
-    <h3>⚠️ Urgenze Magazzino</h3>
-
-    <div id="magazzino-urgenze" style="margin-top:15px;">
-      Caricamento...
+      <div id="magazzino-content"></div>
     </div>
-
-  </div>
-
   `;
 
-  document.querySelectorAll("[data-route]").forEach(btn => {
-
-    btn.onclick = () => {
-
-      const route = btn.dataset.route;
-      openMagazzinoRoute(route, content, azienda);
-
-    };
-
+  container.querySelector("#btn-back-dashboard")?.addEventListener("click", () => {
+    window.location.hash = "#/home";
   });
 
-  loadUrgenze(azienda, content);
+  const content = container.querySelector("#magazzino-content");
 
+  container.querySelectorAll("[data-route]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const route = btn.dataset.route;
+      openMagazzinoRoute(route, content, azienda);
+    });
+  });
+
+  await loadUrgenze(azienda, content);
 }
 
 async function loadUrgenze(azienda, content) {
-
   const box = document.getElementById("magazzino-urgenze");
 
+  if (!box) return;
+
   try {
+    const [sottoscortaRes, prepSottoRes, lottiRes] = await Promise.all([
+      window.supabaseClient
+        .from("v_magazzino_materie_prime")
+        .select("prodotto_id", { count: "exact", head: false })
+        .eq("azienda_id", azienda.id)
+        .lte("giacenza_attuale", "scorta_minima"),
 
-    const { data: sottoscorta } = await window.supabaseClient
-      .from("v_magazzino_materie_prime")
-      .select("prodotto_id")
-      .eq("azienda_id", azienda.id)
-      .lte("giacenza_attuale", "scorta_minima");
+      window.supabaseClient
+        .from("v_magazzino_preparazioni")
+        .select("prodotto_id", { count: "exact", head: false })
+        .eq("azienda_id", azienda.id)
+        .lte("giacenza_attuale", "scorta_minima"),
 
-    const { data: prepSotto } = await window.supabaseClient
-      .from("v_magazzino_preparazioni")
-      .select("prodotto_id")
-      .eq("azienda_id", azienda.id)
-      .lte("giacenza_attuale", "scorta_minima");
+      window.supabaseClient
+        .from("vw_lotti_disponibili")
+        .select("id", { count: "exact", head: false })
+        .eq("azienda_id", azienda.id)
+        .lte("giacenza", 0)
+    ]);
 
-    const { data: lotti } = await window.supabaseClient
-      .from("vw_lotti_disponibili")
-      .select("id")
-      .eq("azienda_id", azienda.id)
-      .lte("giacenza", 0);
-
-    const prodotti = sottoscorta?.length || 0;
-    const preparazioni = prepSotto?.length || 0;
-    const lottiFiniti = lotti?.length || 0;
+    const prodotti = sottoscortaRes.data?.length || 0;
+    const preparazioni = prepSottoRes.data?.length || 0;
+    const lottiFiniti = lottiRes.data?.length || 0;
 
     box.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+        <button type="button" class="card" data-urgent="materie-prime" style="margin:0; text-align:left; cursor:pointer;">
+          <div style="font-size:24px; font-weight:800; color:#0E5A7A;">${prodotti}</div>
+          <div style="font-size:14px; font-weight:700; margin-top:4px;">Prodotti sottoscorta</div>
+          <div style="font-size:13px; color:#667085; margin-top:4px;">
+            Apri Materie Prime direttamente sulla vista sottoscorta.
+          </div>
+        </button>
 
-      <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <button type="button" class="card" data-urgent="preparazioni" style="margin:0; text-align:left; cursor:pointer;">
+          <div style="font-size:24px; font-weight:800; color:#0E5A7A;">${preparazioni}</div>
+          <div style="font-size:14px; font-weight:700; margin-top:4px;">Preparazioni sottoscorta</div>
+          <div style="font-size:13px; color:#667085; margin-top:4px;">
+            Apri Preparazioni direttamente sulla vista sottoscorta.
+          </div>
+        </button>
 
-        <div class="card-small urgente" data-click="materie-prime">
-          <strong>${prodotti}</strong><br>
-          prodotti sottoscorta
-        </div>
-
-        <div class="card-small urgente" data-click="preparazioni">
-          <strong>${preparazioni}</strong><br>
-          preparazioni sottoscorta
-        </div>
-
-        <div class="card-small urgente" data-click="lotti">
-          <strong>${lottiFiniti}</strong><br>
-          lotti terminati
-        </div>
-
+        <button type="button" class="card" data-urgent="lotti" style="margin:0; text-align:left; cursor:pointer;">
+          <div style="font-size:24px; font-weight:800; color:#0E5A7A;">${lottiFiniti}</div>
+          <div style="font-size:14px; font-weight:700; margin-top:4px;">Lotti terminati</div>
+          <div style="font-size:13px; color:#667085; margin-top:4px;">
+            Apri Preparazioni per verificare i lotti disponibili.
+          </div>
+        </button>
       </div>
-
     `;
 
-    box.querySelectorAll(".urgente").forEach(card => {
-
-      card.onclick = () => {
-
-        const tipo = card.dataset.click;
+    box.querySelectorAll("[data-urgent]").forEach((card) => {
+      card.addEventListener("click", () => {
+        const tipo = card.dataset.urgent;
 
         if (tipo === "materie-prime") {
           renderMateriePrime(content, azienda, "sottoscorta");
@@ -168,21 +167,18 @@ async function loadUrgenze(azienda, content) {
         if (tipo === "lotti") {
           renderPreparazioni(content, azienda);
         }
-
-      };
-
+      });
     });
-
   } catch (err) {
-
-    box.innerHTML = `<p style="color:red;">Errore caricamento urgenze</p>`;
-
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Errore caricamento urgenze
+      </div>
+    `;
   }
-
 }
 
 function openMagazzinoRoute(route, container, azienda) {
-
   if (route === "materie-prime") {
     renderMateriePrime(container, azienda);
   }
@@ -202,5 +198,4 @@ function openMagazzinoRoute(route, container, azienda) {
   if (route === "anagrafica") {
     renderAnagraficaProdotti(container);
   }
-
 }
