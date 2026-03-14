@@ -6,27 +6,24 @@ export async function renderMapping(container, azienda) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal" style="max-width:420px;height:auto;">
+    <div class="rf-modal">
 
       <div class="rf-modal-header">
         <h3 class="rf-modal-title">Mapping Fornitori</h3>
         <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="rf-modal-body">
 
         <input
           id="search-mapping"
           class="input"
           placeholder="Cerca prodotto..."
           autocomplete="off"
+          style="width:100%;"
         >
 
-        <div id="mapping-risultati"></div>
-
-        <div id="mapping-card-prodotto" style="display:none;"></div>
-
-        <div id="mapping-fornitori"></div>
+        <div id="risultati-mapping" style="margin-top:12px;"></div>
 
       </div>
 
@@ -38,10 +35,8 @@ export async function renderMapping(container, azienda) {
 
   document.body.appendChild(modal);
 
+  const risultati = modal.querySelector("#risultati-mapping");
   const input = modal.querySelector("#search-mapping");
-  const risultati = modal.querySelector("#mapping-risultati");
-  const cardProdotto = modal.querySelector("#mapping-card-prodotto");
-  const fornitoriBox = modal.querySelector("#mapping-fornitori");
 
   modal.querySelector("#close-modal").onclick = () => {
     modal.remove();
@@ -58,7 +53,7 @@ export async function renderMapping(container, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, meta, descrizione, um")
+      .select("id, descrizione")
       .eq("azienda_id", azienda.id)
       .ilike("descrizione", `%${term}%`)
       .limit(10);
@@ -69,13 +64,10 @@ export async function renderMapping(container, azienda) {
 
         ${(data || []).map(p => `
 
-          <div class="rf-doc-item autocomplete-item"
-               data-id="${p.id}"
-               data-um="${p.um || ""}"
-               data-label="${(p.meta || "")} — ${p.descrizione}">
+          <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
 
             <div class="rf-doc-title">
-              ${(p.meta || "")} — ${p.descrizione}
+              ${p.descrizione}
             </div>
 
           </div>
@@ -88,33 +80,10 @@ export async function renderMapping(container, azienda) {
 
     risultati.querySelectorAll(".autocomplete-item").forEach(row => {
 
-      row.onclick = async () => {
+      row.onclick = () => {
 
-        const prodottoId = row.dataset.id;
-
-        input.value = row.dataset.label;
-
-        risultati.innerHTML = "";
-
-        cardProdotto.innerHTML = `
-
-          <div class="rf-doc-item">
-
-            <div class="rf-doc-title">
-              ${row.dataset.label}
-            </div>
-
-            <div class="rf-doc-meta">
-              <span>UM: ${row.dataset.um || "-"}</span>
-            </div>
-
-          </div>
-
-        `;
-
-        cardProdotto.style.display = "block";
-
-        caricaFornitori(fornitoriBox, prodottoId);
+        const id = row.dataset.id;
+        apriMapping(risultati, azienda, id);
 
       };
 
@@ -124,7 +93,7 @@ export async function renderMapping(container, azienda) {
 
 }
 
-async function caricaFornitori(box, prodottoId) {
+async function apriMapping(box, azienda, prodottoId) {
 
   const { data } = await window.supabaseClient
     .from("prodotti_fornitore")
@@ -135,31 +104,28 @@ async function caricaFornitori(box, prodottoId) {
       fornitori:fornitore_id (ragione_sociale)
     `)
     .eq("prodotto_id", prodottoId)
-    .limit(10);
+    .limit(5);
 
   if (!data || !data.length) {
-
-    box.innerHTML = "Nessun fornitore associato";
-
+    box.innerHTML = "Nessun mapping trovato";
     return;
-
   }
 
   box.innerHTML = `
 
     <div class="rf-doc-list">
 
-      ${data.map(f => `
+      ${data.map(m => `
 
         <div class="rf-doc-item">
 
           <div class="rf-doc-title">
-            ${f.fornitori?.ragione_sociale || ""}
+            ${m.fornitori?.ragione_sociale || ""}
           </div>
 
           <div class="rf-doc-meta">
-            <span>Codice: ${f.codice_fornitore || "-"}</span>
-            <span>Prezzo: ${f.prezzo_ultimo_acquisto || "-"}</span>
+            <span>Codice: ${m.codice_fornitore || ""}</span>
+            <span>Prezzo: ${m.prezzo_ultimo_acquisto || ""}</span>
           </div>
 
         </div>
