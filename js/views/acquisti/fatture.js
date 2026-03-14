@@ -32,108 +32,48 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
 ];
 
 export async function renderFatture(container, azienda) {
-
   ensureAcquistiModalStyles();
 
   container.innerHTML = `
-
     <div class="card">
-
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-
         <div>
-
           <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
-
           <div style="font-size:13px; color:#667085; margin-top:4px;">
-            Carica e gestisci fatture e DDT dei fornitori
-          </div>
-
+            
         </div>
-
-        <button id="btn-carica-documento" class="btn-primary">
-          Carica documento
-        </button>
-
+        <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
       </div>
-
     </div>
 
-
     <div class="card">
-
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-
         <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">
-            Fornitore
-          </label>
-
-          <input
-            id="filter-fornitore"
-            class="input"
-            placeholder="Cerca per fornitore"
-          >
+          <label style="display:block; font-size:13px; margin-bottom:6px;">Fornitore</label>
+          <input id="filter-fornitore" class="input" placeholder="Cerca per fornitore" />
         </div>
-
         <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">
-            Data dal
-          </label>
-
-          <input
-            id="filter-data-da"
-            type="date"
-            class="input"
-          >
+          <label style="display:block; font-size:13px; margin-bottom:6px;">Data dal</label>
+          <input id="filter-data-da" type="date" class="input" />
         </div>
-
         <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">
-            Data al
-          </label>
-
-          <input
-            id="filter-data-a"
-            type="date"
-            class="input"
-          >
+          <label style="display:block; font-size:13px; margin-bottom:6px;">Data al</label>
+          <input id="filter-data-a" type="date" class="input" />
         </div>
-
       </div>
-
 
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-
-        <button id="btn-cerca-documenti" class="btn-secondary">
-          Cerca
-        </button>
-
-        <button id="btn-reset-documenti" class="btn-secondary">
-          Reset
-        </button>
-
+        <button id="btn-cerca-documenti" class="btn-secondary">Cerca</button>
+        <button id="btn-reset-documenti" class="btn-secondary">Reset</button>
       </div>
 
-
-      <div
-        id="documenti-search-feedback"
-        style="margin-top:12px; font-size:13px; color:#667085;"
-      >
+      <div id="documenti-search-feedback" style="margin-top:12px; font-size:13px; color:#667085;">
         Inserisci fornitore e/o intervallo date per cercare i documenti.
       </div>
 
-
-      <div
-        id="documenti-results"
-        style="margin-top:14px;"
-      ></div>
-
+      <div id="documenti-results" style="margin-top:14px;"></div>
     </div>
-
   `;
-
-}
 
   const inputFornitore = container.querySelector("#filter-fornitore");
   const inputDataDa = container.querySelector("#filter-data-da");
@@ -323,11 +263,9 @@ async function openDocumentoUploadModal(azienda) {
     <div class="rf-modal-backdrop">
       <div class="rf-modal">
         <div class="rf-modal-header">
-          <div class="rf-header-copy">
-            <h3 class="rf-modal-title">Carica documento</h3>
-            
-          <button type="button" id="rf-close-top" class="btn-secondary rf-top-close">Chiudi</button>
-        </div>
+  <h3 class="rf-modal-title">Carica documento</h3>
+  <button type="button" id="rf-close-top" class="rf-close-icon">✕</button>
+</div>
 
         <div class="rf-modal-body">
           <div class="rf-grid-2">
@@ -350,7 +288,7 @@ async function openDocumentoUploadModal(azienda) {
           <div id="rf-upload-wrap" class="rf-field">
             <label>Documento</label>
             <input id="rf-file" type="file" class="input" accept="image/*,.pdf" />
-            <div class="rf-mini-note">Alla selezione del file: upload su bucket "fatture" e chiamata a supabase.functions.invoke("ocr-fattura", { body: { imageUrl } }).</div>
+            
           </div>
 
           <div class="rf-grid-2">
@@ -1303,159 +1241,134 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
   });
 }
 
-const modal = document.createElement("div");
+function ensureAcquistiModalStyles() {
+  if (document.getElementById("rf-acquisti-modal-style")) return;
 
-modal.innerHTML = `
+  const style = document.createElement("style");
+  style.id = "rf-acquisti-modal-style";
+  style.textContent = `
 
-<div class="rf-modal-backdrop">
+  body.rf-modal-open{
+    overflow:hidden;
+  }
 
-  <div class="rf-modal">
+  .rf-modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    z-index:9999;
+    box-sizing:border-box;
+  }
 
-    <div class="rf-modal-header">
+  .rf-modal{
+    width:100%;
+    max-width:1080px;
+    max-height:90vh;
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.22);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
 
-      <h3 class="rf-modal-title">Carica documento</h3>
+  .rf-modal-small{
+    max-width:680px;
+  }
 
-      <button id="rf-close-top" class="rf-close-icon">
-        ✕
-      </button>
+  .rf-modal-header{
+    flex-shrink:0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:18px;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
 
-    </div>
+  .rf-modal-body{
+    flex:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    padding:18px;
+    display:grid;
+    gap:14px;
+    box-sizing:border-box;
+  }
 
-    <div class="rf-modal-body">
+  .rf-modal-actions{
+    flex-shrink:0;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding:14px 18px 18px;
+    border-top:1px solid rgba(0,0,0,.08);
+    flex-wrap:wrap;
+  }
 
-      <div class="rf-grid-2">
+  .rf-grid-2{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
 
-        <div class="rf-field">
-          <label>Tipo documento</label>
-          <select id="rf-tipo-documento" class="input">
-            <option value="fattura">Fattura</option>
-            <option value="ddt">DDT</option>
-          </select>
-        </div>
+  .rf-field{
+    min-width:0;
+    display:grid;
+    gap:6px;
+  }
 
-        <div class="rf-field">
-          <label>Metodo</label>
-          <select id="rf-metodo" class="input">
-            <option value="carica_documento">Carica documento</option>
-            <option value="manuale">Manuale</option>
-          </select>
-        </div>
+  .rf-riga-grid{
+    display:grid;
+    gap:10px;
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+    width:100%;
+  }
 
-      </div>
+  .rf-close-icon{
+  background:none;
+  border:none;
+  font-size:20px;
+  cursor:pointer;
+}
+input,select,textarea{
+    max-width:100%;
+    font-size:16px;
+    box-sizing:border-box;
+  }
 
-      <div id="rf-upload-wrap" class="rf-field">
+  @media (max-width:760px){
 
-        <label>Documento</label>
+    .rf-modal-backdrop{
+      padding:8px;
+    }
 
-        <input
-          id="rf-file"
-          type="file"
-          class="input"
-          accept="image/*,.pdf"
-        >
+    .rf-modal{
+      max-height:95vh;
+      border-radius:12px;
+    }
 
-      </div>
+    .rf-grid-2{
+      grid-template-columns:1fr;
+    }
 
-      <div class="rf-grid-2">
+    .rf-riga-grid{
+      grid-template-columns:1fr;
+    }
 
-        <div class="rf-field">
-          <label>Fornitore</label>
+    .rf-modal-actions button,
+    .rf-top-close{
+      width:100%;
+    }
 
-          <input
-            id="rf-fornitore"
-            class="input"
-            list="rf-fornitori-list"
-            placeholder="Scrivi o seleziona"
-          >
+  }
 
-          <datalist id="rf-fornitori-list">
-            ${fornitori.map(f=>`
-              <option value="${escapeHtml(f.ragione_sociale||"")}"></option>
-            `).join("")}
-          </datalist>
-
-        </div>
-
-        <div class="rf-field">
-
-          <label>P.IVA</label>
-
-          <input
-            id="rf-fornitore-piva"
-            class="input"
-            placeholder="Partita IVA"
-          >
-
-        </div>
-
-      </div>
-
-      <div class="rf-grid-2">
-
-        <div class="rf-field">
-          <label id="rf-numero-label">Numero documento</label>
-          <input id="rf-numero" class="input">
-        </div>
-
-        <div class="rf-field">
-          <label id="rf-data-label">Data documento</label>
-          <input id="rf-data" type="date" class="input">
-        </div>
-
-      </div>
-
-      <div id="rf-totale-wrap" class="rf-field">
-
-        <label>Totale</label>
-
-        <input
-          id="rf-totale"
-          class="input"
-          placeholder="0,00"
-        >
-
-      </div>
-
-      <div class="rf-field">
-
-        <div style="display:flex;justify-content:space-between;align-items:center">
-
-          <label>Righe documento</label>
-
-          <button
-            type="button"
-            id="btn-add-riga"
-            class="btn-secondary"
-          >
-            Aggiungi
-          </button>
-
-        </div>
-
-        <div id="righe-container"></div>
-
-      </div>
-
-      <div id="rf-feedback" class="rf-feedback"></div>
-
-    </div>
-
-    <div class="rf-modal-actions">
-
-      <button id="rf-save" class="btn-primary">
-        Salva documento
-      </button>
-
-      <button id="rf-close-bottom" class="btn-secondary">
-        Chiudi
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-`;
+  `;
 
   document.head.appendChild(style);
 }
