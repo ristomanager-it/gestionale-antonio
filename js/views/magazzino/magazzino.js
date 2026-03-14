@@ -3,6 +3,7 @@ import { renderPreparazioni } from "./preparazioni.js";
 import { renderProdottiFiniti } from "./prodotti_finiti.js";
 import { renderMapping } from "./mapping_fornitori.js";
 import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
+import { renderCaricoModal, apriCaricoModal } from "./carico_magazzino.js";
 
 export async function render(container) {
 
@@ -38,6 +39,11 @@ export async function render(container) {
     window.location.hash = "#/home";
   };
 
+  // inserisce il modal carico nel DOM
+  if (!document.getElementById("magazzino-carico-backdrop")) {
+    document.body.insertAdjacentHTML("beforeend", renderCaricoModal());
+  }
+
   renderHome(azienda);
 
 }
@@ -71,6 +77,10 @@ function renderHome(azienda) {
       Mapping
     </button>
 
+    <button class="app-button tiny" id="btn-carico-magazzino">
+      + Carico Giacenza
+    </button>
+
   </div>
 
   `;
@@ -85,6 +95,19 @@ function renderHome(azienda) {
     };
 
   });
+
+  const btnCarico = document.getElementById("btn-carico-magazzino");
+
+  btnCarico.onclick = () => {
+
+    apriCaricoModal({
+      aziendaId: azienda.id,
+      prodottoId: null,
+      prodottoLabel: "Carico manuale",
+      onSuccess: () => {}
+    });
+
+  };
 
 }
 
