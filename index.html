@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
 
   <base href="/">
@@ -11,9 +12,9 @@
 
   <!-- ICONS -->
 
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=4" />
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=4" />
-  <link rel="apple-touch-icon" href="favicon-192.png?v=4" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=5" />
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=5" />
+  <link rel="apple-touch-icon" href="favicon-192.png?v=5" />
 
   <!-- PWA -->
 
@@ -26,83 +27,149 @@
 
   <!-- CSS -->
 
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 
 </head>
 
+
 <body>
 
-  <!-- HEADER -->
+
+  <!-- ===================================================== -->
+  <!-- ====================== HEADER ======================= -->
+  <!-- ===================================================== -->
 
   <header class="app-header">
+
+    <!-- LEFT -->
 
     <div class="header-left">
 
       <button id="menu-toggle" class="menu-toggle" type="button">
+
         <div class="menu-icon">
           <span></span>
           <span></span>
           <span></span>
         </div>
+
       </button>
 
     </div>
+
+
+    <!-- CENTER -->
 
     <div class="header-center">
 
       <img
         id="header-logo"
         class="header-logo"
-        src="favicon-192.png?v=4"
+        src="favicon-192.png?v=5"
         alt="Logo azienda"
       />
 
-      <div id="header-azienda-nome" class="header-azienda-nome"></div>
+      <div
+        id="header-azienda-nome"
+        class="header-azienda-nome"
+      ></div>
 
     </div>
 
-    <div class="header-right"></div>
+
+    <!-- RIGHT -->
+
+    <div
+      id="header-right"
+      class="header-right"
+    ></div>
 
   </header>
 
-  <!-- INFO BAR -->
 
-  <div class="topbar-info">
 
-    <div id="topbar-saluto"></div>
-    <div id="topbar-data"></div>
-    <div id="topbar-weather"></div>
+  <!-- ===================================================== -->
+  <!-- ==================== SUBHEADER ====================== -->
+  <!-- ===================================================== -->
+
+  <div class="app-subheader">
+
+    <div class="subheader-left">
+
+      <span id="topbar-saluto"></span>
+
+      <span id="topbar-data"></span>
+
+    </div>
+
+    <div class="subheader-right">
+
+      <span id="topbar-weather"></span>
+
+    </div>
 
   </div>
 
-  <!-- MENU -->
 
-  <nav id="global-menu" class="global-menu"></nav>
 
-  <!-- ROOT SPA -->
+  <!-- ===================================================== -->
+  <!-- ===================== MENU SPA ====================== -->
+  <!-- ===================================================== -->
 
-  <div id="app"></div>
+  <nav
+    id="global-menu"
+    class="global-menu"
+  ></nav>
 
-  <!-- SCRIPT GLOBALI -->
 
-  <script src="js/state.js?v=4"></script>
-  <script src="js/stateActions.js?v=4"></script>
-  <script type="module" src="js/supabaseClient.js?v=4"></script>
-  <script src="js/ui-reparto.js?v=4"></script>
-  <script src="js/db.js?v=4"></script>
 
-  <!-- LIB STAMPA -->
+  <!-- ===================================================== -->
+  <!-- ==================== ROOT APP ======================= -->
+  <!-- ===================================================== -->
+
+  <main id="app"></main>
+
+
+
+  <!-- ===================================================== -->
+  <!-- ================= SCRIPT GLOBALI ==================== -->
+  <!-- ===================================================== -->
+
+  <script src="js/state.js?v=5"></script>
+  <script src="js/stateActions.js?v=5"></script>
+
+  <script type="module" src="js/supabaseClient.js?v=5"></script>
+
+  <script src="js/ui-reparto.js?v=5"></script>
+  <script src="js/db.js?v=5"></script>
+
+
+
+  <!-- ===================================================== -->
+  <!-- ================= LIB STAMPA ======================== -->
+  <!-- ===================================================== -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- LIB GRAFICI -->
+
+
+  <!-- ===================================================== -->
+  <!-- ================= LIB GRAFICI ======================= -->
+  <!-- ===================================================== -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- ROUTER -->
 
-  <script type="module" src="js/router.js?v=4"></script>
+
+  <!-- ===================================================== -->
+  <!-- ====================== ROUTER ======================= -->
+  <!-- ===================================================== -->
+
+  <script type="module" src="js/router.js?v=5"></script>
+
+
 
 </body>
 </html>
