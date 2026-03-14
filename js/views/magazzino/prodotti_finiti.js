@@ -6,14 +6,14 @@ export async function renderProdottiFiniti(container, azienda) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal">
+    <div class="rf-modal" style="max-width:420px;height:auto;">
 
       <div class="rf-modal-header">
         <h3 class="rf-modal-title">Prodotti Finiti</h3>
         <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body">
+      <div class="rf-modal-body" style="display:flex;flex-direction:column;gap:12px;">
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
 
@@ -27,7 +27,7 @@ export async function renderProdottiFiniti(container, azienda) {
 
         </div>
 
-        <div id="contenuto-prodotti-finiti" style="margin-top:12px;"></div>
+        <div id="contenuto-prodotti-finiti"></div>
 
       </div>
 
@@ -66,15 +66,17 @@ function loadRicerca(box, azienda) {
       class="input"
       placeholder="Cerca prodotto finito..."
       autocomplete="off"
-      style="width:100%;"
     >
 
-    <div id="autocomplete-results" style="margin-top:8px;"></div>
+    <div id="autocomplete-results"></div>
+
+    <div id="scheda-prodotto"></div>
 
   `;
 
   const input = box.querySelector("#search-pf");
   const results = box.querySelector("#autocomplete-results");
+  const scheda = box.querySelector("#scheda-prodotto");
 
   input.addEventListener("input", async () => {
 
@@ -87,7 +89,7 @@ function loadRicerca(box, azienda) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione")
+      .select("id, meta, descrizione, um")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "prodotto_finito")
       .ilike("descrizione", `%${term}%`)
@@ -99,10 +101,13 @@ function loadRicerca(box, azienda) {
 
         ${(data || []).map(p => `
 
-          <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
+          <div class="rf-doc-item autocomplete-item"
+               data-id="${p.id}"
+               data-label="${(p.meta || "")} — ${p.descrizione}"
+               data-um="${p.um || ""}">
 
             <div class="rf-doc-title">
-              ${p.descrizione}
+              ${(p.meta || "")} — ${p.descrizione}
             </div>
 
           </div>
@@ -118,7 +123,18 @@ function loadRicerca(box, azienda) {
       row.onclick = () => {
 
         const id = row.dataset.id;
-        apriSchedaProdotto(box, azienda, id);
+
+        input.value = row.dataset.label;
+
+        results.innerHTML = "";
+
+        apriSchedaProdotto(
+          scheda,
+          azienda,
+          id,
+          row.dataset.label,
+          row.dataset.um
+        );
 
       };
 
@@ -150,7 +166,9 @@ async function loadDisponibili(box, azienda) {
 
       ${data.map(p => `
 
-        <div class="rf-doc-item disponibile" data-id="${p.prodotto_id}">
+        <div class="rf-doc-item disponibile"
+             data-id="${p.prodotto_id}"
+             data-label="${p.descrizione}">
 
           <div class="rf-doc-title">
             ${p.descrizione}
@@ -173,8 +191,12 @@ async function loadDisponibili(box, azienda) {
 
     row.onclick = () => {
 
-      const id = row.dataset.id;
-      apriSchedaProdotto(box, azienda, id);
+      apriSchedaProdotto(
+        box,
+        azienda,
+        row.dataset.id,
+        row.dataset.label
+      );
 
     };
 
@@ -182,7 +204,7 @@ async function loadDisponibili(box, azienda) {
 
 }
 
-async function apriSchedaProdotto(box, azienda, prodottoId) {
+async function apriSchedaProdotto(box, azienda, prodottoId, label = "", um = "-") {
 
   box.innerHTML = "Caricamento...";
 
@@ -203,7 +225,11 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     <div class="rf-doc-item">
 
       <div class="rf-doc-title">
-        ${data.descrizione}
+        ${label || data.descrizione}
+      </div>
+
+      <div class="rf-doc-meta">
+        <span>UM: ${um || "-"}</span>
       </div>
 
       <div class="rf-doc-meta">
@@ -211,7 +237,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
         <span>${data.giacenza_attuale}</span>
       </div>
 
-      <div style="margin-top:12px;">
+      <div style="margin-top:10px;">
         <button class="app-button tiny gray" id="btn-indietro">
           ← Indietro
         </button>
