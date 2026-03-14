@@ -2,21 +2,19 @@ export async function renderAnagraficaProdotti(container) {
 
   const azienda = window.state?.azienda;
 
-  if (!azienda) return;
-
   const modal = document.createElement("div");
 
   modal.innerHTML = `
-  
+
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal rf-modal-small">
+    <div class="rf-modal">
 
       <div class="rf-modal-header">
 
         <h3 class="rf-modal-title">Anagrafica Prodotti</h3>
 
-        <button class="btn-secondary" id="close-modal">
+        <button class="app-button tiny gray" id="close-modal">
           Chiudi
         </button>
 
@@ -24,17 +22,12 @@ export async function renderAnagraficaProdotti(container) {
 
       <div class="rf-modal-body">
 
-        <div class="form-group">
-
-          <label>Cerca prodotto</label>
-
-          <input
-            id="search-prodotti"
-            class="input"
-            placeholder="Cerca per codice o descrizione..."
-          >
-
-        </div>
+        <input
+          id="search-prodotti"
+          class="input"
+          placeholder="Cerca codice o descrizione..."
+          style="width:100%; margin-bottom:10px;"
+        >
 
         <div id="risultati-prodotti"></div>
 
@@ -74,7 +67,7 @@ export async function renderAnagraficaProdotti(container) {
     if (!data || !data.length) {
 
       risultati.innerHTML = `
-        <div class="rf-empty-righe">
+        <div style="font-size:13px; padding:8px;">
           Nessun prodotto trovato
         </div>
       `;
@@ -82,44 +75,35 @@ export async function renderAnagraficaProdotti(container) {
       return;
     }
 
-    risultati.innerHTML = `
-    
-      <table class="app-table">
+    risultati.innerHTML = data.map(p => `
 
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-            <th>Tipo</th>
-          </tr>
-        </thead>
+      <div 
+        data-id="${p.id}" 
+        style="padding:6px 4px; cursor:pointer; font-size:13px; border-bottom:1px solid #eee;"
+        class="risultato-prodotto"
+      >
 
-        <tbody>
+        <div style="display:flex; justify-content:space-between;">
 
-          ${data.map(p => `
-          
-            <tr data-id="${p.id}" style="cursor:pointer;">
+          <div>
+            <strong>${p.meta || ""}</strong> — ${p.descrizione}
+          </div>
 
-              <td>${p.meta || ""}</td>
-              <td>${p.descrizione || ""}</td>
-              <td>${p.tipo_prodotto || ""}</td>
+          <div style="font-size:11px; opacity:0.7;">
+            ${p.tipo_prodotto || ""}
+          </div>
 
-            </tr>
+        </div>
 
-          `).join("")}
+      </div>
 
-        </tbody>
+    `).join("");
 
-      </table>
-
-    `;
-
-    risultati.querySelectorAll("tbody tr").forEach(row => {
+    risultati.querySelectorAll(".risultato-prodotto").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-
         apriSchedaProdotto(modal, azienda, id);
 
       };
@@ -132,6 +116,12 @@ export async function renderAnagraficaProdotti(container) {
 
 async function apriSchedaProdotto(modal, azienda, prodottoId) {
 
+  const body = modal.querySelector(".rf-modal-body");
+
+  body.innerHTML = `
+    <div style="font-size:13px;">Caricamento...</div>
+  `;
+
   const { data } = await window.supabaseClient
     .from("prodotti")
     .select("*")
@@ -139,49 +129,46 @@ async function apriSchedaProdotto(modal, azienda, prodottoId) {
     .eq("id", prodottoId)
     .single();
 
-  const body = modal.querySelector(".rf-modal-body");
+  if (!data) {
+    body.innerHTML = `<div style="font-size:13px;">Prodotto non trovato</div>`;
+    return;
+  }
 
   body.innerHTML = `
 
-    <div class="card">
+    <div style="font-size:14px; font-weight:600; margin-bottom:10px;">
+      ${data.meta || ""} — ${data.descrizione}
+    </div>
 
-      <h3 style="margin-top:0;">
-        ${data.meta || ""} — ${data.descrizione}
-      </h3>
+    <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
 
-      <div class="form-group">
+      <label>Unità di misura</label>
+      <input id="um" class="input" value="${data.um || ""}">
 
-        <label>Unità di misura</label>
-        <input id="um" class="input" value="${data.um || ""}">
+      <label style="margin-top:6px;">Scorta minima</label>
+      <input id="scorta" class="input" value="${data.scorta_minima || ""}">
 
-      </div>
+    </div>
 
-      <div class="form-group">
+    <div style="margin-top:12px; display:flex; gap:8px;">
 
-        <label>Scorta minima</label>
-        <input id="scorta" class="input" value="${data.scorta_minima || ""}">
+      <button class="app-button tiny" id="salva-prodotto">
+        Salva
+      </button>
 
-      </div>
-
-      <div style="margin-top:14px; display:flex; gap:8px;">
-
-        <button class="btn-primary" id="salva-prodotto">
-          Salva
-        </button>
-
-        <button class="btn-secondary" id="indietro">
-          Indietro
-        </button>
-
-      </div>
+      <button class="app-button tiny gray" id="indietro">
+        Indietro
+      </button>
 
     </div>
 
   `;
 
   body.querySelector("#indietro").onclick = () => {
+
     modal.remove();
     renderAnagraficaProdotti(document.body);
+
   };
 
   body.querySelector("#salva-prodotto").onclick = async () => {
@@ -197,7 +184,7 @@ async function apriSchedaProdotto(modal, azienda, prodottoId) {
       })
       .eq("id", prodottoId);
 
-    alert("Prodotto salvato");
+    alert("Salvato");
 
   };
 
