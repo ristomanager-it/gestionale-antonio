@@ -138,10 +138,16 @@ export async function renderRiordino(container, azienda) {
 
     }
 
+    // salva nello stato globale
     window.state = window.state || {};
     window.state.ordineDraft = righe;
 
-    window.location.hash = "#/acquisti/ordini";
+    // cambia tab verso ORDINI
+    const tabOrdini = document.querySelector('[data-tab="ordini"]');
+
+    if (tabOrdini) {
+      tabOrdini.click();
+    }
 
   }
 
