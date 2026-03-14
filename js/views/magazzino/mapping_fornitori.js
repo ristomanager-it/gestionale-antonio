@@ -6,24 +6,23 @@ export async function renderMapping(container, azienda) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal">
+    <div class="rf-modal" style="max-width:420px;height:auto;">
 
       <div class="rf-modal-header">
         <h3 class="rf-modal-title">Mapping Fornitori</h3>
         <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
-      <div class="rf-modal-body">
+      <div class="rf-modal-body" style="display:flex;flex-direction:column;gap:12px;">
 
         <input
           id="search-mapping"
           class="input"
           placeholder="Cerca prodotto..."
           autocomplete="off"
-          style="width:100%;"
         >
 
-        <div id="risultati-mapping" style="margin-top:12px;"></div>
+        <div id="risultati-mapping"></div>
 
       </div>
 
