@@ -18,25 +18,25 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="view">
 
-      <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
-        ← Torna alla Dashboard
-      </button>
+  <div class="view">
 
-      <h2>Magazzino</h2>
+    <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
+      ← Torna alla Dashboard
+    </button>
 
-      <div id="magazzino-home"></div>
-      <div id="magazzino-content" style="margin-top:20px;"></div>
+    <h2>Magazzino</h2>
 
-    </div>
+    <div id="magazzino-home"></div>
+    <div id="magazzino-content"></div>
+
+  </div>
+
   `;
 
-  document
-    .getElementById("btn-back-dashboard")
-    .addEventListener("click", () => {
-      window.location.hash = "#/home";
-    });
+  document.getElementById("btn-back-dashboard").onclick = () => {
+    window.location.hash = "#/home";
+  };
 
   renderHome(azienda);
 
@@ -49,71 +49,60 @@ function renderHome(azienda) {
 
   home.innerHTML = `
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
 
-      <button class="app-button tiny" data-route="materie-prime">
-        Materie Prime
-      </button>
+    <button class="app-button tiny" data-route="materie-prime">
+      Materie Prime
+    </button>
 
-      <button class="app-button tiny" data-route="preparazioni">
-        Preparazioni
-      </button>
+    <button class="app-button tiny" data-route="preparazioni">
+      Preparazioni
+    </button>
 
-      <button class="app-button tiny" data-route="prodotti-finiti">
-        Prodotti Finiti
-      </button>
+    <button class="app-button tiny" data-route="prodotti-finiti">
+      Prodotti Finiti
+    </button>
 
-      <button class="app-button tiny gray" data-route="anagrafica">
-        Anagrafica Prodotti
-      </button>
+    <button class="app-button tiny gray" data-route="anagrafica">
+      Anagrafica
+    </button>
 
-      <button class="app-button tiny gray" data-route="mapping">
-        Mapping Fornitori
-      </button>
+    <button class="app-button tiny gray" data-route="mapping">
+      Mapping
+    </button>
 
+  </div>
+
+  <div class="view">
+
+    <h3>⚠️ Urgenze Magazzino</h3>
+
+    <div id="magazzino-urgenze" style="margin-top:15px;">
+      Caricamento...
     </div>
 
-    <div class="view">
-
-      <h3>⚠️ Urgenze Magazzino</h3>
-
-      <div id="magazzino-urgenze">
-        Caricamento...
-      </div>
-
-    </div>
+  </div>
 
   `;
 
   document.querySelectorAll("[data-route]").forEach(btn => {
 
-    btn.addEventListener("click", () => {
+    btn.onclick = () => {
 
       const route = btn.dataset.route;
-
-      window.location.hash = `#/magazzino/${route}`;
-
       openMagazzinoRoute(route, content, azienda);
 
-    });
+    };
 
   });
 
-  loadUrgenze(azienda);
-
-  const hash = window.location.hash.split("/")[2];
-
-  if (hash) {
-    openMagazzinoRoute(hash, content, azienda);
-  }
+  loadUrgenze(azienda, content);
 
 }
 
-async function loadUrgenze(azienda) {
+async function loadUrgenze(azienda, content) {
 
   const box = document.getElementById("magazzino-urgenze");
-
-  if (!box) return;
 
   try {
 
@@ -123,38 +112,70 @@ async function loadUrgenze(azienda) {
       .eq("azienda_id", azienda.id)
       .lte("giacenza_attuale", "scorta_minima");
 
-    const { data: preparazioni } = await window.supabaseClient
+    const { data: prepSotto } = await window.supabaseClient
       .from("v_magazzino_preparazioni")
       .select("prodotto_id")
       .eq("azienda_id", azienda.id)
       .lte("giacenza_attuale", "scorta_minima");
 
-    const prodottiSotto = sottoscorta?.length || 0;
-    const prepSotto = preparazioni?.length || 0;
+    const { data: lotti } = await window.supabaseClient
+      .from("vw_lotti_disponibili")
+      .select("id")
+      .eq("azienda_id", azienda.id)
+      .lte("giacenza", 0);
+
+    const prodotti = sottoscorta?.length || 0;
+    const preparazioni = prepSotto?.length || 0;
+    const lottiFiniti = lotti?.length || 0;
 
     box.innerHTML = `
 
       <div style="display:flex; gap:20px; flex-wrap:wrap;">
 
-        <div class="card-small">
-          <strong>${prodottiSotto}</strong><br>
+        <div class="card-small urgente" data-click="materie-prime">
+          <strong>${prodotti}</strong><br>
           prodotti sottoscorta
         </div>
 
-        <div class="card-small">
-          <strong>${prepSotto}</strong><br>
+        <div class="card-small urgente" data-click="preparazioni">
+          <strong>${preparazioni}</strong><br>
           preparazioni sottoscorta
+        </div>
+
+        <div class="card-small urgente" data-click="lotti">
+          <strong>${lottiFiniti}</strong><br>
+          lotti terminati
         </div>
 
       </div>
 
     `;
 
+    box.querySelectorAll(".urgente").forEach(card => {
+
+      card.onclick = () => {
+
+        const tipo = card.dataset.click;
+
+        if (tipo === "materie-prime") {
+          renderMateriePrime(content, azienda, "sottoscorta");
+        }
+
+        if (tipo === "preparazioni") {
+          renderPreparazioni(content, azienda, "sottoscorta");
+        }
+
+        if (tipo === "lotti") {
+          renderPreparazioni(content, azienda);
+        }
+
+      };
+
+    });
+
   } catch (err) {
 
-    box.innerHTML = `
-      <p style="color:red;">Errore nel caricamento urgenze</p>
-    `;
+    box.innerHTML = `<p style="color:red;">Errore caricamento urgenze</p>`;
 
   }
 
