@@ -39,8 +39,8 @@ export async function render(container) {
     window.location.hash = "#/home";
   };
 
-  // inserisce il modal carico nel DOM
-  if (!document.getElementById("magazzino-carico-backdrop")) {
+  // inserisce il modal carico nel DOM una sola volta
+  if (!document.getElementById("rf-carico-backdrop")) {
     document.body.insertAdjacentHTML("beforeend", renderCaricoModal());
   }
 
@@ -101,10 +101,7 @@ function renderHome(azienda) {
   btnCarico.onclick = () => {
 
     apriCaricoModal({
-      aziendaId: azienda.id,
-      prodottoId: null,
-      prodottoLabel: "Carico manuale",
-      onSuccess: () => {}
+      aziendaId: azienda.id
     });
 
   };
