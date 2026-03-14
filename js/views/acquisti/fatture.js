@@ -1278,10 +1278,6 @@ function ensureAcquistiModalStyles() {
   style.id = "rf-acquisti-modal-style";
   style.textContent = `
 
-  body.rf-modal-open{
-    overflow:hidden;
-  }
-
   .rf-modal-backdrop{
     position:fixed;
     inset:0;
@@ -1297,14 +1293,12 @@ function ensureAcquistiModalStyles() {
   .rf-modal{
     width:100%;
     max-width:1080px;
-    max-height:92vh;
+    max-height:90vh;
     background:#fff;
     border-radius:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.22);
-
     display:flex;
     flex-direction:column;
-
     overflow:hidden;
   }
 
@@ -1316,7 +1310,8 @@ function ensureAcquistiModalStyles() {
     flex-shrink:0;
     display:flex;
     justify-content:space-between;
-    gap:16px;
+    align-items:center;
+    gap:12px;
     padding:18px;
     border-bottom:1px solid rgba(0,0,0,.08);
   }
@@ -1325,8 +1320,6 @@ function ensureAcquistiModalStyles() {
     flex:1;
     overflow-y:auto;
     overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-
     padding:18px;
     display:grid;
     gap:14px;
@@ -1340,6 +1333,7 @@ function ensureAcquistiModalStyles() {
     gap:8px;
     padding:14px 18px 18px;
     border-top:1px solid rgba(0,0,0,.08);
+    flex-wrap:wrap;
   }
 
   .rf-grid-2{
@@ -1350,6 +1344,8 @@ function ensureAcquistiModalStyles() {
 
   .rf-field{
     min-width:0;
+    display:grid;
+    gap:6px;
   }
 
   .rf-riga-grid{
@@ -1374,9 +1370,7 @@ function ensureAcquistiModalStyles() {
     }
 
     .rf-modal{
-      width:100%;
-      max-width:100%;
-      max-height:96vh;
+      max-height:95vh;
       border-radius:12px;
     }
 
