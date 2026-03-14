@@ -32,9 +32,10 @@ export async function renderOrdini(container, azienda) {
 
     const { data:prodottiData } = await supabase
       .from("prodotti")
-      .select("id,nome,fornitore_preferito_id")
+      .select("id,nome,fornitore_preferito_id,unita_misura")
       .eq("azienda_id", azienda.id)
-      .eq("attivo", true);
+      .eq("attivo", true)
+      .order("nome");
 
     prodotti = prodottiData || [];
 
@@ -47,18 +48,31 @@ export async function renderOrdini(container, azienda) {
 
   }
 
-  function addRiga(nome="", qta=1){
+  function addRiga(prodottoId=null, qta=1){
 
     const row = document.createElement("div");
 
-    row.style.display = "flex";
-    row.style.gap = "8px";
-    row.style.marginBottom = "8px";
-    row.style.flexWrap = "wrap";
+    row.style.display="flex";
+    row.style.gap="8px";
+    row.style.marginBottom="8px";
+    row.style.flexWrap="wrap";
+    row.style.alignItems="center";
 
-    row.innerHTML = `
+    row.innerHTML=`
 
-      <input class="input nome-prodotto" placeholder="Prodotto" value="${nome}">
+      <select class="input select-prodotto">
+
+        <option value="">Seleziona prodotto</option>
+
+        ${prodotti.map(p=>`
+          <option value="${p.id}">
+            ${p.nome}
+          </option>
+        `).join("")}
+
+      </select>
+
+      <span class="um-prodotto" style="min-width:40px;color:#666"></span>
 
       <input class="input qta-prodotto" type="number" value="${qta}" style="width:80px">
 
@@ -68,93 +82,88 @@ export async function renderOrdini(container, azienda) {
 
     lista.appendChild(row);
 
+    const select=row.querySelector(".select-prodotto");
+    const um=row.querySelector(".um-prodotto");
+
+    select.addEventListener("change",()=>{
+
+      const prod=prodotti.find(p=>p.id==select.value);
+
+      um.innerText=prod?.unita_misura||"";
+
+      generaOrdini();
+
+    });
+
+    if(prodottoId){
+
+      select.value=prodottoId;
+
+      const prod=prodotti.find(p=>p.id==prodottoId);
+
+      um.innerText=prod?.unita_misura||"";
+
+    }
+
   }
 
   document
     .getElementById("btn-add-riga")
-    .addEventListener("click", () => addRiga());
+    .addEventListener("click",()=>addRiga());
 
   async function initOrdineDraft(){
 
     const draft = window.state?.ordineDraft || [];
 
     if(!draft.length){
+
       addRiga();
       return;
+
     }
 
-    draft.forEach(r => {
-      addRiga(r.nome, r.quantita);
+    draft.forEach(r=>{
+      addRiga(r.prodotto_id,r.quantita);
     });
 
     generaOrdini();
 
   }
 
+  container.addEventListener("change", generaOrdini);
   container.addEventListener("input", generaOrdini);
 
   async function generaOrdini(){
 
-    const righe = [];
+    const ordini={};
 
-    document.querySelectorAll("#lista-ordine > div").forEach(r => {
+    document.querySelectorAll("#lista-ordine > div").forEach(r=>{
 
-      const nome = r.querySelector(".nome-prodotto").value.trim();
-      const qta = parseFloat(r.querySelector(".qta-prodotto").value || 0);
+      const prodottoId=r.querySelector(".select-prodotto").value;
+      const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
 
-      if(nome && qta > 0){
+      if(!prodottoId||qta<=0) return;
 
-        righe.push({
-          nome,
-          quantita:qta,
-          element:r
-        });
+      const prodotto=prodotti.find(p=>p.id==prodottoId);
 
-      }
+      const fornId=prodotto?.fornitore_preferito_id;
 
-    });
+      if(!fornId){
 
-    if(!righe.length){
-
-      wrapperOrdini.innerHTML="";
-      return;
-
-    }
-
-    const ordini = {};
-
-    for(const r of righe){
-
-      const prodotto = prodotti.find(p =>
-        p.nome.toLowerCase() === r.nome.toLowerCase()
-      );
-
-      if(!prodotto){
-
-        r.element.querySelector(".fornitore-missing").innerHTML="";
-        continue;
+        renderSelectFornitore(r,prodottoId);
+        return;
 
       }
 
-      let fornitoreId = prodotto.fornitore_preferito_id;
+      if(!ordini[fornId]) ordini[fornId]=[];
 
-      if(!fornitoreId){
-
-        renderSelectFornitore(r.element, prodotto.id);
-        continue;
-
-      }
-
-      if(!ordini[fornitoreId]){
-        ordini[fornitoreId] = [];
-      }
-
-      ordini[fornitoreId].push({
-        nome:r.nome,
-        quantita:r.quantita
+      ordini[fornId].push({
+        nome:prodotto.nome,
+        quantita:qta,
+        um:prodotto.unita_misura
       });
 
-    }
+    });
 
     renderOrdiniFornitori(ordini);
 
@@ -162,15 +171,15 @@ export async function renderOrdini(container, azienda) {
 
   function renderSelectFornitore(element, prodottoId){
 
-    const div = element.querySelector(".fornitore-missing");
+    const div=element.querySelector(".fornitore-missing");
 
-    div.innerHTML = `
+    div.innerHTML=`
 
-      <select class="input select-fornitore">
+      <select class="input">
 
         <option value="">Scegli fornitore</option>
 
-        ${fornitori.map(f => `
+        ${fornitori.map(f=>`
           <option value="${f.id}">
             ${f.ragione_sociale}
           </option>
@@ -181,24 +190,20 @@ export async function renderOrdini(container, azienda) {
     `;
 
     div.querySelector("select")
-      .addEventListener("change", async e => {
+      .addEventListener("change",async e=>{
 
-        const fornitoreId = e.target.value;
+        const fornId=e.target.value;
 
-        if(!fornitoreId) return;
+        if(!fornId) return;
 
         await supabase
           .from("prodotti")
-          .update({
-            fornitore_preferito_id:fornitoreId
-          })
-          .eq("id", prodottoId);
+          .update({fornitore_preferito_id:fornId})
+          .eq("id",prodottoId);
 
-        const prod = prodotti.find(p => p.id === prodottoId);
+        const prod=prodotti.find(p=>p.id==prodottoId);
 
-        if(prod){
-          prod.fornitore_preferito_id = fornitoreId;
-        }
+        if(prod) prod.fornitore_preferito_id=fornId;
 
         generaOrdini();
 
@@ -208,22 +213,22 @@ export async function renderOrdini(container, azienda) {
 
   function renderOrdiniFornitori(ordini){
 
-    let html = `<div class="card"><h3>Ordini generati</h3>`;
+    let html=`<div class="card"><h3>Ordini generati</h3>`;
 
-    for(const fornitoreId in ordini){
+    for(const fid in ordini){
 
-      const fornitore = fornitori.find(f => f.id == fornitoreId);
+      const forn=fornitori.find(f=>f.id==fid);
 
-      html += `
+      html+=`
 
       <div class="card" style="margin-top:16px">
 
-        <strong>${fornitore?.ragione_sociale || "Fornitore non assegnato"}</strong>
+        <strong>${forn?.ragione_sociale||"Fornitore non assegnato"}</strong>
 
         <div style="font-size:13px;color:#666">
 
-          ${fornitore?.telefono_referente_ordini || ""}<br>
-          ${fornitore?.email_referente_ordini || ""}
+          ${forn?.telefono_referente_ordini||""}<br>
+          ${forn?.email_referente_ordini||""}
 
         </div>
 
@@ -233,15 +238,17 @@ export async function renderOrdini(container, azienda) {
             <tr>
               <th>Prodotto</th>
               <th>Quantità</th>
+              <th>UM</th>
             </tr>
           </thead>
 
           <tbody>
 
-          ${ordini[fornitoreId].map(p => `
+          ${ordini[fid].map(p=>`
             <tr>
               <td>${p.nome}</td>
               <td>${p.quantita}</td>
+              <td>${p.um||""}</td>
             </tr>
           `).join("")}
 
@@ -255,9 +262,9 @@ export async function renderOrdini(container, azienda) {
 
     }
 
-    html += "</div>";
+    html+="</div>";
 
-    wrapperOrdini.innerHTML = html;
+    wrapperOrdini.innerHTML=html;
 
   }
 
