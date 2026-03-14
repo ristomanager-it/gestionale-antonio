@@ -1,29 +1,40 @@
 export async function renderPreparazioni(container, azienda, startTab = "cerca") {
 
-  container.innerHTML = `
+  const modal = document.createElement("div");
 
-  <div class="modal-overlay">
+  modal.innerHTML = `
 
-    <div class="modal-box">
+  <div class="rf-modal-backdrop">
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>Preparazioni</h3>
-        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
-      </div>
+    <div class="rf-modal">
 
-      <div style="margin-top:15px; display:flex; gap:10px;">
+      <div class="rf-modal-header">
 
-        <button class="app-button tiny" id="tab-cerca">
-          🔎 Cerca preparazione
-        </button>
+        <h3 class="rf-modal-title">Preparazioni</h3>
 
-        <button class="app-button tiny gray" id="tab-sottoscorta">
-          ⚠️ Sottoscorta
+        <button class="btn-secondary" id="close-modal">
+          Chiudi
         </button>
 
       </div>
 
-      <div id="contenuto-preparazioni" style="margin-top:15px;"></div>
+      <div class="rf-modal-body">
+
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+
+          <button type="button" class="btn-primary" id="tab-cerca">
+            Cerca preparazione
+          </button>
+
+          <button type="button" class="btn-secondary" id="tab-sottoscorta">
+            Sottoscorta
+          </button>
+
+        </div>
+
+        <div id="contenuto-preparazioni"></div>
+
+      </div>
 
     </div>
 
@@ -31,10 +42,12 @@ export async function renderPreparazioni(container, azienda, startTab = "cerca")
 
   `;
 
-  const contenuto = document.getElementById("contenuto-preparazioni");
+  document.body.appendChild(modal);
 
-  document.getElementById("close-modal").onclick = () => {
-    container.innerHTML = "";
+  const contenuto = modal.querySelector("#contenuto-preparazioni");
+
+  modal.querySelector("#close-modal").onclick = () => {
+    modal.remove();
   };
 
   if (startTab === "sottoscorta") {
@@ -43,11 +56,11 @@ export async function renderPreparazioni(container, azienda, startTab = "cerca")
     loadRicerca(contenuto, azienda);
   }
 
-  document.getElementById("tab-cerca").onclick = () => {
+  modal.querySelector("#tab-cerca").onclick = () => {
     loadRicerca(contenuto, azienda);
   };
 
-  document.getElementById("tab-sottoscorta").onclick = () => {
+  modal.querySelector("#tab-sottoscorta").onclick = () => {
     loadSottoscorta(contenuto, azienda);
   };
 
@@ -57,19 +70,24 @@ function loadRicerca(box, azienda) {
 
   box.innerHTML = `
 
-    <input
-      id="search-prep"
-      class="input-pill"
-      placeholder="Cerca preparazione..."
-      style="width:100%; margin-bottom:10px;"
-    >
+    <div class="form-group">
+
+      <label>Cerca preparazione</label>
+
+      <input
+        id="search-prep"
+        class="input"
+        placeholder="Cerca per nome..."
+      >
+
+    </div>
 
     <div id="risultati-prep"></div>
 
   `;
 
-  const input = document.getElementById("search-prep");
-  const risultati = document.getElementById("risultati-prep");
+  const input = box.querySelector("#search-prep");
+  const risultati = box.querySelector("#risultati-prep");
 
   input.addEventListener("input", async () => {
 
@@ -85,21 +103,53 @@ function loadRicerca(box, azienda) {
       .select("id, nome")
       .eq("azienda_id", azienda.id)
       .ilike("nome", `%${term}%`)
-      .limit(10);
+      .limit(15);
 
-    risultati.innerHTML = data.map(r => `
+    if (!data || !data.length) {
 
-      <div class="list-row" data-id="${r.id}" style="cursor:pointer;">
-        ${r.nome}
-      </div>
+      risultati.innerHTML = `
+        <div class="rf-empty-righe">
+          Nessuna preparazione trovata
+        </div>
+      `;
 
-    `).join("");
+      return;
+    }
 
-    risultati.querySelectorAll(".list-row").forEach(row => {
+    risultati.innerHTML = `
+
+      <table class="app-table">
+
+        <thead>
+          <tr>
+            <th>Preparazione</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${data.map(r => `
+
+            <tr data-id="${r.id}" style="cursor:pointer;">
+
+              <td>${r.nome}</td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    `;
+
+    risultati.querySelectorAll("tbody tr").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
+
         apriSchedaPreparazione(box, azienda, id);
 
       };
@@ -112,7 +162,13 @@ function loadRicerca(box, azienda) {
 
 async function loadSottoscorta(box, azienda) {
 
-  box.innerHTML = "Caricamento...";
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento preparazioni sottoscorta...
+    </div>
+
+  `;
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_preparazioni")
@@ -120,24 +176,131 @@ async function loadSottoscorta(box, azienda) {
     .eq("azienda_id", azienda.id)
     .lte("giacenza_attuale", "scorta_minima");
 
-  if (!data.length) {
-    box.innerHTML = "Nessuna preparazione sottoscorta 🎉";
+  if (!data || !data.length) {
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Nessuna preparazione sottoscorta
+      </div>
+    `;
+
     return;
   }
 
-  box.innerHTML = data.map(p => `
+  box.innerHTML = `
 
-    <div class="list-row" data-id="${p.prodotto_id}" style="cursor:pointer;">
+    <table class="app-table">
 
-      <div style="display:flex; justify-content:space-between;">
-        <strong>${p.descrizione}</strong>
-        <span style="color:red;">
-          ${p.giacenza_attuale} / ${p.scorta_minima}
-        </span>
+      <thead>
+        <tr>
+          <th>Preparazione</th>
+          <th>Giacenza</th>
+          <th>Scorta minima</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        ${data.map(p => `
+
+          <tr data-id="${p.prodotto_id}" style="cursor:pointer;">
+
+            <td>${p.descrizione}</td>
+
+            <td style="color:#b42318;">
+              ${p.giacenza_attuale}
+            </td>
+
+            <td>
+              ${p.scorta_minima}
+            </td>
+
+          </tr>
+
+        `).join("")}
+
+      </tbody>
+
+    </table>
+
+  `;
+
+  box.querySelectorAll("tbody tr").forEach(row => {
+
+    row.onclick = () => {
+
+      const id = row.dataset.id;
+
+      apriSchedaPreparazione(box, azienda, id);
+
+    };
+
+  });
+
+}
+
+async function apriSchedaPreparazione(box, azienda, preparazioneId) {
+
+  box.innerHTML = `
+
+    <div class="card">
+      Caricamento scheda preparazione...
+    </div>
+
+  `;
+
+  const { data } = await window.supabaseClient
+    .from("v_magazzino_preparazioni")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .eq("prodotto_id", preparazioneId)
+    .single();
+
+  if (!data) {
+
+    box.innerHTML = `
+      <div class="rf-empty-righe">
+        Preparazione non trovata
+      </div>
+    `;
+
+    return;
+  }
+
+  box.innerHTML = `
+
+    <div class="card">
+
+      <h3 style="margin-top:0;">
+        ${data.descrizione}
+      </h3>
+
+      <div style="margin-top:10px;">
+
+        <div>
+          Giacenza: <strong>${data.giacenza_attuale}</strong>
+        </div>
+
+        <div>
+          Scorta minima: ${data.scorta_minima}
+        </div>
+
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:8px;">
+
+        <button class="btn-secondary" id="btn-indietro">
+          Indietro
+        </button>
+
       </div>
 
     </div>
 
-  `).join("");
+  `;
+
+  box.querySelector("#btn-indietro").onclick = () => {
+    loadRicerca(box, azienda);
+  };
 
 }
