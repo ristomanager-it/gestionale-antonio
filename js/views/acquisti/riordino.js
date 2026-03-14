@@ -2,92 +2,115 @@ export async function renderRiordino(container, azienda) {
 
   const supabase = window.supabaseClient;
 
+  container.innerHTML = `
+  <div class="card">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3>Riordino prodotti sotto scorta</h3>
+
+      <button id="btn-crea-ordine" class="app-button green">
+        CREA ORDINE
+      </button>
+    </div>
+
+    <div id="riordino-results" style="margin-top:16px"></div>
+
+  </div>
+  `;
+
+  const results = container.querySelector("#riordino-results");
+
   async function loadRiordino() {
 
     const { data, error } = await supabase
       .from("vw_riordino_prodotti")
       .select("*")
       .eq("azienda_id", azienda.id)
-      .order("nome", { ascending: true });
+      .order("nome", { ascending:true });
 
     if (error) {
-      container.innerHTML = `
-        <div class="card">
-          <h3>Errore caricamento riordino</h3>
-          <pre>${error.message}</pre>
-        </div>
+
+      results.innerHTML = `
+        <div>Errore caricamento riordino</div>
       `;
+
       return;
     }
 
-    const prodotti = (data || []).filter(p => Number(p.quantita_da_ordinare) > 0);
+    const prodotti = (data || []).filter(
+      p => Number(p.quantita_da_ordinare) > 0
+    );
 
-    container.innerHTML = `
+    if (!prodotti.length) {
 
-    <div class="card">
+      results.innerHTML = `
+        <div>Nessun prodotto sotto scorta</div>
+      `;
 
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3>Riordino prodotti</h3>
+      return;
+    }
 
-        <button id="btn-crea-ordine" class="app-button green">
-          CREA ORDINE
-        </button>
-      </div>
+    results.innerHTML = `
 
-      <table class="app-table" style="margin-top:16px">
+    <table class="app-table">
 
-        <thead>
-          <tr>
-            <th></th>
-            <th>Prodotto</th>
-            <th>Giacenza</th>
-            <th>Scorta Minima</th>
-            <th>Da Ordinare</th>
-          </tr>
-        </thead>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Prodotto</th>
+          <th>Giacenza</th>
+          <th>Scorta minima</th>
+          <th>Quantità da ordinare</th>
+        </tr>
+      </thead>
 
-        <tbody>
+      <tbody>
 
-          ${prodotti.map(p => `
-            <tr>
-              <td>
-                <input type="checkbox" class="chk-riordino" data-id="${p.prodotto_id}">
-              </td>
+      ${prodotti.map(p => `
 
-              <td>${p.nome || ""}</td>
+        <tr>
 
-              <td>${Number(p.giacenza_attuale || 0).toFixed(2)}</td>
+          <td>
+            <input
+              type="checkbox"
+              class="chk-riordino"
+              data-id="${p.prodotto_id}"
+            >
+          </td>
 
-              <td>${Number(p.scorta_minima || 0).toFixed(2)}</td>
+          <td>${p.nome || ""}</td>
 
-              <td>
-                <input 
-                  type="number"
-                  class="input-ordine"
-                  data-id="${p.prodotto_id}"
-                  value="${Number(p.quantita_da_ordinare || 0).toFixed(2)}"
-                  style="width:80px"
-                >
-              </td>
-            </tr>
-          `).join("")}
+          <td>${Number(p.giacenza_attuale || 0).toFixed(2)}</td>
 
-        </tbody>
+          <td>${Number(p.scorta_minima || 0).toFixed(2)}</td>
 
-      </table>
+          <td>
 
-    </div>
+            <input
+              type="number"
+              class="input-ordine"
+              data-id="${p.prodotto_id}"
+              value="${Number(p.quantita_da_ordinare || 0).toFixed(2)}"
+              style="width:90px"
+            >
+
+          </td>
+
+        </tr>
+
+      `).join("")}
+
+      </tbody>
+
+    </table>
 
     `;
 
-    document
-      .getElementById("btn-crea-ordine")
-      .addEventListener("click", creaOrdine);
   }
 
   async function creaOrdine() {
 
-    const checkboxes = document.querySelectorAll(".chk-riordino:checked");
+    const checkboxes = container.querySelectorAll(".chk-riordino:checked");
 
     if (!checkboxes.length) {
       alert("Seleziona almeno un prodotto");
@@ -100,15 +123,17 @@ export async function renderRiordino(container, azienda) {
 
       const id = c.dataset.id;
 
-      const input = document.querySelector(`.input-ordine[data-id="${id}"]`);
+      const input = container.querySelector(
+        `.input-ordine[data-id="${id}"]`
+      );
 
       const qta = parseFloat(input.value || 0);
 
       if (qta > 0) {
 
         righe.push({
-          prodotto_id: id,
-          quantita: qta
+          prodotto_id:id,
+          quantita:qta
         });
 
       }
@@ -120,17 +145,17 @@ export async function renderRiordino(container, azienda) {
       return;
     }
 
-    const { data: ordine, error: erroreOrdine } = await supabase
+    const { data: ordine, error } = await supabase
       .from("ordini_fornitore")
       .insert({
-        azienda_id: azienda.id,
-        stato: "bozza",
-        data_ordine: new Date().toISOString()
+        azienda_id:azienda.id,
+        stato:"bozza",
+        data_ordine:new Date().toISOString()
       })
       .select()
       .single();
 
-    if (erroreOrdine) {
+    if (error) {
       alert("Errore creazione ordine");
       return;
     }
@@ -138,16 +163,16 @@ export async function renderRiordino(container, azienda) {
     const ordineId = ordine.id;
 
     const righeInsert = righe.map(r => ({
-      ordine_id: ordineId,
-      prodotto_id: r.prodotto_id,
-      quantita: r.quantita
+      ordine_id:ordineId,
+      prodotto_id:r.prodotto_id,
+      quantita:r.quantita
     }));
 
-    const { error: erroreRighe } = await supabase
+    const { error:righeError } = await supabase
       .from("ordini_fornitore_righe")
       .insert(righeInsert);
 
-    if (erroreRighe) {
+    if (righeError) {
       alert("Errore inserimento righe ordine");
       return;
     }
@@ -156,6 +181,10 @@ export async function renderRiordino(container, azienda) {
 
     loadRiordino();
   }
+
+  document
+    .getElementById("btn-crea-ordine")
+    .addEventListener("click", creaOrdine);
 
   loadRiordino();
 }
