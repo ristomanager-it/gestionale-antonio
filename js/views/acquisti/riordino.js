@@ -5,22 +5,22 @@ export async function renderRiordino(container, azienda) {
   container.innerHTML = `
   <div class="card">
 
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3>Riordino prodotti sotto scorta</h3>
+    <h3>Riordino prodotti sotto scorta</h3>
 
-      <button id="btn-manda-ordini" class="app-button green">
-        MANDA A ORDINI
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button id="btn-manda-ordini" class="btn-primary">
+        Manda a ordini
       </button>
     </div>
 
-    <div id="riordino-table" style="margin-top:16px"></div>
+    <div id="riordino-results" style="margin-top:16px;"></div>
 
   </div>
   `;
 
-  const tableWrap = container.querySelector("#riordino-table");
+  const results = container.querySelector("#riordino-results");
 
-  async function loadRiordino() {
+  async function loadRiordino(){
 
     const { data, error } = await supabase
       .from("vw_riordino_prodotti")
@@ -28,82 +28,66 @@ export async function renderRiordino(container, azienda) {
       .eq("azienda_id", azienda.id)
       .order("nome");
 
-    if (error) {
-
-      console.error(error);
-
-      tableWrap.innerHTML = `
-      <div>Errore caricamento riordino</div>
-      `;
-
+    if(error){
+      results.innerHTML = `<div class="rf-empty">Errore caricamento riordino</div>`;
       return;
     }
 
     const prodotti = (data || []).filter(p => Number(p.sotto_scorta) === 1);
 
-    if (!prodotti.length) {
-
-      tableWrap.innerHTML = `
-      <div>Nessun prodotto sotto scorta</div>
-      `;
-
+    if(!prodotti.length){
+      results.innerHTML = `<div class="rf-empty">Nessun prodotto sotto scorta</div>`;
       return;
     }
 
-    tableWrap.innerHTML = `
-    <table class="app-table">
+    results.innerHTML = prodotti.map(p => `
 
-      <thead>
-        <tr>
-          <th></th>
-          <th>Prodotto</th>
-          <th>Giacenza</th>
-          <th>Scorta minima</th>
-          <th>Da ordinare</th>
-        </tr>
-      </thead>
+      <div class="card rf-riordino-item">
 
-      <tbody>
+        <div style="display:flex; justify-content:space-between; align-items:center">
 
-      ${prodotti.map(p => `
-        <tr>
+          <strong>${p.nome}</strong>
 
-          <td>
-            <input
-              type="checkbox"
-              class="chk-riordino"
-              data-id="${p.prodotto_id}"
-              data-nome="${p.nome}"
-            >
-          </td>
+          <input
+            type="checkbox"
+            class="chk-riordino"
+            data-id="${p.prodotto_id}"
+            data-nome="${p.nome}"
+          >
 
-          <td>${p.nome}</td>
+        </div>
 
-          <td>${Number(p.giacenza_attuale || 0).toFixed(2)}</td>
+        <div class="rf-grid" style="margin-top:10px">
 
-          <td>${Number(p.scorta_minima || 0).toFixed(2)}</td>
+          <div>
+            <label>Giacenza</label>
+            <div>${Number(p.giacenza_attuale || 0).toFixed(2)}</div>
+          </div>
 
-          <td>
+          <div>
+            <label>Scorta minima</label>
+            <div>${Number(p.scorta_minima || 0).toFixed(2)}</div>
+          </div>
+
+          <div>
+            <label>Da ordinare</label>
             <input
               type="number"
-              class="qta-riordino"
+              class="input qta-riordino"
               data-id="${p.prodotto_id}"
               value="${Number(p.quantita_da_ordinare || 0).toFixed(2)}"
-              style="width:80px"
             >
-          </td>
+          </div>
 
-        </tr>
-      `).join("")}
+        </div>
 
-      </tbody>
+      </div>
 
-    </table>
-    `;
+    `).join("");
 
   }
 
-  function mandaAOrdini() {
+  function mandaAOrdini(){
 
     const righe = [];
 
@@ -119,33 +103,29 @@ export async function renderRiordino(container, azienda) {
 
         const qta = parseFloat(input.value || 0);
 
-        if (qta > 0) {
+        if(qta > 0){
 
           righe.push({
-            prodotto_id: id,
-            nome: nome,
-            quantita: qta
+            prodotto_id:id,
+            nome:nome,
+            quantita:qta
           });
 
         }
 
       });
 
-    if (!righe.length) {
-
+    if(!righe.length){
       alert("Seleziona almeno un prodotto");
       return;
-
     }
 
-    // salva nello stato globale
     window.state = window.state || {};
     window.state.ordineDraft = righe;
 
-    // cambia tab verso ORDINI
     const tabOrdini = document.querySelector('[data-tab="ordini"]');
 
-    if (tabOrdini) {
+    if(tabOrdini){
       tabOrdini.click();
     }
 
