@@ -320,8 +320,7 @@ async function openDocumentoUploadModal(azienda) {
           <div id="rf-upload-wrap" class="rf-field">
             <label>Documento</label>
             <input id="rf-file" type="file" class="input" accept="image/*,.pdf" />
-            <div class="rf-mini-note">Alla selezione del file: upload su bucket "fatture" e chiamata a supabase.functions.invoke("ocr-fattura", { body: { imageUrl } }).</div>
-          </div>
+          
 
           <div class="rf-grid-2">
             <div class="rf-field">
