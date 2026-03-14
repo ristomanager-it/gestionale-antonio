@@ -1,98 +1,161 @@
 export function renderCaricoModal() {
 
   return `
-    <div id="magazzino-carico-backdrop"
-      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
 
-      <div class="view"
-        style="max-width:560px; margin:0 auto; border-radius:14px; padding:16px;">
+  <div id="rf-carico-backdrop" class="rf-modal-backdrop" style="display:none;">
 
-        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
-          <h3 style="margin:0;">📦 Carico Giacenza</h3>
-          <button id="btn-close-carico" class="app-button tiny gray">✕ Chiudi</button>
+    <div class="rf-modal rf-modal-small">
+
+      <div class="rf-modal-header">
+        <h3 class="rf-modal-title">Carico Magazzino</h3>
+        <button id="btn-close-carico" class="app-button tiny gray">Chiudi</button>
+      </div>
+
+      <div class="rf-modal-body">
+
+        <div class="rf-field">
+          <label>Prodotto</label>
+          <input
+            id="carico-search"
+            class="input"
+            placeholder="Cerca prodotto..."
+            autocomplete="off"
+          >
         </div>
 
-        <div class="small-muted" id="carico-prodotto-label" style="margin-top:8px;"></div>
+        <div id="carico-risultati" style="margin-top:8px;"></div>
 
-        <div class="editor-stack" style="margin-top:12px;">
+        <div id="carico-form" style="display:none; margin-top:12px;">
 
-          <label>
-            Quantità da caricare
-            <input id="carico-quantita" type="number" step="0.001" min="0" class="input-pill" />
-          </label>
-
-          <label style="margin-top:10px;">
-            Data movimento
-            <input id="carico-data" type="date" class="input-pill" />
-          </label>
-
-          <label style="margin-top:10px;">
-            Note
-            <input id="carico-note" class="input-pill" />
-          </label>
-
-          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btn-conferma-carico" class="app-button green">✅ Registra Carico</button>
-            <button id="btn-annulla-carico" class="app-button gray">Annulla</button>
+          <div class="rf-field">
+            <label>Quantità</label>
+            <input id="carico-quantita" type="number" step="0.001" class="input">
           </div>
 
-          <div id="carico-esito" class="small-muted" style="margin-top:10px;"></div>
+          <div class="rf-field" style="margin-top:10px;">
+            <label>Data movimento</label>
+            <input id="carico-data" type="date" class="input">
+          </div>
+
+          <div class="rf-field" style="margin-top:10px;">
+            <label>Note</label>
+            <input id="carico-note" class="input">
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btn-conferma-carico" class="app-button tiny">
+              Registra Carico
+            </button>
+
+            <button id="btn-annulla-carico" class="app-button tiny gray">
+              Annulla
+            </button>
+          </div>
+
+          <div id="carico-esito" style="margin-top:10px; font-size:13px;"></div>
 
         </div>
 
       </div>
 
     </div>
-  `;
 
+  </div>
+
+  `;
 }
 
-export function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSuccess }) {
+export function apriCaricoModal({ aziendaId }) {
 
-  const backdrop = document.getElementById("magazzino-carico-backdrop");
-  const btnClose = document.getElementById("btn-close-carico");
-  const btnAnnulla = document.getElementById("btn-annulla-carico");
-  const btnConferma = document.getElementById("btn-conferma-carico");
+  const backdrop = document.getElementById("rf-carico-backdrop");
+  const search = document.getElementById("carico-search");
+  const risultati = document.getElementById("carico-risultati");
+  const form = document.getElementById("carico-form");
 
-  const label = document.getElementById("carico-prodotto-label");
   const qtaEl = document.getElementById("carico-quantita");
   const dataEl = document.getElementById("carico-data");
   const noteEl = document.getElementById("carico-note");
   const esitoEl = document.getElementById("carico-esito");
 
-  if (!backdrop) return;
+  const btnClose = document.getElementById("btn-close-carico");
+  const btnAnnulla = document.getElementById("btn-annulla-carico");
+  const btnConferma = document.getElementById("btn-conferma-carico");
 
-  esitoEl.innerText = "";
-  label.innerText = prodottoLabel || "Prodotto selezionato";
+  let prodottoId = null;
 
-  qtaEl.value = "";
+  backdrop.style.display = "flex";
+
   dataEl.value = new Date().toISOString().slice(0, 10);
-  noteEl.value = "Inventario iniziale";
-
-  backdrop.style.display = "block";
+  noteEl.value = "Inventario";
 
   const close = () => {
     backdrop.style.display = "none";
-    btnConferma.removeAttribute("disabled");
+    risultati.innerHTML = "";
+    form.style.display = "none";
   };
 
   btnClose.onclick = close;
   btnAnnulla.onclick = close;
 
   backdrop.onclick = (e) => {
-    if (e.target?.id === "magazzino-carico-backdrop") close();
+    if (e.target.id === "rf-carico-backdrop") close();
+  };
+
+  search.oninput = async () => {
+
+    const term = search.value.trim();
+
+    if (term.length < 2) {
+      risultati.innerHTML = "";
+      return;
+    }
+
+    const { data } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, descrizione")
+      .eq("azienda_id", aziendaId)
+      .ilike("descrizione", `%${term}%`)
+      .limit(10);
+
+    risultati.innerHTML = `
+
+      <div class="rf-doc-list">
+
+        ${(data || []).map(p => `
+
+          <div class="rf-doc-item carico-item" data-id="${p.id}">
+            <div class="rf-doc-title">${p.descrizione}</div>
+          </div>
+
+        `).join("")}
+
+      </div>
+
+    `;
+
+    risultati.querySelectorAll(".carico-item").forEach(row => {
+
+      row.onclick = () => {
+
+        prodottoId = row.dataset.id;
+        risultati.innerHTML = "";
+        form.style.display = "block";
+
+      };
+
+    });
+
   };
 
   btnConferma.onclick = async () => {
 
     const q = Number(qtaEl.value || 0);
-    const d = (dataEl.value || "").trim();
-    const note = (noteEl.value || "").trim();
+    const d = dataEl.value;
+    const note = noteEl.value || "";
 
-    if (!q || q <= 0) return alert("Inserisci una quantità > 0.");
-    if (!d) return alert("Seleziona una data.");
+    if (!prodottoId) return alert("Seleziona un prodotto");
+    if (!q || q <= 0) return alert("Inserisci quantità valida");
 
-    btnConferma.setAttribute("disabled", "disabled");
     esitoEl.innerText = "Salvataggio...";
 
     const { error } = await window.supabaseClient
@@ -104,22 +167,22 @@ export function apriCaricoModal({ aziendaId, prodottoId, prodottoLabel, onSucces
         quantita: q,
         data_movimento: d,
         riferimento_tipo: "INVENTARIO",
-        note: note || "Inventario iniziale"
+        note: note
       });
 
     if (error) {
-      console.error("Errore carico magazzino:", error);
-      esitoEl.innerText = "Errore durante il carico.";
-      btnConferma.removeAttribute("disabled");
+
+      esitoEl.innerText = "Errore durante il salvataggio";
+      console.error(error);
       return;
+
     }
 
-    esitoEl.innerText = "Carico registrato ✔️";
+    esitoEl.innerText = "Carico registrato ✔";
 
     setTimeout(() => {
       close();
-      if (typeof onSuccess === "function") onSuccess();
-    }, 350);
+    }, 400);
 
   };
 
