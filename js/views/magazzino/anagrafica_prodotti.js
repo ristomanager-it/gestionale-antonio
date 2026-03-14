@@ -8,7 +8,7 @@ export async function renderAnagraficaProdotti(container) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal" style="max-width:420px;height:auto;">
+    <div class="rf-modal">
 
       <div class="rf-modal-header">
 
@@ -20,18 +20,16 @@ export async function renderAnagraficaProdotti(container) {
 
       </div>
 
-      <div class="rf-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="rf-modal-body">
 
         <input
           id="search-prodotti"
           class="input"
           placeholder="Cerca codice o descrizione..."
-          autocomplete="off"
+          style="width:100%; margin-bottom:10px;"
         />
 
         <div id="risultati-prodotti"></div>
-
-        <div id="scheda-prodotto"></div>
 
       </div>
 
@@ -44,7 +42,6 @@ export async function renderAnagraficaProdotti(container) {
   document.body.appendChild(modal);
 
   const risultati = modal.querySelector("#risultati-prodotti");
-  const scheda = modal.querySelector("#scheda-prodotto");
   const input = modal.querySelector("#search-prodotti");
 
   modal.querySelector("#close-modal").onclick = () => {
@@ -62,7 +59,7 @@ export async function renderAnagraficaProdotti(container) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, meta, descrizione, tipo_prodotto, um")
+      .select("id, meta, descrizione, tipo_prodotto")
       .eq("azienda_id", azienda.id)
       .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
       .limit(15);
@@ -70,7 +67,7 @@ export async function renderAnagraficaProdotti(container) {
     if (!data || !data.length) {
 
       risultati.innerHTML = `
-        <div style="font-size:13px;">
+        <div style="font-size:13px; padding:8px;">
           Nessun prodotto trovato
         </div>
       `;
@@ -78,53 +75,36 @@ export async function renderAnagraficaProdotti(container) {
       return;
     }
 
-    risultati.innerHTML = `
+    risultati.innerHTML = data.map(p => `
 
-      <div class="rf-doc-list">
+      <div 
+        data-id="${p.id}" 
+        style="padding:6px 4px; cursor:pointer; font-size:13px; border-bottom:1px solid #eee;"
+        class="risultato-prodotto"
+      >
 
-        ${data.map(p => `
+        <div style="display:flex; justify-content:space-between;">
 
-          <div class="rf-doc-item risultato-prodotto"
-               data-id="${p.id}"
-               data-label="${(p.meta || "")} — ${p.descrizione}"
-               data-um="${p.um || ""}"
-               data-tipo="${p.tipo_prodotto || ""}">
-
-            <div class="rf-doc-title">
-              ${(p.meta || "")} — ${p.descrizione}
-            </div>
-
-            <div class="rf-doc-meta">
-              <span>${p.tipo_prodotto || ""}</span>
-              <span>${p.um || "-"}</span>
-            </div>
-
+          <div>
+            <strong>${p.meta || ""}</strong> — ${p.descrizione}
           </div>
 
-        `).join("")}
+          <div style="font-size:11px; opacity:0.7;">
+            ${p.tipo_prodotto || ""}
+          </div>
+
+        </div>
 
       </div>
 
-    `;
+    `).join("");
 
     risultati.querySelectorAll(".risultato-prodotto").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-
-        input.value = row.dataset.label;
-
-        risultati.innerHTML = "";
-
-        apriSchedaProdotto(
-          scheda,
-          azienda,
-          id,
-          row.dataset.label,
-          row.dataset.um,
-          row.dataset.tipo
-        );
+        apriSchedaProdotto(modal, azienda, id);
 
       };
 
@@ -136,9 +116,13 @@ export async function renderAnagraficaProdotti(container) {
 
 
 
-async function apriSchedaProdotto(box, azienda, prodottoId, label, um, tipo) {
+async function apriSchedaProdotto(modal, azienda, prodottoId) {
 
-  box.innerHTML = "Caricamento...";
+  const body = modal.querySelector(".rf-modal-body");
+
+  body.innerHTML = `
+    <div style="font-size:13px;">Caricamento...</div>
+  `;
 
   const { data } = await window.supabaseClient
     .from("prodotti")
@@ -148,65 +132,57 @@ async function apriSchedaProdotto(box, azienda, prodottoId, label, um, tipo) {
     .single();
 
   if (!data) {
-    box.innerHTML = "Prodotto non trovato";
+    body.innerHTML = `<div style="font-size:13px;">Prodotto non trovato</div>`;
     return;
   }
 
-  box.innerHTML = `
+  body.innerHTML = `
 
-    <div class="rf-doc-item">
+    <div style="font-size:14px; font-weight:600; margin-bottom:10px;">
+      ${data.meta || ""} — ${data.descrizione}
+    </div>
 
-      <div class="rf-doc-title">
-        ${label || (data.meta || "") + " — " + data.descrizione}
-      </div>
+    <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
 
-      <div class="rf-doc-meta">
-        <span>Tipo: ${tipo || data.tipo_prodotto || "-"}</span>
-        <span>UM: ${um || data.um || "-"}</span>
-      </div>
+      <label>Unità di misura</label>
+      <input id="um" class="input" value="${data.um || ""}">
 
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+      <label style="margin-top:6px;">Scorta minima</label>
+      <input id="scorta" class="input" value="${data.scorta_minima || ""}">
 
-        <label>Unità di misura</label>
-        <input id="um" class="input" value="${data.um || ""}">
+    </div>
 
-        <label>Scorta minima</label>
-        <input id="scorta" class="input" value="${data.scorta_minima || ""}">
+    <div style="margin-top:12px; display:flex; gap:8px;">
 
-      </div>
+      <button class="app-button tiny" id="salva-prodotto">
+        Salva
+      </button>
 
-      <div style="margin-top:12px; display:flex; gap:8px;">
-
-        <button class="app-button tiny" id="salva-prodotto">
-          Salva
-        </button>
-
-        <button class="app-button tiny gray" id="indietro">
-          Indietro
-        </button>
-
-      </div>
+      <button class="app-button tiny gray" id="indietro">
+        Indietro
+      </button>
 
     </div>
 
   `;
 
-  box.querySelector("#indietro").onclick = () => {
+  body.querySelector("#indietro").onclick = () => {
 
-    box.innerHTML = "";
+    modal.remove();
+    renderAnagraficaProdotti(document.body);
 
   };
 
-  box.querySelector("#salva-prodotto").onclick = async () => {
+  body.querySelector("#salva-prodotto").onclick = async () => {
 
-    const umVal = box.querySelector("#um").value;
-    const scortaVal = box.querySelector("#scorta").value;
+    const um = body.querySelector("#um").value;
+    const scorta = body.querySelector("#scorta").value;
 
     await window.supabaseClient
       .from("prodotti")
       .update({
-        um: umVal,
-        scorta_minima: scortaVal
+        um,
+        scorta_minima: scorta
       })
       .eq("id", prodottoId);
 
