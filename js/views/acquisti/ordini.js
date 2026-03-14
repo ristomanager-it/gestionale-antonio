@@ -59,7 +59,6 @@ export async function renderOrdini(container, azienda) {
       <div class="rf-grid">
 
         <div>
-
           <label>Prodotto</label>
 
           <select class="input select-prodotto">
@@ -77,17 +76,13 @@ export async function renderOrdini(container, azienda) {
         </div>
 
         <div>
-
           <label>UM</label>
           <div class="um-prodotto"></div>
-
         </div>
 
         <div>
-
           <label>Quantità</label>
           <input class="input qta-prodotto" type="number" value="${qta}">
-
         </div>
 
       </div>
@@ -156,18 +151,22 @@ export async function renderOrdini(container, azienda) {
       const prodottoId=r.querySelector(".select-prodotto").value;
       const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
 
-      if(!prodottoId||qta<=0) return;
+      if(!prodottoId || qta<=0) return;
 
       const prodotto=prodotti.find(p=>p.id==prodottoId);
 
-      const fornId=prodotto?.fornitore_preferito_id;
+      if(!prodotto) return;
+
+      const fornId=prodotto.fornitore_preferito_id;
 
       if(!fornId){
         renderSelectFornitore(r,prodottoId);
         return;
       }
 
-      if(!ordini[fornId]) ordini[fornId]=[];
+      if(!ordini[fornId]){
+        ordini[fornId]=[];
+      }
 
       ordini[fornId].push({
         nome:prodotto.nome,
@@ -225,15 +224,21 @@ export async function renderOrdini(container, azienda) {
 
   function renderOrdiniFornitori(ordini){
 
-    let html=`<div class="card"><h3>Ordini generati</h3>`;
+    let html="";
 
     for(const fid in ordini){
 
       const forn=fornitori.find(f=>f.id==fid);
 
+      const prodottiForn=ordini[fid];
+
+      const testoMail = prodottiForn
+        .map(p=>`${p.nome} ${p.quantita} ${p.um}`)
+        .join("\\n");
+
       html+=`
 
-      <div class="card rf-card-fornitore">
+      <div class="card">
 
         <strong>${forn?.ragione_sociale||"Fornitore non assegnato"}</strong>
 
@@ -244,7 +249,7 @@ export async function renderOrdini(container, azienda) {
 
         </div>
 
-        ${ordini[fid].map(p=>`
+        ${prodottiForn.map(p=>`
 
           <div class="rf-grid" style="margin-top:8px">
 
@@ -256,13 +261,22 @@ export async function renderOrdini(container, azienda) {
 
         `).join("")}
 
+        <div style="margin-top:10px">
+
+          <button class="btn-primary"
+            onclick="window.location.href='mailto:${forn?.email_referente_ordini}?subject=Ordine&body=${encodeURIComponent(testoMail)}'">
+
+            Invia ordine
+
+          </button>
+
+        </div>
+
       </div>
 
       `;
 
     }
-
-    html+="</div>";
 
     wrapperOrdini.innerHTML=html;
 
