@@ -375,6 +375,7 @@ async function openDocumentoUploadModal(azienda) {
   `;
 
   document.body.appendChild(modal);
+  document.body.classList.add('rf-modal-open');
 
   const elTipoDocumento = modal.querySelector("#rf-tipo-documento");
   const elMetodo = modal.querySelector("#rf-metodo");
@@ -398,6 +399,7 @@ async function openDocumentoUploadModal(azienda) {
   let righe = [];
 
   function closeModal() {
+    document.body.classList.remove('rf-modal-open');
     modal.remove();
   }
 
@@ -1279,282 +1281,108 @@ function ensureAcquistiModalStyles() {
   const style = document.createElement("style");
   style.id = "rf-acquisti-modal-style";
   style.textContent = `
+
+  body.rf-modal-open{
+    overflow:hidden;
+    position:fixed;
+    width:100%;
+    height:100%;
+  }
+
+  .rf-modal-backdrop{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100dvh;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    z-index:9999;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+
+  .rf-modal{
+    width:100%;
+    max-width:1080px;
+    height:90dvh;
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.22);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  .rf-modal-small{
+    max-width:680px;
+  }
+
+  .rf-modal-header{
+    flex-shrink:0;
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+
+  .rf-modal-body{
+    flex:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding:18px;
+    display:grid;
+    gap:14px;
+  }
+
+  .rf-modal-actions{
+    flex-shrink:0;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding:14px 18px 18px;
+    border-top:1px solid rgba(0,0,0,.08);
+  }
+
+  input,select,textarea{
+    max-width:100%;
+    font-size:16px;
+    box-sizing:border-box;
+  }
+
+  @media (max-width:760px){
+
     .rf-modal-backdrop{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.45);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index:9999;
-      box-sizing:border-box;
+      padding:0;
     }
+
     .rf-modal{
-      width:100%;
-      max-width:1080px;
-      max-height:92vh;
-      overflow:auto;
-      background:#fff;
-      border-radius:16px;
-      box-shadow:0 18px 50px rgba(0,0,0,.22);
-      box-sizing:border-box;
+      width:100vw;
+      max-width:100vw;
+      height:100dvh;
+      border-radius:0;
     }
-    .rf-modal-small{
-      width:100%;
-      max-width:680px;
-    }
-    .rf-modal-header{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;
-      padding:18px 18px 12px;
-      border-bottom:1px solid rgba(0,0,0,.08);
-    }
-    .rf-header-copy{
-      min-width:0;
-      flex:1;
-    }
-    .rf-top-close{
-      flex-shrink:0;
-    }
-    .rf-modal-title{
-      margin:0;
-      font-size:18px;
-      line-height:1.25;
-    }
-    .rf-modal-sub{
-      margin:6px 0 0;
-      color:#667085;
-      font-size:13px;
-      line-height:1.45;
-    }
-    .rf-modal-body{
-      padding:18px;
-      display:grid;
-      gap:14px;
-      box-sizing:border-box;
-    }
+
     .rf-grid-2{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
+      grid-template-columns:1fr;
     }
-    .rf-field{
-      display:grid;
-      gap:6px;
-      min-width:0;
-    }
-    .rf-field label{
-      font-size:13px;
-      color:#344054;
-      font-weight:600;
-    }
-    .rf-righe-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .rf-modal-actions{
-      display:flex;
-      justify-content:flex-end;
-      gap:8px;
-      padding:14px 18px 18px;
-      border-top:1px solid rgba(0,0,0,.08);
-      flex-wrap:wrap;
-    }
-    .rf-feedback{
-      min-height:18px;
-      font-size:13px;
-      font-weight:600;
-      word-break:break-word;
-    }
-    .rf-mini-note{
-      font-size:12px;
-      color:#667085;
-      line-height:1.4;
-    }
-    .rf-righe-wrap{
-      display:grid;
-      gap:12px;
-      width:100%;
-    }
-    .rf-empty-righe{
-      padding:14px;
-      border:1px dashed rgba(0,0,0,.14);
-      border-radius:12px;
-      background:#f8fafc;
-      color:#667085;
-      font-size:13px;
-      line-height:1.45;
-    }
-    .rf-riga-card{
-      padding:14px;
-      border-radius:12px;
-      border:1px solid rgba(0,0,0,.08);
-      background:#fff;
-      display:grid;
-      gap:10px;
-      box-sizing:border-box;
-      width:100%;
-      min-width:0;
-    }
-    .rf-riga-card.ok{
-      border-color:rgba(34,197,94,.35);
-      background:rgba(34,197,94,.03);
-    }
-    .rf-riga-card.missing{
-      border-color:rgba(239,68,68,.35);
-      background:rgba(239,68,68,.03);
-    }
+
     .rf-riga-grid{
-      display:grid;
-      gap:10px;
-      grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+      grid-template-columns:1fr;
+    }
+
+    .rf-modal-actions button,
+    .rf-top-close{
       width:100%;
-      min-width:0;
     }
-    .rf-riga-bottom{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .rf-riga-status{
-      font-size:12px;
-      font-weight:600;
-      word-break:break-word;
-    }
-    .rf-riga-status.ok{
-      color:#166534;
-    }
-    .rf-riga-status.missing{
-      color:#b42318;
-    }
-    .rf-riga-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .rf-doc-list{
-      display:grid;
-      gap:10px;
-    }
-    .rf-doc-item{
-      border:1px solid rgba(0,0,0,.08);
-      border-radius:12px;
-      padding:14px;
-      background:#fff;
-      display:grid;
-      gap:8px;
-    }
-    .rf-doc-top{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .rf-doc-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:700;
-      letter-spacing:.03em;
-    }
-    .rf-doc-badge.fattura{
-      background:rgba(59,130,246,.12);
-      color:#1d4ed8;
-    }
-    .rf-doc-badge.ddt{
-      background:rgba(16,185,129,.12);
-      color:#047857;
-    }
-    .rf-doc-date{
-      font-size:12px;
-      color:#667085;
-      font-weight:600;
-    }
-    .rf-doc-title{
-      font-size:15px;
-      font-weight:700;
-      color:#101828;
-    }
-    .rf-doc-meta{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      color:#667085;
-      font-size:12px;
-    }
-    @media (max-width: 760px){
-      .rf-modal-backdrop{
-        padding:8px;
-      }
-      .rf-modal{
-        border-radius:12px;
-        max-height:96vh;
-      }
-      .rf-modal-small{
-        max-width:100%;
-      }
-      .rf-modal-header{
-        padding:14px 14px 10px;
-        gap:10px;
-        flex-direction:column;
-      }
-      .rf-modal-title{
-        font-size:16px;
-      }
-      .rf-modal-sub{
-        font-size:12px;
-      }
-      .rf-modal-body{
-        padding:14px;
-        gap:12px;
-      }
-      .rf-modal-actions{
-        padding:12px 14px 14px;
-      }
-      .rf-grid-2{
-        grid-template-columns:1fr;
-      }
-      .rf-field label{
-        font-size:12px;
-      }
-      .rf-riga-grid{
-        grid-template-columns:1fr;
-      }
-      .rf-riga-card{
-        padding:12px;
-      }
-      .rf-riga-status{
-        font-size:11px;
-      }
-      .rf-riga-actions{
-        width:100%;
-      }
-      .rf-riga-actions > button,
-      .rf-modal-actions > button,
-      .rf-righe-header > button,
-      .rf-top-close{
-        width:100%;
-      }
-      .rf-righe-header{
-        align-items:stretch;
-      }
-      .rf-doc-meta{
-        flex-direction:column;
-        gap:4px;
-      }
-    }
+
+  }
   `;
+
   document.head.appendChild(style);
 }
