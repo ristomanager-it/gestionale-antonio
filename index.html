@@ -12,9 +12,9 @@
 
   <!-- ICONS -->
 
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=6" />
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=6" />
-  <link rel="apple-touch-icon" href="favicon-192.png?v=6" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=7" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png?v=7" />
+  <link rel="apple-touch-icon" href="assets/favicon-192.png?v=7" />
 
   <!-- PWA -->
 
@@ -27,7 +27,7 @@
 
   <!-- CSS -->
 
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 
 </head>
 
@@ -83,7 +83,7 @@
 
 
   <!-- ===================================================== -->
-  <!-- ==================== SUBHEADER ====================== -->
+  <!-- ==================== INFO BAR ======================= -->
   <!-- ===================================================== -->
 
   <div class="topbar-info">
@@ -102,12 +102,9 @@
   <!-- ===================== MENU SPA ====================== -->
   <!-- ===================================================== -->
 
-  <nav
-    id="global-menu"
-    class="global-menu"
-  ></nav>
+  <nav id="global-menu" class="global-menu"></nav>
 
-  <!-- overlay per chiusura menu -->
+  <!-- overlay chiusura menu -->
 
   <div id="menu-overlay" class="menu-overlay"></div>
 
@@ -125,13 +122,13 @@
   <!-- ================= SCRIPT GLOBALI ==================== -->
   <!-- ===================================================== -->
 
-  <script src="js/state.js?v=6"></script>
-  <script src="js/stateActions.js?v=6"></script>
+  <script src="js/state.js?v=7"></script>
+  <script src="js/stateActions.js?v=7"></script>
 
-  <script type="module" src="js/supabaseClient.js?v=6"></script>
+  <script type="module" src="js/supabaseClient.js?v=7"></script>
 
-  <script src="js/ui-reparto.js?v=6"></script>
-  <script src="js/db.js?v=6"></script>
+  <script src="js/ui-reparto.js?v=7"></script>
+  <script src="js/db.js?v=7"></script>
 
 
 
@@ -140,7 +137,6 @@
   <!-- ===================================================== -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 
@@ -157,8 +153,41 @@
   <!-- ====================== ROUTER ======================= -->
   <!-- ===================================================== -->
 
-  <script type="module" src="js/router.js?v=6"></script>
+  <script type="module" src="js/router.js?v=7"></script>
 
+
+
+  <!-- ===================================================== -->
+  <!-- ================= MENU OVERLAY LOGIC ================= -->
+  <!-- ===================================================== -->
+
+  <script>
+
+  document.addEventListener("DOMContentLoaded",()=>{
+
+    const menu = document.getElementById("global-menu")
+    const overlay = document.getElementById("menu-overlay")
+    const toggle = document.getElementById("menu-toggle")
+
+    if(!menu || !overlay || !toggle) return
+
+    toggle.addEventListener("click",()=>{
+
+      menu.classList.toggle("open")
+      overlay.classList.toggle("open")
+
+    })
+
+    overlay.addEventListener("click",()=>{
+
+      menu.classList.remove("open")
+      overlay.classList.remove("open")
+
+    })
+
+  })
+
+  </script>
 
 
 </body>
