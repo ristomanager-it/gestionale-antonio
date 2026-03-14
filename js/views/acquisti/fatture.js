@@ -521,8 +521,7 @@ async function openDocumentoUploadModal(azienda) {
     if (!righe.length) {
       righeContainer.innerHTML = `
         <div class="rf-empty-righe">
-          Nessuna riga presente. In manuale usa "Aggiungi riga", in caricamento documento le righe vengono compilate dopo l'analisi OCR.
-        </div>
+        
       `;
       return;
     }
