@@ -2,25 +2,43 @@ export async function renderAnagraficaProdotti(container) {
 
   const azienda = window.state?.azienda;
 
-  container.innerHTML = `
+  if (!azienda) return;
 
-  <div class="modal-overlay">
+  const modal = document.createElement("div");
 
-    <div class="modal-box">
+  modal.innerHTML = `
+  
+  <div class="rf-modal-backdrop">
 
-      <div style="display:flex; justify-content:space-between;">
-        <h3>Anagrafica Prodotti</h3>
-        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
+    <div class="rf-modal rf-modal-small">
+
+      <div class="rf-modal-header">
+
+        <h3 class="rf-modal-title">Anagrafica Prodotti</h3>
+
+        <button class="btn-secondary" id="close-modal">
+          Chiudi
+        </button>
+
       </div>
 
-      <input
-        id="search-prodotti"
-        class="input-pill"
-        placeholder="Cerca prodotto..."
-        style="width:100%; margin-top:15px;"
-      >
+      <div class="rf-modal-body">
 
-      <div id="risultati-prodotti" style="margin-top:10px;"></div>
+        <div class="form-group">
+
+          <label>Cerca prodotto</label>
+
+          <input
+            id="search-prodotti"
+            class="input"
+            placeholder="Cerca per codice o descrizione..."
+          >
+
+        </div>
+
+        <div id="risultati-prodotti"></div>
+
+      </div>
 
     </div>
 
@@ -28,13 +46,14 @@ export async function renderAnagraficaProdotti(container) {
 
   `;
 
-  const risultati = document.getElementById("risultati-prodotti");
+  document.body.appendChild(modal);
 
-  document.getElementById("close-modal").onclick = () => {
-    container.innerHTML = "";
+  const risultati = modal.querySelector("#risultati-prodotti");
+  const input = modal.querySelector("#search-prodotti");
+
+  modal.querySelector("#close-modal").onclick = () => {
+    modal.remove();
   };
-
-  const input = document.getElementById("search-prodotti");
 
   input.addEventListener("input", async () => {
 
@@ -47,30 +66,61 @@ export async function renderAnagraficaProdotti(container) {
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, descrizione, tipo_prodotto")
+      .select("id, meta, descrizione, tipo_prodotto")
       .eq("azienda_id", azienda.id)
-      .ilike("descrizione", `%${term}%`)
+      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
       .limit(15);
 
-    risultati.innerHTML = data.map(p => `
+    if (!data || !data.length) {
 
-      <div class="list-row" data-id="${p.id}" style="cursor:pointer;">
-
-        <div style="display:flex; justify-content:space-between;">
-          <strong>${p.descrizione}</strong>
-          <span style="font-size:12px;">${p.tipo_prodotto}</span>
+      risultati.innerHTML = `
+        <div class="rf-empty-righe">
+          Nessun prodotto trovato
         </div>
+      `;
 
-      </div>
+      return;
+    }
 
-    `).join("");
+    risultati.innerHTML = `
+    
+      <table class="app-table">
 
-    risultati.querySelectorAll(".list-row").forEach(row => {
+        <thead>
+          <tr>
+            <th>Codice</th>
+            <th>Descrizione</th>
+            <th>Tipo</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${data.map(p => `
+          
+            <tr data-id="${p.id}" style="cursor:pointer;">
+
+              <td>${p.meta || ""}</td>
+              <td>${p.descrizione || ""}</td>
+              <td>${p.tipo_prodotto || ""}</td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    `;
+
+    risultati.querySelectorAll("tbody tr").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-        apriSchedaProdotto(risultati, azienda, id);
+
+        apriSchedaProdotto(modal, azienda, id);
 
       };
 
@@ -80,7 +130,7 @@ export async function renderAnagraficaProdotti(container) {
 
 }
 
-async function apriSchedaProdotto(box, azienda, prodottoId) {
+async function apriSchedaProdotto(modal, azienda, prodottoId) {
 
   const { data } = await window.supabaseClient
     .from("prodotti")
@@ -89,42 +139,55 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .eq("id", prodottoId)
     .single();
 
-  box.innerHTML = `
+  const body = modal.querySelector(".rf-modal-body");
 
-    <h4>${data.descrizione}</h4>
+  body.innerHTML = `
 
-    <div style="margin-top:15px;">
+    <div class="card">
 
-      <label>Unità di misura</label>
-      <input id="um" class="input-pill" value="${data.um || ""}">
+      <h3 style="margin-top:0;">
+        ${data.meta || ""} — ${data.descrizione}
+      </h3>
 
-      <label style="margin-top:10px;">Scorta minima</label>
-      <input id="scorta" class="input-pill" value="${data.scorta_minima || ""}">
+      <div class="form-group">
 
-    </div>
+        <label>Unità di misura</label>
+        <input id="um" class="input" value="${data.um || ""}">
 
-    <div style="margin-top:15px; display:flex; gap:10px;">
+      </div>
 
-      <button class="app-button tiny" id="salva-prodotto">
-        Salva
-      </button>
+      <div class="form-group">
 
-      <button class="app-button tiny gray" id="indietro">
-        Indietro
-      </button>
+        <label>Scorta minima</label>
+        <input id="scorta" class="input" value="${data.scorta_minima || ""}">
+
+      </div>
+
+      <div style="margin-top:14px; display:flex; gap:8px;">
+
+        <button class="btn-primary" id="salva-prodotto">
+          Salva
+        </button>
+
+        <button class="btn-secondary" id="indietro">
+          Indietro
+        </button>
+
+      </div>
 
     </div>
 
   `;
 
-  document.getElementById("indietro").onclick = () => {
-    renderAnagraficaProdotti(box.parentElement.parentElement.parentElement);
+  body.querySelector("#indietro").onclick = () => {
+    modal.remove();
+    renderAnagraficaProdotti(document.body);
   };
 
-  document.getElementById("salva-prodotto").onclick = async () => {
+  body.querySelector("#salva-prodotto").onclick = async () => {
 
-    const um = document.getElementById("um").value;
-    const scorta = document.getElementById("scorta").value;
+    const um = body.querySelector("#um").value;
+    const scorta = body.querySelector("#scorta").value;
 
     await window.supabaseClient
       .from("prodotti")
@@ -134,7 +197,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
       })
       .eq("id", prodottoId);
 
-    alert("Salvato");
+    alert("Prodotto salvato");
 
   };
 
