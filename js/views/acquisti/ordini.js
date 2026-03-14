@@ -79,7 +79,19 @@ export async function renderOrdini(container, azienda) {
 
         <div>
           <label>UM</label>
-          <div class="um-prodotto"></div>
+
+          <select class="input um-prodotto">
+
+            <option value="">--</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="l">l</option>
+            <option value="ml">ml</option>
+            <option value="pz">pz</option>
+            <option value="conf">conf</option>
+
+          </select>
+
         </div>
 
         <div>
@@ -104,7 +116,21 @@ export async function renderOrdini(container, azienda) {
 
       const prod=prodotti.find(p=>p.nome.toLowerCase()===nome);
 
-      um.innerText=prod?.unita_misura||"";
+      if(prod){
+
+        um.value=prod.unita_misura||"";
+
+        if(!prod.fornitore_preferito_id){
+          renderSelectFornitore(row,prod.id);
+        }else{
+          row.querySelector(".fornitore-missing").innerHTML="";
+        }
+
+      }else{
+
+        renderSelectFornitore(row,null);
+
+      }
 
       generaOrdini();
 
@@ -116,7 +142,7 @@ export async function renderOrdini(container, azienda) {
 
       if(prod){
         input.value=prod.nome;
-        um.innerText=prod.unita_misura||"";
+        um.value=prod.unita_misura||"";
       }
 
     }
@@ -154,6 +180,7 @@ export async function renderOrdini(container, azienda) {
 
       const nome=r.querySelector(".input-prodotto").value.trim().toLowerCase();
       const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
+      const um=r.querySelector(".um-prodotto").value;
 
       if(!nome || qta<=0) return;
 
@@ -175,7 +202,7 @@ export async function renderOrdini(container, azienda) {
       ordini[fornId].push({
         nome:prodotto.nome,
         quantita:qta,
-        um:prodotto.unita_misura
+        um:um||prodotto.unita_misura
       });
 
     });
@@ -192,7 +219,7 @@ export async function renderOrdini(container, azienda) {
 
       <select class="input">
 
-        <option value="">Scegli fornitore</option>
+        <option value="">Fornitore</option>
 
         ${fornitori.map(f=>`
           <option value="${f.id}">
@@ -211,14 +238,18 @@ export async function renderOrdini(container, azienda) {
 
         if(!fornId) return;
 
-        await supabase
-          .from("prodotti")
-          .update({fornitore_preferito_id:fornId})
-          .eq("id",prodottoId);
+        if(prodottoId){
 
-        const prod=prodotti.find(p=>p.id==prodottoId);
+          await supabase
+            .from("prodotti")
+            .update({fornitore_preferito_id:fornId})
+            .eq("id",prodottoId);
 
-        if(prod) prod.fornitore_preferito_id=fornId;
+          const prod=prodotti.find(p=>p.id==prodottoId);
+
+          if(prod) prod.fornitore_preferito_id=fornId;
+
+        }
 
         generaOrdini();
 
