@@ -3,11 +3,14 @@ import { renderDDT } from "./ddt.js";
 import { renderPagamenti } from "./pagamenti.js";
 import { renderFornitori } from "./fornitori.js";
 import { renderRiordino } from "./riordino.js";
+import { renderOrdini } from "./ordini.js";
 
 export async function render(container) {
+
   const azienda = window.state?.azienda;
 
   if (!azienda) {
+
     container.innerHTML = `
       <section class="view">
         <div class="card">
@@ -15,24 +18,30 @@ export async function render(container) {
         </div>
       </section>
     `;
+
     return;
+
   }
 
   container.innerHTML = `
   <section class="view">
 
     <div class="card">
+
       <h2>Modulo Acquisti</h2>
       <p>Gestione fatture, fornitori e riordino</p>
 
       <div class="tabs-wrapper">
+
         <button class="tab-btn active" data-tab="fatture">Fatture</button>
-<button class="tab-btn" data-tab="ddt">DDT</button>
-<button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
-<button class="tab-btn" data-tab="fornitori">Fornitori</button>
-<button class="tab-btn" data-tab="riordino">Riordino</button>
-<button class="tab-btn" data-tab="ordini">Ordini</button>
+        <button class="tab-btn" data-tab="ddt">DDT</button>
+        <button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
+        <button class="tab-btn" data-tab="fornitori">Fornitori</button>
+        <button class="tab-btn" data-tab="riordino">Riordino</button>
+        <button class="tab-btn" data-tab="ordini">Ordini</button>
+
       </div>
+
     </div>
 
     <div id="acquisti-content"></div>
@@ -44,13 +53,21 @@ export async function render(container) {
   const buttons = document.querySelectorAll(".tab-btn");
 
   function setActive(tab) {
+
     buttons.forEach(b => {
+
       b.classList.remove("active");
-      if (b.dataset.tab === tab) b.classList.add("active");
+
+      if (b.dataset.tab === tab) {
+        b.classList.add("active");
+      }
+
     });
+
   }
 
   async function renderTab(tab) {
+
     setActive(tab);
 
     if (tab === "fatture") await renderFatture(content, azienda);
@@ -58,13 +75,18 @@ export async function render(container) {
     if (tab === "pagamenti") await renderPagamenti(content, azienda);
     if (tab === "fornitori") await renderFornitori(content, azienda);
     if (tab === "riordino") await renderRiordino(content, azienda);
+    if (tab === "ordini") await renderOrdini(content, azienda);
+
   }
 
   buttons.forEach(btn => {
+
     btn.addEventListener("click", () => {
       renderTab(btn.dataset.tab);
     });
+
   });
 
   await renderTab("fatture");
+
 }
