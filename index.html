@@ -12,9 +12,9 @@
 
   <!-- ICONS -->
 
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=5" />
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=5" />
-  <link rel="apple-touch-icon" href="favicon-192.png?v=5" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=6" />
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=6" />
+  <link rel="apple-touch-icon" href="favicon-192.png?v=6" />
 
   <!-- PWA -->
 
@@ -27,7 +27,7 @@
 
   <!-- CSS -->
 
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 
 </head>
 
@@ -40,8 +40,6 @@
   <!-- ===================================================== -->
 
   <header class="app-header">
-
-    <!-- LEFT -->
 
     <div class="header-left">
 
@@ -58,14 +56,12 @@
     </div>
 
 
-    <!-- CENTER -->
-
     <div class="header-center">
 
       <img
         id="header-logo"
         class="header-logo"
-        src="favicon-192.png?v=5"
+        src="assets/favicon-192.png"
         alt="Logo azienda"
       />
 
@@ -76,8 +72,6 @@
 
     </div>
 
-
-    <!-- RIGHT -->
 
     <div
       id="header-right"
@@ -92,21 +86,13 @@
   <!-- ==================== SUBHEADER ====================== -->
   <!-- ===================================================== -->
 
-  <div class="app-subheader">
+  <div class="topbar-info">
 
-    <div class="subheader-left">
+    <div id="topbar-saluto"></div>
 
-      <span id="topbar-saluto"></span>
+    <div id="topbar-data"></div>
 
-      <span id="topbar-data"></span>
-
-    </div>
-
-    <div class="subheader-right">
-
-      <span id="topbar-weather"></span>
-
-    </div>
+    <div id="topbar-weather"></div>
 
   </div>
 
@@ -120,6 +106,10 @@
     id="global-menu"
     class="global-menu"
   ></nav>
+
+  <!-- overlay per chiusura menu -->
+
+  <div id="menu-overlay" class="menu-overlay"></div>
 
 
 
@@ -135,13 +125,13 @@
   <!-- ================= SCRIPT GLOBALI ==================== -->
   <!-- ===================================================== -->
 
-  <script src="js/state.js?v=5"></script>
-  <script src="js/stateActions.js?v=5"></script>
+  <script src="js/state.js?v=6"></script>
+  <script src="js/stateActions.js?v=6"></script>
 
-  <script type="module" src="js/supabaseClient.js?v=5"></script>
+  <script type="module" src="js/supabaseClient.js?v=6"></script>
 
-  <script src="js/ui-reparto.js?v=5"></script>
-  <script src="js/db.js?v=5"></script>
+  <script src="js/ui-reparto.js?v=6"></script>
+  <script src="js/db.js?v=6"></script>
 
 
 
@@ -167,7 +157,7 @@
   <!-- ====================== ROUTER ======================= -->
   <!-- ===================================================== -->
 
-  <script type="module" src="js/router.js?v=5"></script>
+  <script type="module" src="js/router.js?v=6"></script>
 
 
 
