@@ -10,15 +10,15 @@ export async function renderOrdini(container, azienda) {
 
     <div id="lista-ordine"></div>
 
-    <div style="margin-top:10px">
-      <button id="btn-add-riga" class="app-button">
-        + aggiungi riga
+    <div style="margin-top:12px">
+      <button id="btn-add-riga" class="btn-primary">
+        Aggiungi riga
       </button>
     </div>
 
   </div>
 
-  <div id="ordini-generati"></div>
+  <div id="ordini-generati" style="margin-top:16px"></div>
 
   `;
 
@@ -52,31 +52,47 @@ export async function renderOrdini(container, azienda) {
 
     const row = document.createElement("div");
 
-    row.style.display="flex";
-    row.style.gap="8px";
-    row.style.marginBottom="8px";
-    row.style.flexWrap="wrap";
-    row.style.alignItems="center";
+    row.className = "card";
 
-    row.innerHTML=`
+    row.innerHTML = `
 
-      <select class="input select-prodotto">
+      <div class="rf-grid">
 
-        <option value="">Seleziona prodotto</option>
+        <div>
 
-        ${prodotti.map(p=>`
-          <option value="${p.id}">
-            ${p.nome}
-          </option>
-        `).join("")}
+          <label>Prodotto</label>
 
-      </select>
+          <select class="input select-prodotto">
 
-      <span class="um-prodotto" style="min-width:40px;color:#666"></span>
+            <option value="">Seleziona prodotto</option>
 
-      <input class="input qta-prodotto" type="number" value="${qta}" style="width:80px">
+            ${prodotti.map(p=>`
+              <option value="${p.id}">
+                ${p.nome}
+              </option>
+            `).join("")}
 
-      <div class="fornitore-missing"></div>
+          </select>
+
+        </div>
+
+        <div>
+
+          <label>UM</label>
+          <div class="um-prodotto"></div>
+
+        </div>
+
+        <div>
+
+          <label>Quantità</label>
+          <input class="input qta-prodotto" type="number" value="${qta}">
+
+        </div>
+
+      </div>
+
+      <div class="fornitore-missing" style="margin-top:8px"></div>
 
     `;
 
@@ -116,10 +132,8 @@ export async function renderOrdini(container, azienda) {
     const draft = window.state?.ordineDraft || [];
 
     if(!draft.length){
-
       addRiga();
       return;
-
     }
 
     draft.forEach(r=>{
@@ -133,11 +147,11 @@ export async function renderOrdini(container, azienda) {
   container.addEventListener("change", generaOrdini);
   container.addEventListener("input", generaOrdini);
 
-  async function generaOrdini(){
+  function generaOrdini(){
 
     const ordini={};
 
-    document.querySelectorAll("#lista-ordine > div").forEach(r=>{
+    document.querySelectorAll("#lista-ordine > .card").forEach(r=>{
 
       const prodottoId=r.querySelector(".select-prodotto").value;
       const qta=parseFloat(r.querySelector(".qta-prodotto").value||0);
@@ -149,10 +163,8 @@ export async function renderOrdini(container, azienda) {
       const fornId=prodotto?.fornitore_preferito_id;
 
       if(!fornId){
-
         renderSelectFornitore(r,prodottoId);
         return;
-
       }
 
       if(!ordini[fornId]) ordini[fornId]=[];
@@ -221,7 +233,7 @@ export async function renderOrdini(container, azienda) {
 
       html+=`
 
-      <div class="card" style="margin-top:16px">
+      <div class="card rf-card-fornitore">
 
         <strong>${forn?.ragione_sociale||"Fornitore non assegnato"}</strong>
 
@@ -232,29 +244,17 @@ export async function renderOrdini(container, azienda) {
 
         </div>
 
-        <table class="app-table" style="margin-top:8px">
+        ${ordini[fid].map(p=>`
 
-          <thead>
-            <tr>
-              <th>Prodotto</th>
-              <th>Quantità</th>
-              <th>UM</th>
-            </tr>
-          </thead>
+          <div class="rf-grid" style="margin-top:8px">
 
-          <tbody>
+            <div>${p.nome}</div>
+            <div>${p.quantita}</div>
+            <div>${p.um||""}</div>
 
-          ${ordini[fid].map(p=>`
-            <tr>
-              <td>${p.nome}</td>
-              <td>${p.quantita}</td>
-              <td>${p.um||""}</td>
-            </tr>
-          `).join("")}
+          </div>
 
-          </tbody>
-
-        </table>
+        `).join("")}
 
       </div>
 
@@ -269,7 +269,6 @@ export async function renderOrdini(container, azienda) {
   }
 
   await loadData();
-
   await initOrdineDraft();
 
 }
