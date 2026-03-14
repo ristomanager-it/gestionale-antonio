@@ -1,96 +1,195 @@
 export async function renderPreparazioni(container, azienda) {
 
-  container.innerHTML = `<p>Caricamento preparazioni...</p>`;
-
-  const { data, error } = await window.supabaseClient
-    .from("vw_lotti_disponibili")
-    .select("*")
-    .eq("azienda_id", azienda.id)
-    .order("data_produzione", { ascending: false });
-
-  if (error) {
-    container.innerHTML = `
-      <p style="color:red;">
-        Errore: ${error.message}
-      </p>
-    `;
-    return;
-  }
-
   container.innerHTML = `
 
-    <h3>Preparazioni (Lotti Produzione)</h3>
+  <div class="modal-overlay">
 
-    <button class="app-button tiny gray" id="btn-back-mag-home">
-      ← Menu Magazzino
-    </button>
+    <div class="modal-box">
 
-    <table class="table-timbrature" style="margin-top:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Preparazioni</h3>
+        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
+      </div>
 
-      <thead>
-        <tr>
-          <th>Preparazione</th>
-          <th>Lotto</th>
-          <th>Data Produzione</th>
-          <th>Giacenza</th>
-        </tr>
-      </thead>
+      <div style="margin-top:15px; display:flex; gap:10px;">
 
-      <tbody>
+        <button class="app-button tiny" id="tab-cerca">
+          🔎 Cerca preparazione
+        </button>
 
-        ${(data || []).map(l => `
-          <tr>
+        <button class="app-button tiny gray" id="tab-sottoscorta">
+          ⚠️ Sottoscorta
+        </button>
 
-            <td>
-              ${escapeHtml(l.prodotto_nome || l.descrizione || "")}
-            </td>
+      </div>
 
-            <td>
-              ${escapeHtml(l.codice_lotto || "")}
-            </td>
+      <div id="contenuto-preparazioni" style="margin-top:15px;"></div>
 
-            <td>
-              ${formatDate(l.data_produzione)}
-            </td>
+    </div>
 
-            <td>
-              ${Number(l.giacenza || 0).toFixed(3)}
-            </td>
-
-          </tr>
-        `).join("")}
-
-      </tbody>
-
-    </table>
+  </div>
 
   `;
 
-  document
-    .getElementById("btn-back-mag-home")
-    ?.addEventListener("click", () => {
-      window.location.hash = "#/magazzino";
+  const contenuto = document.getElementById("contenuto-preparazioni");
+
+  document.getElementById("close-modal").onclick = () => {
+    container.innerHTML = "";
+  };
+
+  loadRicerca(contenuto, azienda);
+
+  document.getElementById("tab-cerca").onclick = () => {
+    loadRicerca(contenuto, azienda);
+  };
+
+  document.getElementById("tab-sottoscorta").onclick = () => {
+    loadSottoscorta(contenuto, azienda);
+  };
+
+}
+
+function loadRicerca(box, azienda) {
+
+  box.innerHTML = `
+
+    <input
+      id="search-prep"
+      class="input-pill"
+      placeholder="Cerca preparazione..."
+      style="width:100%; margin-bottom:10px;"
+    >
+
+    <div id="risultati-prep"></div>
+
+  `;
+
+  const input = document.getElementById("search-prep");
+  const risultati = document.getElementById("risultati-prep");
+
+  input.addEventListener("input", async () => {
+
+    const term = input.value.trim();
+
+    if (term.length < 2) {
+      risultati.innerHTML = "";
+      return;
+    }
+
+    const { data } = await window.supabaseClient
+      .from("ricette")
+      .select("id, nome")
+      .eq("azienda_id", azienda.id)
+      .ilike("nome", `%${term}%`)
+      .limit(10);
+
+    risultati.innerHTML = data.map(r => `
+
+      <div class="list-row" data-id="${r.id}" style="cursor:pointer;">
+        ${r.nome}
+      </div>
+
+    `).join("");
+
+    risultati.querySelectorAll(".list-row").forEach(row => {
+
+      row.onclick = () => {
+
+        const id = row.dataset.id;
+        apriSchedaPreparazione(box, azienda, id);
+
+      };
+
     });
 
-}
-
-function formatDate(date) {
-
-  if (!date) return "";
-
-  const d = new Date(date);
-
-  return d.toLocaleDateString("it-IT");
+  });
 
 }
 
-function escapeHtml(str) {
+async function loadSottoscorta(box, azienda) {
 
-  return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  box.innerHTML = "Caricamento...";
+
+  const { data } = await window.supabaseClient
+    .from("v_magazzino_preparazioni")
+    .select("prodotto_id, descrizione, giacenza_attuale, scorta_minima")
+    .eq("azienda_id", azienda.id)
+    .lte("giacenza_attuale", "scorta_minima");
+
+  if (!data.length) {
+    box.innerHTML = "Nessuna preparazione sottoscorta 🎉";
+    return;
+  }
+
+  box.innerHTML = data.map(p => `
+
+    <div class="list-row" data-id="${p.prodotto_id}" style="cursor:pointer;">
+
+      <div style="display:flex; justify-content:space-between;">
+        <strong>${p.descrizione}</strong>
+        <span style="color:red;">
+          ${p.giacenza_attuale} / ${p.scorta_minima}
+        </span>
+      </div>
+
+    </div>
+
+  `).join("");
+
+}
+
+async function apriSchedaPreparazione(box, azienda, ricettaId) {
+
+  box.innerHTML = "Caricamento...";
+
+  const { data } = await window.supabaseClient
+    .from("vw_lotti_disponibili")
+    .select("*")
+    .eq("ricetta_id", ricettaId)
+    .eq("azienda_id", azienda.id)
+    .order("data_produzione", { ascending:false });
+
+  if (!data.length) {
+    box.innerHTML = "Nessun lotto disponibile";
+    return;
+  }
+
+  box.innerHTML = `
+
+    <h4>Lotti disponibili</h4>
+
+    <div style="margin-top:10px;">
+
+      ${data.map(l => `
+
+        <div class="list-row">
+
+          <div style="display:flex; justify-content:space-between;">
+
+            <div>
+
+              Lotto ${l.codice_lotto}
+
+              <div style="font-size:12px;">
+                ${new Date(l.data_produzione).toLocaleDateString()}
+              </div>
+
+            </div>
+
+            <div>
+
+              ${l.giacenza}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      `).join("")}
+
+    </div>
+
+  `;
 
 }
