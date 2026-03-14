@@ -1,4 +1,4 @@
-export async function renderPreparazioni(container, azienda) {
+export async function renderPreparazioni(container, azienda, startTab = "cerca") {
 
   container.innerHTML = `
 
@@ -37,7 +37,11 @@ export async function renderPreparazioni(container, azienda) {
     container.innerHTML = "";
   };
 
-  loadRicerca(contenuto, azienda);
+  if (startTab === "sottoscorta") {
+    loadSottoscorta(contenuto, azienda);
+  } else {
+    loadRicerca(contenuto, azienda);
+  }
 
   document.getElementById("tab-cerca").onclick = () => {
     loadRicerca(contenuto, azienda);
@@ -135,61 +139,5 @@ async function loadSottoscorta(box, azienda) {
     </div>
 
   `).join("");
-
-}
-
-async function apriSchedaPreparazione(box, azienda, ricettaId) {
-
-  box.innerHTML = "Caricamento...";
-
-  const { data } = await window.supabaseClient
-    .from("vw_lotti_disponibili")
-    .select("*")
-    .eq("ricetta_id", ricettaId)
-    .eq("azienda_id", azienda.id)
-    .order("data_produzione", { ascending:false });
-
-  if (!data.length) {
-    box.innerHTML = "Nessun lotto disponibile";
-    return;
-  }
-
-  box.innerHTML = `
-
-    <h4>Lotti disponibili</h4>
-
-    <div style="margin-top:10px;">
-
-      ${data.map(l => `
-
-        <div class="list-row">
-
-          <div style="display:flex; justify-content:space-between;">
-
-            <div>
-
-              Lotto ${l.codice_lotto}
-
-              <div style="font-size:12px;">
-                ${new Date(l.data_produzione).toLocaleDateString()}
-              </div>
-
-            </div>
-
-            <div>
-
-              ${l.giacenza}
-
-            </div>
-
-          </div>
-
-        </div>
-
-      `).join("")}
-
-    </div>
-
-  `;
 
 }
