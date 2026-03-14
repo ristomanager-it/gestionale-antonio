@@ -10,9 +10,11 @@ export async function renderOrdini(container, azienda) {
 
     <div id="lista-ordine"></div>
 
-    <button id="btn-add-riga" class="app-button">
-      + aggiungi riga
-    </button>
+    <div style="margin-top:10px">
+      <button id="btn-add-riga" class="app-button">
+        + aggiungi riga
+      </button>
+    </div>
 
   </div>
 
@@ -21,8 +23,31 @@ export async function renderOrdini(container, azienda) {
   `;
 
   const lista = container.querySelector("#lista-ordine");
+  const wrapperOrdini = container.querySelector("#ordini-generati");
 
-  function addRiga() {
+  let prodotti = [];
+  let fornitori = [];
+
+  async function loadData(){
+
+    const { data:prodottiData } = await supabase
+      .from("prodotti")
+      .select("id,nome,fornitore_preferito_id")
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true);
+
+    prodotti = prodottiData || [];
+
+    const { data:fornitoriData } = await supabase
+      .from("fornitori")
+      .select("id,ragione_sociale,email_referente_ordini,telefono_referente_ordini")
+      .eq("azienda_id", azienda.id);
+
+    fornitori = fornitoriData || [];
+
+  }
+
+  function addRiga(){
 
     const row = document.createElement("div");
 
@@ -36,6 +61,8 @@ export async function renderOrdini(container, azienda) {
 
       <input class="input qta-prodotto" type="number" value="1" style="width:80px">
 
+      <div class="fornitore-missing"></div>
+
     `;
 
     lista.appendChild(row);
@@ -48,9 +75,9 @@ export async function renderOrdini(container, azienda) {
 
   addRiga();
 
-  container.addEventListener("change", generaOrdini);
+  container.addEventListener("input", generaOrdini);
 
-  async function generaOrdini() {
+  async function generaOrdini(){
 
     const righe = [];
 
@@ -59,40 +86,54 @@ export async function renderOrdini(container, azienda) {
       const nome = r.querySelector(".nome-prodotto").value.trim();
       const qta = parseFloat(r.querySelector(".qta-prodotto").value || 0);
 
-      if (nome && qta > 0) {
+      if(nome && qta > 0){
 
         righe.push({
           nome,
-          quantita:qta
+          quantita:qta,
+          element:r
         });
 
       }
 
     });
 
-    if (!righe.length) return;
+    if(!righe.length){
 
-    const { data:prodotti } = await supabase
-      .from("prodotti")
-      .select("id,nome,fornitore_preferito_id");
+      wrapperOrdini.innerHTML="";
+      return;
+
+    }
 
     const ordini = {};
 
-    for (const r of righe) {
+    for(const r of righe){
 
-      const prod = prodotti.find(p =>
+      const prodotto = prodotti.find(p =>
         p.nome.toLowerCase() === r.nome.toLowerCase()
       );
 
-      if (!prod) continue;
+      if(!prodotto){
 
-      const fornitore = prod.fornitore_preferito_id || "senza";
+        r.element.querySelector(".fornitore-missing").innerHTML="";
+        continue;
 
-      if (!ordini[fornitore]) {
-        ordini[fornitore] = [];
       }
 
-      ordini[fornitore].push({
+      let fornitoreId = prodotto.fornitore_preferito_id;
+
+      if(!fornitoreId){
+
+        renderSelectFornitore(r.element, prodotto.id);
+        continue;
+
+      }
+
+      if(!ordini[fornitoreId]){
+        ordini[fornitoreId] = [];
+      }
+
+      ordini[fornitoreId].push({
         nome:r.nome,
         quantita:r.quantita
       });
@@ -103,41 +144,94 @@ export async function renderOrdini(container, azienda) {
 
   }
 
-  async function renderOrdiniFornitori(ordini) {
+  function renderSelectFornitore(element, prodottoId){
 
-    const wrapper = container.querySelector("#ordini-generati");
+    const div = element.querySelector(".fornitore-missing");
+
+    div.innerHTML = `
+
+      <select class="select-fornitore">
+
+        <option value="">Scegli fornitore</option>
+
+        ${fornitori.map(f => `
+          <option value="${f.id}">
+            ${f.ragione_sociale}
+          </option>
+        `).join("")}
+
+      </select>
+
+    `;
+
+    div.querySelector("select")
+      .addEventListener("change", async e => {
+
+        const fornitoreId = e.target.value;
+
+        if(!fornitoreId) return;
+
+        await supabase
+          .from("prodotti")
+          .update({
+            fornitore_preferito_id:fornitoreId
+          })
+          .eq("id", prodottoId);
+
+        const prod = prodotti.find(p => p.id === prodottoId);
+
+        if(prod){
+          prod.fornitore_preferito_id = fornitoreId;
+        }
+
+        generaOrdini();
+
+      });
+
+  }
+
+  function renderOrdiniFornitori(ordini){
 
     let html = `<div class="card"><h3>Ordini generati</h3>`;
 
-    for (const fornitoreId in ordini) {
+    for(const fornitoreId in ordini){
 
-      let nomeFornitore = "Senza fornitore";
-
-      if (fornitoreId !== "senza") {
-
-        const { data } = await supabase
-          .from("fornitori")
-          .select("ragione_sociale")
-          .eq("id", fornitoreId)
-          .single();
-
-        nomeFornitore = data?.ragione_sociale || nomeFornitore;
-
-      }
+      const fornitore = fornitori.find(f => f.id == fornitoreId);
 
       html += `
 
       <div style="margin-top:16px">
 
-        <strong>${nomeFornitore}</strong>
+        <strong>${fornitore?.ragione_sociale || ""}</strong>
 
-        <ul>
+        <div style="font-size:13px;color:#666">
+
+          ${fornitore?.telefono_referente_ordini || ""}<br>
+          ${fornitore?.email_referente_ordini || ""}
+
+        </div>
+
+        <table class="app-table" style="margin-top:8px">
+
+          <thead>
+            <tr>
+              <th>Prodotto</th>
+              <th>Quantità</th>
+            </tr>
+          </thead>
+
+          <tbody>
 
           ${ordini[fornitoreId].map(p => `
-            <li>${p.nome} — ${p.quantita}</li>
+            <tr>
+              <td>${p.nome}</td>
+              <td>${p.quantita}</td>
+            </tr>
           `).join("")}
 
-        </ul>
+          </tbody>
+
+        </table>
 
       </div>
 
@@ -147,8 +241,10 @@ export async function renderOrdini(container, azienda) {
 
     html += "</div>";
 
-    wrapper.innerHTML = html;
+    wrapperOrdini.innerHTML = html;
 
   }
+
+  await loadData();
 
 }
