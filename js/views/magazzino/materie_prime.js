@@ -161,23 +161,62 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .eq("prodotto_id", prodottoId)
     .single();
 
-  if (!data) {
-    box.innerHTML = "Prodotto non trovato";
-    return;
-  }
+  const { data: movimenti } = await window.supabaseClient
+    .from("magazzino_movimenti")
+    .select("tipo_movimento, quantita, created_at")
+    .eq("prodotto_id", prodottoId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const { data: mapping } = await window.supabaseClient
+    .from("prodotti_fornitore")
+    .select("prezzo_ultimo_acquisto, fornitori:fornitore_id (ragione_sociale)")
+    .eq("prodotto_id", prodottoId)
+    .limit(1)
+    .maybeSingle();
 
   box.innerHTML = `
 
     <h4>${data.descrizione}</h4>
 
     <div style="margin-top:10px;">
-
       <div>Giacenza: <strong>${data.giacenza_attuale}</strong></div>
       <div>Scorta minima: ${data.scorta_minima}</div>
+    </div>
+
+    <div style="margin-top:15px;">
+
+      <strong>Fornitore preferito</strong><br>
+      ${mapping?.fornitori?.ragione_sociale || "—"}
+
+      <br><br>
+
+      <strong>Ultimo prezzo</strong><br>
+      ${mapping?.prezzo_ultimo_acquisto || "—"}
 
     </div>
 
-    <div style="margin-top:15px; display:flex; gap:10px;">
+    <div style="margin-top:20px;">
+
+      <strong>Ultimi movimenti</strong>
+
+      <div style="margin-top:8px;">
+
+        ${(movimenti || []).map(m => `
+
+          <div style="font-size:13px; padding:4px 0;">
+
+            ${m.tipo_movimento} — ${m.quantita}
+
+          </div>
+
+        `).join("")}
+
+      </div>
+
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
 
       <button class="app-button tiny" id="btn-carico">
         + Carico
@@ -193,66 +232,6 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
 
   document.getElementById("btn-indietro").onclick = () => {
     loadRicerca(box, azienda);
-  };
-
-  document.getElementById("btn-carico").onclick = () => {
-    apriCarico(box, azienda, prodottoId, data.descrizione);
-  };
-
-}
-
-function apriCarico(box, azienda, prodottoId, nome) {
-
-  box.innerHTML = `
-
-    <h4>Carico ${nome}</h4>
-
-    <input
-      id="quantita-carico"
-      class="input-pill"
-      type="number"
-      step="0.01"
-      placeholder="Quantità"
-      style="margin-top:10px;"
-    >
-
-    <div style="margin-top:15px; display:flex; gap:10px;">
-
-      <button class="app-button tiny" id="salva-carico">
-        Salva
-      </button>
-
-      <button class="app-button tiny gray" id="annulla-carico">
-        Annulla
-      </button>
-
-    </div>
-
-  `;
-
-  document.getElementById("annulla-carico").onclick = () => {
-    renderMateriePrime(box.parentElement.parentElement.parentElement, azienda);
-  };
-
-  document.getElementById("salva-carico").onclick = async () => {
-
-    const q = document.getElementById("quantita-carico").value;
-
-    if (!q) return alert("Inserisci quantità");
-
-    await window.supabaseClient
-      .from("magazzino_movimenti")
-      .insert({
-        azienda_id: azienda.id,
-        prodotto_id: prodottoId,
-        tipo_movimento: "CARICO",
-        quantita: q
-      });
-
-    alert("Carico registrato");
-
-    renderMateriePrime(box.parentElement.parentElement.parentElement, azienda);
-
   };
 
 }
