@@ -76,7 +76,7 @@ function loadRicerca(box, azienda) {
       return;
     }
 
-    const { data, error } = await window.supabaseClient
+    const { data } = await window.supabaseClient
       .from("prodotti")
       .select("id, descrizione")
       .eq("azienda_id", azienda.id)
@@ -84,18 +84,24 @@ function loadRicerca(box, azienda) {
       .ilike("descrizione", `%${term}%`)
       .limit(10);
 
-    if (error) {
-      risultati.innerHTML = "Errore ricerca";
-      return;
-    }
-
     risultati.innerHTML = data.map(p => `
 
-      <div class="list-row" data-id="${p.id}">
+      <div class="list-row" data-id="${p.id}" style="cursor:pointer;">
         ${p.descrizione}
       </div>
 
     `).join("");
+
+    risultati.querySelectorAll(".list-row").forEach(row => {
+
+      row.onclick = () => {
+
+        const id = row.dataset.id;
+        apriSchedaProdotto(box, azienda, id);
+
+      };
+
+    });
 
   });
 
@@ -105,16 +111,11 @@ async function loadSottoscorta(box, azienda) {
 
   box.innerHTML = "Caricamento...";
 
-  const { data, error } = await window.supabaseClient
+  const { data } = await window.supabaseClient
     .from("v_magazzino_materie_prime")
     .select("prodotto_id, descrizione, giacenza_attuale, scorta_minima")
     .eq("azienda_id", azienda.id)
     .lte("giacenza_attuale", "scorta_minima");
-
-  if (error) {
-    box.innerHTML = "Errore caricamento";
-    return;
-  }
 
   if (!data.length) {
     box.innerHTML = "Nessun prodotto sottoscorta 🎉";
@@ -123,22 +124,135 @@ async function loadSottoscorta(box, azienda) {
 
   box.innerHTML = data.map(p => `
 
-    <div class="list-row">
+    <div class="list-row" data-id="${p.prodotto_id}" style="cursor:pointer;">
 
       <div style="display:flex; justify-content:space-between;">
-
-        <div>
-          <strong>${p.descrizione}</strong>
-        </div>
-
-        <div style="color:red;">
+        <strong>${p.descrizione}</strong>
+        <span style="color:red;">
           ${p.giacenza_attuale} / ${p.scorta_minima}
-        </div>
-
+        </span>
       </div>
 
     </div>
 
   `).join("");
+
+  box.querySelectorAll(".list-row").forEach(row => {
+
+    row.onclick = () => {
+
+      const id = row.dataset.id;
+      apriSchedaProdotto(box, azienda, id);
+
+    };
+
+  });
+
+}
+
+async function apriSchedaProdotto(box, azienda, prodottoId) {
+
+  box.innerHTML = "Caricamento scheda...";
+
+  const { data } = await window.supabaseClient
+    .from("v_magazzino_materie_prime")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .eq("prodotto_id", prodottoId)
+    .single();
+
+  if (!data) {
+    box.innerHTML = "Prodotto non trovato";
+    return;
+  }
+
+  box.innerHTML = `
+
+    <h4>${data.descrizione}</h4>
+
+    <div style="margin-top:10px;">
+
+      <div>Giacenza: <strong>${data.giacenza_attuale}</strong></div>
+      <div>Scorta minima: ${data.scorta_minima}</div>
+
+    </div>
+
+    <div style="margin-top:15px; display:flex; gap:10px;">
+
+      <button class="app-button tiny" id="btn-carico">
+        + Carico
+      </button>
+
+      <button class="app-button tiny gray" id="btn-indietro">
+        ← Indietro
+      </button>
+
+    </div>
+
+  `;
+
+  document.getElementById("btn-indietro").onclick = () => {
+    loadRicerca(box, azienda);
+  };
+
+  document.getElementById("btn-carico").onclick = () => {
+    apriCarico(box, azienda, prodottoId, data.descrizione);
+  };
+
+}
+
+function apriCarico(box, azienda, prodottoId, nome) {
+
+  box.innerHTML = `
+
+    <h4>Carico ${nome}</h4>
+
+    <input
+      id="quantita-carico"
+      class="input-pill"
+      type="number"
+      step="0.01"
+      placeholder="Quantità"
+      style="margin-top:10px;"
+    >
+
+    <div style="margin-top:15px; display:flex; gap:10px;">
+
+      <button class="app-button tiny" id="salva-carico">
+        Salva
+      </button>
+
+      <button class="app-button tiny gray" id="annulla-carico">
+        Annulla
+      </button>
+
+    </div>
+
+  `;
+
+  document.getElementById("annulla-carico").onclick = () => {
+    renderMateriePrime(box.parentElement.parentElement.parentElement, azienda);
+  };
+
+  document.getElementById("salva-carico").onclick = async () => {
+
+    const q = document.getElementById("quantita-carico").value;
+
+    if (!q) return alert("Inserisci quantità");
+
+    await window.supabaseClient
+      .from("magazzino_movimenti")
+      .insert({
+        azienda_id: azienda.id,
+        prodotto_id: prodottoId,
+        tipo_movimento: "CARICO",
+        quantita: q
+      });
+
+    alert("Carico registrato");
+
+    renderMateriePrime(box.parentElement.parentElement.parentElement, azienda);
+
+  };
 
 }
