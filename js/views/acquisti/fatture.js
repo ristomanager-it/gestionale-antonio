@@ -1353,11 +1353,10 @@ function ensureAcquistiModalStyles() {
   }
 
   @media (max-width:760px){
-
-    .rf-modal-backdrop{
-      padding:0;
-    }
-
+  .rf-grid-2{
+    grid-template-columns:1fr;
+  }
+}
     .rf-modal{
       width:100vw;
       max-width:100vw;
@@ -1366,9 +1365,10 @@ function ensureAcquistiModalStyles() {
     }
 
     .rf-grid-2{
-      grid-template-columns:1fr;
-    }
-
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
     .rf-riga-grid{
       grid-template-columns:1fr;
     }
