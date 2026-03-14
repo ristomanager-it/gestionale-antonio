@@ -6,33 +6,28 @@ export async function renderProdottiFiniti(container, azienda) {
 
   <div class="rf-modal-backdrop">
 
-    <div class="rf-modal rf-modal-small">
+    <div class="rf-modal">
 
       <div class="rf-modal-header">
-
         <h3 class="rf-modal-title">Prodotti Finiti</h3>
-
-        <button class="btn-secondary" id="close-modal">
-          Chiudi
-        </button>
-
+        <button class="app-button tiny gray" id="close-modal">Chiudi</button>
       </div>
 
       <div class="rf-modal-body">
 
-        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
 
-          <button type="button" class="btn-primary" id="tab-cerca">
+          <button class="app-button tiny" id="tab-cerca">
             Cerca prodotto
           </button>
 
-          <button type="button" class="btn-secondary" id="tab-disponibili">
+          <button class="app-button tiny gray" id="tab-disponibili">
             Disponibili
           </button>
 
         </div>
 
-        <div id="contenuto-prodotti-finiti"></div>
+        <div id="contenuto-prodotti-finiti" style="margin-top:12px;"></div>
 
       </div>
 
@@ -66,89 +61,63 @@ function loadRicerca(box, azienda) {
 
   box.innerHTML = `
 
-    <div class="form-group">
+    <input
+      id="search-pf"
+      class="input"
+      placeholder="Cerca prodotto finito..."
+      autocomplete="off"
+      style="width:100%;"
+    >
 
-      <label>Cerca prodotto finito</label>
-
-      <input
-        id="search-pf"
-        class="input"
-        placeholder="Cerca per codice o descrizione..."
-      >
-
-    </div>
-
-    <div id="risultati-pf"></div>
+    <div id="autocomplete-results" style="margin-top:8px;"></div>
 
   `;
 
   const input = box.querySelector("#search-pf");
-  const risultati = box.querySelector("#risultati-pf");
+  const results = box.querySelector("#autocomplete-results");
 
   input.addEventListener("input", async () => {
 
     const term = input.value.trim();
 
     if (term.length < 2) {
-      risultati.innerHTML = "";
+      results.innerHTML = "";
       return;
     }
 
     const { data } = await window.supabaseClient
       .from("prodotti")
-      .select("id, meta, descrizione")
+      .select("id, descrizione")
       .eq("azienda_id", azienda.id)
       .eq("tipo_prodotto", "prodotto_finito")
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
-      .limit(15);
+      .ilike("descrizione", `%${term}%`)
+      .limit(10);
 
-    if (!data || !data.length) {
+    results.innerHTML = `
 
-      risultati.innerHTML = `
-        <div class="rf-empty-righe">
-          Nessun prodotto trovato
-        </div>
-      `;
+      <div class="rf-doc-list">
 
-      return;
-    }
+        ${(data || []).map(p => `
 
-    risultati.innerHTML = `
+          <div class="rf-doc-item autocomplete-item" data-id="${p.id}">
 
-      <table class="app-table">
+            <div class="rf-doc-title">
+              ${p.descrizione}
+            </div>
 
-        <thead>
-          <tr>
-            <th>Codice</th>
-            <th>Descrizione</th>
-          </tr>
-        </thead>
+          </div>
 
-        <tbody>
+        `).join("")}
 
-          ${data.map(p => `
-
-            <tr data-id="${p.id}" style="cursor:pointer;">
-
-              <td>${p.meta || ""}</td>
-              <td>${p.descrizione || ""}</td>
-
-            </tr>
-
-          `).join("")}
-
-        </tbody>
-
-      </table>
+      </div>
 
     `;
 
-    risultati.querySelectorAll("tbody tr").forEach(row => {
+    results.querySelectorAll(".autocomplete-item").forEach(row => {
 
       row.onclick = () => {
 
         const id = row.dataset.id;
-
         apriSchedaProdotto(box, azienda, id);
 
       };
@@ -161,68 +130,50 @@ function loadRicerca(box, azienda) {
 
 async function loadDisponibili(box, azienda) {
 
-  box.innerHTML = `
-
-    <div class="card">
-      Caricamento prodotti disponibili...
-    </div>
-
-  `;
+  box.innerHTML = "Caricamento...";
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_prodotti_finiti")
     .select("prodotto_id, descrizione, giacenza_attuale")
     .eq("azienda_id", azienda.id)
     .gt("giacenza_attuale", 0)
-    .order("giacenza_attuale", { ascending: false });
+    .order("giacenza_attuale", { ascending:false });
 
   if (!data || !data.length) {
-
-    box.innerHTML = `
-      <div class="rf-empty-righe">
-        Nessun prodotto disponibile
-      </div>
-    `;
-
+    box.innerHTML = "Nessun prodotto disponibile";
     return;
   }
 
   box.innerHTML = `
 
-    <table class="app-table">
+    <div class="rf-doc-list">
 
-      <thead>
-        <tr>
-          <th>Prodotto</th>
-          <th>Disponibili</th>
-        </tr>
-      </thead>
+      ${data.map(p => `
 
-      <tbody>
+        <div class="rf-doc-item disponibile" data-id="${p.prodotto_id}">
 
-        ${data.map(p => `
+          <div class="rf-doc-title">
+            ${p.descrizione}
+          </div>
 
-          <tr data-id="${p.prodotto_id}" style="cursor:pointer;">
+          <div class="rf-doc-meta">
+            <span>Disponibili</span>
+            <span>${p.giacenza_attuale}</span>
+          </div>
 
-            <td>${p.descrizione}</td>
-            <td>${p.giacenza_attuale}</td>
+        </div>
 
-          </tr>
+      `).join("")}
 
-        `).join("")}
-
-      </tbody>
-
-    </table>
+    </div>
 
   `;
 
-  box.querySelectorAll("tbody tr").forEach(row => {
+  box.querySelectorAll(".disponibile").forEach(row => {
 
     row.onclick = () => {
 
       const id = row.dataset.id;
-
       apriSchedaProdotto(box, azienda, id);
 
     };
@@ -233,13 +184,7 @@ async function loadDisponibili(box, azienda) {
 
 async function apriSchedaProdotto(box, azienda, prodottoId) {
 
-  box.innerHTML = `
-
-    <div class="card">
-      Caricamento scheda prodotto...
-    </div>
-
-  `;
+  box.innerHTML = "Caricamento...";
 
   const { data } = await window.supabaseClient
     .from("v_magazzino_prodotti_finiti")
@@ -249,43 +194,34 @@ async function apriSchedaProdotto(box, azienda, prodottoId) {
     .single();
 
   if (!data) {
-
-    box.innerHTML = `
-      <div class="rf-empty-righe">
-        Prodotto non trovato
-      </div>
-    `;
-
+    box.innerHTML = "Prodotto non trovato";
     return;
   }
 
   box.innerHTML = `
 
-    <div class="card">
+    <div class="rf-doc-item">
 
-      <h3 style="margin-top:0;">
+      <div class="rf-doc-title">
         ${data.descrizione}
-      </h3>
-
-      <div style="margin-top:10px; font-size:14px;">
-
-        Disponibili: <strong>${data.giacenza_attuale}</strong>
-
       </div>
 
-      <div style="margin-top:16px; display:flex; gap:8px;">
+      <div class="rf-doc-meta">
+        <span>Disponibili</span>
+        <span>${data.giacenza_attuale}</span>
+      </div>
 
-        <button class="btn-secondary" id="btn-indietro">
-          Indietro
+      <div style="margin-top:12px;">
+        <button class="app-button tiny gray" id="btn-indietro">
+          ← Indietro
         </button>
-
       </div>
 
     </div>
 
   `;
 
-  box.querySelector("#btn-indietro").onclick = () => {
+  document.getElementById("btn-indietro").onclick = () => {
     loadRicerca(box, azienda);
   };
 
