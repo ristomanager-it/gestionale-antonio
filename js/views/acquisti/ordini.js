@@ -47,19 +47,20 @@ export async function renderOrdini(container, azienda) {
 
   }
 
-  function addRiga(){
+  function addRiga(nome="", qta=1){
 
     const row = document.createElement("div");
 
     row.style.display = "flex";
     row.style.gap = "8px";
     row.style.marginBottom = "8px";
+    row.style.flexWrap = "wrap";
 
     row.innerHTML = `
 
-      <input class="input nome-prodotto" placeholder="Prodotto">
+      <input class="input nome-prodotto" placeholder="Prodotto" value="${nome}">
 
-      <input class="input qta-prodotto" type="number" value="1" style="width:80px">
+      <input class="input qta-prodotto" type="number" value="${qta}" style="width:80px">
 
       <div class="fornitore-missing"></div>
 
@@ -71,9 +72,24 @@ export async function renderOrdini(container, azienda) {
 
   document
     .getElementById("btn-add-riga")
-    .addEventListener("click", addRiga);
+    .addEventListener("click", () => addRiga());
 
-  addRiga();
+  async function initOrdineDraft(){
+
+    const draft = window.state?.ordineDraft || [];
+
+    if(!draft.length){
+      addRiga();
+      return;
+    }
+
+    draft.forEach(r => {
+      addRiga(r.nome, r.quantita);
+    });
+
+    generaOrdini();
+
+  }
 
   container.addEventListener("input", generaOrdini);
 
@@ -150,7 +166,7 @@ export async function renderOrdini(container, azienda) {
 
     div.innerHTML = `
 
-      <select class="select-fornitore">
+      <select class="input select-fornitore">
 
         <option value="">Scegli fornitore</option>
 
@@ -200,9 +216,9 @@ export async function renderOrdini(container, azienda) {
 
       html += `
 
-      <div style="margin-top:16px">
+      <div class="card" style="margin-top:16px">
 
-        <strong>${fornitore?.ragione_sociale || ""}</strong>
+        <strong>${fornitore?.ragione_sociale || "Fornitore non assegnato"}</strong>
 
         <div style="font-size:13px;color:#666">
 
@@ -246,5 +262,7 @@ export async function renderOrdini(container, azienda) {
   }
 
   await loadData();
+
+  await initOrdineDraft();
 
 }
