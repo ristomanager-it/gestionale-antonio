@@ -87,7 +87,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       ${data.map(p=>`
         <div class="rf-search-item">
 
-          <div class="rf-search-row">
+          <div class="rf-search-row open-mp" data-id="${p.id}" style="cursor:pointer;">
 
             <div class="rf-search-main">
               <div class="rf-search-code">${escapeHtml(p.codice_interno||"-")}</div>
@@ -97,11 +97,6 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
               </div>
             </div>
 
-            <button
-              class="rf-search-action open-mp"
-              data-id="${p.id}"
-            >🔍</button>
-
           </div>
 
         </div>
@@ -109,14 +104,12 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     </div>
     `;
 
-    results.querySelectorAll(".open-mp").forEach(btn=>{
-
-      btn.onclick = ()=>{
-        const id = Number(btn.dataset.id);
+    results.querySelectorAll(".open-mp").forEach(row=>{
+      row.onclick = ()=>{
+        const id = Number(row.dataset.id);
         openScheda(id);
         results.innerHTML="";
       };
-
     });
 
   };
@@ -197,12 +190,92 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
       ${
         canEdit
-        ? `<button class="app-button tiny" style="margin-top:10px;">Modifica</button>`
+        ? `
+        <div style="margin-top:14px;">
+          <button id="btn-modifica-prodotto" class="app-button tiny">Modifica prodotto</button>
+        </div>
+        `
         : ""
       }
 
     </div>
     `;
+
+    if(canEdit){
+      document.getElementById("btn-modifica-prodotto").onclick = ()=>{
+        apriFormModifica(data);
+      };
+    }
+
+  }
+
+  function apriFormModifica(prodotto){
+
+    scheda.innerHTML = `
+    <div class="rf-product-card">
+
+      <div class="rf-product-section-title">
+        Modifica prodotto
+      </div>
+
+      <div class="rf-field">
+        <label>Codice interno</label>
+        <input id="edit-codice" class="input" value="${escapeHtml(prodotto.codice_interno)}">
+      </div>
+
+      <div class="rf-field">
+        <label>Descrizione</label>
+        <input id="edit-descrizione" class="input" value="${escapeHtml(prodotto.descrizione)}">
+      </div>
+
+      <div class="rf-field">
+        <label>UM</label>
+        <input id="edit-um" class="input" value="${escapeHtml(prodotto.unita_base)}">
+      </div>
+
+      <div class="rf-field">
+        <label>Scorta minima</label>
+        <input id="edit-scorta" type="number" class="input" value="${prodotto.scorta_minima||0}">
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button id="btn-salva-prodotto" class="app-button tiny">Salva</button>
+        <button id="btn-annulla-modifica" class="app-button tiny gray">Annulla</button>
+      </div>
+
+    </div>
+    `;
+
+    document.getElementById("btn-annulla-modifica").onclick = ()=>{
+      openScheda(prodotto.prodotto_id);
+    };
+
+    document.getElementById("btn-salva-prodotto").onclick = async ()=>{
+
+      const codice = document.getElementById("edit-codice").value;
+      const descrizione = document.getElementById("edit-descrizione").value;
+      const um = document.getElementById("edit-um").value;
+      const scorta = Number(document.getElementById("edit-scorta").value || 0);
+
+      const {error} = await window.supabaseClient
+        .from("prodotti")
+        .update({
+          codice_interno: codice,
+          descrizione: descrizione,
+          unita_base: um,
+          scorta_minima: scorta
+        })
+        .eq("id", prodotto.prodotto_id);
+
+      if(error){
+        alert("Errore salvataggio");
+        console.error(error);
+        return;
+      }
+
+      openScheda(prodotto.prodotto_id);
+
+    };
 
   }
 
