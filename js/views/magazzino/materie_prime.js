@@ -68,19 +68,17 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
 function loadRicerca(box, azienda) {
   box.innerHTML = `
-    <div class="rf-field">
-      <label>Ricerca prodotto</label>
-      <input
-        id="search-mp"
-        class="input"
-        placeholder="Cerca codice o descrizione..."
-        autocomplete="off"
-        style="width:100%;"
-      />
-    </div>
+    <input
+      id="search-mp"
+      class="input"
+      placeholder="Cerca materia prima..."
+      autocomplete="off"
+      style="width:100%;"
+    >
 
-    <div id="autocomplete-results"></div>
-    <div id="scheda-prodotto" class="rf-section-spacer"></div>
+    <div id="autocomplete-results" style="margin-top:8px;"></div>
+
+    <div id="scheda-prodotto" style="margin-top:12px;"></div>
   `;
 
   const input = box.querySelector("#search-mp");
@@ -89,10 +87,10 @@ function loadRicerca(box, azienda) {
 
   input.addEventListener("input", async () => {
     const term = input.value.trim();
-    scheda.innerHTML = "";
 
     if (term.length < 2) {
       results.innerHTML = "";
+      scheda.innerHTML = "";
       return;
     }
 
@@ -100,7 +98,7 @@ function loadRicerca(box, azienda) {
       .from("prodotti")
       .select("id, meta, descrizione, um")
       .eq("azienda_id", azienda.id)
-      .eq("tipo_prodotto", "materia_prima")
+      .in("tipo_prodotto", ["materia_prima", "consumo"])
       .or(`meta.ilike.%${term}%,descrizione.ilike.%${term}%`)
       .limit(8);
 
@@ -230,6 +228,7 @@ async function apriSchedaProdotto(box, azienda, prodottoId, onBack) {
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("prezzo_ultimo_acquisto, fornitori:fornitore_id (ragione_sociale)")
+    .eq("azienda_id", azienda.id)
     .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
