@@ -164,9 +164,27 @@ export function apriCaricoModal({ aziendaId }) {
     }
 
     if (!data || !data.length) {
-      risultati.innerHTML = `<div class="rf-empty-state">Nessun prodotto trovato</div>`;
-      return;
-    }
+
+  risultati.innerHTML = `
+  <div class="rf-empty-state">
+    Nessun prodotto trovato
+  </div>
+
+  <button
+    id="btn-nuovo-prodotto"
+    class="app-button tiny"
+    style="margin-top:10px;"
+  >
+    + Nuovo prodotto
+  </button>
+  `;
+
+  risultati.querySelector("#btn-nuovo-prodotto").onclick = () => {
+    mostraFormNuovoProdotto(term);
+  };
+
+  return;
+}
 
     risultati.innerHTML = `
       <div class="rf-search-list">
