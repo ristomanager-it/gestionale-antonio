@@ -38,6 +38,7 @@ export async function renderPreparazioni(container, azienda, startTab = "cerca")
   const close = () => overlay.remove();
 
   overlay.querySelector("[data-close-overlay]").onclick = close;
+
   backdrop.onclick = (e) => {
     if (e.target === backdrop) {
       close();
@@ -97,10 +98,12 @@ function loadRicerca(box, azienda) {
     }
 
     const { data, error } = await window.supabaseClient
-      .from("v_magazzino_preparazioni")
-      .select("prodotto_id, meta, descrizione, um, giacenza_attuale, scorta_minima")
+      .from("v_magazzino_giacenze")
+      .select("prodotto_id, codice_interno, descrizione, unita_base, giacenza_attuale, scorta_minima")
       .eq("azienda_id", azienda.id)
-      .ilike("descrizione", `%${term}%`)
+      .eq("sede_id", window.state.sede_id)
+      .eq("tipo_prodotto", "preparazione")
+      .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
       .limit(10);
 
     if (error) {
@@ -120,9 +123,11 @@ function loadRicerca(box, azienda) {
           <div class="rf-search-item">
             <div class="rf-search-row">
               <div class="rf-search-main">
-                <div class="rf-search-code">${escapeHtml(r.meta || "—")}</div>
+                <div class="rf-search-code">${escapeHtml(r.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(r.descrizione || "")}</div>
-                <div class="rf-search-subtitle">Giacenza ${formatNumber(r.giacenza_attuale)} · Min ${formatNumber(r.scorta_minima)}</div>
+                <div class="rf-search-subtitle">
+                  UM: ${escapeHtml(r.unita_base || "—")} · Giacenza ${formatNumber(r.giacenza_attuale)} · Min ${formatNumber(r.scorta_minima)}
+                </div>
               </div>
 
               <button
@@ -150,10 +155,13 @@ async function loadSottoscorta(box, azienda) {
   box.innerHTML = "Caricamento...";
 
   const { data, error } = await window.supabaseClient
-    .from("v_magazzino_preparazioni")
-    .select("prodotto_id, meta, descrizione, giacenza_attuale, scorta_minima")
+    .from("v_magazzino_giacenze")
+    .select("prodotto_id, codice_interno, descrizione, giacenza_attuale, scorta_minima")
     .eq("azienda_id", azienda.id)
-    .lte("giacenza_attuale", "scorta_minima");
+    .eq("sede_id", window.state.sede_id)
+    .eq("tipo_prodotto", "preparazione")
+    .lte("giacenza_attuale", "scorta_minima")
+    .limit(20);
 
   if (error) {
     console.error(error);
@@ -172,9 +180,11 @@ async function loadSottoscorta(box, azienda) {
         <div class="rf-search-item">
           <div class="rf-search-row">
             <div class="rf-search-main">
-              <div class="rf-search-code">${escapeHtml(p.meta || "—")}</div>
+              <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
               <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
-              <div class="rf-search-subtitle">Giacenza ${formatNumber(p.giacenza_attuale)} · Min ${formatNumber(p.scorta_minima)}</div>
+              <div class="rf-search-subtitle">
+                Giacenza ${formatNumber(p.giacenza_attuale)} · Min ${formatNumber(p.scorta_minima)}
+              </div>
             </div>
 
             <button
@@ -204,9 +214,11 @@ async function apriSchedaPreparazione(box, azienda, prodottoId, onBack) {
   box.innerHTML = `<div class="rf-empty-state">Caricamento scheda...</div>`;
 
   const { data, error } = await window.supabaseClient
-    .from("v_magazzino_preparazioni")
+    .from("v_magazzino_giacenze")
     .select("*")
     .eq("azienda_id", azienda.id)
+    .eq("sede_id", window.state.sede_id)
+    .eq("tipo_prodotto", "preparazione")
     .eq("prodotto_id", prodottoId)
     .single();
 
@@ -220,6 +232,7 @@ async function apriSchedaPreparazione(box, azienda, prodottoId, onBack) {
     .from("magazzino_movimenti")
     .select("tipo_movimento, quantita, created_at")
     .eq("azienda_id", azienda.id)
+    .eq("sede_id", window.state.sede_id)
     .eq("prodotto_id", prodottoId)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -235,14 +248,14 @@ async function apriSchedaPreparazione(box, azienda, prodottoId, onBack) {
   box.innerHTML = `
     <div class="rf-product-card">
       <div class="rf-product-heading">
-        <div class="rf-product-code">${escapeHtml(data.meta || "—")}</div>
+        <div class="rf-product-code">${escapeHtml(data.codice_interno || "—")}</div>
         <div class="rf-product-title">${escapeHtml(data.descrizione || "")}</div>
       </div>
 
       <div class="rf-product-grid">
         <div class="rf-product-field">
           <span class="rf-product-label">UM</span>
-          <div class="rf-product-value">${escapeHtml(data.um || "—")}</div>
+          <div class="rf-product-value">${escapeHtml(data.unita_base || "—")}</div>
         </div>
 
         <div class="rf-product-field">
