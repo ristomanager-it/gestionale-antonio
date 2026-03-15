@@ -86,7 +86,7 @@ export function apriCaricoModal({ aziendaId }) {
     return;
   }
 
-  const sedeId = window.state?.sede_id;
+  const sedeId = window.state?.sedeAttiva?.id;
 
   if (!sedeId) {
     alert("Sede attiva non trovata");
