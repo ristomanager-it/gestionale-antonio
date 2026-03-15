@@ -1,8 +1,5 @@
 import { renderMateriePrime } from "./materie_prime.js";
 import { renderPreparazioni } from "./preparazioni.js";
-import { renderProdottiFiniti } from "./prodotti_finiti.js";
-import { renderMapping } from "./mapping_fornitori.js";
-import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
 import { renderCaricoModal, apriCaricoModal } from "./carico_magazzino.js";
 
 export async function render(container) {
@@ -45,28 +42,15 @@ export async function render(container) {
 
 function renderHome(azienda) {
   const home = document.getElementById("magazzino-home");
-  const content = document.getElementById("magazzino-content");
 
   home.innerHTML = `
     <div class="rf-magazzino-actions">
-      <button class="app-button tiny" data-route="materie-prime">
+      <button class="app-button tiny" id="btn-materie-prime">
         Materie Prime
       </button>
 
-      <button class="app-button tiny" data-route="preparazioni">
+      <button class="app-button tiny" id="btn-preparazioni">
         Preparazioni
-      </button>
-
-      <button class="app-button tiny" data-route="prodotti-finiti">
-        Prodotti Finiti
-      </button>
-
-      <button class="app-button tiny gray" data-route="anagrafica">
-        Anagrafica
-      </button>
-
-      <button class="app-button tiny gray" data-route="mapping">
-        Mapping
       </button>
 
       <button class="app-button tiny" id="btn-carico-magazzino">
@@ -79,44 +63,23 @@ function renderHome(azienda) {
     </div>
   `;
 
-  home.querySelectorAll("[data-route]").forEach((btn) => {
-    btn.onclick = () => {
-      const route = btn.dataset.route;
-      openMagazzinoRoute(route, content, azienda);
-    };
-  });
-
+  const btnMP = home.querySelector("#btn-materie-prime");
+  const btnPrep = home.querySelector("#btn-preparazioni");
   const btnCarico = home.querySelector("#btn-carico-magazzino");
+
+  btnMP.onclick = () => {
+    renderMateriePrime(document.body, azienda);
+  };
+
+  btnPrep.onclick = () => {
+    renderPreparazioni(document.body, azienda);
+  };
 
   btnCarico.onclick = () => {
     apriCaricoModal({
       aziendaId: azienda.id
     });
   };
-}
-
-function openMagazzinoRoute(route, container, azienda) {
-  container.innerHTML = "";
-
-  if (route === "materie-prime") {
-    renderMateriePrime(container, azienda);
-  }
-
-  if (route === "preparazioni") {
-    renderPreparazioni(container, azienda);
-  }
-
-  if (route === "prodotti-finiti") {
-    renderProdottiFiniti(container, azienda);
-  }
-
-  if (route === "mapping") {
-    renderMapping(container, azienda);
-  }
-
-  if (route === "anagrafica") {
-    renderAnagraficaProdotti(container);
-  }
 }
 
 function ensureMagazzinoOverlayStyles() {
