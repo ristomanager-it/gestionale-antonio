@@ -106,7 +106,6 @@ export function apriCaricoModal({ aziendaId }) {
   const btnConferma = backdrop.querySelector("#btn-conferma-carico");
 
   let prodottoId = null;
-  let prodottoSelezionato = null;
 
   backdrop.style.display = "flex";
 
@@ -136,19 +135,17 @@ export function apriCaricoModal({ aziendaId }) {
   };
 
   search.oninput = async () => {
+
     const term = search.value.trim();
 
     prodottoId = null;
-    prodottoSelezionato = null;
     prodottoBox.innerHTML = "";
     prodottoBox.style.display = "none";
     form.style.display = "none";
     risultati.innerHTML = "";
     esitoEl.innerText = "";
 
-    if (term.length < 2) {
-      return;
-    }
+    if (term.length < 2) return;
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
@@ -165,43 +162,37 @@ export function apriCaricoModal({ aziendaId }) {
 
     if (!data || !data.length) {
 
-  risultati.innerHTML = `
-  <div class="rf-empty-state">
-    Nessun prodotto trovato
-  </div>
+      risultati.innerHTML = `
+        <div class="rf-empty-state">Nessun prodotto trovato</div>
 
-  <button
-    id="btn-nuovo-prodotto"
-    class="app-button tiny"
-    style="margin-top:10px;"
-  >
-    + Nuovo prodotto
-  </button>
-  `;
+        <button id="btn-nuovo-prodotto" class="app-button tiny" style="margin-top:10px;">
+          + Nuovo prodotto
+        </button>
+      `;
 
-  risultati.querySelector("#btn-nuovo-prodotto").onclick = () => {
-    mostraFormNuovoProdotto(term);
-  };
+      risultati.querySelector("#btn-nuovo-prodotto").onclick = () => {
+        mostraFormNuovoProdotto(term);
+      };
 
-  return;
-}
+      return;
+    }
 
     risultati.innerHTML = `
       <div class="rf-search-list">
         ${data.map((p) => `
           <div class="rf-search-item">
             <div class="rf-search-row">
+
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
               </div>
 
               <button
-                type="button"
                 class="rf-search-action carico-item-action"
                 data-id="${p.id}"
-                aria-label="Apri scheda prodotto"
               >🔍</button>
+
             </div>
           </div>
         `).join("")}
@@ -209,32 +200,36 @@ export function apriCaricoModal({ aziendaId }) {
     `;
 
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
+
       btn.onclick = async () => {
 
         const id = Number(btn.dataset.id);
 
         prodottoId = id;
-        prodottoSelezionato = await loadDettaglioProdotto(aziendaId, id);
 
-        if (!prodottoSelezionato) {
+        const prodotto = await loadDettaglioProdotto(aziendaId, id);
+
+        if (!prodotto) {
           prodottoBox.style.display = "block";
           prodottoBox.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`;
-          form.style.display = "none";
           return;
         }
 
         prodottoBox.style.display = "block";
-        prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodottoSelezionato);
+        prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodotto);
 
-        umValueEl.innerText = prodottoSelezionato.unita_base || "—";
+        umValueEl.innerText = prodotto.unita_base || "—";
         umCard.style.display = "block";
 
         form.style.display = "block";
       };
+
     });
+
   };
 
   btnConferma.onclick = async () => {
+
     const q = Number(qtaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
@@ -280,10 +275,43 @@ export function apriCaricoModal({ aziendaId }) {
 
     esitoEl.innerText = "Carico registrato ✔";
 
-    setTimeout(() => {
-      close();
-    }, 450);
+    setTimeout(() => close(), 500);
   };
+
+  function mostraFormNuovoProdotto(term) {
+
+    prodottoBox.style.display = "block";
+
+    prodottoBox.innerHTML = `
+      <div class="rf-product-card">
+
+        <div class="rf-product-section-title">Nuovo prodotto</div>
+
+        <div class="rf-field">
+          <label>Codice interno</label>
+          <input id="new-codice" class="input">
+        </div>
+
+        <div class="rf-field">
+          <label>Descrizione</label>
+          <input id="new-descrizione" class="input" value="${escapeHtml(term)}">
+        </div>
+
+        <div class="rf-field">
+          <label>Unità di misura</label>
+          <input id="new-um" class="input" placeholder="kg / pz / lt">
+        </div>
+
+        <div class="rf-field">
+          <label>Scorta minima</label>
+          <input id="new-scorta" type="number" class="input">
+        </div>
+
+      </div>
+    `;
+
+    form.style.display = "block";
+  }
 }
 
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
@@ -298,9 +326,7 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     .eq("prodotto_id", prodottoId)
     .maybeSingle();
 
-  if (!prodotto) {
-    return null;
-  }
+  if (!prodotto) return null;
 
   const { data: movimenti } = await window.supabaseClient
     .from("magazzino_movimenti")
@@ -328,12 +354,14 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
 function renderSchedaCaricoProdotto(prodotto) {
   return `
     <div class="rf-product-card">
+
       <div class="rf-product-heading">
         <div class="rf-product-code">${escapeHtml(prodotto.codice_interno || "—")}</div>
         <div class="rf-product-title">${escapeHtml(prodotto.descrizione || "")}</div>
       </div>
 
       <div class="rf-product-grid">
+
         <div class="rf-product-field">
           <span class="rf-product-label">UM</span>
           <div class="rf-product-value">${escapeHtml(prodotto.unita_base || "—")}</div>
@@ -353,48 +381,37 @@ function renderSchedaCaricoProdotto(prodotto) {
           <span class="rf-product-label">Scorta minima</span>
           <div class="rf-product-value">${formatNumber(prodotto.scorta_minima)}</div>
         </div>
+
       </div>
 
       <div class="rf-product-section-title">Ultimi movimenti</div>
 
       <div class="rf-mov-list">
-        ${(prodotto.ultimi_movimenti || []).length ? prodotto.ultimi_movimenti.map((m) => `
-          <div class="rf-mov-item">
-            <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-            <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
-          </div>
-        `).join("") : `
-          <div class="rf-empty-state">Nessun movimento recente</div>
-        `}
+        ${(prodotto.ultimi_movimenti || []).length
+          ? prodotto.ultimi_movimenti.map((m) => `
+            <div class="rf-mov-item">
+              <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
+              <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
+            </div>
+          `).join("")
+          : `<div class="rf-empty-state">Nessun movimento recente</div>`
+        }
       </div>
+
     </div>
   `;
 }
 
 function formatNumber(value) {
   const n = Number(value || 0);
-
-  if (Number.isNaN(n)) {
-    return "—";
-  }
-
-  return n.toLocaleString("it-IT", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3
-  });
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("it-IT", { maximumFractionDigits: 3 });
 }
 
 function formatDateTime(value) {
-  if (!value) {
-    return "—";
-  }
-
+  if (!value) return "—";
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("it-IT");
 }
 
