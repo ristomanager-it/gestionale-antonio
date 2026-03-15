@@ -81,6 +81,8 @@ export function apriCaricoModal({ aziendaId }) {
   let prodottoId = null;
   let prodottoSelezionato = null;
 
+  const sedeId = window.state?.sede_id;
+
   backdrop.style.display = "flex";
 
   risultati.innerHTML = "";
@@ -123,10 +125,12 @@ export function apriCaricoModal({ aziendaId }) {
     }
 
     const { data, error } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, meta, descrizione, um, scorta_minima")
+      .from("v_magazzino_giacenze")
+      .select("prodotto_id, codice_interno, descrizione, unita_base, giacenza_attuale")
       .eq("azienda_id", aziendaId)
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
+      .eq("sede_id", sedeId)
+      .eq("tipo_prodotto", "materia_prima")
+      .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
       .limit(10);
 
     if (error) {
@@ -146,14 +150,17 @@ export function apriCaricoModal({ aziendaId }) {
           <div class="rf-search-item">
             <div class="rf-search-row">
               <div class="rf-search-main">
-                <div class="rf-search-code">${escapeHtml(p.meta || "—")}</div>
+                <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
+                <div class="rf-search-subtitle">
+                  UM: ${escapeHtml(p.unita_base || "—")} · Giacenza ${formatNumber(p.giacenza_attuale)}
+                </div>
               </div>
 
               <button
                 type="button"
                 class="rf-search-action carico-item-action"
-                data-id="${p.id}"
+                data-id="${p.prodotto_id}"
                 aria-label="Apri scheda prodotto"
               >🔍</button>
             </div>
@@ -165,7 +172,7 @@ export function apriCaricoModal({ aziendaId }) {
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
       btn.onclick = async () => {
         prodottoId = btn.dataset.id;
-        prodottoSelezionato = await loadDettaglioProdotto(aziendaId, prodottoId);
+        prodottoSelezionato = await loadDettaglioProdotto(aziendaId, sedeId, prodottoId);
 
         if (!prodottoSelezionato) {
           prodottoBox.style.display = "block";
@@ -202,6 +209,7 @@ export function apriCaricoModal({ aziendaId }) {
       .from("magazzino_movimenti")
       .insert({
         azienda_id: aziendaId,
+        sede_id: sedeId,
         prodotto_id: prodottoId,
         tipo_movimento: "CARICO",
         quantita: q,
@@ -224,52 +232,37 @@ export function apriCaricoModal({ aziendaId }) {
   };
 }
 
-async function loadDettaglioProdotto(aziendaId, prodottoId) {
-  const { data: prodotto } = await window.supabaseClient
-    .from("prodotti")
-    .select("id, meta, descrizione, um, scorta_minima")
+async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
+  const { data } = await window.supabaseClient
+    .from("v_magazzino_giacenze")
+    .select("*")
     .eq("azienda_id", aziendaId)
-    .eq("id", prodottoId)
+    .eq("sede_id", sedeId)
+    .eq("prodotto_id", prodottoId)
     .single();
 
-  if (!prodotto) {
+  if (!data) {
     return null;
   }
-
-  const { data: giacenza } = await window.supabaseClient
-    .from("magazzino_movimenti")
-    .select("tipo_movimento, quantita")
-    .eq("azienda_id", aziendaId)
-    .eq("prodotto_id", prodottoId);
 
   const { data: movimenti } = await window.supabaseClient
     .from("magazzino_movimenti")
     .select("tipo_movimento, quantita, created_at")
     .eq("azienda_id", aziendaId)
+    .eq("sede_id", sedeId)
     .eq("prodotto_id", prodottoId)
     .order("created_at", { ascending: false })
     .limit(5);
 
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
-    .select("prezzo_ultimo_acquisto, fornitori:fornitore_id (ragione_sociale)")
+    .select("fornitori:fornitore_id (ragione_sociale)")
     .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
 
-  const giacenzaAttuale = (giacenza || []).reduce((tot, mov) => {
-    const q = Number(mov.quantita || 0);
-
-    if (mov.tipo_movimento === "SCARICO") {
-      return tot - q;
-    }
-
-    return tot + q;
-  }, 0);
-
   return {
-    ...prodotto,
-    giacenza_attuale: giacenzaAttuale,
+    ...data,
     fornitore: mapping?.fornitori?.ragione_sociale || "—",
     ultimi_movimenti: movimenti || []
   };
@@ -279,14 +272,14 @@ function renderSchedaCaricoProdotto(prodotto) {
   return `
     <div class="rf-product-card">
       <div class="rf-product-heading">
-        <div class="rf-product-code">${escapeHtml(prodotto.meta || "—")}</div>
+        <div class="rf-product-code">${escapeHtml(prodotto.codice_interno || "—")}</div>
         <div class="rf-product-title">${escapeHtml(prodotto.descrizione || "")}</div>
       </div>
 
       <div class="rf-product-grid">
         <div class="rf-product-field">
           <span class="rf-product-label">UM</span>
-          <div class="rf-product-value">${escapeHtml(prodotto.um || "—")}</div>
+          <div class="rf-product-value">${escapeHtml(prodotto.unita_base || "—")}</div>
         </div>
 
         <div class="rf-product-field">
