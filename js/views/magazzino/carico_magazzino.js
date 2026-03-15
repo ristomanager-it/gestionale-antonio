@@ -23,31 +23,33 @@ export function renderCaricoModal() {
           <div id="carico-prodotto" class="rf-section-spacer" style="display:none;"></div>
 
           <div id="carico-form" class="rf-section-spacer" style="display:none;">
-            <div class="rf-product-grid">
-              <div class="rf-product-field">
-                <span class="rf-product-label">UM</span>
-                <div class="rf-product-value" id="carico-um-value">—</div>
-              </div>
 
-              <div class="rf-product-field">
-                <span class="rf-product-label">Categoria interna</span>
-                <div class="rf-product-value">
-                  <select id="carico-categoria-interna" class="input" style="width:100%;">
-                    <option value="">—</option>
-                  </select>
+            <div class="rf-product-card" id="carico-um-card" style="display:none;">
+              <div class="rf-product-section-title">Unità di misura</div>
+              <div class="rf-product-grid">
+                <div class="rf-product-field">
+                  <span class="rf-product-label">UM</span>
+                  <div id="carico-um-value" class="rf-product-value">—</div>
                 </div>
               </div>
             </div>
 
-            <div class="rf-field" style="margin-top:10px;">
-              <label>Quantità</label>
-              <input
-                id="carico-quantita"
-                type="number"
-                step="0.001"
-                class="input"
-                inputmode="decimal"
-              />
+            <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Quantità</div>
+
+              <div class="rf-field">
+                <label>Quantità</label>
+                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
+              </div>
+            </div>
+
+            <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Categoria interna</div>
+
+              <div class="rf-field">
+                <label>Categoria</label>
+                <input id="carico-categoria" class="input" placeholder="es. inventario, rettifica..." />
+              </div>
             </div>
 
             <div class="rf-field" style="margin-top:10px;">
@@ -86,24 +88,18 @@ export function apriCaricoModal({ aziendaId }) {
     return;
   }
 
-  const sedeId = window.state?.sedeAttiva?.id;
-
-  if (!sedeId) {
-    alert("Sede attiva non trovata");
-    return;
-  }
-
   const search = backdrop.querySelector("#carico-search");
   const risultati = backdrop.querySelector("#carico-risultati");
   const prodottoBox = backdrop.querySelector("#carico-prodotto");
   const form = backdrop.querySelector("#carico-form");
 
-  const umValueEl = backdrop.querySelector("#carico-um-value");
-  const categoriaInternaEl = backdrop.querySelector("#carico-categoria-interna");
   const qtaEl = backdrop.querySelector("#carico-quantita");
   const dataEl = backdrop.querySelector("#carico-data");
   const noteEl = backdrop.querySelector("#carico-note");
+  const categoriaEl = backdrop.querySelector("#carico-categoria");
   const esitoEl = backdrop.querySelector("#carico-esito");
+  const umValueEl = backdrop.querySelector("#carico-um-value");
+  const umCard = backdrop.querySelector("#carico-um-card");
 
   const btnClose = backdrop.querySelector("#btn-close-carico");
   const btnAnnulla = backdrop.querySelector("#btn-annulla-carico");
@@ -111,7 +107,6 @@ export function apriCaricoModal({ aziendaId }) {
 
   let prodottoId = null;
   let prodottoSelezionato = null;
-  let categorieInterne = [];
 
   backdrop.style.display = "flex";
 
@@ -122,9 +117,8 @@ export function apriCaricoModal({ aziendaId }) {
   esitoEl.innerText = "";
 
   search.value = "";
-  umValueEl.textContent = "—";
-  categoriaInternaEl.innerHTML = `<option value="">—</option>`;
   qtaEl.value = "";
+  categoriaEl.value = "";
   dataEl.value = new Date().toISOString().slice(0, 10);
   noteEl.value = "Inventario";
 
@@ -141,16 +135,6 @@ export function apriCaricoModal({ aziendaId }) {
     }
   };
 
-  loadCategorieInterne(aziendaId).then((items) => {
-    categorieInterne = items;
-    categoriaInternaEl.innerHTML = `
-      <option value="">—</option>
-      ${categorieInterne.map((item) => `
-        <option value="${escapeHtmlAttr(item.id)}">${escapeHtml(item.nome || item.descrizione || "—")}</option>
-      `).join("")}
-    `;
-  });
-
   search.oninput = async () => {
     const term = search.value.trim();
 
@@ -159,18 +143,16 @@ export function apriCaricoModal({ aziendaId }) {
     prodottoBox.innerHTML = "";
     prodottoBox.style.display = "none";
     form.style.display = "none";
-    umValueEl.textContent = "—";
-    categoriaInternaEl.value = "";
+    risultati.innerHTML = "";
     esitoEl.innerText = "";
 
     if (term.length < 2) {
-      risultati.innerHTML = "";
       return;
     }
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base, categoria_interna_id, scorta_minima")
+      .select("id, codice_interno, descrizione, unita_base, scorta_minima")
       .eq("azienda_id", aziendaId)
       .or(`descrizione.ilike.%${term}%,codice_interno.ilike.%${term}%`)
       .limit(10);
@@ -194,7 +176,6 @@ export function apriCaricoModal({ aziendaId }) {
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
-                <div class="rf-search-subtitle">UM: ${escapeHtml(p.unita_base || "—")}</div>
               </div>
 
               <button
@@ -211,30 +192,26 @@ export function apriCaricoModal({ aziendaId }) {
 
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
       btn.onclick = async () => {
-        prodottoId = Number(btn.dataset.id);
-        prodottoSelezionato = await loadDettaglioProdotto(aziendaId, sedeId, prodottoId);
+
+        const id = Number(btn.dataset.id);
+
+        prodottoId = id;
+        prodottoSelezionato = await loadDettaglioProdotto(aziendaId, id);
 
         if (!prodottoSelezionato) {
           prodottoBox.style.display = "block";
           prodottoBox.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`;
           form.style.display = "none";
-          umValueEl.textContent = "—";
-          categoriaInternaEl.value = "";
           return;
         }
 
         prodottoBox.style.display = "block";
         prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodottoSelezionato);
+
+        umValueEl.innerText = prodottoSelezionato.unita_base || "—";
+        umCard.style.display = "block";
+
         form.style.display = "block";
-        umValueEl.textContent = prodottoSelezionato.unita_base || "—";
-
-        if (prodottoSelezionato.categoria_interna_id) {
-          categoriaInternaEl.value = String(prodottoSelezionato.categoria_interna_id);
-        } else {
-          categoriaInternaEl.value = "";
-        }
-
-        esitoEl.innerText = "";
       };
     });
   };
@@ -243,7 +220,14 @@ export function apriCaricoModal({ aziendaId }) {
     const q = Number(qtaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
-    const categoriaInternaId = categoriaInternaEl.value || null;
+    const categoria = categoriaEl.value || "INVENTARIO";
+
+    const sedeId = window.state?.sedeAttiva?.id;
+
+    if (!sedeId) {
+      alert("Sede attiva non trovata");
+      return;
+    }
 
     if (!prodottoId) {
       alert("Seleziona un prodotto");
@@ -257,22 +241,6 @@ export function apriCaricoModal({ aziendaId }) {
 
     esitoEl.innerText = "Salvataggio...";
 
-    if (categoriaInternaId) {
-      const { error: prodottoUpdateError } = await window.supabaseClient
-        .from("prodotti")
-        .update({
-          categoria_interna_id: categoriaInternaId
-        })
-        .eq("azienda_id", aziendaId)
-        .eq("id", prodottoId);
-
-      if (prodottoUpdateError) {
-        console.error(prodottoUpdateError);
-        esitoEl.innerText = "Errore durante l'aggiornamento categoria interna";
-        return;
-      }
-    }
-
     const { error } = await window.supabaseClient
       .from("magazzino_movimenti")
       .insert({
@@ -282,7 +250,7 @@ export function apriCaricoModal({ aziendaId }) {
         tipo_movimento: "CARICO",
         quantita: q,
         data_movimento: d,
-        riferimento_tipo: "INVENTARIO",
+        riferimento_tipo: categoria,
         note: note
       });
 
@@ -300,29 +268,11 @@ export function apriCaricoModal({ aziendaId }) {
   };
 }
 
-async function loadCategorieInterne(aziendaId) {
-  const tables = [
-    "categorie_interne",
-    "categorie_prodotti_interne"
-  ];
+async function loadDettaglioProdotto(aziendaId, prodottoId) {
 
-  for (const tableName of tables) {
-    const { data, error } = await window.supabaseClient
-      .from(tableName)
-      .select("id, nome, descrizione")
-      .eq("azienda_id", aziendaId)
-      .limit(200);
+  const sedeId = window.state?.sedeAttiva?.id;
 
-    if (!error && Array.isArray(data)) {
-      return data;
-    }
-  }
-
-  return [];
-}
-
-async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
-  const { data } = await window.supabaseClient
+  const { data: prodotto } = await window.supabaseClient
     .from("v_magazzino_giacenze")
     .select("*")
     .eq("azienda_id", aziendaId)
@@ -330,62 +280,28 @@ async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
     .eq("prodotto_id", prodottoId)
     .maybeSingle();
 
-  if (!data) {
-    const { data: prodotto } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base, scorta_minima, categoria_interna_id")
-      .eq("azienda_id", aziendaId)
-      .eq("id", prodottoId)
-      .maybeSingle();
-
-    if (!prodotto) {
-      return null;
-    }
-
-    const { data: movimentiFallback } = await window.supabaseClient
-      .from("magazzino_movimenti")
-      .select("tipo_movimento, quantita, created_at")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .eq("prodotto_id", prodottoId)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    return {
-      ...prodotto,
-      giacenza_attuale: 0,
-      ultimi_movimenti: movimentiFallback || [],
-      fornitore: "—"
-    };
+  if (!prodotto) {
+    return null;
   }
-
-  const { data: prodottoExtra } = await window.supabaseClient
-    .from("prodotti")
-    .select("id, categoria_interna_id, unita_base, descrizione, codice_interno, scorta_minima")
-    .eq("azienda_id", aziendaId)
-    .eq("id", prodottoId)
-    .maybeSingle();
 
   const { data: movimenti } = await window.supabaseClient
     .from("magazzino_movimenti")
-    .select("tipo_movimento, quantita, created_at")
+    .select("tipo_movimento, quantita, data_movimento")
     .eq("azienda_id", aziendaId)
     .eq("sede_id", sedeId)
     .eq("prodotto_id", prodottoId)
-    .order("created_at", { ascending: false })
+    .order("data_movimento", { ascending: false })
     .limit(5);
 
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("fornitori:fornitore_id (ragione_sociale)")
-    .eq("azienda_id", aziendaId)
     .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
 
   return {
-    ...data,
-    ...prodottoExtra,
+    ...prodotto,
     fornitore: mapping?.fornitori?.ragione_sociale || "—",
     ultimi_movimenti: movimenti || []
   };
@@ -427,7 +343,7 @@ function renderSchedaCaricoProdotto(prodotto) {
         ${(prodotto.ultimi_movimenti || []).length ? prodotto.ultimi_movimenti.map((m) => `
           <div class="rf-mov-item">
             <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-            <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
+            <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
           </div>
         `).join("") : `
           <div class="rf-empty-state">Nessun movimento recente</div>
@@ -471,8 +387,4 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-
-function escapeHtmlAttr(value) {
-  return escapeHtml(value).replaceAll("`", "&#96;");
 }
