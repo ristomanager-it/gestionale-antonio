@@ -1,36 +1,36 @@
-export async function renderMateriePrime(container, azienda, startTab = "cerca") {
+export async function renderPreparazioni(container, azienda) {
 
-  const existing = document.getElementById("rf-overlay-materie-prime");
-  if (existing) existing.remove();
+  const existing = document.getElementById("rf-overlay-preparazioni");
+  if(existing) existing.remove();
 
   const overlay = document.createElement("div");
-  overlay.id = "rf-overlay-materie-prime";
+  overlay.id="rf-overlay-preparazioni";
 
-  overlay.innerHTML = `
+  overlay.innerHTML=`
   <div class="rf-overlay-backdrop">
 
     <div class="rf-overlay-card">
 
       <div class="rf-overlay-header">
-        <h3 class="rf-overlay-title">Materie Prime</h3>
+        <h3 class="rf-overlay-title">Preparazioni</h3>
         <button class="app-button tiny gray" data-close-overlay>Chiudi</button>
       </div>
 
       <div class="rf-overlay-body">
 
         <div class="rf-field">
-          <label>Ricerca prodotto</label>
+          <label>Ricerca preparazione</label>
           <input
-            id="search-mp"
+            id="search-prep"
             class="input"
             placeholder="Codice o descrizione..."
             autocomplete="off"
           />
         </div>
 
-        <div id="mp-results"></div>
+        <div id="prep-results"></div>
 
-        <div id="mp-scheda" class="rf-section-spacer"></div>
+        <div id="prep-scheda" class="rf-section-spacer"></div>
 
       </div>
 
@@ -42,23 +42,23 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
   document.body.appendChild(overlay);
 
   const backdrop = overlay.querySelector(".rf-overlay-backdrop");
-  const results = overlay.querySelector("#mp-results");
-  const scheda = overlay.querySelector("#mp-scheda");
-  const input = overlay.querySelector("#search-mp");
+  const results = overlay.querySelector("#prep-results");
+  const scheda = overlay.querySelector("#prep-scheda");
+  const input = overlay.querySelector("#search-prep");
 
-  const close = () => overlay.remove();
+  const close = ()=>overlay.remove();
 
-  overlay.querySelector("[data-close-overlay]").onclick = close;
+  overlay.querySelector("[data-close-overlay]").onclick=close;
 
-  backdrop.onclick = (e)=>{
+  backdrop.onclick=(e)=>{
     if(e.target===backdrop) close();
   };
 
-  input.oninput = async () => {
+  input.oninput = async()=>{
 
     const term = input.value.trim();
 
-    if(term.length < 2){
+    if(term.length<2){
       results.innerHTML="";
       scheda.innerHTML="";
       return;
@@ -78,16 +78,16 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     }
 
     if(!data?.length){
-      results.innerHTML=`<div class="rf-empty-state">Nessun prodotto trovato</div>`;
+      results.innerHTML=`<div class="rf-empty-state">Nessuna preparazione trovata</div>`;
       return;
     }
 
-    results.innerHTML = `
+    results.innerHTML=`
     <div class="rf-search-list">
       ${data.map(p=>`
         <div class="rf-search-item">
 
-          <div class="rf-search-row open-mp" data-id="${p.id}" style="cursor:pointer;">
+          <div class="rf-search-row open-prep" data-id="${p.id}" style="cursor:pointer;">
 
             <div class="rf-search-main">
               <div class="rf-search-code">${escapeHtml(p.codice_interno||"-")}</div>
@@ -104,8 +104,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     </div>
     `;
 
-    results.querySelectorAll(".open-mp").forEach(row=>{
-      row.onclick = ()=>{
+    results.querySelectorAll(".open-prep").forEach(row=>{
+      row.onclick=()=>{
         const id = Number(row.dataset.id);
         openScheda(id);
         results.innerHTML="";
@@ -129,7 +129,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       .single();
 
     if(error || !data){
-      scheda.innerHTML=`<div class="rf-empty-state">Prodotto non trovato</div>`;
+      scheda.innerHTML=`<div class="rf-empty-state">Preparazione non trovata</div>`;
       return;
     }
 
@@ -192,7 +192,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
         canEdit
         ? `
         <div style="margin-top:14px;">
-          <button id="btn-modifica-prodotto" class="app-button tiny">Modifica prodotto</button>
+          <button id="btn-modifica-preparazione" class="app-button tiny">Modifica</button>
         </div>
         `
         : ""
@@ -202,7 +202,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     `;
 
     if(canEdit){
-      document.getElementById("btn-modifica-prodotto").onclick = ()=>{
+      document.getElementById("btn-modifica-preparazione").onclick=()=>{
         apriFormModifica(data);
       };
     }
@@ -211,11 +211,11 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
   function apriFormModifica(prodotto){
 
-    scheda.innerHTML = `
+    scheda.innerHTML=`
     <div class="rf-product-card">
 
       <div class="rf-product-section-title">
-        Modifica prodotto
+        Modifica preparazione
       </div>
 
       <div class="rf-field">
@@ -239,37 +239,37 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       </div>
 
       <div style="margin-top:12px; display:flex; gap:8px;">
-        <button id="btn-salva-prodotto" class="app-button tiny">Salva</button>
+        <button id="btn-salva-preparazione" class="app-button tiny">Salva</button>
         <button id="btn-annulla-modifica" class="app-button tiny gray">Annulla</button>
       </div>
 
     </div>
     `;
 
-    document.getElementById("btn-annulla-modifica").onclick = ()=>{
+    document.getElementById("btn-annulla-modifica").onclick=()=>{
       openScheda(prodotto.prodotto_id);
     };
 
-    document.getElementById("btn-salva-prodotto").onclick = async ()=>{
+    document.getElementById("btn-salva-preparazione").onclick=async()=>{
 
-      const codice = document.getElementById("edit-codice").value;
-      const descrizione = document.getElementById("edit-descrizione").value;
-      const um = document.getElementById("edit-um").value;
-      const scorta = Number(document.getElementById("edit-scorta").value || 0);
+      const codice=document.getElementById("edit-codice").value;
+      const descrizione=document.getElementById("edit-descrizione").value;
+      const um=document.getElementById("edit-um").value;
+      const scorta=Number(document.getElementById("edit-scorta").value||0);
 
-      const {error} = await window.supabaseClient
+      const {error}=await window.supabaseClient
         .from("prodotti")
         .update({
-          codice_interno: codice,
-          descrizione: descrizione,
-          unita_base: um,
-          scorta_minima: scorta
+          codice_interno:codice,
+          descrizione:descrizione,
+          unita_base:um,
+          scorta_minima:scorta
         })
-        .eq("id", prodotto.prodotto_id);
+        .eq("id",prodotto.prodotto_id);
 
       if(error){
-        alert("Errore salvataggio");
         console.error(error);
+        alert("Errore salvataggio");
         return;
       }
 
@@ -293,7 +293,7 @@ function formatDateTime(v){
 
 function escapeHtml(v){
   return String(v??"")
-  .replaceAll("&","&amp;")
-  .replaceAll("<","&lt;")
-  .replaceAll(">","&gt;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
 }
