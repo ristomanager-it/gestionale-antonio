@@ -23,9 +23,31 @@ export function renderCaricoModal() {
           <div id="carico-prodotto" class="rf-section-spacer" style="display:none;"></div>
 
           <div id="carico-form" class="rf-section-spacer" style="display:none;">
-            <div class="rf-field">
+            <div class="rf-product-grid">
+              <div class="rf-product-field">
+                <span class="rf-product-label">UM</span>
+                <div class="rf-product-value" id="carico-um-value">—</div>
+              </div>
+
+              <div class="rf-product-field">
+                <span class="rf-product-label">Categoria interna</span>
+                <div class="rf-product-value">
+                  <select id="carico-categoria-interna" class="input" style="width:100%;">
+                    <option value="">—</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="rf-field" style="margin-top:10px;">
               <label>Quantità</label>
-              <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
+              <input
+                id="carico-quantita"
+                type="number"
+                step="0.001"
+                class="input"
+                inputmode="decimal"
+              />
             </div>
 
             <div class="rf-field" style="margin-top:10px;">
@@ -64,11 +86,20 @@ export function apriCaricoModal({ aziendaId }) {
     return;
   }
 
+  const sedeId = window.state?.sede_id;
+
+  if (!sedeId) {
+    alert("Sede attiva non trovata");
+    return;
+  }
+
   const search = backdrop.querySelector("#carico-search");
   const risultati = backdrop.querySelector("#carico-risultati");
   const prodottoBox = backdrop.querySelector("#carico-prodotto");
   const form = backdrop.querySelector("#carico-form");
 
+  const umValueEl = backdrop.querySelector("#carico-um-value");
+  const categoriaInternaEl = backdrop.querySelector("#carico-categoria-interna");
   const qtaEl = backdrop.querySelector("#carico-quantita");
   const dataEl = backdrop.querySelector("#carico-data");
   const noteEl = backdrop.querySelector("#carico-note");
@@ -80,8 +111,7 @@ export function apriCaricoModal({ aziendaId }) {
 
   let prodottoId = null;
   let prodottoSelezionato = null;
-
-  const sedeId = window.state?.sede_id;
+  let categorieInterne = [];
 
   backdrop.style.display = "flex";
 
@@ -92,6 +122,8 @@ export function apriCaricoModal({ aziendaId }) {
   esitoEl.innerText = "";
 
   search.value = "";
+  umValueEl.textContent = "—";
+  categoriaInternaEl.innerHTML = `<option value="">—</option>`;
   qtaEl.value = "";
   dataEl.value = new Date().toISOString().slice(0, 10);
   noteEl.value = "Inventario";
@@ -109,6 +141,16 @@ export function apriCaricoModal({ aziendaId }) {
     }
   };
 
+  loadCategorieInterne(aziendaId).then((items) => {
+    categorieInterne = items;
+    categoriaInternaEl.innerHTML = `
+      <option value="">—</option>
+      ${categorieInterne.map((item) => `
+        <option value="${escapeHtmlAttr(item.id)}">${escapeHtml(item.nome || item.descrizione || "—")}</option>
+      `).join("")}
+    `;
+  });
+
   search.oninput = async () => {
     const term = search.value.trim();
 
@@ -117,6 +159,8 @@ export function apriCaricoModal({ aziendaId }) {
     prodottoBox.innerHTML = "";
     prodottoBox.style.display = "none";
     form.style.display = "none";
+    umValueEl.textContent = "—";
+    categoriaInternaEl.value = "";
     esitoEl.innerText = "";
 
     if (term.length < 2) {
@@ -125,12 +169,10 @@ export function apriCaricoModal({ aziendaId }) {
     }
 
     const { data, error } = await window.supabaseClient
-      .from("v_magazzino_giacenze")
-      .select("prodotto_id, codice_interno, descrizione, unita_base, giacenza_attuale")
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, unita_base, categoria_interna_id, scorta_minima")
       .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .eq("tipo_prodotto", "materia_prima")
-      .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
+      .or(`descrizione.ilike.%${term}%,codice_interno.ilike.%${term}%`)
       .limit(10);
 
     if (error) {
@@ -152,15 +194,13 @@ export function apriCaricoModal({ aziendaId }) {
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
-                <div class="rf-search-subtitle">
-                  UM: ${escapeHtml(p.unita_base || "—")} · Giacenza ${formatNumber(p.giacenza_attuale)}
-                </div>
+                <div class="rf-search-subtitle">UM: ${escapeHtml(p.unita_base || "—")}</div>
               </div>
 
               <button
                 type="button"
                 class="rf-search-action carico-item-action"
-                data-id="${p.prodotto_id}"
+                data-id="${p.id}"
                 aria-label="Apri scheda prodotto"
               >🔍</button>
             </div>
@@ -171,19 +211,30 @@ export function apriCaricoModal({ aziendaId }) {
 
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
       btn.onclick = async () => {
-        prodottoId = btn.dataset.id;
+        prodottoId = Number(btn.dataset.id);
         prodottoSelezionato = await loadDettaglioProdotto(aziendaId, sedeId, prodottoId);
 
         if (!prodottoSelezionato) {
           prodottoBox.style.display = "block";
           prodottoBox.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`;
           form.style.display = "none";
+          umValueEl.textContent = "—";
+          categoriaInternaEl.value = "";
           return;
         }
 
         prodottoBox.style.display = "block";
         prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodottoSelezionato);
         form.style.display = "block";
+        umValueEl.textContent = prodottoSelezionato.unita_base || "—";
+
+        if (prodottoSelezionato.categoria_interna_id) {
+          categoriaInternaEl.value = String(prodottoSelezionato.categoria_interna_id);
+        } else {
+          categoriaInternaEl.value = "";
+        }
+
+        esitoEl.innerText = "";
       };
     });
   };
@@ -192,6 +243,7 @@ export function apriCaricoModal({ aziendaId }) {
     const q = Number(qtaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
+    const categoriaInternaId = categoriaInternaEl.value || null;
 
     if (!prodottoId) {
       alert("Seleziona un prodotto");
@@ -204,6 +256,22 @@ export function apriCaricoModal({ aziendaId }) {
     }
 
     esitoEl.innerText = "Salvataggio...";
+
+    if (categoriaInternaId) {
+      const { error: prodottoUpdateError } = await window.supabaseClient
+        .from("prodotti")
+        .update({
+          categoria_interna_id: categoriaInternaId
+        })
+        .eq("azienda_id", aziendaId)
+        .eq("id", prodottoId);
+
+      if (prodottoUpdateError) {
+        console.error(prodottoUpdateError);
+        esitoEl.innerText = "Errore durante l'aggiornamento categoria interna";
+        return;
+      }
+    }
 
     const { error } = await window.supabaseClient
       .from("magazzino_movimenti")
@@ -232,6 +300,27 @@ export function apriCaricoModal({ aziendaId }) {
   };
 }
 
+async function loadCategorieInterne(aziendaId) {
+  const tables = [
+    "categorie_interne",
+    "categorie_prodotti_interne"
+  ];
+
+  for (const tableName of tables) {
+    const { data, error } = await window.supabaseClient
+      .from(tableName)
+      .select("id, nome, descrizione")
+      .eq("azienda_id", aziendaId)
+      .limit(200);
+
+    if (!error && Array.isArray(data)) {
+      return data;
+    }
+  }
+
+  return [];
+}
+
 async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
   const { data } = await window.supabaseClient
     .from("v_magazzino_giacenze")
@@ -239,11 +328,43 @@ async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
     .eq("azienda_id", aziendaId)
     .eq("sede_id", sedeId)
     .eq("prodotto_id", prodottoId)
-    .single();
+    .maybeSingle();
 
   if (!data) {
-    return null;
+    const { data: prodotto } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, unita_base, scorta_minima, categoria_interna_id")
+      .eq("azienda_id", aziendaId)
+      .eq("id", prodottoId)
+      .maybeSingle();
+
+    if (!prodotto) {
+      return null;
+    }
+
+    const { data: movimentiFallback } = await window.supabaseClient
+      .from("magazzino_movimenti")
+      .select("tipo_movimento, quantita, created_at")
+      .eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeId)
+      .eq("prodotto_id", prodottoId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    return {
+      ...prodotto,
+      giacenza_attuale: 0,
+      ultimi_movimenti: movimentiFallback || [],
+      fornitore: "—"
+    };
   }
+
+  const { data: prodottoExtra } = await window.supabaseClient
+    .from("prodotti")
+    .select("id, categoria_interna_id, unita_base, descrizione, codice_interno, scorta_minima")
+    .eq("azienda_id", aziendaId)
+    .eq("id", prodottoId)
+    .maybeSingle();
 
   const { data: movimenti } = await window.supabaseClient
     .from("magazzino_movimenti")
@@ -257,12 +378,14 @@ async function loadDettaglioProdotto(aziendaId, sedeId, prodottoId) {
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("fornitori:fornitore_id (ragione_sociale)")
+    .eq("azienda_id", aziendaId)
     .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
 
   return {
     ...data,
+    ...prodottoExtra,
     fornitore: mapping?.fornitori?.ragione_sociale || "—",
     ultimi_movimenti: movimenti || []
   };
@@ -348,4 +471,8 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function escapeHtmlAttr(value) {
+  return escapeHtml(value).replaceAll("`", "&#96;");
 }
