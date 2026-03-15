@@ -73,7 +73,7 @@ function loadRicerca(box, azienda) {
       <input
         id="search-prep"
         class="input"
-        placeholder="Cerca codice o descrizione..."
+        placeholder="Cerca preparazione..."
         autocomplete="off"
         style="width:100%;"
       />
@@ -100,7 +100,7 @@ function loadRicerca(box, azienda) {
       .from("v_magazzino_preparazioni")
       .select("prodotto_id, meta, descrizione, um, giacenza_attuale, scorta_minima")
       .eq("azienda_id", azienda.id)
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
+      .ilike("descrizione", `%${term}%`)
       .limit(10);
 
     if (error) {
@@ -227,6 +227,7 @@ async function apriSchedaPreparazione(box, azienda, prodottoId, onBack) {
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("fornitori:fornitore_id (ragione_sociale)")
+    .eq("azienda_id", azienda.id)
     .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
