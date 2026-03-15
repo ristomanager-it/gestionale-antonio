@@ -96,13 +96,11 @@ function loadRicerca(box, azienda) {
     }
 
     const { data, error } = await window.supabaseClient
-      .from("v_magazzino_giacenze")
-      .select("prodotto_id, codice_interno, descrizione, unita_base, giacenza_attuale")
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, unita_base")
       .eq("azienda_id", azienda.id)
-      .eq("sede_id", window.state.sede_id)
-      .eq("tipo_prodotto", "materia_prima")
-      .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
-      .limit(8);
+      .or(`descrizione.ilike.%${term}%,codice_interno.ilike.%${term}%`)
+      .limit(10);
 
     if (error) {
       console.error(error);
@@ -124,14 +122,14 @@ function loadRicerca(box, azienda) {
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
                 <div class="rf-search-subtitle">
-                  UM: ${escapeHtml(p.unita_base || "—")} · Giacenza ${formatNumber(p.giacenza_attuale)}
+                  UM: ${escapeHtml(p.unita_base || "—")}
                 </div>
               </div>
 
               <button
                 type="button"
                 class="rf-search-action autocomplete-item"
-                data-id="${p.prodotto_id}"
+                data-id="${p.id}"
                 aria-label="Apri scheda prodotto"
               >🔍</button>
             </div>
@@ -158,9 +156,7 @@ async function loadSottoscorta(box, azienda) {
     .select("prodotto_id, codice_interno, descrizione, giacenza_attuale, scorta_minima")
     .eq("azienda_id", azienda.id)
     .eq("sede_id", window.state.sede_id)
-    .eq("tipo_prodotto", "materia_prima")
-    .lte("giacenza_attuale", "scorta_minima")
-    .limit(20);
+    .lte("giacenza_attuale", "scorta_minima");
 
   if (error) {
     console.error(error);
@@ -236,14 +232,6 @@ async function apriSchedaProdotto(box, azienda, prodottoId, onBack) {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const { data: mapping } = await window.supabaseClient
-    .from("prodotti_fornitore")
-    .select("prezzo_ultimo_acquisto, fornitori:fornitore_id (ragione_sociale)")
-    .eq("azienda_id", azienda.id)
-    .eq("prodotto_id", prodottoId)
-    .limit(1)
-    .maybeSingle();
-
   box.innerHTML = `
     <div class="rf-product-card">
       <div class="rf-product-heading">
@@ -255,11 +243,6 @@ async function apriSchedaProdotto(box, azienda, prodottoId, onBack) {
         <div class="rf-product-field">
           <span class="rf-product-label">UM</span>
           <div class="rf-product-value">${escapeHtml(data.unita_base || "—")}</div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">Fornitore</span>
-          <div class="rf-product-value">${escapeHtml(mapping?.fornitori?.ragione_sociale || "—")}</div>
         </div>
 
         <div class="rf-product-field">
@@ -276,12 +259,19 @@ async function apriSchedaProdotto(box, azienda, prodottoId, onBack) {
       <div class="rf-product-section-title">Ultimi movimenti</div>
 
       <div class="rf-mov-list">
-        ${(movimenti || []).length ? movimenti.map((m) => `
-          <div class="rf-mov-item">
-            <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-            <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
-          </div>
-        `).join("") : `<div class="rf-empty-state">Nessun movimento recente</div>`}
+        ${(movimenti || []).length
+          ? movimenti.map((m) => `
+            <div class="rf-mov-item">
+              <div class="rf-mov-main">
+                ${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}
+              </div>
+              <div class="rf-mov-meta">
+                ${formatDateTime(m.created_at)}
+              </div>
+            </div>
+          `).join("")
+          : `<div class="rf-empty-state">Nessun movimento recente</div>`
+        }
       </div>
 
       <div style="margin-top:12px;">
