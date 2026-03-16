@@ -31,6 +31,7 @@ export function initMenu() {
         {label:"Acquisti",route:"acquisti"},
         {label:"Dipendenti",route:"dipendenti"},
         {label:"Timbrature",route:"timbrature"},
+        {label:"Permessi e ferie",route:"permessi"},
         {label:"Preventivi",route:"preventivi"}
       ]
     },
@@ -47,6 +48,16 @@ export function initMenu() {
       title:"MARKETING",
       items:[
         {label:"Campagne",route:"marketing"}
+      ]
+    },
+
+    OPERATORE:{
+      title:"PERSONALE",
+      items:[
+        {label:"Timbratura",route:"timbratura"},
+        {label:"Programma lavoro",route:"programma"},
+        {label:"Permessi e ferie",route:"permessi"},
+        {label:"Documenti",route:"documenti"}
       ]
     }
 
@@ -75,13 +86,18 @@ export function initMenu() {
       ]
     })
 
-    if(isSuperadmin || ruolo === "admin" || !ruolo){
-
+    if(isSuperadmin || ruolo === "admin"){
       structure.push(baseMenu.OPERATIVO)
       structure.push(baseMenu.AMMINISTRAZIONE)
       structure.push(baseMenu.GESTIONE)
       structure.push(baseMenu.MARKETING)
+      return structure
+    }
 
+    if(ruolo === "manager"){
+      structure.push(baseMenu.OPERATIVO)
+      structure.push(baseMenu.AMMINISTRAZIONE)
+      structure.push(baseMenu.GESTIONE)
       return structure
     }
 
@@ -95,7 +111,10 @@ export function initMenu() {
       return structure
     }
 
-    structure.push(baseMenu.OPERATIVO)
+    if(ruolo === "operatore"){
+      structure.push(baseMenu.OPERATORE)
+      return structure
+    }
 
     return structure
   }
