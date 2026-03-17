@@ -4,6 +4,7 @@ export async function render(container){
   const user = state.user
   const azienda = state.azienda
   const sede = state.sedeAttiva
+  const ruolo = state.ruolo
 
   container.innerHTML = `
     <div class="view">
@@ -36,12 +37,26 @@ export async function render(container){
 
       </div>
 
+      ${ruolo === "manager" || ruolo === "admin" ? `
+      <div class="card">
+
+        <h3>Richieste da approvare</h3>
+
+        <div id="approvazioni"></div>
+
+      </div>
+      ` : ""}
+
     </div>
   `
 
   document.getElementById("btn-invia").onclick = creaRichiesta
 
   await caricaRichieste()
+
+  if(ruolo === "manager" || ruolo === "admin"){
+    await caricaApprovazioni()
+  }
 
   async function creaRichiesta(){
 
@@ -69,8 +84,8 @@ export async function render(container){
       })
 
     if(error){
-      alert("Errore")
       console.error(error)
+      alert("Errore creazione richiesta")
       return
     }
 
@@ -100,7 +115,7 @@ export async function render(container){
 
       row.innerHTML = `
         <div>
-          <strong>${r.tipo}</strong>
+          <strong>${r.tipo}</strong><br/>
           ${r.data_inizio} → ${r.data_fine}
         </div>
         <div>${r.stato}</div>
@@ -110,6 +125,60 @@ export async function render(container){
 
     })
 
+  }
+
+  async function caricaApprovazioni(){
+
+    const { data } = await window.supabaseClient
+      .from("richieste_assenze")
+      .select("*")
+      .eq("stato","richiesto")
+      .order("created_at", { ascending:false })
+
+    const box = document.getElementById("approvazioni")
+    box.innerHTML = ""
+
+    data.forEach(r => {
+
+      const row = document.createElement("div")
+      row.className = "row"
+
+      row.innerHTML = `
+        <div>
+          ${r.tipo}<br/>
+          ${r.data_inizio} → ${r.data_fine}
+        </div>
+        <div>
+          <button data-id="${r.id}" class="ok">✔</button>
+          <button data-id="${r.id}" class="no">✖</button>
+        </div>
+      `
+
+      box.appendChild(row)
+
+    })
+
+    document.querySelectorAll(".ok").forEach(btn=>{
+      btn.onclick = () => aggiorna(btn.dataset.id,"approvato")
+    })
+
+    document.querySelectorAll(".no").forEach(btn=>{
+      btn.onclick = () => aggiorna(btn.dataset.id,"rifiutato")
+    })
+
+  }
+
+  async function aggiorna(id, stato){
+
+    await window.supabaseClient
+      .from("richieste_assenze")
+      .update({
+        stato,
+        approvato_da: user.id
+      })
+      .eq("id", id)
+
+    await caricaApprovazioni()
   }
 
 }
