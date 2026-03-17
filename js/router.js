@@ -70,7 +70,7 @@ const routes = {
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
   acquisti: () => import("./views/acquisti/index.js"),
- magazzino: () => import("./views/magazzino/magazzino.js"),
+  magazzino: () => import("./views/magazzino/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js"),
@@ -83,8 +83,9 @@ const routes = {
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
   ai: () => import("./views/ai.js"),
-};
 
+  permessi: () => import("./views/permessi-ferie.js"),
+};
 /* =========================================================
    ROUTE SCOPE
 ========================================================= */
