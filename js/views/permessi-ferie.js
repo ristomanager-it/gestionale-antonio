@@ -80,7 +80,8 @@ export async function render(container){
         data_inizio,
         data_fine,
         note,
-        richiesto_da: user.id
+        richiesto_da: user.id,
+        tipo_ruolo_richiedente: ruolo
       })
 
     if(error){
@@ -136,7 +137,6 @@ export async function render(container){
       .select("*")
       .eq("stato","richiesto")
 
-    // 🔥 LOGICA GERARCHICA
     if(ruolo === "manager"){
       query = query.eq("tipo_ruolo_richiedente","operatore")
     }
