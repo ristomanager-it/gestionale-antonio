@@ -37,7 +37,7 @@ export async function render(container){
 
       </div>
 
-      ${ruolo === "manager" || ruolo === "admin" ? `
+      ${(ruolo === "manager" || ruolo === "admin") ? `
       <div class="card">
 
         <h3>Richieste da approvare</h3>
@@ -129,11 +129,23 @@ export async function render(container){
 
   async function caricaApprovazioni(){
 
-    const { data } = await window.supabaseClient
+    const ruolo = window.state.ruolo
+
+    let query = window.supabaseClient
       .from("richieste_assenze")
       .select("*")
       .eq("stato","richiesto")
-      .order("created_at", { ascending:false })
+
+    // 🔥 LOGICA GERARCHICA
+    if(ruolo === "manager"){
+      query = query.eq("tipo_ruolo_richiedente","operatore")
+    }
+
+    if(ruolo === "admin"){
+      query = query.eq("tipo_ruolo_richiedente","manager")
+    }
+
+    const { data } = await query.order("created_at",{ascending:false})
 
     const box = document.getElementById("approvazioni")
     box.innerHTML = ""
