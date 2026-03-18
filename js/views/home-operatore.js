@@ -60,9 +60,9 @@ export async function render(container) {
         <div class="card-sub">Preparazioni</div>
       </div>
 
-      <div class="card" onclick="location.hash='#/ferie'">
-        <div class="card-title">Permessi</div>
-        <div class="card-sub">Richiedi ferie</div>
+      <div class="card" onclick="location.hash='#/permessi'">
+        <div class="card-title">Permessi e ferie</div>
+        <div class="card-sub">Richiedi / controlla</div>
       </div>
 
     </div>
