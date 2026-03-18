@@ -92,6 +92,11 @@ export async function render(container, reparto) {
         <div class="card-sub">Controllo presenze</div>
       </div>
 
+      <div class="card" onclick="location.hash='#/permessi'">
+        <div class="card-title">Permessi e ferie</div>
+        <div class="card-sub">Approva richieste</div>
+      </div>
+
     </div>
 
     <div class="card tony" id="tony-card">
