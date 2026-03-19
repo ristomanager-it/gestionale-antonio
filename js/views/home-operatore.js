@@ -6,6 +6,12 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
+  // 💣 BLOCCO SEDE
+  if (!window.state?.sedeAttiva) {
+    window.location.hash = "#/prehome-sedi";
+    return;
+  }
+
   const today = new Date().toISOString().slice(0,10);
 
   let servizioOggi = null;
