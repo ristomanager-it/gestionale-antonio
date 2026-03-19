@@ -1,5 +1,9 @@
 import { supabase } from "../supabaseClient.js";
 
+/* =========================================================
+   TOKEN FROM HASH
+========================================================= */
+
 function readSupabaseTokensFromHash() {
 
   const hash = window.location.hash || "";
@@ -19,11 +23,17 @@ function readSupabaseTokensFromHash() {
 
 }
 
+/* =========================================================
+   RENDER
+========================================================= */
+
 export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <h2>Verifica in corso...</h2>
+      <div class="login-wrapper">
+        <h2 class="login-title">Verifica in corso...</h2>
+      </div>
     </div>
   `;
 
@@ -31,56 +41,57 @@ export async function render(container) {
 
     container.innerHTML = `
 
-      <div class="view">
+    <div class="view">
 
-        <div style="text-align:center;margin-bottom:20px">
-          <img src="/assets/logo-ristoflow.png" height="60">
+      <div class="login-wrapper">
+
+        <div class="login-logo-wrap">
+          <img 
+            src="assets/favicon-192.png"
+            class="login-logo"
+          >
         </div>
 
-        <h2>Crea la tua password</h2>
+        <h2 class="login-title">Crea password</h2>
 
-        <form id="set-password-form" class="form-stack">
+        <div class="login-subtitle">
+          Imposta la password per accedere al gestionale
+        </div>
 
-          <label>
-            Nuova password
-            <input
-              id="new-password"
-              type="password"
-              class="input-pill"
-              required
-              minlength="8"
-            >
-          </label>
+        <div class="form-group">
+          <label>Nuova password</label>
+          <input 
+            id="new-password"
+            class="input"
+            type="password"
+            placeholder="••••••••"
+          >
+        </div>
 
-          <label>
-            Conferma password
-            <input
-              id="confirm-password"
-              type="password"
-              class="input-pill"
-              required
-              minlength="8"
-            >
-          </label>
+        <div class="form-group">
+          <label>Conferma password</label>
+          <input 
+            id="confirm-password"
+            class="input"
+            type="password"
+            placeholder="••••••••"
+          >
+        </div>
 
-          <button type="submit" class="app-button green">
+        <div class="form-actions">
+          <button id="save-password" class="app-button primary">
             Salva password
           </button>
+        </div>
 
-        </form>
-
-        <p id="password-error"
-           style="color:#dc2626;margin-top:10px">
-        </p>
+        <div id="password-msg" class="form-result"></div>
 
       </div>
+
+    </div>
     `;
 
-    const form = document.getElementById("set-password-form");
-
-    form.addEventListener("submit", async (e) => {
-
-      e.preventDefault();
+    document.getElementById("save-password").onclick = async () => {
 
       const newPassword =
         document.getElementById("new-password").value.trim();
@@ -88,42 +99,40 @@ export async function render(container) {
       const confirmPassword =
         document.getElementById("confirm-password").value.trim();
 
-      const errorEl =
-        document.getElementById("password-error");
+      const msg =
+        document.getElementById("password-msg");
 
-      errorEl.textContent = "";
+      msg.innerHTML = "";
 
       if (newPassword.length < 8) {
-
-        errorEl.textContent =
-          "La password deve contenere almeno 8 caratteri.";
-
+        msg.innerHTML = "<span class='error-text'>Minimo 8 caratteri</span>";
         return;
       }
 
       if (newPassword !== confirmPassword) {
-
-        errorEl.textContent =
-          "Le password non coincidono.";
-
+        msg.innerHTML = "<span class='error-text'>Le password non coincidono</span>";
         return;
       }
+
+      msg.innerHTML = "Salvataggio...";
 
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
-
-        errorEl.textContent = error.message;
+        msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
         return;
       }
 
-      alert("Password impostata correttamente");
+      msg.innerHTML = "<span class='success-text'>Password salvata</span>";
 
-      window.location.hash = "#/home";
+      // 🚀 QUI DOPO SISTEMEREMO IL REDIRECT INTELLIGENTE
+      setTimeout(() => {
+        window.location.hash = "#/home";
+      }, 800);
 
-    });
+    };
 
   };
 
@@ -132,10 +141,9 @@ export async function render(container) {
     const { access_token, refresh_token } =
       readSupabaseTokensFromHash();
 
-    /* -----------------------------
-       CASO 1
-       redirect email con token
-    ----------------------------- */
+    /* =========================
+       CASO EMAIL LINK
+    ========================= */
 
     if (access_token && refresh_token) {
 
@@ -152,25 +160,21 @@ export async function render(container) {
 
     }
 
-    /* -----------------------------
-       CASO 2
-       sessione già attiva
-    ----------------------------- */
+    /* =========================
+       SESSIONE GIÀ ATTIVA
+    ========================= */
 
     const { data } =
       await supabase.auth.getSession();
 
     if (data?.session) {
-
       showForm();
       return;
-
     }
 
-    /* -----------------------------
-       CASO 3
-       evento Supabase
-    ----------------------------- */
+    /* =========================
+       EVENTO AUTH
+    ========================= */
 
     supabase.auth.onAuthStateChange((event) => {
 
@@ -178,9 +182,7 @@ export async function render(container) {
         event === "PASSWORD_RECOVERY" ||
         event === "SIGNED_IN"
       ) {
-
         showForm();
-
       }
 
     });
@@ -191,19 +193,30 @@ export async function render(container) {
 
   }
 
+  /* =========================
+     FALLBACK
+  ========================= */
+
   container.innerHTML = `
 
-    <div class="view" style="text-align:center">
+    <div class="view">
 
-      <div style="margin-bottom:20px">
-        <img src="/assets/logo-ristoflow.png" height="60">
+      <div class="login-wrapper">
+
+        <div class="login-logo-wrap">
+          <img 
+            src="assets/favicon-192.png"
+            class="login-logo"
+          >
+        </div>
+
+        <h2 class="login-title">Sessione non valida</h2>
+
+        <div class="login-subtitle">
+          Apri nuovamente il link ricevuto via email
+        </div>
+
       </div>
-
-      <h2>Sessione non valida</h2>
-
-      <p>
-        Apri nuovamente il link ricevuto via email.
-      </p>
 
     </div>
 
