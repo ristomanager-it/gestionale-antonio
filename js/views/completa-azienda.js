@@ -1,4 +1,3 @@
-```javascript
 import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
@@ -8,8 +7,10 @@ export async function render(container) {
   if (!azienda) {
     container.innerHTML = `
       <div class="view">
-        <h2>Errore</h2>
-        <p>Azienda non trovata.</p>
+        <div class="login-wrapper">
+          <h2 class="login-title">Errore</h2>
+          <div class="login-subtitle">Azienda non trovata</div>
+        </div>
       </div>
     `;
     return;
@@ -17,147 +18,83 @@ export async function render(container) {
 
   const titolo = azienda.profilo_completato
     ? "Modifica dati azienda"
-    : "Completa configurazione azienda";
+    : "Completa configurazione";
 
   const btnText = azienda.profilo_completato
     ? "Salva modifiche"
     : "Attiva azienda";
 
   const visione = azienda.visione_ai || {};
-
   const pianoNome = azienda.piano_nome || azienda.piano || "Starter";
 
   container.innerHTML = `
+
   <div class="view">
 
-    <h1>${titolo}</h1>
+    <div class="login-wrapper">
 
-    <p style="margin-bottom:20px;">
-      Inserisci o modifica i dati aziendali.
-    </p>
-
-    <div style="
-      background:#f9fafb;
-      border:1px solid #e5e7eb;
-      border-radius:18px;
-      padding:18px;
-      margin-bottom:30px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:10px;
-    ">
-      <div>
-        <div style="font-size:13px;color:#6b7280;">Piano attivo</div>
-        <div style="font-size:20px;font-weight:700;">
-          ${pianoNome}
-        </div>
+      <div class="login-logo-wrap">
+        <img src="assets/favicon-192.png" class="login-logo">
       </div>
 
-      <div style="font-size:13px;color:#6b7280;">
-        Il piano può essere modificato solo dalla piattaforma
+      <h2 class="login-title">${titolo}</h2>
+
+      <div class="login-subtitle">
+        Inserisci i dati per completare l’attivazione
       </div>
-    </div>
 
-    <h3>Dati fiscali</h3>
+      <div class="form-group">
+        <label>Piano attivo</label>
+        <input class="input" value="${pianoNome}" disabled>
+      </div>
 
-    <div class="form-grid">
+      <div class="form-group">
+        <label>Ragione sociale *</label>
+        <input id="ragione_sociale" class="input" value="${azienda.ragione_sociale || ""}">
+      </div>
 
-      <label>Ragione sociale *</label>
-      <input id="ragione_sociale" type="text" value="${azienda.ragione_sociale || ""}">
+      <div class="form-group">
+        <label>Partita IVA *</label>
+        <input id="partita_iva" class="input" value="${azienda.partita_iva || ""}">
+      </div>
 
-      <label>Partita IVA *</label>
-      <input id="partita_iva" type="text" value="${azienda.partita_iva || ""}">
+      <div class="form-group">
+        <label>Indirizzo *</label>
+        <input id="indirizzo" class="input" value="${azienda.indirizzo || ""}">
+      </div>
 
-      <label>Codice fiscale</label>
-      <input id="codice_fiscale" type="text" value="${azienda.codice_fiscale || ""}">
+      <div class="form-group">
+        <label>Città *</label>
+        <input id="citta" class="input" value="${azienda.citta || ""}">
+      </div>
 
-      <label>Indirizzo *</label>
-      <input id="indirizzo" type="text" value="${azienda.indirizzo || ""}">
+      <div class="form-group">
+        <label>Telefono *</label>
+        <input id="telefono" class="input" value="${azienda.telefono || ""}">
+      </div>
 
-      <label>Città *</label>
-      <input id="citta" type="text" value="${azienda.citta || ""}">
+      <div class="form-group">
+        <label>Tipo locale *</label>
+        <select id="tipo_locale" class="input">
+          <option value="">Seleziona</option>
+          <option ${visione.tipo_locale === "Ristorante" ? "selected" : ""}>Ristorante</option>
+          <option ${visione.tipo_locale === "Pizzeria" ? "selected" : ""}>Pizzeria</option>
+          <option ${visione.tipo_locale === "Bar" ? "selected" : ""}>Bar</option>
+        </select>
+      </div>
 
-      <label>CAP *</label>
-      <input id="cap" type="text" value="${azienda.cap || ""}">
+      <div class="form-actions">
+        <button id="salva-azienda" class="app-button primary">
+          ${btnText}
+        </button>
+      </div>
 
-      <label>Provincia *</label>
-      <input id="provincia" type="text" value="${azienda.provincia || ""}">
-
-      <label>PEC</label>
-      <input id="pec" type="text" value="${azienda.pec || ""}">
-
-      <label>Codice univoco SDI</label>
-      <input id="codice_univoco" type="text" value="${azienda.codice_univoco || ""}">
-
-      <label>Referente *</label>
-      <input id="referente" type="text" value="${azienda.referente || ""}">
-
-      <label>Telefono *</label>
-      <input id="telefono" type="text" value="${azienda.telefono || ""}">
-
-    </div>
-
-
-    <h3 style="margin-top:40px;">Visione aziendale (AI Tony)</h3>
-
-    <p style="margin-bottom:16px;color:#6b7280;">
-      Queste informazioni aiutano l'assistente AI a capire il tuo locale.
-    </p>
-
-    <div class="form-grid">
-
-      <label>Chi siete?</label>
-      <textarea id="chi_siamo">${visione.chi_siamo || ""}</textarea>
-
-      <label>Tipo di locale *</label>
-      <select id="tipo_locale">
-        <option value="">Seleziona</option>
-        <option ${visione.tipo_locale === "Ristorante" ? "selected" : ""}>Ristorante</option>
-        <option ${visione.tipo_locale === "Pizzeria" ? "selected" : ""}>Pizzeria</option>
-        <option ${visione.tipo_locale === "Bar" ? "selected" : ""}>Bar</option>
-        <option ${visione.tipo_locale === "Bistrot" ? "selected" : ""}>Bistrot</option>
-        <option ${visione.tipo_locale === "Street food" ? "selected" : ""}>Street food</option>
-      </select>
-
-      <label>Target clienti</label>
-      <textarea id="target_clienti">${visione.target_clienti || ""}</textarea>
-
-      <label>Tono comunicazione</label>
-      <select id="tono">
-        <option value="">Seleziona</option>
-        <option ${visione.tono === "Elegante" ? "selected" : ""}>Elegante</option>
-        <option ${visione.tono === "Amichevole" ? "selected" : ""}>Amichevole</option>
-        <option ${visione.tono === "Familiare" ? "selected" : ""}>Familiare</option>
-        <option ${visione.tono === "Professionale" ? "selected" : ""}>Professionale</option>
-      </select>
-
-      <label>Valori del locale</label>
-      <textarea id="valori">${visione.valori || ""}</textarea>
-
-      <label>Esperienza cliente</label>
-      <textarea id="esperienza">${visione.esperienza || ""}</textarea>
-
-      <label>Posizionamento</label>
-      <select id="posizionamento">
-        <option value="">Seleziona</option>
-        <option ${visione.posizionamento === "Economico" ? "selected" : ""}>Economico</option>
-        <option ${visione.posizionamento === "Medio" ? "selected" : ""}>Medio</option>
-        <option ${visione.posizionamento === "Premium" ? "selected" : ""}>Premium</option>
-      </select>
+      <div id="msg" class="form-result"></div>
 
     </div>
-
-    <div style="margin-top:30px;">
-      <button id="salva-azienda" class="btn-primary">
-        ${btnText}
-      </button>
-    </div>
-
-    <div id="msg" style="margin-top:20px;"></div>
 
   </div>
+
   `;
 
   const btn = document.getElementById("salva-azienda");
@@ -167,28 +104,18 @@ export async function render(container) {
 
     msg.innerHTML = "";
 
-    const requiredFields = [
-      { id: "ragione_sociale", label: "Ragione sociale" },
-      { id: "partita_iva", label: "Partita IVA" },
-      { id: "indirizzo", label: "Indirizzo" },
-      { id: "citta", label: "Città" },
-      { id: "cap", label: "CAP" },
-      { id: "provincia", label: "Provincia" },
-      { id: "referente", label: "Referente" },
-      { id: "telefono", label: "Telefono" },
-      { id: "tipo_locale", label: "Tipo locale" }
+    const required = [
+      "ragione_sociale",
+      "partita_iva",
+      "indirizzo",
+      "citta",
+      "telefono",
+      "tipo_locale"
     ];
 
-    for (const field of requiredFields) {
-
-      const value = document.getElementById(field.id)?.value.trim();
-
-      if (!value) {
-        msg.innerHTML = `
-          <div style="color:red;">
-            Il campo "${field.label}" è obbligatorio.
-          </div>
-        `;
+    for (const id of required) {
+      if (!document.getElementById(id).value.trim()) {
+        msg.innerHTML = "<span class='error-text'>Compila tutti i campi obbligatori</span>";
         return;
       }
     }
@@ -196,39 +123,20 @@ export async function render(container) {
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
 
-    const visioneAI = {
-
-      chi_siamo: document.getElementById("chi_siamo").value,
-      tipo_locale: document.getElementById("tipo_locale").value,
-      target_clienti: document.getElementById("target_clienti").value,
-      tono: document.getElementById("tono").value,
-      valori: document.getElementById("valori").value,
-      esperienza: document.getElementById("esperienza").value,
-      posizionamento: document.getElementById("posizionamento").value
-
-    };
-
     const payload = {
 
       ragione_sociale: document.getElementById("ragione_sociale").value,
       partita_iva: document.getElementById("partita_iva").value,
-      codice_fiscale: document.getElementById("codice_fiscale").value,
-
       indirizzo: document.getElementById("indirizzo").value,
       citta: document.getElementById("citta").value,
-      cap: document.getElementById("cap").value,
-      provincia: document.getElementById("provincia").value,
-
-      pec: document.getElementById("pec").value,
-      codice_univoco: document.getElementById("codice_univoco").value,
-
-      referente: document.getElementById("referente").value,
       telefono: document.getElementById("telefono").value,
 
-      visione_ai: visioneAI,
+      visione_ai: {
+        tipo_locale: document.getElementById("tipo_locale").value
+      },
 
       profilo_completato: true,
-      stato_attivazione: azienda.stato_attivazione || "attiva"
+      stato_attivazione: "attiva"
 
     };
 
@@ -239,11 +147,7 @@ export async function render(container) {
 
     if (error) {
 
-      msg.innerHTML = `
-        <div style="color:red;">
-          Errore: ${error.message}
-        </div>
-      `;
+      msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
 
       btn.disabled = false;
       btn.innerText = btnText;
@@ -251,17 +155,12 @@ export async function render(container) {
 
     }
 
-    msg.innerHTML = `
-      <div style="color:green;">
-        Dati azienda salvati correttamente.
-      </div>
-    `;
+    msg.innerHTML = "<span class='success-text'>Azienda attivata</span>";
 
     setTimeout(() => {
       window.location.hash = "#/home";
-    }, 1200);
+    }, 800);
 
   };
 
 }
-```
