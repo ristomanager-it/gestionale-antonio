@@ -13,10 +13,22 @@ let pollingInterval = null;
 // ================================
 function playSound(){
   try{
-    const audio = new Audio("/sounds/notify.mp3");
-    audio.play();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+
+    gain.gain.setValueAtTime(0.1, ctx.currentTime)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start()
+    osc.stop(ctx.currentTime + 0.15)
   }catch(e){
-    console.warn("Audio error", e);
+    console.warn("Audio error", e)
   }
 }
 
