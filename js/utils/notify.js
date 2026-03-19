@@ -17,16 +17,41 @@ window.notify = async function({
 
     if(!azienda || !destinatari.length) return
 
-    const rows = destinatari.map(user_id => ({
-      azienda_id: azienda.id,
-      user_id,
-      tipo,
-      titolo,
-      messaggio,
-      riferimento_id,
-      riferimento_tipo,
-      priorita
-    }))
+    // 🔥 CICLO DESTINATARI (DEDUPLICA PER UTENTE)
+    const rows = []
+
+    for(const user_id of destinatari){
+
+      // 🔥 CHECK DUPLICATO (stesso tipo + riferimento + non letto)
+      const { data: existing } = await supabase
+        .from("notifiche")
+        .select("id")
+        .eq("azienda_id", azienda.id)
+        .eq("user_id", user_id)
+        .eq("tipo", tipo)
+        .eq("riferimento_id", riferimento_id)
+        .eq("letto", false)
+        .limit(1)
+        .maybeSingle()
+
+      // 👉 se esiste → skip
+      if(existing) continue
+
+      rows.push({
+        azienda_id: azienda.id,
+        user_id,
+        tipo,
+        titolo,
+        messaggio,
+        riferimento_id,
+        riferimento_tipo,
+        priorita
+      })
+
+    }
+
+    // 👉 se nulla da inserire → stop
+    if(!rows.length) return
 
     const { error } = await supabase
       .from("notifiche")
