@@ -2,8 +2,45 @@ export function initMenu() {
 
   const menu = document.getElementById("global-menu")
   const toggle = document.getElementById("menu-toggle")
+  const headerRight = document.getElementById("header-right")
 
   if(!menu || !toggle) return
+
+  // ================================
+  // 🔔 CREA CAMPANELLA HEADER
+  // ================================
+  if(headerRight && !document.getElementById("notif-bell")){
+    const bell = document.createElement("div")
+    bell.id = "notif-bell"
+    bell.style.position = "relative"
+    bell.style.cursor = "pointer"
+    bell.style.marginLeft = "10px"
+
+    bell.innerHTML = `
+      <span style="font-size:20px;">🔔</span>
+      <div id="notif-badge" style="
+        position:absolute;
+        top:-6px;
+        right:-6px;
+        background:#ef4444;
+        color:white;
+        border-radius:50%;
+        font-size:10px;
+        padding:2px 6px;
+        display:none;
+        align-items:center;
+        justify-content:center;
+      ">0</div>
+    `
+
+    bell.onclick = () => {
+      if(window.toggleNotificheDropdown){
+        window.toggleNotificheDropdown()
+      }
+    }
+
+    headerRight.appendChild(bell)
+  }
 
   let overlay = document.querySelector(".menu-overlay")
 
@@ -239,6 +276,11 @@ export function initMenu() {
       closeMenu()
     }
 
+  }
+
+  // 🔥 INIT NOTIFICHE
+  if(window.initNotificheRealtime){
+    window.initNotificheRealtime()
   }
 
 }
