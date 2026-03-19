@@ -22,6 +22,12 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const sede = window.state?.sedeAttiva;
 
+  // 💣 BLOCCO SEDE (AGGIUNTO SICURO)
+  if (!sede) {
+    window.location.hash = "#/prehome-sedi";
+    return;
+  }
+
   destroyGauge();
   updateHeader(azienda, sede);
   hideLegacyTopbar();
