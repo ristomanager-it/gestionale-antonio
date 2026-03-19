@@ -16,6 +16,9 @@ export async function render(container) {
 
   ensureMagazzinoOverlayStyles();
 
+  // 🔥 INIT NOTIFICHE (AGGIUNTA)
+  initMagazzinoNotifications();
+
   container.innerHTML = `
     <div class="view">
       <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
@@ -80,6 +83,50 @@ function renderHome(azienda) {
       aziendaId: azienda.id
     });
   };
+}
+
+// 🔥 ================================
+// 🔥 NOTIFICHE MAGAZZINO (AGGIUNTA)
+// 🔥 ================================
+
+function initMagazzinoNotifications(){
+
+  window.magazzinoEvents = window.magazzinoEvents || {};
+
+  window.magazzinoEvents.onGiacenzaUpdate = async function({
+    prodotto,
+    giacenza,
+    scorta_minima
+  }){
+
+    try{
+
+      if(!prodotto || giacenza == null || scorta_minima == null) return;
+
+      if(giacenza < scorta_minima){
+
+        const destinatari = await window.getUsersByRuolo("admin");
+
+        if(!destinatari?.length) return;
+
+        await window.notify({
+          tipo: "sottoscorta",
+          titolo: "Prodotto sotto scorta",
+          messaggio: `${prodotto.nome} è sotto la scorta minima`,
+          destinatari,
+          riferimento_id: prodotto.id,
+          riferimento_tipo: "prodotto",
+          priorita: "alta"
+        });
+
+      }
+
+    }catch(e){
+      console.error("Errore notifiche magazzino:", e);
+    }
+
+  };
+
 }
 
 function ensureMagazzinoOverlayStyles() {
@@ -333,47 +380,4 @@ function ensureMagazzinoOverlayStyles() {
   `;
 
   document.head.appendChild(style);
-}
-// ================================
-// 🔥 NOTIFICHE MAGAZZINO (HOOK)
-// ================================
-
-function initMagazzinoNotifications(){
-
-  window.magazzinoEvents = window.magazzinoEvents || {};
-
-  window.magazzinoEvents.onGiacenzaUpdate = async function({
-    prodotto,
-    giacenza,
-    scorta_minima
-  }){
-
-    try{
-
-      if(!prodotto || giacenza == null || scorta_minima == null) return;
-
-      if(giacenza < scorta_minima){
-
-        const destinatari = await window.getUsersByRuolo("admin");
-
-        if(!destinatari?.length) return;
-
-        await window.notify({
-          tipo: "sottoscorta",
-          titolo: "Prodotto sotto scorta",
-          messaggio: `${prodotto.nome} è sotto la scorta minima`,
-          destinatari,
-          riferimento_id: prodotto.id,
-          riferimento_tipo: "prodotto",
-          priorita: "alta"
-        });
-
-      }
-
-    }catch(e){
-      console.error("Errore notifiche magazzino:", e);
-    }
-
-  };
-
 }
