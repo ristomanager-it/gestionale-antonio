@@ -24,6 +24,54 @@ function readSupabaseTokensFromHash() {
 }
 
 /* =========================================================
+   LOAD AZIENDA
+========================================================= */
+
+async function loadAzienda(userId){
+
+  const { data, error } = await supabase
+    .from("utenti_aziende")
+    .select(`
+      azienda_id,
+      aziende(*)
+    `)
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if(error) throw error;
+
+  return data?.aziende;
+
+}
+
+/* =========================================================
+   REDIRECT LOGIC
+========================================================= */
+
+async function redirectPostLogin(user){
+
+  const azienda = await loadAzienda(user.id);
+
+  if(!azienda){
+    window.location.hash = "#/login";
+    return;
+  }
+
+  // salva nello state
+  if(window.stateActions?.setAzienda){
+    window.stateActions.setAzienda(azienda);
+  }
+
+  if(!azienda.profilo_completato){
+    window.location.hash = "#/completa-azienda";
+  }else{
+    window.location.hash = "#/home";
+  }
+
+}
+
+/* =========================================================
    RENDER
 ========================================================= */
 
@@ -46,36 +94,23 @@ export async function render(container) {
       <div class="login-wrapper">
 
         <div class="login-logo-wrap">
-          <img 
-            src="assets/favicon-192.png"
-            class="login-logo"
-          >
+          <img src="assets/favicon-192.png" class="login-logo">
         </div>
 
         <h2 class="login-title">Crea password</h2>
 
         <div class="login-subtitle">
-          Imposta la password per accedere al gestionale
+          Imposta la password per accedere
         </div>
 
         <div class="form-group">
           <label>Nuova password</label>
-          <input 
-            id="new-password"
-            class="input"
-            type="password"
-            placeholder="••••••••"
-          >
+          <input id="new-password" class="input" type="password">
         </div>
 
         <div class="form-group">
           <label>Conferma password</label>
-          <input 
-            id="confirm-password"
-            class="input"
-            type="password"
-            placeholder="••••••••"
-          >
+          <input id="confirm-password" class="input" type="password">
         </div>
 
         <div class="form-actions">
@@ -116,7 +151,7 @@ export async function render(container) {
 
       msg.innerHTML = "Salvataggio...";
 
-      const { error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
@@ -127,9 +162,20 @@ export async function render(container) {
 
       msg.innerHTML = "<span class='success-text'>Password salvata</span>";
 
-      // 🚀 QUI DOPO SISTEMEREMO IL REDIRECT INTELLIGENTE
-      setTimeout(() => {
-        window.location.hash = "#/home";
+      // 🚀 REDIRECT INTELLIGENTE
+      setTimeout(async () => {
+
+        const { data: sessionData } =
+          await supabase.auth.getSession();
+
+        const user = sessionData?.session?.user;
+
+        if(user){
+          await redirectPostLogin(user);
+        }else{
+          window.location.hash = "#/login";
+        }
+
       }, 800);
 
     };
@@ -140,10 +186,6 @@ export async function render(container) {
 
     const { access_token, refresh_token } =
       readSupabaseTokensFromHash();
-
-    /* =========================
-       CASO EMAIL LINK
-    ========================= */
 
     if (access_token && refresh_token) {
 
@@ -160,10 +202,6 @@ export async function render(container) {
 
     }
 
-    /* =========================
-       SESSIONE GIÀ ATTIVA
-    ========================= */
-
     const { data } =
       await supabase.auth.getSession();
 
@@ -171,10 +209,6 @@ export async function render(container) {
       showForm();
       return;
     }
-
-    /* =========================
-       EVENTO AUTH
-    ========================= */
 
     supabase.auth.onAuthStateChange((event) => {
 
@@ -193,10 +227,6 @@ export async function render(container) {
 
   }
 
-  /* =========================
-     FALLBACK
-  ========================= */
-
   container.innerHTML = `
 
     <div class="view">
@@ -204,10 +234,7 @@ export async function render(container) {
       <div class="login-wrapper">
 
         <div class="login-logo-wrap">
-          <img 
-            src="assets/favicon-192.png"
-            class="login-logo"
-          >
+          <img src="assets/favicon-192.png" class="login-logo">
         </div>
 
         <h2 class="login-title">Sessione non valida</h2>
