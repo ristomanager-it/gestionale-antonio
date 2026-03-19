@@ -17,7 +17,7 @@ export async function render(container) {
   }
 
   /* -----------------------------
-     CARICA PIANI ABBONAMENTO
+     CARICA PIANI
   ----------------------------- */
 
   const { data: piani } = await supabase
@@ -50,7 +50,6 @@ export async function render(container) {
         ⬅ Dashboard
       </button>
     </div>
-
 
     <form id="azienda-form">
 
@@ -85,39 +84,34 @@ export async function render(container) {
 
         </div>
 
-
         <div class="card-soft">
 
           <div class="card-title">
-            Accesso admin
+            Referente azienda
           </div>
 
           <label>
-            Username
-            <input value="admin" disabled class="input-pill">
-          </label>
-
-          <label>
-            Password
-            <input id="az-password" required class="input-pill">
-          </label>
-
-          <label>
-            Email contatto
+            Email referente
             <input id="az-email" type="email" required class="input-pill">
           </label>
+
+          <label>
+            Telefono referente
+            <input id="az-telefono" class="input-pill">
+          </label>
+
+          <div style="font-size:12px;color:#6b7280;margin-top:10px;">
+            Verrà inviata una email per attivare l’account e impostare la password.
+          </div>
 
         </div>
 
       </div>
 
-
-      <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
-
+      <div style="margin-top:24px;">
         <button class="app-button green" id="btn-submit">
           Crea azienda
         </button>
-
       </div>
 
     </form>
@@ -145,7 +139,7 @@ export async function render(container) {
   const btn = document.getElementById("btn-submit");
 
   /* -----------------------------
-     SUBMIT
+     SUBMIT → EDGE FUNCTION
   ----------------------------- */
 
   form.addEventListener("submit", async (e) => {
@@ -158,86 +152,29 @@ export async function render(container) {
     const codice = document.getElementById("az-codice").value.trim();
     const piano_id = document.getElementById("az-piano").value;
     const email = document.getElementById("az-email").value.trim();
-    const password = document.getElementById("az-password").value.trim();
+    const telefono = document.getElementById("az-telefono").value.trim();
 
     btn.disabled = true;
     btn.textContent = "Creazione...";
 
     try {
 
-      /* -----------------------------
-         CREA AZIENDA
-      ----------------------------- */
+      const { data, error } = await supabase.functions.invoke(
+        "platform-create-company",
+        {
+          body: {
+            nome,
+            codice,
+            piano_id,
+            email,
+            telefono
+          }
+        }
+      );
 
-      const { data: azienda, error: aziendaError } =
-        await supabase
-          .from("aziende")
-          .insert({
-            nome: nome,
-            codice: codice,
-            slug: codice.toLowerCase(),
-            piano_id: piano_id,
-            email_amministrativa: email,
-            stato: "attiva",
-            stato_attivazione: "bozza"
-          })
-          .select()
-          .single();
+      if (error) throw error;
 
-      if (aziendaError) throw aziendaError;
-
-      /* -----------------------------
-         CREA UTENTE ADMIN
-      ----------------------------- */
-
-      const { data: userData, error: userError } =
-        await supabase.auth.signUp({
-          email: email,
-          password: password
-        });
-
-      if (userError) throw userError;
-
-      const userId = userData.user.id;
-
-      /* -----------------------------
-         COLLEGA UTENTE AZIENDA
-      ----------------------------- */
-
-      const { error: linkError } =
-        await supabase
-          .from("utenti_aziende")
-          .insert({
-            user_id: userId,
-            azienda_id: azienda.id,
-            ruolo: "admin",
-            attivo: true,
-            stato_invito: "attivo",
-            email: email
-          });
-
-      if (linkError) throw linkError;
-
-      /* -----------------------------
-         COPIA CREDENZIALI
-      ----------------------------- */
-
-      const testo =
-`Accesso Ristoflow
-
-Username: admin
-Password: ${password}
-
-Login:
-https://ristoflow-ai.com
-
-Email contatto:
-${email}
-`;
-
-      navigator.clipboard.writeText(testo);
-
-      alert("Azienda creata.\nCredenziali copiate negli appunti.");
+      alert("Azienda creata e invito inviato via email ✔");
 
       window.location.hash = "#/gestioneAziende";
 
