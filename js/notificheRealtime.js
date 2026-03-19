@@ -9,7 +9,7 @@ window.notificheStore = {
 let pollingInterval = null;
 
 // ================================
-// SUONO
+// 🔊 SUONO
 // ================================
 function playSound(){
   try{
@@ -19,7 +19,6 @@ function playSound(){
 
     osc.type = "sine"
     osc.frequency.setValueAtTime(880, ctx.currentTime)
-
     gain.gain.setValueAtTime(0.1, ctx.currentTime)
 
     osc.connect(gain)
@@ -27,22 +26,20 @@ function playSound(){
 
     osc.start()
     osc.stop(ctx.currentTime + 0.15)
-  }catch(e){
-    console.warn("Audio error", e)
-  }
+  }catch(e){}
 }
 
 // ================================
-// VIBRAZIONE
+// 📳 VIBRAZIONE
 // ================================
 function vibrate(){
   if(navigator.vibrate){
-    navigator.vibrate([120, 60, 120]);
+    navigator.vibrate([120, 60, 120])
   }
 }
 
 // ================================
-// LOAD NOTIFICHE
+// 🔥 LOAD NOTIFICHE
 // ================================
 async function loadNotifiche(){
 
@@ -51,22 +48,16 @@ async function loadNotifiche(){
 
   if(!user) return;
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("notifiche")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(30);
 
-  if(error){
-    console.error("Errore notifiche:", error);
-    return;
-  }
-
   const prevIds = new Set(window.notificheStore.lastIds);
   const newIds = new Set((data || []).map(n => n.id));
 
-  // 🔥 check nuove notifiche
   let hasNew = false;
 
   for(const id of newIds){
@@ -84,7 +75,6 @@ async function loadNotifiche(){
 
   updateBellUI();
 
-  // 🔔 trigger SOLO se nuove notifiche
   if(hasNew && prevIds.size > 0){
     playSound();
     vibrate();
@@ -92,22 +82,21 @@ async function loadNotifiche(){
 }
 
 // ================================
-// UI BELL
+// 🔢 BADGE
 // ================================
 function updateBellUI(){
-  const badge = document.getElementById("notif-badge");
 
+  const badge = document.getElementById("notif-badge");
   if(!badge) return;
 
   const count = window.notificheStore.nonLette;
 
   badge.innerText = count > 9 ? "9+" : count;
-
   badge.style.display = count > 0 ? "flex" : "none";
 }
 
 // ================================
-// DROPDOWN
+// 🔽 DROPDOWN
 // ================================
 function renderDropdown(){
 
@@ -120,21 +109,35 @@ function renderDropdown(){
 
   box = document.createElement("div");
   box.id = "notif-dropdown";
-  box.className = "notif-dropdown";
+
+  box.style.position = "fixed";
+  box.style.top = "60px";
+  box.style.right = "10px";
+  box.style.width = "320px";
+  box.style.maxHeight = "400px";
+  box.style.overflow = "auto";
+  box.style.background = "#fff";
+  box.style.border = "1px solid #eee";
+  box.style.borderRadius = "12px";
+  box.style.boxShadow = "0 10px 30px rgba(0,0,0,0.1)";
+  box.style.zIndex = "9999";
 
   const list = window.notificheStore.list.slice(0,10);
 
   box.innerHTML = `
-    <div class="notif-header">Notifiche</div>
+    <div style="padding:10px; font-weight:700; border-bottom:1px solid #eee;">
+      Notifiche
+    </div>
+
     ${
       list.length
       ? list.map(n => `
-        <div class="notif-item ${n.letto ? "" : "unread"}">
-          <div class="notif-title">${n.titolo}</div>
-          <div class="notif-msg">${n.messaggio || ""}</div>
+        <div style="padding:10px; border-bottom:1px solid #f1f1f1; cursor:pointer;">
+          <div style="font-weight:600;">${n.titolo}</div>
+          <div style="font-size:12px; color:#666;">${n.messaggio || ""}</div>
         </div>
       `).join("")
-      : `<div class="notif-empty">Nessuna notifica</div>`
+      : `<div style="padding:10px;">Nessuna notifica</div>`
     }
   `;
 
@@ -142,7 +145,7 @@ function renderDropdown(){
 }
 
 // ================================
-// INIT
+// 🚀 INIT
 // ================================
 window.initNotificheRealtime = function(){
 
@@ -155,7 +158,9 @@ window.initNotificheRealtime = function(){
   pollingInterval = setInterval(loadNotifiche, 10000);
 };
 
-// click campanella
+// ================================
+// CLICK BELL
+// ================================
 window.toggleNotificheDropdown = function(){
   renderDropdown();
 };
