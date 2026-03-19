@@ -41,3 +41,26 @@ window.notify = async function({
   }
 
 }
+
+
+// ================================
+// HELPER RUOLI
+// ================================
+
+window.getUsersByRuolo = async function(ruolo){
+
+  const supabase = window.supabaseClient
+  const azienda = window.state?.azienda
+
+  if(!azienda) return []
+
+  const { data } = await supabase
+    .from("utenti_aziende")
+    .select("user_id, ruolo")
+    .eq("azienda_id", azienda.id)
+
+  return (data || [])
+    .filter(u => u.ruolo === ruolo)
+    .map(u => u.user_id)
+
+}
