@@ -73,9 +73,9 @@ export async function render(container) {
 
     </div>
 
-    <div class="card tony">
-      <div class="card-title">Tony 🤖</div>
-      <div class="card-sub">Chiedi assistenza</div>
+    <!-- 💣 TONY AVATAR -->
+    <div class="tony-avatar" onclick="location.hash='#/ai'">
+      🤖
     </div>
 
   </div>
@@ -131,10 +131,23 @@ export async function render(container) {
     color:#6b7280;
   }
 
-  .tony{
-    margin-top:16px;
+  /* 💣 TONY FLOATING */
+  .tony-avatar{
+    position:fixed;
+    right:18px;
+    bottom:90px;
+    width:56px;
+    height:56px;
+    border-radius:50%;
     background:#0ea5e9;
     color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    z-index:50;
   }
 
   </style>
