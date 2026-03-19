@@ -17,12 +17,9 @@ window.notify = async function({
 
     if(!azienda || !destinatari.length) return
 
-    // 🔥 CICLO DESTINATARI (DEDUPLICA PER UTENTE)
-    const rows = []
-
     for(const user_id of destinatari){
 
-      // 🔥 CHECK DUPLICATO (stesso tipo + riferimento + non letto)
+      // 🔥 CERCA NOTIFICA ESISTENTE
       const { data: existing } = await supabase
         .from("notifiche")
         .select("id")
@@ -34,31 +31,47 @@ window.notify = async function({
         .limit(1)
         .maybeSingle()
 
-      // 👉 se esiste → skip
-      if(existing) continue
+      // =====================================
+      // 🔁 SE ESISTE → UPDATE
+      // =====================================
+      if(existing){
 
-      rows.push({
-        azienda_id: azienda.id,
-        user_id,
-        tipo,
-        titolo,
-        messaggio,
-        riferimento_id,
-        riferimento_tipo,
-        priorita
-      })
+        const { error: updateError } = await supabase
+          .from("notifiche")
+          .update({
+            messaggio,
+            priorita,
+            created_at: new Date().toISOString()
+          })
+          .eq("id", existing.id)
 
-    }
+        if(updateError){
+          console.error("Errore update notifica:", updateError)
+        }
 
-    // 👉 se nulla da inserire → stop
-    if(!rows.length) return
+        continue
+      }
 
-    const { error } = await supabase
-      .from("notifiche")
-      .insert(rows)
+      // =====================================
+      // ➕ SE NON ESISTE → INSERT
+      // =====================================
+      const { error: insertError } = await supabase
+        .from("notifiche")
+        .insert({
+          azienda_id: azienda.id,
+          user_id,
+          tipo,
+          titolo,
+          messaggio,
+          riferimento_id,
+          riferimento_tipo,
+          priorita
+        })
 
-    if(error){
-      console.error("Errore notifica:", error)
+      if(insertError){
+        console.error("Errore notifica:", insertError)
+      }
+
     }
 
   } catch(e){
