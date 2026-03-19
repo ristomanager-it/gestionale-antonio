@@ -99,11 +99,12 @@ export async function render(container) {
     try {
 
       const res = await fetch(
-        "https://YOUR_PROJECT.supabase.co/functions/v1/invita-dipendente",
+        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "apikey": supabase.supabaseKey
           },
           body: JSON.stringify({
             nome,
