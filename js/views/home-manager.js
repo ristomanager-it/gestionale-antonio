@@ -6,6 +6,12 @@ export async function render(container, reparto) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
+  // 💣 BLOCCO SEDE
+  if (!window.state?.sedeAttiva) {
+    window.location.hash = "#/prehome-sedi";
+    return;
+  }
+
   const today = new Date().toISOString().slice(0,10);
 
   let servizi = [];
@@ -99,9 +105,9 @@ export async function render(container, reparto) {
 
     </div>
 
-    <div class="card tony" id="tony-card">
-      <div class="card-title">Tony 🤖</div>
-      <div class="card-sub">Suggerimenti operativi</div>
+    <!-- 💣 TONY AVATAR -->
+    <div class="tony-avatar" onclick="location.hash='#/ai'">
+      🤖
     </div>
 
   </div>
@@ -155,10 +161,23 @@ export async function render(container, reparto) {
     color:#6b7280;
   }
 
-  .tony{
-    margin-top:16px;
+  /* 💣 TONY FLOATING */
+  .tony-avatar{
+    position:fixed;
+    right:18px;
+    bottom:90px;
+    width:56px;
+    height:56px;
+    border-radius:50%;
     background:#0ea5e9;
     color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    z-index:50;
   }
 
   </style>
