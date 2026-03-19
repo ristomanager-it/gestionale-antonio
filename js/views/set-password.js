@@ -24,6 +24,25 @@ function readSupabaseTokensFromHash() {
 }
 
 /* =========================================================
+   LOAD RELAZIONE UTENTE
+========================================================= */
+
+async function loadRelazione(userId){
+
+  const { data, error } = await supabase
+    .from("utenti_aziende")
+    .select("*")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if(error) throw error;
+
+  return data;
+
+}
+
+/* =========================================================
    LOAD AZIENDA
 ========================================================= */
 
@@ -46,25 +65,62 @@ async function loadAzienda(userId){
 }
 
 /* =========================================================
-   REDIRECT LOGIC
+   REDIRECT LOGIC (RUOLI)
 ========================================================= */
 
 async function redirectPostLogin(user){
 
-  const azienda = await loadAzienda(user.id);
+  const relazione = await loadRelazione(user.id);
 
-  if(!azienda){
+  if(!relazione){
     window.location.hash = "#/login";
     return;
   }
 
-  // salva nello state
+  const azienda = await loadAzienda(user.id);
+
   if(window.stateActions?.setAzienda){
     window.stateActions.setAzienda(azienda);
   }
 
-  if(!azienda.profilo_completato){
-    window.location.hash = "#/completa-azienda";
+  /* =========================
+     ADMIN
+  ========================= */
+
+  if(relazione.ruolo === "admin"){
+
+    if(!azienda?.profilo_completato){
+      window.location.hash = "#/completa-azienda";
+      return;
+    }
+
+    window.location.hash = "#/prehome-sedi";
+    return;
+  }
+
+  /* =========================
+     DIPENDENTE
+  ========================= */
+
+  const { data: dipendente } = await supabase
+    .from("dipendenti")
+    .select("*")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if(!dipendente){
+    window.location.hash = "#/login";
+    return;
+  }
+
+  // salva sede attiva direttamente
+  if(window.stateActions?.setSede){
+    window.stateActions.setSede(dipendente.sede_id);
+  }
+
+  if(!dipendente.profilo_completato){
+    window.location.hash = "#/completa-profilo";
   }else{
     window.location.hash = "#/home";
   }
@@ -151,7 +207,7 @@ export async function render(container) {
 
       msg.innerHTML = "Salvataggio...";
 
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
@@ -162,7 +218,6 @@ export async function render(container) {
 
       msg.innerHTML = "<span class='success-text'>Password salvata</span>";
 
-      // 🚀 REDIRECT INTELLIGENTE
       setTimeout(async () => {
 
         const { data: sessionData } =
