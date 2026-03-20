@@ -65,6 +65,7 @@ const routes = {
   marketing: () => import("./views/marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
+  dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js"),
   timbrature: () => import("./views/timbrature.js"),
 
