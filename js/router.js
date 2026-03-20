@@ -280,10 +280,24 @@ async function loadAziendeForUser(userId) {
 
 function pickActiveAzienda(aziendePulite) {
   const storedId = getStoredAziendaId();
+
+  // 1️⃣ usa sempre quella salvata
   if (storedId) {
-    const match = aziendePulite.find((a) => String(a.aziende.id) === String(storedId));
+    const match = aziendePulite.find(
+      (a) => String(a.aziende.id) === String(storedId)
+    );
     if (match?.aziende) return match.aziende;
   }
+
+  // 2️⃣ se una sola azienda → ok
+  if (aziendePulite.length === 1) {
+    return aziendePulite[0].aziende;
+  }
+
+  // 3️⃣ più aziende → obbliga scelta
+  return null;
+}
+🎯 STOP
 
   const piattaformaLink = aziendePulite.find((a) => a.aziende?.stato === "piattaforma");
   if (
