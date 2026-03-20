@@ -1,31 +1,85 @@
+import { supabase } from "../supabaseClient.js";
+
 export default function renderCompletaProfilo() {
 
   return `
-  <div class="card">
-    <h2>Completa il tuo profilo</h2>
+  <div class="view">
 
-    <div>
-      <label>Fotografia</label>
-      <input type="file" id="fotoDipendente" accept="image/*">
-      <img id="previewFoto" style="width:120px;margin-top:10px;border-radius:8px">
+    <div style="max-width:700px;margin:auto;">
+
+      <div style="margin-bottom:18px;">
+        <div style="font-size:13px;color:#6b7280;">Profilo</div>
+        <h2 style="margin:4px 0 0 0;">Completa il tuo profilo</h2>
+      </div>
+
+      <!-- CARD ANAGRAFICA -->
+      <div class="card">
+
+        <div style="font-weight:700;margin-bottom:12px;">
+          Dati personali
+        </div>
+
+        <div class="form-group">
+          <label>Fotografia</label>
+          <input type="file" id="fotoDipendente" accept="image/*" class="input">
+          <img id="previewFoto" style="width:100px;margin-top:10px;border-radius:10px">
+        </div>
+
+        <div class="form-group">
+          <label>Data nascita</label>
+          <input type="date" id="data_nascita" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>Residenza</label>
+          <input type="text" id="residenza" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>IBAN</label>
+          <input type="text" id="iban" class="input">
+        </div>
+
+      </div>
+
+      <!-- CARD AI - OBIETTIVI -->
+      <div class="card">
+
+        <div style="font-weight:700;margin-bottom:12px;">
+          Obiettivi professionali *
+        </div>
+
+        <div class="form-group">
+          <label>Cosa vuoi migliorare o raggiungere nel lavoro?</label>
+          <textarea id="obiettivi" class="input" style="min-height:100px;"></textarea>
+        </div>
+
+      </div>
+
+      <!-- CARD AI - CRESCITA -->
+      <div class="card">
+
+        <div style="font-weight:700;margin-bottom:12px;">
+          Crescita professionale
+        </div>
+
+        <div class="form-group">
+          <label>Ruolo che vuoi raggiungere (opzionale)</label>
+          <input id="ruolo_target" class="input">
+        </div>
+
+      </div>
+
+      <div style="margin-top:20px;">
+        <button id="salvaProfilo" class="app-button primary" style="width:100%;">
+          Salva profilo
+        </button>
+      </div>
+
+      <div id="msg" style="margin-top:14px;"></div>
+
     </div>
 
-    <div>
-      <label>Data nascita</label>
-      <input type="date" id="data_nascita">
-    </div>
-
-    <div>
-      <label>Residenza</label>
-      <input type="text" id="residenza">
-    </div>
-
-    <div>
-      <label>IBAN</label>
-      <input type="text" id="iban">
-    </div>
-
-    <button id="salvaProfilo">Salva profilo</button>
   </div>
   `
 }
@@ -36,68 +90,108 @@ export async function initCompletaProfilo(){
   const user = userData.user
 
   const { data: dipendente } = await supabase
-  .from("dipendenti")
-  .select("*")
-  .eq("user_id", user.id)
-  .single()
+    .from("dipendenti")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()
 
   window.dipendente = dipendente
 
+  const profiloAI = dipendente.profilo_ai || {}
+
+  // prefill
+  if (dipendente.data_nascita)
+    document.getElementById("data_nascita").value = dipendente.data_nascita
+
+  if (dipendente.residenza)
+    document.getElementById("residenza").value = dipendente.residenza
+
+  if (dipendente.iban)
+    document.getElementById("iban").value = dipendente.iban
+
+  if (profiloAI.obiettivi)
+    document.getElementById("obiettivi").value = profiloAI.obiettivi
+
+  if (profiloAI.ruolo_target)
+    document.getElementById("ruolo_target").value = profiloAI.ruolo_target
+
+  if (dipendente.foto_url)
+    document.getElementById("previewFoto").src = dipendente.foto_url
 
   document.getElementById("fotoDipendente")
-  .addEventListener("change", function(e){
+    .addEventListener("change", function(e){
 
-    const file = e.target.files[0]
-    const reader = new FileReader()
+      const file = e.target.files[0]
+      if (!file) return
 
-    reader.onload = function(ev){
-      document.getElementById("previewFoto").src = ev.target.result
-    }
+      const reader = new FileReader()
 
-    reader.readAsDataURL(file)
+      reader.onload = function(ev){
+        document.getElementById("previewFoto").src = ev.target.result
+      }
 
-  })
+      reader.readAsDataURL(file)
 
+    })
 
   document.getElementById("salvaProfilo")
-  .addEventListener("click", async ()=>{
+    .addEventListener("click", async ()=>{
 
-    const file = document.getElementById("fotoDipendente").files[0]
+      const msg = document.getElementById("msg")
+      msg.innerHTML = ""
 
-    let foto_url = null
+      const obiettivi = document.getElementById("obiettivi").value.trim()
 
-    if(file){
+      if (!obiettivi) {
+        msg.innerHTML = "<span style='color:#dc2626;'>Inserisci i tuoi obiettivi</span>"
+        return
+      }
 
-      const path = `dipendenti/${window.dipendente.id}/foto.jpg`
+      const file = document.getElementById("fotoDipendente").files[0]
 
-      await supabase.storage
-      .from("dipendenti-foto")
-      .upload(path, file, { upsert:true })
+      let foto_url = dipendente.foto_url || null
 
-      const { data } = supabase.storage
-      .from("dipendenti-foto")
-      .getPublicUrl(path)
+      if(file){
 
-      foto_url = data.publicUrl
+        const path = `dipendenti/${window.dipendente.id}/foto.jpg`
 
-    }
+        await supabase.storage
+          .from("dipendenti-foto")
+          .upload(path, file, { upsert:true })
 
-    const update = {
-      data_nascita: document.getElementById("data_nascita").value,
-      residenza: document.getElementById("residenza").value,
-      iban: document.getElementById("iban").value,
-      profilo_completato: true
-    }
+        const { data } = supabase.storage
+          .from("dipendenti-foto")
+          .getPublicUrl(path)
 
-    if(foto_url) update.foto_url = foto_url
+        foto_url = data.publicUrl
+      }
 
-    await supabase
-    .from("dipendenti")
-    .update(update)
-    .eq("id", window.dipendente.id)
+      const update = {
+        data_nascita: document.getElementById("data_nascita").value,
+        residenza: document.getElementById("residenza").value,
+        iban: document.getElementById("iban").value,
 
-    window.location.hash = "#/dashboard"
+        profilo_ai: {
+          obiettivi,
+          ruolo_target: document.getElementById("ruolo_target").value
+        },
 
-  })
+        profilo_completato: true
+      }
+
+      if(foto_url) update.foto_url = foto_url
+
+      await supabase
+        .from("dipendenti")
+        .update(update)
+        .eq("id", window.dipendente.id)
+
+      msg.innerHTML = "<span style='color:#16a34a;'>Profilo salvato</span>"
+
+      setTimeout(()=>{
+        window.location.hash = "#/home"
+      }, 800)
+
+    })
 
 }
