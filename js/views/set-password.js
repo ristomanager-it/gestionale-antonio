@@ -19,6 +19,7 @@ function readSupabaseTokensFromHash() {
   return {
     access_token: params.get("access_token"),
     refresh_token: params.get("refresh_token"),
+    type: params.get("type"),
   };
 
 }
@@ -83,24 +84,21 @@ async function redirectPostLogin(user){
     window.stateActions.setAzienda(azienda);
   }
 
-  /* =========================
-     ADMIN
-  ========================= */
-
   if(relazione.ruolo === "admin"){
 
     if(!azienda?.profilo_completato){
-      window.location.hash = "#/completa-azienda";
+      window.location.hash = "#/completaAzienda";
       return;
     }
 
-    window.location.hash = "#/prehome-sedi";
+    if(azienda?.stato_attivazione === "bozza"){
+      window.location.hash = "#/completaAzienda";
+      return;
+    }
+
+    window.location.hash = "#/home";
     return;
   }
-
-  /* =========================
-     DIPENDENTE
-  ========================= */
 
   const { data: dipendente } = await supabase
     .from("dipendenti")
@@ -114,13 +112,12 @@ async function redirectPostLogin(user){
     return;
   }
 
-  // salva sede attiva direttamente
   if(window.stateActions?.setSede){
     window.stateActions.setSede(dipendente.sede_id);
   }
 
   if(!dipendente.profilo_completato){
-    window.location.hash = "#/completa-profilo";
+    window.location.hash = "#/completaProfilo";
   }else{
     window.location.hash = "#/home";
   }
@@ -128,22 +125,53 @@ async function redirectPostLogin(user){
 }
 
 /* =========================================================
-   RENDER
+   UI HELPERS
 ========================================================= */
 
-export async function render(container) {
+function togglePasswordVisibility(inputId, toggleId) {
+  const input = document.getElementById(inputId);
+  const toggle = document.getElementById(toggleId);
 
-  container.innerHTML = `
-    <div class="view">
-      <div class="login-wrapper">
-        <h2 class="login-title">Verifica in corso...</h2>
+  if (!input || !toggle) return;
+
+  toggle.onclick = () => {
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    toggle.textContent = isPassword ? "🙈" : "👁";
+  };
+}
+
+function buildPasswordField(id, label, toggleId) {
+  return `
+    <div class="form-group">
+      <label>${label}</label>
+      <div style="position:relative;">
+        <input id="${id}" class="input" type="password" style="padding-right:42px;">
+        <span
+          id="${toggleId}"
+          style="
+            position:absolute;
+            right:12px;
+            top:50%;
+            transform:translateY(-50%);
+            cursor:pointer;
+            user-select:none;
+            font-size:16px;
+            color:#6b7280;
+          "
+        >👁</span>
       </div>
     </div>
   `;
+}
 
-  const showForm = () => {
+/* =========================================================
+   RENDER PASSWORD FORM
+========================================================= */
 
-    container.innerHTML = `
+function renderPasswordForm(container) {
+
+  container.innerHTML = `
 
     <div class="view">
 
@@ -159,15 +187,8 @@ export async function render(container) {
           Imposta la password per accedere
         </div>
 
-        <div class="form-group">
-          <label>Nuova password</label>
-          <input id="new-password" class="input" type="password">
-        </div>
-
-        <div class="form-group">
-          <label>Conferma password</label>
-          <input id="confirm-password" class="input" type="password">
-        </div>
+        ${buildPasswordField("new-password", "Nuova password", "toggle-new-password")}
+        ${buildPasswordField("confirm-password", "Conferma password", "toggle-confirm-password")}
 
         <div class="form-actions">
           <button id="save-password" class="app-button primary">
@@ -180,108 +201,82 @@ export async function render(container) {
       </div>
 
     </div>
-    `;
+  `;
 
-    document.getElementById("save-password").onclick = async () => {
+  togglePasswordVisibility("new-password", "toggle-new-password");
+  togglePasswordVisibility("confirm-password", "toggle-confirm-password");
 
-      const newPassword =
-        document.getElementById("new-password").value.trim();
+  const btn = document.getElementById("save-password");
+  const msg = document.getElementById("password-msg");
+  const newPasswordInput = document.getElementById("new-password");
+  const confirmPasswordInput = document.getElementById("confirm-password");
 
-      const confirmPassword =
-        document.getElementById("confirm-password").value.trim();
+  const handleSave = async () => {
 
-      const msg =
-        document.getElementById("password-msg");
+    const newPassword = newPasswordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
 
-      msg.innerHTML = "";
+    msg.innerHTML = "";
 
-      if (newPassword.length < 8) {
-        msg.innerHTML = "<span class='error-text'>Minimo 8 caratteri</span>";
-        return;
+    if (newPassword.length < 8) {
+      msg.innerHTML = "<span class='error-text'>Minimo 8 caratteri</span>";
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      msg.innerHTML = "<span class='error-text'>Le password non coincidono</span>";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Salvataggio...";
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
+      btn.disabled = false;
+      btn.innerText = "Salva password";
+      return;
+    }
+
+    msg.innerHTML = "<span class='success-text'>Password salvata</span>";
+
+    setTimeout(async () => {
+
+      const { data: sessionData } =
+        await supabase.auth.getSession();
+
+      const user = sessionData?.session?.user;
+
+      if(user){
+        await redirectPostLogin(user);
+      }else{
+        window.location.hash = "#/login";
       }
 
-      if (newPassword !== confirmPassword) {
-        msg.innerHTML = "<span class='error-text'>Le password non coincidono</span>";
-        return;
-      }
-
-      msg.innerHTML = "Salvataggio...";
-
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
-        return;
-      }
-
-      msg.innerHTML = "<span class='success-text'>Password salvata</span>";
-
-      setTimeout(async () => {
-
-        const { data: sessionData } =
-          await supabase.auth.getSession();
-
-        const user = sessionData?.session?.user;
-
-        if(user){
-          await redirectPostLogin(user);
-        }else{
-          window.location.hash = "#/login";
-        }
-
-      }, 800);
-
-    };
+    }, 800);
 
   };
 
-  try {
+  btn.onclick = handleSave;
 
-    const { access_token, refresh_token } =
-      readSupabaseTokensFromHash();
+  newPasswordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSave();
+  });
 
-    if (access_token && refresh_token) {
+  confirmPasswordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSave();
+  });
+}
 
-      const { error } =
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
+/* =========================================================
+   INVALID SESSION UI
+========================================================= */
 
-      if (error) throw error;
-
-      showForm();
-      return;
-
-    }
-
-    const { data } =
-      await supabase.auth.getSession();
-
-    if (data?.session) {
-      showForm();
-      return;
-    }
-
-    supabase.auth.onAuthStateChange((event) => {
-
-      if (
-        event === "PASSWORD_RECOVERY" ||
-        event === "SIGNED_IN"
-      ) {
-        showForm();
-      }
-
-    });
-
-  } catch (err) {
-
-    console.error("Errore set-password:", err);
-
-  }
-
+function renderInvalidSession(container) {
   container.innerHTML = `
 
     <div class="view">
@@ -303,5 +298,78 @@ export async function render(container) {
     </div>
 
   `;
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+export async function render(container) {
+
+  container.innerHTML = `
+    <div class="view">
+      <div class="login-wrapper">
+        <h2 class="login-title">Verifica in corso...</h2>
+      </div>
+    </div>
+  `;
+
+  let authListenerBound = false;
+
+  try {
+
+    const { access_token, refresh_token, type } =
+      readSupabaseTokensFromHash();
+
+    if (access_token && refresh_token) {
+
+      const { error } =
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+
+      if (error) throw error;
+
+      renderPasswordForm(container);
+      return;
+
+    }
+
+    const { data } =
+      await supabase.auth.getSession();
+
+    if (data?.session) {
+      renderPasswordForm(container);
+      return;
+    }
+
+    if (!authListenerBound) {
+      authListenerBound = true;
+
+      supabase.auth.onAuthStateChange((event) => {
+
+        if (
+          event === "PASSWORD_RECOVERY" ||
+          event === "SIGNED_IN"
+        ) {
+          renderPasswordForm(container);
+        }
+
+      });
+    }
+
+    if (type === "recovery") {
+      renderPasswordForm(container);
+      return;
+    }
+
+  } catch (err) {
+
+    console.error("Errore set-password:", err);
+
+  }
+
+  renderInvalidSession(container);
 
 }
