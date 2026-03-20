@@ -65,6 +65,7 @@ const routes = {
   marketing: () => import("./views/marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
+  "crea-dipendente": () => import("./views/crea-dipendente.js"),
   timbrature: () => import("./views/timbrature.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
@@ -320,8 +321,6 @@ function isAziendaBlockedForUser(azienda, routeName) {
   if (azienda.stato === "piattaforma") return false;
 
   if (azienda.stato !== "attiva") return true;
-
-  if (azienda.stato_attivazione && azienda.stato_attivazione !== "attiva") return true;
 
   if (azienda.attiva === false) return true;
 
