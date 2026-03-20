@@ -148,7 +148,7 @@ async function caricaDipendenti() {
 
   let query = window.supabaseClient
     .from("dipendenti")
-    .select("id,nome,mansione,email,costo_orario,costo_medio,attivo,created_at")
+    .select("id,nome,cognome,mansione,email,costo_orario,costo_medio,attivo,created_at")
     .eq("azienda_id", azienda.id)
     .order("nome");
 
@@ -168,7 +168,8 @@ async function caricaDipendenti() {
 
   const filtered = (data || []).filter((d) => {
     if (!q) return true;
-    return (d.nome || "").toLowerCase().includes(q);
+    const nomeCompleto = `${d.nome || ""} ${d.cognome || ""}`.toLowerCase();
+    return nomeCompleto.includes(q);
   });
 
   if (!tbody) return;
@@ -185,17 +186,21 @@ async function caricaDipendenti() {
 
   const canUpdate = !!(window.hasPermesso && window.hasPermesso("dipendenti.update"));
   const canDelete = !!(window.hasPermesso && window.hasPermesso("dipendenti.delete"));
+  const canRead = !!(window.hasPermesso && window.hasPermesso("dipendenti.read"));
 
   filtered.forEach((d) => {
+    const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
+
     tbody.innerHTML += `
       <tr>
-        <td>${escapeHtml(d.nome)}</td>
+        <td>${escapeHtml(nomeCompleto)}</td>
         <td>${escapeHtml(d.mansione || "-")}</td>
         <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
         <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
         <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+          ${canRead ? `<button class="app-button tiny gray" onclick="window._dipOpen('${d.id}')">Scheda</button>` : ""}
           ${canUpdate ? `<button class="app-button tiny" onclick="window._dipEdit('${d.id}')">Modifica</button>` : ""}
           ${canDelete ? `<button class="app-button tiny red" onclick="window._dipDelete('${d.id}')">Elimina</button>` : ""}
         </td>
@@ -465,6 +470,10 @@ async function salvaDipendente(isEdit) {
 /* =========================================================
    Actions globali (edit/delete)
 ========================================================= */
+
+window._dipOpen = function (id) {
+  window.location.hash = `#/dipendente?id=${id}`;
+};
 
 window._dipEdit = async function (id) {
   // ✅ 3) Nascondere pulsante Modifica già gestito in tabella; qui blocco difensivo
