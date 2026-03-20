@@ -16,10 +16,6 @@ export async function render(container) {
     return;
   }
 
-  /* -----------------------------
-     CARICA PIANI
-  ----------------------------- */
-
   const { data: piani } = await supabase
     .from("piani_abbonamento")
     .select("id,nome,prezzo_mensile")
@@ -32,73 +28,72 @@ export async function render(container) {
       </option>`
     ).join("");
 
-  /* -----------------------------
-     UI
-  ----------------------------- */
-
   const content = `
 
-  <div style="max-width:900px;margin:auto;">
+  <div style="max-width:900px;margin:auto;width:100%;">
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+    ">
       <div>
-        <div style="font-size:14px;color:#6b7280;">Provisioning</div>
-        <div style="font-size:26px;font-weight:700;">Nuova azienda</div>
+        <div style="font-size:13px;color:#6b7280;">Provisioning</div>
+        <div style="font-size:22px;font-weight:700;">Nuova azienda</div>
       </div>
 
-      <button class="app-button small gray" id="btn-home">
+      <button class="app-button" id="btn-home">
         ⬅ Dashboard
       </button>
     </div>
 
     <form id="azienda-form">
 
-      <div style="
-        display:grid;
-        gap:22px;
-        grid-template-columns:1fr 1fr;
-      ">
+      <div class="crea-grid">
 
-        <div class="card-soft">
+        <div class="card">
 
-          <div class="card-title">
+          <div style="font-weight:700;margin-bottom:12px;">
             Dati azienda
           </div>
 
-          <label>
-            Nome azienda
-            <input id="az-nome" required class="input-pill">
-          </label>
+          <div class="form-group">
+            <label>Nome azienda</label>
+            <input id="az-nome" required class="input">
+          </div>
 
-          <label>
-            Codice azienda
-            <input id="az-codice" required class="input-pill">
-          </label>
+          <div class="form-group">
+            <label>Codice azienda</label>
+            <input id="az-codice" required class="input">
+          </div>
 
-          <label>
-            Piano abbonamento
-            <select id="az-piano" class="input-pill">
+          <div class="form-group">
+            <label>Piano abbonamento</label>
+            <select id="az-piano" class="input">
               ${optionsPiani}
             </select>
-          </label>
+          </div>
 
         </div>
 
-        <div class="card-soft">
+        <div class="card">
 
-          <div class="card-title">
+          <div style="font-weight:700;margin-bottom:12px;">
             Referente azienda
           </div>
 
-          <label>
-            Email referente
-            <input id="az-email" type="email" required class="input-pill">
-          </label>
+          <div class="form-group">
+            <label>Email referente</label>
+            <input id="az-email" type="email" required class="input">
+          </div>
 
-          <label>
-            Telefono referente
-            <input id="az-telefono" class="input-pill">
-          </label>
+          <div class="form-group">
+            <label>Telefono referente</label>
+            <input id="az-telefono" class="input">
+          </div>
 
           <div style="font-size:12px;color:#6b7280;margin-top:10px;">
             Verrà inviata una email per attivare l’account e impostare la password.
@@ -108,8 +103,8 @@ export async function render(container) {
 
       </div>
 
-      <div style="margin-top:24px;">
-        <button class="app-button green" id="btn-submit">
+      <div style="margin-top:20px;">
+        <button class="app-button primary" id="btn-submit" style="width:100%;">
           Crea azienda
         </button>
       </div>
@@ -117,7 +112,7 @@ export async function render(container) {
     </form>
 
     <div id="error-box"
-      style="margin-top:16px;color:#dc2626;font-size:14px;">
+      style="margin-top:14px;color:#dc2626;font-size:14px;">
     </div>
 
   </div>
@@ -137,10 +132,6 @@ export async function render(container) {
   const form = document.getElementById("azienda-form");
   const errorBox = document.getElementById("error-box");
   const btn = document.getElementById("btn-submit");
-
-  /* -----------------------------
-     SUBMIT → EDGE FUNCTION
-  ----------------------------- */
 
   form.addEventListener("submit", async (e) => {
 
