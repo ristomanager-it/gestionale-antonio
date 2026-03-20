@@ -40,7 +40,6 @@ export async function render(container) {
         <h2 style="margin:4px 0 0 0;">${titolo}</h2>
       </div>
 
-      <!-- CARD BASE -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
@@ -89,7 +88,6 @@ export async function render(container) {
 
       </div>
 
-      <!-- CARD PRESENZA DIGITALE -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
@@ -118,7 +116,6 @@ export async function render(container) {
 
       </div>
 
-      <!-- CARD VISION -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
@@ -132,7 +129,6 @@ export async function render(container) {
 
       </div>
 
-      <!-- CARD POSIZIONAMENTO -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
@@ -210,14 +206,17 @@ export async function render(container) {
       },
 
       profilo_completato: true,
-      stato_attivazione: "attiva"
+      stato_attivazione: "attiva",
+      stato: "attiva" // 🔥 FIX CRITICO
 
     };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("aziende")
       .update(payload)
-      .eq("id", azienda.id);
+      .eq("id", azienda.id)
+      .select()
+      .single();
 
     if (error) {
 
@@ -229,11 +228,13 @@ export async function render(container) {
 
     }
 
+    // 🔥 AGGIORNA STATE
+    window.stateActions.setAzienda(data);
+
     msg.innerHTML = "<span style='color:#16a34a;'>Azienda attivata</span>";
 
-    setTimeout(() => {
-      window.location.hash = "#/home";
-    }, 800);
+    // redirect immediato corretto
+    window.location.hash = "#/home";
 
   };
 
