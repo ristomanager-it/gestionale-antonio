@@ -145,6 +145,14 @@ export async function render(container) {
     const email = document.getElementById("az-email").value.trim();
     const telefono = document.getElementById("az-telefono").value.trim();
 
+    console.log("DEBUG PAYLOAD:", {
+      nome,
+      codice,
+      piano_id,
+      email,
+      telefono
+    });
+
     btn.disabled = true;
     btn.textContent = "Creazione...";
 
@@ -158,17 +166,25 @@ export async function render(container) {
             codice,
             piano_id,
             email
-            // 🔥 telefono rimosso → non usato dalla function
+            // telefono NON serve lato backend
           }
         }
       );
 
       if (error) {
+
         console.error("❌ FUNCTION ERROR:", error);
-        throw error;
+
+        try {
+          const errBody = await error.context.json();
+          console.error("❌ DETTAGLIO:", errBody);
+          throw new Error(errBody.error || "Errore funzione");
+        } catch {
+          throw error;
+        }
       }
 
-      console.log("✅ AZIENDA CREATA:", data);
+      console.log("✅ SUCCESS:", data);
 
       alert("Azienda creata e invito inviato via email ✔");
 
