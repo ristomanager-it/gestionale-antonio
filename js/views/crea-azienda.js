@@ -157,13 +157,18 @@ export async function render(container) {
             nome,
             codice,
             piano_id,
-            email,
-            telefono
+            email
+            // 🔥 telefono rimosso → non usato dalla function
           }
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ FUNCTION ERROR:", error);
+        throw error;
+      }
+
+      console.log("✅ AZIENDA CREATA:", data);
 
       alert("Azienda creata e invito inviato via email ✔");
 
@@ -171,7 +176,7 @@ export async function render(container) {
 
     } catch (err) {
 
-      console.error(err);
+      console.error("❌ ERRORE CREAZIONE:", err);
 
       errorBox.textContent =
         err.message || "Errore creazione azienda";
