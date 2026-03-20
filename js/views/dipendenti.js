@@ -58,7 +58,8 @@ export async function render(container) {
   };
 
   document.getElementById("tab-elenco").onclick = () => setTab("elenco");
-  document.getElementById("tab-nuovo").onclick = () => {
+ document.getElementById("tab-nuovo").onclick = () => {
+  alert("NUOVO CLICK");
   window.location.hash = "#/crea-dipendente";
 };
 
