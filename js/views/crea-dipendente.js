@@ -104,13 +104,20 @@ export async function render(container) {
 
     try {
 
+      // 🔥 PRENDE TOKEN UTENTE (FONDAMENTALE)
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      const token = session?.access_token;
+
       const res = await fetch(
-       "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
+        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "apikey": supabase.supabaseKey
+            Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({
             nome,
