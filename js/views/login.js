@@ -1,9 +1,5 @@
 import { supabase } from "../supabaseClient.js";
 
-/* =========================================================
-   RENDER LOGIN
-========================================================= */
-
 export async function render(container){
 
 container.innerHTML=`
@@ -13,12 +9,7 @@ container.innerHTML=`
 <div class="login-wrapper">
 
 <div class="login-logo-wrap">
-
-<img 
-src="assets/favicon-192.png"
-class="login-logo"
->
-
+<img src="assets/favicon-192.png" class="login-logo">
 </div>
 
 <h2 class="login-title">Accesso</h2>
@@ -39,12 +30,29 @@ placeholder="email@azienda.it"
 
 <div class="form-group">
 <label>Password</label>
+
+<div style="position:relative;">
 <input 
 id="login-password" 
 class="input" 
 type="password" 
 placeholder="••••••••"
 >
+
+<span id="toggle-password"
+style="
+position:absolute;
+right:10px;
+top:50%;
+transform:translateY(-50%);
+cursor:pointer;
+font-size:14px;
+color:#6b7280;
+">
+👁
+</span>
+</div>
+
 </div>
 
 <div class="form-actions">
@@ -75,17 +83,31 @@ initLogin()
 
 }
 
-/* =========================================================
-   INIT LOGIN
-========================================================= */
+/* ========================= */
 
 function initLogin(){
 
 const btn=document.getElementById("login-btn")
 const reset=document.getElementById("reset-btn")
+const toggle=document.getElementById("toggle-password")
 
 btn.onclick=doLogin
 reset.onclick=resetPassword
+
+// 👁 toggle password
+toggle.onclick=()=>{
+
+const input=document.getElementById("login-password")
+
+if(input.type==="password"){
+input.type="text"
+toggle.innerText="🙈"
+}else{
+input.type="password"
+toggle.innerText="👁"
+}
+
+}
 
 document
 .getElementById("login-password")
@@ -97,9 +119,7 @@ if(e.key==="Enter") doLogin()
 
 }
 
-/* =========================================================
-   LOGIN
-========================================================= */
+/* ========================= */
 
 async function doLogin(){
 
@@ -130,14 +150,11 @@ window.location.hash="#/home"
 
 }
 
-/* =========================================================
-   RESET PASSWORD
-========================================================= */
+/* ========================= */
 
 async function resetPassword(){
 
 const email=document.getElementById("login-email").value.trim()
-
 const msg=document.getElementById("login-msg")
 
 if(!email){
@@ -160,6 +177,6 @@ return
 
 }
 
-msg.innerHTML="<span class='success-text'>Email inviata</span>"
+msg.innerHTML="<span class='success-text'>Email inviata ✔ Controlla la posta</span>"
 
 }
