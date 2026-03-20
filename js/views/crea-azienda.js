@@ -101,6 +101,24 @@ export async function render(container) {
 
         </div>
 
+        <!-- 🔥 NUOVA CARD LOGO -->
+        <div class="card">
+
+          <div style="font-weight:700;margin-bottom:12px;">
+            Logo azienda
+          </div>
+
+          <div class="form-group">
+            <input type="file" id="az-logo" accept="image/*" class="input">
+          </div>
+
+          <div style="margin-top:10px;text-align:center;">
+            <img id="logo-preview"
+              style="max-width:120px;max-height:120px;display:none;border-radius:12px;">
+          </div>
+
+        </div>
+
       </div>
 
       <div style="margin-top:20px;">
@@ -129,6 +147,25 @@ export async function render(container) {
     window.location.hash = "#/homePiattaforma";
   };
 
+  const logoInput = document.getElementById("az-logo");
+  const logoPreview = document.getElementById("logo-preview");
+
+  let logoFile = null;
+
+  logoInput.addEventListener("change", () => {
+    const file = logoInput.files[0];
+    if (!file) return;
+
+    logoFile = file;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      logoPreview.src = e.target.result;
+      logoPreview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  });
+
   const form = document.getElementById("azienda-form");
   const errorBox = document.getElementById("error-box");
   const btn = document.getElementById("btn-submit");
@@ -143,15 +180,6 @@ export async function render(container) {
     const codice = document.getElementById("az-codice").value.trim();
     const piano_id = document.getElementById("az-piano").value;
     const email = document.getElementById("az-email").value.trim();
-    const telefono = document.getElementById("az-telefono").value.trim();
-
-    console.log("DEBUG PAYLOAD:", {
-      nome,
-      codice,
-      piano_id,
-      email,
-      telefono
-    });
 
     btn.disabled = true;
     btn.textContent = "Creazione...";
@@ -161,41 +189,46 @@ export async function render(container) {
       const { data, error } = await supabase.functions.invoke(
         "platform-create-company",
         {
-          body: {
-            nome,
-            codice,
-            piano_id,
-            email
-            // telefono NON serve lato backend
-          }
+          body: { nome, codice, piano_id, email }
         }
       );
 
-      if (error) {
+      if (error) throw error;
 
-        console.error("❌ FUNCTION ERROR:", error);
+      const azienda_id = data.azienda_id;
 
-        try {
-          const errBody = await error.context.json();
-          console.error("❌ DETTAGLIO:", errBody);
-          throw new Error(errBody.error || "Errore funzione");
-        } catch {
-          throw error;
+      /* 🔥 UPLOAD LOGO */
+      if (logoFile && azienda_id) {
+
+        const fileName = `azienda_${azienda_id}_${Date.now()}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("loghi-aziende")
+          .upload(fileName, logoFile);
+
+        if (!uploadError) {
+
+          const { data: publicData } = supabase.storage
+            .from("loghi-aziende")
+            .getPublicUrl(fileName);
+
+          const logo_url = publicData.publicUrl;
+
+          await supabase
+            .from("aziende")
+            .update({ logo_url })
+            .eq("id", azienda_id);
         }
       }
 
-      console.log("✅ SUCCESS:", data);
-
-      alert("Azienda creata e invito inviato via email ✔");
+      alert("Azienda creata e invito inviato ✔");
 
       window.location.hash = "#/gestioneAziende";
 
     } catch (err) {
 
-      console.error("❌ ERRORE CREAZIONE:", err);
-
-      errorBox.textContent =
-        err.message || "Errore creazione azienda";
+      console.error("❌ ERRORE:", err);
+      errorBox.textContent = err.message || "Errore creazione";
 
     } finally {
 
