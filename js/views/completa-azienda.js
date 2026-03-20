@@ -40,6 +40,7 @@ export async function render(container) {
         <h2 style="margin:4px 0 0 0;">${titolo}</h2>
       </div>
 
+      <!-- DATI AZIENDA -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
@@ -76,6 +77,15 @@ export async function render(container) {
           <input id="telefono" class="input" value="${azienda.telefono || ""}">
         </div>
 
+      </div>
+
+      <!-- VISION GUIDATA -->
+      <div class="card">
+
+        <div style="font-weight:700;margin-bottom:12px;">
+          Vision aziendale
+        </div>
+
         <div class="form-group">
           <label>Tipo locale *</label>
           <select id="tipo_locale" class="input">
@@ -83,61 +93,43 @@ export async function render(container) {
             <option ${visione.tipo_locale === "Ristorante" ? "selected" : ""}>Ristorante</option>
             <option ${visione.tipo_locale === "Pizzeria" ? "selected" : ""}>Pizzeria</option>
             <option ${visione.tipo_locale === "Bar" ? "selected" : ""}>Bar</option>
+            <option ${visione.tipo_locale === "Fast casual" ? "selected" : ""}>Fast casual</option>
+            <option ${visione.tipo_locale === "Gourmet" ? "selected" : ""}>Gourmet</option>
           </select>
         </div>
 
-      </div>
-
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Presenza digitale
+        <div class="form-group">
+          <label>Esperienza cliente *</label>
+          <textarea id="esperienza" class="input" style="min-height:80px;">${visione.esperienza_cliente || ""}</textarea>
         </div>
 
         <div class="form-group">
-          <label>Sito web *</label>
-          <input id="sito_web" class="input" placeholder="https://..." value="${visione.sito_web || ""}">
+          <label>Valori (separati da virgola)</label>
+          <input id="valori" class="input" value="${(visione.valori || []).join(", ")}">
         </div>
 
         <div class="form-group">
-          <label>Instagram</label>
-          <input id="instagram" class="input" value="${social.instagram || ""}">
-        </div>
-
-        <div class="form-group">
-          <label>Facebook</label>
-          <input id="facebook" class="input" value="${social.facebook || ""}">
-        </div>
-
-        <div class="form-group">
-          <label>TikTok</label>
-          <input id="tiktok" class="input" value="${social.tiktok || ""}">
+          <label>Vision libera</label>
+          <textarea id="vision" class="input" style="min-height:80px;">${visione.vision_testo || ""}</textarea>
         </div>
 
       </div>
 
+      <!-- REGOLAMENTO -->
       <div class="card">
 
         <div style="font-weight:700;margin-bottom:12px;">
-          Vision aziendale *
+          Regolamento aziendale
         </div>
 
         <div class="form-group">
-          <label>Descrivi la tua identità, filosofia e obiettivi</label>
-          <textarea id="vision" class="input" style="min-height:100px;">${visione.vision || ""}</textarea>
-        </div>
-
-      </div>
-
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Posizionamento *
+          <label>Regolamento (testo)</label>
+          <textarea id="regolamento" class="input" style="min-height:100px;">${visione.regolamento_testo || ""}</textarea>
         </div>
 
         <div class="form-group">
-          <label>Target clienti, fascia prezzo, stile del locale</label>
-          <textarea id="posizionamento" class="input" style="min-height:100px;">${visione.posizionamento || ""}</textarea>
+          <label>Carica file regolamento (PDF)</label>
+          <input type="file" id="file-regolamento" class="input">
         </div>
 
       </div>
@@ -170,9 +162,7 @@ export async function render(container) {
       "citta",
       "telefono",
       "tipo_locale",
-      "sito_web",
-      "vision",
-      "posizionamento"
+      "esperienza"
     ];
 
     for (const id of required) {
@@ -185,6 +175,31 @@ export async function render(container) {
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
 
+    const valori = document.getElementById("valori").value
+      .split(",")
+      .map(v => v.trim())
+      .filter(Boolean);
+
+    let fileUrl = visione.regolamento_file_url || null;
+
+    const file = document.getElementById("file-regolamento").files[0];
+
+    if (file) {
+      const path = `${azienda.id}/regolamento-${Date.now()}.pdf`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("aziende-documenti")
+        .upload(path, file);
+
+      if (!uploadError) {
+        const { data } = supabase.storage
+          .from("aziende-documenti")
+          .getPublicUrl(path);
+
+        fileUrl = data.publicUrl;
+      }
+    }
+
     const payload = {
 
       ragione_sociale: document.getElementById("ragione_sociale").value,
@@ -195,19 +210,21 @@ export async function render(container) {
 
       visione_ai: {
         tipo_locale: document.getElementById("tipo_locale").value,
-        sito_web: document.getElementById("sito_web").value,
+        esperienza_cliente: document.getElementById("esperienza").value,
+        valori,
+        vision_testo: document.getElementById("vision").value,
+        regolamento_testo: document.getElementById("regolamento").value,
+        regolamento_file_url: fileUrl,
         social: {
-          instagram: document.getElementById("instagram").value,
-          facebook: document.getElementById("facebook").value,
-          tiktok: document.getElementById("tiktok").value
-        },
-        vision: document.getElementById("vision").value,
-        posizionamento: document.getElementById("posizionamento").value
+          instagram: social.instagram || "",
+          facebook: social.facebook || "",
+          tiktok: social.tiktok || ""
+        }
       },
 
       profilo_completato: true,
       stato_attivazione: "attiva",
-      stato: "attiva" // 🔥 FIX CRITICO
+      stato: "attiva"
 
     };
 
@@ -227,12 +244,10 @@ export async function render(container) {
 
     }
 
-    // 🔥 AGGIORNA STATE
     window.stateActions.setAzienda(data);
 
-    msg.innerHTML = "<span style='color:#16a34a;'>Azienda attivata</span>";
+    msg.innerHTML = "<span style='color:#16a34a;'>Salvato ✔</span>";
 
-    // redirect immediato corretto
     window.location.hash = "#/home";
 
   };
