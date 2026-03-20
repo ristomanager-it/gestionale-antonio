@@ -59,9 +59,8 @@ export async function render(container) {
 
   document.getElementById("tab-elenco").onclick = () => setTab("elenco");
   document.getElementById("tab-nuovo").onclick = () => {
-    setTab("form");
-    renderForm(null);
-  };
+  window.location.hash = "#/crea-dipendente";
+};
 
   // ✅ 2) Nascondere bottone “Nuovo” se manca create
   const btnNuovo = document.getElementById("tab-nuovo");
