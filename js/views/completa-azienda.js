@@ -215,8 +215,7 @@ export async function render(container) {
       .from("aziende")
       .update(payload)
       .eq("id", azienda.id)
-      .select()
-      .single();
+      .select();
 
     if (error) {
 
