@@ -53,7 +53,11 @@ export async function render(container) {
     dipRes,
     sediRes,
     repartiRes,
-    valutazioniRes
+    valutazioniRes,
+    metricheRes,
+    presenzaData,
+    produzioneData,
+    quizData
   ] = await Promise.all([
     supabase
       .from("dipendenti")
@@ -98,7 +102,18 @@ export async function render(container) {
       `)
       .eq("azienda_id", azienda.id)
       .eq("dipendente_id", dipendenteId)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("valutazioni_metriche")
+      .select("id,nome,categoria,peso,ordine,attivo")
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
+      .order("ordine", { ascending: true }),
+
+    calcolaPresenzaIbrida(azienda.id, dipendenteId),
+    calcolaProduzioneIbrida(azienda.id, dipendenteId),
+    calcolaQuizIbridi(azienda.id, dipendenteId)
   ]);
 
   const dip = dipRes.data;
@@ -127,6 +142,7 @@ export async function render(container) {
 
   const sedi = sediRes.data || [];
   const reparti = repartiRes.data || [];
+  const metriche = metricheRes.data || [];
   const valutazioni = Array.isArray(valutazioniRes.data) ? valutazioniRes.data : [];
 
   const repartiMap = Object.fromEntries(reparti.map((r) => [String(r.id), r.nome]));
@@ -177,6 +193,11 @@ export async function render(container) {
                 ${infoRow("Sede", sedeLabel)}
                 ${infoRow("Stato", statoLabel)}
                 ${infoRow("Data nascita", formatDate(dip.data_nascita))}
+                ${infoRow("Luogo nascita", dip.luogo_nascita || "-")}
+                ${infoRow("Codice fiscale", dip.codice_fiscale || "-")}
+                ${infoRow("Indirizzo", dip.indirizzo || "-")}
+                ${infoRow("Residenza", dip.residenza || "-")}
+                ${infoRow("IBAN", dip.iban || "-")}
               </div>
             </div>
           </div>
@@ -184,7 +205,7 @@ export async function render(container) {
       })}
 
       ${createCard({
-        title: "Costo",
+        title: "Costo e contratto",
         body: `
           <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
             ${infoRow("Tipo compenso", tipoCompensoLabel)}
@@ -193,12 +214,14 @@ export async function render(container) {
             ${infoRow("Ore mensili contrattuali", formatNumberOrDash(dip.ore_mensili_contrattuali))}
             ${infoRow("Ore medie per servizio", formatNumberOrDash(dip.ore_medie_per_servizio))}
             ${infoRow("Costo medio", dip.costo_medio || "-")}
+            ${infoRow("Tipo operativo", dip.tipo_operativo || "-")}
+            ${infoRow("Codice dipendente", dip.codice || "-")}
           </div>
         `
       })}
 
       ${createCard({
-        title: "Obiettivi",
+        title: "Obiettivi e crescita",
         body: `
           <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
             ${infoRow("Obiettivi personali", profiloAI.obiettivi_personali || "-")}
@@ -210,7 +233,45 @@ export async function render(container) {
       })}
 
       ${createCard({
-        title: "Valutazione",
+        title: "Indicatori automatici",
+        body: `
+          <div style="display:grid; gap:14px;">
+            <div class="small-muted">Calcolo automatico basato su timbrature, turni, assenze, produzione e quiz.</div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+              ${scoreRow("Presenza automatica", presenzaData.score)}
+              ${scoreRow("Produzione automatica", produzioneData.score)}
+              ${scoreRow("Quiz automatici", quizData.score)}
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+              ${infoRow("Giorni lavorati", presenzaData.giorniLavorati)}
+              ${infoRow("Ore lavorate", formatNumberOrDash(presenzaData.oreLavorate))}
+              ${infoRow("Ritardi", presenzaData.ritardi)}
+              ${infoRow("Assenze non giustificate", presenzaData.assenzeNonGiustificate)}
+              ${infoRow("Straordinari (ore)", formatNumberOrDash(presenzaData.straordinariOre))}
+              ${infoRow("Lotti produzione", produzioneData.lotti)}
+              ${infoRow("Quantità prodotta", formatNumberOrDash(produzioneData.quantita))}
+              ${infoRow("Resa media %", formatNumberOrDash(produzioneData.resaMedia))}
+              ${infoRow("Scarto medio %", formatNumberOrDash(produzioneData.scartoMedio))}
+              ${infoRow("Quiz completati", quizData.numeroQuiz)}
+              ${infoRow("Media quiz %", formatNumberOrDash(quizData.mediaPercentuale))}
+            </div>
+
+            ${longTextRow(
+              "Dettaglio automatico",
+              [
+                presenzaData.dettaglio,
+                produzioneData.dettaglio,
+                quizData.dettaglio
+              ].filter(Boolean).join("\n")
+            )}
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Valutazione corrente",
         body: ultimaValutazione
           ? `
             <div style="display:grid; gap:14px;">
@@ -245,10 +306,60 @@ export async function render(container) {
           `
           : `
             <div class="small-muted">
-              Nessuna valutazione disponibile. Il blocco è pronto per collegarsi al form valutazioni e allo storico.
+              Nessuna valutazione disponibile.
             </div>
           `
       })}
+
+      ${window.hasPermesso && window.hasPermesso("dipendenti.update")
+        ? createCard({
+            title: "Nuova valutazione ibrida",
+            body: `
+              <div style="display:grid; gap:14px;">
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+                  ${scoreRow("Presenza (auto)", presenzaData.score)}
+                  ${scoreRow("Produzione (auto)", produzioneData.score)}
+                  ${scoreRow("Quiz (auto)", quizData.score)}
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;" id="metriche-dinamiche-box">
+                  ${renderMetricheDinamiche(metriche, {
+                    presenza: presenzaData.score,
+                    produzione: produzioneData.score,
+                    quiz: quizData.score
+                  })}
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+                  <div>
+                    <div class="small-muted" style="margin-bottom:6px;">Periodo da</div>
+                    <input id="val-periodo-da" type="date" class="input-pill">
+                  </div>
+                  <div>
+                    <div class="small-muted" style="margin-bottom:6px;">Periodo a</div>
+                    <input id="val-periodo-a" type="date" class="input-pill">
+                  </div>
+                  <div>
+                    <div class="small-muted" style="margin-bottom:6px;">Tipo</div>
+                    <input id="val-tipo" class="input-pill" placeholder="es. mensile">
+                  </div>
+                </div>
+
+                <textarea id="val-note" class="input-pill" placeholder="Note manager"></textarea>
+                <textarea id="val-miglioramento" class="input-pill" placeholder="Aree miglioramento"></textarea>
+                <textarea id="val-forza" class="input-pill" placeholder="Punti di forza"></textarea>
+                <input id="val-azione" class="input-pill" placeholder="Azione consigliata">
+
+                <button class="app-button small" id="btn-save-val">
+                  Salva valutazione
+                </button>
+
+                <div id="val-msg"></div>
+              </div>
+            `
+          })
+        : ""}
 
       ${createCard({
         title: "Storico valutazioni",
@@ -327,6 +438,363 @@ export async function render(container) {
       }
     };
   }
+
+  const btnSaveVal = document.getElementById("btn-save-val");
+  if (btnSaveVal) {
+    btnSaveVal.onclick = async () => {
+      const msg = document.getElementById("val-msg");
+      if (msg) msg.innerHTML = "";
+
+      const metricheInputs = Array.from(document.querySelectorAll("[data-metrica-id]"));
+      const metricheByName = {};
+      const valoriById = {};
+
+      metriche.forEach((m) => {
+        const normalizedName = normalizeMetricName(m.nome);
+        let value = 0;
+
+        if (normalizedName === "presenza") {
+          value = presenzaData.score;
+        } else if (normalizedName === "produzione") {
+          value = produzioneData.score;
+        } else if (normalizedName === "quiz") {
+          value = quizData.score;
+        } else {
+          const input = metricheInputs.find((el) => el.getAttribute("data-metrica-id") === String(m.id));
+          value = parseFloat(input?.value || "0") || 0;
+        }
+
+        valoriById[String(m.id)] = value;
+        metricheByName[normalizedName] = value;
+      });
+
+      let sommaPesata = 0;
+      let totalePesi = 0;
+
+      metriche.forEach((m) => {
+        const peso = parseFloat(m.peso) || 1;
+        const value = valoriById[String(m.id)] || 0;
+        sommaPesata += value * peso;
+        totalePesi += peso;
+      });
+
+      const punteggioTotale = totalePesi > 0 ? Number((sommaPesata / totalePesi).toFixed(2)) : 0;
+
+      const payload = {
+        azienda_id: azienda.id,
+        dipendente_id: dipendenteId,
+        valutatore_user_id: user.id,
+        valutatore_ruolo: window.state?.ruolo || "admin",
+        periodo_da: document.getElementById("val-periodo-da")?.value || null,
+        periodo_a: document.getElementById("val-periodo-a")?.value || null,
+        tipo: document.getElementById("val-tipo")?.value?.trim() || "ibrida",
+        punteggio_presenza: metricheByName.presenza ?? presenzaData.score,
+        punteggio_velocita: metricheByName.velocita ?? 0,
+        punteggio_qualita: metricheByName.qualita ?? 0,
+        punteggio_conoscenza: metricheByName.conoscenza ?? metricheByName.quiz ?? quizData.score,
+        punteggio_autonomia: metricheByName.autonomia ?? 0,
+        punteggio_collaborazione: metricheByName.collaborazione ?? 0,
+        punteggio_responsabilita: metricheByName.responsabilita ?? 0,
+        punteggio_totale: punteggioTotale,
+        punti_forza: document.getElementById("val-forza")?.value?.trim() || null,
+        aree_miglioramento: document.getElementById("val-miglioramento")?.value?.trim() || null,
+        note_manager: document.getElementById("val-note")?.value?.trim() || null,
+        azione_consigliata: document.getElementById("val-azione")?.value?.trim() || null
+      };
+
+      const { error } = await supabase
+        .from("dipendenti_valutazioni")
+        .insert(payload);
+
+      if (error) {
+        console.error("Errore salvataggio valutazione:", error);
+        if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore salvataggio valutazione</span>`;
+        return;
+      }
+
+      if (msg) msg.innerHTML = `<span style="color:#16a34a;">Valutazione salvata ✔</span>`;
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+    };
+  }
+}
+
+async function calcolaPresenzaIbrida(aziendaId, dipendenteId) {
+  const oggi = new Date();
+  const inizioPeriodo = new Date();
+  inizioPeriodo.setDate(oggi.getDate() - 30);
+
+  const [
+    timbratureRes,
+    turniRes,
+    assenzeRes
+  ] = await Promise.all([
+    supabase
+      .from("timbrature")
+      .select("id,tipo,timestamp,ora_inizio,ora_fine,ore_lavorate")
+      .eq("azienda_id", aziendaId)
+      .eq("dipendente_id", dipendenteId)
+      .gte("timestamp", inizioPeriodo.toISOString())
+      .order("timestamp", { ascending: true }),
+
+    supabase
+      .from("turni_dipendenti")
+      .select("id,data,ora_inizio_prevista,ora_fine_prevista")
+      .eq("azienda_id", aziendaId)
+      .eq("dipendente_id", dipendenteId)
+      .gte("data", inizioPeriodo.toISOString().slice(0, 10))
+      .order("data", { ascending: true }),
+
+    supabase
+      .from("assenze_dipendenti")
+      .select("id,data_da,data_a,giustificata")
+      .eq("azienda_id", aziendaId)
+      .eq("dipendente_id", dipendenteId)
+      .gte("data_a", inizioPeriodo.toISOString().slice(0, 10))
+  ]);
+
+  const timbrature = timbratureRes.data || [];
+  const turni = turniRes.data || [];
+  const assenze = assenzeRes.data || [];
+
+  const giorniLavoratiSet = new Set();
+  let oreLavorate = 0;
+  let ritardi = 0;
+  let straordinariOre = 0;
+
+  timbrature.forEach((t) => {
+    const ts = t.timestamp ? new Date(t.timestamp) : null;
+    if (ts && !Number.isNaN(ts.getTime())) {
+      giorniLavoratiSet.add(ts.toISOString().slice(0, 10));
+    }
+    oreLavorate += Number(t.ore_lavorate || 0);
+  });
+
+  const turniMap = Object.fromEntries(
+    turni.map((t) => [String(t.data), t])
+  );
+
+  timbrature.forEach((t) => {
+    const ts = t.timestamp ? new Date(t.timestamp) : null;
+    if (!ts || Number.isNaN(ts.getTime())) return;
+
+    const giorno = ts.toISOString().slice(0, 10);
+    const turno = turniMap[giorno];
+    if (!turno || !turno.ora_inizio_prevista) return;
+
+    const prevista = new Date(`${giorno}T${turno.ora_inizio_prevista}`);
+    if (!Number.isNaN(prevista.getTime())) {
+      const diffMin = (ts.getTime() - prevista.getTime()) / 60000;
+      if (diffMin > 10) ritardi += 1;
+    }
+
+    if (t.ore_lavorate && turno.ora_fine_prevista && turno.ora_inizio_prevista) {
+      const start = new Date(`${giorno}T${turno.ora_inizio_prevista}`);
+      const end = new Date(`${giorno}T${turno.ora_fine_prevista}`);
+      if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+        const oreAttese = Math.max(0, (end.getTime() - start.getTime()) / 3600000);
+        const extra = Number(t.ore_lavorate || 0) - oreAttese;
+        if (extra > 0) straordinariOre += extra;
+      }
+    }
+  });
+
+  let assenzeNonGiustificate = 0;
+  assenze.forEach((a) => {
+    if (a.giustificata === false) {
+      assenzeNonGiustificate += diffDaysInclusive(a.data_da, a.data_a);
+    }
+  });
+
+  const giorniTurni = turni.length;
+  const giorniLavorati = giorniLavoratiSet.size;
+
+  let score = 10;
+
+  if (giorniTurni > 0) {
+    const ratioPresenze = giorniLavorati / giorniTurni;
+    score = ratioPresenze * 10;
+  }
+
+  score -= ritardi * 0.4;
+  score -= assenzeNonGiustificate * 1.2;
+  score += Math.min(1, straordinariOre * 0.1);
+
+  score = clamp(score, 0, 10);
+
+  const dettaglio = [
+    `Periodo ultimi 30 giorni`,
+    `Giorni lavorati: ${giorniLavorati}`,
+    `Turni pianificati: ${giorniTurni}`,
+    `Ritardi rilevati: ${ritardi}`,
+    `Assenze non giustificate: ${assenzeNonGiustificate}`,
+    `Straordinari (ore): ${formatNumberOrDash(straordinariOre)}`
+  ].join("\n");
+
+  return {
+    score: Number(score.toFixed(2)),
+    giorniLavorati,
+    oreLavorate: Number(oreLavorate.toFixed(2)),
+    ritardi,
+    assenzeNonGiustificate,
+    straordinariOre: Number(straordinariOre.toFixed(2)),
+    dettaglio
+  };
+}
+
+async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
+  const oggi = new Date();
+  const inizioPeriodo = new Date();
+  inizioPeriodo.setDate(oggi.getDate() - 30);
+
+  const { data, error } = await supabase
+    .from("produzione_lotti")
+    .select("id,quantita_output,resa_percentuale,scarto_percentuale,stato,data_produzione")
+    .eq("azienda_id", aziendaId)
+    .eq("operatore_id", dipendenteId)
+    .gte("data_produzione", inizioPeriodo.toISOString().slice(0, 10));
+
+  if (error || !data || data.length === 0) {
+    return {
+      score: 0,
+      lotti: 0,
+      quantita: 0,
+      resaMedia: 0,
+      scartoMedio: 0,
+      dettaglio: "Nessun lotto produzione negli ultimi 30 giorni"
+    };
+  }
+
+  const lottiValidi = data.filter((x) => x.stato === "confermato" || x.stato === "chiuso");
+  const lotti = lottiValidi.length;
+  const quantita = lottiValidi.reduce((sum, x) => sum + Number(x.quantita_output || 0), 0);
+
+  const resaValues = lottiValidi
+    .map((x) => Number(x.resa_percentuale))
+    .filter((x) => !Number.isNaN(x));
+
+  const scartoValues = lottiValidi
+    .map((x) => Number(x.scarto_percentuale))
+    .filter((x) => !Number.isNaN(x));
+
+  const resaMedia = resaValues.length ? resaValues.reduce((a, b) => a + b, 0) / resaValues.length : 0;
+  const scartoMedio = scartoValues.length ? scartoValues.reduce((a, b) => a + b, 0) / scartoValues.length : 0;
+
+  let score = 0;
+  score += Math.min(4, lotti * 0.4);
+  score += Math.min(4, resaMedia / 25);
+  score += Math.max(0, 2 - (scartoMedio / 10));
+  score = clamp(score, 0, 10);
+
+  const dettaglio = [
+    `Periodo ultimi 30 giorni`,
+    `Lotti validi: ${lotti}`,
+    `Quantità prodotta: ${formatNumberOrDash(quantita)}`,
+    `Resa media: ${formatNumberOrDash(resaMedia)}%`,
+    `Scarto medio: ${formatNumberOrDash(scartoMedio)}%`
+  ].join("\n");
+
+  return {
+    score: Number(score.toFixed(2)),
+    lotti,
+    quantita: Number(quantita.toFixed(2)),
+    resaMedia: Number(resaMedia.toFixed(2)),
+    scartoMedio: Number(scartoMedio.toFixed(2)),
+    dettaglio
+  };
+}
+
+async function calcolaQuizIbridi(aziendaId, dipendenteId) {
+  const { data, error } = await supabase
+    .from("test_competenze_risultati")
+    .select("id,punteggio,percentuale,completato_at")
+    .eq("azienda_id", aziendaId)
+    .eq("dipendente_id", dipendenteId)
+    .order("completato_at", { ascending: false })
+    .limit(10);
+
+  if (error || !data || data.length === 0) {
+    return {
+      score: 0,
+      numeroQuiz: 0,
+      mediaPercentuale: 0,
+      dettaglio: "Nessun quiz completato"
+    };
+  }
+
+  const percentuali = data
+    .map((x) => Number(x.percentuale))
+    .filter((x) => !Number.isNaN(x));
+
+  const mediaPercentuale = percentuali.length
+    ? percentuali.reduce((a, b) => a + b, 0) / percentuali.length
+    : 0;
+
+  const score = clamp(mediaPercentuale / 10, 0, 10);
+
+  const dettaglio = [
+    `Quiz completati: ${data.length}`,
+    `Media risultati: ${formatNumberOrDash(mediaPercentuale)}%`
+  ].join("\n");
+
+  return {
+    score: Number(score.toFixed(2)),
+    numeroQuiz: data.length,
+    mediaPercentuale: Number(mediaPercentuale.toFixed(2)),
+    dettaglio
+  };
+}
+
+function renderMetricheDinamiche(metriche, automaticScores) {
+  if (!metriche || metriche.length === 0) {
+    return `<div class="small-muted">Nessuna metrica configurata.</div>`;
+  }
+
+  return metriche.map((m) => {
+    const normalized = normalizeMetricName(m.nome);
+
+    if (normalized === "presenza") {
+      return renderAutoMetricCard(m.nome, automaticScores.presenza);
+    }
+
+    if (normalized === "produzione") {
+      return renderAutoMetricCard(m.nome, automaticScores.produzione);
+    }
+
+    if (normalized === "quiz" || normalized === "conoscenza_quiz") {
+      return renderAutoMetricCard(m.nome, automaticScores.quiz);
+    }
+
+    return `
+      <div>
+        <div class="small-muted" style="margin-bottom:6px;">${escapeHtml(m.nome)}</div>
+        <input
+          type="number"
+          min="0"
+          max="10"
+          step="0.1"
+          class="input-pill"
+          data-metrica-id="${escapeHtmlAttr(String(m.id))}"
+          placeholder="0-10"
+        >
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAutoMetricCard(label, value) {
+  return `
+    <div>
+      <div class="small-muted" style="margin-bottom:6px;">${escapeHtml(label)} (auto)</div>
+      <input
+        type="number"
+        class="input-pill"
+        value="${escapeHtmlAttr(formatScore(value))}"
+        disabled
+      >
+    </div>
+  `;
 }
 
 function normalizeProfiloAI(profiloAI) {
@@ -338,6 +806,15 @@ function normalizeProfiloAI(profiloAI) {
   } catch (_) {
     return {};
   }
+}
+
+function normalizeMetricName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "_")
+    .trim();
 }
 
 function buildNomeCompleto(dip) {
@@ -420,6 +897,19 @@ function formatScore(value) {
   const n = Number(value);
   if (Number.isNaN(n)) return String(value);
   return n.toFixed(2);
+}
+
+function diffDaysInclusive(da, a) {
+  if (!da || !a) return 1;
+  const start = new Date(da);
+  const end = new Date(a);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+  const diff = Math.floor((end.getTime() - start.getTime()) / 86400000);
+  return Math.max(1, diff + 1);
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
 }
 
 function escapeHtml(str) {
