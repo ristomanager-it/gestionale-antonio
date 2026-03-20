@@ -105,7 +105,7 @@ export async function render(container) {
     try {
 
       const res = await fetch(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invite-dipendente",
+       "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
         {
           method: "POST",
           headers: {
