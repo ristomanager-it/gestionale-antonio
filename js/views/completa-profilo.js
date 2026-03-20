@@ -37,6 +37,8 @@ export async function render(container) {
     return;
   }
 
+  const profiloAI = dipendente.profilo_ai || {};
+
   const content = `
 
   <div style="max-width:900px;margin:auto;width:100%;">
@@ -114,28 +116,50 @@ export async function render(container) {
 
         </div>
 
-        <!-- AI -->
+        <!-- MOTIVAZIONE -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Motivazione</div>
+
+          <div class="form-group">
+            <label>Perché lavori qui?</label>
+            <textarea id="motivazione" class="input">${profiloAI.motivazione || ""}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Cosa ti motiva nel lavoro?</label>
+            <textarea id="motivazione_lavoro" class="input">${profiloAI.motivazione_lavoro || ""}</textarea>
+          </div>
+
+        </div>
+
+        <!-- CRESCITA -->
         <div class="card">
           <div style="font-weight:700;margin-bottom:12px;">Crescita</div>
 
           <div class="form-group">
-            <label>Obiettivi personali</label>
-            <textarea id="obiettivi_personali" class="input"></textarea>
+            <label>Cosa vuoi migliorare?</label>
+            <textarea id="crescita" class="input">${profiloAI.crescita || ""}</textarea>
           </div>
 
           <div class="form-group">
-            <label>Obiettivi professionali</label>
-            <textarea id="obiettivi_professionali" class="input"></textarea>
+            <label>Cosa vuoi imparare?</label>
+            <textarea id="competenze" class="input">${profiloAI.competenze || ""}</textarea>
+          </div>
+
+        </div>
+
+        <!-- DIREZIONE -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Direzione</div>
+
+          <div class="form-group">
+            <label>Ruolo futuro desiderato</label>
+            <input id="ruolo_target" class="input" value="${profiloAI.ruolo_target || ""}">
           </div>
 
           <div class="form-group">
-            <label>Tipo crescita</label>
-            <input id="tipo_crescita" class="input">
-          </div>
-
-          <div class="form-group">
-            <label>Ruolo target</label>
-            <input id="ruolo_target" class="input">
+            <label>Dove ti vedi tra 1 anno?</label>
+            <textarea id="visione_futura" class="input">${profiloAI.visione_futura || ""}</textarea>
           </div>
 
         </div>
@@ -170,10 +194,20 @@ export async function render(container) {
     e.preventDefault();
 
     const profilo_ai = {
-      obiettivi_personali: document.getElementById("obiettivi_personali").value,
-      obiettivi_professionali: document.getElementById("obiettivi_professionali").value,
-      tipo_crescita: document.getElementById("tipo_crescita").value,
-      ruolo_target: document.getElementById("ruolo_target").value
+
+      // NUOVO MODELLO
+      motivazione: document.getElementById("motivazione").value,
+      motivazione_lavoro: document.getElementById("motivazione_lavoro").value,
+      crescita: document.getElementById("crescita").value,
+      competenze: document.getElementById("competenze").value,
+      ruolo_target: document.getElementById("ruolo_target").value,
+      visione_futura: document.getElementById("visione_futura").value,
+
+      // COMPATIBILITÀ (IMPORTANTISSIMO)
+      obiettivi_personali: document.getElementById("crescita").value,
+      obiettivi_professionali: document.getElementById("competenze").value,
+      tipo_crescita: document.getElementById("crescita").value
+
     };
 
     btn.disabled = true;
@@ -204,6 +238,7 @@ export async function render(container) {
     }
 
     window.location.hash = "#/home";
+
   });
 
 }
