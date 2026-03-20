@@ -4,10 +4,9 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
 export async function render(container) {
 
   const user = window.state.user;
-  const aziendaAttiva = window.state.azienda;
+  const azienda = window.state.azienda;
 
-  // ✅ ACCESSO CORRETTO (NO piattaforma check)
-  if (!user || !aziendaAttiva) {
+  if (!user || !azienda) {
     container.innerHTML = createPageLayout({
       title: "Accesso negato",
       content: createCard({
@@ -17,14 +16,13 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 PRENDO DIPENDENTE
-  const { data: dipendente, error: dipErr } = await supabase
+  const { data: dipendente, error } = await supabase
     .from("dipendenti")
     .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (dipErr || !dipendente) {
+  if (error || !dipendente) {
     container.innerHTML = createPageLayout({
       title: "Errore",
       content: createCard({
@@ -34,7 +32,6 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 SE GIÀ COMPLETATO → VAI HOME
   if (dipendente.profilo_completato) {
     window.location.hash = "#/home";
     return;
@@ -44,54 +41,82 @@ export async function render(container) {
 
   <div style="max-width:900px;margin:auto;width:100%;">
 
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin-bottom:20px;
-      flex-wrap:wrap;
-    ">
-      <div>
-        <div style="font-size:13px;color:#6b7280;">Onboarding</div>
-        <div style="font-size:22px;font-weight:700;">Completa il tuo profilo</div>
-      </div>
-    </div>
-
     <form id="profilo-form">
 
       <div class="crea-grid">
 
         <!-- DATI PERSONALI -->
         <div class="card">
-
-          <div style="font-weight:700;margin-bottom:12px;">
-            Dati personali
-          </div>
-
-          <div class="form-group">
-            <label>Nome</label>
-            <input class="input" value="${dipendente.nome || ""}" disabled>
-          </div>
-
-          <div class="form-group">
-            <label>Cognome</label>
-            <input class="input" value="${dipendente.cognome || ""}" disabled>
-          </div>
+          <div style="font-weight:700;margin-bottom:12px;">Dati personali</div>
 
           <div class="form-group">
             <label>Telefono</label>
             <input id="telefono" class="input" value="${dipendente.telefono || ""}">
           </div>
 
+          <div class="form-group">
+            <label>Data nascita</label>
+            <input id="data_nascita" type="date" class="input" value="${dipendente.data_nascita || ""}">
+          </div>
+
+          <div class="form-group">
+            <label>Luogo nascita</label>
+            <input id="luogo_nascita" class="input" value="${dipendente.luogo_nascita || ""}">
+          </div>
+
+          <div class="form-group">
+            <label>Codice fiscale</label>
+            <input id="codice_fiscale" class="input" value="${dipendente.codice_fiscale || ""}">
+          </div>
+
         </div>
 
-        <!-- OBIETTIVI -->
+        <!-- RESIDENZA -->
         <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Residenza</div>
 
-          <div style="font-weight:700;margin-bottom:12px;">
-            Obiettivi
+          <div class="form-group">
+            <label>Indirizzo</label>
+            <input id="indirizzo" class="input" value="${dipendente.indirizzo || ""}">
           </div>
+
+          <div class="form-group">
+            <label>Città / Residenza</label>
+            <input id="residenza" class="input" value="${dipendente.residenza || ""}">
+          </div>
+
+        </div>
+
+        <!-- DATI BANCARI -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Dati bancari</div>
+
+          <div class="form-group">
+            <label>IBAN</label>
+            <input id="iban" class="input" value="${dipendente.iban || ""}">
+          </div>
+
+        </div>
+
+        <!-- CONTATTO EMERGENZA -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Contatto emergenza</div>
+
+          <div class="form-group">
+            <label>Nome</label>
+            <input id="em_nome" class="input" value="${dipendente.contatto_emergenza_nome || ""}">
+          </div>
+
+          <div class="form-group">
+            <label>Telefono</label>
+            <input id="em_tel" class="input" value="${dipendente.contatto_emergenza_telefono || ""}">
+          </div>
+
+        </div>
+
+        <!-- AI -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Crescita</div>
 
           <div class="form-group">
             <label>Obiettivi personali</label>
@@ -103,23 +128,14 @@ export async function render(container) {
             <textarea id="obiettivi_professionali" class="input"></textarea>
           </div>
 
-        </div>
-
-        <!-- CRESCITA -->
-        <div class="card">
-
-          <div style="font-weight:700;margin-bottom:12px;">
-            Crescita
-          </div>
-
           <div class="form-group">
             <label>Tipo crescita</label>
-            <input id="tipo_crescita" class="input" placeholder="es. tecnica / manageriale">
+            <input id="tipo_crescita" class="input">
           </div>
 
           <div class="form-group">
             <label>Ruolo target</label>
-            <input id="ruolo_target" class="input" placeholder="es. responsabile cucina">
+            <input id="ruolo_target" class="input">
           </div>
 
         </div>
@@ -127,38 +143,31 @@ export async function render(container) {
       </div>
 
       <div style="margin-top:20px;">
-        <button class="app-button primary" id="btn-submit" style="width:100%;">
+        <button class="app-button primary" id="btn-save" style="width:100%;">
           Completa profilo
         </button>
       </div>
 
     </form>
 
-    <div id="msg"
-      style="margin-top:14px;color:#dc2626;font-size:14px;">
-    </div>
+    <div id="msg" style="margin-top:14px;"></div>
 
   </div>
-
   `;
 
   container.innerHTML = createPageLayout({
-    title: "Completa Profilo",
-    subtitle: "Onboarding dipendente",
+    title: "Completa profilo",
+    subtitle: "Inserisci i tuoi dati",
     content: createCard({ body: content })
   });
 
   const form = document.getElementById("profilo-form");
   const msg = document.getElementById("msg");
-  const btn = document.getElementById("btn-submit");
+  const btn = document.getElementById("btn-save");
 
   form.addEventListener("submit", async (e) => {
 
     e.preventDefault();
-
-    msg.textContent = "";
-
-    const telefono = document.getElementById("telefono").value.trim();
 
     const profilo_ai = {
       obiettivi_personali: document.getElementById("obiettivi_personali").value,
@@ -168,38 +177,33 @@ export async function render(container) {
     };
 
     btn.disabled = true;
-    btn.textContent = "Salvataggio...";
+    btn.innerText = "Salvataggio...";
 
-    try {
+    const { error } = await supabase
+      .from("dipendenti")
+      .update({
+        telefono: document.getElementById("telefono").value,
+        data_nascita: document.getElementById("data_nascita").value,
+        luogo_nascita: document.getElementById("luogo_nascita").value,
+        codice_fiscale: document.getElementById("codice_fiscale").value,
+        indirizzo: document.getElementById("indirizzo").value,
+        residenza: document.getElementById("residenza").value,
+        iban: document.getElementById("iban").value,
+        contatto_emergenza_nome: document.getElementById("em_nome").value,
+        contatto_emergenza_telefono: document.getElementById("em_tel").value,
+        profilo_ai,
+        profilo_completato: true
+      })
+      .eq("id", dipendente.id);
 
-      const { error } = await supabase
-        .from("dipendenti")
-        .update({
-          telefono,
-          profilo_ai,
-          profilo_completato: true
-        })
-        .eq("id", dipendente.id);
-
-      if (error) throw error;
-
-      msg.style.color = "#16a34a";
-      msg.textContent = "Profilo completato ✔";
-
-      setTimeout(() => {
-        window.location.hash = "#/home";
-      }, 800);
-
-    } catch (err) {
-
-      console.error(err);
-      msg.textContent = err.message || "Errore salvataggio";
-
+    if (error) {
+      msg.innerHTML = "<span style='color:red;'>Errore salvataggio</span>";
       btn.disabled = false;
-      btn.textContent = "Completa profilo";
-
+      btn.innerText = "Completa profilo";
+      return;
     }
 
+    window.location.hash = "#/home";
   });
 
 }
