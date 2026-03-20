@@ -17,23 +17,11 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 carico reparti reali
-  const { data: reparti } = await supabase
-    .from("reparti")
-    .select("id,nome")
-    .eq("azienda_id", azienda.id)
-    .eq("attivo", true)
-    .order("sort_order");
-
-  const repartiOptions = (reparti || [])
-    .map(r => `<option value="${r.id}">${r.nome}</option>`)
-    .join("");
-
   container.innerHTML = `
 
   <div class="view">
 
-    <div style="max-width:700px;margin:auto;width:100%;">
+    <div style="max-width:600px;margin:auto;width:100%;">
 
       <div style="margin-bottom:20px;">
         <h2 style="margin:0;">Nuovo dipendente</h2>
@@ -66,28 +54,15 @@ export async function render(container) {
           <label>Ruolo *</label>
           <select id="ruolo" class="input">
             <option value="">Seleziona</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
             <option value="operatore">Operatore</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Reparto *</label>
-          <select id="reparto" class="input">
-            <option value="">Seleziona reparto</option>
-            ${repartiOptions}
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Mansione</label>
           <input id="mansione" class="input" placeholder="es. pizzaiolo">
-        </div>
-
-        <div class="form-group">
-          <label>Foto</label>
-          <input type="file" id="foto" accept="image/*" class="input">
         </div>
 
       </div>
@@ -117,11 +92,9 @@ export async function render(container) {
     const email = document.getElementById("email").value.trim();
     const telefono = document.getElementById("telefono").value.trim();
     const ruolo = document.getElementById("ruolo").value;
-    const reparto_id = document.getElementById("reparto").value;
     const mansione = document.getElementById("mansione").value.trim();
-    const file = document.getElementById("foto").files[0];
 
-    if (!nome || !cognome || !email || !ruolo || !reparto_id) {
+    if (!nome || !cognome || !email || !ruolo) {
       msg.innerHTML = "<span style='color:#dc2626;'>Compila i campi obbligatori</span>";
       return;
     }
@@ -129,27 +102,8 @@ export async function render(container) {
     btn.disabled = true;
     btn.innerText = "Invio...";
 
-    let foto_url = null;
-
     try {
 
-      // 🔥 upload foto (opzionale)
-      if (file) {
-        const fileName = `dipendenti/${Date.now()}_${file.name}`;
-
-        const { error: uploadError } = await supabase.storage
-  .from("Avatar")
-  .upload(fileName, file);
-
-if (!uploadError) {
-  const { data } = supabase.storage
-    .from("Avatar")
-    .getPublicUrl(fileName);
-
-  foto_url = data.publicUrl;
-}
-
-      // 🔥 chiama edge
       const res = await fetch(
         "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invite-dipendente",
         {
@@ -165,9 +119,7 @@ if (!uploadError) {
             telefono,
             ruolo,
             mansione,
-            reparto_id,
-            azienda_id: azienda.id,
-            foto_url
+            azienda_id: azienda.id
           })
         }
       );
