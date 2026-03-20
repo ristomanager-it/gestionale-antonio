@@ -138,17 +138,16 @@ export async function render(container) {
         const fileName = `dipendenti/${Date.now()}_${file.name}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, file);
+  .from("Avatar")
+  .upload(fileName, file);
 
-        if (!uploadError) {
-          const { data } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(fileName);
+if (!uploadError) {
+  const { data } = supabase.storage
+    .from("Avatar")
+    .getPublicUrl(fileName);
 
-          foto_url = data.publicUrl;
-        }
-      }
+  foto_url = data.publicUrl;
+}
 
       // 🔥 chiama edge
       const res = await fetch(
