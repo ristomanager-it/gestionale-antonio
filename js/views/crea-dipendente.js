@@ -17,58 +17,88 @@ export async function render(container) {
     return;
   }
 
+  // 🔥 carico reparti reali
+  const { data: reparti } = await supabase
+    .from("reparti")
+    .select("id,nome")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("sort_order");
+
+  const repartiOptions = (reparti || [])
+    .map(r => `<option value="${r.id}">${r.nome}</option>`)
+    .join("");
+
   container.innerHTML = `
 
   <div class="view">
 
-    <div class="login-wrapper">
+    <div style="max-width:700px;margin:auto;width:100%;">
 
-      <div class="login-logo-wrap">
-        <img src="assets/favicon-192.png" class="login-logo">
+      <div style="margin-bottom:20px;">
+        <h2 style="margin:0;">Nuovo dipendente</h2>
+        <div class="small-muted">Invita un membro del team</div>
       </div>
 
-      <h2 class="login-title">Nuovo dipendente</h2>
+      <div class="card">
 
-      <div class="login-subtitle">
-        Inserisci i dati per invitare un nuovo membro del team
+        <div class="form-group">
+          <label>Nome *</label>
+          <input id="nome" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>Cognome *</label>
+          <input id="cognome" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>Email *</label>
+          <input id="email" class="input" type="email">
+        </div>
+
+        <div class="form-group">
+          <label>Telefono</label>
+          <input id="telefono" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>Ruolo *</label>
+          <select id="ruolo" class="input">
+            <option value="">Seleziona</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="operatore">Operatore</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Reparto *</label>
+          <select id="reparto" class="input">
+            <option value="">Seleziona reparto</option>
+            ${repartiOptions}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Mansione</label>
+          <input id="mansione" class="input" placeholder="es. pizzaiolo">
+        </div>
+
+        <div class="form-group">
+          <label>Foto</label>
+          <input type="file" id="foto" accept="image/*" class="input">
+        </div>
+
       </div>
 
-      <div class="form-group">
-        <label>Nome *</label>
-        <input id="nome" class="input">
-      </div>
-
-      <div class="form-group">
-        <label>Cognome *</label>
-        <input id="cognome" class="input">
-      </div>
-
-      <div class="form-group">
-        <label>Email *</label>
-        <input id="email" class="input" type="email">
-      </div>
-
-      <div class="form-group">
-        <label>Telefono</label>
-        <input id="telefono" class="input">
-      </div>
-
-      <div class="form-group">
-        <label>Ruolo *</label>
-        <select id="ruolo" class="input">
-          <option value="">Seleziona</option>
-          <option value="operatore">Operatore</option>
-          <option value="manager">Manager</option>
-        </select>
-      </div>
-
-      <div class="form-actions">
-        <button id="crea" class="app-button primary">
+      <div style="margin-top:20px;">
+        <button id="crea" class="app-button primary" style="width:100%;">
           Invia invito
         </button>
       </div>
 
-      <div id="msg" class="form-result"></div>
+      <div id="msg" style="margin-top:14px;"></div>
 
     </div>
 
@@ -87,19 +117,42 @@ export async function render(container) {
     const email = document.getElementById("email").value.trim();
     const telefono = document.getElementById("telefono").value.trim();
     const ruolo = document.getElementById("ruolo").value;
+    const reparto_id = document.getElementById("reparto").value;
+    const mansione = document.getElementById("mansione").value.trim();
+    const file = document.getElementById("foto").files[0];
 
-    if (!nome || !cognome || !email || !ruolo) {
-      msg.innerHTML = "<span class='error-text'>Compila i campi obbligatori</span>";
+    if (!nome || !cognome || !email || !ruolo || !reparto_id) {
+      msg.innerHTML = "<span style='color:#dc2626;'>Compila i campi obbligatori</span>";
       return;
     }
 
     btn.disabled = true;
-    btn.innerText = "Invio in corso...";
+    btn.innerText = "Invio...";
+
+    let foto_url = null;
 
     try {
 
+      // 🔥 upload foto (opzionale)
+      if (file) {
+        const fileName = `dipendenti/${Date.now()}_${file.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, file);
+
+        if (!uploadError) {
+          const { data } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(fileName);
+
+          foto_url = data.publicUrl;
+        }
+      }
+
+      // 🔥 chiama edge
       const res = await fetch(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
+        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invite-dipendente",
         {
           method: "POST",
           headers: {
@@ -112,8 +165,10 @@ export async function render(container) {
             email,
             telefono,
             ruolo,
-            sede_id: sedeId,
-            azienda_id: azienda.id
+            mansione,
+            reparto_id,
+            azienda_id: azienda.id,
+            foto_url
           })
         }
       );
@@ -124,7 +179,7 @@ export async function render(container) {
         throw new Error(data.error || "Errore invito");
       }
 
-      msg.innerHTML = "<span class='success-text'>Invito inviato</span>";
+      msg.innerHTML = "<span style='color:#16a34a;'>Invito inviato ✔</span>";
 
       setTimeout(() => {
         window.location.hash = "#/dipendenti";
@@ -132,7 +187,7 @@ export async function render(container) {
 
     } catch (err) {
 
-      msg.innerHTML = "<span class='error-text'>" + err.message + "</span>";
+      msg.innerHTML = "<span style='color:#dc2626;'>" + err.message + "</span>";
 
       btn.disabled = false;
       btn.innerText = "Invia invito";
