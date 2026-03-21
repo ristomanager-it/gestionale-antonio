@@ -2,6 +2,10 @@ import { supabase } from "../supabaseClient.js";
 
 export async function render(container){
 
+// 🔥 NASCONDE HEADER E TOPBAR
+document.querySelector(".app-header")?.style.setProperty("display","none")
+document.querySelector(".topbar-global")?.style.setProperty("display","none")
+
 container.innerHTML=`
 
 <div class="login-page">
@@ -127,6 +131,10 @@ return
 if(window.stateActions?.setUser){
 window.stateActions.setUser(data.user)
 }
+
+// 🔥 RIPRISTINA HEADER E TOPBAR
+document.querySelector(".app-header")?.style.removeProperty("display")
+document.querySelector(".topbar-global")?.style.removeProperty("display")
 
 window.location.hash="#/home"
 
