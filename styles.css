@@ -145,24 +145,30 @@ border-radius:2px;
 }
 
 /* =========================================================
-TOPBAR INTELLIGENTE (NUOVA)
+❌ BLOCCA DEFINITIVAMENTE VECCHIA TOPBAR
 ========================================================= */
 
 .topbar-info{
+display:none !important;
+}
+
+/* =========================================================
+✅ NUOVA TOPBAR GLOBALE
+========================================================= */
+
+.topbar-global{
 
 position:fixed;
-
-top:calc(var(--header-height));
+top:var(--header-height);
 left:50%;
-
 transform:translateX(-50%);
 
 width:94%;
 max-width:1100px;
 
-height:32px;
+height:34px;
 
-background:linear-gradient(90deg, var(--color-primary-dark), var(--color-primary));
+background:linear-gradient(90deg,#0A4A64,#0E5A7A);
 
 border-radius:12px;
 
@@ -172,15 +178,13 @@ justify-content:space-between;
 
 padding:0 12px;
 
-color:#fff;
-
+color:white;
 font-size:12px;
 font-weight:600;
 
 box-shadow:0 4px 10px rgba(0,0,0,0.15);
 
 z-index:900;
-
 }
 
 .topbar-left{
@@ -195,6 +199,7 @@ gap:10px;
 align-items:center;
 opacity:0.9;
 }
+
 /* =========================================================
 APP ROOT
 ========================================================= */
@@ -202,7 +207,7 @@ APP ROOT
 #app{
 width:100%;
 padding:var(--app-padding-y) var(--app-padding-x);
-padding-top:calc(var(--header-height) + 44px);
+padding-top:calc(var(--header-height) + 50px);
 display:flex;
 justify-content:center;
 background:linear-gradient(
@@ -407,7 +412,7 @@ pointer-events:auto;
 #app{
 padding-left:10px;
 padding-right:10px;
-padding-top:calc(var(--header-height) + 16px);
+padding-top:calc(var(--header-height) + 50px);
 }
 
 .view{
