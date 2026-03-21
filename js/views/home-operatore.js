@@ -34,18 +34,7 @@ export async function render(container) {
 
   <div class="view operatore-home-new">
 
-    <!-- HEADER -->
-    <div class="op-header">
-      <div>
-        <div class="saluto" id="home-saluto"></div>
-        <div class="utente">${user?.email || ""}</div>
-      </div>
-
-      <div class="header-right">
-        <div id="home-data"></div>
-        <div id="home-weather">☁️</div>
-      </div>
-    </div>
+  
 
     <!-- STATO GIORNATA -->
     <div class="card stato-card">
