@@ -1,8 +1,9 @@
 export async function render(container){
 
-  const ruolo = window.state?.ruolo
+  // 🔥 RUOLO CORRETTO (supporto viewAs per superadmin)
+  const ruolo = window.state?.viewAs || window.state?.ruolo
 
-  // 👑 ADMIN → dashboard completa
+  // 👑 ADMIN / SUPERADMIN
   if(ruolo === "admin" || ruolo === "superadmin"){
     const mod = await import("./home-admin.js")
     return mod.render(container)
@@ -20,5 +21,11 @@ export async function render(container){
     return mod.render(container)
   }
 
-  container.innerHTML = "Ruolo non gestito"
+  // ⚠️ FALLBACK
+  container.innerHTML = `
+    <div class="view">
+      <h3>Ruolo non gestito</h3>
+      <p>Controlla configurazione utente</p>
+    </div>
+  `
 }
