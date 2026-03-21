@@ -19,7 +19,7 @@ export async function render(container){
 
       </div>
 
-      ${renderFooter()}
+      ${await renderFooter()}
 
     </div>
 
@@ -37,9 +37,7 @@ export async function render(container){
         padding-bottom:80px;
       }
 
-      .home-header{
-        margin-bottom:16px;
-      }
+      .home-header{margin-bottom:16px;}
 
       .role-badge{
         display:inline-block;
@@ -65,18 +63,28 @@ export async function render(container){
       }
 
       .tony-item{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:8px;
         font-size:14px;
-        margin-bottom:6px;
       }
 
       .tony-item.correzione{color:#dc2626;font-weight:600;}
       .tony-item.incitamento{color:#2563eb;}
       .tony-item.positivo{color:#16a34a;}
 
-      .grid{
-        display:grid;
-        gap:12px;
+      .tony-action{
+        background:#111827;
+        color:white;
+        border:none;
+        padding:6px 10px;
+        border-radius:6px;
+        cursor:pointer;
+        font-size:12px;
       }
+
+      .grid{display:grid;gap:12px;}
 
       .card{
         background:white;
@@ -114,7 +122,15 @@ export async function render(container){
       }
 
       .footer-item{text-align:center;font-size:12px;cursor:pointer;}
-      .footer-icon{font-size:18px;}
+      .footer-icon{font-size:18px;position:relative;}
+      .badge{
+        position:absolute;
+        width:8px;
+        height:8px;
+        background:#dc2626;
+        border-radius:50%;
+        margin-left:2px;
+      }
     </style>
   `
 
@@ -142,7 +158,7 @@ function renderHeader(ruolo){
 
 
 // =====================================
-// 🧠 TONY AVANZATO
+// 🧠 TONY DECISIONALE
 // =====================================
 
 async function loadTony(ruolo){
@@ -153,11 +169,10 @@ async function loadTony(ruolo){
   if(!aziendaId) return
 
   let insights = []
+  const today = new Date().toISOString().slice(0,10)
 
-  // 👨‍🍳 OPERATORE
+  // OPERATORE
   if(ruolo === "operatore"){
-
-    const today = new Date().toISOString().slice(0,10)
 
     const { data } = await supabase
       .from("timbrature")
@@ -170,12 +185,15 @@ async function loadTony(ruolo){
 
       insights.push({
         tone:"correzione",
-        text:"Non hai ancora timbrato il turno"
+        text:"Non hai ancora timbrato il turno",
+        action:"timbrature",
+        actionLabel:"Timbra ora"
       })
 
       insights.push({
         tone:"incitamento",
-        text:"Inizia subito il turno per evitare problemi"
+        text:"Inizia subito il turno",
+        action:"timbrature"
       })
 
     }else{
@@ -189,10 +207,8 @@ async function loadTony(ruolo){
 
   }
 
-  // 👨‍💼 MANAGER
+  // MANAGER
   if(ruolo === "manager"){
-
-    const today = new Date().toISOString().slice(0,10)
 
     const { data } = await supabase
       .from("turni")
@@ -204,12 +220,15 @@ async function loadTony(ruolo){
 
       insights.push({
         tone:"correzione",
-        text:"Nessun turno assegnato oggi"
+        text:"Nessun turno assegnato oggi",
+        action:"turni",
+        actionLabel:"Assegna turni"
       })
 
       insights.push({
         tone:"incitamento",
-        text:"Assegna subito il personale"
+        text:"Organizza il personale ora",
+        action:"dipendenti"
       })
 
     }else{
@@ -249,11 +268,19 @@ function renderTony(insights){
       ${insights.map(i => `
         <div class="tony-item ${i.tone}">
           ${getIcon(i.tone)} ${i.text}
+
+          ${i.action ? `
+            <button class="tony-action" data-action="${i.action}">
+              ${i.actionLabel || "Apri"}
+            </button>
+          ` : ""}
         </div>
       `).join("")}
 
     </div>
   `
+
+  bindTonyActions()
 }
 
 function getIcon(tone){
@@ -265,25 +292,39 @@ function getIcon(tone){
 
 
 // =====================================
+// ACTIONS
+// =====================================
+
+function bindTonyActions(){
+
+  document.querySelectorAll(".tony-action").forEach(btn => {
+
+    btn.onclick = () => {
+
+      const route = btn.dataset.action
+
+      window.state.tonyContext = route
+
+      if(window.router?.go){
+        window.router.go(route)
+      }else{
+        window.location.hash = "#/" + route
+      }
+
+    }
+
+  })
+
+}
+
+
+// =====================================
 // ROLE UI
 // =====================================
 
 function renderByRole(ruolo){
 
-  if(ruolo === "operatore") return renderOperatore()
-  if(ruolo === "manager") return renderManager()
-  if(ruolo === "admin" || ruolo === "superadmin") return renderAdmin()
-
-  return `<div>Ruolo non gestito</div>`
-}
-
-
-// =====================================
-// UI RUOLI
-// =====================================
-
-function renderOperatore(){
-  return `
+  if(ruolo === "operatore") return `
     <div class="grid">
       <div class="card">
         <div class="card-title">Turno</div>
@@ -291,10 +332,8 @@ function renderOperatore(){
       </div>
     </div>
   `
-}
 
-function renderManager(){
-  return `
+  if(ruolo === "manager") return `
     <div class="grid">
       <div class="card">
         <div class="card-title">Servizi</div>
@@ -302,9 +341,7 @@ function renderManager(){
       </div>
     </div>
   `
-}
 
-function renderAdmin(){
   return `
     <div class="grid">
       <div class="card">
