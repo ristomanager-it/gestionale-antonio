@@ -1,6 +1,6 @@
 // js/views/home-piattaforma.js
 // =======================================
-// HOME PIATTAFORMA – SUPERADMIN + SWITCH AZIENDA
+// HOME PIATTAFORMA – SWITCH AZIENDA UI PRO
 // =======================================
 
 export async function render(container) {
@@ -19,33 +19,21 @@ export async function render(container) {
 
       <!-- HEADER -->
       <div class="header">
-
         <div>
           <h2>Ristoflow – Piattaforma</h2>
           <p class="sub">Gestione SaaS e aziende</p>
         </div>
 
         <div class="header-actions">
-
-          ${ruolo === "superadmin" ? `
-          <div class="view-switch">
-            <button id="view-admin" class="active">Admin</button>
-            <button id="view-manager">Manager</button>
-            <button id="view-operatore">Operatore</button>
-          </div>
-          ` : ""}
-
           <button id="btn-logout" class="logout">Esci</button>
-
         </div>
-
       </div>
 
       <!-- AZIENDA ATTIVA -->
       <div class="azienda-attiva">
         <div>
           <div class="label">Azienda attiva</div>
-          <div class="title">${azienda?.nome || "Nessuna selezionata"}</div>
+          <div class="title">${azienda?.nome || "Nessuna"}</div>
         </div>
 
         <button id="btn-switch-azienda" class="switch-btn">
@@ -60,7 +48,6 @@ export async function render(container) {
           <div>
             <div class="label">Provisioning</div>
             <div class="title">Crea Azienda</div>
-            <div class="desc">Nuovo cliente</div>
           </div>
           <div class="icon">➕</div>
         </div>
@@ -69,18 +56,8 @@ export async function render(container) {
           <div>
             <div class="label">Clienti</div>
             <div class="title">Gestione Aziende</div>
-            <div class="desc">Controllo completo</div>
           </div>
           <div class="icon">🏢</div>
-        </div>
-
-        <div class="card" data-route="gestionePiani">
-          <div>
-            <div class="label">SaaS</div>
-            <div class="title">Piani</div>
-            <div class="desc">Abbonamenti</div>
-          </div>
-          <div class="icon">🧩</div>
         </div>
 
         <div class="card dark" id="enter-operativo">
@@ -91,30 +68,44 @@ export async function render(container) {
           <div class="icon">🧪</div>
         </div>
 
-        <div class="card blue" id="tony">
-          <div>
-            <div class="label">AI</div>
-            <div class="title">Tony SaaS</div>
-          </div>
-          <div class="icon">🤖</div>
-        </div>
-
       </div>
 
-      <!-- TONY OUTPUT -->
-      <div id="tony-output" class="tony-box"></div>
+      <!-- MODALE -->
+      <div id="azienda-modal" class="modal hidden">
+        <div class="modal-box">
+
+          <div class="modal-header">
+            <div>Seleziona Azienda</div>
+            <button id="close-modal">✖</button>
+          </div>
+
+          <input 
+            id="search-azienda"
+            placeholder="Cerca azienda..."
+            class="search"
+          />
+
+          <div id="azienda-list" class="list"></div>
+
+        </div>
+      </div>
 
     </div>
 
     <style>
       .piattaforma{padding:16px;}
-      .header{display:flex;justify-content:space-between;margin-bottom:20px;}
+
+      .header{
+        display:flex;
+        justify-content:space-between;
+        margin-bottom:20px;
+      }
+
       .sub{color:#6b7280;font-size:13px;}
 
       .azienda-attiva{
         display:flex;
         justify-content:space-between;
-        align-items:center;
         background:white;
         padding:14px;
         border-radius:12px;
@@ -139,26 +130,59 @@ export async function render(container) {
       .card{
         background:white;
         padding:20px;
-        border-radius:18px;
-        cursor:pointer;
+        border-radius:16px;
         display:flex;
         justify-content:space-between;
+        cursor:pointer;
       }
 
       .card.dark{background:#111827;color:white;}
-      .card.blue{background:#0ea5e9;color:white;}
 
-      .label{font-size:12px;opacity:0.7;}
-      .title{font-weight:700;margin-top:6px;}
-      .desc{font-size:12px;opacity:0.7;}
+      .modal{
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.4);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+      }
 
-      .icon{font-size:24px;}
+      .hidden{display:none;}
 
-      .tony-box{
-        margin-top:20px;
+      .modal-box{
         background:white;
-        padding:14px;
-        border-radius:12px;
+        width:400px;
+        max-height:80vh;
+        border-radius:14px;
+        padding:16px;
+        overflow:auto;
+      }
+
+      .modal-header{
+        display:flex;
+        justify-content:space-between;
+        margin-bottom:10px;
+      }
+
+      .search{
+        width:100%;
+        padding:10px;
+        border-radius:8px;
+        border:1px solid #ddd;
+        margin-bottom:10px;
+      }
+
+      .list-item{
+        padding:10px;
+        border-bottom:1px solid #eee;
+        cursor:pointer;
+      }
+
+      .list-item:hover{
+        background:#f3f4f6;
       }
     </style>
   `;
@@ -180,114 +204,117 @@ function bindEvents(){
     }
   })
 
-  document.getElementById("btn-logout")?.onclick = async ()=>{
+  document.getElementById("btn-logout").onclick = async ()=>{
     await window.supabaseClient.auth.signOut()
     window.state = {}
     window.location.hash = "#/login"
   }
 
-  bindView("view-admin","admin")
-  bindView("view-manager","manager")
-  bindView("view-operatore","operatore")
-
-  document.getElementById("enter-operativo")?.onclick = ()=>{
+  document.getElementById("enter-operativo").onclick = ()=>{
     window.location.hash = "#/home"
   }
 
-  document.getElementById("btn-switch-azienda")?.onclick = openAziendaSelector
+  document.getElementById("btn-switch-azienda").onclick = openModal
+  document.getElementById("close-modal").onclick = closeModal
 
-  document.getElementById("tony")?.onclick = runTony
+  document.getElementById("search-azienda").oninput = filterAziende
+
+  loadAziende()
 
 }
 
 
 // =========================================
-// VIEW SWITCH
+// MODAL
 // =========================================
 
-function bindView(id, ruolo){
-  const el = document.getElementById(id)
-  if(!el) return
+function openModal(){
+  document.getElementById("azienda-modal").classList.remove("hidden")
+}
 
-  el.onclick=()=>{
-    window.state.viewAs = ruolo
-    window.location.hash = "#/home"
-  }
+function closeModal(){
+  document.getElementById("azienda-modal").classList.add("hidden")
 }
 
 
 // =========================================
-// SWITCH AZIENDA REALE
+// LOAD AZIENDE
 // =========================================
 
-async function openAziendaSelector(){
+let aziendeCache = []
+
+async function loadAziende(){
 
   const supabase = window.supabaseClient
   const user = window.state.user
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("utenti_aziende")
     .select("azienda_id, aziende(nome)")
     .eq("user_id", user.id)
 
-  if(error){
-    alert("Errore caricamento aziende")
-    return
-  }
+  aziendeCache = data || []
 
-  const list = data || []
+  renderLista(aziendeCache)
 
-  const scelta = prompt(
-    "Seleziona azienda:\n\n" +
-    list.map((a,i)=> `${i+1}. ${a.aziende?.nome}`).join("\n")
-  )
-
-  const index = parseInt(scelta) - 1
-
-  if(!list[index]) return
-
-  const selected = list[index]
-
-  // 🔥 CAMBIO CONTESTO
-  window.state.azienda = {
-    id: selected.azienda_id,
-    nome: selected.aziende?.nome
-  }
-
-  // 🔥 RICARICA APP
-  window.location.reload()
 }
 
 
 // =========================================
-// TONY
+// RENDER LISTA
 // =========================================
 
-async function runTony(){
+function renderLista(list){
 
-  const box = document.getElementById("tony-output")
+  const container = document.getElementById("azienda-list")
 
-  box.innerHTML = "Tony sta analizzando..."
+  container.innerHTML = list.map(a => `
+    <div class="list-item" data-id="${a.azienda_id}">
+      ${a.aziende?.nome || "Senza nome"}
+    </div>
+  `).join("")
 
-  try{
+  container.querySelectorAll(".list-item").forEach(el=>{
+    el.onclick = () => selectAzienda(el.dataset.id)
+  })
 
-    const { data } = await window.supabaseClient.functions.invoke(
-      "assistente-ai-piattaforma",
-      {
-        body:{
-          azienda_id: window.state.azienda.id,
-          messages:[{role:"user",content:"Analisi SaaS"}]
-        }
-      }
-    )
+}
 
-    box.innerHTML = (data?.reply || "Nessun dato")
-      .split("\n")
-      .map(l=>`<div>• ${l}</div>`)
-      .join("")
 
-  }catch{
-    box.innerHTML = "Errore Tony"
+// =========================================
+// FILTER
+// =========================================
+
+function filterAziende(e){
+
+  const q = e.target.value.toLowerCase()
+
+  const filtered = aziendeCache.filter(a =>
+    (a.aziende?.nome || "").toLowerCase().includes(q)
+  )
+
+  renderLista(filtered)
+
+}
+
+
+// =========================================
+// SELECT AZIENDA
+// =========================================
+
+function selectAzienda(id){
+
+  const azienda = aziendeCache.find(a => a.azienda_id === id)
+
+  if(!azienda) return
+
+  window.state.azienda = {
+    id: azienda.azienda_id,
+    nome: azienda.aziende?.nome
   }
+
+  localStorage.setItem("azienda_attiva", JSON.stringify(window.state.azienda))
+
+  window.location.reload()
 
 }
