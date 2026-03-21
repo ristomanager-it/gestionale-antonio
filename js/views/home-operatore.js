@@ -6,7 +6,6 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
-  // 💣 BLOCCO SEDE
   if (!window.state?.sedeAttiva) {
     window.location.hash = "#/prehome-sedi";
     return;
@@ -17,7 +16,6 @@ export async function render(container) {
   let servizioOggi = null;
 
   try {
-
     const { data } = await supabase
       .from("servizi")
       .select("*")
@@ -32,10 +30,10 @@ export async function render(container) {
 
   container.innerHTML = `
 
-  <div class="view operatore-home">
+  <div class="view operatore-home-new">
 
-    <div class="header">
-
+    <!-- HEADER MINIMALE -->
+    <div class="op-header">
       <div>
         <div class="saluto" id="home-saluto"></div>
         <div class="utente">${user?.email || ""}</div>
@@ -45,109 +43,115 @@ export async function render(container) {
         <div id="home-data"></div>
         <div id="home-weather">☁️</div>
       </div>
-
     </div>
 
-    <div class="grid">
-
-      <div class="card big" onclick="location.hash='#/timbrature'">
-        ⏱ Timbratura
+    <!-- STATO GIORNATA -->
+    <div class="card stato-card">
+      <div class="card-title">📅 Oggi</div>
+      <div class="card-sub">
+        ${servizioOggi ? servizioOggi.tipo_servizio : "Nessun servizio programmato"}
       </div>
-
-      <div class="card">
-        <div class="card-title">Servizio oggi</div>
-        <div class="card-sub">
-          ${servizioOggi ? servizioOggi.tipo_servizio : "Nessun servizio"}
-        </div>
-      </div>
-
-      <div class="card" onclick="location.hash='#/produzione'">
-        <div class="card-title">Produzioni</div>
-        <div class="card-sub">Preparazioni</div>
-      </div>
-
-      <div class="card" onclick="location.hash='#/permessi'">
-        <div class="card-title">Permessi e ferie</div>
-        <div class="card-sub">Richiedi / controlla</div>
-      </div>
-
     </div>
 
-    <!-- 💣 TONY AVATAR -->
-    <div class="tony-avatar" onclick="location.hash='#/ai'">
-      🤖
+    <!-- TASK GIORNALIERI -->
+    <div class="card">
+      <div class="card-title">📋 I tuoi compiti</div>
+
+      <div class="task">✔ Timbra ingresso</div>
+      <div class="task">✔ Controlla preparazioni</div>
+      <div class="task">✔ Verifica servizio</div>
+    </div>
+
+    <!-- TONY -->
+    <div class="card tony-card">
+      <div class="card-title">🤖 Tony</div>
+      <div class="card-sub">
+        Oggi servizio ${servizioOggi?.tipo_servizio || "standard"}.  
+        Controlla le preparazioni prima del servizio.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER OPERATIVO -->
+  <div class="operatore-footer">
+
+    <div class="footer-item" onclick="location.hash='#/timbrature'">
+      ⏱
+      <span>Timbratura</span>
+    </div>
+
+    <div class="footer-item">
+      🍽
+      <span>Servizio</span>
+    </div>
+
+    <div class="footer-item" onclick="location.hash='#/produzione'">
+      🍳
+      <span>Prep</span>
+    </div>
+
+    <div class="footer-item" onclick="location.hash='#/permessi'">
+      📅
+      <span>Permessi</span>
     </div>
 
   </div>
 
   <style>
 
-  .header{
+  .operatore-home-new{
+    padding-bottom:90px;
+  }
+
+  .op-header{
     display:flex;
     justify-content:space-between;
-    margin-bottom:20px;
+    margin-bottom:16px;
   }
 
-  .saluto{
-    font-size:22px;
-    font-weight:800;
+  .task{
+    font-size:14px;
+    padding:6px 0;
   }
 
-  .utente{
-    font-size:13px;
-    color:#6b7280;
+  .stato-card{
+    background:#f0f9ff;
   }
 
-  .header-right{
-    text-align:right;
-    font-size:13px;
+  .tony-card{
+    background:#eef2ff;
   }
 
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:12px;
-  }
-
-  .card{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.05);
-  }
-
-  .big{
-    font-size:18px;
-    font-weight:700;
-    text-align:center;
-  }
-
-  .card-title{
-    font-weight:700;
-  }
-
-  .card-sub{
-    font-size:12px;
-    color:#6b7280;
-  }
-
-  /* 💣 TONY FLOATING */
-  .tony-avatar{
+  /* FOOTER */
+  .operatore-footer{
     position:fixed;
-    right:18px;
-    bottom:90px;
-    width:56px;
-    height:56px;
-    border-radius:50%;
-    background:#0ea5e9;
-    color:white;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:70px;
+
+    background:white;
+    border-top:1px solid #e5e7eb;
+
     display:flex;
+    justify-content:space-around;
     align-items:center;
-    justify-content:center;
-    font-size:24px;
+
+    z-index:1000;
+  }
+
+  .footer-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    font-size:12px;
     cursor:pointer;
-    box-shadow:0 10px 24px rgba(0,0,0,0.25);
-    z-index:50;
+  }
+
+  .footer-item span{
+    font-size:11px;
+    margin-top:2px;
   }
 
   </style>
@@ -158,15 +162,15 @@ export async function render(container) {
 
 }
 
-function initHeader(){
+/* HEADER */
 
+function initHeader(){
   const salutoBox = document.getElementById("home-saluto");
   const dataBox = document.getElementById("home-data");
 
   const ora = new Date().getHours();
 
   let saluto = "Buongiorno";
-
   if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
   if (ora >= 18) saluto = "Buonasera";
 
@@ -178,27 +182,19 @@ function initHeader(){
     month:"long",
     year:"numeric"
   });
-
 }
 
 async function hydrateWeather(){
-
   const box = document.getElementById("home-weather");
-
   if(!box) return;
 
   try{
-
     const res = await fetch(
       `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
     );
-
     const data = await res.json();
-
     box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
-
   }catch{
     box.innerHTML = "☁️";
   }
-
 }
