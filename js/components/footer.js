@@ -1,81 +1,69 @@
 export function renderFooter(){
 
-const ruolo = window.state?.viewAs || window.state?.ruolo
+  const ruolo = window.state?.viewAs || window.state?.ruolo
 
-let items = []
+  const footerConfig = {
+    operatore: [
+      {icon:"⏱", label:"Timbratura", route:"timbrature"},
+      {icon:"🍽", label:"Servizio", route:"servizi"},
+      {icon:"🍳", label:"Prep", route:"produzione"},
+      {icon:"📅", label:"Permessi", route:"permessi"}
+    ],
 
-// ==========================
-// OPERATORE
-// ==========================
-if(ruolo === "operatore"){
+    manager: [
+      {icon:"📊", label:"Servizi", route:"servizi"},
+      {icon:"👥", label:"Personale", route:"dipendenti"},
+      {icon:"📅", label:"Turni", route:"turni"},
+      {icon:"🍳", label:"Produzione", route:"produzione"}
+    ],
 
-items = [
-  {icon:"⏱", label:"Timbratura", route:"timbrature"},
-  {icon:"🍽", label:"Servizio", route:"servizi"},
-  {icon:"🍳", label:"Prep", route:"produzione"},
-  {icon:"📅", label:"Permessi", route:"permessi"}
-]
+    admin: [
+      {icon:"📊", label:"Dashboard", route:"home"},
+      {icon:"💰", label:"Margini", route:"margini"},
+      {icon:"⚙️", label:"Costi", route:"costi"},
+      {icon:"📈", label:"KPI", route:"kpi"}
+    ]
+  }
 
-}
+  const items = footerConfig[ruolo] || []
 
-// ==========================
-// MANAGER
-// ==========================
-if(ruolo === "manager"){
+  return `
+    <div class="app-footer">
 
-items = [
-  {icon:"📊", label:"Servizi", route:"servizi"},
-  {icon:"👥", label:"Staff", route:"dipendenti"},
-  {icon:"🍳", label:"Produzione", route:"produzione"},
-  {icon:"⏱", label:"Presenze", route:"timbrature"}
-]
+      ${items.map(i => `
+        <div class="footer-item" data-route="${i.route}">
+          <div class="footer-icon">${i.icon}</div>
+          <div class="footer-label">${i.label}</div>
+        </div>
+      `).join("")}
 
-}
-
-// ==========================
-// ADMIN
-// ==========================
-if(ruolo === "admin"){
-
-items = [
-  {icon:"💰", label:"KPI", route:"home"},
-  {icon:"📦", label:"Magazzino", route:"magazzino"},
-  {icon:"📊", label:"Vendite", route:"venduto"},
-  {icon:"⚙️", label:"Costi", route:"costi"}
-]
-
-}
-
-return `
-<div class="app-footer">
-
-  ${items.map(i => `
-    <div class="footer-item" data-route="${i.route}">
-      <div class="footer-icon">${i.icon}</div>
-      <div class="footer-label">${i.label}</div>
     </div>
-  `).join("")}
-
-</div>
-`
-
+  `
 }
 
-// 🔥 INIT CLICK (IMPORTANTISSIMO)
+
+// =====================================
+// INIT
+// =====================================
+
 export function initFooter(){
 
-document.querySelectorAll(".footer-item").forEach(el => {
+  document.querySelectorAll(".footer-item").forEach(el => {
 
-  el.addEventListener("click", () => {
+    el.addEventListener("click", () => {
 
-    const route = el.dataset.route
+      const route = el.dataset.route
+      if(!route) return
 
-    if(!route) return
+      // 🔥 ROUTER CORRETTO
+      if(window.router?.go){
+        window.router.go(route)
+      }else{
+        window.location.hash = "#/" + route
+      }
 
-    window.location.hash = "#/" + route
+    })
 
   })
-
-})
 
 }
