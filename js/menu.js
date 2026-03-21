@@ -49,10 +49,23 @@ export function initMenu() {
   }
 
   // ======================================================
-  // 🔥 MENU CONFIG (PERMESSI!)
+  // 🔥 MENU CONFIG
   // ======================================================
 
+  const isSuperadmin = window.state?.isSuperadmin === true || window.state?.ruolo === "superadmin"
+
   const MENU = [
+
+    // 🔥 PIATTAFORMA (SOLO SUPERADMIN)
+    ...(isSuperadmin ? [{
+      title:"PIATTAFORMA",
+      items:[
+        {label:"Dashboard SaaS", route:"home-piattaforma"},
+        {label:"Gestione Aziende", route:"gestioneAziende"},
+        {label:"Crea Azienda", route:"creaAzienda"},
+        {label:"Piani Abbonamento", route:"gestionePiani"}
+      ]
+    }] : []),
 
     {
       title:"GENERALE",
@@ -115,8 +128,6 @@ export function initMenu() {
   // ======================================================
 
   function filterMenu(){
-
-    const isSuperadmin = window.state?.isSuperadmin === true
 
     return MENU.map(section => {
 
@@ -201,6 +212,10 @@ export function initMenu() {
       menu.appendChild(sectionBox)
 
     })
+
+    // ================================
+    // LOGOUT
+    // ================================
 
     const logout = document.createElement("div")
     logout.className = "menu-logout"
