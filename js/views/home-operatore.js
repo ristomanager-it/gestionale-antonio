@@ -1,4 +1,5 @@
 import { renderFooter, initFooter } from "../components/footer.js"
+
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
 export async function render(container) {
@@ -29,15 +30,22 @@ export async function render(container) {
 
   } catch(e){}
 
-  container.innerHTML += renderFooter()
-
-initFooter()
+  container.innerHTML = `
 
   <div class="view operatore-home-new">
 
-  
+    <div class="op-header">
+      <div>
+        <div class="saluto" id="home-saluto"></div>
+        <div class="utente">${user?.email || ""}</div>
+      </div>
 
-    <!-- STATO GIORNATA -->
+      <div class="header-right">
+        <div id="home-data"></div>
+        <div id="home-weather">☁️</div>
+      </div>
+    </div>
+
     <div class="card stato-card">
       <div class="card-title">📅 Oggi</div>
       <div class="card-sub">
@@ -45,7 +53,6 @@ initFooter()
       </div>
     </div>
 
-    <!-- TASK -->
     <div class="card">
       <div class="card-title">📋 I tuoi compiti</div>
 
@@ -54,7 +61,6 @@ initFooter()
       <div class="task">✔ Verifica servizio</div>
     </div>
 
-    <!-- TONY -->
     <div class="card tony-card">
       <div class="card-title">🤖 Tony</div>
       <div class="card-sub">
@@ -66,7 +72,6 @@ initFooter()
   </div>
 
   <style>
-
   .operatore-home-new{
     padding-bottom:90px;
   }
@@ -89,15 +94,15 @@ initFooter()
   .tony-card{
     background:#eef2ff;
   }
-
   </style>
   `;
 
+  // 🔥 FOOTER DOPO IL RENDER
   container.innerHTML += renderFooter();
+  initFooter();
 
   initHeader();
   hydrateWeather();
-
 }
 
 /* HEADER */
@@ -112,14 +117,16 @@ function initHeader(){
   if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
   if (ora >= 18) saluto = "Buonasera";
 
-  salutoBox.innerText = saluto;
+  if(salutoBox) salutoBox.innerText = saluto;
 
-  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
-    weekday:"long",
-    day:"numeric",
-    month:"long",
-    year:"numeric"
-  });
+  if(dataBox){
+    dataBox.innerText = new Date().toLocaleDateString("it-IT", {
+      weekday:"long",
+      day:"numeric",
+      month:"long",
+      year:"numeric"
+    });
+  }
 }
 
 async function hydrateWeather(){
