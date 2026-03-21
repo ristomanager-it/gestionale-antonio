@@ -2,224 +2,209 @@ import { getTonyInsights } from "../ai/tony-service.js"
 
 export async function render(container) {
 
-  const user = window.state?.user
-  const ruolo = window.state?.ruolo
-
   container.innerHTML = `
-    <div class="view home-ai">
+    <div class="home">
+
+      <div id="home-header"></div>
 
       <div id="home-tony"></div>
 
-      <div id="home-stato"></div>
-
-      <div id="home-alert"></div>
-
       <div id="home-kpi"></div>
 
-      <div id="home-azioni"></div>
+      <div id="home-actions"></div>
 
     </div>
 
     <style>
-      .home-ai{
-        display:flex;
-        flex-direction:column;
-        gap:14px;
+      .home{padding:16px;display:flex;flex-direction:column;gap:14px;}
+
+      .header{
+        background:#0E5A7A;
+        color:white;
         padding:16px;
+        border-radius:14px;
       }
 
       .card{
         background:white;
-        border-radius:14px;
-        padding:16px;
-        box-shadow:0 4px 12px rgba(0,0,0,0.05);
+        padding:14px;
+        border-radius:12px;
       }
 
-      .card-title{
-        font-weight:800;
-        margin-bottom:6px;
-      }
-
-      .alert{
-        color:#dc2626;
-        font-weight:700;
-      }
-
-      .action{
-        cursor:pointer;
+      .actions div{
         padding:10px;
-        border-radius:10px;
         background:#eef2f7;
+        border-radius:8px;
         margin-top:6px;
-      }
-
-      .tony-item{
-        margin-top:6px;
+        cursor:pointer;
       }
     </style>
   `
 
-  await renderTony()
-  renderStato()
-  renderAlert()
+  renderHeader()
+  renderTonyFast()
   renderKPI()
-  renderAzioni()
+  renderActions()
 
+  loadTonyAsync()
 }
 
 
-// ======================================================
-// 🤖 TONY (REALE)
-// ======================================================
+// =======================================
+// HEADER
+// =======================================
 
-async function renderTony(){
+function renderHeader(){
 
-  const box = document.getElementById("home-tony")
+  const nome = window.state?.user?.email || "Utente"
+  const now = new Date()
 
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">Tony</div>
-      <div id="tony-list">Caricamento...</div>
+  const data = now.toLocaleDateString("it-IT", {
+    weekday:"long",
+    day:"numeric",
+    month:"long"
+  })
+
+  document.getElementById("home-header").innerHTML = `
+    <div class="header">
+      <div style="font-size:18px;font-weight:700;">
+        Ciao ${nome.split("@")[0]} 👋
+      </div>
+      <div style="margin-top:6px;">
+        ${data}
+      </div>
+      <div style="margin-top:6px;font-size:13px;">
+        ☀️ Meteo in caricamento...
+      </div>
     </div>
   `
+}
 
-  const list = document.getElementById("tony-list")
+
+// =======================================
+// TONY FAST
+// =======================================
+
+function renderTonyFast(){
+
+  const ruolo = window.state?.ruolo
+
+  let msg = "Sistema operativo pronto"
+
+  if(ruolo === "manager"){
+    msg = "Controlla operatività e vendite oggi"
+  }
+
+  if(ruolo === "operatore"){
+    msg = "Hai attività operative assegnate"
+  }
+
+  if(ruolo === "admin"){
+    msg = "Controlla margini e costi"
+  }
+
+  document.getElementById("home-tony").innerHTML = `
+    <div class="card">
+      <b>Tony</b>
+      <div id="tony-msg">${msg}</div>
+    </div>
+  `
+}
+
+
+// =======================================
+// TONY ASYNC
+// =======================================
+
+async function loadTonyAsync(){
 
   try{
-
     const insights = await getTonyInsights()
-
-    if(!insights.length){
-      list.innerHTML = "Nessun insight disponibile"
-      return
-    }
-
-    list.innerHTML = insights.map(i => `
-      <div class="tony-item">
-        • ${i.message}
-      </div>
-    `).join("")
-
+    if(!insights.length) return
+    document.getElementById("tony-msg").innerText = insights[0].message
   }catch(e){
     console.error(e)
-    list.innerHTML = "Errore caricamento Tony"
   }
+
 }
 
 
-// ======================================================
-// 📊 STATO GIORNATA
-// ======================================================
-
-function renderStato(){
-
-  const box = document.getElementById("home-stato")
-
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">Oggi</div>
-      <div>Operatività in corso</div>
-    </div>
-  `
-}
-
-
-// ======================================================
-// 🚨 ALERT
-// ======================================================
-
-function renderAlert(){
-
-  const box = document.getElementById("home-alert")
-
-  let alerts = []
-
-  if(window.hasPermesso("price_alert.read")){
-    alerts.push("Anomalia prezzo materie prime")
-  }
-
-  if(window.hasPermesso("fatture.validate")){
-    alerts.push("Fatture da validare")
-  }
-
-  if(window.hasPermesso("magazzino.read")){
-    alerts.push("Controlla giacenze basse")
-  }
-
-  if(!alerts.length){
-    box.innerHTML = ""
-    return
-  }
-
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">Alert</div>
-      ${alerts.map(a => `<div class="alert">${a}</div>`).join("")}
-    </div>
-  `
-}
-
-
-// ======================================================
-// 📈 KPI
-// ======================================================
+// =======================================
+// KPI (LOGICA RUOLI)
+// =======================================
 
 function renderKPI(){
 
-  const box = document.getElementById("home-kpi")
+  const ruolo = window.state?.ruolo
 
-  if(!window.hasPermesso("report.read")){
-    box.innerHTML = ""
+  // 👨‍💼 MANAGER → SOLO VENDITE
+  if(ruolo === "manager"){
+    document.getElementById("home-kpi").innerHTML = `
+      <div class="card">
+        <b>Vendite oggi</b>
+        <div>€ 1.200</div>
+      </div>
+    `
     return
   }
 
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">KPI</div>
-      <div>Caricamento dati...</div>
-    </div>
-  `
+  // 👑 ADMIN → COMPLETO
+  if(ruolo === "admin" || ruolo === "superadmin"){
+    document.getElementById("home-kpi").innerHTML = `
+      <div class="card">
+        <b>KPI</b>
+        <div>Vendite: € 1.200</div>
+        <div>Margine: € 320</div>
+        <div>Costi: € 880</div>
+      </div>
+    `
+    return
+  }
+
+  // 👤 OPERATORE → niente KPI
+  document.getElementById("home-kpi").innerHTML = ""
 }
 
 
-// ======================================================
-// ⚡ AZIONI
-// ======================================================
+// =======================================
+// AZIONI
+// =======================================
 
-function renderAzioni(){
+function renderActions(){
 
-  const box = document.getElementById("home-azioni")
-
+  const ruolo = window.state?.ruolo
   const actions = []
 
-  if(window.hasPermesso("fatture.create")){
-    actions.push({ label:"Carica fattura", route:"fatture" })
+  // 👨‍💼 MANAGER → operativo
+  if(ruolo === "manager"){
+    actions.push({label:"Produzione", route:"produzione"})
+    actions.push({label:"Fatture", route:"fatture"})
+    actions.push({label:"Team", route:"dipendenti"})
   }
 
-  if(window.hasPermesso("acquisti.create")){
-    actions.push({ label:"Nuovo acquisto", route:"acquisti" })
+  // 👑 ADMIN → tutto
+  if(ruolo === "admin" || ruolo === "superadmin"){
+    actions.push({label:"Fatture", route:"fatture"})
+    actions.push({label:"Acquisti", route:"acquisti"})
+    actions.push({label:"Dipendenti", route:"dipendenti"})
   }
 
-  if(window.hasPermesso("produzione.read")){
-    actions.push({ label:"Vai in produzione", route:"produzione" })
-  }
-
-  if(window.hasPermesso("dipendenti.read")){
-    actions.push({ label:"Gestisci dipendenti", route:"dipendenti" })
+  // 👤 OPERATORE
+  if(ruolo === "operatore"){
+    actions.push({label:"Produzione", route:"produzione"})
+    actions.push({label:"Timbratura", route:"timbratura"})
   }
 
   if(!actions.length){
-    box.innerHTML = ""
+    document.getElementById("home-actions").innerHTML = ""
     return
   }
 
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">Azioni rapide</div>
-      ${actions.map(a => `
-        <div class="action" onclick="location.hash='#/${a.route}'">
-          ${a.label}
-        </div>
+  document.getElementById("home-actions").innerHTML = `
+    <div class="card actions">
+      <b>Azioni</b>
+      ${actions.map(a=>`
+        <div onclick="location.hash='#/${a.route}'">${a.label}</div>
       `).join("")}
     </div>
   `
