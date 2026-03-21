@@ -445,6 +445,10 @@ background:rgba(255,255,255,0.05);
 --card-padding:12px;
 }
 
+/* =========================
+APP
+========================= */
+
 #app{
 padding-left:10px;
 padding-right:10px;
@@ -458,20 +462,12 @@ border-radius:14px;
 .card{
 border-radius:14px;
 }
-/* =========================================================
-LOGIN CENTER FIX
-========================================================= */
 
-.login-view{
-min-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-}
-/* =========================================================
-LOGIN CLEAN UI
-========================================================= */
+/* =========================
+LOGIN (FIX COMPLETO)
+========================= */
 
+/* sfondo fullscreen */
 .login-page{
 position:fixed;
 top:0;
@@ -483,40 +479,59 @@ display:flex;
 align-items:center;
 justify-content:center;
 
+/* 🔥 blu notte */
 background:linear-gradient(
 180deg,
-var(--color-bg-app) 0%,
-var(--color-bg-app-soft) 100%
+#0A2540 0%,
+#0E5A7A 100%
 );
 
 z-index:2000;
 }
 
+/* modal */
 .login-box{
 width:100%;
 max-width:320px;
-padding:20px;
+
+background:var(--color-card);
+border-radius:18px;
+
+padding:22px 18px;
+
 display:flex;
 flex-direction:column;
 gap:12px;
+
+box-shadow:0 20px 40px rgba(0,0,0,0.25);
 }
 
+/* logo */
 .login-logo-wrap{
 display:flex;
 justify-content:center;
-margin-bottom:10px;
+margin-bottom:6px;
 }
 
 .login-logo{
-width:70px;
-height:70px;
+width:90px;
+height:90px;
 }
 
+/* form */
+.login-form{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+/* bottone */
 .login-btn{
 width:100%;
 margin-top:6px;
 }
 
+/* reset */
 .login-reset{
 text-align:center;
 margin-top:6px;
@@ -528,4 +543,6 @@ border:none;
 color:var(--color-primary);
 cursor:pointer;
 font-size:13px;
+}
+
 }
