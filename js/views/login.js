@@ -4,76 +4,63 @@ export async function render(container){
 
 container.innerHTML=`
 
-<div class="view login-view">
+<div class="login-page">
 
-<div class="login-wrapper">
+  <div class="login-box">
 
-<div class="login-logo-wrap">
-<img src="assets/favicon-192.png" class="login-logo">
-</div>
+    <div class="login-logo-wrap">
+      <img src="assets/favicon-192.png" class="login-logo">
+    </div>
 
-<h2 class="login-title">Accesso</h2>
+    <div class="form-group">
+      <input 
+        id="login-email" 
+        class="input" 
+        type="email" 
+        placeholder="Email"
+      >
+    </div>
 
-<div class="login-subtitle">
-Accedi al tuo gestionale
-</div>
+    <div class="form-group">
 
-<div class="form-group">
-<label>Email</label>
-<input 
-id="login-email" 
-class="input" 
-type="email" 
-placeholder="email@azienda.it"
->
-</div>
+      <div style="position:relative;">
+        <input 
+          id="login-password" 
+          class="input" 
+          type="password" 
+          placeholder="Password"
+        >
 
-<div class="form-group">
-<label>Password</label>
+        <span id="toggle-password"
+        style="
+        position:absolute;
+        right:10px;
+        top:50%;
+        transform:translateY(-50%);
+        cursor:pointer;
+        font-size:14px;
+        color:#6b7280;
+        ">
+        👁
+        </span>
 
-<div style="position:relative;">
-<input 
-id="login-password" 
-class="input" 
-type="password" 
-placeholder="••••••••"
->
+      </div>
 
-<span id="toggle-password"
-style="
-position:absolute;
-right:10px;
-top:50%;
-transform:translateY(-50%);
-cursor:pointer;
-font-size:14px;
-color:#6b7280;
-">
-👁
-</span>
-</div>
+    </div>
 
-</div>
+    <button id="login-btn" class="app-button primary login-btn">
+      Accedi
+    </button>
 
-<div class="form-actions">
-<button id="login-btn" class="app-button primary">
-Accedi
-</button>
-</div>
+    <div id="login-msg" class="form-result"></div>
 
-<div id="login-msg" class="form-result"></div>
+    <div class="login-reset">
+      <button id="reset-btn" class="login-reset-btn">
+        Recupera accesso
+      </button>
+    </div>
 
-<div class="login-reset">
-
-Password dimenticata?
-
-<button id="reset-btn" class="login-reset-btn">
-Recupera accesso
-</button>
-
-</div>
-
-</div>
+  </div>
 
 </div>
 
@@ -94,7 +81,6 @@ const toggle=document.getElementById("toggle-password")
 btn.onclick=doLogin
 reset.onclick=resetPassword
 
-// 👁 toggle password
 toggle.onclick=()=>{
 
 const input=document.getElementById("login-password")
@@ -112,9 +98,7 @@ toggle.innerText="👁"
 document
 .getElementById("login-password")
 .addEventListener("keydown",(e)=>{
-
 if(e.key==="Enter") doLogin()
-
 })
 
 }
@@ -136,10 +120,8 @@ password
 })
 
 if(error){
-
 msg.innerHTML="<span class='error-text'>"+error.message+"</span>"
 return
-
 }
 
 if(window.stateActions?.setUser){
@@ -158,10 +140,8 @@ const email=document.getElementById("login-email").value.trim()
 const msg=document.getElementById("login-msg")
 
 if(!email){
-
 msg.innerHTML="<span class='error-text'>Inserisci prima la tua email</span>"
 return
-
 }
 
 msg.innerHTML="Invio email..."
@@ -171,12 +151,10 @@ redirectTo:window.location.origin+"#/set-password"
 })
 
 if(error){
-
 msg.innerHTML="<span class='error-text'>"+error.message+"</span>"
 return
-
 }
 
-msg.innerHTML="<span class='success-text'>Email inviata ✔ Controlla la posta</span>"
+msg.innerHTML="<span class='success-text'>Email inviata ✔</span>"
 
 }
