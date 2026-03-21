@@ -7,6 +7,8 @@ export async function render(container) {
 
       <div id="home-header"></div>
 
+      <div id="home-kpi"></div>
+
       <div id="home-tony"></div>
 
       <div id="home-main"></div>
@@ -14,25 +16,39 @@ export async function render(container) {
     </div>
 
     <style>
-      .home{padding:16px;display:flex;flex-direction:column;gap:14px;}
+      .home{
+        padding:10px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+      }
 
       .header{
-        background:#0E5A7A;
-        color:white;
-        padding:16px;
-        border-radius:14px;
+        padding:6px 2px;
       }
 
       .card{
         background:white;
-        padding:14px;
+        padding:12px;
         border-radius:12px;
       }
 
-      .item{
-        padding:10px;
-        background:#eef2f7;
+      .kpi-big{
+        font-size:22px;
+        font-weight:700;
+      }
+
+      .chart{
+        margin-top:10px;
+        height:120px;
+        background:linear-gradient(to top, #0ea5e9, #67e8f9);
         border-radius:8px;
+      }
+
+      .item{
+        padding:12px;
+        background:#f3f4f6;
+        border-radius:10px;
         margin-top:6px;
         cursor:pointer;
       }
@@ -40,6 +56,7 @@ export async function render(container) {
   `
 
   renderHeader()
+  renderKPI()
   renderTonyFast()
   renderMain()
 
@@ -48,7 +65,7 @@ export async function render(container) {
 
 
 // =======================================
-// HEADER (SALUTO + DATA)
+// HEADER (MINIMALE)
 // =======================================
 
 function renderHeader(){
@@ -67,11 +84,8 @@ function renderHeader(){
       <div style="font-size:18px;font-weight:700;">
         Ciao ${nome.split("@")[0]} 👋
       </div>
-      <div style="margin-top:6px;">
-        ${data}
-      </div>
-      <div style="margin-top:6px;font-size:13px;">
-        ☀️ Meteo in caricamento...
+      <div style="font-size:13px;color:#6b7280;">
+        ${data} • ☀️ --
       </div>
     </div>
   `
@@ -79,25 +93,74 @@ function renderHeader(){
 
 
 // =======================================
-// TONY FAST
+// KPI (MANAGER + ADMIN)
+// =======================================
+
+function renderKPI(){
+
+  const ruolo = window.state?.ruolo
+  const box = document.getElementById("home-kpi")
+
+  // 👨‍💼 MANAGER → KPI OPERATIVO + GRAFICO
+  if(ruolo === "manager"){
+
+    box.innerHTML = `
+      <div class="card">
+
+        <div class="kpi-big">120 coperti oggi</div>
+        <div style="font-size:13px;color:#6b7280;">
+          Servizio in linea
+        </div>
+
+        <div class="chart"></div>
+
+      </div>
+    `
+    return
+  }
+
+  // 👑 ADMIN → ECONOMICO
+  if(ruolo === "admin" || ruolo === "superadmin"){
+
+    box.innerHTML = `
+      <div class="card">
+
+        <div class="kpi-big">€ 1.200 vendite</div>
+        <div style="font-size:13px;color:#6b7280;">
+          Margine € 320
+        </div>
+
+        <div class="chart"></div>
+
+      </div>
+    `
+    return
+  }
+
+  box.innerHTML = ""
+}
+
+
+// =======================================
+// TONY
 // =======================================
 
 function renderTonyFast(){
 
   const ruolo = window.state?.ruolo
 
-  let msg = "Sistema operativo pronto"
+  let msg = "Sistema pronto"
 
   if(ruolo === "manager"){
-    msg = "Controlla servizio, turni e personale"
+    msg = "Controlla servizio e personale"
   }
 
   if(ruolo === "operatore"){
-    msg = "Hai attività operative assegnate"
+    msg = "Hai attività assegnate"
   }
 
   if(ruolo === "admin"){
-    msg = "Controlla margini e costi"
+    msg = "Controlla andamento costi"
   }
 
   document.getElementById("home-tony").innerHTML = `
@@ -109,25 +172,18 @@ function renderTonyFast(){
 }
 
 
-// =======================================
-// TONY ASYNC
-// =======================================
-
 async function loadTonyAsync(){
 
   try{
     const insights = await getTonyInsights()
     if(!insights.length) return
     document.getElementById("tony-msg").innerText = insights[0].message
-  }catch(e){
-    console.error(e)
-  }
-
+  }catch(e){}
 }
 
 
 // =======================================
-// MAIN LOGICA RUOLI
+// MAIN
 // =======================================
 
 function renderMain(){
@@ -135,85 +191,35 @@ function renderMain(){
   const ruolo = window.state?.ruolo
   const box = document.getElementById("home-main")
 
-  // 👨‍💼 MANAGER
   if(ruolo === "manager"){
 
     box.innerHTML = `
       <div class="card">
         <b>Operatività</b>
 
-        <div class="item" onclick="location.hash='#/dipendenti'">
-          Gestione personale
-        </div>
-
-        <div class="item" onclick="location.hash='#/turni'">
-          Turni
-        </div>
-
-        <div class="item" onclick="location.hash='#/prenotazioni'">
-          Prenotazioni
-        </div>
-
-        <div class="item" onclick="location.hash='#/produzione'">
-          Produzione
-        </div>
+        <div class="item" onclick="location.hash='#/dipendenti'">Personale</div>
+        <div class="item" onclick="location.hash='#/turni'">Turni</div>
+        <div class="item" onclick="location.hash='#/prenotazioni'">Prenotazioni</div>
+        <div class="item" onclick="location.hash='#/produzione'">Produzione</div>
 
       </div>
     `
     return
   }
 
-  // 👑 ADMIN
-  if(ruolo === "admin" || ruolo === "superadmin"){
-
-    box.innerHTML = `
-      <div class="card">
-        <b>Controllo economico</b>
-
-        <div>Margine: € 320</div>
-        <div>Costi: € 880</div>
-        <div>Vendite: € 1.200</div>
-
-      </div>
-
-      <div class="card">
-        <b>Azioni</b>
-
-        <div class="item" onclick="location.hash='#/fatture'">
-          Fatture
-        </div>
-
-        <div class="item" onclick="location.hash='#/acquisti'">
-          Acquisti
-        </div>
-
-        <div class="item" onclick="location.hash='#/dipendenti'">
-          Dipendenti
-        </div>
-
-      </div>
-    `
-    return
-  }
-
-  // 👤 OPERATORE
   if(ruolo === "operatore"){
 
     box.innerHTML = `
       <div class="card">
         <b>Operatività</b>
 
-        <div class="item" onclick="location.hash='#/produzione'">
-          Produzione
-        </div>
-
-        <div class="item" onclick="location.hash='#/timbratura'">
-          Timbratura
-        </div>
+        <div class="item" onclick="location.hash='#/produzione'">Produzione</div>
+        <div class="item" onclick="location.hash='#/timbratura'">Timbratura</div>
 
       </div>
     `
     return
   }
 
+  box.innerHTML = ""
 }
