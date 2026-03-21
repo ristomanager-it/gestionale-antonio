@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
+import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
@@ -202,6 +203,9 @@ window.hasPermesso = hasPermission;
 function setHeaderVisible(visible) {
   const header = document.querySelector(".app-header");
   if (header) header.style.display = visible ? "flex" : "none";
+
+  const topbar = document.getElementById("topbar-info");
+  if (topbar) topbar.style.display = visible ? "flex" : "none";
 }
 
 function getStoredAziendaId() {
@@ -631,6 +635,8 @@ async function resolve() {
     window.menuController.refresh();
   }
 
+  initTopbar();
+
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
@@ -748,6 +754,7 @@ window.addEventListener("hashchange", resolve);
 window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
   initMenu();
+  initTopbar();
 
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
