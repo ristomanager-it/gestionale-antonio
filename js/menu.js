@@ -49,8 +49,12 @@ export function initMenu() {
   }
 
   // ======================================================
-  // 🔥 FUNZIONE DINAMICA (IMPORTANTE)
+  // 🔥 RUOLO ATTIVO
   // ======================================================
+
+  function getRuoloAttivo(){
+    return window.state?.viewAs || window.state?.ruolo
+  }
 
   function isSuperadmin(){
     return window.state?.ruolo === "superadmin"
@@ -61,6 +65,8 @@ export function initMenu() {
   // ======================================================
 
   function getMenu(){
+
+    const ruolo = getRuoloAttivo()
 
     return [
 
@@ -84,76 +90,14 @@ export function initMenu() {
       {
         title:"OPERATIVO",
         items:[
-          {label:"Produzione", route:"produzione", perm:"produzione.read"},
-          {label:"Magazzino", route:"magazzino", perm:"magazzino.read"},
-          {label:"Ricettario", route:"ricettario", perm:"ricette.read"},
-          {label:"Preparazioni", route:"preparazioni", perm:"produzione.read"}
-        ]
-      },
-
-      {
-        title:"AMMINISTRAZIONE",
-        items:[
-          {label:"Acquisti", route:"acquisti", perm:"acquisti.read"},
-          {label:"Fatture", route:"fatture", perm:"fatture.create"},
-          {label:"Dipendenti", route:"dipendenti", perm:"dipendenti.read"},
-          {label:"Timbrature", route:"timbrature", perm:"timbrature.read"},
-          {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
-          {label:"Preventivi", route:"preventivi", perm:"preventivi.read"}
-        ]
-      },
-
-      {
-        title:"GESTIONE",
-        items:[
-          {label:"Venduto", route:"venduto", perm:"venduto.read"},
-          {label:"Margini", route:"margini", perm:"report.read"}
-        ]
-      },
-
-      {
-        title:"MARKETING",
-        items:[
-          {label:"Campagne", route:"marketing", perm:"marketing.read"}
-        ]
-      },
-
-      {
-        title:"PERSONALE",
-        items:[
-          {label:"Timbratura", route:"timbratura", perm:"timbrature.create"},
-          {label:"Programma lavoro", route:"programma", perm:"turni.read"},
-          {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
-          {label:"Documenti", route:"documenti", perm:"documenti.read"}
+          {label:"Produzione", route:"produzione"},
+          {label:"Magazzino", route:"magazzino"},
+          {label:"Ricettario", route:"ricettario"},
+          {label:"Preparazioni", route:"preparazioni"}
         ]
       }
 
     ]
-  }
-
-  // ======================================================
-  // 🔥 FILTRO
-  // ======================================================
-
-  function filterMenu(){
-
-    const MENU = getMenu()
-
-    return MENU.map(section => {
-
-      const filteredItems = section.items.filter(item => {
-        if(!item.perm) return true
-        if(isSuperadmin()) return true
-        return window.hasPermesso(item.perm)
-      })
-
-      return {
-        ...section,
-        items: filteredItems
-      }
-
-    }).filter(section => section.items.length > 0)
-
   }
 
   // ======================================================
@@ -164,9 +108,9 @@ export function initMenu() {
 
     menu.innerHTML = ""
 
-    const structure = filterMenu()
+    const struttura = getMenu()
 
-    structure.forEach(section => {
+    struttura.forEach(section => {
 
       const sectionBox = document.createElement("div")
       sectionBox.className = "menu-section"
@@ -181,6 +125,9 @@ export function initMenu() {
 
       const itemsBox = document.createElement("div")
       itemsBox.className = "menu-subitems"
+
+      // 🔥 FORZA CHIUSURA INIZIALE
+      itemsBox.classList.remove("open")
 
       section.items.forEach(item => {
 
@@ -199,8 +146,9 @@ export function initMenu() {
 
       title.onclick = () => {
 
-        const opened = itemsBox.classList.contains("open")
+        const isOpen = itemsBox.classList.contains("open")
 
+        // chiudi tutto
         document.querySelectorAll(".menu-subitems").forEach(el=>{
           el.classList.remove("open")
         })
@@ -209,7 +157,8 @@ export function initMenu() {
           el.style.transform = "rotate(0deg)"
         })
 
-        if(!opened){
+        // apri solo se era chiuso
+        if(!isOpen){
           itemsBox.classList.add("open")
           title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
         }
@@ -222,18 +171,6 @@ export function initMenu() {
       menu.appendChild(sectionBox)
 
     })
-
-    const logout = document.createElement("div")
-    logout.className = "menu-logout"
-    logout.innerText = "Logout"
-
-    logout.onclick = () => {
-      if(window.router?.logout){
-        window.router.logout()
-      }
-    }
-
-    menu.appendChild(logout)
 
   }
 
@@ -258,15 +195,10 @@ export function initMenu() {
 
   overlay.onclick = closeMenu
 
-  // 🔥 IMPORTANTISSIMO
   window.menuController = {
     refresh: renderMenu,
     open: openMenu,
     close: closeMenu
-  }
-
-  if(window.initNotificheRealtime){
-    window.initNotificheRealtime()
   }
 
 }
