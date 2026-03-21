@@ -145,13 +145,56 @@ border-radius:2px;
 }
 
 /* =========================================================
-🔥 DISATTIVA SOTTOHEADER
+TOPBAR INTELLIGENTE (NUOVA)
 ========================================================= */
 
 .topbar-info{
-display:none !important;
+
+position:fixed;
+
+top:calc(var(--header-height));
+left:50%;
+
+transform:translateX(-50%);
+
+width:94%;
+max-width:1100px;
+
+height:32px;
+
+background:linear-gradient(90deg, var(--color-primary-dark), var(--color-primary));
+
+border-radius:12px;
+
+display:flex;
+align-items:center;
+justify-content:space-between;
+
+padding:0 12px;
+
+color:#fff;
+
+font-size:12px;
+font-weight:600;
+
+box-shadow:0 4px 10px rgba(0,0,0,0.15);
+
+z-index:900;
+
 }
 
+.topbar-left{
+display:flex;
+gap:8px;
+align-items:center;
+}
+
+.topbar-right{
+display:flex;
+gap:10px;
+align-items:center;
+opacity:0.9;
+}
 /* =========================================================
 APP ROOT
 ========================================================= */
