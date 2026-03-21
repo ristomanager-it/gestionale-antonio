@@ -1,3 +1,5 @@
+import { renderFooter } from "../components/footer.js";
+
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
 export async function render(container) {
@@ -32,7 +34,7 @@ export async function render(container) {
 
   <div class="view operatore-home-new">
 
-    <!-- HEADER MINIMALE -->
+    <!-- HEADER -->
     <div class="op-header">
       <div>
         <div class="saluto" id="home-saluto"></div>
@@ -53,7 +55,7 @@ export async function render(container) {
       </div>
     </div>
 
-    <!-- TASK GIORNALIERI -->
+    <!-- TASK -->
     <div class="card">
       <div class="card-title">📋 I tuoi compiti</div>
 
@@ -66,34 +68,9 @@ export async function render(container) {
     <div class="card tony-card">
       <div class="card-title">🤖 Tony</div>
       <div class="card-sub">
-        Oggi servizio ${servizioOggi?.tipo_servizio || "standard"}.  
+        Oggi servizio ${servizioOggi?.tipo_servizio || "standard"}.
         Controlla le preparazioni prima del servizio.
       </div>
-    </div>
-
-  </div>
-
-  <!-- FOOTER OPERATIVO -->
-  <div class="operatore-footer">
-
-    <div class="footer-item" onclick="location.hash='#/timbrature'">
-      ⏱
-      <span>Timbratura</span>
-    </div>
-
-    <div class="footer-item">
-      🍽
-      <span>Servizio</span>
-    </div>
-
-    <div class="footer-item" onclick="location.hash='#/produzione'">
-      🍳
-      <span>Prep</span>
-    </div>
-
-    <div class="footer-item" onclick="location.hash='#/permessi'">
-      📅
-      <span>Permessi</span>
     </div>
 
   </div>
@@ -123,39 +100,10 @@ export async function render(container) {
     background:#eef2ff;
   }
 
-  /* FOOTER */
-  .operatore-footer{
-    position:fixed;
-    bottom:0;
-    left:0;
-    width:100%;
-    height:70px;
-
-    background:white;
-    border-top:1px solid #e5e7eb;
-
-    display:flex;
-    justify-content:space-around;
-    align-items:center;
-
-    z-index:1000;
-  }
-
-  .footer-item{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    font-size:12px;
-    cursor:pointer;
-  }
-
-  .footer-item span{
-    font-size:11px;
-    margin-top:2px;
-  }
-
   </style>
   `;
+
+  container.innerHTML += renderFooter();
 
   initHeader();
   hydrateWeather();
