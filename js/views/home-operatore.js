@@ -1,5 +1,4 @@
-import { renderFooter } from "../components/footer.js";
-
+import { renderFooter, initFooter } from "../components/footer.js"
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
 export async function render(container) {
