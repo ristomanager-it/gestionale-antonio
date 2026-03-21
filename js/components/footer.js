@@ -50,7 +50,7 @@ return `
 <div class="app-footer">
 
   ${items.map(i => `
-    <div class="footer-item" onclick="location.hash='#/${i.route}'">
+    <div class="footer-item" data-route="${i.route}">
       <div class="footer-icon">${i.icon}</div>
       <div class="footer-label">${i.label}</div>
     </div>
@@ -58,5 +58,24 @@ return `
 
 </div>
 `
+
+}
+
+// 🔥 INIT CLICK (IMPORTANTISSIMO)
+export function initFooter(){
+
+document.querySelectorAll(".footer-item").forEach(el => {
+
+  el.addEventListener("click", () => {
+
+    const route = el.dataset.route
+
+    if(!route) return
+
+    window.location.hash = "#/" + route
+
+  })
+
+})
 
 }
