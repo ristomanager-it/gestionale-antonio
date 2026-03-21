@@ -7,6 +7,8 @@ export async function render(container){
 
       ${renderHeader(ruolo)}
 
+      ${renderTony(ruolo)}
+
       <div class="home-content">
         ${renderByRole(ruolo)}
       </div>
@@ -28,6 +30,24 @@ export async function render(container){
         background:#111827;
         color:white;
         margin-top:6px;
+      }
+
+      .tony-box{
+        background:#f9fafb;
+        border:1px solid #e5e7eb;
+        padding:12px;
+        border-radius:12px;
+        margin-bottom:16px;
+      }
+
+      .tony-title{
+        font-weight:600;
+        margin-bottom:6px;
+      }
+
+      .tony-item{
+        font-size:14px;
+        margin-bottom:6px;
       }
 
       .grid{
@@ -78,6 +98,62 @@ function renderHeader(ruolo){
       </div>
     </div>
   `
+}
+
+
+// =====================================
+// 🧠 TONY
+// =====================================
+
+function renderTony(ruolo){
+
+  const insights = getTonyInsights(ruolo)
+
+  if(!insights.length) return ""
+
+  return `
+    <div class="tony-box">
+      <div class="tony-title">🤖 Tony suggerisce</div>
+
+      ${insights.map(i => `
+        <div class="tony-item">• ${i}</div>
+      `).join("")}
+
+    </div>
+  `
+}
+
+
+// =====================================
+// LOGICA TONY (BASE)
+// =====================================
+
+function getTonyInsights(ruolo){
+
+  // 🔥 QUI IN FUTURO userai dati reali da Supabase
+
+  if(ruolo === "operatore"){
+    return [
+      "Hai 2 preparazioni in ritardo",
+      "Non hai ancora timbrato il turno"
+    ]
+  }
+
+  if(ruolo === "manager"){
+    return [
+      "3 dipendenti non assegnati oggi",
+      "Produzione sotto del 20% rispetto a ieri"
+    ]
+  }
+
+  if(ruolo === "admin" || ruolo === "superadmin"){
+    return [
+      "Margine in calo questa settimana",
+      "Costi aumentati del 8%"
+    ]
+  }
+
+  return []
 }
 
 
@@ -188,7 +264,6 @@ function renderAdmin(){
 
 function bindEvents(){
 
-  // ROUTE BUTTON
   document.querySelectorAll("[data-route]").forEach(el=>{
     el.onclick = ()=>{
       const route = el.dataset.route
@@ -201,7 +276,6 @@ function bindEvents(){
     }
   })
 
-  // AZIONI
   document.querySelectorAll("[data-action]").forEach(el=>{
     el.onclick = ()=>{
       const action = el.dataset.action
