@@ -32,7 +32,6 @@ RISTOFLOW DESIGN SYSTEM
 
 --header-height:64px;
 
-/* 🔥 FIX SPAZI */
 --app-padding-x:12px;
 --app-padding-y:16px;
 
@@ -63,10 +62,8 @@ padding:0;
 min-height:100%;
 width:100%;
 overflow-x:hidden;
-
 font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 color:var(--color-text);
-
 font-size:13px;
 line-height:1.5;
 }
@@ -145,45 +142,26 @@ border-radius:2px;
 }
 
 /* =========================================================
-❌ BLOCCA DEFINITIVAMENTE VECCHIA TOPBAR
-========================================================= */
-
-.topbar-info{
-display:none !important;
-}
-
-/* =========================================================
-✅ NUOVA TOPBAR GLOBALE
+TOPBAR
 ========================================================= */
 
 .topbar-global{
-
 position:fixed;
 top:var(--header-height);
 left:50%;
 transform:translateX(-50%);
-
 width:94%;
 max-width:1100px;
-
 height:44px;
-
 background:linear-gradient(90deg,#0A4A64,#0E5A7A);
-
 border-radius:12px;
-
 display:flex;
 align-items:center;
 justify-content:space-between;
-
 padding:0 12px;
-
 color:white;
 font-size:12px;
 font-weight:600;
-
-box-shadow:0 4px 10px rgba(0,0,0,0.15);
-
 z-index:900;
 }
 
@@ -321,207 +299,99 @@ padding:10px;
 border-bottom:1px solid rgba(0,0,0,0.04);
 }
 
-export function initMenu() {
-
-  const menu = document.getElementById("global-menu")
-  const toggle = document.getElementById("menu-toggle")
-  const headerRight = document.getElementById("header-right")
-
-  if(!menu || !toggle) return
-
-  let overlay = document.querySelector(".menu-overlay")
-
-  if(!overlay){
-    overlay = document.createElement("div")
-    overlay.className = "menu-overlay"
-    document.body.appendChild(overlay)
-  }
-
-  function getRuoloAttivo(){
-    return window.state?.viewAs || window.state?.ruolo
-  }
-
-  function isSuperadmin(){
-    return window.state?.ruolo === "superadmin"
-  }
-
-  function getMenu(){
-
-    return [
-
-      ...(isSuperadmin() ? [{
-        title:"PIATTAFORMA",
-        items:[
-          {label:"Dashboard SaaS", route:"home-piattaforma"},
-          {label:"Gestione Aziende", route:"gestioneAziende"},
-          {label:"Crea Azienda", route:"creaAzienda"},
-          {label:"Piani Abbonamento", route:"gestionePiani"}
-        ]
-      }] : []),
-
-      {
-        title:"GENERALE",
-        items:[
-          {label:"Home", route:"home"}
-        ]
-      },
-
-      {
-        title:"OPERATIVO",
-        items:[
-          {label:"Produzione", route:"produzione"},
-          {label:"Magazzino", route:"magazzino"},
-          {label:"Ricettario", route:"ricettario"},
-          {label:"Preparazioni", route:"preparazioni"}
-        ]
-      },
-
-      {
-        title:"AMMINISTRAZIONE",
-        items:[
-          {label:"Acquisti", route:"acquisti"},
-          {label:"Fatture", route:"fatture"},
-          {label:"Dipendenti", route:"dipendenti"},
-          {label:"Timbrature", route:"timbrature"},
-          {label:"Permessi e ferie", route:"permessi"},
-          {label:"Preventivi", route:"preventivi"}
-        ]
-      },
-
-      {
-        title:"GESTIONE",
-        items:[
-          {label:"Venduto", route:"venduto"},
-          {label:"Margini", route:"margini"}
-        ]
-      },
-
-      {
-        title:"MARKETING",
-        items:[
-          {label:"Campagne", route:"marketing"}
-        ]
-      },
-
-      {
-        title:"PERSONALE",
-        items:[
-          {label:"Timbratura", route:"timbratura"},
-          {label:"Programma lavoro", route:"programma"},
-          {label:"Permessi e ferie", route:"permessi"},
-          {label:"Documenti", route:"documenti"}
-        ]
-      }
-
-    ]
-  }
-
-  function renderMenu(){
-
-    menu.innerHTML = ""
-
-    const struttura = getMenu()
-
-    struttura.forEach(section => {
-
-      const sectionBox = document.createElement("div")
-      sectionBox.className = "menu-section"
-
-      const title = document.createElement("div")
-      title.className = "menu-category"
-
-      title.innerHTML = `
-        <span>${section.title}</span>
-        <span class="menu-arrow">›</span>
-      `
-
-      const itemsBox = document.createElement("div")
-      itemsBox.className = "menu-subitems"
-
-      section.items.forEach(item => {
-
-        const row = document.createElement("div")
-        row.className = "menu-subitem"
-        row.innerText = item.label
-
-        row.onclick = () => {
-          window.location.hash = "#/" + item.route
-          closeMenu()
-        }
-
-        itemsBox.appendChild(row)
-
-      })
-
-      title.onclick = () => {
-
-        const isOpen = itemsBox.classList.contains("open")
-
-        document.querySelectorAll(".menu-subitems").forEach(el=>{
-          el.classList.remove("open")
-        })
-
-        document.querySelectorAll(".menu-arrow").forEach(el=>{
-          el.style.transform = "rotate(0deg)"
-        })
-
-        if(!isOpen){
-          itemsBox.classList.add("open")
-          title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
-        }
-
-      }
-
-      sectionBox.appendChild(title)
-      sectionBox.appendChild(itemsBox)
-
-      menu.appendChild(sectionBox)
-
-    })
-
-    // ✅ LOGOUT RIPRISTINATO
-    const logout = document.createElement("div")
-    logout.className = "menu-logout"
-    logout.innerText = "Logout"
-
-    logout.onclick = () => {
-      if(window.router?.logout){
-        window.router.logout()
-      }
-    }
-
-    menu.appendChild(logout)
-
-  }
-
-  function openMenu(){
-    renderMenu()
-    menu.classList.add("open")
-    overlay.classList.add("open")
-  }
-
-  function closeMenu(){
-    menu.classList.remove("open")
-    overlay.classList.remove("open")
-  }
-
-  toggle.onclick = () => {
-    if(menu.classList.contains("open")){
-      closeMenu()
-    }else{
-      openMenu()
-    }
-  }
-
-  overlay.onclick = closeMenu
-
-  window.menuController = {
-    refresh: renderMenu
-  }
-
-}
 /* =========================================================
-🔥 MOBILE
+MENU LATERALE
+========================================================= */
+
+#global-menu{
+position:fixed;
+top:0;
+left:0;
+width:260px;
+height:100%;
+background:#111827;
+color:white;
+transform:translateX(-100%);
+transition:transform 0.25s ease;
+z-index:1000;
+overflow-y:auto;
+padding:20px 0;
+}
+
+#global-menu.open{
+transform:translateX(0);
+}
+
+.menu-overlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+opacity:0;
+pointer-events:none;
+transition:opacity 0.2s ease;
+z-index:999;
+}
+
+.menu-overlay.open{
+opacity:1;
+pointer-events:all;
+}
+
+.menu-section{
+margin-bottom:10px;
+}
+
+.menu-category{
+padding:12px 20px;
+font-size:13px;
+font-weight:600;
+color:#9ca3af;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:pointer;
+}
+
+.menu-arrow{
+transition:transform 0.2s ease;
+}
+
+.menu-subitems{
+display:none;
+}
+
+.menu-subitems.open{
+display:block;
+}
+
+.menu-subitem{
+padding:10px 30px;
+font-size:14px;
+cursor:pointer;
+color:#e5e7eb;
+}
+
+.menu-subitem:hover{
+background:rgba(255,255,255,0.08);
+}
+
+.menu-logout{
+margin-top:20px;
+padding:12px 20px;
+color:#f87171;
+cursor:pointer;
+border-top:1px solid rgba(255,255,255,0.1);
+}
+
+.menu-logout:hover{
+background:rgba(255,255,255,0.05);
+}
+
+/* =========================================================
+MOBILE
 ========================================================= */
 
 @media(max-width:768px){
@@ -547,16 +417,3 @@ border-radius:14px;
 }
 
 }
-/* evita che il menu influenzi layout login */
-body.menu-open {
-  overflow: hidden;
-}
-
-/* sicurezza layout */
-#global-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-/* NON toccare il resto del layout globale */
