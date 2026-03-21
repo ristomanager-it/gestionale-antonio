@@ -32,11 +32,12 @@ RISTOFLOW DESIGN SYSTEM
 
 --header-height:64px;
 
---app-padding-x:18px;
---app-padding-y:20px;
+/* 🔥 FIX SPAZI */
+--app-padding-x:12px;
+--app-padding-y:16px;
 
---view-padding:22px;
---card-padding:18px;
+--view-padding:16px;
+--card-padding:14px;
 
 }
 
@@ -85,25 +86,18 @@ HEADER
 ========================================================= */
 
 .app-header{
-
 position:fixed;
 top:0;
 left:0;
 width:100%;
 height:var(--header-height);
-
 background:var(--color-bg-header);
-
 display:flex;
 align-items:center;
 justify-content:space-between;
-
-padding:0 16px;
-
+padding:0 14px;
 border-bottom:1px solid var(--color-border);
-
 z-index:1000;
-
 }
 
 .header-left,
@@ -120,13 +114,13 @@ gap:10px;
 }
 
 .header-logo{
-width:48px;
-height:48px;
+width:44px;
+height:44px;
 object-fit:contain;
 }
 
 .header-azienda-nome{
-font-size:18px;
+font-size:16px;
 font-weight:800;
 }
 
@@ -149,169 +143,13 @@ height:3px;
 background:var(--color-text);
 border-radius:2px;
 }
+
 /* =========================================================
-TIMBRATURE SYSTEM
-========================================================= */
-
-.tb-scroll-actions{
-display:flex;
-gap:18px;
-justify-content:center;
-align-items:center;
-margin-top:10px;
-}
-
-.btn-timbratura{
-
-flex:1;
-max-width:160px;
-height:110px;
-
-border-radius:22px;
-border:none;
-cursor:pointer;
-
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-
-gap:10px;
-
-font-weight:700;
-font-size:15px;
-
-transition:all .2s ease;
-}
-
-.btn-timbratura:active{
-transform:scale(.96);
-}
-
-.btn-timbratura.active{
-transform:scale(1.08);
-box-shadow:0 12px 28px rgba(0,0,0,0.15);
-}
-
-/* colori */
-
-.btn-timbratura.green{
-background:#16a34a;
-color:#fff;
-box-shadow:0 8px 20px rgba(22,163,74,.25);
-}
-
-.btn-timbratura.gray{
-background:#EEF2F7;
-color:var(--color-text);
-}
-
-.btn-timbratura.red{
-background:#dc2626;
-color:#fff;
-box-shadow:0 8px 20px rgba(220,38,38,.25);
-}
-
-.tb-icon{
-width:28px;
-height:28px;
-}
-
-/* mobile */
-
-@media(max-width:768px){
-
-.tb-scroll-actions{
-gap:12px;
-}
-
-.btn-timbratura{
-height:105px;
-font-size:13px;
-}
-
-}
-/* ================= MENU ACCORDION ================= */
-
-.menu-category{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:16px 20px;
-font-weight:700;
-cursor:pointer;
-border-bottom:1px solid #eee;
-}
-
-.menu-arrow{
-transition:transform .2s ease;
-font-size:14px;
-}
-
-.menu-subitems{
-display:none;
-background:#fafafa;
-}
-
-.menu-subitems.open{
-display:block;
-}
-
-.menu-subitem{
-padding:12px 30px;
-font-size:14px;
-cursor:pointer;
-}
-
-.menu-subitem:hover{
-background:#f3f4f6;
-}
-
-.menu-logout{
-margin-top:20px;
-padding:16px 20px;
-border-top:1px solid #eee;
-font-weight:700;
-color:#b91c1c;
-cursor:pointer;
-}
-/* =========================================================
-INFO BAR
+🔥 DISATTIVA SOTTOHEADER
 ========================================================= */
 
 .topbar-info{
-
-position:fixed;
-
-top:calc(var(--header-height) + 6px);
-left:50%;
-
-transform:translateX(-50%);
-
-width:92%;
-max-width:1100px;
-
-height:38px;
-
-background:var(--color-primary-dark);
-
-border-radius:14px;
-
-display:flex;
-align-items:center;
-justify-content:space-between;
-
-padding:0 16px;
-
-color:#fff;
-
-font-size:12px;
-font-weight:600;
-
-box-shadow:0 4px 12px rgba(0,0,0,0.15);
-
-z-index:900;
-
+display:none !important;
 }
 
 /* =========================================================
@@ -319,24 +157,17 @@ APP ROOT
 ========================================================= */
 
 #app{
-
 width:100%;
-
 padding:var(--app-padding-y) var(--app-padding-x);
-
-padding-top:110px;
-
+padding-top:calc(var(--header-height) + 20px);
 display:flex;
 justify-content:center;
-
 background:linear-gradient(
 180deg,
 var(--color-bg-app) 0%,
 var(--color-bg-app-soft) 100%
 );
-
 min-height:100vh;
-
 }
 
 /* =========================================================
@@ -344,18 +175,12 @@ VIEW
 ========================================================= */
 
 .view{
-
 width:100%;
 max-width:var(--container-max-width);
-
 background:#ffffff;
-
-border-radius:20px;
-
+border-radius:18px;
 padding:var(--view-padding);
-
-box-shadow:0 16px 40px rgba(0,0,0,0.06);
-
+box-shadow:0 12px 30px rgba(0,0,0,0.05);
 }
 
 /* =========================================================
@@ -363,19 +188,12 @@ CARD
 ========================================================= */
 
 .card{
-
 background:#ffffff;
-
 border-radius:var(--radius-card);
-
 padding:var(--card-padding);
-
 box-shadow:var(--shadow-soft);
-
 border:1px solid rgba(0,0,0,0.03);
-
-margin-bottom:16px;
-
+margin-bottom:12px;
 }
 
 /* =========================================================
@@ -383,34 +201,22 @@ BUTTONS
 ========================================================= */
 
 .app-button{
-
-padding:12px 18px;
-
+padding:10px 16px;
 border-radius:14px;
-
 border:none;
-
 font-weight:700;
-
 cursor:pointer;
-
 transition:all .2s ease;
-
 font-size:14px;
-
 }
 
 .app-button.primary{
-
 background:var(--color-primary);
 color:#fff;
-
 }
 
 .app-button.primary:hover{
-
 background:var(--color-primary-dark);
-
 }
 
 /* =========================================================
@@ -420,28 +226,22 @@ FORM
 .form-group{
 display:flex;
 flex-direction:column;
-margin-bottom:14px;
+margin-bottom:12px;
 }
 
 .form-group label{
-font-size:13px;
+font-size:12px;
 font-weight:600;
 margin-bottom:6px;
 color:var(--color-text-muted);
 }
 
 .input{
-
 padding:10px 12px;
-
 border-radius:10px;
-
 border:1px solid var(--color-border);
-
 background:#ffffff;
-
 font-size:14px;
-
 }
 
 .input:focus{
@@ -453,244 +253,126 @@ border-color:var(--color-primary);
 TABLE
 ========================================================= */
 
-.view table,
-.page table,
-.card table{
-
+.view table{
 width:100%;
 border-collapse:collapse;
-
 font-size:13px;
-
 }
 
 .view table th{
-
 font-weight:700;
-
 font-size:12px;
-
 text-transform:uppercase;
-
 color:var(--color-text-muted);
-
 padding:10px;
-
 background:#F8FAFC;
-
 }
 
 .view table td{
-
-padding:12px;
-
+padding:10px;
 border-bottom:1px solid rgba(0,0,0,0.04);
-
 }
 
 /* =========================================================
-GLOBAL MENU
+MENU
 ========================================================= */
 
 .global-menu{
-
 position:fixed;
-
 top:var(--header-height);
 left:-260px;
-
 width:240px;
 height:calc(100vh - var(--header-height));
-
 background:#ffffff;
-
 border-right:1px solid rgba(0,0,0,0.05);
-
 box-shadow:4px 0 24px rgba(0,0,0,0.06);
-
-padding:20px;
-
+padding:16px;
 display:flex;
 flex-direction:column;
-gap:10px;
-
+gap:8px;
 transition:left .25s ease;
-
 z-index:999;
-
 }
 
 .global-menu.open{
 left:0;
 }
 
-.menu-item{
-
-padding:12px;
-
-border-radius:12px;
-
-font-weight:600;
-
-font-size:14px;
-
+.menu-category{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px 16px;
+font-weight:700;
 cursor:pointer;
-
+border-bottom:1px solid #eee;
 }
 
-.menu-item:hover{
-background:#F3F6FA;
+.menu-subitem{
+padding:10px 26px;
+font-size:14px;
+cursor:pointer;
 }
 
-.menu-item.active{
+.menu-subitem:hover{
+background:#f3f4f6;
+}
 
-background:rgba(14,90,122,0.08);
-color:var(--color-primary);
-
+.menu-logout{
+margin-top:14px;
+padding:14px;
+border-top:1px solid #eee;
+font-weight:700;
+color:#b91c1c;
+cursor:pointer;
 }
 
 /* =========================================================
-LOGIN
+OVERLAY
 ========================================================= */
 
-.login-wrapper{
-max-width:420px;
-margin:0 auto;
-text-align:center;
+.menu-overlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.35);
+opacity:0;
+pointer-events:none;
+transition:opacity .2s ease;
+z-index:998;
 }
 
-.login-logo-wrap{
-margin-bottom:22px;
-}
-
-.login-logo{
-width:150px;
-margin:0 auto;
-}
-
-.login-title{
-margin-bottom:4px;
-}
-
-.login-subtitle{
-color:var(--color-text-muted);
-margin-bottom:20px;
-}
-
-.login-reset{
-margin-top:16px;
-font-size:13px;
-color:var(--color-text-muted);
+.menu-overlay.open{
+opacity:1;
+pointer-events:auto;
 }
 
 /* =========================================================
-HOME DASHBOARD COMPACT
-========================================================= */
-
-.home-compact{
-
-padding:10px !important;
-
-}
-
-.home-compact .card{
-
-padding:12px !important;
-
-margin-bottom:10px;
-
-}
-
-.home-compact canvas{
-
-max-height:100px;
-
-}
-
-/* =========================================================
-MOBILE
+🔥 MOBILE
 ========================================================= */
 
 @media(max-width:768px){
 
 :root{
 --header-height:56px;
+--view-padding:12px;
+--card-padding:12px;
 }
 
-.header-logo{
-width:40px;
-height:40px;
+#app{
+padding-left:10px;
+padding-right:10px;
+padding-top:calc(var(--header-height) + 16px);
 }
 
-.header-azienda-nome{
-font-size:15px;
-}
-
-.topbar-info{
-height:34px;
-font-size:11px;
-}
-
-  #app{
-
-padding-top:calc(var(--header-height) + 60px);
-
-}
 .view{
-border-radius:16px;
-padding:16px;
+border-radius:14px;
 }
 
 .card{
-padding:14px;
+border-radius:14px;
 }
 
-}
-/* OVERLAY MENU */
-
-.menu-overlay{
-position:fixed;
-top:0;
-left:0;
-
-width:100%;
-height:100%;
-
-background:rgba(0,0,0,0.35);
-
-opacity:0;
-pointer-events:none;
-
-transition:opacity .2s ease;
-
-z-index:998;
-}
-
-.menu-overlay.open{
-opacity:1;
-pointer-events:auto;
-}
-/* OVERLAY MENU */
-
-.menu-overlay{
-position:fixed;
-top:0;
-left:0;
-
-width:100%;
-height:100%;
-
-background:rgba(0,0,0,0.35);
-
-opacity:0;
-pointer-events:none;
-
-transition:opacity .2s ease;
-
-z-index:998;
-}
-
-.menu-overlay.open{
-opacity:1;
-pointer-events:auto;
 }
