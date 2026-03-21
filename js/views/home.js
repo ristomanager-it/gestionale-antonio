@@ -1,3 +1,5 @@
+import { renderFooter, initFooter } from "../components/footer.js"
+
 export async function render(container){
 
   const ruolo = window.state?.viewAs || window.state?.ruolo
@@ -5,18 +7,35 @@ export async function render(container){
   container.innerHTML = `
     <div class="view home">
 
-      ${renderHeader(ruolo)}
+      <div class="home-body">
 
-      ${renderTony(ruolo)}
+        ${renderHeader(ruolo)}
 
-      <div class="home-content">
-        ${renderByRole(ruolo)}
+        <div id="tony-container"></div>
+
+        <div class="home-content">
+          ${renderByRole(ruolo)}
+        </div>
+
       </div>
+
+      ${renderFooter()}
 
     </div>
 
     <style>
-      .home{padding:16px;}
+      .home{
+        display:flex;
+        flex-direction:column;
+        height:100vh;
+      }
+
+      .home-body{
+        flex:1;
+        overflow:auto;
+        padding:16px;
+        padding-bottom:80px;
+      }
 
       .home-header{
         margin-bottom:16px;
@@ -50,6 +69,10 @@ export async function render(container){
         margin-bottom:6px;
       }
 
+      .tony-item.correzione{color:#dc2626;font-weight:600;}
+      .tony-item.incitamento{color:#2563eb;}
+      .tony-item.positivo{color:#16a34a;}
+
       .grid{
         display:grid;
         gap:12px;
@@ -76,10 +99,28 @@ export async function render(container){
         cursor:pointer;
         width:100%;
       }
+
+      .app-footer{
+        position:fixed;
+        bottom:0;
+        left:0;
+        width:100%;
+        background:white;
+        border-top:1px solid #e5e7eb;
+        display:flex;
+        justify-content:space-around;
+        padding:8px 0;
+        z-index:100;
+      }
+
+      .footer-item{text-align:center;font-size:12px;cursor:pointer;}
+      .footer-icon{font-size:18px;}
     </style>
   `
 
   bindEvents()
+  initFooter()
+  loadTony(ruolo)
 
 }
 
@@ -89,7 +130,6 @@ export async function render(container){
 // =====================================
 
 function renderHeader(ruolo){
-
   return `
     <div class="home-header">
       <h2>Dashboard</h2>
@@ -102,63 +142,130 @@ function renderHeader(ruolo){
 
 
 // =====================================
-// 🧠 TONY
+// 🧠 TONY AVANZATO
 // =====================================
 
-function renderTony(ruolo){
+async function loadTony(ruolo){
 
-  const insights = getTonyInsights(ruolo)
+  const supabase = window.supabaseClient
+  const aziendaId = window.state?.azienda?.id
 
-  if(!insights.length) return ""
+  if(!aziendaId) return
 
-  return `
+  let insights = []
+
+  // 👨‍🍳 OPERATORE
+  if(ruolo === "operatore"){
+
+    const today = new Date().toISOString().slice(0,10)
+
+    const { data } = await supabase
+      .from("timbrature")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .eq("user_id", window.state.user.id)
+      .eq("data", today)
+
+    if(!data || data.length === 0){
+
+      insights.push({
+        tone:"correzione",
+        text:"Non hai ancora timbrato il turno"
+      })
+
+      insights.push({
+        tone:"incitamento",
+        text:"Inizia subito il turno per evitare problemi"
+      })
+
+    }else{
+
+      insights.push({
+        tone:"positivo",
+        text:"Turno attivo, continua così"
+      })
+
+    }
+
+  }
+
+  // 👨‍💼 MANAGER
+  if(ruolo === "manager"){
+
+    const today = new Date().toISOString().slice(0,10)
+
+    const { data } = await supabase
+      .from("turni")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .eq("data", today)
+
+    if(!data || data.length === 0){
+
+      insights.push({
+        tone:"correzione",
+        text:"Nessun turno assegnato oggi"
+      })
+
+      insights.push({
+        tone:"incitamento",
+        text:"Assegna subito il personale"
+      })
+
+    }else{
+
+      insights.push({
+        tone:"positivo",
+        text:"Turni sotto controllo"
+      })
+
+    }
+
+  }
+
+  renderTony(insights)
+
+}
+
+
+// =====================================
+// RENDER TONY
+// =====================================
+
+function renderTony(insights){
+
+  const container = document.getElementById("tony-container")
+  if(!container) return
+
+  if(!insights.length){
+    container.innerHTML = ""
+    return
+  }
+
+  container.innerHTML = `
     <div class="tony-box">
-      <div class="tony-title">🤖 Tony suggerisce</div>
+      <div class="tony-title">🤖 Tony operativo</div>
 
       ${insights.map(i => `
-        <div class="tony-item">• ${i}</div>
+        <div class="tony-item ${i.tone}">
+          ${getIcon(i.tone)} ${i.text}
+        </div>
       `).join("")}
 
     </div>
   `
 }
 
-
-// =====================================
-// LOGICA TONY (BASE)
-// =====================================
-
-function getTonyInsights(ruolo){
-
-  // 🔥 QUI IN FUTURO userai dati reali da Supabase
-
-  if(ruolo === "operatore"){
-    return [
-      "Hai 2 preparazioni in ritardo",
-      "Non hai ancora timbrato il turno"
-    ]
-  }
-
-  if(ruolo === "manager"){
-    return [
-      "3 dipendenti non assegnati oggi",
-      "Produzione sotto del 20% rispetto a ieri"
-    ]
-  }
-
-  if(ruolo === "admin" || ruolo === "superadmin"){
-    return [
-      "Margine in calo questa settimana",
-      "Costi aumentati del 8%"
-    ]
-  }
-
-  return []
+function getIcon(tone){
+  if(tone==="correzione") return "⚠️"
+  if(tone==="incitamento") return "🚀"
+  if(tone==="positivo") return "✅"
+  return "•"
 }
 
 
 // =====================================
-// ROLE SWITCH RENDER
+// ROLE UI
 // =====================================
 
 function renderByRole(ruolo){
@@ -172,87 +279,38 @@ function renderByRole(ruolo){
 
 
 // =====================================
-// 👨‍🍳 OPERATORE
+// UI RUOLI
 // =====================================
 
 function renderOperatore(){
   return `
     <div class="grid">
-
       <div class="card">
         <div class="card-title">Turno</div>
-        <div>Inizia o termina il turno</div>
-        <button class="btn" data-action="timbratura">Avvia turno</button>
+        <button class="btn" data-route="timbrature">Vai</button>
       </div>
-
-      <div class="card">
-        <div class="card-title">Preparazioni</div>
-        <div>Controlla le preparazioni attive</div>
-        <button class="btn" data-route="produzione">Vai</button>
-      </div>
-
     </div>
   `
 }
-
-
-// =====================================
-// 👨‍💼 MANAGER
-// =====================================
 
 function renderManager(){
   return `
     <div class="grid">
-
       <div class="card">
-        <div class="card-title">Servizi oggi</div>
-        <div>Controlla andamento servizio</div>
+        <div class="card-title">Servizi</div>
         <button class="btn" data-route="servizi">Apri</button>
       </div>
-
-      <div class="card">
-        <div class="card-title">Personale</div>
-        <div>Gestione staff attivo</div>
-        <button class="btn" data-route="dipendenti">Gestisci</button>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Produzione</div>
-        <div>Stato lavorazioni</div>
-        <button class="btn" data-route="produzione">Vai</button>
-      </div>
-
     </div>
   `
 }
 
-
-// =====================================
-// 👨‍💻 ADMIN
-// =====================================
-
 function renderAdmin(){
   return `
     <div class="grid">
-
       <div class="card">
         <div class="card-title">KPI</div>
-        <div>Analisi performance</div>
         <button class="btn" data-route="kpi">Apri</button>
       </div>
-
-      <div class="card">
-        <div class="card-title">Margini</div>
-        <div>Controllo redditività</div>
-        <button class="btn" data-route="margini">Vai</button>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Costi</div>
-        <div>Monitoraggio costi</div>
-        <button class="btn" data-route="costi">Apri</button>
-      </div>
-
     </div>
   `
 }
@@ -272,20 +330,6 @@ function bindEvents(){
         window.router.go(route)
       }else{
         window.location.hash = "#/" + route
-      }
-    }
-  })
-
-  document.querySelectorAll("[data-action]").forEach(el=>{
-    el.onclick = ()=>{
-      const action = el.dataset.action
-
-      if(action === "timbratura"){
-        if(window.router?.go){
-          window.router.go("timbrature")
-        }else{
-          window.location.hash = "#/timbrature"
-        }
       }
     }
   })
