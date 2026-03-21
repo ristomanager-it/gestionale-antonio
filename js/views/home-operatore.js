@@ -29,7 +29,9 @@ export async function render(container) {
 
   } catch(e){}
 
-  container.innerHTML = `
+  container.innerHTML += renderFooter()
+
+initFooter()
 
   <div class="view operatore-home-new">
 
