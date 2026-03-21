@@ -261,7 +261,7 @@ function bindEvents(){
     }
   }
 
-  // 🔥 VIEW SWITCH
+  // 🔥 VIEW SWITCH → ENTRA DIRETTAMENTE NELLA HOME REALE
   document.querySelectorAll(".role-btn").forEach(btn => {
 
     btn.onclick = () => {
@@ -270,15 +270,19 @@ function bindEvents(){
 
       window.state.viewAs = role
 
-      // 🔥 refresh sistema
+      // opzionale futuro (preview mode)
+      window.state.previewMode = true
+
+      // refresh menu se esiste
       if(window.menuController?.refresh){
         window.menuController.refresh()
       }
 
-      if(window.router?.reloadCurrentRoute){
-        window.router.reloadCurrentRoute()
+      // 🔥 QUI CAMBIA TUTTO
+      if(window.router?.go){
+        window.router.go("home")
       }else{
-        window.location.reload()
+        window.location.hash = "#/home"
       }
 
     }
