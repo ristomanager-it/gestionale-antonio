@@ -4,7 +4,7 @@ export async function render(container){
 
 container.innerHTML=`
 
-<div class="view">
+<div class="view login-view">
 
 <div class="login-wrapper">
 
