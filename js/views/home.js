@@ -1,3 +1,5 @@
+import { getTonyInsights } from "../ai/tony-service.js"
+
 export async function render(container) {
 
   const user = window.state?.user
@@ -50,10 +52,14 @@ export async function render(container) {
         background:#eef2f7;
         margin-top:6px;
       }
+
+      .tony-item{
+        margin-top:6px;
+      }
     </style>
   `
 
-  renderTony()
+  await renderTony()
   renderStato()
   renderAlert()
   renderKPI()
@@ -61,44 +67,45 @@ export async function render(container) {
 
 }
 
+
 // ======================================================
-// 🤖 TONY (CENTRALE)
+// 🤖 TONY (REALE)
 // ======================================================
 
-function renderTony(){
+async function renderTony(){
 
   const box = document.getElementById("home-tony")
 
   box.innerHTML = `
     <div class="card">
       <div class="card-title">Tony</div>
-      <div id="tony-msg">Caricamento...</div>
+      <div id="tony-list">Caricamento...</div>
     </div>
   `
 
-  const msg = generateTonyMessage()
+  const list = document.getElementById("tony-list")
 
-  document.getElementById("tony-msg").innerText = msg
+  try{
+
+    const insights = await getTonyInsights()
+
+    if(!insights.length){
+      list.innerHTML = "Nessun insight disponibile"
+      return
+    }
+
+    list.innerHTML = insights.map(i => `
+      <div class="tony-item">
+        • ${i.message}
+      </div>
+    `).join("")
+
+  }catch(e){
+    console.error(e)
+    list.innerHTML = "Errore caricamento Tony"
+  }
 }
 
-function generateTonyMessage(){
-
-  const ruolo = window.state?.ruolo
-
-  if(ruolo === "manager"){
-    return "Hai 2 fatture da verificare e 1 anomalia prezzi."
-  }
-
-  if(ruolo === "operatore"){
-    return "Hai un turno oggi e 2 preparazioni assegnate."
-  }
-
-  if(ruolo === "segreteria"){
-    return "Nuove fatture inserite da validare."
-  }
-
-  return "Sistema operativo pronto."
-}
 
 // ======================================================
 // 📊 STATO GIORNATA
@@ -111,10 +118,11 @@ function renderStato(){
   box.innerHTML = `
     <div class="card">
       <div class="card-title">Oggi</div>
-      <div>Turno attivo</div>
+      <div>Operatività in corso</div>
     </div>
   `
 }
+
 
 // ======================================================
 // 🚨 ALERT
@@ -127,11 +135,15 @@ function renderAlert(){
   let alerts = []
 
   if(window.hasPermesso("price_alert.read")){
-    alerts.push("Anomalia prezzo materia prima")
+    alerts.push("Anomalia prezzo materie prime")
   }
 
   if(window.hasPermesso("fatture.validate")){
     alerts.push("Fatture da validare")
+  }
+
+  if(window.hasPermesso("magazzino.read")){
+    alerts.push("Controlla giacenze basse")
   }
 
   if(!alerts.length){
@@ -147,8 +159,9 @@ function renderAlert(){
   `
 }
 
+
 // ======================================================
-// 📈 KPI (semplici per ora)
+// 📈 KPI
 // ======================================================
 
 function renderKPI(){
@@ -163,13 +176,14 @@ function renderKPI(){
   box.innerHTML = `
     <div class="card">
       <div class="card-title">KPI</div>
-      <div>Margine oggi: € 320</div>
+      <div>Caricamento dati...</div>
     </div>
   `
 }
 
+
 // ======================================================
-// ⚡ AZIONI RAPIDE (IMPORTANTISSIMO)
+// ⚡ AZIONI
 // ======================================================
 
 function renderAzioni(){
@@ -179,24 +193,19 @@ function renderAzioni(){
   const actions = []
 
   if(window.hasPermesso("fatture.create")){
-    actions.push({
-      label:"Carica fattura",
-      route:"fatture"
-    })
+    actions.push({ label:"Carica fattura", route:"fatture" })
+  }
+
+  if(window.hasPermesso("acquisti.create")){
+    actions.push({ label:"Nuovo acquisto", route:"acquisti" })
   }
 
   if(window.hasPermesso("produzione.read")){
-    actions.push({
-      label:"Vai in produzione",
-      route:"produzione"
-    })
+    actions.push({ label:"Vai in produzione", route:"produzione" })
   }
 
   if(window.hasPermesso("dipendenti.read")){
-    actions.push({
-      label:"Gestisci dipendenti",
-      route:"dipendenti"
-    })
+    actions.push({ label:"Gestisci dipendenti", route:"dipendenti" })
   }
 
   if(!actions.length){
