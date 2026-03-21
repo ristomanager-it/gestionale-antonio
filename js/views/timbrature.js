@@ -1,5 +1,3 @@
-// views/timbrature.js
-
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 function escapeHtml(str) {
@@ -276,283 +274,378 @@ function computeEmployeesFromRows(rows) {
 }
 
 export async function render(app) {
-  const azienda = window.state?.azienda;
-  const user = window.state?.user;
-  const ruolo = window.state?.ruolo;
+  try {
+    console.log("TIMBRATURE LOAD START");
+    console.log("render start");
 
-  if (!azienda || !user) {
-    app.innerHTML = `
-      <div class="login-wrapper">
-        <div class="login-card">
-          <h3>Sessione non valida</h3>
+    const azienda = window.state?.azienda;
+    const user = window.state?.user;
+    const ruolo = window.state?.ruolo;
+
+    if (!azienda || !user) {
+      app.innerHTML = `
+        <div class="login-wrapper">
+          <div class="login-card">
+            <h3>Sessione non valida</h3>
+          </div>
         </div>
-      </div>
-    `;
-    return;
-  }
+      `;
+      return;
+    }
 
-  const dipendenteId = user.id;
-  const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
+    const dipendenteId = user.id;
+    const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
 
-  const isManager = canSeeAll(ruolo);
-if (!isManager) {
-  panelOpen = false;
-}
-  app.innerHTML = createPageLayout({
-    title: "Timbrature",
-    subtitle: "",
-    content: `
-  <div class="timbrature-page">
+    const isManager = canSeeAll(ruolo);
 
-    ${createCard({
-      title: "Timbratura",
-      body: `
-        <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
+    let panelOpen = false;
+    let cachedRowsAll = [];
+    let cachedRowsMine = [];
+    let selectedDip = "ALL";
 
-        <div class="tb-scroll-actions">
-          <button id="btn-primary" class="btn-timbratura round green" type="button">
-            ${svgIcon("play")}
-            <div class="tb-label">Entrata</div>
-          </button>
+    app.innerHTML = createPageLayout({
+      title: "Timbrature",
+      subtitle: "",
+      content: `
+    <div class="timbrature-page">
 
-          <button id="btn-pausa" class="btn-timbratura square gray" type="button">
-            ${svgIcon("pause")}
-            <div class="tb-label">Pausa</div>
-          </button>
+      ${createCard({
+        title: "Timbratura",
+        body: `
+          <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
 
-          <button id="btn-fine" class="btn-timbratura round red" type="button">
-            ${svgIcon("stop")}
-            <div class="tb-label">Fine turno</div>
-          </button>
-        </div>
+          <div class="tb-scroll-actions">
+            <button id="btn-primary" class="btn-timbratura round green" type="button">
+              ${svgIcon("play")}
+              <div class="tb-label">Entrata</div>
+            </button>
 
-        <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
-        <div id="tb-msg" style="margin-top:10px;"></div>
-      `
-    })}
+            <button id="btn-pausa" class="btn-timbratura square gray" type="button">
+              ${svgIcon("pause")}
+              <div class="tb-label">Pausa</div>
+            </button>
 
-    ${isManager ? createCard({
-      title: "Stato Dipendenti",
-      body: `
-        <div id="tb-chips" class="tb-chips"></div>
-        <div id="tb-people" style="margin-top:10px;"></div>
-      `
-    }) : ""}
-
-    ${isManager ? createCard({
-      title: "Storico",
-      body: `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <button id="tb-toggle" class="app-button small">Mostra Timbrature 📋</button>
-        </div>
-
-        <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
-          <div class="timbrature-toolbar">
-            <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
-            <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+            <button id="btn-fine" class="btn-timbratura round red" type="button">
+              ${svgIcon("stop")}
+              <div class="tb-label">Fine turno</div>
+            </button>
           </div>
 
-          <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
-        </div>
-      `
-    }) : ""}
+          <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
+          <div id="tb-msg" style="margin-top:10px;"></div>
+        `
+      })}
 
-  </div>
-`
-});
-  const elStatus = app.querySelector("#tb-status");
-  const elPrimary = app.querySelector("#btn-primary");
-  const elPausa = app.querySelector("#btn-pausa");
-  const elFine = app.querySelector("#btn-fine");
-  const elMsg = app.querySelector("#tb-msg");
-  const elList = app.querySelector("#tb-list");
-  const elLastGeo = app.querySelector("#tb-last-geo");
+      ${isManager ? createCard({
+        title: "Stato Dipendenti",
+        body: `
+          <div id="tb-chips" class="tb-chips"></div>
+          <div id="tb-people" style="margin-top:10px;"></div>
+        `
+      }) : ""}
 
-  const elToggle = app.querySelector("#tb-toggle");
-  const elPanel = app.querySelector("#tb-panel");
-  const elSearch = app.querySelector("#tb-search");
-  const elFilter = app.querySelector("#tb-filter");
+      ${isManager ? createCard({
+        title: "Storico",
+        body: `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <button id="tb-toggle" class="app-button small">Mostra Timbrature 📋</button>
+          </div>
 
-  const elChips = app.querySelector("#tb-chips");
-  const elPeople = app.querySelector("#tb-people");
+          <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
+            <div class="timbrature-toolbar">
+              <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
+              <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+            </div>
 
-  let panelOpen = false;
-  let cachedRowsAll = [];
-  let cachedRowsMine = [];
-  let selectedDip = "ALL";
+            <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+          </div>
+        `
+      }) : ""}
 
-  function setMsg(text, kind = "info") {
-    const bg =
-      kind === "ok"
-        ? "rgba(0,160,80,.10)"
-        : kind === "error"
-          ? "rgba(220,60,60,.10)"
-          : "rgba(0,0,0,.05)";
+    </div>
+  `
+    });
 
-    const border =
-      kind === "ok"
-        ? "rgba(0,160,80,.25)"
-        : kind === "error"
-          ? "rgba(220,60,60,.25)"
-          : "rgba(0,0,0,.10)";
+    const elStatus = app.querySelector("#tb-status");
+    const elPrimary = app.querySelector("#btn-primary");
+    const elPausa = app.querySelector("#btn-pausa");
+    const elFine = app.querySelector("#btn-fine");
+    const elMsg = app.querySelector("#tb-msg");
+    const elList = app.querySelector("#tb-list");
+    const elLastGeo = app.querySelector("#tb-last-geo");
 
-    elMsg.innerHTML = `
-      <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">${text}</div>
-    `;
-  }
+    const elToggle = app.querySelector("#tb-toggle");
+    const elPanel = app.querySelector("#tb-panel");
+    const elSearch = app.querySelector("#tb-search");
+    const elFilter = app.querySelector("#tb-filter");
 
-  function applyListFilters(rows) {
-    const q = String(elSearch?.value || "").trim().toLowerCase();
+    const elChips = app.querySelector("#tb-chips");
+    const elPeople = app.querySelector("#tb-people");
 
-    let out = rows;
-
-    if (isManager && selectedDip && selectedDip !== "ALL") {
-      out = out.filter((r) => String(r.dipendente_id || "") === String(selectedDip));
+    if (!elStatus || !elPrimary || !elPausa || !elFine || !elMsg || !elLastGeo) {
+      throw new Error("TIMBRATURE_DOM_MISSING");
     }
 
-    if (q) {
-      out = out.filter((r) => {
-        const dip = String(r.dip_nome || "").toLowerCase();
-        const tipo = String(tipoToLabel(r.tipo) || "").toLowerCase();
-        const ts = String(formatDateTime(r.timestamp) || "").toLowerCase();
-        return dip.includes(q) || tipo.includes(q) || ts.includes(q);
-      });
+    function setMsg(text, kind = "info") {
+      const bg =
+        kind === "ok"
+          ? "rgba(0,160,80,.10)"
+          : kind === "error"
+            ? "rgba(220,60,60,.10)"
+            : "rgba(0,0,0,.05)";
+
+      const border =
+        kind === "ok"
+          ? "rgba(0,160,80,.25)"
+          : kind === "error"
+            ? "rgba(220,60,60,.25)"
+            : "rgba(0,0,0,.10)";
+
+      elMsg.innerHTML = `
+        <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">${text}</div>
+      `;
     }
 
-    return out;
-  }
+    function applyListFilters(rows) {
+      const q = String(elSearch?.value || "").trim().toLowerCase();
 
-  function refreshTimbratureList() {
-    const rowsBase = isManager ? cachedRowsAll : cachedRowsMine;
-    const rows = applyListFilters(rowsBase);
-    elList.innerHTML = buildRowsTable(rows);
+      let out = rows;
 
-    const last = rowsBase[0];
-    if (last) {
-      elLastGeo.innerHTML = `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`;
-    } else {
-      elLastGeo.innerHTML = "";
-    }
-  }
-
-  function refreshDipendentiSummary() {
-    const base = isManager ? cachedRowsAll : cachedRowsMine;
-    const { list, dentro, pausa, fuori } = computeEmployeesFromRows(base);
-
-    elChips.innerHTML = `
-      <span class="tb-chip"><span class="tb-dot in"></span> Dentro: ${dentro.length}</span>
-      <span class="tb-chip"><span class="tb-dot pause"></span> Pausa: ${pausa.length}</span>
-      <span class="tb-chip"><span class="tb-dot out"></span> Fuori: ${fuori.length}</span>
-    `;
-
-    const renderGroup = (title, items, dotClass) => {
-      if (!items.length) return "";
-      const names = items
-        .sort((a, b) => String(a.dip_nome || "").localeCompare(String(b.dip_nome || "")))
-        .map((x) => `<span class="tb-chip"><span class="tb-dot ${dotClass}"></span>${escapeHtml(x.dip_nome || "")}</span>`)
-        .join(" ");
-      return `<div style="margin-top:10px;"><div style="font-weight:900; margin-bottom:6px;">${escapeHtml(title)}</div><div style="display:flex; gap:8px; flex-wrap:wrap;">${names}</div></div>`;
-    };
-
-    elPeople.innerHTML =
-      renderGroup("Dentro", dentro, "in") +
-      renderGroup("In pausa", pausa, "pause") +
-      renderGroup("Fuori", fuori, "out");
-  }
-
-  async function loadData() {
-    cachedRowsMine = await fetchRecentForDipendente(azienda.id, dipendenteId, 120);
-    if (isManager) cachedRowsAll = await fetchRecentForAzienda(azienda.id, 500);
-    else cachedRowsAll = [];
-
-    if (isManager) {
-      const options = [];
-      const seen = new Map();
-      for (const r of cachedRowsAll) {
-        if (!r.dipendente_id) continue;
-        if (!seen.has(r.dipendente_id)) seen.set(r.dipendente_id, r.dip_nome || "Dipendente");
+      if (isManager && selectedDip && selectedDip !== "ALL") {
+        out = out.filter((r) => String(r.dipendente_id || "") === String(selectedDip));
       }
-      for (const [id, name] of seen.entries()) {
-        options.push({ id, name });
+
+      if (q) {
+        out = out.filter((r) => {
+          const dip = String(r.dip_nome || "").toLowerCase();
+          const tipo = String(tipoToLabel(r.tipo) || "").toLowerCase();
+          const ts = String(formatDateTime(r.timestamp) || "").toLowerCase();
+          return dip.includes(q) || tipo.includes(q) || ts.includes(q);
+        });
       }
-      options.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-      elFilter.innerHTML =
-        `<option value="ALL">Tutti i dipendenti</option>` +
-        options.map((o) => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`).join("");
+      return out;
     }
-  }
 
-  async function refreshUi() {
-    elMsg.innerHTML = "";
+    function refreshTimbratureList() {
+      if (!elList) return;
 
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
+      const rowsBase = isManager ? cachedRowsAll : cachedRowsMine;
+      const rows = applyListFilters(rowsBase);
+      elList.innerHTML = buildRowsTable(rows);
 
-    elStatus.textContent = `Stato attuale: ${ui.stato}`;
+      const last = rowsBase[0];
+      if (last) {
+        elLastGeo.innerHTML = `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`;
+      } else {
+        elLastGeo.innerHTML = "";
+      }
+    }
 
-    const primaryLabel = ui.primaryLabel;
-    elPrimary.querySelector(".tb-label").textContent = primaryLabel;
+    function refreshDipendentiSummary() {
+      if (!isManager || !elChips || !elPeople) return;
 
-    elPrimary.disabled = !ui.primaryEnabled;
-    elPausa.disabled = !ui.pausaEnabled;
-    elFine.disabled = !ui.fineEnabled;
-// Reset stato active
-elPrimary.classList.remove("active");
-elPausa.classList.remove("active");
-elFine.classList.remove("active");
+      const base = isManager ? cachedRowsAll : cachedRowsMine;
+      const { dentro, pausa, fuori } = computeEmployeesFromRows(base);
 
-// Evidenzia pulsante coerente con stato
-if (ui.stato === "Fuori turno") {
-  elPrimary.classList.add("active");
-}
+      elChips.innerHTML = `
+        <span class="tb-chip"><span class="tb-dot in"></span> Dentro: ${dentro.length}</span>
+        <span class="tb-chip"><span class="tb-dot pause"></span> Pausa: ${pausa.length}</span>
+        <span class="tb-chip"><span class="tb-dot out"></span> Fuori: ${fuori.length}</span>
+      `;
 
-if (ui.stato === "In turno") {
-  elPausa.classList.add("active");
-}
+      const renderGroup = (title, items, dotClass) => {
+        if (!items.length) return "";
+        const names = items
+          .sort((a, b) => String(a.dip_nome || "").localeCompare(String(b.dip_nome || "")))
+          .map((x) => `<span class="tb-chip"><span class="tb-dot ${dotClass}"></span>${escapeHtml(x.dip_nome || "")}</span>`)
+          .join(" ");
+        return `<div style="margin-top:10px;"><div style="font-weight:900; margin-bottom:6px;">${escapeHtml(title)}</div><div style="display:flex; gap:8px; flex-wrap:wrap;">${names}</div></div>`;
+      };
 
-if (ui.stato === "In pausa") {
-  elPrimary.classList.add("active");
-}
-    await loadData();
-    refreshDipendentiSummary();
-    if (panelOpen) refreshTimbratureList();
-  }
+      elPeople.innerHTML =
+        renderGroup("Dentro", dentro, "in") +
+        renderGroup("In pausa", pausa, "pause") +
+        renderGroup("Fuori", fuori, "out");
+    }
 
-  async function doTimbratura(tipo) {
-    elPrimary.disabled = true;
-    elPausa.disabled = true;
-    elFine.disabled = true;
+    async function loadData() {
+      try {
+        cachedRowsMine = await fetchRecentForDipendente(azienda.id, dipendenteId, 120);
+      } catch (e) {
+        console.error("TIMBRATURE fetchRecentForDipendente ERROR:", e);
+        throw e;
+      }
 
-    setMsg("Acquisizione posizione...", "info");
+      if (isManager) {
+        try {
+          cachedRowsAll = await fetchRecentForAzienda(azienda.id, 500);
+        } catch (e) {
+          console.error("TIMBRATURE fetchRecentForAzienda ERROR:", e);
+          throw e;
+        }
+      } else {
+        cachedRowsAll = [];
+      }
 
-    const basePayload = {
-      azienda_id: azienda.id,
-      dipendente_id: dipendenteId,
-      dip_nome: dipNome,
-      canale: "web",
-      tipo,
-      timestamp: new Date().toISOString(),
-      device_info: navigator.userAgent || "unknown",
-      geo_ts: new Date().toISOString(),
-    };
+      if (isManager && elFilter) {
+        const options = [];
+        const seen = new Map();
+        for (const r of cachedRowsAll) {
+          if (!r.dipendente_id) continue;
+          if (!seen.has(r.dipendente_id)) seen.set(r.dipendente_id, r.dip_nome || "Dipendente");
+        }
+        for (const [id, name] of seen.entries()) {
+          options.push({ id, name });
+        }
+        options.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-    let lat = null;
-    let lon = null;
-    let accuracy_m = null;
+        elFilter.innerHTML =
+          `<option value="ALL">Tutti i dipendenti</option>` +
+          options.map((o) => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`).join("");
+      }
+    }
 
-    try {
-      const pos = await getPosition();
-      lat = toNum(pos?.coords?.latitude);
-      lon = toNum(pos?.coords?.longitude);
-      accuracy_m = toNum(pos?.coords?.accuracy);
-    } catch (err) {
-      const code = typeof err?.code === "number" ? err.code : null;
-      let motivo = "GEO_UNAVAILABLE";
-      if (err?.message === "GEO_UNSUPPORTED" || err?.code === "GEO_UNSUPPORTED") motivo = "GEO_UNSUPPORTED";
-      else if (code === 1) motivo = "GEO_DENIED";
-      else if (code === 2) motivo = "GEO_UNAVAILABLE";
-      else if (code === 3) motivo = "GEO_TIMEOUT";
+    async function refreshUi() {
+      elMsg.innerHTML = "";
+
+      let lastTipo = null;
+      try {
+        lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      } catch (e) {
+        console.error("TIMBRATURE fetchLastTipo ERROR:", e);
+        throw e;
+      }
+
+      const ui = computeUiFromLastTipo(lastTipo);
+
+      elStatus.textContent = `Stato attuale: ${ui.stato}`;
+
+      const primaryLabel = ui.primaryLabel;
+      const primaryLabelEl = elPrimary.querySelector(".tb-label");
+      if (!primaryLabelEl) throw new Error("TIMBRATURE_PRIMARY_LABEL_MISSING");
+      primaryLabelEl.textContent = primaryLabel;
+
+      elPrimary.disabled = !ui.primaryEnabled;
+      elPausa.disabled = !ui.pausaEnabled;
+      elFine.disabled = !ui.fineEnabled;
+
+      elPrimary.classList.remove("active");
+      elPausa.classList.remove("active");
+      elFine.classList.remove("active");
+
+      if (ui.stato === "Fuori turno") {
+        elPrimary.classList.add("active");
+      }
+
+      if (ui.stato === "In turno") {
+        elPausa.classList.add("active");
+      }
+
+      if (ui.stato === "In pausa") {
+        elPrimary.classList.add("active");
+      }
+
+      await loadData();
+      refreshDipendentiSummary();
+      if (panelOpen) refreshTimbratureList();
+    }
+
+    async function doTimbratura(tipo) {
+      elPrimary.disabled = true;
+      elPausa.disabled = true;
+      elFine.disabled = true;
+
+      setMsg("Acquisizione posizione...", "info");
+
+      const basePayload = {
+        azienda_id: azienda.id,
+        dipendente_id: dipendenteId,
+        dip_nome: dipNome,
+        canale: "web",
+        tipo,
+        timestamp: new Date().toISOString(),
+        device_info: navigator.userAgent || "unknown",
+        geo_ts: new Date().toISOString(),
+      };
+
+      let lat = null;
+      let lon = null;
+      let accuracy_m = null;
+
+      try {
+        const pos = await getPosition();
+        lat = toNum(pos?.coords?.latitude);
+        lon = toNum(pos?.coords?.longitude);
+        accuracy_m = toNum(pos?.coords?.accuracy);
+      } catch (err) {
+        const code = typeof err?.code === "number" ? err.code : null;
+        let motivo = "GEO_UNAVAILABLE";
+        if (err?.message === "GEO_UNSUPPORTED" || err?.code === "GEO_UNSUPPORTED") motivo = "GEO_UNSUPPORTED";
+        else if (code === 1) motivo = "GEO_DENIED";
+        else if (code === 2) motivo = "GEO_UNAVAILABLE";
+        else if (code === 3) motivo = "GEO_TIMEOUT";
+
+        try {
+          await insertTimbratura({
+            ...basePayload,
+            lat,
+            lon,
+            accuracy_m,
+            geo_esito: "KO",
+            geo_motivo: motivo,
+          });
+          setMsg(`Timbratura registrata, ma geolocalizzazione non disponibile (${escapeHtml(motivo)}).`, "error");
+        } catch (e2) {
+          console.error("TIMBRATURE insertTimbratura GEO FALLBACK ERROR:", e2);
+          setMsg(`Errore salvataggio timbratura: ${escapeHtml(e2.message || e2)}`, "error");
+        }
+
+        await refreshUi();
+        return;
+      }
+
+      let geo_esito = "KO";
+      let geo_motivo = "NO_GEOFENCE_CONFIGURED";
+
+      try {
+        const fences = await fetchActiveGeofences(azienda.id);
+
+        if (!fences.length) {
+          geo_esito = "KO";
+          geo_motivo = "NO_GEOFENCE_CONFIGURED";
+        } else if (lat == null || lon == null) {
+          geo_esito = "KO";
+          geo_motivo = "GEO_UNAVAILABLE";
+        } else {
+          let best = null;
+
+          for (const f of fences) {
+            const fLat = toNum(f.lat);
+            const fLon = toNum(f.lon);
+            const raggio = Number(f.raggio_m ?? 0);
+            if (fLat == null || fLon == null || !Number.isFinite(raggio) || raggio <= 0) continue;
+
+            const dist = haversineMeters(lat, lon, fLat, fLon);
+            if (!best || dist < best.dist) best = { f, dist, raggio };
+          }
+
+          if (!best) {
+            geo_esito = "KO";
+            geo_motivo = "GEOFENCE_INVALID_CONFIG";
+          } else if (best.dist <= best.raggio) {
+            geo_esito = "OK";
+            geo_motivo = `IN (${Math.round(best.dist)}m <= ${best.raggio}m) ${best.f.nome || ""}`.trim();
+          } else {
+            geo_esito = "KO";
+            geo_motivo = `OUT (${Math.round(best.dist)}m > ${best.raggio}m) ${best.f.nome || ""}`.trim();
+          }
+        }
+      } catch (e) {
+        console.error("TIMBRATURE fetchActiveGeofences ERROR:", e);
+        geo_esito = "KO";
+        geo_motivo = "GEOFENCE_ERROR";
+      }
 
       try {
         await insertTimbratura({
@@ -560,125 +653,78 @@ if (ui.stato === "In pausa") {
           lat,
           lon,
           accuracy_m,
-          geo_esito: "KO",
-          geo_motivo: motivo,
+          geo_esito,
+          geo_motivo,
         });
-        setMsg(`Timbratura registrata, ma geolocalizzazione non disponibile (${escapeHtml(motivo)}).`, "error");
-      } catch (e2) {
-        setMsg(`Errore salvataggio timbratura: ${escapeHtml(e2.message || e2)}`, "error");
+
+        setMsg(
+          `Timbratura registrata: <strong>${escapeHtml(tipoToLabel(tipo))}</strong> • Geofence: <strong>${escapeHtml(geo_esito)}</strong>`,
+          geo_esito === "OK" ? "ok" : "error"
+        );
+      } catch (err) {
+        console.error("TIMBRATURE insertTimbratura ERROR:", err);
+        setMsg(`Errore salvataggio timbratura: ${escapeHtml(err.message || err)}`, "error");
       }
 
       await refreshUi();
-      return;
     }
 
-    let geo_esito = "KO";
-    let geo_motivo = "NO_GEOFENCE_CONFIGURED";
-
-    try {
-      const fences = await fetchActiveGeofences(azienda.id);
-
-      if (!fences.length) {
-        geo_esito = "KO";
-        geo_motivo = "NO_GEOFENCE_CONFIGURED";
-      } else if (lat == null || lon == null) {
-        geo_esito = "KO";
-        geo_motivo = "GEO_UNAVAILABLE";
-      } else {
-        let best = null;
-
-        for (const f of fences) {
-          const fLat = toNum(f.lat);
-          const fLon = toNum(f.lon);
-          const raggio = Number(f.raggio_m ?? 0);
-          if (fLat == null || fLon == null || !Number.isFinite(raggio) || raggio <= 0) continue;
-
-          const dist = haversineMeters(lat, lon, fLat, fLon);
-          if (!best || dist < best.dist) best = { f, dist, raggio };
-        }
-
-        if (!best) {
-          geo_esito = "KO";
-          geo_motivo = "GEOFENCE_INVALID_CONFIG";
-        } else if (best.dist <= best.raggio) {
-          geo_esito = "OK";
-          geo_motivo = `IN (${Math.round(best.dist)}m <= ${best.raggio}m) ${best.f.nome || ""}`.trim();
-        } else {
-          geo_esito = "KO";
-          geo_motivo = `OUT (${Math.round(best.dist)}m > ${best.raggio}m) ${best.f.nome || ""}`.trim();
-        }
-      }
-    } catch (e) {
-      geo_esito = "KO";
-      geo_motivo = "GEOFENCE_ERROR";
-    }
-
-    try {
-      await insertTimbratura({
-        ...basePayload,
-        lat,
-        lon,
-        accuracy_m,
-        geo_esito,
-        geo_motivo,
+    if (elToggle && elPanel) {
+      elToggle.addEventListener("click", () => {
+        panelOpen = !panelOpen;
+        elPanel.style.display = panelOpen ? "block" : "none";
+        elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
+        if (panelOpen) refreshTimbratureList();
       });
-
-      setMsg(
-        `Timbratura registrata: <strong>${escapeHtml(tipoToLabel(tipo))}</strong> • Geofence: <strong>${escapeHtml(geo_esito)}</strong>`,
-        geo_esito === "OK" ? "ok" : "error"
-      );
-    } catch (err) {
-      setMsg(`Errore salvataggio timbratura: ${escapeHtml(err.message || err)}`, "error");
     }
+
+    if (elSearch) {
+      elSearch.addEventListener("input", () => {
+        if (!panelOpen) return;
+        refreshTimbratureList();
+      });
+    }
+
+    if (elFilter) {
+      elFilter.addEventListener("change", () => {
+        selectedDip = elFilter.value || "ALL";
+        if (!panelOpen) return;
+        refreshTimbratureList();
+      });
+    }
+
+    elPrimary.addEventListener("click", async () => {
+      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      const ui = computeUiFromLastTipo(lastTipo);
+
+      if (ui.stato === "Fuori turno") {
+        await doTimbratura("inizio_turno");
+        return;
+      }
+      if (ui.stato === "In pausa") {
+        await doTimbratura("fine_pausa");
+        return;
+      }
+    });
+
+    elPausa.addEventListener("click", async () => {
+      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      const ui = computeUiFromLastTipo(lastTipo);
+      if (ui.stato !== "In turno") return;
+      await doTimbratura("inizio_pausa");
+    });
+
+    elFine.addEventListener("click", async () => {
+      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      const ui = computeUiFromLastTipo(lastTipo);
+      if (ui.stato === "Fuori turno") return;
+      await doTimbratura("fine_turno");
+    });
 
     await refreshUi();
+    console.log("analisi completata");
+  } catch (e) {
+    console.error("TIMBRATURE ERROR:", e);
+    app.innerHTML = "<div>Errore caricamento</div>";
   }
-
-  elToggle.addEventListener("click", () => {
-    panelOpen = !panelOpen;
-    elPanel.style.display = panelOpen ? "block" : "none";
-    elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
-    if (panelOpen) refreshTimbratureList();
-  });
-
-  elSearch.addEventListener("input", () => {
-    if (!panelOpen) return;
-    refreshTimbratureList();
-  });
-
-  elFilter.addEventListener("change", () => {
-    selectedDip = elFilter.value || "ALL";
-    if (!panelOpen) return;
-    refreshTimbratureList();
-  });
-
-  elPrimary.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-
-    if (ui.stato === "Fuori turno") {
-      await doTimbratura("inizio_turno");
-      return;
-    }
-    if (ui.stato === "In pausa") {
-      await doTimbratura("fine_pausa");
-      return;
-    }
-  });
-
-  elPausa.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato !== "In turno") return;
-    await doTimbratura("inizio_pausa");
-  });
-
-  elFine.addEventListener("click", async () => {
-    const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-    const ui = computeUiFromLastTipo(lastTipo);
-    if (ui.stato === "Fuori turno") return;
-    await doTimbratura("fine_turno");
-  });
-
-  await refreshUi();
 }
