@@ -56,9 +56,26 @@ export function initMenu() {
     return window.state?.ruolo === "superadmin"
   }
 
-  function getMenu(){
+  function can(route){
+    if(window.hasPermesso){
+      return window.hasPermesso(route)
+    }
+    return true
+  }
 
-    const ruolo = getRuoloAttivo()
+  function go(route){
+    if(!can(route)) return
+
+    if(window.router?.go){
+      window.router.go(route)
+    }else{
+      window.location.hash = "#/" + route
+    }
+
+    closeMenu()
+  }
+
+  function getMenu(){
 
     return [
 
@@ -119,7 +136,7 @@ export function initMenu() {
       {
         title:"PERSONALE",
         items:[
-          {label:"Timbratura", route:"timbratura"},
+          {label:"Timbratura", route:"timbrature"},
           {label:"Programma lavoro", route:"programma"},
           {label:"Permessi e ferie", route:"permessi"},
           {label:"Documenti", route:"documenti"}
@@ -137,6 +154,10 @@ export function initMenu() {
 
     struttura.forEach(section => {
 
+      // 🔥 filtro permessi
+      const items = section.items.filter(i => can(i.route))
+      if(items.length === 0) return
+
       const sectionBox = document.createElement("div")
       sectionBox.className = "menu-section"
 
@@ -151,18 +172,13 @@ export function initMenu() {
       const itemsBox = document.createElement("div")
       itemsBox.className = "menu-subitems"
 
-      itemsBox.classList.remove("open")
-
-      section.items.forEach(item => {
+      items.forEach(item => {
 
         const row = document.createElement("div")
         row.className = "menu-subitem"
         row.innerText = item.label
 
-        row.onclick = () => {
-          window.location.hash = "#/" + item.route
-          closeMenu()
-        }
+        row.onclick = () => go(item.route)
 
         itemsBox.appendChild(row)
 
@@ -194,6 +210,7 @@ export function initMenu() {
 
     })
 
+    // 🔥 LOGOUT SEMPRE VISIBILE
     const logout = document.createElement("div")
     logout.className = "menu-logout"
     logout.innerText = "Logout"
