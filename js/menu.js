@@ -7,7 +7,7 @@ export function initMenu() {
   if(!menu || !toggle) return
 
   // ================================
-  // 🔔 CREA CAMPANELLA HEADER
+  // 🔔 CAMPANELLA
   // ================================
   if(headerRight && !document.getElementById("notif-bell")){
     const bell = document.createElement("div")
@@ -28,8 +28,6 @@ export function initMenu() {
         font-size:10px;
         padding:2px 6px;
         display:none;
-        align-items:center;
-        justify-content:center;
       ">0</div>
     `
 
@@ -50,117 +48,102 @@ export function initMenu() {
     document.body.appendChild(overlay)
   }
 
-  const baseMenu = {
+  // ======================================================
+  // 🔥 MENU CONFIG (PERMESSI!)
+  // ======================================================
 
-    OPERATIVO:{
-      title:"OPERATIVO",
-      items:[
-        {label:"Produzione",route:"produzione"},
-        {label:"Magazzino",route:"magazzino"},
-        {label:"Ricettario",route:"ricettario"},
-        {label:"Preparazioni",route:"preparazioni"}
-      ]
-    },
+  const MENU = [
 
-    AMMINISTRAZIONE:{
-      title:"AMMINISTRAZIONE",
-      items:[
-        {label:"Acquisti",route:"acquisti"},
-        {label:"Dipendenti",route:"dipendenti"},
-        {label:"Timbrature",route:"timbrature"},
-        {label:"Permessi e ferie",route:"permessi"},
-        {label:"Preventivi",route:"preventivi"}
-      ]
-    },
-
-    GESTIONE:{
-      title:"GESTIONE",
-      items:[
-        {label:"Venduto",route:"venduto"},
-        {label:"Margini",route:"margini"}
-      ]
-    },
-
-    MARKETING:{
-      title:"MARKETING",
-      items:[
-        {label:"Campagne",route:"marketing"}
-      ]
-    },
-
-    OPERATORE:{
-      title:"PERSONALE",
-      items:[
-        {label:"Timbratura",route:"timbratura"},
-        {label:"Programma lavoro",route:"programma"},
-        {label:"Permessi e ferie",route:"permessi"},
-        {label:"Documenti",route:"documenti"}
-      ]
-    }
-
-  }
-
-  function getMenuForRole(){
-
-    const ruolo = window.state?.ruolo
-    const isSuperadmin = window.state?.isSuperadmin === true
-
-    const structure = []
-
-    if(isSuperadmin){
-      structure.push({
-        title:"PIATTAFORMA",
-        items:[
-          {label:"Home piattaforma",route:"homePiattaforma"}
-        ]
-      })
-    }
-
-    structure.push({
+    {
       title:"GENERALE",
       items:[
-        {label:"Home",route:"home"}
+        {label:"Home", route:"home"}
       ]
-    })
+    },
 
-    if(isSuperadmin || ruolo === "admin"){
-      structure.push(baseMenu.OPERATIVO)
-      structure.push(baseMenu.AMMINISTRAZIONE)
-      structure.push(baseMenu.GESTIONE)
-      structure.push(baseMenu.MARKETING)
-      return structure
+    {
+      title:"OPERATIVO",
+      items:[
+        {label:"Produzione", route:"produzione", perm:"produzione.read"},
+        {label:"Magazzino", route:"magazzino", perm:"magazzino.read"},
+        {label:"Ricettario", route:"ricettario", perm:"ricette.read"},
+        {label:"Preparazioni", route:"preparazioni", perm:"produzione.read"}
+      ]
+    },
+
+    {
+      title:"AMMINISTRAZIONE",
+      items:[
+        {label:"Acquisti", route:"acquisti", perm:"acquisti.read"},
+        {label:"Fatture", route:"fatture", perm:"fatture.create"},
+        {label:"Dipendenti", route:"dipendenti", perm:"dipendenti.read"},
+        {label:"Timbrature", route:"timbrature", perm:"timbrature.read"},
+        {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
+        {label:"Preventivi", route:"preventivi", perm:"preventivi.read"}
+      ]
+    },
+
+    {
+      title:"GESTIONE",
+      items:[
+        {label:"Venduto", route:"venduto", perm:"venduto.read"},
+        {label:"Margini", route:"margini", perm:"report.read"}
+      ]
+    },
+
+    {
+      title:"MARKETING",
+      items:[
+        {label:"Campagne", route:"marketing", perm:"marketing.read"}
+      ]
+    },
+
+    {
+      title:"PERSONALE",
+      items:[
+        {label:"Timbratura", route:"timbratura", perm:"timbrature.create"},
+        {label:"Programma lavoro", route:"programma", perm:"turni.read"},
+        {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
+        {label:"Documenti", route:"documenti", perm:"documenti.read"}
+      ]
     }
 
-    if(ruolo === "manager"){
-      structure.push(baseMenu.OPERATIVO)
-      structure.push(baseMenu.AMMINISTRAZIONE)
-      structure.push(baseMenu.GESTIONE)
-      return structure
-    }
+  ]
 
-    if(ruolo === "manager_cucina"){
-      structure.push(baseMenu.OPERATIVO)
-      return structure
-    }
+  // ======================================================
+  // 🔥 FILTRO PERMESSI
+  // ======================================================
 
-    if(ruolo === "segreteria"){
-      structure.push(baseMenu.AMMINISTRAZIONE)
-      return structure
-    }
+  function filterMenu(){
 
-    if(ruolo === "operatore"){
-      structure.push(baseMenu.OPERATORE)
-      return structure
-    }
+    const isSuperadmin = window.state?.isSuperadmin === true
 
-    return structure
+    return MENU.map(section => {
+
+      const filteredItems = section.items.filter(item => {
+        if(!item.perm) return true
+        if(isSuperadmin) return true
+        return window.hasPermesso(item.perm)
+      })
+
+      return {
+        ...section,
+        items: filteredItems
+      }
+
+    }).filter(section => section.items.length > 0)
+
   }
+
+  // ======================================================
+  // 🔥 RENDER
+  // ======================================================
 
   function renderMenu(){
 
     menu.innerHTML = ""
 
-    const structure = getMenuForRole()
+    const structure = filterMenu()
 
     structure.forEach(section => {
 
@@ -178,24 +161,20 @@ export function initMenu() {
       const itemsBox = document.createElement("div")
       itemsBox.className = "menu-subitems"
 
-      if(section.items){
+      section.items.forEach(item => {
 
-        section.items.forEach(item => {
+        const row = document.createElement("div")
+        row.className = "menu-subitem"
+        row.innerText = item.label
 
-          const row = document.createElement("div")
-          row.className = "menu-subitem"
-          row.innerText = item.label
+        row.onclick = () => {
+          window.location.hash = "#/" + item.route
+          closeMenu()
+        }
 
-          row.onclick = () => {
-            window.location.hash = "#/" + item.route
-            closeMenu()
-          }
+        itemsBox.appendChild(row)
 
-          itemsBox.appendChild(row)
-
-        })
-
-      }
+      })
 
       title.onclick = () => {
 
@@ -249,36 +228,25 @@ export function initMenu() {
   }
 
   toggle.onclick = () => {
-
     if(menu.classList.contains("open")){
       closeMenu()
     }else{
       openMenu()
     }
-
   }
 
   overlay.onclick = closeMenu
 
   window.menuController = {
-
     refresh(){
       if(menu.classList.contains("open")){
         renderMenu()
       }
     },
-
-    open(){
-      openMenu()
-    },
-
-    close(){
-      closeMenu()
-    }
-
+    open(){ openMenu() },
+    close(){ closeMenu() }
   }
 
-  // 🔥 INIT NOTIFICHE
   if(window.initNotificheRealtime){
     window.initNotificheRealtime()
   }
