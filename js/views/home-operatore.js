@@ -12,10 +12,6 @@ if (!window.state?.sedeAttiva) {
 
 const today = new Date().toISOString().slice(0,10)
 
-// =========================
-// SERVIZIO
-// =========================
-
 let servizioOggi = null
 
 try{
@@ -30,17 +26,9 @@ try{
 
 }catch(e){}
 
-// =========================
-// STATO
-// =========================
-
 const statoServizio = servizioOggi?.tipo_servizio
   ? servizioOggi.tipo_servizio
   : "⚠️ Nessun servizio configurato"
-
-// =========================
-// RENDER
-// =========================
 
 container.innerHTML = `
 
@@ -96,6 +84,12 @@ padding:8px 0;
 cursor:pointer;
 }
 
+/* 🔥 FIX CLICK FEEDBACK */
+.task:active{
+opacity:0.6;
+transform:scale(0.98);
+}
+
 .stato-card{
 background:#f0f9ff;
 }
@@ -140,10 +134,8 @@ border:1px solid #ddd;
 </style>
 `
 
-// FOOTER
 container.innerHTML += renderFooter()
 
-// INIT
 initFooter()
 initTasks()
 initTony()
@@ -239,7 +231,7 @@ const input = document.getElementById("tony-input")
 if(input){
   input.addEventListener("keydown",(e)=>{
     if(e.key === "Enter"){
-      console.log("Tony input:", input.value)
+      alert("Tony sta imparando 😉")
       input.value = ""
     }
   })
