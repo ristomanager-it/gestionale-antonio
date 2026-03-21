@@ -2,25 +2,24 @@ import { getWeather } from "../utils/weather.js"
 
 export function initTopbar(){
 
-  let bar = document.querySelector(".topbar-info")
+  let bar = document.getElementById("topbar-global")
 
   if(!bar){
     bar = document.createElement("div")
-    bar.className = "topbar-info"
-    bar.id = "topbar-info"
+    bar.id = "topbar-global"
+    bar.className = "topbar-global"
     document.body.appendChild(bar)
   }
 
   renderTopbar()
 }
 
-// 🔥 ESPONIAMO GLOBALMENTE
 window.refreshTopbar = renderTopbar
 
 
 async function renderTopbar(){
 
-  const el = document.getElementById("topbar-info")
+  const el = document.getElementById("topbar-global")
   if(!el) return
 
   const nome = window.state?.user?.email || "Utente"
@@ -36,7 +35,7 @@ async function renderTopbar(){
 
   const saluto = getSaluto()
 
-  // 🔥 fallback immediato
+  // render veloce
   el.innerHTML = `
     <div class="topbar-left">
       <span>${saluto} ${nome.split("@")[0]}</span>
@@ -50,7 +49,6 @@ async function renderTopbar(){
     </div>
   `
 
-  // 🔥 meteo async
   const meteo = await getWeather()
 
   const right = el.querySelector(".topbar-right")
@@ -64,9 +62,7 @@ async function renderTopbar(){
 
 
 function getSaluto(){
-
   const h = new Date().getHours()
-
   if(h < 12) return "Buongiorno"
   if(h < 18) return "Buon pomeriggio"
   return "Buonasera"
