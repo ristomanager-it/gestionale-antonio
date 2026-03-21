@@ -16,52 +16,56 @@ container.innerHTML=`
       <img src="assets/favicon-192.png" class="login-logo">
     </div>
 
-    <div class="form-group">
-      <input 
-        id="login-email" 
-        class="input" 
-        type="email" 
-        placeholder="Email"
-      >
-    </div>
+    <div class="login-form">
 
-    <div class="form-group">
-
-      <div style="position:relative;">
+      <div class="form-group">
         <input 
-          id="login-password" 
+          id="login-email" 
           class="input" 
-          type="password" 
-          placeholder="Password"
+          type="email" 
+          placeholder="Email"
         >
+      </div>
 
-        <span id="toggle-password"
-        style="
-        position:absolute;
-        right:10px;
-        top:50%;
-        transform:translateY(-50%);
-        cursor:pointer;
-        font-size:14px;
-        color:#6b7280;
-        ">
-        👁
-        </span>
+      <div class="form-group">
+
+        <div style="position:relative;">
+          <input 
+            id="login-password" 
+            class="input" 
+            type="password" 
+            placeholder="Password"
+          >
+
+          <span id="toggle-password"
+          style="
+          position:absolute;
+          right:10px;
+          top:50%;
+          transform:translateY(-50%);
+          cursor:pointer;
+          font-size:14px;
+          color:#6b7280;
+          ">
+          👁
+          </span>
+
+        </div>
 
       </div>
 
-    </div>
-
-    <button id="login-btn" class="app-button primary login-btn">
-      Accedi
-    </button>
-
-    <div id="login-msg" class="form-result"></div>
-
-    <div class="login-reset">
-      <button id="reset-btn" class="login-reset-btn">
-        Recupera accesso
+      <button id="login-btn" class="app-button primary login-btn">
+        Accedi
       </button>
+
+      <div id="login-msg" class="form-result"></div>
+
+      <div class="login-reset">
+        <button id="reset-btn" class="login-reset-btn">
+          Recupera accesso
+        </button>
+      </div>
+
     </div>
 
   </div>
