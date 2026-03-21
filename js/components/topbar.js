@@ -1,5 +1,3 @@
-// js/components/topbar.js
-
 import { getWeather } from "../utils/weather.js"
 
 export function initTopbar(){
@@ -9,17 +7,24 @@ export function initTopbar(){
   if(!bar){
     bar = document.createElement("div")
     bar.className = "topbar-info"
+    bar.id = "topbar-info"
     document.body.appendChild(bar)
   }
 
   renderTopbar()
 }
 
+// 🔥 ESPONIAMO GLOBALMENTE
+window.refreshTopbar = renderTopbar
+
 
 async function renderTopbar(){
 
+  const el = document.getElementById("topbar-info")
+  if(!el) return
+
   const nome = window.state?.user?.email || "Utente"
-  const ruolo = window.state?.viewAs || window.state?.ruolo
+  const ruolo = window.state?.viewAs || window.state?.ruolo || "-"
 
   const now = new Date()
 
@@ -31,9 +36,8 @@ async function renderTopbar(){
 
   const saluto = getSaluto()
 
-  const meteo = await getWeather()
-
-  document.querySelector(".topbar-info").innerHTML = `
+  // 🔥 fallback immediato
+  el.innerHTML = `
     <div class="topbar-left">
       <span>${saluto} ${nome.split("@")[0]}</span>
       <span>•</span>
@@ -41,10 +45,21 @@ async function renderTopbar(){
     </div>
 
     <div class="topbar-right">
-      <span>${meteo}</span>
+      <span>⏳</span>
       <span>• ${ruolo}</span>
     </div>
   `
+
+  // 🔥 meteo async
+  const meteo = await getWeather()
+
+  const right = el.querySelector(".topbar-right")
+  if(right){
+    right.innerHTML = `
+      <span>${meteo}</span>
+      <span>• ${ruolo}</span>
+    `
+  }
 }
 
 
