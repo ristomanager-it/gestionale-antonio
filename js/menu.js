@@ -49,91 +49,101 @@ export function initMenu() {
   }
 
   // ======================================================
+  // 🔥 FUNZIONE DINAMICA (IMPORTANTE)
+  // ======================================================
+
+  function isSuperadmin(){
+    return window.state?.ruolo === "superadmin"
+  }
+
+  // ======================================================
   // 🔥 MENU CONFIG
   // ======================================================
 
-  const isSuperadmin = window.state?.isSuperadmin === true || window.state?.ruolo === "superadmin"
+  function getMenu(){
 
-  const MENU = [
+    return [
 
-    // 🔥 PIATTAFORMA (SOLO SUPERADMIN)
-    ...(isSuperadmin ? [{
-      title:"PIATTAFORMA",
-      items:[
-        {label:"Dashboard SaaS", route:"home-piattaforma"},
-        {label:"Gestione Aziende", route:"gestioneAziende"},
-        {label:"Crea Azienda", route:"creaAzienda"},
-        {label:"Piani Abbonamento", route:"gestionePiani"}
-      ]
-    }] : []),
+      ...(isSuperadmin() ? [{
+        title:"PIATTAFORMA",
+        items:[
+          {label:"Dashboard SaaS", route:"home-piattaforma"},
+          {label:"Gestione Aziende", route:"gestioneAziende"},
+          {label:"Crea Azienda", route:"creaAzienda"},
+          {label:"Piani Abbonamento", route:"gestionePiani"}
+        ]
+      }] : []),
 
-    {
-      title:"GENERALE",
-      items:[
-        {label:"Home", route:"home"}
-      ]
-    },
+      {
+        title:"GENERALE",
+        items:[
+          {label:"Home", route:"home"}
+        ]
+      },
 
-    {
-      title:"OPERATIVO",
-      items:[
-        {label:"Produzione", route:"produzione", perm:"produzione.read"},
-        {label:"Magazzino", route:"magazzino", perm:"magazzino.read"},
-        {label:"Ricettario", route:"ricettario", perm:"ricette.read"},
-        {label:"Preparazioni", route:"preparazioni", perm:"produzione.read"}
-      ]
-    },
+      {
+        title:"OPERATIVO",
+        items:[
+          {label:"Produzione", route:"produzione", perm:"produzione.read"},
+          {label:"Magazzino", route:"magazzino", perm:"magazzino.read"},
+          {label:"Ricettario", route:"ricettario", perm:"ricette.read"},
+          {label:"Preparazioni", route:"preparazioni", perm:"produzione.read"}
+        ]
+      },
 
-    {
-      title:"AMMINISTRAZIONE",
-      items:[
-        {label:"Acquisti", route:"acquisti", perm:"acquisti.read"},
-        {label:"Fatture", route:"fatture", perm:"fatture.create"},
-        {label:"Dipendenti", route:"dipendenti", perm:"dipendenti.read"},
-        {label:"Timbrature", route:"timbrature", perm:"timbrature.read"},
-        {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
-        {label:"Preventivi", route:"preventivi", perm:"preventivi.read"}
-      ]
-    },
+      {
+        title:"AMMINISTRAZIONE",
+        items:[
+          {label:"Acquisti", route:"acquisti", perm:"acquisti.read"},
+          {label:"Fatture", route:"fatture", perm:"fatture.create"},
+          {label:"Dipendenti", route:"dipendenti", perm:"dipendenti.read"},
+          {label:"Timbrature", route:"timbrature", perm:"timbrature.read"},
+          {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
+          {label:"Preventivi", route:"preventivi", perm:"preventivi.read"}
+        ]
+      },
 
-    {
-      title:"GESTIONE",
-      items:[
-        {label:"Venduto", route:"venduto", perm:"venduto.read"},
-        {label:"Margini", route:"margini", perm:"report.read"}
-      ]
-    },
+      {
+        title:"GESTIONE",
+        items:[
+          {label:"Venduto", route:"venduto", perm:"venduto.read"},
+          {label:"Margini", route:"margini", perm:"report.read"}
+        ]
+      },
 
-    {
-      title:"MARKETING",
-      items:[
-        {label:"Campagne", route:"marketing", perm:"marketing.read"}
-      ]
-    },
+      {
+        title:"MARKETING",
+        items:[
+          {label:"Campagne", route:"marketing", perm:"marketing.read"}
+        ]
+      },
 
-    {
-      title:"PERSONALE",
-      items:[
-        {label:"Timbratura", route:"timbratura", perm:"timbrature.create"},
-        {label:"Programma lavoro", route:"programma", perm:"turni.read"},
-        {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
-        {label:"Documenti", route:"documenti", perm:"documenti.read"}
-      ]
-    }
+      {
+        title:"PERSONALE",
+        items:[
+          {label:"Timbratura", route:"timbratura", perm:"timbrature.create"},
+          {label:"Programma lavoro", route:"programma", perm:"turni.read"},
+          {label:"Permessi e ferie", route:"permessi", perm:"dipendenti.read"},
+          {label:"Documenti", route:"documenti", perm:"documenti.read"}
+        ]
+      }
 
-  ]
+    ]
+  }
 
   // ======================================================
-  // 🔥 FILTRO PERMESSI
+  // 🔥 FILTRO
   // ======================================================
 
   function filterMenu(){
+
+    const MENU = getMenu()
 
     return MENU.map(section => {
 
       const filteredItems = section.items.filter(item => {
         if(!item.perm) return true
-        if(isSuperadmin) return true
+        if(isSuperadmin()) return true
         return window.hasPermesso(item.perm)
       })
 
@@ -213,10 +223,6 @@ export function initMenu() {
 
     })
 
-    // ================================
-    // LOGOUT
-    // ================================
-
     const logout = document.createElement("div")
     logout.className = "menu-logout"
     logout.innerText = "Logout"
@@ -252,14 +258,11 @@ export function initMenu() {
 
   overlay.onclick = closeMenu
 
+  // 🔥 IMPORTANTISSIMO
   window.menuController = {
-    refresh(){
-      if(menu.classList.contains("open")){
-        renderMenu()
-      }
-    },
-    open(){ openMenu() },
-    close(){ closeMenu() }
+    refresh: renderMenu,
+    open: openMenu,
+    close: closeMenu
   }
 
   if(window.initNotificheRealtime){
