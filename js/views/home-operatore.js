@@ -1,148 +1,248 @@
 import { renderFooter, initFooter } from "../components/footer.js"
 
-const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+export async function render(container){
 
-export async function render(container) {
+const supabase = window.supabaseClient
+const azienda = window.state?.azienda
 
-  const supabase = window.supabaseClient;
-  const azienda = window.state?.azienda;
-  const user = window.state?.user;
+if (!window.state?.sedeAttiva) {
+  window.location.hash = "#/prehome-sedi"
+  return
+}
 
-  if (!window.state?.sedeAttiva) {
-    window.location.hash = "#/prehome-sedi";
-    return;
-  }
+const today = new Date().toISOString().slice(0,10)
 
-  const today = new Date().toISOString().slice(0,10);
+// =========================
+// SERVIZIO
+// =========================
 
-  let servizioOggi = null;
+let servizioOggi = null
 
-  try {
-    const { data } = await supabase
-      .from("servizi")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .eq("data_servizio", today)
-      .limit(1)
-      .single();
+try{
+  const { data } = await supabase
+    .from("servizi")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .eq("data_servizio", today)
+    .limit(1)
 
-    servizioOggi = data;
+  servizioOggi = data?.[0] || null
 
-  } catch(e){}
+}catch(e){}
 
-  // 🔥 PRIMA RENDER COMPLETO DELLA VIEW
-  container.innerHTML = `
+// =========================
+// STATO
+// =========================
 
-  <div class="view operatore-home-new">
+const statoServizio = servizioOggi?.tipo_servizio
+  ? servizioOggi.tipo_servizio
+  : "⚠️ Nessun servizio configurato"
 
-    <div class="op-header">
-      <div>
-        <div class="saluto" id="home-saluto"></div>
-        <div class="utente">${user?.email || ""}</div>
-      </div>
+// =========================
+// RENDER
+// =========================
 
-      <div class="header-right">
-        <div id="home-data"></div>
-        <div id="home-weather">☁️</div>
-      </div>
+container.innerHTML = `
+
+<div class="view operatore-home-new">
+
+  <div class="card stato-card">
+    <div class="card-title">📅 Oggi</div>
+    <div class="card-sub">${statoServizio}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Cosa devi fare</div>
+
+    ${renderTasks(servizioOggi)}
+
+  </div>
+
+  <div class="card tony-card">
+
+    <div class="card-title">🤖 Tony</div>
+
+    <div class="tony-message">
+      ${getTonyMessage(servizioOggi)}
     </div>
 
-    <div class="card stato-card">
-      <div class="card-title">📅 Oggi</div>
-      <div class="card-sub">
-        ${servizioOggi ? servizioOggi.tipo_servizio : "Nessun servizio programmato"}
-      </div>
+    <div class="tony-actions">
+
+      ${getTonyActions(servizioOggi).map(a=>`
+        <button class="tony-btn" data-route="${a.route}">
+          ${a.label}
+        </button>
+      `).join("")}
+
     </div>
 
-    <div class="card">
-      <div class="card-title">📋 I tuoi compiti</div>
-
-      <div class="task">✔ Timbra ingresso</div>
-      <div class="task">✔ Controlla preparazioni</div>
-      <div class="task">✔ Verifica servizio</div>
-    </div>
-
-    <div class="card tony-card">
-      <div class="card-title">🤖 Tony</div>
-      <div class="card-sub">
-        Oggi servizio ${servizioOggi?.tipo_servizio || "standard"}.
-        Controlla le preparazioni prima del servizio.
-      </div>
+    <div class="tony-input-wrap">
+      <input id="tony-input" placeholder="Chiedi a Tony..." />
     </div>
 
   </div>
 
-  <style>
-  .operatore-home-new{
-    padding-bottom:90px;
-  }
+</div>
 
-  .op-header{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:16px;
-  }
+<style>
 
-  .task{
-    font-size:14px;
-    padding:6px 0;
-  }
-
-  .stato-card{
-    background:#f0f9ff;
-  }
-
-  .tony-card{
-    background:#eef2ff;
-  }
-  </style>
-  `;
-
-  // 🔥 POI AGGIUNGI FOOTER
-  container.innerHTML += renderFooter();
-
-  // 🔥 POI INIZIALIZZI CLICK
-  initFooter();
-
-  initHeader();
-  hydrateWeather();
+.operatore-home-new{
+padding-bottom:90px;
 }
 
-/* HEADER */
-
-function initHeader(){
-  const salutoBox = document.getElementById("home-saluto");
-  const dataBox = document.getElementById("home-data");
-
-  const ora = new Date().getHours();
-
-  let saluto = "Buongiorno";
-  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
-  if (ora >= 18) saluto = "Buonasera";
-
-  if(salutoBox) salutoBox.innerText = saluto;
-
-  if(dataBox){
-    dataBox.innerText = new Date().toLocaleDateString("it-IT", {
-      weekday:"long",
-      day:"numeric",
-      month:"long",
-      year:"numeric"
-    });
-  }
+.task{
+font-size:14px;
+padding:8px 0;
+cursor:pointer;
 }
 
-async function hydrateWeather(){
-  const box = document.getElementById("home-weather");
-  if(!box) return;
+.stato-card{
+background:#f0f9ff;
+}
 
-  try{
-    const res = await fetch(
-      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
-    );
-    const data = await res.json();
-    box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
-  }catch{
-    box.innerHTML = "☁️";
+.tony-card{
+background:#eef2ff;
+}
+
+.tony-message{
+margin-top:6px;
+font-size:14px;
+}
+
+.tony-actions{
+margin-top:10px;
+display:flex;
+gap:6px;
+flex-wrap:wrap;
+}
+
+.tony-btn{
+background:#0E5A7A;
+color:white;
+border:none;
+padding:6px 10px;
+border-radius:10px;
+font-size:12px;
+cursor:pointer;
+}
+
+.tony-input-wrap{
+margin-top:10px;
+}
+
+.tony-input-wrap input{
+width:100%;
+padding:8px;
+border-radius:10px;
+border:1px solid #ddd;
+}
+
+</style>
+`
+
+// FOOTER
+container.innerHTML += renderFooter()
+
+// INIT
+initFooter()
+initTasks()
+initTony()
+
+}
+
+// =========================
+// NAV
+// =========================
+
+function go(route){
+if(window.router?.go){
+  window.router.go(route)
+}else{
+  window.location.hash = "#/" + route
+}
+}
+
+// =========================
+// TASK
+// =========================
+
+function renderTasks(servizio){
+
+const tasks = []
+
+tasks.push({label:"⏱ Timbra ingresso", route:"timbrature"})
+
+if(servizio){
+  tasks.push({label:"🍳 Controlla preparazioni", route:"produzione"})
+  tasks.push({label:"🍽 Vai al servizio", route:"servizi"})
+}else{
+  tasks.push({label:"⚠️ Nessun servizio pianificato", route:"calendario"})
+}
+
+return tasks.map(t=>`
+  <div class="task" data-route="${t.route}">
+    ${t.label}
+  </div>
+`).join("")
+
+}
+
+function initTasks(){
+document.querySelectorAll(".task").forEach(el=>{
+  el.onclick = ()=>{
+    const route = el.dataset.route
+    if(route) go(route)
   }
+})
+}
+
+// =========================
+// TONY
+// =========================
+
+function getTonyMessage(servizio){
+
+if(!servizio){
+  return "Non vedo servizi oggi. Verifica con il responsabile."
+}
+
+return `Oggi hai ${servizio.tipo_servizio}. Inizia dalle preparazioni.`
+
+}
+
+function getTonyActions(servizio){
+
+if(!servizio){
+  return [
+    {label:"Apri calendario", route:"calendario"}
+  ]
+}
+
+return [
+  {label:"Preparazioni", route:"produzione"},
+  {label:"Servizio", route:"servizi"}
+]
+
+}
+
+function initTony(){
+
+document.querySelectorAll(".tony-btn").forEach(btn=>{
+  btn.onclick = ()=>{
+    const route = btn.dataset.route
+    if(route) go(route)
+  }
+})
+
+const input = document.getElementById("tony-input")
+
+if(input){
+  input.addEventListener("keydown",(e)=>{
+    if(e.key === "Enter"){
+      console.log("Tony input:", input.value)
+      input.value = ""
+    }
+  })
+}
+
 }
