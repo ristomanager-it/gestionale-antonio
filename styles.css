@@ -458,5 +458,13 @@ border-radius:14px;
 .card{
 border-radius:14px;
 }
+/* =========================================================
+LOGIN CENTER FIX
+========================================================= */
 
+.login-view{
+min-height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
 }
