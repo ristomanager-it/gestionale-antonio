@@ -249,6 +249,7 @@ function bindEvents(){
   document.getElementById("btn-logout").onclick = async ()=>{
     await window.supabaseClient.auth.signOut()
     window.state = {}
+    localStorage.removeItem("viewAs") // 🔥 reset ruolo salvato
     window.location.hash = "#/login"
   }
 
@@ -261,16 +262,18 @@ function bindEvents(){
     }
   }
 
-  // 🔥 VIEW SWITCH → ENTRA DIRETTAMENTE NELLA HOME REALE
+  // 🔥 VIEW SWITCH COMPLETO (PERSISTENTE + NAVIGAZIONE)
   document.querySelectorAll(".role-btn").forEach(btn => {
 
     btn.onclick = () => {
 
       const role = btn.dataset.role
 
+      // salva stato
       window.state.viewAs = role
+      localStorage.setItem("viewAs", role)
 
-      // opzionale futuro (preview mode)
+      // preview mode (future AI safe)
       window.state.previewMode = true
 
       // refresh menu se esiste
@@ -278,7 +281,7 @@ function bindEvents(){
         window.menuController.refresh()
       }
 
-      // 🔥 QUI CAMBIA TUTTO
+      // 🔥 entra direttamente nella home reale
       if(window.router?.go){
         window.router.go("home")
       }else{
