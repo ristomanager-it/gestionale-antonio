@@ -178,24 +178,22 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
+
   if (area === "home") return true;
+
+  // 🔥 FIX CRITICO
+  if (window.state?._allAccess === true) return true;
+
   if (isSuperadmin()) return true;
 
-  const ruolo = window.state?.ruolo;
+  const ruolo = window.state?.viewAs || window.state?.ruolo;
+
   if (ruolo === "admin") return true;
 
   const permessi = window.state?.permessi || {};
-  const override = window.state?.permessiOverride || {};
-
-  if (Object.prototype.hasOwnProperty.call(override, area)) {
-    return override[area] === true;
-  }
 
   return permessi[`${area}.read`] === true;
 }
-
-window.hasPermesso = hasPermission;
-
 /* =========================================================
    UI HELPERS
 ========================================================= */
