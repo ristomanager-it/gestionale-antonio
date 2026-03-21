@@ -9,9 +9,7 @@ export async function render(container) {
 
       <div id="home-tony"></div>
 
-      <div id="home-kpi"></div>
-
-      <div id="home-actions"></div>
+      <div id="home-main"></div>
 
     </div>
 
@@ -31,7 +29,7 @@ export async function render(container) {
         border-radius:12px;
       }
 
-      .actions div{
+      .item{
         padding:10px;
         background:#eef2f7;
         border-radius:8px;
@@ -43,15 +41,14 @@ export async function render(container) {
 
   renderHeader()
   renderTonyFast()
-  renderKPI()
-  renderActions()
+  renderMain()
 
   loadTonyAsync()
 }
 
 
 // =======================================
-// HEADER
+// HEADER (SALUTO + DATA)
 // =======================================
 
 function renderHeader(){
@@ -92,7 +89,7 @@ function renderTonyFast(){
   let msg = "Sistema operativo pronto"
 
   if(ruolo === "manager"){
-    msg = "Controlla operatività e vendite oggi"
+    msg = "Controlla servizio, turni e personale"
   }
 
   if(ruolo === "operatore"){
@@ -130,82 +127,93 @@ async function loadTonyAsync(){
 
 
 // =======================================
-// KPI (LOGICA RUOLI)
+// MAIN LOGICA RUOLI
 // =======================================
 
-function renderKPI(){
+function renderMain(){
 
   const ruolo = window.state?.ruolo
+  const box = document.getElementById("home-main")
 
-  // 👨‍💼 MANAGER → SOLO VENDITE
+  // 👨‍💼 MANAGER
   if(ruolo === "manager"){
-    document.getElementById("home-kpi").innerHTML = `
+
+    box.innerHTML = `
       <div class="card">
-        <b>Vendite oggi</b>
-        <div>€ 1.200</div>
+        <b>Operatività</b>
+
+        <div class="item" onclick="location.hash='#/dipendenti'">
+          Gestione personale
+        </div>
+
+        <div class="item" onclick="location.hash='#/turni'">
+          Turni
+        </div>
+
+        <div class="item" onclick="location.hash='#/prenotazioni'">
+          Prenotazioni
+        </div>
+
+        <div class="item" onclick="location.hash='#/produzione'">
+          Produzione
+        </div>
+
       </div>
     `
     return
   }
 
-  // 👑 ADMIN → COMPLETO
+  // 👑 ADMIN
   if(ruolo === "admin" || ruolo === "superadmin"){
-    document.getElementById("home-kpi").innerHTML = `
+
+    box.innerHTML = `
       <div class="card">
-        <b>KPI</b>
-        <div>Vendite: € 1.200</div>
+        <b>Controllo economico</b>
+
         <div>Margine: € 320</div>
         <div>Costi: € 880</div>
+        <div>Vendite: € 1.200</div>
+
+      </div>
+
+      <div class="card">
+        <b>Azioni</b>
+
+        <div class="item" onclick="location.hash='#/fatture'">
+          Fatture
+        </div>
+
+        <div class="item" onclick="location.hash='#/acquisti'">
+          Acquisti
+        </div>
+
+        <div class="item" onclick="location.hash='#/dipendenti'">
+          Dipendenti
+        </div>
+
       </div>
     `
     return
-  }
-
-  // 👤 OPERATORE → niente KPI
-  document.getElementById("home-kpi").innerHTML = ""
-}
-
-
-// =======================================
-// AZIONI
-// =======================================
-
-function renderActions(){
-
-  const ruolo = window.state?.ruolo
-  const actions = []
-
-  // 👨‍💼 MANAGER → operativo
-  if(ruolo === "manager"){
-    actions.push({label:"Produzione", route:"produzione"})
-    actions.push({label:"Fatture", route:"fatture"})
-    actions.push({label:"Team", route:"dipendenti"})
-  }
-
-  // 👑 ADMIN → tutto
-  if(ruolo === "admin" || ruolo === "superadmin"){
-    actions.push({label:"Fatture", route:"fatture"})
-    actions.push({label:"Acquisti", route:"acquisti"})
-    actions.push({label:"Dipendenti", route:"dipendenti"})
   }
 
   // 👤 OPERATORE
   if(ruolo === "operatore"){
-    actions.push({label:"Produzione", route:"produzione"})
-    actions.push({label:"Timbratura", route:"timbratura"})
-  }
 
-  if(!actions.length){
-    document.getElementById("home-actions").innerHTML = ""
+    box.innerHTML = `
+      <div class="card">
+        <b>Operatività</b>
+
+        <div class="item" onclick="location.hash='#/produzione'">
+          Produzione
+        </div>
+
+        <div class="item" onclick="location.hash='#/timbratura'">
+          Timbratura
+        </div>
+
+      </div>
+    `
     return
   }
 
-  document.getElementById("home-actions").innerHTML = `
-    <div class="card actions">
-      <b>Azioni</b>
-      ${actions.map(a=>`
-        <div onclick="location.hash='#/${a.route}'">${a.label}</div>
-      `).join("")}
-    </div>
-  `
 }
