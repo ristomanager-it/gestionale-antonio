@@ -547,3 +547,16 @@ border-radius:14px;
 }
 
 }
+/* evita che il menu influenzi layout login */
+body.menu-open {
+  overflow: hidden;
+}
+
+/* sicurezza layout */
+#global-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* NON toccare il resto del layout globale */
