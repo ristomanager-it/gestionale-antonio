@@ -1,13 +1,8 @@
-// js/views/home-piattaforma.js
-// =======================================
-// HOME PIATTAFORMA – SWITCH AZIENDA UI PRO
-// =======================================
-
 export async function render(container) {
 
   const user = window.state.user;
   const azienda = window.state.azienda;
-  const ruolo = window.state?.ruolo;
+  const ruolo = window.state?.viewAs || window.state?.ruolo;
 
   if (!user) {
     container.innerHTML = `<div class="view">Errore caricamento</div>`;
@@ -27,6 +22,13 @@ export async function render(container) {
         <div class="header-actions">
           <button id="btn-logout" class="logout">Esci</button>
         </div>
+      </div>
+
+      <!-- 🔥 VIEW SWITCH -->
+      <div class="view-switch">
+        ${renderRoleButton("admin", ruolo)}
+        ${renderRoleButton("manager", ruolo)}
+        ${renderRoleButton("operatore", ruolo)}
       </div>
 
       <!-- AZIENDA ATTIVA -->
@@ -93,6 +95,26 @@ export async function render(container) {
     </div>
 
     <style>
+      .view-switch{
+        display:flex;
+        gap:8px;
+        margin-bottom:16px;
+      }
+
+      .role-btn{
+        flex:1;
+        padding:10px;
+        border-radius:10px;
+        border:none;
+        cursor:pointer;
+        background:#e5e7eb;
+      }
+
+      .role-btn.active{
+        background:#111827;
+        color:white;
+      }
+
       .piattaforma{padding:16px;}
 
       .header{
@@ -188,6 +210,20 @@ export async function render(container) {
   `;
 
   bindEvents();
+}
+
+
+// =========================================
+// ROLE BUTTON
+// =========================================
+
+function renderRoleButton(role, current){
+
+  return `
+    <button class="role-btn ${current === role ? "active" : ""}" data-role="${role}">
+      ${role.toUpperCase()}
+    </button>
+  `
 
 }
 
@@ -198,25 +234,60 @@ export async function render(container) {
 
 function bindEvents(){
 
+  // ROUTING CARD
   document.querySelectorAll(".card[data-route]").forEach(card=>{
     card.onclick=()=>{
-      window.location.hash = "#/" + card.dataset.route
+      if(window.router?.go){
+        window.router.go(card.dataset.route)
+      }else{
+        window.location.hash = "#/" + card.dataset.route
+      }
     }
   })
 
+  // LOGOUT
   document.getElementById("btn-logout").onclick = async ()=>{
     await window.supabaseClient.auth.signOut()
     window.state = {}
     window.location.hash = "#/login"
   }
 
+  // ENTER GESTIONALE
   document.getElementById("enter-operativo").onclick = ()=>{
-    window.location.hash = "#/home"
+    if(window.router?.go){
+      window.router.go("home")
+    }else{
+      window.location.hash = "#/home"
+    }
   }
 
+  // 🔥 VIEW SWITCH
+  document.querySelectorAll(".role-btn").forEach(btn => {
+
+    btn.onclick = () => {
+
+      const role = btn.dataset.role
+
+      window.state.viewAs = role
+
+      // 🔥 refresh sistema
+      if(window.menuController?.refresh){
+        window.menuController.refresh()
+      }
+
+      if(window.router?.reloadCurrentRoute){
+        window.router.reloadCurrentRoute()
+      }else{
+        window.location.reload()
+      }
+
+    }
+
+  })
+
+  // MODAL
   document.getElementById("btn-switch-azienda").onclick = openModal
   document.getElementById("close-modal").onclick = closeModal
-
   document.getElementById("search-azienda").oninput = filterAziende
 
   loadAziende()
