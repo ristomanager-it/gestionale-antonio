@@ -30,6 +30,7 @@ export async function render(container) {
 
   } catch(e){}
 
+  // 🔥 PRIMA RENDER COMPLETO DELLA VIEW
   container.innerHTML = `
 
   <div class="view operatore-home-new">
@@ -97,8 +98,10 @@ export async function render(container) {
   </style>
   `;
 
-  // 🔥 FOOTER DOPO IL RENDER
+  // 🔥 POI AGGIUNGI FOOTER
   container.innerHTML += renderFooter();
+
+  // 🔥 POI INIZIALIZZI CLICK
   initFooter();
 
   initHeader();
