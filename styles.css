@@ -468,3 +468,64 @@ display:flex;
 align-items:center;
 justify-content:center;
 }
+/* =========================================================
+LOGIN CLEAN UI
+========================================================= */
+
+.login-page{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100vh;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+background:linear-gradient(
+180deg,
+var(--color-bg-app) 0%,
+var(--color-bg-app-soft) 100%
+);
+
+z-index:2000;
+}
+
+.login-box{
+width:100%;
+max-width:320px;
+padding:20px;
+display:flex;
+flex-direction:column;
+gap:12px;
+}
+
+.login-logo-wrap{
+display:flex;
+justify-content:center;
+margin-bottom:10px;
+}
+
+.login-logo{
+width:70px;
+height:70px;
+}
+
+.login-btn{
+width:100%;
+margin-top:6px;
+}
+
+.login-reset{
+text-align:center;
+margin-top:6px;
+}
+
+.login-reset-btn{
+background:none;
+border:none;
+color:var(--color-primary);
+cursor:pointer;
+font-size:13px;
+}
