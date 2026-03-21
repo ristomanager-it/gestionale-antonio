@@ -1,5 +1,3 @@
-// js/ai/tony-service.js
-
 export async function getTonyInsights(){
 
   const supabase = window.supabaseClient
@@ -39,11 +37,6 @@ export async function getTonyInsights(){
 
 }
 
-
-// ======================================================
-// 🔥 NORMALIZZAZIONE (CHIAVE)
-// ======================================================
-
 function normalizeTony(data){
 
   if(!data) return []
@@ -52,12 +45,10 @@ function normalizeTony(data){
 
   if(!reply) return []
 
-  // 🔥 SPLIT BASE → migliorabile dopo
   const lines = reply.split("\n").filter(l => l.trim())
 
   return lines.slice(0,5).map(line => ({
     type: "info",
     message: line
   }))
-
 }
