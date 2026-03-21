@@ -48,10 +48,6 @@ export function initMenu() {
     document.body.appendChild(overlay)
   }
 
-  // ======================================================
-  // 🔥 RUOLO ATTIVO
-  // ======================================================
-
   function getRuoloAttivo(){
     return window.state?.viewAs || window.state?.ruolo
   }
@@ -59,10 +55,6 @@ export function initMenu() {
   function isSuperadmin(){
     return window.state?.ruolo === "superadmin"
   }
-
-  // ======================================================
-  // 🔥 MENU CONFIG
-  // ======================================================
 
   function getMenu(){
 
@@ -95,14 +87,47 @@ export function initMenu() {
           {label:"Ricettario", route:"ricettario"},
           {label:"Preparazioni", route:"preparazioni"}
         ]
+      },
+
+      {
+        title:"AMMINISTRAZIONE",
+        items:[
+          {label:"Acquisti", route:"acquisti"},
+          {label:"Fatture", route:"fatture"},
+          {label:"Dipendenti", route:"dipendenti"},
+          {label:"Timbrature", route:"timbrature"},
+          {label:"Permessi e ferie", route:"permessi"},
+          {label:"Preventivi", route:"preventivi"}
+        ]
+      },
+
+      {
+        title:"GESTIONE",
+        items:[
+          {label:"Venduto", route:"venduto"},
+          {label:"Margini", route:"margini"}
+        ]
+      },
+
+      {
+        title:"MARKETING",
+        items:[
+          {label:"Campagne", route:"marketing"}
+        ]
+      },
+
+      {
+        title:"PERSONALE",
+        items:[
+          {label:"Timbratura", route:"timbratura"},
+          {label:"Programma lavoro", route:"programma"},
+          {label:"Permessi e ferie", route:"permessi"},
+          {label:"Documenti", route:"documenti"}
+        ]
       }
 
     ]
   }
-
-  // ======================================================
-  // 🔥 RENDER
-  // ======================================================
 
   function renderMenu(){
 
@@ -126,7 +151,6 @@ export function initMenu() {
       const itemsBox = document.createElement("div")
       itemsBox.className = "menu-subitems"
 
-      // 🔥 FORZA CHIUSURA INIZIALE
       itemsBox.classList.remove("open")
 
       section.items.forEach(item => {
@@ -148,7 +172,6 @@ export function initMenu() {
 
         const isOpen = itemsBox.classList.contains("open")
 
-        // chiudi tutto
         document.querySelectorAll(".menu-subitems").forEach(el=>{
           el.classList.remove("open")
         })
@@ -157,7 +180,6 @@ export function initMenu() {
           el.style.transform = "rotate(0deg)"
         })
 
-        // apri solo se era chiuso
         if(!isOpen){
           itemsBox.classList.add("open")
           title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
@@ -171,6 +193,19 @@ export function initMenu() {
       menu.appendChild(sectionBox)
 
     })
+
+    const logout = document.createElement("div")
+    logout.className = "menu-logout"
+    logout.innerText = "Logout"
+
+    logout.onclick = () => {
+      if(window.router?.logout){
+        window.router.logout()
+      }
+      closeMenu()
+    }
+
+    menu.appendChild(logout)
 
   }
 
