@@ -331,19 +331,33 @@ top:var(--header-height);
 left:-260px;
 width:240px;
 height:calc(100vh - var(--header-height));
+
 background:#ffffff;
 border-right:1px solid rgba(0,0,0,0.05);
 box-shadow:4px 0 24px rgba(0,0,0,0.06);
-padding:16px;
+
+padding:12px;
+
 display:flex;
 flex-direction:column;
-gap:8px;
+
 transition:left .25s ease;
 z-index:999;
+
+/* 🔥 FIX */
+overflow:hidden;
 }
 
 .global-menu.open{
 left:0;
+}
+
+/* 🔥 CONTENUTO SCROLLABILE */
+.menu-scroll{
+flex:1;
+overflow-y:auto;
+padding-right:6px;
+-webkit-overflow-scrolling:touch;
 }
 
 .menu-category{
@@ -366,15 +380,17 @@ cursor:pointer;
 background:#f3f4f6;
 }
 
+/* 🔥 LOGOUT SEMPRE VISIBILE */
 .menu-logout{
-margin-top:14px;
 padding:14px;
 border-top:1px solid #eee;
 font-weight:700;
 color:#b91c1c;
 cursor:pointer;
-}
 
+margin-top:auto;
+background:white;
+}
 /* =========================================================
 OVERLAY
 ========================================================= */
