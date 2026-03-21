@@ -140,38 +140,73 @@ window.stateActions = {
     window.state.ruolo = ruolo || null;
   },
 
+  // 🔥 FIX COMPLETO PERMESSI
   async caricaPermessiEffettivi() {
     const user = window.state.user;
     const azienda = window.state.azienda;
 
     if (!user || !azienda) {
-      window.state.permessi = null;
+      window.state.permessi = {};
+      window.state._allAccess = false;
       return;
     }
 
     const ruolo = window.state.ruolo;
 
+    // 🔥 SUPERADMIN / ADMIN
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
       ruolo === "admin"
     ) {
-      window.state.permessi = window.state.permessi || {};
+      window.state.permessi = {};
+      window.state._allAccess = true;
       return;
     }
 
-    const { data, error } = await window.supabaseClient.rpc("permessi_effettivi", {
-      p_user_id: user.id,
-      p_azienda_id: azienda.id,
-    });
+    // 🔥 DEFAULT FALLBACK
+    const defaultPermessi = {
+      manager: {
+        "servizi.read": true,
+        "dipendenti.read": true,
+        "produzione.read": true,
+        "timbrature.read": true,
+        "magazzino.read": true,
+        "venduto.read": true
+      },
+      operatore: {
+        "timbrature.read": true,
+        "produzione.read": true,
+        "servizi.read": true,
+        "permessi.read": true,
+        "calendario.read": true
+      }
+    };
 
-    if (error) {
-      console.error("Errore caricamento permessi:", error);
-      window.state.permessi = null;
-      return;
+    let permessiDB = {};
+
+    try {
+      const { data, error } = await window.supabaseClient.rpc("permessi_effettivi", {
+        p_user_id: user.id,
+        p_azienda_id: azienda.id,
+      });
+
+      if (!error && data) {
+        permessiDB = data;
+      }
+
+    } catch (e) {
+      console.warn("Permessi DB fallback:", e);
     }
 
-    window.state.permessi = data || {};
+    const base = defaultPermessi[ruolo] || {};
+
+    window.state.permessi = {
+      ...base,
+      ...permessiDB
+    };
+
+    window.state._allAccess = false;
   },
 
   setReparti(reparti) {
