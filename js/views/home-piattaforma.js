@@ -1,6 +1,6 @@
 // js/views/home-piattaforma.js
 // =======================================
-// HOME PIATTAFORMA – SUPERADMIN (DEFINITIVA)
+// HOME PIATTAFORMA – SUPERADMIN + SWITCH AZIENDA
 // =======================================
 
 export async function render(container) {
@@ -9,7 +9,7 @@ export async function render(container) {
   const azienda = window.state.azienda;
   const ruolo = window.state?.ruolo;
 
-  if (!user || !azienda) {
+  if (!user) {
     container.innerHTML = `<div class="view">Errore caricamento</div>`;
     return;
   }
@@ -22,7 +22,7 @@ export async function render(container) {
 
         <div>
           <h2>Ristoflow – Piattaforma</h2>
-          <p class="sub">Controllo SaaS e gestione aziende</p>
+          <p class="sub">Gestione SaaS e aziende</p>
         </div>
 
         <div class="header-actions">
@@ -41,65 +41,60 @@ export async function render(container) {
 
       </div>
 
+      <!-- AZIENDA ATTIVA -->
+      <div class="azienda-attiva">
+        <div>
+          <div class="label">Azienda attiva</div>
+          <div class="title">${azienda?.nome || "Nessuna selezionata"}</div>
+        </div>
+
+        <button id="btn-switch-azienda" class="switch-btn">
+          Cambia
+        </button>
+      </div>
+
       <!-- GRID -->
       <div class="grid">
 
-        <!-- CREA AZIENDA -->
         <div class="card" data-route="creaAzienda">
           <div>
             <div class="label">Provisioning</div>
             <div class="title">Crea Azienda</div>
-            <div class="desc">Nuovo cliente + admin</div>
+            <div class="desc">Nuovo cliente</div>
           </div>
           <div class="icon">➕</div>
         </div>
 
-        <!-- GESTIONE AZIENDE -->
         <div class="card" data-route="gestioneAziende">
           <div>
             <div class="label">Clienti</div>
             <div class="title">Gestione Aziende</div>
-            <div class="desc">Stato, scadenze, sospensioni</div>
+            <div class="desc">Controllo completo</div>
           </div>
           <div class="icon">🏢</div>
         </div>
 
-        <!-- PIANI -->
         <div class="card" data-route="gestionePiani">
           <div>
             <div class="label">SaaS</div>
-            <div class="title">Gestione Piani</div>
-            <div class="desc">Prezzi, feature, limiti</div>
+            <div class="title">Piani</div>
+            <div class="desc">Abbonamenti</div>
           </div>
           <div class="icon">🧩</div>
         </div>
 
-        <!-- SWITCH OPERATIVO -->
         <div class="card dark" id="enter-operativo">
           <div>
             <div class="label">Operatività</div>
             <div class="title">Entra nel gestionale</div>
-            <div class="desc">Usa azienda attiva</div>
           </div>
           <div class="icon">🧪</div>
         </div>
 
-        <!-- SWITCH AZIENDA -->
-        <div class="card" id="switch-azienda">
+        <div class="card blue" id="tony">
           <div>
-            <div class="label">Contesto</div>
-            <div class="title">Cambia Azienda</div>
-            <div class="desc">Seleziona azienda attiva</div>
-          </div>
-          <div class="icon">🔁</div>
-        </div>
-
-        <!-- TONY -->
-        <div class="card blue" id="tony-piattaforma">
-          <div>
-            <div class="label">AI Manager</div>
-            <div class="title">Tony Piattaforma</div>
-            <div class="desc">Insight su clienti e sistema</div>
+            <div class="label">AI</div>
+            <div class="title">Tony SaaS</div>
           </div>
           <div class="icon">🤖</div>
         </div>
@@ -113,31 +108,21 @@ export async function render(container) {
 
     <style>
       .piattaforma{padding:16px;}
-      .header{display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px;}
+      .header{display:flex;justify-content:space-between;margin-bottom:20px;}
       .sub{color:#6b7280;font-size:13px;}
-      .header-actions{display:flex;gap:10px;align-items:center;}
 
-      .view-switch{
+      .azienda-attiva{
         display:flex;
-        background:#f3f4f6;
-        padding:6px;
-        border-radius:10px;
-      }
-
-      .view-switch button{
-        border:none;
-        padding:6px 10px;
-        cursor:pointer;
-        background:transparent;
-      }
-
-      .view-switch .active{
+        justify-content:space-between;
+        align-items:center;
         background:white;
-        border-radius:6px;
+        padding:14px;
+        border-radius:12px;
+        margin-bottom:16px;
       }
 
-      .logout{
-        background:#ef4444;
+      .switch-btn{
+        background:#111827;
         color:white;
         border:none;
         padding:8px 12px;
@@ -158,26 +143,22 @@ export async function render(container) {
         cursor:pointer;
         display:flex;
         justify-content:space-between;
-        box-shadow:0 8px 20px rgba(0,0,0,0.05);
-        transition:0.2s;
       }
-
-      .card:hover{transform:translateY(-5px);}
 
       .card.dark{background:#111827;color:white;}
       .card.blue{background:#0ea5e9;color:white;}
 
-      .label{font-size:13px;opacity:0.7;}
+      .label{font-size:12px;opacity:0.7;}
       .title{font-weight:700;margin-top:6px;}
-      .desc{font-size:13px;margin-top:6px;opacity:0.7;}
+      .desc{font-size:12px;opacity:0.7;}
 
-      .icon{font-size:26px;}
+      .icon{font-size:24px;}
 
       .tony-box{
         margin-top:20px;
         background:white;
-        border-radius:14px;
-        padding:16px;
+        padding:14px;
+        border-radius:12px;
       }
     </style>
   `;
@@ -193,37 +174,29 @@ export async function render(container) {
 
 function bindEvents(){
 
-  // NAV CARDS
   document.querySelectorAll(".card[data-route]").forEach(card=>{
     card.onclick=()=>{
       window.location.hash = "#/" + card.dataset.route
     }
   })
 
-  // LOGOUT
-  document.getElementById("btn-logout")?.addEventListener("click", async ()=>{
+  document.getElementById("btn-logout")?.onclick = async ()=>{
     await window.supabaseClient.auth.signOut()
     window.state = {}
     window.location.hash = "#/login"
-  })
+  }
 
-  // VIEW SWITCH
   bindView("view-admin","admin")
   bindView("view-manager","manager")
   bindView("view-operatore","operatore")
 
-  // ENTER OPERATIVO
-  document.getElementById("enter-operativo")?.addEventListener("click", ()=>{
+  document.getElementById("enter-operativo")?.onclick = ()=>{
     window.location.hash = "#/home"
-  })
+  }
 
-  // SWITCH AZIENDA (base)
-  document.getElementById("switch-azienda")?.addEventListener("click", async ()=>{
-    alert("Qui inseriremo selezione aziende (step successivo)")
-  })
+  document.getElementById("btn-switch-azienda")?.onclick = openAziendaSelector
 
-  // TONY
-  document.getElementById("tony-piattaforma")?.addEventListener("click", runTony)
+  document.getElementById("tony")?.onclick = runTony
 
 }
 
@@ -244,50 +217,77 @@ function bindView(id, ruolo){
 
 
 // =========================================
-// TONY PIATTAFORMA
+// SWITCH AZIENDA REALE
 // =========================================
 
-async function runTony(){
+async function openAziendaSelector(){
 
-  const output = document.getElementById("tony-output")
+  const supabase = window.supabaseClient
+  const user = window.state.user
 
-  output.innerHTML = "Tony sta analizzando..."
+  const { data, error } = await supabase
+    .from("utenti_aziende")
+    .select("azienda_id, aziende(nome)")
+    .eq("user_id", user.id)
 
-  try{
-
-    const { data, error } = await window.supabaseClient.functions.invoke(
-      "assistente-ai-piattaforma",
-      {
-        body: {
-          azienda_id: window.state.azienda.id,
-          azienda: window.state.azienda.nome,
-          ruolo: "superadmin",
-          messages:[
-            { role:"user", content:"Dammi analisi SaaS, clienti, problemi e opportunità" }
-          ]
-        }
-      }
-    )
-
-    if(error) throw error
-
-    output.innerHTML = formatTony(data?.reply)
-
-  }catch(e){
-    console.error(e)
-    output.innerHTML = "Errore Tony"
+  if(error){
+    alert("Errore caricamento aziende")
+    return
   }
 
+  const list = data || []
+
+  const scelta = prompt(
+    "Seleziona azienda:\n\n" +
+    list.map((a,i)=> `${i+1}. ${a.aziende?.nome}`).join("\n")
+  )
+
+  const index = parseInt(scelta) - 1
+
+  if(!list[index]) return
+
+  const selected = list[index]
+
+  // 🔥 CAMBIO CONTESTO
+  window.state.azienda = {
+    id: selected.azienda_id,
+    nome: selected.aziende?.nome
+  }
+
+  // 🔥 RICARICA APP
+  window.location.reload()
 }
 
 
 // =========================================
-// FORMAT TONY
+// TONY
 // =========================================
 
-function formatTony(text){
+async function runTony(){
 
-  if(!text) return "Nessun dato"
+  const box = document.getElementById("tony-output")
 
-  return text.split("\n").map(l=>`<div>• ${l}</div>`).join("")
+  box.innerHTML = "Tony sta analizzando..."
+
+  try{
+
+    const { data } = await window.supabaseClient.functions.invoke(
+      "assistente-ai-piattaforma",
+      {
+        body:{
+          azienda_id: window.state.azienda.id,
+          messages:[{role:"user",content:"Analisi SaaS"}]
+        }
+      }
+    )
+
+    box.innerHTML = (data?.reply || "Nessun dato")
+      .split("\n")
+      .map(l=>`<div>• ${l}</div>`)
+      .join("")
+
+  }catch{
+    box.innerHTML = "Errore Tony"
+  }
+
 }
