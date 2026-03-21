@@ -107,21 +107,33 @@ display:flex;
 align-items:center;
 }
 
+/* 🔥 FIX COMPLETO CENTRATURA */
 .header-center{
 flex:1;
+display:flex;
 justify-content:center;
+align-items:center;
 gap:10px;
+min-width:0;
 }
 
+/* 🔥 FIX LOGO */
 .header-logo{
-width:44px;
+width:64px;
 height:64px;
 object-fit:contain;
+flex-shrink:0;
 }
 
+/* 🔥 FIX TITOLO CENTRATO + TRONCAMENTO */
 .header-azienda-nome{
 font-size:16px;
 font-weight:800;
+text-align:center;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+max-width:100%;
 }
 
 .menu-toggle{
@@ -191,6 +203,7 @@ z-index:900;
 display:flex;
 gap:8px;
 align-items:center;
+min-width:0;
 }
 
 .topbar-right{
@@ -198,7 +211,9 @@ display:flex;
 gap:10px;
 align-items:center;
 opacity:0.9;
+flex-shrink:0;
 }
+
 
 /* =========================================================
 APP ROOT
