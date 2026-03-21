@@ -202,7 +202,7 @@ APP ROOT
 #app{
 width:100%;
 padding:var(--app-padding-y) var(--app-padding-x);
-padding-top:calc(var(--header-height) + 20px);
+padding-top:calc(var(--header-height) + 44px);
 display:flex;
 justify-content:center;
 background:linear-gradient(
