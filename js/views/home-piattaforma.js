@@ -1,6 +1,6 @@
 // js/views/home-piattaforma.js
 // =======================================
-// Home Piattaforma (Superadmin)
+// HOME PIATTAFORMA – SUPERADMIN (DEFINITIVA)
 // =======================================
 
 export async function render(container) {
@@ -10,391 +10,284 @@ export async function render(container) {
   const ruolo = window.state?.ruolo;
 
   if (!user || !azienda) {
-    container.innerHTML = `
-      <div class="view">
-        Errore caricamento
-      </div>
-    `;
+    container.innerHTML = `<div class="view">Errore caricamento</div>`;
     return;
   }
 
   container.innerHTML = `
-    <div class="view">
+    <div class="view piattaforma">
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:10px;">
-        
+      <!-- HEADER -->
+      <div class="header">
+
         <div>
-          <h2 style="margin:0;">Ristoflow – Piattaforma</h2>
-
-          <p class="small-muted" style="margin-top:6px;">
-            Controllo SaaS e gestione clienti
-          </p>
+          <h2>Ristoflow – Piattaforma</h2>
+          <p class="sub">Controllo SaaS e gestione aziende</p>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="header-actions">
 
           ${ruolo === "superadmin" ? `
-          <div style="
-            display:flex;
-            gap:6px;
-            background:#f3f4f6;
-            padding:6px;
-            border-radius:12px;
-          ">
-
-            <button 
-              id="view-admin"
-              class="app-button small"
-              style="background:white;"
-            >
-              Vista Admin
-            </button>
-
-            <button 
-              id="view-manager"
-              class="app-button small"
-            >
-              Vista Manager
-            </button>
-
-            <button 
-              id="view-operatore"
-              class="app-button small"
-            >
-              Vista Operatore
-            </button>
-
+          <div class="view-switch">
+            <button id="view-admin" class="active">Admin</button>
+            <button id="view-manager">Manager</button>
+            <button id="view-operatore">Operatore</button>
           </div>
           ` : ""}
 
-          <button 
-            id="btn-logout-piattaforma"
-            class="app-button small red"
-          >
-            Esci
-          </button>
+          <button id="btn-logout" class="logout">Esci</button>
 
         </div>
 
       </div>
 
+      <!-- GRID -->
+      <div class="grid">
 
-      <div style="
-        display:grid;
-        gap:18px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      ">
-
-
-        <div 
-          onclick="window.location.hash='#/creaAzienda'"
-          style="
-            background:white;
-            padding:22px;
-            border-radius:22px;
-            cursor:pointer;
-            box-shadow:0 10px 30px rgba(0,0,0,0.05);
-            transition:all 0.25s ease;
-          "
-          onmouseover="this.style.transform='translateY(-6px)'"
-          onmouseout="this.style.transform='translateY(0px)'"
-        >
-
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-
-            <div>
-              <div style="font-size:14px; color:#6b7280;">
-                Provisioning
-              </div>
-
-              <div style="margin-top:6px; font-weight:700; font-size:18px;">
-                Crea Azienda
-              </div>
-
-              <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-                Nuovo cliente + admin
-              </div>
-            </div>
-
-            <div style="font-size:28px;">
-              ➕
-            </div>
-
+        <!-- CREA AZIENDA -->
+        <div class="card" data-route="creaAzienda">
+          <div>
+            <div class="label">Provisioning</div>
+            <div class="title">Crea Azienda</div>
+            <div class="desc">Nuovo cliente + admin</div>
           </div>
-
+          <div class="icon">➕</div>
         </div>
 
-
-
-        <div 
-          onclick="window.location.hash='#/gestioneAziende'"
-          style="
-            background:white;
-            padding:22px;
-            border-radius:22px;
-            cursor:pointer;
-            box-shadow:0 10px 30px rgba(0,0,0,0.05);
-            transition:all 0.25s ease;
-          "
-          onmouseover="this.style.transform='translateY(-6px)'"
-          onmouseout="this.style.transform='translateY(0px)'"
-        >
-
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-
-            <div>
-              <div style="font-size:14px; color:#6b7280;">
-                Clienti
-              </div>
-
-              <div style="margin-top:6px; font-weight:700; font-size:18px;">
-                Gestione Aziende
-              </div>
-
-              <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-                Stato, scadenze, sospensioni
-              </div>
-            </div>
-
-            <div style="font-size:28px;">
-              🏢
-            </div>
-
+        <!-- GESTIONE AZIENDE -->
+        <div class="card" data-route="gestioneAziende">
+          <div>
+            <div class="label">Clienti</div>
+            <div class="title">Gestione Aziende</div>
+            <div class="desc">Stato, scadenze, sospensioni</div>
           </div>
-
+          <div class="icon">🏢</div>
         </div>
 
-
-
-        <div 
-          onclick="window.location.hash='#/gestionePiani'"
-          style="
-            background:white;
-            padding:22px;
-            border-radius:22px;
-            cursor:pointer;
-            box-shadow:0 10px 30px rgba(0,0,0,0.05);
-            transition:all 0.25s ease;
-          "
-          onmouseover="this.style.transform='translateY(-6px)'"
-          onmouseout="this.style.transform='translateY(0px)'"
-        >
-
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-
-            <div>
-              <div style="font-size:14px; color:#6b7280;">
-                SaaS
-              </div>
-
-              <div style="margin-top:6px; font-weight:700; font-size:18px;">
-                Gestione Piani
-              </div>
-
-              <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-                Prezzi, sedi, feature
-              </div>
-            </div>
-
-            <div style="font-size:28px;">
-              🧩
-            </div>
-
+        <!-- PIANI -->
+        <div class="card" data-route="gestionePiani">
+          <div>
+            <div class="label">SaaS</div>
+            <div class="title">Gestione Piani</div>
+            <div class="desc">Prezzi, feature, limiti</div>
           </div>
-
+          <div class="icon">🧩</div>
         </div>
 
-
-
-        <div 
-          onclick="window.location.hash='#/home'"
-          style="
-            background:#111827;
-            color:white;
-            padding:22px;
-            border-radius:22px;
-            cursor:pointer;
-            box-shadow:0 10px 30px rgba(0,0,0,0.12);
-            transition:all 0.25s ease;
-          "
-          onmouseover="this.style.transform='translateY(-6px)'"
-          onmouseout="this.style.transform='translateY(0px)'"
-        >
-
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-
-            <div>
-              <div style="font-size:14px; opacity:0.8;">
-                Operatività
-              </div>
-
-              <div style="margin-top:6px; font-weight:700; font-size:18px;">
-                Dashboard Operativa
-              </div>
-
-              <div style="margin-top:6px; font-size:13px; opacity:0.8;">
-                Entra nel gestionale
-              </div>
-            </div>
-
-            <div style="font-size:28px;">
-              🧪
-            </div>
-
+        <!-- SWITCH OPERATIVO -->
+        <div class="card dark" id="enter-operativo">
+          <div>
+            <div class="label">Operatività</div>
+            <div class="title">Entra nel gestionale</div>
+            <div class="desc">Usa azienda attiva</div>
           </div>
-
+          <div class="icon">🧪</div>
         </div>
 
-
-
-        <div 
-          id="card-tony-piattaforma"
-          style="
-            background:#0ea5e9;
-            color:white;
-            padding:22px;
-            border-radius:22px;
-            cursor:pointer;
-            box-shadow:0 10px 30px rgba(0,0,0,0.12);
-            transition:all 0.25s ease;
-          "
-          onmouseover="this.style.transform='translateY(-6px)'"
-          onmouseout="this.style.transform='translateY(0px)'"
-        >
-
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-
-            <div>
-              <div style="font-size:14px; opacity:0.9;">
-                AI Manager
-              </div>
-
-              <div style="margin-top:6px; font-weight:700; font-size:18px;">
-                Tony Piattaforma
-              </div>
-
-              <div style="margin-top:6px; font-size:13px; opacity:0.9;">
-                Test assistente AI SaaS
-              </div>
-            </div>
-
-            <div style="font-size:28px;">
-              🤖
-            </div>
-
+        <!-- SWITCH AZIENDA -->
+        <div class="card" id="switch-azienda">
+          <div>
+            <div class="label">Contesto</div>
+            <div class="title">Cambia Azienda</div>
+            <div class="desc">Seleziona azienda attiva</div>
           </div>
-
+          <div class="icon">🔁</div>
         </div>
 
+        <!-- TONY -->
+        <div class="card blue" id="tony-piattaforma">
+          <div>
+            <div class="label">AI Manager</div>
+            <div class="title">Tony Piattaforma</div>
+            <div class="desc">Insight su clienti e sistema</div>
+          </div>
+          <div class="icon">🤖</div>
+        </div>
 
       </div>
+
+      <!-- TONY OUTPUT -->
+      <div id="tony-output" class="tony-box"></div>
 
     </div>
+
+    <style>
+      .piattaforma{padding:16px;}
+      .header{display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px;}
+      .sub{color:#6b7280;font-size:13px;}
+      .header-actions{display:flex;gap:10px;align-items:center;}
+
+      .view-switch{
+        display:flex;
+        background:#f3f4f6;
+        padding:6px;
+        border-radius:10px;
+      }
+
+      .view-switch button{
+        border:none;
+        padding:6px 10px;
+        cursor:pointer;
+        background:transparent;
+      }
+
+      .view-switch .active{
+        background:white;
+        border-radius:6px;
+      }
+
+      .logout{
+        background:#ef4444;
+        color:white;
+        border:none;
+        padding:8px 12px;
+        border-radius:8px;
+        cursor:pointer;
+      }
+
+      .grid{
+        display:grid;
+        gap:16px;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      }
+
+      .card{
+        background:white;
+        padding:20px;
+        border-radius:18px;
+        cursor:pointer;
+        display:flex;
+        justify-content:space-between;
+        box-shadow:0 8px 20px rgba(0,0,0,0.05);
+        transition:0.2s;
+      }
+
+      .card:hover{transform:translateY(-5px);}
+
+      .card.dark{background:#111827;color:white;}
+      .card.blue{background:#0ea5e9;color:white;}
+
+      .label{font-size:13px;opacity:0.7;}
+      .title{font-weight:700;margin-top:6px;}
+      .desc{font-size:13px;margin-top:6px;opacity:0.7;}
+
+      .icon{font-size:26px;}
+
+      .tony-box{
+        margin-top:20px;
+        background:white;
+        border-radius:14px;
+        padding:16px;
+      }
+    </style>
   `;
 
+  bindEvents();
+
+}
 
 
-  const btnLogout = document.getElementById("btn-logout-piattaforma");
+// =========================================
+// EVENTS
+// =========================================
 
-  if (btnLogout) {
+function bindEvents(){
 
-    btnLogout.addEventListener("click", async () => {
+  // NAV CARDS
+  document.querySelectorAll(".card[data-route]").forEach(card=>{
+    card.onclick=()=>{
+      window.location.hash = "#/" + card.dataset.route
+    }
+  })
 
-      try {
+  // LOGOUT
+  document.getElementById("btn-logout")?.addEventListener("click", async ()=>{
+    await window.supabaseClient.auth.signOut()
+    window.state = {}
+    window.location.hash = "#/login"
+  })
 
-        await window.supabaseClient.auth.signOut();
+  // VIEW SWITCH
+  bindView("view-admin","admin")
+  bindView("view-manager","manager")
+  bindView("view-operatore","operatore")
 
-        window.state.user = null;
-        window.state.azienda = null;
+  // ENTER OPERATIVO
+  document.getElementById("enter-operativo")?.addEventListener("click", ()=>{
+    window.location.hash = "#/home"
+  })
 
-        localStorage.removeItem("ristoflow_user");
+  // SWITCH AZIENDA (base)
+  document.getElementById("switch-azienda")?.addEventListener("click", async ()=>{
+    alert("Qui inseriremo selezione aziende (step successivo)")
+  })
 
-        window.location.hash = "#/login";
+  // TONY
+  document.getElementById("tony-piattaforma")?.addEventListener("click", runTony)
 
-      } catch (err) {
+}
 
-        console.error("Errore logout:", err);
 
-      }
+// =========================================
+// VIEW SWITCH
+// =========================================
 
-    });
+function bindView(id, ruolo){
+  const el = document.getElementById(id)
+  if(!el) return
 
+  el.onclick=()=>{
+    window.state.viewAs = ruolo
+    window.location.hash = "#/home"
   }
+}
 
 
+// =========================================
+// TONY PIATTAFORMA
+// =========================================
 
-  const viewAdmin = document.getElementById("view-admin");
-  const viewManager = document.getElementById("view-manager");
-  const viewOperatore = document.getElementById("view-operatore");
+async function runTony(){
 
-  if (viewAdmin) {
-    viewAdmin.addEventListener("click", () => {
-      window.state.viewAs = "admin";
-      window.location.hash = "#/home";
-    });
-  }
+  const output = document.getElementById("tony-output")
 
-  if (viewManager) {
-    viewManager.addEventListener("click", () => {
-      window.state.viewAs = "manager";
-      window.location.hash = "#/home";
-    });
-  }
+  output.innerHTML = "Tony sta analizzando..."
 
-  if (viewOperatore) {
-    viewOperatore.addEventListener("click", () => {
-      window.state.viewAs = "operatore";
-      window.location.hash = "#/home";
-    });
-  }
+  try{
 
-
-
-  const cardTony = document.getElementById("card-tony-piattaforma");
-
-  if (cardTony) {
-
-    cardTony.addEventListener("click", async () => {
-
-      try {
-
-        const domanda = prompt("Chiedi qualcosa a Tony:");
-
-        if (!domanda) return;
-
-        const { data, error } = await window.supabaseClient.functions.invoke(
-          "assistente-ai-piattaforma",
-          {
-            body: {
-              azienda_id: window.state.azienda.id,
-              azienda: window.state.azienda.nome,
-              ruolo: "superadmin",
-              messages: [
-                {
-                  role: "user",
-                  content: domanda
-                }
-              ]
-            }
-          }
-        );
-
-        if (error) {
-          alert("Errore Tony");
-          console.error(error);
-          return;
+    const { data, error } = await window.supabaseClient.functions.invoke(
+      "assistente-ai-piattaforma",
+      {
+        body: {
+          azienda_id: window.state.azienda.id,
+          azienda: window.state.azienda.nome,
+          ruolo: "superadmin",
+          messages:[
+            { role:"user", content:"Dammi analisi SaaS, clienti, problemi e opportunità" }
+          ]
         }
-
-        alert(data.reply);
-
-      } catch (err) {
-
-        console.error("Errore Tony:", err);
-
       }
+    )
 
-    });
+    if(error) throw error
 
+    output.innerHTML = formatTony(data?.reply)
+
+  }catch(e){
+    console.error(e)
+    output.innerHTML = "Errore Tony"
   }
 
+}
+
+
+// =========================================
+// FORMAT TONY
+// =========================================
+
+function formatTony(text){
+
+  if(!text) return "Nessun dato"
+
+  return text.split("\n").map(l=>`<div>• ${l}</div>`).join("")
 }
