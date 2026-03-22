@@ -5,11 +5,24 @@ export async function render(container){
 
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
-  const sedeId = window.state.sedeAttiva
-  const reparto = window.state.reparto
+  const sedeObj = window.state.sedeAttiva
+  const reparto = window.state.repartoAttivo
 
-  if(!azienda || !sedeId || !reparto){
-    container.innerHTML = `<div class="view">Errore dati</div>`
+  const sedeId = sedeObj?.id || sedeObj
+
+  // 🔥 FIX: fallback intelligente
+  if(!azienda || !sedeId){
+    container.innerHTML = `<div class="view">Errore dati azienda/sede</div>`
+    return
+  }
+
+  if(!reparto){
+    container.innerHTML = `
+      <div class="view">
+        <h2>⚠️ Nessun reparto selezionato</h2>
+        <p>Devi creare e selezionare un reparto (cucina / sala)</p>
+      </div>
+    `
     return
   }
 
@@ -29,7 +42,7 @@ export async function render(container){
   container.innerHTML = `
     <div class="view">
 
-      <h2>Planner produzione</h2>
+      <h2>📅 Planner produzione</h2>
 
       <div id="list"></div>
 
@@ -57,11 +70,6 @@ export async function render(container){
         border:none;
         border-radius:6px;
         cursor:pointer;
-      }
-
-      .start{
-        background:#16a34a;
-        color:white;
       }
 
       .open{
@@ -98,8 +106,15 @@ async function loadRicette(){
 async function loadDipendenti(){
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
-  const sedeId = window.state.sedeAttiva
-  const reparto = window.state.reparto
+  const sedeObj = window.state.sedeAttiva
+  const reparto = window.state.repartoAttivo
+
+  const sedeId = sedeObj?.id || sedeObj
+
+  if(!reparto){
+    dipendenti = []
+    return
+  }
 
   const { data } = await supabase
     .from("dipendenti")
@@ -186,8 +201,15 @@ async function createRow(){
 
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
-  const sedeId = window.state.sedeAttiva
-  const reparto = window.state.reparto
+  const sedeObj = window.state.sedeAttiva
+  const reparto = window.state.repartoAttivo
+
+  const sedeId = sedeObj?.id || sedeObj
+
+  if(!reparto){
+    alert("Seleziona un reparto prima")
+    return
+  }
 
   const today = new Date().toISOString().slice(0,10)
 
@@ -207,7 +229,6 @@ async function createRow(){
   if(data){
     location.reload()
   }
-
 }
 
 
@@ -247,7 +268,6 @@ function bindRowEvents(){
 
   })
 
-  // 🔥 APRI LAVORAZIONE
   document.querySelectorAll(".open").forEach(btn => {
 
     btn.onclick = () => {
