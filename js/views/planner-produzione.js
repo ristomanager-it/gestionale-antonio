@@ -1,3 +1,6 @@
+let ricette = []
+let dipendenti = []
+
 export async function render(container){
 
   const supabase = window.supabaseClient
@@ -10,7 +13,9 @@ export async function render(container){
     return
   }
 
-  // 🔥 LOAD DATI
+  await loadRicette()
+  await loadDipendenti()
+
   const { data } = await supabase
     .from("produzioni_settimanali")
     .select("*")
@@ -58,12 +63,53 @@ export async function render(container){
         background:#16a34a;
         color:white;
       }
+
+      .open{
+        background:#2563eb;
+        color:white;
+      }
     </style>
   `
 
   renderList(righe)
 
   document.getElementById("add").onclick = createRow
+}
+
+
+// =========================
+// LOAD DATI
+// =========================
+
+async function loadRicette(){
+  const supabase = window.supabaseClient
+  const azienda = window.state.azienda
+
+  const { data } = await supabase
+    .from("ricette")
+    .select("id, nome")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("nome")
+
+  ricette = data || []
+}
+
+async function loadDipendenti(){
+  const supabase = window.supabaseClient
+  const azienda = window.state.azienda
+  const sedeId = window.state.sedeAttiva
+  const reparto = window.state.reparto
+
+  const { data } = await supabase
+    .from("dipendenti")
+    .select("id, nome, cognome")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .eq("sede_id", sedeId)
+    .eq("reparto_id", reparto.id)
+
+  dipendenti = data || []
 }
 
 
@@ -92,11 +138,26 @@ function renderRow(r){
 
       <input class="data" type="date" value="${r.data || ""}">
 
-      <input class="prodotto" placeholder="Prodotto"
-        value="${r.prodotto || ""}">
+      <select class="ricetta">
+        <option value="">Ricetta</option>
+        ${ricette.map(rc => `
+          <option value="${rc.id}" ${r.ricetta_id===rc.id?"selected":""}>
+            ${rc.nome}
+          </option>
+        `).join("")}
+      </select>
 
       <input class="quantita" type="number"
         value="${r.quantita || 1}">
+
+      <select class="dipendente">
+        <option value="">Operatore</option>
+        ${dipendenti.map(d => `
+          <option value="${d.id}" ${r.dipendente_id===d.id?"selected":""}>
+            ${d.nome} ${d.cognome || ""}
+          </option>
+        `).join("")}
+      </select>
 
       <input class="tempo" type="number"
         placeholder="min"
@@ -108,8 +169,8 @@ function renderRow(r){
         <option value="completato" ${r.stato==="completato"?"selected":""}>Completato</option>
       </select>
 
-      <button class="start" data-id="${r.id}">
-        Avvia produzione
+      <button class="open" data-id="${r.id}">
+        Apri lavorazione
       </button>
 
     </div>
@@ -137,7 +198,6 @@ async function createRow(){
       sede_id: sedeId,
       reparto_id: reparto.id,
       data: today,
-      prodotto: "",
       quantita: 1,
       stato: "da_fare"
     })
@@ -152,7 +212,7 @@ async function createRow(){
 
 
 // =========================
-// UPDATE + EVENTS
+// EVENTS
 // =========================
 
 function bindRowEvents(){
@@ -163,15 +223,15 @@ function bindRowEvents(){
 
     const id = row.dataset.id
 
-    // UPDATE
     row.querySelectorAll("input, select").forEach(el => {
 
       el.onchange = async () => {
 
         const payload = {
           data: row.querySelector(".data").value,
-          prodotto: row.querySelector(".prodotto").value,
+          ricetta_id: row.querySelector(".ricetta").value || null,
           quantita: parseFloat(row.querySelector(".quantita").value || 0),
+          dipendente_id: row.querySelector(".dipendente").value || null,
           tempo_stimato_minuti: parseInt(row.querySelector(".tempo").value || 0),
           stato: row.querySelector(".stato").value
         }
@@ -187,40 +247,14 @@ function bindRowEvents(){
 
   })
 
-  // START PRODUZIONE
-  document.querySelectorAll(".start").forEach(btn => {
+  // 🔥 APRI LAVORAZIONE
+  document.querySelectorAll(".open").forEach(btn => {
 
-    btn.onclick = async () => {
+    btn.onclick = () => {
 
       const id = btn.dataset.id
 
-      const { data: row } = await supabase
-        .from("produzioni_settimanali")
-        .select("*")
-        .eq("id", id)
-        .single()
-
-      if(!row) return
-
-      await supabase
-        .from("produzioni")
-        .insert({
-          azienda_id: window.state.azienda.id,
-          sede_id: window.state.sedeAttiva,
-          reparto_id: window.state.reparto.id,
-
-          produzione_settimanale_id: row.id,
-
-          data: row.data,
-          prodotto: row.prodotto,
-          quantita: row.quantita,
-          dipendente_id: row.dipendente_id,
-
-          stato: "in_corso",
-          start_at: new Date().toISOString()
-        })
-
-      alert("Produzione avviata 🚀")
+      window.location.hash = `#/preparazioni?planner_id=${id}`
 
     }
 
