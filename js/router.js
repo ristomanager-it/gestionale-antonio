@@ -77,7 +77,7 @@ const routes = {
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js"),
-   planner-produzione': () => import('./views/planner-produzione.js'),
+   planner-produzione': () => import("./views/planner-produzione.js"),
   creaRicetta: () => import("./views/crea-ricetta.js"),
   preparazioni: () => import("./views/preparazioni.js"),
 
