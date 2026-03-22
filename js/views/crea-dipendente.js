@@ -17,6 +17,12 @@ export async function render(container) {
     return;
   }
 
+  // 🔥 carica reparti
+  const { data: reparti } = await supabase
+    .from("reparti")
+    .select("id, nome")
+    .eq("azienda_id", azienda.id)
+
   container.innerHTML = `
 
   <div class="view">
@@ -60,6 +66,17 @@ export async function render(container) {
           </select>
         </div>
 
+        <!-- 🔥 NUOVO -->
+        <div class="form-group">
+          <label>Reparto *</label>
+          <select id="reparto" class="input">
+            <option value="">Seleziona reparto</option>
+            ${(reparti || []).map(r => `
+              <option value="${r.id}">${r.nome}</option>
+            `).join("")}
+          </select>
+        </div>
+
         <div class="form-group">
           <label>Mansione</label>
           <input id="mansione" class="input" placeholder="es. pizzaiolo">
@@ -92,10 +109,11 @@ export async function render(container) {
     const email = document.getElementById("email").value.trim();
     const telefono = document.getElementById("telefono").value.trim();
     const ruolo = document.getElementById("ruolo").value;
+    const reparto_id = document.getElementById("reparto").value;
     const mansione = document.getElementById("mansione").value.trim();
 
-    if (!nome || !cognome || !email || !ruolo) {
-      msg.innerHTML = "<span style='color:#dc2626;'>Compila i campi obbligatori</span>";
+    if (!nome || !cognome || !email || !ruolo || !reparto_id) {
+      msg.innerHTML = "<span style='color:#dc2626;'>Compila tutti i campi obbligatori</span>";
       return;
     }
 
@@ -104,7 +122,6 @@ export async function render(container) {
 
     try {
 
-      // 🔥 PRENDE TOKEN UTENTE (FONDAMENTALE)
       const {
         data: { session }
       } = await supabase.auth.getSession();
@@ -125,6 +142,7 @@ export async function render(container) {
             email,
             telefono,
             ruolo,
+            reparto_id, // 🔥 NUOVO
             mansione,
             azienda_id: azienda.id
           })
