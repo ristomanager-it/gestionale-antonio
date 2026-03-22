@@ -12,7 +12,7 @@ export async function render(app) {
       <h2>🏭 Centro Produzione</h2>
 
       <p class="small-muted" style="margin-bottom:18px;">
-        Gestisci creazione ricette, consultazione archivio e preparazioni.
+        Gestisci creazione ricette, pianificazione e preparazioni.
       </p>
 
       <div style="
@@ -21,6 +21,13 @@ export async function render(app) {
         gap:12px;
         margin-top:10px;
       ">
+
+        <!-- 🔥 NUOVO -->
+        <button class="app-button"
+          style="padding:16px; font-size:16px;"
+          onclick="window.location.hash='#/planner-produzione'">
+          📅 Planning Produzione
+        </button>
 
         <button class="app-button"
           style="padding:16px; font-size:16px;"
