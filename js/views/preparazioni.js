@@ -255,21 +255,34 @@ export async function render(container) {
 
   presetDataOggi();
 
-  await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
+// =========================
+// 🔥 PLANNER PARAM
+// =========================
+const params = new URLSearchParams(location.hash.split("?")[1] || "")
+const plannerId = params.get("planner_id")
 
-  setupAutocompleteRicette();
-  setupOperatorePIN();
-  bindEvents();
+await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 
-  resetConservazioneUI();
-  resetConservazioneDettagli();
-  resetScadenza();
+// =========================
+// 🔥 PRELOAD DA PLANNER
+// =========================
+if (plannerId) {
+  await preloadFromPlanner(plannerId)
+}
 
-  renderConfezioniRows();
-  renderCoprodottiRows();
+setupAutocompleteRicette();
+setupOperatorePIN();
+bindEvents();
 
-  renderSchedaTecnica();
-  recalcResaUI();
+resetConservazioneUI();
+resetConservazioneDettagli();
+resetScadenza();
+
+renderConfezioniRows();
+renderCoprodottiRows();
+
+renderSchedaTecnica();
+recalcResaUI();
 }
 
 function presetDataOggi() {
@@ -2224,4 +2237,79 @@ function cryptoRandomId() {
   } catch {
     return `id_${Math.random().toString(16).slice(2)}_${Date.now()}`;
   }
+}
+// =========================
+// 🔥 PRELOAD DA PLANNER
+// =========================
+async function preloadFromPlanner(plannerId){
+
+  const supabase = window.supabaseClient
+
+  const { data } = await supabase
+    .from("produzioni_settimanali")
+    .select(`
+      id,
+      data,
+      quantita,
+      ricetta_id,
+      note
+    `)
+    .eq("id", plannerId)
+    .single()
+
+  if(!data) return
+
+  // DATA
+  const dataEl = document.getElementById("prod-data")
+  if(dataEl && data.data){
+    dataEl.value = data.data
+  }
+
+  // RICETTA
+  if(data.ricetta_id){
+
+    const ricetta = ricetteCache.find(r => r.id === data.ricetta_id)
+
+    if(ricetta){
+
+      ricettaSelezionata = ricetta
+
+      const input = document.getElementById("prod-ricetta-search")
+      const hidden = document.getElementById("prod-ricetta-id")
+      const btn = document.getElementById("btn-vedi-ricetta")
+
+      if(input) input.value = ricetta.nome
+      if(hidden) hidden.value = ricetta.id
+      if(btn) btn.disabled = false
+
+      if(typeof setRicettaInfo === "function"){
+        setRicettaInfo("Caricata da planner ✔")
+      }
+
+      if(typeof loadPorzioniRicetta === "function"){
+        await loadPorzioniRicetta(ricetta.id)
+      }
+
+      if(typeof loadConservazioni === "function"){
+        await loadConservazioni(ricetta.id)
+      }
+
+    }
+  }
+
+  // QUANTITÀ → PESO
+  if(data.quantita){
+    const pesoEl = document.getElementById("prod-peso-reale")
+    if(pesoEl && !pesoEl.value){
+      pesoEl.value = data.quantita
+    }
+  }
+
+  // NOTE
+  const noteEl = document.getElementById("prod-note-lotto")
+  if(noteEl){
+    noteEl.value = `Da planner\n${data.note || ""}`
+  }
+
+  console.log("Planner collegato:", plannerId)
 }
