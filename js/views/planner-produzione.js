@@ -1,5 +1,4 @@
 let ricette = []
-let dipendenti = []
 let reparti = []
 
 let currentDate = new Date()
@@ -7,7 +6,6 @@ let repartoAttivoId = null
 
 export async function render(container){
 
-  const supabase = window.supabaseClient
   const azienda = window.state.azienda
   const sede = window.state.sedeAttiva
 
@@ -50,7 +48,7 @@ export async function render(container){
         border:1px solid #ddd;
         border-radius:8px;
         padding:8px;
-        min-height:120px;
+        min-height:140px;
       }
 
       .day-header{
@@ -58,13 +56,23 @@ export async function render(container){
         margin-bottom:6px;
       }
 
+      .day-load{
+        font-size:12px;
+        margin-bottom:6px;
+        color:#666;
+      }
+
       .card-prod{
-        background:#f1f5f9;
         padding:6px;
         border-radius:6px;
         margin-bottom:6px;
-        cursor:pointer;
+        cursor:grab;
+        font-size:13px;
       }
+
+      .stato-da_fare{ background:#f1f5f9; }
+      .stato-in_corso{ background:#fde68a; }
+      .stato-completato{ background:#bbf7d0; }
 
       .add-btn{
         margin-top:6px;
@@ -110,7 +118,7 @@ async function loadReparti(){
 // NAV
 // =========================
 
-window.setReparto = async function(id){
+window.setReparto = function(id){
   repartoAttivoId = id
   renderWeek()
 }
@@ -127,7 +135,7 @@ window.nextWeek = function(){
 
 
 // =========================
-// RENDER WEEK GRID
+// RENDER WEEK
 // =========================
 
 async function renderWeek(){
@@ -135,11 +143,6 @@ async function renderWeek(){
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
   const sede = window.state.sedeAttiva
-
-  if(!repartoAttivoId){
-    document.getElementById("calendar").innerHTML = "Seleziona reparto"
-    return
-  }
 
   const start = new Date(currentDate)
   start.setDate(start.getDate() - start.getDay())
@@ -172,12 +175,12 @@ async function renderWeek(){
     </div>
   `
 
-  bindEvents()
+  bindEvents(righe)
 }
 
 
 // =========================
-// DAY COLUMN
+// DAY
 // =========================
 
 function renderDay(day, righe){
@@ -186,6 +189,10 @@ function renderDay(day, righe){
 
   const items = righe.filter(r => r.data === dateStr)
 
+  const totaleMinuti = items.reduce((sum, r) => {
+    return sum + (r.tempo_stimato_minuti || 0)
+  }, 0)
+
   return `
     <div class="day" data-date="${dateStr}">
 
@@ -193,8 +200,16 @@ function renderDay(day, righe){
         ${day.toLocaleDateString()}
       </div>
 
+      <div class="day-load">
+        ⏱ ${totaleMinuti} min
+      </div>
+
       ${items.map(r => `
-        <div class="card-prod" data-id="${r.id}">
+        <div 
+          class="card-prod stato-${r.stato}" 
+          draggable="true"
+          data-id="${r.id}"
+        >
           ${r.prodotto || "—"} (${r.quantita})
         </div>
       `).join("")}
@@ -212,17 +227,46 @@ function renderDay(day, righe){
 // EVENTS
 // =========================
 
-function bindEvents(){
+function bindEvents(righe){
 
-  document.querySelectorAll(".add-btn").forEach(btn => {
+  // DRAG START
+  document.querySelectorAll(".card-prod").forEach(card => {
+    card.ondragstart = e => {
+      e.dataTransfer.setData("id", card.dataset.id)
+    }
+  })
 
-    btn.onclick = () => {
-      const date = btn.dataset.date
-      openCreate(date)
+  // DROP
+  document.querySelectorAll(".day").forEach(day => {
+
+    day.ondragover = e => e.preventDefault()
+
+    day.ondrop = async e => {
+      e.preventDefault()
+
+      const id = e.dataTransfer.getData("id")
+      const newDate = day.dataset.date
+
+      await window.supabaseClient
+        .from("produzioni_settimanali")
+        .update({ data: newDate })
+        .eq("id", id)
+
+      renderWeek()
     }
 
   })
 
+  // ADD
+  document.querySelectorAll(".add-btn").forEach(btn => {
+
+    btn.onclick = () => {
+      openCreate(btn.dataset.date)
+    }
+
+  })
+
+  // OPEN
   document.querySelectorAll(".card-prod").forEach(card => {
 
     card.onclick = () => {
@@ -236,14 +280,12 @@ function bindEvents(){
 
 
 // =========================
-// CREATE POPUP
+// CREATE
 // =========================
 
 function openCreate(date){
 
-  const container = document.getElementById("calendar")
-
-  container.innerHTML = `
+  document.getElementById("calendar").innerHTML = `
     <div class="view">
 
       <h3>Nuova Produzione</h3>
@@ -277,7 +319,6 @@ function openCreate(date){
 
 window.saveProduzione = async function(date){
 
-  const supabase = window.supabaseClient
   const azienda = window.state.azienda
   const sede = window.state.sedeAttiva
 
@@ -285,7 +326,7 @@ window.saveProduzione = async function(date){
   const quantita = Number(document.getElementById("quantita").value)
   const ricetta_id = document.getElementById("ricetta").value || null
 
-  await supabase
+  await window.supabaseClient
     .from("produzioni_settimanali")
     .insert({
       azienda_id: azienda.id,
