@@ -1,7 +1,7 @@
 let ricette = []
 let dipendenti = []
 let reparti = []
-let viewMode = "week"
+
 let currentDate = new Date()
 let repartoAttivoId = null
 
@@ -9,57 +9,78 @@ export async function render(container){
 
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
-  const sedeObj = window.state.sedeAttiva
+  const sede = window.state.sedeAttiva
 
-  const sedeId = sedeObj?.id || sedeObj
-
-  if(!azienda || !sedeId){
-    container.innerHTML = `<div class="view">Errore dati azienda/sede</div>`
+  if(!azienda || !sede){
+    container.innerHTML = `<div class="view">Errore azienda/sede</div>`
     return
   }
 
   await loadRicette()
   await loadReparti()
-  await loadDipendenti()
 
   container.innerHTML = `
     <div class="view">
 
-      <h2>📅 Planner Produzione</h2>
+      <h2>📅 Planning Produzione</h2>
 
-      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-        <button onclick="setView('day')">Day</button>
-        <button onclick="setView('week')">Week</button>
-        <button onclick="setView('month')">Month</button>
-      </div>
-
-      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
         ${reparti.map(r => `
-          <button onclick="setReparto('${r.id}')">
-            ${r.nome}
-          </button>
+          <button onclick="setReparto('${r.id}')">${r.nome}</button>
         `).join("")}
       </div>
 
-      <div style="margin-bottom:12px;">
-        <button id="add" class="app-button primary">
-          ➕ Nuova Produzione
-        </button>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button onclick="prevWeek()">←</button>
+        <button onclick="nextWeek()">→</button>
       </div>
 
-      <div id="planner-content"></div>
+      <div id="calendar"></div>
 
     </div>
+
+    <style>
+      .calendar{
+        display:grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap:10px;
+      }
+
+      .day{
+        border:1px solid #ddd;
+        border-radius:8px;
+        padding:8px;
+        min-height:120px;
+      }
+
+      .day-header{
+        font-weight:bold;
+        margin-bottom:6px;
+      }
+
+      .card-prod{
+        background:#f1f5f9;
+        padding:6px;
+        border-radius:6px;
+        margin-bottom:6px;
+        cursor:pointer;
+      }
+
+      .add-btn{
+        margin-top:6px;
+        font-size:12px;
+        cursor:pointer;
+        color:#2563eb;
+      }
+    </style>
   `
 
-  document.getElementById("add").onclick = createRow
-
-  renderPlanner()
+  renderWeek()
 }
 
 
 // =========================
-// LOAD DATI
+// LOAD
 // =========================
 
 async function loadRicette(){
@@ -67,8 +88,6 @@ async function loadRicette(){
     .from("ricette")
     .select("id, nome")
     .eq("azienda_id", window.state.azienda.id)
-    .eq("attivo", true)
-    .order("nome")
 
   ricette = data || []
 }
@@ -86,215 +105,106 @@ async function loadReparti(){
   }
 }
 
-async function loadDipendenti(){
-
-  if(!repartoAttivoId){
-    dipendenti = []
-    return
-  }
-
-  const { data } = await window.supabaseClient
-    .from("dipendenti")
-    .select("id, nome, cognome")
-    .eq("azienda_id", window.state.azienda.id)
-    .eq("sede_id", window.state.sedeAttiva.id)
-    .eq("reparto_id", repartoAttivoId)
-
-  dipendenti = data || []
-}
-
 
 // =========================
-// VIEW SWITCH
+// NAV
 // =========================
-
-window.setView = function(mode){
-  viewMode = mode
-  renderPlanner()
-}
 
 window.setReparto = async function(id){
   repartoAttivoId = id
-  await loadDipendenti()
-  renderPlanner()
+  renderWeek()
+}
+
+window.prevWeek = function(){
+  currentDate.setDate(currentDate.getDate() - 7)
+  renderWeek()
+}
+
+window.nextWeek = function(){
+  currentDate.setDate(currentDate.getDate() + 7)
+  renderWeek()
 }
 
 
 // =========================
-// RENDER PLANNER
+// RENDER WEEK GRID
 // =========================
 
-async function renderPlanner(){
+async function renderWeek(){
 
   const supabase = window.supabaseClient
   const azienda = window.state.azienda
-  const sedeId = window.state.sedeAttiva.id
+  const sede = window.state.sedeAttiva
 
   if(!repartoAttivoId){
-    document.getElementById("planner-content").innerHTML = "Seleziona reparto"
+    document.getElementById("calendar").innerHTML = "Seleziona reparto"
     return
   }
+
+  const start = new Date(currentDate)
+  start.setDate(start.getDate() - start.getDay())
+
+  const days = []
+
+  for(let i=0;i<7;i++){
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    days.push(d)
+  }
+
+  const startStr = days[0].toISOString().slice(0,10)
+  const endStr = days[6].toISOString().slice(0,10)
 
   const { data } = await supabase
     .from("produzioni_settimanali")
     .select("*")
     .eq("azienda_id", azienda.id)
-    .eq("sede_id", sedeId)
+    .eq("sede_id", sede.id)
     .eq("reparto_id", repartoAttivoId)
-    .order("data")
+    .gte("data", startStr)
+    .lte("data", endStr)
 
   const righe = data || []
 
-  if(viewMode === "day"){
-    renderDay(righe)
-  }
+  document.getElementById("calendar").innerHTML = `
+    <div class="calendar">
+      ${days.map(day => renderDay(day, righe)).join("")}
+    </div>
+  `
 
-  if(viewMode === "week"){
-    renderWeek(righe)
-  }
-
-  if(viewMode === "month"){
-    renderMonth(righe)
-  }
+  bindEvents()
 }
 
 
 // =========================
-// DAY VIEW
+// DAY COLUMN
 // =========================
 
-function renderDay(righe){
+function renderDay(day, righe){
 
-  const today = new Date().toISOString().slice(0,10)
+  const dateStr = day.toISOString().slice(0,10)
 
-  const filtered = righe.filter(r => r.data === today)
+  const items = righe.filter(r => r.data === dateStr)
 
-  renderList(filtered)
-}
+  return `
+    <div class="day" data-date="${dateStr}">
 
+      <div class="day-header">
+        ${day.toLocaleDateString()}
+      </div>
 
-// =========================
-// WEEK VIEW
-// =========================
+      ${items.map(r => `
+        <div class="card-prod" data-id="${r.id}">
+          ${r.prodotto || "—"} (${r.quantita})
+        </div>
+      `).join("")}
 
-function renderWeek(righe){
-
-  const start = new Date(currentDate)
-  start.setDate(start.getDate() - start.getDay())
-
-  const end = new Date(start)
-  end.setDate(start.getDate() + 6)
-
-  const filtered = righe.filter(r => {
-    const d = new Date(r.data)
-    return d >= start && d <= end
-  })
-
-  renderList(filtered)
-}
-
-
-// =========================
-// MONTH VIEW
-// =========================
-
-function renderMonth(righe){
-
-  const month = currentDate.getMonth()
-  const year = currentDate.getFullYear()
-
-  const filtered = righe.filter(r => {
-    const d = new Date(r.data)
-    return d.getMonth() === month && d.getFullYear() === year
-  })
-
-  renderList(filtered)
-}
-
-
-// =========================
-// LIST
-// =========================
-
-function renderList(righe){
-
-  const container = document.getElementById("planner-content")
-
-  container.innerHTML = righe.map(r => `
-    <div class="card row" data-id="${r.id}">
-
-      <input class="data" type="date" value="${r.data || ""}">
-
-      <select class="ricetta">
-        <option value="">Ricetta</option>
-        ${ricette.map(rc => `
-          <option value="${rc.id}" ${r.ricetta_id===rc.id?"selected":""}>
-            ${rc.nome}
-          </option>
-        `).join("")}
-      </select>
-
-      <input class="quantita" type="number" value="${r.quantita || 1}">
-
-      <select class="dipendente">
-        <option value="">Operatore</option>
-        ${dipendenti.map(d => `
-          <option value="${d.id}" ${r.dipendente_id===d.id?"selected":""}>
-            ${d.nome} ${d.cognome || ""}
-          </option>
-        `).join("")}
-      </select>
-
-      <input class="tempo" type="number"
-        placeholder="min"
-        value="${r.tempo_stimato_minuti || ""}">
-
-      <select class="stato">
-        <option value="da_fare" ${r.stato==="da_fare"?"selected":""}>Da fare</option>
-        <option value="in_corso" ${r.stato==="in_corso"?"selected":""}>In corso</option>
-        <option value="completato" ${r.stato==="completato"?"selected":""}>Completato</option>
-      </select>
-
-      <button class="open" data-id="${r.id}">
-        Apri
-      </button>
+      <div class="add-btn" data-date="${dateStr}">
+        + aggiungi
+      </div>
 
     </div>
-  `).join("")
-
-  bindRowEvents()
-}
-
-
-// =========================
-// CREATE
-// =========================
-
-async function createRow(){
-
-  const supabase = window.supabaseClient
-  const azienda = window.state.azienda
-  const sedeId = window.state.sedeAttiva.id
-
-  if(!repartoAttivoId){
-    alert("Seleziona reparto")
-    return
-  }
-
-  const today = new Date().toISOString().slice(0,10)
-
-  await supabase
-    .from("produzioni_settimanali")
-    .insert({
-      azienda_id: azienda.id,
-      sede_id: sedeId,
-      reparto_id: repartoAttivoId,
-      data: today,
-      quantita: 1,
-      stato: "da_fare"
-    })
-
-  renderPlanner()
+  `
 }
 
 
@@ -302,45 +212,90 @@ async function createRow(){
 // EVENTS
 // =========================
 
-function bindRowEvents(){
+function bindEvents(){
 
-  const supabase = window.supabaseClient
+  document.querySelectorAll(".add-btn").forEach(btn => {
 
-  document.querySelectorAll(".row").forEach(row => {
-
-    const id = row.dataset.id
-
-    row.querySelectorAll("input, select").forEach(el => {
-
-      el.onchange = async () => {
-
-        const payload = {
-          data: row.querySelector(".data").value,
-          ricetta_id: row.querySelector(".ricetta").value || null,
-          quantita: parseFloat(row.querySelector(".quantita").value || 0),
-          dipendente_id: row.querySelector(".dipendente").value || null,
-          tempo_stimato_minuti: parseInt(row.querySelector(".tempo").value || 0),
-          stato: row.querySelector(".stato").value
-        }
-
-        await supabase
-          .from("produzioni_settimanali")
-          .update(payload)
-          .eq("id", id)
-
-      }
-
-    })
+    btn.onclick = () => {
+      const date = btn.dataset.date
+      openCreate(date)
+    }
 
   })
 
-  document.querySelectorAll(".open").forEach(btn => {
+  document.querySelectorAll(".card-prod").forEach(card => {
 
-    btn.onclick = () => {
-      const id = btn.dataset.id
+    card.onclick = () => {
+      const id = card.dataset.id
       window.location.hash = `#/preparazioni?planner_id=${id}`
     }
 
   })
 
+}
+
+
+// =========================
+// CREATE POPUP
+// =========================
+
+function openCreate(date){
+
+  const container = document.getElementById("calendar")
+
+  container.innerHTML = `
+    <div class="view">
+
+      <h3>Nuova Produzione</h3>
+
+      <input id="prodotto" placeholder="Prodotto">
+      <input id="quantita" type="number" value="1">
+
+      <select id="ricetta">
+        <option value="">Ricetta</option>
+        ${ricette.map(r => `
+          <option value="${r.id}">${r.nome}</option>
+        `).join("")}
+      </select>
+
+      <button onclick="saveProduzione('${date}')">
+        Salva
+      </button>
+
+      <button onclick="renderWeek()">
+        Annulla
+      </button>
+
+    </div>
+  `
+}
+
+
+// =========================
+// SAVE
+// =========================
+
+window.saveProduzione = async function(date){
+
+  const supabase = window.supabaseClient
+  const azienda = window.state.azienda
+  const sede = window.state.sedeAttiva
+
+  const prodotto = document.getElementById("prodotto").value
+  const quantita = Number(document.getElementById("quantita").value)
+  const ricetta_id = document.getElementById("ricetta").value || null
+
+  await supabase
+    .from("produzioni_settimanali")
+    .insert({
+      azienda_id: azienda.id,
+      sede_id: sede.id,
+      reparto_id: repartoAttivoId,
+      data: date,
+      prodotto,
+      quantita,
+      ricetta_id
+    })
+
+  renderWeek()
 }
