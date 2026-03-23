@@ -56,10 +56,16 @@ export function initMenu() {
     return window.state?.ruolo === "superadmin"
   }
 
+  // 🔥 PERMESSI REALI
   function can(route){
+
+    if(window.state?._allAccess) return true
+    if(isSuperadmin()) return true
+
     if(window.hasPermesso){
       return window.hasPermesso(route)
     }
+
     return true
   }
 
@@ -99,6 +105,8 @@ export function initMenu() {
       {
         title:"OPERATIVO",
         items:[
+          // ⭐ CORE DEL SISTEMA
+          {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
           {label:"Magazzino", route:"magazzino"},
           {label:"Ricettario", route:"ricettario"},
@@ -154,7 +162,6 @@ export function initMenu() {
 
     struttura.forEach(section => {
 
-      // 🔥 filtro permessi
       const items = section.items.filter(i => can(i.route))
       if(items.length === 0) return
 
@@ -210,7 +217,7 @@ export function initMenu() {
 
     })
 
-    // 🔥 LOGOUT SEMPRE VISIBILE
+    // LOGOUT
     const logout = document.createElement("div")
     logout.className = "menu-logout"
     logout.innerText = "Logout"
