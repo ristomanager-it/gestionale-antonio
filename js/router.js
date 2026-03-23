@@ -80,7 +80,7 @@ const routes = {
 "planner-produzione": () => import("./views/planner-produzione.js"),
 creaRicetta: () => import("./views/crea-ricetta.js"),
 preparazioni: () => import("./views/preparazioni.js"),
-
+reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
   margini: () => import("./views/margini.js"),
 
