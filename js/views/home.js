@@ -138,6 +138,9 @@ export async function render(container){
   initFooter()
   loadTony(ruolo)
 
+  // 🔥 NUOVO
+  loadProduzioniHome()
+
 }
 
 
@@ -171,7 +174,6 @@ async function loadTony(ruolo){
   let insights = []
   const today = new Date().toISOString().slice(0,10)
 
-  // OPERATORE
   if(ruolo === "operatore"){
 
     const { data } = await supabase
@@ -207,7 +209,6 @@ async function loadTony(ruolo){
 
   }
 
-  // MANAGER
   if(ruolo === "manager"){
 
     const { data } = await supabase
@@ -243,7 +244,6 @@ async function loadTony(ruolo){
   }
 
   renderTony(insights)
-
 }
 
 
@@ -324,32 +324,72 @@ function bindTonyActions(){
 
 function renderByRole(ruolo){
 
-  if(ruolo === "operatore") return `
-    <div class="grid">
-      <div class="card">
-        <div class="card-title">Turno</div>
-        <button class="btn" data-route="timbrature">Vai</button>
-      </div>
-    </div>
-  `
-
-  if(ruolo === "manager") return `
-    <div class="grid">
-      <div class="card">
-        <div class="card-title">Servizi</div>
-        <button class="btn" data-route="servizi">Apri</button>
-      </div>
-    </div>
-  `
-
   return `
     <div class="grid">
+
       <div class="card">
-        <div class="card-title">KPI</div>
-        <button class="btn" data-route="kpi">Apri</button>
+        <div class="card-title">👨‍🍳 Oggi</div>
+        <div id="oggi-list">Caricamento...</div>
       </div>
+
+      <div class="card">
+        <div class="card-title">📅 Settimana</div>
+        <div id="settimana-list">Caricamento...</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Planning</div>
+        <button class="btn" data-route="planner-produzione">
+          Apri planner
+        </button>
+      </div>
+
     </div>
   `
+}
+
+
+// =====================================
+// PRODUZIONI HOME
+// =====================================
+
+async function loadProduzioniHome(){
+
+  const supabase = window.supabaseClient
+  const userId = window.state.user.id
+
+  const today = new Date().toISOString().slice(0,10)
+
+  const start = new Date()
+  start.setDate(start.getDate() - start.getDay())
+
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+
+  const { data: oggi } = await supabase
+    .from("produzioni_settimanali")
+    .select("*")
+    .eq("dipendente_id", userId)
+    .eq("data", today)
+
+  const { data: settimana } = await supabase
+    .from("produzioni_settimanali")
+    .select("*")
+    .eq("dipendente_id", userId)
+    .gte("data", start.toISOString().slice(0,10))
+    .lte("data", end.toISOString().slice(0,10))
+
+  document.getElementById("oggi-list").innerHTML =
+    (oggi || []).length === 0
+      ? "Nessuna lavorazione"
+      : oggi.map(r => `
+          <div>${r.prodotto} (${r.quantita})</div>
+        `).join("")
+
+  document.getElementById("settimana-list").innerHTML =
+    (settimana || []).map(r => `
+      <div>${r.data} - ${r.prodotto}</div>
+    `).join("")
 }
 
 
