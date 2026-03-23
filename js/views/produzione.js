@@ -30,6 +30,12 @@ export async function render(app) {
         </button>
 
         <button class="app-button"
+  style="padding:16px; font-size:16px;"
+  onclick="window.location.hash='#/reparti'">
+  🧩 Gestione Reparti
+</button>
+
+        <button class="app-button"
           style="padding:16px; font-size:16px;"
           onclick="window.location.hash='#/creaRicetta'">
           ➕ Crea Ricetta
