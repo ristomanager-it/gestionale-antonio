@@ -29,11 +29,6 @@ export async function render(app) {
           📅 Planning Produzione
         </button>
 
-        <button class="app-button"
-  style="padding:16px; font-size:16px;"
-  onclick="window.location.hash='#/reparti'">
-  🧩 Gestione Reparti
-</button>
 
         <button class="app-button"
           style="padding:16px; font-size:16px;"
