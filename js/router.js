@@ -757,6 +757,16 @@ window.addEventListener("DOMContentLoaded", () => {
   initMenu();
   initTopbar();
 
+  // 🔥 RIPRISTINO REPARTO ATTIVO
+  try {
+    const saved = localStorage.getItem("reparto_attivo")
+    if(saved){
+      window.state.repartoAttivo = JSON.parse(saved)
+    }
+  } catch(e){
+    console.warn("Errore restore reparto:", e)
+  }
+
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.onclick = () => doLogout();
