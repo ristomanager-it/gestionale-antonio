@@ -6,30 +6,46 @@ export async function renderFooter(){
 
   const alerts = await getFooterAlerts(ruolo, aziendaId, supabase)
 
+  // 🔐 PERMESSI (allineato a menu)
+  function can(route){
+
+    if(window.state?._allAccess) return true
+    if(window.state?.ruolo === "superadmin") return true
+
+    if(window.hasPermesso){
+      return window.hasPermesso(route)
+    }
+
+    return true
+  }
+
   const footerConfig = {
+
     operatore: [
       {icon:"⏱", label:"Timbratura", route:"timbrature", key:"timbrature"},
-      {icon:"🍽", label:"Servizio", route:"servizi"},
+      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 NUOVO
       {icon:"🍳", label:"Prep", route:"produzione"},
       {icon:"📅", label:"Permessi", route:"permessi"}
     ],
 
     manager: [
+      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 CORE
       {icon:"📊", label:"Servizi", route:"servizi"},
       {icon:"👥", label:"Personale", route:"dipendenti", key:"turni"},
-      {icon:"📅", label:"Turni", route:"turni", key:"turni"},
       {icon:"🍳", label:"Produzione", route:"produzione"}
     ],
 
     admin: [
       {icon:"📊", label:"Dashboard", route:"home"},
+      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 AGGIUNTO
       {icon:"💰", label:"Margini", route:"margini", key:"costi"},
-      {icon:"⚙️", label:"Costi", route:"costi", key:"costi"},
       {icon:"📈", label:"KPI", route:"kpi"}
     ]
+
   }
 
-  const items = footerConfig[ruolo] || []
+  // 🔥 FILTRO PERMESSI
+  const items = (footerConfig[ruolo] || []).filter(i => can(i.route))
 
   return `
     <div class="app-footer">
@@ -39,7 +55,7 @@ export async function renderFooter(){
 
           <div class="footer-icon">
             ${i.icon}
-            ${alerts[i.key] ? `<span class="badge"></span>` : ""}
+            ${i.key && alerts[i.key] ? `<span class="badge"></span>` : ""}
           </div>
 
           <div class="footer-label">${i.label}</div>
