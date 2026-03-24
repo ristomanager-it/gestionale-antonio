@@ -106,7 +106,7 @@ const PLATFORM_ROUTES = new Set([
 
 const PREHOME_ROUTES = new Set([
   "sceltaAzienda",
-  "gestioneSedi",
+  "gestione-sedi",
   "completaProfilo",
   "completaAzienda",
 ]);
