@@ -443,7 +443,7 @@ async function ensureSedeContext(routeName) {
     window.state.sedeAttiva = null;
 
     if (routeName !== "gestioneSedi") {
-      window.location.hash = "#/gestioneSedi?mode=first";
+   window.location.hash = "#/gestione-sedi?mode=first"
       return { ok: false, redirected: true };
     }
     return { ok: false, reason: "no_sedi" };
