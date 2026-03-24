@@ -186,7 +186,7 @@ function hasPermission(area) {
 
   // 🔥 ACCESSO SEDI SOLO ADMIN / SUPERADMIN
 if (area === "gestione-sedi") {
-  return true;
+  return ruolo === "admin" || ruolo === "superadmin";
 }
   if (window.state?._allAccess === true) return true;
 
