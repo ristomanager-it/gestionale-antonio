@@ -685,7 +685,7 @@ if(window.refreshTopbar){
         return;
       }
 
-      window.location.hash = "#/gestione-Sedi?mode=select";
+     window.location.hash = "#/gestione-sedi?mode=first";
       return;
     }
   }
