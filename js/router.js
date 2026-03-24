@@ -514,6 +514,7 @@ async function resolve() {
   }
 
   const { route, segments, params } = parseHash();
+   console.log("ROUTE:", route);
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
