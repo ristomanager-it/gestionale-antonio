@@ -27,6 +27,11 @@ export async function render(container) {
     window.state.sedi = sedi;
   }
 
+  // 🔥 NUOVO: limite piano
+  const sediMax = azienda?.sedi_max || 1;
+  const sediUsate = sedi.length;
+  const canCreate = sediUsate < sediMax;
+
   if ((sedi || []).length === 0 || mode === "first") {
     renderWizardPrimaSede(container, azienda.id);
     return;
@@ -38,7 +43,7 @@ export async function render(container) {
     return;
   }
 
-  renderSelezioneSede(container, sedi);
+  renderSelezioneSede(container, sedi, { sediMax, sediUsate, canCreate });
 }
 
 async function caricaSedi(aziendaId) {
@@ -137,10 +142,18 @@ function renderWizardPrimaSede(container, aziendaId) {
   }
 }
 
-function renderSelezioneSede(container, sedi) {
+function renderSelezioneSede(container, sedi, config) {
+
+  const { sediMax, sediUsate, canCreate } = config;
+
   container.innerHTML = `
     <div class="view" style="padding:24px; max-width:980px; margin:0 auto;">
       <h2 style="margin:0 0 8px 0;">Seleziona sede</h2>
+
+      <!-- 🔥 CONTATORE -->
+      <div style="margin-bottom:14px; font-size:13px; color:#6b7280;">
+        ${sediUsate} / ${sediMax} sedi utilizzate
+      </div>
 
       <div style="
         display:grid;
@@ -173,10 +186,18 @@ function renderSelezioneSede(container, sedi) {
           .join("")}
       </div>
 
-      <!-- 🔥 NUOVO -->
       <div style="margin-top:20px;">
-        <button id="btn-new-sede" style="width:100%; padding:12px; border-radius:12px; background:#111827; color:white; font-weight:600;">
-          + Nuova sede
+        <button id="btn-new-sede" 
+          style="
+            width:100%;
+            padding:12px;
+            border-radius:12px;
+            font-weight:600;
+            ${canCreate ? "background:#111827;color:white;" : "background:#e5e7eb;color:#9ca3af;cursor:not-allowed;"}
+          "
+          ${canCreate ? "" : "disabled"}
+        >
+          ${canCreate ? "+ Nuova sede" : "Limite sedi raggiunto"}
         </button>
       </div>
 
@@ -192,7 +213,7 @@ function renderSelezioneSede(container, sedi) {
   });
 
   const newBtn = document.getElementById("btn-new-sede");
-  if (newBtn) {
+  if (newBtn && canCreate) {
     newBtn.onclick = () => {
       window.location.hash = "#/gestione-sedi?mode=first";
     };
