@@ -79,6 +79,23 @@ export async function render(container) {
 
       </div>
 
+      <!-- 🔥 NUOVA CARD SEDI -->
+      <div class="card">
+
+        <div style="font-weight:700;margin-bottom:12px;">
+          Sedi operative
+        </div>
+
+        <div style="font-size:14px;color:#6b7280;margin-bottom:12px;">
+          Gestisci le sedi della tua azienda (punti vendita, cucine, laboratori).
+        </div>
+
+        <button id="btn-sedi" class="app-button" style="width:100%;">
+          🏢 Gestione sedi
+        </button>
+
+      </div>
+
       <!-- VISION GUIDATA -->
       <div class="card">
 
@@ -150,6 +167,14 @@ export async function render(container) {
 
   const btn = document.getElementById("salva-azienda");
   const msg = document.getElementById("msg");
+
+  // 🔥 EVENTO SEDI
+  const btnSedi = document.getElementById("btn-sedi");
+  if(btnSedi){
+    btnSedi.onclick = () => {
+      window.location.hash = "#/gestione-sedi";
+    }
+  }
 
   btn.onclick = async () => {
 
