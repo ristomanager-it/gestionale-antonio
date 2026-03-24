@@ -32,7 +32,7 @@ export async function render(container) {
     return;
   }
 
-  if ((sedi || []).length === 1) {
+  if ((sedi || []).length === 1 && mode !== "manage") {
     localStorage.setItem("active_sede_id", String(sedi[0].id));
     window.location.hash = "#/home";
     return;
@@ -59,9 +59,9 @@ async function caricaSedi(aziendaId) {
 function renderWizardPrimaSede(container, aziendaId) {
   container.innerHTML = `
     <div class="view" style="padding:24px; max-width:760px; margin:0 auto;">
-      <h2 style="margin:0 0 8px 0;">Crea la tua prima sede</h2>
+      <h2 style="margin:0 0 8px 0;">Crea una sede</h2>
       <p style="margin:0 0 18px 0; opacity:0.7;">
-        Non risultano sedi per questa azienda. Creane una per iniziare.
+        Inserisci i dati della sede.
       </p>
 
       <div style="background:white; border:1px solid #e5e7eb; border-radius:18px; padding:16px;">
@@ -77,13 +77,13 @@ function renderWizardPrimaSede(container, aziendaId) {
           </div>
 
           <button id="btn-crea" style="margin-top:6px; padding:12px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:700; cursor:pointer;">
-            Crea sede
+            Salva sede
           </button>
 
           <div id="err" style="color:#dc2626; font-size:13px;"></div>
 
-          <button id="btn-logout" style="margin-top:4px; padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
-            Logout
+          <button id="btn-back" style="margin-top:4px; padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
+            ← Torna indietro
           </button>
         </div>
       </div>
@@ -92,9 +92,13 @@ function renderWizardPrimaSede(container, aziendaId) {
 
   const btn = document.getElementById("btn-crea");
   const err = document.getElementById("err");
-  const logoutBtn = document.getElementById("btn-logout");
+  const backBtn = document.getElementById("btn-back");
 
-  if (logoutBtn) logoutBtn.onclick = () => window.router?.logout?.();
+  if (backBtn) {
+    backBtn.onclick = () => {
+      window.location.hash = "#/gestione-sedi";
+    };
+  }
 
   if (btn) {
     btn.onclick = async () => {
@@ -109,7 +113,7 @@ function renderWizardPrimaSede(container, aziendaId) {
       }
 
       btn.disabled = true;
-      btn.textContent = "Creazione in corso...";
+      btn.textContent = "Salvataggio...";
 
       const payload = {
         azienda_id: aziendaId,
@@ -121,14 +125,14 @@ function renderWizardPrimaSede(container, aziendaId) {
 
       if (error || !data?.id) {
         console.error("Errore creazione sede:", error);
-        err.textContent = "Errore creazione sede. Verifica permessi/RLS.";
+        err.textContent = "Errore creazione sede.";
         btn.disabled = false;
-        btn.textContent = "Crea sede";
+        btn.textContent = "Salva sede";
         return;
       }
 
       localStorage.setItem("active_sede_id", String(data.id));
-      window.location.hash = "#/home";
+      window.location.hash = "#/gestione-sedi";
     };
   }
 }
@@ -137,9 +141,6 @@ function renderSelezioneSede(container, sedi) {
   container.innerHTML = `
     <div class="view" style="padding:24px; max-width:980px; margin:0 auto;">
       <h2 style="margin:0 0 8px 0;">Seleziona sede</h2>
-      <p style="margin:0 0 18px 0; opacity:0.7;">
-        Scegli la sede con cui vuoi operare.
-      </p>
 
       <div style="
         display:grid;
@@ -158,13 +159,12 @@ function renderSelezioneSede(container, sedi) {
                   border-radius:18px;
                   padding:16px;
                   cursor:pointer;
-                  box-shadow:0 10px 22px rgba(0,0,0,0.04);
                 "
               >
-                <div style="font-weight:700; font-size:16px; color:#111827;">
-                  ${escapeHtml(s.nome || "Sede")}
+                <div style="font-weight:700;">
+                  ${escapeHtml(s.nome)}
                 </div>
-                <div style="margin-top:8px; font-size:13px; opacity:0.75;">
+                <div style="font-size:13px; opacity:0.7;">
                   ${escapeHtml(s.indirizzo || "")}
                 </div>
               </button>
@@ -173,26 +173,30 @@ function renderSelezioneSede(container, sedi) {
           .join("")}
       </div>
 
-      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
-          Logout
+      <!-- 🔥 NUOVO -->
+      <div style="margin-top:20px;">
+        <button id="btn-new-sede" style="width:100%; padding:12px; border-radius:12px; background:#111827; color:white; font-weight:600;">
+          + Nuova sede
         </button>
       </div>
+
     </div>
   `;
 
   container.querySelectorAll("[data-sede-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.onclick = () => {
       const id = btn.getAttribute("data-sede-id");
-      if (!id) return;
-
-      localStorage.setItem("active_sede_id", String(id));
+      localStorage.setItem("active_sede_id", id);
       window.location.hash = "#/home";
-    });
+    };
   });
 
-  const logoutBtn = document.getElementById("btn-logout");
-  if (logoutBtn) logoutBtn.onclick = () => window.router?.logout?.();
+  const newBtn = document.getElementById("btn-new-sede");
+  if (newBtn) {
+    newBtn.onclick = () => {
+      window.location.hash = "#/gestione-sedi?mode=first";
+    };
+  }
 }
 
 function escapeHtml(str) {
