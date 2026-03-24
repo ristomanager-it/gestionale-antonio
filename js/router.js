@@ -58,7 +58,7 @@ const routes = {
   "set-password": () => import("./views/set-password.js"),
 
   sceltaAzienda: () => import("./views/scelta-azienda.js"),
-  gestioneSedi: () => import("./views/gestione-sedi.js"),
+  "gestione-sedi": () => import("./views/gestione-sedi.js"),
 
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
