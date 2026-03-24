@@ -456,7 +456,7 @@ async function ensureSedeContext(routeName) {
     clearStoredSedeId();
 
     if (routeName !== "gestioneSedi") {
-      window.location.hash = "#/gestioneSedi?mode=select";
+     window.location.hash = "#/gestione-sedi?mode=select"
       return { ok: false, redirected: true };
     }
     return { ok: false, reason: "need_sede_choice" };
