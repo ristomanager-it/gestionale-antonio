@@ -446,7 +446,7 @@ async function ensureSedeContext(routeName) {
     clearStoredSedeId();
     window.state.sedeAttiva = null;
 
-    if (routeName !== "gestione-Sedi") {
+    if (routeName !== "gestione-sedi") {
    window.location.hash = "#/gestione-sedi?mode=first"
       return { ok: false, redirected: true };
     }
@@ -459,7 +459,7 @@ async function ensureSedeContext(routeName) {
     window.state.sedeAttiva = null;
     clearStoredSedeId();
 
-    if (routeName !== "gestione-Sedi") {
+    if (routeName !== "gestione-sedi") {
      window.location.hash = "#/gestione-sedi?mode=select"
       return { ok: false, redirected: true };
     }
@@ -684,7 +684,7 @@ if(window.refreshTopbar){
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
 
-      if (route === "gestione-Sedi") {
+      if (route === "gestione-sedi") {
         await renderView("gestione-Sedi");
         return;
       }
@@ -722,8 +722,8 @@ if(window.refreshTopbar){
     return;
   }
 
-  if (route === "gestione-Sedi") {
-    await renderView("gestione-Sedi");
+  if (route === "gestione-sedi") {
+    await renderView("gestione-sedi");
     return;
   }
 
