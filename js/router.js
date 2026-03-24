@@ -685,7 +685,7 @@ if(window.refreshTopbar){
       if (sedeRes.redirected) return;
 
       if (route === "gestione-sedi") {
-        await renderView("gestione-Sedi");
+        await renderView("gestione-sedi");
         return;
       }
 
