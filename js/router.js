@@ -185,10 +185,13 @@ function hasPermission(area) {
   const ruolo = window.state?.viewAs || window.state?.ruolo;
 
   // 🔥 ACCESSO SEDI SOLO ADMIN / SUPERADMIN
-  if (area === "gestione-sedi") {
-    return ruolo === "admin" || ruolo === "superadmin";
-  }
+if (area === "gestione-sedi") {
+  const ruolo = window.state?.viewAs || window.state?.ruolo;
 
+  console.log("RUOLO:", ruolo);
+
+  return ruolo === "admin" || ruolo === "superadmin";
+}
   if (window.state?._allAccess === true) return true;
 
   if (isSuperadmin()) return true;
