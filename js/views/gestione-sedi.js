@@ -126,17 +126,19 @@ function renderWizardPrimaSede(container, aziendaId) {
         indirizzo: indirizzo || null,
       };
 
-      const { data, error } = await supabase.from("sedi").insert(payload).select("id").single();
+      const { data, error } = await supabase.functions.invoke("create-sede", {
+        body: payload
+      });
 
-      if (error || !data?.id) {
-        console.error("Errore creazione sede:", error);
-        err.textContent = "Errore creazione sede.";
+      if (error || !data?.data?.id) {
+        console.error("Errore creazione sede:", error, data);
+        err.textContent = data?.error || "Errore creazione sede.";
         btn.disabled = false;
         btn.textContent = "Salva sede";
         return;
       }
 
-      localStorage.setItem("active_sede_id", String(data.id));
+      localStorage.setItem("active_sede_id", String(data.data.id));
       window.location.hash = "#/gestione-sedi";
     };
   }
