@@ -346,24 +346,36 @@ export async function apriCaricoModal({ aziendaId }) {
     alert("Prodotto già esistente. Selezionalo dalla lista.");
     return;
   }
+if (error) {
 
-  console.error(error);
-  alert("Errore creazione prodotto");
-  return;
+  // 🔥 DUPLICATO → RECUPERO AUTOMATICO
+  if (error.code === "23505") {
+
+    const { data: existing, error: err2 } = await window.supabaseClient
+      .from("prodotti")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .ilike("descrizione", descrizione)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      finalProdottoId = existing.id;
+    } else {
+      console.error(err2);
+      alert("Prodotto già esistente ma non trovato");
+      return;
+    }
+
+  } else {
+    console.error(error);
+    alert("Errore creazione prodotto");
+    return;
+  }
+
+} else {
+  finalProdottoId = data.id;
 }
-
-      finalProdottoId = data.id;
-    }
-
-    if (!finalProdottoId) {
-      alert("Seleziona o crea un prodotto");
-      return;
-    }
-
-    if (!q || q <= 0) {
-      alert("Inserisci una quantità valida");
-      return;
-    }
 
     await window.supabaseClient
       .from("prodotti")
