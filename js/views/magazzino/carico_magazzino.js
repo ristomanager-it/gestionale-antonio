@@ -107,6 +107,7 @@ export function apriCaricoModal({ aziendaId }) {
 
   let prodottoId = null;
   let prodottoSelezionato = null;
+  let nuovoProdottoMode = false;
 
   backdrop.style.display = "flex";
 
@@ -141,6 +142,7 @@ export function apriCaricoModal({ aziendaId }) {
 
     prodottoId = null;
     prodottoSelezionato = null;
+    nuovoProdottoMode = false;
 
     prodottoBox.innerHTML = "";
     prodottoBox.style.display = "none";
@@ -174,6 +176,7 @@ export function apriCaricoModal({ aziendaId }) {
       `;
 
       risultati.querySelector("#btn-nuovo-prodotto").onclick = () => {
+        nuovoProdottoMode = true;
         mostraFormNuovoProdotto(term);
       };
 
@@ -185,17 +188,12 @@ export function apriCaricoModal({ aziendaId }) {
         ${data.map((p) => `
           <div class="rf-search-item">
             <div class="rf-search-row">
-
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
               </div>
 
-              <button
-                class="rf-search-action carico-item-action"
-                data-id="${p.id}"
-              >🔍</button>
-
+              <button class="rf-search-action carico-item-action" data-id="${p.id}">🔍</button>
             </div>
           </div>
         `).join("")}
@@ -209,6 +207,7 @@ export function apriCaricoModal({ aziendaId }) {
         const id = Number(btn.dataset.id);
 
         prodottoId = id;
+        nuovoProdottoMode = false;
 
         const prodotto = await loadDettaglioProdotto(aziendaId, id);
 
@@ -247,8 +246,46 @@ export function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    if (!prodottoId || !prodottoSelezionato) {
-      alert("Seleziona un prodotto");
+    let finalProdottoId = prodottoId;
+
+    // 🔥 NUOVO PRODOTTO
+    if (!finalProdottoId && nuovoProdottoMode) {
+
+      const codice = document.getElementById("new-codice")?.value || null;
+      const descrizione = document.getElementById("new-descrizione")?.value;
+      const um = document.getElementById("new-um")?.value;
+      const scorta = document.getElementById("new-scorta")?.value;
+      const fornitore = document.getElementById("new-fornitore")?.value;
+
+      if (!descrizione) {
+        alert("Inserisci descrizione prodotto");
+        return;
+      }
+
+      const { data, error } = await window.supabaseClient
+        .from("prodotti")
+        .insert({
+          azienda_id: aziendaId,
+          codice_interno: codice,
+          descrizione,
+          unita_base: um,
+          scorta_minima: scorta,
+          fornitore_preferito: fornitore
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error(error);
+        alert("Errore creazione prodotto");
+        return;
+      }
+
+      finalProdottoId = data.id;
+    }
+
+    if (!finalProdottoId) {
+      alert("Seleziona o crea un prodotto");
       return;
     }
 
@@ -264,7 +301,7 @@ export function apriCaricoModal({ aziendaId }) {
       .insert({
         azienda_id: aziendaId,
         sede_id: sedeId,
-        prodotto_id: prodottoId,
+        prodotto_id: finalProdottoId,
         tipo_movimento: "CARICO",
         quantita: q,
         data_movimento: d,
@@ -278,22 +315,7 @@ export function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    // 🔥 CALCOLO NUOVA GIACENZA (semplice ma corretto)
-    const nuovaGiacenza =
-      Number(prodottoSelezionato.giacenza_attuale || 0) + q;
-
-    // 🔥 TRIGGER NOTIFICA
-    window.magazzinoEvents?.onGiacenzaUpdate({
-      prodotto: {
-        id: prodottoSelezionato.prodotto_id,
-        nome: prodottoSelezionato.descrizione
-      },
-      giacenza: nuovaGiacenza,
-      scorta_minima: Number(prodottoSelezionato.scorta_minima || 0)
-    });
-
     esitoEl.innerText = "Carico registrato ✔";
-
     setTimeout(() => close(), 500);
   };
 
@@ -321,8 +343,13 @@ export function apriCaricoModal({ aziendaId }) {
         </div>
 
         <div class="rf-field">
-          <label>Scorta minima</label>
+          <label>Quantità riordino</label>
           <input id="new-scorta" type="number" class="input">
+        </div>
+
+        <div class="rf-field">
+          <label>Fornitore preferito</label>
+          <input id="new-fornitore" class="input" placeholder="anche libero">
         </div>
 
       </div>
@@ -332,7 +359,6 @@ export function apriCaricoModal({ aziendaId }) {
   }
 }
 
-// 🔽 resto file invariato
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
 
   const sedeId = window.state?.sedeAttiva?.id;
