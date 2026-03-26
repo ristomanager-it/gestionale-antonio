@@ -267,7 +267,7 @@ export async function apriCaricoModal({ aziendaId }) {
 
       btn.onclick = async () => {
 
-        const id = Number(btn.dataset.id);
+        const id = btn.dataset.id; // FIX UUID
 
         prodottoId = id;
         nuovoProdottoMode = false;
@@ -448,7 +448,8 @@ export async function apriCaricoModal({ aziendaId }) {
       box.style.display = "block";
 
       box.querySelectorAll(".rf-search-item").forEach(el => {
-        el.onclick = () => {
+        el.onmousedown = (e) => { // FIX CLICK
+          e.preventDefault();
           input.value = el.innerText;
           box.style.display = "none";
         };
