@@ -179,7 +179,9 @@ export async function apriCaricoModal({ aziendaId }) {
       .from("prodotti")
       .select("id, codice_interno, descrizione, unita_base, scorta_minima")
       .eq("azienda_id", aziendaId)
-      .or(`descrizione.ilike.%${term}%,codice_interno.ilike.%${term}%`)
+      .or(
+  `descrizione.ilike.%${term.replaceAll(",", "")}%,codice_interno.ilike.%${term.replaceAll(",", "")}%`
+)
       .limit(10);
 
     if (error) {
