@@ -43,7 +43,6 @@ export function renderCaricoModal() {
               </div>
             </div>
 
-            <!-- NUOVA CARD SCORTA -->
             <div class="rf-product-card" style="margin-top:10px;">
               <div class="rf-product-section-title">Scorta minima / Riordino</div>
               <div class="rf-field">
@@ -89,7 +88,7 @@ export function renderCaricoModal() {
   `;
 }
 
-export function apriCaricoModal({ aziendaId }) {
+export async function apriCaricoModal({ aziendaId }) {
   const backdrop = document.getElementById("rf-carico-backdrop");
 
   if (!backdrop) {
@@ -249,7 +248,6 @@ export function apriCaricoModal({ aziendaId }) {
         umValueEl.innerText = prodotto.unita_base || "—";
         umCard.style.display = "block";
 
-        // 🔥 POPOLA SCORTA
         scortaEl.value = prodotto.scorta_minima || "";
 
         form.style.display = "block";
@@ -321,7 +319,6 @@ export function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    // 🔥 UPDATE SCORTA
     await window.supabaseClient
       .from("prodotti")
       .update({ scorta_minima: scorta })
