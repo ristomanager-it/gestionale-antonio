@@ -129,6 +129,17 @@ export async function apriCaricoModal({ aziendaId }) {
     fornitoriCache = data || [];
   }
 
+  function bindCreateButton(term) {
+    const btn = risultati.querySelector("#btn-nuovo-prodotto");
+    if (!btn) return;
+    btn.onclick = () => {
+      nuovoProdottoMode = true;
+      prodottoId = null;
+      prodottoSelezionato = null;
+      mostraFormNuovoProdotto(term);
+    };
+  }
+
   backdrop.style.display = "flex";
 
   risultati.innerHTML = "";
@@ -172,15 +183,45 @@ export async function apriCaricoModal({ aziendaId }) {
     form.style.display = "none";
     risultati.innerHTML = "";
     esitoEl.innerText = "";
+    umValueEl.innerText = "—";
+    umCard.style.display = "none";
+    scortaEl.value = "";
 
-    if (term.length < 2) return;
+    if (!term) {
+      return;
+    }
+
+    if (term.length < 2) {
+      risultati.innerHTML = `
+        <div class="rf-empty-state">Digita almeno 2 caratteri oppure crea un nuovo prodotto</div>
+
+        <button id="btn-nuovo-prodotto" class="app-button tiny" style="margin-top:10px;">
+          + Crea "${escapeHtml(term)}"
+        </button>
+      `;
+      bindCreateButton(term);
+      return;
+    }
+
+    const safeTerm = term.replace(/[%,'"]/g, "");
 
     const { data, error } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, codice_interno, descrizione, unita_base, scorta_minima")
+      .eq("azienda_id", aziendaId)
+      .or(`descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`)
       .limit(10);
 
     if (error) {
       console.error(error);
-      risultati.innerHTML = `<div class="rf-empty-state">Errore durante la ricerca</div>`;
+      risultati.innerHTML = `
+        <div class="rf-empty-state">Errore durante la ricerca</div>
+
+        <button id="btn-nuovo-prodotto" class="app-button tiny" style="margin-top:10px;">
+          + Crea "${escapeHtml(term)}"
+        </button>
+      `;
+      bindCreateButton(term);
       return;
     }
 
@@ -190,14 +231,11 @@ export async function apriCaricoModal({ aziendaId }) {
         <div class="rf-empty-state">Nessun prodotto trovato</div>
 
         <button id="btn-nuovo-prodotto" class="app-button tiny" style="margin-top:10px;">
-          + Nuovo prodotto
+          + Crea "${escapeHtml(term)}"
         </button>
       `;
 
-      risultati.querySelector("#btn-nuovo-prodotto").onclick = () => {
-        nuovoProdottoMode = true;
-        mostraFormNuovoProdotto(term);
-      };
+      bindCreateButton(term);
 
       return;
     }
@@ -217,7 +255,13 @@ export async function apriCaricoModal({ aziendaId }) {
           </div>
         `).join("")}
       </div>
+
+      <button id="btn-nuovo-prodotto" class="app-button tiny" style="margin-top:10px;">
+        + Crea "${escapeHtml(term)}"
+      </button>
     `;
+
+    bindCreateButton(term);
 
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
 
