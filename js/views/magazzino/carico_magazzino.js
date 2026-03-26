@@ -43,6 +43,15 @@ export function renderCaricoModal() {
               </div>
             </div>
 
+            <!-- NUOVA CARD SCORTA -->
+            <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Scorta minima / Riordino</div>
+              <div class="rf-field">
+                <label>Quantità minima</label>
+                <input id="carico-scorta" type="number" class="input" />
+              </div>
+            </div>
+
             <div class="rf-product-card" style="margin-top:10px;">
               <div class="rf-product-section-title">Categoria interna</div>
 
@@ -94,6 +103,7 @@ export function apriCaricoModal({ aziendaId }) {
   const form = backdrop.querySelector("#carico-form");
 
   const qtaEl = backdrop.querySelector("#carico-quantita");
+  const scortaEl = backdrop.querySelector("#carico-scorta");
   const dataEl = backdrop.querySelector("#carico-data");
   const noteEl = backdrop.querySelector("#carico-note");
   const categoriaEl = backdrop.querySelector("#carico-categoria");
@@ -109,6 +119,17 @@ export function apriCaricoModal({ aziendaId }) {
   let prodottoSelezionato = null;
   let nuovoProdottoMode = false;
 
+  let fornitoriCache = [];
+
+  async function loadFornitori() {
+    const { data } = await window.supabaseClient
+      .from("fornitori")
+      .select("ragione_sociale")
+      .eq("azienda_id", aziendaId);
+
+    fornitoriCache = data || [];
+  }
+
   backdrop.style.display = "flex";
 
   risultati.innerHTML = "";
@@ -119,9 +140,12 @@ export function apriCaricoModal({ aziendaId }) {
 
   search.value = "";
   qtaEl.value = "";
+  scortaEl.value = "";
   categoriaEl.value = "";
   dataEl.value = new Date().toISOString().slice(0, 10);
   noteEl.value = "Inventario";
+
+  await loadFornitori();
 
   const close = () => {
     backdrop.style.display = "none";
@@ -225,6 +249,9 @@ export function apriCaricoModal({ aziendaId }) {
         umValueEl.innerText = prodotto.unita_base || "—";
         umCard.style.display = "block";
 
+        // 🔥 POPOLA SCORTA
+        scortaEl.value = prodotto.scorta_minima || "";
+
         form.style.display = "block";
       };
 
@@ -235,6 +262,7 @@ export function apriCaricoModal({ aziendaId }) {
   btnConferma.onclick = async () => {
 
     const q = Number(qtaEl.value || 0);
+    const scorta = Number(scortaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
     const categoria = categoriaEl.value || "INVENTARIO";
@@ -248,13 +276,12 @@ export function apriCaricoModal({ aziendaId }) {
 
     let finalProdottoId = prodottoId;
 
-    // 🔥 NUOVO PRODOTTO
     if (!finalProdottoId && nuovoProdottoMode) {
 
       const codice = document.getElementById("new-codice")?.value || null;
       const descrizione = document.getElementById("new-descrizione")?.value;
       const um = document.getElementById("new-um")?.value;
-      const scorta = document.getElementById("new-scorta")?.value;
+      const scortaNew = document.getElementById("new-scorta")?.value;
       const fornitore = document.getElementById("new-fornitore")?.value;
 
       if (!descrizione) {
@@ -269,7 +296,7 @@ export function apriCaricoModal({ aziendaId }) {
           codice_interno: codice,
           descrizione,
           unita_base: um,
-          scorta_minima: scorta,
+          scorta_minima: scortaNew,
           fornitore_preferito: fornitore
         })
         .select()
@@ -293,6 +320,12 @@ export function apriCaricoModal({ aziendaId }) {
       alert("Inserisci una quantità valida");
       return;
     }
+
+    // 🔥 UPDATE SCORTA
+    await window.supabaseClient
+      .from("prodotti")
+      .update({ scorta_minima: scorta })
+      .eq("id", finalProdottoId);
 
     esitoEl.innerText = "Salvataggio...";
 
@@ -347,13 +380,47 @@ export function apriCaricoModal({ aziendaId }) {
           <input id="new-scorta" type="number" class="input">
         </div>
 
-        <div class="rf-field">
+        <div class="rf-field" style="position:relative;">
           <label>Fornitore preferito</label>
-          <input id="new-fornitore" class="input" placeholder="anche libero">
+          <input id="new-fornitore" class="input" placeholder="Scrivi o seleziona..." autocomplete="off">
+          <div id="fornitore-suggerimenti" class="rf-search-list" style="position:absolute; top:100%; left:0; right:0; display:none;"></div>
         </div>
 
       </div>
     `;
+
+    const input = document.getElementById("new-fornitore");
+    const box = document.getElementById("fornitore-suggerimenti");
+
+    input.oninput = () => {
+      const term = input.value.toLowerCase();
+
+      const res = fornitoriCache
+        .filter(f => f.ragione_sociale.toLowerCase().includes(term))
+        .slice(0, 5);
+
+      if (!res.length) {
+        box.style.display = "none";
+        return;
+      }
+
+      box.innerHTML = res.map(f =>
+        `<div class="rf-search-item">${escapeHtml(f.ragione_sociale)}</div>`
+      ).join("");
+
+      box.style.display = "block";
+
+      box.querySelectorAll(".rf-search-item").forEach(el => {
+        el.onclick = () => {
+          input.value = el.innerText;
+          box.style.display = "none";
+        };
+      });
+    };
+
+    input.onblur = () => {
+      setTimeout(() => box.style.display = "none", 150);
+    };
 
     form.style.display = "block";
   }
