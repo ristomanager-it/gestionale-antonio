@@ -340,11 +340,17 @@ export async function apriCaricoModal({ aziendaId }) {
         .select()
         .single();
 
-      if (error || !data) {
-        console.error(error);
-        alert("Errore creazione prodotto");
-        return;
-      }
+    if (error) {
+
+  if (error.code === "23505") {
+    alert("Prodotto già esistente. Selezionalo dalla lista.");
+    return;
+  }
+
+  console.error(error);
+  alert("Errore creazione prodotto");
+  return;
+}
 
       finalProdottoId = data.id;
     }
