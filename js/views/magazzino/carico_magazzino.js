@@ -171,7 +171,6 @@ export async function apriCaricoModal({ aziendaId }) {
   };
 
   search.oninput = async () => {
-
     const term = search.value.trim();
 
     prodottoId = null;
@@ -226,7 +225,6 @@ export async function apriCaricoModal({ aziendaId }) {
     }
 
     if (!data || !data.length) {
-
       risultati.innerHTML = `
         <div class="rf-empty-state">Nessun prodotto trovato</div>
 
@@ -264,10 +262,8 @@ export async function apriCaricoModal({ aziendaId }) {
     bindCreateButton(term);
 
     risultati.querySelectorAll(".carico-item-action").forEach((btn) => {
-
       btn.onclick = async () => {
-
-        const id = btn.dataset.id; // FIX UUID
+        const id = String(btn.dataset.id);
 
         prodottoId = id;
         nuovoProdottoMode = false;
@@ -292,13 +288,10 @@ export async function apriCaricoModal({ aziendaId }) {
 
         form.style.display = "block";
       };
-
     });
-
   };
 
   btnConferma.onclick = async () => {
-
     const q = Number(qtaEl.value || 0);
     const scorta = Number(scortaEl.value || 0);
     const d = dataEl.value;
@@ -315,12 +308,11 @@ export async function apriCaricoModal({ aziendaId }) {
     let finalProdottoId = prodottoId;
 
     if (!finalProdottoId && nuovoProdottoMode) {
-
       const codice = document.getElementById("new-codice")?.value || null;
-      const descrizione = document.getElementById("new-descrizione")?.value;
-      const um = document.getElementById("new-um")?.value;
-      const scortaNew = document.getElementById("new-scorta")?.value;
-      const fornitore = document.getElementById("new-fornitore")?.value;
+      const descrizione = document.getElementById("new-descrizione")?.value?.trim();
+      const um = document.getElementById("new-um")?.value || null;
+      const scortaNew = document.getElementById("new-scorta")?.value || null;
+      const fornitore = document.getElementById("new-fornitore")?.value || null;
 
       if (!descrizione) {
         alert("Inserisci descrizione prodotto");
@@ -337,54 +329,65 @@ export async function apriCaricoModal({ aziendaId }) {
           scorta_minima: scortaNew,
           fornitore_preferito: fornitore
         })
-        .select()
+        .select("id")
         .single();
 
-    if (error) {
+      if (error) {
+        if (error.code === "23505") {
+          const { data: existing, error: existingError } = await window.supabaseClient
+            .from("prodotti")
+            .select("id")
+            .eq("azienda_id", aziendaId)
+            .ilike("descrizione", descrizione)
+            .limit(1)
+            .maybeSingle();
 
-  if (error.code === "23505") {
-    alert("Prodotto già esistente. Selezionalo dalla lista.");
-    return;
-  }
-if (error) {
+          if (existingError) {
+            console.error(existingError);
+            alert("Prodotto già esistente ma non recuperabile");
+            return;
+          }
 
-  // 🔥 DUPLICATO → RECUPERO AUTOMATICO
-  if (error.code === "23505") {
+          if (!existing?.id) {
+            alert("Prodotto già esistente ma non trovato");
+            return;
+          }
 
-    const { data: existing, error: err2 } = await window.supabaseClient
-      .from("prodotti")
-      .select("id")
-      .eq("azienda_id", aziendaId)
-      .ilike("descrizione", descrizione)
-      .limit(1)
-      .maybeSingle();
+          finalProdottoId = String(existing.id);
+        } else {
+          console.error(error);
+          alert("Errore creazione prodotto");
+          return;
+        }
+      } else {
+        finalProdottoId = String(data.id);
+      }
+    }
 
-    if (existing) {
-      finalProdottoId = existing.id;
-    } else {
-      console.error(err2);
-      alert("Prodotto già esistente ma non trovato");
+    if (!finalProdottoId) {
+      alert("Seleziona o crea un prodotto");
       return;
     }
 
-  } else {
-    console.error(error);
-    alert("Errore creazione prodotto");
-    return;
-  }
+    if (!q || q <= 0) {
+      alert("Inserisci una quantità valida");
+      return;
+    }
 
-} else {
-  finalProdottoId = data.id;
-}
-
-    await window.supabaseClient
+    const { error: updateError } = await window.supabaseClient
       .from("prodotti")
       .update({ scorta_minima: scorta })
       .eq("id", finalProdottoId);
 
+    if (updateError) {
+      console.error(updateError);
+      esitoEl.innerText = "Errore aggiornamento scorta minima";
+      return;
+    }
+
     esitoEl.innerText = "Salvataggio...";
 
-    const { error } = await window.supabaseClient
+    const { error: movimentoError } = await window.supabaseClient
       .from("magazzino_movimenti")
       .insert({
         azienda_id: aziendaId,
@@ -397,10 +400,24 @@ if (error) {
         note: note
       });
 
-    if (error) {
-      console.error(error);
+    if (movimentoError) {
+      console.error(movimentoError);
       esitoEl.innerText = "Errore durante il salvataggio";
       return;
+    }
+
+    if (prodottoSelezionato) {
+      const nuovaGiacenza =
+        Number(prodottoSelezionato.giacenza_attuale || 0) + q;
+
+      window.magazzinoEvents?.onGiacenzaUpdate?.({
+        prodotto: {
+          id: prodottoSelezionato.prodotto_id || finalProdottoId,
+          nome: prodottoSelezionato.descrizione
+        },
+        giacenza: nuovaGiacenza,
+        scorta_minima: scorta
+      });
     }
 
     esitoEl.innerText = "Carico registrato ✔";
@@ -448,34 +465,44 @@ if (error) {
     const box = document.getElementById("fornitore-suggerimenti");
 
     input.oninput = () => {
-      const term = input.value.toLowerCase();
+      const termInput = input.value.toLowerCase().trim();
+
+      if (!termInput) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
 
       const res = fornitoriCache
-        .filter(f => f.ragione_sociale.toLowerCase().includes(term))
+        .filter((f) => String(f.ragione_sociale || "").toLowerCase().includes(termInput))
         .slice(0, 5);
 
       if (!res.length) {
         box.style.display = "none";
+        box.innerHTML = "";
         return;
       }
 
-      box.innerHTML = res.map(f =>
-        `<div class="rf-search-item">${escapeHtml(f.ragione_sociale)}</div>`
+      box.innerHTML = res.map((f) =>
+        `<div class="rf-search-item" data-value="${escapeHtml(f.ragione_sociale)}">${escapeHtml(f.ragione_sociale)}</div>`
       ).join("");
 
       box.style.display = "block";
 
-      box.querySelectorAll(".rf-search-item").forEach(el => {
-        el.onmousedown = (e) => { // FIX CLICK
+      box.querySelectorAll(".rf-search-item").forEach((el) => {
+        el.onmousedown = (e) => {
           e.preventDefault();
-          input.value = el.innerText;
+          input.value = el.dataset.value || el.innerText;
           box.style.display = "none";
+          box.innerHTML = "";
         };
       });
     };
 
     input.onblur = () => {
-      setTimeout(() => box.style.display = "none", 150);
+      setTimeout(() => {
+        box.style.display = "none";
+      }, 150);
     };
 
     form.style.display = "block";
@@ -483,7 +510,6 @@ if (error) {
 }
 
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
-
   const sedeId = window.state?.sedeAttiva?.id;
 
   const { data: prodotto } = await window.supabaseClient
@@ -491,7 +517,7 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     .select("*")
     .eq("azienda_id", aziendaId)
     .eq("sede_id", sedeId)
-    .eq("prodotto_id", prodottoId)
+    .eq("prodotto_id", String(prodottoId))
     .maybeSingle();
 
   if (!prodotto) return null;
@@ -501,14 +527,14 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     .select("tipo_movimento, quantita, data_movimento")
     .eq("azienda_id", aziendaId)
     .eq("sede_id", sedeId)
-    .eq("prodotto_id", prodottoId)
+    .eq("prodotto_id", String(prodottoId))
     .order("data_movimento", { ascending: false })
     .limit(5);
 
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("fornitori:fornitore_id (ragione_sociale)")
-    .eq("prodotto_id", prodottoId)
+    .eq("prodotto_id", String(prodottoId))
     .limit(1)
     .maybeSingle();
 
