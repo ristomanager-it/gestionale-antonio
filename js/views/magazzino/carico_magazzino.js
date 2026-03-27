@@ -298,9 +298,15 @@ export async function apriCaricoModal({ aziendaId }) {
     const note = noteEl.value || "";
     const categoria = categoriaEl.value || "INVENTARIO";
 
-    const sedeId = window.state?.sedeAttiva?.id;
+    const rawSedeId =
+      window.state?.sedeAttiva?.id ??
+      window.state?.sedeAttiva?.sede_id ??
+      window.state?.sedeAttiva?.legacy_id ??
+      null;
 
-    if (!sedeId) {
+    const sedeId = normalizeBigintId(rawSedeId);
+
+    if (!window.state?.sedeAttiva && sedeId === null) {
       alert("Sede attiva non trovata");
       return;
     }
@@ -387,18 +393,23 @@ export async function apriCaricoModal({ aziendaId }) {
 
     esitoEl.innerText = "Salvataggio...";
 
+    const movimentoPayload = {
+      azienda_id: aziendaId,
+      prodotto_id: finalProdottoId,
+      tipo_movimento: "CARICO",
+      quantita: q,
+      data_movimento: d,
+      riferimento_tipo: categoria,
+      note: note
+    };
+
+    if (sedeId !== null) {
+      movimentoPayload.sede_id = sedeId;
+    }
+
     const { error: movimentoError } = await window.supabaseClient
       .from("magazzino_movimenti")
-      .insert({
-        azienda_id: aziendaId,
-        sede_id: sedeId,
-        prodotto_id: finalProdottoId,
-        tipo_movimento: "CARICO",
-        quantita: q,
-        data_movimento: d,
-        riferimento_tipo: categoria,
-        note: note
-      });
+      .insert(movimentoPayload);
 
     if (movimentoError) {
       console.error(movimentoError);
@@ -510,31 +521,46 @@ export async function apriCaricoModal({ aziendaId }) {
 }
 
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
-  const sedeId = window.state?.sedeAttiva?.id;
+  const rawSedeId =
+    window.state?.sedeAttiva?.id ??
+    window.state?.sedeAttiva?.sede_id ??
+    window.state?.sedeAttiva?.legacy_id ??
+    null;
 
-  const { data: prodotto } = await window.supabaseClient
+  const sedeId = normalizeBigintId(rawSedeId);
+
+  let queryProdotto = window.supabaseClient
     .from("v_magazzino_giacenze")
     .select("*")
     .eq("azienda_id", aziendaId)
-    .eq("sede_id", sedeId)
-    .eq("prodotto_id", String(prodottoId))
-    .maybeSingle();
+    .eq("prodotto_id", prodottoId);
+
+  if (sedeId !== null) {
+    queryProdotto = queryProdotto.eq("sede_id", sedeId);
+  }
+
+  const { data: prodotto } = await queryProdotto.maybeSingle();
 
   if (!prodotto) return null;
 
-  const { data: movimenti } = await window.supabaseClient
+  let queryMovimenti = window.supabaseClient
     .from("magazzino_movimenti")
     .select("tipo_movimento, quantita, data_movimento")
     .eq("azienda_id", aziendaId)
-    .eq("sede_id", sedeId)
-    .eq("prodotto_id", String(prodottoId))
+    .eq("prodotto_id", prodottoId);
+
+  if (sedeId !== null) {
+    queryMovimenti = queryMovimenti.eq("sede_id", sedeId);
+  }
+
+  const { data: movimenti } = await queryMovimenti
     .order("data_movimento", { ascending: false })
     .limit(5);
 
   const { data: mapping } = await window.supabaseClient
     .from("prodotti_fornitore")
     .select("fornitori:fornitore_id (ragione_sociale)")
-    .eq("prodotto_id", String(prodottoId))
+    .eq("prodotto_id", prodottoId)
     .limit(1)
     .maybeSingle();
 
@@ -594,6 +620,13 @@ function renderSchedaCaricoProdotto(prodotto) {
 
     </div>
   `;
+}
+
+function normalizeBigintId(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (!/^\d+$/.test(text)) return null;
+  return Number(text);
 }
 
 function formatNumber(value) {
