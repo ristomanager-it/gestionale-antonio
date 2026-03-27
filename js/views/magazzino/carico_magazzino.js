@@ -202,7 +202,7 @@ export async function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    const safeTerm = term.replace(/[%,'"]/g, "");
+    const safeTerm = sanitizeSearchTerm(term);
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
@@ -299,14 +299,18 @@ export async function apriCaricoModal({ aziendaId }) {
     const categoria = categoriaEl.value || "INVENTARIO";
 
     const rawSedeId =
+      window.state?.sedeAttiva?.legacy_id ??
+      window.state?.sedeAttiva?.sede_id_legacy ??
+      window.state?.sedeAttiva?.id_legacy ??
+      window.state?.sedeAttiva?.numero ??
+      window.state?.sedeAttiva?.progressivo ??
       window.state?.sedeAttiva?.id ??
       window.state?.sedeAttiva?.sede_id ??
-      window.state?.sedeAttiva?.legacy_id ??
       null;
 
-    const sedeId = normalizeBigintId(rawSedeId);
+    const sedeId = resolveMovimentoSedeId(rawSedeId);
 
-    if (!window.state?.sedeAttiva && sedeId === null) {
+    if (!window.state?.sedeAttiva) {
       alert("Sede attiva non trovata");
       return;
     }
@@ -325,21 +329,17 @@ export async function apriCaricoModal({ aziendaId }) {
         return;
       }
 
-      const { data, error } = await window.supabaseClient
-        .from("prodotti")
-        .insert({
-          azienda_id: aziendaId,
-          codice_interno: codice,
-          descrizione,
-          unita_base: um,
-          scorta_minima: scortaNew,
-          fornitore_preferito: fornitore
-        })
-        .select("id")
-        .single();
+      const insertResult = await insertProdottoCompat({
+        azienda_id: aziendaId,
+        codice_interno: codice,
+        descrizione,
+        unita_base: um,
+        scorta_minima: scortaNew,
+        fornitore_preferito: fornitore
+      });
 
-      if (error) {
-        if (error.code === "23505") {
+      if (insertResult.error) {
+        if (insertResult.error.code === "23505") {
           const { data: existing, error: existingError } = await window.supabaseClient
             .from("prodotti")
             .select("id")
@@ -361,12 +361,12 @@ export async function apriCaricoModal({ aziendaId }) {
 
           finalProdottoId = String(existing.id);
         } else {
-          console.error(error);
+          console.error(insertResult.error);
           alert("Errore creazione prodotto");
           return;
         }
       } else {
-        finalProdottoId = String(data.id);
+        finalProdottoId = String(insertResult.data.id);
       }
     }
 
@@ -396,16 +396,13 @@ export async function apriCaricoModal({ aziendaId }) {
     const movimentoPayload = {
       azienda_id: aziendaId,
       prodotto_id: finalProdottoId,
+      sede_id: sedeId,
       tipo_movimento: "CARICO",
       quantita: q,
       data_movimento: d,
       riferimento_tipo: categoria,
       note: note
     };
-
-    if (sedeId !== null) {
-      movimentoPayload.sede_id = sedeId;
-    }
 
     const { error: movimentoError } = await window.supabaseClient
       .from("magazzino_movimenti")
@@ -434,6 +431,36 @@ export async function apriCaricoModal({ aziendaId }) {
     esitoEl.innerText = "Carico registrato ✔";
     setTimeout(() => close(), 500);
   };
+
+  async function insertProdottoCompat(payload) {
+    const firstTry = await window.supabaseClient
+      .from("prodotti")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (!firstTry.error) {
+      return firstTry;
+    }
+
+    const message = String(firstTry.error.message || "");
+    const missingFornitoreColumn =
+      firstTry.error.code === "PGRST204" ||
+      message.toLowerCase().includes("fornitore_preferito");
+
+    if (!missingFornitoreColumn) {
+      return firstTry;
+    }
+
+    const payloadFallback = { ...payload };
+    delete payloadFallback.fornitore_preferito;
+
+    return window.supabaseClient
+      .from("prodotti")
+      .insert(payloadFallback)
+      .select("id")
+      .single();
+  }
 
   function mostraFormNuovoProdotto(term) {
     prodottoBox.style.display = "block";
@@ -522,9 +549,13 @@ export async function apriCaricoModal({ aziendaId }) {
 
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
   const rawSedeId =
+    window.state?.sedeAttiva?.legacy_id ??
+    window.state?.sedeAttiva?.sede_id_legacy ??
+    window.state?.sedeAttiva?.id_legacy ??
+    window.state?.sedeAttiva?.numero ??
+    window.state?.sedeAttiva?.progressivo ??
     window.state?.sedeAttiva?.id ??
     window.state?.sedeAttiva?.sede_id ??
-    window.state?.sedeAttiva?.legacy_id ??
     null;
 
   const sedeId = normalizeBigintId(rawSedeId);
@@ -539,9 +570,18 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     queryProdotto = queryProdotto.eq("sede_id", sedeId);
   }
 
-  const { data: prodotto } = await queryProdotto.maybeSingle();
+  const { data: prodottoRows, error: prodottoError } = await queryProdotto;
 
-  if (!prodotto) return null;
+  if (prodottoError) {
+    console.error(prodottoError);
+    return null;
+  }
+
+  if (!prodottoRows || !prodottoRows.length) {
+    return null;
+  }
+
+  const prodotto = collapseGiacenzeRows(prodottoRows);
 
   let queryMovimenti = window.supabaseClient
     .from("magazzino_movimenti")
@@ -568,6 +608,19 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     ...prodotto,
     fornitore: mapping?.fornitori?.ragione_sociale || "—",
     ultimi_movimenti: movimenti || []
+  };
+}
+
+function collapseGiacenzeRows(rows) {
+  const first = rows[0] || {};
+  const giacenza_attuale = rows.reduce(
+    (sum, row) => sum + Number(row?.giacenza_attuale || 0),
+    0
+  );
+
+  return {
+    ...first,
+    giacenza_attuale
   };
 }
 
@@ -622,11 +675,21 @@ function renderSchedaCaricoProdotto(prodotto) {
   `;
 }
 
+function sanitizeSearchTerm(value) {
+  return String(value ?? "").replace(/[%,'"]/g, "");
+}
+
 function normalizeBigintId(value) {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   if (!/^\d+$/.test(text)) return null;
   return Number(text);
+}
+
+function resolveMovimentoSedeId(value) {
+  const numeric = normalizeBigintId(value);
+  if (numeric !== null) return numeric;
+  return 0;
 }
 
 function formatNumber(value) {
