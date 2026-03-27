@@ -393,16 +393,15 @@ export async function apriCaricoModal({ aziendaId }) {
 
     esitoEl.innerText = "Salvataggio...";
 
-    const movimentoPayload = {
-      azienda_id: aziendaId,
-      prodotto_id: finalProdottoId,
-      sede_id: sedeId,
-      tipo_movimento: "CARICO",
-      quantita: q,
-      data_movimento: d,
-      riferimento_tipo: categoria,
-      note: note
-    };
+  const movimentoPayload = {
+  azienda_id: aziendaId,
+  prodotto_id: finalProdottoId,
+  tipo_movimento: "CARICO",
+  quantita: q,
+  data_movimento: d,
+  riferimento_tipo: categoria,
+  note: note
+};
 
     const { error: movimentoError } = await window.supabaseClient
       .from("magazzino_movimenti")
