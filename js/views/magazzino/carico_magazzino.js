@@ -298,20 +298,12 @@ export async function apriCaricoModal({ aziendaId }) {
     const note = noteEl.value || "";
     const categoria = categoriaEl.value || "INVENTARIO";
 
-    const rawSedeId =
-      window.state?.sedeAttiva?.legacy_id ??
-      window.state?.sedeAttiva?.sede_id_legacy ??
-      window.state?.sedeAttiva?.id_legacy ??
-      window.state?.sedeAttiva?.numero ??
-      window.state?.sedeAttiva?.progressivo ??
-      window.state?.sedeAttiva?.id ??
-      window.state?.sedeAttiva?.sede_id ??
-      null;
+    let sedeId = null;
 
-    const sedeId = resolveMovimentoSedeId(rawSedeId);
-
-    if (!window.state?.sedeAttiva) {
-      alert("Sede attiva non trovata");
+    try {
+      sedeId = getSedeAttivaId();
+    } catch (error) {
+      alert(error.message);
       return;
     }
 
@@ -383,7 +375,8 @@ export async function apriCaricoModal({ aziendaId }) {
     const { error: updateError } = await window.supabaseClient
       .from("prodotti")
       .update({ scorta_minima: scorta })
-      .eq("id", finalProdottoId);
+      .eq("id", finalProdottoId)
+      .eq("azienda_id", aziendaId);
 
     if (updateError) {
       console.error(updateError);
@@ -393,15 +386,19 @@ export async function apriCaricoModal({ aziendaId }) {
 
     esitoEl.innerText = "Salvataggio...";
 
-  const movimentoPayload = {
-  azienda_id: aziendaId,
-  prodotto_id: finalProdottoId,
-  tipo_movimento: "CARICO",
-  quantita: q,
-  data_movimento: d,
-  riferimento_tipo: categoria,
-  note: note
-};
+    const causaleParts = [categoria];
+    if (d) causaleParts.push(`data:${d}`);
+    if (note) causaleParts.push(note);
+
+    const movimentoPayload = {
+      azienda_id: aziendaId,
+      sede_id: sedeId,
+      prodotto_id: Number(finalProdottoId),
+      tipo_movimento: "carico",
+      quantita: q,
+      costo: 0,
+      causale: causaleParts.join(" | ")
+    };
 
     const { error: movimentoError } = await window.supabaseClient
       .from("magazzino_movimenti")
@@ -547,29 +544,21 @@ export async function apriCaricoModal({ aziendaId }) {
 }
 
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
-  const rawSedeId =
-    window.state?.sedeAttiva?.legacy_id ??
-    window.state?.sedeAttiva?.sede_id_legacy ??
-    window.state?.sedeAttiva?.id_legacy ??
-    window.state?.sedeAttiva?.numero ??
-    window.state?.sedeAttiva?.progressivo ??
-    window.state?.sedeAttiva?.id ??
-    window.state?.sedeAttiva?.sede_id ??
-    null;
+  let sedeId = null;
 
-  const sedeId = normalizeBigintId(rawSedeId);
+  try {
+    sedeId = getSedeAttivaId();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 
-  let queryProdotto = window.supabaseClient
+  const { data: prodottoRows, error: prodottoError } = await window.supabaseClient
     .from("v_magazzino_giacenze")
     .select("*")
     .eq("azienda_id", aziendaId)
+    .eq("sede_id", sedeId)
     .eq("prodotto_id", prodottoId);
-
-  if (sedeId !== null) {
-    queryProdotto = queryProdotto.eq("sede_id", sedeId);
-  }
-
-  const { data: prodottoRows, error: prodottoError } = await queryProdotto;
 
   if (prodottoError) {
     console.error(prodottoError);
@@ -582,18 +571,13 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
 
   const prodotto = collapseGiacenzeRows(prodottoRows);
 
-  let queryMovimenti = window.supabaseClient
+  const { data: movimenti } = await window.supabaseClient
     .from("magazzino_movimenti")
-    .select("tipo_movimento, quantita, data_movimento")
+    .select("tipo_movimento, quantita, created_at")
     .eq("azienda_id", aziendaId)
-    .eq("prodotto_id", prodottoId);
-
-  if (sedeId !== null) {
-    queryMovimenti = queryMovimenti.eq("sede_id", sedeId);
-  }
-
-  const { data: movimenti } = await queryMovimenti
-    .order("data_movimento", { ascending: false })
+    .eq("sede_id", sedeId)
+    .eq("prodotto_id", prodottoId)
+    .order("created_at", { ascending: false })
     .limit(5);
 
   const { data: mapping } = await window.supabaseClient
@@ -613,7 +597,7 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
 function collapseGiacenzeRows(rows) {
   const first = rows[0] || {};
   const giacenza_attuale = rows.reduce(
-    (sum, row) => sum + Number(row?.giacenza_attuale || 0),
+    (sum, row) => sum + Number(row?.giacenza_attuale || row?.giacenza || 0),
     0
   );
 
@@ -663,7 +647,7 @@ function renderSchedaCaricoProdotto(prodotto) {
           ? prodotto.ultimi_movimenti.map((m) => `
             <div class="rf-mov-item">
               <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-              <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
+              <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
             </div>
           `).join("")
           : `<div class="rf-empty-state">Nessun movimento recente</div>`
@@ -678,17 +662,14 @@ function sanitizeSearchTerm(value) {
   return String(value ?? "").replace(/[%,'"]/g, "");
 }
 
-function normalizeBigintId(value) {
-  if (value === null || value === undefined) return null;
-  const text = String(value).trim();
-  if (!/^\d+$/.test(text)) return null;
-  return Number(text);
-}
+function getSedeAttivaId() {
+  const sedeId = window.state?.sedeAttiva?.id ?? null;
 
-function resolveMovimentoSedeId(value) {
-  const numeric = normalizeBigintId(value);
-  if (numeric !== null) return numeric;
-  return 0;
+  if (!sedeId) {
+    throw new Error("Sede attiva non trovata");
+  }
+
+  return String(sedeId);
 }
 
 function formatNumber(value) {
