@@ -760,87 +760,130 @@ async function openDocumentoUploadModal(azienda) {
     updateTotaleFromRighe();
   }
 
-  async function saveDocumento() {
-    const tipoDocumento = elTipoDocumento.value;
-    const fornitoreNome = String(elFornitore.value || "").trim();
-    const fornitorePiva = String(elFornitorePiva.value || "").trim();
-    const numeroDocumento = String(elNumero.value || "").trim();
-    const dataDocumento = String(elData.value || "").trim();
-    const totale = parseLocaleNumber(elTotale.value, 0);
+ async function saveDocumento() {
+  const tipoDocumento = elTipoDocumento.value;
+  const fornitoreNome = String(elFornitore.value || "").trim();
+  const fornitorePiva = String(elFornitorePiva.value || "").trim();
+  const numeroDocumento = String(elNumero.value || "").trim();
+  const dataDocumento = String(elData.value || "").trim();
+  const totale = parseLocaleNumber(elTotale.value, 0);
 
-    if (!fornitoreNome) {
-      throw new Error("Inserisci il fornitore");
-    }
+  if (!fornitoreNome) {
+    throw new Error("Inserisci il fornitore");
+  }
 
-    if (!dataDocumento) {
-      throw new Error(tipoDocumento === "ddt" ? "Inserisci la data DDT" : "Inserisci la data documento");
-    }
+  if (!dataDocumento) {
+    throw new Error(tipoDocumento === "ddt" ? "Inserisci la data DDT" : "Inserisci la data documento");
+  }
 
-    if (!numeroDocumento) {
-      throw new Error(tipoDocumento === "ddt" ? "Inserisci il numero DDT" : "Inserisci il numero documento");
-    }
+  if (!numeroDocumento) {
+    throw new Error(tipoDocumento === "ddt" ? "Inserisci il numero DDT" : "Inserisci il numero documento");
+  }
 
-    if (!righe.length) {
-      throw new Error("Inserisci almeno una riga documento");
-    }
+  if (!righe.length) {
+    throw new Error("Inserisci almeno una riga documento");
+  }
 
-    const fornitoreId = await ensureFornitoreId(fornitoreNome, fornitorePiva);
+  // 🔥 FIX CRITICO
+  const fornitoreId = await ensureFornitoreId(fornitoreNome, fornitorePiva);
 
-    if (tipoDocumento === "fattura") {
-      const { data: created, error } = await supabase
-        .from("fatture_acquisto")
-        .insert({
-          azienda_id: azienda.id,
-          fornitore_id: fornitoreId,
-          numero_documento: numeroDocumento || null,
-          data_documento: dataDocumento,
-          totale: totale || computeRowsTotal(righe) || 0,
-          stato: "bozza"
-        })
-        .select("id")
-        .single();
+  if (!Number.isInteger(fornitoreId)) {
+    console.error("fornitoreId NON valido:", fornitoreId, {
+      nome: fornitoreNome,
+      piva: fornitorePiva
+    });
+    throw new Error("Errore interno: fornitore non valido");
+  }
 
-      if (error || !created?.id) {
-        throw new Error(error?.message || "Errore salvataggio fattura");
-      }
+  console.log("fornitoreId OK:", fornitoreId);
 
-      const righePayload = righe.map((row, index) => ({
-        fattura_id: created.id,
+  console.log("SALVATAGGIO DOCUMENTO", {
+    tipo: tipoDocumento,
+    fornitoreId,
+    numeroDocumento,
+    dataDocumento,
+    righe: righe.length
+  });
+
+  if (tipoDocumento === "fattura") {
+    const { data: created, error } = await supabase
+      .from("fatture_acquisto")
+      .insert({
         azienda_id: azienda.id,
-        riga_numero: index + 1,
-        descrizione: String(row.descrizione || "").trim(),
-        prodotto_id: row.prodotto_id || null,
-        quantita: parseLocaleNumber(row.quantita, 0),
-        unita_misura: row.um || "pz",
-        prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
-        iva_percent: parseLocaleNumber(row.iva_percent, 0),
-        totale_riga: parseLocaleNumber(row.totale_riga, 0)
-      }));
+        fornitore_id: fornitoreId,
+        numero_documento: numeroDocumento || null,
+        data_documento: dataDocumento,
+        totale: totale || computeRowsTotal(righe) || 0,
+        stato: "bozza"
+      })
+      .select("id")
+      .single();
 
-      const { error: righeError } = await supabase
-        .from("fatture_acquisto_righe")
-        .insert(righePayload);
+    if (error || !created?.id) {
+      console.error("ERRORE INSERT FATTURA:", error);
+      throw new Error(error?.message || "Errore salvataggio fattura");
+    }
 
-      if (righeError) {
-        throw new Error(righeError.message || "Errore salvataggio righe fattura");
-      }
-    } else {
-      const { data: created, error } = await supabase
-        .from("ddt_acquisto")
-        .insert({
-          azienda_id: azienda.id,
-          fornitore_id: fornitoreId,
-          numero_ddt: numeroDocumento || null,
-          data_ddt: dataDocumento
-        })
-        .select("id")
-        .single();
+    const righePayload = righe.map((row, index) => ({
+      fattura_id: created.id,
+      azienda_id: azienda.id,
+      riga_numero: index + 1,
+      descrizione: String(row.descrizione || "").trim(),
+      prodotto_id: row.prodotto_id || null,
+      quantita: parseLocaleNumber(row.quantita, 0),
+      unita_misura: row.um || "pz",
+      prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+      iva_percent: parseLocaleNumber(row.iva_percent, 0),
+      totale_riga: parseLocaleNumber(row.totale_riga, 0)
+    }));
 
-      if (error || !created?.id) {
-        throw new Error(error?.message || "Errore salvataggio DDT");
-      }
+    const { error: righeError } = await supabase
+      .from("fatture_acquisto_righe")
+      .insert(righePayload);
 
-      const righePayload = righe.map((row, index) => ({
+    if (righeError) {
+      console.error("ERRORE RIGHE FATTURA:", righeError);
+      throw new Error(righeError.message || "Errore salvataggio righe fattura");
+    }
+
+  } else {
+    const { data: created, error } = await supabase
+      .from("ddt_acquisto")
+      .insert({
+        azienda_id: azienda.id,
+        fornitore_id: fornitoreId,
+        numero_ddt: numeroDocumento || null,
+        data_ddt: dataDocumento
+      })
+      .select("id")
+      .single();
+
+    if (error || !created?.id) {
+      console.error("ERRORE INSERT DDT:", error);
+      throw new Error(error?.message || "Errore salvataggio DDT");
+    }
+
+    const righePayload = righe.map((row, index) => ({
+      ddt_id: created.id,
+      azienda_id: azienda.id,
+      riga_numero: index + 1,
+      descrizione: String(row.descrizione || "").trim(),
+      prodotto_id: row.prodotto_id || null,
+      quantita: parseLocaleNumber(row.quantita, 0),
+      unita_misura: row.um || "pz",
+      prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
+      iva_percent: parseLocaleNumber(row.iva_percent, 0),
+      totale_riga: parseLocaleNumber(row.totale_riga, 0)
+    }));
+
+    const { error: righeError } = await supabase
+      .from("ddt_acquisto_righe")
+      .insert(righePayload);
+
+    if (righeError) {
+      console.error("ERRORE RIGHE DDT (tentativo 1):", righeError);
+
+      const fallbackPayload = righe.map((row, index) => ({
         ddt_id: created.id,
         azienda_id: azienda.id,
         riga_numero: index + 1,
@@ -853,94 +896,16 @@ async function openDocumentoUploadModal(azienda) {
         totale_riga: parseLocaleNumber(row.totale_riga, 0)
       }));
 
-      const { error: righeError } = await supabase
+      const { error: fallbackError } = await supabase
         .from("ddt_acquisto_righe")
-        .insert(righePayload);
+        .insert(fallbackPayload);
 
-      if (righeError) {
-        const fallbackPayload = righe.map((row, index) => ({
-          ddt_id: created.id,
-          azienda_id: azienda.id,
-          riga_numero: index + 1,
-          descrizione: String(row.descrizione || "").trim(),
-          prodotto_id: row.prodotto_id || null,
-          quantita: parseLocaleNumber(row.quantita, 0),
-          unita_misura: row.um || "pz",
-          prezzo_unitario: parseLocaleNumber(row.prezzo_unitario, 0),
-          iva_percent: parseLocaleNumber(row.iva_percent, 0),
-          totale_riga: parseLocaleNumber(row.totale_riga, 0)
-        }));
-
-        const { error: fallbackError } = await supabase
-          .from("ddt_acquisto_righe")
-          .insert(fallbackPayload);
-
-        if (fallbackError) {
-          throw new Error(fallbackError.message || righeError.message || "Errore salvataggio righe DDT");
-        }
+      if (fallbackError) {
+        console.error("ERRORE RIGHE DDT (fallback):", fallbackError);
+        throw new Error(fallbackError.message || righeError.message || "Errore salvataggio righe DDT");
       }
     }
   }
-
-  btnAddRiga.addEventListener("click", () => {
-    addRiga({
-      descrizione: "",
-      descrizione_originale: "",
-      quantita: 1,
-      prezzo_unitario: 0,
-      totale_riga: 0,
-      iva_percent: 0,
-      um: "pz"
-    });
-  });
-
-  elTipoDocumento.addEventListener("change", () => {
-    updateLabels();
-    renderRighe();
-    updateTotaleFromRighe();
-  });
-
-  elMetodo.addEventListener("change", () => {
-    updateMetodoUI();
-  });
-
-  elFile.addEventListener("change", async () => {
-    if (elMetodo.value !== "carica_documento") return;
-
-    try {
-      await uploadFileAndRunOcr();
-    } catch (err) {
-      console.error(err);
-      setFeedback(String(err?.message || err || "Errore durante il caricamento"), true);
-    }
-  });
-
-  btnSave.addEventListener("click", async () => {
-    btnSave.disabled = true;
-    btnSave.textContent = "Salvo...";
-
-    try {
-      await saveDocumento();
-      setFeedback("Documento salvato correttamente.");
-      setTimeout(closeModal, 450);
-    } catch (err) {
-      console.error(err);
-      setFeedback(String(err?.message || err || "Errore salvataggio documento"), true);
-    } finally {
-      btnSave.disabled = false;
-      btnSave.textContent = "Salva documento";
-    }
-  });
-
-  btnCloseTop.addEventListener("click", closeModal);
-  btnCloseBottom.addEventListener("click", closeModal);
-  modal.querySelector(".rf-modal-backdrop").addEventListener("click", (e) => {
-    if (e.target === e.currentTarget) closeModal();
-  });
-
-  updateLabels();
-  updateMetodoUI();
-  renderRighe();
 }
 
 async function openCreateProductModal({ azienda, descrizioneFattura }) {
