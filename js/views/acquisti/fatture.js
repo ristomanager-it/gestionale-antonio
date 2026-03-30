@@ -549,160 +549,160 @@ async function openDocumentoUploadModal(azienda) {
     updateTotaleFromRighe();
   }
 
-  function renderRighe() {
-    if (!righe.length) {
-      righeContainer.innerHTML = `
-        <div class="rf-empty-righe">
-        
-      `;
-      return;
-    }
-
-    righeContainer.innerHTML = righe.map((row, i) => {
-      const matched = row.prodotto_id ? "Prodotto agganciato" : "Prodotto non trovato";
-      const matchedClass = row.prodotto_id ? "ok" : "missing";
-
-      return `
-        <div class="rf-riga-card ${matchedClass}" data-i="${i}">
-          <div class="rf-riga-grid">
-            <div class="rf-field">
-              <label>Descrizione</label>
-              <input class="input riga-descrizione" data-i="${i}" value="${escapeHtml(row.descrizione || "")}" />
-            </div>
-            <div class="rf-field">
-              <label>Quantità</label>
-              <input class="input riga-quantita" data-i="${i}" value="${escapeHtml(String(row.quantita ?? ""))}" />
-            </div>
-            <div class="rf-field">
-              <label>Prezzo unitario</label>
-              <input class="input riga-prezzo" data-i="${i}" value="${escapeHtml(String(row.prezzo_unitario ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
-            </div>
-            <div class="rf-field">
-              <label>Totale riga</label>
-              <input class="input riga-totale" data-i="${i}" value="${escapeHtml(String(row.totale_riga ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
-            </div>
-          </div>
-
-          <div class="rf-riga-bottom">
-            <div class="rf-riga-status ${matchedClass}">
-              ${escapeHtml(matched)}${row.prodotto_nome ? ` · ${escapeHtml(row.prodotto_nome)}` : ""}
-            </div>
-
-            <div class="rf-riga-actions">
-              <button type="button" class="btn-secondary btn-match-riga" data-i="${i}">Riprova match</button>
-              ${!row.prodotto_id ? `<button type="button" class="btn-secondary btn-crea-prodotto" data-i="${i}">Crea prodotto</button>` : ""}
-              <button type="button" class="btn-secondary btn-remove-riga" data-i="${i}">Rimuovi</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    righeContainer.querySelectorAll(".riga-descrizione").forEach((el) => {
-      el.addEventListener("input", (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        updateRiga(idx, { descrizione: e.currentTarget.value });
-      });
-    });
-
-    righeContainer.querySelectorAll(".riga-quantita").forEach((el) => {
-      el.addEventListener("input", (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        updateRiga(idx, { quantita: e.currentTarget.value });
-      });
-    });
-
-    righeContainer.querySelectorAll(".riga-prezzo").forEach((el) => {
-      el.addEventListener("input", (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        updateRiga(idx, { prezzo_unitario: e.currentTarget.value });
-      });
-    });
-
-    righeContainer.querySelectorAll(".riga-totale").forEach((el) => {
-      el.addEventListener("input", (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        updateRiga(idx, { totale_riga: e.currentTarget.value });
-      });
-    });
-
-    righeContainer.querySelectorAll(".btn-remove-riga").forEach((el) => {
-      el.addEventListener("click", (e) => {
-        removeRiga(Number(e.currentTarget.dataset.i));
-      });
-    });
-
-    righeContainer.querySelectorAll(".btn-match-riga").forEach((el) => {
-      el.addEventListener("click", (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        const matched = findProdottoByDescrizione(righe[idx]?.descrizione || "");
-
-        if (matched?.id) {
-          updateRiga(idx, {
-            prodotto_id: matched.id,
-            prodotto_nome: matched.nome || "",
-            um: matched.um || "pz"
-          });
-          setFeedback("Prodotto agganciato alla riga.");
-        } else {
-          updateRiga(idx, {
-            prodotto_id: null,
-            prodotto_nome: "",
-            um: righe[idx]?.um || "pz"
-          });
-          setFeedback("Nessun prodotto trovato per la riga selezionata.", true);
-        }
-      });
-    });
-
-    righeContainer.querySelectorAll(".btn-crea-prodotto").forEach((el) => {
-      el.addEventListener("click", async (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        const descrizioneFattura = String(righe[idx]?.descrizione || "").trim();
-        const descrizioneOriginale = String(righe[idx]?.descrizione_originale || descrizioneFattura).trim();
-
-        if (!descrizioneFattura) {
-          setFeedback("Inserisci prima la descrizione della riga.", true);
-          return;
-        }
-
-        const res = await openCreateProductModal({
-          azienda,
-          descrizioneFattura
-        });
-
-        if (!res?.prodotto?.id) return;
-
-        prodottiCache.unshift({
-          id: res.prodotto.id,
-          nome: res.prodotto.nome || "",
-          descrizione: res.prodotto.descrizione || "",
-          codice_interno: res.prodotto.codice_interno || "",
-          um: res.prodotto.um || "",
-          categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null,
-          quantita_riordino: res.prodotto.quantita_riordino ?? 0,
-          scorta_minima: res.prodotto.scorta_minima ?? 0
-        });
-
-        await saveProdottoAliasOcr(
-          supabase,
-          azienda.id,
-          descrizioneOriginale || descrizioneFattura,
-          res.prodotto.id,
-          aliasCache
-        );
-
-        updateRiga(idx, {
-          prodotto_id: res.prodotto.id,
-          prodotto_nome: res.prodotto.nome || "",
-          um: res.prodotto.um || "pz"
-        });
-
-        setFeedback("Prodotto creato e agganciato alla riga.");
-      });
-    });
+ function renderRighe() {
+  if (!righe.length) {
+    righeContainer.innerHTML = `
+      <div class="rf-empty-righe">
+        Nessuna riga inserita.
+      </div>
+    `;
+    return;
   }
 
+  righeContainer.innerHTML = righe.map((row, i) => {
+    const matched = row.prodotto_id ? "Prodotto agganciato" : "Prodotto non trovato";
+    const matchedClass = row.prodotto_id ? "ok" : "missing";
+
+    return `
+      <div class="rf-riga-card ${matchedClass}" data-i="${i}">
+        <div class="rf-riga-grid">
+          <div class="rf-field">
+            <label>Descrizione</label>
+            <input class="input riga-descrizione" data-i="${i}" value="${escapeHtml(row.descrizione || "")}" />
+          </div>
+          <div class="rf-field">
+            <label>Quantità</label>
+            <input class="input riga-quantita" data-i="${i}" value="${escapeHtml(String(row.quantita ?? ""))}" />
+          </div>
+          <div class="rf-field">
+            <label>Prezzo unitario</label>
+            <input class="input riga-prezzo" data-i="${i}" value="${escapeHtml(String(row.prezzo_unitario ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
+          </div>
+          <div class="rf-field">
+            <label>Totale riga</label>
+            <input class="input riga-totale" data-i="${i}" value="${escapeHtml(String(row.totale_riga ?? ""))}" ${elTipoDocumento.value === "ddt" ? "disabled" : ""} />
+          </div>
+        </div>
+
+        <div class="rf-riga-bottom">
+          <div class="rf-riga-status ${matchedClass}">
+            ${escapeHtml(matched)}${row.prodotto_nome ? ` · ${escapeHtml(row.prodotto_nome)}` : ""}
+          </div>
+
+          <div class="rf-riga-actions">
+            <button type="button" class="btn-secondary btn-match-riga" data-i="${i}">Riprova match</button>
+            ${!row.prodotto_id ? `<button type="button" class="btn-secondary btn-crea-prodotto" data-i="${i}">Crea prodotto</button>` : ""}
+            <button type="button" class="btn-secondary btn-remove-riga" data-i="${i}">Rimuovi</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  righeContainer.querySelectorAll(".riga-descrizione").forEach((el) => {
+    el.addEventListener("input", (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      updateRiga(idx, { descrizione: e.currentTarget.value });
+    });
+  });
+
+  righeContainer.querySelectorAll(".riga-quantita").forEach((el) => {
+    el.addEventListener("input", (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      updateRiga(idx, { quantita: e.currentTarget.value });
+    });
+  });
+
+  righeContainer.querySelectorAll(".riga-prezzo").forEach((el) => {
+    el.addEventListener("input", (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      updateRiga(idx, { prezzo_unitario: e.currentTarget.value });
+    });
+  });
+
+  righeContainer.querySelectorAll(".riga-totale").forEach((el) => {
+    el.addEventListener("input", (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      updateRiga(idx, { totale_riga: e.currentTarget.value });
+    });
+  });
+
+  righeContainer.querySelectorAll(".btn-remove-riga").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      removeRiga(Number(e.currentTarget.dataset.i));
+    });
+  });
+
+  righeContainer.querySelectorAll(".btn-match-riga").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      const matched = findProdottoByDescrizione(righe[idx]?.descrizione || "");
+
+      if (matched?.id) {
+        updateRiga(idx, {
+          prodotto_id: matched.id,
+          prodotto_nome: matched.nome || "",
+          um: matched.um || "pz"
+        });
+        setFeedback("Prodotto agganciato alla riga.");
+      } else {
+        updateRiga(idx, {
+          prodotto_id: null,
+          prodotto_nome: "",
+          um: righe[idx]?.um || "pz"
+        });
+        setFeedback("Nessun prodotto trovato per la riga selezionata.", true);
+      }
+    });
+  });
+
+  righeContainer.querySelectorAll(".btn-crea-prodotto").forEach((el) => {
+    el.addEventListener("click", async (e) => {
+      const idx = Number(e.currentTarget.dataset.i);
+      const descrizioneFattura = String(righe[idx]?.descrizione || "").trim();
+      const descrizioneOriginale = String(righe[idx]?.descrizione_originale || descrizioneFattura).trim();
+
+      if (!descrizioneFattura) {
+        setFeedback("Inserisci prima la descrizione della riga.", true);
+        return;
+      }
+
+      const res = await openCreateProductModal({
+        azienda,
+        descrizioneFattura
+      });
+
+      if (!res?.prodotto?.id) return;
+
+      prodottiCache.unshift({
+        id: res.prodotto.id,
+        nome: res.prodotto.nome || "",
+        descrizione: res.prodotto.descrizione || "",
+        codice_interno: res.prodotto.codice_interno || "",
+        um: res.prodotto.um || "",
+        categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null,
+        quantita_riordino: res.prodotto.quantita_riordino ?? 0,
+        scorta_minima: res.prodotto.scorta_minima ?? 0
+      });
+
+      await saveProdottoAliasOcr(
+        supabase,
+        azienda.id,
+        descrizioneOriginale || descrizioneFattura,
+        res.prodotto.id,
+        aliasCache
+      );
+
+      updateRiga(idx, {
+        prodotto_id: res.prodotto.id,
+        prodotto_nome: res.prodotto.nome || "",
+        um: res.prodotto.um || "pz"
+      });
+
+      setFeedback("Prodotto creato e agganciato alla riga.");
+    });
+  });
+}
   async function uploadFileAndRunOcr() {
     const file = elFile.files?.[0];
     const tipoDocumento = elTipoDocumento.value;
