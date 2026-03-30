@@ -398,66 +398,98 @@ async function openDocumentoUploadModal(azienda) {
   }
 
   async function ensureFornitoreId(nome, piva) {
-    const cleanedNome = String(nome || "").trim();
-    const cleanedPiva = normalizePiva(piva);
+  const cleanedNome = String(nome || "").trim();
+  const cleanedPiva = normalizePiva(piva);
 
-    if (!cleanedNome) return null;
+  if (!cleanedNome) return null;
 
-    const exactByPiva = cleanedPiva
-      ? fornitori.find((f) => normalizeText(f.partita_iva) === normalizeText(cleanedPiva))
-      : null;
-
-    if (exactByPiva?.id) {
-      if (!exactByPiva.partita_iva && cleanedPiva) {
-        await supabase
-          .from("fornitori")
-          .update({ partita_iva: cleanedPiva })
-          .eq("id", exactByPiva.id)
-          .eq("azienda_id", azienda.id);
-        exactByPiva.partita_iva = cleanedPiva;
-      }
-      return exactByPiva.id;
-    }
-
-    const exactByName = fornitori.find((f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome));
-    if (exactByName?.id) {
-      if (!exactByName.partita_iva && cleanedPiva) {
-        await supabase
-          .from("fornitori")
-          .update({ partita_iva: cleanedPiva })
-          .eq("id", exactByName.id)
-          .eq("azienda_id", azienda.id);
-        exactByName.partita_iva = cleanedPiva;
-      }
-      return exactByName.id;
-    }
-
-    const payload = {
-      azienda_id: azienda.id,
-      ragione_sociale: cleanedNome
-    };
-
-    if (cleanedPiva) payload.partita_iva = cleanedPiva;
-
-    const { data: created, error } = await supabase
-      .from("fornitori")
-      .insert(payload)
-      .select("id, ragione_sociale, partita_iva")
-      .single();
-
-    if (error || !created?.id) {
-      throw new Error(error?.message || "Impossibile creare il fornitore");
-    }
-
-    fornitori.push(created);
-    modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
-      "beforeend",
-      `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
-    );
-
-    return created.id;
+  // 🚨 BLOCCO UUID (errore tipico)
+  if (cleanedNome.includes("-") && cleanedNome.length > 30) {
+    console.error("UUID passato come nome fornitore:", cleanedNome);
+    throw new Error("Errore fornitore: valore non valido");
   }
 
+  const exactByPiva = cleanedPiva
+    ? fornitori.find((f) => normalizeText(f.partita_iva) === normalizeText(cleanedPiva))
+    : null;
+
+  if (exactByPiva?.id) {
+    if (!exactByPiva.partita_iva && cleanedPiva) {
+      await supabase
+        .from("fornitori")
+        .update({ partita_iva: cleanedPiva })
+        .eq("id", exactByPiva.id)
+        .eq("azienda_id", azienda.id);
+      exactByPiva.partita_iva = cleanedPiva;
+    }
+
+    const id = Number(exactByPiva.id);
+
+    if (!Number.isInteger(id)) {
+      console.error("ID fornitore NON valido (by piva):", exactByPiva.id);
+      throw new Error("Errore fornitore: ID non valido");
+    }
+
+    return id;
+  }
+
+  const exactByName = fornitori.find(
+    (f) => normalizeText(f.ragione_sociale) === normalizeText(cleanedNome)
+  );
+
+  if (exactByName?.id) {
+    if (!exactByName.partita_iva && cleanedPiva) {
+      await supabase
+        .from("fornitori")
+        .update({ partita_iva: cleanedPiva })
+        .eq("id", exactByName.id)
+        .eq("azienda_id", azienda.id);
+      exactByName.partita_iva = cleanedPiva;
+    }
+
+    const id = Number(exactByName.id);
+
+    if (!Number.isInteger(id)) {
+      console.error("ID fornitore NON valido (by name):", exactByName.id);
+      throw new Error("Errore fornitore: ID non valido");
+    }
+
+    return id;
+  }
+
+  const payload = {
+    azienda_id: azienda.id,
+    ragione_sociale: cleanedNome
+  };
+
+  if (cleanedPiva) payload.partita_iva = cleanedPiva;
+
+  const { data: created, error } = await supabase
+    .from("fornitori")
+    .insert(payload)
+    .select("id, ragione_sociale, partita_iva")
+    .single();
+
+  if (error || !created?.id) {
+    throw new Error(error?.message || "Impossibile creare il fornitore");
+  }
+
+  fornitori.push(created);
+
+  modal.querySelector("#rf-fornitori-list").insertAdjacentHTML(
+    "beforeend",
+    `<option value="${escapeHtml(created.ragione_sociale || "")}"></option>`
+  );
+
+  const id = Number(created.id);
+
+  if (!Number.isInteger(id)) {
+    console.error("ID fornitore creato NON valido:", created.id);
+    throw new Error("Errore fornitore: ID non valido");
+  }
+
+  return id;
+}
   function addRiga(data = {}) {
     const descrizione = String(data.descrizione || data.descrizione_originale || "").trim();
     const matched = data.prodotto_id
