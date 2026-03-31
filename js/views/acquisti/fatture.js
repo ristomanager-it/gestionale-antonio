@@ -702,6 +702,7 @@ async function openDocumentoUploadModal(azienda) {
     });
   });
 }
+
   async function uploadFileAndRunOcr() {
     const file = elFile.files?.[0];
     const tipoDocumento = elTipoDocumento.value;
