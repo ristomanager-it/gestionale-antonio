@@ -701,7 +701,6 @@ async function openDocumentoUploadModal(azienda) {
       setFeedback("Prodotto creato e agganciato alla riga.");
     });
   });
-} 
   async function uploadFileAndRunOcr() {
     const file = elFile.files?.[0];
     const tipoDocumento = elTipoDocumento.value;
