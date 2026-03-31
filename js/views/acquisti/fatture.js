@@ -223,7 +223,7 @@ async function searchDocumenti(azienda, filters) {
     })
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 }
-
+}
 async function openDocumentoUploadModal(azienda) {
   ensureAcquistiModalStyles();
 
