@@ -34,18 +34,17 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
 export async function renderFatture(container, azienda) {
   ensureAcquistiModalStyles();
 
-  container.innerHTML = `
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
-          <div style="font-size:13px; color:#667085; margin-top:4px;">
-            
-        </div>
-        <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
+ container.innerHTML = `
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div>
+        <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
+        <div style="font-size:13px; color:#667085; margin-top:4px;"></div>
       </div>
+      <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
     </div>
-
+  </div>
+`;
     <div class="card">
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
         <div>
