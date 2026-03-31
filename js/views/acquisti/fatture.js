@@ -44,35 +44,35 @@ export async function renderFatture(container, azienda) {
       <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
     </div>
   </div>
-`;
-    <div class="card">
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-        <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">Fornitore</label>
-          <input id="filter-fornitore" class="input" placeholder="Cerca per fornitore" />
-        </div>
-        <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">Data dal</label>
-          <input id="filter-data-da" type="date" class="input" />
-        </div>
-        <div>
-          <label style="display:block; font-size:13px; margin-bottom:6px;">Data al</label>
-          <input id="filter-data-a" type="date" class="input" />
-        </div>
-      </div>
 
-      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-        <button id="btn-cerca-documenti" class="btn-secondary">Cerca</button>
-        <button id="btn-reset-documenti" class="btn-secondary">Reset</button>
+  <div class="card">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+      <div>
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Fornitore</label>
+        <input id="filter-fornitore" class="input" placeholder="Cerca per fornitore" />
       </div>
-
-      <div id="documenti-search-feedback" style="margin-top:12px; font-size:13px; color:#667085;">
-        Inserisci fornitore e/o intervallo date per cercare i documenti.
+      <div>
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Data dal</label>
+        <input id="filter-data-da" type="date" class="input" />
       </div>
-
-      <div id="documenti-results" style="margin-top:14px;"></div>
+      <div>
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Data al</label>
+        <input id="filter-data-a" type="date" class="input" />
+      </div>
     </div>
-  `;
+
+    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+      <button id="btn-cerca-documenti" class="btn-secondary">Cerca</button>
+      <button id="btn-reset-documenti" class="btn-secondary">Reset</button>
+    </div>
+
+    <div id="documenti-search-feedback" style="margin-top:12px; font-size:13px; color:#667085;">
+      Inserisci fornitore e/o intervallo date per cercare i documenti.
+    </div>
+
+    <div id="documenti-results" style="margin-top:14px;"></div>
+  </div>
+`;
 
   const inputFornitore = container.querySelector("#filter-fornitore");
   const inputDataDa = container.querySelector("#filter-data-da");
