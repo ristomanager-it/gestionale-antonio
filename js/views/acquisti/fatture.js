@@ -939,6 +939,7 @@ async function uploadFileAndRunOcr() {
     }
   }
 }
+}
 
 async function openCreateProductModal({ azienda, descrizioneFattura }) {
   ensureAcquistiModalStyles();
