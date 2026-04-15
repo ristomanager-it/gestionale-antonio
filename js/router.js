@@ -4,8 +4,6 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
-   gestisce link tipo:
-   https://dominio.com/#access_token=...
 ========================================================= */
 
 (function fixSupabaseEmailLink() {
@@ -19,8 +17,6 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    FIX SUPABASE HASH
-   #/set-password#access_token -> #/set-password?access_token
-   #/activate#access_token     -> #/activate?access_token
 ========================================================= */
 
 (function fixSupabaseHash() {
@@ -40,6 +36,7 @@ import { initTopbar } from "./components/topbar.js";
 
 let app = null;
 let lastResolvedRoute = null;
+
 /* =========================================================
    ROUTES
 ========================================================= */
@@ -76,11 +73,11 @@ const routes = {
   magazzino: () => import("./views/magazzino/magazzino.js"),
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
- ricettario: () => import("./views/ricettario.js"),
-"planner-produzione": () => import("./views/planner-produzione.js"),
-creaRicetta: () => import("./views/crea-ricetta.js"),
-preparazioni: () => import("./views/preparazioni.js"),
-reparti: () => import("./views/reparti.js"),
+  ricettario: () => import("./views/ricettario.js"),
+  "planner-produzione": () => import("./views/planner-produzione.js"),
+  creaRicetta: () => import("./views/crea-ricetta.js"),
+  preparazioni: () => import("./views/preparazioni.js"),
+  reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
   margini: () => import("./views/margini.js"),
 
@@ -90,6 +87,7 @@ reparti: () => import("./views/reparti.js"),
 
   permessi: () => import("./views/permessi-ferie.js"),
 };
+
 /* =========================================================
    ROUTE SCOPE
 ========================================================= */
@@ -168,7 +166,7 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   PERMISSION CHECK
+   PERMISSION CHECK (FIX)
 ========================================================= */
 
 function isSuperadmin() {
@@ -184,13 +182,19 @@ function hasPermission(area) {
 
   const ruolo = window.state?.viewAs || window.state?.ruolo;
 
-  // 🔥 ACCESSO SEDI SOLO ADMIN / SUPERADMIN
-if (area === "gestione-sedi") {
-  return ruolo === "admin" || ruolo === "superadmin";
-}
   if (window.state?._allAccess === true) return true;
 
   if (isSuperadmin()) return true;
+
+  // 🔥 DIPENDENTI
+  if (area === "dipendenti" || area === "dipendente" || area === "crea-dipendente") {
+    return ["admin", "segreteria", "manager_cucina", "manager_sala"].includes(ruolo);
+  }
+
+  // 🔥 SEDI
+  if (area === "gestione-sedi") {
+    return ruolo === "admin" || ruolo === "superadmin";
+  }
 
   if (ruolo === "admin") return true;
 
@@ -198,109 +202,26 @@ if (area === "gestione-sedi") {
 
   return permessi[`${area}.read`] === true;
 }
-/* =========================================================
-   UI HELPERS
-========================================================= */
-
-function setHeaderVisible(visible) {
-  const header = document.querySelector(".app-header");
-  if (header) header.style.display = visible ? "flex" : "none";
-
-  const topbar = document.getElementById("topbar-info");
-  if (topbar) topbar.style.display = visible ? "flex" : "none";
-}
-
-function getStoredAziendaId() {
-  return localStorage.getItem(LS_KEYS.ACTIVE_AZIENDA_ID);
-}
-
-function setStoredAziendaId(id) {
-  if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_AZIENDA_ID, String(id));
-}
-
-function clearStoredAziendaId() {
-  localStorage.removeItem(LS_KEYS.ACTIVE_AZIENDA_ID);
-}
-
-function getStoredSedeId() {
-  return localStorage.getItem(LS_KEYS.ACTIVE_SEDE_ID);
-}
-
-function setStoredSedeId(id) {
-  if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_SEDE_ID, String(id));
-}
-
-function clearStoredSedeId() {
-  localStorage.removeItem(LS_KEYS.ACTIVE_SEDE_ID);
-}
 
 /* =========================================================
-   AUTH + CONTEXT HELPERS
+   CONTEXT AZIENDA (FIX)
 ========================================================= */
 
-async function getValidSession() {
-  const { data } = await supabase.auth.getSession();
-  let session = data?.session || null;
+function applyAziendaContextFromLink(aziendePulite, azienda) {
+  if (!azienda) return;
 
-  if (!session) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
-    session = refreshed?.session || null;
-  }
+  const recordAttivo = aziendePulite.find((a) => a.aziende?.id === azienda.id);
 
-  return session;
-}
+  window.state.isSuperadmin = aziendePulite.some((a) => a.ruolo === "superadmin");
 
-async function loadAziendeForUser(userId) {
-  const { data: aziende, error } = await supabase
-    .from("utenti_aziende")
-    .select(
-      `
-      ruolo,
-      permessi_override,
-      aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        attiva,
-        data_scadenza,
-        features,
-        logo_path,
-        logo_url,
-        piano_id,
-        stato_attivazione,
-        profilo_completato
-      )
-    `
-    )
-    .eq("user_id", userId)
-    .eq("attivo", true);
+  const ruoloEffettivo = window.state.isSuperadmin
+    ? "superadmin"
+    : recordAttivo?.ruolo || "admin";
 
-  if (error) {
-    console.error("Errore caricamento aziende:", error);
-    return [];
-  }
+  window.stateActions.setRuolo(ruoloEffettivo);
+  window.state.ruolo = ruoloEffettivo;
 
-  return (aziende || []).filter((a) => a.aziende);
-}
-
-function pickActiveAzienda(aziendePulite) {
-  const storedId = getStoredAziendaId();
-
-  if (storedId) {
-    const match = aziendePulite.find(
-      (a) => String(a.aziende.id) === String(storedId)
-    );
-    if (match?.aziende) return match.aziende;
-  }
-
-  if (aziendePulite.length === 1) {
-    return aziendePulite[0].aziende;
-  }
-
-  return null;
+  window.state.permessiOverride = recordAttivo?.permessi_override || {};
 }
 
 function applyAziendaContextFromLink(aziendePulite, azienda) {
