@@ -1,3 +1,5 @@
+import { supabase } from "../supabaseClient.js";
+
 window.stateActions = {
   LS_KEYS: {
     ACTIVE_AZIENDA_ID: "active_azienda_id",
@@ -86,7 +88,7 @@ window.stateActions = {
       return;
     }
 
-    const { data, error } = await window.supabaseClient
+    const { data, error } = await supabase
       .from("sedi")
       .select("id, nome, indirizzo, latitudine, longitudine")
       .eq("azienda_id", azienda.id)
@@ -140,7 +142,6 @@ window.stateActions = {
     window.state.ruolo = ruolo || null;
   },
 
-  // 🔥 FIX COMPLETO PERMESSI
   async caricaPermessiEffettivi() {
     const user = window.state.user;
     const azienda = window.state.azienda;
@@ -153,7 +154,6 @@ window.stateActions = {
 
     const ruolo = window.state.ruolo;
 
-    // 🔥 SUPERADMIN / ADMIN
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
@@ -164,7 +164,6 @@ window.stateActions = {
       return;
     }
 
-    // 🔥 DEFAULT FALLBACK
     const defaultPermessi = {
       manager: {
         "servizi.read": true,
@@ -186,7 +185,7 @@ window.stateActions = {
     let permessiDB = {};
 
     try {
-      const { data, error } = await window.supabaseClient.rpc("permessi_effettivi", {
+      const { data, error } = await supabase.rpc("permessi_effettivi", {
         p_user_id: user.id,
         p_azienda_id: azienda.id,
       });
@@ -250,7 +249,7 @@ window.stateActions = {
       return;
     }
 
-    const { data: ruoloData } = await window.supabaseClient
+    const { data: ruoloData } = await supabase
       .from("utenti_aziende")
       .select("ruolo")
       .eq("user_id", user.id)
@@ -266,7 +265,7 @@ window.stateActions = {
       ruolo === "superadmin" ||
       ruolo === "admin"
     ) {
-      const { data: repartiData } = await window.supabaseClient
+      const { data: repartiData } = await supabase
         .from("reparti")
         .select("id, nome")
         .eq("azienda_id", azienda.id)
@@ -277,7 +276,7 @@ window.stateActions = {
       return;
     }
 
-    const { data: urData } = await window.supabaseClient
+    const { data: urData } = await supabase
       .from("utenti_reparti")
       .select("reparto_id, reparti(id, nome)")
       .eq("user_id", user.id)
