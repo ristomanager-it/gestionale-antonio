@@ -4,6 +4,8 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
+   gestisce link tipo:
+   https://dominio.com/#access_token=...
 ========================================================= */
 
 (function fixSupabaseEmailLink() {
@@ -17,6 +19,8 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    FIX SUPABASE HASH
+   #/set-password#access_token -> #/set-password?access_token
+   #/activate#access_token     -> #/activate?access_token
 ========================================================= */
 
 (function fixSupabaseHash() {
@@ -166,7 +170,7 @@ async function renderView(routeName) {
 }
 
 /* =========================================================
-   PERMISSION CHECK (FIX)
+   PERMISSION CHECK
 ========================================================= */
 
 function isSuperadmin() {
@@ -177,7 +181,6 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-
   if (area === "home") return true;
 
   const ruolo = window.state?.viewAs || window.state?.ruolo;
@@ -186,12 +189,10 @@ function hasPermission(area) {
 
   if (isSuperadmin()) return true;
 
-  // 🔥 DIPENDENTI
   if (area === "dipendenti" || area === "dipendente" || area === "crea-dipendente") {
     return ["admin", "segreteria", "manager_cucina", "manager_sala"].includes(ruolo);
   }
 
-  // 🔥 SEDI
   if (area === "gestione-sedi") {
     return ruolo === "admin" || ruolo === "superadmin";
   }
@@ -204,8 +205,109 @@ function hasPermission(area) {
 }
 
 /* =========================================================
-   CONTEXT AZIENDA (FIX)
+   UI HELPERS
 ========================================================= */
+
+function setHeaderVisible(visible) {
+  const header = document.querySelector(".app-header");
+  if (header) header.style.display = visible ? "flex" : "none";
+
+  const topbar = document.getElementById("topbar-info");
+  if (topbar) topbar.style.display = visible ? "flex" : "none";
+}
+
+function getStoredAziendaId() {
+  return localStorage.getItem(LS_KEYS.ACTIVE_AZIENDA_ID);
+}
+
+function setStoredAziendaId(id) {
+  if (!id) return;
+  localStorage.setItem(LS_KEYS.ACTIVE_AZIENDA_ID, String(id));
+}
+
+function clearStoredAziendaId() {
+  localStorage.removeItem(LS_KEYS.ACTIVE_AZIENDA_ID);
+}
+
+function getStoredSedeId() {
+  return localStorage.getItem(LS_KEYS.ACTIVE_SEDE_ID);
+}
+
+function setStoredSedeId(id) {
+  if (!id) return;
+  localStorage.setItem(LS_KEYS.ACTIVE_SEDE_ID, String(id));
+}
+
+function clearStoredSedeId() {
+  localStorage.removeItem(LS_KEYS.ACTIVE_SEDE_ID);
+}
+
+/* =========================================================
+   AUTH + CONTEXT HELPERS
+========================================================= */
+
+async function getValidSession() {
+  const { data } = await supabase.auth.getSession();
+  let session = data?.session || null;
+
+  if (!session) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed?.session || null;
+  }
+
+  return session;
+}
+
+async function loadAziendeForUser(userId) {
+  const { data: aziende, error } = await supabase
+    .from("utenti_aziende")
+    .select(
+      `
+      ruolo,
+      permessi_override,
+      aziende:azienda_id (
+        id,
+        nome,
+        codice,
+        stato,
+        attiva,
+        data_scadenza,
+        features,
+        logo_path,
+        logo_url,
+        piano_id,
+        stato_attivazione,
+        profilo_completato
+      )
+    `
+    )
+    .eq("user_id", userId)
+    .eq("attivo", true);
+
+  if (error) {
+    console.error("Errore caricamento aziende:", error);
+    return [];
+  }
+
+  return (aziende || []).filter((a) => a.aziende);
+}
+
+function pickActiveAzienda(aziendePulite) {
+  const storedId = getStoredAziendaId();
+
+  if (storedId) {
+    const match = aziendePulite.find(
+      (a) => String(a.aziende.id) === String(storedId)
+    );
+    if (match?.aziende) return match.aziende;
+  }
+
+  if (aziendePulite.length === 1) {
+    return aziendePulite[0].aziende;
+  }
+
+  return null;
+}
 
 function applyAziendaContextFromLink(aziendePulite, azienda) {
   if (!azienda) return;
@@ -220,22 +322,6 @@ function applyAziendaContextFromLink(aziendePulite, azienda) {
 
   window.stateActions.setRuolo(ruoloEffettivo);
   window.state.ruolo = ruoloEffettivo;
-
-  window.state.permessiOverride = recordAttivo?.permessi_override || {};
-}
-
-function applyAziendaContextFromLink(aziendePulite, azienda) {
-  if (!azienda) return;
-
-  const recordAttivo = aziendePulite.find((a) => a.aziende?.id === azienda.id);
-
-  window.state.isSuperadmin = aziendePulite.some((a) => a.ruolo === "superadmin");
-
-  const ruoloEffettivo = window.state.isSuperadmin
-    ? "superadmin"
-    : recordAttivo?.ruolo || null;
-
-  window.stateActions.setRuolo(ruoloEffettivo);
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 }
 
@@ -367,7 +453,7 @@ async function ensureSedeContext(routeName) {
     window.state.sedeAttiva = null;
 
     if (routeName !== "gestione-sedi") {
-   window.location.hash = "#/gestione-sedi?mode=first"
+      window.location.hash = "#/gestione-sedi?mode=first";
       return { ok: false, redirected: true };
     }
     return { ok: false, reason: "no_sedi" };
@@ -380,7 +466,7 @@ async function ensureSedeContext(routeName) {
     clearStoredSedeId();
 
     if (routeName !== "gestione-sedi") {
-     window.location.hash = "#/gestione-sedi?mode=select"
+      window.location.hash = "#/gestione-sedi?mode=select";
       return { ok: false, redirected: true };
     }
     return { ok: false, reason: "need_sede_choice" };
@@ -435,7 +521,7 @@ async function resolve() {
   }
 
   const { route, segments, params } = parseHash();
-   console.log("ROUTE:", route);
+  console.log("ROUTE:", route);
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
@@ -560,9 +646,10 @@ async function resolve() {
   }
 
   initTopbar();
-if(window.refreshTopbar){
-  window.refreshTopbar()
-}
+  if (window.refreshTopbar) {
+    window.refreshTopbar();
+  }
+
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
@@ -610,7 +697,7 @@ if(window.refreshTopbar){
         return;
       }
 
-     window.location.hash = "#/gestione-sedi?mode=first";
+      window.location.hash = "#/gestione-sedi?mode=first";
       return;
     }
   }
@@ -682,14 +769,13 @@ window.addEventListener("DOMContentLoaded", () => {
   initMenu();
   initTopbar();
 
-  // 🔥 RIPRISTINO REPARTO ATTIVO
   try {
-    const saved = localStorage.getItem("reparto_attivo")
-    if(saved){
-      window.state.repartoAttivo = JSON.parse(saved)
+    const saved = localStorage.getItem("reparto_attivo");
+    if (saved) {
+      window.state.repartoAttivo = JSON.parse(saved);
     }
-  } catch(e){
-    console.warn("Errore restore reparto:", e)
+  } catch (e) {
+    console.warn("Errore restore reparto:", e);
   }
 
   const logoutBtn = document.getElementById("logout-btn");
