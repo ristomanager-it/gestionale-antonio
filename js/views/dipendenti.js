@@ -1,3 +1,5 @@
+import { supabase } from "../supabaseClient.js";
+
 // js/views/dipendenti.js
 // =======================================
 // View Dipendenti – SaaS Multi-Azienda
@@ -16,7 +18,6 @@ export async function render(container) {
     return;
   }
 
-  // ✅ 1) Blocco accesso lettura
   if (!window.hasPermesso || !window.hasPermesso("dipendenti.read")) {
     container.innerHTML = `
       <div class="view">
@@ -58,12 +59,10 @@ export async function render(container) {
   };
 
   document.getElementById("tab-elenco").onclick = () => setTab("elenco");
- document.getElementById("tab-nuovo").onclick = () => {
-  alert("NUOVO CLICK");
-  window.location.hash = "#/crea-dipendente";
-};
+  document.getElementById("tab-nuovo").onclick = () => {
+    window.location.hash = "#/crea-dipendente";
+  };
 
-  // ✅ 2) Nascondere bottone “Nuovo” se manca create
   const btnNuovo = document.getElementById("tab-nuovo");
   if (btnNuovo && (!window.hasPermesso || !window.hasPermesso("dipendenti.create"))) {
     btnNuovo.style.display = "none";
@@ -72,10 +71,6 @@ export async function render(container) {
   await renderElenco();
   setTab("elenco");
 }
-
-/* =========================================================
-   Tabs
-========================================================= */
 
 function setTab(tab) {
   const elenco = document.getElementById("dip-view-elenco");
@@ -96,10 +91,6 @@ function setTab(tab) {
     if (btnNuovo) btnNuovo.className = "app-button small";
   }
 }
-
-/* =========================================================
-   Elenco
-========================================================= */
 
 async function renderElenco() {
   const host = document.getElementById("dip-view-elenco");
@@ -146,7 +137,7 @@ async function caricaDipendenti() {
   const q = (document.getElementById("dip-search")?.value || "").trim().toLowerCase();
   const onlyAttivi = !!document.getElementById("dip-only-attivi")?.checked;
 
-  let query = window.supabaseClient
+  let query = supabase
     .from("dipendenti")
     .select("id,nome,cognome,mansione,email,costo_orario,costo_medio,attivo,created_at")
     .eq("azienda_id", azienda.id)
@@ -208,10 +199,6 @@ async function caricaDipendenti() {
     `;
   });
 }
-
-/* =========================================================
-   Form (Nuovo / Modifica)
-========================================================= */
 
 function renderForm(dip) {
   const host = document.getElementById("dip-view-form");
@@ -375,7 +362,6 @@ async function salvaDipendente(isEdit) {
   const msg = document.getElementById("dip-form-msg");
   if (msg) msg.innerHTML = "";
 
-  // ✅ Permessi create/update (blocca la logica senza toccarla)
   if (!window.hasPermesso) {
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Permessi non disponibili</span>`;
     return;
@@ -421,7 +407,7 @@ async function salvaDipendente(isEdit) {
   let res;
 
   if (isEdit && id) {
-    res = await window.supabaseClient
+    res = await supabase
       .from("dipendenti")
       .update(payload)
       .eq("id", id)
@@ -429,7 +415,11 @@ async function salvaDipendente(isEdit) {
       .select("id,email")
       .single();
   } else {
-    res = await window.supabaseClient.from("dipendenti").insert(payload).select("id,email").single();
+    res = await supabase
+      .from("dipendenti")
+      .insert(payload)
+      .select("id,email")
+      .single();
   }
 
   if (res.error) {
@@ -467,16 +457,11 @@ async function salvaDipendente(isEdit) {
   await caricaDipendenti();
 }
 
-/* =========================================================
-   Actions globali (edit/delete)
-========================================================= */
-
 window._dipOpen = function (id) {
   window.location.hash = `#/dipendente?id=${id}`;
 };
 
 window._dipEdit = async function (id) {
-  // ✅ 3) Nascondere pulsante Modifica già gestito in tabella; qui blocco difensivo
   if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
     alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
     return;
@@ -484,7 +469,7 @@ window._dipEdit = async function (id) {
 
   const azienda = window.state.azienda;
 
-  const { data, error } = await window.supabaseClient
+  const { data, error } = await supabase
     .from("dipendenti")
     .select("*")
     .eq("id", id)
@@ -502,7 +487,6 @@ window._dipEdit = async function (id) {
 };
 
 window._dipDelete = async function (id) {
-  // ✅ 4) Nascondere pulsante Elimina già gestito in tabella; qui blocco difensivo
   if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
     alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
     return;
@@ -510,7 +494,7 @@ window._dipDelete = async function (id) {
 
   const azienda = window.state.azienda;
 
-  const { data: dip, error: dipErr } = await window.supabaseClient
+  const { data: dip, error: dipErr } = await supabase
     .from("dipendenti")
     .select("id,email,attivo")
     .eq("id", id)
@@ -526,7 +510,7 @@ window._dipDelete = async function (id) {
   if (dip.attivo) {
     if (!confirm("Disattivare il dipendente?")) return;
 
-    const { error } = await window.supabaseClient
+    const { error } = await supabase
       .from("dipendenti")
       .update({ attivo: false })
       .eq("id", id)
@@ -539,7 +523,7 @@ window._dipDelete = async function (id) {
     }
 
     if (dip.email) {
-      const ua = await window.supabaseClient
+      const ua = await supabase
         .from("utenti_aziende")
         .update({ attivo: false })
         .eq("azienda_id", azienda.id)
@@ -550,7 +534,7 @@ window._dipDelete = async function (id) {
   } else {
     if (!confirm("Eliminare definitivamente questo dipendente?")) return;
 
-    const { error } = await window.supabaseClient
+    const { error } = await supabase
       .from("dipendenti")
       .delete()
       .eq("id", id)
@@ -566,17 +550,11 @@ window._dipDelete = async function (id) {
   await caricaDipendenti();
 };
 
-/* =========================================================
-   Invito (Edge Function)
-========================================================= */
-
 async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipendenteId, mode = "invite" }) {
   try {
-    const supa = window.supabaseClient;
-
     const {
       data: { session },
-    } = await supa.auth.getSession();
+    } = await supabase.auth.getSession();
 
     const token = session?.access_token || null;
     if (!token) {
@@ -584,8 +562,7 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipend
       return { ok: false, message: "Sessione mancante" };
     }
 
-    // 👇 USA DIRETTAMENTE L'URL SUPABASE
-    const supabaseUrl = supa?.supabaseUrl || window.SUPABASE_URL;
+    const supabaseUrl = supabase?.supabaseUrl || window.SUPABASE_URL;
     const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
     const body = JSON.stringify({
@@ -617,9 +594,6 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipend
     return { ok: false, message: "Errore rete o funzione" };
   }
 }
-/* =========================================================
-   Utils
-========================================================= */
 
 function numOrNull(id) {
   const v = document.getElementById(id)?.value;
