@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
 
-export const supabase = createClient(
+const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   {
@@ -16,6 +16,9 @@ export const supabase = createClient(
     }
   }
 );
+
+// 🔥 FONDAMENTALE
+window.supabase = supabase;
 
 /* =====================================================
    TEST CREAZIONE AZIENDA
