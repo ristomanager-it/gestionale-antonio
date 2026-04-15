@@ -1,4 +1,4 @@
-import { supabase } from "../supabaseClient.js";
+const supabase = window.supabase;
 
 window.stateActions = {
   LS_KEYS: {
