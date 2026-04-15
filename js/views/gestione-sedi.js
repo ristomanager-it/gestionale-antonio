@@ -27,7 +27,6 @@ export async function render(container) {
     window.state.sedi = sedi;
   }
 
-  // 🔥 NUOVO: limite piano
   const sediMax = azienda?.sedi_max || 1;
   const sediUsate = sedi.length;
   const canCreate = sediUsate < sediMax;
@@ -126,33 +125,33 @@ function renderWizardPrimaSede(container, aziendaId) {
         indirizzo: indirizzo || null,
       };
 
-      const { data, error } = await supabase.functions.invoke("create-sede", {
-        body: payload
-      });
+      const { data, error } = await supabase
+        .from("sedi")
+        .insert(payload)
+        .select("id")
+        .single();
 
-      if (error || !data?.data?.id) {
+      if (error || !data?.id) {
         console.error("Errore creazione sede:", error, data);
-        err.textContent = data?.error || "Errore creazione sede.";
+        err.textContent = error?.message || "Errore creazione sede.";
         btn.disabled = false;
         btn.textContent = "Salva sede";
         return;
       }
 
-      localStorage.setItem("active_sede_id", String(data.data.id));
+      localStorage.setItem("active_sede_id", String(data.id));
       window.location.hash = "#/gestione-sedi";
     };
   }
 }
 
 function renderSelezioneSede(container, sedi, config) {
-
   const { sediMax, sediUsate, canCreate } = config;
 
   container.innerHTML = `
     <div class="view" style="padding:24px; max-width:980px; margin:0 auto;">
       <h2 style="margin:0 0 8px 0;">Seleziona sede</h2>
 
-      <!-- 🔥 CONTATORE -->
       <div style="margin-bottom:14px; font-size:13px; color:#6b7280;">
         ${sediUsate} / ${sediMax} sedi utilizzate
       </div>
