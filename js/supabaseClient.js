@@ -5,7 +5,8 @@ const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
 
-const supabase = createClient(
+// 🔥 CLIENT UNICO (serve sia per import che per globale)
+export const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   {
@@ -17,7 +18,7 @@ const supabase = createClient(
   }
 );
 
-// 🔥 FONDAMENTALE
+// 🔥 COMPATIBILITÀ CON FILE NON MODULE (stateActions ecc.)
 window.supabase = supabase;
 
 /* =====================================================
