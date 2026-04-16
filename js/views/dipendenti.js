@@ -231,8 +231,12 @@ function renderForm(dip) {
         </label>
 
         <label>Mansione
-          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
-        </label>
+  <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+</label>
+
+<label>Reparto *
+  <select id="dip-reparto" class="input-pill"></select>
+</label>
 
         <label>Data nascita
           <input type="date" id="dip-data-nascita" class="input-pill" value="${dip?.data_nascita || ""}" />
