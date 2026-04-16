@@ -433,8 +433,6 @@ async function renderForm(dip) {
     await salvaDipendente(isEdit);
   };
 
-  calcolaCosto();
-}
 
 function calcolaCosto() {
   const tipo = document.getElementById("dip-tipo-compenso")?.value || "orario";
