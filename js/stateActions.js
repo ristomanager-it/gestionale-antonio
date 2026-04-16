@@ -223,7 +223,9 @@ window.stateActions = {
       return;
     }
 
-    const { data: ruoloData } = await window.supabase
+    console.log("DEBUG caricaRuoloEReparti", { user, azienda });
+
+    const { data: ruoloData, error: ruoloError } = await window.supabase
       .from("utenti_aziende")
       .select("ruolo")
       .eq("user_id", user.id)
@@ -231,33 +233,57 @@ window.stateActions = {
       .eq("attivo", true)
       .single();
 
+    if (ruoloError) {
+      console.error("Errore ruolo:", ruoloError);
+      window.state.reparti = [];
+      return;
+    }
+
     const ruolo = ruoloData?.ruolo || null;
     window.state.ruolo = ruolo;
+
+    console.log("Ruolo:", ruolo);
 
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
       ruolo === "admin"
     ) {
-      const { data: repartiData } = await window.supabase
+      const { data: repartiData, error: repartiError } = await window.supabase
         .from("reparti")
         .select("id, nome")
         .eq("azienda_id", azienda.id)
         .eq("attivo", true)
         .order("sort_order", { ascending: true });
 
+      if (repartiError) {
+        console.error("Errore reparti:", repartiError);
+        window.state.reparti = [];
+        return;
+      }
+
+      console.log("Reparti ADMIN:", repartiData);
+
       this.setReparti(repartiData || []);
       return;
     }
 
-    const { data: urData } = await window.supabase
+    const { data: urData, error: urError } = await window.supabase
       .from("utenti_reparti")
       .select("reparto_id, reparti(id, nome)")
       .eq("user_id", user.id)
       .eq("azienda_id", azienda.id)
       .eq("attivo", true);
 
+    if (urError) {
+      console.error("Errore utenti_reparti:", urError);
+      window.state.reparti = [];
+      return;
+    }
+
     const reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
+
+    console.log("Reparti UTENTE:", reparti);
 
     this.setReparti(reparti);
   },
