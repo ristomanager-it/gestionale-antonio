@@ -200,6 +200,18 @@ async function caricaDipendenti() {
   });
 }
 
+
+async function getRepartiOptions() {
+  await window.stateActions.caricaRuoloEReparti();
+  const reparti = window.state.reparti || [];
+
+  return `
+    <option value="">Seleziona reparto</option>
+    ${reparti.map(r => `
+      <option value="${r.id}">${r.nome}</option>
+    `).join("")}
+  `;
+}
 function renderForm(dip) {
   const host = document.getElementById("dip-view-form");
   if (!host) return;
