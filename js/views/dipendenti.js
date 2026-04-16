@@ -1,5 +1,3 @@
-import { supabase } from "../supabaseClient.js";
-
 // js/views/dipendenti.js
 // =======================================
 // View Dipendenti – SaaS Multi-Azienda
@@ -8,6 +6,10 @@ import { supabase } from "../supabaseClient.js";
 // - Soft delete (attivo=false) + disattivazione accessi collegati
 // - Niente canale_prevalente
 // =======================================
+
+function getSupabase() {
+  return window.supabase;
+}
 
 export async function render(container) {
   const user = window.state.user;
@@ -59,8 +61,9 @@ export async function render(container) {
   };
 
   document.getElementById("tab-elenco").onclick = () => setTab("elenco");
-  document.getElementById("tab-nuovo").onclick = () => {
-    window.location.hash = "#/crea-dipendente";
+  document.getElementById("tab-nuovo").onclick = async () => {
+    setTab("form");
+    await renderForm(null);
   };
 
   const btnNuovo = document.getElementById("tab-nuovo");
@@ -133,7 +136,14 @@ async function renderElenco() {
   await caricaDipendenti();
 }
 
+async function loadRepartiMap() {
+  await window.stateActions.caricaRuoloEReparti();
+  const reparti = window.state.reparti || [];
+  return new Map(reparti.map((r) => [String(r.id), r]));
+}
+
 async function caricaDipendenti() {
+  const supabase = getSupabase();
   const azienda = window.state.azienda;
   const q = (document.getElementById("dip-search")?.value || "").trim().toLowerCase();
   const onlyAttivi = !!document.getElementById("dip-only-attivi")?.checked;
@@ -150,8 +160,7 @@ async function caricaDipendenti() {
       costo_medio,
       attivo,
       created_at,
-      reparto_id,
-      reparti:reparto_id ( id, nome )
+      reparto_id
     `)
     .eq("azienda_id", azienda.id)
     .order("nome");
@@ -170,10 +179,13 @@ async function caricaDipendenti() {
     return;
   }
 
+  const repartiMap = await loadRepartiMap();
+
   const filtered = (data || []).filter((d) => {
     if (!q) return true;
     const nomeCompleto = `${d.nome || ""} ${d.cognome || ""}`.toLowerCase();
-    return nomeCompleto.includes(q);
+    const repartoNome = repartiMap.get(String(d.reparto_id))?.nome?.toLowerCase() || "";
+    return nomeCompleto.includes(q) || repartoNome.includes(q);
   });
 
   if (!tbody) return;
@@ -194,7 +206,7 @@ async function caricaDipendenti() {
 
   filtered.forEach((d) => {
     const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
-    const repartoNome = d.reparti?.nome || "-";
+    const repartoNome = repartiMap.get(String(d.reparto_id))?.nome || "-";
 
     tbody.innerHTML += `
       <tr>
@@ -215,16 +227,58 @@ async function caricaDipendenti() {
   });
 }
 
-async function getRepartiOptions(selectedId = null) {
+async function renderRepartiDatalist(selectedNome = "") {
   await window.stateActions.caricaRuoloEReparti();
   const reparti = window.state.reparti || [];
 
-  return `
-    <option value="">Seleziona reparto</option>
-    ${reparti.map(r => `
-      <option value="${r.id}" ${String(selectedId || "") === String(r.id) ? "selected" : ""}>${r.nome}</option>
-    `).join("")}
-  `;
+  const repartoInput = document.getElementById("dip-reparto");
+  const repartoList = document.getElementById("dip-reparti-list");
+
+  if (!repartoInput || !repartoList) return;
+
+  repartoList.innerHTML = reparti
+    .map((r) => `<option value="${escapeHtml(r.nome)}"></option>`)
+    .join("");
+
+  repartoInput.value = selectedNome || "";
+}
+
+async function ensureRepartoIdFromInput() {
+  const supabase = getSupabase();
+  const azienda = window.state.azienda;
+  const repartoNome = (document.getElementById("dip-reparto")?.value || "").trim();
+
+  if (!repartoNome) return null;
+
+  await window.stateActions.caricaRuoloEReparti();
+  const reparti = window.state.reparti || [];
+
+  const esistente = reparti.find(
+    (r) => String(r.nome || "").trim().toLowerCase() === repartoNome.toLowerCase()
+  );
+
+  if (esistente?.id) {
+    return esistente.id;
+  }
+
+  const { data, error } = await supabase
+    .from("reparti")
+    .insert({
+      azienda_id: azienda.id,
+      nome: repartoNome,
+      attivo: true,
+    })
+    .select("id, nome")
+    .single();
+
+  if (error) {
+    console.error("Errore creazione reparto:", error);
+    throw new Error("Errore creazione reparto");
+  }
+
+  await window.stateActions.caricaRuoloEReparti();
+
+  return data?.id || null;
 }
 
 async function renderForm(dip) {
@@ -232,6 +286,8 @@ async function renderForm(dip) {
   if (!host) return;
 
   const isEdit = !!dip?.id;
+  const repartiMap = await loadRepartiMap();
+  const repartoNomeAttuale = dip?.reparto_id ? (repartiMap.get(String(dip.reparto_id))?.nome || "") : "";
 
   host.innerHTML = `
     <div class="view" style="margin-top:0;">
@@ -250,7 +306,15 @@ async function renderForm(dip) {
         </label>
 
         <label>Reparto *
-          <select id="dip-reparto" class="input-pill"></select>
+          <input
+            type="text"
+            id="dip-reparto"
+            class="input-pill"
+            list="dip-reparti-list"
+            placeholder="Scrivi o seleziona reparto"
+            value="${escapeHtml(repartoNomeAttuale)}"
+          />
+          <datalist id="dip-reparti-list"></datalist>
         </label>
 
         <label>Data nascita
@@ -343,10 +407,7 @@ async function renderForm(dip) {
     </div>
   `;
 
-  const repartoSelect = document.getElementById("dip-reparto");
-  if (repartoSelect) {
-    repartoSelect.innerHTML = await getRepartiOptions(dip?.reparto_id || null);
-  }
+  await renderRepartiDatalist(repartoNomeAttuale);
 
   const tipoCompenso = dip?.tipo_compenso || "orario";
   const selTipo = document.getElementById("dip-tipo-compenso");
@@ -394,6 +455,7 @@ function calcolaCosto() {
 }
 
 async function salvaDipendente(isEdit) {
+  const supabase = getSupabase();
   const azienda = window.state.azienda;
   const msg = document.getElementById("dip-form-msg");
   if (msg) msg.innerHTML = "";
@@ -420,10 +482,17 @@ async function salvaDipendente(isEdit) {
   }
 
   const email = (document.getElementById("dip-email")?.value || "").trim() || null;
-  const repartoId = document.getElementById("dip-reparto")?.value || null;
+
+  let repartoId = null;
+  try {
+    repartoId = await ensureRepartoIdFromInput();
+  } catch (e) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione reparto</span>`;
+    return;
+  }
 
   if (!repartoId) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Seleziona un reparto</span>`;
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Scrivi o seleziona un reparto</span>`;
     return;
   }
 
@@ -505,6 +574,8 @@ window._dipOpen = function (id) {
 };
 
 window._dipEdit = async function (id) {
+  const supabase = getSupabase();
+
   if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
     alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
     return;
@@ -530,6 +601,8 @@ window._dipEdit = async function (id) {
 };
 
 window._dipDelete = async function (id) {
+  const supabase = getSupabase();
+
   if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
     alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
     return;
@@ -594,6 +667,8 @@ window._dipDelete = async function (id) {
 };
 
 async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipendenteId, mode = "invite" }) {
+  const supabase = getSupabase();
+
   try {
     const {
       data: { session },
