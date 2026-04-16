@@ -376,8 +376,10 @@ async function renderForm(dip) {
     </div>
   `;
 
+  // 🔥 Popola datalist reparti
   await renderRepartiDatalist(repartoNomeAttuale);
 
+  // 🔘 Eventi
   document.getElementById("btn-dip-cancel").onclick = async () => {
     setTab("elenco");
     await caricaDipendenti();
@@ -387,35 +389,6 @@ async function renderForm(dip) {
     await salvaDipendente(isEdit);
   };
 }
-
-  await renderRepartiDatalist(repartoNomeAttuale);
-
-  const tipoCompenso = dip?.tipo_compenso || "orario";
-  const selTipo = document.getElementById("dip-tipo-compenso");
-  if (selTipo) selTipo.value = tipoCompenso;
-
-  const accessoCb = document.getElementById("dip-accesso");
-  const accessoBox = document.getElementById("dip-accesso-box");
-  if (accessoCb && accessoBox) {
-    accessoCb.addEventListener("change", () => {
-      accessoBox.style.display = accessoCb.checked ? "block" : "none";
-    });
-  }
-
-  document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
-  document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
-  document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
-  document.getElementById("dip-ore-servizio")?.addEventListener("input", calcolaCosto);
-
-  document.getElementById("btn-dip-cancel").onclick = async () => {
-    setTab("elenco");
-    await caricaDipendenti();
-  };
-
-  document.getElementById("btn-dip-save").onclick = async () => {
-    await salvaDipendente(isEdit);
-  };
-
   calcolaCosto();
 }
 
