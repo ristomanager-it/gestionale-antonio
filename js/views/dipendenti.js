@@ -99,35 +99,35 @@ async function renderElenco() {
   const host = document.getElementById("dip-view-elenco");
 
   host.innerHTML = `
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-      <input id="dip-search" class="input-pill" placeholder="Cerca per nome..." style="max-width:320px;" />
-      <label class="small-muted" style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="dip-only-attivi" checked />
-        Solo attivi
-      </label>
-      <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
-    </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+    <input id="dip-search" class="input-pill" placeholder="Cerca per nome..." style="max-width:320px;" />
+    <label class="small-muted" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="dip-only-attivi" checked />
+      Solo attivi
+    </label>
+    <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
+  </div>
 
-    <div class="table-wrapper">
-      <table class="table-timbrature">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Mansione</th>
-            <th>Reparto</th>
-            <th>Costo orario</th>
-            <th>Costo medio</th>
-            <th>Email</th>
-            <th>Attivo</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="dip-lista"></tbody>
-      </table>
-    </div>
+  <div class="table-wrapper">
+    <table class="table-timbrature">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Reparto</th>
+          <th>Ruolo</th>
+          <th>Paga oraria</th>
+          <th>Orario</th>
+          <th>Email</th>
+          <th>Attivo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="dip-lista"></tbody>
+    </table>
+  </div>
 
-    <div id="dip-elenco-msg" style="margin-top:10px;"></div>
-  `;
+  <div id="dip-elenco-msg" style="margin-top:10px;"></div>
+`;
 
   document.getElementById("dip-refresh").onclick = () => caricaDipendenti();
   document.getElementById("dip-search").addEventListener("input", () => caricaDipendenti());
