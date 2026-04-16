@@ -111,6 +111,7 @@ async function renderElenco() {
           <tr>
             <th>Nome</th>
             <th>Mansione</th>
+            <th>Reparto</th>
             <th>Costo orario</th>
             <th>Costo medio</th>
             <th>Email</th>
@@ -139,7 +140,19 @@ async function caricaDipendenti() {
 
   let query = supabase
     .from("dipendenti")
-    .select("id,nome,cognome,mansione,email,costo_orario,costo_medio,attivo,created_at")
+    .select(`
+      id,
+      nome,
+      cognome,
+      mansione,
+      email,
+      costo_orario,
+      costo_medio,
+      attivo,
+      created_at,
+      reparto_id,
+      reparti:reparto_id ( id, nome )
+    `)
     .eq("azienda_id", azienda.id)
     .order("nome");
 
@@ -169,7 +182,7 @@ async function caricaDipendenti() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="small-muted">Nessun dipendente trovato</td>
+        <td colspan="8" class="small-muted">Nessun dipendente trovato</td>
       </tr>
     `;
     return;
@@ -181,11 +194,13 @@ async function caricaDipendenti() {
 
   filtered.forEach((d) => {
     const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
+    const repartoNome = d.reparti?.nome || "-";
 
     tbody.innerHTML += `
       <tr>
         <td>${escapeHtml(nomeCompleto)}</td>
         <td>${escapeHtml(d.mansione || "-")}</td>
+        <td>${escapeHtml(repartoNome)}</td>
         <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
         <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
@@ -200,19 +215,19 @@ async function caricaDipendenti() {
   });
 }
 
-
-async function getRepartiOptions() {
+async function getRepartiOptions(selectedId = null) {
   await window.stateActions.caricaRuoloEReparti();
   const reparti = window.state.reparti || [];
 
   return `
     <option value="">Seleziona reparto</option>
     ${reparti.map(r => `
-      <option value="${r.id}">${r.nome}</option>
+      <option value="${r.id}" ${String(selectedId || "") === String(r.id) ? "selected" : ""}>${r.nome}</option>
     `).join("")}
   `;
 }
-function renderForm(dip) {
+
+async function renderForm(dip) {
   const host = document.getElementById("dip-view-form");
   if (!host) return;
 
@@ -231,12 +246,12 @@ function renderForm(dip) {
         </label>
 
         <label>Mansione
-  <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
-</label>
+          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+        </label>
 
-<label>Reparto *
-  <select id="dip-reparto" class="input-pill"></select>
-</label>
+        <label>Reparto *
+          <select id="dip-reparto" class="input-pill"></select>
+        </label>
 
         <label>Data nascita
           <input type="date" id="dip-data-nascita" class="input-pill" value="${dip?.data_nascita || ""}" />
@@ -328,6 +343,11 @@ function renderForm(dip) {
     </div>
   `;
 
+  const repartoSelect = document.getElementById("dip-reparto");
+  if (repartoSelect) {
+    repartoSelect.innerHTML = await getRepartiOptions(dip?.reparto_id || null);
+  }
+
   const tipoCompenso = dip?.tipo_compenso || "orario";
   const selTipo = document.getElementById("dip-tipo-compenso");
   if (selTipo) selTipo.value = tipoCompenso;
@@ -400,11 +420,18 @@ async function salvaDipendente(isEdit) {
   }
 
   const email = (document.getElementById("dip-email")?.value || "").trim() || null;
+  const repartoId = document.getElementById("dip-reparto")?.value || null;
+
+  if (!repartoId) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Seleziona un reparto</span>`;
+    return;
+  }
 
   const payload = {
     azienda_id: azienda.id,
     nome,
     mansione: (document.getElementById("dip-mansione")?.value || "").trim() || null,
+    reparto_id: repartoId,
     data_nascita:
       document.getElementById("dip-data_nascita")?.value ||
       document.getElementById("dip-data-nascita")?.value ||
@@ -499,7 +526,7 @@ window._dipEdit = async function (id) {
   }
 
   setTab("form");
-  renderForm(data);
+  await renderForm(data);
 };
 
 window._dipDelete = async function (id) {
