@@ -2,7 +2,9 @@ export async function renderFooter(){
 
   const ruolo = window.state?.viewAs || window.state?.ruolo
   const aziendaId = window.state?.azienda?.id
-  const supabase = window.supabaseClient
+
+  // 🔥 FIX: supabase corretto
+  const supabase = window.supabase
 
   const alerts = await getFooterAlerts(ruolo, aziendaId, supabase)
 
@@ -23,13 +25,13 @@ export async function renderFooter(){
 
     operatore: [
       {icon:"⏱", label:"Timbratura", route:"timbrature", key:"timbrature"},
-      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 NUOVO
+      {icon:"📅", label:"Planner", route:"planner-produzione"},
       {icon:"🍳", label:"Prep", route:"produzione"},
       {icon:"📅", label:"Permessi", route:"permessi"}
     ],
 
     manager: [
-      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 CORE
+      {icon:"📅", label:"Planner", route:"planner-produzione"},
       {icon:"📊", label:"Servizi", route:"servizi"},
       {icon:"👥", label:"Personale", route:"dipendenti", key:"turni"},
       {icon:"🍳", label:"Produzione", route:"produzione"}
@@ -37,7 +39,7 @@ export async function renderFooter(){
 
     admin: [
       {icon:"📊", label:"Dashboard", route:"home"},
-      {icon:"📅", label:"Planner", route:"planner-produzione"}, // 🔥 AGGIUNTO
+      {icon:"📅", label:"Planner", route:"planner-produzione"},
       {icon:"💰", label:"Margini", route:"margini", key:"costi"},
       {icon:"📈", label:"KPI", route:"kpi"}
     ]
