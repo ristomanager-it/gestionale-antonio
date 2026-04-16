@@ -77,10 +77,25 @@ window.PERM = Object.freeze({
 
 
 // ======================================================
+// 🔥 FUNZIONE CENTRALE PERMESSI (FIX)
+// ======================================================
+
+window.hasPermesso = function (permesso) {
+
+  // 🔥 bypass totale per admin / superadmin
+  if (window.state?._allAccess === true) return true;
+
+  // sicurezza
+  if (!window.state || !window.state.permessi) return false;
+
+  return !!window.state.permessi[permesso];
+};
+
+
+// ======================================================
 // Helper globale compatibile con hasPermesso()
 // ======================================================
 
 window.can = function (permKey) {
-  if (!window.hasPermesso) return false;
   return window.hasPermesso(permKey) === true;
 };
