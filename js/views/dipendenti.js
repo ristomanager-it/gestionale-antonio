@@ -242,7 +242,20 @@ async function renderRepartiDatalist(selectedNome = "") {
 
   repartoInput.value = selectedNome || "";
 }
+async function renderRepartiDatalist() {
+  const list = document.getElementById("dip-reparti-list");
+  if (!list) return;
 
+  const reparti = window.state.reparti || [];
+
+  list.innerHTML = "";
+
+  reparti.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r.nome;
+    list.appendChild(opt);
+  });
+}
 async function ensureRepartoIdFromInput() {
   const supabase = getSupabase();
   const azienda = window.state.azienda;
