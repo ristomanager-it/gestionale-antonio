@@ -287,7 +287,9 @@ async function renderForm(dip) {
 
   const isEdit = !!dip?.id;
   const repartiMap = await loadRepartiMap();
-  const repartoNomeAttuale = dip?.reparto_id ? (repartiMap.get(String(dip.reparto_id))?.nome || "") : "";
+  const repartoNomeAttuale = dip?.reparto_id
+    ? (repartiMap.get(String(dip.reparto_id))?.nome || "")
+    : "";
 
   host.innerHTML = `
     <div class="view" style="margin-top:0;">
@@ -301,8 +303,16 @@ async function renderForm(dip) {
           <input type="text" id="dip-nome" class="input-pill" required value="${dip?.nome || ""}" />
         </label>
 
-        <label>Mansione
-          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+        <label>Cognome *
+          <input type="text" id="dip-cognome" class="input-pill" value="${dip?.cognome || ""}" />
+        </label>
+
+        <label>Telefono
+          <input type="text" id="dip-telefono" class="input-pill" value="${dip?.telefono || ""}" />
+        </label>
+
+        <label>Email
+          <input type="email" id="dip-email" class="input-pill" value="${dip?.email || ""}" />
         </label>
 
         <label>Reparto *
@@ -317,49 +327,27 @@ async function renderForm(dip) {
           <datalist id="dip-reparti-list"></datalist>
         </label>
 
-        <label>Data nascita
-          <input type="date" id="dip-data-nascita" class="input-pill" value="${dip?.data_nascita || ""}" />
+        <label>Ruolo
+          <select id="dip-ruolo-app" class="input-pill">
+            <option value="operatore">Operatore</option>
+            <option value="manager_cucina">Manager cucina</option>
+            <option value="manager_sala">Manager sala</option>
+            <option value="segreteria">Segreteria</option>
+            <option value="admin">Admin</option>
+          </select>
         </label>
 
-        <label>Telefono
-          <input type="text" id="dip-telefono" class="input-pill" value="${dip?.telefono || ""}" />
+        <label>Paga oraria
+          <input type="number" step="0.01" id="dip-paga-oraria" class="input-pill" value="${dip?.costo_orario ?? ""}" />
         </label>
 
-        <label>Email (opzionale)
-          <input type="email" id="dip-email" class="input-pill" value="${dip?.email || ""}" />
+        <label>Ora ingresso
+          <input type="time" id="dip-ora-ingresso" class="input-pill" value="${dip?.ora_ingresso || ""}" />
         </label>
 
-        <div class="view" style="margin-top:10px;">
-          <h4 style="margin:0;">Compenso</h4>
-
-          <label style="margin-top:10px;">Tipo compenso
-            <select id="dip-tipo-compenso" class="input-pill">
-              <option value="orario">A ore</option>
-              <option value="mensile">Mensile</option>
-              <option value="servizio">Per servizio</option>
-            </select>
-          </label>
-
-          <label>Retribuzione base
-            <input type="number" step="0.01" id="dip-retribuzione-base" class="input-pill" value="${dip?.retribuzione_base ?? ""}" />
-          </label>
-
-          <label>Ore mensili contrattuali
-            <input type="number" step="0.1" id="dip-ore-mensili" class="input-pill" value="${dip?.ore_mensili_contrattuali ?? ""}" />
-          </label>
-
-          <label>Ore medie per servizio
-            <input type="number" step="0.1" id="dip-ore-servizio" class="input-pill" value="${dip?.ore_medie_per_servizio ?? ""}" />
-          </label>
-
-          <label>Costo medio (libero)
-            <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio ?? ""}" />
-          </label>
-
-          <label>Costo orario (calcolato)
-            <input type="number" step="0.01" id="dip-costo" class="input-pill" readonly value="${dip?.costo_orario ?? ""}" />
-          </label>
-        </div>
+        <label>Ora uscita
+          <input type="time" id="dip-ora-uscita" class="input-pill" value="${dip?.ora_uscita || ""}" />
+        </label>
 
         <label style="display:flex; align-items:center; gap:10px; margin-top:6px;">
           <input type="checkbox" id="dip-attivo" ${dip?.attivo === false ? "" : "checked"} />
@@ -368,30 +356,11 @@ async function renderForm(dip) {
 
         <div class="view" style="margin-top:10px;">
           <h4 style="margin:0;">Accesso al gestionale</h4>
-          <p class="small-muted" style="margin-top:6px;">
-            Se abiliti l’accesso, inviamo una mail per creare la password e accedere.
-          </p>
 
           <label style="display:flex; align-items:center; gap:10px; margin-top:8px;">
             <input type="checkbox" id="dip-accesso" />
-            Abilita accesso al gestionale (invio invito)
+            Abilita accesso (invio invito)
           </label>
-
-          <div id="dip-accesso-box" style="margin-top:10px; display:none;">
-            <label>Ruolo gestionale
-              <select id="dip-ruolo-app" class="input-pill">
-                <option value="operatore">Operatore</option>
-                <option value="manager_cucina">Manager cucina</option>
-                <option value="manager_sala">Manager sala</option>
-                <option value="segreteria">Segreteria</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-
-            <div class="small-muted" style="margin-top:8px;">
-              (I moduli visibili saranno filtrati da features azienda + permessi ruolo + override.)
-            </div>
-          </div>
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
@@ -406,6 +375,18 @@ async function renderForm(dip) {
       </form>
     </div>
   `;
+
+  await renderRepartiDatalist(repartoNomeAttuale);
+
+  document.getElementById("btn-dip-cancel").onclick = async () => {
+    setTab("elenco");
+    await caricaDipendenti();
+  };
+
+  document.getElementById("btn-dip-save").onclick = async () => {
+    await salvaDipendente(isEdit);
+  };
+}
 
   await renderRepartiDatalist(repartoNomeAttuale);
 
