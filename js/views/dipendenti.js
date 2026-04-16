@@ -99,35 +99,35 @@ async function renderElenco() {
   const host = document.getElementById("dip-view-elenco");
 
   host.innerHTML = `
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-    <input id="dip-search" class="input-pill" placeholder="Cerca per nome..." style="max-width:320px;" />
-    <label class="small-muted" style="display:flex; align-items:center; gap:8px;">
-      <input type="checkbox" id="dip-only-attivi" checked />
-      Solo attivi
-    </label>
-    <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
-  </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+      <input id="dip-search" class="input-pill" placeholder="Cerca per nome o reparto..." style="max-width:320px;" />
+      <label class="small-muted" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="dip-only-attivi" checked />
+        Solo attivi
+      </label>
+      <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
+    </div>
 
-  <div class="table-wrapper">
-    <table class="table-timbrature">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Reparto</th>
-          <th>Ruolo</th>
-          <th>Paga oraria</th>
-          <th>Orario</th>
-          <th>Email</th>
-          <th>Attivo</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="dip-lista"></tbody>
-    </table>
-  </div>
+    <div class="table-wrapper">
+      <table class="table-timbrature">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Reparto</th>
+            <th>Mansione</th>
+            <th>Costo orario</th>
+            <th>Costo medio</th>
+            <th>Email</th>
+            <th>Attivo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="dip-lista"></tbody>
+      </table>
+    </div>
 
-  <div id="dip-elenco-msg" style="margin-top:10px;"></div>
-`;
+    <div id="dip-elenco-msg" style="margin-top:10px;"></div>
+  `;
 
   document.getElementById("dip-refresh").onclick = () => caricaDipendenti();
   document.getElementById("dip-search").addEventListener("input", () => caricaDipendenti());
@@ -211,8 +211,8 @@ async function caricaDipendenti() {
     tbody.innerHTML += `
       <tr>
         <td>${escapeHtml(nomeCompleto)}</td>
-        <td>${escapeHtml(d.mansione || "-")}</td>
         <td>${escapeHtml(repartoNome)}</td>
+        <td>${escapeHtml(d.mansione || "-")}</td>
         <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
         <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
@@ -242,20 +242,7 @@ async function renderRepartiDatalist(selectedNome = "") {
 
   repartoInput.value = selectedNome || "";
 }
-async function renderRepartiDatalist() {
-  const list = document.getElementById("dip-reparti-list");
-  if (!list) return;
 
-  const reparti = window.state.reparti || [];
-
-  list.innerHTML = "";
-
-  reparti.forEach(r => {
-    const opt = document.createElement("option");
-    opt.value = r.nome;
-    list.appendChild(opt);
-  });
-}
 async function ensureRepartoIdFromInput() {
   const supabase = getSupabase();
   const azienda = window.state.azienda;
@@ -320,6 +307,10 @@ async function renderForm(dip) {
           <input type="text" id="dip-cognome" class="input-pill" value="${dip?.cognome || ""}" />
         </label>
 
+        <label>Mansione
+          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+        </label>
+
         <label>Telefono
           <input type="text" id="dip-telefono" class="input-pill" value="${dip?.telefono || ""}" />
         </label>
@@ -350,9 +341,37 @@ async function renderForm(dip) {
           </select>
         </label>
 
-        <label>Paga oraria
-          <input type="number" step="0.01" id="dip-paga-oraria" class="input-pill" value="${dip?.costo_orario ?? ""}" />
-        </label>
+        <div class="view" style="margin-top:10px;">
+          <h4 style="margin:0;">Compenso</h4>
+
+          <label style="margin-top:10px;">Tipo compenso
+            <select id="dip-tipo-compenso" class="input-pill">
+              <option value="orario">A ore</option>
+              <option value="mensile">Mensile</option>
+              <option value="servizio">Per servizio</option>
+            </select>
+          </label>
+
+          <label>Retribuzione base
+            <input type="number" step="0.01" id="dip-retribuzione-base" class="input-pill" value="${dip?.retribuzione_base ?? ""}" />
+          </label>
+
+          <label>Ore mensili contrattuali
+            <input type="number" step="0.1" id="dip-ore-mensili" class="input-pill" value="${dip?.ore_mensili_contrattuali ?? ""}" />
+          </label>
+
+          <label>Ore medie per servizio
+            <input type="number" step="0.1" id="dip-ore-servizio" class="input-pill" value="${dip?.ore_medie_per_servizio ?? ""}" />
+          </label>
+
+          <label>Costo medio (libero)
+            <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio ?? ""}" />
+          </label>
+
+          <label>Costo orario (calcolato)
+            <input type="number" step="0.01" id="dip-costo" class="input-pill" readonly value="${dip?.costo_orario ?? ""}" />
+          </label>
+        </div>
 
         <label>Ora ingresso
           <input type="time" id="dip-ora-ingresso" class="input-pill" value="${dip?.ora_ingresso || ""}" />
@@ -389,10 +408,22 @@ async function renderForm(dip) {
     </div>
   `;
 
-  // 🔥 Popola datalist reparti
   await renderRepartiDatalist(repartoNomeAttuale);
 
-  // 🔘 Eventi
+  const tipoCompenso = dip?.tipo_compenso || "orario";
+  const selTipo = document.getElementById("dip-tipo-compenso");
+  if (selTipo) selTipo.value = tipoCompenso;
+
+  const accessoCb = document.getElementById("dip-accesso");
+  if (accessoCb) {
+    accessoCb.checked = false;
+  }
+
+  document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
+  document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
+  document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
+  document.getElementById("dip-ore-servizio")?.addEventListener("input", calcolaCosto);
+
   document.getElementById("btn-dip-cancel").onclick = async () => {
     setTab("elenco");
     await caricaDipendenti();
@@ -401,7 +432,7 @@ async function renderForm(dip) {
   document.getElementById("btn-dip-save").onclick = async () => {
     await salvaDipendente(isEdit);
   };
-}
+
   calcolaCosto();
 }
 
@@ -466,6 +497,7 @@ async function salvaDipendente(isEdit) {
   const payload = {
     azienda_id: azienda.id,
     nome,
+    cognome: (document.getElementById("dip-cognome")?.value || "").trim() || null,
     mansione: (document.getElementById("dip-mansione")?.value || "").trim() || null,
     reparto_id: repartoId,
     data_nascita:
@@ -474,6 +506,8 @@ async function salvaDipendente(isEdit) {
       null,
     telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
     email,
+    ora_ingresso: document.getElementById("dip-ora-ingresso")?.value || null,
+    ora_uscita: document.getElementById("dip-ora-uscita")?.value || null,
     tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
     retribuzione_base: numOrNull("dip-retribuzione-base"),
     ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
