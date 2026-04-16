@@ -429,7 +429,7 @@ async function renderForm(dip) {
     await caricaDipendenti();
   };
 
-  document.getElementById("btn-dip-save").onclick = async () => {
+    document.getElementById("btn-dip-save").onclick = async () => {
     await salvaDipendente(isEdit);
   };
 
