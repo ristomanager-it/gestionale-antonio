@@ -26,7 +26,8 @@
 
   <meta name="theme-color" content="#2563eb" />
 
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- FIX DEPRECATION -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Ristoflow" />
 
@@ -38,11 +39,7 @@
 
 </head>
 
-
-
 <body>
-
-
 
   <!-- ===================================================== -->
   <!-- ====================== HEADER ======================= -->
@@ -50,86 +47,41 @@
 
   <header class="app-header">
 
-    <!-- LEFT -->
-
     <div class="header-left">
-
       <button id="menu-toggle" class="menu-toggle" type="button">
-
         <div class="menu-icon">
           <span></span>
           <span></span>
           <span></span>
         </div>
-
       </button>
-
     </div>
-
-
-
-    <!-- CENTER -->
 
     <div class="header-center">
-
-      <img
-        id="header-logo"
-        class="header-logo"
-        src="assets/favicon-192.png"
-        alt="Logo azienda"
-      />
-
-      <div
-        id="header-azienda-nome"
-        class="header-azienda-nome"
-      ></div>
-
+      <img id="header-logo" class="header-logo" src="assets/favicon-192.png" alt="Logo azienda" />
+      <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
-
-
-    <!-- RIGHT -->
-
-    <div
-      id="header-right"
-      class="header-right"
-    ></div>
+    <div id="header-right" class="header-right"></div>
 
   </header>
-
-
 
   <!-- ===================================================== -->
   <!-- ==================== SUBHEADER ====================== -->
   <!-- ===================================================== -->
 
   <div id="topbar-info" class="topbar-info">
-
     <div id="topbar-saluto"></div>
-
     <div id="topbar-data"></div>
-
     <div id="topbar-weather"></div>
-
   </div>
-
-
 
   <!-- ===================================================== -->
   <!-- ===================== MENU SPA ====================== -->
   <!-- ===================================================== -->
 
-  <nav
-    id="global-menu"
-    class="global-menu"
-  ></nav>
-
-
-  <!-- OVERLAY MENU -->
-
+  <nav id="global-menu" class="global-menu"></nav>
   <div class="menu-overlay"></div>
-
-
 
   <!-- ===================================================== -->
   <!-- ==================== ROOT APP ======================= -->
@@ -137,56 +89,37 @@
 
   <main id="app"></main>
 
+  <!-- ===================================================== -->
+  <!-- ================= SCRIPT GLOBALI ==================== -->
+  <!-- ===================================================== -->
 
+  <script src="js/state.js?v=9"></script>
 
- <!-- ===================================================== -->
-<!-- ================= SCRIPT GLOBALI ==================== -->
-<!-- ===================================================== -->
+  <!-- SUPABASE PRIMA -->
+  <script type="module" src="js/supabaseClient.js?v=9"></script>
 
-<script src="js/state.js?v=9"></script>
+  <!-- POI TUTTO IL RESTO -->
+  <script src="js/stateActions.js?v=9"></script>
+  <script src="js/ui-reparto.js?v=9"></script>
+  <script src="js/db.js?v=9"></script>
+  <script src="js/config/permessi.js?v=1"></script>
+  <script src="js/utils/notify.js?v=1"></script>
 
-<!-- 🔥 PRIMA SUPABASE -->
-<script type="module" src="js/supabaseClient.js?v=9"></script>
-
-<!-- 🔥 POI TUTTO IL RESTO -->
-<script src="js/stateActions.js?v=9"></script>
-
-<script src="js/ui-reparto.js?v=9"></script>
-
-<script src="js/db.js?v=9"></script>
-
-<script src="js/config/permessi.js?v=1"></script>
-
-<script src="js/utils/notify.js?v=1"></script>
-
-<!-- 🔥 ROUTER SEMPRE PER ULTIMO -->
-<script type="module" src="js/router.js?v=9"></script>
+  <!-- ROUTER (UNA SOLA VOLTA) -->
+  <script type="module" src="js/router.js?v=9"></script>
 
   <!-- ===================================================== -->
   <!-- ================= LIB STAMPA ======================== -->
   <!-- ===================================================== -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-
 
   <!-- ===================================================== -->
   <!-- ================= LIB GRAFICI ======================= -->
   <!-- ===================================================== -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-
-
-  <!-- ===================================================== -->
-  <!-- ====================== ROUTER ======================= -->
-  <!-- ===================================================== -->
-
-  <script type="module" src="js/router.js?v=9"></script>
-
-
 
 </body>
 </html>
