@@ -453,122 +453,81 @@ function calcolaCosto() {
 }
 
 async function salvaDipendente(isEdit) {
-  const supabase = getSupabase();
-  const azienda = window.state.azienda;
-  const msg = document.getElementById("dip-form-msg");
-  if (msg) msg.innerHTML = "";
+const azienda = window.state.azienda;
+const msg = document.getElementById("dip-form-msg");
+if (msg) msg.innerHTML = "";
 
-  if (!window.hasPermesso) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Permessi non disponibili</span>`;
-    return;
-  }
-  if (!isEdit && !window.hasPermesso("dipendenti.create")) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Non hai i permessi per creare dipendenti.</span>`;
-    return;
-  }
-  if (isEdit && !window.hasPermesso("dipendenti.update")) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Non hai i permessi per modificare dipendenti.</span>`;
-    return;
-  }
+const nome = (document.getElementById("dip-nome")?.value || "").trim();
+const cognome = (document.getElementById("dip-cognome")?.value || "").trim();
+const email = (document.getElementById("dip-email")?.value || "").trim();
+const telefono = (document.getElementById("dip-telefono")?.value || "").trim();
+const mansione = (document.getElementById("dip-mansione")?.value || "").trim();
+const ruolo = document.getElementById("dip-ruolo-app")?.value || "operatore";
 
-  const id = document.getElementById("dip-id")?.value || null;
-
-  const nome = (document.getElementById("dip-nome")?.value || "").trim();
-  if (!nome) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome obbligatorio</span>`;
-    return;
-  }
-
-  const email = (document.getElementById("dip-email")?.value || "").trim() || null;
-
-  let repartoId = null;
-  try {
-    repartoId = await ensureRepartoIdFromInput();
-  } catch (e) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione reparto</span>`;
-    return;
-  }
-
-  if (!repartoId) {
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Scrivi o seleziona un reparto</span>`;
-    return;
-  }
-
-  const payload = {
-    azienda_id: azienda.id,
-    nome,
-    cognome: (document.getElementById("dip-cognome")?.value || "").trim() || null,
-    mansione: (document.getElementById("dip-mansione")?.value || "").trim() || null,
-    reparto_id: repartoId,
-    data_nascita:
-      document.getElementById("dip-data_nascita")?.value ||
-      document.getElementById("dip-data-nascita")?.value ||
-      null,
-    telefono: (document.getElementById("dip-telefono")?.value || "").trim() || null,
-    email,
-    ora_ingresso: document.getElementById("dip-ora-ingresso")?.value || null,
-    ora_uscita: document.getElementById("dip-ora-uscita")?.value || null,
-    tipo_compenso: document.getElementById("dip-tipo-compenso")?.value || "orario",
-    retribuzione_base: numOrNull("dip-retribuzione-base"),
-    ore_mensili_contrattuali: numOrNull("dip-ore-mensili"),
-    ore_medie_per_servizio: numOrNull("dip-ore-servizio"),
-    costo_medio: (document.getElementById("dip-costo-medio")?.value || "").trim() || null,
-    costo_orario: numOrNull("dip-costo"),
-    attivo: !!document.getElementById("dip-attivo")?.checked,
-  };
-
-  let res;
-
-  if (isEdit && id) {
-    res = await supabase
-      .from("dipendenti")
-      .update(payload)
-      .eq("id", id)
-      .eq("azienda_id", azienda.id)
-      .select("id,email")
-      .single();
-  } else {
-    res = await supabase
-      .from("dipendenti")
-      .insert(payload)
-      .select("id,email")
-      .single();
-  }
-
-  if (res.error) {
-    console.error(res.error);
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore salvataggio dipendente</span>`;
-    return;
-  }
-
-  const wantAccess = !!document.getElementById("dip-accesso")?.checked;
-  const ruoloApp = document.getElementById("dip-ruolo-app")?.value || "operatore";
-
-  if (wantAccess) {
-    if (!email) {
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Per l’accesso serve una email.</span>`;
-      return;
-    }
-
-    const invio = await inviaInvitoDipendenteWhiteLabel({
-      email,
-      aziendaId: azienda.id,
-      ruolo: ruoloApp,
-      dipendenteId: res.data.id,
-    });
-
-    if (!invio.ok) {
-      const extra = invio.message ? `<div class="small-muted" style="margin-top:6px;">${escapeHtml(invio.message)}</div>` : "";
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore invio email invito</span>${extra}`;
-      return;
-    }
-  }
-
-  if (msg) msg.innerHTML = `<span style="color:#16a34a;">Salvato ✔</span>`;
-
-  setTab("elenco");
-  await caricaDipendenti();
+if (!nome || !email) {
+if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome e email obbligatori</span>`;
+return;
 }
+
+let repartoId = null;
+try {
+repartoId = await ensureRepartoIdFromInput();
+} catch (e) {
+if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore reparto</span>`;
+return;
+}
+
+const payload = {
+nome,
+cognome,
+email,
+telefono,
+ruolo,
+mansione,
+reparto_id: repartoId,
+azienda_id: azienda.id
+};
+
+try {
+const {
+data: { session }
+} = await window.supabase.auth.getSession();
+
+```
+const token = session?.access_token;
+
+const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
+const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+
+const res = await fetch(endpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify(payload)
+});
+
+const json = await res.json();
+
+if (!res.ok || !json.success) {
+  console.error(json);
+  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
+  return;
+}
+
+if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
+
+setTab("elenco");
+await caricaDipendenti();
+```
+
+} catch (err) {
+console.error(err);
+if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
+}
+}
+
 
 window._dipOpen = function (id) {
   window.location.hash = `#/dipendente?id=${id}`;
