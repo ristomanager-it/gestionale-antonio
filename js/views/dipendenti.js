@@ -526,12 +526,16 @@ if (isEdit) {
   }
 
   // aggiorna ruolo
-  const { error: ruoloErr } = await window.supabase
-    .from("utenti_aziende")
-    .update({ ruolo })
-    .eq("azienda_id", azienda.id)
-    .eq("email", email);
-
+ const { error: ruoloErr } = await window.supabase
+  .from("utenti_aziende")
+  .upsert({
+    azienda_id: azienda.id,
+    email: email,
+    ruolo: ruolo,
+    attivo: true
+  }, {
+    onConflict: "azienda_id,email"
+  });
   if (ruoloErr) {
     console.warn("Errore aggiornamento ruolo:", ruoloErr);
   }
