@@ -598,22 +598,42 @@ window._dipEdit = async function (id) {
 
   const azienda = window.state.azienda;
 
-  const { data, error } = await supabase
-    .from("dipendenti")
-    .select("*")
-    .eq("id", id)
+ const { data: dip, error } = await supabase
+  .from("dipendenti")
+  .select("*")
+  .eq("id", id)
+  .eq("azienda_id", azienda.id)
+  .single();
+
+if (error || !dip) {
+  console.error(error);
+  alert("Errore caricamento dipendente");
+  return;
+}
+
+// 🔥 CARICA RUOLO DA utenti_aziende
+let ruolo = "operatore";
+
+if (dip.user_id) {
+  const { data: ua, error: uaErr } = await supabase
+    .from("utenti_aziende")
+    .select("ruolo")
     .eq("azienda_id", azienda.id)
+    .eq("user_id", dip.user_id)
     .single();
 
-  if (error || !data) {
-    console.error(error);
-    alert("Errore caricamento dipendente");
-    return;
+  if (!uaErr && ua?.ruolo) {
+    ruolo = ua.ruolo;
+  } else {
+    console.warn("Ruolo non trovato, fallback operatore");
   }
+}
 
-  setTab("form");
-  await renderForm(data);
-};
+// 👉 iniettiamo il ruolo corretto nel form
+dip.ruolo = ruolo;
+
+setTab("form");
+await renderForm(dip);
 
 window._dipDelete = async function (id) {
   const supabase = getSupabase();
