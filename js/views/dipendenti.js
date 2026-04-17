@@ -482,96 +482,102 @@ async function salvaDipendente(isEdit) {
     return;
   }
 
-  const payload = {
-    nome,
-    cognome,
-    email,
-    telefono,
-    ruolo,
-    mansione,
-    reparto_id: repartoId,
-    azienda_id: azienda.id
-  };
-
   try {
     const {
       data: { session }
     } = await window.supabase.auth.getSession();
 
-   const token = session?.access_token;
-const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
+    const token = session?.access_token;
+    const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
 
-// 🔥 SE MODIFICA → UPDATE DIRETTO (NO EDGE FUNCTION)
-if (isEdit) {
+    // 🔥 MODIFICA
+    if (isEdit) {
+      const id = document.getElementById("dip-id")?.value;
+      const userId = document.getElementById("dip-user-id")?.value;
 
-  const id = document.getElementById("dip-id")?.value;
+      // 1️⃣ aggiorna dipendente
+      const { error } = await window.supabase
+        .from("dipendenti")
+        .update({
+          nome,
+          cognome,
+          email,
+          telefono,
+          mansione,
+          reparto_id: repartoId
+        })
+        .eq("id", id)
+        .eq("azienda_id", azienda.id);
 
-  const { error } = await window.supabase
-    .from("dipendenti")
-    .update({
-      nome,
-      cognome,
-      email,
-      telefono,
-      mansione,
-      reparto_id: repartoId
-    })
-    .eq("id", id)
-    .eq("azienda_id", azienda.id);
+      if (error) {
+        console.error(error);
+        if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento</span>`;
+        return;
+      }
 
-  if (error) {
-    console.error(error);
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento</span>`;
-    return;
-  }
+      // 2️⃣ aggiorna ruolo via Edge Function (NO RLS)
+      if (userId) {
+        const resRuolo = await fetch(`${supabaseUrl}/functions/v1/ruolo-dipendente`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            azienda_id: azienda.id,
+            ruolo: ruolo
+          })
+        });
 
-  // aggiorna ruolo
- const { error: ruoloErr } = await window.supabase
-  .from("utenti_aziende")
-  .upsert({
-    azienda_id: azienda.id,
-    email: email,
-    ruolo: ruolo,
-    attivo: true
-  }, {
-    onConflict: "azienda_id,email"
-  });
-  if (ruoloErr) {
-    console.warn("Errore aggiornamento ruolo:", ruoloErr);
-  }
+        const jsonRuolo = await resRuolo.json();
 
-  if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente aggiornato ✔</span>`;
+        if (!resRuolo.ok || !jsonRuolo.success) {
+          console.error("Errore ruolo:", jsonRuolo);
+        }
+      }
 
-  setTab("elenco");
-  await caricaDipendenti();
+      if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente aggiornato ✔</span>`;
 
-  return;
-}
+      setTab("elenco");
+      await caricaDipendenti();
+      return;
+    }
 
-// 🔽 SOLO CREAZIONE → EDGE FUNCTION
-const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+    // 🔽 CREAZIONE → EDGE FUNCTION
+    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
-const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify(payload)
-});
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        nome,
+        cognome,
+        email,
+        telefono,
+        ruolo,
+        mansione,
+        reparto_id: repartoId,
+        azienda_id: azienda.id
+      })
+    });
 
-const json = await res.json();
+    const json = await res.json();
 
-if (!res.ok || !json.success) {
-  console.error(json);
-  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
-  return;
-}
+    if (!res.ok || !json.success) {
+      console.error(json);
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
+      return;
+    }
 
-if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
+    if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
 
-setTab("elenco");
-await caricaDipendenti();
+    setTab("elenco");
+    await caricaDipendenti();
+
   } catch (err) {
     console.error(err);
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
