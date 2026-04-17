@@ -431,19 +431,21 @@ async function renderForm(dip) {
 
   await renderRepartiDatalist(repartoNomeAttuale);
 
+  // 🔥 FIX CRITICO → forza ruolo DOPO render completo
+  setTimeout(() => {
+    const ruoloSel = document.getElementById("dip-ruolo-app");
+    if (ruoloSel) {
+      ruoloSel.value = dip?.ruolo || "operatore";
+      console.log("RUOLO SETTATO UI:", ruoloSel.value);
+    }
+  }, 0);
+
   const tipoCompenso = dip?.tipo_compenso || "orario";
   const selTipo = document.getElementById("dip-tipo-compenso");
   if (selTipo) selTipo.value = tipoCompenso;
 
   const accessoCb = document.getElementById("dip-accesso");
-  if (accessoCb) {
-    accessoCb.checked = false;
-  }
-
-  const ruoloSel = document.getElementById("dip-ruolo-app");
-  if (ruoloSel) {
-    ruoloSel.value = dip?.ruolo || "operatore";
-  }
+  if (accessoCb) accessoCb.checked = false;
 
   document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
   document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
