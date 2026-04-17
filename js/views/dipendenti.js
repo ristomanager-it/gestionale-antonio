@@ -632,20 +632,23 @@ window._dipEdit = async function (id) {
 
   let ruolo = "operatore";
 
-  if (dip.user_id) {
-    const { data: ua, error: uaErr } = await supabase
-      .from("utenti_aziende")
-      .select("ruolo")
-      .eq("azienda_id", azienda.id)
-      .eq("user_id", dip.user_id)
-      .single();
+ if (dip.user_id) {
+  const { data: uaList, error: uaErr } = await supabase
+    .from("utenti_aziende")
+    .select("ruolo")
+    .eq("azienda_id", azienda.id)
+    .eq("user_id", dip.user_id);
 
-    if (!uaErr && ua?.ruolo) {
-      ruolo = ua.ruolo;
-    } else {
-      console.warn("Ruolo non trovato, fallback operatore");
-    }
+  if (!uaErr && uaList && uaList.length > 0) {
+    ruolo = uaList[0].ruolo || "operatore";
+  } else {
+    console.warn("Ruolo non trovato, fallback operatore", {
+      user_id: dip.user_id,
+      azienda_id: azienda.id,
+      uaList
+    });
   }
+}
 
   dip.ruolo = ruolo;
 
