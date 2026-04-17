@@ -528,128 +528,109 @@ if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
 }
 }
 
-
 window._dipOpen = function (id) {
-  window.location.hash = `#/dipendente?id=${id}`;
+window.location.hash = `#/dipendente?id=${id}`;
 };
 
 window._dipEdit = async function (id) {
-  const supabase = getSupabase();
+const supabase = getSupabase();
 
-  if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
-    alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
-    return;
-  }
+if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
+alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
+return;
+}
 
-  const azienda = window.state.azienda;
+const azienda = window.state.azienda;
 
-  const { data, error } = await supabase
-    .from("dipendenti")
-    .select("*")
-    .eq("id", id)
-    .eq("azienda_id", azienda.id)
-    .single();
+const { data, error } = await supabase
+.from("dipendenti")
+.select("*")
+.eq("id", id)
+.eq("azienda_id", azienda.id)
+.single();
 
-  if (error || !data) {
-    console.error(error);
-    alert("Errore caricamento dipendente");
-    return;
-  }
+if (error || !data) {
+console.error(error);
+alert("Errore caricamento dipendente");
+return;
+}
 
-  setTab("form");
-  await renderForm(data);
+setTab("form");
+await renderForm(data);
 };
 
 window._dipDelete = async function (id) {
-  const supabase = getSupabase();
+const supabase = getSupabase();
 
-  if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
-    alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
-    return;
-  }
+if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
+alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
+return;
+}
 
-  const azienda = window.state.azienda;
+const azienda = window.state.azienda;
 
-  const { data: dip, error: dipErr } = await supabase
-    .from("dipendenti")
-    .select("id,email,attivo")
-    .eq("id", id)
+const { data: dip, error: dipErr } = await supabase
+.from("dipendenti")
+.select("id,email,attivo")
+.eq("id", id)
+.eq("azienda_id", azienda.id)
+.single();
+
+if (dipErr || !dip) {
+console.error(dipErr);
+alert("Errore caricamento dipendente");
+return;
+}
+
+if (dip.attivo) {
+if (!confirm("Disattivare il dipendente?")) return;
+
+```
+const { error } = await supabase
+  .from("dipendenti")
+  .update({ attivo: false })
+  .eq("id", id)
+  .eq("azienda_id", azienda.id);
+
+if (error) {
+  console.error(error);
+  alert("Errore disattivazione dipendente");
+  return;
+}
+
+if (dip.email) {
+  const ua = await supabase
+    .from("utenti_aziende")
+    .update({ attivo: false })
     .eq("azienda_id", azienda.id)
-    .single();
+    .eq("email", dip.email);
 
-  if (dipErr || !dip) {
-    console.error(dipErr);
-    alert("Errore caricamento dipendente");
-    return;
-  }
+  if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+}
+```
 
-  if (dip.attivo) {
-    if (!confirm("Disattivare il dipendente?")) return;
+} else {
+if (!confirm("Eliminare definitivamente questo dipendente?")) return;
 
-    const { error } = await supabase
-      .from("dipendenti")
-      .update({ attivo: false })
-      .eq("id", id)
-      .eq("azienda_id", azienda.id);
+```
+const { error } = await supabase
+  .from("dipendenti")
+  .delete()
+  .eq("id", id)
+  .eq("azienda_id", azienda.id);
 
-    if (error) {
-      console.error(error);
-      alert("Errore disattivazione dipendente");
-      return;
-    }
+if (error) {
+  console.error(error);
+  alert("Errore eliminazione definitiva");
+  return;
+}
+```
 
-    if (dip.email) {
-      const ua = await supabase
-        .from("utenti_aziende")
-        .update({ attivo: false })
-        .eq("azienda_id", azienda.id)
-        .eq("email", dip.email);
+}
 
-      if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
-    }
-  } else {
-    if (!confirm("Eliminare definitivamente questo dipendente?")) return;
-
-    const { error } = await supabase
-      .from("dipendenti")
-      .delete()
-      .eq("id", id)
-      .eq("azienda_id", azienda.id);
-
-    if (error) {
-      console.error(error);
-      alert("Errore eliminazione definitiva");
-      return;
-    }
-  }
-
-  await caricaDipendenti();
+await caricaDipendenti();
 };
 
-async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipendenteId, mode = "invite" }) {
-  const supabase = getSupabase();
-
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    const token = session?.access_token || null;
-    if (!token) {
-      console.error("Sessione mancante: impossibile chiamare Edge Function");
-      return { ok: false, message: "Sessione mancante" };
-    }
-
-    const supabaseUrl = supabase?.supabaseUrl || window.SUPABASE_URL;
-    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
-
-    const body = JSON.stringify({
-      email,
-      azienda_id: aziendaId,
-      ruolo,
-      dipendente_id: dipendenteId,
-      mode,
-    });
 
     const r = await fetch(endpoint, {
       method: "POST",
