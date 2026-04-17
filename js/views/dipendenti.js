@@ -498,18 +498,76 @@ async function salvaDipendente(isEdit) {
       data: { session }
     } = await window.supabase.auth.getSession();
 
-    const token = session?.access_token;
-    const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
-    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+   const token = session?.access_token;
+const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
+// 🔥 SE MODIFICA → UPDATE DIRETTO (NO EDGE FUNCTION)
+if (isEdit) {
+
+  const id = document.getElementById("dip-id")?.value;
+
+  const { error } = await window.supabase
+    .from("dipendenti")
+    .update({
+      nome,
+      cognome,
+      email,
+      telefono,
+      mansione,
+      reparto_id: repartoId
+    })
+    .eq("id", id)
+    .eq("azienda_id", azienda.id);
+
+  if (error) {
+    console.error(error);
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento</span>`;
+    return;
+  }
+
+  // aggiorna ruolo
+  const { error: ruoloErr } = await window.supabase
+    .from("utenti_aziende")
+    .update({ ruolo })
+    .eq("azienda_id", azienda.id)
+    .eq("email", email);
+
+  if (ruoloErr) {
+    console.warn("Errore aggiornamento ruolo:", ruoloErr);
+  }
+
+  if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente aggiornato ✔</span>`;
+
+  setTab("elenco");
+  await caricaDipendenti();
+
+  return;
+}
+
+// 🔽 SOLO CREAZIONE → EDGE FUNCTION
+const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+
+const res = await fetch(endpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify(payload)
+});
+
+const json = await res.json();
+
+if (!res.ok || !json.success) {
+  console.error(json);
+  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
+  return;
+}
+
+if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
+
+setTab("elenco");
+await caricaDipendenti();
 
     const json = await res.json();
 
