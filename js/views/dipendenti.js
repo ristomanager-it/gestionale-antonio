@@ -118,6 +118,7 @@ async function renderElenco() {
             <th>Costo orario</th>
             <th>Costo medio</th>
             <th>Email</th>
+            <th>Ruolo</th>
             <th>Attivo</th>
             <th></th>
           </tr>
@@ -180,13 +181,29 @@ async function caricaDipendenti() {
     return;
   }
 
+  const { data: ruoliData, error: ruoliError } = await supabase
+    .from("utenti_aziende")
+    .select("user_id, ruolo")
+    .eq("azienda_id", azienda.id);
+
+  if (ruoliError) {
+    console.warn("Errore caricamento ruoli utenti_aziende:", ruoliError);
+  }
+
+  const ruoliMap = new Map(
+    (ruoliData || [])
+      .filter((r) => r && r.user_id)
+      .map((r) => [String(r.user_id), r.ruolo || "operatore"])
+  );
+
   const repartiMap = await loadRepartiMap();
 
   const filtered = (data || []).filter((d) => {
     if (!q) return true;
     const nomeCompleto = `${d.nome || ""} ${d.cognome || ""}`.toLowerCase();
     const repartoNome = repartiMap.get(String(d.reparto_id))?.nome?.toLowerCase() || "";
-    return nomeCompleto.includes(q) || repartoNome.includes(q);
+    const ruoloNome = (d.user_id ? ruoliMap.get(String(d.user_id)) : "") || "";
+    return nomeCompleto.includes(q) || repartoNome.includes(q) || ruoloNome.toLowerCase().includes(q);
   });
 
   if (!tbody) return;
@@ -195,7 +212,7 @@ async function caricaDipendenti() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="small-muted">Nessun dipendente trovato</td>
+        <td colspan="9" class="small-muted">Nessun dipendente trovato</td>
       </tr>
     `;
     return;
@@ -208,6 +225,7 @@ async function caricaDipendenti() {
   filtered.forEach((d) => {
     const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
     const repartoNome = repartiMap.get(String(d.reparto_id))?.nome || "-";
+    const ruolo = d.user_id ? (ruoliMap.get(String(d.user_id)) || "operatore") : "-";
 
     tbody.innerHTML += `
       <tr>
@@ -217,6 +235,7 @@ async function caricaDipendenti() {
         <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
         <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
+        <td>${escapeHtml(ruolo)}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
         <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
           ${canRead ? `<button class="app-button tiny gray" onclick="window._dipOpen('${d.id}')">Scheda</button>` : ""}
@@ -673,13 +692,7 @@ window._dipDelete = async function (id) {
     }
 
     if (dip.email) {
-      const ua = await supabase
-        .from("utenti_aziende")
-        .update({ attivo: false })
-        .eq("azienda_id", azienda.id)
-        .eq("email", dip.email);
-
-      if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+      console.warn("Disattivazione utenti_aziende da frontend disabilitata per RLS:", dip.email);
     }
   } else {
     if (!confirm("Eliminare definitivamente questo dipendente?")) return;
