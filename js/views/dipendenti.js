@@ -568,19 +568,6 @@ if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invit
 
 setTab("elenco");
 await caricaDipendenti();
-
-    const json = await res.json();
-
-    if (!res.ok || !json.success) {
-      console.error(json);
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
-      return;
-    }
-
-    if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
-
-    setTab("elenco");
-    await caricaDipendenti();
   } catch (err) {
     console.error(err);
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
