@@ -419,6 +419,11 @@ async function renderForm(dip) {
     accessoCb.checked = false;
   }
 
+  const ruoloSel = document.getElementById("dip-ruolo-app");
+  if (ruoloSel) {
+    ruoloSel.value = dip?.ruolo || "operatore";
+  }
+
   document.getElementById("dip-tipo-compenso")?.addEventListener("change", calcolaCosto);
   document.getElementById("dip-retribuzione-base")?.addEventListener("input", calcolaCosto);
   document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
@@ -429,7 +434,7 @@ async function renderForm(dip) {
     await caricaDipendenti();
   };
 
-    document.getElementById("btn-dip-save").onclick = async () => {
+  document.getElementById("btn-dip-save").onclick = async () => {
     await salvaDipendente(isEdit);
   };
 
@@ -453,184 +458,198 @@ function calcolaCosto() {
 }
 
 async function salvaDipendente(isEdit) {
-const azienda = window.state.azienda;
-const msg = document.getElementById("dip-form-msg");
-if (msg) msg.innerHTML = "";
+  const azienda = window.state.azienda;
+  const msg = document.getElementById("dip-form-msg");
+  if (msg) msg.innerHTML = "";
 
-const nome = (document.getElementById("dip-nome")?.value || "").trim();
-const cognome = (document.getElementById("dip-cognome")?.value || "").trim();
-const email = (document.getElementById("dip-email")?.value || "").trim();
-const telefono = (document.getElementById("dip-telefono")?.value || "").trim();
-const mansione = (document.getElementById("dip-mansione")?.value || "").trim();
-const ruolo = document.getElementById("dip-ruolo-app")?.value || "operatore";
+  const nome = (document.getElementById("dip-nome")?.value || "").trim();
+  const cognome = (document.getElementById("dip-cognome")?.value || "").trim();
+  const email = (document.getElementById("dip-email")?.value || "").trim();
+  const telefono = (document.getElementById("dip-telefono")?.value || "").trim();
+  const mansione = (document.getElementById("dip-mansione")?.value || "").trim();
+  const ruolo = document.getElementById("dip-ruolo-app")?.value || "operatore";
 
-if (!nome || !email) {
-if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome e email obbligatori</span>`;
-return;
-}
+  if (!nome || !email) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome e email obbligatori</span>`;
+    return;
+  }
 
-let repartoId = null;
-try {
-repartoId = await ensureRepartoIdFromInput();
-} catch (e) {
-if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore reparto</span>`;
-return;
-}
+  let repartoId = null;
+  try {
+    repartoId = await ensureRepartoIdFromInput();
+  } catch (e) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore reparto</span>`;
+    return;
+  }
 
-const payload = {
-nome,
-cognome,
-email,
-telefono,
-ruolo,
-mansione,
-reparto_id: repartoId,
-azienda_id: azienda.id
-};
+  const payload = {
+    nome,
+    cognome,
+    email,
+    telefono,
+    ruolo,
+    mansione,
+    reparto_id: repartoId,
+    azienda_id: azienda.id
+  };
 
-try {
-const {
-data: { session }
-} = await window.supabase.auth.getSession();
+  try {
+    const {
+      data: { session }
+    } = await window.supabase.auth.getSession();
 
-```
-const token = session?.access_token;
+    const token = session?.access_token;
+    const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
+    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
-const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
-const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify(payload)
-});
+    const json = await res.json();
 
-const json = await res.json();
+    if (!res.ok || !json.success) {
+      console.error(json);
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
+      return;
+    }
 
-if (!res.ok || !json.success) {
-  console.error(json);
-  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
-  return;
-}
+    if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
 
-if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
-
-setTab("elenco");
-await caricaDipendenti();
-```
-
-} catch (err) {
-console.error(err);
-if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
-}
+    setTab("elenco");
+    await caricaDipendenti();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore rete</span>`;
+  }
 }
 
 window._dipOpen = function (id) {
-window.location.hash = `#/dipendente?id=${id}`;
+  window.location.hash = `#/dipendente?id=${id}`;
 };
 
 window._dipEdit = async function (id) {
-const supabase = getSupabase();
+  const supabase = getSupabase();
 
-if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
-alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
-return;
-}
+  if (!window.hasPermesso || !window.hasPermesso("dipendenti.update")) {
+    alert("Accesso negato: non hai i permessi per modificare i dipendenti.");
+    return;
+  }
 
-const azienda = window.state.azienda;
+  const azienda = window.state.azienda;
 
-const { data, error } = await supabase
-.from("dipendenti")
-.select("*")
-.eq("id", id)
-.eq("azienda_id", azienda.id)
-.single();
+  const { data, error } = await supabase
+    .from("dipendenti")
+    .select("*")
+    .eq("id", id)
+    .eq("azienda_id", azienda.id)
+    .single();
 
-if (error || !data) {
-console.error(error);
-alert("Errore caricamento dipendente");
-return;
-}
+  if (error || !data) {
+    console.error(error);
+    alert("Errore caricamento dipendente");
+    return;
+  }
 
-setTab("form");
-await renderForm(data);
+  setTab("form");
+  await renderForm(data);
 };
 
 window._dipDelete = async function (id) {
-const supabase = getSupabase();
+  const supabase = getSupabase();
 
-if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
-alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
-return;
-}
+  if (!window.hasPermesso || !window.hasPermesso("dipendenti.delete")) {
+    alert("Accesso negato: non hai i permessi per eliminare i dipendenti.");
+    return;
+  }
 
-const azienda = window.state.azienda;
+  const azienda = window.state.azienda;
 
-const { data: dip, error: dipErr } = await supabase
-.from("dipendenti")
-.select("id,email,attivo")
-.eq("id", id)
-.eq("azienda_id", azienda.id)
-.single();
-
-if (dipErr || !dip) {
-console.error(dipErr);
-alert("Errore caricamento dipendente");
-return;
-}
-
-if (dip.attivo) {
-if (!confirm("Disattivare il dipendente?")) return;
-
-```
-const { error } = await supabase
-  .from("dipendenti")
-  .update({ attivo: false })
-  .eq("id", id)
-  .eq("azienda_id", azienda.id);
-
-if (error) {
-  console.error(error);
-  alert("Errore disattivazione dipendente");
-  return;
-}
-
-if (dip.email) {
-  const ua = await supabase
-    .from("utenti_aziende")
-    .update({ attivo: false })
+  const { data: dip, error: dipErr } = await supabase
+    .from("dipendenti")
+    .select("id,email,attivo")
+    .eq("id", id)
     .eq("azienda_id", azienda.id)
-    .eq("email", dip.email);
+    .single();
 
-  if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
-}
-```
+  if (dipErr || !dip) {
+    console.error(dipErr);
+    alert("Errore caricamento dipendente");
+    return;
+  }
 
-} else {
-if (!confirm("Eliminare definitivamente questo dipendente?")) return;
+  if (dip.attivo) {
+    if (!confirm("Disattivare il dipendente?")) return;
 
-```
-const { error } = await supabase
-  .from("dipendenti")
-  .delete()
-  .eq("id", id)
-  .eq("azienda_id", azienda.id);
+    const { error } = await supabase
+      .from("dipendenti")
+      .update({ attivo: false })
+      .eq("id", id)
+      .eq("azienda_id", azienda.id);
 
-if (error) {
-  console.error(error);
-  alert("Errore eliminazione definitiva");
-  return;
-}
-```
+    if (error) {
+      console.error(error);
+      alert("Errore disattivazione dipendente");
+      return;
+    }
 
-}
+    if (dip.email) {
+      const ua = await supabase
+        .from("utenti_aziende")
+        .update({ attivo: false })
+        .eq("azienda_id", azienda.id)
+        .eq("email", dip.email);
 
-await caricaDipendenti();
+      if (ua.error) console.warn("Impossibile disattivare utenti_aziende:", ua.error);
+    }
+  } else {
+    if (!confirm("Eliminare definitivamente questo dipendente?")) return;
+
+    const { error } = await supabase
+      .from("dipendenti")
+      .delete()
+      .eq("id", id)
+      .eq("azienda_id", azienda.id);
+
+    if (error) {
+      console.error(error);
+      alert("Errore eliminazione definitiva");
+      return;
+    }
+  }
+
+  await caricaDipendenti();
 };
 
+async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipendenteId, mode = "invite" }) {
+  const supabase = getSupabase();
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const token = session?.access_token || null;
+    if (!token) {
+      console.error("Sessione mancante: impossibile chiamare Edge Function");
+      return { ok: false, message: "Sessione mancante" };
+    }
+
+    const supabaseUrl = supabase?.supabaseUrl || window.SUPABASE_URL;
+    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+
+    const body = JSON.stringify({
+      email,
+      azienda_id: aziendaId,
+      ruolo,
+      dipendente_id: dipendenteId,
+      mode,
+    });
 
     const r = await fetch(endpoint, {
       method: "POST",
