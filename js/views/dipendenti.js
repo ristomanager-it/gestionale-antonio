@@ -628,12 +628,13 @@ if (dip.user_id) {
     console.warn("Ruolo non trovato, fallback operatore");
   }
 }
-
 // 👉 iniettiamo il ruolo corretto nel form
 dip.ruolo = ruolo;
 
 setTab("form");
 await renderForm(dip);
+
+}; // 🔥 CHIUSURA FUNZIONE _dipEdit (FONDAMENTALE)
 
 window._dipDelete = async function (id) {
   const supabase = getSupabase();
