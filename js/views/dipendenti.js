@@ -160,7 +160,8 @@ async function caricaDipendenti() {
       costo_medio,
       attivo,
       created_at,
-      reparto_id
+      reparto_id,
+      user_id
     `)
     .eq("azienda_id", azienda.id)
     .order("nome");
@@ -298,6 +299,7 @@ async function renderForm(dip) {
       <form id="dip-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px;">
 
         <input type="hidden" id="dip-id" value="${dip?.id || ""}" />
+        <input type="hidden" id="dip-user-id" value="${dip?.user_id || ""}" />
 
         <label>Nome *
           <input type="text" id="dip-nome" class="input-pill" required value="${dip?.nome || ""}" />
@@ -490,12 +492,10 @@ async function salvaDipendente(isEdit) {
     const token = session?.access_token;
     const supabaseUrl = window.supabase?.supabaseUrl || window.SUPABASE_URL;
 
-    // 🔥 MODIFICA
     if (isEdit) {
       const id = document.getElementById("dip-id")?.value;
-      const userId = document.getElementById("dip-user-id")?.value;
+      const userId = document.getElementById("dip-user-id")?.value || null;
 
-      // 1️⃣ aggiorna dipendente
       const { error } = await window.supabase
         .from("dipendenti")
         .update({
@@ -515,7 +515,6 @@ async function salvaDipendente(isEdit) {
         return;
       }
 
-      // 2️⃣ aggiorna ruolo via Edge Function (NO RLS)
       if (userId) {
         const resRuolo = await fetch(`${supabaseUrl}/functions/v1/ruolo-dipendente`, {
           method: "POST",
@@ -534,6 +533,8 @@ async function salvaDipendente(isEdit) {
 
         if (!resRuolo.ok || !jsonRuolo.success) {
           console.error("Errore ruolo:", jsonRuolo);
+          if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento ruolo</span>`;
+          return;
         }
       }
 
@@ -544,7 +545,6 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-    // 🔽 CREAZIONE → EDGE FUNCTION
     const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
     const res = await fetch(endpoint, {
