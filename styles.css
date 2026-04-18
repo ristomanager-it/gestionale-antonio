@@ -688,22 +688,45 @@ FIX GRID + MOBILE
   }
 }
 /* ================================
-   SOTTOHEADER AZIENDA
+   HEADER AZIENDA (BIANCO)
 ================================ */
 
-.topbar-global {
+.topbar-main {
   display: flex;
-  flex-direction: column;
-  width: 100%;
+  align-items: center;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* CONTENITORE BLU */
+.topbar-azienda-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.topbar-azienda-nome {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+
+/* ================================
+   SOTTOHEADER BLU (2 RIGHE)
+================================ */
+
 .topbar-sub {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 
   padding: 10px 16px;
-  gap: 6px;
 
   background: linear-gradient(
     90deg,
@@ -714,39 +737,28 @@ FIX GRID + MOBILE
   color: #ffffff;
 }
 
-
-/* ===== RIGA 1: LOGO + NOME ===== */
-
+/* RIGA 1 */
 .topbar-sub-top {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.topbar-logo {
-  height: 36px;
-  width: auto;
-  object-fit: contain;
-  flex-shrink: 0;
+.topbar-sub-top .topbar-logo {
+  height: 28px;
 }
 
-.topbar-azienda-nome {
+.topbar-sub-top .topbar-azienda-nome {
+  font-size: 14px;
   font-weight: 600;
-  font-size: 15px;
 
-  /* 🔥 NIENTE TAGLIO */
+  /* 🔥 NOME INTERO */
   white-space: normal;
   overflow: visible;
-  text-overflow: unset;
 }
 
-
-/* ===== RIGA 2: INFO ===== */
-
+/* RIGA 2 */
 .topbar-sub-bottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
 }
 
@@ -755,20 +767,19 @@ FIX GRID + MOBILE
    MOBILE
 ================================ */
 
-@media (max-width: 600px) {
+@media (max-width:600px){
 
   .topbar-logo {
-    height: 28px;
+    height: 30px;
   }
 
-  .topbar-azienda-nome {
-    font-size: 14px;
+  .topbar-sub-top .topbar-logo {
+    height: 24px;
   }
 
   .topbar-sub-bottom {
-    flex-wrap: wrap;
-    row-gap: 4px;
     font-size: 12px;
+    line-height: 1.3;
   }
 
 }
