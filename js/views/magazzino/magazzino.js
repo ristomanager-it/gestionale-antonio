@@ -698,3 +698,15 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
+export async function render(container){
+
+  container.innerHTML = `
+    <div class="view">
+      <h2>Magazzino</h2>
+    </div>
+  `
+
+  // 🔥 iniettiamo il modal nel DOM
+  document.body.insertAdjacentHTML("beforeend", renderCaricoModal())
+
+}
