@@ -117,12 +117,12 @@ gap:10px;
 min-width:0;
 }
 
-/* 🔥 FIX LOGO */
-.header-logo{
-width:54px;
-height:64px;
-object-fit:contain;
-flex-shrink:0;
+@media (max-width:600px){
+
+  .header-logo{
+    height: 36px;    /* 🔥 leggermente più piccolo su mobile */
+  }
+
 }
 
 /* 🔥 FIX TITOLO CENTRATO + TRONCAMENTO */
