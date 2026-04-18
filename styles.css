@@ -692,6 +692,13 @@ FIX GRID + MOBILE
 ================================ */
 
 .topbar-azienda {
+  position: fixed;                 /* 🔥 QUESTO RISOLVE */
+  top: var(--header-height);       /* 🔥 sotto la header */
+  left: 0;
+  width: 100%;
+
+  z-index: 999;
+
   display: flex;
   flex-direction: column;
 
@@ -706,7 +713,6 @@ FIX GRID + MOBILE
 
   color: #ffffff;
 }
-
 /* ================================
    RIGA 1
 ================================ */
