@@ -687,76 +687,9 @@ FIX GRID + MOBILE
     border-radius:12px;
   }
 }
-/* ===== LOGO AZIENDA TOPBAR ===== */
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topbar-logo {
-  height: 28px;
-  width: auto;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.topbar-logo.placeholder {
-  height: 28px;
-  width: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.topbar-azienda {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.topbar-divider {
-  margin: 0 6px;
-  color: #9ca3af;
-}
-/* ===== FIX MOBILE TOPBAR ===== */
-
-@media (max-width: 600px) {
-
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
-
-  .topbar-logo {
-    height: 22px;
-    max-width: 60px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-
-  .topbar-azienda {
-    font-size: 12px;
-    max-width: 90px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* nascondo roba meno importante su mobile */
-  .topbar-left span:nth-child(4),
-  .topbar-left span:nth-child(5) {
-    display: none;
-  }
-
-}
-/* ===== TOPBAR STRUTTURA ===== */
+/* ================================
+   TOPBAR STRUTTURA
+================================ */
 
 .topbar-global {
   display: flex;
@@ -765,6 +698,7 @@ FIX GRID + MOBILE
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
 }
+
 
 /* ================================
    HEADER AZIENDA
@@ -786,8 +720,10 @@ FIX GRID + MOBILE
 .topbar-logo {
   height: 32px;
   width: auto;
+  max-height: 32px;
   object-fit: contain;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .topbar-logo.placeholder {
@@ -807,22 +743,28 @@ FIX GRID + MOBILE
 
 
 /* ================================
-   SUBHEADER
+   SUBHEADER (IMPORTANTE)
 ================================ */
 
 .topbar-sub {
   display: flex;
   justify-content: space-between;
-  align-items: center;
 
-  padding: 10px 16px;
-  min-height: 42px;
+  align-items: flex-start; /* 🔥 fondamentale */
+
+  padding: 12px 16px;
+  min-height: 60px;
 
   font-size: 13px;
+  line-height: 1.4;
+
   color: #6b7280;
 
-  background: #f9fafb; /* 🔥 colore ripristinato */
-  border-top: 1px solid #f1f5f9;
+  background: #f3f4f6; /* 🔥 COLORE ORIGINALE RIPRISTINATO */
+  border-top: 1px solid #e5e7eb;
+
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 
 .topbar-sub-left,
@@ -830,6 +772,9 @@ FIX GRID + MOBILE
   display: flex;
   align-items: center;
   gap: 6px;
+
+  width: 100%;
+  justify-content: space-between;
 }
 
 
@@ -845,6 +790,7 @@ FIX GRID + MOBILE
 
   .topbar-logo {
     height: 24px;
+    max-height: 24px;
   }
 
   .topbar-azienda-nome {
@@ -857,19 +803,10 @@ FIX GRID + MOBILE
   }
 
   .topbar-sub {
-    padding: 12px 14px;
-    min-height: 56px;
-
-    flex-wrap: wrap;
-    row-gap: 6px;
+    padding: 14px 14px;
+    min-height: 64px;
 
     font-size: 13px;
-  }
-
-  .topbar-sub-left,
-  .topbar-sub-right {
-    width: 100%;
-    justify-content: space-between;
   }
 
 }
