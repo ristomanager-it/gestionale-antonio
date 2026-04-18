@@ -15,16 +15,15 @@
   <link rel="apple-touch-icon" href="assets/favicon-192.png?v=9" />
 
   <link rel="manifest" href="manifest.json" />
-
   <meta name="theme-color" content="#2563eb" />
 
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 
 </head>
 
 <body>
 
-  <!-- HEADER (SOLO LOGO) -->
+  <!-- HEADER -->
   <header class="app-header">
 
     <div class="header-left">
@@ -49,12 +48,10 @@
   <!-- SOTTOHEADER -->
   <div id="topbar-azienda" class="topbar-azienda">
 
-    <!-- RIGA 1 -->
     <div class="topbar-row-1">
       <div id="azienda-nome" class="azienda-nome"></div>
     </div>
 
-    <!-- RIGA 2 -->
     <div class="topbar-row-2">
 
       <div class="sub-left">
@@ -77,8 +74,10 @@
   <nav id="global-menu"></nav>
   <div class="menu-overlay"></div>
 
+  <!-- 🔥 CONTENUTO APP -->
   <main id="app"></main>
 
+  <!-- 🔥 FOOTER -->
   <footer id="footer-root"></footer>
 
 
@@ -117,19 +116,16 @@
 
     const nomeUser = user?.email?.split("@")[0] || "utente"
 
-    // HEADER LOGO
     const logo = document.getElementById("header-logo")
     if(azienda && logo && azienda.logo_url){
       logo.src = azienda.logo_url
     }
 
-    // NOME AZIENDA
     const nome = document.getElementById("azienda-nome")
     if(nome){
       nome.textContent = azienda?.nome || ""
     }
 
-    // SALUTO
     const salutoEl = document.getElementById("topbar-saluto")
     if(salutoEl){
       const ora = new Date().getHours()
@@ -142,7 +138,6 @@
       salutoEl.textContent = `${saluto}, ${nomeUser}`
     }
 
-    // DATA
     const dataEl = document.getElementById("topbar-data")
     if(dataEl){
       const oggi = new Date()
@@ -153,7 +148,6 @@
       })
     }
 
-    // METEO
     const meteoEl = document.getElementById("topbar-weather")
     if(meteoEl && window.getWeather){
       window.getWeather().then(res => {
