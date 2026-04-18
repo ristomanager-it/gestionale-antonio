@@ -1,4 +1,4 @@
-import "../db.js";
+import "../../db.js";
 
 export function renderCaricoModal() {
   return `
