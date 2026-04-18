@@ -95,7 +95,7 @@ function renderGestioneSedi(container, sedi){
 
 
 /* =========================
-CREAZIONE PRIMA SEDE
+CREAZIONE
 ========================= */
 
 function renderWizardPrimaSede(container, aziendaId){
@@ -109,7 +109,7 @@ function renderWizardPrimaSede(container, aziendaId){
 
         <input id="nome" class="input" placeholder="Nome sede" />
         <input id="indirizzo" class="input" placeholder="Indirizzo" />
-        <input id="logo" class="input" placeholder="URL logo (opzionale)" />
+        <input type="file" id="logoFile" />
 
         <button id="save" class="app-button">Crea sede</button>
 
@@ -122,11 +122,17 @@ function renderWizardPrimaSede(container, aziendaId){
 
     const nome = document.getElementById("nome").value;
     const indirizzo = document.getElementById("indirizzo").value;
-    const logo = document.getElementById("logo").value;
+    const file = document.getElementById("logoFile").files[0];
 
     if(!nome){
       alert("Nome obbligatorio");
       return;
+    }
+
+    let logo_url = null;
+
+    if (file) {
+      logo_url = await uploadLogo(file, aziendaId);
     }
 
     const { data, error } = await supabase
@@ -135,7 +141,7 @@ function renderWizardPrimaSede(container, aziendaId){
         azienda_id: aziendaId,
         nome,
         indirizzo,
-        logo_url: logo || null,
+        logo_url,
         attiva: true
       })
       .select()
@@ -156,7 +162,7 @@ function renderWizardPrimaSede(container, aziendaId){
 
 
 /* =========================
-MODIFICA COMPLETA
+MODIFICA
 ========================= */
 
 window.editSede = async function(id){
@@ -164,35 +170,85 @@ window.editSede = async function(id){
   const sede = window.state.sedi.find(s => String(s.id) === String(id));
   if(!sede) return;
 
-  const nome = prompt("Nome sede", sede.nome);
-  if(!nome) return;
+  const html = `
+    <div class="view">
+      <h3>Modifica sede</h3>
 
-  const indirizzo = prompt("Indirizzo", sede.indirizzo || "");
-  const logo = prompt("URL logo", sede.logo_url || "");
+      <input id="edit-nome" value="${sede.nome}" />
+      <input id="edit-indirizzo" value="${sede.indirizzo || ""}" />
+      <input type="file" id="edit-logo" />
 
-  const { error } = await supabase
-    .from("sedi")
-    .update({
-      nome,
-      indirizzo,
-      logo_url: logo || null
-    })
-    .eq("id", id);
+      <button id="saveEdit">Salva</button>
+    </div>
+  `;
+
+  document.body.innerHTML = html;
+
+  document.getElementById("saveEdit").onclick = async () => {
+
+    const nome = document.getElementById("edit-nome").value;
+    const indirizzo = document.getElementById("edit-indirizzo").value;
+    const file = document.getElementById("edit-logo").files[0];
+
+    let logo_url = sede.logo_url;
+
+    if (file) {
+      logo_url = await uploadLogo(file, sede.azienda_id);
+    }
+
+    const { error } = await supabase
+      .from("sedi")
+      .update({
+        nome,
+        indirizzo,
+        logo_url
+      })
+      .eq("id", id);
+
+    if(error){
+      console.error(error);
+      alert("Errore aggiornamento");
+      return;
+    }
+
+    await window.stateActions.caricaSedi();
+
+    if (window.state?.sedeAttiva?.id === id) {
+      window.stateActions.setSedeAttiva(id);
+    }
+
+    location.reload();
+  };
+}
+
+
+/* =========================
+UPLOAD LOGO
+========================= */
+
+async function uploadLogo(file, aziendaId){
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${aziendaId}_${Date.now()}.${fileExt}`;
+  const filePath = `loghi/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from("loghi-aziende")
+    .upload(filePath, file, {
+      upsert: true
+    });
 
   if(error){
     console.error(error);
-    alert("Errore aggiornamento sede");
-    return;
+    alert("Errore upload logo");
+    return null;
   }
 
-  await window.stateActions.caricaSedi();
+  const { data } = supabase.storage
+    .from("loghi-aziende")
+    .getPublicUrl(filePath);
 
-  // 🔥 aggiorna subito header/logo se sede attiva
-  if (window.state?.sedeAttiva?.id === id) {
-    window.stateActions.setSedeAttiva(id);
-  }
-
-  location.reload();
+  return data.publicUrl;
 }
 
 
