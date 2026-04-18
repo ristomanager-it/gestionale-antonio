@@ -120,7 +120,7 @@ min-width:0;
 @media (max-width:600px){
 
   .header-logo{
-    height: 36px;    /* 🔥 leggermente più piccolo su mobile */
+    height: 48px;    /* 🔥 leggermente più piccolo su mobile */
   }
 
 }
