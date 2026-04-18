@@ -738,7 +738,7 @@ FIX GRID + MOBILE
 }
 
 .azienda-nome {
-  font-size: 16px;          /* 🔥 più grande */
+  font-size: 20px;          /* 🔥 più grande */
   font-weight: 800;         /* 🔥 più deciso */
   text-align: center;
 
@@ -759,7 +759,7 @@ FIX GRID + MOBILE
 ================================ */
 
 .topbar-row-2 {
-  font-size: 11px;
+  font-size: 14px;
   opacity: 0.9;
 
   display: flex;
