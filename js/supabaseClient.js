@@ -1,12 +1,14 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+// 🔥 CDN GLOBALE (NO MODULE)
+const { createClient } = window.supabase;
 
+// 🔥 CONFIG
 const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
 
 // 🔥 CLIENT UNICO
-const supabase = createClient(
+const client = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   {
@@ -18,11 +20,11 @@ const supabase = createClient(
   }
 );
 
-// 🔥 BLOCCO CRITICO: assicura disponibilità globale PRIMA dei moduli
-window.supabase = supabase;
+// 🔥 ESPOSIZIONE GLOBALE
+window.supabase = client;
 window.SUPABASE_READY = true;
 
-// 🔥 FUNZIONE GLOBALE SICURA (retrocompatibilità totale)
+// 🔥 FUNZIONE SICURA
 window.getSupabase = function () {
   if (!window.supabase) {
     throw new Error("Supabase non inizializzato");
