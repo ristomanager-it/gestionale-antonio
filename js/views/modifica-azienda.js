@@ -1,4 +1,3 @@
-// js/views/modifica-azienda.js
 import { supabase } from "../supabaseClient.js";
 
 const MODULI = [
@@ -38,6 +37,16 @@ export async function render(container) {
     return;
   }
 
+  // 🔥 prendo abbonamento attivo
+  const { data: abbonamento } = await supabase
+    .from("abbonamenti")
+    .select("*, piani_abbonamento(*)")
+    .eq("azienda_id", id)
+    .eq("stato", "attivo")
+    .single();
+
+  const pianoCorrente = abbonamento?.piani_abbonamento?.nome || azienda.piano;
+
   container.innerHTML = `
     <div class="page">
 
@@ -52,7 +61,7 @@ export async function render(container) {
       ${cardAnagrafica(azienda)}
       ${cardFiscale(azienda)}
       ${cardContatti(azienda)}
-      ${cardSaaS(azienda)}
+      ${cardSaaS(azienda, pianoCorrente)}
       ${cardFeatures()}
 
       <div class="form-actions">
@@ -70,6 +79,45 @@ export async function render(container) {
   };
 
   document.getElementById("btn-save").onclick = async () => {
+
+    const nuovoPianoNome = val("piano");
+
+    // 🔥 PRENDO PIANO DB
+    const { data: piano } = await supabase
+      .from("piani_abbonamento")
+      .select("*")
+      .eq("nome", nuovoPianoNome)
+      .single();
+
+    // 🔥 PRENDO ABBONAMENTO ATTIVO
+    const { data: abbonamentoAttivo } = await supabase
+      .from("abbonamenti")
+      .select("*")
+      .eq("azienda_id", id)
+      .eq("stato", "attivo")
+      .single();
+
+    // 🔥 SE CAMBIA → UPGRADE
+    if (piano && abbonamentoAttivo && abbonamentoAttivo.piano_id !== piano.id) {
+
+      await supabase
+        .from("abbonamenti")
+        .update({
+          stato: "terminato",
+          data_fine: new Date()
+        })
+        .eq("id", abbonamentoAttivo.id);
+
+      await supabase
+        .from("abbonamenti")
+        .insert({
+          azienda_id: id,
+          piano_id: piano.id,
+          stato: "attivo"
+        });
+    }
+
+    // 🔥 UPDATE AZIENDA (SENZA PIANO)
     const updateData = {
       nome: val("nome"),
       ragione_sociale: val("ragione_sociale"),
@@ -87,10 +135,6 @@ export async function render(container) {
       referente: val("referente"),
       email_amministrativa: val("email_amministrativa"),
       telefono_amministrativo: val("telefono_amministrativo"),
-      data_scadenza: val("data_scadenza") || null,
-      piano: val("piano"),
-      numero_massimo_utenti: intVal("numero_massimo_utenti"),
-      numero_massimo_ricette: intVal("numero_massimo_ricette"),
       attiva: boolVal("attiva"),
       stato: val("stato"),
       stato_attivazione: val("stato_attivazione")
@@ -282,15 +326,12 @@ function cardContatti(a) {
   `;
 }
 
-function cardSaaS(a) {
+function cardSaaS(a, pianoCorrente) {
   return `
     <div class="card">
       <div class="card-header"><h3>Configurazione SaaS</h3></div>
       <div class="card-body form-grid">
-        ${select("piano","Piano",a.piano,["basic","pro","premium"])}
-        ${input("numero_massimo_utenti","Max Utenti",a.numero_massimo_utenti,"number")}
-        ${input("numero_massimo_ricette","Max Ricette",a.numero_massimo_ricette,"number")}
-        ${input("data_scadenza","Data Scadenza",a.data_scadenza,"date")}
+        ${select("piano","Piano",pianoCorrente,["basic","pro","premium"])}
         ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
         ${select("stato","Stato",a.stato,["attiva","sospesa"])}
         <div class="form-group checkbox-group">
