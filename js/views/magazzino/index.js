@@ -7,12 +7,16 @@ export async function render(container){
 
       <div class="grid">
 
+        <div class="card" data-action="home">
+          📊 Dashboard magazzino
+        </div>
+
         <div class="card" data-action="carico">
           📦 Carico merce
         </div>
 
         <div class="card" data-action="prodotti">
-          📦 Prodotti
+          📦 Prodotti finiti
         </div>
 
         <div class="card" data-action="materie">
@@ -50,6 +54,29 @@ export async function render(container){
   `
 
   bindEvents()
+
+  // ✅ carica subito la UI originale
+  await loadMainView()
+}
+
+
+// =====================================
+// LOAD VIEW PRINCIPALE (vecchia UI)
+// =====================================
+
+async function loadMainView(){
+
+  const container = document.getElementById("magazzino-content")
+  if (!container) return
+
+  const mod = await import("./magazzino.js")
+
+  if(mod.render){
+    await mod.render(container)
+  }else{
+    container.innerHTML = `<div>Magazzino pronto</div>`
+  }
+
 }
 
 
@@ -67,10 +94,22 @@ function bindEvents(){
 
       if (!container) return
 
-      // 🔥 CARICO
+      // 🔥 HOME (vecchia UI)
+      if(action === "home"){
+        await loadMainView()
+      }
+
+      // 🔥 CARICO MERCE (FIX PARAMETRI)
       if(action === "carico"){
-        const mod = await import("./carico_magazzino.js")
-        if(mod.render) await mod.render(container)
+        const mod = await import("./magazzino.js")
+
+        if(mod.apriCaricoModal){
+          mod.apriCaricoModal({
+            aziendaId: window.state?.azienda?.id,
+            sedeId: window.state?.sedeAttiva?.id,
+            userId: window.state?.user?.id
+          })
+        }
       }
 
       // 🔥 PRODOTTI FINITI
