@@ -851,3 +851,32 @@ FIX SPAZIO CONTENUTO
   align-items: center;
   justify-content: center;
 }
+/* ================================
+   LOGO HEADER
+================================ */
+
+#header-logo {
+  height: 36px;
+  object-fit: contain;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+  #header-logo {
+    height: 50px;
+  }
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+  #header-logo {
+    height: 60px;
+  }
+}
+
+/* LARGE DESKTOP */
+@media (min-width: 1400px) {
+  #header-logo {
+    height: 70px;
+  }
+}
