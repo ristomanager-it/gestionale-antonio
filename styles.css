@@ -713,13 +713,15 @@ FIX GRID + MOBILE
 }
 
 .azienda-logo {
-  height: 15px;           /* 🔥 FIX principale */
-  max-height: 15px;
+  height: 20px;          /* 🔥 più piccolo */
+  max-height: 20px;
   width: auto;
+
   object-fit: contain;
   flex-shrink: 0;
-}
 
+  display: block;
+}
 .azienda-nome {
   font-size: 14px;        /* 🔥 leggermente più piccolo */
   font-weight: 600;
