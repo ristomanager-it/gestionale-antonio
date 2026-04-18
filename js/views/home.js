@@ -138,9 +138,8 @@ export async function render(container){
   initFooter()
   loadTony(ruolo)
 
-  // 🔥 NUOVO
-  loadProduzioniHome()
-
+  // ✅ FIX CRITICO
+  await loadProduzioniHome()
 }
 
 
@@ -161,7 +160,7 @@ function renderHeader(ruolo){
 
 
 // =====================================
-// 🧠 TONY DECISIONALE
+// TONY
 // =====================================
 
 async function loadTony(ruolo){
@@ -246,11 +245,6 @@ async function loadTony(ruolo){
   renderTony(insights)
 }
 
-
-// =====================================
-// RENDER TONY
-// =====================================
-
 function renderTony(insights){
 
   const container = document.getElementById("tony-container")
@@ -268,7 +262,6 @@ function renderTony(insights){
       ${insights.map(i => `
         <div class="tony-item ${i.tone}">
           ${getIcon(i.tone)} ${i.text}
-
           ${i.action ? `
             <button class="tony-action" data-action="${i.action}">
               ${i.actionLabel || "Apri"}
@@ -276,7 +269,6 @@ function renderTony(insights){
           ` : ""}
         </div>
       `).join("")}
-
     </div>
   `
 
@@ -290,31 +282,17 @@ function getIcon(tone){
   return "•"
 }
 
-
-// =====================================
-// ACTIONS
-// =====================================
-
 function bindTonyActions(){
-
   document.querySelectorAll(".tony-action").forEach(btn => {
-
     btn.onclick = () => {
-
       const route = btn.dataset.action
-
-      window.state.tonyContext = route
-
       if(window.router?.go){
         window.router.go(route)
       }else{
         window.location.hash = "#/" + route
       }
-
     }
-
   })
-
 }
 
 
@@ -323,7 +301,6 @@ function bindTonyActions(){
 // =====================================
 
 function renderByRole(ruolo){
-
   return `
     <div class="grid">
 
@@ -350,10 +327,18 @@ function renderByRole(ruolo){
 
 
 // =====================================
-// PRODUZIONI HOME
+// PRODUZIONI (FIX)
 // =====================================
 
 async function loadProduzioniHome(){
+
+  const oggiEl = document.getElementById("oggi-list")
+  const settimanaEl = document.getElementById("settimana-list")
+
+  if (!oggiEl || !settimanaEl) {
+    console.warn("DOM non pronto per produzioni home")
+    return
+  }
 
   const supabase = window.supabaseClient
   const userId = window.state.user.id
@@ -379,14 +364,14 @@ async function loadProduzioniHome(){
     .gte("data", start.toISOString().slice(0,10))
     .lte("data", end.toISOString().slice(0,10))
 
-  document.getElementById("oggi-list").innerHTML =
+  oggiEl.innerHTML =
     (oggi || []).length === 0
       ? "Nessuna lavorazione"
       : oggi.map(r => `
           <div>${r.prodotto} (${r.quantita})</div>
         `).join("")
 
-  document.getElementById("settimana-list").innerHTML =
+  settimanaEl.innerHTML =
     (settimana || []).map(r => `
       <div>${r.data} - ${r.prodotto}</div>
     `).join("")
@@ -398,11 +383,9 @@ async function loadProduzioniHome(){
 // =====================================
 
 function bindEvents(){
-
   document.querySelectorAll("[data-route]").forEach(el=>{
     el.onclick = ()=>{
       const route = el.dataset.route
-
       if(window.router?.go){
         window.router.go(route)
       }else{
@@ -410,5 +393,4 @@ function bindEvents(){
       }
     }
   })
-
 }
