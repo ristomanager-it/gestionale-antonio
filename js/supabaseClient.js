@@ -1,79 +1,39 @@
-(function () {
-  const supabaseLib = window.supabase;
+const supabase = window.supabase;
 
-  if (!supabaseLib || typeof supabaseLib.createClient !== "function") {
-    throw new Error("Libreria Supabase non caricata correttamente");
+if (!supabase || typeof supabase.from !== "function") {
+  throw new Error("Supabase client non inizializzato");
+}
+
+function getSupabase() {
+  if (!window.supabase || typeof window.supabase.from !== "function") {
+    throw new Error("Supabase non inizializzato");
   }
 
-  const { createClient } = supabaseLib;
+  return window.supabase;
+}
 
-  const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+async function waitSupabase() {
+  let retries = 20;
 
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  while ((!window.supabase || typeof window.supabase.from !== "function") && retries > 0) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    retries--;
+  }
 
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
+  if (!window.supabase || typeof window.supabase.from !== "function") {
+    throw new Error("Supabase non disponibile dopo attesa");
+  }
 
-  window.supabase = client;
-  window.SUPABASE_READY = true;
+  return window.supabase;
+}
 
-  window.getSupabase = function () {
-    if (!window.supabase) {
-      throw new Error("Supabase non inizializzato");
-    }
+if (!window.getSupabase) {
+  window.getSupabase = getSupabase;
+}
 
-    return window.supabase;
-  };
+if (!window.waitSupabase) {
+  window.waitSupabase = waitSupabase;
+}
 
-  window.waitSupabase = async function () {
-    let retries = 20;
-
-    while (!window.supabase && retries > 0) {
-      await new Promise(function (resolve) {
-        setTimeout(resolve, 50);
-      });
-      retries--;
-    }
-
-    if (!window.supabase) {
-      throw new Error("Supabase non disponibile dopo attesa");
-    }
-
-    return window.supabase;
-  };
-
-  window.testCreateAzienda = async function () {
-    const supabase = await window.waitSupabase();
-
-    const payload = {
-      nome: "Azienda Demo",
-      codice: "DEMO001",
-      email_amministrativa: "demo@azienda.it",
-      telefono_amministrativo: "3330000000",
-      email_admin: "admin.demo@azienda.it",
-      password_admin: "Password123!",
-      features: {
-        dipendenti: true,
-        timbrature: true,
-        magazzino: false,
-        acquisti: false,
-        ricette: false,
-        venduto: false,
-        report: false
-      }
-    };
-
-    const { data, error } = await supabase.functions.invoke("create-azienda", {
-      body: payload
-    });
-
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-  };
-})();
+export { supabase, getSupabase, waitSupabase };
+export default supabase;
