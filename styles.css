@@ -819,3 +819,30 @@ FIX SPAZIO CONTENUTO
   }
 
 }
+/* ================================
+   LOGO HEADER
+================================ */
+
+.header-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* ================================
+   DESKTOP
+================================ */
+
+@media (min-width:1024px){
+
+  .header-logo {
+    height: 22px; /* 🔥 ridotto su desktop */
+  }
+
+}
+.header-logo {
+  height: clamp(22px, 3vw, 32px);
+  width: auto;
+  object-fit: contain;
+}
