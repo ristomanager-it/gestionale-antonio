@@ -10,9 +10,9 @@ export async function render(container) {
     return;
   }
 
-  const sedi = await caricaSedi(azienda.id);
+  await window.stateActions.caricaSedi();
 
-  window.state.sedi = sedi;
+  const sedi = window.state.sedi || [];
 
   const sediMax = azienda?.sedi_max || 1;
   const sediUsate = sedi.length;
@@ -30,11 +30,20 @@ export async function render(container) {
     return;
   }
 
-  // 👉 AUTOSELECT
-  if (sedi.length === 1) {
-    localStorage.setItem("active_sede_id", String(sedi[0].id));
-    window.location.hash = "#/home";
-    return;
+  // 👉 AUTOSELECT INTELLIGENTE
+  if (!window.state.sedeAttiva) {
+    if (sedi.length === 1) {
+      window.stateActions.setSedeAttiva(sedi[0].id);
+      window.location.hash = "#/home";
+      return;
+    }
+
+    const stored = localStorage.getItem("active_sede_id");
+    if (stored) {
+      window.stateActions.setSedeAttiva(stored);
+      window.location.hash = "#/home";
+      return;
+    }
   }
 
   renderSelezioneSede(container, sedi, { sediMax, sediUsate, canCreate });
@@ -42,29 +51,44 @@ export async function render(container) {
 
 
 /* =========================
-LOAD
+SELEZIONE
 ========================= */
 
-async function caricaSedi(aziendaId) {
+function renderSelezioneSede(container, sedi, meta) {
 
-  const { data, error } = await supabase
-    .from("sedi")
-    .select("*")
-    .eq("azienda_id", aziendaId)
-    .eq("attiva", true)  // 🔥 FIX
-    .order("nome", { ascending: true });
+  container.innerHTML = `
+    <div class="view">
 
-  if (error) {
-    console.error(error);
-    return [];
-  }
+      <h2>Seleziona sede</h2>
 
-  return data || [];
+      ${sedi.map(s => `
+        <div class="card" style="margin-bottom:10px; cursor:pointer;"
+          onclick="selectSede('${s.id}')">
+
+          <div style="font-weight:700;">${s.nome}</div>
+          <div style="font-size:12px; opacity:0.7;">${s.indirizzo || ""}</div>
+
+        </div>
+      `).join("")}
+
+      ${meta.canCreate ? `
+        <button class="app-button" onclick="window.location.hash='#/gestione-sedi?mode=first'">
+          + Nuova sede
+        </button>
+      ` : ""}
+
+    </div>
+  `;
 }
+
+window.selectSede = function(id){
+  window.stateActions.setSedeAttiva(id);
+  window.location.hash = "#/home";
+};
 
 
 /* =========================
-GESTIONE SEDI (NUOVA)
+GESTIONE
 ========================= */
 
 function renderGestioneSedi(container, sedi){
@@ -98,6 +122,67 @@ function renderGestioneSedi(container, sedi){
 
 
 /* =========================
+CREAZIONE PRIMA SEDE
+========================= */
+
+function renderWizardPrimaSede(container, aziendaId){
+
+  container.innerHTML = `
+    <div class="view">
+
+      <h2>Crea prima sede</h2>
+
+      <div class="card">
+
+        <input id="nome" class="input" placeholder="Nome sede" />
+        <input id="indirizzo" class="input" placeholder="Indirizzo" />
+
+        <button id="save" class="app-button">Crea sede</button>
+
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById("save").onclick = async () => {
+
+    const nome = document.getElementById("nome").value;
+    const indirizzo = document.getElementById("indirizzo").value;
+
+    if(!nome){
+      alert("Nome obbligatorio");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("sedi")
+      .insert({
+        azienda_id: aziendaId,
+        nome,
+        indirizzo,
+        attiva: true
+      })
+      .select()
+      .single();
+
+    if(error){
+      console.error(error);
+      alert("Errore creazione sede");
+      return;
+    }
+
+    // 👉 aggiorna stato centrale
+    await window.stateActions.caricaSedi();
+
+    // 👉 setta attiva automaticamente
+    window.stateActions.setSedeAttiva(data.id);
+
+    window.location.hash = "#/home";
+  };
+}
+
+
+/* =========================
 EDIT
 ========================= */
 
@@ -111,6 +196,7 @@ window.editSede = async function(id, nome){
     .update({ nome: nuovo })
     .eq("id", id);
 
+  await window.stateActions.caricaSedi();
   location.reload();
 }
 
@@ -128,5 +214,6 @@ window.disattivaSede = async function(id){
     .update({ attiva: false })
     .eq("id", id);
 
+  await window.stateActions.caricaSedi();
   location.reload();
 }
