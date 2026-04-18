@@ -28,6 +28,7 @@
 
 <body>
 
+  <!-- HEADER PIATTAFORMA (NON TOCCATO) -->
   <header class="app-header">
 
     <div class="header-left">
@@ -49,23 +50,39 @@
 
   </header>
 
-  <div id="topbar-info" class="topbar-info">
-    <div id="topbar-saluto"></div>
-    <div id="topbar-data"></div>
-    <div id="topbar-weather"></div>
+
+  <!-- 🔵 SOTTOHEADER AZIENDA (NUOVO) -->
+  <div id="topbar-azienda" class="topbar-azienda-wrapper">
+
+    <!-- RIGA 1 -->
+    <div class="topbar-azienda-top">
+      <img id="azienda-logo" class="topbar-azienda-logo" src="" alt="Logo azienda">
+      <div id="azienda-nome" class="topbar-azienda-nome-full"></div>
+    </div>
+
+    <!-- RIGA 2 -->
+    <div class="topbar-azienda-bottom">
+      <span id="topbar-saluto"></span>
+      <span id="topbar-data"></span>
+      <span id="topbar-weather"></span>
+    </div>
+
   </div>
+
 
   <nav id="global-menu" class="global-menu"></nav>
   <div class="menu-overlay"></div>
 
   <main id="app"></main>
 
+
+  <!-- ================= SCRIPTS ================= -->
+
   <script src="js/state.js?v=9"></script>
 
   <!-- SUPABASE CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- SUPABASE CLIENT DEFINITIVO -->
   <script>
     (function () {
       const supabaseLib = window.supabase;
@@ -88,7 +105,6 @@
         }
       });
 
-      // 🔥 CLIENT UNICO E DEFINITIVO
       window.supabase = client;
       window.supabaseClient = client;
 
@@ -110,7 +126,6 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- ROUTER -->
   <script type="module" src="js/router.js?v=11"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
