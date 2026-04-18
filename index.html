@@ -18,13 +18,17 @@
 
   <meta name="theme-color" content="#2563eb" />
 
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Ristoflow" />
+
+  <link rel="stylesheet" href="styles.css?v=9" />
 
 </head>
 
 <body>
 
-  <!-- ================= HEADER PIATTAFORMA ================= -->
+  <!-- HEADER PIATTAFORMA (NON TOCCATO) -->
   <header class="app-header">
 
     <div class="header-left">
@@ -38,7 +42,7 @@
     </div>
 
     <div class="header-center">
-      <img id="header-logo" class="header-logo" src="assets/favicon-192.png" />
+      <img id="header-logo" class="header-logo" src="assets/favicon-192.png" alt="Logo azienda" />
       <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
@@ -47,55 +51,72 @@
   </header>
 
 
-  <!-- ================= SOTTOHEADER AZIENDA ================= -->
-  <div class="topbar-azienda">
+  <!-- 🔵 SOTTOHEADER AZIENDA (NUOVO) -->
+  <div id="topbar-azienda" class="topbar-azienda-wrapper">
 
-    <div class="topbar-row-1">
-      <img id="azienda-logo" class="azienda-logo" />
-      <div id="azienda-nome" class="azienda-nome"></div>
+    <!-- RIGA 1 -->
+    <div class="topbar-azienda-top">
+      <img id="azienda-logo" class="topbar-azienda-logo" src="" alt="Logo azienda">
+      <div id="azienda-nome" class="topbar-azienda-nome-full"></div>
     </div>
 
-    <div class="topbar-row-2">
+    <!-- RIGA 2 -->
+    <div class="topbar-azienda-bottom">
       <span id="topbar-saluto"></span>
-      <span>•</span>
       <span id="topbar-data"></span>
-      <span>•</span>
       <span id="topbar-weather"></span>
     </div>
 
   </div>
 
 
-  <!-- ================= MENU ================= -->
-  <nav id="global-menu"></nav>
+  <nav id="global-menu" class="global-menu"></nav>
   <div class="menu-overlay"></div>
 
-
-  <!-- ================= APP ================= -->
   <main id="app"></main>
-
-
-  <!-- ================= FOOTER ================= -->
-  <footer class="app-footer"></footer>
 
 
   <!-- ================= SCRIPTS ================= -->
 
   <script src="js/state.js?v=9"></script>
 
+  <!-- SUPABASE CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
     (function () {
-      const { createClient } = window.supabase;
+      const supabaseLib = window.supabase;
 
-      const client = createClient(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "YOUR_KEY"
-      );
+      if (!supabaseLib || typeof supabaseLib.createClient !== "function") {
+        throw new Error("Libreria Supabase non caricata");
+      }
+
+      const { createClient } = supabaseLib;
+
+      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
 
       window.supabase = client;
       window.supabaseClient = client;
+
+      window.getSupabase = function () {
+        return window.supabase;
+      };
+
+      window.waitSupabase = async function () {
+        return window.supabase;
+      };
+
+      window.SUPABASE_READY = true;
     })();
   </script>
 
@@ -106,6 +127,11 @@
   <script src="js/utils/notify.js?v=1"></script>
 
   <script type="module" src="js/router.js?v=11"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>
