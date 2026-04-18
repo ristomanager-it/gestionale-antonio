@@ -37,7 +37,12 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 prendo abbonamento attivo
+  // 🔥 PRENDO PIANI REALI
+  const { data: pianiDB } = await supabase
+    .from("piani_abbonamento")
+    .select("id, nome");
+
+  // 🔥 ABBONAMENTO ATTIVO
   const { data: abbonamento } = await supabase
     .from("abbonamenti")
     .select("*, piani_abbonamento(*)")
@@ -61,7 +66,7 @@ export async function render(container) {
       ${cardAnagrafica(azienda)}
       ${cardFiscale(azienda)}
       ${cardContatti(azienda)}
-      ${cardSaaS(azienda, pianoCorrente)}
+      ${cardSaaS(azienda, pianoCorrente, pianiDB)}
       ${cardFeatures()}
 
       <div class="form-actions">
@@ -89,7 +94,7 @@ export async function render(container) {
       .eq("nome", nuovoPianoNome)
       .single();
 
-    // 🔥 PRENDO ABBONAMENTO ATTIVO
+    // 🔥 ABBONAMENTO ATTIVO
     const { data: abbonamentoAttivo } = await supabase
       .from("abbonamenti")
       .select("*")
@@ -97,7 +102,6 @@ export async function render(container) {
       .eq("stato", "attivo")
       .single();
 
-    // 🔥 SE CAMBIA → UPGRADE
     if (piano && abbonamentoAttivo && abbonamentoAttivo.piano_id !== piano.id) {
 
       await supabase
@@ -117,7 +121,7 @@ export async function render(container) {
         });
     }
 
-    // 🔥 UPDATE AZIENDA (SENZA PIANO)
+    // 🔥 UPDATE AZIENDA (pulito)
     const updateData = {
       nome: val("nome"),
       ragione_sociale: val("ragione_sociale"),
@@ -256,7 +260,7 @@ function select(id,label,value,options){
     <div class="form-group">
       <label>${label}</label>
       <select class="input" id="${id}">
-        ${options.map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
+        ${(options || []).map(o=>`<option value="${o}" ${o===value?"selected":""}>${o}</option>`).join("")}
       </select>
     </div>
   `;
@@ -326,12 +330,12 @@ function cardContatti(a) {
   `;
 }
 
-function cardSaaS(a, pianoCorrente) {
+function cardSaaS(a, pianoCorrente, pianiDB) {
   return `
     <div class="card">
       <div class="card-header"><h3>Configurazione SaaS</h3></div>
       <div class="card-body form-grid">
-        ${select("piano","Piano",pianoCorrente,["basic","pro","premium"])}
+        ${select("piano","Piano",pianoCorrente,(pianiDB||[]).map(p=>p.nome))}
         ${select("stato_attivazione","Stato Attivazione",a.stato_attivazione,["bozza","attiva","sospesa"])}
         ${select("stato","Stato",a.stato,["attiva","sospesa"])}
         <div class="form-group checkbox-group">
