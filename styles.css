@@ -452,7 +452,7 @@ APP
 #app{
 padding-left:10px;
 padding-right:10px;
-padding-top:calc(var(--header-height) + 50px);
+padding-top:calc(var(--header-height) + 90px);
 }
 
 .view{
