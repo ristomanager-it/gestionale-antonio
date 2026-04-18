@@ -695,8 +695,8 @@ FIX GRID + MOBILE
   display: flex;
   flex-direction: column;
 
-  padding: 6px 16px;      /* 🔥 più compatta */
-  gap: 3px;
+  padding: 6px 14px;
+  gap: 2px;
 
   background: linear-gradient(
     90deg,
@@ -708,50 +708,55 @@ FIX GRID + MOBILE
 }
 
 /* ================================
-   RIGA 1 (LOGO + NOME)
+   RIGA 1
 ================================ */
 
 .topbar-row-1 {
   display: flex;
   align-items: center;
-  gap: 6px;               /* 🔥 meno spazio */
+
+  height: 24px;            /* 🔥 BLOCCO ALTEZZA */
+  gap: 6px;
+  overflow: hidden;        /* 🔥 evita sforamenti */
 }
 
 /* LOGO */
 .azienda-logo {
-  height: 18px;           /* 🔥 dimensione giusta */
-  max-height: 18px;
+  height: 100%;            /* 🔥 SI ADATTA ALLA RIGA */
   width: auto;
+  max-height: 20px;
 
   object-fit: contain;
   flex-shrink: 0;
-
-  display: block;
 }
 
-/* NOME AZIENDA */
+/* NOME */
 .azienda-nome {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 
-  line-height: 1.2;
+  line-height: 1;
 
-  white-space: nowrap;        /* 🔥 evita righe infinite */
+  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;    /* 🔥 elegante */
+  text-overflow: ellipsis;
+
+  flex: 1;                 /* 🔥 prende spazio corretto */
 }
 
 /* ================================
-   RIGA 2 (SALUTO + DATA + METEO)
+   RIGA 2
 ================================ */
 
 .topbar-row-2 {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.9;
 
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+
+  min-height: 18px;        /* 🔥 altezza controllata */
 }
 
 /* ================================
@@ -761,20 +766,23 @@ FIX GRID + MOBILE
 @media (max-width:600px){
 
   .topbar-azienda {
-    padding: 6px 12px;
+    padding: 5px 12px;
+  }
+
+  .topbar-row-1 {
+    height: 22px;
   }
 
   .azienda-logo {
-    height: 16px;        /* 🔥 ancora più piccolo */
-    max-height: 16px;
+    max-height: 18px;
   }
 
   .azienda-nome {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .topbar-row-2 {
-    font-size: 11px;
+    font-size: 10px;
   }
 
 }
