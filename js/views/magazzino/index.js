@@ -11,15 +11,25 @@ export async function render(container){
           📦 Carico merce
         </div>
 
-        <div class="card" data-action="scarico">
-          📤 Scarico merce
+        <div class="card" data-action="prodotti">
+          📦 Prodotti
         </div>
 
-        <div class="card" data-action="inventario">
-          📊 Inventario
+        <div class="card" data-action="materie">
+          🥕 Materie prime
+        </div>
+
+        <div class="card" data-action="preparazioni">
+          🍳 Preparazioni
+        </div>
+
+        <div class="card" data-action="fornitori">
+          🚚 Fornitori
         </div>
 
       </div>
+
+      <div id="magazzino-content"></div>
 
     </div>
 
@@ -27,6 +37,7 @@ export async function render(container){
       .grid{
         display:grid;
         gap:12px;
+        margin-bottom:16px;
       }
 
       .card{
@@ -41,26 +52,49 @@ export async function render(container){
   bindEvents()
 }
 
+
+// =====================================
+// EVENTS
+// =====================================
+
 function bindEvents(){
 
   document.querySelectorAll("[data-action]").forEach(el=>{
     el.onclick = async () => {
 
       const action = el.dataset.action
+      const container = document.getElementById("magazzino-content")
 
-      // 🔥 carico
+      if (!container) return
+
+      // 🔥 CARICO
       if(action === "carico"){
-        const mod = await import("./magazzino.js")
-        mod.apriCaricoModal()
+        const mod = await import("./carico_magazzino.js")
+        if(mod.render) await mod.render(container)
       }
 
-      // puoi estendere qui
-      if(action === "scarico"){
-        console.log("scarico TODO")
+      // 🔥 PRODOTTI FINITI
+      if(action === "prodotti"){
+        const mod = await import("./prodotti_finiti.js")
+        if(mod.render) await mod.render(container)
       }
 
-      if(action === "inventario"){
-        console.log("inventario TODO")
+      // 🔥 MATERIE PRIME
+      if(action === "materie"){
+        const mod = await import("./materie_prime.js")
+        if(mod.render) await mod.render(container)
+      }
+
+      // 🔥 PREPARAZIONI
+      if(action === "preparazioni"){
+        const mod = await import("./preparazioni.js")
+        if(mod.render) await mod.render(container)
+      }
+
+      // 🔥 FORNITORI
+      if(action === "fornitori"){
+        const mod = await import("./mapping_fornitori.js")
+        if(mod.render) await mod.render(container)
       }
 
     }
