@@ -37,20 +37,31 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 PRENDO PIANI REALI
   const { data: pianiDB } = await supabase
     .from("piani_abbonamento")
-    .select("id, nome");
+    .select("id, nome")
+    .order("nome", { ascending: true });
 
-  // 🔥 ABBONAMENTO ATTIVO
   const { data: abbonamento } = await supabase
     .from("abbonamenti")
-    .select("*, piani_abbonamento(*)")
+    .select("*")
     .eq("azienda_id", id)
     .eq("stato", "attivo")
-    .single();
+    .maybeSingle();
 
-  const pianoCorrente = abbonamento?.piani_abbonamento?.nome || azienda.piano;
+  let pianoCorrente = azienda.piano || null;
+
+  if (abbonamento?.piano_id) {
+    const { data: pianoAttivo } = await supabase
+      .from("piani_abbonamento")
+      .select("id, nome")
+      .eq("id", abbonamento.piano_id)
+      .maybeSingle();
+
+    if (pianoAttivo?.nome) {
+      pianoCorrente = pianoAttivo.nome;
+    }
+  }
 
   container.innerHTML = `
     <div class="page">
@@ -84,44 +95,80 @@ export async function render(container) {
   };
 
   document.getElementById("btn-save").onclick = async () => {
+    const result = document.getElementById("save-result");
+    result.innerHTML = "";
 
     const nuovoPianoNome = val("piano");
 
-    // 🔥 PRENDO PIANO DB
-    const { data: piano } = await supabase
+    const { data: piano, error: pianoError } = await supabase
       .from("piani_abbonamento")
       .select("*")
       .eq("nome", nuovoPianoNome)
-      .single();
+      .maybeSingle();
 
-    // 🔥 ABBONAMENTO ATTIVO
-    const { data: abbonamentoAttivo } = await supabase
+    if (pianoError) {
+      result.innerHTML = `<span class="error-text">Errore caricamento piano: ${pianoError.message}</span>`;
+      return;
+    }
+
+    const { data: abbonamentoAttivo, error: abbonamentoError } = await supabase
       .from("abbonamenti")
       .select("*")
       .eq("azienda_id", id)
       .eq("stato", "attivo")
-      .single();
+      .maybeSingle();
 
-    if (piano && abbonamentoAttivo && abbonamentoAttivo.piano_id !== piano.id) {
+    if (abbonamentoError) {
+      result.innerHTML = `<span class="error-text">Errore caricamento abbonamento: ${abbonamentoError.message}</span>`;
+      return;
+    }
 
-      await supabase
-        .from("abbonamenti")
-        .update({
-          stato: "terminato",
-          data_fine: new Date()
-        })
-        .eq("id", abbonamentoAttivo.id);
+    if (!piano) {
+      result.innerHTML = `<span class="error-text">Piano selezionato non trovato.</span>`;
+      return;
+    }
 
-      await supabase
+    if (!abbonamentoAttivo) {
+      const { error: insertError } = await supabase
         .from("abbonamenti")
         .insert({
           azienda_id: id,
           piano_id: piano.id,
           stato: "attivo"
         });
+
+      if (insertError) {
+        result.innerHTML = `<span class="error-text">Errore creazione abbonamento: ${insertError.message}</span>`;
+        return;
+      }
+    } else if (abbonamentoAttivo.piano_id !== piano.id) {
+      const { error: closeError } = await supabase
+        .from("abbonamenti")
+        .update({
+          stato: "terminato",
+          data_fine: new Date().toISOString()
+        })
+        .eq("id", abbonamentoAttivo.id);
+
+      if (closeError) {
+        result.innerHTML = `<span class="error-text">Errore chiusura abbonamento attivo: ${closeError.message}</span>`;
+        return;
+      }
+
+      const { error: newSubError } = await supabase
+        .from("abbonamenti")
+        .insert({
+          azienda_id: id,
+          piano_id: piano.id,
+          stato: "attivo"
+        });
+
+      if (newSubError) {
+        result.innerHTML = `<span class="error-text">Errore creazione nuovo abbonamento: ${newSubError.message}</span>`;
+        return;
+      }
     }
 
-    // 🔥 UPDATE AZIENDA (pulito)
     const updateData = {
       nome: val("nome"),
       ragione_sociale: val("ragione_sociale"),
@@ -144,15 +191,13 @@ export async function render(container) {
       stato_attivazione: val("stato_attivazione")
     };
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("aziende")
       .update(updateData)
       .eq("id", id);
 
-    const result = document.getElementById("save-result");
-
-    if (error) {
-      result.innerHTML = `<span class="error-text">Errore: ${error.message}</span>`;
+    if (updateError) {
+      result.innerHTML = `<span class="error-text">Errore: ${updateError.message}</span>`;
       return;
     }
 
