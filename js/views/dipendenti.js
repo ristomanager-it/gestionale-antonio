@@ -1,14 +1,108 @@
 // js/views/dipendenti.js
 // =======================================
-// View Dipendenti – SaaS Multi-Azienda
+// View Dipendenti – SaaS Multi-Azienda / Multi-Sede
 // - Tab Elenco / Nuovo-Modifica
 // - Invito accesso gestionale via Edge Function
 // - Soft delete (attivo=false) + disattivazione accessi collegati
-// - Niente canale_prevalente
+// - Gestione assegnazione sedi via utenti_sedi
 // =======================================
 
 function getSupabase() {
   return window.supabase;
+}
+
+function getSedeAttivaId() {
+  return window.state?.sedeAttiva?.id || null;
+}
+
+function getSelectedSediIds() {
+  return Array.from(document.querySelectorAll("#dip-sedi-container input[type='checkbox']:checked"))
+    .map((el) => String(el.value))
+    .filter(Boolean);
+}
+
+async function getSediAssociateUtente(userId) {
+  const supabase = getSupabase();
+
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from("utenti_sedi")
+    .select("sede_id")
+    .eq("utente_id", userId);
+
+  if (error) {
+    console.error("Errore caricamento sedi associate:", error);
+    return [];
+  }
+
+  return (data || []).map((row) => String(row.sede_id)).filter(Boolean);
+}
+
+async function syncUtenteSedi(userId, sedeIds = []) {
+  const supabase = getSupabase();
+
+  if (!userId) return;
+
+  const unici = Array.from(new Set((sedeIds || []).map(String).filter(Boolean)));
+
+  const { error: deleteError } = await supabase
+    .from("utenti_sedi")
+    .delete()
+    .eq("utente_id", userId);
+
+  if (deleteError) {
+    console.error("Errore reset utenti_sedi:", deleteError);
+    throw new Error("Errore aggiornamento sedi dipendente");
+  }
+
+  if (!unici.length) return;
+
+  const rows = unici.map((sedeId) => ({
+    utente_id: userId,
+    sede_id: sedeId
+  }));
+
+  const { error: insertError } = await supabase
+    .from("utenti_sedi")
+    .insert(rows);
+
+  if (insertError) {
+    console.error("Errore insert utenti_sedi:", insertError);
+    throw new Error("Errore salvataggio sedi dipendente");
+  }
+}
+
+async function renderSediSelector(selectedIds = []) {
+  const container = document.getElementById("dip-sedi-container");
+  if (!container) return;
+
+  const sedi = Array.isArray(window.state?.sedi) ? window.state.sedi : [];
+  const selectedSet = new Set((selectedIds || []).map(String));
+
+  if (!sedi.length) {
+    container.innerHTML = `
+      <div class="small-muted">
+        Nessuna sede disponibile.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      ${sedi.map((sede) => `
+        <label style="display:flex; align-items:center; gap:10px;">
+          <input
+            type="checkbox"
+            value="${escapeHtml(String(sede.id))}"
+            ${selectedSet.has(String(sede.id)) ? "checked" : ""}
+          />
+          <span>${escapeHtml(sede.nome || "Sede")}</span>
+        </label>
+      `).join("")}
+    </div>
+  `;
 }
 
 export async function render(container) {
@@ -46,7 +140,7 @@ export async function render(container) {
       <div style="margin-top:14px;">
         <h2 style="margin:0;">Dipendenti</h2>
         <p class="small-muted" style="margin-top:6px;">
-          Gestione personale azienda (anagrafica + accessi)
+          Gestione personale azienda (anagrafica + accessi + sedi)
         </p>
       </div>
 
@@ -82,6 +176,8 @@ function setTab(tab) {
   const btnElenco = document.getElementById("tab-elenco");
   const btnNuovo = document.getElementById("tab-nuovo");
 
+  if (!elenco || !form || !btnElenco) return;
+
   if (tab === "elenco") {
     elenco.style.display = "block";
     form.style.display = "none";
@@ -97,6 +193,9 @@ function setTab(tab) {
 
 async function renderElenco() {
   const host = document.getElementById("dip-view-elenco");
+  if (!host) return;
+
+  const sedeAttivaNome = window.state?.sedeAttiva?.nome || "Nessuna sede";
 
   host.innerHTML = `
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
@@ -106,6 +205,10 @@ async function renderElenco() {
         Solo attivi
       </label>
       <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
+    </div>
+
+    <div class="small-muted" style="margin-bottom:10px;">
+      Sede attiva: <strong>${escapeHtml(sedeAttivaNome)}</strong>
     </div>
 
     <div class="table-wrapper">
@@ -119,6 +222,7 @@ async function renderElenco() {
             <th>Costo medio</th>
             <th>Email</th>
             <th>Ruolo</th>
+            <th>Sedi</th>
             <th>Attivo</th>
             <th></th>
           </tr>
@@ -143,11 +247,65 @@ async function loadRepartiMap() {
   return new Map(reparti.map((r) => [String(r.id), r]));
 }
 
+async function loadSediMap() {
+  if (typeof window.stateActions?.caricaSedi === "function") {
+    await window.stateActions.caricaSedi();
+  }
+
+  const sedi = window.state.sedi || [];
+  return new Map(sedi.map((s) => [String(s.id), s]));
+}
+
 async function caricaDipendenti() {
   const supabase = getSupabase();
   const azienda = window.state.azienda;
+  const sedeAttivaId = getSedeAttivaId();
   const q = (document.getElementById("dip-search")?.value || "").trim().toLowerCase();
   const onlyAttivi = !!document.getElementById("dip-only-attivi")?.checked;
+
+  const tbody = document.getElementById("dip-lista");
+  const msg = document.getElementById("dip-elenco-msg");
+
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  if (!sedeAttivaId) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="small-muted">Seleziona una sede attiva</td>
+      </tr>
+    `;
+    return;
+  }
+
+  const { data: utentiSede, error: utentiSedeError } = await supabase
+    .from("utenti_sedi")
+    .select("utente_id, sede_id")
+    .eq("sede_id", sedeAttivaId);
+
+  if (utentiSedeError) {
+    console.error(utentiSedeError);
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore caricamento assegnazioni sedi</span>`;
+    return;
+  }
+
+  const userIds = Array.from(
+    new Set(
+      (utentiSede || [])
+        .map((row) => row?.utente_id)
+        .filter(Boolean)
+        .map((id) => String(id))
+    )
+  );
+
+  if (!userIds.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="small-muted">Nessun dipendente assegnato a questa sede</td>
+      </tr>
+    `;
+    return;
+  }
 
   let query = supabase
     .from("dipendenti")
@@ -165,19 +323,17 @@ async function caricaDipendenti() {
       user_id
     `)
     .eq("azienda_id", azienda.id)
+    .in("user_id", userIds)
     .order("nome");
 
   if (onlyAttivi) query = query.eq("attivo", true);
 
   const { data, error } = await query;
 
-  const tbody = document.getElementById("dip-lista");
-  const msg = document.getElementById("dip-elenco-msg");
-
   if (error) {
     console.error(error);
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore caricamento dipendenti</span>`;
-    if (tbody) tbody.innerHTML = "";
+    tbody.innerHTML = "";
     return;
   }
 
@@ -197,22 +353,58 @@ async function caricaDipendenti() {
   );
 
   const repartiMap = await loadRepartiMap();
+  const sediMap = await loadSediMap();
+
+  const { data: tutteLeAssegnazioni, error: tutteLeAssegnazioniErr } = await supabase
+    .from("utenti_sedi")
+    .select("utente_id, sede_id");
+
+  if (tutteLeAssegnazioniErr) {
+    console.warn("Errore caricamento tutte le assegnazioni sedi:", tutteLeAssegnazioniErr);
+  }
+
+  const sediPerUtente = new Map();
+
+  (tutteLeAssegnazioni || []).forEach((row) => {
+    const userId = row?.utente_id ? String(row.utente_id) : null;
+    const sedeId = row?.sede_id ? String(row.sede_id) : null;
+
+    if (!userId || !sedeId) return;
+
+    if (!sediPerUtente.has(userId)) {
+      sediPerUtente.set(userId, []);
+    }
+
+    sediPerUtente.get(userId).push(sedeId);
+  });
 
   const filtered = (data || []).filter((d) => {
+    const sediIds = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
+    const sediNomi = sediIds
+      .map((id) => sediMap.get(String(id))?.nome || "")
+      .join(" ")
+      .toLowerCase();
+
     if (!q) return true;
+
     const nomeCompleto = `${d.nome || ""} ${d.cognome || ""}`.toLowerCase();
     const repartoNome = repartiMap.get(String(d.reparto_id))?.nome?.toLowerCase() || "";
     const ruoloNome = (d.user_id ? ruoliMap.get(String(d.user_id)) : "") || "";
-    return nomeCompleto.includes(q) || repartoNome.includes(q) || ruoloNome.toLowerCase().includes(q);
+
+    return (
+      nomeCompleto.includes(q) ||
+      repartoNome.includes(q) ||
+      ruoloNome.toLowerCase().includes(q) ||
+      sediNomi.includes(q)
+    );
   });
 
-  if (!tbody) return;
   tbody.innerHTML = "";
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="small-muted">Nessun dipendente trovato</td>
+        <td colspan="10" class="small-muted">Nessun dipendente trovato</td>
       </tr>
     `;
     return;
@@ -226,6 +418,11 @@ async function caricaDipendenti() {
     const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
     const repartoNome = repartiMap.get(String(d.reparto_id))?.nome || "-";
     const ruolo = d.user_id ? (ruoliMap.get(String(d.user_id)) || "operatore") : "-";
+    const sediIds = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
+    const sediNomi = sediIds
+      .map((id) => sediMap.get(String(id))?.nome || "")
+      .filter(Boolean)
+      .join(", ") || "-";
 
     tbody.innerHTML += `
       <tr>
@@ -236,6 +433,7 @@ async function caricaDipendenti() {
         <td>${escapeHtml(d.costo_medio || "-")}</td>
         <td>${escapeHtml(d.email || "-")}</td>
         <td>${escapeHtml(ruolo)}</td>
+        <td>${escapeHtml(sediNomi)}</td>
         <td>${d.attivo ? "✔" : "❌"}</td>
         <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
           ${canRead ? `<button class="app-button tiny gray" onclick="window._dipOpen('${d.id}')">Scheda</button>` : ""}
@@ -305,6 +503,10 @@ async function renderForm(dip) {
   const host = document.getElementById("dip-view-form");
   if (!host) return;
 
+  if (typeof window.stateActions?.caricaSedi === "function") {
+    await window.stateActions.caricaSedi();
+  }
+
   const isEdit = !!dip?.id;
   const repartiMap = await loadRepartiMap();
   const repartoNomeAttuale = dip?.reparto_id
@@ -351,6 +553,11 @@ async function renderForm(dip) {
           />
           <datalist id="dip-reparti-list"></datalist>
         </label>
+
+        <div class="view" style="margin-top:6px;">
+          <h4 style="margin:0 0 8px 0;">Assegnazione sedi</h4>
+          <div id="dip-sedi-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
 
         <label>Ruolo
           <select id="dip-ruolo-app" class="input-pill">
@@ -431,12 +638,19 @@ async function renderForm(dip) {
 
   await renderRepartiDatalist(repartoNomeAttuale);
 
-  // 🔥 FIX CRITICO → forza ruolo DOPO render completo
+  let sediAssociate = [];
+  if (dip?.user_id) {
+    sediAssociate = await getSediAssociateUtente(dip.user_id);
+  } else if (getSedeAttivaId()) {
+    sediAssociate = [String(getSedeAttivaId())];
+  }
+
+  await renderSediSelector(sediAssociate);
+
   setTimeout(() => {
     const ruoloSel = document.getElementById("dip-ruolo-app");
     if (ruoloSel) {
       ruoloSel.value = dip?.ruolo || "operatore";
-      console.log("RUOLO SETTATO UI:", ruoloSel.value);
     }
   }, 0);
 
@@ -491,9 +705,15 @@ async function salvaDipendente(isEdit) {
   const telefono = (document.getElementById("dip-telefono")?.value || "").trim();
   const mansione = (document.getElementById("dip-mansione")?.value || "").trim();
   const ruolo = document.getElementById("dip-ruolo-app")?.value || "operatore";
+  const sediSelezionate = getSelectedSediIds();
 
   if (!nome || !email) {
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome e email obbligatori</span>`;
+    return;
+  }
+
+  if (!sediSelezionate.length) {
+    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Seleziona almeno una sede</span>`;
     return;
   }
 
@@ -557,6 +777,8 @@ async function salvaDipendente(isEdit) {
           if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento ruolo</span>`;
           return;
         }
+
+        await syncUtenteSedi(userId, sediSelezionate);
       }
 
       if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente aggiornato ✔</span>`;
@@ -592,6 +814,18 @@ async function salvaDipendente(isEdit) {
       console.error(json);
       if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
       return;
+    }
+
+    const createdUserId =
+      json?.user_id ||
+      json?.data?.user_id ||
+      json?.utente_id ||
+      null;
+
+    if (createdUserId) {
+      await syncUtenteSedi(createdUserId, sediSelezionate);
+    } else {
+      console.warn("User ID non restituito dalla function invita-dipendente: impossibile sincronizzare utenti_sedi");
     }
 
     if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente creato e invito inviato ✔</span>`;
@@ -634,41 +868,27 @@ window._dipEdit = async function (id) {
 
   let ruolo = "operatore";
 
-if (dip.user_id) {
-  const { data: ua, error: uaErr } = await supabase
-    .from("utenti_aziende")
-    .select("ruolo")
-    .eq("azienda_id", azienda.id)
-    .eq("user_id", dip.user_id)
-    .maybeSingle();
+  if (dip.user_id) {
+    const { data: ua, error: uaErr } = await supabase
+      .from("utenti_aziende")
+      .select("ruolo")
+      .eq("azienda_id", azienda.id)
+      .eq("user_id", dip.user_id)
+      .maybeSingle();
 
-  console.log("DEBUG LETTURA RUOLO", {
-    user_id: dip.user_id,
-    azienda_id: azienda.id,
-    ua,
-    uaErr,
-    dipRuolo: dip?.ruolo
-  });
-
-  if (!uaErr && ua?.ruolo) {
-    ruolo = ua.ruolo;
-  } else if (dip?.ruolo) {
-    ruolo = dip.ruolo;
-  } else {
-    console.warn("Ruolo non trovato, fallback operatore", {
-      user_id: dip.user_id,
-      azienda_id: azienda.id,
-      ua,
-      uaErr
-    });
-    ruolo = "operatore";
+    if (!uaErr && ua?.ruolo) {
+      ruolo = ua.ruolo;
+    } else if (dip?.ruolo) {
+      ruolo = dip.ruolo;
+    } else {
+      ruolo = "operatore";
+    }
   }
-}
 
-dip.ruolo = ruolo;
+  dip.ruolo = ruolo;
 
-setTab("form");
-await renderForm(dip);
+  setTab("form");
+  await renderForm(dip);
 };
 
 window._dipDelete = async function (id) {
@@ -683,7 +903,7 @@ window._dipDelete = async function (id) {
 
   const { data: dip, error: dipErr } = await supabase
     .from("dipendenti")
-    .select("id,email,attivo")
+    .select("id,email,attivo,user_id")
     .eq("id", id)
     .eq("azienda_id", azienda.id)
     .single();
@@ -709,11 +929,33 @@ window._dipDelete = async function (id) {
       return;
     }
 
+    if (dip.user_id) {
+      const { error: sediErr } = await supabase
+        .from("utenti_sedi")
+        .delete()
+        .eq("utente_id", dip.user_id);
+
+      if (sediErr) {
+        console.warn("Errore pulizia utenti_sedi:", sediErr);
+      }
+    }
+
     if (dip.email) {
       console.warn("Disattivazione utenti_aziende da frontend disabilitata per RLS:", dip.email);
     }
   } else {
     if (!confirm("Eliminare definitivamente questo dipendente?")) return;
+
+    if (dip.user_id) {
+      const { error: sediErr } = await supabase
+        .from("utenti_sedi")
+        .delete()
+        .eq("utente_id", dip.user_id);
+
+      if (sediErr) {
+        console.warn("Errore pulizia utenti_sedi:", sediErr);
+      }
+    }
 
     const { error } = await supabase
       .from("dipendenti")
