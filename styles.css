@@ -756,3 +756,87 @@ FIX GRID + MOBILE
   }
 
 }
+/* ===== TOPBAR STRUTTURA ===== */
+
+.topbar-global {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* HEADER AZIENDA */
+.topbar-main {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+}
+
+.topbar-azienda-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.topbar-logo.placeholder {
+  width: 32px;
+  height: 32px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.topbar-azienda-nome {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* SUBHEADER */
+.topbar-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #6b7280;
+  border-top: 1px solid #f1f5f9;
+}
+
+.topbar-sub-left,
+.topbar-sub-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+/* ===== MOBILE ===== */
+
+@media(max-width:600px){
+
+  .topbar-logo {
+    height: 24px;
+  }
+
+  .topbar-azienda-nome {
+    font-size: 13px;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-sub {
+    font-size: 12px;
+  }
+
+}
