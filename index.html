@@ -3,47 +3,30 @@
 
 <head>
 
-  <base href="/">
+  <base href="/" />
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
   <title>Ristoflow - la ristorazione organizzata</title>
 
-  <!-- ===================================================== -->
-  <!-- ======================= ICONS ======================= -->
-  <!-- ===================================================== -->
-
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=9" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png?v=9" />
   <link rel="apple-touch-icon" href="assets/favicon-192.png?v=9" />
-
-  <!-- ===================================================== -->
-  <!-- ======================== PWA ======================== -->
-  <!-- ===================================================== -->
 
   <link rel="manifest" href="manifest.json" />
 
   <meta name="theme-color" content="#2563eb" />
 
-  <!-- FIX DEPRECATION -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Ristoflow" />
-
-  <!-- ===================================================== -->
-  <!-- ======================== CSS ======================== -->
-  <!-- ===================================================== -->
 
   <link rel="stylesheet" href="styles.css?v=9" />
 
 </head>
 
 <body>
-
-  <!-- ===================================================== -->
-  <!-- ====================== HEADER ======================= -->
-  <!-- ===================================================== -->
 
   <header class="app-header">
 
@@ -66,58 +49,32 @@
 
   </header>
 
-  <!-- ===================================================== -->
-  <!-- ==================== SUBHEADER ====================== -->
-  <!-- ===================================================== -->
-
   <div id="topbar-info" class="topbar-info">
     <div id="topbar-saluto"></div>
     <div id="topbar-data"></div>
     <div id="topbar-weather"></div>
   </div>
 
-  <!-- ===================================================== -->
-  <!-- ===================== MENU SPA ====================== -->
-  <!-- ===================================================== -->
-
   <nav id="global-menu" class="global-menu"></nav>
   <div class="menu-overlay"></div>
 
-  <!-- ===================================================== -->
-  <!-- ==================== ROOT APP ======================= -->
-  <!-- ===================================================== -->
-
   <main id="app"></main>
-
-  <!-- ===================================================== -->
-  <!-- ================= SCRIPT GLOBALI ==================== -->
-  <!-- ===================================================== -->
 
   <script src="js/state.js?v=9"></script>
 
-  <!-- SUPABASE PRIMA -->
-  <script src="js/supabaseClient.js?v=10"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js?v=11"></script>
 
-  <!-- POI TUTTO IL RESTO -->
   <script src="js/stateActions.js?v=9"></script>
   <script src="js/ui-reparto.js?v=9"></script>
   <script src="js/db.js?v=9"></script>
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- ROUTER (UNA SOLA VOLTA) -->
   <script type="module" src="js/router.js?v=9"></script>
-
-  <!-- ===================================================== -->
-  <!-- ================= LIB STAMPA ======================== -->
-  <!-- ===================================================== -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- ===================================================== -->
-  <!-- ================= LIB GRAFICI ======================= -->
-  <!-- ===================================================== -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
