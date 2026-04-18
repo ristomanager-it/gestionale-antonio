@@ -73,7 +73,7 @@ const routes = {
  acquisti: () => import("./views/acquisti/index.js"),
 
   // ✔ già corretto
-  magazzino: () => import("./views/magazzino/magazzino.js"),
+  magazzino: () => import("./views/magazzino/index.js"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
