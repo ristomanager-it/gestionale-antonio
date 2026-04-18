@@ -107,6 +107,7 @@ display:flex;
 align-items:center;
 }
 
+/* 🔥 FIX COMPLETO CENTRATURA */
 .header-center{
 flex:1;
 display:flex;
@@ -116,6 +117,7 @@ gap:10px;
 min-width:0;
 }
 
+/* 🔥 FIX LOGO */
 .header-logo{
 width:54px;
 height:64px;
@@ -123,6 +125,7 @@ object-fit:contain;
 flex-shrink:0;
 }
 
+/* 🔥 FIX TITOLO CENTRATO + TRONCAMENTO */
 .header-azienda-nome{
 font-size:16px;
 font-weight:800;
@@ -154,16 +157,63 @@ border-radius:2px;
 }
 
 /* =========================================================
-❌ BLOCCA VECCHIA TOPBAR
+❌ BLOCCA DEFINITIVAMENTE VECCHIA TOPBAR
 ========================================================= */
 
 .topbar-info{
 display:none !important;
 }
 
+/* =========================================================
+✅ NUOVA TOPBAR GLOBALE
+========================================================= */
+
 .topbar-global{
-display:none !important;
+
+position:fixed;
+top:var(--header-height);
+left:50%;
+transform:translateX(-50%);
+
+width:94%;
+max-width:1100px;
+
+height:44px;
+
+background:linear-gradient(90deg,#0A4A64,#0E5A7A);
+
+border-radius:12px;
+
+display:flex;
+align-items:center;
+justify-content:space-between;
+
+padding:0 12px;
+
+color:white;
+font-size:12px;
+font-weight:600;
+
+box-shadow:0 4px 10px rgba(0,0,0,0.15);
+
+z-index:900;
 }
+
+.topbar-left{
+display:flex;
+gap:8px;
+align-items:center;
+min-width:0;
+}
+
+.topbar-right{
+display:flex;
+gap:10px;
+align-items:center;
+opacity:0.9;
+flex-shrink:0;
+}
+
 
 /* =========================================================
 APP ROOT
@@ -172,10 +222,7 @@ APP ROOT
 #app{
 width:100%;
 padding:var(--app-padding-y) var(--app-padding-x);
-
-/* 🔥 FIX DEFINITIVO */
-padding-top:calc(var(--header-height) + 10px);
-
+padding-top:calc(var(--header-height) + 50px);
 display:flex;
 justify-content:center;
 background:linear-gradient(
@@ -343,6 +390,23 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 cursor:pointer;
+transition:background 0.2s ease;
+}
+
+.menu-category:hover{
+background:rgba(255,255,255,0.05);
+}
+
+.menu-arrow{
+transition:transform 0.2s ease;
+}
+
+.menu-subitems{
+display:none;
+}
+
+.menu-subitems.open{
+display:block;
 }
 
 .menu-subitem{
@@ -350,28 +414,203 @@ padding:10px 30px;
 font-size:14px;
 cursor:pointer;
 color:#e5e7eb;
+transition:background 0.2s ease;
+}
+
+.menu-subitem:hover{
+background:rgba(255,255,255,0.08);
+}
+
+.menu-logout{
+margin-top:20px;
+padding:12px 20px;
+color:#f87171;
+cursor:pointer;
+border-top:1px solid rgba(255,255,255,0.1);
+}
+
+.menu-logout:hover{
+background:rgba(255,255,255,0.05);
 }
 
 /* =========================================================
-MOBILE
+🔥 MOBILE
 ========================================================= */
 
 @media(max-width:768px){
 
 :root{
 --header-height:56px;
+--view-padding:12px;
+--card-padding:12px;
 }
+
+/* =========================
+APP
+========================= */
 
 #app{
 padding-left:10px;
 padding-right:10px;
-padding-top:calc(var(--header-height) + 10px);
+padding-top:calc(var(--header-height) + 50px);
+}
+
+.view{
+border-radius:14px;
+}
+
+.card{
+border-radius:14px;
+}
+
+/* =========================
+LOGIN (FIX COMPLETO)
+========================= */
+
+/* sfondo fullscreen */
+.login-page{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100vh;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+/* 🔥 blu notte */
+background:linear-gradient(
+180deg,
+#0A2540 0%,
+#0E5A7A 100%
+);
+
+z-index:2000;
+}
+
+/* modal */
+.login-box{
+width:100%;
+max-width:320px;
+
+background:var(--color-card);
+border-radius:18px;
+
+padding:22px 18px;
+
+display:flex;
+flex-direction:column;
+gap:12px;
+
+box-shadow:0 20px 40px rgba(0,0,0,0.25);
+}
+
+/* logo */
+.login-logo-wrap{
+display:flex;
+justify-content:center;
+margin-bottom:6px;
+}
+
+.login-logo{
+width:90px;
+height:90px;
+}
+
+/* form */
+.login-form{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+/* bottone */
+.login-btn{
+width:100%;
+margin-top:6px;
+}
+
+/* reset */
+.login-reset{
+text-align:center;
+margin-top:6px;
+}
+
+.login-reset-btn{
+background:none;
+border:none;
+color:var(--color-primary);
+cursor:pointer;
+font-size:13px;
 }
 
 }
+/* BASE */
+.btn-timbratura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: white;
+  transition: all 0.2s ease;
+}
 
+/* DIMENSIONI */
+.btn-timbratura.round {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.btn-timbratura.square {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+}
+
+/* COLORI */
+.btn-timbratura.green {
+  background: #22c55e;
+}
+
+.btn-timbratura.gray {
+  background: #6b7280;
+}
+
+.btn-timbratura.red {
+  background: #ef4444;
+}
+
+/* HOVER */
+.btn-timbratura:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* DISABLED */
+.btn-timbratura:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ICONA */
+.tb-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* LABEL */
+.tb-label {
+  font-size: 12px;
+}
 /* =========================================================
-FOOTER
+GLOBAL FOOTER
 ========================================================= */
 
 .app-footer{
@@ -380,56 +619,117 @@ bottom:0;
 left:0;
 width:100%;
 height:70px;
+
 background:white;
 border-top:1px solid var(--color-border);
+
 display:flex;
 justify-content:space-around;
 align-items:center;
+
 z-index:1000;
+
+padding-bottom:env(safe-area-inset-bottom);
 }
 
-/* =========================================================
-SOTTOHEADER AZIENDA
-========================================================= */
-
-.topbar-azienda {
+.footer-item{
 display:flex;
 flex-direction:column;
-padding:8px 16px;
-gap:4px;
-
-background:linear-gradient(
-90deg,
-var(--color-primary-dark),
-var(--color-primary)
-);
-
-color:#fff;
-
-position:relative;
-z-index:1;
+align-items:center;
+font-size:11px;
+cursor:pointer;
+color:var(--color-text-muted);
 }
 
+.footer-icon{
+font-size:20px;
+}
+
+.footer-label{
+margin-top:2px;
+}
+
+.footer-item:active{
+transform:scale(0.95);
+opacity:0.7;
+}
+/* =========================================================
+FIX GRID + MOBILE
+========================================================= */
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+
+.page{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.card{
+  width:100%;
+  overflow:hidden;
+}
+
+@media(max-width:600px){
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .page{
+    padding:10px;
+  }
+
+  .card{
+    border-radius:12px;
+  }
+}
+/* SOTTOHEADER AZIENDA */
+
+.topbar-azienda {
+  display: flex;
+  flex-direction: column;
+
+  padding: 8px 16px;      /* 🔥 meno alto */
+  gap: 4px;               /* 🔥 più compatto */
+
+  background: linear-gradient(
+    90deg,
+    var(--color-primary-dark),
+    var(--color-primary)
+  );
+
+  color: #ffffff;
+}
+
+/* RIGA 1 */
 .topbar-row-1 {
-display:flex;
-align-items:center;
-gap:8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .azienda-logo {
-height:22px;
-max-height:22px;
-width:auto;
-object-fit:contain;
+  height: 22px;           /* 🔥 FIX principale */
+  max-height: 22px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .azienda-nome {
-font-size:14px;
-font-weight:600;
-line-height:1.2;
+  font-size: 14px;        /* 🔥 leggermente più piccolo */
+  font-weight: 600;
+
+  white-space: normal;    /* nome completo */
+  line-height: 1.2;
 }
 
+/* RIGA 2 */
 .topbar-row-2 {
-font-size:12px;
-opacity:0.95;
+  font-size: 12px;        /* 🔥 più leggero */
+  opacity: 0.95;          /* meno aggressivo */
 }
