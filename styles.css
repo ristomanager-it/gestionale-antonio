@@ -693,8 +693,8 @@ FIX GRID + MOBILE
   display: flex;
   flex-direction: column;
 
-  padding: 10px 16px;
-  gap: 6px;
+  padding: 8px 16px;      /* 🔥 meno alto */
+  gap: 4px;               /* 🔥 più compatto */
 
   background: linear-gradient(
     90deg,
@@ -709,22 +709,27 @@ FIX GRID + MOBILE
 .topbar-row-1 {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .azienda-logo {
-  height: 34px;
+  height: 22px;           /* 🔥 FIX principale */
+  max-height: 22px;
+  width: auto;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .azienda-nome {
-  font-size: 15px;
+  font-size: 14px;        /* 🔥 leggermente più piccolo */
   font-weight: 600;
 
-  white-space: normal; /* 🔥 nome intero */
+  white-space: normal;    /* nome completo */
+  line-height: 1.2;
 }
 
 /* RIGA 2 */
 .topbar-row-2 {
-  font-size: 13px;
+  font-size: 12px;        /* 🔥 più leggero */
+  opacity: 0.95;          /* meno aggressivo */
 }
