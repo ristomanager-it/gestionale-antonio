@@ -64,14 +64,9 @@ export async function renderFooter(){
 
     </div>
 
-    <div style="
-      text-align:center;
-      font-size:11px;
-      color:#9ca3af;
-      margin-top:6px;
-      margin-bottom:4px;
-    ">
-      © Ristoflow – Tutti i diritti riservati
+    <!-- 🔥 BRAND PIATTAFORMA -->
+    <div class="footer-brand">
+      © Ristoflow — Sistema operativo per la ristorazione
     </div>
 
     <style>
@@ -86,6 +81,16 @@ export async function renderFooter(){
 
       .footer-icon{
         position:relative;
+      }
+
+      /* 🔥 NUOVO BLOCCO BRAND */
+      .footer-brand{
+        text-align:center;
+        font-size:11px;
+        color:#9ca3af;
+        margin-top:6px;
+        margin-bottom:6px;
+        padding-bottom:env(safe-area-inset-bottom);
       }
     </style>
   `
