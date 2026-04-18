@@ -16,7 +16,7 @@ import {
   saveProdottoAliasOcr
 } from "./ocr.js";
 
-import "./db.js";
+import "../../db.js";
 
 const CATEGORIE_GESTIONE_ACQUISTI = [
   { id: "acquisto_merci", nome: "ACQUISTO DI MERCI", categoriaBilancioSuggerita: "ACQUISTO DI MERCI" },
