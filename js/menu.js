@@ -128,10 +128,17 @@ export function initMenu() {
         title:"GESTIONE",
         items:[
           {label:"Venduto", route:"venduto"},
-          {label:"Margini", route:"margini"},
+          {label:"Margini", route:"margini"}
+        ]
+      },
 
-          // 🔥 NUOVO
-          {label:"Sedi", route:"gestione-sedi"}
+      // 🔥 NUOVA SEZIONE SEDI (STRUTTURATA)
+      {
+        title:"SEDI",
+        items:[
+          {label:"Cambia sede", route:"gestione-sedi"},
+          {label:"Crea sede", route:"gestione-sedi?mode=first"},
+          {label:"Gestisci sedi", route:"gestione-sedi?mode=manage"}
         ]
       },
 
@@ -158,6 +165,18 @@ export function initMenu() {
   function renderMenu(){
 
     menu.innerHTML = ""
+
+    // 🔥 MOSTRA SEDE ATTIVA
+    const sede = window.state?.sedeAttiva;
+    if(sede){
+      const sedeBox = document.createElement("div")
+      sedeBox.className = "menu-sede-attiva"
+      sedeBox.innerText = "📍 " + sede.nome
+      sedeBox.style.padding = "12px"
+      sedeBox.style.fontWeight = "700"
+      sedeBox.style.borderBottom = "1px solid #eee"
+      menu.appendChild(sedeBox)
+    }
 
     const struttura = getMenu()
 
