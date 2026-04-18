@@ -18,7 +18,6 @@ export async function render(container) {
 
   const content = `
     <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-top:20px;">
-
       <canvas id="grafico-scadenze" width="200" height="200"></canvas>
 
       <div id="status-cards"
@@ -29,7 +28,6 @@ export async function render(container) {
         flex-wrap:wrap;
       ">
       </div>
-
     </div>
 
     <div id="lista-dettaglio"
@@ -248,13 +246,11 @@ function creaCardStato(gruppi, percentuali) {
         let testo = az.nome;
 
         if (az.giorni !== undefined) {
-
           if (az.giorni < 0) {
             testo += " — scaduta da " + Math.abs(az.giorni) + " giorni";
           } else {
             testo += " — scade tra " + az.giorni + " giorni";
           }
-
         }
 
         riga.innerHTML = `
@@ -274,6 +270,10 @@ function creaCardStato(gruppi, percentuali) {
               Apri
             </button>
 
+            <button class="btn-mini btn-edit">
+              ✏️ Modifica
+            </button>
+
             <button class="btn-mini ${az.stato === "sospesa" ? "btn-green" : "btn-red"}">
               ${az.stato === "sospesa" ? "Riattiva" : "Sospendi"}
             </button>
@@ -282,10 +282,15 @@ function creaCardStato(gruppi, percentuali) {
         `;
 
         const btnApri = riga.querySelector(".btn-open");
-        const btnToggle = riga.querySelectorAll("button")[1];
+        const btnEdit = riga.querySelector(".btn-edit");
+        const btnToggle = riga.querySelectorAll("button")[2];
 
         btnApri.onclick = () => {
           window.location.hash = "#/completa-azienda?id=" + az.id;
+        };
+
+        btnEdit.onclick = () => {
+          window.location.hash = "#/modificaAzienda?id=" + az.id;
         };
 
         btnToggle.onclick = async () => {
