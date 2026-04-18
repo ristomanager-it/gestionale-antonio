@@ -687,14 +687,16 @@ FIX GRID + MOBILE
     border-radius:12px;
   }
 }
-/* SOTTOHEADER AZIENDA */
+/* ================================
+   SOTTOHEADER AZIENDA
+================================ */
 
 .topbar-azienda {
   display: flex;
   flex-direction: column;
 
-  padding: 8px 16px;      /* 🔥 meno alto */
-  gap: 4px;               /* 🔥 più compatto */
+  padding: 6px 16px;      /* 🔥 più compatta */
+  gap: 3px;
 
   background: linear-gradient(
     90deg,
@@ -705,16 +707,20 @@ FIX GRID + MOBILE
   color: #ffffff;
 }
 
-/* RIGA 1 */
+/* ================================
+   RIGA 1 (LOGO + NOME)
+================================ */
+
 .topbar-row-1 {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;               /* 🔥 meno spazio */
 }
 
+/* LOGO */
 .azienda-logo {
-  height: 20px;          /* 🔥 più piccolo */
-  max-height: 20px;
+  height: 18px;           /* 🔥 dimensione giusta */
+  max-height: 18px;
   width: auto;
 
   object-fit: contain;
@@ -722,16 +728,53 @@ FIX GRID + MOBILE
 
   display: block;
 }
+
+/* NOME AZIENDA */
 .azienda-nome {
-  font-size: 14px;        /* 🔥 leggermente più piccolo */
+  font-size: 14px;
   font-weight: 600;
 
-  white-space: normal;    /* nome completo */
   line-height: 1.2;
+
+  white-space: nowrap;        /* 🔥 evita righe infinite */
+  overflow: hidden;
+  text-overflow: ellipsis;    /* 🔥 elegante */
 }
 
-/* RIGA 2 */
+/* ================================
+   RIGA 2 (SALUTO + DATA + METEO)
+================================ */
+
 .topbar-row-2 {
-  font-size: 12px;        /* 🔥 più leggero */
-  opacity: 0.95;          /* meno aggressivo */
+  font-size: 12px;
+  opacity: 0.9;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width:600px){
+
+  .topbar-azienda {
+    padding: 6px 12px;
+  }
+
+  .azienda-logo {
+    height: 16px;        /* 🔥 ancora più piccolo */
+    max-height: 16px;
+  }
+
+  .azienda-nome {
+    font-size: 13px;
+  }
+
+  .topbar-row-2 {
+    font-size: 11px;
+  }
+
 }
