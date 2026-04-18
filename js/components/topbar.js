@@ -24,6 +24,7 @@ async function renderTopbar(){
 
   const nome = window.state?.user?.email || "Utente"
   const ruolo = window.state?.viewAs || window.state?.ruolo || "-"
+  const azienda = window.state?.azienda || null
 
   const now = new Date()
 
@@ -35,9 +36,27 @@ async function renderTopbar(){
 
   const saluto = getSaluto()
 
-  // render veloce
+  // 🔥 LOGO + NOME AZIENDA
+  const logoUrl = azienda?.logo_url || null
+  const nomeAzienda = azienda?.nome || ""
+
   el.innerHTML = `
     <div class="topbar-left">
+
+      ${
+        logoUrl
+        ? `<img src="${logoUrl}" class="topbar-logo">`
+        : `<div class="topbar-logo placeholder">🏢</div>`
+      }
+
+      ${
+        nomeAzienda
+        ? `<span class="topbar-azienda">${nomeAzienda}</span>`
+        : ``
+      }
+
+      <span class="topbar-divider">•</span>
+
       <span>${saluto} ${nome.split("@")[0]}</span>
       <span>•</span>
       <span>${data}</span>
