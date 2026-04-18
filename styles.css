@@ -687,46 +687,14 @@ FIX GRID + MOBILE
     border-radius:12px;
   }
 }
-/* ================================
-   HEADER AZIENDA (BIANCO)
-================================ */
+/* SOTTOHEADER AZIENDA */
 
-.topbar-main {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.topbar-azienda-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topbar-logo {
-  height: 36px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.topbar-azienda-nome {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-
-/* ================================
-   SOTTOHEADER BLU (2 RIGHE)
-================================ */
-
-.topbar-sub {
+.topbar-azienda {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 
   padding: 10px 16px;
+  gap: 6px;
 
   background: linear-gradient(
     90deg,
@@ -738,48 +706,25 @@ FIX GRID + MOBILE
 }
 
 /* RIGA 1 */
-.topbar-sub-top {
+.topbar-row-1 {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.topbar-sub-top .topbar-logo {
-  height: 28px;
+.azienda-logo {
+  height: 34px;
+  object-fit: contain;
 }
 
-.topbar-sub-top .topbar-azienda-nome {
-  font-size: 14px;
+.azienda-nome {
+  font-size: 15px;
   font-weight: 600;
 
-  /* 🔥 NOME INTERO */
-  white-space: normal;
-  overflow: visible;
+  white-space: normal; /* 🔥 nome intero */
 }
 
 /* RIGA 2 */
-.topbar-sub-bottom {
+.topbar-row-2 {
   font-size: 13px;
-}
-
-
-/* ================================
-   MOBILE
-================================ */
-
-@media (max-width:600px){
-
-  .topbar-logo {
-    height: 30px;
-  }
-
-  .topbar-sub-top .topbar-logo {
-    height: 24px;
-  }
-
-  .topbar-sub-bottom {
-    font-size: 12px;
-    line-height: 1.3;
-  }
-
 }
