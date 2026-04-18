@@ -716,14 +716,15 @@ FIX GRID + MOBILE
 /* ================================
    RIGA 1
 ================================ */
-
 .topbar-row-1 {
   display: flex;
+  justify-content: center;     /* 🔥 centra */
   align-items: center;
 
-  height: 24px;            /* 🔥 BLOCCO ALTEZZA */
+  min-height: 32px;            /* 🔥 spazio dinamico */
+  padding: 2px 0;
+
   gap: 6px;
-  overflow: hidden;        /* 🔥 evita sforamenti */
 }
 
 /* LOGO */
