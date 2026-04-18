@@ -786,3 +786,19 @@ FIX GRID + MOBILE
   }
 
 }
+.azienda-nome {
+  font-size: 13px;
+  font-weight: 600;
+
+  white-space: normal;        /* 🔥 NON troncare */
+  word-break: break-word;     /* 🔥 va a capo bene */
+  line-height: 1.2;
+}
+@media (max-width:600px){
+
+  .azienda-nome {
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+}
