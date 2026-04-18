@@ -28,7 +28,7 @@
 
 <body>
 
-  <!-- HEADER PIATTAFORMA (NON TOCCATO) -->
+  <!-- HEADER PIATTAFORMA (OK COSÌ) -->
   <header class="app-header">
 
     <div class="header-left">
@@ -51,19 +51,21 @@
   </header>
 
 
-  <!-- 🔵 SOTTOHEADER AZIENDA (NUOVO) -->
-  <div id="topbar-azienda" class="topbar-azienda-wrapper">
+  <!-- 🔵 UNICA SOTTOHEADER AZIENDA -->
+  <div id="topbar-azienda" class="topbar-azienda">
 
     <!-- RIGA 1 -->
-    <div class="topbar-azienda-top">
-      <img id="azienda-logo" class="topbar-azienda-logo" src="" alt="Logo azienda">
-      <div id="azienda-nome" class="topbar-azienda-nome-full"></div>
+    <div class="topbar-row-1">
+      <img id="azienda-logo" class="azienda-logo" src="" alt="Logo azienda">
+      <div id="azienda-nome" class="azienda-nome"></div>
     </div>
 
     <!-- RIGA 2 -->
-    <div class="topbar-azienda-bottom">
+    <div class="topbar-row-2">
       <span id="topbar-saluto"></span>
+      <span>•</span>
       <span id="topbar-data"></span>
+      <span>•</span>
       <span id="topbar-weather"></span>
     </div>
 
@@ -80,7 +82,6 @@
 
   <script src="js/state.js?v=9"></script>
 
-  <!-- SUPABASE CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
