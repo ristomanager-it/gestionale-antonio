@@ -799,3 +799,23 @@ FIX SPAZIO CONTENUTO
   }
 
 }
+/* ================================
+   DESKTOP
+================================ */
+
+@media (min-width:1024px){
+
+  .topbar-azienda {
+    padding: 6px 20px;
+  }
+
+  .azienda-nome {
+    font-size: 14px;   /* 🔥 più piccolo su desktop */
+    max-width: 600px;  /* evita effetto gigante */
+  }
+
+  .topbar-row-2 {
+    font-size: 12px;
+  }
+
+}
