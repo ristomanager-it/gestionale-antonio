@@ -128,50 +128,93 @@
     if(nomeHeader){
       nomeHeader.textContent = azienda.nome || ""
     }
+<script>
+function renderAziendaUI(){
 
-    // SOTTOHEADER
-    const nome = document.getElementById("azienda-nome")
-    if(nome){
-      nome.textContent = azienda.nome || ""
-    }
+  const azienda = window.state?.azienda
+  const user = window.state?.user
 
-    // SALUTO
-    const salutoEl = document.getElementById("topbar-saluto")
+  // 👉 NON uscire subito, altrimenti perdi saluto/data
+  const nomeUser = user?.email?.split("@")[0] || "utente"
 
-    if(salutoEl){
-      const nomeUser = user?.email?.split("@")[0] || "utente"
-      const ora = new Date().getHours()
+  // =========================
+  // HEADER
+  // =========================
 
-      let saluto = "Ciao"
-      if(ora < 12) saluto = "Buongiorno"
-      else if(ora < 18) saluto = "Buon pomeriggio"
-      else saluto = "Buonasera"
+  const logo = document.getElementById("header-logo")
+  const nomeHeader = document.getElementById("header-azienda-nome")
 
-      salutoEl.textContent = `${saluto}, ${nomeUser}`
-    }
-
-    // DATA
-    const dataEl = document.getElementById("topbar-data")
-
-    if(dataEl){
-      const oggi = new Date()
-      dataEl.textContent = oggi.toLocaleDateString("it-IT", {
-        weekday:"short",
-        day:"2-digit",
-        month:"short"
-      })
-    }
-
-    // METEO (placeholder)
-    const meteoEl = document.getElementById("topbar-weather")
-    if(meteoEl){
-      meteoEl.textContent = "☀️"
-    }
-
+  if(azienda && logo && azienda.logo_url){
+    logo.src = azienda.logo_url
   }
 
-  setInterval(renderAziendaUI, 1000)
-  </script>
+  if(nomeHeader){
+    nomeHeader.textContent = azienda?.nome || ""
+  }
+
+  // =========================
+  // NOME AZIENDA SOTTOHEADER
+  // =========================
+
+  const nome = document.getElementById("azienda-nome")
+  if(nome){
+    nome.textContent = azienda?.nome || ""
+  }
+
+  // =========================
+  // SALUTO
+  // =========================
+
+  const salutoEl = document.getElementById("topbar-saluto")
+
+  if(salutoEl){
+    const ora = new Date().getHours()
+
+    let saluto = "Ciao"
+    if(ora < 12) saluto = "Buongiorno"
+    else if(ora < 18) saluto = "Buon pomeriggio"
+    else saluto = "Buonasera"
+
+    salutoEl.textContent = `${saluto}, ${nomeUser}`
+  }
+
+  // =========================
+  // DATA
+  // =========================
+
+  const dataEl = document.getElementById("topbar-data")
+
+  if(dataEl){
+    const oggi = new Date()
+    dataEl.textContent = oggi.toLocaleDateString("it-IT", {
+      weekday:"short",
+      day:"2-digit",
+      month:"short"
+    })
+  }
+
+  // =========================
+  // METEO (usa la tua funzione!)
+  // =========================
+
+  const meteoEl = document.getElementById("topbar-weather")
+
+  if(meteoEl && window.getWeather){
+    window.getWeather().then(res => {
+      meteoEl.innerHTML = res
+    }).catch(() => {
+      meteoEl.textContent = "☀️"
+    })
+  }
+
+}
+
+// 👉 ogni 10 secondi (non ogni secondo!)
+setInterval(renderAziendaUI, 10000)
+
+// 👉 primo avvio
+renderAziendaUI()
+</script>
 
   <script type="module" src="js/router.js?v=11"></script>
 
