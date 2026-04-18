@@ -18,13 +18,13 @@
 
   <meta name="theme-color" content="#2563eb" />
 
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 
 </head>
 
 <body>
 
-  <!-- HEADER -->
+  <!-- HEADER (SOLO LOGO) -->
   <header class="app-header">
 
     <div class="header-left">
@@ -39,7 +39,6 @@
 
     <div class="header-center">
       <img id="header-logo" class="header-logo" src="assets/favicon-192.png" />
-      <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
     <div id="header-right" class="header-right"></div>
@@ -50,16 +49,26 @@
   <!-- SOTTOHEADER -->
   <div id="topbar-azienda" class="topbar-azienda">
 
+    <!-- RIGA 1 -->
     <div class="topbar-row-1">
       <div id="azienda-nome" class="azienda-nome"></div>
     </div>
 
+    <!-- RIGA 2 -->
     <div class="topbar-row-2">
-      <span id="topbar-saluto"></span>
-      <span>•</span>
-      <span id="topbar-data"></span>
-      <span>•</span>
-      <span id="topbar-weather"></span>
+
+      <div class="sub-left">
+        <span id="topbar-saluto"></span>
+      </div>
+
+      <div class="sub-center">
+        <span id="topbar-weather"></span>
+      </div>
+
+      <div class="sub-right">
+        <span id="topbar-data"></span>
+      </div>
+
     </div>
 
   </div>
@@ -76,26 +85,17 @@
   <!-- ================= SCRIPTS ================= -->
 
   <script src="js/state.js?v=9"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- ✅ SUPABASE FIX -->
+  <!-- SUPABASE -->
   <script>
     (function () {
       const { createClient } = window.supabase;
 
-      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-
-      const SUPABASE_ANON_KEY =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      });
+      const client = createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
+      );
 
       window.supabase = client;
       window.supabaseClient = client;
@@ -115,106 +115,59 @@
     const azienda = window.state?.azienda
     const user = window.state?.user
 
-    if(!azienda) return
+    const nomeUser = user?.email?.split("@")[0] || "utente"
 
-    // HEADER
+    // HEADER LOGO
     const logo = document.getElementById("header-logo")
-    const nomeHeader = document.getElementById("header-azienda-nome")
-
-    if(logo && azienda.logo_url){
+    if(azienda && logo && azienda.logo_url){
       logo.src = azienda.logo_url
     }
 
-    if(nomeHeader){
-      nomeHeader.textContent = azienda.nome || ""
+    // NOME AZIENDA
+    const nome = document.getElementById("azienda-nome")
+    if(nome){
+      nome.textContent = azienda?.nome || ""
     }
-<script>
-function renderAziendaUI(){
 
-  const azienda = window.state?.azienda
-  const user = window.state?.user
+    // SALUTO
+    const salutoEl = document.getElementById("topbar-saluto")
+    if(salutoEl){
+      const ora = new Date().getHours()
 
-  // 👉 NON uscire subito, altrimenti perdi saluto/data
-  const nomeUser = user?.email?.split("@")[0] || "utente"
+      let saluto = "Ciao"
+      if(ora < 12) saluto = "Buongiorno"
+      else if(ora < 18) saluto = "Buon pomeriggio"
+      else saluto = "Buonasera"
 
-  // =========================
-  // HEADER
-  // =========================
+      salutoEl.textContent = `${saluto}, ${nomeUser}`
+    }
 
-  const logo = document.getElementById("header-logo")
-  const nomeHeader = document.getElementById("header-azienda-nome")
+    // DATA
+    const dataEl = document.getElementById("topbar-data")
+    if(dataEl){
+      const oggi = new Date()
+      dataEl.textContent = oggi.toLocaleDateString("it-IT", {
+        weekday:"short",
+        day:"2-digit",
+        month:"short"
+      })
+    }
 
-  if(azienda && logo && azienda.logo_url){
-    logo.src = azienda.logo_url
+    // METEO
+    const meteoEl = document.getElementById("topbar-weather")
+    if(meteoEl && window.getWeather){
+      window.getWeather().then(res => {
+        meteoEl.innerHTML = res
+      }).catch(() => {
+        meteoEl.textContent = "☀️"
+      })
+    }
+
   }
 
-  if(nomeHeader){
-    nomeHeader.textContent = azienda?.nome || ""
-  }
-
-  // =========================
-  // NOME AZIENDA SOTTOHEADER
-  // =========================
-
-  const nome = document.getElementById("azienda-nome")
-  if(nome){
-    nome.textContent = azienda?.nome || ""
-  }
-
-  // =========================
-  // SALUTO
-  // =========================
-
-  const salutoEl = document.getElementById("topbar-saluto")
-
-  if(salutoEl){
-    const ora = new Date().getHours()
-
-    let saluto = "Ciao"
-    if(ora < 12) saluto = "Buongiorno"
-    else if(ora < 18) saluto = "Buon pomeriggio"
-    else saluto = "Buonasera"
-
-    salutoEl.textContent = `${saluto}, ${nomeUser}`
-  }
-
-  // =========================
-  // DATA
-  // =========================
-
-  const dataEl = document.getElementById("topbar-data")
-
-  if(dataEl){
-    const oggi = new Date()
-    dataEl.textContent = oggi.toLocaleDateString("it-IT", {
-      weekday:"short",
-      day:"2-digit",
-      month:"short"
-    })
-  }
-
-  // =========================
-  // METEO (usa la tua funzione!)
-  // =========================
-
-  const meteoEl = document.getElementById("topbar-weather")
-
-  if(meteoEl && window.getWeather){
-    window.getWeather().then(res => {
-      meteoEl.innerHTML = res
-    }).catch(() => {
-      meteoEl.textContent = "☀️"
-    })
-  }
-
-}
-
-// 👉 ogni 10 secondi (non ogni secondo!)
-setInterval(renderAziendaUI, 10000)
-
-// 👉 primo avvio
-renderAziendaUI()
-</script>
+  setInterval(renderAziendaUI, 10000)
+  renderAziendaUI()
+  </script>
 
   <script type="module" src="js/router.js?v=11"></script>
 
