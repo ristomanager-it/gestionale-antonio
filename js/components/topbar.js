@@ -26,12 +26,22 @@ async function renderTopbar(){
   const saluto = getSaluto()
 
   // =========================
-  // HEADER LOGO
+  // HEADER LOGO (FIX COMPLETO)
   // =========================
 
   const headerLogo = document.getElementById("header-logo")
-  if(headerLogo && azienda.logo_url){
-    headerLogo.src = azienda.logo_url
+
+  if (headerLogo) {
+
+    let src = "assets/favicon-192.png"
+
+    if (sedeAttiva?.logo_url) {
+      src = sedeAttiva.logo_url
+    } else if (azienda.logo_url) {
+      src = azienda.logo_url
+    }
+
+    headerLogo.src = src + "?t=" + Date.now()
   }
 
   // =========================
@@ -107,7 +117,7 @@ function renderSedeSwitcher(sedi, sedeAttiva){
 
 
 /* =========================
-EVENT LISTENER
+EVENT LISTENER (FIX COMPLETO)
 ========================= */
 
 document.addEventListener("change", function(e){
@@ -118,11 +128,21 @@ document.addEventListener("change", function(e){
 
     localStorage.setItem("active_sede_id", sedeId)
 
-    // 🔥 reset stato sede
-    window.state.sedeAttiva = null
+    // 🔥 aggiorna sede nello stato (NO reset)
+    const sede = window.state.sedi.find(s => String(s.id) === String(sedeId))
 
-    // 🔥 reload app pulito
-    window.router.reloadCurrentRoute()
+    if (sede) {
+      window.state.sedeAttiva = sede
+    }
+
+    // 🔥 aggiorna subito UI
+    if (window.refreshTopbar) {
+      window.refreshTopbar()
+    }
+
+    if (window.renderAziendaUI) {
+      window.renderAziendaUI()
+    }
   }
 
 })
