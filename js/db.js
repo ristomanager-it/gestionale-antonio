@@ -1,10 +1,17 @@
 // js/db.js
 // =====================================
 // Wrapper centrale query multi-azienda / multi-sede
-// + Blocco operatività se azienda sospesa
+// VERSIONE HARD-ENFORCED + CHAINABLE
 // =====================================
 
 (function () {
+
+  function getClient() {
+    if (!window.supabase) {
+      throw new Error("Supabase non inizializzato");
+    }
+    return window.supabase;
+  }
 
   function requireAzienda() {
     if (!window.state?.azienda?.id) {
@@ -14,94 +21,131 @@
 
   function requireAziendaAttiva() {
     if (window.state?.azienda?.stato === "sospesa") {
-      throw new Error("Azienda sospesa. Contatta l'amministratore della piattaforma.");
+      throw new Error("Azienda sospesa.");
     }
   }
 
-  function requireSedeIfNeeded() {
-    if (
-      Array.isArray(window.state?.sedi) &&
-      window.state.sedi.length > 1 &&
-      !window.state?.sedeAttiva?.id
-    ) {
-      throw new Error("Seleziona una sede prima di procedere.");
+  function requireSede() {
+    const sedi = window.state?.sedi || [];
+
+    if (sedi.length > 0 && !window.state?.sedeAttiva?.id) {
+      throw new Error("Seleziona una sede prima di operare.");
     }
+  }
+
+  function applyScope(query) {
+    query = query.eq("azienda_id", window.state.azienda.id);
+
+    if (window.state?.sedeAttiva?.id) {
+      query = query.eq("sede_id", window.state.sedeAttiva.id);
+    }
+
+    return query;
+  }
+
+  function buildQuery(table, selectString = "*") {
+    requireAzienda();
+    requireAziendaAttiva();
+
+    const client = getClient();
+
+    let query = client.from(table).select(selectString);
+
+    query = applyScope(query);
+
+    return query;
   }
 
   window.db = {
 
-    // SELECT con filtro automatico
-    select(table, selectString = "*") {
+    // =========================
+    // SELECT
+    // =========================
+    from(table) {
+
       requireAzienda();
       requireAziendaAttiva();
 
-      let query = window.supabaseClient
-        .from(table)
-        .select(selectString)
-        .eq("azienda_id", window.state.azienda.id);
+      const client = getClient();
 
-      if (window.state?.sedeAttiva?.id) {
-        query = query.eq("sede_id", window.state.sedeAttiva.id);
-      }
+      let base = client.from(table);
 
-      return query;
+      return {
+        select(selectString = "*") {
+          let query = base.select(selectString);
+          query = applyScope(query);
+          return query;
+        }
+      };
     },
 
-    // INSERT con azienda_id + sede_id automatici
+    // =========================
+    // SELECT SHORTCUT
+    // =========================
+    select(table, selectString = "*") {
+      return buildQuery(table, selectString);
+    },
+
+    // =========================
+    // INSERT
+    // =========================
     insert(table, payload) {
       requireAzienda();
       requireAziendaAttiva();
-      requireSedeIfNeeded();
+      requireSede();
+
+      const client = getClient();
 
       const data = {
         ...payload,
         azienda_id: window.state.azienda.id,
+        sede_id: window.state.sedeAttiva?.id || null
       };
 
-      if (window.state?.sedeAttiva?.id) {
-        data.sede_id = window.state.sedeAttiva.id;
-      }
-
-      return window.supabaseClient
+      return client
         .from(table)
         .insert(data)
         .select();
     },
 
-    // UPDATE con filtro automatico
+    // =========================
+    // UPDATE
+    // =========================
     update(table, payload, idField = "id", idValue) {
       requireAzienda();
       requireAziendaAttiva();
-      requireSedeIfNeeded();
+      requireSede();
 
-      let query = window.supabaseClient
+      const client = getClient();
+
+      let query = client
         .from(table)
         .update(payload)
         .eq("azienda_id", window.state.azienda.id)
         .eq(idField, idValue);
 
-      if (window.state?.sedeAttiva?.id) {
-        query = query.eq("sede_id", window.state.sedeAttiva.id);
-      }
+      query = applyScope(query);
 
       return query.select();
     },
 
-    // DELETE con filtro automatico
+    // =========================
+    // DELETE
+    // =========================
     delete(table, idField = "id", idValue) {
       requireAzienda();
       requireAziendaAttiva();
-      requireSedeIfNeeded();
+      requireSede();
 
-      let query = window.supabaseClient
+      const client = getClient();
+
+      let query = client
         .from(table)
         .delete()
         .eq("azienda_id", window.state.azienda.id)
         .eq(idField, idValue);
 
-      if (window.state?.sedeAttiva?.id) {
-        query = query.eq("sede_id", window.state.sedeAttiva.id);
-      }
+      query = applyScope(query);
 
       return query;
     }
