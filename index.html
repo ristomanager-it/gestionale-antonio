@@ -18,17 +18,13 @@
 
   <meta name="theme-color" content="#2563eb" />
 
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Ristoflow" />
-
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=11" />
 
 </head>
 
 <body>
 
-  <!-- HEADER PIATTAFORMA (NON TOCCATO) -->
+  <!-- HEADER -->
   <header class="app-header">
 
     <div class="header-left">
@@ -42,7 +38,7 @@
     </div>
 
     <div class="header-center">
-      <img id="header-logo" class="header-logo" src="assets/favicon-192.png" alt="Logo azienda" />
+      <img id="header-logo" class="header-logo" src="assets/favicon-192.png" />
       <div id="header-azienda-nome" class="header-azienda-nome"></div>
     </div>
 
@@ -51,72 +47,49 @@
   </header>
 
 
-  <!-- 🔵 SOTTOHEADER AZIENDA (NUOVO) -->
-  <div id="topbar-azienda" class="topbar-azienda-wrapper">
+  <!-- SOTTOHEADER -->
+  <div id="topbar-azienda" class="topbar-azienda">
 
-    <!-- RIGA 1 -->
-    <div class="topbar-azienda-top">
-      <img id="azienda-logo" class="topbar-azienda-logo" src="" alt="Logo azienda">
-      <div id="azienda-nome" class="topbar-azienda-nome-full"></div>
+    <div class="topbar-row-1">
+      <div id="azienda-nome" class="azienda-nome"></div>
     </div>
 
-    <!-- RIGA 2 -->
-    <div class="topbar-azienda-bottom">
+    <div class="topbar-row-2">
       <span id="topbar-saluto"></span>
+      <span>•</span>
       <span id="topbar-data"></span>
+      <span>•</span>
       <span id="topbar-weather"></span>
     </div>
 
   </div>
 
 
-  <nav id="global-menu" class="global-menu"></nav>
+  <nav id="global-menu"></nav>
   <div class="menu-overlay"></div>
 
   <main id="app"></main>
+
+  <footer id="footer-root"></footer>
 
 
   <!-- ================= SCRIPTS ================= -->
 
   <script src="js/state.js?v=9"></script>
 
-  <!-- SUPABASE CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
     (function () {
-      const supabaseLib = window.supabase;
+      const { createClient } = window.supabase;
 
-      if (!supabaseLib || typeof supabaseLib.createClient !== "function") {
-        throw new Error("Libreria Supabase non caricata");
-      }
-
-      const { createClient } = supabaseLib;
-
-      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-      const SUPABASE_ANON_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      });
+      const client = createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      );
 
       window.supabase = client;
       window.supabaseClient = client;
-
-      window.getSupabase = function () {
-        return window.supabase;
-      };
-
-      window.waitSupabase = async function () {
-        return window.supabase;
-      };
-
-      window.SUPABASE_READY = true;
     })();
   </script>
 
@@ -126,12 +99,72 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
+  <!-- 🔥 SCRIPT UI AZIENDA -->
+  <script>
+  function renderAziendaUI(){
+
+    const azienda = window.state?.azienda
+    const user = window.state?.user
+
+    if(!azienda) return
+
+    // HEADER
+    const logo = document.getElementById("header-logo")
+    const nomeHeader = document.getElementById("header-azienda-nome")
+
+    if(logo && azienda.logo_url){
+      logo.src = azienda.logo_url
+    }
+
+    if(nomeHeader){
+      nomeHeader.textContent = azienda.nome || ""
+    }
+
+    // SOTTOHEADER
+    const nome = document.getElementById("azienda-nome")
+    if(nome){
+      nome.textContent = azienda.nome || ""
+    }
+
+    // SALUTO
+    const salutoEl = document.getElementById("topbar-saluto")
+
+    if(salutoEl){
+      const nomeUser = user?.email?.split("@")[0] || "utente"
+      const ora = new Date().getHours()
+
+      let saluto = "Ciao"
+      if(ora < 12) saluto = "Buongiorno"
+      else if(ora < 18) saluto = "Buon pomeriggio"
+      else saluto = "Buonasera"
+
+      salutoEl.textContent = `${saluto}, ${nomeUser}`
+    }
+
+    // DATA
+    const dataEl = document.getElementById("topbar-data")
+
+    if(dataEl){
+      const oggi = new Date()
+      dataEl.textContent = oggi.toLocaleDateString("it-IT", {
+        weekday:"short",
+        day:"2-digit",
+        month:"short"
+      })
+    }
+
+    // METEO placeholder
+    const meteoEl = document.getElementById("topbar-weather")
+    if(meteoEl){
+      meteoEl.textContent = "☀️"
+    }
+
+  }
+
+  setInterval(renderAziendaUI, 1000)
+  </script>
+
   <script type="module" src="js/router.js?v=11"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>
