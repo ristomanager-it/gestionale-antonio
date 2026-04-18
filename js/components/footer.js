@@ -47,6 +47,7 @@ export async function renderFooter(){
   const items = (footerConfig[ruolo] || []).filter(i => can(i.route))
 
   return `
+    <!-- 🔥 NAV FOOTER -->
     <div class="app-footer">
 
       ${items.map(i => `
@@ -64,12 +65,13 @@ export async function renderFooter(){
 
     </div>
 
-    <!-- 🔥 BRAND PIATTAFORMA -->
+    <!-- 🔥 BRAND FISSO SOTTO -->
     <div class="footer-brand">
       © Ristoflow — Sistema operativo per la ristorazione
     </div>
 
     <style>
+
       .badge{
         position:absolute;
         width:8px;
@@ -83,15 +85,6 @@ export async function renderFooter(){
         position:relative;
       }
 
-      /* 🔥 NUOVO BLOCCO BRAND */
-      .footer-brand{
-        text-align:center;
-        font-size:11px;
-        color:#9ca3af;
-        margin-top:6px;
-        margin-bottom:6px;
-        padding-bottom:env(safe-area-inset-bottom);
-      }
     </style>
   `
 }
