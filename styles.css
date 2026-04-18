@@ -846,3 +846,8 @@ FIX SPAZIO CONTENUTO
   width: auto;
   object-fit: contain;
 }
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
