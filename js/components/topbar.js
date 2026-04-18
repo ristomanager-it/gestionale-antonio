@@ -22,9 +22,11 @@ async function renderTopbar(){
   const el = document.getElementById("topbar-global")
   if(!el) return
 
-  const nome = window.state?.user?.email || "Utente"
+  const azienda = window.state?.azienda || {}
+  const profilo = window.state?.profilo || {}
+
+  const nomeUtente = profilo.nome || window.state?.user?.email?.split("@")[0] || "Utente"
   const ruolo = window.state?.viewAs || window.state?.ruolo || "-"
-  const azienda = window.state?.azienda || null
 
   const now = new Date()
 
@@ -36,46 +38,51 @@ async function renderTopbar(){
 
   const saluto = getSaluto()
 
-  // 🔥 LOGO + NOME AZIENDA
   const logoUrl = azienda?.logo_url || null
   const nomeAzienda = azienda?.nome || ""
 
   el.innerHTML = `
-    <div class="topbar-left">
+    
+    <!-- 🔹 HEADER AZIENDA -->
+    <div class="topbar-main">
 
-      ${
-        logoUrl
-        ? `<img src="${logoUrl}" class="topbar-logo">`
-        : `<div class="topbar-logo placeholder">🏢</div>`
-      }
+      <div class="topbar-azienda-box">
+        ${
+          logoUrl
+          ? `<img src="${logoUrl}" class="topbar-logo">`
+          : `<div class="topbar-logo placeholder">🏢</div>`
+        }
 
-      ${
-        nomeAzienda
-        ? `<span class="topbar-azienda">${nomeAzienda}</span>`
-        : ``
-      }
+        <span class="topbar-azienda-nome">
+          ${nomeAzienda}
+        </span>
+      </div>
 
-      <span class="topbar-divider">•</span>
-
-      <span>${saluto} ${nome.split("@")[0]}</span>
-      <span>•</span>
-      <span>${data}</span>
     </div>
 
-    <div class="topbar-right">
-      <span>⏳</span>
-      <span>• ${ruolo}</span>
+
+    <!-- 🔹 SUBHEADER UTENTE -->
+    <div class="topbar-sub">
+
+      <div class="topbar-sub-left">
+        <span>${saluto} ${nomeUtente}</span>
+        <span>•</span>
+        <span>${data}</span>
+      </div>
+
+      <div class="topbar-sub-right">
+        <span id="meteo">⏳</span>
+        <span>• ${ruolo}</span>
+      </div>
+
     </div>
   `
 
   const meteo = await getWeather()
 
-  const right = el.querySelector(".topbar-right")
-  if(right){
-    right.innerHTML = `
-      <span>${meteo}</span>
-      <span>• ${ruolo}</span>
-    `
+  const meteoEl = document.getElementById("meteo")
+  if(meteoEl){
+    meteoEl.innerHTML = meteo
   }
 }
 
