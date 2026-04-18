@@ -79,14 +79,23 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- 🔥 FIX SUPABASE (QUI ERA IL PROBLEMA) -->
   <script>
     (function () {
       const { createClient } = window.supabase;
 
-      const client = createClient(
-        "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      );
+      const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+
+      const SUPABASE_ANON_KEY =
+      "INCOLLA_QUI_LA_TUA_CHIAVE_COMPLETA";  // 👈 QUESTA DEVI METTERLA TU
+
+      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
 
       window.supabase = client;
       window.supabaseClient = client;
@@ -99,7 +108,7 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- 🔥 SCRIPT UI AZIENDA -->
+  <!-- 🔥 UI AZIENDA -->
   <script>
   function renderAziendaUI(){
 
@@ -153,7 +162,7 @@
       })
     }
 
-    // METEO placeholder
+    // METEO
     const meteoEl = document.getElementById("topbar-weather")
     if(meteoEl){
       meteoEl.textContent = "☀️"
