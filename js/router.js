@@ -4,8 +4,6 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
-   gestisce link tipo:
-   https://dominio.com/#access_token=...
 ========================================================= */
 
 (function fixSupabaseEmailLink() {
@@ -19,8 +17,6 @@ import { initTopbar } from "./components/topbar.js";
 
 /* =========================================================
    FIX SUPABASE HASH
-   #/set-password#access_token -> #/set-password?access_token
-   #/activate#access_token     -> #/activate?access_token
 ========================================================= */
 
 (function fixSupabaseHash() {
@@ -39,10 +35,9 @@ import { initTopbar } from "./components/topbar.js";
 })();
 
 let app = null;
-let lastResolvedRoute = null;
 
 /* =========================================================
-   ROUTES
+   ROUTES (FIX CORRETTO)
 ========================================================= */
 
 const routes = {
@@ -73,8 +68,13 @@ const routes = {
 
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
-  acquisti: () => import("./views/acquisti.js"),
+
+  // 🔥 FIX QUI
+  acquisti: () => import("./views/acquisti/fatture.js"),
+
+  // ✔ già corretto
   magazzino: () => import("./views/magazzino/magazzino.js"),
+
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js"),
