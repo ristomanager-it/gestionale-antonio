@@ -1,6 +1,5 @@
-import "../supabaseClient.js";
-import "../state.js";
-import "../../db.js";
+import "../../supabaseClient.js";
+import "../../state.js";
 
 export async function renderDDT(container, azienda) {
 
@@ -99,53 +98,47 @@ export async function renderDDT(container, azienda) {
 
     feedback.textContent = "Ricerca in corso...";
 
-    try {
+    let query = window.supabaseClient
+      .from("ddt_acquisto")
+      .select(`
+        id,
+        numero_ddt,
+        data_ddt,
+        fornitori:fornitore_id (
+          ragione_sociale
+        )
+      `)
+      .eq("azienda_id", azienda.id)
+      .order("data_ddt", { ascending:false });
 
-      let query = window.db
-        .from("ddt_acquisto")
-        .select(`
-          id,
-          numero_ddt,
-          data_ddt,
-          fornitori:fornitore_id (
-            ragione_sociale
-          )
-        `)
-        .order("data_ddt", { ascending:false });
-
-      if(dataDa){
-        query = query.gte("data_ddt", dataDa);
-      }
-
-      if(dataA){
-        query = query.lte("data_ddt", dataA);
-      }
-
-      const { data, error } = await query;
-
-      if(error){
-        console.error(error);
-        feedback.textContent = "Errore ricerca DDT";
-        return;
-      }
-
-      let rows = data || [];
-
-      if(fornitore){
-        const needle = fornitore.toLowerCase();
-        rows = rows.filter(r =>
-          (r.fornitori?.ragione_sociale || "").toLowerCase().includes(needle)
-        );
-      }
-
-      feedback.textContent = `Trovati ${rows.length} DDT`;
-
-      renderResults(rows);
-
-    } catch (err) {
-      console.error("Errore DB wrapper:", err);
-      feedback.textContent = err.message || "Errore";
+    if(dataDa){
+      query = query.gte("data_ddt", dataDa);
     }
+
+    if(dataA){
+      query = query.lte("data_ddt", dataA);
+    }
+
+    const { data, error } = await query;
+
+    if(error){
+      console.error(error);
+      feedback.textContent = "Errore ricerca DDT";
+      return;
+    }
+
+    let rows = data || [];
+
+    if(fornitore){
+      const needle = fornitore.toLowerCase();
+      rows = rows.filter(r =>
+        (r.fornitori?.ragione_sociale || "").toLowerCase().includes(needle)
+      );
+    }
+
+    feedback.textContent = `Trovati ${rows.length} DDT`;
+
+    renderResults(rows);
 
   });
 
