@@ -70,7 +70,7 @@ const routes = {
   completaAzienda: () => import("./views/completa-azienda.js"),
 
   // 🔥 FIX QUI
-  acquisti: () => import("./views/acquisti/fatture.js"),
+ acquisti: () => import("./views/acquisti/index.js"),
 
   // ✔ già corretto
   magazzino: () => import("./views/magazzino/magazzino.js"),
