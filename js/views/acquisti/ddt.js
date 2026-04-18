@@ -1,6 +1,6 @@
 import "../supabaseClient.js";
 import "../state.js";
-import "../db.js";
+import "../../db.js";
 
 export async function renderDDT(container, azienda) {
 
