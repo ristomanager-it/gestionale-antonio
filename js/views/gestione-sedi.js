@@ -213,11 +213,18 @@ window.editSede = async function(id){
 
     await window.stateActions.caricaSedi();
 
-    if (window.state?.sedeAttiva?.id === id) {
-      window.stateActions.setSedeAttiva(id);
+    const nuovaSede = window.state.sedi.find(s => String(s.id) === String(id));
+
+    if (nuovaSede) {
+      window.state.sedeAttiva = nuovaSede;
+      localStorage.setItem("active_sede_id", nuovaSede.id);
     }
 
-    location.reload();
+    if (window.renderAziendaUI) {
+      window.renderAziendaUI();
+    }
+
+    window.location.hash = "#/gestione-sedi?mode=manage";
   };
 }
 
@@ -229,8 +236,8 @@ UPLOAD LOGO
 async function uploadLogo(file, aziendaId){
 
   const fileExt = file.name.split(".").pop();
-  const fileName = `${aziendaId}_${Date.now()}.${fileExt}`;
-  const filePath = `loghi/${fileName}`;
+  const fileName = `${Date.now()}.${fileExt}`;
+  const filePath = `${aziendaId}/${fileName}`;
 
   const { error } = await supabase.storage
     .from("loghi-aziende")
@@ -248,7 +255,7 @@ async function uploadLogo(file, aziendaId){
     .from("loghi-aziende")
     .getPublicUrl(filePath);
 
-  return data.publicUrl;
+  return data.publicUrl + "?t=" + Date.now();
 }
 
 
