@@ -805,7 +805,8 @@ FIX GRID + MOBILE
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 16px;
+  padding: 8px 16px; /* leggermente più alto anche desktop */
+  min-height: 36px;
   font-size: 13px;
   color: #6b7280;
   border-top: 1px solid #f1f5f9;
@@ -836,7 +837,17 @@ FIX GRID + MOBILE
   }
 
   .topbar-sub {
-    font-size: 12px;
+    padding: 12px 16px;      /* 🔥 altezza aumentata */
+    min-height: 52px;        /* 🔥 raddoppio reale */
+    font-size: 13px;
+    flex-wrap: wrap;         /* 🔥 va su due righe */
+    row-gap: 6px;
+  }
+
+  .topbar-sub-left,
+  .topbar-sub-right {
+    width: 100%;             /* 🔥 ogni blocco su riga propria */
+    justify-content: space-between;
   }
 
 }
