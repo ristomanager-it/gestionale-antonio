@@ -1,5 +1,6 @@
 import "../supabaseClient.js";
 import "../state.js";
+import "../db.js";
 
 export async function render(container) {
 
@@ -72,25 +73,31 @@ export async function render(container) {
 
   async function loadOrdini(st) {
 
-    const { data, error } = await window.supabaseClient
-      .from("ordini_fornitore")
-      .select(`
-        id,
-        numero_ordine,
-        data_ordine,
-        stato,
-        fornitori ( ragione_sociale )
-      `)
-      .eq("azienda_id", azienda.id)
-      .order("data_ordine", { ascending: false });
+    try {
 
-    if (error) {
-      console.error("Errore load ordini:", error);
+      const { data, error } = await window.db
+        .from("ordini_fornitore")
+        .select(`
+          id,
+          numero_ordine,
+          data_ordine,
+          stato,
+          fornitori ( ragione_sociale )
+        `)
+        .order("data_ordine", { ascending: false });
+
+      if (error) {
+        console.error("Errore load ordini:", error);
+        st.ordini = [];
+        return;
+      }
+
+      st.ordini = data || [];
+
+    } catch (err) {
+      console.error("Errore DB wrapper:", err);
       st.ordini = [];
-      return;
     }
-
-    st.ordini = data || [];
 
   }
 
