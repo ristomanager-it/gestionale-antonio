@@ -3,12 +3,10 @@ export async function renderFooter(){
   const ruolo = window.state?.viewAs || window.state?.ruolo
   const aziendaId = window.state?.azienda?.id
 
-  // 🔥 FIX: supabase corretto
   const supabase = window.supabase
 
   const alerts = await getFooterAlerts(ruolo, aziendaId, supabase)
 
-  // 🔐 PERMESSI (allineato a menu)
   function can(route){
 
     if(window.state?._allAccess) return true
@@ -46,7 +44,6 @@ export async function renderFooter(){
 
   }
 
-  // 🔥 FILTRO PERMESSI
   const items = (footerConfig[ruolo] || []).filter(i => can(i.route))
 
   return `
@@ -65,6 +62,16 @@ export async function renderFooter(){
         </div>
       `).join("")}
 
+    </div>
+
+    <div style="
+      text-align:center;
+      font-size:11px;
+      color:#9ca3af;
+      margin-top:6px;
+      margin-bottom:4px;
+    ">
+      © Ristoflow – Tutti i diritti riservati
     </div>
 
     <style>
@@ -86,7 +93,7 @@ export async function renderFooter(){
 
 
 // =====================================
-// ALERT LOGIC (TONY → FOOTER)
+// ALERT LOGIC
 // =====================================
 
 async function getFooterAlerts(ruolo, aziendaId, supabase){
@@ -97,7 +104,6 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   const today = new Date().toISOString().slice(0,10)
 
-  // 👨‍🍳 OPERATORE
   if(ruolo === "operatore"){
 
     const { data } = await supabase
@@ -113,7 +119,6 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   }
 
-  // 👨‍💼 MANAGER
   if(ruolo === "manager"){
 
     const { data } = await supabase
@@ -128,7 +133,6 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   }
 
-  // 👨‍💻 ADMIN
   if(ruolo === "admin" || ruolo === "superadmin"){
 
     const { data } = await supabase
