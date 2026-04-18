@@ -687,3 +687,38 @@ FIX GRID + MOBILE
     border-radius:12px;
   }
 }
+/* ===== LOGO AZIENDA TOPBAR ===== */
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.topbar-logo.placeholder {
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.topbar-azienda {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.topbar-divider {
+  margin: 0 6px;
+  color: #9ca3af;
+}
