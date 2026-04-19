@@ -1,3 +1,5 @@
+// 🔽 INCOLLA QUESTO FILE COMPLETO
+
 export function initMenu() {
 
   const menu = document.getElementById("global-menu")
@@ -6,9 +8,6 @@ export function initMenu() {
 
   if(!menu || !toggle) return
 
-  // ================================
-  // 🔔 CAMPANELLA
-  // ================================
   if(headerRight && !document.getElementById("notif-bell")){
     const bell = document.createElement("div")
     bell.id = "notif-bell"
@@ -71,12 +70,7 @@ export function initMenu() {
   function go(route){
     if(!can(route)) return
 
-    if(window.router?.go){
-      window.router.go(route)
-    }else{
-      window.location.hash = "#/" + route
-    }
-
+    window.location.hash = "#/" + route
     closeMenu()
   }
 
@@ -97,7 +91,8 @@ export function initMenu() {
       {
         title:"GENERALE",
         items:[
-          {label:"Home", route:"home"}
+          {label:"Home", route:"home"},
+          {label:"📘 Manuale operativo", route:"manuale"} // 🔥 AGGIUNTO
         ]
       },
 
@@ -132,7 +127,6 @@ export function initMenu() {
         ]
       },
 
-      // 🔥 NUOVA SEZIONE SEDI (STRUTTURATA)
       {
         title:"SEDI",
         items:[
@@ -166,7 +160,6 @@ export function initMenu() {
 
     menu.innerHTML = ""
 
-    // 🔥 MOSTRA SEDE ATTIVA
     const sede = window.state?.sedeAttiva;
     if(sede){
       const sedeBox = document.createElement("div")
