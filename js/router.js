@@ -547,7 +547,35 @@ async function resolve() {
   }
 
   window.stateActions.setUser(session.user);
+// 🔥 LOAD SEDE DIPENDENTE
+try {
 
+  const { data: dip } = await supabase
+    .from("dipendenti")
+    .select("id")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (dip?.id) {
+
+    const { data: link } = await supabase
+      .from("dipendenti_sedi")
+      .select("sede_id, sedi(id, nome, logo_url)")
+      .eq("dipendente_id", dip.id)
+      .eq("is_default", true)
+      .maybeSingle();
+
+    if (link?.sedi) {
+      window.state.sedeAttiva = link.sedi;
+
+      // 🔥 salva anche in localStorage
+      localStorage.setItem("active_sede_id", link.sedi.id);
+    }
+  }
+
+} catch (e) {
+  console.warn("Errore load sede dipendente:", e);
+}
   if (
     PUBLIC_ROUTES.has(route) &&
     route !== "activate" &&
