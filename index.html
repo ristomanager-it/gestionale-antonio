@@ -59,7 +59,7 @@
       </div>
 
       <div class="sub-center">
-        <span id="topbar-weather"></span>
+        <span id="topbar-sede"></span>
       </div>
 
       <div class="sub-right">
@@ -74,10 +74,10 @@
   <nav id="global-menu"></nav>
   <div class="menu-overlay"></div>
 
-  <!-- 🔥 CONTENUTO APP -->
+  <!-- CONTENUTO APP -->
   <main id="app"></main>
 
-  <!-- 🔥 FOOTER -->
+  <!-- FOOTER -->
   <footer id="footer-root"></footer>
 
 
@@ -93,7 +93,7 @@
 
       const client = createClient(
         "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
+        "YOUR_KEY"
       );
 
       window.supabase = client;
@@ -107,25 +107,36 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- UI AZIENDA -->
+  <!-- UI AZIENDA + SEDE -->
   <script>
   function renderAziendaUI(){
 
     const azienda = window.state?.azienda
+    const sede = window.state?.sedeAttiva
     const user = window.state?.user
 
     const nomeUser = user?.email?.split("@")[0] || "utente"
 
+    // LOGO DINAMICO
     const logo = document.getElementById("header-logo")
-    if(azienda && logo && azienda.logo_url){
-      logo.src = azienda.logo_url
+    if(logo){
+      const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png"
+      logo.src = logoUrl + "?v=" + Date.now()
     }
 
+    // NOME AZIENDA
     const nome = document.getElementById("azienda-nome")
     if(nome){
       nome.textContent = azienda?.nome || ""
     }
 
+    // NOME SEDE
+    const sedeEl = document.getElementById("topbar-sede")
+    if(sedeEl){
+      sedeEl.textContent = sede ? `📍 ${sede.nome}` : "⚠️ Nessuna sede"
+    }
+
+    // SALUTO
     const salutoEl = document.getElementById("topbar-saluto")
     if(salutoEl){
       const ora = new Date().getHours()
@@ -138,6 +149,7 @@
       salutoEl.textContent = `${saluto}, ${nomeUser}`
     }
 
+    // DATA
     const dataEl = document.getElementById("topbar-data")
     if(dataEl){
       const oggi = new Date()
@@ -148,6 +160,7 @@
       })
     }
 
+    // METEO (se usi già funzione)
     const meteoEl = document.getElementById("topbar-weather")
     if(meteoEl && window.getWeather){
       window.getWeather().then(res => {
@@ -159,7 +172,8 @@
 
   }
 
-  setInterval(renderAziendaUI, 10000)
+  // refresh automatico UI
+  setInterval(renderAziendaUI, 5000)
   renderAziendaUI()
   </script>
 
