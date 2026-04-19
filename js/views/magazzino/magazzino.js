@@ -1,4 +1,191 @@
 import "../../db.js";
+import { renderAnagraficaProdotti } from "./anagrafica_prodotti.js";
+import { renderMateriePrime } from "./materie_prime.js";
+import { renderPreparazioni } from "./preparazioni.js";
+import { renderProdottiFiniti } from "./prodotti_finiti.js";
+import { renderMapping } from "./mapping_fornitori.js";
+
+export async function render(container) {
+  const azienda = window.state?.azienda;
+
+  if (!azienda?.id) {
+    container.innerHTML = `
+      <div class="view">
+        <div class="rf-empty-state">Azienda attiva non trovata</div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="view">
+      <div class="rf-magazzino-shell">
+        <div class="rf-magazzino-header">
+          <div>
+            <h2 class="rf-magazzino-title">Magazzino</h2>
+            <div class="rf-magazzino-subtitle">Gestione prodotti, carichi, preparazioni e fornitori</div>
+          </div>
+        </div>
+
+        <div class="rf-magazzino-grid">
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-carico">
+            <div class="rf-magazzino-card-icon">📦</div>
+            <div class="rf-magazzino-card-title">Carico magazzino</div>
+            <div class="rf-magazzino-card-subtitle">Registra carichi e aggiorna scorte</div>
+          </button>
+
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-anagrafica">
+            <div class="rf-magazzino-card-icon">📋</div>
+            <div class="rf-magazzino-card-title">Anagrafica prodotti</div>
+            <div class="rf-magazzino-card-subtitle">Cerca e apri le schede prodotto</div>
+          </button>
+
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-materie-prime">
+            <div class="rf-magazzino-card-icon">🥕</div>
+            <div class="rf-magazzino-card-title">Materie prime</div>
+            <div class="rf-magazzino-card-subtitle">Giacenze, movimenti e scorte minime</div>
+          </button>
+
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-preparazioni">
+            <div class="rf-magazzino-card-icon">🍳</div>
+            <div class="rf-magazzino-card-title">Preparazioni</div>
+            <div class="rf-magazzino-card-subtitle">Ricerca, scheda e modifica preparazioni</div>
+          </button>
+
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-prodotti-finiti">
+            <div class="rf-magazzino-card-icon">🧾</div>
+            <div class="rf-magazzino-card-title">Prodotti finiti</div>
+            <div class="rf-magazzino-card-subtitle">Disponibilità e movimenti recenti</div>
+          </button>
+
+          <button type="button" class="rf-magazzino-card" id="btn-magazzino-mapping">
+            <div class="rf-magazzino-card-icon">🚚</div>
+            <div class="rf-magazzino-card-title">Mapping fornitori</div>
+            <div class="rf-magazzino-card-subtitle">Collegamenti prodotto-fornitore</div>
+          </button>
+        </div>
+
+        <div id="magazzino-content"></div>
+      </div>
+
+      <style>
+        .rf-magazzino-shell{
+          display:flex;
+          flex-direction:column;
+          gap:16px;
+        }
+
+        .rf-magazzino-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+        }
+
+        .rf-magazzino-title{
+          margin:0;
+          font-size:24px;
+          line-height:1.1;
+        }
+
+        .rf-magazzino-subtitle{
+          margin-top:6px;
+          color:#6b7280;
+          font-size:14px;
+        }
+
+        .rf-magazzino-grid{
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+          gap:12px;
+        }
+
+        .rf-magazzino-card{
+          border:none;
+          background:#fff;
+          border-radius:16px;
+          padding:16px;
+          text-align:left;
+          cursor:pointer;
+          box-shadow:0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .rf-magazzino-card:hover{
+          transform:translateY(-1px);
+        }
+
+        .rf-magazzino-card-icon{
+          font-size:22px;
+          margin-bottom:10px;
+        }
+
+        .rf-magazzino-card-title{
+          font-weight:700;
+          color:#111827;
+        }
+
+        .rf-magazzino-card-subtitle{
+          margin-top:6px;
+          color:#6b7280;
+          font-size:13px;
+          line-height:1.35;
+        }
+      </style>
+    </div>
+  `;
+
+  ensureCaricoModalMounted();
+  bindMagazzinoEvents(azienda);
+}
+
+function bindMagazzinoEvents(azienda) {
+  const btnCarico = document.getElementById("btn-magazzino-carico");
+  const btnAnagrafica = document.getElementById("btn-magazzino-anagrafica");
+  const btnMateriePrime = document.getElementById("btn-magazzino-materie-prime");
+  const btnPreparazioni = document.getElementById("btn-magazzino-preparazioni");
+  const btnProdottiFiniti = document.getElementById("btn-magazzino-prodotti-finiti");
+  const btnMapping = document.getElementById("btn-magazzino-mapping");
+  const content = document.getElementById("magazzino-content");
+
+  if (!btnCarico || !btnAnagrafica || !btnMateriePrime || !btnPreparazioni || !btnProdottiFiniti || !btnMapping || !content) {
+    return;
+  }
+
+  btnCarico.onclick = async () => {
+    ensureCaricoModalMounted();
+    await apriCaricoModal({
+      aziendaId: azienda.id
+    });
+  };
+
+  btnAnagrafica.onclick = async () => {
+    await renderAnagraficaProdotti(content);
+  };
+
+  btnMateriePrime.onclick = async () => {
+    await renderMateriePrime(content, azienda);
+  };
+
+  btnPreparazioni.onclick = async () => {
+    await renderPreparazioni(content, azienda);
+  };
+
+  btnProdottiFiniti.onclick = async () => {
+    await renderProdottiFiniti(content, azienda);
+  };
+
+  btnMapping.onclick = async () => {
+    await renderMapping(content, azienda);
+  };
+}
+
+function ensureCaricoModalMounted() {
+  if (document.getElementById("rf-carico-backdrop")) {
+    return;
+  }
+
+  document.body.insertAdjacentHTML("beforeend", renderCaricoModal());
+}
 
 export function renderCaricoModal() {
   return `
@@ -236,6 +423,7 @@ export async function apriCaricoModal({ aziendaId }) {
       `;
 
       bindCreateButton(term);
+
       return;
     }
 
@@ -299,8 +487,10 @@ export async function apriCaricoModal({ aziendaId }) {
     const note = noteEl.value || "";
     const categoria = categoriaEl.value || "INVENTARIO";
 
+    let sedeId = null;
+
     try {
-      getSedeAttivaId();
+      sedeId = getSedeAttivaId();
     } catch (error) {
       alert(error.message);
       return;
@@ -371,12 +561,11 @@ export async function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    const { error: updateError } = await window.db.update(
-      "prodotti",
-      { scorta_minima: scorta },
-      "id",
-      finalProdottoId
-    );
+    const { error: updateError } = await window.supabaseClient
+      .from("prodotti")
+      .update({ scorta_minima: scorta })
+      .eq("id", finalProdottoId)
+      .eq("azienda_id", aziendaId);
 
     if (updateError) {
       console.error(updateError);
@@ -390,16 +579,19 @@ export async function apriCaricoModal({ aziendaId }) {
     if (d) causaleParts.push(`data:${d}`);
     if (note) causaleParts.push(note);
 
-    const { error: movimentoError } = await window.db.insert(
-      "magazzino_movimenti",
-      {
-        prodotto_id: Number(finalProdottoId),
-        tipo_movimento: "carico",
-        quantita: q,
-        costo: 0,
-        causale: causaleParts.join(" | ")
-      }
-    );
+    const movimentoPayload = {
+      azienda_id: aziendaId,
+      sede_id: sedeId,
+      prodotto_id: Number(finalProdottoId),
+      tipo_movimento: "carico",
+      quantita: q,
+      costo: 0,
+      causale: causaleParts.join(" | ")
+    };
+
+    const { error: movimentoError } = await window.supabaseClient
+      .from("magazzino_movimenti")
+      .insert(movimentoPayload);
 
     if (movimentoError) {
       console.error(movimentoError);
@@ -426,17 +618,9 @@ export async function apriCaricoModal({ aziendaId }) {
   };
 
   async function insertProdottoCompat(payload) {
-    const payloadWithSede = {
-      ...payload
-    };
-
-    if (window.state?.sedeAttiva?.id) {
-      payloadWithSede.sede_id = window.state.sedeAttiva.id;
-    }
-
     const firstTry = await window.supabaseClient
       .from("prodotti")
-      .insert(payloadWithSede)
+      .insert(payload)
       .select("id")
       .single();
 
@@ -453,7 +637,7 @@ export async function apriCaricoModal({ aziendaId }) {
       return firstTry;
     }
 
-    const payloadFallback = { ...payloadWithSede };
+    const payloadFallback = { ...payload };
     delete payloadFallback.fornitore_preferito;
 
     return window.supabaseClient
@@ -697,16 +881,4 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-export async function render(container){
-
-  container.innerHTML = `
-    <div class="view">
-      <h2>Magazzino</h2>
-    </div>
-  `
-
-  // 🔥 iniettiamo il modal nel DOM
-  document.body.insertAdjacentHTML("beforeend", renderCaricoModal())
-
 }
