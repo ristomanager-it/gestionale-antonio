@@ -3,9 +3,9 @@ import { supabase } from "../supabaseClient.js";
 export async function render(container) {
 
   const azienda = window.state?.azienda;
-  const sedeId = window.state?.sedeAttiva;
+  const sedeAttiva = window.state?.sedeAttiva;
 
-  if (!azienda || !sedeId) {
+  if (!azienda || !sedeAttiva) {
     container.innerHTML = `
       <div class="view">
         <div class="login-wrapper">
@@ -21,7 +21,13 @@ export async function render(container) {
   const { data: reparti } = await supabase
     .from("reparti")
     .select("id, nome")
-    .eq("azienda_id", azienda.id)
+    .eq("azienda_id", azienda.id);
+
+  // 🔥 carica sedi
+  const { data: sedi } = await supabase
+    .from("sedi")
+    .select("id, nome")
+    .eq("azienda_id", azienda.id);
 
   container.innerHTML = `
 
@@ -66,13 +72,26 @@ export async function render(container) {
           </select>
         </div>
 
-        <!-- 🔥 NUOVO -->
+        <!-- 🔥 REPARTO -->
         <div class="form-group">
           <label>Reparto *</label>
           <select id="reparto" class="input">
             <option value="">Seleziona reparto</option>
             ${(reparti || []).map(r => `
               <option value="${r.id}">${r.nome}</option>
+            `).join("")}
+          </select>
+        </div>
+
+        <!-- 🔥 NUOVO: SEDE -->
+        <div class="form-group">
+          <label>Sede *</label>
+          <select id="sede" class="input">
+            <option value="">Seleziona sede</option>
+            ${(sedi || []).map(s => `
+              <option value="${s.id}" ${s.id === sedeAttiva.id ? "selected" : ""}>
+                ${s.nome}
+              </option>
             `).join("")}
           </select>
         </div>
@@ -110,9 +129,10 @@ export async function render(container) {
     const telefono = document.getElementById("telefono").value.trim();
     const ruolo = document.getElementById("ruolo").value;
     const reparto_id = document.getElementById("reparto").value;
+    const sede_id = document.getElementById("sede").value;
     const mansione = document.getElementById("mansione").value.trim();
 
-    if (!nome || !cognome || !email || !ruolo || !reparto_id) {
+    if (!nome || !cognome || !email || !ruolo || !reparto_id || !sede_id) {
       msg.innerHTML = "<span style='color:#dc2626;'>Compila tutti i campi obbligatori</span>";
       return;
     }
@@ -142,7 +162,8 @@ export async function render(container) {
             email,
             telefono,
             ruolo,
-            reparto_id, // 🔥 NUOVO
+            reparto_id,
+            sede_id, // 🔥 NUOVO
             mansione,
             azienda_id: azienda.id
           })
