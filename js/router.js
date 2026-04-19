@@ -90,6 +90,8 @@ magazzino: () => import("./views/magazzino/magazzino.js"),
   ai: () => import("./views/ai.js"),
 
   permessi: () => import("./views/permessi-ferie.js"),
+    manuale: () => import("./views/manuale.js"),
+
 };
 
 /* =========================================================
