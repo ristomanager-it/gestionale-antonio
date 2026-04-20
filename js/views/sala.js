@@ -7,7 +7,7 @@ export async function render(container) {
       </div>
 
       <div class="card">
-        <div id="sala-container" class="sala-grid"></div>
+        <div id="sala-container" class="sala-mappa"></div>
       </div>
     </div>
   `;
@@ -23,11 +23,8 @@ export async function render(container) {
 
   async function load() {
 
-    box.innerHTML = "Caricamento sala...";
-
     const oggi = new Date().toISOString().split("T")[0];
 
-    // 🪑 tavoli
     const { data: tavoliData } = await window.supabaseClient
       .from("tavoli")
       .select("*")
@@ -37,7 +34,6 @@ export async function render(container) {
 
     tavoli = tavoliData || [];
 
-    // 🔴 stato tavoli
     const { data: statiData } = await window.supabaseClient
       .from("tavoli_stato")
       .select("*")
@@ -45,14 +41,12 @@ export async function render(container) {
 
     stati = statiData || [];
 
-    // 📅 prenotazioni oggi
     const { data: prenData } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("*")
       .eq("azienda_id", aziendaId)
       .eq("sede_id", sedeId)
-      .eq("data", oggi)
-      .in("stato", ["confermata", "arrivata"]);
+      .eq("data", oggi);
 
     prenotazioni = prenData || [];
 
@@ -61,79 +55,75 @@ export async function render(container) {
 
   function renderSala() {
 
-    if (!tavoli.length) {
-      box.innerHTML = "Nessun tavolo configurato";
-      return;
-    }
+    box.innerHTML = "";
 
-    box.innerHTML = tavoli.map(t => {
+    tavoli.forEach(t => {
 
       const stato = stati.find(s => s.tavolo_id === t.id);
       const pren = prenotazioni.find(p => p.tavolo_id === t.id);
 
-      let statoTxt = "libero";
-      let extra = "";
+      let classe = "libero";
 
-      if (stato && stato.stato === "occupato") {
-        statoTxt = "occupato";
-      } else if (pren) {
-        statoTxt = "prenotato";
-        extra = `
-          <div class="tavolo-pren">
-            ${pren.ora} · ${pren.cliente_nome}
-          </div>
-        `;
-      }
+      if (stato?.stato === "occupato") classe = "occupato";
+      else if (pren) classe = "prenotato";
 
-      return `
-        <div class="tavolo ${statoTxt}" data-id="${t.id}">
-          <div class="tavolo-nome">${t.nome}</div>
-          <div class="tavolo-coperti">${t.coperti_max} coperti</div>
-          ${extra}
-          <div class="tavolo-stato">${statoTxt}</div>
-        </div>
+      const el = document.createElement("div");
+      el.className = "tavolo-mappa " + classe;
+
+      el.style.left = (t.pos_x || 0) + "px";
+      el.style.top = (t.pos_y || 0) + "px";
+
+      el.innerHTML = `
+        <div class="nome">${t.nome}</div>
+        <div class="coperti">${t.coperti_max}</div>
       `;
-    }).join("");
 
-    attachEvents();
+      enableDrag(el, t);
+
+      el.onclick = () => {
+        window.location.hash = "#/comanda?tavolo=" + t.id;
+      };
+
+      box.appendChild(el);
+    });
   }
 
-  function attachEvents() {
+  function enableDrag(el, tavolo) {
 
-    document.querySelectorAll(".tavolo").forEach(el => {
+    let isDragging = false;
+    let offsetX, offsetY;
 
-      el.onclick = async () => {
+    el.onmousedown = (e) => {
+      isDragging = true;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+    };
 
-        const tavoloId = el.dataset.id;
+    document.onmousemove = (e) => {
+      if (!isDragging) return;
 
-        const stato = stati.find(s => s.tavolo_id === tavoloId);
-        const pren = prenotazioni.find(p => p.tavolo_id === tavoloId);
+      const x = e.pageX - offsetX;
+      const y = e.pageY - offsetY;
 
-        // 🔥 ARRIVO CLIENTE
-        if (pren && pren.stato === "confermata") {
-          await window.supabaseClient
-            .from("prenotazioni_tavoli")
-            .update({ stato: "arrivata" })
-            .eq("id", pren.id);
-        }
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+    };
 
-        // 🔥 SE LIBERO → OCCUPA
-        if (!stato) {
-          await window.supabaseClient
-            .from("tavoli_stato")
-            .insert([{
-              tavolo_id: tavoloId,
-              azienda_id: aziendaId,
-              stato: "occupato",
-              ora_apertura: new Date().toISOString()
-            }]);
-        }
+    document.onmouseup = async () => {
+      if (!isDragging) return;
+      isDragging = false;
 
-        // 👉 VAI ALLA COMANDA
-        window.location.hash = "#/comanda?tavolo=" + tavoloId;
+      const x = parseInt(el.style.left);
+      const y = parseInt(el.style.top);
 
-      };
-    });
+      await window.supabaseClient
+        .from("tavoli")
+        .update({
+          pos_x: x,
+          pos_y: y
+        })
+        .eq("id", tavolo.id);
+    };
   }
 
   load();
