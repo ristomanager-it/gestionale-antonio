@@ -19,12 +19,15 @@ export async function render(container) {
 
   let tavoli = [];
   let stati = [];
+  let prenotazioni = [];
 
   async function load() {
 
     box.innerHTML = "Caricamento sala...";
 
-    // tavoli
+    const oggi = new Date().toISOString().split("T")[0];
+
+    // 🪑 tavoli
     const { data: tavoliData } = await window.supabaseClient
       .from("tavoli")
       .select("*")
@@ -34,15 +37,24 @@ export async function render(container) {
 
     tavoli = tavoliData || [];
 
-    // stato tavoli (oggi)
-    const oggi = new Date().toISOString().split("T")[0];
-
+    // 🔴 stato tavoli
     const { data: statiData } = await window.supabaseClient
       .from("tavoli_stato")
       .select("*")
-      .gte("created_at", oggi);
+      .eq("azienda_id", aziendaId);
 
     stati = statiData || [];
+
+    // 📅 prenotazioni oggi
+    const { data: prenData } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("*")
+      .eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeId)
+      .eq("data", oggi)
+      .in("stato", ["confermata", "arrivata"]);
+
+    prenotazioni = prenData || [];
 
     renderSala();
   }
@@ -57,13 +69,27 @@ export async function render(container) {
     box.innerHTML = tavoli.map(t => {
 
       const stato = stati.find(s => s.tavolo_id === t.id);
+      const pren = prenotazioni.find(p => p.tavolo_id === t.id);
 
-      const statoTxt = stato?.stato || "libero";
+      let statoTxt = "libero";
+      let extra = "";
+
+      if (stato && stato.stato === "occupato") {
+        statoTxt = "occupato";
+      } else if (pren) {
+        statoTxt = "prenotato";
+        extra = `
+          <div class="tavolo-pren">
+            ${pren.ora} · ${pren.cliente_nome}
+          </div>
+        `;
+      }
 
       return `
         <div class="tavolo ${statoTxt}" data-id="${t.id}">
           <div class="tavolo-nome">${t.nome}</div>
           <div class="tavolo-coperti">${t.coperti_max} coperti</div>
+          ${extra}
           <div class="tavolo-stato">${statoTxt}</div>
         </div>
       `;
@@ -81,9 +107,15 @@ export async function render(container) {
         const tavoloId = el.dataset.id;
 
         const stato = stati.find(s => s.tavolo_id === tavoloId);
+        const pren = prenotazioni.find(p => p.tavolo_id === tavoloId);
 
-        // 👉 SE LIBERO → APRI
-        if (!stato || stato.stato === "libero") {
+        // 🔥 ARRIVO CLIENTE (da prenotazione)
+        if (pren && pren.stato === "confermata") {
+
+          await window.supabaseClient
+            .from("prenotazioni_tavoli")
+            .update({ stato: "arrivata" })
+            .eq("id", pren.id);
 
           await window.supabaseClient
             .from("tavoli_stato")
@@ -94,9 +126,25 @@ export async function render(container) {
               ora_apertura: new Date().toISOString()
             }]);
 
-        } else {
+        }
 
-          // 👉 SE OCCUPATO → CHIUDI
+        // 🔴 SE LIBERO → APRI
+        else if (!stato) {
+
+          await window.supabaseClient
+            .from("tavoli_stato")
+            .insert([{
+              tavolo_id: tavoloId,
+              azienda_id: aziendaId,
+              stato: "occupato",
+              ora_apertura: new Date().toISOString()
+            }]);
+
+        }
+
+        // 🟢 SE OCCUPATO → CHIUDI
+        else {
+
           await window.supabaseClient
             .from("tavoli_stato")
             .update({
