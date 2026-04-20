@@ -156,8 +156,8 @@ export async function render(container) {
             </div>
 
             <div class="pren-sub">
-              🪑 ${p.tavoli?.nome || "Non assegnato"}
-            </div>
+  🪑 ${p.tavolo_id ? "Tavolo assegnato" : "Non assegnato"}
+</div>
           </div>
         </div>
 
