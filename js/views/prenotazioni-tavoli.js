@@ -49,6 +49,8 @@ export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
   const sedeId = window.state?.sedeAttiva?.id;
 
+  console.log("DEBUG FILTRI:", { aziendaId, sedeId });
+
   const lista = document.getElementById("lista-prenotazioni");
   const filtroData = document.getElementById("filtro-data");
   const filtroStato = document.getElementById("filtro-stato");
@@ -57,12 +59,15 @@ export async function render(container) {
   filtroData.value = today;
 
   document.getElementById("btn-refresh").onclick = load;
+
   document.getElementById("btn-new").onclick = () => {
     window.location.hash = "#/prenotazione-tavolo-form";
   };
+
   document.getElementById("go-sala").onclick = () => {
     window.location.hash = "#/sala";
   };
+
   document.getElementById("close-modal").onclick = () => {
     document.getElementById("modal-tavoli").style.display = "none";
   };
@@ -78,45 +83,122 @@ export async function render(container) {
       .from("prenotazioni_tavoli")
       .select("*");
 
-    if (aziendaId) query = query.eq("azienda_id", aziendaId);
-    if (sedeId) query = query.eq("sede_id", sedeId);
-    if (filtroData.value) query = query.eq("data", filtroData.value);
-    if (filtroStato.value) query = query.eq("stato", filtroStato.value);
+    console.log("Filtro data:", filtroData.value);
+
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
+
+    if (sedeId) {
+      query = query.eq("sede_id", sedeId);
+    }
+
+    if (filtroData.value) {
+      query = query.eq("data", filtroData.value);
+    }
+
+    if (filtroStato.value) {
+      query = query.eq("stato", filtroStato.value);
+    }
 
     query = query.order("ora", { ascending: true });
 
     const { data, error } = await query;
 
+    console.log("RISULTATO QUERY:", data);
+
     if (error) {
-      console.error(error);
-      lista.innerHTML = "Errore";
+      console.error("ERRORE:", error);
+      lista.innerHTML = `<div class="empty">Errore caricamento</div>`;
       return;
     }
 
     prenotazioni = data || [];
 
     if (!prenotazioni.length) {
-      lista.innerHTML = "Nessuna prenotazione";
+      console.warn("Nessun risultato → provo senza filtri");
+
+      const { data: allData, error: allError } = await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (allError) {
+        console.error("ERRORE FALLBACK:", allError);
+      }
+
+      prenotazioni = allData || [];
+    }
+
+    if (!prenotazioni.length) {
+      lista.innerHTML = `<div class="empty">Nessuna prenotazione</div>`;
       return;
     }
 
-    lista.innerHTML = prenotazioni.map(renderRow).join("");
+    lista.innerHTML = prenotazioni.map((p) => renderRow(p)).join("");
+
     attachEvents();
   }
 
   function renderRow(p) {
     return `
       <div class="pren-row">
-        <div>${p.ora || "-"}</div>
-        <div>${p.cliente_nome || "Cliente"}</div>
-        <div>${p.coperti || 0} coperti</div>
-        <button class="assegna" data-id="${p.id}">Tavolo</button>
+        <div class="pren-main">
+          <div class="pren-time">${p.ora || "-"}</div>
+
+          <div class="pren-info">
+            <div class="pren-nome">${p.cliente_nome || "Cliente"}</div>
+
+            <div class="pren-sub">
+              ${p.coperti || 0} coperti
+              ${p.cliente_telefono ? " · " + p.cliente_telefono : ""}
+            </div>
+
+            <div class="pren-sub">
+              🪑 ${p.tavolo_id ? "Tavolo assegnato" : "Non assegnato"}
+            </div>
+          </div>
+        </div>
+
+        <div class="pren-actions">
+          <select class="change-stato" data-id="${p.id}">
+            ${statoOptions(p.stato)}
+          </select>
+
+          <button class="app-button tiny assegna" data-id="${p.id}">
+            Tavolo
+          </button>
+        </div>
       </div>
     `;
   }
 
+  function statoOptions(current) {
+    const stati = ["nuova", "confermata", "arrivata", "no_show", "annullata"];
+
+    return stati.map((s) => `
+      <option value="${s}" ${s === current ? "selected" : ""}>
+        ${s}
+      </option>
+    `).join("");
+  }
+
   function attachEvents() {
-    document.querySelectorAll(".assegna").forEach(btn => {
+    document.querySelectorAll(".change-stato").forEach((el) => {
+      el.onchange = async (e) => {
+        const id = e.target.dataset.id;
+        const stato = e.target.value;
+
+        await window.supabaseClient
+          .from("prenotazioni_tavoli")
+          .update({ stato })
+          .eq("id", id);
+
+        load();
+      };
+    });
+
+    document.querySelectorAll(".assegna").forEach((btn) => {
       btn.onclick = () => openTavoli(btn.dataset.id);
     });
   }
@@ -124,12 +206,17 @@ export async function render(container) {
   async function openTavoli(prenId) {
     currentPrenId = prenId;
 
-    const { data } = await window.supabaseClient
+    const { data, error } = await window.supabaseClient
       .from("tavoli")
       .select("*")
       .eq("azienda_id", aziendaId)
       .eq("sede_id", sedeId)
       .eq("attivo", true);
+
+    if (error) {
+      console.error("ERRORE TAVOLI:", error);
+      return;
+    }
 
     tavoli = data || [];
 
@@ -140,7 +227,7 @@ export async function render(container) {
 
   function renderTavoli() {
     const box = document.getElementById("lista-tavoli");
-    const pren = prenotazioni.find(p => p.id == currentPrenId);
+    const pren = prenotazioni.find((p) => p.id == currentPrenId);
 
     if (!pren) {
       box.innerHTML = "Errore prenotazione";
@@ -150,29 +237,59 @@ export async function render(container) {
     const copertiRichiesti = pren.coperti || 0;
 
     const tavoliOrdinati = [...tavoli]
-      .map(t => ({
+      .map((t) => ({
         ...t,
         diff: (t.coperti_max || 0) - copertiRichiesti
       }))
-      .filter(t => t.coperti_max >= copertiRichiesti)
+      .filter((t) => t.coperti_max >= copertiRichiesti)
       .sort((a, b) => a.diff - b.diff);
 
     if (!tavoliOrdinati.length) {
       box.innerHTML = `
         <div style="padding:20px;">
-          Nessun tavolo disponibile
+          ⚠️ Nessun tavolo abbastanza grande<br/>
+          Coperti richiesti: <strong>${copertiRichiesti}</strong>
         </div>
       `;
       return;
     }
 
-    box.innerHTML = tavoliOrdinati.map(t => `
-      <div class="tavolo-item" data-id="${t.id}">
-        ${t.nome} (${t.coperti_max})
-      </div>
-    `).join("");
+    box.innerHTML = tavoliOrdinati.map((t) => {
+      const perfetto = t.diff === 0;
+      const buono = t.diff <= 2;
 
-    box.querySelectorAll(".tavolo-item").forEach(el => {
+      let classe = "tavolo-item";
+      let badge = "";
+
+      if (perfetto) {
+        classe += " best";
+        badge = "🔥 Perfetto";
+      } else if (buono) {
+        classe += " good";
+        badge = "👍 Buono";
+      }
+
+      return `
+        <div class="${classe}" data-id="${t.id}" style="
+          border:1px solid #ddd;
+          padding:10px;
+          margin-bottom:8px;
+          border-radius:8px;
+          cursor:pointer;
+        ">
+          <strong>${t.nome}</strong>
+          <div>${t.coperti_max} coperti</div>
+          <div style="font-size:12px;color:#666;">
+            Differenza: +${t.diff}
+          </div>
+          <div style="font-size:12px;color:#28a745;">
+            ${badge}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    box.querySelectorAll(".tavolo-item").forEach((el) => {
       el.onclick = async () => {
         const tavoloId = el.dataset.id;
 
@@ -182,6 +299,7 @@ export async function render(container) {
           .eq("id", currentPrenId);
 
         document.getElementById("modal-tavoli").style.display = "none";
+
         load();
       };
     });
