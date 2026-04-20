@@ -102,23 +102,23 @@ export async function render(container) {
 
     document.querySelectorAll(".tavolo").forEach(el => {
 
-    el.onclick = () => {
-  window.location.hash = "#/comanda?tavolo=" + tavoloId;
-};
+      el.onclick = async () => {
 
         const tavoloId = el.dataset.id;
 
         const stato = stati.find(s => s.tavolo_id === tavoloId);
         const pren = prenotazioni.find(p => p.tavolo_id === tavoloId);
 
-        // 🔥 ARRIVO CLIENTE (da prenotazione)
+        // 🔥 ARRIVO CLIENTE
         if (pren && pren.stato === "confermata") {
-
           await window.supabaseClient
             .from("prenotazioni_tavoli")
             .update({ stato: "arrivata" })
             .eq("id", pren.id);
+        }
 
+        // 🔥 SE LIBERO → OCCUPA
+        if (!stato) {
           await window.supabaseClient
             .from("tavoli_stato")
             .insert([{
@@ -127,36 +127,11 @@ export async function render(container) {
               stato: "occupato",
               ora_apertura: new Date().toISOString()
             }]);
-
         }
 
-        // 🔴 SE LIBERO → APRI
-        else if (!stato) {
+        // 👉 VAI ALLA COMANDA
+        window.location.hash = "#/comanda?tavolo=" + tavoloId;
 
-          await window.supabaseClient
-            .from("tavoli_stato")
-            .insert([{
-              tavolo_id: tavoloId,
-              azienda_id: aziendaId,
-              stato: "occupato",
-              ora_apertura: new Date().toISOString()
-            }]);
-
-        }
-
-        // 🟢 SE OCCUPATO → CHIUDI
-        else {
-
-          await window.supabaseClient
-            .from("tavoli_stato")
-            .update({
-              stato: "libero",
-              ora_chiusura: new Date().toISOString()
-            })
-            .eq("id", stato.id);
-        }
-
-        load();
       };
     });
   }
