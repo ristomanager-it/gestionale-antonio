@@ -292,19 +292,20 @@ export async function render(container) {
   }).join("");
 
   // 🔥 CLICK
-  box.querySelectorAll(".tavolo-item").forEach(el => {
+ box.querySelectorAll(".tavolo-item").forEach(el => {
 
-    el.onclick = async () => {
+  el.onclick = async () => {
 
-      const tavoloId = el.dataset.id;
+    const tavoloId = el.dataset.id;
 
-      await window.supabaseClient
-        .from("prenotazioni_tavoli")
-        .update({ tavolo_id: tavoloId })
-        .eq("id", currentPrenId);
+    await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ tavolo_id: tavoloId })
+      .eq("id", currentPrenId);
 
-      document.getElementById("modal-tavoli").style.display = "none";
+    document.getElementById("modal-tavoli").style.display = "none";
 
-      load();
-
+    load();
+  };
+});
 }
