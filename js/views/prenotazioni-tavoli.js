@@ -2,7 +2,7 @@ export async function render(container) {
   container.innerHTML = `
     <div class="page">
       <div class="page-header">
-        <h1>📅 Prenotazioni Tavoli</h1>
+        <h1>📅 Prenotazioni</h1>
       </div>
 
       <div class="card">
