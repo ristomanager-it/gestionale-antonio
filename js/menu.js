@@ -1,5 +1,3 @@
-// 🔽 INCOLLA QUESTO FILE COMPLETO
-
 export function initMenu() {
 
   const menu = document.getElementById("global-menu")
@@ -92,13 +90,15 @@ export function initMenu() {
         title:"GENERALE",
         items:[
           {label:"Home", route:"home"},
-          {label:"📘 Manuale operativo", route:"manuale"} // 🔥 AGGIUNTO
+          {label:"📘 Manuale operativo", route:"manuale"}
         ]
       },
 
       {
         title:"OPERATIVO",
         items:[
+          {label:"🪑 Sala", route:"sala"},            // 🔥 AGGIUNTO QUI
+          {label:"📅 Prenotazioni Tavoli", route:"prenotazioni-tavoli"}, // 🔥 AGGIUNTO
           {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
           {label:"Magazzino", route:"magazzino"},
