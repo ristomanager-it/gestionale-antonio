@@ -26,6 +26,7 @@ export async function render(container) {
 
           <div style="display:flex;align-items:end;gap:10px;">
             <button class="app-button" id="btn-refresh">Aggiorna</button>
+            <button class="app-button" id="btn-new">➕ Nuova</button>
             <button class="app-button" id="go-sala">🪑 Sala</button>
           </div>
         </div>
@@ -57,6 +58,12 @@ export async function render(container) {
   filtroData.value = today;
 
   document.getElementById("btn-refresh").onclick = load;
+
+  // 🔥 NUOVA PRENOTAZIONE
+  document.getElementById("btn-new").onclick = () => {
+    window.location.hash = "#/prenotazione-tavolo-form";
+  };
+
   document.getElementById("go-sala").onclick = () => {
     window.location.hash = "#/sala";
   };
@@ -78,7 +85,6 @@ export async function render(container) {
       .eq("azienda_id", aziendaId)
       .eq("sede_id", sedeId);
 
-    // 🔥 FIX ORDINE
     if (filtroData.value) {
       query = query.eq("data", filtroData.value);
     }
