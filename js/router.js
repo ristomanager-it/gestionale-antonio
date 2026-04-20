@@ -97,6 +97,7 @@ magazzino: () => import("./views/magazzino/magazzino.js"),
 
   // prenotazioni tavoli (se non già presente)
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
+   comanda: () => import("./views/comanda.js"),
 };
 
 /* =========================================================
