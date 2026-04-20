@@ -81,7 +81,7 @@ export async function render(container) {
 
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
-      .select("*, tavoli(nome)");
+      .select("*")
 
     // 🔥 DEBUG
     console.log("Filtro data:", filtroData.value);
