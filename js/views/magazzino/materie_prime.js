@@ -191,7 +191,7 @@ if (data) {
 
           <div class="rf-product-field">
             <span class="rf-product-label">Giacenza</span>
-            <div class="rf-product-value">${formatNumber(data.giacenza_attuale)}</div>
+            <div class="rf-product-value">${formatNumber(giacenza)}</div>
           </div>
 
           <div class="rf-product-field">
