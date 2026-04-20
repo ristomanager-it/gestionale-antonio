@@ -909,3 +909,11 @@ FIX SPAZIO CONTENUTO
 .tavolo.chiuso {
   background: #eceff1;
 }
+.tavolo.prenotato {
+  background: #fff3cd;
+}
+
+.tavolo-pren {
+  font-size: 12px;
+  margin-top: 5px;
+}
