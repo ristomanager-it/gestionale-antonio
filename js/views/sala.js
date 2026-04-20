@@ -102,7 +102,9 @@ export async function render(container) {
 
     document.querySelectorAll(".tavolo").forEach(el => {
 
-      el.onclick = async () => {
+    el.onclick = () => {
+  window.location.hash = "#/comanda?tavolo=" + tavoloId;
+};
 
         const tavoloId = el.dataset.id;
 
