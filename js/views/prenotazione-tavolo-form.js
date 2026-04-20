@@ -10,14 +10,20 @@ export async function render(container) {
 
         <div class="form-grid">
 
+          <div style="position:relative;">
+            <label>Cliente</label>
+            <input id="cliente_search" class="input" placeholder="Nome o telefono"/>
+            <div id="suggestions" class="dropdown"></div>
+          </div>
+
           <div>
             <label>Nome cliente</label>
-            <input id="cliente_nome" class="input" placeholder="Mario Rossi"/>
+            <input id="cliente_nome" class="input"/>
           </div>
 
           <div>
             <label>Telefono</label>
-            <input id="cliente_telefono" class="input" placeholder="3331234567"/>
+            <input id="cliente_telefono" class="input"/>
           </div>
 
           <div>
@@ -56,7 +62,7 @@ export async function render(container) {
           <button class="app-button gray" id="btn-annulla">Annulla</button>
         </div>
 
-        <div id="form-msg" style="margin-top:10px;"></div>
+        <div id="form-msg"></div>
 
       </div>
     </div>
@@ -67,6 +73,51 @@ export async function render(container) {
 
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("data").value = today;
+
+  let clienteSelezionato = null;
+
+  // 🔍 AUTOCOMPLETE
+  document.getElementById("cliente_search").oninput = async (e) => {
+
+    const term = e.target.value.trim();
+    const box = document.getElementById("suggestions");
+
+    if (term.length < 2) {
+      box.innerHTML = "";
+      return;
+    }
+
+    const { data } = await window.supabaseClient
+      .from("contatti")
+      .select("id, nome, telefono")
+      .or(`nome.ilike.%${term}%,telefono.ilike.%${term}%`)
+      .limit(5);
+
+    if (!data || !data.length) {
+      box.innerHTML = `<div class="dropdown-item">Nessun cliente</div>`;
+      return;
+    }
+
+    box.innerHTML = data.map(c => `
+      <div class="dropdown-item" data-id="${c.id}">
+        ${c.nome || "-"} ${c.telefono ? "· " + c.telefono : ""}
+      </div>
+    `).join("");
+
+    box.querySelectorAll(".dropdown-item").forEach(el => {
+      el.onclick = () => {
+
+        const c = data.find(x => x.id == el.dataset.id);
+
+        clienteSelezionato = c.id;
+
+        document.getElementById("cliente_nome").value = c.nome || "";
+        document.getElementById("cliente_telefono").value = c.telefono || "";
+
+        box.innerHTML = "";
+      };
+    });
+  };
 
   document.getElementById("btn-annulla").onclick = () => {
     window.location.hash = "#/prenotazioni-tavoli";
@@ -83,21 +134,9 @@ export async function render(container) {
     const note = document.getElementById("note").value;
 
     const msg = document.getElementById("form-msg");
-    msg.innerHTML = "";
 
-    // VALIDAZIONE BASE
     if (!cliente_nome) {
-      msg.innerHTML = "Inserisci nome cliente";
-      return;
-    }
-
-    if (!data || !ora) {
-      msg.innerHTML = "Inserisci data e ora";
-      return;
-    }
-
-    if (!coperti || coperti <= 0) {
-      msg.innerHTML = "Coperti non validi";
+      msg.innerHTML = "Inserisci cliente";
       return;
     }
 
@@ -106,6 +145,7 @@ export async function render(container) {
       .insert([{
         azienda_id: aziendaId,
         sede_id: sedeId,
+        cliente_id: clienteSelezionato,
         cliente_nome,
         cliente_telefono,
         data,
@@ -117,11 +157,11 @@ export async function render(container) {
 
     if (error) {
       console.error(error);
-      msg.innerHTML = "Errore salvataggio";
+      msg.innerHTML = "Errore";
       return;
     }
 
-    msg.innerHTML = "✅ Prenotazione salvata";
+    msg.innerHTML = "✅ Salvato";
 
     setTimeout(() => {
       window.location.hash = "#/prenotazioni-tavoli";
