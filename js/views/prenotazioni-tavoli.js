@@ -24,8 +24,9 @@ export async function render(container) {
             </select>
           </div>
 
-          <div style="display:flex;align-items:end;">
+          <div style="display:flex;align-items:end;gap:10px;">
             <button class="app-button" id="btn-refresh">Aggiorna</button>
+            <button class="app-button" id="go-sala">🪑 Sala</button>
           </div>
         </div>
       </div>
@@ -52,11 +53,13 @@ export async function render(container) {
   const filtroData = document.getElementById("filtro-data");
   const filtroStato = document.getElementById("filtro-stato");
 
-  // default oggi
   const today = new Date().toISOString().split("T")[0];
   filtroData.value = today;
 
   document.getElementById("btn-refresh").onclick = load;
+  document.getElementById("go-sala").onclick = () => {
+    window.location.hash = "#/sala";
+  };
 
   document.getElementById("close-modal").onclick = () => {
     document.getElementById("modal-tavoli").style.display = "none";
@@ -71,11 +74,11 @@ export async function render(container) {
 
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
-      .select("*")
+      .select("*, tavoli(nome)")
       .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .order("ora", { ascending: true });
+      .eq("sede_id", sedeId);
 
+    // 🔥 FIX ORDINE
     if (filtroData.value) {
       query = query.eq("data", filtroData.value);
     }
@@ -83,6 +86,8 @@ export async function render(container) {
     if (filtroStato.value) {
       query = query.eq("stato", filtroStato.value);
     }
+
+    query = query.order("ora", { ascending: true });
 
     const { data, error } = await query;
 
@@ -106,14 +111,21 @@ export async function render(container) {
 
   function renderRow(p) {
     return `
-      <div class="pren-row" data-id="${p.id}">
+      <div class="pren-row">
+
         <div class="pren-main">
           <div class="pren-time">${p.ora || "-"}</div>
+
           <div class="pren-info">
             <div class="pren-nome">${p.cliente_nome || "Cliente"}</div>
+
             <div class="pren-sub">
               ${p.coperti || 0} coperti
               ${p.cliente_telefono ? " · " + p.cliente_telefono : ""}
+            </div>
+
+            <div class="pren-sub">
+              🪑 ${p.tavoli?.nome || "Non assegnato"}
             </div>
           </div>
         </div>
@@ -127,6 +139,7 @@ export async function render(container) {
             Tavolo
           </button>
         </div>
+
       </div>
     `;
   }
@@ -183,7 +196,6 @@ export async function render(container) {
   function renderTavoli() {
 
     const box = document.getElementById("lista-tavoli");
-
     const pren = prenotazioni.find(p => p.id == currentPrenId);
 
     box.innerHTML = tavoli.map(t => {
