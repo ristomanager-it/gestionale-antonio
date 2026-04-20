@@ -880,3 +880,32 @@ FIX SPAZIO CONTENUTO
     height: 70px;
   }
 }
+.sala-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.tavolo {
+  padding: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-weight: bold;
+}
+
+.tavolo.libero {
+  background: #e8f5e9;
+}
+
+.tavolo.occupato {
+  background: #ffebee;
+}
+
+.tavolo.conto {
+  background: #fff3e0;
+}
+
+.tavolo.chiuso {
+  background: #eceff1;
+}
