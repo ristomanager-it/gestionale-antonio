@@ -133,7 +133,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       .eq("azienda_id", azienda.id)
       .eq("sede_id", sedeId)
       .eq("prodotto_id", prodottoId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.error(error);
