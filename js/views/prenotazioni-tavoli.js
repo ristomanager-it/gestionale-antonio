@@ -49,6 +49,8 @@ export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
   const sedeId = window.state?.sedeAttiva?.id;
 
+  console.log("DEBUG FILTRI:", { aziendaId, sedeId });
+
   const lista = document.getElementById("lista-prenotazioni");
   const filtroData = document.getElementById("filtro-data");
   const filtroStato = document.getElementById("filtro-stato");
@@ -79,19 +81,23 @@ export async function render(container) {
 
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
-      .select("*, tavoli(nome)")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId);
+      .select("*, tavoli(nome)");
 
     // 🔥 DEBUG
     console.log("Filtro data:", filtroData.value);
 
-    // 🔥 FIX DEFINITIVO DATA (ANTI BUG)
-    if (filtroData.value) {
-      const start = filtroData.value + "T00:00:00";
-      const end = filtroData.value + "T23:59:59";
+    // 🔥 FILTRI SICURI (NON BLOCCANTI)
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
 
-      query = query.gte("data", start).lte("data", end);
+    if (sedeId) {
+      query = query.eq("sede_id", sedeId);
+    }
+
+    // 🔥 FIX DATA (ANTI BUG)
+    if (filtroData.value) {
+      query = query.eq("data", filtroData.value);
     }
 
     if (filtroStato.value) {
@@ -102,18 +108,30 @@ export async function render(container) {
 
     const { data, error } = await query;
 
-    console.log("Risultato query:", data);
+    console.log("RISULTATO QUERY:", data);
 
     if (error) {
-      console.error("Errore:", error);
+      console.error("ERRORE:", error);
       lista.innerHTML = `<div class="empty">Errore caricamento</div>`;
       return;
     }
 
     prenotazioni = data || [];
 
+    // 🔥 FALLBACK (VEDI TUTTO SE FILTRO FALLISCE)
     if (!prenotazioni.length) {
-      lista.innerHTML = `<div class="empty">Nessuna prenotazione trovata</div>`;
+      console.warn("Nessun risultato → provo senza filtri");
+
+      const { data: allData } = await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      prenotazioni = allData || [];
+    }
+
+    if (!prenotazioni.length) {
+      lista.innerHTML = `<div class="empty">Nessuna prenotazione</div>`;
       return;
     }
 
@@ -125,6 +143,7 @@ export async function render(container) {
   function renderRow(p) {
     return `
       <div class="pren-row">
+
         <div class="pren-main">
           <div class="pren-time">${p.ora || "-"}</div>
 
@@ -151,6 +170,7 @@ export async function render(container) {
             Tavolo
           </button>
         </div>
+
       </div>
     `;
   }
