@@ -917,3 +917,35 @@ FIX SPAZIO CONTENUTO
   font-size: 12px;
   margin-top: 5px;
 }
+.sala-mappa {
+  position: relative;
+  height: 600px;
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tavolo-mappa {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  font-weight: bold;
+}
+
+.tavolo-mappa.libero {
+  background: #e8f5e9;
+}
+
+.tavolo-mappa.occupato {
+  background: #ffebee;
+}
+
+.tavolo-mappa.prenotato {
+  background: #fff3cd;
+}
