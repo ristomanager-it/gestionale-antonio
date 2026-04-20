@@ -306,6 +306,5 @@ export async function render(container) {
       document.getElementById("modal-tavoli").style.display = "none";
 
       load();
-    };
-  });
+
 }
