@@ -57,6 +57,8 @@ export async function render(container) {
 
         </div>
 
+        <div id="storico-cliente" class="card" style="margin-top:20px;display:none;"></div>
+
         <div style="margin-top:20px;display:flex;gap:10px;">
           <button class="app-button" id="btn-salva">Salva</button>
           <button class="app-button gray" id="btn-annulla">Annulla</button>
@@ -105,19 +107,58 @@ export async function render(container) {
     `).join("");
 
     box.querySelectorAll(".dropdown-item").forEach(el => {
-      el.onclick = () => {
+      el.onclick = async () => {
 
         const c = data.find(x => x.id == el.dataset.id);
-
         clienteSelezionato = c.id;
 
         document.getElementById("cliente_nome").value = c.nome || "";
         document.getElementById("cliente_telefono").value = c.telefono || "";
 
         box.innerHTML = "";
+
+        // 🔥 CARICA STORICO
+        loadStoricoCliente(c.id);
       };
     });
   };
+
+  async function loadStoricoCliente(clienteId) {
+
+    const box = document.getElementById("storico-cliente");
+    box.style.display = "block";
+    box.innerHTML = "Caricamento storico...";
+
+    // ultime prenotazioni
+    const { data: pren } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("data, ora, coperti, stato")
+      .eq("cliente_id", clienteId)
+      .order("data", { ascending: false })
+      .limit(5);
+
+    // conteggio totale
+    const { count } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("*", { count: "exact", head: true })
+      .eq("cliente_id", clienteId);
+
+    box.innerHTML = `
+      <h3>📊 Storico Cliente</h3>
+
+      <div style="margin-bottom:10px;">
+        Totale prenotazioni: <strong>${count || 0}</strong>
+      </div>
+
+      <div>
+        ${(pren && pren.length) ? pren.map(p => `
+          <div class="pren-row-mini">
+            ${p.data} ${p.ora || ""} · ${p.coperti} coperti · ${p.stato}
+          </div>
+        `).join("") : "Nessuna prenotazione"}
+      </div>
+    `;
+  }
 
   document.getElementById("btn-annulla").onclick = () => {
     window.location.hash = "#/prenotazioni-tavoli";
