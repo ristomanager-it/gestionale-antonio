@@ -92,6 +92,11 @@ magazzino: () => import("./views/magazzino/magazzino.js"),
   permessi: () => import("./views/permessi-ferie.js"),
     manuale: () => import("./views/manuale.js"),
 
+  // 🔥 NUOVA ROTTA SALA
+  sala: () => import("./views/sala.js"),
+
+  // prenotazioni tavoli (se non già presente)
+  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
 };
 
 /* =========================================================
