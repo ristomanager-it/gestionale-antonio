@@ -226,41 +226,86 @@ export async function render(container) {
 
   function renderTavoli() {
 
-    const box = document.getElementById("lista-tavoli");
-    const pren = prenotazioni.find(p => p.id == currentPrenId);
+  const box = document.getElementById("lista-tavoli");
+  const pren = prenotazioni.find(p => p.id == currentPrenId);
 
-    box.innerHTML = tavoli.map(t => {
-
-      const ok = t.coperti_max >= (pren?.coperti || 0);
-
-      return `
-        <div class="tavolo-item ${ok ? "" : "disabled"}" data-id="${t.id}">
-          <strong>${t.nome}</strong>
-          <div>${t.coperti_max} coperti</div>
-          ${!ok ? "<small>Troppo piccolo</small>" : ""}
-        </div>
-      `;
-    }).join("");
-
-    box.querySelectorAll(".tavolo-item").forEach(el => {
-
-      if (el.classList.contains("disabled")) return;
-
-      el.onclick = async () => {
-
-        const tavoloId = el.dataset.id;
-
-        await window.supabaseClient
-          .from("prenotazioni_tavoli")
-          .update({ tavolo_id: tavoloId })
-          .eq("id", currentPrenId);
-
-        document.getElementById("modal-tavoli").style.display = "none";
-
-        load();
-      };
-    });
+  if (!pren) {
+    box.innerHTML = "Errore prenotazione";
+    return;
   }
 
-  load();
+  const copertiRichiesti = pren.coperti || 0;
+
+  // 🔥 FILTRA + ORDINA INTELLIGENTE
+  const tavoliOrdinati = [...tavoli]
+    .map(t => ({
+      ...t,
+      diff: (t.coperti_max || 0) - copertiRichiesti
+    }))
+    .filter(t => t.coperti_max >= copertiRichiesti)
+    .sort((a, b) => a.diff - b.diff);
+
+  if (!tavoliOrdinati.length) {
+    box.innerHTML = `
+      <div style="padding:20px;">
+        ⚠️ Nessun tavolo abbastanza grande<br/>
+        Coperti richiesti: <strong>${copertiRichiesti}</strong>
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = tavoliOrdinati.map(t => {
+
+    const perfetto = t.diff === 0;
+    const buono = t.diff <= 2;
+
+    let classe = "tavolo-item";
+    let badge = "";
+
+    if (perfetto) {
+      classe += " best";
+      badge = "🔥 Perfetto";
+    } else if (buono) {
+      classe += " good";
+      badge = "👍 Buono";
+    }
+
+    return `
+      <div class="${classe}" data-id="${t.id}" style="
+        border:1px solid #ddd;
+        padding:10px;
+        margin-bottom:8px;
+        border-radius:8px;
+        cursor:pointer;
+      ">
+        <strong>${t.nome}</strong>
+        <div>${t.coperti_max} coperti</div>
+        <div style="font-size:12px;color:#666;">
+          Differenza: +${t.diff}
+        </div>
+        <div style="font-size:12px;color:#28a745;">
+          ${badge}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // 🔥 CLICK
+  box.querySelectorAll(".tavolo-item").forEach(el => {
+
+    el.onclick = async () => {
+
+      const tavoloId = el.dataset.id;
+
+      await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .update({ tavolo_id: tavoloId })
+        .eq("id", currentPrenId);
+
+      document.getElementById("modal-tavoli").style.display = "none";
+
+      load();
+    };
+  });
 }
