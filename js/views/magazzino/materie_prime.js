@@ -135,11 +135,15 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       .eq("prodotto_id", prodottoId)
       .maybeSingle();
 
-    if (error || !data) {
-      console.error(error);
-      scheda.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`;
-      return;
-    }
+    if (error) {
+  console.error(error);
+}
+
+let giacenza = 0;
+
+if (data) {
+  giacenza = data.giacenza_attuale || 0;
+}
 
     const { data: movimenti, error: movimentiError } = await window.supabaseClient
       .from("magazzino_movimenti")
