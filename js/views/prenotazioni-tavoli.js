@@ -36,7 +36,6 @@ export async function render(container) {
         <div id="lista-prenotazioni"></div>
       </div>
 
-      <!-- MODALE TAVOLI -->
       <div id="modal-tavoli" class="modal" style="display:none;">
         <div class="modal-content">
           <h3>Seleziona Tavolo</h3>
@@ -59,7 +58,6 @@ export async function render(container) {
 
   document.getElementById("btn-refresh").onclick = load;
 
-  // 🔥 NUOVA PRENOTAZIONE
   document.getElementById("btn-new").onclick = () => {
     window.location.hash = "#/prenotazione-tavolo-form";
   };
@@ -85,8 +83,15 @@ export async function render(container) {
       .eq("azienda_id", aziendaId)
       .eq("sede_id", sedeId);
 
+    // 🔥 DEBUG
+    console.log("Filtro data:", filtroData.value);
+
+    // 🔥 FIX DEFINITIVO DATA (ANTI BUG)
     if (filtroData.value) {
-      query = query.eq("data", filtroData.value);
+      const start = filtroData.value + "T00:00:00";
+      const end = filtroData.value + "T23:59:59";
+
+      query = query.gte("data", start).lte("data", end);
     }
 
     if (filtroStato.value) {
@@ -97,8 +102,10 @@ export async function render(container) {
 
     const { data, error } = await query;
 
+    console.log("Risultato query:", data);
+
     if (error) {
-      console.error(error);
+      console.error("Errore:", error);
       lista.innerHTML = `<div class="empty">Errore caricamento</div>`;
       return;
     }
@@ -106,7 +113,7 @@ export async function render(container) {
     prenotazioni = data || [];
 
     if (!prenotazioni.length) {
-      lista.innerHTML = `<div class="empty">Nessuna prenotazione</div>`;
+      lista.innerHTML = `<div class="empty">Nessuna prenotazione trovata</div>`;
       return;
     }
 
@@ -118,7 +125,6 @@ export async function render(container) {
   function renderRow(p) {
     return `
       <div class="pren-row">
-
         <div class="pren-main">
           <div class="pren-time">${p.ora || "-"}</div>
 
@@ -145,7 +151,6 @@ export async function render(container) {
             Tavolo
           </button>
         </div>
-
       </div>
     `;
   }
