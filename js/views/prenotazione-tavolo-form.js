@@ -1,3 +1,6 @@
+import { trovaOCreaContatto } from "/services/contatti.js";
+import { generaMessaggio, apriWhatsApp } from "/services/messaggi.js";
+
 export async function render(container) {
 
   container.innerHTML = `
@@ -119,7 +122,6 @@ export async function render(container) {
 
         box.innerHTML = "";
 
-        // 🔥 CARICAMENTI INTELLIGENTI
         loadStoricoCliente(c.id);
         loadAlertCliente(c.id);
       };
@@ -135,14 +137,14 @@ export async function render(container) {
     const { data: pren } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("data, ora, coperti, stato")
-      .eq("cliente_id", clienteId)
+      .eq("contatto_id", clienteId)
       .order("data", { ascending: false })
       .limit(5);
 
     const { count } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("*", { count: "exact", head: true })
-      .eq("cliente_id", clienteId);
+      .eq("contatto_id", clienteId);
 
     box.innerHTML = `
       <h3>📊 Storico Cliente</h3>
@@ -170,44 +172,16 @@ export async function render(container) {
     const { data: stats } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("stato")
-      .eq("cliente_id", clienteId);
+      .eq("contatto_id", clienteId);
 
     const totale = stats?.length || 0;
     const noShow = (stats || []).filter(x => x.stato === "no_show").length;
-
-    const { data: tags } = await window.supabaseClient
-      .from("clienti_tag_rel")
-      .select("clienti_tag(nome)")
-      .eq("cliente_id", clienteId);
-
-    const tagList = (tags || []).map(t => t.clienti_tag.nome);
-
-    const { data: cliente } = await window.supabaseClient
-      .from("contatti")
-      .select("data_nascita")
-      .eq("id", clienteId)
-      .maybeSingle();
 
     let alert = [];
 
     if (noShow > 0) alert.push("🔴 Cliente con no-show");
     if (totale >= 10) alert.push("🟣 Cliente VIP");
     else if (totale >= 3) alert.push("🔵 Cliente abituale");
-
-    if (cliente?.data_nascita) {
-      const oggi = new Date();
-      const nascita = new Date(cliente.data_nascita);
-
-      if (
-        oggi.getDate() === nascita.getDate() &&
-        oggi.getMonth() === nascita.getMonth()
-      ) {
-        alert.push("🎂 Oggi è il compleanno");
-      }
-    }
-
-    if (tagList.includes("Con bambini")) alert.push("👶 Cliente con bambini");
-    if (tagList.includes("Allergie")) alert.push("⚠️ Attenzione allergie");
 
     box.innerHTML = `
       <h3>⚠️ Alert Cliente</h3>
@@ -239,12 +213,19 @@ export async function render(container) {
       return;
     }
 
-    const { error } = await window.supabaseClient
+    // 🔥 CREA / TROVA CONTATTO
+    const contatto = await trovaOCreaContatto({
+      nome: cliente_nome,
+      telefono: cliente_telefono
+    });
+
+    // 🔥 SALVA PRENOTAZIONE
+    const { data: pren, error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .insert([{
         azienda_id: aziendaId,
         sede_id: sedeId,
-        cliente_id: clienteSelezionato,
+        contatto_id: contatto?.id || null,
         cliente_nome,
         cliente_telefono,
         data,
@@ -252,12 +233,26 @@ export async function render(container) {
         coperti,
         stato,
         note
-      }]);
+      }])
+      .select()
+      .single();
 
     if (error) {
       console.error(error);
       msg.innerHTML = "Errore";
       return;
+    }
+
+    // 🔥 GENERA MESSAGGIO
+    const testo = await generaMessaggio("conferma_prenotazione", {
+      nome: cliente_nome,
+      data,
+      ora,
+      coperti
+    });
+
+    if (testo) {
+      apriWhatsApp(cliente_telefono, testo);
     }
 
     msg.innerHTML = "✅ Salvato";
