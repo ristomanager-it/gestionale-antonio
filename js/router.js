@@ -50,7 +50,7 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
   activate: () => import("./views/activate.js"),
-
+cliente: () => import("./views/cliente.js"),
   setPassword: () => import("./views/set-password.js"),
   "set-password": () => import("./views/set-password.js"),
 
