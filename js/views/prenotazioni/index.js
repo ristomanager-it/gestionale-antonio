@@ -804,7 +804,7 @@ export async function render(container) {
   };
 
   document.getElementById("footer-new").onclick = () => {
-    window.location.hash = "#/prenotazione-form";
+    window.location.hash = "#/prenotazioni-form";
   };
 
   document.getElementById("footer-agenda").onclick = () => {
@@ -832,7 +832,7 @@ export async function render(container) {
   document.querySelectorAll("[data-action='nuova']").forEach((btn) => {
     btn.onclick = () => {
       closeDrawers();
-      window.location.hash = "#/prenotazione-form";
+      window.location.hash = "#/prenotazioni-form";
     };
   });
 
