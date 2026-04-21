@@ -1091,6 +1091,8 @@ export async function render(container) {
               </div>
             </div>
 
+            ${note}
+
             <div class="pren-meta">
               <div class="pren-meta-item">👥 ${coperti} coperti</div>
               ${telefono ? `<div class="pren-meta-item">📞 ${escapeHtml(telefono)}</div>` : ""}
