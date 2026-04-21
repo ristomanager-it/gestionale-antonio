@@ -1062,7 +1062,16 @@ export async function render(container) {
     const tavoloText = p.tavolo_id ? `🪑 Tavolo assegnato` : `🪑 Non assegnato`;
     const telefono = p.cliente_telefono || p.telefono || "";
     const nome = p.cliente_nome || p.nome_cliente || "Cliente";
-    const note = p.note ? `<div class="pren-note">📝 ${escapeHtml(p.note)}</div>` : "";
+  const note = p.note ? `
+  <div class="pren-note" data-note="${escapeHtml(p.note)}" style="
+    font-size:11px;
+    color:#888;
+    margin-top:4px;
+    cursor:pointer;
+  ">
+    📝 ${escapeHtml(p.note.length > 20 ? p.note.slice(0,20) + "..." : p.note)}
+  </div>
+` : "";
     const coperti = Number(p.coperti) || 0;
 
     return `
