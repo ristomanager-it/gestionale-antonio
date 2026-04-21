@@ -808,7 +808,7 @@ export async function render(container) {
   };
 
   document.getElementById("footer-agenda").onclick = () => {
-    window.location.hash = "#/prenotazioni-tavoli";
+    window.location.hash = "#/prenotazioni";
   };
 
   document.getElementById("footer-messaggi").onclick = () => {
