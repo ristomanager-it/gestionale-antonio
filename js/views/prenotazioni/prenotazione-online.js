@@ -4,7 +4,34 @@ export async function render(container) {
 
   container.innerHTML = `<div class="page">Caricamento...</div>`;
 
-  // 🔥 CONFIG AZIENDA (CAMPI + LOGO)
+  // 🌍 LINGUA AUTOMATICA
+  const lang = navigator.language.startsWith("it") ? "it" : "en";
+
+  const t = {
+    it: {
+      titolo: "Prenota il tuo tavolo",
+      data: "Data",
+      ora: "Ora",
+      coperti: "Coperti",
+      invia: "Invia richiesta",
+      errore: "Compila i campi obbligatori",
+      ok: "✅ Richiesta inviata. Attendi conferma."
+    },
+    en: {
+      titolo: "Book your table",
+      data: "Date",
+      ora: "Time",
+      coperti: "Guests",
+      invia: "Send request",
+      errore: "Please fill required fields",
+      ok: "✅ Request sent. Please wait confirmation."
+    }
+  };
+
+  // 🌍 PREFISSO AUTOMATICO
+  const defaultPrefix = lang === "it" ? "+39" : "+44";
+
+  // 🔥 CONFIG AZIENDA
   const { data: config } = await window.supabaseClient
     .from("config_prenotazione_online")
     .select("*")
@@ -23,7 +50,7 @@ export async function render(container) {
 
       <div style="text-align:center;margin-bottom:20px;">
         ${logo ? `<img src="${logo}" style="max-width:140px;">` : ""}
-        <h2>Prenota il tuo tavolo</h2>
+        <h2>${t[lang].titolo}</h2>
       </div>
 
       <div class="card">
@@ -32,25 +59,42 @@ export async function render(container) {
 
         <div class="form-grid" style="margin-top:15px;">
 
+          <div style="display:flex; gap:6px;">
+            <div style="width:110px;">
+              <label>Prefisso</label>
+              <select id="prefisso" class="input">
+                <option value="+39">🇮🇹 +39</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+33">🇫🇷 +33</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+34">🇪🇸 +34</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label>Telefono *</label>
+              <input id="telefono_input" class="input"/>
+            </div>
+          </div>
+
           <div>
-            <label>Data</label>
+            <label>${t[lang].data}</label>
             <input type="date" id="data" class="input"/>
           </div>
 
           <div>
-            <label>Ora</label>
+            <label>${t[lang].ora}</label>
             <input type="time" id="ora" class="input"/>
           </div>
 
           <div>
-            <label>Coperti</label>
+            <label>${t[lang].coperti}</label>
             <input type="number" id="coperti" class="input" value="2"/>
           </div>
 
         </div>
 
         <div style="margin-top:20px;">
-          <button class="app-button" id="btn-invia">Invia richiesta</button>
+          <button class="app-button" id="btn-invia">${t[lang].invia}</button>
         </div>
 
         <div id="msg"></div>
@@ -62,7 +106,7 @@ export async function render(container) {
 
   const fieldsBox = document.getElementById("dynamic-fields");
 
-  // 🔥 GENERAZIONE CAMPI DINAMICI
+  // 🔥 CAMPI DINAMICI
   fieldsBox.innerHTML = campi.map(c => `
     <div style="margin-bottom:10px;">
       <label>${c.label}</label>
@@ -72,7 +116,10 @@ export async function render(container) {
 
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
 
-  // 🔥 SALVATAGGIO
+  // 👉 set prefisso automatico
+  document.getElementById("prefisso").value = defaultPrefix;
+
+  // 🔥 INVIO
   document.getElementById("btn-invia").onclick = async () => {
 
     const msg = document.getElementById("msg");
@@ -84,14 +131,18 @@ export async function render(container) {
     });
 
     const nome = extra.nome || "";
-    const telefono = extra.telefono || "";
+
+    const prefisso = document.getElementById("prefisso").value;
+    const telefonoRaw = document.getElementById("telefono_input").value.trim();
+
+    const telefono = (prefisso + telefonoRaw).replace(/[^\d+]/g, "");
 
     const data = document.getElementById("data").value;
     const ora = document.getElementById("ora").value;
     const coperti = Number(document.getElementById("coperti").value);
 
-    if (!nome || !telefono) {
-      msg.innerHTML = "Compila i campi obbligatori";
+    if (!nome || !telefonoRaw) {
+      msg.innerHTML = t[lang].errore;
       return;
     }
 
@@ -110,11 +161,12 @@ export async function render(container) {
       }]);
 
     if (error) {
+      console.error(error);
       msg.innerHTML = "Errore invio";
       return;
     }
 
-    msg.innerHTML = "✅ Richiesta inviata. Attendi conferma.";
+    msg.innerHTML = t[lang].ok;
 
   };
 
