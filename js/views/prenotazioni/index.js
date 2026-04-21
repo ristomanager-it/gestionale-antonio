@@ -77,6 +77,7 @@ export async function render(container) {
         .pren-name{
           font-weight:700;
           font-size:13px;
+          cursor:pointer;
         }
 
         .pren-meta{
@@ -202,7 +203,9 @@ export async function render(container) {
           <div class="pren-time">${formatOra(p.ora)}</div>
 
           <div>
-            <div class="pren-name">${p.cliente_nome || "Cliente"}</div>
+            <div class="pren-name cliente-link" data-id="${p.contatto_id || ""}">
+              ${p.cliente_nome || "Cliente"}
+            </div>
             <div class="pren-meta">
               👥 ${p.coperti || 0}
               ${p.cliente_telefono ? " · 📞" : ""}
@@ -234,6 +237,17 @@ export async function render(container) {
         confermaPrenotazione(pren);
       };
     });
+
+    // 👤 SCHEDA CLIENTE
+    document.querySelectorAll(".cliente-link").forEach(el=>{
+      el.onclick = ()=>{
+        const id = el.dataset.id;
+        if(id){
+          window.location.hash = "#/contatto-dettaglio?id=" + id;
+        }
+      };
+    });
+
   }
 
   renderDays();
