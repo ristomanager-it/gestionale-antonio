@@ -1127,65 +1127,72 @@ export async function render(container) {
     }).join("");
   }
 
-  function attachEvents() {
-    document.querySelectorAll(".change-stato").forEach((el) => {
-      el.onchange = async (e) => {
-        const id = e.target.dataset.id;
-        const stato = e.target.value;
-        await updateStatoPrenotazione(id, stato);
-      };
-    });
+function attachEvents() {
+  document.querySelectorAll(".change-stato").forEach((el) => {
+    el.onchange = async (e) => {
+      const id = e.target.dataset.id;
+      const stato = e.target.value;
+      await updateStatoPrenotazione(id, stato);
+    };
+  });
 
-    document.querySelectorAll(".assegna").forEach((btn) => {
-      btn.onclick = () => openTavoli(btn.dataset.id);
-    });
+  document.querySelectorAll(".assegna").forEach((btn) => {
+    btn.onclick = () => openTavoli(btn.dataset.id);
+  });
 
-    document.querySelectorAll(".conferma").forEach((btn) => {
-      btn.onclick = async () => {
-        await updateStatoPrenotazione(btn.dataset.id, "confermata");
-      };
-    });
+  document.querySelectorAll(".conferma").forEach((btn) => {
+    btn.onclick = async () => {
+      await updateStatoPrenotazione(btn.dataset.id, "confermata");
+    };
+  });
 
-    document.querySelectorAll(".arriva").forEach((btn) => {
-      btn.onclick = async () => {
-        await updateStatoPrenotazione(btn.dataset.id, "arrivata");
-      };
-    });
+  document.querySelectorAll(".arriva").forEach((btn) => {
+    btn.onclick = async () => {
+      await updateStatoPrenotazione(btn.dataset.id, "arrivata");
+    };
+  });
 
-    document.querySelectorAll(".no-show").forEach((btn) => {
-      btn.onclick = async () => {
-        await updateStatoPrenotazione(btn.dataset.id, "no_show");
-      };
-    });
+  document.querySelectorAll(".no-show").forEach((btn) => {
+    btn.onclick = async () => {
+      await updateStatoPrenotazione(btn.dataset.id, "no_show");
+    };
+  });
 
-    document.querySelectorAll(".chiama").forEach((btn) => {
-      btn.onclick = () => {
-        const phone = btn.dataset.phone || "";
-        if (!phone) return;
-        window.location.href = `tel:${sanitizePhone(phone)}`;
-      };
-    });
+  document.querySelectorAll(".chiama").forEach((btn) => {
+    btn.onclick = () => {
+      const phone = btn.dataset.phone || "";
+      if (!phone) return;
+      window.location.href = `tel:${sanitizePhone(phone)}`;
+    };
+  });
 
-    document.querySelectorAll(".whatsapp").forEach((btn) => {
-      btn.onclick = () => {
-        const phone = btn.dataset.phone || "";
-        const id = btn.dataset.id || "";
-        if (!phone) return;
+  document.querySelectorAll(".whatsapp").forEach((btn) => {
+    btn.onclick = () => {
+      const phone = btn.dataset.phone || "";
+      const id = btn.dataset.id || "";
+      if (!phone) return;
 
-        const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-        const nome = pren?.cliente_nome || pren?.nome_cliente || "cliente";
-        const data = pren?.data ? formatDateHuman(pren.data) : "";
-        const ora = pren?.ora || "";
-        const coperti = pren?.coperti || 0;
+      const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
+      const nome = pren?.cliente_nome || pren?.nome_cliente || "cliente";
+      const data = pren?.data ? formatDateHuman(pren.data) : "";
+      const ora = pren?.ora || "";
+      const coperti = pren?.coperti || 0;
 
-        const text = encodeURIComponent(
-          `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-        );
+      const text = encodeURIComponent(
+        `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
+      );
 
-        window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-      };
-    });
-  }
+      window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+    };
+  });
+
+  // 🔥 NOTA CLICCABILE
+  document.querySelectorAll(".pren-note").forEach(el=>{
+    el.onclick = ()=>{
+      alert(el.dataset.note || "Nessuna nota");
+    };
+  });
+}
 
   async function updateStatoPrenotazione(id, stato) {
     const { error } = await window.supabaseClient
