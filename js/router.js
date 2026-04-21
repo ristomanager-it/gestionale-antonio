@@ -96,7 +96,7 @@ cliente: () => import("./views/cliente.js"),
   // 🔥 PRENOTAZIONI
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
   "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
-
+"prenotazioni-form": () => import("./views/prenotazioni/form.js"),
   // 🔥 NUOVO SISTEMA (se stai migrando)
   prenotazioni: () => import("./views/prenotazioni/index.js"),
 
