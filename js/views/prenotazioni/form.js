@@ -13,55 +13,68 @@ export async function render(container) {
 
         <div class="form-grid">
 
+          <!-- AUTOCOMPLETE -->
           <div style="position:relative;">
-            <label>Cliente</label>
+            <label>Cerca cliente</label>
             <input id="cliente_search" class="input" placeholder="Nome o telefono"/>
             <div id="suggestions" class="dropdown"></div>
           </div>
 
+          <!-- NOME -->
           <div>
-            <label>Nome cliente</label>
+            <label>Nome</label>
             <input id="cliente_nome" class="input"/>
           </div>
 
+          <!-- COGNOME -->
           <div>
-            <label>Telefono</label>
-            <input id="cliente_telefono" class="input"/>
+            <label>Cognome</label>
+            <input id="cliente_cognome" class="input"/>
           </div>
 
+          <!-- TELEFONO CON PREFISSO -->
+          <div style="display:flex; gap:6px;">
+            <div style="width:110px;">
+              <label>Prefisso</label>
+              <select id="prefisso" class="input">
+                <option value="+39">🇮🇹 +39</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+33">🇫🇷 +33</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+34">🇪🇸 +34</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label>Telefono *</label>
+              <input id="cliente_telefono" class="input"/>
+            </div>
+          </div>
+
+          <!-- DATA -->
           <div>
             <label>Data</label>
             <input type="date" id="data" class="input"/>
           </div>
 
+          <!-- ORA -->
           <div>
             <label>Ora</label>
             <input type="time" id="ora" class="input"/>
           </div>
 
+          <!-- COPERTI -->
           <div>
             <label>Coperti</label>
             <input type="number" id="coperti" class="input" min="1" value="2"/>
           </div>
 
-          <div>
-            <label>Stato</label>
-            <select id="stato" class="input">
-              <option value="nuova">Nuova</option>
-              <option value="confermata">Confermata</option>
-              <option value="arrivata">Arrivata</option>
-            </select>
-          </div>
-
+          <!-- NOTE -->
           <div style="grid-column:1 / -1;">
             <label>Note</label>
             <textarea id="note" class="input" rows="3"></textarea>
           </div>
 
         </div>
-
-        <div id="alert-cliente" class="card" style="margin-top:10px;display:none;"></div>
-        <div id="storico-cliente" class="card" style="margin-top:20px;display:none;"></div>
 
         <div style="margin-top:20px;display:flex;gap:10px;">
           <button class="app-button" id="btn-salva">Salva</button>
@@ -81,6 +94,7 @@ export async function render(container) {
 
   let clienteSelezionato = null;
 
+  // 🔍 AUTOCOMPLETE
   document.getElementById("cliente_search").oninput = async (e) => {
 
     const term = e.target.value.trim();
@@ -93,7 +107,7 @@ export async function render(container) {
 
     const { data } = await window.supabaseClient
       .from("contatti")
-      .select("id, nome, telefono")
+      .select("id, nome, cognome, telefono")
       .or(`nome.ilike.%${term}%,telefono.ilike.%${term}%`)
       .limit(5);
 
@@ -104,7 +118,7 @@ export async function render(container) {
 
     box.innerHTML = data.map(c => `
       <div class="dropdown-item" data-id="${c.id}">
-        ${c.nome || "-"} ${c.telefono ? "· " + c.telefono : ""}
+        ${(c.nome || "") + " " + (c.cognome || "")} ${c.telefono ? "· " + c.telefono : ""}
       </div>
     `).join("");
 
@@ -112,103 +126,61 @@ export async function render(container) {
       el.onclick = async () => {
 
         const c = data.find(x => x.id == el.dataset.id);
-        clienteSelezionato = c.id;
+
+        clienteSelezionato = String(c.id); // 🔥 UUID sicuro
 
         document.getElementById("cliente_nome").value = c.nome || "";
+        document.getElementById("cliente_cognome").value = c.cognome || "";
         document.getElementById("cliente_telefono").value = c.telefono || "";
 
         box.innerHTML = "";
-
-        loadStoricoCliente(c.id);
-        loadAlertCliente(c.id);
       };
     });
   };
-
-  async function loadStoricoCliente(clienteId) {
-
-    const box = document.getElementById("storico-cliente");
-    box.style.display = "block";
-
-    const { data: pren } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .select("data, ora, coperti, stato")
-      .eq("contatto_id", clienteId)
-      .order("data", { ascending: false })
-      .limit(5);
-
-    const { count } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .select("*", { count: "exact", head: true })
-      .eq("contatto_id", clienteId);
-
-    box.innerHTML = `
-      <h3>📊 Storico Cliente</h3>
-      Totale prenotazioni: <strong>${count || 0}</strong>
-      <div>
-        ${(pren && pren.length) ? pren.map(p => `
-          <div>${p.data} ${p.ora || ""} · ${p.coperti} · ${p.stato}</div>
-        `).join("") : "Nessuna"}
-      </div>
-    `;
-  }
-
-  async function loadAlertCliente(clienteId) {
-
-    const box = document.getElementById("alert-cliente");
-    box.style.display = "block";
-
-    const { data: stats } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .select("stato")
-      .eq("contatto_id", clienteId);
-
-    const totale = stats?.length || 0;
-    const noShow = (stats || []).filter(x => x.stato === "no_show").length;
-
-    let alert = [];
-
-    if (noShow > 0) alert.push("🔴 Cliente con no-show");
-    if (totale >= 10) alert.push("🟣 Cliente VIP");
-    else if (totale >= 3) alert.push("🔵 Cliente abituale");
-
-    box.innerHTML = alert.length
-      ? alert.map(a => `<div>${a}</div>`).join("")
-      : `Nessun alert`;
-  }
 
   document.getElementById("btn-annulla").onclick = () => {
     window.location.hash = "#/prenotazioni";
   };
 
+  // 💾 SALVATAGGIO
   document.getElementById("btn-salva").onclick = async () => {
 
-    const cliente_nome = document.getElementById("cliente_nome").value.trim();
-    const cliente_telefono = document.getElementById("cliente_telefono").value.trim();
+    const nome = document.getElementById("cliente_nome").value.trim();
+    const cognome = document.getElementById("cliente_cognome").value.trim();
+    const prefisso = document.getElementById("prefisso").value;
+    const telefonoRaw = document.getElementById("cliente_telefono").value.trim();
+
+    const telefono = (prefisso + telefonoRaw).replace(/[^\d+]/g, "");
+
     const data = document.getElementById("data").value;
     const ora = document.getElementById("ora").value;
     const coperti = Number(document.getElementById("coperti").value);
-    const stato = document.getElementById("stato").value;
     const note = document.getElementById("note").value;
 
     const msg = document.getElementById("form-msg");
     msg.innerHTML = "";
 
-    if (!cliente_nome) {
-      msg.innerHTML = "Inserisci cliente";
+    if (!telefonoRaw) {
+      msg.innerHTML = "Telefono obbligatorio";
       return;
     }
 
     let contatto = null;
 
-    if (!clienteSelezionato && cliente_telefono) {
+    if (!clienteSelezionato) {
       contatto = await trovaOCreaContatto({
-        nome: cliente_nome,
-        telefono: cliente_telefono
+        nome,
+        cognome,
+        telefono
       });
     }
 
-    const contattoId = clienteSelezionato || contatto?.id || null;
+    let contattoId = clienteSelezionato || contatto?.id || null;
+
+    // 🔥 PROTEZIONE UUID
+    if (contattoId && contattoId.length < 20) {
+      contattoId = null;
+    }
 
     const { data: pren, error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
@@ -216,12 +188,12 @@ export async function render(container) {
         azienda_id: aziendaId,
         sede_id: sedeId,
         contatto_id: contattoId,
-        cliente_nome,
-        cliente_telefono,
+        cliente_nome: nome,
+        cliente_telefono: telefono,
         data,
         ora,
         coperti,
-        stato,
+        stato: "nuova",
         note
       }])
       .select()
@@ -229,7 +201,7 @@ export async function render(container) {
 
     if (error) {
       console.error(error);
-      msg.innerHTML = "Errore";
+      msg.innerHTML = "Errore salvataggio";
       return;
     }
 
