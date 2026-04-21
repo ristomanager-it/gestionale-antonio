@@ -1,3 +1,5 @@
+import { generaMessaggio, apriWhatsApp } from "/services/messaggi.js";
+
 export async function render(container) {
 
   const aziendaId = window.state?.azienda?.id;
@@ -7,13 +9,11 @@ export async function render(container) {
     <div class="view pren-view">
 
       <style>
-        /* 🔴 NASCONDE SOTTOHEADER GLOBALE */
         .topbar-global,
         .topbar-azienda{
           display:none !important;
         }
 
-        /* HEADER */
         .pren-header{
           position:sticky;
           top:0;
@@ -34,7 +34,6 @@ export async function render(container) {
           font-weight:700;
         }
 
-        /* GIORNI */
         .pren-days{
           display:flex;
           gap:6px;
@@ -57,7 +56,6 @@ export async function render(container) {
           color:#fff;
         }
 
-        /* LISTA */
         .pren-card{
           display:flex;
           justify-content:space-between;
@@ -98,9 +96,13 @@ export async function render(container) {
           padding:6px 8px;
           cursor:pointer;
         }
+
+        .confirm{
+          background:#22c55e;
+          color:#fff;
+        }
       </style>
 
-      <!-- HEADER -->
       <div class="pren-header">
         <div class="pren-header-top">
           <button id="menu-btn">☰</button>
@@ -110,7 +112,6 @@ export async function render(container) {
         <div id="pren-days" class="pren-days"></div>
       </div>
 
-      <!-- LISTA -->
       <div id="lista"></div>
 
     </div>
@@ -122,7 +123,6 @@ export async function render(container) {
   const today = new Date();
   let selectedDate = today.toISOString().split("T")[0];
 
-  // GIORNI
   function renderDays(){
     daysBox.innerHTML = "";
     for(let i=-2;i<5;i++){
@@ -147,10 +147,30 @@ export async function render(container) {
     }
   }
 
-  // FORMAT ORA
   function formatOra(ora){
     if(!ora) return "--:--";
     return ora.slice(0,5);
+  }
+
+  async function confermaPrenotazione(pren){
+
+    await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato: "confermata" })
+      .eq("id", pren.id);
+
+    const testo = await generaMessaggio("conferma_online", {
+      nome: pren.cliente_nome,
+      data: pren.data,
+      ora: pren.ora,
+      coperti: pren.coperti
+    });
+
+    if(testo){
+      apriWhatsApp(pren.cliente_telefono, testo);
+    }
+
+    load();
   }
 
   async function load(){
@@ -191,11 +211,29 @@ export async function render(container) {
         </div>
 
         <div class="pren-actions">
-          <button class="pren-btn">🪑</button>
-          <button class="pren-btn">📞</button>
+          <button class="pren-btn call" data-phone="${p.cliente_telefono || ""}">📞</button>
+          <button class="pren-btn confirm" data-id="${p.id}">✅</button>
         </div>
       </div>
     `).join("");
+
+    // 📞 CALL
+    document.querySelectorAll(".call").forEach(btn=>{
+      btn.onclick = ()=>{
+        const phone = btn.dataset.phone;
+        if(phone){
+          window.location.href = "tel:" + phone;
+        }
+      };
+    });
+
+    // ✅ CONFERMA
+    document.querySelectorAll(".confirm").forEach(btn=>{
+      btn.onclick = ()=>{
+        const pren = data.find(p => p.id == btn.dataset.id);
+        confermaPrenotazione(pren);
+      };
+    });
   }
 
   renderDays();
