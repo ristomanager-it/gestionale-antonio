@@ -37,7 +37,7 @@ import { initTopbar } from "./components/topbar.js";
 let app = null;
 
 /* =========================================================
-   ROUTES (FIX CORRETTO)
+   ROUTES (PULITO + CAMPAGNE)
 ========================================================= */
 
 const routes = {
@@ -50,6 +50,7 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
   activate: () => import("./views/activate.js"),
+
   setPassword: () => import("./views/set-password.js"),
   "set-password": () => import("./views/set-password.js"),
 
@@ -69,11 +70,8 @@ const routes = {
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
 
-  // 🔥 FIX QUI
- acquisti: () => import("./views/acquisti/index.js"),
-
-  // ✔ già corretto
-magazzino: () => import("./views/magazzino/magazzino.js"),
+  acquisti: () => import("./views/acquisti/index.js"),
+  magazzino: () => import("./views/magazzino/magazzino.js"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
@@ -90,17 +88,23 @@ magazzino: () => import("./views/magazzino/magazzino.js"),
   ai: () => import("./views/ai.js"),
 
   permessi: () => import("./views/permessi-ferie.js"),
-    manuale: () => import("./views/manuale.js"),
+  manuale: () => import("./views/manuale.js"),
 
-  // 🔥 NUOVA ROTTA SALA
+  // 🔥 SALA
   sala: () => import("./views/sala.js"),
 
-  // prenotazioni tavoli (se non già presente)
+  // 🔥 PRENOTAZIONI
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
-   "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
-   comanda: () => import("./views/comanda.js"),
-};
+  "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
 
+  // 🔥 NUOVO SISTEMA (se stai migrando)
+  prenotazioni: () => import("./views/prenotazioni/index.js"),
+
+  // 🔥 CAMPAGNE (NUOVA)
+  campagne: () => import("./views/campagne/index.js"),
+
+  comanda: () => import("./views/comanda.js"),
+};
 /* =========================================================
    ROUTE SCOPE
 ========================================================= */
