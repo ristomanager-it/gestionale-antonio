@@ -1101,7 +1101,6 @@ export async function render(container) {
               <div class="pren-meta-item">${tavoloText}</div>
             </div>
 
-            ${note}
           </div>
         </div>
 
