@@ -1,6 +1,10 @@
 export async function render(container) {
 
-  // 🔥 AZIENDA DA URL (FIX FINALE)
+  // 🔥 NASCONDE HEADER
+  document.querySelector(".app-header")?.style.setProperty("display","none");
+  document.querySelector(".topbar-global")?.style.setProperty("display","none");
+
+  // 🔥 AZIENDA DA URL
   const aziendaId = window.routeParams?.azienda;
 
   console.log("AZIENDA ID:", aziendaId);
@@ -10,113 +14,108 @@ export async function render(container) {
     return;
   }
 
-  container.innerHTML = `<div class="page">Caricamento...</div>`;
-
-  // 🌍 LINGUA AUTOMATICA
+  // 🌍 LINGUA
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
     it: {
       titolo: "Prenota il tuo tavolo",
+      nome: "Nome",
+      cognome: "Cognome",
+      telefono: "Telefono",
       data: "Data",
       ora: "Ora",
       coperti: "Coperti",
       invia: "Invia richiesta",
       errore: "Compila i campi obbligatori",
-      ok: "✅ Richiesta inviata. Attendi conferma."
+      ok: "✅ Richiesta inviata"
     },
     en: {
       titolo: "Book your table",
+      nome: "Name",
+      cognome: "Surname",
+      telefono: "Phone",
       data: "Date",
       ora: "Time",
       coperti: "Guests",
       invia: "Send request",
-      errore: "Please fill required fields",
-      ok: "✅ Request sent. Please wait confirmation."
+      errore: "Fill required fields",
+      ok: "✅ Request sent"
     }
   };
 
-  // 🌍 PREFISSO AUTOMATICO
   const defaultPrefix = lang === "it" ? "+39" : "+44";
 
-  // 🔥 CONFIG DISATTIVATA (per ora)
-  const campi = [
-    { key: "nome", label: "Nome", required: true }
-  ];
-
-  const logo = "";
+  // 🔥 LOGO (placeholder ora)
+  const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
-    <div class="page">
+  <div class="login-page">
 
-      <div style="text-align:center;margin-bottom:20px;">
-        ${logo ? `<img src="${logo}" style="max-width:140px;">` : ""}
-        <h2>${t[lang].titolo}</h2>
+    <div class="login-box">
+
+      <div class="login-logo-wrap">
+        <img src="${logo}" class="login-logo">
       </div>
 
-      <div class="card">
+      <div class="login-form">
 
-        <div id="dynamic-fields"></div>
+        <h2 style="text-align:center;margin-bottom:10px;">
+          ${t[lang].titolo}
+        </h2>
 
-        <div class="form-grid" style="margin-top:15px;">
-
-          <div style="display:flex; gap:6px;">
-            <div style="width:110px;">
-              <label>Prefisso</label>
-              <select id="prefisso" class="input">
-                <option value="+39">🇮🇹 +39</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+33">🇫🇷 +33</option>
-                <option value="+49">🇩🇪 +49</option>
-                <option value="+34">🇪🇸 +34</option>
-              </select>
-            </div>
-            <div style="flex:1;">
-              <label>Telefono *</label>
-              <input id="telefono_input" class="input"/>
-            </div>
-          </div>
-
-          <div>
-            <label>${t[lang].data}</label>
-            <input type="date" id="data" class="input"/>
-          </div>
-
-          <div>
-            <label>${t[lang].ora}</label>
-            <input type="time" id="ora" class="input"/>
-          </div>
-
-          <div>
-            <label>${t[lang].coperti}</label>
-            <input type="number" id="coperti" class="input" value="2"/>
-          </div>
-
+        <!-- NOME -->
+        <div class="form-group">
+          <input id="nome" class="input" placeholder="${t[lang].nome}">
         </div>
 
-        <div style="margin-top:20px;">
-          <button class="app-button" id="btn-invia">${t[lang].invia}</button>
+        <!-- COGNOME -->
+        <div class="form-group">
+          <input id="cognome" class="input" placeholder="${t[lang].cognome}">
         </div>
 
-        <div id="msg"></div>
+        <!-- TELEFONO -->
+        <div class="form-group" style="display:flex; gap:6px;">
+          <select id="prefisso" class="input" style="max-width:110px;">
+            <option value="+39">🇮🇹 +39</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+49">🇩🇪 +49</option>
+            <option value="+34">🇪🇸 +34</option>
+          </select>
+
+          <input id="telefono" class="input" placeholder="${t[lang].telefono}">
+        </div>
+
+        <!-- DATA -->
+        <div class="form-group">
+          <input type="date" id="data" class="input">
+        </div>
+
+        <!-- ORA -->
+        <div class="form-group">
+          <input type="time" id="ora" class="input">
+        </div>
+
+        <!-- COPERTI -->
+        <div class="form-group">
+          <input type="number" id="coperti" class="input" value="2">
+        </div>
+
+        <button id="btn-invia" class="app-button primary login-btn">
+          ${t[lang].invia}
+        </button>
+
+        <div id="msg" class="form-result"></div>
 
       </div>
 
     </div>
+
+  </div>
   `;
 
-  const fieldsBox = document.getElementById("dynamic-fields");
-
-  // 🔥 CAMPI DINAMICI
-  fieldsBox.innerHTML = campi.map(c => `
-    <div style="margin-bottom:10px;">
-      <label>${c.label}</label>
-      <input class="input dyn-field" data-key="${c.key}" ${c.required ? "required" : ""}/>
-    </div>
-  `).join("");
-
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
-
   document.getElementById("prefisso").value = defaultPrefix;
 
   // 🔥 INVIO
@@ -124,16 +123,11 @@ export async function render(container) {
 
     const msg = document.getElementById("msg");
 
-    const extra = {};
-    document.querySelectorAll(".dyn-field").forEach(el => {
-      extra[el.dataset.key] = el.value;
-    });
-
-    const nome = extra.nome || "";
+    const nome = document.getElementById("nome").value.trim();
+    const cognome = document.getElementById("cognome").value.trim();
 
     const prefisso = document.getElementById("prefisso").value;
-    const telefonoRaw = document.getElementById("telefono_input").value.trim();
-
+    const telefonoRaw = document.getElementById("telefono").value.trim();
     const telefono = (prefisso + telefonoRaw).replace(/[^\d+]/g, "");
 
     const data = document.getElementById("data").value;
@@ -141,7 +135,7 @@ export async function render(container) {
     const coperti = Number(document.getElementById("coperti").value);
 
     if (!nome || !telefonoRaw) {
-      msg.innerHTML = t[lang].errore;
+      msg.innerHTML = `<span class="error-text">${t[lang].errore}</span>`;
       return;
     }
 
@@ -149,7 +143,7 @@ export async function render(container) {
       .from("prenotazioni_tavoli")
       .insert([{
         azienda_id: aziendaId,
-        cliente_nome: nome,
+        cliente_nome: nome + " " + cognome,
         cliente_telefono: telefono,
         data,
         ora,
@@ -160,11 +154,11 @@ export async function render(container) {
 
     if (error) {
       console.error(error);
-      msg.innerHTML = "Errore invio";
+      msg.innerHTML = `<span class="error-text">${error.message}</span>`;
       return;
     }
 
-    msg.innerHTML = t[lang].ok;
+    msg.innerHTML = `<span class="success-text">${t[lang].ok}</span>`;
 
   };
 
