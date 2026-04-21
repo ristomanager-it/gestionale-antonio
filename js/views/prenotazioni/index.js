@@ -1194,6 +1194,14 @@ function attachEvents() {
       alert(el.dataset.note || "Nessuna nota");
     };
   });
+  // 🔥 CLICK CLIENTE → SCHEDA
+document.querySelectorAll(".cliente-link").forEach(el=>{
+  el.onclick = ()=>{
+    const id = el.dataset.id;
+    if(!id) return;
+    window.location.hash = "#/cliente?id=" + id;
+  };
+});
 }
 
   async function updateStatoPrenotazione(id, stato) {
