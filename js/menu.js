@@ -97,8 +97,12 @@ export function initMenu() {
       {
         title:"OPERATIVO",
         items:[
-          {label:"🪑 Sala", route:"sala"},            // 🔥 AGGIUNTO QUI
-          {label:"📅 Prenotazioni Tavoli", route:"prenotazioni-tavoli"}, // 🔥 AGGIUNTO
+          {label:"🪑 Sala", route:"sala"},
+
+          // 🔥 NUOVO SISTEMA PRENOTAZIONI
+          {label:"📅 Prenotazioni", route:"prenotazioni"},
+          {label:"📅 Prenotazioni Tavoli", route:"prenotazioni-tavoli"},
+
           {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
           {label:"Magazzino", route:"magazzino"},
@@ -136,10 +140,12 @@ export function initMenu() {
         ]
       },
 
+      // 🔥 BLOCCO CORRETTO
       {
         title:"MARKETING",
         items:[
-          {label:"Campagne", route:"marketing"}
+          {label:"Marketing", route:"marketing"},
+          {label:"📢 Campagne Promo", route:"campagne"}
         ]
       },
 
