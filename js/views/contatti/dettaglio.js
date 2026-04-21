@@ -13,6 +13,8 @@ export async function render(container) {
 
       <div class="card" id="cliente-info">Caricamento...</div>
 
+      <div class="card" id="cliente-tags"></div>
+
       <div class="card" id="cliente-stats"></div>
 
       <div class="card" id="cliente-storico"></div>
@@ -36,6 +38,62 @@ export async function render(container) {
     <h2>${cliente.nome || ""}</h2>
     <div>${cliente.telefono || ""}</div>
   `;
+
+  // 🔥 TAG
+  function renderTagSection(cliente){
+
+    const tagAuto = cliente.tag || [];
+    const tagManuali = cliente.tag_manuali || [];
+
+    document.getElementById("cliente-tags").innerHTML = `
+      <h3>🏷️ Tag cliente</h3>
+
+      <div style="margin-bottom:10px;">
+        ${tagAuto.map(t => `<span style="margin-right:6px;">🟢 ${t}</span>`).join("")}
+        ${tagManuali.map(t => `<span style="margin-right:6px;">🔵 ${t}</span>`).join("")}
+      </div>
+
+      <div style="display:flex; gap:6px;">
+        <input id="new-tag" class="input" placeholder="es. capelli_rossi"/>
+        <button id="add-tag" class="app-button">➕</button>
+      </div>
+    `;
+
+    document.getElementById("add-tag").onclick = async ()=>{
+
+      const input = document.getElementById("new-tag");
+      const value = input.value.trim();
+
+      if(!value) return;
+
+      const attuali = cliente.tag_manuali || [];
+
+      if(attuali.includes(value)){
+        alert("Tag già presente");
+        return;
+      }
+
+      const nuovi = [...attuali, value];
+
+      await window.supabaseClient
+        .from("contatti")
+        .update({ tag_manuali: nuovi })
+        .eq("id", contattoId);
+
+      input.value = "";
+
+      // 🔥 ricarica cliente aggiornato
+      const { data: updated } = await window.supabaseClient
+        .from("contatti")
+        .select("*")
+        .eq("id", contattoId)
+        .single();
+
+      renderTagSection(updated);
+    };
+  }
+
+  renderTagSection(cliente);
 
   // 🔥 PRENOTAZIONI
   const { data: pren } = await window.supabaseClient
