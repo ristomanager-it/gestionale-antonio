@@ -33,10 +33,11 @@ export async function render(container) {
           <div class="form-group">
             <label>Tipo</label>
             <select id="tipo" class="input">
-              <option value="conferma">Conferma</option>
-              <option value="richiesta">Richiesta</option>
+              <option value="conferma_prenotazione">Conferma prenotazione</option>
+              <option value="richiesta_prenotazione">Richiesta prenotazione</option>
+              <option value="conferma_online">Conferma online</option>
               <option value="reminder">Reminder</option>
-              <option value="post_servizio">Post servizio</option>
+              <option value="promo">Promo / Offerta</option>
             </select>
           </div>
 
@@ -130,8 +131,10 @@ export async function render(container) {
 
     document.getElementById("modal-title").innerText = "Nuovo Messaggio";
     document.getElementById("nome").value = "";
-    document.getElementById("tipo").value = "conferma";
+    document.getElementById("tipo").value = "conferma_prenotazione";
     document.getElementById("contenuto").value = "";
+
+    updatePreview();
   };
 
   // 🔥 MODIFICA
@@ -183,6 +186,22 @@ export async function render(container) {
     if(!nome || !contenuto){
       alert("Compila i campi");
       return;
+    }
+
+    // 🔥 CONTROLLO DUPLICATI (SOLO NUOVO)
+    if(!currentId){
+
+      const { data: esiste } = await window.supabaseClient
+        .from("messaggi_template")
+        .select("id")
+        .eq("azienda_id", aziendaId)
+        .eq("tipo", tipo)
+        .maybeSingle();
+
+      if(esiste){
+        alert("Esiste già un messaggio per questo tipo");
+        return;
+      }
     }
 
     if(currentId){
