@@ -804,6 +804,7 @@ export async function render(container) {
   };
 
   document.getElementById("footer-new").onclick = () => {
+    console.log("CLICK +");
     window.location.hash = "#/prenotazioni-form";
   };
 
