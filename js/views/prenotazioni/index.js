@@ -1,4 +1,4 @@
-import { eseguiAutomazioni } from "/services/automazioni.js";
+import { eseguiAutomazioni } from "../../services/automazioni.js";
 
 export async function render(container) {
 
