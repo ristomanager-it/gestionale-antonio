@@ -110,7 +110,7 @@ cliente: () => import("./views/cliente.js"),
    ROUTE SCOPE
 ========================================================= */
 
-const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword", "set-password"]);
+const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword", "set-password", "prenota"]);
 
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
