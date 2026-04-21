@@ -1,6 +1,8 @@
 export async function render(container) {
 
-  const aziendaId = window.state?.azienda?.id;
+  const aziendaId = window.routeParams?.azienda;
+
+console.log("AZIENDA ID:", aziendaId);
 
   container.innerHTML = `<div class="page">Caricamento...</div>`;
 
