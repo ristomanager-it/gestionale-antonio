@@ -81,7 +81,6 @@ export async function render(container) {
 
   let clienteSelezionato = null;
 
-  // 🔍 AUTOCOMPLETE
   document.getElementById("cliente_search").oninput = async (e) => {
 
     const term = e.target.value.trim();
@@ -193,23 +192,30 @@ export async function render(container) {
     const note = document.getElementById("note").value;
 
     const msg = document.getElementById("form-msg");
+    msg.innerHTML = "";
 
     if (!cliente_nome) {
       msg.innerHTML = "Inserisci cliente";
       return;
     }
 
-    const contatto = await trovaOCreaContatto({
-      nome: cliente_nome,
-      telefono: cliente_telefono
-    });
+    let contatto = null;
+
+    if (!clienteSelezionato && cliente_telefono) {
+      contatto = await trovaOCreaContatto({
+        nome: cliente_nome,
+        telefono: cliente_telefono
+      });
+    }
+
+    const contattoId = clienteSelezionato || contatto?.id || null;
 
     const { data: pren, error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .insert([{
         azienda_id: aziendaId,
         sede_id: sedeId,
-        contatto_id: contatto?.id || null,
+        contatto_id: contattoId,
         cliente_nome,
         cliente_telefono,
         data,
