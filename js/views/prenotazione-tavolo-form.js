@@ -1,5 +1,5 @@
 import { trovaOCreaContatto } from "/services/contatti.js";
-import { generaMessaggio, apriWhatsApp } from "/services/messaggi.js";
+import { eseguiAutomazioni } from "/services/automazioni.js";
 
 export async function render(container) {
 
@@ -243,17 +243,8 @@ export async function render(container) {
       return;
     }
 
-    // 🔥 GENERA MESSAGGIO
-    const testo = await generaMessaggio("conferma_prenotazione", {
-      nome: cliente_nome,
-      data,
-      ora,
-      coperti
-    });
-
-    if (testo) {
-      apriWhatsApp(cliente_telefono, testo);
-    }
+    // 🔥 ENGINE AUTOMAZIONI (SOSTITUISCE TUTTO)
+    await eseguiAutomazioni("prenotazione_creata", pren);
 
     msg.innerHTML = "✅ Salvato";
 
