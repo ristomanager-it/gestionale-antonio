@@ -101,8 +101,6 @@ export function initMenu() {
 
           // 🔥 NUOVO SISTEMA PRENOTAZIONI
           {label:"📅 Prenotazioni", route:"prenotazioni"},
-          {label:"📅 Prenotazioni Tavoli", route:"prenotazioni-tavoli"},
-
           {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
           {label:"Magazzino", route:"magazzino"},
