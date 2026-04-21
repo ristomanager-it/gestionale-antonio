@@ -12,9 +12,10 @@ export async function trovaOCreaContatto({ nome, cognome, telefono }) {
     .select("*")
     .eq("azienda_id", aziendaId)
     .eq("telefono", telefonoPulito)
-    .maybeSingle();
+    .limit(1)
+    .single();
 
-  if (errFind) {
+  if (errFind && errFind.code !== "PGRST116") {
     console.error("Errore ricerca contatto", errFind);
   }
 
