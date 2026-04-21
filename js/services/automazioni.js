@@ -1,5 +1,4 @@
-import { generaMessaggio, apriWhatsApp } from "/services/messaggi.js";
-
+import { generaMessaggio, apriWhatsApp } from "./messaggi.js";
 export async function eseguiAutomazioni(evento, pren){
 
   const supabase = window.supabaseClient;
