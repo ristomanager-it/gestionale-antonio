@@ -1084,7 +1084,9 @@ export async function render(container) {
 
           <div class="pren-main">
             <div class="pren-name-row">
-              <div class="pren-name">${escapeHtml(nome)}</div>
+             <div class="pren-name cliente-link" data-id="${p.contatto_id}">
+  ${escapeHtml(nome)}
+</div>
               <div class="pren-status" style="background:${stato.bg};color:${stato.color};">
                 <span>${stato.emoji}</span>
                 <span>${stato.label}</span>
