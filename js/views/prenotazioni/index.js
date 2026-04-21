@@ -5,6 +5,9 @@ export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
   const sede = window.state?.sedeAttiva;
 
+  // 🔥 memoria locale anti-spam
+  const automazioniEseguite = new Set();
+
   container.innerHTML = `
     <div class="view pren-view">
 
@@ -160,7 +163,7 @@ export async function render(container) {
       .update({ stato: "confermata" })
       .eq("id", pren.id);
 
-    // 🔥 ENGINE AUTOMAZIONI
+    // 🔥 AUTOMAZIONE IMMEDIATA
     eseguiAutomazioni("prenotazione_confermata", pren);
 
     load();
@@ -186,6 +189,18 @@ export async function render(container) {
       lista.innerHTML = "Nessuna prenotazione";
       return;
     }
+
+    // 🔥 AUTOMAZIONI CON TIMING (REMINDER)
+    data.forEach(p => {
+
+      const key = p.id + "_reminder";
+
+      if(!automazioniEseguite.has(key)){
+        automazioniEseguite.add(key);
+        eseguiAutomazioni("prenotazione_confermata", p);
+      }
+
+    });
 
     lista.innerHTML = data.map(p=>`
       <div class="pren-card">
