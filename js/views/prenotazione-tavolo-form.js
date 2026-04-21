@@ -193,7 +193,7 @@ export async function render(container) {
   }
 
   document.getElementById("btn-annulla").onclick = () => {
-    window.location.hash = "#/prenotazioni-tavoli";
+    window.location.hash = "#/prenotazioni";
   };
 
   document.getElementById("btn-salva").onclick = async () => {
@@ -249,7 +249,7 @@ export async function render(container) {
     msg.innerHTML = "✅ Salvato";
 
     setTimeout(() => {
-      window.location.hash = "#/prenotazioni-tavoli";
+      window.location.hash = "#/prenotazioni";
     }, 800);
   };
 }
