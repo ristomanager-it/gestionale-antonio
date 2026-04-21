@@ -46,6 +46,46 @@ export async function render(container) {
             <textarea id="contenuto" class="input" rows="5"></textarea>
           </div>
 
+          <!-- 🔥 AUTOMAZIONI -->
+          <div class="card" style="background:#f1f5f9;">
+            <strong>⚙️ Automazione</strong>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="attivo" checked/>
+                Attivo
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label>Evento</label>
+              <select id="trigger_evento" class="input">
+                <option value="prenotazione_creata">Creazione prenotazione</option>
+                <option value="prenotazione_confermata">Conferma prenotazione</option>
+                <option value="post_servizio">Post servizio</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Quando</label>
+              <select id="timing_tipo" class="input">
+                <option value="subito">Subito</option>
+                <option value="prima">Prima</option>
+                <option value="dopo">Dopo</option>
+              </select>
+            </div>
+
+            <div style="display:flex; gap:6px;">
+              <input type="number" id="timing_valore" class="input" value="1" style="width:80px"/>
+              <select id="timing_unita" class="input">
+                <option value="minuti">Minuti</option>
+                <option value="ore">Ore</option>
+                <option value="giorni">Giorni</option>
+              </select>
+            </div>
+
+          </div>
+
           <div class="card" style="background:#f8fafc;">
             <strong>Variabili disponibili:</strong><br/>
             @@nome@@, @@data@@, @@ora@@, @@coperti@@
@@ -53,16 +93,12 @@ export async function render(container) {
 
           <div class="card">
             <strong>Anteprima:</strong>
-            <div id="preview" style="margin-top:6px;color:#333;"></div>
+            <div id="preview"></div>
           </div>
 
           <div style="display:flex; gap:10px; margin-top:10px;">
-            <button class="app-button primary" id="save">
-              💾 Salva
-            </button>
-            <button class="app-button gray" id="close">
-              Chiudi
-            </button>
+            <button class="app-button primary" id="save">💾 Salva</button>
+            <button class="app-button gray" id="close">Chiudi</button>
           </div>
 
         </div>
@@ -76,46 +112,27 @@ export async function render(container) {
 
   let currentId = null;
 
-  // 🔥 LOAD TEMPLATE
   async function load(){
 
-    const { data, error } = await window.supabaseClient
+    const { data } = await window.supabaseClient
       .from("messaggi_template")
       .select("*")
-      .eq("azienda_id", aziendaId)
-      .order("created_at", { ascending:false });
+      .eq("azienda_id", aziendaId);
 
-    if(error){
-      lista.innerHTML = "Errore caricamento";
-      return;
-    }
-
-    if(!data.length){
+    if(!data || !data.length){
       lista.innerHTML = "Nessun messaggio";
       return;
     }
 
     lista.innerHTML = data.map(t => `
       <div class="card">
-
-        <div style="font-weight:700;">
-          ${t.nome}
+        <div><strong>${t.nome}</strong></div>
+        <div>${t.tipo}</div>
+        <div>${t.contenuto}</div>
+        <div style="font-size:11px;color:#666;">
+          ${t.trigger_evento || ""} · ${t.timing_tipo || ""} ${t.timing_valore || ""} ${t.timing_unita || ""}
         </div>
-
-        <div style="font-size:12px;color:#666;">
-          ${t.tipo}
-        </div>
-
-        <div style="margin-top:6px;">
-          ${t.contenuto}
-        </div>
-
-        <div style="margin-top:10px;">
-          <button class="app-button tiny edit" data-id="${t.id}">
-            ✏️ Modifica
-          </button>
-        </div>
-
+        <button class="edit" data-id="${t.id}">Modifica</button>
       </div>
     `).join("");
 
@@ -124,20 +141,11 @@ export async function render(container) {
     });
   }
 
-  // 🔥 APRI MODAL NUOVO
   document.getElementById("btn-new").onclick = ()=>{
     currentId = null;
     modal.style.display = "block";
-
-    document.getElementById("modal-title").innerText = "Nuovo Messaggio";
-    document.getElementById("nome").value = "";
-    document.getElementById("tipo").value = "conferma_prenotazione";
-    document.getElementById("contenuto").value = "";
-
-    updatePreview();
   };
 
-  // 🔥 MODIFICA
   async function openEdit(id){
 
     const { data } = await window.supabaseClient
@@ -146,85 +154,50 @@ export async function render(container) {
       .eq("id", id)
       .single();
 
-    if(!data) return;
-
     currentId = id;
 
     modal.style.display = "block";
 
-    document.getElementById("modal-title").innerText = "Modifica Messaggio";
     document.getElementById("nome").value = data.nome;
     document.getElementById("tipo").value = data.tipo;
     document.getElementById("contenuto").value = data.contenuto;
 
-    updatePreview();
+    document.getElementById("attivo").checked = data.attivo;
+    document.getElementById("trigger_evento").value = data.trigger_evento;
+    document.getElementById("timing_tipo").value = data.timing_tipo;
+    document.getElementById("timing_valore").value = data.timing_valore;
+    document.getElementById("timing_unita").value = data.timing_unita;
   }
 
-  // 🔥 PREVIEW
-  function updatePreview(){
-
-    let text = document.getElementById("contenuto").value;
-
-    text = text
-      .replaceAll("@@nome@@", "Mario")
-      .replaceAll("@@data@@", "12/10/2026")
-      .replaceAll("@@ora@@", "20:30")
-      .replaceAll("@@coperti@@", "4");
-
-    document.getElementById("preview").innerText = text;
-  }
-
-  document.getElementById("contenuto").oninput = updatePreview;
-
-  // 🔥 SALVA
   document.getElementById("save").onclick = async ()=>{
 
-    const nome = document.getElementById("nome").value;
-    const tipo = document.getElementById("tipo").value;
-    const contenuto = document.getElementById("contenuto").value;
-
-    if(!nome || !contenuto){
-      alert("Compila i campi");
-      return;
-    }
-
-    // 🔥 CONTROLLO DUPLICATI (SOLO NUOVO)
-    if(!currentId){
-
-      const { data: esiste } = await window.supabaseClient
-        .from("messaggi_template")
-        .select("id")
-        .eq("azienda_id", aziendaId)
-        .eq("tipo", tipo)
-        .maybeSingle();
-
-      if(esiste){
-        alert("Esiste già un messaggio per questo tipo");
-        return;
-      }
-    }
+    const payload = {
+      azienda_id: aziendaId,
+      nome: document.getElementById("nome").value,
+      tipo: document.getElementById("tipo").value,
+      contenuto: document.getElementById("contenuto").value,
+      attivo: document.getElementById("attivo").checked,
+      trigger_evento: document.getElementById("trigger_evento").value,
+      timing_tipo: document.getElementById("timing_tipo").value,
+      timing_valore: Number(document.getElementById("timing_valore").value),
+      timing_unita: document.getElementById("timing_unita").value
+    };
 
     if(currentId){
       await window.supabaseClient
         .from("messaggi_template")
-        .update({ nome, tipo, contenuto })
+        .update(payload)
         .eq("id", currentId);
     }else{
       await window.supabaseClient
         .from("messaggi_template")
-        .insert([{
-          azienda_id: aziendaId,
-          nome,
-          tipo,
-          contenuto
-        }]);
+        .insert([payload]);
     }
 
     modal.style.display = "none";
     load();
   };
 
-  // 🔥 CHIUDI
   document.getElementById("close").onclick = ()=>{
     modal.style.display = "none";
   };
