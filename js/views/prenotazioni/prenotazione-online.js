@@ -1,8 +1,14 @@
 export async function render(container) {
 
+  // 🔥 AZIENDA DA URL (FIX FINALE)
   const aziendaId = window.routeParams?.azienda;
 
-console.log("AZIENDA ID:", aziendaId);
+  console.log("AZIENDA ID:", aziendaId);
+
+  if (!aziendaId) {
+    container.innerHTML = `<div class="page">Errore: azienda non trovata</div>`;
+    return;
+  }
 
   container.innerHTML = `<div class="page">Caricamento...</div>`;
 
@@ -33,19 +39,12 @@ console.log("AZIENDA ID:", aziendaId);
   // 🌍 PREFISSO AUTOMATICO
   const defaultPrefix = lang === "it" ? "+39" : "+44";
 
-  // 🔥 CONFIG AZIENDA
-  const { data: config } = await window.supabaseClient
-    .from("config_prenotazione_online")
-    .select("*")
-    .eq("azienda_id", aziendaId)
-    .maybeSingle();
-
-  const campi = config?.campi || [
-    { key: "nome", label: "Nome", required: true },
-    { key: "telefono", label: "Telefono", required: true }
+  // 🔥 CONFIG DISATTIVATA (per ora)
+  const campi = [
+    { key: "nome", label: "Nome", required: true }
   ];
 
-  const logo = config?.logo_url || "";
+  const logo = "";
 
   container.innerHTML = `
     <div class="page">
@@ -118,7 +117,6 @@ console.log("AZIENDA ID:", aziendaId);
 
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
 
-  // 👉 set prefisso automatico
   document.getElementById("prefisso").value = defaultPrefix;
 
   // 🔥 INVIO
@@ -127,7 +125,6 @@ console.log("AZIENDA ID:", aziendaId);
     const msg = document.getElementById("msg");
 
     const extra = {};
-
     document.querySelectorAll(".dyn-field").forEach(el => {
       extra[el.dataset.key] = el.value;
     });
@@ -158,8 +155,7 @@ console.log("AZIENDA ID:", aziendaId);
         ora,
         coperti,
         stato: "nuova",
-        origine: "online",
-        extra_dati: extra
+        origine: "online"
       }]);
 
     if (error) {
