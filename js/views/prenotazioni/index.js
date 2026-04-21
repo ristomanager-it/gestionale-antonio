@@ -1,4 +1,4 @@
-import { generaMessaggio, apriWhatsApp } from "/services/messaggi.js";
+import { eseguiAutomazioni } from "/services/automazioni.js";
 
 export async function render(container) {
 
@@ -160,16 +160,8 @@ export async function render(container) {
       .update({ stato: "confermata" })
       .eq("id", pren.id);
 
-    const testo = await generaMessaggio("conferma_online", {
-      nome: pren.cliente_nome,
-      data: pren.data,
-      ora: pren.ora,
-      coperti: pren.coperti
-    });
-
-    if(testo){
-      apriWhatsApp(pren.cliente_telefono, testo);
-    }
+    // 🔥 ENGINE AUTOMAZIONI
+    eseguiAutomazioni("prenotazione_confermata", pren);
 
     load();
   }
@@ -178,14 +170,12 @@ export async function render(container) {
 
     lista.innerHTML = "Caricamento...";
 
-    let query = window.supabaseClient
+    const {data,error} = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("*")
       .eq("azienda_id", aziendaId)
       .eq("data", selectedDate)
       .order("ora",{ascending:true});
-
-    const {data,error} = await query;
 
     if(error){
       lista.innerHTML = "Errore";
@@ -220,7 +210,6 @@ export async function render(container) {
       </div>
     `).join("");
 
-    // 📞 CALL
     document.querySelectorAll(".call").forEach(btn=>{
       btn.onclick = ()=>{
         const phone = btn.dataset.phone;
@@ -230,7 +219,6 @@ export async function render(container) {
       };
     });
 
-    // ✅ CONFERMA
     document.querySelectorAll(".confirm").forEach(btn=>{
       btn.onclick = ()=>{
         const pren = data.find(p => p.id == btn.dataset.id);
@@ -238,7 +226,6 @@ export async function render(container) {
       };
     });
 
-    // 👤 SCHEDA CLIENTE
     document.querySelectorAll(".cliente-link").forEach(el=>{
       el.onclick = ()=>{
         const id = el.dataset.id;
