@@ -1219,46 +1219,7 @@ function attachSwipe() {
       }
     });
 
-    const handleSwipeEnd = async () => {
-      if (!active) return;
-
-      row.classList.remove("is-dragging");
-
-      if (currentX >= 80) {
-        bgArrivata.style.opacity = "1";
-        bgNoShow.style.opacity = "0";
-        row.style.transform = "translateX(100%)";
-
-        setTimeout(async () => {
-          await updateStatoPrenotazione(row.dataset.id, "arrivata");
-        }, 120);
-      } else if (currentX <= -80) {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "1";
-        row.style.transform = "translateX(-100%)";
-
-        setTimeout(async () => {
-          await updateStatoPrenotazione(row.dataset.id, "no_show");
-        }, 120);
-      } else {
-        resetSwipe();
-      }
-
-      active = false;
-      currentX = 0;
-    };
-
-    row.addEventListener("pointerup", handleSwipeEnd);
-    row.addEventListener("pointercancel", resetSwipe);
-    row.addEventListener("lostpointercapture", () => {
-      if (active && Math.abs(currentX) < 80) {
-        resetSwipe();
-      }
-    });
-
-    row.dataset.swipeBound = "true";
-  });
-}
+ 
 
 async function updateStatoPrenotazione(id, stato) {
   const { error } = await window.supabaseClient
