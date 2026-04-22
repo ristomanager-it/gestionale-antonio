@@ -19,6 +19,57 @@
 
   <link rel="stylesheet" href="styles.css?v=13" />
 
+  <style>
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .header-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0,0,0,0.04);
+      padding: 4px 8px;
+      border-radius: 10px;
+    }
+
+    /* MOBILE: ultra compatto */
+    @media (max-width: 600px) {
+
+      .header-right {
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      .hide-mobile {
+        display: none;
+      }
+
+      .header-chip {
+        padding: 3px 6px;
+      }
+    }
+
+    /* TABLET */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      .header-right {
+        font-size: 13px;
+      }
+    }
+
+    /* DESKTOP */
+    @media (min-width: 1025px) {
+      .header-right {
+        font-size: 14px;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -26,6 +77,7 @@
   <!-- HEADER -->
   <header class="app-header">
 
+    <!-- LEFT -->
     <div class="header-left">
       <button id="menu-toggle" class="menu-toggle" type="button">
         <div class="menu-icon">
@@ -36,17 +88,37 @@
       </button>
     </div>
 
+    <!-- CENTER -->
     <div class="header-center">
       <img id="header-logo" class="header-logo" src="assets/favicon-192.png" />
     </div>
 
-    <div id="header-right" class="header-right"></div>
+    <!-- RIGHT -->
+    <div id="header-right" class="header-right">
+
+      <!-- Sede -->
+      <div id="header-sede" class="header-chip"></div>
+
+      <!-- Saluto -->
+      <div id="header-saluto" class="header-chip hide-mobile"></div>
+
+      <!-- Data -->
+      <div id="header-data" class="header-chip"></div>
+
+      <!-- Meteo -->
+      <div id="header-meteo" class="header-chip hide-mobile"></div>
+
+    </div>
 
   </header>
 
+  <!-- SOTTOHEADER DINAMICO -->
+  <div id="page-subheader"></div>
 
-<div id="page-subheader"></div>
-  <!-- CONTENUTO APP -->
+  <nav id="global-menu"></nav>
+  <div class="menu-overlay"></div>
+
+  <!-- CONTENUTO -->
   <main id="app"></main>
 
   <!-- FOOTER -->
@@ -58,15 +130,14 @@
   <script src="js/state.js?v=9"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- SUPABASE -->
   <script>
     (function () {
       const { createClient } = window.supabase;
 
-     const client = createClient(
-  "https://cuhcscpvhypoaplcmtjk.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
-);
+      const client = createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
+      );
 
       window.supabase = client;
       window.supabaseClient = client;
@@ -79,74 +150,67 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- UI AZIENDA + SEDE -->
+  <!-- HEADER UI -->
   <script>
-  function renderAziendaUI(){
+    function renderHeaderUI(){
 
-    const azienda = window.state?.azienda
-    const sede = window.state?.sedeAttiva
-    const user = window.state?.user
+      const azienda = window.state?.azienda
+      const sede = window.state?.sedeAttiva
+      const user = window.state?.user
 
-    const nomeUser = user?.email?.split("@")[0] || "utente"
+      const nomeUser = user?.email?.split("@")[0] || "utente"
 
-    // LOGO DINAMICO
-    const logo = document.getElementById("header-logo")
-    if(logo){
-      const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png"
-      logo.src = logoUrl + "?v=" + Date.now()
+      // LOGO
+      const logo = document.getElementById("header-logo")
+      if(logo){
+        const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png"
+        logo.src = logoUrl + "?v=" + Date.now()
+      }
+
+      // SEDE
+      const sedeEl = document.getElementById("header-sede")
+      if(sedeEl){
+        sedeEl.textContent = sede ? `📍 ${sede.nome}` : "⚠️ Nessuna sede"
+      }
+
+      // SALUTO
+      const salutoEl = document.getElementById("header-saluto")
+      if(salutoEl){
+        const ora = new Date().getHours()
+
+        let saluto = "Ciao"
+        if(ora < 12) saluto = "Buongiorno"
+        else if(ora < 18) saluto = "Buon pomeriggio"
+        else saluto = "Buonasera"
+
+        salutoEl.textContent = `${saluto}, ${nomeUser}`
+      }
+
+      // DATA
+      const dataEl = document.getElementById("header-data")
+      if(dataEl){
+        const oggi = new Date()
+        dataEl.textContent = oggi.toLocaleDateString("it-IT", {
+          weekday:"short",
+          day:"2-digit",
+          month:"short"
+        })
+      }
+
+      // METEO
+      const meteoEl = document.getElementById("header-meteo")
+      if(meteoEl && window.getWeather){
+        window.getWeather().then(res => {
+          meteoEl.innerHTML = res
+        }).catch(() => {
+          meteoEl.textContent = "☀️"
+        })
+      }
+
     }
 
-    // NOME AZIENDA
-    const nome = document.getElementById("azienda-nome")
-    if(nome){
-      nome.textContent = azienda?.nome || ""
-    }
-
-    // NOME SEDE
-    const sedeEl = document.getElementById("topbar-sede")
-    if(sedeEl){
-      sedeEl.textContent = sede ? `📍 ${sede.nome}` : "⚠️ Nessuna sede"
-    }
-
-    // SALUTO
-    const salutoEl = document.getElementById("topbar-saluto")
-    if(salutoEl){
-      const ora = new Date().getHours()
-
-      let saluto = "Ciao"
-      if(ora < 12) saluto = "Buongiorno"
-      else if(ora < 18) saluto = "Buon pomeriggio"
-      else saluto = "Buonasera"
-
-      salutoEl.textContent = `${saluto}, ${nomeUser}`
-    }
-
-    // DATA
-    const dataEl = document.getElementById("topbar-data")
-    if(dataEl){
-      const oggi = new Date()
-      dataEl.textContent = oggi.toLocaleDateString("it-IT", {
-        weekday:"short",
-        day:"2-digit",
-        month:"short"
-      })
-    }
-
-    // METEO (se usi già funzione)
-    const meteoEl = document.getElementById("topbar-weather")
-    if(meteoEl && window.getWeather){
-      window.getWeather().then(res => {
-        meteoEl.innerHTML = res
-      }).catch(() => {
-        meteoEl.textContent = "☀️"
-      })
-    }
-
-  }
-
-  // refresh automatico UI
-  setInterval(renderAziendaUI, 5000)
-  renderAziendaUI()
+    setInterval(renderHeaderUI, 60000)
+    renderHeaderUI()
   </script>
 
   <script type="module" src="js/router.js?v=11"></script>
