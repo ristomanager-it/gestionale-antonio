@@ -894,3 +894,8 @@ SALA
 .pren-ico:hover{
   opacity:1;
 }
+.pren-ico{
+  font-size:14px;
+  padding:6px;   /* 👈 IMPORTANTISSIMO */
+  cursor:pointer;
+}
