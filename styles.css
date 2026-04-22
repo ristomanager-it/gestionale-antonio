@@ -69,6 +69,11 @@ color:var(--color-text);
 
 font-size:13px;
 line-height:1.5;
+background:linear-gradient(
+180deg,
+var(--color-bg-app) 0%,
+var(--color-bg-app-soft) 100%
+);
 }
 
 button,input,select,textarea{
@@ -95,6 +100,7 @@ background:var(--color-bg-header);
 display:flex;
 align-items:center;
 justify-content:space-between;
+gap:10px;
 padding:0 14px;
 border-bottom:1px solid var(--color-border);
 z-index:1000;
@@ -105,35 +111,64 @@ z-index:1000;
 .header-right{
 display:flex;
 align-items:center;
-}
-
-/* 🔥 FIX COMPLETO CENTRATURA */
-.header-center{
-flex:1;
-display:flex;
-justify-content:center;
-align-items:center;
-gap:10px;
 min-width:0;
 }
 
-@media (max-width:600px){
-
-  .header-logo{
-    height: 48px;    /* 🔥 leggermente più piccolo su mobile */
-  }
-
+.header-left{
+flex:0 0 auto;
 }
 
-/* 🔥 FIX TITOLO CENTRATO + TRONCAMENTO */
-.header-azienda-nome{
+.header-center{
+flex:1 1 auto;
+justify-content:flex-start;
+min-width:0;
+overflow:hidden;
+}
+
+.header-right{
+flex:0 0 auto;
+justify-content:flex-end;
+gap:8px;
+font-size:12px;
+white-space:nowrap;
+}
+
+.header-brand{
+display:flex;
+align-items:center;
+gap:10px;
+min-width:0;
+max-width:100%;
+}
+
+.header-brand-text{
+display:flex;
+flex-direction:column;
+justify-content:center;
+min-width:0;
+}
+
+.header-location-name{
 font-size:16px;
 font-weight:800;
-text-align:center;
+line-height:1.1;
+color:var(--color-primary);
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
 max-width:100%;
+}
+
+.header-location-meta{
+font-size:11px;
+font-weight:600;
+line-height:1.1;
+color:var(--color-text-muted);
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+max-width:100%;
+margin-top:2px;
 }
 
 .menu-toggle{
@@ -156,64 +191,27 @@ background:var(--color-text);
 border-radius:2px;
 }
 
+.header-chip{
+display:flex;
+align-items:center;
+gap:4px;
+background:transparent;
+color:var(--color-primary);
+padding:2px 4px;
+font-weight:700;
+}
+
+.hide-mobile{
+display:flex;
+}
+
 /* =========================================================
-❌ BLOCCA DEFINITIVAMENTE VECCHIA TOPBAR
+SOTTOHEADER SLOT
 ========================================================= */
 
-.topbar-info{
-display:none !important;
+#page-subheader{
+width:100%;
 }
-
-/* =========================================================
-✅ NUOVA TOPBAR GLOBALE
-========================================================= */
-
-.topbar-global{
-
-position:fixed;
-top:var(--header-height);
-left:50%;
-transform:translateX(-50%);
-
-width:94%;
-max-width:1100px;
-
-height:44px;
-
-background:linear-gradient(90deg,#0A4A64,#0E5A7A);
-
-border-radius:12px;
-
-display:flex;
-align-items:center;
-justify-content:space-between;
-
-padding:0 12px;
-
-color:white;
-font-size:12px;
-font-weight:600;
-
-box-shadow:0 4px 10px rgba(0,0,0,0.15);
-
-z-index:900;
-}
-
-.topbar-left{
-display:flex;
-gap:8px;
-align-items:center;
-min-width:0;
-}
-
-.topbar-right{
-display:flex;
-gap:10px;
-align-items:center;
-opacity:0.9;
-flex-shrink:0;
-}
-
 
 /* =========================================================
 APP ROOT
@@ -222,14 +220,10 @@ APP ROOT
 #app{
 width:100%;
 padding:var(--app-padding-y) var(--app-padding-x);
-padding-top:calc(var(--header-height) + 90px);
+padding-top:calc(var(--header-height) + 16px);
+padding-bottom:120px;
 display:flex;
 justify-content:center;
-background:linear-gradient(
-180deg,
-var(--color-bg-app) 0%,
-var(--color-bg-app-soft) 100%
-);
 min-height:100vh;
 }
 
@@ -434,7 +428,7 @@ background:rgba(255,255,255,0.05);
 }
 
 /* =========================================================
-🔥 MOBILE
+MOBILE
 ========================================================= */
 
 @media(max-width:768px){
@@ -452,7 +446,7 @@ APP
 #app{
 padding-left:10px;
 padding-right:10px;
-padding-top:calc(var(--header-height) + 90px);
+padding-top:calc(var(--header-height) + 14px);
 }
 
 .view{
@@ -464,10 +458,49 @@ border-radius:14px;
 }
 
 /* =========================
-LOGIN (FIX COMPLETO)
+HEADER
 ========================= */
 
-/* sfondo fullscreen */
+.app-header{
+padding:0 10px;
+gap:8px;
+}
+
+.header-center{
+justify-content:flex-start;
+}
+
+.header-brand{
+gap:8px;
+}
+
+.header-location-name{
+font-size:13px;
+max-width:145px;
+}
+
+.header-location-meta{
+font-size:10px;
+max-width:145px;
+}
+
+.header-right{
+gap:4px;
+font-size:11px;
+}
+
+.header-chip{
+padding:2px 0;
+}
+
+.hide-mobile{
+display:none !important;
+}
+
+/* =========================
+LOGIN
+========================= */
+
 .login-page{
 position:fixed;
 top:0;
@@ -479,7 +512,6 @@ display:flex;
 align-items:center;
 justify-content:center;
 
-/* 🔥 blu notte */
 background:linear-gradient(
 180deg,
 #0A2540 0%,
@@ -489,7 +521,6 @@ background:linear-gradient(
 z-index:2000;
 }
 
-/* modal */
 .login-box{
 width:100%;
 max-width:320px;
@@ -506,7 +537,6 @@ gap:12px;
 box-shadow:0 20px 40px rgba(0,0,0,0.25);
 }
 
-/* logo */
 .login-logo-wrap{
 display:flex;
 justify-content:center;
@@ -518,20 +548,17 @@ width:90px;
 height:90px;
 }
 
-/* form */
 .login-form{
 display:flex;
 flex-direction:column;
 gap:10px;
 }
 
-/* bottone */
 .login-btn{
 width:100%;
 margin-top:6px;
 }
 
-/* reset */
 .login-reset{
 text-align:center;
 margin-top:6px;
@@ -546,6 +573,71 @@ font-size:13px;
 }
 
 }
+
+/* =========================================================
+TABLET
+========================================================= */
+
+@media (min-width: 769px) and (max-width: 1023px){
+
+.header-location-name{
+font-size:15px;
+max-width:260px;
+}
+
+.header-location-meta{
+max-width:260px;
+}
+
+}
+
+/* =========================================================
+DESKTOP
+========================================================= */
+
+@media (min-width:1024px){
+
+.header-location-name{
+font-size:18px;
+max-width:420px;
+}
+
+.header-location-meta{
+font-size:12px;
+max-width:420px;
+}
+
+}
+
+/* =========================================================
+LOGO HEADER
+========================================================= */
+
+#header-logo{
+height:42px;
+width:auto;
+object-fit:contain;
+flex-shrink:0;
+}
+
+@media (min-width: 768px) {
+  #header-logo{
+    height:54px;
+  }
+}
+
+@media (min-width: 1024px) {
+  #header-logo{
+    height:62px;
+  }
+}
+
+@media (min-width: 1400px) {
+  #header-logo{
+    height:68px;
+  }
+}
+
 /* BASE */
 .btn-timbratura {
   display: flex;
@@ -609,14 +701,14 @@ font-size:13px;
 .tb-label {
   font-size: 12px;
 }
+
 /* =========================================================
 GLOBAL FOOTER
 ========================================================= */
 
-/* 🔹 NAV MENU */
 .app-footer{
   position: fixed;
-  bottom: 30px;              /* spazio per il brand sotto */
+  bottom: 30px;
   left: 0;
   width: 100%;
   height: 70px;
@@ -631,8 +723,6 @@ GLOBAL FOOTER
   z-index: 1000;
 }
 
-
-/* 🔹 BRAND PIATTAFORMA */
 .footer-brand{
   position: fixed;
   bottom: 0;
@@ -652,11 +742,9 @@ GLOBAL FOOTER
 
   z-index: 1000;
 
-  padding-bottom: env(safe-area-inset-bottom); /* iPhone safe */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-
-/* 🔹 ITEM MENU */
 .footer-item{
   display: flex;
   flex-direction: column;
@@ -667,219 +755,24 @@ GLOBAL FOOTER
   color: var(--color-text-muted);
 }
 
-
-/* ICONA */
 .footer-icon{
   font-size: 20px;
   position: relative;
 }
 
-
-/* LABEL */
 .footer-label{
   margin-top: 2px;
 }
 
-
-/* CLICK EFFECT */
 .footer-item:active{
   transform: scale(0.95);
   opacity: 0.7;
 }
 
-
-/* =========================================================
-FIX SPAZIO CONTENUTO
-========================================================= */
-
-#app{
-  padding-bottom: 120px; /* 🔥 evita che il contenuto finisca sotto */
-}
 /* ================================
-   SOTTOHEADER AZIENDA
+SALA
 ================================ */
 
-.topbar-azienda {
-  position: fixed;
-  top: var(--header-height);
-  left: 0;
-  width: 100%;
-
-  z-index: 999;
-
-  display: flex;
-  flex-direction: column;
-
-  padding: 8px 14px;
-  gap: 4px;
-
-  background: linear-gradient(
-    90deg,
-    var(--color-primary-dark),
-    var(--color-primary)
-  );
-
-  color: #ffffff;
-}
-
-
-/* ================================
-   RIGA 1 (NOME AZIENDA)
-================================ */
-
-.topbar-row-1 {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  min-height: 32px;
-  padding: 2px 0;
-}
-
-.azienda-nome {
-  font-size: 18px;        /* 🔥 più grande */
-  font-weight: 700;
-  text-align: center;
-
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.2;
-
-  max-width: 90%;
-}
-
-
-/* ================================
-   RIGA 2 (INFO)
-================================ */
-
-.topbar-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;   /* 🔥 3 colonne */
-  align-items: center;
-
-  font-size: 14px;                      /* 🔥 più grande */
-  font-weight: 500;
-
-  min-height: 20px;
-}
-
-
-/* ALLINEAMENTI */
-
-.sub-left {
-  text-align: left;
-}
-
-.sub-center {
-  text-align: center;
-}
-
-.sub-right {
-  text-align: right;
-}
-
-
-/* ================================
-   MOBILE
-================================ */
-
-@media (max-width:600px){
-
-  .topbar-azienda {
-    padding: 6px 12px;
-  }
-
-  .azienda-nome {
-    font-size: 15px;
-  }
-
-  .topbar-row-2 {
-    font-size: 13px;
-  }
-
-}
-/* ================================
-   DESKTOP
-================================ */
-
-@media (min-width:1024px){
-
-  .topbar-azienda {
-    padding: 6px 20px;
-  }
-
-  .azienda-nome {
-    font-size: 14px;   /* 🔥 più piccolo su desktop */
-    max-width: 600px;  /* evita effetto gigante */
-  }
-
-  .topbar-row-2 {
-    font-size: 12px;
-  }
-
-}
-/* ================================
-   LOGO HEADER
-================================ */
-
-.header-logo {
-  height: 32px;
-  width: auto;
-  object-fit: contain;
-}
-
-
-/* ================================
-   DESKTOP
-================================ */
-
-@media (min-width:1024px){
-
-  .header-logo {
-    height: 22px; /* 🔥 ridotto su desktop */
-  }
-
-}
-.header-logo {
-  height: clamp(22px, 3vw, 32px);
-  width: auto;
-  object-fit: contain;
-}
-.header-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* ================================
-   LOGO HEADER
-================================ */
-
-#header-logo {
-  height: 36px;
-  object-fit: contain;
-}
-
-/* TABLET */
-@media (min-width: 768px) {
-  #header-logo {
-    height: 50px;
-  }
-}
-
-/* DESKTOP */
-@media (min-width: 1024px) {
-  #header-logo {
-    height: 60px;
-  }
-}
-
-/* LARGE DESKTOP */
-@media (min-width: 1400px) {
-  #header-logo {
-    height: 70px;
-  }
-}
 .sala-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -909,6 +802,7 @@ FIX SPAZIO CONTENUTO
 .tavolo.chiuso {
   background: #eceff1;
 }
+
 .tavolo.prenotato {
   background: #fff3cd;
 }
@@ -917,6 +811,7 @@ FIX SPAZIO CONTENUTO
   font-size: 12px;
   margin-top: 5px;
 }
+
 .sala-mappa {
   position: relative;
   height: 600px;
@@ -948,10 +843,4 @@ FIX SPAZIO CONTENUTO
 
 .tavolo-mappa.prenotato {
   background: #fff3cd;
-}
-.header-chip {
-  background: transparent;
-  color: #2563eb;
-  padding: 2px 4px;
-  font-weight: 500;
 }
