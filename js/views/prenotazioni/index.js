@@ -915,7 +915,7 @@ export async function render(container) {
     }
 
     if (state.filtroStato) {
-      query = query.eq("stato", state.filtroStato);
+      query = query.eq("stato", "confermata");
     }
 
     query = query.order("ora", { ascending: true });
