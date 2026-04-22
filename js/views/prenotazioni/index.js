@@ -895,6 +895,121 @@ export async function render(container) {
     if (e.target === modal) closeModal();
   };
 
+  const state = {
+    filtroStato: "",
+    vistaAttiva: "prenotazioni",
+    prenotazioni: [],
+    tavoli: [],
+    currentPrenId: null,
+    drawerOpen: null
+  };
+
+  renderStatusChips();
+  renderDays();
+  renderActiveTab();
+
+  document.getElementById("btn-refresh").onclick = load;
+  document.getElementById("btn-qr").onclick = () => {
+    alert("Lettore QR in arrivo: qui collegheremo la scansione di sconti e promo.");
+  };
+
+  document.getElementById("footer-new").onclick = () => {
+    window.location.hash = "#/prenotazioni-form";
+  };
+
+  document.getElementById("footer-agenda").onclick = () => {
+    window.location.hash = "#/prenotazioni";
+  };
+
+  document.getElementById("footer-messaggi").onclick = () => {
+    alert("Qui collegheremo la messaggistica cliente per cliente.");
+  };
+
+  document.getElementById("tab-prenotazioni").onclick = () => {
+    state.vistaAttiva = "prenotazioni";
+    renderActiveTab();
+    load();
+  };
+
+  document.getElementById("tab-arrivi").onclick = () => {
+    state.vistaAttiva = "arrivi";
+    renderActiveTab();
+    load();
+  };
+
+  document.getElementById("tab-piantina").onclick = () => {
+    window.location.hash = "#/sala";
+  };
+
+  document.getElementById("pren-menu-trigger").onclick = () => toggleDrawer("menu");
+  document.getElementById("pren-actions-trigger").onclick = () => toggleDrawer("actions");
+  overlay.onclick = closeDrawers;
+
+  document.querySelectorAll("[data-action='nuova']").forEach((btn) => {
+    btn.onclick = () => {
+      closeDrawers();
+      window.location.hash = "#/prenotazioni-form";
+    };
+  });
+
+  document.querySelectorAll("[data-action='richieste']").forEach((btn) => {
+    btn.onclick = () => {
+      closeDrawers();
+      alert("Vista richieste prenotazione da collegare.");
+    };
+  });
+
+  document.querySelectorAll("[data-action='arrivi']").forEach((btn) => {
+    btn.onclick = () => {
+      state.vistaAttiva = "arrivi";
+      renderActiveTab();
+      closeDrawers();
+      load();
+    };
+  });
+
+  document.querySelectorAll("[data-action='overbooking']").forEach((btn) => {
+    btn.onclick = () => {
+      closeDrawers();
+      alert("Controllo overbooking da collegare.");
+    };
+  });
+
+  document.querySelectorAll("[data-action='conferme']").forEach((btn) => {
+    btn.onclick = () => {
+      closeDrawers();
+      alert("Preferenze conferma da collegare ai template WhatsApp.");
+    };
+  });
+
+  document.querySelectorAll("[data-action='messaggi']").forEach((btn) => {
+    btn.onclick = () => {
+      closeDrawers();
+      alert("Messaggi pronti da collegare.");
+    };
+  });
+
+  document.querySelectorAll("[data-quick-status]").forEach((btn) => {
+    btn.onclick = () => {
+      state.filtroStato = btn.dataset.quickStatus || "";
+      updateStatusChips();
+      closeDrawers();
+      load();
+    };
+  });
+
+  filtroData.onchange = () => {
+    syncActiveDayFromInput();
+    load();
+  };
+
+  filtroServizio.onchange = load;
+
+  document.getElementById("close-modal").onclick = closeModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
   async function load() {
     lista.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
 
@@ -914,8 +1029,12 @@ export async function render(container) {
       query = query.eq("data", filtroData.value);
     }
 
-    if (state.filtroStato) {
+    if (state.vistaAttiva === "prenotazioni") {
       query = query.eq("stato", "confermata");
+    } else if (state.vistaAttiva === "arrivi") {
+      query = query.eq("stato", "arrivata");
+    } else if (state.filtroStato) {
+      query = query.eq("stato", state.filtroStato);
     }
 
     query = query.order("ora", { ascending: true });
@@ -946,7 +1065,11 @@ export async function render(container) {
           if (aziendaId && p.azienda_id !== aziendaId) return false;
           if (sedeId && p.sede_id !== sedeId) return false;
           if (filtroData.value && p.data !== filtroData.value) return false;
-          if (state.filtroStato && p.stato !== state.filtroStato) return false;
+
+          if (state.vistaAttiva === "prenotazioni" && p.stato !== "confermata") return false;
+          if (state.vistaAttiva === "arrivi" && p.stato !== "arrivata") return false;
+          if (!state.vistaAttiva && state.filtroStato && p.stato !== state.filtroStato) return false;
+
           return true;
         });
       }
@@ -1023,6 +1146,19 @@ export async function render(container) {
     renderStatusChips();
   }
 
+  function renderActiveTab() {
+    const tabPren = document.getElementById("tab-prenotazioni");
+    const tabArrivi = document.getElementById("tab-arrivi");
+
+    if (tabPren) {
+      tabPren.classList.toggle("active", state.vistaAttiva === "prenotazioni");
+    }
+
+    if (tabArrivi) {
+      tabArrivi.classList.toggle("active", state.vistaAttiva === "arrivi");
+    }
+  }
+
   function renderDays() {
     const baseDate = new Date(filtroData.value || today);
     const visible = [];
@@ -1056,87 +1192,78 @@ export async function render(container) {
   function syncActiveDayFromInput() {
     renderDays();
   }
-function renderRow(p) {
-  const nome = p.cliente_nome || p.nome_cliente || "Cliente";
-  const coperti = Number(p.coperti) || 0;
 
-  const oraRaw = p.ora || "";
-  const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
+  function renderRow(p) {
+    const nome = p.cliente_nome || p.nome_cliente || "Cliente";
+    const coperti = Number(p.coperti) || 0;
 
-  const noteShort = p.note ? p.note.slice(0, 25) : "";
-  const noteFull = p.note || "";
+    const oraRaw = p.ora || "";
+    const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
 
-  const origine = "📱";
+    const noteFull = p.note || "";
+    const origine = "📱";
 
-  return `
-    <div class="pren-row" data-id="${escapeAttribute(p.id)}">
+    return `
+      <div class="pren-row" data-id="${escapeAttribute(p.id)}">
 
-      <div class="pren-col ora">
-        ${escapeHtml(ora)}
-      </div>
-
-      <div class="pren-col main">
-        <div class="pren-nome cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
-          ${escapeHtml(nome)} x${coperti}
+        <div class="pren-col ora">
+          ${escapeHtml(ora)}
         </div>
 
-        ${noteShort ? `<div class="pren-note-small">${escapeHtml(noteShort)}</div>` : ""}
+        <div class="pren-col main">
+          <div class="pren-nome cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
+            ${escapeHtml(nome)} x${coperti}
+          </div>
+        </div>
+
+        <div class="pren-col right">
+          <span class="pren-ico origine">${origine}</span>
+          ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+          <span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>
+          <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
+        </div>
+
       </div>
+    `;
+  }
 
-      <div class="pren-col right">
-        <span class="pren-ico origine">${origine}</span>
+  function attachEvents() {
 
-        ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+    document.querySelectorAll(".cliente-link").forEach((el) => {
+      el.onclick = () => {
+        const id = el.dataset.id;
 
-        <span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>
+        if (!id || id === "null" || id === "undefined") {
+          alert("Cliente non collegato");
+          return;
+        }
 
-        <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
-      </div>
+        window.location.hash = "#/cliente?id=" + id;
+      };
+    });
 
-    </div>
-  `;
-}
-function attachEvents() {
+    document.querySelectorAll(".pren-ico.msg").forEach((el) => {
+      el.onclick = () => {
+        alert("Aprire chat cliente (step successivo)");
+      };
+    });
 
-  // CLICK CLIENTE → scheda cliente
-  document.querySelectorAll(".cliente-link").forEach(el=>{
-    el.onclick = ()=>{
-      const id = el.dataset.id;
+    document.querySelectorAll(".pren-ico.settings").forEach((el) => {
+      el.onclick = () => {
+        const id = el.dataset.id;
+        window.location.hash = "#/prenotazioni-form?id=" + id;
+      };
+    });
 
-      if(!id || id === "null" || id === "undefined"){
-        alert("Cliente non collegato");
-        return;
-      }
+    document.querySelectorAll(".pren-ico.note").forEach((el) => {
+      el.onclick = () => {
+        const note = el.dataset.note || "Nessuna nota";
+        alert(note);
+      };
+    });
 
-      window.location.hash = "#/contatti-dettaglio?id=" + id;
-    };
-  });
+  }
 
-  // 💬 MESSAGGI
-  document.querySelectorAll(".pren-ico.msg").forEach(el=>{
-    el.onclick = ()=>{
-      const id = el.dataset.id;
-      alert("Aprire chat cliente (step successivo)");
-    };
-  });
-
-  // ⚙️ MODIFICA PRENOTAZIONE
-  document.querySelectorAll(".pren-ico.settings").forEach(el=>{
-    el.onclick = ()=>{
-      const id = el.dataset.id;
-      window.location.hash = "#/prenotazioni-form?id=" + id;
-    };
-  });
-
-  // 📝 NOTE
-  document.querySelectorAll(".pren-ico.note").forEach(el=>{
-    el.onclick = ()=>{
-      const note = el.dataset.note || "Nessuna nota";
-      alert(note);
-    };
-  });
-
-}
   async function updateStatoPrenotazione(id, stato) {
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
@@ -1358,4 +1485,3 @@ function attachEvents() {
   }
 
   await load();
-}
