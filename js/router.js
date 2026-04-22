@@ -687,11 +687,7 @@ try {
     window.menuController.refresh();
   }
 
-  initTopbar();
-  if (window.refreshTopbar) {
-    window.refreshTopbar();
-  }
-
+ 
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
