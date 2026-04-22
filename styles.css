@@ -847,17 +847,20 @@ SALA
 .pren-row{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:6px;
   background:#ffffff;
   border:1px solid #e5e7eb;
-  border-radius:14px;
-  padding:10px 12px;
-  font-size:13px;
+  border-radius:10px;
+  padding:6px 8px;
+  font-size:12px;
+  line-height:1.2;
 }
 
 .pren-col.ora{
-  font-weight:800;
-  width:55px;
+  width:48px;
+  flex-shrink:0;
+  font-weight:700;
+  font-size:12px;
   color:#111827;
 }
 
@@ -867,27 +870,27 @@ SALA
 }
 
 .pren-nome{
-  font-weight:800;
+  font-weight:700;
+  font-size:12px;
   color:#111827;
-  cursor:pointer;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 
-.pren-note-small{
-  font-size:11px;
-  color:#6b7280;
-  margin-top:2px;
-}
-
 .pren-col.right{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:6px;
+  flex-shrink:0;
 }
 
 .pren-ico{
+  font-size:13px;
   cursor:pointer;
-  font-size:14px;
+  opacity:0.8;
+}
+
+.pren-ico:hover{
+  opacity:1;
 }
