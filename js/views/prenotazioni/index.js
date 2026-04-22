@@ -1163,9 +1163,8 @@ function attachRowEvents() {
   });
 }
 
-const finish = async () => {
+const handleSwipeEnd = async () => {
   if (!active) return;
-
   row.classList.remove("is-dragging");
 
   if (currentX >= 80) {
