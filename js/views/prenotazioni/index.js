@@ -1229,41 +1229,51 @@ export async function render(container) {
 
   function attachEvents() {
 
-    document.querySelectorAll(".cliente-link").forEach((el) => {
-      el.onclick = () => {
-        const id = el.dataset.id;
+  // CLIENTE
+  document.querySelectorAll(".cliente-link").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
 
-        if (!id || id === "null" || id === "undefined") {
-          alert("Cliente non collegato");
-          return;
-        }
+      const id = el.dataset.id;
 
-        window.location.hash = "#/cliente?id=" + id;
-      };
+      if (!id || id === "null" || id === "undefined") {
+        alert("Cliente non collegato");
+        return;
+      }
+
+      window.location.hash = "#/cliente?id=" + id;
     });
+  });
 
-    document.querySelectorAll(".pren-ico.msg").forEach((el) => {
-      el.onclick = () => {
-        alert("Aprire chat cliente (step successivo)");
-      };
+  // MESSAGGI
+  document.querySelectorAll(".pren-ico.msg").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      alert("Aprire chat cliente (step successivo)");
     });
+  });
 
-    document.querySelectorAll(".pren-ico.settings").forEach((el) => {
-      el.onclick = () => {
-        const id = el.dataset.id;
-        window.location.hash = "#/prenotazioni-form?id=" + id;
-      };
+  // MODIFICA
+  document.querySelectorAll(".pren-ico.settings").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      const id = el.dataset.id;
+      window.location.hash = "#/prenotazioni-form?id=" + id;
     });
+  });
 
-    document.querySelectorAll(".pren-ico.note").forEach((el) => {
-      el.onclick = () => {
-        const note = el.dataset.note || "Nessuna nota";
-        alert(note);
-      };
+  // NOTE
+  document.querySelectorAll(".pren-ico.note").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      const note = el.dataset.note || "Nessuna nota";
+      alert(note);
     });
+  });
 
-  }
-
+}
   async function updateStatoPrenotazione(id, stato) {
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
