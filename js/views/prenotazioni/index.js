@@ -1057,78 +1057,46 @@ export async function render(container) {
     renderDays();
   }
 
-  function renderRow(p) {
-    const stato = getStatusMeta(p.stato);
-    const servizio = inferService(p);
-    const tavoloText = p.tavolo_id ? `🪑 Tavolo assegnato` : `🪑 Non assegnato`;
-    const telefono = p.cliente_telefono || p.telefono || "";
-    const nome = p.cliente_nome || p.nome_cliente || "Cliente";
-  const note = p.note ? `
-  <div class="pren-note" data-note="${escapeHtml(p.note)}" style="
-    font-size:11px;
-    color:#888;
-    margin-top:4px;
-    cursor:pointer;
-  ">
-    📝 ${escapeHtml(p.note.length > 20 ? p.note.slice(0,20) + "..." : p.note)}
-  </div>
-` : "";
-    const coperti = Number(p.coperti) || 0;
+function renderRow(p) {
 
-    return `
-      <div class="pren-card">
-        <div class="pren-card-top">
-          <div class="pren-time">
-            <div class="pren-time-hour">${escapeHtml(p.ora || "--:--")}</div>
-            <div class="pren-time-service">${serviceLabel(servizio)}</div>
-          </div>
+  const nome = p.cliente_nome || p.nome_cliente || "Cliente";
+  const coperti = Number(p.coperti) || 0;
+  const ora = p.ora || "--:--";
+  const note = p.note ? p.note.slice(0, 25) : "";
 
-          <div class="pren-main">
-            <div class="pren-name-row">
-             <div class="pren-name cliente-link" data-id="${p.contatto_id}">
-  ${escapeHtml(nome)}
-</div>
-              <div class="pren-status" style="background:${stato.bg};color:${stato.color};">
-                <span>${stato.emoji}</span>
-                <span>${stato.label}</span>
-              </div>
-            </div>
+  // 👉 origine (temporaneo)
+  const origine = "📱"; // poi lo legheremo al form
 
-            ${note}
+  return `
+    <div class="pren-row" data-id="${p.id}">
 
-            <div class="pren-meta">
-              <div class="pren-meta-item">👥 ${coperti} coperti</div>
-              ${telefono ? `<div class="pren-meta-item">📞 ${escapeHtml(telefono)}</div>` : ""}
-              <div class="pren-meta-item">${tavoloText}</div>
-            </div>
-
-          </div>
-        </div>
-
-        <div class="pren-card-actions">
-          <button type="button" class="pren-action-btn ${telefono ? "primary" : ""} chiama" data-phone="${escapeAttribute(telefono)}" ${telefono ? "" : "disabled"}>📞</button>
-          <button type="button" class="pren-action-btn ${telefono ? "success" : ""} whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}" ${telefono ? "" : "disabled"}>💬</button>
-          <button type="button" class="pren-action-btn warn assegna" data-id="${escapeAttribute(p.id)}">🪑</button>
-          <button type="button" class="pren-action-btn conferma" data-id="${escapeAttribute(p.id)}">✅</button>
-          <button type="button" class="pren-action-btn arriva" data-id="${escapeAttribute(p.id)}">🙋</button>
-          <button type="button" class="pren-action-btn danger no-show" data-id="${escapeAttribute(p.id)}">🚫</button>
-        </div>
-
-        <select class="pren-status-select change-stato" data-id="${escapeAttribute(p.id)}">
-          ${statoOptions(p.stato)}
-        </select>
+      <div class="pren-col ora">
+        ${escapeHtml(ora)}
       </div>
-    `;
-  }
 
-  function statoOptions(current) {
-    const stati = ["nuova", "confermata", "arrivata", "no_show", "annullata"];
-    return stati.map((s) => {
-      const meta = getStatusMeta(s);
-      return `<option value="${s}" ${s === current ? "selected" : ""}>${meta.emoji} ${meta.label}</option>`;
-    }).join("");
-  }
+      <div class="pren-col main">
 
+        <div class="pren-nome cliente-link" data-id="${p.contatto_id}">
+          ${escapeHtml(nome)} x${coperti}
+        </div>
+
+        ${note ? `<div class="pren-note-small">${escapeHtml(note)}</div>` : ""}
+
+      </div>
+
+      <div class="pren-col right">
+
+        <span class="pren-ico origine">${origine}</span>
+
+        <span class="pren-ico msg" data-id="${p.id}">✈️</span>
+
+        <span class="pren-ico settings" data-id="${p.id}">⚙️</span>
+
+      </div>
+
+    </div>
+  `;
+}
 function attachEvents() {
   document.querySelectorAll(".change-stato").forEach((el) => {
     el.onchange = async (e) => {
