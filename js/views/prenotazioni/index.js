@@ -1103,15 +1103,19 @@ function renderStatusTag(stato) {
 
 function attachRowEvents() {
   lista.querySelectorAll(".cliente-link").forEach((el) => {
-    el.onclick = () => {
-      const id = el.dataset.id;
-      if (!id || id === "null" || id === "undefined") {
-        alert("Cliente non collegato");
-        return;
-      }
-      window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
-    };
-  });
+  el.onclick = (event) => {
+    event.stopPropagation();
+
+    const id = el.dataset.id;
+
+    if (!id || id === "null" || id === "undefined") {
+      alert("Cliente non collegato");
+      return;
+    }
+
+    window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
+  };
+});
 
   lista.querySelectorAll(".note").forEach((el) => {
     el.onclick = (event) => {
