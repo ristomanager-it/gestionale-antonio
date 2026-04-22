@@ -834,8 +834,6 @@ background:#f7f9fc;
     </button>
   </div>
 </div>
-```
-
 `;
 
 const lista = document.getElementById("lista-prenotazioni");
@@ -974,7 +972,6 @@ if (e.target === modal) closeModal();
 async function load() {
 lista.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
 
-```
 let query = window.supabaseClient
   .from("prenotazioni_tavoli")
   .select("*");
@@ -1046,18 +1043,13 @@ if (!prenotazioni.length) {
 }
 
 lista.innerHTML = prenotazioni.map(renderRow).join("");
-```
-
 }
 
 function applyServiceFilter(prenotazioni) {
 const servizio = filtroServizio.value;
 if (!servizio) return prenotazioni;
 
-```
 return prenotazioni.filter((p) => inferService(p) === servizio);
-```
-
 }
 
 function renderSummary(prenotazioni) {
@@ -1066,7 +1058,6 @@ const coperti = prenotazioni.reduce((acc, p) => acc + (Number(p.coperti) || 0), 
 const confermate = prenotazioni.filter((p) => p.stato === "confermata").length;
 const arrivate = prenotazioni.filter((p) => p.stato === "arrivata").length;
 
-```
 summaryBox.innerHTML = `
   <div class="pren-summary-card">
     <div class="pren-summary-label">Prenotazioni</div>
@@ -1085,8 +1076,6 @@ summaryBox.innerHTML = `
     <div class="pren-summary-value">${arrivate}</div>
   </div>
 `;
-```
-
 }
 
 function renderStatusChips() {
@@ -1097,7 +1086,6 @@ statoChips.innerHTML = statoItems.map((item) => `       <button
         ${item.label}       </button>
     `).join("");
 
-```
 statoChips.querySelectorAll("[data-stato-chip]").forEach((btn) => {
   btn.onclick = () => {
     state.filtroStato = btn.dataset.statoChip || "";
@@ -1105,8 +1093,6 @@ statoChips.querySelectorAll("[data-stato-chip]").forEach((btn) => {
     load();
   };
 });
-```
-
 }
 
 function updateStatusChips() {
@@ -1117,7 +1103,6 @@ function renderDays() {
 const baseDate = new Date(filtroData.value || today);
 const visible = [];
 
-```
 for (let i = -3; i <= 10; i++) {
   const d = new Date(baseDate);
   d.setDate(baseDate.getDate() + i);
@@ -1142,8 +1127,6 @@ daysContainer.querySelectorAll("[data-day]").forEach((btn) => {
     load();
   };
 });
-```
-
 }
 
 function syncActiveDayFromInput() {
@@ -1159,7 +1142,6 @@ const noteShort = p.note ? p.note.slice(0, 25) : "";
 const noteFull = p.note || "";
 const origine = "📱";
 
-```
 return `
   <div class="pren-row" data-id="${escapeAttribute(p.id)}">
     <div class="pren-col ora">
@@ -1182,8 +1164,6 @@ return `
     </div>
   </div>
 `;
-```
-
 }
 
 function attachEvents() {
@@ -1191,7 +1171,6 @@ if (lista.dataset.eventsBound === "true") {
 return;
 }
 
-```
 const handler = (event) => {
   const clienteEl = event.target.closest(".cliente-link");
   if (clienteEl && lista.contains(clienteEl)) {
@@ -1255,8 +1234,6 @@ const handler = (event) => {
 lista.addEventListener("click", handler);
 lista.addEventListener("touchend", handler, { passive: true });
 lista.dataset.eventsBound = "true";
-```
-
 }
 
 async function updateStatoPrenotazione(id, stato) {
@@ -1265,7 +1242,6 @@ const { error } = await window.supabaseClient
 .update({ stato })
 .eq("id", id);
 
-```
 if (error) {
   console.error("ERRORE UPDATE STATO:", error);
   alert("Errore aggiornamento stato");
@@ -1273,14 +1249,11 @@ if (error) {
 }
 
 await load();
-```
-
 }
 
 async function openTavoli(prenId) {
 state.currentPrenId = prenId;
 
-```
 let query = window.supabaseClient
   .from("tavoli")
   .select("*");
@@ -1306,14 +1279,11 @@ if (error) {
 state.tavoli = data || [];
 renderTavoli();
 modal.classList.add("open");
-```
-
 }
 
 function renderTavoli() {
 const pren = state.prenotazioni.find((p) => String(p.id) === String(state.currentPrenId));
 
-```
 if (!pren) {
   listaTavoli.innerHTML = `<div class="pren-empty">Errore prenotazione</div>`;
   return;
@@ -1383,8 +1353,6 @@ listaTavoli.querySelectorAll("[data-id]").forEach((el) => {
     await load();
   };
 });
-```
-
 }
 
 function closeModal() {
@@ -1397,13 +1365,10 @@ const target = isMenu ? drawerMenu : drawerActions;
 const other = isMenu ? drawerActions : drawerMenu;
 const isOpen = target.classList.contains("open");
 
-```
 other.classList.remove("open");
 target.classList.toggle("open", !isOpen);
 overlay.classList.toggle("open", !isOpen);
 state.drawerOpen = !isOpen ? type : null;
-```
-
 }
 
 function closeDrawers() {
@@ -1416,7 +1381,6 @@ state.drawerOpen = null;
 function inferService(p) {
 if (p.servizio) return String(p.servizio).toLowerCase();
 
-```
 const ora = String(p.ora || "").slice(0, 5);
 if (!ora) return "pranzo";
 
@@ -1424,8 +1388,6 @@ if (ora >= "06:00" && ora < "11:00") return "colazione";
 if (ora >= "11:00" && ora < "15:30") return "pranzo";
 if (ora >= "15:30" && ora < "19:30") return "aperitivo";
 return "cena";
-```
-
 }
 
 function serviceLabel(servizio) {
@@ -1487,16 +1449,16 @@ return String(phone || "").replace(/[^\d+]/g, "");
 }
 
 function escapeHtml(value) {
-return String(value ?? "")
-.replace(/&/g, "&amp;")
-.replace(/</g, "&lt;")
-.replace(/>/g, "&gt;")
-.replace(/"/g, "&quot;")
-.replace(/'/g, "&#039;");
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function escapeAttribute(value) {
-return escapeHtml(value);
+  return escapeHtml(value);
 }
 
 await load();
