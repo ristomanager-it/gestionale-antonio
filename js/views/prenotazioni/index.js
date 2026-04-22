@@ -1219,57 +1219,6 @@ function attachSwipe() {
       }
     });
 
- function attachSwipe() {
-  lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
-    const row = wrap.querySelector(".pren-row");
-    if (!row || row.dataset.swipeBound === "true") return;
-
-    let startX = 0;
-    let currentX = 0;
-    let active = false;
-
-    const bgArrivata = wrap.querySelector(".pren-row-bg.arrivata");
-    const bgNoShow = wrap.querySelector(".pren-row-bg.no-show");
-
-    const resetSwipe = () => {
-      row.classList.remove("is-dragging");
-      row.style.transform = "translateX(0px)";
-      bgArrivata.style.opacity = "0";
-      bgNoShow.style.opacity = "0";
-      currentX = 0;
-      active = false;
-    };
-
-    row.addEventListener("pointerdown", (event) => {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
-      active = true;
-      startX = event.clientX;
-      currentX = 0;
-      row.classList.add("is-dragging");
-      row.setPointerCapture?.(event.pointerId);
-    });
-
-    row.addEventListener("pointermove", (event) => {
-      if (!active) return;
-
-      currentX = event.clientX - startX;
-      if (currentX > 110) currentX = 110;
-      if (currentX < -110) currentX = -110;
-
-      row.style.transform = `translateX(${currentX}px)`;
-
-      if (currentX > 0) {
-        bgArrivata.style.opacity = "1";
-        bgNoShow.style.opacity = "0";
-      } else if (currentX < 0) {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "1";
-      } else {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "0";
-      }
-    });
-
     const handleSwipeEnd = async () => {
       if (!active) return;
 
@@ -1310,7 +1259,6 @@ function attachSwipe() {
     row.dataset.swipeBound = "true";
   });
 }
-
 async function updateStatoPrenotazione(id, stato) {
   const { error } = await window.supabaseClient
     .from("prenotazioni_tavoli")
