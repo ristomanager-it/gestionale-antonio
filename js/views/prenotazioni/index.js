@@ -1247,7 +1247,6 @@ const finish = async () => {
     row.dataset.swipeBound = "true";
   });
 }
-
 async function updateStatoPrenotazione(id, stato) {
   const { error } = await window.supabaseClient
     .from("prenotazioni_tavoli")
