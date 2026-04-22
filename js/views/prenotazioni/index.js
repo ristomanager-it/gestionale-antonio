@@ -1112,12 +1112,11 @@ function attachEvents() {
     };
   });
 
-  // 🛩️ MESSAGGI (placeholder)
+  // 💬 MESSAGGI
   document.querySelectorAll(".pren-ico.msg").forEach(el=>{
     el.onclick = ()=>{
       const id = el.dataset.id;
-
-      alert("Aprire chat cliente (step successivo)");
+      alert("Aprrire chat cliente (step successivo)");
     };
   });
 
@@ -1125,13 +1124,19 @@ function attachEvents() {
   document.querySelectorAll(".pren-ico.settings").forEach(el=>{
     el.onclick = ()=>{
       const id = el.dataset.id;
-
       window.location.hash = "#/prenotazioni-form?id=" + id;
     };
   });
 
-}
+  // 📝 NOTE (ti mancava!)
+  document.querySelectorAll(".pren-ico.note").forEach(el=>{
+    el.onclick = ()=>{
+      const note = el.dataset.note || "Nessuna nota";
+      alert(note);
+    };
+  });
 
+}
   document.querySelectorAll(".whatsapp").forEach((btn) => {
     btn.onclick = () => {
       const phone = btn.dataset.phone || "";
