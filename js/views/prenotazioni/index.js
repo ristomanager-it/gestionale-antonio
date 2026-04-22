@@ -1098,7 +1098,7 @@ function renderRow(p) {
 }
 function attachEvents() {
 
-  // 🔥 CLICK CLIENTE → scheda cliente
+  // CLICK CLIENTE → scheda cliente
   document.querySelectorAll(".cliente-link").forEach(el=>{
     el.onclick = ()=>{
       const id = el.dataset.id;
@@ -1116,7 +1116,7 @@ function attachEvents() {
   document.querySelectorAll(".pren-ico.msg").forEach(el=>{
     el.onclick = ()=>{
       const id = el.dataset.id;
-      alert("Aprrire chat cliente (step successivo)");
+      alert("Aprire chat cliente (step successivo)");
     };
   });
 
@@ -1128,7 +1128,7 @@ function attachEvents() {
     };
   });
 
-  // 📝 NOTE (ti mancava!)
+  // 📝 NOTE
   document.querySelectorAll(".pren-ico.note").forEach(el=>{
     el.onclick = ()=>{
       const note = el.dataset.note || "Nessuna nota";
@@ -1137,48 +1137,6 @@ function attachEvents() {
   });
 
 }
-  document.querySelectorAll(".whatsapp").forEach((btn) => {
-    btn.onclick = () => {
-      const phone = btn.dataset.phone || "";
-      const id = btn.dataset.id || "";
-      if (!phone) return;
-
-      const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-      const nome = pren?.cliente_nome || pren?.nome_cliente || "cliente";
-      const data = pren?.data ? formatDateHuman(pren.data) : "";
-      const ora = pren?.ora || "";
-      const coperti = pren?.coperti || 0;
-
-      const text = encodeURIComponent(
-        `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-      );
-
-      window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-    };
-  });
-
-  // 🔥 NOTA CLICCABILE
-  document.querySelectorAll(".pren-note").forEach(el=>{
-    el.onclick = ()=>{
-      alert(el.dataset.note || "Nessuna nota");
-    };
-  });
- // 🔥 CLICK CLIENTE → SCHEDA
-document.querySelectorAll(".cliente-link").forEach(el=>{
-  el.onclick = ()=>{
-    const id = el.dataset.id;
-
-    // 🔴 BLOCCO SICURO
-    if(!id || id === "null" || id === "undefined"){
-      alert("Cliente non collegato a una scheda contatto");
-      return;
-    }
-
-    window.location.hash = "#/cliente?id=" + id;
-  };
-});
-}
-
   async function updateStatoPrenotazione(id, stato) {
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
