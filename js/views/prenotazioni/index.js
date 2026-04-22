@@ -1151,21 +1151,40 @@ function attachRowEvents() {
   });
 }
 
-function attachSwipe() {
-  lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
-    const row = wrap.querySelector(".pren-row");
-    if (!row || row.dataset.swipeBound === "true") return;
+const finish = async () => {
+  if (!active) return;
 
-    let startX = 0;
-    let currentX = 0;
-    let active = false;
+  row.classList.remove("is-dragging");
 
-    const reset = () => {
-      row.classList.remove("is-dragging");
-      row.style.transform = "translateX(0px)";
-      currentX = 0;
-      active = false;
-    };
+  if (currentX >= 80) {
+    // 👉 DESTRA = ARRIVATO (verde)
+    wrap.querySelector(".pren-row-bg.arrivata").style.opacity = "1";
+    wrap.querySelector(".pren-row-bg.no-show").style.opacity = "0";
+
+    row.style.transform = "translateX(100%)";
+
+    setTimeout(async () => {
+      await updateStatoPrenotazione(row.dataset.id, "arrivata");
+    }, 120);
+
+  } else if (currentX <= -80) {
+    // 👉 SINISTRA = NO SHOW (rosso)
+    wrap.querySelector(".pren-row-bg.arrivata").style.opacity = "0";
+    wrap.querySelector(".pren-row-bg.no-show").style.opacity = "1";
+
+    row.style.transform = "translateX(-100%)";
+
+    setTimeout(async () => {
+      await updateStatoPrenotazione(row.dataset.id, "no_show");
+    }, 120);
+
+  } else {
+    row.style.transform = "translateX(0px)";
+  }
+
+  active = false;
+  currentX = 0;
+};
 
     row.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
