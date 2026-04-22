@@ -172,17 +172,26 @@ async function renderView(routeName) {
   if (!routes[routeName]) routeName = "home";
   if (!app) return;
 
+  // reset contenuto principale
   app.innerHTML = "";
 
+  // 🔥 RESET UI DINAMICA (NUOVO)
+  const sub = document.getElementById("page-subheader");
+  const foot = document.getElementById("footer-root");
+
+  if (sub) sub.innerHTML = "";
+  if (foot) foot.innerHTML = "";
+
+  // carica modulo
   const module = await routes[routeName]();
 
   if (!module.render) {
     throw new Error(`La view ${routeName} non esporta render()`);
   }
 
+  // render pagina
   await module.render(app);
 }
-
 /* =========================================================
    PERMISSION CHECK
 ========================================================= */
