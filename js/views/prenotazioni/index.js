@@ -1082,14 +1082,22 @@ function renderRow(p) {
 
         <div class="pren-right">
           ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
-          ${telefono ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>` : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`}
-          <span class="pren-ico channel" title="${escapeAttribute(getOriginLabel(p))}">${channelIcon}</span>
+
+          ${telefono 
+            ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>` 
+            : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`
+          }
+
+          <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
+
+          <span class="pren-ico channel" title="${escapeAttribute(getOriginLabel(p))}">
+            ${channelIcon}
+          </span>
         </div>
       </div>
     </div>
   `;
 }
-
 function renderStatusTag(stato) {
   const value = String(stato || "").toLowerCase();
   if (value === "arrivata") {
