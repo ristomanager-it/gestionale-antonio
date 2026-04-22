@@ -11,7 +11,6 @@ overflow:hidden;
 background:#f7f9fc;
 }
 
-```
     .pren-shell{
       min-height:100%;
       background:linear-gradient(180deg,#ffffff 0%,#f7f9fc 100%);
