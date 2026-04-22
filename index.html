@@ -150,70 +150,75 @@
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
-  <!-- HEADER UI -->
-  <script>
-    function renderHeaderUI(){
+<!-- HEADER UI -->
+<script>
+  function renderHeaderUI(){
 
-      const azienda = window.state?.azienda
-      const sede = window.state?.sedeAttiva
-      const user = window.state?.user
+    const azienda = window.state?.azienda
+    const sede = window.state?.sedeAttiva
+    const user = window.state?.user
 
-      const nomeUser = user?.email?.split("@")[0] || "utente"
+    // se non ho ancora dati → non sporco UI
+    if (!user) return;
 
-      // LOGO
-      const logo = document.getElementById("header-logo")
-      if(logo){
-        const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png"
-        logo.src = logoUrl + "?v=" + Date.now()
-      }
+    const nomeUser = user?.email?.split("@")[0] || "utente"
 
-      // SEDE
-      const sedeEl = document.getElementById("header-sede")
-      if(sedeEl){
-        sedeEl.textContent = sede ? `📍 ${sede.nome}` : "⚠️ Nessuna sede"
-      }
-
-      // SALUTO
-      const salutoEl = document.getElementById("header-saluto")
-      if(salutoEl){
-        const ora = new Date().getHours()
-
-        let saluto = "Ciao"
-        if(ora < 12) saluto = "Buongiorno"
-        else if(ora < 18) saluto = "Buon pomeriggio"
-        else saluto = "Buonasera"
-
-        salutoEl.textContent = `${saluto}, ${nomeUser}`
-      }
-
-      // DATA
-      const dataEl = document.getElementById("header-data")
-      if(dataEl){
-        const oggi = new Date()
-        dataEl.textContent = oggi.toLocaleDateString("it-IT", {
-          weekday:"short",
-          day:"2-digit",
-          month:"short"
-        })
-      }
-
-      // METEO
-      const meteoEl = document.getElementById("header-meteo")
-      if(meteoEl && window.getWeather){
-        window.getWeather().then(res => {
-          meteoEl.innerHTML = res
-        }).catch(() => {
-          meteoEl.textContent = "☀️"
-        })
-      }
-
+    // LOGO
+    const logo = document.getElementById("header-logo")
+    if(logo){
+      const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png"
+      logo.src = logoUrl + "?v=" + Date.now()
     }
 
-    setInterval(renderHeaderUI, 60000)
-    renderHeaderUI()
-  </script>
+    // SEDE
+    const sedeEl = document.getElementById("header-sede")
+    if(sedeEl){
+      if (sede && sede.nome) {
+        sedeEl.textContent = `📍 ${sede.nome}`
+      } else {
+        // stato neutro (no errore visivo)
+        sedeEl.textContent = "..."
+      }
+    }
 
-  <script type="module" src="js/router.js?v=11"></script>
+    // SALUTO
+    const salutoEl = document.getElementById("header-saluto")
+    if(salutoEl){
+      const ora = new Date().getHours()
 
-</body>
-</html>
+      let saluto = "Ciao"
+      if(ora < 12) saluto = "Buongiorno"
+      else if(ora < 18) saluto = "Buon pomeriggio"
+      else saluto = "Buonasera"
+
+      salutoEl.textContent = `${saluto}, ${nomeUser}`
+    }
+
+    // DATA
+    const dataEl = document.getElementById("header-data")
+    if(dataEl){
+      const oggi = new Date()
+      dataEl.textContent = oggi.toLocaleDateString("it-IT", {
+        weekday:"short",
+        day:"2-digit",
+        month:"short"
+      })
+    }
+
+    // METEO
+    const meteoEl = document.getElementById("header-meteo")
+    if(meteoEl && window.getWeather){
+      window.getWeather().then(res => {
+        meteoEl.innerHTML = res
+      }).catch(() => {
+        meteoEl.textContent = "☀️"
+      })
+    }
+
+  }
+
+  // 🔥 refresh veloce → intercetta quando arriva sede dal router
+  setInterval(renderHeaderUI, 2000)
+
+  renderHeaderUI()
+</script>
