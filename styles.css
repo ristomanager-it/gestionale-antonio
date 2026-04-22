@@ -949,3 +949,9 @@ FIX SPAZIO CONTENUTO
 .tavolo-mappa.prenotato {
   background: #fff3cd;
 }
+.header-chip {
+  background: transparent;
+  color: #2563eb;
+  padding: 2px 4px;
+  font-weight: 500;
+}
