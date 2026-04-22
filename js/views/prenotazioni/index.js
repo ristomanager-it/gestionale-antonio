@@ -1227,14 +1227,13 @@ export async function render(container) {
     `;
   }
 
-  function attachEvents() {
+ function attachEvents() {
 
-  // CLIENTE
-  document.querySelectorAll(".cliente-link").forEach(el => {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
+  lista.addEventListener("click", (e) => {
 
-      const id = el.dataset.id;
+    const cliente = e.target.closest(".cliente-link");
+    if (cliente) {
+      const id = cliente.dataset.id;
 
       if (!id || id === "null" || id === "undefined") {
         alert("Cliente non collegato");
@@ -1242,35 +1241,29 @@ export async function render(container) {
       }
 
       window.location.hash = "#/cliente?id=" + id;
-    });
-  });
+      return;
+    }
 
-  // MESSAGGI
-  document.querySelectorAll(".pren-ico.msg").forEach(el => {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
+    const msg = e.target.closest(".pren-ico.msg");
+    if (msg) {
       alert("Aprire chat cliente (step successivo)");
-    });
-  });
+      return;
+    }
 
-  // MODIFICA
-  document.querySelectorAll(".pren-ico.settings").forEach(el => {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-
-      const id = el.dataset.id;
+    const settings = e.target.closest(".pren-ico.settings");
+    if (settings) {
+      const id = settings.dataset.id;
       window.location.hash = "#/prenotazioni-form?id=" + id;
-    });
-  });
+      return;
+    }
 
-  // NOTE
-  document.querySelectorAll(".pren-ico.note").forEach(el => {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
+    const note = e.target.closest(".pren-ico.note");
+    if (note) {
+      const text = note.dataset.note || "Nessuna nota";
+      alert(text);
+      return;
+    }
 
-      const note = el.dataset.note || "Nessuna nota";
-      alert(note);
-    });
   });
 
 }
