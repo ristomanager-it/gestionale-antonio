@@ -814,7 +814,6 @@ window.addEventListener("hashchange", resolve);
 window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
   initMenu();
-  initTopbar();
 
   try {
     const saved = localStorage.getItem("reparto_attivo");
