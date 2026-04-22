@@ -1098,43 +1098,40 @@ function renderRow(p) {
   `;
 }
 function attachEvents() {
-  document.querySelectorAll(".change-stato").forEach((el) => {
-    el.onchange = async (e) => {
-      const id = e.target.dataset.id;
-      const stato = e.target.value;
-      await updateStatoPrenotazione(id, stato);
+
+  // 🔥 CLICK CLIENTE → scheda cliente
+  document.querySelectorAll(".cliente-link").forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.id;
+
+      if(!id || id === "null" || id === "undefined"){
+        alert("Cliente non collegato");
+        return;
+      }
+
+      window.location.hash = "#/contatti-dettaglio?id=" + id;
     };
   });
 
-  document.querySelectorAll(".assegna").forEach((btn) => {
-    btn.onclick = () => openTavoli(btn.dataset.id);
-  });
+  // 🛩️ MESSAGGI (placeholder)
+  document.querySelectorAll(".pren-ico.msg").forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.id;
 
-  document.querySelectorAll(".conferma").forEach((btn) => {
-    btn.onclick = async () => {
-      await updateStatoPrenotazione(btn.dataset.id, "confermata");
+      alert("Aprire chat cliente (step successivo)");
     };
   });
 
-  document.querySelectorAll(".arriva").forEach((btn) => {
-    btn.onclick = async () => {
-      await updateStatoPrenotazione(btn.dataset.id, "arrivata");
+  // ⚙️ MODIFICA PRENOTAZIONE
+  document.querySelectorAll(".pren-ico.settings").forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.id;
+
+      window.location.hash = "#/prenotazioni-form?id=" + id;
     };
   });
 
-  document.querySelectorAll(".no-show").forEach((btn) => {
-    btn.onclick = async () => {
-      await updateStatoPrenotazione(btn.dataset.id, "no_show");
-    };
-  });
-
-  document.querySelectorAll(".chiama").forEach((btn) => {
-    btn.onclick = () => {
-      const phone = btn.dataset.phone || "";
-      if (!phone) return;
-      window.location.href = `tel:${sanitizePhone(phone)}`;
-    };
-  });
+}
 
   document.querySelectorAll(".whatsapp").forEach((btn) => {
     btn.onclick = () => {
