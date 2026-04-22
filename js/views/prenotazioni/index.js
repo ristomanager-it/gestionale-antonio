@@ -24,41 +24,24 @@ container.innerHTML = `
       z-index:30;
       background:#ffffff;
       border-bottom:1px solid #e5e7eb;
-      padding:10px 12px 10px;
+      padding:8px 10px 8px;
     }
 
     .pren-header-top{
-      display:flex;
+      display:grid;
+      grid-template-columns:36px 1fr 36px;
       align-items:center;
-      justify-content:space-between;
       gap:8px;
-      margin-bottom:10px;
-    }
-
-    .pren-icon-btn{
-      width:40px;
-      height:40px;
-      border:none;
-      border-radius:12px;
-      background:#eef2f7;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;
-      cursor:pointer;
-      flex-shrink:0;
-      position:relative;
-      color:#374151;
+      margin-bottom:8px;
     }
 
     .pren-header-title{
       min-width:0;
-      flex:1;
       text-align:center;
     }
 
     .pren-header-title .pren-title{
-      font-size:15px;
+      font-size:14px;
       font-weight:600;
       color:#111827;
       white-space:nowrap;
@@ -66,36 +49,38 @@ container.innerHTML = `
       text-overflow:ellipsis;
     }
 
-    .pren-header-title .pren-subtitle{
-      font-size:10px;
-      color:#6b7280;
-      margin-top:2px;
-      font-weight:500;
-    }
-
-    .pren-top-actions{
+    .pren-icon-btn{
+      width:36px;
+      height:36px;
+      border:none;
+      border-radius:10px;
+      background:#eef2f7;
       display:flex;
       align-items:center;
-      gap:8px;
+      justify-content:center;
+      font-size:16px;
+      cursor:pointer;
       flex-shrink:0;
+      position:relative;
+      color:#374151;
     }
 
     .pren-badge{
       position:absolute;
-      top:-5px;
-      right:-5px;
-      min-width:18px;
-      height:18px;
-      padding:0 5px;
+      top:-4px;
+      right:-4px;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
       border-radius:999px;
       background:#dc2626;
       color:#ffffff;
-      font-size:10px;
+      font-size:9px;
       font-weight:700;
       display:none;
       align-items:center;
       justify-content:center;
-      box-shadow:0 2px 8px rgba(220,38,38,0.25);
+      box-shadow:0 2px 6px rgba(220,38,38,0.24);
       border:2px solid #ffffff;
     }
 
@@ -103,11 +88,18 @@ container.innerHTML = `
       display:flex;
     }
 
+    .pren-days-bar{
+      display:grid;
+      grid-template-columns:1fr 34px;
+      gap:6px;
+      align-items:center;
+    }
+
     .pren-days{
       display:flex;
-      gap:8px;
+      gap:5px;
       overflow-x:auto;
-      padding:0 28vw 2px 28vw;
+      padding:0 26vw 2px 26vw;
       scrollbar-width:none;
       scroll-behavior:smooth;
     }
@@ -117,9 +109,9 @@ container.innerHTML = `
     }
 
     .pren-day{
-      min-width:58px;
-      padding:7px 8px;
-      border-radius:14px;
+      min-width:44px;
+      padding:5px 4px;
+      border-radius:10px;
       background:#f3f4f6;
       border:1px solid #e5e7eb;
       text-align:center;
@@ -132,41 +124,56 @@ container.innerHTML = `
       background:#0E5A7A;
       color:#ffffff;
       border-color:#0E5A7A;
-      box-shadow:0 6px 14px rgba(14,90,122,0.16);
+      box-shadow:0 4px 10px rgba(14,90,122,0.14);
     }
 
     .pren-day-top{
-      font-size:10px;
+      font-size:9px;
       font-weight:600;
       text-transform:capitalize;
       opacity:.92;
+      line-height:1.1;
     }
 
     .pren-day-bottom{
-      font-size:15px;
+      font-size:12px;
       font-weight:600;
       line-height:1.1;
       margin-top:2px;
     }
 
+    .pren-calendar-btn{
+      width:34px;
+      height:34px;
+      border:none;
+      border-radius:10px;
+      background:#eef2f7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:15px;
+      cursor:pointer;
+      color:#374151;
+    }
+
     .pren-content{
-      padding:10px 12px 110px;
+      padding:8px 8px 94px;
     }
 
     .pren-tabs{
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:8px;
-      margin-bottom:10px;
+      gap:6px;
+      margin-bottom:8px;
     }
 
     .pren-tab{
       border:none;
-      border-radius:14px;
-      padding:10px 8px;
+      border-radius:12px;
+      padding:8px 6px;
       background:#ffffff;
       border:1px solid #e5e7eb;
-      font-size:12px;
+      font-size:11px;
       font-weight:500;
       cursor:pointer;
       color:#374151;
@@ -180,9 +187,9 @@ container.innerHTML = `
 
     .pren-tools{
       display:flex;
-      gap:8px;
+      gap:6px;
       align-items:center;
-      margin-bottom:10px;
+      margin-bottom:8px;
       overflow-x:auto;
       scrollbar-width:none;
     }
@@ -191,20 +198,25 @@ container.innerHTML = `
       display:none;
     }
 
-    .pren-tool-btn,
     .pren-tool-select,
-    .pren-tool-date{
-      height:38px;
-      border-radius:12px;
+    .pren-tool-btn{
+      height:34px;
+      border-radius:10px;
       border:1px solid #e5e7eb;
       background:#ffffff;
-      font-size:12px;
+      font-size:11px;
       font-weight:500;
       color:#1f2937;
     }
 
+    .pren-tool-select{
+      min-width:124px;
+      padding:0 10px;
+      cursor:pointer;
+    }
+
     .pren-tool-btn{
-      min-width:38px;
+      min-width:34px;
       padding:0 10px;
       cursor:pointer;
       display:flex;
@@ -212,56 +224,10 @@ container.innerHTML = `
       justify-content:center;
     }
 
-    .pren-tool-select{
-      min-width:126px;
-      padding:0 10px;
-      cursor:pointer;
-    }
-
-    .pren-tool-date{
-      min-width:138px;
-      padding:0 10px;
-    }
-
-    .pren-summary{
-      display:flex;
-      gap:8px;
-      overflow-x:auto;
-      padding-bottom:2px;
-      margin-bottom:10px;
-      scrollbar-width:none;
-    }
-
-    .pren-summary::-webkit-scrollbar{
-      display:none;
-    }
-
-    .pren-summary-card{
-      min-width:108px;
-      background:#ffffff;
-      border:1px solid #e5e7eb;
-      border-radius:16px;
-      padding:9px 11px;
-      box-shadow:0 4px 14px rgba(0,0,0,0.04);
-    }
-
-    .pren-summary-label{
-      font-size:10px;
-      color:#6b7280;
-      font-weight:500;
-    }
-
-    .pren-summary-value{
-      font-size:17px;
-      font-weight:600;
-      color:#111827;
-      margin-top:2px;
-    }
-
     .pren-list{
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:5px;
     }
 
     .pren-empty,
@@ -269,204 +235,150 @@ container.innerHTML = `
     .pren-error{
       background:#ffffff;
       border:1px solid #e5e7eb;
-      border-radius:16px;
-      padding:18px 14px;
+      border-radius:12px;
+      padding:14px 12px;
       text-align:center;
       color:#6b7280;
       font-weight:500;
-      font-size:13px;
+      font-size:12px;
     }
 
-    .pren-inline-filter{
+    .pren-row-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:12px;
+    }
+
+    .pren-row-bg{
+      position:absolute;
+      inset:0;
       display:flex;
-      gap:8px;
-      overflow-x:auto;
-      margin:0 0 10px;
-      scrollbar-width:none;
-    }
-
-    .pren-inline-filter::-webkit-scrollbar{
-      display:none;
-    }
-
-    .pren-chip{
-      border:none;
-      background:#ffffff;
-      border:1px solid #e5e7eb;
-      color:#374151;
-      border-radius:999px;
-      padding:8px 11px;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 12px;
       font-size:11px;
-      font-weight:500;
-      white-space:nowrap;
-      cursor:pointer;
+      font-weight:700;
+      color:#ffffff;
+      pointer-events:none;
     }
 
-    .pren-chip.active{
-      background:#0E5A7A;
-      color:#ffffff;
-      border-color:#0E5A7A;
+    .pren-row-bg.arrivata{
+      background:#16a34a;
+    }
+
+    .pren-row-bg.no-show{
+      background:#dc2626;
     }
 
     .pren-row{
+      position:relative;
       display:grid;
-      grid-template-columns:72px 1fr auto;
-      gap:10px;
+      grid-template-columns:44px 26px 1fr auto;
+      gap:6px;
       align-items:center;
       background:#ffffff;
       border:1px solid #e5e7eb;
-      border-radius:16px;
-      padding:10px;
-      box-shadow:0 4px 14px rgba(0,0,0,0.04);
+      border-radius:12px;
+      padding:7px 8px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.04);
+      transform:translateX(0);
+      transition:transform .18s ease;
+      touch-action:pan-y;
+      will-change:transform;
     }
 
-    .pren-col.ora{
-      font-size:13px;
+    .pren-row.is-dragging{
+      transition:none;
+    }
+
+    .pren-time{
+      font-size:11px;
       font-weight:600;
       color:#111827;
       text-align:center;
       background:#f3f4f6;
-      border-radius:12px;
-      min-height:52px;
+      border-radius:9px;
+      min-height:34px;
       display:flex;
       align-items:center;
       justify-content:center;
-      line-height:1.25;
-      padding:4px;
-      white-space:pre-line;
+      padding:0 4px;
+      line-height:1;
     }
 
-    .pren-col.main{
+    .pren-pax{
+      font-size:11px;
+      font-weight:600;
+      color:#111827;
+      text-align:center;
+    }
+
+    .pren-main{
       min-width:0;
+      display:flex;
+      align-items:center;
+      gap:6px;
     }
 
-    .pren-nome{
-      font-size:13px;
+    .pren-name{
+      min-width:0;
+      font-size:12px;
       font-weight:500;
       color:#111827;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-    }
-
-    .pren-secondary-line{
-      margin-top:4px;
-      font-size:11px;
-      color:#6b7280;
-      font-weight:500;
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
-
-    .cliente-link{
       cursor:pointer;
     }
 
-    .pren-note-small{
-      margin-top:5px;
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.35;
-      font-weight:400;
-    }
-
-    .pren-col.right{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .pren-ico{
-      width:32px;
-      height:32px;
+    .pren-tag{
+      flex-shrink:0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      border-radius:10px;
+      min-height:18px;
+      padding:0 6px;
+      border-radius:999px;
+      font-size:9px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .pren-tag.arrivata{
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .pren-tag.no_show{
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    .pren-right{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      flex-shrink:0;
+    }
+
+    .pren-ico{
+      width:24px;
+      height:24px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
       background:#eef2f7;
       cursor:pointer;
       user-select:none;
       -webkit-tap-highlight-color:transparent;
-      font-size:15px;
+      font-size:12px;
+      color:#374151;
     }
 
-    .pren-ico.origine{
+    .pren-ico.channel{
       cursor:default;
-    }
-
-    .pren-overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(17,24,39,0.38);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .2s ease;
-      z-index:40;
-    }
-
-    .pren-overlay.open{
-      opacity:1;
-      pointer-events:auto;
-    }
-
-    .pren-drawer{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      background:#ffffff;
-      border-radius:24px 24px 0 0;
-      padding:14px 14px calc(20px + env(safe-area-inset-bottom));
-      transform:translateY(100%);
-      transition:transform .22s ease;
-      z-index:41;
-      box-shadow:0 -12px 30px rgba(0,0,0,0.12);
-    }
-
-    .pren-drawer.open{
-      transform:translateY(0);
-    }
-
-    .pren-drawer-handle{
-      width:48px;
-      height:5px;
-      border-radius:999px;
-      background:#d1d5db;
-      margin:0 auto 14px;
-    }
-
-    .pren-drawer-title{
-      font-size:15px;
-      font-weight:600;
-      color:#111827;
-      margin-bottom:10px;
-    }
-
-    .pren-drawer-list{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .pren-drawer-item{
-      border:none;
-      width:100%;
-      min-height:46px;
-      background:#f8fafc;
-      border:1px solid #e5e7eb;
-      border-radius:14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:0 14px;
-      font-size:13px;
-      font-weight:500;
-      color:#111827;
-      cursor:pointer;
-      text-align:left;
+      background:#f3f4f6;
     }
 
     .pren-modal{
@@ -484,11 +396,11 @@ container.innerHTML = `
 
     .pren-modal-box{
       width:100%;
-      max-height:82vh;
+      max-height:84vh;
       overflow:auto;
       background:#ffffff;
-      border-radius:24px 24px 0 0;
-      padding:16px 14px calc(18px + env(safe-area-inset-bottom));
+      border-radius:22px 22px 0 0;
+      padding:14px 12px calc(16px + env(safe-area-inset-bottom));
     }
 
     .pren-modal-head{
@@ -496,11 +408,11 @@ container.innerHTML = `
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin-bottom:12px;
+      margin-bottom:10px;
     }
 
     .pren-modal-title{
-      font-size:15px;
+      font-size:14px;
       font-weight:600;
       color:#111827;
     }
@@ -508,25 +420,28 @@ container.innerHTML = `
     .pren-modal-close{
       border:none;
       background:#eef2f7;
-      width:36px;
-      height:36px;
-      border-radius:12px;
-      font-size:18px;
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      font-size:16px;
       cursor:pointer;
     }
 
-    .pren-table-list{
+    .pren-table-list,
+    .pren-online-list,
+    .pren-arrivi-list{
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:8px;
     }
 
-    .pren-table-item{
+    .pren-table-item,
+    .pren-online-item,
+    .pren-slot-card{
       border:1px solid #e5e7eb;
-      border-radius:16px;
-      padding:11px;
+      border-radius:14px;
+      padding:10px;
       background:#ffffff;
-      cursor:pointer;
     }
 
     .pren-table-item.best{
@@ -539,13 +454,16 @@ container.innerHTML = `
       background:#fffbeb;
     }
 
-    .pren-table-name{
-      font-size:14px;
+    .pren-table-name,
+    .pren-online-name,
+    .pren-slot-time{
+      font-size:13px;
       font-weight:600;
       color:#111827;
     }
 
-    .pren-table-meta{
+    .pren-table-meta,
+    .pren-online-meta{
       margin-top:4px;
       font-size:11px;
       color:#4b5563;
@@ -558,32 +476,11 @@ container.innerHTML = `
       font-weight:600;
     }
 
-    .pren-online-item{
-      border:1px solid #e5e7eb;
-      border-radius:16px;
-      padding:12px;
-      background:#ffffff;
-    }
-
     .pren-online-top{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
       gap:8px;
-    }
-
-    .pren-online-name{
-      font-size:14px;
-      font-weight:600;
-      color:#111827;
-    }
-
-    .pren-online-meta{
-      margin-top:4px;
-      font-size:11px;
-      line-height:1.4;
-      color:#6b7280;
-      font-weight:500;
     }
 
     .pren-online-status{
@@ -612,14 +509,14 @@ container.innerHTML = `
       margin-top:10px;
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:8px;
+      gap:6px;
     }
 
     .pren-online-btn{
-      min-height:38px;
+      min-height:34px;
       border:none;
-      border-radius:12px;
-      font-size:12px;
+      border-radius:10px;
+      font-size:11px;
       font-weight:600;
       cursor:pointer;
       padding:0 8px;
@@ -640,56 +537,91 @@ container.innerHTML = `
       color:#374151;
     }
 
+    .pren-arrivi-toolbar{
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:8px;
+    }
+
+    .pren-slot-select{
+      height:34px;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      background:#ffffff;
+      font-size:11px;
+      font-weight:500;
+      color:#1f2937;
+      padding:0 10px;
+    }
+
+    .pren-slot-time{
+      margin-bottom:8px;
+    }
+
+    .pren-slot-list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .pren-slot-row{
+      display:grid;
+      grid-template-columns:42px 22px 1fr auto;
+      gap:6px;
+      align-items:center;
+      background:#f8fafc;
+      border:1px solid #eef2f7;
+      border-radius:10px;
+      padding:6px 7px;
+      font-size:11px;
+      color:#111827;
+    }
+
+    .pren-slot-pax{
+      text-align:center;
+      font-weight:600;
+    }
+
+    .pren-slot-name{
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-weight:500;
+    }
+
     .pren-bottom-nav{
       position:fixed;
       left:50%;
       transform:translateX(-50%);
       bottom:0;
-      width:min(100%, 1200px);
+      width:min(100%, 560px);
       background:#ffffff;
       border-top:1px solid #e5e7eb;
-      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:8px;
+      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      display:flex;
+      justify-content:flex-end;
       z-index:35;
     }
 
     .pren-bottom-item{
       border:none;
-      background:transparent;
+      background:#0E5A7A;
+      color:#ffffff;
+      width:52px;
+      height:52px;
+      border-radius:18px;
       display:flex;
-      flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap:2px;
-      color:#6b7280;
-      font-size:10px;
-      font-weight:500;
+      font-size:26px;
       cursor:pointer;
-      min-height:52px;
-      border-radius:14px;
-    }
-
-    .pren-bottom-item.is-active,
-    .pren-bottom-item.is-primary{
-      color:#0E5A7A;
-      background:#eef6fa;
-    }
-
-    .pren-bottom-icon{
-      font-size:18px;
-      line-height:1;
+      box-shadow:0 8px 18px rgba(14,90,122,0.22);
     }
 
     @media (min-width: 768px){
       .pren-content{
-        padding:14px 14px 110px;
-      }
-
-      .pren-bottom-nav{
-        max-width:680px;
-        border-radius:20px 20px 0 0;
+        padding:10px 10px 96px;
       }
 
       .pren-modal{
@@ -700,13 +632,8 @@ container.innerHTML = `
 
       .pren-modal-box{
         max-width:620px;
-        border-radius:24px;
-        max-height:80vh;
-      }
-
-      .pren-online-actions{
-        grid-template-columns:repeat(3,160px);
-        justify-content:flex-end;
+        border-radius:22px;
+        max-height:82vh;
       }
     }
   </style>
@@ -714,23 +641,22 @@ container.innerHTML = `
   <div class="pren-shell">
     <div class="pren-header">
       <div class="pren-header-top">
-        <button id="pren-menu-trigger" class="pren-icon-btn" aria-label="Menu prenotazioni">☰</button>
+        <div></div>
 
         <div class="pren-header-title">
           <div class="pren-title">${escapeHtml(sedeNome)}</div>
-          <div class="pren-subtitle">Agenda prenotazioni</div>
         </div>
 
-        <div class="pren-top-actions">
-          <button id="pren-online-trigger" class="pren-icon-btn" aria-label="Prenotazioni online">
-            🌐
-            <span id="pren-online-badge" class="pren-badge">0</span>
-          </button>
-          <button id="pren-actions-trigger" class="pren-icon-btn" aria-label="Azioni prenotazioni">⋮</button>
-        </div>
+        <button id="pren-online-trigger" class="pren-icon-btn" aria-label="Prenotazioni online">
+          🌐
+          <span id="pren-online-badge" class="pren-badge">0</span>
+        </button>
       </div>
 
-      <div id="pren-days" class="pren-days"></div>
+      <div class="pren-days-bar">
+        <div id="pren-days" class="pren-days"></div>
+        <button id="btn-calendar" class="pren-calendar-btn" aria-label="Scegli data">📅</button>
+      </div>
     </div>
 
     <div class="pren-content">
@@ -741,8 +667,6 @@ container.innerHTML = `
       </div>
 
       <div class="pren-tools">
-        <button type="button" class="pren-tool-btn" id="btn-qr" title="Scansiona QR">📷</button>
-
         <select id="filtro-servizio" class="pren-tool-select">
           <option value="">Tutti i servizi</option>
           <option value="colazione">☕ Colazione</option>
@@ -751,45 +675,14 @@ container.innerHTML = `
           <option value="cena">🌙 Cena</option>
         </select>
 
-        <input type="date" id="filtro-data" class="pren-tool-date" />
-
         <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
+
+        <input type="date" id="filtro-data" style="display:none" />
       </div>
-
-      <div class="pren-inline-filter" id="stato-chips"></div>
-
-      <div class="pren-summary" id="pren-summary"></div>
 
       <div id="lista-prenotazioni" class="pren-list">
         <div class="pren-loading">Caricamento...</div>
       </div>
-    </div>
-  </div>
-
-  <div id="pren-overlay" class="pren-overlay"></div>
-
-  <div id="pren-drawer-menu" class="pren-drawer" aria-hidden="true">
-    <div class="pren-drawer-handle"></div>
-    <div class="pren-drawer-title">Menu operativo prenotazioni</div>
-    <div class="pren-drawer-list">
-      <button type="button" class="pren-drawer-item" data-action="nuova">➕ Nuova prenotazione</button>
-      <button type="button" class="pren-drawer-item" data-action="richieste">🌐 Richieste online</button>
-      <button type="button" class="pren-drawer-item" data-action="arrivi">✅ Arrivi da gestire</button>
-      <button type="button" class="pren-drawer-item" data-action="overbooking">⚠️ Overbooking</button>
-      <button type="button" class="pren-drawer-item" data-action="conferme">💬 Preferenze conferma</button>
-      <button type="button" class="pren-drawer-item" data-action="messaggi">📨 Messaggi pronti</button>
-    </div>
-  </div>
-
-  <div id="pren-drawer-actions" class="pren-drawer" aria-hidden="true">
-    <div class="pren-drawer-handle"></div>
-    <div class="pren-drawer-title">Azioni rapide</div>
-    <div class="pren-drawer-list">
-      <button type="button" class="pren-drawer-item" data-quick-status="nuova">🟡 Filtra nuove</button>
-      <button type="button" class="pren-drawer-item" data-quick-status="confermata">🔵 Filtra confermate</button>
-      <button type="button" class="pren-drawer-item" data-quick-status="arrivata">🟢 Filtra arrivate</button>
-      <button type="button" class="pren-drawer-item" data-quick-status="no_show">🔴 Filtra no show</button>
-      <button type="button" class="pren-drawer-item" data-quick-status="">📋 Tutte le prenotazioni</button>
     </div>
   </div>
 
@@ -809,27 +702,31 @@ container.innerHTML = `
         <div class="pren-modal-title">Prenotazioni online</div>
         <button type="button" class="pren-modal-close" id="close-online-modal">✕</button>
       </div>
-      <div id="lista-online" class="pren-table-list">
+      <div id="lista-online" class="pren-online-list">
         <div class="pren-loading">Caricamento...</div>
       </div>
     </div>
   </div>
 
+  <div id="modal-arrivi" class="pren-modal">
+    <div class="pren-modal-box">
+      <div class="pren-modal-head">
+        <div class="pren-modal-title">Arrivi</div>
+        <button type="button" class="pren-modal-close" id="close-arrivi-modal">✕</button>
+      </div>
+      <div class="pren-arrivi-toolbar">
+        <select id="arrivi-slot-size" class="pren-slot-select">
+          <option value="15">Fasce 15 min</option>
+          <option value="30" selected>Fasce 30 min</option>
+          <option value="60">Fasce 60 min</option>
+        </select>
+      </div>
+      <div id="lista-arrivi" class="pren-arrivi-list"></div>
+    </div>
+  </div>
+
   <div class="pren-bottom-nav">
-    <button type="button" class="pren-bottom-item is-active" id="footer-agenda">
-      <div class="pren-bottom-icon">📅</div>
-      <div>Agenda</div>
-    </button>
-
-    <button type="button" class="pren-bottom-item is-primary" id="footer-new">
-      <div class="pren-bottom-icon">➕</div>
-      <div>Nuovo</div>
-    </button>
-
-    <button type="button" class="pren-bottom-item" id="footer-messaggi">
-      <div class="pren-bottom-icon">💬</div>
-      <div>Messaggi</div>
-    </button>
+    <button type="button" class="pren-bottom-item" id="footer-new" aria-label="Nuova prenotazione">+</button>
   </div>
 </div>
 `;
@@ -837,46 +734,31 @@ container.innerHTML = `
 const lista = document.getElementById("lista-prenotazioni");
 const filtroData = document.getElementById("filtro-data");
 const filtroServizio = document.getElementById("filtro-servizio");
-const statoChips = document.getElementById("stato-chips");
-const summaryBox = document.getElementById("pren-summary");
 const modal = document.getElementById("modal-tavoli");
 const listaTavoli = document.getElementById("lista-tavoli");
 const onlineModal = document.getElementById("modal-online");
 const listaOnline = document.getElementById("lista-online");
-const overlay = document.getElementById("pren-overlay");
-const drawerMenu = document.getElementById("pren-drawer-menu");
-const drawerActions = document.getElementById("pren-drawer-actions");
+const arriviModal = document.getElementById("modal-arrivi");
+const listaArrivi = document.getElementById("lista-arrivi");
+const slotSizeSelect = document.getElementById("arrivi-slot-size");
 const daysContainer = document.getElementById("pren-days");
 const onlineBadge = document.getElementById("pren-online-badge");
 
 const today = new Date();
 filtroData.value = formatDateInput(today);
 
-const statoItems = [
-  { value: "", label: "Tutte" },
-  { value: "nuova", label: "Nuove" },
-  { value: "confermata", label: "Confermate" },
-  { value: "arrivata", label: "Arrivate" },
-  { value: "no_show", label: "No show" },
-  { value: "annullata", label: "Annullate" }
-];
-
 const state = {
-  filtroStato: "",
   prenotazioni: [],
   tavoli: [],
   onlineRequests: [],
   currentPrenId: null,
-  drawerOpen: null,
   daysCenterDate: formatDateInput(today),
   renderedDays: [],
   onlineSource: null,
   onlineTableAvailable: null
 };
 
-renderStatusChips();
 renderDays(true);
-attachEvents();
 attachDayInfiniteScroll();
 
 document.getElementById("btn-refresh").onclick = async () => {
@@ -884,99 +766,33 @@ document.getElementById("btn-refresh").onclick = async () => {
   await loadOnlineRequests();
 };
 
-document.getElementById("btn-qr").onclick = () => {
-  alert("Lettore QR in arrivo: qui collegheremo la scansione di sconti e promo.");
-};
-
 document.getElementById("footer-new").onclick = () => {
   window.location.hash = "#/prenotazioni-form";
 };
 
-document.getElementById("footer-agenda").onclick = () => {
-  window.location.hash = "#/prenotazioni";
-};
-
-document.getElementById("footer-messaggi").onclick = () => {
-  alert("Qui collegheremo la messaggistica cliente per cliente.");
-};
-
 document.getElementById("tab-prenotazioni").onclick = () => {};
 document.getElementById("tab-arrivi").onclick = () => {
-  state.filtroStato = "arrivata";
-  updateStatusChips();
-  load();
+  openArriviModal();
 };
 document.getElementById("tab-piantina").onclick = () => {
   window.location.hash = "#/sala";
 };
 
-document.getElementById("pren-menu-trigger").onclick = () => toggleDrawer("menu");
-document.getElementById("pren-actions-trigger").onclick = () => toggleDrawer("actions");
 document.getElementById("pren-online-trigger").onclick = async () => {
-  closeDrawers();
   await openOnlineModal();
 };
 
-overlay.onclick = () => {
-  closeDrawers();
+document.getElementById("btn-calendar").onclick = () => {
+  if (typeof filtroData.showPicker === "function") {
+    filtroData.showPicker();
+  } else {
+    filtroData.click();
+  }
 };
-
-document.querySelectorAll("[data-action='nuova']").forEach((btn) => {
-  btn.onclick = () => {
-    closeDrawers();
-    window.location.hash = "#/prenotazioni-form";
-  };
-});
-
-document.querySelectorAll("[data-action='richieste']").forEach((btn) => {
-  btn.onclick = async () => {
-    closeDrawers();
-    await openOnlineModal();
-  };
-});
-
-document.querySelectorAll("[data-action='arrivi']").forEach((btn) => {
-  btn.onclick = () => {
-    state.filtroStato = "arrivata";
-    updateStatusChips();
-    closeDrawers();
-    load();
-  };
-});
-
-document.querySelectorAll("[data-action='overbooking']").forEach((btn) => {
-  btn.onclick = () => {
-    closeDrawers();
-    alert("Controllo overbooking da collegare.");
-  };
-});
-
-document.querySelectorAll("[data-action='conferme']").forEach((btn) => {
-  btn.onclick = () => {
-    closeDrawers();
-    alert("Preferenze conferma da collegare ai template WhatsApp.");
-  };
-});
-
-document.querySelectorAll("[data-action='messaggi']").forEach((btn) => {
-  btn.onclick = () => {
-    closeDrawers();
-    alert("Messaggi pronti da collegare.");
-  };
-});
-
-document.querySelectorAll("[data-quick-status]").forEach((btn) => {
-  btn.onclick = () => {
-    state.filtroStato = btn.dataset.quickStatus || "";
-    updateStatusChips();
-    closeDrawers();
-    load();
-  };
-});
 
 filtroData.onchange = () => {
   state.daysCenterDate = filtroData.value || formatDateInput(today);
-  syncActiveDayFromInput();
+  syncActiveDayFromInput(true);
   load();
 };
 
@@ -990,6 +806,15 @@ modal.onclick = (e) => {
 document.getElementById("close-online-modal").onclick = closeOnlineModal;
 onlineModal.onclick = (e) => {
   if (e.target === onlineModal) closeOnlineModal();
+};
+
+document.getElementById("close-arrivi-modal").onclick = closeArriviModal;
+arriviModal.onclick = (e) => {
+  if (e.target === arriviModal) closeArriviModal();
+};
+
+slotSizeSelect.onchange = () => {
+  renderArriviSlots();
 };
 
 async function load() {
@@ -1011,10 +836,6 @@ async function load() {
     query = query.eq("data", filtroData.value);
   }
 
-  if (state.filtroStato) {
-    query = query.eq("stato", state.filtroStato);
-  }
-
   query = query.order("ora", { ascending: true });
 
   const { data, error } = await query;
@@ -1022,7 +843,6 @@ async function load() {
   if (error) {
     console.error("ERRORE PRENOTAZIONI:", error);
     lista.innerHTML = `<div class="pren-error">Errore caricamento prenotazioni</div>`;
-    summaryBox.innerHTML = "";
     return;
   }
 
@@ -1049,7 +869,6 @@ async function load() {
     } else {
       prenotazioni = (fallbackData || []).filter((p) => {
         if (filtroData.value && p.data !== filtroData.value) return false;
-        if (state.filtroStato && p.stato !== state.filtroStato) return false;
         return true;
       });
     }
@@ -1058,14 +877,14 @@ async function load() {
   prenotazioni = applyServiceFilter(prenotazioni);
   state.prenotazioni = prenotazioni;
 
-  renderSummary(prenotazioni);
-
   if (!prenotazioni.length) {
     lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
     return;
   }
 
   lista.innerHTML = prenotazioni.map(renderRow).join("");
+  attachRowEvents();
+  attachSwipe();
 }
 
 async function loadOnlineRequests() {
@@ -1149,56 +968,7 @@ function applyServiceFilter(prenotazioni) {
   return prenotazioni.filter((p) => inferService(p) === servizio);
 }
 
-function renderSummary(prenotazioni) {
-  const totale = prenotazioni.length;
-  const coperti = prenotazioni.reduce((acc, p) => acc + (Number(p.coperti) || 0), 0);
-  const confermate = prenotazioni.filter((p) => p.stato === "confermata").length;
-  const arrivate = prenotazioni.filter((p) => p.stato === "arrivata").length;
-
-  summaryBox.innerHTML = `
-    <div class="pren-summary-card">
-      <div class="pren-summary-label">Prenotazioni</div>
-      <div class="pren-summary-value">${totale}</div>
-    </div>
-    <div class="pren-summary-card">
-      <div class="pren-summary-label">Coperti</div>
-      <div class="pren-summary-value">${coperti}</div>
-    </div>
-    <div class="pren-summary-card">
-      <div class="pren-summary-label">Confermate</div>
-      <div class="pren-summary-value">${confermate}</div>
-    </div>
-    <div class="pren-summary-card">
-      <div class="pren-summary-label">Arrivate</div>
-      <div class="pren-summary-value">${arrivate}</div>
-    </div>
-  `;
-}
-
-function renderStatusChips() {
-  statoChips.innerHTML = statoItems.map((item) => `
-    <button
-      type="button"
-      class="pren-chip ${item.value === state.filtroStato ? "active" : ""}"
-      data-stato-chip="${item.value}">
-      ${item.label}
-    </button>
-  `).join("");
-
-  statoChips.querySelectorAll("[data-stato-chip]").forEach((btn) => {
-    btn.onclick = () => {
-      state.filtroStato = btn.dataset.statoChip || "";
-      updateStatusChips();
-      load();
-    };
-  });
-}
-
-function updateStatusChips() {
-  renderStatusChips();
-}
-
-function buildVisibleDays(centerDateString, before = 21, after = 21) {
+function buildVisibleDays(centerDateString, before = 28, after = 28) {
   const baseDate = new Date(centerDateString || formatDateInput(today));
   const visible = [];
 
@@ -1212,7 +982,7 @@ function buildVisibleDays(centerDateString, before = 21, after = 21) {
 }
 
 function renderDays(centerScroll = false) {
-  state.renderedDays = buildVisibleDays(state.daysCenterDate, 21, 21);
+  state.renderedDays = buildVisibleDays(state.daysCenterDate, 28, 28);
 
   daysContainer.innerHTML = state.renderedDays.map((d) => {
     const value = formatDateInput(d);
@@ -1252,19 +1022,19 @@ function attachDayInfiniteScroll() {
   if (daysContainer.dataset.infiniteBound === "true") return;
 
   daysContainer.addEventListener("scroll", () => {
-    const threshold = 120;
+    const threshold = 140;
     const nearLeft = daysContainer.scrollLeft <= threshold;
     const nearRight = daysContainer.scrollLeft + daysContainer.clientWidth >= daysContainer.scrollWidth - threshold;
 
     if (nearLeft) {
       const center = new Date(state.daysCenterDate);
-      center.setDate(center.getDate() - 14);
+      center.setDate(center.getDate() - 21);
       state.daysCenterDate = formatDateInput(center);
       renderDays(false);
       requestAnimationFrame(centerActiveDay);
     } else if (nearRight) {
       const center = new Date(state.daysCenterDate);
-      center.setDate(center.getDate() + 14);
+      center.setDate(center.getDate() + 21);
       state.daysCenterDate = formatDateInput(center);
       renderDays(false);
       requestAnimationFrame(centerActiveDay);
@@ -1279,98 +1049,95 @@ function syncActiveDayFromInput(centerScroll = false) {
 }
 
 function renderRow(p) {
-  const nome = p.cliente_nome || p.nome_cliente || "Cliente";
+  const nome = buildClientName(p);
   const coperti = Number(p.coperti) || 0;
   const oraRaw = p.ora || "";
   const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
-  const noteShort = p.note ? p.note.slice(0, 60) : "";
   const noteFull = p.note || "";
   const telefono = p.telefono || p.cliente_telefono || p.phone || "";
-  const tavolo = p.tavolo_nome || p.nome_tavolo || p.tavolo_id || "";
-  const origine = getOriginIcon(p);
-  const statoMeta = getStatusMeta(p.stato);
+  const channelIcon = getOriginIcon(p);
+  const tag = renderStatusTag(p.stato);
 
   return `
-    <div class="pren-row" data-id="${escapeAttribute(p.id)}">
-      <div class="pren-col ora">${escapeHtml(ora)}\n${coperti}p</div>
-
-      <div class="pren-col main">
-        <div class="pren-nome cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
-          ${escapeHtml(nome)}
-        </div>
-
-        <div class="pren-secondary-line">
-          <span>${escapeHtml(statoMeta.label)}</span>
-          ${tavolo ? `<span>Tavolo ${escapeHtml(String(tavolo))}</span>` : ""}
-          ${telefono ? `<span>${escapeHtml(maskPhone(telefono))}</span>` : ""}
-        </div>
-
-        ${noteShort ? `<div class="pren-note-small pren-note" data-note="${escapeAttribute(noteFull)}">${escapeHtml(noteShort)}</div>` : ""}
+    <div class="pren-row-wrap" data-id="${escapeAttribute(p.id)}">
+      <div class="pren-row-bg arrivata">
+        <span></span>
+        <span>ARRIVATO</span>
+      </div>
+      <div class="pren-row-bg no-show">
+        <span>NO SHOW</span>
+        <span></span>
       </div>
 
-      <div class="pren-col right">
-        <span class="pren-ico origine" title="${escapeAttribute(getOriginLabel(p))}">${origine}</span>
-        ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
-        ${telefono ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>` : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`}
-        <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
+      <div class="pren-row" data-id="${escapeAttribute(p.id)}">
+        <div class="pren-time">${escapeHtml(ora)}</div>
+        <div class="pren-pax">${coperti}</div>
+
+        <div class="pren-main">
+          <div class="pren-name cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
+            ${escapeHtml(nome)}
+          </div>
+          ${tag}
+        </div>
+
+        <div class="pren-right">
+          ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+          ${telefono ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>` : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`}
+          <span class="pren-ico channel" title="${escapeAttribute(getOriginLabel(p))}">${channelIcon}</span>
+        </div>
       </div>
     </div>
   `;
 }
 
-function attachEvents() {
-  if (lista.dataset.eventsBound === "true") {
-    return;
+function renderStatusTag(stato) {
+  const value = String(stato || "").toLowerCase();
+  if (value === "arrivata") {
+    return `<span class="pren-tag arrivata">ARR</span>`;
   }
+  if (value === "no_show") {
+    return `<span class="pren-tag no_show">NO SHOW</span>`;
+  }
+  return ``;
+}
 
-  const handler = (event) => {
-    const clienteEl = event.target.closest(".cliente-link");
-    if (clienteEl && lista.contains(clienteEl)) {
-      const id = clienteEl.dataset.id;
+function attachRowEvents() {
+  lista.querySelectorAll(".cliente-link").forEach((el) => {
+    el.onclick = () => {
+      const id = el.dataset.id;
       if (!id || id === "null" || id === "undefined") {
         alert("Cliente non collegato");
         return;
       }
       window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
-      return;
-    }
+    };
+  });
 
-    const settingsEl = event.target.closest(".pren-ico.settings");
-    if (settingsEl && lista.contains(settingsEl)) {
-      const id = settingsEl.dataset.id;
-      if (!id) return;
-      window.location.hash = "#/prenotazioni-form?id=" + encodeURIComponent(id);
-      return;
-    }
+  lista.querySelectorAll(".note").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      alert(el.dataset.note || "Nessuna nota");
+    };
+  });
 
-    const msgEl = event.target.closest(".pren-ico.msg");
-    if (msgEl && lista.contains(msgEl)) {
-      const id = msgEl.dataset.id;
+  lista.querySelectorAll(".msg").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      const id = el.dataset.id;
       if (!id) return;
       alert("Aprire chat cliente (step successivo)");
-      return;
-    }
+    };
+  });
 
-    const noteIconEl = event.target.closest(".pren-ico.note");
-    if (noteIconEl && lista.contains(noteIconEl)) {
-      alert(noteIconEl.dataset.note || "Nessuna nota");
-      return;
-    }
-
-    const noteTextEl = event.target.closest(".pren-note");
-    if (noteTextEl && lista.contains(noteTextEl)) {
-      alert(noteTextEl.dataset.note || "Nessuna nota");
-      return;
-    }
-
-    const whatsappEl = event.target.closest(".whatsapp");
-    if (whatsappEl && lista.contains(whatsappEl)) {
-      const phone = whatsappEl.dataset.phone || "";
-      const id = whatsappEl.dataset.id || "";
+  lista.querySelectorAll(".whatsapp").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      const phone = el.dataset.phone || "";
+      const id = el.dataset.id || "";
       if (!phone) return;
 
       const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-      const nome = pren?.cliente_nome || pren?.nome_cliente || "cliente";
+      const nome = buildClientName(pren || {});
       const data = pren?.data ? formatDateHuman(pren.data) : "";
       const ora = pren?.ora || "";
       const coperti = pren?.coperti || 0;
@@ -1380,12 +1147,76 @@ function attachEvents() {
       );
 
       window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-    }
-  };
+    };
+  });
+}
 
-  lista.addEventListener("click", handler);
-  lista.addEventListener("touchend", handler, { passive: true });
-  lista.dataset.eventsBound = "true";
+function attachSwipe() {
+  lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
+    const row = wrap.querySelector(".pren-row");
+    if (!row || row.dataset.swipeBound === "true") return;
+
+    let startX = 0;
+    let currentX = 0;
+    let active = false;
+
+    const reset = () => {
+      row.classList.remove("is-dragging");
+      row.style.transform = "translateX(0px)";
+      currentX = 0;
+      active = false;
+    };
+
+    row.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      active = true;
+      startX = event.clientX;
+      currentX = 0;
+      row.classList.add("is-dragging");
+      row.setPointerCapture?.(event.pointerId);
+    });
+
+    row.addEventListener("pointermove", (event) => {
+      if (!active) return;
+      currentX = event.clientX - startX;
+      if (currentX > 110) currentX = 110;
+      if (currentX < -110) currentX = -110;
+      row.style.transform = `translateX(${currentX}px)`;
+    });
+
+    const finish = async () => {
+      if (!active) return;
+
+      row.classList.remove("is-dragging");
+
+      if (currentX >= 80) {
+        row.style.transform = "translateX(100%)";
+        setTimeout(async () => {
+          await updateStatoPrenotazione(row.dataset.id, "arrivata");
+        }, 120);
+      } else if (currentX <= -80) {
+        row.style.transform = "translateX(-100%)";
+        setTimeout(async () => {
+          await updateStatoPrenotazione(row.dataset.id, "no_show");
+        }, 120);
+      } else {
+        row.style.transform = "translateX(0px)";
+      }
+
+      active = false;
+      currentX = 0;
+    };
+
+    row.addEventListener("pointerup", finish);
+    row.addEventListener("pointercancel", reset);
+    row.addEventListener("lostpointercapture", () => {
+      if (active && Math.abs(currentX) < 80) {
+        reset();
+      }
+    });
+
+    row.dataset.swipeBound = "true";
+  });
 }
 
 async function updateStatoPrenotazione(id, stato) {
@@ -1397,10 +1228,14 @@ async function updateStatoPrenotazione(id, stato) {
   if (error) {
     console.error("ERRORE UPDATE STATO:", error);
     alert("Errore aggiornamento stato");
+    await load();
     return;
   }
 
   await load();
+  if (arriviModal.classList.contains("open")) {
+    renderArriviSlots();
+  }
 }
 
 async function openTavoli(prenId) {
@@ -1526,7 +1361,7 @@ function renderOnlineRequests() {
 
   listaOnline.innerHTML = state.onlineRequests.map((item) => {
     const statusMeta = getOnlineRequestStatusMeta(item.stato);
-    const nome = item.cliente_nome || item.nome_cliente || item.nome || "Cliente";
+    const nome = buildClientName(item);
     const coperti = Number(item.coperti) || 0;
     const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
     const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
@@ -1540,7 +1375,7 @@ function renderOnlineRequests() {
           <div>
             <div class="pren-online-name">${escapeHtml(nome)}</div>
             <div class="pren-online-meta">
-              ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}p
+              ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}
               ${telefono ? `<br>${escapeHtml(telefono)}` : ""}
             </div>
           </div>
@@ -1584,9 +1419,6 @@ function renderOnlineRequests() {
 }
 
 async function acceptOnlineRequest(onlineId) {
-  const request = state.onlineRequests.find((item) => String(item.id) === String(onlineId));
-  if (!request) return;
-
   if (state.onlineSource === "prenotazioni_online") {
     const { error } = await window.supabaseClient
       .from("prenotazioni_online")
@@ -1617,9 +1449,6 @@ async function acceptOnlineRequest(onlineId) {
 }
 
 async function rejectOnlineRequest(onlineId) {
-  const request = state.onlineRequests.find((item) => String(item.id) === String(onlineId));
-  if (!request) return;
-
   if (state.onlineSource === "prenotazioni_online") {
     const { error } = await window.supabaseClient
       .from("prenotazioni_online")
@@ -1655,27 +1484,71 @@ function updateOnlineBadge() {
   onlineBadge.classList.toggle("show", total > 0);
 }
 
+function openArriviModal() {
+  arriviModal.classList.add("open");
+  renderArriviSlots();
+}
+
+function closeArriviModal() {
+  arriviModal.classList.remove("open");
+}
+
+function renderArriviSlots() {
+  const slotMinutes = Number(slotSizeSelect.value) || 30;
+  const arrivate = state.prenotazioni.filter((p) => {
+    const stato = String(p.stato || "").toLowerCase();
+    return stato !== "annullata" && stato !== "no_show";
+  });
+
+  if (!arrivate.length) {
+    listaArrivi.innerHTML = `<div class="pren-empty">Nessun arrivo per questa data</div>`;
+    return;
+  }
+
+  const groups = {};
+
+  arrivate.forEach((p) => {
+    const slot = getTimeSlotLabel(p.ora, slotMinutes);
+    if (!groups[slot]) groups[slot] = [];
+    groups[slot].push(p);
+  });
+
+  const slots = Object.keys(groups).sort();
+
+  listaArrivi.innerHTML = slots.map((slot) => {
+    const items = groups[slot];
+    return `
+      <div class="pren-slot-card">
+        <div class="pren-slot-time">${escapeHtml(slot)}</div>
+        <div class="pren-slot-list">
+          ${items.map((p) => {
+            const nome = buildClientName(p);
+            const coperti = Number(p.coperti) || 0;
+            const ora = String(p.ora || "").slice(0, 5) || "--:--";
+            const note = p.note ? `<span class="pren-ico note" data-note="${escapeAttribute(p.note)}">📝</span>` : "";
+            return `
+              <div class="pren-slot-row" data-id="${escapeAttribute(p.id)}">
+                <div>${escapeHtml(ora)}</div>
+                <div class="pren-slot-pax">${coperti}</div>
+                <div class="pren-slot-name">${escapeHtml(nome)}</div>
+                <div>${note}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  listaArrivi.querySelectorAll(".note").forEach((el) => {
+    el.onclick = () => {
+      alert(el.dataset.note || "Nessuna nota");
+    };
+  });
+}
+
 function closeModal() {
   modal.classList.remove("open");
-}
-
-function toggleDrawer(type) {
-  const isMenu = type === "menu";
-  const target = isMenu ? drawerMenu : drawerActions;
-  const other = isMenu ? drawerActions : drawerMenu;
-  const isOpen = target.classList.contains("open");
-
-  other.classList.remove("open");
-  target.classList.toggle("open", !isOpen);
-  overlay.classList.toggle("open", !isOpen);
-  state.drawerOpen = !isOpen ? type : null;
-}
-
-function closeDrawers() {
-  drawerMenu.classList.remove("open");
-  drawerActions.classList.remove("open");
-  overlay.classList.remove("open");
-  state.drawerOpen = null;
 }
 
 function inferService(p) {
@@ -1688,38 +1561,6 @@ function inferService(p) {
   if (ora >= "11:00" && ora < "15:30") return "pranzo";
   if (ora >= "15:30" && ora < "19:30") return "aperitivo";
   return "cena";
-}
-
-function serviceLabel(servizio) {
-  switch (servizio) {
-    case "colazione":
-      return "COLAZ.";
-    case "aperitivo":
-      return "APER.";
-    case "pranzo":
-      return "PRANZO";
-    case "cena":
-      return "CENA";
-    default:
-      return "SERV.";
-  }
-}
-
-function getStatusMeta(stato) {
-  switch (String(stato || "").toLowerCase()) {
-    case "nuova":
-      return { label: "Nuova", emoji: "🟡", bg: "#FEF3C7", color: "#92400E" };
-    case "confermata":
-      return { label: "Confermata", emoji: "🔵", bg: "#DBEAFE", color: "#1D4ED8" };
-    case "arrivata":
-      return { label: "Arrivata", emoji: "🟢", bg: "#DCFCE7", color: "#166534" };
-    case "no_show":
-      return { label: "No show", emoji: "🔴", bg: "#FEE2E2", color: "#991B1B" };
-    case "annullata":
-      return { label: "Annullata", emoji: "⚫", bg: "#E5E7EB", color: "#374151" };
-    default:
-      return { label: "Da gestire", emoji: "⚪", bg: "#F3F4F6", color: "#4B5563" };
-  }
 }
 
 function getOnlineRequestStatusMeta(stato) {
@@ -1761,12 +1602,31 @@ function getOriginIcon(p) {
   if (isLikelyOnlineChannel(channel)) return "🌐";
   if (channel.includes("telefono") || channel.includes("call")) return "📞";
   if (channel.includes("whatsapp")) return "💬";
+  if (channel.includes("walk")) return "🚶";
   return "📱";
 }
 
 function getOriginLabel(p) {
   const channel = String(p.canale || p.origine || p.source || "").trim();
   return channel || "Prenotazione";
+}
+
+function buildClientName(p) {
+  const nome = String(p?.cliente_nome || p?.nome_cliente || p?.nome || "").trim();
+  const cognome = String(p?.cliente_cognome || p?.cognome || "").trim();
+  const full = `${nome} ${cognome}`.trim();
+  return full || "Cliente";
+}
+
+function getTimeSlotLabel(timeValue, slotMinutes) {
+  const raw = String(timeValue || "").slice(0, 5);
+  if (!/^\d{2}:\d{2}$/.test(raw)) return "--:--";
+  const [h, m] = raw.split(":").map(Number);
+  const total = (h * 60) + m;
+  const rounded = Math.floor(total / slotMinutes) * slotMinutes;
+  const hh = String(Math.floor(rounded / 60)).padStart(2, "0");
+  const mm = String(rounded % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
 
 function getDayLabel(date) {
@@ -1793,12 +1653,6 @@ function formatDateHuman(dateString) {
 
 function sanitizePhone(phone) {
   return String(phone || "").replace(/[^\d+]/g, "");
-}
-
-function maskPhone(phone) {
-  const clean = String(phone || "").trim();
-  if (clean.length <= 4) return clean;
-  return `${clean.slice(0, 3)}•••${clean.slice(-2)}`;
 }
 
 function escapeHtml(value) {
