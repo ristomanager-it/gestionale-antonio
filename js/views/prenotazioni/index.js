@@ -1056,42 +1056,41 @@ export async function render(container) {
   function syncActiveDayFromInput() {
     renderDays();
   }
-
 function renderRow(p) {
-
   const nome = p.cliente_nome || p.nome_cliente || "Cliente";
   const coperti = Number(p.coperti) || 0;
-  const ora = p.ora || "--:--";
-  const note = p.note ? p.note.slice(0, 25) : "";
 
-  // 👉 origine (temporaneo)
-  const origine = "📱"; // poi lo legheremo al form
+  const oraRaw = p.ora || "";
+  const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
+
+  const noteShort = p.note ? p.note.slice(0, 25) : "";
+  const noteFull = p.note || "";
+
+  const origine = "📱";
 
   return `
-    <div class="pren-row" data-id="${p.id}">
+    <div class="pren-row" data-id="${escapeAttribute(p.id)}">
 
       <div class="pren-col ora">
         ${escapeHtml(ora)}
       </div>
 
       <div class="pren-col main">
-
-        <div class="pren-nome cliente-link" data-id="${p.contatto_id}">
+        <div class="pren-nome cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
           ${escapeHtml(nome)} x${coperti}
         </div>
 
-        ${note ? `<div class="pren-note-small">${escapeHtml(note)}</div>` : ""}
-
+        ${noteShort ? `<div class="pren-note-small">${escapeHtml(noteShort)}</div>` : ""}
       </div>
 
       <div class="pren-col right">
-
         <span class="pren-ico origine">${origine}</span>
 
-        <span class="pren-ico msg" data-id="${p.id}">✈️</span>
+        ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
 
-        <span class="pren-ico settings" data-id="${p.id}">⚙️</span>
+        <span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>
 
+        <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
       </div>
 
     </div>
