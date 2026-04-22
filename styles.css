@@ -844,3 +844,50 @@ SALA
 .tavolo-mappa.prenotato {
   background: #fff3cd;
 }
+.pren-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:10px 12px;
+  font-size:13px;
+}
+
+.pren-col.ora{
+  font-weight:800;
+  width:55px;
+  color:#111827;
+}
+
+.pren-col.main{
+  flex:1;
+  min-width:0;
+}
+
+.pren-nome{
+  font-weight:800;
+  color:#111827;
+  cursor:pointer;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.pren-note-small{
+  font-size:11px;
+  color:#6b7280;
+  margin-top:2px;
+}
+
+.pren-col.right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.pren-ico{
+  cursor:pointer;
+  font-size:14px;
+}
