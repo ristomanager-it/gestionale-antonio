@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
-import { initTopbar } from "./components/topbar.js";
+
 
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
