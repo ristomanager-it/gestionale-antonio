@@ -1215,8 +1215,6 @@ const finish = async () => {
       row.style.transform = `translateX(${currentX}px)`;
     });
 
-    const finish = async () => {
-      if (!active) return;
 
       row.classList.remove("is-dragging");
 
