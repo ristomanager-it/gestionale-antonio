@@ -541,14 +541,25 @@ export async function render(container) {
   function buildPayloadFromForm() {
     const current = pageState.prenotazione || {};
 
-    const data = container.querySelector("#pren-data")?.value || null;
-    const ora = container.querySelector("#pren-ora")?.value || null;
-    const coperti = Math.max(1, Number(container.querySelector("#pren-coperti")?.value || 0));
-    const stato = container.querySelector("#pren-stato")?.value || "in_attesa";
-    const note = container.querySelector("#pren-note")?.value || "";
-    const clienteNome = container.querySelector("#pren-nome")?.value || "";
-    const clienteCognome = container.querySelector("#pren-cognome")?.value || "";
-    const telefono = container.querySelector("#pren-telefono")?.value || "";
+   const data = container.querySelector("#pren-data")?.value || null;
+const ora = container.querySelector("#pren-ora")?.value || null;
+const coperti = Math.max(1, Number(container.querySelector("#pren-coperti")?.value || 0));
+
+// 🔥 FIX STATO
+let stato = container.querySelector("#pren-stato")?.value;
+
+// fallback sicuro
+if (!stato || stato === "in_attesa") {
+  stato = "confermata";
+}
+
+const note = container.querySelector("#pren-note")?.value || "";
+const clienteNome = container.querySelector("#pren-nome")?.value || "";
+const clienteCognome = container.querySelector("#pren-cognome")?.value || "";
+const telefono = container.querySelector("#pren-telefono")?.value || "";
+
+// DEBUG (puoi toglierlo dopo)
+console.log("STATO SALVATO:", stato);
 const payload = {
   data,
   ora,
