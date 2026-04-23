@@ -1642,51 +1642,20 @@ attachSwipe();
     `;
     }).join("");
 
-   listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
-  btn.onclick = async (e) => {
-    e.stopPropagation();
+      listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await acceptOnlineRequest(btn.dataset.onlineAccept);
+      };
+    });
 
-    const id = btn.dataset.onlineAccept;
-    if (!id) return;
+    listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await rejectOnlineRequest(btn.dataset.onlineReject);
+      };
+    });
 
-    const { error } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: "confermata" })
-      .eq("id", id);
-
-    if (error) {
-      console.error("ERRORE ACCETTA:", error);
-      alert("Errore accettazione");
-      return;
-    }
-
-    await load();
-    await loadOnlineRequests();
-  };
-});
-
-listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
-  btn.onclick = async (e) => {
-    e.stopPropagation();
-
-    const id = btn.dataset.onlineReject;
-    if (!id) return;
-
-    const { error } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: "no_show" })
-      .eq("id", id);
-
-    if (error) {
-      console.error("ERRORE RIFIUTA:", error);
-      alert("Errore rifiuto");
-      return;
-    }
-
-    await load();
-    await loadOnlineRequests();
-  };
-});
     listaOnline.querySelectorAll("[data-online-manage]").forEach((btn) => {
       btn.onclick = () => {
         const id = btn.dataset.onlineManage;
@@ -1698,6 +1667,8 @@ listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
   }
 
   async function acceptOnlineRequest(onlineId) {
+    if (!onlineId) return;
+
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
       .update({ stato: "confermata" })
@@ -1715,9 +1686,11 @@ listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
   }
 
   async function rejectOnlineRequest(onlineId) {
+    if (!onlineId) return;
+
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
-      .update({ stato: "annullata" })
+      .update({ stato: "rifiutata" })
       .eq("id", onlineId);
 
     if (error) {
