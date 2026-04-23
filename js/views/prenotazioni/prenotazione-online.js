@@ -1,20 +1,22 @@
 export async function render(container) {
 
-  // 🔥 NASCONDE HEADER
   document.querySelector(".app-header")?.style.setProperty("display","none");
   document.querySelector(".topbar-global")?.style.setProperty("display","none");
 
-  // 🔥 AZIENDA DA URL
   const aziendaId = window.routeParams?.azienda;
 
+  // 🔥 NUOVO: SOURCE TRACKING
+  const source = window.routeParams?.src || "web";
+  const ref = window.routeParams?.ref || null;
+
   console.log("AZIENDA ID:", aziendaId);
+  console.log("SOURCE:", source, "REF:", ref);
 
   if (!aziendaId) {
     container.innerHTML = `<div class="page">Errore: azienda non trovata</div>`;
     return;
   }
 
-  // 🌍 LINGUA
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
@@ -45,36 +47,28 @@ export async function render(container) {
   };
 
   const defaultPrefix = lang === "it" ? "+39" : "+44";
-
-  // 🔥 LOGO
   const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
   <div class="login-page">
-
     <div class="login-box">
-
       <div class="login-logo-wrap">
         <img src="${logo}" class="login-logo">
       </div>
 
       <div class="login-form">
-
         <h2 style="text-align:center;margin-bottom:10px;">
           ${t[lang].titolo}
         </h2>
 
-        <!-- NOME -->
         <div class="form-group">
           <input id="nome" class="input" placeholder="${t[lang].nome}">
         </div>
 
-        <!-- COGNOME -->
         <div class="form-group">
           <input id="cognome" class="input" placeholder="${t[lang].cognome}">
         </div>
 
-        <!-- TELEFONO -->
         <div class="form-group" style="display:flex; gap:6px;">
           <select id="prefisso" class="input" style="max-width:110px;">
             <option value="+39">🇮🇹 +39</option>
@@ -87,17 +81,14 @@ export async function render(container) {
           <input id="telefono" class="input" placeholder="${t[lang].telefono}">
         </div>
 
-        <!-- DATA -->
         <div class="form-group">
           <input type="date" id="data" class="input">
         </div>
 
-        <!-- ORA -->
         <div class="form-group">
           <input type="time" id="ora" class="input">
         </div>
 
-        <!-- COPERTI -->
         <div class="form-group">
           <input type="number" id="coperti" class="input" value="2">
         </div>
@@ -107,18 +98,14 @@ export async function render(container) {
         </button>
 
         <div id="msg" class="form-result"></div>
-
       </div>
-
     </div>
-
   </div>
   `;
 
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
   document.getElementById("prefisso").value = defaultPrefix;
 
-  // 🔥 INVIO
   document.getElementById("btn-invia").onclick = async () => {
 
     const msg = document.getElementById("msg");
@@ -148,7 +135,12 @@ export async function render(container) {
         data,
         ora,
         coperti,
-        stato: "nuova"
+        stato: "in_attesa",
+        canale: "online",
+
+        // 🔥 NUOVI CAMPI TRACKING
+        source: source,
+        riferimento: ref
       }]);
 
     if (error) {
@@ -158,7 +150,5 @@ export async function render(container) {
     }
 
     msg.innerHTML = `<span class="success-text">${t[lang].ok}</span>`;
-
   };
-
 }
