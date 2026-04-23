@@ -953,18 +953,25 @@ export async function render(container) {
     }
 
     prenotazioni = applyServiceFilter(prenotazioni);
-    state.prenotazioni = prenotazioni;
-    renderKpiRow();
 
-    if (!prenotazioni.length) {
-      lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
-      return;
-    }
+// 🔥 FILTRO PRINCIPALE (SOLO OPERATIVE)
+prenotazioni = prenotazioni.filter(p => {
+  const s = String(p.stato || "").toLowerCase();
+  return s === "confermata" || s === "arrivata";
+});
 
-    lista.innerHTML = prenotazioni.map(renderRow).join("");
-    attachRowEvents();
-    attachSwipe();
-  }
+state.prenotazioni = prenotazioni;
+renderKpiRow();
+
+if (!prenotazioni.length) {
+  lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
+  return;
+}
+
+lista.innerHTML = prenotazioni.map(renderRow).join("");
+attachRowEvents();
+attachSwipe();
+
 
   async function loadDayStats() {
     if (!state.renderedDays.length) {
