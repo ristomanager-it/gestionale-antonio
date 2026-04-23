@@ -1707,45 +1707,7 @@ export async function render(container) {
     await updateOnlineRequestStatus(onlineId, "rifiutata");
   }
 
-  async function updateOnlineRequestStatus(onlineId, nextStatus) {
-    if (!onlineId) return;
-
-    const normalizedStatus = normalizeStatus(nextStatus);
-
-    if (!["confermata", "rifiutata"].includes(normalizedStatus)) {
-      alert("Stato richiesta online non valido");
-      return;
-    }
-
-    let query = window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: normalizedStatus })
-      .eq("id", onlineId)
-      .eq("stato", "in_attesa");
-
-    if (aziendaId) {
-      query = query.eq("azienda_id", aziendaId);
-    }
-
-    if (sedeId) {
-      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
-    }
-
-    const { error } = await query;
-
-    if (error) {
-      console.error("ERRORE UPDATE PRENOTAZIONE ONLINE:", error);
-      alert("Errore aggiornamento richiesta online");
-      return;
-    }
-
-    state.onlineRequests = (state.onlineRequests || []).filter((item) => String(item.id) !== String(onlineId));
-    updateOnlineBadge();
-    renderOnlineRequests();
-
-    await load();
-    await loadOnlineRequests();
-  }
+ async function updateOnlineRequestStatus(onlineId, nextStatus)
 
   function updateOnlineBadge() {
     const total = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato)).length;
