@@ -1707,14 +1707,47 @@ export async function render(container) {
     await updateOnlineRequestStatus(onlineId, "rifiutata");
   }
 
- async function updateOnlineRequestStatus(onlineId, nextStatus)
+async function updateOnlineRequestStatus(onlineId, nextStatus) {
+  if (!onlineId) return;
 
-  function updateOnlineBadge() {
-    const total = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato)).length;
-    onlineBadge.textContent = total > 99 ? "99+" : String(total);
-    onlineBadge.classList.toggle("show", total > 0);
+  const stato = String(nextStatus || "").toLowerCase();
+
+  if (!["confermata", "rifiutata"].includes(stato)) {
+    alert("Stato non valido");
+    return;
   }
 
+  let query = window.supabaseClient
+    .from("prenotazioni_tavoli")
+    .update({ stato })
+    .eq("id", onlineId);
+
+  if (aziendaId) {
+    query = query.eq("azienda_id", aziendaId);
+  }
+
+  if (sedeId) {
+    query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error("ERRORE UPDATE ONLINE:", error);
+    alert("Errore aggiornamento");
+    return;
+  }
+
+  // aggiorno UI subito
+  state.onlineRequests = state.onlineRequests.filter(
+    (item) => String(item.id) !== String(onlineId)
+  );
+
+  updateOnlineBadge();
+  renderOnlineRequests();
+
+  await load();
+}
   function openArriviModal() {
     arriviModal.classList.add("open");
     renderArriviSlots();
