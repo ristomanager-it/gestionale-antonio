@@ -556,7 +556,7 @@ export async function render(container) {
   coperti,
   stato,
   note,
-  telefono,
+ cliente_telefono: telefono,
   cliente_nome: clienteNome,
   cognome: clienteCognome
 };
