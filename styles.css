@@ -899,3 +899,10 @@ SALA
   padding:6px;   /* 👈 IMPORTANTISSIMO */
   cursor:pointer;
 }
+.pren-summary{
+  margin-top:4px;
+  font-size:10px;
+  font-weight:500;
+  color:#6b7280;
+  text-align:center;
+}
