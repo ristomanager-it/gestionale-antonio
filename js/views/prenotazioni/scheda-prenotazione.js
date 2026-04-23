@@ -563,8 +563,7 @@ const payload = {
     if ("nome" in current && !("cliente_nome" in current)) payload.nome = clienteNome;
     if ("cognome" in current || clienteCognome) payload.cognome = clienteCognome;
     if ("cliente_telefono" in current) payload.cliente_telefono = telefono;
-    if ("phone" in current && !("telefono" in current)) payload.phone = telefono;
-
+   
     return payload;
   }
 
