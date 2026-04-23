@@ -413,6 +413,11 @@ export async function render(container) {
       color:#1d4ed8;
     }
 
+    .pren-tag.rifiutata{
+      background:#f3f4f6;
+      color:#4b5563;
+    }
+
     .pren-right{
       display:flex;
       align-items:center;
@@ -907,8 +912,9 @@ export async function render(container) {
     }
 
     if (sedeId) {
-  query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
-}
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+    }
+
     if (filtroData.value) {
       query = query.eq("data", filtroData.value);
     }
@@ -920,17 +926,18 @@ export async function render(container) {
     if (error) {
       console.error("ERRORE PRENOTAZIONI:", error);
       lista.innerHTML = `<div class="pren-error">Errore caricamento prenotazioni</div>`;
+      state.prenotazioni = [];
       renderKpiRow();
       return;
     }
 
-    let prenotazioni = data || [];
+    let prenotazioni = Array.isArray(data) ? data : [];
 
     if (!prenotazioni.length) {
       let fallbackQuery = window.supabaseClient
         .from("prenotazioni_tavoli")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("ora", { ascending: true });
 
       if (aziendaId) {
         fallbackQuery = fallbackQuery.eq("azienda_id", aziendaId);
@@ -946,32 +953,26 @@ export async function render(container) {
         console.error("ERRORE FALLBACK PRENOTAZIONI:", fallbackError);
       } else {
         prenotazioni = (fallbackData || []).filter((p) => {
-          if (filtroData.value && p.data !== filtroData.value) return false;
-          return true;
+          return !filtroData.value || p.data === filtroData.value;
         });
       }
     }
 
     prenotazioni = applyServiceFilter(prenotazioni);
+    prenotazioni = filterMainListPrenotazioni(prenotazioni);
 
-// 🔥 FILTRO PRINCIPALE (SOLO OPERATIVE)
-prenotazioni = prenotazioni.filter(p => {
-  const s = String(p.stato || "").toLowerCase();
-  return s === "confermata" || s === "arrivata";
-});
+    state.prenotazioni = prenotazioni;
+    renderKpiRow();
 
-state.prenotazioni = prenotazioni;
-renderKpiRow();
+    if (!prenotazioni.length) {
+      lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
+      return;
+    }
 
-if (!prenotazioni.length) {
-  lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
-  return;
-}
-
-lista.innerHTML = prenotazioni.map(renderRow).join("");
-attachRowEvents();
-attachSwipe();
-}
+    lista.innerHTML = prenotazioni.map(renderRow).join("");
+    attachRowEvents();
+    attachSwipe();
+  }
 
   async function loadDayStats() {
     if (!state.renderedDays.length) {
@@ -996,7 +997,7 @@ attachSwipe();
     }
 
     if (sedeId) {
-     query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
 
     const { data, error } = await query;
@@ -1013,7 +1014,7 @@ attachSwipe();
 
     (data || []).forEach((p) => {
       if (!p?.data) return;
-      if (String(p.stato || "").toLowerCase() === "annullata") return;
+      if (!isMainVisibleStatus(p.stato)) return;
 
       if (filtroServizio.value && inferService(p) !== filtroServizio.value) {
         return;
@@ -1037,6 +1038,7 @@ attachSwipe();
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("*")
+      .eq("stato", "in_attesa")
       .order("created_at", { ascending: false });
 
     if (aziendaId) {
@@ -1044,7 +1046,7 @@ attachSwipe();
     }
 
     if (sedeId) {
-     query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
 
     const { data, error } = await query;
@@ -1053,18 +1055,14 @@ attachSwipe();
       console.error("ERRORE CARICAMENTO PRENOTAZIONI ONLINE:", error);
       state.onlineRequests = [];
       updateOnlineBadge();
+
       if (onlineModal.classList.contains("open")) {
         listaOnline.innerHTML = `<div class="pren-error">Errore caricamento richieste online</div>`;
       }
       return;
     }
 
-    state.onlineRequests = (data || []).filter((item) => {
-      const channel = String(item.canale || item.origine || item.source || "").toLowerCase();
-      const status = String(item.stato || "").toLowerCase();
-      return isLikelyOnlineChannel(channel) && isOnlinePendingStatus(status);
-    });
-
+    state.onlineRequests = (data || []).filter((item) => isOnlinePendingStatus(item.stato));
     updateOnlineBadge();
 
     if (onlineModal.classList.contains("open")) {
@@ -1076,6 +1074,19 @@ attachSwipe();
     const servizio = filtroServizio.value;
     if (!servizio) return prenotazioni;
     return prenotazioni.filter((p) => inferService(p) === servizio);
+  }
+
+  function filterMainListPrenotazioni(prenotazioni) {
+    return prenotazioni.filter((p) => isMainVisibleStatus(p.stato));
+  }
+
+  function isMainVisibleStatus(stato) {
+    const value = normalizeStatus(stato);
+    return value === "confermata" || value === "arrivata";
+  }
+
+  function normalizeStatus(stato) {
+    return String(stato || "").trim().toLowerCase();
   }
 
   function buildVisibleDays(centerDateString, before = 28, after = 28) {
@@ -1143,10 +1154,7 @@ attachSwipe();
       };
     }
 
-    const filtered = (state.prenotazioni || []).filter((p) => {
-      if (p.data !== selectedDate) return false;
-      return true;
-    });
+    const filtered = (state.prenotazioni || []).filter((p) => p.data === selectedDate);
 
     return {
       prenotazioni: filtered.length,
@@ -1155,7 +1163,7 @@ attachSwipe();
   }
 
   function centerActiveDay() {
-    const active = daysContainer.querySelector(`.pren-day.is-active`);
+    const active = daysContainer.querySelector(".pren-day.is-active");
     if (!active) return;
     const left = active.offsetLeft - (daysContainer.clientWidth / 2) + (active.clientWidth / 2);
     daysContainer.scrollLeft = Math.max(0, left);
@@ -1200,7 +1208,7 @@ attachSwipe();
     const oraRaw = p.ora || "";
     const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
     const noteFull = p.note || "";
-    const telefono = p.telefono || p.cliente_telefono || p.phone || "";
+    const telefono = p.cliente_telefono || "";
     const channelIcon = getOriginIcon(p);
     const tag = renderStatusTag(p.stato);
 
@@ -1246,7 +1254,7 @@ attachSwipe();
   }
 
   function renderStatusTag(stato) {
-    const value = String(stato || "").toLowerCase();
+    const value = normalizeStatus(stato);
 
     if (value === "in_attesa") {
       return `<span class="pren-tag in_attesa">ATT</span>`;
@@ -1264,87 +1272,92 @@ attachSwipe();
       return `<span class="pren-tag no_show">NO SHOW</span>`;
     }
 
+    if (value === "rifiutata") {
+      return `<span class="pren-tag rifiutata">RIF</span>`;
+    }
+
     return ``;
   }
 
   function attachRowEvents() {
+    lista.querySelectorAll(".cliente-link").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
 
-  // CLIENTE
-  lista.querySelectorAll(".cliente-link").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      event.preventDefault();
+        const id = el.dataset.id;
 
-      const id = el.dataset.id;
+        if (!id || id === "null" || id === "undefined") {
+          alert("Cliente non collegato");
+          return;
+        }
 
-      if (!id || id === "null" || id === "undefined") {
-        alert("Cliente non collegato");
-        return;
-      }
+        window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
 
-      window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
-    };
-  });
+    lista.querySelectorAll(".note").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        alert(el.dataset.note || "Nessuna nota");
+      };
+    });
 
-  // NOTE
-  lista.querySelectorAll(".note").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      alert(el.dataset.note || "Nessuna nota");
-    };
-  });
+    lista.querySelectorAll(".whatsapp").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
 
-  // WHATSAPP
-  lista.querySelectorAll(".whatsapp").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
+        const phone = el.dataset.phone || "";
+        const id = el.dataset.id || "";
+        if (!phone) return;
 
-      const phone = el.dataset.phone || "";
-      const id = el.dataset.id || "";
-      if (!phone) return;
+        const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
+        const nome = buildClientName(pren || {});
+        const data = pren?.data ? formatDateHuman(pren.data) : "";
+        const ora = pren?.ora ? String(pren.ora).slice(0, 5) : "";
+        const coperti = pren?.coperti || 0;
 
-      const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-      const nome = buildClientName(pren || {});
-      const data = pren?.data ? formatDateHuman(pren.data) : "";
-      const ora = pren?.ora || "";
-      const coperti = pren?.coperti || 0;
+        const text = encodeURIComponent(
+          `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
+        );
 
-      const text = encodeURIComponent(
-        `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-      );
+        window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+      };
+    });
 
-      window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-    };
-  });
+    lista.querySelectorAll(".msg").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        const id = el.dataset.id;
+        if (!id) return;
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
 
-  // INGRANAGGIO
-  lista.querySelectorAll(".settings").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      event.preventDefault();
+    lista.querySelectorAll(".settings").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
 
-      const id = el.dataset.id;
-      if (!id) return;
+        const id = el.dataset.id;
+        if (!id) return;
 
-      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-    };
-  });
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
 
-  // CLICK RIGA
-  lista.querySelectorAll(".pren-row").forEach((row) => {
-    row.onclick = (event) => {
+    lista.querySelectorAll(".pren-row").forEach((row) => {
+      row.onclick = (event) => {
+        if (event.target.closest(".pren-ico")) return;
+        if (event.target.closest(".cliente-link")) return;
 
-      // BLOCCA se clicchi elementi interni
-      if (event.target.closest(".pren-ico")) return;
-      if (event.target.closest(".cliente-link")) return;
+        const id = row.dataset.id;
+        if (!id) return;
 
-      const id = row.dataset.id;
-      if (!id) return;
-
-      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-    };
-  });
-}
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
+  }
 
   function attachSwipe() {
     lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
@@ -1466,10 +1479,27 @@ attachSwipe();
   }
 
   async function updateStatoPrenotazione(id, stato) {
-    const { error } = await window.supabaseClient
+    const normalizedStatus = normalizeStatus(stato);
+
+    if (!["in_attesa", "confermata", "arrivata", "rifiutata", "no_show"].includes(normalizedStatus)) {
+      alert("Stato non valido");
+      return;
+    }
+
+    let query = window.supabaseClient
       .from("prenotazioni_tavoli")
-      .update({ stato })
+      .update({ stato: normalizedStatus })
       .eq("id", id);
+
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
+
+    if (sedeId) {
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+    }
+
+    const { error } = await query;
 
     if (error) {
       console.error("ERRORE UPDATE STATO:", error);
@@ -1479,6 +1509,8 @@ attachSwipe();
     }
 
     await load();
+    await loadOnlineRequests();
+
     if (arriviModal.classList.contains("open")) {
       renderArriviSlots();
     }
@@ -1489,7 +1521,8 @@ attachSwipe();
 
     let query = window.supabaseClient
       .from("tavoli")
-      .select("*");
+      .select("*")
+      .eq("attivo", true);
 
     if (aziendaId) {
       query = query.eq("azienda_id", aziendaId);
@@ -1498,8 +1531,6 @@ attachSwipe();
     if (sedeId) {
       query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
-
-    query = query.eq("attivo", true);
 
     const { data, error } = await query;
 
@@ -1600,20 +1631,22 @@ attachSwipe();
   }
 
   function renderOnlineRequests() {
-    if (!state.onlineRequests.length) {
+    const pendingRequests = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato));
+
+    if (!pendingRequests.length) {
       listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
       return;
     }
 
-    listaOnline.innerHTML = state.onlineRequests.map((item) => {
+    listaOnline.innerHTML = pendingRequests.map((item) => {
       const statusMeta = getOnlineRequestStatusMeta(item.stato);
       const nome = buildClientName(item);
       const coperti = Number(item.coperti) || 0;
       const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
       const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
-      const telefono = item.telefono || item.cliente_telefono || item.phone || "";
-      const note = item.note || item.richiesta_note || "";
-      const linkedPrenId = item.prenotazione_id || item.id;
+      const telefono = item.cliente_telefono || "";
+      const note = item.note || "";
+      const linkedPrenId = item.id;
 
       return `
       <div class="pren-online-item" data-online-id="${escapeAttribute(item.id)}">
@@ -1642,7 +1675,7 @@ attachSwipe();
     `;
     }).join("");
 
-          listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
+    listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
       btn.onclick = async (e) => {
         e.stopPropagation();
         await acceptOnlineRequest(btn.dataset.onlineAccept);
@@ -1667,63 +1700,55 @@ attachSwipe();
   }
 
   async function acceptOnlineRequest(onlineId) {
-    if (!onlineId) return;
-
-    const { error } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: "confermata" })
-      .eq("id", onlineId);
-
-    if (error) {
-      console.error("ERRORE ACCETTA PRENOTAZIONE ONLINE:", error);
-      alert("Errore accettazione richiesta online");
-      return;
-    }
-
-    await load();
-    await loadOnlineRequests();
-    renderOnlineRequests();
+    await updateOnlineRequestStatus(onlineId, "confermata");
   }
 
   async function rejectOnlineRequest(onlineId) {
-    if (!onlineId) return;
-
-    const { error } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: "rifiutata" })
-      .eq("id", onlineId);
-
-    if (error) {
-      console.error("ERRORE RIFIUTA PRENOTAZIONE ONLINE:", error);
-      alert("Errore rifiuto richiesta online");
-      return;
-    }
-
-    await load();
-    await loadOnlineRequests();
-    renderOnlineRequests();
+    await updateOnlineRequestStatus(onlineId, "rifiutata");
   }
-  async function rejectOnlineRequest(onlineId) {
+
+  async function updateOnlineRequestStatus(onlineId, nextStatus) {
     if (!onlineId) return;
 
-    const { error } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .update({ stato: "rifiutata" })
-      .eq("id", onlineId);
+    const normalizedStatus = normalizeStatus(nextStatus);
 
-    if (error) {
-      console.error("ERRORE RIFIUTA PRENOTAZIONE ONLINE:", error);
-      alert("Errore rifiuto richiesta online");
+    if (!["confermata", "rifiutata"].includes(normalizedStatus)) {
+      alert("Stato richiesta online non valido");
       return;
     }
 
+    let query = window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato: normalizedStatus })
+      .eq("id", onlineId)
+      .eq("stato", "in_attesa");
+
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
+
+    if (sedeId) {
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error("ERRORE UPDATE PRENOTAZIONE ONLINE:", error);
+      alert("Errore aggiornamento richiesta online");
+      return;
+    }
+
+    state.onlineRequests = (state.onlineRequests || []).filter((item) => String(item.id) !== String(onlineId));
+    updateOnlineBadge();
+    renderOnlineRequests();
+
     await load();
     await loadOnlineRequests();
-    renderOnlineRequests();
   }
 
   function updateOnlineBadge() {
-    const total = state.onlineRequests.length;
+    const total = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato)).length;
     onlineBadge.textContent = total > 99 ? "99+" : String(total);
     onlineBadge.classList.toggle("show", total > 0);
   }
@@ -1740,8 +1765,8 @@ attachSwipe();
   function renderArriviSlots() {
     const slotMinutes = Number(slotSizeSelect.value) || 30;
     const arrivate = state.prenotazioni.filter((p) => {
-      const stato = String(p.stato || "").toLowerCase();
-      return stato !== "annullata" && stato !== "no_show";
+      const stato = normalizeStatus(p.stato);
+      return stato === "confermata" || stato === "arrivata";
     });
 
     if (!arrivate.length) {
@@ -1808,42 +1833,39 @@ attachSwipe();
   }
 
   function getOnlineRequestStatusMeta(stato) {
-    const value = String(stato || "").toLowerCase();
-    if (value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta") {
+    const value = normalizeStatus(stato);
+
+    if (value === "in_attesa") {
       return { label: "Da gestire", emoji: "🔴", bg: "#fee2e2", color: "#991b1b" };
     }
-    if (value === "accettata" || value === "confermata") {
+
+    if (value === "confermata") {
       return { label: "Accettata", emoji: "🟢", bg: "#dcfce7", color: "#166534" };
     }
-    if (value === "rifiutata" || value === "annullata") {
+
+    if (value === "rifiutata") {
       return { label: "Rifiutata", emoji: "⚫", bg: "#e5e7eb", color: "#374151" };
     }
+
+    if (value === "arrivata") {
+      return { label: "Arrivata", emoji: "🟢", bg: "#dcfce7", color: "#166534" };
+    }
+
+    if (value === "no_show") {
+      return { label: "No show", emoji: "⚫", bg: "#fee2e2", color: "#991b1b" };
+    }
+
     return { label: "Da gestire", emoji: "🔴", bg: "#fee2e2", color: "#991b1b" };
   }
 
   function isOnlinePendingStatus(stato) {
-    const value = String(stato || "").toLowerCase();
-    return value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta";
-  }
-
-  function isLikelyOnlineChannel(channel) {
-    return [
-      "online",
-      "thefork",
-      "quandoo",
-      "google",
-      "sito",
-      "web",
-      "widget",
-      "booking",
-      "prenotazione_online"
-    ].includes(String(channel || "").toLowerCase());
+    return normalizeStatus(stato) === "in_attesa";
   }
 
   function getOriginIcon(p) {
-    const channel = String(p.canale || p.origine || p.source || "").toLowerCase();
+    const channel = String(p.canale || p.source || "").toLowerCase();
 
-    if (isLikelyOnlineChannel(channel)) return "🌐";
+    if (channel.includes("online") || channel.includes("web") || channel.includes("widget") || channel.includes("booking")) return "🌐";
     if (channel.includes("telefono") || channel.includes("call")) return "📞";
     if (channel.includes("whatsapp")) return "💬";
     if (channel.includes("walk")) return "🚶";
@@ -1851,13 +1873,13 @@ attachSwipe();
   }
 
   function getOriginLabel(p) {
-    const channel = String(p.canale || p.origine || p.source || "").trim();
+    const channel = String(p.canale || p.source || "").trim();
     return channel || "Prenotazione";
   }
 
   function buildClientName(p) {
-    const nome = String(p?.cliente_nome || p?.nome_cliente || p?.nome || "").trim();
-    const cognome = String(p?.cliente_cognome || p?.cognome || "").trim();
+    const nome = String(p?.cliente_nome || "").trim();
+    const cognome = String(p?.cognome || "").trim();
     const full = `${nome} ${cognome}`.trim();
     return full || "Cliente";
   }
@@ -1916,3 +1938,66 @@ attachSwipe();
   function escapeAttribute(value) {
     return escapeHtml(value);
   }
+
+  await load();
+  await loadOnlineRequests();
+}
+
+export function buildPayloadFromForm(formOrData = {}, options = {}) {
+  const source = formOrData instanceof HTMLFormElement
+    ? Object.fromEntries(new FormData(formOrData).entries())
+    : { ...(formOrData || {}) };
+
+  const aziendaId = options.aziendaId || window.state?.azienda?.id || null;
+  const sedeId = options.sedeId || window.state?.sedeAttiva?.id || null;
+
+  const clienteNome = String(source.cliente_nome || source.nome || "").trim();
+  const cognome = String(source.cognome || "").trim();
+  const clienteTelefono = String(source.cliente_telefono || "").trim();
+  const data = String(source.data || "").trim();
+  const ora = normalizeTime(source.ora);
+  const coperti = normalizeInteger(source.coperti);
+  const stato = normalizeAllowedStatus(source.stato, "confermata");
+  const note = String(source.note || "").trim();
+
+  const canale = String(source.canale || "").trim();
+  const sourceValue = String(source.source || "").trim();
+  const riferimento = String(source.riferimento || "").trim();
+  const tag = String(source.tag || "").trim();
+
+  return {
+    azienda_id: aziendaId,
+    sede_id: sedeId,
+    cliente_nome: clienteNome || null,
+    cognome: cognome || null,
+    cliente_telefono: clienteTelefono || null,
+    data: data || null,
+    ora: ora || null,
+    coperti,
+    stato,
+    note: note || null,
+    canale: canale || null,
+    source: sourceValue || null,
+    riferimento: riferimento || null,
+    tag: tag || null
+  };
+}
+
+function normalizeAllowedStatus(value, fallback = "confermata") {
+  const normalized = String(value || "").trim().toLowerCase();
+  const allowed = ["in_attesa", "confermata", "arrivata", "rifiutata", "no_show"];
+  return allowed.includes(normalized) ? normalized : fallback;
+}
+
+function normalizeInteger(value) {
+  const parsed = parseInt(String(value ?? "").trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function normalizeTime(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const match = raw.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
+  return `${match[1]}:${match[2]}`;
+}
