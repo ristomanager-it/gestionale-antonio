@@ -46,7 +46,7 @@ export async function render(container) {
 
   const defaultPrefix = lang === "it" ? "+39" : "+44";
 
-  // 🔥 LOGO (placeholder ora)
+  // 🔥 LOGO
   const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
@@ -148,8 +148,7 @@ export async function render(container) {
         data,
         ora,
         coperti,
-        stato: "nuova",
-        origine: "online"
+        stato: "nuova"
       }]);
 
     if (error) {
