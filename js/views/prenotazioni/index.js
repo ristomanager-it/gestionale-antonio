@@ -907,9 +907,8 @@ export async function render(container) {
     }
 
     if (sedeId) {
-      query = query.eq("sede_id", sedeId);
-    }
-
+  query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+}
     if (filtroData.value) {
       query = query.eq("data", filtroData.value);
     }
