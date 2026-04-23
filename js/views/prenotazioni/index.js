@@ -937,7 +937,7 @@ export async function render(container) {
       }
 
       if (sedeId) {
-        fallbackQuery = fallbackQuery.eq("sede_id", sedeId);
+        fallbackQuery = fallbackQuery.or(`sede_id.eq.${sedeId},sede_id.is.null`);
       }
 
       const { data: fallbackData, error: fallbackError } = await fallbackQuery;
