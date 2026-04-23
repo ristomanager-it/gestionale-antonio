@@ -1,22 +1,26 @@
 export async function render(container) {
 
+  // 🔥 NASCONDE HEADER
   document.querySelector(".app-header")?.style.setProperty("display","none");
   document.querySelector(".topbar-global")?.style.setProperty("display","none");
 
+  // 🔥 AZIENDA DA URL
   const aziendaId = window.routeParams?.azienda;
 
-  // 🔥 NUOVO: SOURCE TRACKING
+  // 🔥 TRACKING SOURCE
   const source = window.routeParams?.src || "web";
+  const tag = window.routeParams?.tag || "🌐";
   const ref = window.routeParams?.ref || null;
 
   console.log("AZIENDA ID:", aziendaId);
-  console.log("SOURCE:", source, "REF:", ref);
+  console.log("SOURCE:", source, "TAG:", tag, "REF:", ref);
 
   if (!aziendaId) {
     container.innerHTML = `<div class="page">Errore: azienda non trovata</div>`;
     return;
   }
 
+  // 🌍 LINGUA
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
@@ -47,6 +51,7 @@ export async function render(container) {
   };
 
   const defaultPrefix = lang === "it" ? "+39" : "+44";
+
   const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
@@ -106,6 +111,7 @@ export async function render(container) {
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
   document.getElementById("prefisso").value = defaultPrefix;
 
+  // 🔥 INVIO
   document.getElementById("btn-invia").onclick = async () => {
 
     const msg = document.getElementById("msg");
@@ -135,12 +141,15 @@ export async function render(container) {
         data,
         ora,
         coperti,
+
+        // 🔥 FIX SISTEMA
         stato: "in_attesa",
         canale: "online",
 
-        // 🔥 NUOVI CAMPI TRACKING
+        // 🔥 TRACKING
         source: source,
-        riferimento: ref
+        riferimento: ref,
+        tag: tag
       }]);
 
     if (error) {
