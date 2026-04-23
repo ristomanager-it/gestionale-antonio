@@ -989,7 +989,7 @@ export async function render(container) {
     }
 
     if (sedeId) {
-      query = query.eq("sede_id", sedeId);
+     query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
 
     const { data, error } = await query;
@@ -1037,7 +1037,7 @@ export async function render(container) {
     }
 
     if (sedeId) {
-      query = query.eq("sede_id", sedeId);
+     query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
 
     const { data, error } = await query;
@@ -1489,7 +1489,7 @@ export async function render(container) {
     }
 
     if (sedeId) {
-      query = query.eq("sede_id", sedeId);
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
     }
 
     query = query.eq("attivo", true);
