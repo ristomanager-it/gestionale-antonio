@@ -549,18 +549,16 @@ export async function render(container) {
     const clienteNome = container.querySelector("#pren-nome")?.value || "";
     const clienteCognome = container.querySelector("#pren-cognome")?.value || "";
     const telefono = container.querySelector("#pren-telefono")?.value || "";
-
-   const payload = {
+const payload = {
   data,
   ora,
   coperti,
   stato,
   note,
- cliente_telefono: telefono,
   cliente_nome: clienteNome,
-  cognome: clienteCognome
+  cognome: clienteCognome,
+  cliente_telefono: telefono
 };
-
     if ("nome_cliente" in current) payload.nome_cliente = clienteNome;
     if ("nome" in current && !("cliente_nome" in current)) payload.nome = clienteNome;
     if ("cognome" in current || clienteCognome) payload.cognome = clienteCognome;
