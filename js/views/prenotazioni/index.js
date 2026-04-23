@@ -1,9 +1,9 @@
 export async function render(container) {
-const aziendaId = window.state?.azienda?.id || null;
-const sedeId = window.state?.sedeAttiva?.id || null;
-const sedeNome = window.state?.sedeAttiva?.nome || "Prenotazioni";
+  const aziendaId = window.state?.azienda?.id || null;
+  const sedeId = window.state?.sedeAttiva?.id || null;
+  const sedeNome = window.state?.sedeAttiva?.nome || "Prenotazioni";
 
-container.innerHTML = `
+  container.innerHTML = `
 <div class="view prenotazioni-view">
   <style>
     .prenotazioni-view{
@@ -109,8 +109,8 @@ container.innerHTML = `
     }
 
     .pren-day{
-      min-width:44px;
-      padding:5px 4px;
+      min-width:56px;
+      padding:5px 4px 6px;
       border-radius:10px;
       background:#f3f4f6;
       border:1px solid #e5e7eb;
@@ -118,6 +118,11 @@ container.innerHTML = `
       cursor:pointer;
       flex-shrink:0;
       font-weight:500;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:1px;
     }
 
     .pren-day.is-active{
@@ -132,14 +137,35 @@ container.innerHTML = `
       font-weight:600;
       text-transform:capitalize;
       opacity:.92;
-      line-height:1.1;
+      line-height:1.05;
     }
 
-    .pren-day-bottom{
-      font-size:12px;
+    .pren-day-number{
+      font-size:16px;
+      font-weight:700;
+      line-height:1.05;
+      margin-top:1px;
+    }
+
+    .pren-day-month{
+      font-size:9px;
       font-weight:600;
+      text-transform:lowercase;
+      opacity:.82;
+      line-height:1.05;
+    }
+
+    .pren-day-stats{
+      margin-top:3px;
+      font-size:9px;
+      font-weight:500;
       line-height:1.1;
-      margin-top:2px;
+      opacity:.72;
+      white-space:nowrap;
+    }
+
+    .pren-day.is-active .pren-day-stats{
+      opacity:.84;
     }
 
     .pren-calendar-btn{
@@ -224,6 +250,24 @@ container.innerHTML = `
       justify-content:center;
     }
 
+    .pren-kpi-row{
+      margin:2px 0 10px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#ffffff;
+      border:1px solid #e5e7eb;
+      font-size:13px;
+      font-weight:600;
+      color:#111827;
+      text-align:center;
+      box-shadow:0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .pren-kpi-row .muted{
+      color:#6b7280;
+      font-weight:600;
+    }
+
     .pren-list{
       display:flex;
       flex-direction:column;
@@ -287,6 +331,7 @@ container.innerHTML = `
       transition:transform .18s ease;
       touch-action:pan-y;
       will-change:transform;
+      cursor:pointer;
     }
 
     .pren-row.is-dragging{
@@ -388,6 +433,7 @@ container.innerHTML = `
       -webkit-tap-highlight-color:transparent;
       font-size:12px;
       color:#374151;
+      flex-shrink:0;
     }
 
     .pren-ico.channel{
@@ -638,6 +684,10 @@ container.innerHTML = `
         padding:10px 10px 96px;
       }
 
+      .pren-kpi-row{
+        text-align:left;
+      }
+
       .pren-modal{
         align-items:center;
         justify-content:center;
@@ -694,6 +744,10 @@ container.innerHTML = `
         <input type="date" id="filtro-data" style="display:none" />
       </div>
 
+      <div id="pren-kpi-row" class="pren-kpi-row">
+        <span class="muted">0 coperti · 0 prenotazioni</span>
+      </div>
+
       <div id="lista-prenotazioni" class="pren-list">
         <div class="pren-loading">Caricamento...</div>
       </div>
@@ -745,613 +799,751 @@ container.innerHTML = `
 </div>
 `;
 
-const lista = document.getElementById("lista-prenotazioni");
-const filtroData = document.getElementById("filtro-data");
-const filtroServizio = document.getElementById("filtro-servizio");
-const modal = document.getElementById("modal-tavoli");
-const listaTavoli = document.getElementById("lista-tavoli");
-const onlineModal = document.getElementById("modal-online");
-const listaOnline = document.getElementById("lista-online");
-const arriviModal = document.getElementById("modal-arrivi");
-const listaArrivi = document.getElementById("lista-arrivi");
-const slotSizeSelect = document.getElementById("arrivi-slot-size");
-const daysContainer = document.getElementById("pren-days");
-const onlineBadge = document.getElementById("pren-online-badge");
+  const lista = document.getElementById("lista-prenotazioni");
+  const filtroData = document.getElementById("filtro-data");
+  const filtroServizio = document.getElementById("filtro-servizio");
+  const modal = document.getElementById("modal-tavoli");
+  const listaTavoli = document.getElementById("lista-tavoli");
+  const onlineModal = document.getElementById("modal-online");
+  const listaOnline = document.getElementById("lista-online");
+  const arriviModal = document.getElementById("modal-arrivi");
+  const listaArrivi = document.getElementById("lista-arrivi");
+  const slotSizeSelect = document.getElementById("arrivi-slot-size");
+  const daysContainer = document.getElementById("pren-days");
+  const onlineBadge = document.getElementById("pren-online-badge");
+  const kpiRow = document.getElementById("pren-kpi-row");
 
-const today = new Date();
-filtroData.value = formatDateInput(today);
+  const today = new Date();
+  filtroData.value = formatDateInput(today);
 
-const state = {
-  prenotazioni: [],
-  tavoli: [],
-  onlineRequests: [],
-  currentPrenId: null,
-  daysCenterDate: formatDateInput(today),
-  renderedDays: []
-};
+  const state = {
+    prenotazioni: [],
+    tavoli: [],
+    onlineRequests: [],
+    currentPrenId: null,
+    daysCenterDate: formatDateInput(today),
+    renderedDays: [],
+    dayStats: {}
+  };
 
-renderDays(true);
-attachDayInfiniteScroll();
+  renderDays(true);
+  attachDayInfiniteScroll();
 
-document.getElementById("btn-refresh").onclick = async () => {
-  await load();
-  await loadOnlineRequests();
-};
+  document.getElementById("btn-refresh").onclick = async () => {
+    await load();
+    await loadOnlineRequests();
+  };
 
-document.getElementById("footer-new").onclick = () => {
-  window.location.hash = "#/prenotazioni-form";
-};
+  document.getElementById("footer-new").onclick = () => {
+    window.location.hash = "#/prenotazioni-form";
+  };
 
-document.getElementById("tab-prenotazioni").onclick = () => {};
-document.getElementById("tab-arrivi").onclick = () => {
-  openArriviModal();
-};
-document.getElementById("tab-piantina").onclick = () => {
-  window.location.hash = "#/sala";
-};
+  document.getElementById("tab-prenotazioni").onclick = () => {};
+  document.getElementById("tab-arrivi").onclick = () => {
+    openArriviModal();
+  };
+  document.getElementById("tab-piantina").onclick = () => {
+    window.location.hash = "#/sala";
+  };
 
-document.getElementById("pren-online-trigger").onclick = async () => {
-  await openOnlineModal();
-};
+  document.getElementById("pren-online-trigger").onclick = async () => {
+    await openOnlineModal();
+  };
 
-document.getElementById("btn-calendar").onclick = () => {
-  if (typeof filtroData.showPicker === "function") {
-    filtroData.showPicker();
-  } else {
-    filtroData.click();
+  document.getElementById("btn-calendar").onclick = () => {
+    try {
+      if (typeof filtroData.showPicker === "function") {
+        filtroData.showPicker();
+      } else {
+        throw new Error("showPicker non disponibile");
+      }
+    } catch (e) {
+      filtroData.focus();
+      filtroData.click();
+    }
+  };
+
+  filtroData.onchange = async () => {
+    state.daysCenterDate = filtroData.value || formatDateInput(today);
+    syncActiveDayFromInput(true);
+    await load();
+  };
+
+  filtroServizio.onchange = async () => {
+    await load();
+  };
+
+  document.getElementById("close-modal").onclick = closeModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
+  document.getElementById("close-online-modal").onclick = closeOnlineModal;
+  onlineModal.onclick = (e) => {
+    if (e.target === onlineModal) closeOnlineModal();
+  };
+
+  document.getElementById("close-arrivi-modal").onclick = closeArriviModal;
+  arriviModal.onclick = (e) => {
+    if (e.target === arriviModal) closeArriviModal();
+  };
+
+  slotSizeSelect.onchange = () => {
+    renderArriviSlots();
+  };
+
+  async function load() {
+    lista.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
+    renderKpiRow();
+
+    await loadDayStats();
+
+    let query = window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("*");
+
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
+
+    if (sedeId) {
+      query = query.eq("sede_id", sedeId);
+    }
+
+    if (filtroData.value) {
+      query = query.eq("data", filtroData.value);
+    }
+
+    query = query.order("ora", { ascending: true });
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("ERRORE PRENOTAZIONI:", error);
+      lista.innerHTML = `<div class="pren-error">Errore caricamento prenotazioni</div>`;
+      renderKpiRow();
+      return;
+    }
+
+    let prenotazioni = data || [];
+
+    if (!prenotazioni.length) {
+      let fallbackQuery = window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (aziendaId) {
+        fallbackQuery = fallbackQuery.eq("azienda_id", aziendaId);
+      }
+
+      if (sedeId) {
+        fallbackQuery = fallbackQuery.eq("sede_id", sedeId);
+      }
+
+      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+
+      if (fallbackError) {
+        console.error("ERRORE FALLBACK PRENOTAZIONI:", fallbackError);
+      } else {
+        prenotazioni = (fallbackData || []).filter((p) => {
+          if (filtroData.value && p.data !== filtroData.value) return false;
+          return true;
+        });
+      }
+    }
+
+    prenotazioni = applyServiceFilter(prenotazioni);
+    state.prenotazioni = prenotazioni;
+    renderKpiRow();
+
+    if (!prenotazioni.length) {
+      lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
+      return;
+    }
+
+    lista.innerHTML = prenotazioni.map(renderRow).join("");
+    attachRowEvents();
+    attachSwipe();
   }
-};
 
-filtroData.onchange = () => {
-  state.daysCenterDate = filtroData.value || formatDateInput(today);
-  syncActiveDayFromInput(true);
-  load();
-};
+  async function loadDayStats() {
+    if (!state.renderedDays.length) {
+      state.dayStats = {};
+      renderKpiRow();
+      return;
+    }
 
-filtroServizio.onchange = load;
+    const firstDay = state.renderedDays[0];
+    const lastDay = state.renderedDays[state.renderedDays.length - 1];
+    const from = formatDateInput(firstDay);
+    const to = formatDateInput(lastDay);
 
-document.getElementById("close-modal").onclick = closeModal;
-modal.onclick = (e) => {
-  if (e.target === modal) closeModal();
-};
+    let query = window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("*")
+      .gte("data", from)
+      .lte("data", to);
 
-document.getElementById("close-online-modal").onclick = closeOnlineModal;
-onlineModal.onclick = (e) => {
-  if (e.target === onlineModal) closeOnlineModal();
-};
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
 
-document.getElementById("close-arrivi-modal").onclick = closeArriviModal;
-arriviModal.onclick = (e) => {
-  if (e.target === arriviModal) closeArriviModal();
-};
+    if (sedeId) {
+      query = query.eq("sede_id", sedeId);
+    }
 
-slotSizeSelect.onchange = () => {
-  renderArriviSlots();
-};
+    const { data, error } = await query;
 
-async function load() {
-  lista.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
+    if (error) {
+      console.error("ERRORE STATS GIORNI PRENOTAZIONI:", error);
+      state.dayStats = {};
+      renderDays(false);
+      renderKpiRow();
+      return;
+    }
 
-  let query = window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .select("*");
+    const stats = {};
 
-  if (aziendaId) {
-    query = query.eq("azienda_id", aziendaId);
+    (data || []).forEach((p) => {
+      if (!p?.data) return;
+      if (String(p.stato || "").toLowerCase() === "annullata") return;
+
+      if (filtroServizio.value && inferService(p) !== filtroServizio.value) {
+        return;
+      }
+
+      const key = p.data;
+      if (!stats[key]) {
+        stats[key] = { prenotazioni: 0, coperti: 0 };
+      }
+
+      stats[key].prenotazioni += 1;
+      stats[key].coperti += Number(p.coperti) || 0;
+    });
+
+    state.dayStats = stats;
+    renderDays(false);
+    renderKpiRow();
   }
 
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
-  }
-
-  if (filtroData.value) {
-    query = query.eq("data", filtroData.value);
-  }
-
-  query = query.order("ora", { ascending: true });
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("ERRORE PRENOTAZIONI:", error);
-    lista.innerHTML = `<div class="pren-error">Errore caricamento prenotazioni</div>`;
-    return;
-  }
-
-  let prenotazioni = data || [];
-
-  if (!prenotazioni.length) {
-    let fallbackQuery = window.supabaseClient
+  async function loadOnlineRequests() {
+    let query = window.supabaseClient
       .from("prenotazioni_tavoli")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (aziendaId) {
-      fallbackQuery = fallbackQuery.eq("azienda_id", aziendaId);
+      query = query.eq("azienda_id", aziendaId);
     }
 
     if (sedeId) {
-      fallbackQuery = fallbackQuery.eq("sede_id", sedeId);
+      query = query.eq("sede_id", sedeId);
     }
 
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+    const { data, error } = await query;
 
-    if (fallbackError) {
-      console.error("ERRORE FALLBACK PRENOTAZIONI:", fallbackError);
-    } else {
-      prenotazioni = (fallbackData || []).filter((p) => {
-        if (filtroData.value && p.data !== filtroData.value) return false;
-        return true;
+    if (error) {
+      console.error("ERRORE CARICAMENTO PRENOTAZIONI ONLINE:", error);
+      state.onlineRequests = [];
+      updateOnlineBadge();
+      if (onlineModal.classList.contains("open")) {
+        listaOnline.innerHTML = `<div class="pren-error">Errore caricamento richieste online</div>`;
+      }
+      return;
+    }
+
+    state.onlineRequests = (data || []).filter((item) => {
+      const channel = String(item.canale || item.origine || item.source || "").toLowerCase();
+      const status = String(item.stato || "").toLowerCase();
+      return isLikelyOnlineChannel(channel) && isOnlinePendingStatus(status);
+    });
+
+    updateOnlineBadge();
+
+    if (onlineModal.classList.contains("open")) {
+      renderOnlineRequests();
+    }
+  }
+
+  function applyServiceFilter(prenotazioni) {
+    const servizio = filtroServizio.value;
+    if (!servizio) return prenotazioni;
+    return prenotazioni.filter((p) => inferService(p) === servizio);
+  }
+
+  function buildVisibleDays(centerDateString, before = 28, after = 28) {
+    const baseDate = new Date(centerDateString || formatDateInput(today));
+    const visible = [];
+
+    for (let i = -before; i <= after; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      visible.push(d);
+    }
+
+    return visible;
+  }
+
+  function renderDays(centerScroll = false) {
+    state.renderedDays = buildVisibleDays(state.daysCenterDate, 28, 28);
+
+    daysContainer.innerHTML = state.renderedDays.map((d) => {
+      const value = formatDateInput(d);
+      const isActive = value === filtroData.value;
+      const stats = state.dayStats[value] || { prenotazioni: 0, coperti: 0 };
+
+      return `
+        <button type="button" class="pren-day ${isActive ? "is-active" : ""}" data-day="${value}">
+          <div class="pren-day-top">${getDayLabel(d)}</div>
+          <div class="pren-day-number">${String(d.getDate()).padStart(2, "0")}</div>
+          <div class="pren-day-month">${getMonthLabel(d)}</div>
+          <div class="pren-day-stats">${stats.prenotazioni} · ${stats.coperti}</div>
+        </button>
+      `;
+    }).join("");
+
+    daysContainer.querySelectorAll("[data-day]").forEach((btn) => {
+      btn.onclick = async () => {
+        filtroData.value = btn.dataset.day;
+        state.daysCenterDate = filtroData.value;
+        syncActiveDayFromInput(true);
+        await load();
+      };
+    });
+
+    if (centerScroll) {
+      requestAnimationFrame(() => {
+        centerActiveDay();
       });
     }
   }
 
-  prenotazioni = applyServiceFilter(prenotazioni);
-  state.prenotazioni = prenotazioni;
-
-  if (!prenotazioni.length) {
-    lista.innerHTML = `<div class="pren-empty">Nessuna prenotazione per i filtri selezionati</div>`;
-    return;
+  function renderKpiRow() {
+    const stats = getSelectedDayStats();
+    const copertiLabel = stats.coperti === 1 ? "coperto" : "coperti";
+    const prenLabel = stats.prenotazioni === 1 ? "prenotazione" : "prenotazioni";
+    kpiRow.innerHTML = `${stats.coperti} ${copertiLabel} · ${stats.prenotazioni} ${prenLabel}`;
   }
 
-  lista.innerHTML = prenotazioni.map(renderRow).join("");
-  attachRowEvents();
-  attachSwipe();
-}
+  function getSelectedDayStats() {
+    const selectedDate = filtroData.value || formatDateInput(today);
+    const fromState = state.dayStats[selectedDate];
 
-async function loadOnlineRequests() {
-  let query = window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (aziendaId) {
-    query = query.eq("azienda_id", aziendaId);
-  }
-
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("ERRORE CARICAMENTO PRENOTAZIONI ONLINE:", error);
-    state.onlineRequests = [];
-    updateOnlineBadge();
-    if (onlineModal.classList.contains("open")) {
-      listaOnline.innerHTML = `<div class="pren-error">Errore caricamento richieste online</div>`;
+    if (fromState) {
+      return {
+        prenotazioni: Number(fromState.prenotazioni) || 0,
+        coperti: Number(fromState.coperti) || 0
+      };
     }
-    return;
-  }
 
-  state.onlineRequests = (data || []).filter((item) => {
-    const channel = String(item.canale || item.origine || item.source || "").toLowerCase();
-    const status = String(item.stato || "").toLowerCase();
-    return isLikelyOnlineChannel(channel) && isOnlinePendingStatus(status);
-  });
-
-  updateOnlineBadge();
-
-  if (onlineModal.classList.contains("open")) {
-    renderOnlineRequests();
-  }
-}
-
-function applyServiceFilter(prenotazioni) {
-  const servizio = filtroServizio.value;
-  if (!servizio) return prenotazioni;
-  return prenotazioni.filter((p) => inferService(p) === servizio);
-}
-
-function buildVisibleDays(centerDateString, before = 28, after = 28) {
-  const baseDate = new Date(centerDateString || formatDateInput(today));
-  const visible = [];
-
-  for (let i = -before; i <= after; i++) {
-    const d = new Date(baseDate);
-    d.setDate(baseDate.getDate() + i);
-    visible.push(d);
-  }
-
-  return visible;
-}
-
-function renderDays(centerScroll = false) {
-  state.renderedDays = buildVisibleDays(state.daysCenterDate, 28, 28);
-
-  daysContainer.innerHTML = state.renderedDays.map((d) => {
-    const value = formatDateInput(d);
-    const isActive = value === filtroData.value;
-    return `
-      <button type="button" class="pren-day ${isActive ? "is-active" : ""}" data-day="${value}">
-        <div class="pren-day-top">${getDayLabel(d)}</div>
-        <div class="pren-day-bottom">${String(d.getDate()).padStart(2, "0")}</div>
-      </button>
-    `;
-  }).join("");
-
-  daysContainer.querySelectorAll("[data-day]").forEach((btn) => {
-    btn.onclick = () => {
-      filtroData.value = btn.dataset.day;
-      state.daysCenterDate = filtroData.value;
-      syncActiveDayFromInput(true);
-      load();
-    };
-  });
-
-  if (centerScroll) {
-    requestAnimationFrame(() => {
-      centerActiveDay();
+    const filtered = (state.prenotazioni || []).filter((p) => {
+      if (p.data !== selectedDate) return false;
+      return true;
     });
+
+    return {
+      prenotazioni: filtered.length,
+      coperti: filtered.reduce((sum, item) => sum + (Number(item.coperti) || 0), 0)
+    };
   }
-}
 
-function centerActiveDay() {
-  const active = daysContainer.querySelector(`.pren-day.is-active`);
-  if (!active) return;
-  const left = active.offsetLeft - (daysContainer.clientWidth / 2) + (active.clientWidth / 2);
-  daysContainer.scrollLeft = Math.max(0, left);
-}
+  function centerActiveDay() {
+    const active = daysContainer.querySelector(`.pren-day.is-active`);
+    if (!active) return;
+    const left = active.offsetLeft - (daysContainer.clientWidth / 2) + (active.clientWidth / 2);
+    daysContainer.scrollLeft = Math.max(0, left);
+  }
 
-function attachDayInfiniteScroll() {
-  if (daysContainer.dataset.infiniteBound === "true") return;
+  function attachDayInfiniteScroll() {
+    if (daysContainer.dataset.infiniteBound === "true") return;
 
-  daysContainer.addEventListener("scroll", () => {
-    const threshold = 140;
-    const nearLeft = daysContainer.scrollLeft <= threshold;
-    const nearRight = daysContainer.scrollLeft + daysContainer.clientWidth >= daysContainer.scrollWidth - threshold;
+    daysContainer.addEventListener("scroll", async () => {
+      const threshold = 140;
+      const nearLeft = daysContainer.scrollLeft <= threshold;
+      const nearRight = daysContainer.scrollLeft + daysContainer.clientWidth >= daysContainer.scrollWidth - threshold;
 
-    if (nearLeft) {
-      const center = new Date(state.daysCenterDate);
-      center.setDate(center.getDate() - 21);
-      state.daysCenterDate = formatDateInput(center);
-      renderDays(false);
-      requestAnimationFrame(centerActiveDay);
-    } else if (nearRight) {
-      const center = new Date(state.daysCenterDate);
-      center.setDate(center.getDate() + 21);
-      state.daysCenterDate = formatDateInput(center);
-      renderDays(false);
-      requestAnimationFrame(centerActiveDay);
-    }
-  }, { passive: true });
+      if (nearLeft) {
+        const center = new Date(state.daysCenterDate);
+        center.setDate(center.getDate() - 21);
+        state.daysCenterDate = formatDateInput(center);
+        renderDays(false);
+        requestAnimationFrame(centerActiveDay);
+        await loadDayStats();
+      } else if (nearRight) {
+        const center = new Date(state.daysCenterDate);
+        center.setDate(center.getDate() + 21);
+        state.daysCenterDate = formatDateInput(center);
+        renderDays(false);
+        requestAnimationFrame(centerActiveDay);
+        await loadDayStats();
+      }
+    }, { passive: true });
 
-  daysContainer.dataset.infiniteBound = "true";
-}
+    daysContainer.dataset.infiniteBound = "true";
+  }
 
-function syncActiveDayFromInput(centerScroll = false) {
-  renderDays(centerScroll);
-}
+  function syncActiveDayFromInput(centerScroll = false) {
+    renderDays(centerScroll);
+    renderKpiRow();
+  }
 
-function renderRow(p) {
-  const nome = buildClientName(p);
-  const coperti = Number(p.coperti) || 0;
-  const oraRaw = p.ora || "";
-  const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
-  const noteFull = p.note || "";
-  const telefono = p.telefono || p.cliente_telefono || p.phone || "";
-  const channelIcon = getOriginIcon(p);
-  const tag = renderStatusTag(p.stato);
+  function renderRow(p) {
+    const nome = buildClientName(p);
+    const coperti = Number(p.coperti) || 0;
+    const oraRaw = p.ora || "";
+    const ora = oraRaw.length >= 5 ? oraRaw.slice(0, 5) : (oraRaw || "--:--");
+    const noteFull = p.note || "";
+    const telefono = p.telefono || p.cliente_telefono || p.phone || "";
+    const channelIcon = getOriginIcon(p);
+    const tag = renderStatusTag(p.stato);
 
-  return `
-    <div class="pren-row-wrap" data-id="${escapeAttribute(p.id)}">
-      <div class="pren-row-bg arrivata">
-        <span></span>
-        <span>ARRIVATO</span>
-      </div>
-      <div class="pren-row-bg no-show">
-        <span>NO SHOW</span>
-        <span></span>
-      </div>
-
-      <div class="pren-row" data-id="${escapeAttribute(p.id)}">
-        <div class="pren-time">${escapeHtml(ora)}</div>
-        <div class="pren-pax">${coperti}</div>
-
-        <div class="pren-main">
-          <div class="pren-name cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
-            ${escapeHtml(nome)}
-          </div>
-          ${tag}
+    return `
+      <div class="pren-row-wrap" data-id="${escapeAttribute(p.id)}">
+        <div class="pren-row-bg arrivata">
+          <span></span>
+          <span>ARRIVATO</span>
+        </div>
+        <div class="pren-row-bg no-show">
+          <span>NO SHOW</span>
+          <span></span>
         </div>
 
-        <div class="pren-right">
-          ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+        <div class="pren-row" data-id="${escapeAttribute(p.id)}">
+          <div class="pren-time">${escapeHtml(ora)}</div>
+          <div class="pren-pax">${coperti}</div>
 
-          ${telefono
-            ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>`
-            : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`
+          <div class="pren-main">
+            <div class="pren-name cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
+              ${escapeHtml(nome)}
+            </div>
+            ${tag}
+          </div>
+
+          <div class="pren-right">
+            ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+
+            ${telefono
+              ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>`
+              : `<span class="pren-ico msg" data-id="${escapeAttribute(p.id)}">💬</span>`
+            }
+
+            <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
+
+            <span class="pren-ico channel" title="${escapeAttribute(getOriginLabel(p))}">
+              ${channelIcon}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStatusTag(stato) {
+    const value = String(stato || "").toLowerCase();
+
+    if (value === "in_attesa") {
+      return `<span class="pren-tag in_attesa">ATT</span>`;
+    }
+
+    if (value === "confermata") {
+      return `<span class="pren-tag confermata">CONF</span>`;
+    }
+
+    if (value === "arrivata") {
+      return `<span class="pren-tag arrivata">ARR</span>`;
+    }
+
+    if (value === "no_show") {
+      return `<span class="pren-tag no_show">NO SHOW</span>`;
+    }
+
+    return ``;
+  }
+
+  function attachRowEvents() {
+    lista.querySelectorAll(".cliente-link").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+
+        const id = el.dataset.id;
+
+        if (!id || id === "null" || id === "undefined") {
+          alert("Cliente non collegato");
+          return;
+        }
+
+        window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
+
+    lista.querySelectorAll(".note").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        alert(el.dataset.note || "Nessuna nota");
+      };
+    });
+
+    lista.querySelectorAll(".msg").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        const id = el.dataset.id;
+        if (!id) return;
+        alert("Aprire chat cliente (step successivo)");
+      };
+    });
+
+    lista.querySelectorAll(".whatsapp").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        const phone = el.dataset.phone || "";
+        const id = el.dataset.id || "";
+        if (!phone) return;
+
+        const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
+        const nome = buildClientName(pren || {});
+        const data = pren?.data ? formatDateHuman(pren.data) : "";
+        const ora = pren?.ora ? String(pren.ora).slice(0, 5) : "";
+        const coperti = pren?.coperti || 0;
+
+        const text = encodeURIComponent(
+          `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
+        );
+
+        window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+      };
+    });
+
+    lista.querySelectorAll(".settings").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        const id = el.dataset.id;
+        if (!id) return;
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
+
+    lista.querySelectorAll(".pren-row").forEach((row) => {
+      row.onclick = () => {
+        const id = row.dataset.id;
+        if (!id) return;
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
+  }
+
+  function attachSwipe() {
+    lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
+      const row = wrap.querySelector(".pren-row");
+      if (!row || row.dataset.swipeBound === "true") return;
+
+      let startX = 0;
+      let currentX = 0;
+      let active = false;
+      let isHorizontal = false;
+      let startY = 0;
+
+      const bgArrivata = wrap.querySelector(".pren-row-bg.arrivata");
+      const bgNoShow = wrap.querySelector(".pren-row-bg.no-show");
+
+      const resetSwipe = () => {
+        row.classList.remove("is-dragging");
+        row.style.transform = "translateX(0px)";
+        bgArrivata.style.opacity = "0";
+        bgNoShow.style.opacity = "0";
+        currentX = 0;
+        active = false;
+        isHorizontal = false;
+      };
+
+      row.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+
+        const target = event.target;
+        if (target && target.closest(".pren-ico, .cliente-link")) {
+          active = false;
+          return;
+        }
+
+        active = true;
+        isHorizontal = false;
+        startX = event.clientX;
+        startY = event.clientY;
+        currentX = 0;
+        row.classList.add("is-dragging");
+        row.setPointerCapture?.(event.pointerId);
+      });
+
+      row.addEventListener("pointermove", (event) => {
+        if (!active) return;
+
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+
+        if (!isHorizontal) {
+          if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+            resetSwipe();
+            return;
           }
 
-          <span class="pren-ico settings" data-id="${escapeAttribute(p.id)}">⚙️</span>
+          if (Math.abs(deltaX) > 6) {
+            isHorizontal = true;
+          }
+        }
 
-          <span class="pren-ico channel" title="${escapeAttribute(getOriginLabel(p))}">
-            ${channelIcon}
-          </span>
-        </div>
-      </div>
-    </div>
-  `;
-}
+        currentX = deltaX;
+        if (currentX > 110) currentX = 110;
+        if (currentX < -110) currentX = -110;
 
-function renderStatusTag(stato) {
-  const value = String(stato || "").toLowerCase();
+        row.style.transform = `translateX(${currentX}px)`;
 
-  if (value === "in_attesa") {
-    return `<span class="pren-tag in_attesa">ATT</span>`;
-  }
+        if (currentX > 0) {
+          bgArrivata.style.opacity = "1";
+          bgNoShow.style.opacity = "0";
+        } else if (currentX < 0) {
+          bgArrivata.style.opacity = "0";
+          bgNoShow.style.opacity = "1";
+        } else {
+          bgArrivata.style.opacity = "0";
+          bgNoShow.style.opacity = "0";
+        }
+      });
 
-  if (value === "confermata") {
-    return `<span class="pren-tag confermata">CONF</span>`;
-  }
+      const handleSwipeEnd = async () => {
+        if (!active) return;
 
-  if (value === "arrivata") {
-    return `<span class="pren-tag arrivata">ARR</span>`;
-  }
+        row.classList.remove("is-dragging");
 
-  if (value === "no_show") {
-    return `<span class="pren-tag no_show">NO SHOW</span>`;
-  }
+        if (currentX >= 80) {
+          bgArrivata.style.opacity = "1";
+          bgNoShow.style.opacity = "0";
+          row.style.transform = "translateX(100%)";
 
-  return ``;
-}
+          setTimeout(async () => {
+            await updateStatoPrenotazione(row.dataset.id, "arrivata");
+          }, 120);
+        } else if (currentX <= -80) {
+          bgArrivata.style.opacity = "0";
+          bgNoShow.style.opacity = "1";
+          row.style.transform = "translateX(-100%)";
 
-function attachRowEvents() {
-  lista.querySelectorAll(".cliente-link").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
+          setTimeout(async () => {
+            await updateStatoPrenotazione(row.dataset.id, "no_show");
+          }, 120);
+        } else {
+          resetSwipe();
+        }
 
-      const id = el.dataset.id;
+        active = false;
+        isHorizontal = false;
+        currentX = 0;
+      };
 
-      if (!id || id === "null" || id === "undefined") {
-        alert("Cliente non collegato");
-        return;
-      }
+      row.addEventListener("pointerup", handleSwipeEnd);
+      row.addEventListener("pointercancel", resetSwipe);
+      row.addEventListener("lostpointercapture", () => {
+        if (active && Math.abs(currentX) < 80) {
+          resetSwipe();
+        }
+      });
 
-      window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
-    };
-  });
-
-  lista.querySelectorAll(".note").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      alert(el.dataset.note || "Nessuna nota");
-    };
-  });
-
-  lista.querySelectorAll(".msg").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      const id = el.dataset.id;
-      if (!id) return;
-      alert("Aprire chat cliente (step successivo)");
-    };
-  });
-
-  lista.querySelectorAll(".whatsapp").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      const phone = el.dataset.phone || "";
-      const id = el.dataset.id || "";
-      if (!phone) return;
-
-      const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-      const nome = buildClientName(pren || {});
-      const data = pren?.data ? formatDateHuman(pren.data) : "";
-      const ora = pren?.ora || "";
-      const coperti = pren?.coperti || 0;
-
-      const text = encodeURIComponent(
-        `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-      );
-
-      window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-    };
-  });
-
-  lista.querySelectorAll(".settings").forEach((el) => {
-    el.onclick = (event) => {
-      event.stopPropagation();
-      const id = el.dataset.id;
-      if (!id) return;
-      window.location.hash = "#/prenotazioni-form?id=" + encodeURIComponent(id);
-    };
-  });
-
-  lista.querySelectorAll(".pren-row").forEach((row) => {
-    row.onclick = () => {
-      const id = row.dataset.id;
-      if (!id) return;
-      window.location.hash = "#/prenotazioni-form?id=" + encodeURIComponent(id);
-    };
-  });
-}
-
-function attachSwipe() {
-  lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
-    const row = wrap.querySelector(".pren-row");
-    if (!row || row.dataset.swipeBound === "true") return;
-
-    let startX = 0;
-    let currentX = 0;
-    let active = false;
-
-    const bgArrivata = wrap.querySelector(".pren-row-bg.arrivata");
-    const bgNoShow = wrap.querySelector(".pren-row-bg.no-show");
-
-    const resetSwipe = () => {
-      row.classList.remove("is-dragging");
-      row.style.transform = "translateX(0px)";
-      bgArrivata.style.opacity = "0";
-      bgNoShow.style.opacity = "0";
-      currentX = 0;
-      active = false;
-    };
-
-    row.addEventListener("pointerdown", (event) => {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
-      active = true;
-      startX = event.clientX;
-      currentX = 0;
-      row.classList.add("is-dragging");
-      row.setPointerCapture?.(event.pointerId);
+      row.dataset.swipeBound = "true";
     });
+  }
 
-    row.addEventListener("pointermove", (event) => {
-      if (!active) return;
+  async function updateStatoPrenotazione(id, stato) {
+    const { error } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato })
+      .eq("id", id);
 
-      currentX = event.clientX - startX;
-      if (currentX > 110) currentX = 110;
-      if (currentX < -110) currentX = -110;
+    if (error) {
+      console.error("ERRORE UPDATE STATO:", error);
+      alert("Errore aggiornamento stato");
+      await load();
+      return;
+    }
 
-      row.style.transform = `translateX(${currentX}px)`;
-
-      if (currentX > 0) {
-        bgArrivata.style.opacity = "1";
-        bgNoShow.style.opacity = "0";
-      } else if (currentX < 0) {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "1";
-      } else {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "0";
-      }
-    });
-
-    const handleSwipeEnd = async () => {
-      if (!active) return;
-
-      row.classList.remove("is-dragging");
-
-      if (currentX >= 80) {
-        bgArrivata.style.opacity = "1";
-        bgNoShow.style.opacity = "0";
-        row.style.transform = "translateX(100%)";
-
-        setTimeout(async () => {
-          await updateStatoPrenotazione(row.dataset.id, "arrivata");
-        }, 120);
-      } else if (currentX <= -80) {
-        bgArrivata.style.opacity = "0";
-        bgNoShow.style.opacity = "1";
-        row.style.transform = "translateX(-100%)";
-
-        setTimeout(async () => {
-          await updateStatoPrenotazione(row.dataset.id, "no_show");
-        }, 120);
-      } else {
-        resetSwipe();
-      }
-
-      active = false;
-      currentX = 0;
-    };
-
-    row.addEventListener("pointerup", handleSwipeEnd);
-    row.addEventListener("pointercancel", resetSwipe);
-    row.addEventListener("lostpointercapture", () => {
-      if (active && Math.abs(currentX) < 80) {
-        resetSwipe();
-      }
-    });
-
-    row.dataset.swipeBound = "true";
-  });
-}
-async function updateStatoPrenotazione(id, stato) {
-  const { error } = await window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .update({ stato })
-    .eq("id", id);
-
-  if (error) {
-    console.error("ERRORE UPDATE STATO:", error);
-    alert("Errore aggiornamento stato");
     await load();
-    return;
+    if (arriviModal.classList.contains("open")) {
+      renderArriviSlots();
+    }
   }
 
-  await load();
-  if (arriviModal.classList.contains("open")) {
-    renderArriviSlots();
-  }
-}
+  async function openTavoli(prenId) {
+    state.currentPrenId = prenId;
 
-async function openTavoli(prenId) {
-  state.currentPrenId = prenId;
+    let query = window.supabaseClient
+      .from("tavoli")
+      .select("*");
 
-  let query = window.supabaseClient
-    .from("tavoli")
-    .select("*");
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
 
-  if (aziendaId) {
-    query = query.eq("azienda_id", aziendaId);
-  }
+    if (sedeId) {
+      query = query.eq("sede_id", sedeId);
+    }
 
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
-  }
+    query = query.eq("attivo", true);
 
-  query = query.eq("attivo", true);
+    const { data, error } = await query;
 
-  const { data, error } = await query;
+    if (error) {
+      console.error("ERRORE TAVOLI:", error);
+      alert("Errore caricamento tavoli");
+      return;
+    }
 
-  if (error) {
-    console.error("ERRORE TAVOLI:", error);
-    alert("Errore caricamento tavoli");
-    return;
-  }
-
-  state.tavoli = data || [];
-  renderTavoli();
-  modal.classList.add("open");
-}
-
-function renderTavoli() {
-  const pren = state.prenotazioni.find((p) => String(p.id) === String(state.currentPrenId));
-
-  if (!pren) {
-    listaTavoli.innerHTML = `<div class="pren-empty">Errore prenotazione</div>`;
-    return;
+    state.tavoli = data || [];
+    renderTavoli();
+    modal.classList.add("open");
   }
 
-  const copertiRichiesti = Number(pren.coperti) || 0;
+  function renderTavoli() {
+    const pren = state.prenotazioni.find((p) => String(p.id) === String(state.currentPrenId));
 
-  const tavoliOrdinati = [...state.tavoli]
-    .map((t) => ({
-      ...t,
-      diff: (Number(t.coperti_max) || 0) - copertiRichiesti
-    }))
-    .filter((t) => (Number(t.coperti_max) || 0) >= copertiRichiesti)
-    .sort((a, b) => a.diff - b.diff);
+    if (!pren) {
+      listaTavoli.innerHTML = `<div class="pren-empty">Errore prenotazione</div>`;
+      return;
+    }
 
-  if (!tavoliOrdinati.length) {
-    listaTavoli.innerHTML = `
+    const copertiRichiesti = Number(pren.coperti) || 0;
+
+    const tavoliOrdinati = [...state.tavoli]
+      .map((t) => ({
+        ...t,
+        diff: (Number(t.coperti_max) || 0) - copertiRichiesti
+      }))
+      .filter((t) => (Number(t.coperti_max) || 0) >= copertiRichiesti)
+      .sort((a, b) => a.diff - b.diff);
+
+    if (!tavoliOrdinati.length) {
+      listaTavoli.innerHTML = `
       <div class="pren-empty">
         ⚠️ Nessun tavolo abbastanza grande<br>
         Coperti richiesti: <strong>${copertiRichiesti}</strong>
       </div>
     `;
-    return;
-  }
-
-  listaTavoli.innerHTML = tavoliOrdinati.map((t) => {
-    const perfetto = t.diff === 0;
-    const buono = t.diff > 0 && t.diff <= 2;
-
-    let classe = "pren-table-item";
-    let badge = "";
-
-    if (perfetto) {
-      classe += " best";
-      badge = "🔥 Perfetto";
-    } else if (buono) {
-      classe += " good";
-      badge = "👍 Buono";
+      return;
     }
 
-    return `
+    listaTavoli.innerHTML = tavoliOrdinati.map((t) => {
+      const perfetto = t.diff === 0;
+      const buono = t.diff > 0 && t.diff <= 2;
+
+      let classe = "pren-table-item";
+      let badge = "";
+
+      if (perfetto) {
+        classe += " best";
+        badge = "🔥 Perfetto";
+      } else if (buono) {
+        classe += " good";
+        badge = "👍 Buono";
+      }
+
+      return `
       <div class="${classe}" data-id="${escapeAttribute(t.id)}">
         <div class="pren-table-name">${escapeHtml(t.nome || "Tavolo")}</div>
         <div class="pren-table-meta">${Number(t.coperti_max) || 0} coperti max</div>
@@ -1359,57 +1551,57 @@ function renderTavoli() {
         ${badge ? `<div class="pren-table-badge">${badge}</div>` : ``}
       </div>
     `;
-  }).join("");
+    }).join("");
 
-  listaTavoli.querySelectorAll("[data-id]").forEach((el) => {
-    el.onclick = async () => {
-      const tavoloId = el.dataset.id;
+    listaTavoli.querySelectorAll("[data-id]").forEach((el) => {
+      el.onclick = async () => {
+        const tavoloId = el.dataset.id;
 
-      const { error } = await window.supabaseClient
-        .from("prenotazioni_tavoli")
-        .update({ tavolo_id: tavoloId })
-        .eq("id", state.currentPrenId);
+        const { error } = await window.supabaseClient
+          .from("prenotazioni_tavoli")
+          .update({ tavolo_id: tavoloId })
+          .eq("id", state.currentPrenId);
 
-      if (error) {
-        console.error("ERRORE ASSEGNA TAVOLO:", error);
-        alert("Errore assegnazione tavolo");
-        return;
-      }
+        if (error) {
+          console.error("ERRORE ASSEGNA TAVOLO:", error);
+          alert("Errore assegnazione tavolo");
+          return;
+        }
 
-      closeModal();
-      await load();
-    };
-  });
-}
-
-async function openOnlineModal() {
-  onlineModal.classList.add("open");
-  listaOnline.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
-  await loadOnlineRequests();
-  renderOnlineRequests();
-}
-
-function closeOnlineModal() {
-  onlineModal.classList.remove("open");
-}
-
-function renderOnlineRequests() {
-  if (!state.onlineRequests.length) {
-    listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
-    return;
+        closeModal();
+        await load();
+      };
+    });
   }
 
-  listaOnline.innerHTML = state.onlineRequests.map((item) => {
-    const statusMeta = getOnlineRequestStatusMeta(item.stato);
-    const nome = buildClientName(item);
-    const coperti = Number(item.coperti) || 0;
-    const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
-    const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
-    const telefono = item.telefono || item.cliente_telefono || item.phone || "";
-    const note = item.note || item.richiesta_note || "";
-    const linkedPrenId = item.prenotazione_id || item.id;
+  async function openOnlineModal() {
+    onlineModal.classList.add("open");
+    listaOnline.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
+    await loadOnlineRequests();
+    renderOnlineRequests();
+  }
 
-    return `
+  function closeOnlineModal() {
+    onlineModal.classList.remove("open");
+  }
+
+  function renderOnlineRequests() {
+    if (!state.onlineRequests.length) {
+      listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
+      return;
+    }
+
+    listaOnline.innerHTML = state.onlineRequests.map((item) => {
+      const statusMeta = getOnlineRequestStatusMeta(item.stato);
+      const nome = buildClientName(item);
+      const coperti = Number(item.coperti) || 0;
+      const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
+      const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
+      const telefono = item.telefono || item.cliente_telefono || item.phone || "";
+      const note = item.note || item.richiesta_note || "";
+      const linkedPrenId = item.prenotazione_id || item.id;
+
+      return `
       <div class="pren-online-item" data-online-id="${escapeAttribute(item.id)}">
         <div class="pren-online-top">
           <div>
@@ -1434,104 +1626,104 @@ function renderOnlineRequests() {
         </div>
       </div>
     `;
-  }).join("");
+    }).join("");
 
-  listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
-    btn.onclick = async () => {
-      await acceptOnlineRequest(btn.dataset.onlineAccept);
-    };
-  });
+    listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
+      btn.onclick = async () => {
+        await acceptOnlineRequest(btn.dataset.onlineAccept);
+      };
+    });
 
-  listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
-    btn.onclick = async () => {
-      await rejectOnlineRequest(btn.dataset.onlineReject);
-    };
-  });
+    listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
+      btn.onclick = async () => {
+        await rejectOnlineRequest(btn.dataset.onlineReject);
+      };
+    });
 
-  listaOnline.querySelectorAll("[data-online-manage]").forEach((btn) => {
-    btn.onclick = () => {
-      const id = btn.dataset.onlineManage;
-      if (!id) return;
-      closeOnlineModal();
-      window.location.hash = "#/prenotazioni-form?id=" + encodeURIComponent(id);
-    };
-  });
-}
-
-async function acceptOnlineRequest(onlineId) {
-  const { error } = await window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .update({ stato: "confermata" })
-    .eq("id", onlineId);
-
-  if (error) {
-    console.error("ERRORE ACCETTA PRENOTAZIONE ONLINE:", error);
-    alert("Errore accettazione richiesta online");
-    return;
+    listaOnline.querySelectorAll("[data-online-manage]").forEach((btn) => {
+      btn.onclick = () => {
+        const id = btn.dataset.onlineManage;
+        if (!id) return;
+        closeOnlineModal();
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
   }
 
-  await load();
-  await loadOnlineRequests();
-  renderOnlineRequests();
-}
+  async function acceptOnlineRequest(onlineId) {
+    const { error } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato: "confermata" })
+      .eq("id", onlineId);
 
-async function rejectOnlineRequest(onlineId) {
-  const { error } = await window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .update({ stato: "annullata" })
-    .eq("id", onlineId);
+    if (error) {
+      console.error("ERRORE ACCETTA PRENOTAZIONE ONLINE:", error);
+      alert("Errore accettazione richiesta online");
+      return;
+    }
 
-  if (error) {
-    console.error("ERRORE RIFIUTA PRENOTAZIONE ONLINE:", error);
-    alert("Errore rifiuto richiesta online");
-    return;
+    await load();
+    await loadOnlineRequests();
+    renderOnlineRequests();
   }
 
-  await load();
-  await loadOnlineRequests();
-  renderOnlineRequests();
-}
+  async function rejectOnlineRequest(onlineId) {
+    const { error } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato: "annullata" })
+      .eq("id", onlineId);
 
-function updateOnlineBadge() {
-  const total = state.onlineRequests.length;
-  onlineBadge.textContent = total > 99 ? "99+" : String(total);
-  onlineBadge.classList.toggle("show", total > 0);
-}
+    if (error) {
+      console.error("ERRORE RIFIUTA PRENOTAZIONE ONLINE:", error);
+      alert("Errore rifiuto richiesta online");
+      return;
+    }
 
-function openArriviModal() {
-  arriviModal.classList.add("open");
-  renderArriviSlots();
-}
-
-function closeArriviModal() {
-  arriviModal.classList.remove("open");
-}
-
-function renderArriviSlots() {
-  const slotMinutes = Number(slotSizeSelect.value) || 30;
-  const arrivate = state.prenotazioni.filter((p) => {
-    const stato = String(p.stato || "").toLowerCase();
-    return stato !== "annullata" && stato !== "no_show";
-  });
-
-  if (!arrivate.length) {
-    listaArrivi.innerHTML = `<div class="pren-empty">Nessun arrivo per questa data</div>`;
-    return;
+    await load();
+    await loadOnlineRequests();
+    renderOnlineRequests();
   }
 
-  const groups = {};
+  function updateOnlineBadge() {
+    const total = state.onlineRequests.length;
+    onlineBadge.textContent = total > 99 ? "99+" : String(total);
+    onlineBadge.classList.toggle("show", total > 0);
+  }
 
-  arrivate.forEach((p) => {
-    const slot = getTimeSlotLabel(p.ora, slotMinutes);
-    if (!groups[slot]) groups[slot] = [];
-    groups[slot].push(p);
-  });
+  function openArriviModal() {
+    arriviModal.classList.add("open");
+    renderArriviSlots();
+  }
 
-  const slots = Object.keys(groups).sort();
+  function closeArriviModal() {
+    arriviModal.classList.remove("open");
+  }
 
-  listaArrivi.innerHTML = slots.map((slot) => {
-    const items = groups[slot];
-    return `
+  function renderArriviSlots() {
+    const slotMinutes = Number(slotSizeSelect.value) || 30;
+    const arrivate = state.prenotazioni.filter((p) => {
+      const stato = String(p.stato || "").toLowerCase();
+      return stato !== "annullata" && stato !== "no_show";
+    });
+
+    if (!arrivate.length) {
+      listaArrivi.innerHTML = `<div class="pren-empty">Nessun arrivo per questa data</div>`;
+      return;
+    }
+
+    const groups = {};
+
+    arrivate.forEach((p) => {
+      const slot = getTimeSlotLabel(p.ora, slotMinutes);
+      if (!groups[slot]) groups[slot] = [];
+      groups[slot].push(p);
+    });
+
+    const slots = Object.keys(groups).sort();
+
+    listaArrivi.innerHTML = slots.map((slot) => {
+      const items = groups[slot];
+      return `
       <div class="pren-slot-card">
         <div class="pren-slot-time">${escapeHtml(slot)}</div>
         <div class="pren-slot-list">
@@ -1552,136 +1744,141 @@ function renderArriviSlots() {
         </div>
       </div>
     `;
-  }).join("");
+    }).join("");
 
-  listaArrivi.querySelectorAll(".note").forEach((el) => {
-    el.onclick = () => {
-      alert(el.dataset.note || "Nessuna nota");
-    };
-  });
-}
+    listaArrivi.querySelectorAll(".note").forEach((el) => {
+      el.onclick = () => {
+        alert(el.dataset.note || "Nessuna nota");
+      };
+    });
+  }
 
-function closeModal() {
-  modal.classList.remove("open");
-}
+  function closeModal() {
+    modal.classList.remove("open");
+  }
 
-function inferService(p) {
-  if (p.servizio) return String(p.servizio).toLowerCase();
+  function inferService(p) {
+    if (p.servizio) return String(p.servizio).toLowerCase();
 
-  const ora = String(p.ora || "").slice(0, 5);
-  if (!ora) return "pranzo";
+    const ora = String(p.ora || "").slice(0, 5);
+    if (!ora) return "pranzo";
 
-  if (ora >= "06:00" && ora < "11:00") return "colazione";
-  if (ora >= "11:00" && ora < "15:30") return "pranzo";
-  if (ora >= "15:30" && ora < "19:30") return "aperitivo";
-  return "cena";
-}
+    if (ora >= "06:00" && ora < "11:00") return "colazione";
+    if (ora >= "11:00" && ora < "15:30") return "pranzo";
+    if (ora >= "15:30" && ora < "19:30") return "aperitivo";
+    return "cena";
+  }
 
-function getOnlineRequestStatusMeta(stato) {
-  const value = String(stato || "").toLowerCase();
-  if (value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta") {
+  function getOnlineRequestStatusMeta(stato) {
+    const value = String(stato || "").toLowerCase();
+    if (value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta") {
+      return { label: "Da gestire", emoji: "🔴", bg: "#fee2e2", color: "#991b1b" };
+    }
+    if (value === "accettata" || value === "confermata") {
+      return { label: "Accettata", emoji: "🟢", bg: "#dcfce7", color: "#166534" };
+    }
+    if (value === "rifiutata" || value === "annullata") {
+      return { label: "Rifiutata", emoji: "⚫", bg: "#e5e7eb", color: "#374151" };
+    }
     return { label: "Da gestire", emoji: "🔴", bg: "#fee2e2", color: "#991b1b" };
   }
-  if (value === "accettata" || value === "confermata") {
-    return { label: "Accettata", emoji: "🟢", bg: "#dcfce7", color: "#166534" };
+
+  function isOnlinePendingStatus(stato) {
+    const value = String(stato || "").toLowerCase();
+    return value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta";
   }
-  if (value === "rifiutata" || value === "annullata") {
-    return { label: "Rifiutata", emoji: "⚫", bg: "#e5e7eb", color: "#374151" };
+
+  function isLikelyOnlineChannel(channel) {
+    return [
+      "online",
+      "thefork",
+      "quandoo",
+      "google",
+      "sito",
+      "web",
+      "widget",
+      "booking",
+      "prenotazione_online"
+    ].includes(String(channel || "").toLowerCase());
   }
-  return { label: "Da gestire", emoji: "🔴", bg: "#fee2e2", color: "#991b1b" };
-}
 
-function isOnlinePendingStatus(stato) {
-  const value = String(stato || "").toLowerCase();
-  return value === "in_attesa" || value === "pending" || value === "nuova" || value === "richiesta";
-}
+  function getOriginIcon(p) {
+    const channel = String(p.canale || p.origine || p.source || "").toLowerCase();
 
-function isLikelyOnlineChannel(channel) {
-  return [
-    "online",
-    "thefork",
-    "quandoo",
-    "google",
-    "sito",
-    "web",
-    "widget",
-    "booking",
-    "prenotazione_online"
-  ].includes(String(channel || "").toLowerCase());
-}
+    if (isLikelyOnlineChannel(channel)) return "🌐";
+    if (channel.includes("telefono") || channel.includes("call")) return "📞";
+    if (channel.includes("whatsapp")) return "💬";
+    if (channel.includes("walk")) return "🚶";
+    return "📱";
+  }
 
-function getOriginIcon(p) {
-  const channel = String(p.canale || p.origine || p.source || "").toLowerCase();
+  function getOriginLabel(p) {
+    const channel = String(p.canale || p.origine || p.source || "").trim();
+    return channel || "Prenotazione";
+  }
 
-  if (isLikelyOnlineChannel(channel)) return "🌐";
-  if (channel.includes("telefono") || channel.includes("call")) return "📞";
-  if (channel.includes("whatsapp")) return "💬";
-  if (channel.includes("walk")) return "🚶";
-  return "📱";
-}
+  function buildClientName(p) {
+    const nome = String(p?.cliente_nome || p?.nome_cliente || p?.nome || "").trim();
+    const cognome = String(p?.cliente_cognome || p?.cognome || "").trim();
+    const full = `${nome} ${cognome}`.trim();
+    return full || "Cliente";
+  }
 
-function getOriginLabel(p) {
-  const channel = String(p.canale || p.origine || p.source || "").trim();
-  return channel || "Prenotazione";
-}
+  function getTimeSlotLabel(timeValue, slotMinutes) {
+    const raw = String(timeValue || "").slice(0, 5);
+    if (!/^\d{2}:\d{2}$/.test(raw)) return "--:--";
+    const [h, m] = raw.split(":").map(Number);
+    const total = (h * 60) + m;
+    const rounded = Math.floor(total / slotMinutes) * slotMinutes;
+    const hh = String(Math.floor(rounded / 60)).padStart(2, "0");
+    const mm = String(rounded % 60).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
 
-function buildClientName(p) {
-  const nome = String(p?.cliente_nome || p?.nome_cliente || p?.nome || "").trim();
-  const cognome = String(p?.cliente_cognome || p?.cognome || "").trim();
-  const full = `${nome} ${cognome}`.trim();
-  return full || "Cliente";
-}
+  function getDayLabel(date) {
+    const labels = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+    return labels[date.getDay()];
+  }
 
-function getTimeSlotLabel(timeValue, slotMinutes) {
-  const raw = String(timeValue || "").slice(0, 5);
-  if (!/^\d{2}:\d{2}$/.test(raw)) return "--:--";
-  const [h, m] = raw.split(":").map(Number);
-  const total = (h * 60) + m;
-  const rounded = Math.floor(total / slotMinutes) * slotMinutes;
-  const hh = String(Math.floor(rounded / 60)).padStart(2, "0");
-  const mm = String(rounded % 60).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
+  function getMonthLabel(date) {
+    const labels = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+    return labels[date.getMonth()];
+  }
 
-function getDayLabel(date) {
-  const labels = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
-  return labels[date.getDay()];
-}
+  function formatDateInput(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 
-function formatDateInput(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+  function formatDateHuman(dateString) {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  }
 
-function formatDateHuman(dateString) {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString("it-IT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-}
+  function sanitizePhone(phone) {
+    return String(phone || "").replace(/[^\d+]/g, "");
+  }
 
-function sanitizePhone(phone) {
-  return String(phone || "").replace(/[^\d+]/g, "");
-}
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+  function escapeAttribute(value) {
+    return escapeHtml(value);
+  }
 
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
-
-await load();
-await loadOnlineRequests();
+  await load();
+  await loadOnlineRequests();
 }
