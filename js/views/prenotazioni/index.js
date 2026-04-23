@@ -855,9 +855,12 @@ export async function render(container) {
   document.getElementById("pren-online-trigger").onclick = async () => {
     await openOnlineModal();
   };
-document.getElementById("pren-richieste-trigger").onclick = () => {
-  window.location.hash = "#/prenotazioni-rifiutate";
-};
+const richiesteBtn = document.getElementById("pren-richieste-trigger");
+  if (richiesteBtn) {
+    richiesteBtn.onclick = () => {
+      window.location.hash = "#/prenotazioni-rifiutate";
+    };
+  }
   document.getElementById("btn-calendar").onclick = () => {
     try {
       if (typeof filtroData.showPicker === "function") {
@@ -1741,7 +1744,6 @@ async function updateOnlineRequestStatus(onlineId, nextStatus) {
     return;
   }
 
-  // aggiorno UI subito
   state.onlineRequests = state.onlineRequests.filter(
     (item) => String(item.id) !== String(onlineId)
   );
@@ -1923,16 +1925,18 @@ async function updateOnlineRequestStatus(onlineId, nextStatus) {
   function sanitizePhone(phone) {
     return String(phone || "").replace(/[^\d+]/g, "");
   }
-function updateOnlineBadge() {
-  const total = (state.onlineRequests || []).filter(
-    (item) => String(item.stato).toLowerCase() === "in_attesa"
-  ).length;
 
-  if (!onlineBadge) return;
+  function updateOnlineBadge() {
+    const total = (state.onlineRequests || []).filter(
+      (item) => normalizeStatus(item.stato) === "in_attesa"
+    ).length;
 
-  onlineBadge.textContent = total > 99 ? "99+" : String(total);
-  onlineBadge.classList.toggle("show", total > 0);
-}
+    if (!onlineBadge) return;
+
+    onlineBadge.textContent = total > 99 ? "99+" : String(total);
+    onlineBadge.classList.toggle("show", total > 0);
+  }
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
