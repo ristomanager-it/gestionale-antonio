@@ -1923,7 +1923,16 @@ async function updateOnlineRequestStatus(onlineId, nextStatus) {
   function sanitizePhone(phone) {
     return String(phone || "").replace(/[^\d+]/g, "");
   }
+function updateOnlineBadge() {
+  const total = (state.onlineRequests || []).filter(
+    (item) => String(item.stato).toLowerCase() === "in_attesa"
+  ).length;
 
+  if (!onlineBadge) return;
+
+  onlineBadge.textContent = total > 99 ? "99+" : String(total);
+  onlineBadge.classList.toggle("show", total > 0);
+}
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
