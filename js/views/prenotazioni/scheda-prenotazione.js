@@ -428,7 +428,7 @@ export async function render(container) {
 
           <div class="pren-det-field">
             <label class="pren-det-label" for="pren-cognome">Cognome</label>
-            <input id="pren-cognome" class="pren-det-input" type="text" value="${escapeAttribute(String(p.cliente_cognome || p.cognome || ""))}">
+            <input id="pren-cognome" class="pren-det-input" type="text" value="${escapeAttribute(String(p.cognome || ""))}"
           </div>
 
           <div class="pren-det-field full">
