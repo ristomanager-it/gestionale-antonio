@@ -1916,7 +1916,3 @@ attachSwipe();
   function escapeAttribute(value) {
     return escapeHtml(value);
   }
-
-  await load();
-  await loadOnlineRequests();
-}
