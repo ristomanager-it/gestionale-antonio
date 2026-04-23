@@ -614,7 +614,7 @@ export async function render(container) {
 
   function buildClientName(p) {
     const nome = String(p?.cliente_nome || p?.nome_cliente || p?.nome || "").trim();
-    const cognome = String(p?.cliente_cognome || p?.cognome || "").trim();
+    const cognome = String(p?.cognome || "").trim();
     const full = `${nome} ${cognome}`.trim();
     return full || "Cliente";
   }
