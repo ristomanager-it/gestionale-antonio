@@ -93,18 +93,21 @@ cliente: () => import("./views/cliente.js"),
   // 🔥 SALA
   sala: () => import("./views/sala.js"),
 
-  // 🔥 PRENOTAZIONI
-  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
-  "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
+ // 🔥 PRENOTAZIONI
+"prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
+"prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
 "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
-  "prenota": () => import("./views/prenotazioni/prenotazione-online.js"), 
-  // 🔥 NUOVO SISTEMA (se stai migrando)
-  prenotazioni: () => import("./views/prenotazioni/index.js"),
-"prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
-  // 🔥 CAMPAGNE (NUOVA)
-  campagne: () => import("./views/campagne/index.js"),
 
-  comanda: () => import("./views/comanda.js"),
+"prenota": () => import("./views/prenotazioni/prenotazione-online.js?v=999"), 
+
+// 🔥 NUOVO SISTEMA
+prenotazioni: () => import("./views/prenotazioni/index.js"),
+"prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
+
+// 🔥 CAMPAGNE
+campagne: () => import("./views/campagne/index.js"),
+
+comanda: () => import("./views/comanda.js"),
 };
 /* =========================================================
    ROUTE SCOPE
