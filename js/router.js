@@ -100,7 +100,7 @@ cliente: () => import("./views/cliente.js"),
   "prenota": () => import("./views/prenotazioni/prenotazione-online.js"), 
   // 🔥 NUOVO SISTEMA (se stai migrando)
   prenotazioni: () => import("./views/prenotazioni/index.js"),
-
+"prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
   // 🔥 CAMPAGNE (NUOVA)
   campagne: () => import("./views/campagne/index.js"),
 
