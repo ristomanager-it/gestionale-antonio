@@ -1262,75 +1262,83 @@ export async function render(container) {
   }
 
   function attachRowEvents() {
-    lista.querySelectorAll(".cliente-link").forEach((el) => {
-      el.onclick = (event) => {
-        event.stopPropagation();
 
-        const id = el.dataset.id;
+  // CLIENTE
+  lista.querySelectorAll(".cliente-link").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      event.preventDefault();
 
-        if (!id || id === "null" || id === "undefined") {
-          alert("Cliente non collegato");
-          return;
-        }
+      const id = el.dataset.id;
 
-        window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
-      };
-    });
+      if (!id || id === "null" || id === "undefined") {
+        alert("Cliente non collegato");
+        return;
+      }
 
-    lista.querySelectorAll(".note").forEach((el) => {
-      el.onclick = (event) => {
-        event.stopPropagation();
-        alert(el.dataset.note || "Nessuna nota");
-      };
-    });
+      window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
+    };
+  });
 
-    lista.querySelectorAll(".msg").forEach((el) => {
-      el.onclick = (event) => {
-        event.stopPropagation();
-        const id = el.dataset.id;
-        if (!id) return;
-        alert("Aprire chat cliente (step successivo)");
-      };
-    });
+  // NOTE
+  lista.querySelectorAll(".note").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      alert(el.dataset.note || "Nessuna nota");
+    };
+  });
 
-    lista.querySelectorAll(".whatsapp").forEach((el) => {
-      el.onclick = (event) => {
-        event.stopPropagation();
-        const phone = el.dataset.phone || "";
-        const id = el.dataset.id || "";
-        if (!phone) return;
+  // WHATSAPP
+  lista.querySelectorAll(".whatsapp").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
 
-        const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
-        const nome = buildClientName(pren || {});
-        const data = pren?.data ? formatDateHuman(pren.data) : "";
-        const ora = pren?.ora ? String(pren.ora).slice(0, 5) : "";
-        const coperti = pren?.coperti || 0;
+      const phone = el.dataset.phone || "";
+      const id = el.dataset.id || "";
+      if (!phone) return;
 
-        const text = encodeURIComponent(
-          `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-        );
+      const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
+      const nome = buildClientName(pren || {});
+      const data = pren?.data ? formatDateHuman(pren.data) : "";
+      const ora = pren?.ora || "";
+      const coperti = pren?.coperti || 0;
 
-        window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
-      };
-    });
+      const text = encodeURIComponent(
+        `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
+      );
 
-    lista.querySelectorAll(".settings").forEach((el) => {
-      el.onclick = (event) => {
-        event.stopPropagation();
-        const id = el.dataset.id;
-        if (!id) return;
-        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-      };
-    });
+      window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+    };
+  });
 
-    lista.querySelectorAll(".pren-row").forEach((row) => {
-      row.onclick = () => {
-        const id = row.dataset.id;
-        if (!id) return;
-        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-      };
-    });
-  }
+  // INGRANAGGIO
+  lista.querySelectorAll(".settings").forEach((el) => {
+    el.onclick = (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+
+      const id = el.dataset.id;
+      if (!id) return;
+
+      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+    };
+  });
+
+  // CLICK RIGA
+  lista.querySelectorAll(".pren-row").forEach((row) => {
+    row.onclick = (event) => {
+
+      // BLOCCA se clicchi elementi interni
+      if (event.target.closest(".pren-ico")) return;
+      if (event.target.closest(".cliente-link")) return;
+
+      const id = row.dataset.id;
+      if (!id) return;
+
+      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+    };
+  });
+}
 
   function attachSwipe() {
     lista.querySelectorAll(".pren-row-wrap").forEach((wrap) => {
