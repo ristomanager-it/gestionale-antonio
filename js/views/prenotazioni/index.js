@@ -1642,7 +1642,7 @@ attachSwipe();
     `;
     }).join("");
 
-      listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
+          listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
       btn.onclick = async (e) => {
         e.stopPropagation();
         await acceptOnlineRequest(btn.dataset.onlineAccept);
@@ -1685,6 +1685,24 @@ attachSwipe();
     renderOnlineRequests();
   }
 
+  async function rejectOnlineRequest(onlineId) {
+    if (!onlineId) return;
+
+    const { error } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato: "rifiutata" })
+      .eq("id", onlineId);
+
+    if (error) {
+      console.error("ERRORE RIFIUTA PRENOTAZIONE ONLINE:", error);
+      alert("Errore rifiuto richiesta online");
+      return;
+    }
+
+    await load();
+    await loadOnlineRequests();
+    renderOnlineRequests();
+  }
   async function rejectOnlineRequest(onlineId) {
     if (!onlineId) return;
 
