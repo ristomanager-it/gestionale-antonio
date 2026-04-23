@@ -855,7 +855,9 @@ export async function render(container) {
   document.getElementById("pren-online-trigger").onclick = async () => {
     await openOnlineModal();
   };
-
+document.getElementById("pren-richieste-trigger").onclick = () => {
+  window.location.hash = "#/prenotazioni-rifiutate";
+};
   document.getElementById("btn-calendar").onclick = () => {
     try {
       if (typeof filtroData.showPicker === "function") {
