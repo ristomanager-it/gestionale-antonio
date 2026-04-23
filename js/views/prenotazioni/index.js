@@ -720,6 +720,7 @@ export async function render(container) {
           🌐
           <span id="pren-online-badge" class="pren-badge">0</span>
         </button>
+        
       </div>
 
       <div class="pren-days-bar">
@@ -743,7 +744,7 @@ export async function render(container) {
           <option value="pranzo">🌞 Pranzo</option>
           <option value="cena">🌙 Cena</option>
         </select>
-
+<button id="pren-richieste-trigger" class="pren-tool-btn">📂 Fila-Fast</button>
         <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
 
         <input type="date" id="filtro-data" style="display:none" />
