@@ -971,7 +971,7 @@ if (!prenotazioni.length) {
 lista.innerHTML = prenotazioni.map(renderRow).join("");
 attachRowEvents();
 attachSwipe();
-
+}
 
   async function loadDayStats() {
     if (!state.renderedDays.length) {
