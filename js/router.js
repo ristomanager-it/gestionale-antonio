@@ -97,8 +97,7 @@ cliente: () => import("./views/cliente.js"),
 "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
 "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
 "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
-
-"prenota": () => import("./views/prenotazioni/prenotazione-online.js?v=999"), 
+"prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
 // 🔥 NUOVO SISTEMA
 prenotazioni: () => import("./views/prenotazioni/index.js"),
