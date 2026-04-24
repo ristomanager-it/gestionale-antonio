@@ -292,17 +292,18 @@ export async function render(container) {
       document.getElementById("msg").innerText = "Errore caricamento form";
       return;
     }
-document.getElementById("actions-box").innerHTML = `
-  <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-    <button id="delete-form" class="app-button" style="background:#dc2626;color:#fff;">
-      🗑️ Elimina form
-    </button>
-  </div>
-`;
+setTimeout(() => {
+  document.getElementById("actions-box").innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+      <button id="delete-form" class="app-button" style="background:#dc2626;color:#fff;">
+        🗑️ Elimina form
+      </button>
+    </div>
+  `;
 
-document.getElementById("delete-form").onclick = deleteForm;
-
-document.getElementById("delete-form").onclick = deleteForm;
+  const btn = document.getElementById("delete-form");
+  if (btn) btn.onclick = deleteForm;
+}, 0);
     const { data: version } = await window.supabaseClient
       .from("booking_form_versions")
       .select("*")
