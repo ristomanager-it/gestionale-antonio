@@ -142,7 +142,8 @@ export async function render(container) {
 
     <button id="save" class="app-button primary">SALVA FORM</button>
 
-    <div id="msg" style="margin-top:12px;"></div>
+   <div id="actions-box" style="margin-top:12px;"></div>
+<div id="msg" style="margin-top:12px;"></div>
 
   </div>
   `;
