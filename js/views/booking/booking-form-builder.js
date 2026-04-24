@@ -171,6 +171,18 @@ document.getElementById("bg_color").addEventListener("input", (event) =>
 (/^#[0-9a-fA-F]{6}$/.test(value)) {
 document.getElementById("bg_color_picker").value = value; } });
 
+// reset UI
+document.getElementById("nome").value = "";
+document.getElementById("slug").value = "";
+document.getElementById("emoji").value = "";
+document.getElementById("link-box").innerHTML = "";
+document.getElementById("actions-box").innerHTML = "";
+document.getElementById("draft-status").innerText = "";
+
+// debug
+console.log("DELETE OK", { currentForm, aziendaId });
+
+// reload
 await loadForms();
 
 function startNewForm() { currentForm = null; currentLink = null;
@@ -789,6 +801,18 @@ tempSlug = null;
 document.getElementById("draft-status").innerText = "Form salvato";
 document.getElementById("msg").innerText = "✅ Form salvato";
 
+// reset UI
+document.getElementById("nome").value = "";
+document.getElementById("slug").value = "";
+document.getElementById("emoji").value = "";
+document.getElementById("link-box").innerHTML = "";
+document.getElementById("actions-box").innerHTML = "";
+document.getElementById("draft-status").innerText = "";
+
+// debug
+console.log("DELETE OK", { currentForm, aziendaId });
+
+// reload
 await loadForms(); await loadLink(); } function collectConfig() { const
 giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
 .map((el) => Number(el.value));
@@ -936,7 +960,19 @@ function deleteForm() { if (!currentForm) return;
       document.getElementById("draft-status").innerText = "";
       document.getElementById("msg").innerText = "Form eliminato";
 
-      await loadForms();
+      // reset UI
+document.getElementById("nome").value = "";
+document.getElementById("slug").value = "";
+document.getElementById("emoji").value = "";
+document.getElementById("link-box").innerHTML = "";
+document.getElementById("actions-box").innerHTML = "";
+document.getElementById("draft-status").innerText = "";
+
+// debug
+console.log("DELETE OK", { currentForm, aziendaId });
+
+// reload
+await loadForms();
     } catch (e) {
       console.error(e);
       alert("Errore eliminazione");
