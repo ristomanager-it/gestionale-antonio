@@ -4,19 +4,22 @@ export async function render(container) {
   document.querySelector(".app-header")?.style.setProperty("display","none");
   document.querySelector(".topbar-global")?.style.setProperty("display","none");
 
-  // 🔥 AZIENDA DA URL
-  const aziendaId = window.routeParams?.azienda;
+  // 🔥 PARAMETRI DA URL (FIX PRINCIPALE)
+  const params = new URLSearchParams(window.location.search);
 
-  // 🔥 TRACKING SOURCE
-  const source = window.routeParams?.src || "web";
-  const tag = window.routeParams?.tag || "🌐";
-  const ref = window.routeParams?.ref || null;
+  const aziendaId = params.get("azienda");
+  const sedeId = params.get("sede");
+
+  const source = params.get("src") || "web";
+  const tag = params.get("tag") || "🌐";
+  const ref = params.get("ref") || null;
 
   console.log("AZIENDA ID:", aziendaId);
+  console.log("SEDE ID:", sedeId);
   console.log("SOURCE:", source, "TAG:", tag, "REF:", ref);
 
   if (!aziendaId) {
-    container.innerHTML = `<div class="page">Errore: azienda non trovata</div>`;
+    container.innerHTML = `<div class="page">Errore: link non valido</div>`;
     return;
   }
 
@@ -51,7 +54,6 @@ export async function render(container) {
   };
 
   const defaultPrefix = lang === "it" ? "+39" : "+44";
-
   const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
@@ -136,17 +138,17 @@ export async function render(container) {
       .from("prenotazioni_tavoli")
       .insert([{
         azienda_id: aziendaId,
+        sede_id: sedeId, // 🔥 FIX MULTI-SEDE
+
         cliente_nome: nome + " " + cognome,
         cliente_telefono: telefono,
         data,
         ora,
         coperti,
 
-        // 🔥 FIX SISTEMA
         stato: "in_attesa",
         canale: "online",
 
-        // 🔥 TRACKING
         source: source,
         riferimento: ref,
         tag: tag
