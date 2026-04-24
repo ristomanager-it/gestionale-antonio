@@ -1636,75 +1636,83 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     onlineModal.classList.remove("open");
   }
 
-  function renderOnlineRequests() {
-    const pendingRequests = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato));
+ // FILE COMPLETO RISCRITTO SOLO NELLA PARTE CRITICA FIXATA
 
-    if (!pendingRequests.length) {
-      listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
+// ... (TUTTO IL FILE RESTA IDENTICO FINO A renderOnlineRequests)
+
+function renderOnlineRequests() {
+  const pendingRequests = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato));
+
+  if (!pendingRequests.length) {
+    listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
+    return;
+  }
+
+  listaOnline.innerHTML = pendingRequests.map((item) => {
+    const statusMeta = getOnlineRequestStatusMeta(item.stato);
+    const nome = buildClientName(item);
+    const coperti = Number(item.coperti) || 0;
+    const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
+    const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
+    const telefono = item.cliente_telefono || "";
+    const note = item.note || "";
+
+    return `
+    <div class="pren-online-item" data-online-id="${escapeAttribute(item.id)}">
+      <div class="pren-online-top">
+        <div>
+          <div class="pren-online-name">${escapeHtml(nome)}</div>
+          <div class="pren-online-meta">
+            ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}
+            ${telefono ? `<br>${escapeHtml(telefono)}` : ""}
+          </div>
+        </div>
+        <div class="pren-online-status" style="background:${statusMeta.bg};color:${statusMeta.color}">
+          <span>${statusMeta.emoji}</span>
+          <span>${escapeHtml(statusMeta.label)}</span>
+        </div>
+      </div>
+
+      ${note ? `<div class="pren-online-note">${escapeHtml(note)}</div>` : ""}
+
+      <div class="pren-online-actions">
+        <button type="button" class="pren-online-btn accept" data-online-accept="${escapeAttribute(item.id)}">Accetta</button>
+        <button type="button" class="pren-online-btn reject" data-online-reject="${escapeAttribute(item.id)}">Rifiuta</button>
+        <button type="button" class="pren-online-btn manage" data-online-manage="${escapeAttribute(item.id)}">Gestisci</button>
+      </div>
+    </div>
+  `;
+  }).join("");
+
+  // 🔥 EVENT DELEGATION (FIX DEFINITIVO)
+  listaOnline.onclick = async (e) => {
+    const acceptBtn = e.target.closest("[data-online-accept]");
+    if (acceptBtn) {
+      e.stopPropagation();
+      const id = acceptBtn.dataset.onlineAccept;
+      await acceptOnlineRequest(id);
       return;
     }
 
-    listaOnline.innerHTML = pendingRequests.map((item) => {
-      const statusMeta = getOnlineRequestStatusMeta(item.stato);
-      const nome = buildClientName(item);
-      const coperti = Number(item.coperti) || 0;
-      const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
-      const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
-      const telefono = item.cliente_telefono || "";
-      const note = item.note || "";
-      const linkedPrenId = item.id;
+    const rejectBtn = e.target.closest("[data-online-reject]");
+    if (rejectBtn) {
+      e.stopPropagation();
+      const id = rejectBtn.dataset.onlineReject;
+      await rejectOnlineRequest(id);
+      return;
+    }
 
-      return `
-      <div class="pren-online-item" data-online-id="${escapeAttribute(item.id)}">
-        <div class="pren-online-top">
-          <div>
-            <div class="pren-online-name">${escapeHtml(nome)}</div>
-            <div class="pren-online-meta">
-              ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}
-              ${telefono ? `<br>${escapeHtml(telefono)}` : ""}
-            </div>
-          </div>
-          <div class="pren-online-status" style="background:${statusMeta.bg};color:${statusMeta.color}">
-            <span>${statusMeta.emoji}</span>
-            <span>${escapeHtml(statusMeta.label)}</span>
-          </div>
-        </div>
+    const manageBtn = e.target.closest("[data-online-manage]");
+    if (manageBtn) {
+      const id = manageBtn.dataset.onlineManage;
+      if (!id) return;
+      closeOnlineModal();
+      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+    }
+  };
+}
 
-        ${note ? `<div class="pren-online-note">${escapeHtml(note)}</div>` : ""}
-
-        <div class="pren-online-actions">
-          <button type="button" class="pren-online-btn accept" data-online-accept="${escapeAttribute(item.id)}">Accetta</button>
-          <button type="button" class="pren-online-btn reject" data-online-reject="${escapeAttribute(item.id)}">Rifiuta</button>
-          <button type="button" class="pren-online-btn manage" data-online-manage="${escapeAttribute(linkedPrenId)}">Gestisci</button>
-        </div>
-      </div>
-    `;
-    }).join("");
-
-    listaOnline.querySelectorAll("[data-online-accept]").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        await acceptOnlineRequest(btn.dataset.onlineAccept);
-      };
-    });
-
-    listaOnline.querySelectorAll("[data-online-reject]").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        await rejectOnlineRequest(btn.dataset.onlineReject);
-      };
-    });
-
-    listaOnline.querySelectorAll("[data-online-manage]").forEach((btn) => {
-      btn.onclick = () => {
-        const id = btn.dataset.onlineManage;
-        if (!id) return;
-        closeOnlineModal();
-        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-      };
-    });
-  }
-
+// ... (TUTTO IL RESTO DEL FILE RIMANE IDENTICO)
   async function acceptOnlineRequest(onlineId) {
     await updateOnlineRequestStatus(onlineId, "confermata");
   }
