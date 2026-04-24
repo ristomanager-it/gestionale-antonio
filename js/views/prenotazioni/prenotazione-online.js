@@ -23,46 +23,44 @@ export async function render(container) {
 
   try {
 
-    // 🔹 1. SEDE
-const { data: sede } = await window.supabaseClient
-  .from("sedi")
-  .select("*")
-  .eq("id", sedeId)
-  .maybeSingle();
+    const { data: sede } = await window.supabaseClient
+      .from("sedi")
+      .select("*")
+      .eq("id", sedeId)
+      .maybeSingle();
 
-if (sede) {
-  nomeAzienda = sede.nome || nomeAzienda;
+    if (sede) {
+      nomeAzienda = sede.nome || nomeAzienda;
 
-  if (sede.logo_url) {
-    logo = sede.logo_url;
-  }
-}
-
-// 🔹 2. FALLBACK AZIENDA (SE NON HO LOGO)
-if (!logo) {
-  const { data: azienda } = await window.supabaseClient
-    .from("aziende")
-    .select("*")
-    .eq("id", aziendaId)
-    .maybeSingle();
-
-  if (azienda) {
-    nomeAzienda = nomeAzienda || azienda.nome;
-
-    if (azienda.logo_url) {
-      logo = azienda.logo_url;
+      if (sede.logo_url) {
+        logo = sede.logo_url;
+      }
     }
+
+    if (!logo) {
+      const { data: azienda } = await window.supabaseClient
+        .from("aziende")
+        .select("*")
+        .eq("id", aziendaId)
+        .maybeSingle();
+
+      if (azienda) {
+        nomeAzienda = nomeAzienda || azienda.nome;
+
+        if (azienda.logo_url) {
+          logo = azienda.logo_url;
+        }
+      }
+    }
+
+  } catch (e) {
+    console.warn("Errore caricamento logo", e);
   }
-}
 
-} catch (e) {
-  console.warn("Errore caricamento logo", e);
-}
+  if (!logo) {
+    logo = "https://dummyimage.com/150x60/cccccc/000000&text=Logo";
+  }
 
-// 🔹 3. FALLBACK FINALE (fix placeholder)
-if (!logo) {
-  logo = "https://dummyimage.com/150x60/cccccc/000000&text=Logo";
-}
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
@@ -106,11 +104,18 @@ if (!logo) {
     <!-- HEADER -->
     <div style="
       padding:20px 16px 10px;
-      text-align:center;
+      display:flex;
+      justify-content:center;
     ">
-      <img src="${logo}" style="height:60px; object-fit:contain; margin-bottom:10px;">
-      <div style="font-weight:600; font-size:16px; color:#111;">
-        ${nomeAzienda}
+      <div style="
+        width:100%;
+        max-width:480px;
+        text-align:center;
+      ">
+        <img src="${logo}" style="height:60px; object-fit:contain; margin-bottom:10px; display:block; margin-left:auto; margin-right:auto;">
+        <div style="font-weight:600; font-size:16px; color:#111;">
+          ${nomeAzienda}
+        </div>
       </div>
     </div>
 
