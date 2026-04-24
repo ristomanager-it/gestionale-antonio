@@ -112,7 +112,7 @@ comanda: () => import("./views/comanda.js"),
    ROUTE SCOPE
 ========================================================= */
 
-const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword", "set-password", "prenota"]);
+const PUBLIC_ROUTES = new Set(["login", "activate", "setPassword", "set-password", "prenota, "booking" "]);
 
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
