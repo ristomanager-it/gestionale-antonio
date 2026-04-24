@@ -292,13 +292,15 @@ export async function render(container) {
       document.getElementById("msg").innerText = "Errore caricamento form";
       return;
     }
-document.getElementById("msg").innerHTML = `
+document.getElementById("actions-box").innerHTML = `
   <div style="display:flex;justify-content:flex-end;margin-top:10px;">
     <button id="delete-form" class="app-button" style="background:#dc2626;color:#fff;">
       🗑️ Elimina form
     </button>
   </div>
 `;
+
+document.getElementById("delete-form").onclick = deleteForm;
 
 document.getElementById("delete-form").onclick = deleteForm;
     const { data: version } = await window.supabaseClient
