@@ -7,7 +7,7 @@ let currentForm = null; let tempFormId = null; let tempSlug = null;
 
 let customFields = []; let fasceOrarie = []; let currentLink = null;
 
-const BASE_PUBLIC_URL = “https://ristoflow-ai.com”; const STORAGE_BUCKET
+const BASE_PUBLIC_URL = "https://ristoflow-ai.com"; const STORAGE_BUCKET
 = “loghi-aziende”;
 
 container.innerHTML = `
