@@ -40,8 +40,6 @@ export async function render(container) {
 
     <h3>Disponibilità</h3>
 
-    <div id="giorni"></div>
-
     <h4>Fasce</h4>
     <div id="fasce-list"></div>
     <button id="add-fascia">+ Fascia</button>
@@ -57,10 +55,10 @@ export async function render(container) {
 
     <div id="msg"></div>
 
+    <div id="link-box"></div>
+
   </div>
   `;
-
-  // 🔥 CARICA FORM LISTA
 
   async function loadForms() {
     const { data } = await window.supabaseClient
@@ -79,8 +77,6 @@ export async function render(container) {
       el.onclick = () => loadForm(el.dataset.id);
     });
   }
-
-  // 🔥 CARICA SINGOLO FORM
 
   async function loadForm(id) {
 
@@ -102,8 +98,6 @@ export async function render(container) {
 
     const config = version?.config || form.config || {};
 
-    // POPOLA
-
     document.getElementById("nome").value = form.nome || "";
 
     document.getElementById("logo_enabled").checked = config.branding?.logo_enabled;
@@ -122,14 +116,9 @@ export async function render(container) {
 
     renderCustom();
     renderFasce();
+
+    loadLink();
   }
-
-  // 🔥 CUSTOM
-
-  document.getElementById("add-custom").onclick = () => {
-    customFields.push({ label:"", type:"text", required:false });
-    renderCustom();
-  };
 
   function renderCustom() {
     const list = document.getElementById("custom-list");
@@ -145,13 +134,6 @@ export async function render(container) {
     `).join("");
   }
 
-  // 🔥 FASCE
-
-  document.getElementById("add-fascia").onclick = () => {
-    fasceOrarie.push({ start:"", end:"" });
-    renderFasce();
-  };
-
   function renderFasce() {
     const list = document.getElementById("fasce-list");
 
@@ -163,9 +145,40 @@ export async function render(container) {
     `).join("");
   }
 
-  // 🔥 SAVE
+  document.getElementById("add-custom").onclick = () => {
+    customFields.push({ label:"", type:"text", required:false });
+    renderCustom();
+  };
+
+  document.getElementById("add-fascia").onclick = () => {
+    fasceOrarie.push({ start:"", end:"" });
+    renderFasce();
+  };
+
+  async function loadLink() {
+    const { data: link } = await window.supabaseClient
+      .from("booking_links")
+      .select("*")
+      .eq("form_id", currentForm)
+      .maybeSingle();
+
+    if (!link) return;
+
+    const url = `https://ristoflow-ai.com/booking/${link.slug}`;
+
+    document.getElementById("link-box").innerHTML = `
+      <div style="margin-top:12px; padding:12px; background:#f3f4f6; border-radius:12px;">
+        <b>Link pubblico:</b><br>
+        <a href="${url}" target="_blank">${url}</a><br><br>
+
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}">
+      </div>
+    `;
+  }
 
   document.getElementById("save").onclick = async () => {
+
+    const nome = document.getElementById("nome").value;
 
     const config = {
       branding: {
@@ -196,7 +209,7 @@ export async function render(container) {
     if (!currentForm) {
       const { data: form } = await window.supabaseClient
         .from("booking_forms")
-        .insert([{ azienda_id: aziendaId, sede_id: sedeId, nome: document.getElementById("nome").value, config }])
+        .insert([{ azienda_id: aziendaId, sede_id: sedeId, nome, config }])
         .select()
         .single();
 
@@ -217,8 +230,31 @@ export async function render(container) {
       .from("booking_form_versions")
       .insert([{ form_id: currentForm, versione, config }]);
 
+    // 🔥 CREA LINK SE NON ESISTE
+
+    const slugBase = nome
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const { data: existing } = await window.supabaseClient
+      .from("booking_links")
+      .select("id")
+      .eq("form_id", currentForm)
+      .maybeSingle();
+
+    if (!existing) {
+      await window.supabaseClient
+        .from("booking_links")
+        .insert([{
+          form_id: currentForm,
+          slug: slugBase + "-" + Date.now()
+        }]);
+    }
+
     document.getElementById("msg").innerText = "✅ Salvato (v" + versione + ")";
 
+    loadLink();
   };
 
   loadForms();
