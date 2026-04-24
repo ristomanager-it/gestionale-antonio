@@ -112,7 +112,7 @@ export async function render(container) {
         max-width:480px;
         text-align:center;
       ">
-      <img src="${logo}" style="height:100px; object-fit:contain; margin-bottom:12px; display:block; margin-left:auto; margin-right:auto;">
+      <img src="${logo}" style="height:120px; object-fit:contain; margin-bottom:12px; display:block; margin-left:auto; margin-right:auto;">
         <div style="font-weight:600; font-size:16px; color:#111;">
           ${nomeAzienda}
         </div>
