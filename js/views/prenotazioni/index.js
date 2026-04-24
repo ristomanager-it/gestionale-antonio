@@ -1636,83 +1636,89 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     onlineModal.classList.remove("open");
   }
 
- // FILE COMPLETO RISCRITTO SOLO NELLA PARTE CRITICA FIXATA
+  function renderOnlineRequests() {
+    const pendingRequests = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato));
 
-// ... (TUTTO IL FILE RESTA IDENTICO FINO A renderOnlineRequests)
+    if (!pendingRequests.length) {
+      listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
+      listaOnline.onclick = null;
+      return;
+    }
 
-function renderOnlineRequests() {
-  const pendingRequests = (state.onlineRequests || []).filter((item) => isOnlinePendingStatus(item.stato));
+    listaOnline.innerHTML = pendingRequests.map((item) => {
+      const onlineId = getOnlineRequestId(item);
+      const statusMeta = getOnlineRequestStatusMeta(item.stato);
+      const nome = buildClientName(item);
+      const coperti = Number(item.coperti) || 0;
+      const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
+      const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
+      const telefono = item.cliente_telefono || "";
+      const note = item.note || "";
 
-  if (!pendingRequests.length) {
-    listaOnline.innerHTML = `<div class="pren-empty">Nessuna richiesta online da gestire</div>`;
-    return;
-  }
-
-  listaOnline.innerHTML = pendingRequests.map((item) => {
-    const statusMeta = getOnlineRequestStatusMeta(item.stato);
-    const nome = buildClientName(item);
-    const coperti = Number(item.coperti) || 0;
-    const data = item.data ? formatDateHuman(item.data) : "Data non disponibile";
-    const ora = item.ora ? String(item.ora).slice(0, 5) : "--:--";
-    const telefono = item.cliente_telefono || "";
-    const note = item.note || "";
-
-    return `
-    <div class="pren-online-item" data-online-id="${escapeAttribute(item.id)}">
-      <div class="pren-online-top">
-        <div>
-          <div class="pren-online-name">${escapeHtml(nome)}</div>
-          <div class="pren-online-meta">
-            ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}
-            ${telefono ? `<br>${escapeHtml(telefono)}` : ""}
+      return `
+      <div class="pren-online-item" data-online-id="${escapeAttribute(onlineId)}">
+        <div class="pren-online-top">
+          <div>
+            <div class="pren-online-name">${escapeHtml(nome)}</div>
+            <div class="pren-online-meta">
+              ${escapeHtml(data)} · ${escapeHtml(ora)} · ${coperti}
+              ${telefono ? `<br>${escapeHtml(telefono)}` : ""}
+            </div>
+          </div>
+          <div class="pren-online-status" style="background:${statusMeta.bg};color:${statusMeta.color}">
+            <span>${statusMeta.emoji}</span>
+            <span>${escapeHtml(statusMeta.label)}</span>
           </div>
         </div>
-        <div class="pren-online-status" style="background:${statusMeta.bg};color:${statusMeta.color}">
-          <span>${statusMeta.emoji}</span>
-          <span>${escapeHtml(statusMeta.label)}</span>
+
+        ${note ? `<div class="pren-online-note">${escapeHtml(note)}</div>` : ""}
+
+        <div class="pren-online-actions">
+          <button type="button" class="pren-online-btn accept" data-online-action="accept" data-online-id="${escapeAttribute(onlineId)}">Accetta</button>
+          <button type="button" class="pren-online-btn reject" data-online-action="reject" data-online-id="${escapeAttribute(onlineId)}">Rifiuta</button>
+          <button type="button" class="pren-online-btn manage" data-online-action="manage" data-online-id="${escapeAttribute(onlineId)}">Gestisci</button>
         </div>
       </div>
+    `;
+    }).join("");
 
-      ${note ? `<div class="pren-online-note">${escapeHtml(note)}</div>` : ""}
+    listaOnline.onclick = async (event) => {
+      const actionBtn = event.target.closest("[data-online-action]");
+      if (!actionBtn || !listaOnline.contains(actionBtn)) return;
 
-      <div class="pren-online-actions">
-        <button type="button" class="pren-online-btn accept" data-online-accept="${escapeAttribute(item.id)}">Accetta</button>
-        <button type="button" class="pren-online-btn reject" data-online-reject="${escapeAttribute(item.id)}">Rifiuta</button>
-        <button type="button" class="pren-online-btn manage" data-online-manage="${escapeAttribute(item.id)}">Gestisci</button>
-      </div>
-    </div>
-  `;
-  }).join("");
+      event.preventDefault();
+      event.stopPropagation();
 
-  // 🔥 EVENT DELEGATION (FIX DEFINITIVO)
-  listaOnline.onclick = async (e) => {
-    const acceptBtn = e.target.closest("[data-online-accept]");
-    if (acceptBtn) {
-      e.stopPropagation();
-      const id = acceptBtn.dataset.onlineAccept;
-      await acceptOnlineRequest(id);
-      return;
-    }
+      const onlineId = actionBtn.dataset.onlineId || actionBtn.closest(".pren-online-item")?.dataset.onlineId || "";
 
-    const rejectBtn = e.target.closest("[data-online-reject]");
-    if (rejectBtn) {
-      e.stopPropagation();
-      const id = rejectBtn.dataset.onlineReject;
-      await rejectOnlineRequest(id);
-      return;
-    }
+      if (!onlineId || onlineId === "undefined" || onlineId === "null") {
+        console.error("ID prenotazione online mancante", { action: actionBtn.dataset.onlineAction, button: actionBtn });
+        alert("Errore: ID prenotazione online mancante");
+        await loadOnlineRequests();
+        return;
+      }
 
-    const manageBtn = e.target.closest("[data-online-manage]");
-    if (manageBtn) {
-      const id = manageBtn.dataset.onlineManage;
-      if (!id) return;
-      closeOnlineModal();
-      window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
-    }
-  };
-}
+      if (actionBtn.dataset.onlineAction === "accept") {
+        await acceptOnlineRequest(onlineId);
+        return;
+      }
 
-// ... (TUTTO IL RESTO DEL FILE RIMANE IDENTICO)
+      if (actionBtn.dataset.onlineAction === "reject") {
+        await rejectOnlineRequest(onlineId);
+        return;
+      }
+
+      if (actionBtn.dataset.onlineAction === "manage") {
+        closeOnlineModal();
+        window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(onlineId);
+      }
+    };
+  }
+
+  function getOnlineRequestId(item) {
+    return String(item?.id || item?.prenotazione_id || item?.booking_id || item?.uuid || "").trim();
+  }
+
   async function acceptOnlineRequest(onlineId) {
     await updateOnlineRequestStatus(onlineId, "confermata");
   }
@@ -1721,46 +1727,59 @@ function renderOnlineRequests() {
     await updateOnlineRequestStatus(onlineId, "rifiutata");
   }
 
-async function updateOnlineRequestStatus(onlineId, nextStatus) {
-  if (!onlineId) return;
+  async function updateOnlineRequestStatus(onlineId, nextStatus) {
+    const safeOnlineId = String(onlineId || "").trim();
 
-  const stato = String(nextStatus || "").toLowerCase();
+    if (!safeOnlineId || safeOnlineId === "undefined" || safeOnlineId === "null") {
+      console.error("ERRORE UPDATE ONLINE: ID mancante", { onlineId, nextStatus });
+      alert("Errore: ID prenotazione online mancante");
+      await loadOnlineRequests();
+      return;
+    }
 
-  if (!["confermata", "rifiutata"].includes(stato)) {
-    alert("Stato non valido");
-    return;
+    const stato = normalizeStatus(nextStatus);
+
+    if (!["confermata", "rifiutata"].includes(stato)) {
+      alert("Stato non valido");
+      return;
+    }
+
+    let query = window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .update({ stato })
+      .eq("id", safeOnlineId);
+
+    if (aziendaId) {
+      query = query.eq("azienda_id", aziendaId);
+    }
+
+    if (sedeId) {
+      query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error("ERRORE UPDATE ONLINE:", error);
+      alert("Errore aggiornamento");
+      await loadOnlineRequests();
+      return;
+    }
+
+    state.onlineRequests = (state.onlineRequests || []).filter(
+      (item) => String(getOnlineRequestId(item)) !== String(safeOnlineId)
+    );
+
+    updateOnlineBadge();
+
+    if (onlineModal.classList.contains("open")) {
+      renderOnlineRequests();
+    }
+
+    await load();
+    await loadOnlineRequests();
   }
 
-  let query = window.supabaseClient
-    .from("prenotazioni_tavoli")
-    .update({ stato })
-    .eq("id", onlineId);
-
-  if (aziendaId) {
-    query = query.eq("azienda_id", aziendaId);
-  }
-
-  if (sedeId) {
-    query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
-  }
-
-  const { error } = await query;
-
-  if (error) {
-    console.error("ERRORE UPDATE ONLINE:", error);
-    alert("Errore aggiornamento");
-    return;
-  }
-
-  state.onlineRequests = state.onlineRequests.filter(
-    (item) => String(item.id) !== String(onlineId)
-  );
-
-  updateOnlineBadge();
-  renderOnlineRequests();
-
-  await load();
-}
   function openArriviModal() {
     arriviModal.classList.add("open");
     renderArriviSlots();
