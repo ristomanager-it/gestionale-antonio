@@ -745,9 +745,15 @@ async function saveForm() {
     renderDraftLink();
   }
 
-  const finalSlug = currentForm
-    ? makeSlug(document.getElementById("slug").value || currentLink?.slug || nome)
-    : getDraftSlug();
+const slugInput = document.getElementById("slug").value.trim();
+
+let finalSlug;
+
+if (slugInput) {
+  finalSlug = makeSlug(slugInput);
+} else {
+  finalSlug = makeSlug(nome); // 🔥 niente più roba casuale
+}
 
   if (!finalSlug) {
     alert("Slug non valido");
