@@ -955,7 +955,7 @@ if (!existingLinks || existingLinks.length === 0) {
         giorni,
         orari: cleanFasce
       },
-     tags: document.getElementById("tags").value
+    tags: document.getElementById("tags").value
   .split(",")
   .map((tag) => tag.trim().toLowerCase())
   .filter(Boolean),
@@ -967,6 +967,9 @@ policy: {
 
 emoji: document.getElementById("emoji").value || ""
 
+}; // 🔥 CHIUSURA OGGETTO
+
+} // 🔥 CHIUSURA FUNCTION collectConfig
   function qrUrl(url, size) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
   }
