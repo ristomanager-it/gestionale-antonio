@@ -1,5 +1,8 @@
 export async function render(container) {
-  const aziendaId = window.state?.azienda?.id || null;
+  const aziendaId =
+  window.state?.azienda?.id ||
+  window.state?.aziendaAttiva?.id ||
+  null;
   const sedeId = window.state?.sedeSelezionata?.id || window.state?.sedeAttiva?.id || null;
 
   let currentForm = null;
