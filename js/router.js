@@ -771,12 +771,13 @@ try {
     return;
   }
 
-  if (
-    !PLATFORM_ROUTES.has(route) &&
-    route !== "completaProfilo" &&
-    route !== "completaAzienda" &&
-    route !== "home"
-  ) {
+ if (
+  !PLATFORM_ROUTES.has(route) &&
+  route !== "completaProfilo" &&
+  route !== "completaAzienda" &&
+  route !== "home" &&
+  route !== "booking-form-builder" // 🔥 QUESTA RIGA
+) {
     const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
