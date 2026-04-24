@@ -24,46 +24,45 @@ export async function render(container) {
   try {
 
     // 🔹 1. SEDE
-    const { data: sede } = await window.supabaseClient
-      .from("sedi")
-      .select("*")
-      .eq("id", sedeId)
-      .single();
+const { data: sede } = await window.supabaseClient
+  .from("sedi")
+  .select("*")
+  .eq("id", sedeId)
+  .maybeSingle();
 
-    if (sede) {
-      nomeAzienda = sede.nome || nomeAzienda;
+if (sede) {
+  nomeAzienda = sede.nome || nomeAzienda;
 
-      if (sede.logo_url) {
-        logo = sede.logo_url;
-      }
-    }
-
-    // 🔹 2. FALLBACK AZIENDA (SEMPRE SE NON HO LOGO)
-    if (!logo) {
-      const { data: azienda } = await window.supabaseClient
-        .from("aziende")
-        .select("*")
-        .eq("id", aziendaId)
-        .single();
-
-      if (azienda) {
-        nomeAzienda = nomeAzienda || azienda.nome;
-
-        if (azienda.logo_url) {
-          logo = azienda.logo_url;
-        }
-      }
-    }
-
-  } catch (e) {
-    console.warn("Errore caricamento logo", e);
+  if (sede.logo_url) {
+    logo = sede.logo_url;
   }
+}
 
-  // 🔹 3. FALLBACK FINALE
-  if (!logo) {
-    logo = "https://via.placeholder.com/150?text=Logo";
+// 🔹 2. FALLBACK AZIENDA (SE NON HO LOGO)
+if (!logo) {
+  const { data: azienda } = await window.supabaseClient
+    .from("aziende")
+    .select("*")
+    .eq("id", aziendaId)
+    .maybeSingle();
+
+  if (azienda) {
+    nomeAzienda = nomeAzienda || azienda.nome;
+
+    if (azienda.logo_url) {
+      logo = azienda.logo_url;
+    }
   }
+}
 
+} catch (e) {
+  console.warn("Errore caricamento logo", e);
+}
+
+// 🔹 3. FALLBACK FINALE (fix placeholder)
+if (!logo) {
+  logo = "https://dummyimage.com/150x60/cccccc/000000&text=Logo";
+}
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
