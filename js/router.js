@@ -545,32 +545,65 @@ async function resolve() {
     return;
   }
 
-  const { route, segments, params } = parseHash();
-  console.log("ROUTE:", route);
-  window.routeParams = params || {};
-  window.routeSegments = segments || [];
+const { route, segments, params } = parseHash();
+console.log("ROUTE:", route);
+window.routeParams = params || {};
+window.routeSegments = segments || [];
 
-  const session = await getValidSession();
+// 🔥 BOOKING PUBLIC ROUTE (BYPASS TOTALE AUTH)
+if (route === "booking") {
 
-  if (!session) {
-    if (window.stateActions?.setUser) window.stateActions.setUser(null);
-    if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
-    if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+  const slug = segments[1];
 
-    window.state.piano = null;
-    window.state.featuresEffettive = {};
-    window.state.sedi = [];
-    window.state.sedeAttiva = null;
-    window.state.permessiOverride = {};
-    window.state.isSuperadmin = false;
-
-    setHeaderVisible(false);
-
-    const target = PUBLIC_ROUTES.has(route) ? route : "login";
-    await renderView(target);
+  if (!slug) {
+    app.innerHTML = "Link non valido";
     return;
   }
 
+  try {
+
+    const { data: link, error } = await supabase
+      .from("booking_links")
+      .select("form_id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error || !link) {
+      app.innerHTML = "Link non trovato";
+      return;
+    }
+
+    window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
+    return;
+
+  } catch (e) {
+    console.error("Errore booking route:", e);
+    app.innerHTML = "Errore";
+    return;
+  }
+}
+
+// 🔥 DA QUI PARTE IL TUO FLOW NORMALE
+const session = await getValidSession();
+
+if (!session) {
+  if (window.stateActions?.setUser) window.stateActions.setUser(null);
+  if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
+  if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+
+  window.state.piano = null;
+  window.state.featuresEffettive = {};
+  window.state.sedi = [];
+  window.state.sedeAttiva = null;
+  window.state.permessiOverride = {};
+  window.state.isSuperadmin = false;
+
+  setHeaderVisible(false);
+
+  const target = PUBLIC_ROUTES.has(route) ? route : "login";
+  await renderView(target);
+  return;
+}
   window.stateActions.setUser(session.user);
 // 🔥 LOAD SEDE DIPENDENTE
 try {
