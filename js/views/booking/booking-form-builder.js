@@ -955,7 +955,7 @@ if (!existingLinks || existingLinks.length === 0) {
         giorni,
         orari: cleanFasce
       },
-      tags: document.getElementById("tags").value
+     tags: document.getElementById("tags").value
   .split(",")
   .map((tag) => tag.trim().toLowerCase())
   .filter(Boolean),
