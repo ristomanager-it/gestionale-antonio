@@ -880,7 +880,7 @@ if (!existingLinks || existingLinks.length === 0) {
   tempSlug = null;
 
   document.getElementById("draft-status").innerText = "Form salvato";
-  document.getElementById("msg").innerText = "✅ Salvato (v" + versione + ")";
+  document.getElementById("msg").innerText = "✅ Form salvato";
 
   await loadForms();
   await loadLink();
