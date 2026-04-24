@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Prenota</title>
+
+  <!-- opzionale: stesso stile app -->
+  <link rel="stylesheet" href="/styles.css" />
+
+  <style>
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background:#f7f9fc;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app"></div>
+
+  <script type="module">
+    // 🔥 IMPORT DEL TUO MODULO ESISTENTE
+    import { render } from "/src/views/prenotazione-online.js";
+
+    // 🔥 AVVIO DIRETTO (NO ROUTER)
+    const container = document.getElementById("app");
+    render(container);
+  </script>
+
+</body>
+</html>
