@@ -956,16 +956,16 @@ if (!existingLinks || existingLinks.length === 0) {
         orari: cleanFasce
       },
       tags: document.getElementById("tags").value
-        .split(",")
-        .map((tag) => tag.trim().toLowerCase())
-        .filter(Boolean),
-      policy: {
-        enabled: document.getElementById("policy_enabled").checked,
-        text: document.getElementById("policy_text").value || ""
-      }
-    emoji: document.getElementById("emoji").value || ""
-    };
-  }
+  .split(",")
+  .map((tag) => tag.trim().toLowerCase())
+  .filter(Boolean),
+
+policy: {
+  enabled: document.getElementById("policy_enabled").checked,
+  text: document.getElementById("policy_text").value || ""
+},
+
+emoji: document.getElementById("emoji").value || ""
 
   function qrUrl(url, size) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
