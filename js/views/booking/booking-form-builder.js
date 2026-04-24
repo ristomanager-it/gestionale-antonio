@@ -335,8 +335,7 @@ document.getElementById("delete-form").onclick = deleteForm;
     renderPreviews();
 
     document.getElementById("draft-status").innerText = "Form esistente";
-    document.getElementById("msg").innerText = "";
-
+   
     await loadLink();
   }
 
