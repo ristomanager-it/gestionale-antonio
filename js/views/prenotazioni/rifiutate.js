@@ -1,6 +1,7 @@
 export async function render(container) {
   const aziendaId = window.state?.azienda?.id || null;
   const sedeId = window.state?.sedeAttiva?.id || null;
+  const sedeNome = window.state?.sedeAttiva?.nome || "Prenotazioni rifiutate";
 
   const today = new Date();
 
@@ -8,22 +9,21 @@ export async function render(container) {
 <div class="view">
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <h3 style="margin:0;">Prenotazioni Rifiutate</h3>
-    <button id="btn-refresh" class="app-button">↻</button>
+    <h3 style="margin:0;">${escapeHtml(sedeNome)} · Rifiutate</h3>
+    <button id="btn-refresh">↻</button>
   </div>
 
-  <!-- GIORNI SCROLL -->
   <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
     <div id="days" style="display:flex;gap:6px;overflow-x:auto;flex:1;"></div>
-    <button id="btn-calendar" class="app-button">📅</button>
+    <button id="btn-calendar">📅</button>
   </div>
 
-  <input type="date" id="filtro-data" class="input" style="position:absolute;left:-9999px;" />
+  <input type="date" id="filtro-data" style="position:absolute;left:-9999px;" />
 
   <div id="lista"></div>
 
   <div style="position:fixed;bottom:80px;right:20px;">
-    <button id="go-prenotazioni" class="app-button primary">📋</button>
+    <button id="go-prenotazioni">📋</button>
   </div>
 
 </div>
@@ -37,7 +37,6 @@ export async function render(container) {
 
   const state = {
     daysCenter: new Date(),
-    days: []
   };
 
   document.getElementById("btn-refresh").onclick = load;
@@ -61,21 +60,19 @@ export async function render(container) {
 
   filtroData.onchange = async () => {
     state.daysCenter = new Date(filtroData.value);
-    renderDays();
+    renderDays(true);
     await load();
   };
 
-  function renderDays() {
+  function renderDays(centerScroll = false) {
     const base = new Date(state.daysCenter);
     const days = [];
 
-    for (let i = -3; i <= 3; i++) {
+    for (let i = -30; i <= 30; i++) {
       const d = new Date(base);
       d.setDate(base.getDate() + i);
       days.push(d);
     }
-
-    state.days = days;
 
     daysContainer.innerHTML = days.map(d => {
       const val = formatDateInput(d);
@@ -89,7 +86,6 @@ export async function render(container) {
           border:1px solid #e5e7eb;
           background:${active ? '#0E5A7A' : '#fff'};
           color:${active ? '#fff' : '#111'};
-          cursor:pointer;
         ">
           <div style="font-size:10px">${getDay(d)}</div>
           <div style="font-weight:700">${d.getDate()}</div>
@@ -101,14 +97,49 @@ export async function render(container) {
       btn.onclick = async () => {
         filtroData.value = btn.dataset.day;
         state.daysCenter = new Date(btn.dataset.day);
-        renderDays();
+        renderDays(true);
         await load();
       };
     });
+
+    if (centerScroll) {
+      requestAnimationFrame(centerActiveDay);
+    }
+  }
+
+  function centerActiveDay() {
+    const active = daysContainer.querySelector("[data-day][style*='#0E5A7A']");
+    if (!active) return;
+
+    const left = active.offsetLeft - (daysContainer.clientWidth / 2) + (active.clientWidth / 2);
+    daysContainer.scrollLeft = Math.max(0, left);
+  }
+
+  function attachInfiniteScroll() {
+    daysContainer.addEventListener("scroll", () => {
+      const threshold = 120;
+
+      const nearLeft = daysContainer.scrollLeft < threshold;
+      const nearRight =
+        daysContainer.scrollLeft + daysContainer.clientWidth >
+        daysContainer.scrollWidth - threshold;
+
+      if (nearLeft) {
+        state.daysCenter.setDate(state.daysCenter.getDate() - 15);
+        renderDays(false);
+        requestAnimationFrame(centerActiveDay);
+      }
+
+      if (nearRight) {
+        state.daysCenter.setDate(state.daysCenter.getDate() + 15);
+        renderDays(false);
+        requestAnimationFrame(centerActiveDay);
+      }
+    }, { passive: true });
   }
 
   async function load() {
-    lista.innerHTML = `<div>Caricamento...</div>`;
+    lista.innerHTML = `Caricamento...`;
 
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
@@ -123,12 +154,12 @@ export async function render(container) {
     const { data, error } = await query;
 
     if (error) {
-      lista.innerHTML = `<div>Errore</div>`;
+      lista.innerHTML = `Errore`;
       return;
     }
 
     if (!data || !data.length) {
-      lista.innerHTML = `<div>Nessuna prenotazione</div>`;
+      lista.innerHTML = `Nessuna prenotazione`;
       return;
     }
 
@@ -145,14 +176,14 @@ export async function render(container) {
         <div class="pren-col ora">${ora}</div>
 
         <div class="pren-col main">
-          <div class="pren-nome">${nome}</div>
+          <div class="pren-nome">${escapeHtml(nome)}</div>
           <div class="pren-summary">${p.coperti || 0} coperti · RIFIUTATA</div>
         </div>
 
         <div class="pren-col right">
-          <span class="pren-ico" data-riattiva="${p.id}">🔄</span>
-          <span class="pren-ico" data-elimina="${p.id}">🗑</span>
-          <span class="pren-ico" data-dettaglio="${p.id}">➡️</span>
+          <span data-riattiva="${p.id}">🔄</span>
+          <span data-elimina="${p.id}">🗑</span>
+          <span data-dettaglio="${p.id}">➡️</span>
         </div>
       </div>
     `;
@@ -202,6 +233,14 @@ export async function render(container) {
     return ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()];
   }
 
-  renderDays();
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  renderDays(true);
+  attachInfiniteScroll();
   await load();
 }
