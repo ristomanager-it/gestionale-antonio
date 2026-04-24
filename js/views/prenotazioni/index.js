@@ -1071,12 +1071,33 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
       return;
     }
 
-    state.onlineRequests = (data || []).filter((item) => isOnlinePendingStatus(item.stato));
-    updateOnlineBadge();
+   const prevCount = state.lastOnlineCount || 0;
 
-    if (onlineModal.classList.contains("open")) {
-      renderOnlineRequests();
-    }
+state.onlineRequests = (data || []).filter((item) => isOnlinePendingStatus(item.stato));
+
+const newCount = state.onlineRequests.length;
+
+// 🔔 NUOVA PRENOTAZIONE
+if (newCount > prevCount) {
+  try {
+    notificationAudio.currentTime = 0;
+    notificationAudio.play();
+  } catch (e) {
+    console.warn("Audio bloccato");
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
+}
+
+state.lastOnlineCount = newCount;
+
+updateOnlineBadge();
+
+if (onlineModal.classList.contains("open")) {
+  renderOnlineRequests();
+}
   }
 
   function applyServiceFilter(prenotazioni) {
