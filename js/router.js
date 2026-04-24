@@ -105,6 +105,7 @@ prenotazioni: () => import("./views/prenotazioni/index.js"),
 
 // 🔥 CAMPAGNE
 campagne: () => import("./views/campagne/index.js"),
+"booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
 
 comanda: () => import("./views/comanda.js"),
 };
