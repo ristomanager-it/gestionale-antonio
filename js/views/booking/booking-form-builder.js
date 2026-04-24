@@ -812,72 +812,54 @@ async function saveForm() {
     }
   }
 
-  const { data: last } = await window.supabaseClient
-    .from("booking_form_versions")
-    .select("versione")
-    .eq("form_id", currentForm)
-    .order("versione", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+ // 🔥 BLOCCO LINK CORRETTO (MULTI-AZIENDA SAFE)
 
-  const versione = (last?.versione || 0) + 1;
+const { data: existingLinks, error: checkError } = await window.supabaseClient
+  .from("booking_links")
+  .select("*")
+  .eq("form_id", currentForm)
+  .eq("azienda_id", aziendaId);
 
-  const { error: versionError } = await window.supabaseClient
-    .from("booking_form_versions")
-    .insert([{ form_id: currentForm, versione, config }]);
+if (checkError) {
+  console.error("Errore check link", checkError);
+  alert("Errore verifica link");
+  return;
+}
 
-  if (versionError) {
-    console.error(versionError);
-    alert("Errore creazione versione");
-    return;
-  }
+if (!existingLinks || existingLinks.length === 0) {
 
-  // 🔥 BLOCCO LINK CORRETTO
-  const { data: existingLinks, error: checkError } = await window.supabaseClient
+  const { error: insertError } = await window.supabaseClient
     .from("booking_links")
-    .select("*")
-    .eq("form_id", currentForm);
+    .insert([{
+      form_id: currentForm,
+      slug: finalSlug,
+      azienda_id: aziendaId,
+      attivo: true
+    }]);
 
-  if (checkError) {
-    console.error("Errore check link", checkError);
-    alert("Errore verifica link");
+  if (insertError) {
+    console.error("Errore insert link", insertError);
+    alert("Errore creazione link");
     return;
   }
 
-  if (!existingLinks || existingLinks.length === 0) {
+} else {
 
-    const { error: insertError } = await window.supabaseClient
-      .from("booking_links")
-      .insert([{
-        form_id: currentForm,
-        slug: finalSlug,
-        azienda_id: aziendaId,
-        attivo: true
-      }]);
+  const { error: updateError } = await window.supabaseClient
+    .from("booking_links")
+    .update({
+      slug: finalSlug,
+      attivo: true
+    })
+    .eq("form_id", currentForm)
+    .eq("azienda_id", aziendaId);
 
-    if (insertError) {
-      console.error("Errore insert link", insertError);
-      alert("Errore creazione link");
-      return;
-    }
-
-  } else {
-
-    const { error: updateError } = await window.supabaseClient
-      .from("booking_links")
-      .update({
-        slug: finalSlug,
-        attivo: true
-      })
-      .eq("form_id", currentForm);
-
-    if (updateError) {
-      console.error("Errore update link", updateError);
-      alert("Errore aggiornamento link");
-      return;
-    }
+  if (updateError) {
+    console.error("Errore update link", updateError);
+    alert("Errore aggiornamento link");
+    return;
   }
-
+}
   tempFormId = null;
   tempSlug = null;
 
