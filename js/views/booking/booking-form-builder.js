@@ -724,159 +724,165 @@ export async function render(container) {
       ? `<div style="height:90px;border-radius:12px;background:url('${escapeAttribute(bgUrl)}') center/cover;border:1px solid #e5e7eb;"></div>`
       : "";
   }
+async function saveForm() {
+  const nome = document.getElementById("nome").value.trim();
 
-  async function saveForm() {
-    const nome = document.getElementById("nome").value.trim();
-
-    if (!nome) {
-      alert("Inserisci il nome del form");
-      return;
-    }
-
-    if (!currentForm && !tempFormId) {
-      tempFormId = crypto.randomUUID();
-    }
-
-    if (!currentForm && !tempSlug) {
-      tempSlug = makeSlug(nome) + "-" + shortId();
-      renderDraftLink();
-    }
-
-    const finalSlug = currentForm
-      ? makeSlug(document.getElementById("slug").value || currentLink?.slug || nome)
-      : getDraftSlug();
-
-    if (!finalSlug) {
-      alert("Slug non valido");
-      return;
-    }
-
-    await window.supabaseClient
-  .from("booking_links")
-  .insert([{
-    form_id: currentForm,
-    slug: finalSlug,
-    azienda_id: aziendaId,
-    attivo: true
-  }]);
-    if (slugError) {
-      console.error(slugError);
-      alert("Errore controllo slug");
-      return;
-    }
-
-    if (existingSlug && String(existingSlug.form_id) !== String(currentForm || tempFormId)) {
-      alert("Slug già esistente. Scegli un altro link.");
-      return;
-    }
-
-    const config = collectConfig();
-    const finalId = currentForm || tempFormId;
-
-    if (!currentForm) {
-      const { data: form, error } = await window.supabaseClient
-        .from("booking_forms")
-        .insert([{
-          id: finalId,
-          azienda_id: aziendaId,
-          sede_id: sedeId,
-          nome,
-          attivo: document.getElementById("attivo").checked,
-          config
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error(error);
-        alert("Errore creazione form");
-        return;
-      }
-
-      currentForm = form.id;
-    } else {
-      const { error } = await window.supabaseClient
-        .from("booking_forms")
-        .update({
-          nome,
-          attivo: document.getElementById("attivo").checked,
-          config
-        })
-        .eq("id", currentForm);
-
-      if (error) {
-        console.error(error);
-        alert("Errore aggiornamento form");
-        return;
-      }
-    }
-
-    const { data: last } = await window.supabaseClient
-      .from("booking_form_versions")
-      .select("versione")
-      .eq("form_id", currentForm)
-      .order("versione", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const versione = (last?.versione || 0) + 1;
-
-    const { error: versionError } = await window.supabaseClient
-      .from("booking_form_versions")
-      .insert([{ form_id: currentForm, versione, config }]);
-
-    if (versionError) {
-      console.error(versionError);
-      alert("Errore creazione versione");
-      return;
-    }
-
-    const { data: existingLink } = await window.supabaseClient
-      .from("booking_links")
-      .select("id")
-      .eq("form_id", currentForm)
-      .maybeSingle();
-
-    if (!existingLink) {
-      const { error: linkError } = await window.supabaseClient
-        .from("booking_links")
-        .insert([{
-          form_id: currentForm,
-          slug: finalSlug,
-          attivo: true
-        }]);
-
-      if (linkError) {
-        console.error(linkError);
-        alert("Form salvato, ma errore creazione link");
-        return;
-      }
-    } else {
-      const { error: linkUpdateError } = await window.supabaseClient
-        .from("booking_links")
-        .update({
-          slug: finalSlug,
-          attivo: true
-        })
-        .eq("id", existingLink.id);
-
-      if (linkUpdateError) {
-        console.error(linkUpdateError);
-        alert("Form salvato, ma errore aggiornamento link");
-        return;
-      }
-    }
-
-    tempFormId = null;
-    tempSlug = null;
-
-    document.getElementById("draft-status").innerText = "Form salvato";
-    document.getElementById("msg").innerText = "✅ Salvato (v" + versione + ")";
-
-    await loadForms();
-    await loadLink();
+  if (!nome) {
+    alert("Inserisci il nome del form");
+    return;
   }
 
+  if (!currentForm && !tempFormId) {
+    tempFormId = crypto.randomUUID();
+  }
+
+  if (!currentForm && !tempSlug) {
+    tempSlug = makeSlug(nome) + "-" + shortId();
+    renderDraftLink();
+  }
+
+  const finalSlug = currentForm
+    ? makeSlug(document.getElementById("slug").value || currentLink?.slug || nome)
+    : getDraftSlug();
+
+  if (!finalSlug) {
+    alert("Slug non valido");
+    return;
+  }
+
+  const { data: existingSlug, error: slugError } = await window.supabaseClient
+    .from("booking_links")
+    .select("form_id")
+    .eq("slug", finalSlug)
+    .maybeSingle();
+
+  if (slugError) {
+    console.error(slugError);
+    alert("Errore controllo slug");
+    return;
+  }
+
+  if (existingSlug && String(existingSlug.form_id) !== String(currentForm || tempFormId)) {
+    alert("Slug già esistente. Scegli un altro link.");
+    return;
+  }
+
+  const config = collectConfig();
+  const finalId = currentForm || tempFormId;
+
+  if (!currentForm) {
+    const { data: form, error } = await window.supabaseClient
+      .from("booking_forms")
+      .insert([{
+        id: finalId,
+        azienda_id: aziendaId,
+        sede_id: sedeId,
+        nome,
+        attivo: document.getElementById("attivo").checked,
+        config
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Errore creazione form");
+      return;
+    }
+
+    currentForm = form.id;
+  } else {
+    const { error } = await window.supabaseClient
+      .from("booking_forms")
+      .update({
+        nome,
+        attivo: document.getElementById("attivo").checked,
+        config
+      })
+      .eq("id", currentForm);
+
+    if (error) {
+      console.error(error);
+      alert("Errore aggiornamento form");
+      return;
+    }
+  }
+
+  const { data: last } = await window.supabaseClient
+    .from("booking_form_versions")
+    .select("versione")
+    .eq("form_id", currentForm)
+    .order("versione", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const versione = (last?.versione || 0) + 1;
+
+  const { error: versionError } = await window.supabaseClient
+    .from("booking_form_versions")
+    .insert([{ form_id: currentForm, versione, config }]);
+
+  if (versionError) {
+    console.error(versionError);
+    alert("Errore creazione versione");
+    return;
+  }
+
+  // 🔥 BLOCCO LINK CORRETTO
+  const { data: existingLinks, error: checkError } = await window.supabaseClient
+    .from("booking_links")
+    .select("*")
+    .eq("form_id", currentForm);
+
+  if (checkError) {
+    console.error("Errore check link", checkError);
+    alert("Errore verifica link");
+    return;
+  }
+
+  if (!existingLinks || existingLinks.length === 0) {
+
+    const { error: insertError } = await window.supabaseClient
+      .from("booking_links")
+      .insert([{
+        form_id: currentForm,
+        slug: finalSlug,
+        azienda_id: aziendaId,
+        attivo: true
+      }]);
+
+    if (insertError) {
+      console.error("Errore insert link", insertError);
+      alert("Errore creazione link");
+      return;
+    }
+
+  } else {
+
+    const { error: updateError } = await window.supabaseClient
+      .from("booking_links")
+      .update({
+        slug: finalSlug,
+        attivo: true
+      })
+      .eq("form_id", currentForm);
+
+    if (updateError) {
+      console.error("Errore update link", updateError);
+      alert("Errore aggiornamento link");
+      return;
+    }
+  }
+
+  tempFormId = null;
+  tempSlug = null;
+
+  document.getElementById("draft-status").innerText = "Form salvato";
+  document.getElementById("msg").innerText = "✅ Salvato (v" + versione + ")";
+
+  await loadForms();
+  await loadLink();
+}
   function collectConfig() {
     const giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
       .map((el) => Number(el.value));
