@@ -3,15 +3,70 @@ export async function render(container) {
   const sedeId = window.state?.sedeAttiva?.id || null;
 
   container.innerHTML = `
-<div class="view">
-  <h2>Prenotazioni Rifiutate</h2>
+<div class="view" style="position:relative;min-height:100vh;background:#f7f9fc;padding-bottom:90px;">
 
-  <div style="margin-bottom:10px;">
-    <input type="date" id="filtro-data" />
-    <button id="btn-refresh">Aggiorna</button>
+  <div style="
+    position:sticky;
+    top:0;
+    background:#fff;
+    padding:12px;
+    border-bottom:1px solid #e5e7eb;
+    z-index:10;
+  ">
+    <h2 style="margin:0;font-size:16px;">Prenotazioni Rifiutate</h2>
   </div>
 
-  <div id="lista"></div>
+  <div style="padding:10px;">
+    <div style="margin-bottom:10px;display:flex;gap:6px;">
+      <input type="date" id="filtro-data" style="
+        flex:1;
+        height:36px;
+        border-radius:8px;
+        border:1px solid #e5e7eb;
+        padding:0 8px;
+      "/>
+      <button id="btn-refresh" style="
+        height:36px;
+        border:none;
+        border-radius:8px;
+        background:#eef2f7;
+        padding:0 10px;
+        cursor:pointer;
+      ">↻</button>
+    </div>
+
+    <div id="lista"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="
+    position:fixed;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:0;
+    width:min(100%,560px);
+    background:#ffffff;
+    border-top:1px solid #e5e7eb;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    display:flex;
+    justify-content:flex-end;
+    z-index:50;
+  ">
+    <button id="go-prenotazioni" style="
+      background:#0E5A7A;
+      color:#ffffff;
+      width:52px;
+      height:52px;
+      border:none;
+      border-radius:18px;
+      font-size:22px;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(14,90,122,0.22);
+    ">
+      📋
+    </button>
+  </div>
+
 </div>
 `;
 
@@ -24,8 +79,12 @@ export async function render(container) {
   document.getElementById("btn-refresh").onclick = load;
   filtroData.onchange = load;
 
+  document.getElementById("go-prenotazioni").onclick = () => {
+    window.location.hash = "#/prenotazioni";
+  };
+
   async function load() {
-    lista.innerHTML = "Caricamento...";
+    lista.innerHTML = `<div style="padding:12px;">Caricamento...</div>`;
 
     let query = window.supabaseClient
       .from("prenotazioni_tavoli")
@@ -49,17 +108,16 @@ export async function render(container) {
 
     if (error) {
       console.error(error);
-      lista.innerHTML = "Errore caricamento";
+      lista.innerHTML = `<div style="padding:12px;">Errore caricamento</div>`;
       return;
     }
 
     if (!data || !data.length) {
-      lista.innerHTML = "Nessuna prenotazione rifiutata";
+      lista.innerHTML = `<div style="padding:12px;">Nessuna prenotazione rifiutata</div>`;
       return;
     }
 
     lista.innerHTML = data.map(renderRow).join("");
-
     attachEvents();
   }
 
@@ -68,15 +126,37 @@ export async function render(container) {
     const ora = p.ora ? p.ora.slice(0, 5) : "--:--";
 
     return `
-      <div class="card" data-id="${p.id}" style="margin-bottom:8px;padding:10px;border:1px solid #ddd;">
-        <div><strong>${escapeHtml(nome || "Cliente")}</strong></div>
-        <div>${escapeHtml(p.data)} - ${ora} - ${p.coperti} coperti</div>
+      <div style="
+        background:#fff;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:10px;
+        margin-bottom:6px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.04);
+      " data-id="${p.id}">
 
-        <div style="margin-top:8px;display:flex;gap:6px;">
-          <button data-riattiva="${p.id}">🔄 Riattiva</button>
-          <button data-elimina="${p.id}">🗑 Elimina</button>
-          <button data-dettaglio="${p.id}">Apri</button>
+        <div style="font-weight:600;font-size:13px;">
+          ${escapeHtml(nome || "Cliente")}
         </div>
+
+        <div style="font-size:11px;color:#4b5563;margin-top:4px;">
+          ${escapeHtml(p.data)} · ${ora} · ${p.coperti} coperti
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button data-riattiva="${p.id}" style="flex:1;border:none;border-radius:8px;background:#dcfce7;color:#166534;height:34px;">
+            🔄 Riattiva
+          </button>
+
+          <button data-elimina="${p.id}" style="flex:1;border:none;border-radius:8px;background:#fee2e2;color:#991b1b;height:34px;">
+            🗑
+          </button>
+
+          <button data-dettaglio="${p.id}" style="flex:1;border:none;border-radius:8px;background:#eef2f7;height:34px;">
+            Apri
+          </button>
+        </div>
+
       </div>
     `;
   }
@@ -147,7 +227,7 @@ export async function render(container) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    return \`\${y}-\${m}-\${d}\`;
   }
 
   function escapeHtml(str) {
