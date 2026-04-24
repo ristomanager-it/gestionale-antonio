@@ -826,14 +826,15 @@ notificationAudio.volume = 0.6;
   filtroData.value = formatDateInput(today);
 
   const state = {
-    prenotazioni: [],
-    tavoli: [],
-    onlineRequests: [],
-    currentPrenId: null,
-    daysCenterDate: formatDateInput(today),
-    renderedDays: [],
-    dayStats: {}
-  };
+  prenotazioni: [],
+  tavoli: [],
+  onlineRequests: [],
+  lastOnlineCount: 0, // 👈 QUI
+  currentPrenId: null,
+  daysCenterDate: formatDateInput(today),
+  renderedDays: [],
+  dayStats: {}
+};
 
   renderDays(true);
   attachDayInfiniteScroll();
