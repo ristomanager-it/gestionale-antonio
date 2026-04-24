@@ -38,7 +38,11 @@ export async function render(container) {
 
     <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Slug personalizzato</label>
     <input id="slug" class="input" placeholder="es. matrimonio-giulia-luca">
+<label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">
+  Emoji identificativa
+</label>
 
+<input id="emoji" class="input" placeholder="es. 🍷 🎂 💍 🎉">
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <input type="checkbox" id="attivo" checked>
       Form attivo
@@ -959,7 +963,7 @@ if (!existingLinks || existingLinks.length === 0) {
         enabled: document.getElementById("policy_enabled").checked,
         text: document.getElementById("policy_text").value || ""
       }
-      emoji: document.getElementById("emoji").value || ""
+    emoji: document.getElementById("emoji").value || ""
     };
   }
 
