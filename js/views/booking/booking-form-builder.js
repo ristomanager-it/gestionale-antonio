@@ -7,8 +7,8 @@ let currentForm = null; let tempFormId = null; let tempSlug = null;
 
 let customFields = []; let fasceOrarie = []; let currentLink = null;
 
-const BASE_PUBLIC_URL = "https://ristoflow-ai.com"; const STORAGE_BUCKET
-= "loghi-aziende";
+const BASE_PUBLIC_URL = “https://ristoflow-ai.com”; const STORAGE_BUCKET
+= “loghi-aziende”;
 
 container.innerHTML = `
 
@@ -36,10 +36,9 @@ container.innerHTML = `
 <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Emoji identificativa</label>
 <input id="emoji" class="input" placeholder="es. 🍷 🎂 💍">
 
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-      <input type="checkbox" id="attivo" checked>
-      Form attivo
-    </label>
+Emoji identificativa
+
+Form attivo
 
     <div id="link-box"></div>
 
@@ -97,7 +96,7 @@ container.innerHTML = `
     <h3>Campi custom avanzati</h3>
 
     <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">
-      Usa i campi custom per domande specifiche. Se abiliti "taggabile", la risposta viene salvata come dato strutturato utile per filtri, statistiche e AI.
+      Usa i campi custom per domande specifiche. Se abiliti “taggabile”, la risposta viene salvata come dato strutturato utile per filtri, statistiche e AI.
     </div>
 
     <div id="custom-list"></div>
@@ -139,24 +138,22 @@ container.innerHTML = `
 
     <button id="save" class="app-button primary">SALVA FORM</button>
 
-    <div id="msg" style="margin-top:12px;"></div>
-
 `;
 
 renderPalette(); renderGiorni([1, 2, 3, 4, 5, 6]); renderCustom();
 renderFasce();
 
-document.getElementById("new-form").onclick = startNewForm;
-document.getElementById("save").onclick = saveForm;
-document.getElementById("add-custom").onclick = addCustomField;
-document.getElementById("add-fascia").onclick = addFascia;
-document.getElementById("upload-logo").onclick = uploadLogo;
-document.getElementById("upload-bg").onclick = uploadBackground;
+document.getElementById(“new-form”).onclick = startNewForm;
+document.getElementById(“save”).onclick = saveForm;
+document.getElementById(“add-custom”).onclick = addCustomField;
+document.getElementById(“add-fascia”).onclick = addFascia;
+document.getElementById(“upload-logo”).onclick = uploadLogo;
+document.getElementById(“upload-bg”).onclick = uploadBackground;
 
-document.getElementById("nome").addEventListener("input", () => { if
+document.getElementById(“nome”).addEventListener(“input”, () => { if
 (!currentForm && tempFormId) { if
-(!document.getElementById("slug").value.trim()) { tempSlug =
-makeSlug(document.getElementById("nome").value || "form") + "-" +
+(!document.getElementById(“slug”).value.trim()) { tempSlug =
+makeSlug(document.getElementById(“nome”).value || “form”) + “-” +
 shortId(); }
 
       renderDraftLink();
@@ -164,24 +161,24 @@ shortId(); }
 
 });
 
-document.getElementById("slug").addEventListener("input", () => { if
+document.getElementById(“slug”).addEventListener(“input”, () => { if
 (!currentForm && tempFormId) { renderDraftLink(); } else if
 (currentForm) { renderExistingSlugPreview(); } });
 
-document.getElementById("bg_color_picker").addEventListener("input",
-(event) => { document.getElementById("bg_color").value =
+document.getElementById(“bg_color_picker”).addEventListener(“input”,
+(event) => { document.getElementById(“bg_color”).value =
 event.target.value; });
 
-document.getElementById("bg_color").addEventListener("input", (event) =>
+document.getElementById(“bg_color”).addEventListener(“input”, (event) =>
 { const value = event.target.value.trim(); if
 (/^#[0-9a-fA-F]{6}$/.test(value)) {
-document.getElementById("bg_color_picker").value = value; } });
+document.getElementById(“bg_color_picker”).value = value; } });
 
 await loadForms();
 
 function startNewForm() { currentForm = null; currentLink = null;
 tempFormId = crypto.randomUUID(); tempSlug =
-makeSlug(document.getElementById("nome").value || "form") + "-" +
+makeSlug(document.getElementById(“nome”).value || “form”) + “-” +
 shortId();
 
     document.getElementById("nome").value = "";
@@ -225,8 +222,8 @@ shortId();
 }
 
 async function loadForms() { const { data, error } = await
-window.supabaseClient .from("booking_forms") .select("*")
-.eq("azienda_id", aziendaId) .order("created_at", { ascending: false });
+window.supabaseClient .from(“booking_forms”) .select(“*“)
+.eq(”azienda_id”, aziendaId) .order(“created_at”, { ascending: false });
 
     if (error) {
       document.getElementById("forms-list").innerHTML = `<div style="color:#dc2626;">Errore caricamento form</div>`;
@@ -329,7 +326,7 @@ tempFormId = null; tempSlug = null;
 }
 
 function getDraftSlug() { const slugInput =
-document.getElementById("slug").value.trim(); return slugInput ?
+document.getElementById(“slug”).value.trim(); return slugInput ?
 makeSlug(slugInput) : tempSlug; }
 
 function renderDraftLink() { const finalSlug = getDraftSlug(); const url
@@ -389,7 +386,7 @@ async function loadLink() { if (!currentForm) return;
       .select("*")
       .eq("form_id", currentForm)
 
-.eq("azienda_id", aziendaId) .maybeSingle();
+.eq(“azienda_id”, aziendaId) .maybeSingle();
 
     currentLink = link || null;
 
@@ -429,8 +426,8 @@ async function loadLink() { if (!currentForm) return;
 
 }
 
-function renderPalette() { const colors = ["#f7f9fc", "#ffffff",
-"#0E5A7A", "#111827", "#fef3c7", "#ecfdf5", "#fee2e2", "#eff6ff"];
+function renderPalette() { const colors = [“#f7f9fc”, “#ffffff”,
+“#0E5A7A”, “#111827”, “#fef3c7”, “#ecfdf5”, “#fee2e2”, “#eff6ff”];
 
     document.getElementById("palette").innerHTML = colors.map((color) => `
       <button type="button" data-color="${color}" style="
@@ -453,9 +450,9 @@ function renderPalette() { const colors = ["#f7f9fc", "#ffffff",
 }
 
 function renderGiorni(selectedDays) { const labels = [ { id: 1, label:
-"Lun" }, { id: 2, label: "Mar" }, { id: 3, label: "Mer" }, { id: 4,
-label: "Gio" }, { id: 5, label: "Ven" }, { id: 6, label: "Sab" }, { id:
-7, label: "Dom" } ];
+“Lun” }, { id: 2, label: “Mar” }, { id: 3, label: “Mer” }, { id: 4,
+label: “Gio” }, { id: 5, label: “Ven” }, { id: 6, label: “Sab” }, { id:
+7, label: “Dom” } ];
 
     document.getElementById("giorni-box").innerHTML = labels.map((day) => `
       <label style="
@@ -475,15 +472,15 @@ label: "Gio" }, { id: 5, label: "Ven" }, { id: 6, label: "Sab" }, { id:
 }
 
 function addCustomField() { customFields.push({ id: crypto.randomUUID(),
-label: "", type:"text", required: false, taggable: false, tag_prefix:
-"", options: [] });
+label: ““, type:”text”, required: false, taggable: false, tag_prefix:
+““, options: [] });
 
     renderCustom();
 
 }
 
 function renderCustom() { const list =
-document.getElementById("custom-list");
+document.getElementById(“custom-list”);
 
     if (!customFields.length) {
       list.innerHTML = `<div style="font-size:12px;color:#6b7280;">Nessun campo custom</div>`;
@@ -534,7 +531,7 @@ document.getElementById("custom-list");
 }
 
 function bindCustomInputs() {
-document.querySelectorAll(".cf-label").forEach((el) => { el.oninput = ()
+document.querySelectorAll(“.cf-label”).forEach((el) => { el.oninput = ()
 => { customFields[Number(el.dataset.i)].label = el.value; }; });
 
     document.querySelectorAll(".cf-type").forEach((el) => {
@@ -572,11 +569,11 @@ document.querySelectorAll(".cf-label").forEach((el) => { el.oninput = ()
 
 }
 
-function addFascia() { fasceOrarie.push({ start: "", end:"",
-max_coperti:"" }); renderFasce(); }
+function addFascia() { fasceOrarie.push({ start: ““, end:”“,
+max_coperti:”” }); renderFasce(); }
 
 function renderFasce() { const list =
-document.getElementById("fasce-list");
+document.getElementById(“fasce-list”);
 
     if (!fasceOrarie.length) {
       list.innerHTML = `<div style="font-size:12px;color:#6b7280;">Nessuna fascia inserita</div>`;
@@ -621,7 +618,7 @@ document.getElementById("fasce-list");
 }
 
 function bindFasceInputs() {
-document.querySelectorAll(".fascia-start").forEach((el) => { el.oninput
+document.querySelectorAll(“.fascia-start”).forEach((el) => { el.oninput
 = () => { fasceOrarie[Number(el.dataset.i)].start = el.value; }; });
 
     document.querySelectorAll(".fascia-end").forEach((el) => {
@@ -639,8 +636,8 @@ document.querySelectorAll(".fascia-start").forEach((el) => { el.oninput
 }
 
 async function uploadLogo() { const file =
-document.getElementById("logo_file").files?.[0]; if (!file) {
-alert("Seleziona un file logo"); return; }
+document.getElementById(“logo_file”).files?.[0]; if (!file) {
+alert(“Seleziona un file logo”); return; }
 
     const url = await uploadImage(file, "booking-logo");
 
@@ -652,8 +649,8 @@ alert("Seleziona un file logo"); return; }
 }
 
 async function uploadBackground() { const file =
-document.getElementById("bg_file").files?.[0]; if (!file) {
-alert("Seleziona un file sfondo"); return; }
+document.getElementById(“bg_file”).files?.[0]; if (!file) {
+alert(“Seleziona un file sfondo”); return; }
 
     const url = await uploadImage(file, "booking-bg");
 
@@ -664,9 +661,9 @@ alert("Seleziona un file sfondo"); return; }
 
 }
 
-async function uploadImage(file, prefix) { if (!["image/png",
-"image/jpeg", "image/jpg"].includes(file.type)) { alert("Formato non
-valido. Usa PNG o JPG."); return null; }
+async function uploadImage(file, prefix) { if (![“image/png”,
+“image/jpeg”, “image/jpg”].includes(file.type)) { alert(“Formato non
+valido. Usa PNG o JPG.”); return null; }
 
     const ext = file.name.split(".").pop() || "png";
     const safeName = `${prefix}/${aziendaId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
@@ -693,8 +690,8 @@ valido. Usa PNG o JPG."); return null; }
 }
 
 function renderPreviews() { const logoUrl =
-document.getElementById("logo_url").value; const bgUrl =
-document.getElementById("bg_image").value;
+document.getElementById(“logo_url”).value; const bgUrl =
+document.getElementById(“bg_image”).value;
 
     document.getElementById("logo-preview").innerHTML = logoUrl
       ? `<img src="${escapeAttribute(logoUrl)}" style="max-height:80px;max-width:220px;object-fit:contain;border:1px solid #e5e7eb;border-radius:10px;padding:6px;background:#fff;">`
@@ -705,42 +702,42 @@ document.getElementById("bg_image").value;
       : "";
 
 } async function saveForm() { const nome =
-document.getElementById("nome").value.trim();
+document.getElementById(“nome”).value.trim();
 
-if (!nome) { alert("Inserisci il nome del form"); return; }
+if (!nome) { alert(“Inserisci il nome del form”); return; }
 
 if (!currentForm && !tempFormId) { tempFormId = crypto.randomUUID(); }
 
-if (!currentForm && !tempSlug) { tempSlug = makeSlug(nome) + "-" +
+if (!currentForm && !tempSlug) { tempSlug = makeSlug(nome) + “-” +
 shortId(); renderDraftLink(); }
 
-const slugInput = document.getElementById("slug").value.trim();
+const slugInput = document.getElementById(“slug”).value.trim();
 
 let finalSlug;
 
 if (slugInput) { finalSlug = makeSlug(slugInput); } else { finalSlug =
 makeSlug(nome); // 🔥 niente più roba casuale }
 
-if (!finalSlug) { alert("Slug non valido"); return; }
+if (!finalSlug) { alert(“Slug non valido”); return; }
 
 const { data: existingSlug, error: slugError } = await
-window.supabaseClient .from("booking_links") .select("form_id")
-.eq("slug", finalSlug) .maybeSingle();
+window.supabaseClient .from(“booking_links”) .select(“form_id”)
+.eq(“slug”, finalSlug) .maybeSingle();
 
-if (slugError) { console.error(slugError); alert("Errore controllo
-slug"); return; }
+if (slugError) { console.error(slugError); alert(“Errore controllo
+slug”); return; }
 
 if (existingSlug && String(existingSlug.form_id) !== String(currentForm
-|| tempFormId)) { alert("Slug già esistente. Scegli un altro link.");
+|| tempFormId)) { alert(“Slug già esistente. Scegli un altro link.”);
 return; }
 
 const config = collectConfig(); const finalId = currentForm ||
 tempFormId;
 
 if (!currentForm) { const { data: form, error } = await
-window.supabaseClient .from("booking_forms") .insert([{ id: finalId,
+window.supabaseClient .from(“booking_forms”) .insert([{ id: finalId,
 azienda_id: aziendaId, sede_id: sedeId, nome, attivo:
-document.getElementById("attivo").checked, config }]) .select()
+document.getElementById(“attivo”).checked, config }]) .select()
 .single();
 
     if (error) {
@@ -752,8 +749,8 @@ document.getElementById("attivo").checked, config }]) .select()
     currentForm = form.id;
 
 } else { const { error } = await window.supabaseClient
-.from("booking_forms") .update({ nome, attivo:
-document.getElementById("attivo").checked, config }) .eq("id",
+.from(“booking_forms”) .update({ nome, attivo:
+document.getElementById(“attivo”).checked, config }) .eq(“id”,
 currentForm);
 
     if (error) {
@@ -767,36 +764,36 @@ currentForm);
 // 🔥 BLOCCO LINK CORRETTO (MULTI-AZIENDA SAFE)
 
 const { data: existingLinks, error: checkError } = await
-window.supabaseClient .from("booking_links") .select("*") .eq("form_id",
-currentForm) .eq("azienda_id", aziendaId);
+window.supabaseClient .from(“booking_links”) .select(“*“) .eq(”form_id”,
+currentForm) .eq(“azienda_id”, aziendaId);
 
-if (checkError) { console.error("Errore check link", checkError);
-alert("Errore verifica link"); return; }
+if (checkError) { console.error(“Errore check link”, checkError);
+alert(“Errore verifica link”); return; }
 
 if (!existingLinks || existingLinks.length === 0) {
 
 const { error: insertError } = await window.supabaseClient
-.from("booking_links") .insert([{ form_id: currentForm, slug: finalSlug,
+.from(“booking_links”) .insert([{ form_id: currentForm, slug: finalSlug,
 azienda_id: aziendaId, attivo: true }]);
 
-if (insertError) { console.error("Errore insert link", insertError);
-alert("Errore creazione link"); return; }
+if (insertError) { console.error(“Errore insert link”, insertError);
+alert(“Errore creazione link”); return; }
 
 } else {
 
 const { error: updateError } = await window.supabaseClient
-.from("booking_links") .update({ slug: finalSlug, attivo: true })
-.eq("form_id", currentForm) .eq("azienda_id", aziendaId);
+.from(“booking_links”) .update({ slug: finalSlug, attivo: true })
+.eq(“form_id”, currentForm) .eq(“azienda_id”, aziendaId);
 
-if (updateError) { console.error("Errore update link", updateError);
-alert("Errore aggiornamento link"); return; } } tempFormId = null;
+if (updateError) { console.error(“Errore update link”, updateError);
+alert(“Errore aggiornamento link”); return; } } tempFormId = null;
 tempSlug = null;
 
-document.getElementById("draft-status").innerText = "Form salvato";
-document.getElementById("msg").innerText = "✅ Form salvato";
+document.getElementById(“draft-status”).innerText = “Form salvato”;
+document.getElementById(“msg”).innerText = “✅ Form salvato”;
 
 await loadForms(); await loadLink(); } function collectConfig() { const
-giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
+giorni = Array.from(document.querySelectorAll(“.giorno-check:checked”))
 .map((el) => Number(el.value));
 
     if (!giorni.length) {
@@ -869,39 +866,34 @@ giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
 
 }
 
-function qrUrl(url, size) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
+function qrUrl(url, size) { return
+https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)};
 }
 
-function makeSlug(value) { return String(value || "form") .toLowerCase()
-.replace(/[^a-z0-9]+/g, "-") .replace(/^-|-$/g, "") ||"form"; }
+function makeSlug(value) { return String(value || “form”) .toLowerCase()
+.replace(/[^a-z0-9]+/g, “-”) .replace(/^-|-$/g, ““) ||”form”; }
 
 function shortId() { return Date.now().toString(36); }
 
 async function copyText(value) { try { await
 navigator.clipboard.writeText(value);
-document.getElementById("msg").innerText = "Link copiato"; } catch (e) {
+document.getElementById(“msg”).innerText = “Link copiato”; } catch (e) {
 console.warn(e); alert(value); } }
 
-function escapeHtml(value) { return String(value ?? "")
-.replace(/&/g,"&") .replace(/</g,"<") .replace(/>/g,">") .replace(/"/g,
-""") .replace(/'/g,"'"); }
+function escapeHtml(value) { return String(value ?? ““)
+.replace(/&/g,”&“) .replace(/</g,”<“) .replace(/>/g,”>“) .replace(/”/g,
+“"“) .replace(/’/g,”'“); }
 
-function escapeAttribute(value) { return escapeHtml(value); } async function deleteForm() {
-    if (!currentForm) return;
+function escapeAttribute(value) { return escapeHtml(value); } async
+function deleteForm() { if (!currentForm) return;
 
     const conferma = confirm("⚠️ Eliminare questo form? Operazione irreversibile.");
 
     if (!conferma) return;
 
-    const formIdToDelete = currentForm;
-
-    console.log("DELETE DEBUG", {
-      formIdToDelete,
-      aziendaId
-    });
-
     try {
+      const formIdToDelete = currentForm;
+
       const { error: linkError } = await window.supabaseClient
         .from("booking_links")
         .delete()
@@ -909,12 +901,10 @@ function escapeAttribute(value) { return escapeHtml(value); } async function del
         .eq("azienda_id", aziendaId);
 
       if (linkError) {
-        console.error("Errore eliminazione link", linkError);
+        console.error(linkError);
         alert("Errore eliminazione link");
         return;
       }
-
-      console.log("DELETE LINKS OK");
 
       const { error: versionError } = await window.supabaseClient
         .from("booking_form_versions")
@@ -922,46 +912,27 @@ function escapeAttribute(value) { return escapeHtml(value); } async function del
         .eq("form_id", formIdToDelete);
 
       if (versionError) {
-        console.error("Errore eliminazione versioni", versionError);
+        console.error(versionError);
         alert("Errore eliminazione versioni");
         return;
       }
 
-      console.log("DELETE VERSIONS OK");
-
-      const { data: deletedForms, error: formError } = await window.supabaseClient
+      const { error } = await window.supabaseClient
         .from("booking_forms")
         .delete()
         .eq("id", formIdToDelete)
-        .eq("azienda_id", aziendaId)
-        .select("id");
+        .eq("azienda_id", aziendaId);
 
-      if (formError) {
-        console.error("Errore eliminazione form", formError);
-        alert("Errore eliminazione form");
+      if (error) {
+        console.error(error);
+        alert("Errore eliminazione");
         return;
       }
-
-      if (!deletedForms || !deletedForms.length) {
-        console.warn("Nessun form eliminato. Possibile RLS o azienda_id non corrispondente.", {
-          formIdToDelete,
-          aziendaId,
-          deletedForms
-        });
-        alert("Nessun form eliminato. Controlla RLS Supabase o azienda_id.");
-        return;
-      }
-
-      console.log("DELETE FORM OK", deletedForms);
 
       currentForm = null;
       tempFormId = null;
       tempSlug = null;
       currentLink = null;
-
-      document.getElementById("nome").value = "";
-      document.getElementById("slug").value = "";
-      document.getElementById("emoji").value = "";
 
       document.getElementById("actions-box").innerHTML = "";
       document.getElementById("link-box").innerHTML = "";
@@ -970,9 +941,10 @@ function escapeAttribute(value) { return escapeHtml(value); } async function del
 
       await loadForms();
     } catch (e) {
-      console.error("Errore eliminazione", e);
+      console.error(e);
       alert("Errore eliminazione");
     }
-  }
+
+}
 
 }
