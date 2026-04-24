@@ -6,7 +6,6 @@
 
   <title>Prenota</title>
 
-  <!-- opzionale: stesso stile app -->
   <link rel="stylesheet" href="/styles.css" />
 
   <style>
@@ -23,12 +22,22 @@
   <div id="app"></div>
 
   <script type="module">
-    // 🔥 IMPORT DEL TUO MODULO ESISTENTE
-   import { render } from "/js/views/prenotazioni/prenotazione-online.js";
 
-    // 🔥 AVVIO DIRETTO (NO ROUTER)
-    const container = document.getElementById("app");
-    render(container);
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+    // 🔥 CONFIG GIÀ SISTEMATA
+    const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+    // 🔥 CREA CLIENT GLOBALE
+    window.supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // 🔥 IMPORT FORM
+    import { render } from "/js/views/prenotazioni/prenotazione-online.js";
+
+    // 🔥 AVVIO
+    render(document.getElementById("app"));
+
   </script>
 
 </body>
