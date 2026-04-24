@@ -751,12 +751,14 @@ export async function render(container) {
       return;
     }
 
-    const { data: existingSlug, error: slugError } = await window.supabaseClient
-      .from("booking_links")
-      .select("id, form_id")
-      .eq("slug", finalSlug)
-      .maybeSingle();
-
+    await window.supabaseClient
+  .from("booking_links")
+  .insert([{
+    form_id: currentForm,
+    slug: finalSlug,
+    azienda_id: aziendaId,
+    attivo: true
+  }]);
     if (slugError) {
       console.error(slugError);
       alert("Errore controllo slug");
