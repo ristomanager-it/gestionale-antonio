@@ -1,10 +1,8 @@
 export async function render(container) {
 
-  // 🔥 NASCONDE HEADER
   document.querySelector(".app-header")?.style.setProperty("display","none");
   document.querySelector(".topbar-global")?.style.setProperty("display","none");
 
-  // 🔥 PARAMETRI DA URL (FIX PRINCIPALE)
   const params = new URLSearchParams(window.location.search);
 
   const aziendaId = params.get("azienda");
@@ -14,16 +12,41 @@ export async function render(container) {
   const tag = params.get("tag") || "🌐";
   const ref = params.get("ref") || null;
 
-  console.log("AZIENDA ID:", aziendaId);
-  console.log("SEDE ID:", sedeId);
-  console.log("SOURCE:", source, "TAG:", tag, "REF:", ref);
-
   if (!aziendaId) {
     container.innerHTML = `<div class="page">Errore: link non valido</div>`;
     return;
   }
 
-  // 🌍 LINGUA
+  // 🔥 CARICA DATI AZIENDA / SEDE
+  let logo = "/assets/default-logo.png";
+  let nomeAzienda = "Prenotazione";
+
+  try {
+    const { data: sede } = await window.supabaseClient
+      .from("sedi")
+      .select("nome, logo")
+      .eq("id", sedeId)
+      .single();
+
+    if (sede) {
+      nomeAzienda = sede.nome || nomeAzienda;
+      if (sede.logo) logo = sede.logo;
+    } else {
+      const { data: azienda } = await window.supabaseClient
+        .from("aziende")
+        .select("nome, logo")
+        .eq("id", aziendaId)
+        .single();
+
+      if (azienda) {
+        nomeAzienda = azienda.nome || nomeAzienda;
+        if (azienda.logo) logo = azienda.logo;
+      }
+    }
+  } catch (e) {
+    console.warn("Errore caricamento logo", e);
+  }
+
   const lang = navigator.language.startsWith("it") ? "it" : "en";
 
   const t = {
@@ -54,57 +77,76 @@ export async function render(container) {
   };
 
   const defaultPrefix = lang === "it" ? "+39" : "+44";
-  const logo = "assets/favicon-192.png";
 
   container.innerHTML = `
-  <div class="login-page">
-    <div class="login-box">
-      <div class="login-logo-wrap">
-        <img src="${logo}" class="login-logo">
-      </div>
+  <div style="
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:#f7f9fc;
+    overflow-y:auto;
+  ">
 
-      <div class="login-form">
-        <h2 style="text-align:center;margin-bottom:10px;">
+    <!-- HEADER -->
+    <div style="
+      padding:20px 16px 10px;
+      text-align:center;
+    ">
+      <img src="${logo}" style="height:60px; object-fit:contain; margin-bottom:10px;">
+      <div style="font-weight:600; font-size:16px; color:#111;">
+        ${nomeAzienda}
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div style="
+      flex:1;
+      padding:16px;
+      max-width:480px;
+      margin:0 auto;
+      width:100%;
+    ">
+
+      <div style="
+        background:#fff;
+        border-radius:16px;
+        padding:20px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.06);
+      ">
+
+        <h2 style="text-align:center;margin-bottom:16px;">
           ${t[lang].titolo}
         </h2>
 
-        <div class="form-group">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+
           <input id="nome" class="input" placeholder="${t[lang].nome}">
-        </div>
-
-        <div class="form-group">
           <input id="cognome" class="input" placeholder="${t[lang].cognome}">
-        </div>
 
-        <div class="form-group" style="display:flex; gap:6px;">
-          <select id="prefisso" class="input" style="max-width:110px;">
-            <option value="+39">🇮🇹 +39</option>
-            <option value="+44">🇬🇧 +44</option>
-            <option value="+33">🇫🇷 +33</option>
-            <option value="+49">🇩🇪 +49</option>
-            <option value="+34">🇪🇸 +34</option>
-          </select>
+          <div style="display:flex; gap:6px;">
+            <select id="prefisso" class="input" style="max-width:110px;">
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+34">🇪🇸 +34</option>
+            </select>
 
-          <input id="telefono" class="input" placeholder="${t[lang].telefono}">
-        </div>
+            <input id="telefono" class="input" placeholder="${t[lang].telefono}">
+          </div>
 
-        <div class="form-group">
           <input type="date" id="data" class="input">
-        </div>
-
-        <div class="form-group">
           <input type="time" id="ora" class="input">
-        </div>
-
-        <div class="form-group">
           <input type="number" id="coperti" class="input" value="2">
+
+          <button id="btn-invia" class="app-button primary login-btn">
+            ${t[lang].invia}
+          </button>
+
+          <div id="msg" class="form-result"></div>
+
         </div>
 
-        <button id="btn-invia" class="app-button primary login-btn">
-          ${t[lang].invia}
-        </button>
-
-        <div id="msg" class="form-result"></div>
       </div>
     </div>
   </div>
@@ -113,7 +155,6 @@ export async function render(container) {
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
   document.getElementById("prefisso").value = defaultPrefix;
 
-  // 🔥 INVIO
   document.getElementById("btn-invia").onclick = async () => {
 
     const msg = document.getElementById("msg");
@@ -138,24 +179,20 @@ export async function render(container) {
       .from("prenotazioni_tavoli")
       .insert([{
         azienda_id: aziendaId,
-        sede_id: sedeId, // 🔥 FIX MULTI-SEDE
-
+        sede_id: sedeId,
         cliente_nome: nome + " " + cognome,
         cliente_telefono: telefono,
         data,
         ora,
         coperti,
-
         stato: "in_attesa",
         canale: "online",
-
         source: source,
         riferimento: ref,
         tag: tag
       }]);
 
     if (error) {
-      console.error(error);
       msg.innerHTML = `<span class="error-text">${error.message}</span>`;
       return;
     }
