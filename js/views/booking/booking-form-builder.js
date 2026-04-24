@@ -992,4 +992,49 @@ if (!existingLinks || existingLinks.length === 0) {
   function escapeAttribute(value) {
     return escapeHtml(value);
   }
+  async function deleteForm() {
+
+  if (!currentForm) return;
+
+  const conferma = confirm("⚠️ Eliminare questo form? Operazione irreversibile.");
+
+  if (!conferma) return;
+
+  try {
+
+    await window.supabaseClient
+      .from("booking_links")
+      .delete()
+      .eq("form_id", currentForm)
+      .eq("azienda_id", aziendaId);
+
+    await window.supabaseClient
+      .from("booking_form_versions")
+      .delete()
+      .eq("form_id", currentForm);
+
+    const { error } = await window.supabaseClient
+      .from("booking_forms")
+      .delete()
+      .eq("id", currentForm)
+      .eq("azienda_id", aziendaId);
+
+    if (error) {
+      console.error(error);
+      alert("Errore eliminazione");
+      return;
+    }
+
+    currentForm = null;
+    tempFormId = null;
+
+    document.getElementById("msg").innerText = "Form eliminato";
+
+    await loadForms();
+
+  } catch (e) {
+    console.error(e);
+    alert("Errore eliminazione");
+  }
+}
 }
