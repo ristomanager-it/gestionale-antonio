@@ -24,7 +24,6 @@ container.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
       <h2 style="margin:0;">Editor</h2>
       <span id="draft-status" style="font-size:12px;color:#6b7280;"></span>
-      <div id="actions-box"></div>
     </div>
 
     <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Nome form</label>
@@ -32,9 +31,6 @@ container.innerHTML = `
 
     <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Slug personalizzato</label>
     <input id="slug" class="input" placeholder="es. matrimonio-giulia-luca">
-
-<label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Emoji identificativa</label>
-<input id="emoji" class="input" placeholder="es. 🍷 🎂 💍">
 
 Emoji identificativa
 
@@ -214,7 +210,6 @@ shortId();
 
     document.getElementById("draft-status").innerText = "Nuovo form non salvato";
     document.getElementById("actions-box").innerHTML = "";
-    document.getElementById("actions-box").innerHTML = "";
     document.getElementById("msg").innerText = "Bozza creata. Link e QR saranno attivi solo dopo il salvataggio.";
 
     renderDraftLink();
@@ -276,7 +271,7 @@ tempFormId = null; tempSlug = null;
       return;
     }
     document.getElementById("actions-box").innerHTML = `
-      <div style="display:flex;justify-content:flex-end;">
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
         <button id="delete-form" class="app-button" style="background:#dc2626;color:#fff;">
           🗑️ Elimina form
         </button>
