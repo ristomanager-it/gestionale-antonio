@@ -959,6 +959,7 @@ if (!existingLinks || existingLinks.length === 0) {
         enabled: document.getElementById("policy_enabled").checked,
         text: document.getElementById("policy_text").value || ""
       }
+      emoji: document.getElementById("emoji").value || ""
     };
   }
 
