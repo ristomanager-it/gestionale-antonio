@@ -36,6 +36,10 @@ container.innerHTML = `
 <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Emoji identificativa</label>
 <input id="emoji" class="input" placeholder="es. 🍷 🎂 💍">
 
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+      <input type="checkbox" id="attivo" checked>
+      Form attivo
+    </label>
 
     <div id="link-box"></div>
 
@@ -135,6 +139,8 @@ container.innerHTML = `
 
     <button id="save" class="app-button primary">SALVA FORM</button>
 
+    <div id="msg" style="margin-top:12px;"></div>
+
 `;
 
 renderPalette(); renderGiorni([1, 2, 3, 4, 5, 6]); renderCustom();
@@ -171,18 +177,6 @@ document.getElementById("bg_color").addEventListener("input", (event) =>
 (/^#[0-9a-fA-F]{6}$/.test(value)) {
 document.getElementById("bg_color_picker").value = value; } });
 
-// reset UI
-document.getElementById("nome").value = "";
-document.getElementById("slug").value = "";
-document.getElementById("emoji").value = "";
-document.getElementById("link-box").innerHTML = "";
-document.getElementById("actions-box").innerHTML = "";
-document.getElementById("draft-status").innerText = "";
-
-// debug
-console.log("DELETE OK", { currentForm, aziendaId });
-
-// reload
 await loadForms();
 
 function startNewForm() { currentForm = null; currentLink = null;
@@ -801,18 +795,6 @@ tempSlug = null;
 document.getElementById("draft-status").innerText = "Form salvato";
 document.getElementById("msg").innerText = "✅ Form salvato";
 
-// reset UI
-document.getElementById("nome").value = "";
-document.getElementById("slug").value = "";
-document.getElementById("emoji").value = "";
-document.getElementById("link-box").innerHTML = "";
-document.getElementById("actions-box").innerHTML = "";
-document.getElementById("draft-status").innerText = "";
-
-// debug
-console.log("DELETE OK", { currentForm, aziendaId });
-
-// reload
 await loadForms(); await loadLink(); } function collectConfig() { const
 giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
 .map((el) => Number(el.value));
@@ -905,16 +887,21 @@ function escapeHtml(value) { return String(value ?? "")
 .replace(/&/g,"&") .replace(/</g,"<") .replace(/>/g,">") .replace(/"/g,
 """) .replace(/'/g,"'"); }
 
-function escapeAttribute(value) { return escapeHtml(value); } async
-function deleteForm() { if (!currentForm) return;
+function escapeAttribute(value) { return escapeHtml(value); } async function deleteForm() {
+    if (!currentForm) return;
 
     const conferma = confirm("⚠️ Eliminare questo form? Operazione irreversibile.");
 
     if (!conferma) return;
 
-    try {
-      const formIdToDelete = currentForm;
+    const formIdToDelete = currentForm;
 
+    console.log("DELETE DEBUG", {
+      formIdToDelete,
+      aziendaId
+    });
+
+    try {
       const { error: linkError } = await window.supabaseClient
         .from("booking_links")
         .delete()
@@ -922,10 +909,12 @@ function deleteForm() { if (!currentForm) return;
         .eq("azienda_id", aziendaId);
 
       if (linkError) {
-        console.error(linkError);
+        console.error("Errore eliminazione link", linkError);
         alert("Errore eliminazione link");
         return;
       }
+
+      console.log("DELETE LINKS OK");
 
       const { error: versionError } = await window.supabaseClient
         .from("booking_form_versions")
@@ -933,51 +922,57 @@ function deleteForm() { if (!currentForm) return;
         .eq("form_id", formIdToDelete);
 
       if (versionError) {
-        console.error(versionError);
+        console.error("Errore eliminazione versioni", versionError);
         alert("Errore eliminazione versioni");
         return;
       }
 
-      const { error } = await window.supabaseClient
+      console.log("DELETE VERSIONS OK");
+
+      const { data: deletedForms, error: formError } = await window.supabaseClient
         .from("booking_forms")
         .delete()
         .eq("id", formIdToDelete)
-        .eq("azienda_id", aziendaId);
+        .eq("azienda_id", aziendaId)
+        .select("id");
 
-      if (error) {
-        console.error(error);
-        alert("Errore eliminazione");
+      if (formError) {
+        console.error("Errore eliminazione form", formError);
+        alert("Errore eliminazione form");
         return;
       }
+
+      if (!deletedForms || !deletedForms.length) {
+        console.warn("Nessun form eliminato. Possibile RLS o azienda_id non corrispondente.", {
+          formIdToDelete,
+          aziendaId,
+          deletedForms
+        });
+        alert("Nessun form eliminato. Controlla RLS Supabase o azienda_id.");
+        return;
+      }
+
+      console.log("DELETE FORM OK", deletedForms);
 
       currentForm = null;
       tempFormId = null;
       tempSlug = null;
       currentLink = null;
 
+      document.getElementById("nome").value = "";
+      document.getElementById("slug").value = "";
+      document.getElementById("emoji").value = "";
+
       document.getElementById("actions-box").innerHTML = "";
       document.getElementById("link-box").innerHTML = "";
       document.getElementById("draft-status").innerText = "";
       document.getElementById("msg").innerText = "Form eliminato";
 
-      // reset UI
-document.getElementById("nome").value = "";
-document.getElementById("slug").value = "";
-document.getElementById("emoji").value = "";
-document.getElementById("link-box").innerHTML = "";
-document.getElementById("actions-box").innerHTML = "";
-document.getElementById("draft-status").innerText = "";
-
-// debug
-console.log("DELETE OK", { currentForm, aziendaId });
-
-// reload
-await loadForms();
+      await loadForms();
     } catch (e) {
-      console.error(e);
+      console.error("Errore eliminazione", e);
       alert("Errore eliminazione");
     }
-
-}
+  }
 
 }
