@@ -126,7 +126,11 @@ export async function render(container) {
       I tag identificano origine o tipo del form: evento, matrimonio, estate, instagram, QR sala. Verranno salvati sulla prenotazione.
     </div>
     <input id="tags" class="input" placeholder="evento, estate, matrimonio">
+<label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">
+  Emoji identificativa form
+</label>
 
+<input id="emoji" class="input" placeholder="es. 🍷 🎂 💍 🎉🎶❤️🎅👨‍🍳👰‍♀️">
     <hr>
 
     <h3>Booking policy</h3>
