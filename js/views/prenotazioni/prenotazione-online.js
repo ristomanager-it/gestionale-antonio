@@ -17,34 +17,49 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 CARICA DATI AZIENDA / SEDE
-  let logo = "/assets/default-logo.png";
+  // 🔥 LOGO + NOME CON FALLBACK CORRETTO
+  let logo = null;
   let nomeAzienda = "Prenotazione";
 
   try {
     const { data: sede } = await window.supabaseClient
       .from("sedi")
-      .select("nome, logo")
+      .select("*")
       .eq("id", sedeId)
       .single();
 
     if (sede) {
       nomeAzienda = sede.nome || nomeAzienda;
-      if (sede.logo) logo = sede.logo;
-    } else {
+
+      if (sede.logo_url) {
+        logo = sede.logo_url;
+      }
+    }
+
+    if (!logo) {
       const { data: azienda } = await window.supabaseClient
         .from("aziende")
-        .select("nome, logo")
+        .select("*")
         .eq("id", aziendaId)
         .single();
 
       if (azienda) {
-        nomeAzienda = azienda.nome || nomeAzienda;
-        if (azienda.logo) logo = azienda.logo;
+        if (!sede) {
+          nomeAzienda = azienda.nome || nomeAzienda;
+        }
+
+        if (azienda.logo_url) {
+          logo = azienda.logo_url;
+        }
       }
     }
+
   } catch (e) {
     console.warn("Errore caricamento logo", e);
+  }
+
+  if (!logo) {
+    logo = "https://via.placeholder.com/150?text=Logo";
   }
 
   const lang = navigator.language.startsWith("it") ? "it" : "en";
