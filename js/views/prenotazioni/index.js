@@ -814,6 +814,9 @@ export async function render(container) {
   const listaOnline = document.getElementById("lista-online");
   const arriviModal = document.getElementById("modal-arrivi");
   const listaArrivi = document.getElementById("lista-arrivi");
+  // 🔔 AUDIO NOTIFICA PRENOTAZIONI ONLINE
+const notificationAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+notificationAudio.volume = 0.6;
   const slotSizeSelect = document.getElementById("arrivi-slot-size");
   const daysContainer = document.getElementById("pren-days");
   const onlineBadge = document.getElementById("pren-online-badge");
