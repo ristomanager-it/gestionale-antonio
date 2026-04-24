@@ -394,6 +394,7 @@ export async function render(container) {
       .from("booking_links")
       .select("*")
       .eq("form_id", currentForm)
+.eq("azienda_id", aziendaId)
       .maybeSingle();
 
     currentLink = link || null;
