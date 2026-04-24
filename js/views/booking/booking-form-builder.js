@@ -7,10 +7,16 @@ export async function render(container) {
   let customFields = [];
   let fasceOrarie = [];
 
+  // 🔥 NUOVO: stato temporaneo
+  let tempFormId = null;
+  let tempSlug = null;
+
   container.innerHTML = `
   <div style="padding:16px; max-width:800px; margin:0 auto;">
 
     <h2>Booking Forms</h2>
+
+    <button id="new-form" class="app-button">+ Nuovo Form</button>
 
     <div id="forms-list"></div>
 
@@ -59,6 +65,44 @@ export async function render(container) {
 
   </div>
   `;
+
+  // 🔥 NUOVO FORM (preview immediata)
+  document.getElementById("new-form").onclick = () => {
+
+    currentForm = null;
+
+    tempFormId = crypto.randomUUID();
+
+    const nome = document.getElementById("nome").value || "form";
+
+    tempSlug = nome
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + "-" + Date.now();
+
+    renderTempLink();
+
+    document.getElementById("msg").innerText = "Form in creazione (non salvato)";
+  };
+
+  function renderTempLink() {
+
+    const url = `https://ristoflow-ai.com/#/booking/${tempSlug}`;
+
+    document.getElementById("link-box").innerHTML = `
+      <div style="margin-top:12px; padding:12px; background:#fef3c7; border-radius:12px;">
+        
+        <b>Link (preview):</b><br>
+        <a href="${url}" target="_blank">${url}</a><br><br>
+
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}">
+
+        <div style="font-size:11px; margin-top:6px;">
+          ⚠️ Attivo solo dopo salvataggio
+        </div>
+      </div>
+    `;
+  }
 
   async function loadForms() {
     const { data } = await window.supabaseClient
@@ -206,10 +250,18 @@ export async function render(container) {
       }
     };
 
+    const finalId = currentForm || tempFormId;
+
     if (!currentForm) {
       const { data: form } = await window.supabaseClient
         .from("booking_forms")
-        .insert([{ azienda_id: aziendaId, sede_id: sedeId, nome, config }])
+        .insert([{
+          id: finalId,
+          azienda_id: aziendaId,
+          sede_id: sedeId,
+          nome,
+          config
+        }])
         .select()
         .single();
 
@@ -230,13 +282,6 @@ export async function render(container) {
       .from("booking_form_versions")
       .insert([{ form_id: currentForm, versione, config }]);
 
-    // 🔥 CREA LINK SE NON ESISTE
-
-    const slugBase = nome
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
     const { data: existing } = await window.supabaseClient
       .from("booking_links")
       .select("id")
@@ -248,11 +293,11 @@ export async function render(container) {
         .from("booking_links")
         .insert([{
           form_id: currentForm,
-          slug: slugBase + "-" + Date.now()
+          slug: tempSlug || nome + "-" + Date.now()
         }]);
     }
 
-    document.getElementById("msg").innerText = "✅ Salvato (v" + versione + ")";
+    document.getElementById("msg").innerText = "✅ Salvato";
 
     loadLink();
   };
