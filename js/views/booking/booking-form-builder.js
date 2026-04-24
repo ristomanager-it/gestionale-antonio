@@ -33,6 +33,9 @@ export async function render(container) {
     <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Nome form</label>
     <input id="nome" class="input" placeholder="Es. Cena degustazione / Evento matrimonio">
 
+    <label style="display:block;margin-top:10px;font-size:12px;font-weight:600;">Slug personalizzato</label>
+    <input id="slug" class="input" placeholder="es. matrimonio-giulia-luca">
+
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <input type="checkbox" id="attivo" checked>
       Form attivo
@@ -155,8 +158,19 @@ export async function render(container) {
 
   document.getElementById("nome").addEventListener("input", () => {
     if (!currentForm && tempFormId) {
-      tempSlug = makeSlug(document.getElementById("nome").value || "form") + "-" + shortId();
+      if (!document.getElementById("slug").value.trim()) {
+        tempSlug = makeSlug(document.getElementById("nome").value || "form") + "-" + shortId();
+      }
+
       renderDraftLink();
+    }
+  });
+
+  document.getElementById("slug").addEventListener("input", () => {
+    if (!currentForm && tempFormId) {
+      renderDraftLink();
+    } else if (currentForm) {
+      renderExistingSlugPreview();
     }
   });
 
@@ -180,6 +194,7 @@ export async function render(container) {
     tempSlug = makeSlug(document.getElementById("nome").value || "form") + "-" + shortId();
 
     document.getElementById("nome").value = "";
+    document.getElementById("slug").value = "";
     document.getElementById("attivo").checked = true;
 
     document.getElementById("logo_enabled").checked = true;
@@ -259,6 +274,7 @@ export async function render(container) {
 
   async function loadForm(id) {
     currentForm = id;
+    currentLink = null;
     tempFormId = null;
     tempSlug = null;
 
@@ -284,6 +300,7 @@ export async function render(container) {
     const config = version?.config || form.config || {};
 
     document.getElementById("nome").value = form.nome || "";
+    document.getElementById("slug").value = "";
     document.getElementById("attivo").checked = form.attivo !== false;
 
     document.getElementById("logo_enabled").checked = config.branding?.logo_enabled !== false;
@@ -312,8 +329,14 @@ export async function render(container) {
     await loadLink();
   }
 
+  function getDraftSlug() {
+    const slugInput = document.getElementById("slug").value.trim();
+    return slugInput ? makeSlug(slugInput) : tempSlug;
+  }
+
   function renderDraftLink() {
-    const url = `${BASE_PUBLIC_URL}/#/booking/${tempSlug}`;
+    const finalSlug = getDraftSlug();
+    const url = `${BASE_PUBLIC_URL}/#/booking/${finalSlug}`;
 
     document.getElementById("link-box").innerHTML = `
       <div style="margin-top:12px; padding:12px; background:#fef3c7; border-radius:12px; border:1px solid #fde68a;">
@@ -337,6 +360,30 @@ export async function render(container) {
     if (copyBtn) copyBtn.onclick = () => copyText(url);
   }
 
+  function renderExistingSlugPreview() {
+    if (!currentForm) return;
+
+    const slugInput = document.getElementById("slug").value.trim();
+    const slug = slugInput ? makeSlug(slugInput) : currentLink?.slug;
+
+    if (!slug) return;
+
+    const url = `${BASE_PUBLIC_URL}/#/booking/${slug}`;
+
+    document.getElementById("link-box").innerHTML = `
+      <div style="margin-top:12px; padding:12px; background:#eff6ff; border-radius:12px; border:1px solid #bfdbfe;">
+        <b>Nuovo link dopo salvataggio</b><br>
+        <div style="font-size:12px;color:#1d4ed8;margin:4px 0 8px;">La modifica dello slug sarà attiva dopo SALVA FORM</div>
+
+        <input class="input" value="${escapeAttribute(url)}" readonly>
+
+        <div style="margin-top:10px;">
+          <img src="${qrUrl(url, 180)}" style="width:180px;height:180px;border-radius:12px;background:#fff;">
+        </div>
+      </div>
+    `;
+  }
+
   async function loadLink() {
     if (!currentForm) return;
 
@@ -356,6 +403,8 @@ export async function render(container) {
       `;
       return;
     }
+
+    document.getElementById("slug").value = link.slug || "";
 
     const url = `${BASE_PUBLIC_URL}/#/booking/${link.slug}`;
 
@@ -693,6 +742,32 @@ export async function render(container) {
       renderDraftLink();
     }
 
+    const finalSlug = currentForm
+      ? makeSlug(document.getElementById("slug").value || currentLink?.slug || nome)
+      : getDraftSlug();
+
+    if (!finalSlug) {
+      alert("Slug non valido");
+      return;
+    }
+
+    const { data: existingSlug, error: slugError } = await window.supabaseClient
+      .from("booking_links")
+      .select("id, form_id")
+      .eq("slug", finalSlug)
+      .maybeSingle();
+
+    if (slugError) {
+      console.error(slugError);
+      alert("Errore controllo slug");
+      return;
+    }
+
+    if (existingSlug && String(existingSlug.form_id) !== String(currentForm || tempFormId)) {
+      alert("Slug già esistente. Scegli un altro link.");
+      return;
+    }
+
     const config = collectConfig();
     const finalId = currentForm || tempFormId;
 
@@ -754,24 +829,38 @@ export async function render(container) {
       return;
     }
 
-    const { data: existing } = await window.supabaseClient
+    const { data: existingLink } = await window.supabaseClient
       .from("booking_links")
       .select("id")
       .eq("form_id", currentForm)
       .maybeSingle();
 
-    if (!existing) {
+    if (!existingLink) {
       const { error: linkError } = await window.supabaseClient
         .from("booking_links")
         .insert([{
           form_id: currentForm,
-          slug: tempSlug || makeSlug(nome) + "-" + shortId(),
+          slug: finalSlug,
           attivo: true
         }]);
 
       if (linkError) {
         console.error(linkError);
         alert("Form salvato, ma errore creazione link");
+        return;
+      }
+    } else {
+      const { error: linkUpdateError } = await window.supabaseClient
+        .from("booking_links")
+        .update({
+          slug: finalSlug,
+          attivo: true
+        })
+        .eq("id", existingLink.id);
+
+      if (linkUpdateError) {
+        console.error(linkUpdateError);
+        alert("Form salvato, ma errore aggiornamento link");
         return;
       }
     }
@@ -790,13 +879,30 @@ export async function render(container) {
     const giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
       .map((el) => Number(el.value));
 
+    if (!giorni.length) {
+      alert("Seleziona almeno un giorno prenotabile");
+    }
+
     const cleanFasce = fasceOrarie
       .map((slot) => ({
         start: slot.start || "",
         end: slot.end || "",
         max_coperti: slot.max_coperti ? Number(slot.max_coperti) : null
       }))
-      .filter((slot) => slot.start && slot.end);
+      .filter((slot) => {
+        if (!slot.start || !slot.end) return false;
+
+        if (slot.start >= slot.end) {
+          alert("Errore fascia oraria: ora fine deve essere maggiore dell'ora inizio");
+          return false;
+        }
+
+        return true;
+      });
+
+    if (!cleanFasce.length) {
+      alert("Inserisci almeno una fascia oraria valida");
+    }
 
     const cleanCustom = customFields
       .map((field) => ({
@@ -832,7 +938,7 @@ export async function render(container) {
       },
       tags: document.getElementById("tags").value
         .split(",")
-        .map((tag) => tag.trim())
+        .map((tag) => tag.trim().toLowerCase())
         .filter(Boolean),
       policy: {
         enabled: document.getElementById("policy_enabled").checked,
