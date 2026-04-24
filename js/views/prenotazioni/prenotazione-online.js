@@ -17,11 +17,13 @@ export async function render(container) {
     return;
   }
 
-  // 🔥 LOGO + NOME CON FALLBACK CORRETTO
+  // 🔥 LOGO + NOME FIX DEFINITIVO
   let logo = null;
   let nomeAzienda = "Prenotazione";
 
   try {
+
+    // 🔹 1. SEDE
     const { data: sede } = await window.supabaseClient
       .from("sedi")
       .select("*")
@@ -36,6 +38,7 @@ export async function render(container) {
       }
     }
 
+    // 🔹 2. FALLBACK AZIENDA (SEMPRE SE NON HO LOGO)
     if (!logo) {
       const { data: azienda } = await window.supabaseClient
         .from("aziende")
@@ -44,9 +47,7 @@ export async function render(container) {
         .single();
 
       if (azienda) {
-        if (!sede) {
-          nomeAzienda = azienda.nome || nomeAzienda;
-        }
+        nomeAzienda = nomeAzienda || azienda.nome;
 
         if (azienda.logo_url) {
           logo = azienda.logo_url;
@@ -58,6 +59,7 @@ export async function render(container) {
     console.warn("Errore caricamento logo", e);
   }
 
+  // 🔹 3. FALLBACK FINALE
   if (!logo) {
     logo = "https://via.placeholder.com/150?text=Logo";
   }
