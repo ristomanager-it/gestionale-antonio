@@ -353,11 +353,6 @@ function renderDraftLink() {
   if (copyBtn) copyBtn.onclick = () => copyText(url);
 }
 
-    const copyBtn = document.getElementById("copy-preview-link");
-    if (copyBtn) copyBtn.onclick = () => copyText(url);
-
-}
-
 function renderExistingSlugPreview() { if (!currentForm) return;
 
     const slugInput = document.getElementById("slug").value.trim();
