@@ -60,7 +60,7 @@ const routes = {
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
-  marketing: () => import("./views/marketing.js"),
+ "bo-marketing": () => import("./views/bo/bo-marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
