@@ -1,6 +1,9 @@
+import { supabase } from "../lib/supabaseClient.js"
+
 export async function render(container) {
 
   const ruolo = window.state?.ruolo
+  const azienda_id = window.state?.azienda_id
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
     container.innerHTML = `
@@ -12,10 +15,57 @@ export async function render(container) {
     return
   }
 
+  // -------------------------
+  // FETCH DATI DASHBOARD
+  // -------------------------
+
+  let contattiCount = 0
+  let tagCount = 0
+  let templateCount = 0
+  let bookingCount = 0
+
+  try {
+
+    const { count: c1 } = await supabase
+      .from("contatti")
+      .select("*", { count: "exact", head: true })
+      .eq("azienda_id", azienda_id)
+
+    contattiCount = c1 || 0
+
+    const { count: c2 } = await supabase
+      .from("clienti_tag")
+      .select("*", { count: "exact", head: true })
+      .eq("azienda_id", azienda_id)
+
+    tagCount = c2 || 0
+
+    const { count: c3 } = await supabase
+      .from("messaggi_template")
+      .select("*", { count: "exact", head: true })
+      .eq("azienda_id", azienda_id)
+
+    templateCount = c3 || 0
+
+    const { count: c4 } = await supabase
+      .from("booking_forms")
+      .select("*", { count: "exact", head: true })
+      .eq("azienda_id", azienda_id)
+
+    bookingCount = c4 || 0
+
+  } catch (err) {
+    console.error("Errore caricamento dashboard BO", err)
+  }
+
+  // -------------------------
+  // UI
+  // -------------------------
+
   container.innerHTML = `
     <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
-      <!-- MENU BO -->
+      <!-- MENU -->
       <aside style="
         width:240px;
         background:#111827;
@@ -39,15 +89,57 @@ export async function render(container) {
       </aside>
 
       <!-- CONTENUTO -->
-      <div id="bo-content" style="flex:1;">
-        <div class="card">
-          <h2>Back Office</h2>
-          <p>Seleziona una sezione dal menu laterale.</p>
-        </div>
-      </div>
+      <div id="bo-content" style="flex:1; display:flex; flex-direction:column; gap:16px;">
 
+        <div class="card">
+          <h2>Back Office Dashboard</h2>
+          <p>Panoramica configurazione azienda</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px;">
+
+          <div class="card">
+            <h3>👥 Contatti</h3>
+            <p style="font-size:24px; font-weight:bold;">${contattiCount}</p>
+          </div>
+
+          <div class="card">
+            <h3>🏷️ Tag</h3>
+            <p style="font-size:24px; font-weight:bold;">${tagCount}</p>
+          </div>
+
+          <div class="card">
+            <h3>✉️ Template</h3>
+            <p style="font-size:24px; font-weight:bold;">${templateCount}</p>
+          </div>
+
+          <div class="card">
+            <h3>📅 Booking</h3>
+            <p style="font-size:24px; font-weight:bold;">${bookingCount}</p>
+          </div>
+
+        </div>
+
+        <div class="card">
+          <h3>Azioni rapide</h3>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+            <button onclick="window.location.hash='#/bo-tag'">Gestisci Tag</button>
+            <button onclick="window.location.hash='#/bo-template'">Template Messaggi</button>
+            <button onclick="window.location.hash='#/bo-booking'">Config Booking</button>
+            <button onclick="window.location.hash='#/bo-impostazioni'">Impostazioni Azienda</button>
+
+          </div>
+        </div>
+
+      </div>
     </div>
   `
+
+  // -------------------------
+  // MENU INTERAZIONE
+  // -------------------------
 
   const items = container.querySelectorAll(".bo-menu-item")
 
