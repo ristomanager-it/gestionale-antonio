@@ -39,7 +39,6 @@ export async function render(container) {
         <div class="bo-m-item" data-sec="fidelity">💳 Fidelity</div>
         <div class="bo-m-item" data-sec="tags">🏷️ Tags</div>
         <div class="bo-m-item" data-sec="template">✉️ Template</div>
-        <div class="bo-m-item" data-sec="template">✉️ Template</div>
         <div class="bo-m-item" data-sec="bozze">📝 Bozze</div>
         <div class="bo-m-item" data-sec="invio">📤 Invio</div>
         <div class="bo-m-item" data-sec="coda">📬 Coda</div>
@@ -57,20 +56,19 @@ export async function render(container) {
   const content = container.querySelector("#bo-m-content")
   const menuItems = container.querySelectorAll(".bo-m-item")
 
-menuItems.forEach(el => {
-  el.style.padding = "10px"
-  el.style.cursor = "pointer"
-  el.style.borderRadius = "10px"
-  el.style.marginBottom = "6px"
+  menuItems.forEach(el => {
+    el.style.padding = "10px"
+    el.style.cursor = "pointer"
+    el.style.borderRadius = "10px"
+    el.style.marginBottom = "6px"
 
-  el.addEventListener("click", () => {
-    const sec = el.getAttribute("data-sec")
-    console.log("CLICK:", sec)
-
-    currentSection = sec
-    renderSection()
+    el.addEventListener("click", async () => {
+      const sec = el.getAttribute("data-sec")
+      currentSection = sec
+      await renderSection()
+    })
   })
-})
+
   /* ================= TAG ================= */
 
   async function loadTags() {
@@ -309,6 +307,8 @@ menuItems.forEach(el => {
   }
 
   async function renderSection() {
+
+    content.innerHTML = "<div style='padding:20px;'>Loading...</div>"
 
     if (currentSection === "tags") {
       await loadTags()
