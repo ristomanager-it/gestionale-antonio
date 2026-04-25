@@ -50,7 +50,7 @@ const routes = {
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
   activate: () => import("./views/activate.js"),
-cliente: () => import("./views/cliente.js"),
+  cliente: () => import("./views/cliente.js"),
   setPassword: () => import("./views/set-password.js"),
   "set-password": () => import("./views/set-password.js"),
 
@@ -90,25 +90,24 @@ cliente: () => import("./views/cliente.js"),
   permessi: () => import("./views/permessi-ferie.js"),
   manuale: () => import("./views/manuale.js"),
 
-  // 🔥 SALA
   sala: () => import("./views/sala.js"),
 
- // 🔥 PRENOTAZIONI
-"prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
-"prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
-"prenotazioni-form": () => import("./views/prenotazioni/form.js"),
-"prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
+  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
+  "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
+  "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
+  "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
-// 🔥 NUOVO SISTEMA
-prenotazioni: () => import("./views/prenotazioni/index.js"),
-"prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
+  prenotazioni: () => import("./views/prenotazioni/index.js"),
+  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
 
-// 🔥 CAMPAGNE
-campagne: () => import("./views/campagne/index.js"),
-"booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
+  campagne: () => import("./views/campagne/index.js"),
+  "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
 
-comanda: () => import("./views/comanda.js"),
+  comanda: () => import("./views/comanda.js"),
+
+  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
 };
+
 /* =========================================================
    ROUTE SCOPE
 ========================================================= */
@@ -121,6 +120,7 @@ const PUBLIC_ROUTES = new Set([
   "prenota",
   "booking"
 ]);
+
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
   "gestioneAziende",
@@ -137,6 +137,10 @@ const PREHOME_ROUTES = new Set([
 ]);
 
 const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
+
+const BO_ROUTES = new Set([
+  "bo-dashboard"
+]);
 
 /* =========================================================
    STORAGE KEYS
@@ -181,26 +185,23 @@ async function renderView(routeName) {
   if (!routes[routeName]) routeName = "home";
   if (!app) return;
 
-  // reset contenuto principale
   app.innerHTML = "";
 
-  // 🔥 RESET UI DINAMICA (NUOVO)
   const sub = document.getElementById("page-subheader");
   const foot = document.getElementById("footer-root");
 
   if (sub) sub.innerHTML = "";
   if (foot) foot.innerHTML = "";
 
-  // carica modulo
   const module = await routes[routeName]();
 
   if (!module.render) {
     throw new Error(`La view ${routeName} non esporta render()`);
   }
 
-  // render pagina
   await module.render(app);
 }
+
 /* =========================================================
    PERMISSION CHECK
 ========================================================= */
@@ -220,6 +221,10 @@ function hasPermission(area) {
   if (window.state?._allAccess === true) return true;
 
   if (isSuperadmin()) return true;
+
+  if (BO_ROUTES.has(area)) {
+    return ruolo === "admin" || ruolo === "superadmin";
+  }
 
   if (area === "dipendenti" || area === "dipendente" || area === "crea-dipendente") {
     return ["admin", "segreteria", "manager_cucina", "manager_sala"].includes(ruolo);
@@ -552,95 +557,93 @@ async function resolve() {
     return;
   }
 
-const { route, segments, params } = parseHash();
-console.log("ROUTE:", route);
-window.routeParams = params || {};
-window.routeSegments = segments || [];
+  const { route, segments, params } = parseHash();
+  console.log("ROUTE:", route);
+  window.routeParams = params || {};
+  window.routeSegments = segments || [];
 
-// 🔥 BOOKING PUBLIC ROUTE (BYPASS TOTALE AUTH)
-if (route === "booking") {
+  if (route === "booking") {
 
-  const slug = segments[1];
+    const slug = segments[1];
 
-  if (!slug) {
-    app.innerHTML = "Link non valido";
-    return;
-  }
-
-  try {
-
-    const { data: link, error } = await supabase
-      .from("booking_links")
-      .select("form_id")
-      .eq("slug", slug)
-      .maybeSingle();
-
-    if (error || !link) {
-      app.innerHTML = "Link non trovato";
+    if (!slug) {
+      app.innerHTML = "Link non valido";
       return;
     }
 
-    window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
-    return;
+    try {
 
-  } catch (e) {
-    console.error("Errore booking route:", e);
-    app.innerHTML = "Errore";
-    return;
-  }
-}
+      const { data: link, error } = await supabase
+        .from("booking_links")
+        .select("form_id")
+        .eq("slug", slug)
+        .maybeSingle();
 
-// 🔥 DA QUI PARTE IL TUO FLOW NORMALE
-const session = await getValidSession();
+      if (error || !link) {
+        app.innerHTML = "Link non trovato";
+        return;
+      }
 
-if (!session) {
-  if (window.stateActions?.setUser) window.stateActions.setUser(null);
-  if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
-  if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
+      return;
 
-  window.state.piano = null;
-  window.state.featuresEffettive = {};
-  window.state.sedi = [];
-  window.state.sedeAttiva = null;
-  window.state.permessiOverride = {};
-  window.state.isSuperadmin = false;
-
-  setHeaderVisible(false);
-
-  const target = PUBLIC_ROUTES.has(route) ? route : "login";
-  await renderView(target);
-  return;
-}
-  window.stateActions.setUser(session.user);
-// 🔥 LOAD SEDE DIPENDENTE
-try {
-
-  const { data: dip } = await supabase
-    .from("dipendenti")
-    .select("id")
-    .eq("user_id", session.user.id)
-    .maybeSingle();
-
-  if (dip?.id) {
-
-    const { data: link } = await supabase
-      .from("dipendenti_sedi")
-      .select("sede_id, sedi(id, nome, logo_url)")
-      .eq("dipendente_id", dip.id)
-      .eq("is_default", true)
-      .maybeSingle();
-
-    if (link?.sedi) {
-      window.state.sedeAttiva = link.sedi;
-
-      // 🔥 salva anche in localStorage
-      localStorage.setItem("active_sede_id", link.sedi.id);
+    } catch (e) {
+      console.error("Errore booking route:", e);
+      app.innerHTML = "Errore";
+      return;
     }
   }
 
-} catch (e) {
-  console.warn("Errore load sede dipendente:", e);
-}
+  const session = await getValidSession();
+
+  if (!session) {
+    if (window.stateActions?.setUser) window.stateActions.setUser(null);
+    if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
+    if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+
+    window.state.piano = null;
+    window.state.featuresEffettive = {};
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+    window.state.permessiOverride = {};
+    window.state.isSuperadmin = false;
+
+    setHeaderVisible(false);
+
+    const target = PUBLIC_ROUTES.has(route) ? route : "login";
+    await renderView(target);
+    return;
+  }
+
+  window.stateActions.setUser(session.user);
+
+  try {
+
+    const { data: dip } = await supabase
+      .from("dipendenti")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (dip?.id) {
+
+      const { data: link } = await supabase
+        .from("dipendenti_sedi")
+        .select("sede_id, sedi(id, nome, logo_url)")
+        .eq("dipendente_id", dip.id)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      if (link?.sedi) {
+        window.state.sedeAttiva = link.sedi;
+        localStorage.setItem("active_sede_id", link.sedi.id);
+      }
+    }
+
+  } catch (e) {
+    console.warn("Errore load sede dipendente:", e);
+  }
+
   if (
     PUBLIC_ROUTES.has(route) &&
     route !== "activate" &&
@@ -738,7 +741,6 @@ try {
     window.menuController.refresh();
   }
 
- 
   if (isAziendaBlockedForUser(azienda, route)) {
     app.innerHTML = `
       <div class="view" style="padding:40px; text-align:center;">
@@ -771,13 +773,14 @@ try {
     return;
   }
 
- if (
-  !PLATFORM_ROUTES.has(route) &&
-  route !== "completaProfilo" &&
-  route !== "completaAzienda" &&
-  route !== "home" &&
-  route !== "booking-form-builder" // 🔥 QUESTA RIGA
-) {
+  if (
+    !PLATFORM_ROUTES.has(route) &&
+    !BO_ROUTES.has(route) &&
+    route !== "completaProfilo" &&
+    route !== "completaAzienda" &&
+    route !== "home" &&
+    route !== "booking-form-builder"
+  ) {
     const sedeRes = await ensureSedeContext(route);
     if (!sedeRes.ok) {
       if (sedeRes.redirected) return;
