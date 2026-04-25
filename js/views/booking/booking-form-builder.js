@@ -477,9 +477,8 @@ label: "", type:"text", required: false, taggable: false, tag_prefix:
 
 }
 
-function renderCustom() { const list =
-document.getElementById("custom-list");
-
+function renderCustom() {
+  const list = document.getElementById("custom-list");
     if (!customFields.length) {
       list.innerHTML = `<div style="font-size:12px;color:#6b7280;">Nessun campo custom</div>`;
       return;
