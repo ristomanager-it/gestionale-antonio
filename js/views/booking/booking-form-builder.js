@@ -979,44 +979,43 @@ export async function render(container) {
     };
   }
 
-  function qrUrl(url, size) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
-  }
+ function qrUrl(url, size) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
+}
 
-  function makeSlug(value) {
-    return String(value || "form")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "form";
-  }
+function makeSlug(value) {
+  return String(value || "form")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "form";
+}
 
-  function shortId() {
-    return Date.now().toString(36);
-  }
+function shortId() {
+  return Date.now().toString(36);
+}
 
-  async function copyText(value) {
-    try {
-      await navigator.clipboard.writeText(value);
-      document.getElementById("msg").innerText = "Link copiato";
-    } catch (e) {
-      console.warn(e);
-      alert(value);
-    }
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    document.getElementById("msg").innerText = "Link copiato";
+  } catch (e) {
+    console.warn(e);
+    alert(value);
   }
+}
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-  function escapeAttribute(value) {
-    return escapeHtml(value);
-  }
-
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
   async function deleteForm() {
     if (!currentForm) return;
 
