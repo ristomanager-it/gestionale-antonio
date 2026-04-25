@@ -663,7 +663,7 @@ alert("Seleziona un file sfondo"); return; }
 
 async function uploadImage(file, prefix) {
   if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-    alert("Formato non valido. Usa PNG o JPG.");
+   
     return null;
   }
 
