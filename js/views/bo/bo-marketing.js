@@ -16,7 +16,24 @@ export async function render(container) {
   let tags = []
   let templates = []
 
-  const supabase = await window.waitSupabase()
+  // ✅ FIX CRITICO: fallback supabase
+  let supabase = null
+
+  try {
+    if (window.waitSupabase) {
+      supabase = await window.waitSupabase()
+    } else {
+      supabase = window.supabaseClient
+    }
+  } catch (e) {
+    console.error("Errore init supabase:", e)
+    supabase = window.supabaseClient
+  }
+
+  if (!supabase) {
+    container.innerHTML = `<div class="page">Errore inizializzazione Supabase</div>`
+    return
+  }
 
   container.innerHTML = `
     <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
@@ -70,11 +87,17 @@ export async function render(container) {
   async function loadTags() {
     const aziendaId = window.state?.azienda?.id
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("clienti_tag")
       .select("*")
       .eq("azienda_id", aziendaId)
       .order("nome")
+
+    if (error) {
+      console.error("Errore loadTags:", error)
+      tags = []
+      return
+    }
 
     tags = data || []
   }
@@ -87,19 +110,19 @@ export async function render(container) {
       .insert([{ nome, colore, azienda_id: aziendaId }])
 
     await loadTags()
-    renderSection()
+    await renderSection()
   }
 
   async function deleteTag(id) {
     await supabase.from("clienti_tag").delete().eq("id", id)
     await loadTags()
-    renderSection()
+    await renderSection()
   }
 
   async function updateTag(id, nome) {
     await supabase.from("clienti_tag").update({ nome }).eq("id", id)
     await loadTags()
-    renderSection()
+    await renderSection()
   }
 
   function renderTags(content) {
@@ -160,11 +183,17 @@ export async function render(container) {
   async function loadTemplates() {
     const aziendaId = window.state?.azienda?.id
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messaggi_template")
       .select("*")
       .eq("azienda_id", aziendaId)
       .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Errore loadTemplates:", error)
+      templates = []
+      return
+    }
 
     templates = data || []
   }
@@ -172,13 +201,13 @@ export async function render(container) {
   async function createTemplate(payload) {
     await supabase.from("messaggi_template").insert([payload])
     await loadTemplates()
-    renderSection()
+    await renderSection()
   }
 
   async function deleteTemplate(id) {
     await supabase.from("messaggi_template").delete().eq("id", id)
     await loadTemplates()
-    renderSection()
+    await renderSection()
   }
 
   function renderTemplates(content) {
@@ -300,8 +329,6 @@ export async function render(container) {
     }
   }
 
-  /* ================= GENERALE ================= */
-
   function renderPlaceholder(content, title) {
     content.innerHTML = `
       <div class="card">
@@ -317,26 +344,33 @@ export async function render(container) {
 
     content.innerHTML = "<div style='padding:20px;'>Loading...</div>"
 
-    if (currentSection === "tags") {
-      await loadTags()
-      renderTags(content)
-      return
-    }
+    try {
 
-    if (currentSection === "template") {
-      await loadTags()
-      await loadTemplates()
-      renderTemplates(content)
-      return
-    }
+      if (currentSection === "tags") {
+        await loadTags()
+        renderTags(content)
+        return
+      }
 
-    if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
-    if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
-    if (currentSection === "bozze") return renderPlaceholder(content, "Bozze")
-    if (currentSection === "invio") return renderPlaceholder(content, "Invio Messaggi")
-    if (currentSection === "coda") return renderPlaceholder(content, "Coda Messaggi")
-    if (currentSection === "landing") return renderPlaceholder(content, "Landing")
-    if (currentSection === "impostazioni") return renderPlaceholder(content, "Impostazioni")
+      if (currentSection === "template") {
+        await loadTags()
+        await loadTemplates()
+        renderTemplates(content)
+        return
+      }
+
+      if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
+      if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
+      if (currentSection === "bozze") return renderPlaceholder(content, "Bozze")
+      if (currentSection === "invio") return renderPlaceholder(content, "Invio Messaggi")
+      if (currentSection === "coda") return renderPlaceholder(content, "Coda Messaggi")
+      if (currentSection === "landing") return renderPlaceholder(content, "Landing")
+      if (currentSection === "impostazioni") return renderPlaceholder(content, "Impostazioni")
+
+    } catch (e) {
+      console.error("Errore renderSection:", e)
+      content.innerHTML = `<div style="color:red;padding:20px;">Errore caricamento sezione</div>`
+    }
   }
 
   renderSection()
