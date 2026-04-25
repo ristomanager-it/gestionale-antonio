@@ -39,6 +39,7 @@ export async function render(container) {
         <div class="bo-m-item" data-sec="fidelity">💳 Fidelity</div>
         <div class="bo-m-item" data-sec="tags">🏷️ Tags</div>
         <div class="bo-m-item" data-sec="template">✉️ Template</div>
+        <div class="bo-m-item" data-sec="template">✉️ Template</div>
         <div class="bo-m-item" data-sec="bozze">📝 Bozze</div>
         <div class="bo-m-item" data-sec="invio">📤 Invio</div>
         <div class="bo-m-item" data-sec="coda">📬 Coda</div>
