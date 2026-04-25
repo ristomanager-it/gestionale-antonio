@@ -534,44 +534,47 @@ document.getElementById("custom-list");
 }
 
 function bindCustomInputs() {
-document.querySelectorAll(".cf-label").forEach((el) => { el.oninput = ()
-=> { customFields[Number(el.dataset.i)].label = el.value; }; });
 
-    document.querySelectorAll(".cf-type").forEach((el) => {
-      el.onchange = () => {
-        customFields[Number(el.dataset.i)].type = el.value;
-      };
-    });
+  document.querySelectorAll(".cf-label").forEach((el) => {
+    el.oninput = () => {
+      customFields[Number(el.dataset.i)].label = el.value;
+    };
+  });
 
-    document.querySelectorAll(".cf-options").forEach((el) => {
-      el.oninput = () => {
-        customFields[Number(el.dataset.i)].options = el.value
-          .split(",")
-          .map((x) => x.trim())
-          .filter(Boolean);
-      };
-    });
+  document.querySelectorAll(".cf-type").forEach((el) => {
+    el.onchange = () => {
+      customFields[Number(el.dataset.i)].type = el.value;
+    };
+  });
 
-    document.querySelectorAll(".cf-required").forEach((el) => {
-      el.onchange = () => {
-        customFields[Number(el.dataset.i)].required = el.checked;
-      };
-    });
+  document.querySelectorAll(".cf-options").forEach((el) => {
+    el.oninput = () => {
+      customFields[Number(el.dataset.i)].options = el.value
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
+    };
+  });
 
-    document.querySelectorAll(".cf-taggable").forEach((el) => {
-      el.onchange = () => {
-        customFields[Number(el.dataset.i)].taggable = el.checked;
-      };
-    });
+  document.querySelectorAll(".cf-required").forEach((el) => {
+    el.onchange = () => {
+      customFields[Number(el.dataset.i)].required = el.checked;
+    };
+  });
 
-    document.querySelectorAll(".cf-tag-prefix").forEach((el) => {
-      el.oninput = () => {
-        customFields[Number(el.dataset.i)].tag_prefix = el.value;
-      };
-    });
+  document.querySelectorAll(".cf-taggable").forEach((el) => {
+    el.onchange = () => {
+      customFields[Number(el.dataset.i)].taggable = el.checked;
+    };
+  });
+
+  document.querySelectorAll(".cf-tag-prefix").forEach((el) => {
+    el.oninput = () => {
+      customFields[Number(el.dataset.i)].tag_prefix = el.value;
+    };
+  });
 
 }
-
 function addFascia() { fasceOrarie.push({ start: "", end:"",
 max_coperti:"" }); renderFasce(); }
 
@@ -883,71 +886,77 @@ navigator.clipboard.writeText(value);
 document.getElementById("msg").innerText = "Link copiato"; } catch (e) {
 console.warn(e); alert(value); } }
 
-function escapeHtml(value) { return String(value ?? "")
-.replace(/&/g,"&") .replace(/</g,"<") .replace(/>/g,">") .replace(/"/g,
-""") .replace(/'/g,"'"); }
-
-function escapeAttribute(value) { return escapeHtml(value); } async
-function deleteForm() { if (!currentForm) return;
-
-    const conferma = confirm("⚠️ Eliminare questo form? Operazione irreversibile.");
-
-    if (!conferma) return;
-
-    try {
-      const formIdToDelete = currentForm;
-
-      const { error: linkError } = await window.supabaseClient
-        .from("booking_links")
-        .delete()
-        .eq("form_id", formIdToDelete)
-        .eq("azienda_id", aziendaId);
-
-      if (linkError) {
-        console.error(linkError);
-        alert("Errore eliminazione link");
-        return;
-      }
-
-      const { error: versionError } = await window.supabaseClient
-        .from("booking_form_versions")
-        .delete()
-        .eq("form_id", formIdToDelete);
-
-      if (versionError) {
-        console.error(versionError);
-        alert("Errore eliminazione versioni");
-        return;
-      }
-
-      const { error } = await window.supabaseClient
-        .from("booking_forms")
-        .delete()
-        .eq("id", formIdToDelete)
-        .eq("azienda_id", aziendaId);
-
-      if (error) {
-        console.error(error);
-        alert("Errore eliminazione");
-        return;
-      }
-
-      currentForm = null;
-      tempFormId = null;
-      tempSlug = null;
-      currentLink = null;
-
-      document.getElementById("actions-box").innerHTML = "";
-      document.getElementById("link-box").innerHTML = "";
-      document.getElementById("draft-status").innerText = "";
-      document.getElementById("msg").innerText = "Form eliminato";
-
-      await loadForms();
-    } catch (e) {
-      console.error(e);
-      alert("Errore eliminazione");
-    }
-
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
+async function deleteForm() {
+  if (!currentForm) return;
+
+  const conferma = confirm("⚠️ Eliminare questo form? Operazione irreversibile.");
+  if (!conferma) return;
+
+  try {
+    const formIdToDelete = currentForm;
+
+    const { error: linkError } = await window.supabaseClient
+      .from("booking_links")
+      .delete()
+      .eq("form_id", formIdToDelete)
+      .eq("azienda_id", aziendaId);
+
+    if (linkError) {
+      console.error(linkError);
+      alert("Errore eliminazione link");
+      return;
+    }
+
+    const { error: versionError } = await window.supabaseClient
+      .from("booking_form_versions")
+      .delete()
+      .eq("form_id", formIdToDelete);
+
+    if (versionError) {
+      console.error(versionError);
+      alert("Errore eliminazione versioni");
+      return;
+    }
+
+    const { error } = await window.supabaseClient
+      .from("booking_forms")
+      .delete()
+      .eq("id", formIdToDelete)
+      .eq("azienda_id", aziendaId);
+
+    if (error) {
+      console.error(error);
+      alert("Errore eliminazione");
+      return;
+    }
+
+    currentForm = null;
+    tempFormId = null;
+    tempSlug = null;
+    currentLink = null;
+
+    document.getElementById("actions-box").innerHTML = "";
+    document.getElementById("link-box").innerHTML = "";
+    document.getElementById("draft-status").innerText = "";
+    document.getElementById("msg").innerText = "Form eliminato";
+
+    await loadForms();
+
+  } catch (e) {
+    console.error(e);
+    alert("Errore eliminazione");
+  }
 }
