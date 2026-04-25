@@ -21,7 +21,6 @@ export async function render(container) {
   container.innerHTML = `
     <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
-      <!-- MENU -->
       <aside style="
         width:220px;
         background:#111827;
@@ -47,7 +46,6 @@ export async function render(container) {
 
       </aside>
 
-      <!-- CONTENUTO -->
       <div id="bo-m-content" style="flex:1;"></div>
 
     </div>
@@ -197,11 +195,12 @@ export async function render(container) {
 
           <input id="tpl-nome" class="input" placeholder="Nome template">
 
-          <select id="tpl-tipo" class="input">
-            <option value="sms">SMS</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">Email</option>
-          </select>
+          <div>
+            <label>📡 Canali invio</label><br>
+            <label><input type="checkbox" value="whatsapp" class="tpl-canale"> WhatsApp</label><br>
+            <label><input type="checkbox" value="sms" class="tpl-canale"> SMS</label><br>
+            <label><input type="checkbox" value="email" class="tpl-canale"> Email</label>
+          </div>
 
           <textarea id="tpl-contenuto" class="input" placeholder="Contenuto messaggio"></textarea>
 
@@ -240,7 +239,7 @@ export async function render(container) {
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Tipo</th>
+              <th>Canali</th>
               <th>Tag</th>
               <th>Trigger</th>
               <th></th>
@@ -258,11 +257,16 @@ export async function render(container) {
 
       const tagName = tags.find(x => x.id === t.tag_id)?.nome || "-"
 
+      const canali = (t.tipo || "")
+        .split(",")
+        .map(c => c.toUpperCase())
+        .join(" / ")
+
       const row = document.createElement("tr")
 
       row.innerHTML = `
         <td>${t.nome}</td>
-        <td>${t.tipo}</td>
+        <td>${canali}</td>
         <td>${tagName}</td>
         <td>${t.trigger_evento || "-"}</td>
         <td><button data-id="${t.id}" class="btn-del">❌</button></td>
@@ -275,9 +279,12 @@ export async function render(container) {
 
     document.getElementById("btn-add-template").onclick = () => {
 
+      const canali = Array.from(document.querySelectorAll(".tpl-canale:checked"))
+        .map(el => el.value)
+
       const payload = {
         nome: document.getElementById("tpl-nome").value,
-        tipo: document.getElementById("tpl-tipo").value,
+        tipo: canali.length ? canali.join(",") : "whatsapp",
         contenuto: document.getElementById("tpl-contenuto").value,
         tag_id: document.getElementById("tpl-tag").value || null,
         trigger_evento: document.getElementById("tpl-trigger").value || null,
