@@ -23,7 +23,7 @@ export async function render(container) {
   container.innerHTML = `
  <div style="padding:12px; max-width:960px; margin:0 auto; width:100%; box-sizing:border-box;">
 
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:10px; flex-wrap:wrap;">
       <h2 style="margin:0;">Booking Forms</h2>
       <button id="new-form" class="app-button primary" type="button">+ Nuovo Form</button>
     </div>
@@ -32,7 +32,7 @@ export async function render(container) {
 
     <hr>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:10px; flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <h2 style="margin:0;">Editor</h2>
         <span id="draft-status" style="font-size:12px;color:#6b7280;"></span>
