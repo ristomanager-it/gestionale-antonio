@@ -869,7 +869,6 @@ giorni = Array.from(document.querySelectorAll(".giorno-check:checked"))
 
 }
 
-function qrUrl(url, size) {
  function qrUrl(url, size) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
 }
