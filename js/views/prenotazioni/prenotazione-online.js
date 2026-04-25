@@ -16,11 +16,9 @@ export async function render(container) {
   let version = null;
   let config = null;
 
-  // 🔹 SLUG
   const hash = window.location.hash;
   const slug = hash.split("/booking/")[1]?.split("?")[0];
 
-  // 🔹 RECUPERO DA SLUG
   if (!formId && slug) {
     const { data: link, error: linkError } = await window.supabaseClient
       .from("booking_links")
@@ -39,7 +37,6 @@ export async function render(container) {
     }
   }
 
-  // 🔹 CARICAMENTO FORM
   if (formId) {
     const { data: formData, error: formError } = await window.supabaseClient
       .from("booking_forms")
@@ -61,7 +58,6 @@ export async function render(container) {
 
     form = formData;
 
-    // 🔥 fallback sicurezza
     aziendaId = aziendaId || form.azienda_id;
     sedeId = sedeId || form.sede_id;
 
@@ -81,14 +77,12 @@ export async function render(container) {
     config = version?.config || form.config || {};
   }
 
-  // 🔴 BLOCCO SICUREZZA
   if (!aziendaId) {
     console.error("ERRORE: aziendaId mancante", { slug, formId });
     container.innerHTML = `<div class="page">Errore: link non valido</div>`;
     return;
   }
 
-  // 🔹 DEBUG
   console.log("BOOKING DEBUG:", {
     slug,
     formId,
@@ -96,7 +90,6 @@ export async function render(container) {
     sedeId
   });
 
-  // 🔹 CONFIG DEFAULT
   const defaultConfig = {
     branding: {
       logo_enabled: true,
@@ -147,9 +140,6 @@ export async function render(container) {
         }
       }
     }
-  } catch (e) {
-    console.error("Errore caricamento sede:", e);
-  }
 
     const { data: azienda } = await window.supabaseClient
       .from("aziende")
