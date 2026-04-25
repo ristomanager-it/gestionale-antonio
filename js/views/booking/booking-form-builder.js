@@ -21,7 +21,7 @@ export async function render(container) {
   const STORAGE_BUCKET = "loghi-aziende";
 
   container.innerHTML = `
-  <div style="padding:16px; max-width:960px; margin:0 auto;">
+ <div style="padding:12px; max-width:960px; margin:0 auto; width:100%; box-sizing:border-box;">
 
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
       <h2 style="margin:0;">Booking Forms</h2>
