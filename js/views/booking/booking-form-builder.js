@@ -1087,4 +1087,3 @@ function escapeAttribute(value) {
       alert("Errore eliminazione");
     }
   }
-}
