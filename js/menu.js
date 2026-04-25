@@ -74,7 +74,17 @@ export function initMenu() {
 
   function getMenu(){
 
+    const isAdmin = window.state?.ruolo === "admin" || window.state?.ruolo === "superadmin"
+
     return [
+
+      ...(isAdmin ? [{
+        title:"BACK OFFICE",
+        items:[
+          {label:"⚙️ Back Office", route:"bo-dashboard"},
+          {label:"📢 Marketing", route:"bo-marketing"}
+        ]
+      }] : []),
 
       ...(isSuperadmin() ? [{
         title:"PIATTAFORMA",
@@ -98,8 +108,6 @@ export function initMenu() {
         title:"OPERATIVO",
         items:[
           {label:"🪑 Sala", route:"sala"},
-
-          // 🔥 NUOVO SISTEMA PRENOTAZIONI
           {label:"📅 Prenotazioni", route:"prenotazioni"},
           {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
@@ -135,15 +143,6 @@ export function initMenu() {
           {label:"Cambia sede", route:"gestione-sedi"},
           {label:"Crea sede", route:"gestione-sedi?mode=first"},
           {label:"Gestisci sedi", route:"gestione-sedi?mode=manage"}
-        ]
-      },
-
-      // 🔥 BLOCCO CORRETTO
-      {
-        title:"MARKETING",
-        items:[
-          {label:"Marketing", route:"marketing"},
-          {label:"📢 Campagne Promo", route:"campagne"}
         ]
       },
 
