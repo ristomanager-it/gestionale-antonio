@@ -53,6 +53,11 @@ export function initMenu() {
     return window.state?.ruolo === "superadmin"
   }
 
+  function isAdmin(){
+    const r = getRuoloAttivo()
+    return r === "admin" || r === "superadmin"
+  }
+
   function can(route){
 
     if(window.state?._allAccess) return true
@@ -74,11 +79,9 @@ export function initMenu() {
 
   function getMenu(){
 
-    const isAdmin = window.state?.ruolo === "admin" || window.state?.ruolo === "superadmin"
-
     return [
 
-      ...(isAdmin ? [{
+      ...(isAdmin() ? [{
         title:"BACK OFFICE",
         items:[
           {label:"⚙️ Back Office", route:"bo-dashboard"},
