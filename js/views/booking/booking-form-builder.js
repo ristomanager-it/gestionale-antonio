@@ -321,30 +321,37 @@ tempFormId = null; tempSlug = null;
 
 }
 
-function getDraftSlug() { const slugInput =
-document.getElementById("slug").value.trim(); return slugInput ?
-makeSlug(slugInput) : tempSlug; }
+function getDraftSlug() {
+  const slugInput = document.getElementById("slug").value.trim();
+  return slugInput ? makeSlug(slugInput) : tempSlug;
+}
 
-function renderDraftLink() { const finalSlug = getDraftSlug(); const url
-= ${BASE_PUBLIC_URL}/#/booking/${finalSlug};
+function renderDraftLink() {
+  const finalSlug = getDraftSlug();
 
-    document.getElementById("link-box").innerHTML = `
-      <div style="margin-top:12px; padding:12px; background:#fef3c7; border-radius:12px; border:1px solid #fde68a;">
-        <b>Preview link e QR</b><br>
-        <div style="font-size:12px;color:#92400e;margin:4px 0 8px;">Attivo solo dopo salvataggio</div>
+  const url = `${BASE_PUBLIC_URL}/#/booking/${finalSlug}`;
 
-        <input class="input" value="${escapeAttribute(url)}" readonly>
+  document.getElementById("link-box").innerHTML = `
+    <div style="margin-top:12px; padding:12px; background:#fef3c7; border-radius:12px; border:1px solid #fde68a;">
+      <b>Preview link e QR</b><br>
+      <div style="font-size:12px;color:#92400e;margin:4px 0 8px;">Attivo solo dopo salvataggio</div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-          <button type="button" class="app-button" id="copy-preview-link">Copia link</button>
-          <a class="app-button" href="${qrUrl(url, 300)}" download="qr-booking.png" target="_blank">Scarica QR</a>
-        </div>
+      <input class="input" value="${escapeAttribute(url)}" readonly>
 
-        <div style="margin-top:10px;">
-          <img src="${qrUrl(url, 180)}" style="width:180px;height:180px;border-radius:12px;background:#fff;">
-        </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button type="button" class="app-button" id="copy-preview-link">Copia link</button>
+        <a class="app-button" href="${qrUrl(url, 300)}" download="qr-booking.png" target="_blank">Scarica QR</a>
       </div>
-    `;
+
+      <div style="margin-top:10px;">
+        <img src="${qrUrl(url, 180)}" style="width:180px;height:180px;border-radius:12px;background:#fff;">
+      </div>
+    </div>
+  `;
+
+  const copyBtn = document.getElementById("copy-preview-link");
+  if (copyBtn) copyBtn.onclick = () => copyText(url);
+}
 
     const copyBtn = document.getElementById("copy-preview-link");
     if (copyBtn) copyBtn.onclick = () => copyText(url);
