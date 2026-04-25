@@ -663,7 +663,6 @@ alert("Seleziona un file sfondo"); return; }
 
 async function uploadImage(file, prefix) {
   if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-   
     return null;
   }
 
