@@ -4,9 +4,9 @@ export async function render(container) {
 
   const params = new URLSearchParams(window.location.search);
 
-  const formId = params.get("form_id");
-  const urlAziendaId = params.get("azienda");
-  const urlSedeId = params.get("sede");
+  let formId = params.get("form_id");
+  let aziendaId = params.get("azienda");
+  let sedeId = params.get("sede");
 
   const source = params.get("src") || "web";
   const tagParam = params.get("tag") || "🌐";
@@ -16,9 +16,30 @@ export async function render(container) {
   let version = null;
   let config = null;
 
-  let aziendaId = urlAziendaId;
-  let sedeId = urlSedeId;
+  // 🔹 SLUG
+  const hash = window.location.hash;
+  const slug = hash.split("/booking/")[1]?.split("?")[0];
 
+  // 🔹 RECUPERO DA SLUG
+  if (!formId && slug) {
+    const { data: link, error: linkError } = await window.supabaseClient
+      .from("booking_links")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (linkError) {
+      console.error("Errore booking_links:", linkError);
+    }
+
+    if (link) {
+      formId = link.form_id;
+      aziendaId = aziendaId || link.azienda_id;
+      sedeId = sedeId || link.sede_id;
+    }
+  }
+
+  // 🔹 CARICAMENTO FORM
   if (formId) {
     const { data: formData, error: formError } = await window.supabaseClient
       .from("booking_forms")
@@ -39,8 +60,10 @@ export async function render(container) {
     }
 
     form = formData;
-    aziendaId = form.azienda_id;
-    sedeId = form.sede_id;
+
+    // 🔥 fallback sicurezza
+    aziendaId = aziendaId || form.azienda_id;
+    sedeId = sedeId || form.sede_id;
 
     const { data: versionData, error: versionError } = await window.supabaseClient
       .from("booking_form_versions")
@@ -58,11 +81,22 @@ export async function render(container) {
     config = version?.config || form.config || {};
   }
 
+  // 🔴 BLOCCO SICUREZZA
   if (!aziendaId) {
+    console.error("ERRORE: aziendaId mancante", { slug, formId });
     container.innerHTML = `<div class="page">Errore: link non valido</div>`;
     return;
   }
 
+  // 🔹 DEBUG
+  console.log("BOOKING DEBUG:", {
+    slug,
+    formId,
+    aziendaId,
+    sedeId
+  });
+
+  // 🔹 CONFIG DEFAULT
   const defaultConfig = {
     branding: {
       logo_enabled: true,
@@ -113,6 +147,9 @@ export async function render(container) {
         }
       }
     }
+  } catch (e) {
+    console.error("Errore caricamento sede:", e);
+  }
 
     const { data: azienda } = await window.supabaseClient
       .from("aziende")
