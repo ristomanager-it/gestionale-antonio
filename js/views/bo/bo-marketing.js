@@ -53,7 +53,6 @@ export async function render(container) {
     </div>
   `
 
-  const content = container.querySelector("#bo-m-content")
   const menuItems = container.querySelectorAll(".bo-m-item")
 
   menuItems.forEach(el => {
@@ -63,8 +62,7 @@ export async function render(container) {
     el.style.marginBottom = "6px"
 
     el.addEventListener("click", async () => {
-      const sec = el.getAttribute("data-sec")
-      currentSection = sec
+      currentSection = el.getAttribute("data-sec")
       await renderSection()
     })
   })
@@ -106,7 +104,7 @@ export async function render(container) {
     renderSection()
   }
 
-  function renderTags() {
+  function renderTags(content) {
 
     content.innerHTML = `
       <div class="card">
@@ -185,7 +183,7 @@ export async function render(container) {
     renderSection()
   }
 
-  function renderTemplates() {
+  function renderTemplates(content) {
 
     const tagOptions = tags.map(t => `
       <option value="${t.id}">${t.nome}</option>
@@ -297,7 +295,7 @@ export async function render(container) {
 
   /* ================= GENERALE ================= */
 
-  function renderPlaceholder(title) {
+  function renderPlaceholder(content, title) {
     content.innerHTML = `
       <div class="card">
         <h2>${title}</h2>
@@ -308,28 +306,30 @@ export async function render(container) {
 
   async function renderSection() {
 
+    const content = container.querySelector("#bo-m-content")
+
     content.innerHTML = "<div style='padding:20px;'>Loading...</div>"
 
     if (currentSection === "tags") {
       await loadTags()
-      renderTags()
+      renderTags(content)
       return
     }
 
     if (currentSection === "template") {
       await loadTags()
       await loadTemplates()
-      renderTemplates()
+      renderTemplates(content)
       return
     }
 
-    if (currentSection === "promozioni") return renderPlaceholder("Promozioni")
-    if (currentSection === "fidelity") return renderPlaceholder("Fidelity")
-    if (currentSection === "bozze") return renderPlaceholder("Bozze")
-    if (currentSection === "invio") return renderPlaceholder("Invio Messaggi")
-    if (currentSection === "coda") return renderPlaceholder("Coda Messaggi")
-    if (currentSection === "landing") return renderPlaceholder("Landing")
-    if (currentSection === "impostazioni") return renderPlaceholder("Impostazioni")
+    if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
+    if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
+    if (currentSection === "bozze") return renderPlaceholder(content, "Bozze")
+    if (currentSection === "invio") return renderPlaceholder(content, "Invio Messaggi")
+    if (currentSection === "coda") return renderPlaceholder(content, "Coda Messaggi")
+    if (currentSection === "landing") return renderPlaceholder(content, "Landing")
+    if (currentSection === "impostazioni") return renderPlaceholder(content, "Impostazioni")
   }
 
   renderSection()
