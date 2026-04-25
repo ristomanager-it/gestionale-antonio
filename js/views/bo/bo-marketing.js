@@ -57,18 +57,20 @@ export async function render(container) {
   const content = container.querySelector("#bo-m-content")
   const menuItems = container.querySelectorAll(".bo-m-item")
 
-  menuItems.forEach(el => {
-    el.style.padding = "10px"
-    el.style.cursor = "pointer"
-    el.style.borderRadius = "10px"
-    el.style.marginBottom = "6px"
+menuItems.forEach(el => {
+  el.style.padding = "10px"
+  el.style.cursor = "pointer"
+  el.style.borderRadius = "10px"
+  el.style.marginBottom = "6px"
 
-    el.onclick = () => {
-      currentSection = el.dataset.sec
-      renderSection()
-    }
+  el.addEventListener("click", () => {
+    const sec = el.getAttribute("data-sec")
+    console.log("CLICK:", sec)
+
+    currentSection = sec
+    renderSection()
   })
-
+})
   /* ================= TAG ================= */
 
   async function loadTags() {
