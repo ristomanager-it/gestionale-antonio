@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient.js"
+import { supabase } from "../../lib/supabaseClient.js"
 
 export async function render(container) {
 
