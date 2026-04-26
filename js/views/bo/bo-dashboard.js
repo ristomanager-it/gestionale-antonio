@@ -1,5 +1,4 @@
-import { supabase } from "../../lib/supabaseClient.js"
-
+import supabase from "../../supabaseClient.js"
 export async function render(container) {
 
   const ruolo = window.state?.ruolo
