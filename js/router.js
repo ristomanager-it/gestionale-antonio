@@ -118,6 +118,7 @@ const routes = {
 
   // PRODUZIONE
   "bo-menu": () => import("./views/bo/bo-menu.js"),
+   "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-produzione": () => import("./views/bo/bo-produzione.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js"),
