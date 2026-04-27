@@ -1341,43 +1341,45 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
     return data?.publicUrl || null
   }
 
-  function renderPreview() {
-    const box = qs("#menu-preview")
+ function renderPreview() {
+  const box = qs("#menu-preview")
 
-    const nome = qs("#menu-nome")?.value || menuAttivo?.nome || "Menu"
-    const descrizione = qs("#menu-descrizione")?.value || menuAttivo?.descrizione || ""
-    const logo = qs("#menu-logo-url")?.value || menuAttivo?.logo_url || ""
-    const cover = qs("#menu-cover-url")?.value || menuAttivo?.cover_url || ""
-    const bg = qs("#menu-bg-color")?.value || menuAttivo?.colore_sfondo || "#ffffff"
+  const nome = qs("#menu-nome")?.value || menuAttivo?.nome || "Menu"
+  const descrizione = qs("#menu-descrizione")?.value || menuAttivo?.descrizione || ""
+  const logo = qs("#menu-logo-url")?.value || menuAttivo?.logo_url || ""
+  const cover = qs("#menu-cover-url")?.value || menuAttivo?.cover_url || ""
+  const bg = qs("#menu-bg-color")?.value || menuAttivo?.colore_sfondo || "#ffffff"
 
-    box.innerHTML = `
+  box.innerHTML = `
+    <div style="
+      min-height:500px;
+      background:${String(escapeAttribute(bg) || "#ffffff")};
+    ">
       <div style="
-        min-height:500px;
-        background:${escapeAttribute(bg)};
+        height:130px;
+        background:${cover ? "url('" + escapeAttribute(cover) + "') center/cover" : "#0f172a"};
+        display:flex;
+        align-items:flex-end;
+        padding:14px;
+        color:white;
       ">
-        <div style="
-          height:130px;
-          background:${cover ? "url('" + escapeAttribute(cover) + "') center/cover" : "#0f172a"};
-          display:flex;
-          align-items:flex-end;
-          padding:14px;
-          color:white;
-        ">
-          ${logo ? `<img src="${escapeAttribute(logo)}" style="height:58px; width:58px; object-fit:contain; border-radius:12px; background:white; padding:4px; margin-right:10px;">` : ""}
-          <div>
-            <div style="font-size:20px; font-weight:800;">${escapeHtml(nome)}</div>
-            ${descrizione ? `<div style="font-size:12px; opacity:.9;">${escapeHtml(descrizione)}</div>` : ""}
-          </div>
+        ${logo ? "<img src=\"" + escapeAttribute(logo) + "\" style=\"height:58px; width:58px; object-fit:contain; border-radius:12px; background:white; padding:4px; margin-right:10px;\">" : ""}
+        <div>
+          <div style="font-size:20px; font-weight:800;">${escapeHtml(nome)}</div>
+          ${descrizione ? "<div style=\"font-size:12px; opacity:.9;\">" + escapeHtml(descrizione) + "</div>" : ""}
         </div>
+      </div>
 
-        <div style="padding:14px;">
-          ${
-            menuCategorie.length
-              ? menuCategorie.map((cat) => `
-                <div style="margin-bottom:18px;">
-                  <h3 style="margin:0 0 8px;">${escapeHtml(cat.nome)}</h3>
-                  ${
-                    menuVoci.filter((v) => v.categoria_id === cat.id).map((v) => `
+      <div style="padding:14px;">
+        ${
+          menuCategorie.length
+            ? menuCategorie.map((cat) => `
+              <div style="margin-bottom:18px;">
+                <h3 style="margin:0 0 8px;">${escapeHtml(cat.nome)}</h3>
+                ${
+                  menuVoci
+                    .filter((v) => v.categoria_id === cat.id)
+                    .map((v) => `
                       <div style="
                         display:grid;
                         grid-template-columns:1fr auto;
@@ -1387,21 +1389,29 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
                       ">
                         <div>
                           <div style="font-weight:700;">${escapeHtml(v.nome || v.nome_snapshot)}</div>
-                          ${v.descrizione || v.descrizione_snapshot ? `<div style="font-size:12px; color:#64748b;">${escapeHtml(v.descrizione || v.descrizione_snapshot)}</div>` : ""}
-                          ${v.alert_food_cost ? `<div style="font-size:11px; color:#b45309;">⚠️ Da completare</div>` : ""}
+                          ${
+                            (v.descrizione || v.descrizione_snapshot)
+                              ? "<div style=\"font-size:12px; color:#64748b;\">" + escapeHtml(v.descrizione || v.descrizione_snapshot) + "</div>"
+                              : ""
+                          }
+                          ${
+                            v.alert_food_cost
+                              ? "<div style=\"font-size:11px; color:#b45309;\">⚠️ Da completare</div>"
+                              : ""
+                          }
                         </div>
                         <div style="font-weight:800;">€ ${formatMoney(v.prezzo_override || v.prezzo || v.prezzo_snapshot)}</div>
                       </div>
                     `).join("")
-                  }
-                </div>
-              `).join("")
-              : `<div style="text-align:center; color:#64748b; padding:40px 10px;">Anteprima menu vuota</div>`
-          }
-        </div>
+                }
+              </div>
+            `).join("")
+            : `<div style="text-align:center; color:#64748b; padding:40px 10px;">Anteprima menu vuota</div>`
+        }
       </div>
-    `
-  }
+    </div>
+  `
+}
 
   function renderLinkBox() {
     const box = qs("#menu-link-box")
