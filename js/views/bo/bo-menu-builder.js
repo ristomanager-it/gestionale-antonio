@@ -48,7 +48,6 @@ container.innerHTML = `
   overflow:hidden;
 ">
 
-  <!-- HEADER -->
   <div class="card" style="
     display:flex;
     justify-content:space-between;
@@ -60,90 +59,45 @@ container.innerHTML = `
   ">
     <div>
       <h2 style="margin:0;">Menu Builder</h2>
-      <p style="margin:4px 0 0; color:#64748b;">
-        Costruisci menu pubblici con categorie e prodotti
-      </p>
     </div>
 
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <select id="menu-selector" class="input" style="min-width:200px;">
+    <div style="display:flex; gap:8px;">
+      <select id="menu-selector" class="input">
         <option value="">Seleziona menu</option>
       </select>
 
-      <button id="btn-new-menu" class="app-button primary" type="button">
+      <button id="btn-new-menu" class="app-button primary">
         + Nuovo
       </button>
     </div>
   </div>
 
-  <!-- LAYOUT -->
   <div style="
     display:grid;
-    grid-template-columns:260px minmax(0, 1fr) 300px;
+    grid-template-columns:260px 1fr 300px;
     gap:16px;
     flex:1;
     min-height:0;
   ">
 
-    <!-- SINISTRA -->
-    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
+    <aside style="overflow:auto;">
       <div class="card">
-        <h3>Menu</h3>
-        <div id="menu-list"></div>
-      </div>
-
-      <div class="card">
-        <h3>Categorie disponibili</h3>
-        <button id="btn-new-category" class="app-button" style="width:100%; margin-bottom:10px;">
-          + Nuova categoria
-        </button>
+        <h3>Categorie</h3>
         <div id="categorie-disponibili"></div>
       </div>
     </aside>
 
-    <!-- CENTRO -->
-    <main style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
+    <main style="overflow:auto;">
       <div class="card">
-        <h3>Impostazioni menu</h3>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <input id="menu-nome" class="input" placeholder="Nome menu">
-          <input id="menu-slug" class="input" placeholder="Slug">
-        </div>
-
-        <textarea id="menu-descrizione" class="input" rows="3" style="margin-top:10px;"></textarea>
-
-        <div style="margin-top:10px;">
-          <button id="btn-save-menu" class="app-button primary">Salva menu</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Composizione menu</h3>
-        <div id="menu-drop-zone" style="
-          margin-top:12px;
-          min-height:220px;
-          border:2px dashed #cbd5e1;
-          border-radius:16px;
-          padding:12px;
-          background:#f8fafc;
-        "></div>
+        <h3>Composizione</h3>
+        <div id="menu-drop-zone" style="min-height:200px; border:2px dashed #ccc;"></div>
       </div>
     </main>
 
-    <!-- DESTRA -->
-    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
+    <aside style="overflow:auto;">
       <div class="card">
         <h3>Prodotti</h3>
-        <button id="btn-new-product" class="app-button" style="width:100%; margin-bottom:10px;">
-          + Nuovo prodotto
-        </button>
         <div id="prodotti-disponibili"></div>
-      </div>
-
-      <div class="card">
-        <h3>Preview</h3>
-        <div id="menu-preview"></div>
       </div>
     </aside>
 
