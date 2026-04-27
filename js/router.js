@@ -154,7 +154,14 @@ const PREHOME_ROUTES = new Set([
 const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
 
 const BO_ROUTES = new Set([
-  "bo-dashboard"
+  "bo-dashboard",
+  "bo-marketing",
+  "bo-tag",
+  "bo-template",
+  "bo-menu",
+  "bo-magazzino",
+  "bo-produzione",
+  "bo-comande"
 ]);
 
 /* =========================================================
