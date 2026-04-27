@@ -1598,4 +1598,46 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
     const n = Number(value)
     return Number.isFinite(n) ? n : null
   }
+  function openEditMenuCategory(id) {
+  const cat = menuCategorie.find(c => c.id === id)
+  if (!cat) return
+
+  qs("#modal-root").innerHTML = `
+    <div style="position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center;">
+      <div style="background:white; padding:20px; border-radius:12px; width:400px;">
+        <h3>Modifica categoria</h3>
+        <input id="edit-cat-nome" class="input" value="${escapeAttribute(cat.nome)}">
+
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button id="save-cat" class="app-button primary">Salva</button>
+          <button id="cancel-cat" class="app-button">Annulla</button>
+        </div>
+      </div>
+    </div>
+  `
+
+  qs("#cancel-cat").onclick = closeModal
+
+  qs("#save-cat").onclick = async () => {
+    const nome = qs("#edit-cat-nome").value.trim()
+
+    await supabase
+      .from("menu_categorie")
+      .update({ nome })
+      .eq("id", id)
+      .eq("azienda_id", azienda_id)
+
+    closeModal()
+    await loadMenuComposition()
+    renderAll()
+  }
+}
+
+async function updateMenuProductField(id, field, value) {
+  await supabase
+    .from("menu_voci")
+    .update({ [field]: value })
+    .eq("id", id)
+    .eq("azienda_id", azienda_id)
+}
 }
