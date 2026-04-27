@@ -1357,7 +1357,7 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
       ">
         <div style="
           height:130px;
-          background:${cover ? `url('${escapeAttribute(cover)}') center/cover` : "#0f172a"};
+          background:${cover ? "url('" + escapeAttribute(cover) + "') center/cover" : "#0f172a"};
           display:flex;
           align-items:flex-end;
           padding:14px;
