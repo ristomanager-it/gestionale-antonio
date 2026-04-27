@@ -436,14 +436,43 @@ export async function render(container) {
     renderLinkBox()
   }
 
-  function renderAll() {
+function renderAll() {
+  try {
     renderMenuList()
-    renderCategorieDisponibili()
-    renderProdottiDisponibili()
-    renderMenuBuilder()
-    renderPreview()
-    renderLinkBox()
+  } catch (e) {
+    console.error("renderMenuList ERROR", e)
   }
+
+  try {
+    renderCategorieDisponibili()
+  } catch (e) {
+    console.error("renderCategorieDisponibili ERROR", e)
+  }
+
+  try {
+    renderProdottiDisponibili()
+  } catch (e) {
+    console.error("renderProdottiDisponibili ERROR", e)
+  }
+
+  try {
+    renderMenuBuilder()
+  } catch (e) {
+    console.error("renderMenuBuilder ERROR", e)
+  }
+
+  try {
+    renderPreview()
+  } catch (e) {
+    console.error("renderPreview ERROR", e)
+  }
+
+  try {
+    renderLinkBox()
+  } catch (e) {
+    console.error("renderLinkBox ERROR", e)
+  }
+}
 
   function renderMenuList() {
     const box = qs("#menu-list")
