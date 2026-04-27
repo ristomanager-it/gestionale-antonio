@@ -39,8 +39,14 @@ export async function render(container) {
 
   let ricette = []
 
- container.innerHTML = `
-<section class="view" style="display:flex; flex-direction:column; gap:16px;">
+container.innerHTML = `
+<section class="view" style="
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  height:100vh;
+  overflow:hidden;
+">
 
   <!-- HEADER FIX -->
   <div class="card" style="
@@ -49,12 +55,27 @@ export async function render(container) {
     align-items:center;
     gap:12px;
     flex-wrap:wrap;
-    position:sticky;
-    top:0;
-    z-index:10;
     background:white;
+    border-bottom:1px solid #e5e7eb;
   ">
     <div>
+      <h2 style="margin:0;">Menu Builder</h2>
+      <p style="margin:4px 0 0; color:#64748b;">
+        Costruisci menu pubblici con categorie e prodotti
+      </p>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <select id="menu-selector" class="input" style="min-width:200px;">
+        <option value="">Seleziona menu</option>
+      </select>
+
+      <button id="btn-new-menu" class="app-button primary" type="button">
+        + Nuovo
+      </button>
+    </div>
+  </div>
+`
       <h2 style="margin:0;">Menu Builder</h2>
       <p style="margin:4px 0 0; color:#64748b;">
         Costruisci menu pubblici con categorie e prodotti
