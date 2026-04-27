@@ -650,11 +650,11 @@ function renderAll() {
             </div>
 
             <div style="display:flex; gap:6px;">
-              <button class="btn-cat-up app-button" data-id="${escapeAttribute(cat.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
-              <button class="btn-cat-down app-button" data-id="${escapeAttribute(cat.id)}" ${index === menuCategorie.length - 1 ? "disabled" : ""}>↓</button>
-              <button class="btn-cat-remove app-button" data-id="${escapeAttribute(cat.id)}" style="background:#dc2626;color:white;">×</button>
-            </div>
-          </div>
+  <button class="btn-cat-edit app-button" data-id="${escapeAttribute(cat.id)}">✏️</button>
+  <button class="btn-cat-up app-button" data-id="${escapeAttribute(cat.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
+  <button class="btn-cat-down app-button" data-id="${escapeAttribute(cat.id)}" ${index === menuCategorie.length - 1 ? "disabled" : ""}>↓</button>
+  <button class="btn-cat-remove app-button" data-id="${escapeAttribute(cat.id)}" style="background:#dc2626;color:white;">×</button>
+</div>
 
           <div class="product-drop-zone" data-menu-cat-id="${escapeAttribute(cat.id)}" style="
             min-height:70px;
