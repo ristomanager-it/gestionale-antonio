@@ -1,5 +1,11 @@
-import supabase from "../../supabaseClient.js"
 export async function render(container) {
+
+  const supabase = window.supabase
+
+  if (!supabase || typeof supabase.from !== "function") {
+    container.innerHTML = "<p>Errore: Supabase non inizializzato</p>"
+    return
+  }
 
   const ruolo = window.state?.ruolo
   const azienda_id = window.state?.azienda_id
@@ -64,7 +70,7 @@ export async function render(container) {
   container.innerHTML = `
     <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
-      <!-- MENU -->
+      <!-- MENU BO -->
       <aside style="
         width:240px;
         background:#111827;
@@ -79,9 +85,19 @@ export async function render(container) {
         </div>
 
         <div class="bo-menu-item" data-route="bo-dashboard">🏠 Dashboard</div>
+
+        <div style="margin-top:10px; font-size:12px; opacity:0.6;">MARKETING</div>
         <div class="bo-menu-item" data-route="bo-tag">🏷️ Tag</div>
-        <div class="bo-menu-item" data-route="bo-marketing">📢 Marketing</div>
         <div class="bo-menu-item" data-route="bo-template">✉️ Template</div>
+        <div class="bo-menu-item" data-route="bo-marketing">📢 Campagne</div>
+
+        <div style="margin-top:10px; font-size:12px; opacity:0.6;">PRODUZIONE</div>
+        <div class="bo-menu-item" data-route="bo-menu">🍽️ Menu</div>
+        <div class="bo-menu-item" data-route="bo-magazzino">📦 Magazzino</div>
+        <div class="bo-menu-item" data-route="bo-produzione">🏭 Produzione</div>
+        <div class="bo-menu-item" data-route="bo-comande">🧾 Comande</div>
+
+        <div style="margin-top:10px; font-size:12px; opacity:0.6;">CONFIG</div>
         <div class="bo-menu-item" data-route="bo-booking">📅 Booking</div>
         <div class="bo-menu-item" data-route="bo-impostazioni">⚙️ Impostazioni</div>
 
@@ -124,10 +140,10 @@ export async function render(container) {
 
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
 
-            <button onclick="window.location.hash='#/bo-tag'">Gestisci Tag</button>
-            <button onclick="window.location.hash='#/bo-template'">Template Messaggi</button>
-            <button onclick="window.location.hash='#/bo-booking'">Config Booking</button>
-            <button onclick="window.location.hash='#/bo-impostazioni'">Impostazioni Azienda</button>
+            <button onclick="window.location.hash='#/bo-tag'">Tag</button>
+            <button onclick="window.location.hash='#/bo-template'">Template</button>
+            <button onclick="window.location.hash='#/bo-menu'">Menu</button>
+            <button onclick="window.location.hash='#/bo-magazzino'">Magazzino</button>
 
           </div>
         </div>
