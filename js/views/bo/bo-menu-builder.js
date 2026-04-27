@@ -717,63 +717,118 @@ function renderAll() {
   `
 }
 
-  function bindMenuBuilderEvents() {
-    qsa(".product-drop-zone").forEach((zone) => {
-      zone.addEventListener("dragover", (event) => {
-        event.preventDefault()
-        zone.style.borderColor = "#0284c7"
-        zone.style.background = "#eff6ff"
-      })
+function bindMenuBuilderEvents() {
 
-      zone.addEventListener("dragleave", () => {
-        zone.style.borderColor = "#cbd5e1"
-        zone.style.background = "#f8fafc"
-      })
+  // ===== DROP PRODOTTI =====
+  qsa(".product-drop-zone").forEach((zone) => {
+    zone.addEventListener("dragover", (event) => {
+      event.preventDefault()
+      zone.style.borderColor = "#0284c7"
+      zone.style.background = "#eff6ff"
+    })
 
-      zone.addEventListener("drop", async (event) => {
-        event.preventDefault()
-        zone.style.borderColor = "#cbd5e1"
-        zone.style.background = "#f8fafc"
+    zone.addEventListener("dragleave", () => {
+      zone.style.borderColor = "#cbd5e1"
+      zone.style.background = "#f8fafc"
+    })
 
-        const type = event.dataTransfer.getData("type")
-        const id = event.dataTransfer.getData("id")
-        const menuCategoryId = zone.dataset.menuCatId
+    zone.addEventListener("drop", async (event) => {
+      event.preventDefault()
+      zone.style.borderColor = "#cbd5e1"
+      zone.style.background = "#f8fafc"
 
-        if (type === "prodotto") {
+      const type = event.dataTransfer.getData("type")
+      const id = event.dataTransfer.getData("id")
+      const menuCategoryId = zone.dataset.menuCatId
+
+      // 🔥 FIX: spostamento tra categorie
+      if (type === "prodotto") {
+
+        const existing = menuVoci.find(v => v.prodotto_vendita_id === id)
+
+        if (existing) {
+          console.log("MOVE PRODOTTO", { id, from: existing.categoria_id, to: menuCategoryId })
+
+          await supabase
+            .from("menu_voci")
+            .update({ categoria_id: menuCategoryId })
+            .eq("id", existing.id)
+            .eq("azienda_id", azienda_id)
+
+        } else {
+          console.log("ADD PRODOTTO", { id, categoria: menuCategoryId })
+
           await addProductToMenuCategory(id, menuCategoryId)
         }
-      })
-    })
 
-    qsa(".btn-cat-remove").forEach((btn) => {
-      btn.onclick = () => removeMenuCategory(btn.dataset.id)
+        await loadMenuComposition()
+        renderAll()
+      }
     })
+  })
 
-    qsa(".btn-cat-up").forEach((btn) => {
-      btn.onclick = () => moveMenuCategory(btn.dataset.id, -1)
-    })
 
-    qsa(".btn-cat-down").forEach((btn) => {
-      btn.onclick = () => moveMenuCategory(btn.dataset.id, 1)
-    })
+  // ===== EDIT CATEGORIA =====
+  qsa(".btn-cat-edit").forEach((btn) => {
+    btn.onclick = () => openEditMenuCategory(btn.dataset.id)
+  })
 
-    qsa(".btn-prod-remove").forEach((btn) => {
-      btn.onclick = () => removeMenuProduct(btn.dataset.id)
-    })
 
-    qsa(".btn-prod-up").forEach((btn) => {
-      btn.onclick = () => moveMenuProduct(btn.dataset.id, -1)
-    })
+  // ===== AZIONI CATEGORIA =====
+  qsa(".btn-cat-remove").forEach((btn) => {
+    btn.onclick = () => removeMenuCategory(btn.dataset.id)
+  })
 
-    qsa(".btn-prod-down").forEach((btn) => {
-      btn.onclick = () => moveMenuProduct(btn.dataset.id, 1)
-    })
+  qsa(".btn-cat-up").forEach((btn) => {
+    btn.onclick = () => moveMenuCategory(btn.dataset.id, -1)
+  })
 
-    qsa(".menu-price-input").forEach((input) => {
-      input.onchange = () => updateMenuProductPrice(input.dataset.id, Number(input.value))
-    })
-  }
+  qsa(".btn-cat-down").forEach((btn) => {
+    btn.onclick = () => moveMenuCategory(btn.dataset.id, 1)
+  })
 
+
+  // ===== AZIONI PRODOTTI =====
+  qsa(".btn-prod-remove").forEach((btn) => {
+    btn.onclick = () => removeMenuProduct(btn.dataset.id)
+  })
+
+  qsa(".btn-prod-up").forEach((btn) => {
+    btn.onclick = () => moveMenuProduct(btn.dataset.id, -1)
+  })
+
+  qsa(".btn-prod-down").forEach((btn) => {
+    btn.onclick = () => moveMenuProduct(btn.dataset.id, 1)
+  })
+
+
+  // ===== EDIT INLINE PRODOTTI =====
+  qsa(".menu-prod-nome").forEach((input) => {
+    input.onchange = () => {
+      console.log("UPDATE NOME", input.dataset.id, input.value)
+
+      updateMenuProductField(input.dataset.id, "nome", input.value)
+    }
+  })
+
+  qsa(".menu-prod-desc").forEach((input) => {
+    input.onchange = () => {
+      console.log("UPDATE DESC", input.dataset.id, input.value)
+
+      updateMenuProductField(input.dataset.id, "descrizione", input.value)
+    }
+  })
+
+
+  // ===== PREZZO =====
+  qsa(".menu-price-input").forEach((input) => {
+    input.onchange = () => {
+      console.log("UPDATE PREZZO", input.dataset.id, input.value)
+
+      updateMenuProductPrice(input.dataset.id, Number(input.value))
+    }
+  })
+}
   async function startNewMenu() {
     menuAttivo = null
     menuCategorie = []
