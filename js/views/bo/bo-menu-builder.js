@@ -348,24 +348,37 @@ export async function render(container) {
   }
 
   async function selectMenu(id) {
-    const { data: menu, error } = await supabase
-      .from("menu")
-      .select("*")
-      .eq("id", id)
-      .eq("azienda_id", azienda_id)
-      .maybeSingle()
+  console.log("SELECT MENU ID:", id)
 
-    if (error || !menu) {
-      console.error("Errore select menu:", error)
-      return
-    }
+  const { data: menu, error } = await supabase
+    .from("menu")
+    .select("*")
+    .eq("id", id)
+    .eq("azienda_id", azienda_id)
+    .maybeSingle()
 
-    menuAttivo = menu
-    await loadMenuComposition()
-    fillMenuForm()
-    renderAll()
+  if (error) {
+    console.error("Errore select menu:", error)
+    return
   }
 
+  if (!menu) {
+    console.warn("Menu non trovato")
+    return
+  }
+
+  menuAttivo = menu
+
+  console.log("MENU ATTIVO SETTATO:", menuAttivo)
+
+  await loadMenuComposition()
+
+  console.log("CATEGORIE MENU:", menuCategorie)
+  console.log("VOCI MENU:", menuVoci)
+
+  fillMenuForm()
+  renderAll()
+}
   async function loadMenuComposition() {
     if (!menuAttivo?.id) {
       menuCategorie = []
