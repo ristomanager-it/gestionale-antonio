@@ -56,7 +56,14 @@ export async function render(container) {
         <button id="btn-new-menu" class="app-button primary" type="button">+ Nuovo menu</button>
       </div>
 
-      <div style="display:grid; grid-template-columns:280px 1fr 320px; gap:16px; align-items:start;">
+     <div style="
+  display:grid;
+  grid-template-columns:260px minmax(0, 1fr) 280px;
+  gap:16px;
+  align-items:start;
+  flex:1;
+  min-height:0;
+">
 
         <aside style="display:flex; flex-direction:column; gap:16px;">
 
