@@ -1400,7 +1400,7 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
                               : ""
                           }
                         </div>
-                        <div style="font-weight:800;">€ ${formatMoney(v.prezzo_override || v.prezzo || v.prezzo_snapshot)}</div>
+                       <div style="font-weight:800;">${String("€ ") + formatMoney(v.prezzo_override || v.prezzo || v.prezzo_snapshot)}</div>
                       </div>
                     `).join("")
                 }
