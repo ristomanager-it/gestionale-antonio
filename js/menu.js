@@ -84,10 +84,9 @@ export function initMenu() {
       ...(isAdmin() ? [{
         title:"BACK OFFICE",
         items:[
-          {label:"⚙️ Back Office", route:"bo-dashboard"},
-          {label:"📢 Marketing", route:"bo-marketing"}
-        ]
-      }] : []),
+    {label:"⚙️ Back Office", route:"bo-dashboard"}
+  ]
+}] : []),
 
       ...(isSuperadmin() ? [{
         title:"PIATTAFORMA",
