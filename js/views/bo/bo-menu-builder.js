@@ -677,40 +677,45 @@ function renderAll() {
     bindMenuBuilderEvents()
   }
 
-  function renderMenuProductRow(p, index, total) {
-    const warning = p.alert_food_cost || !p.food_cost_snapshot ? "⚠️ Food cost mancante" : ""
+ function renderMenuProductRow(p, index, total) {
+  const warning = p.alert_food_cost || !p.food_cost_snapshot ? "⚠️ Food cost mancante" : ""
 
-    return `
-      <div style="
-        display:grid;
-        grid-template-columns:1fr 92px 120px auto;
-        gap:8px;
-        align-items:center;
-        padding:8px;
-        border-radius:12px;
-        background:white;
-        border:1px solid ${warning ? "#f59e0b" : "#e5e7eb"};
-        margin-bottom:8px;
-      ">
-        <div>
-          <div style="font-weight:700;">${escapeHtml(p.nome || p.nome_snapshot || "Prodotto")}</div>
-          <div style="font-size:12px; color:${warning ? "#b45309" : "#64748b"};">
-            ${warning || `Food cost € ${formatMoney(p.food_cost_snapshot)}`}
-          </div>
-        </div>
+  return `
+    <div style="
+      display:grid;
+      grid-template-columns:1fr 1fr 90px auto;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+      border-radius:12px;
+      background:white;
+      border:1px solid ${warning ? "#f59e0b" : "#e5e7eb"};
+      margin-bottom:8px;
+    ">
 
-        <input class="menu-price-input input" data-id="${escapeAttribute(p.id)}" type="number" step="0.01" value="${p.prezzo_override || p.prezzo || p.prezzo_snapshot || 0}">
+      <input class="menu-prod-nome input"
+        data-id="${escapeAttribute(p.id)}"
+        value="${escapeAttribute(p.nome || p.nome_snapshot || "")}"
+      >
 
-        <div style="display:flex; gap:4px;">
-          <button class="btn-prod-up app-button" data-id="${escapeAttribute(p.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
-          <button class="btn-prod-down app-button" data-id="${escapeAttribute(p.id)}" ${index === total - 1 ? "disabled" : ""}>↓</button>
-          <button class="btn-prod-remove app-button" data-id="${escapeAttribute(p.id)}" style="background:#dc2626;color:white;">×</button>
-        </div>
+      <input class="menu-prod-desc input"
+        data-id="${escapeAttribute(p.id)}"
+        value="${escapeAttribute(p.descrizione || p.descrizione_snapshot || "")}"
+      >
 
-        <span style="font-size:12px; color:#64748b;">${p.stato || ""}</span>
-      </div>
-    `
-  }
+      <input class="menu-price-input input"
+        data-id="${escapeAttribute(p.id)}"
+        type="number"
+        step="0.01"
+        value="${p.prezzo_override || p.prezzo || p.prezzo_snapshot || 0}"
+      >
+
+      <button class="btn-prod-remove app-button"
+        data-id="${escapeAttribute(p.id)}"
+        style="background:#dc2626;color:white;">×</button>
+    </div>
+  `
+}
 
   function bindMenuBuilderEvents() {
     qsa(".product-drop-zone").forEach((zone) => {
