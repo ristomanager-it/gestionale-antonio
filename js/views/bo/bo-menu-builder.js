@@ -39,7 +39,7 @@ export async function render(container) {
 
   let ricette = []
 
-container.innerHTML = `
+  container.innerHTML = `
 <section class="view" style="
   display:flex;
   flex-direction:column;
@@ -75,34 +75,18 @@ container.innerHTML = `
       </button>
     </div>
   </div>
-`
-      <h2 style="margin:0;">Menu Builder</h2>
-      <p style="margin:4px 0 0; color:#64748b;">
-        Costruisci menu pubblici con categorie e prodotti
-      </p>
-    </div>
-
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <select id="menu-selector" class="input" style="min-width:200px;">
-        <option value="">Seleziona menu</option>
-      </select>
-
-      <button id="btn-new-menu" class="app-button primary" type="button">
-        + Nuovo
-      </button>
-    </div>
-  </div>
 
   <!-- LAYOUT FIX -->
   <div style="
     display:grid;
-    grid-template-columns:260px 1fr 300px;
+    grid-template-columns:260px minmax(0, 1fr) 300px;
     gap:16px;
-    height:calc(100vh - 140px);
+    flex:1;
+    min-height:0;
   ">
 
     <!-- SINISTRA -->
-    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto;">
+    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
 
       <div class="card">
         <h3>Menu</h3>
@@ -122,7 +106,7 @@ container.innerHTML = `
     </aside>
 
     <!-- CENTRO -->
-    <main style="display:flex; flex-direction:column; gap:16px; overflow:auto;">
+    <main style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
 
       <div class="card">
         <h3>Impostazioni menu</h3>
@@ -208,6 +192,7 @@ container.innerHTML = `
       </div>
 
     </main>
+`
 
     <!-- DESTRA -->
     <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto;">
