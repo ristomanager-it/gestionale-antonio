@@ -84,7 +84,7 @@ export async function render(container) {
 
         </aside>
 
-        <main style="display:flex; flex-direction:column; gap:16px;">
+     <main style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
 
           <div class="card">
             <h3>Impostazioni menu</h3>
