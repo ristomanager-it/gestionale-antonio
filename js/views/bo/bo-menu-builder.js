@@ -40,7 +40,13 @@ export async function render(container) {
   let ricette = []
 
   container.innerHTML = `
-    <section class="view" style="display:flex; flex-direction:column; gap:16px;">
+   <section class="view" style="
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  height:100%;
+  min-height:0;
+">
 
       <div class="card" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
         <div>
