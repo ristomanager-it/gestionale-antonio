@@ -65,7 +65,7 @@ export async function render(container) {
   min-height:0;
 ">
 
-        <aside style="display:flex; flex-direction:column; gap:16px;">
+      <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
 
           <div class="card">
             <h3>Menu</h3>
