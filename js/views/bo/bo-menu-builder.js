@@ -741,32 +741,44 @@ function bindMenuBuilderEvents() {
       const id = event.dataTransfer.getData("id")
       const menuCategoryId = zone.dataset.menuCatId
 
-      // 🔥 FIX: spostamento tra categorie
-      if (type === "prodotto") {
+    if (type === "prodotto") {
 
-        const existing = menuVoci.find(v => v.prodotto_vendita_id === id)
+  const existing = menuVoci.find(v => v.prodotto_vendita_id === id)
 
-        if (existing) {
-          console.log("MOVE PRODOTTO", { id, from: existing.categoria_id, to: menuCategoryId })
-
-          await supabase
-            .from("menu_voci")
-            .update({ categoria_id: menuCategoryId })
-            .eq("id", existing.id)
-            .eq("azienda_id", azienda_id)
-
-        } else {
-          console.log("ADD PRODOTTO", { id, categoria: menuCategoryId })
-
-          await addProductToMenuCategory(id, menuCategoryId)
-        }
-
-        await loadMenuComposition()
-        renderAll()
-      }
+  // 👉 SE GIÀ ESISTE → SPOSTO CATEGORIA
+  if (existing) {
+    console.log("MOVE PRODOTTO", {
+      prodottoId: id,
+      from: existing.categoria_id,
+      to: menuCategoryId
     })
-  })
 
+    const { error } = await supabase
+      .from("menu_voci")
+      .update({
+        categoria_id: menuCategoryId
+      })
+      .eq("id", existing.id)
+      .eq("azienda_id", azienda_id)
+
+    if (error) {
+      console.error("MOVE ERROR", error)
+      return
+    }
+
+  } else {
+    // 👉 NON ESISTE → LO AGGIUNGO
+    console.log("ADD PRODOTTO", {
+      prodottoId: id,
+      categoria: menuCategoryId
+    })
+
+    await addProductToMenuCategory(id, menuCategoryId)
+  }
+
+  await loadMenuComposition()
+  renderAll()
+}
 
   // ===== EDIT CATEGORIA =====
   qsa(".btn-cat-edit").forEach((btn) => {
