@@ -884,6 +884,21 @@ window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
   initMenu();
 
+  // ✅ FIX: sync sessione Supabase
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log("AUTH CHANGE:", event, session);
+
+    if (session?.user) {
+      if (window.stateActions?.setUser) {
+        window.stateActions.setUser(session.user);
+      }
+    } else {
+      if (window.stateActions?.setUser) {
+        window.stateActions.setUser(null);
+      }
+    }
+  });
+
   try {
     const saved = localStorage.getItem("reparto_attivo");
     if (saved) {
