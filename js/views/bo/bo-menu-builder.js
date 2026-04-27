@@ -784,12 +784,13 @@ export async function render(container) {
         return
       }
 
-      menuAttivo = data
-      await loadMenus()
-      await selectMenu(data.id)
-    }
-  }
+     menuAttivo = data
+console.log("MENU CREATO:", data)
 
+await loadMenus()
+await selectMenu(data.id)
+
+console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
   async function addCategoriaToMenu(categoriaId) {
     if (!menuAttivo?.id) {
       alert("Prima crea o seleziona un menu.")
