@@ -260,6 +260,15 @@ export async function render(container) {
       const type = event.dataTransfer.getData("type")
       const id = event.dataTransfer.getData("id")
 
+      console.log("DROP MENU ZONE:", {
+        type,
+        id,
+        menuAttivo,
+        menuAttivoId: menuAttivo?.id,
+        categorieDisponibili: categorieDisponibili.length,
+        menuCategorie: menuCategorie.length
+      })
+
       if (type === "categoria") {
         await addCategoriaToMenu(id)
       }
@@ -804,7 +813,16 @@ await loadMenus()
 await selectMenu(data.id)
 
 console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
+    }
+  }
+
   async function addCategoriaToMenu(categoriaId) {
+    console.log("ADD CATEGORIA TO MENU:", {
+      categoriaId,
+      menuAttivo,
+      menuAttivoId: menuAttivo?.id
+    })
+
     if (!menuAttivo?.id) {
       alert("Prima crea o seleziona un menu.")
       return
@@ -1382,6 +1400,7 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
           }
         </div>
       </div>
+    `
   }
 
   function renderLinkBox() {
