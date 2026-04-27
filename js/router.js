@@ -60,7 +60,11 @@ const routes = {
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
- "bo-marketing": () => import("./views/bo/bo-marketing.js"),
+
+  // =========================
+  // MARKETING (globale - lettura)
+  // =========================
+  "bo-marketing": () => import("./views/bo/bo-marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -105,7 +109,18 @@ const routes = {
 
   comanda: () => import("./views/comanda.js"),
 
+  // =========================
+  // BACK OFFICE (COSTRUZIONE)
+  // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
+  "bo-tag": () => import("./views/bo/bo-tag.js"),
+  "bo-template": () => import("./views/bo/bo-template.js"),
+
+  // PRODUZIONE
+  "bo-menu": () => import("./views/bo/bo-menu.js"),
+  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
+  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
+  "bo-comande": () => import("./views/bo/bo-comande.js"),
 };
 
 /* =========================================================
