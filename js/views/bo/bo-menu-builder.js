@@ -170,7 +170,7 @@ export async function render(container) {
 
         </main>
 
-        <aside style="display:flex; flex-direction:column; gap:16px;">
+       <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
 
           <div class="card">
             <h3>Prodotti disponibili</h3>
