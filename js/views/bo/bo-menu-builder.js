@@ -39,7 +39,7 @@ export async function render(container) {
 
   let ricette = []
 
-  container.innerHTML = `
+container.innerHTML = `
 <section class="view" style="
   display:flex;
   flex-direction:column;
@@ -48,7 +48,7 @@ export async function render(container) {
   overflow:hidden;
 ">
 
-  <!-- HEADER FIX -->
+  <!-- HEADER -->
   <div class="card" style="
     display:flex;
     justify-content:space-between;
@@ -76,7 +76,7 @@ export async function render(container) {
     </div>
   </div>
 
-  <!-- LAYOUT FIX -->
+  <!-- LAYOUT -->
   <div style="
     display:grid;
     grid-template-columns:260px minmax(0, 1fr) 300px;
@@ -87,7 +87,6 @@ export async function render(container) {
 
     <!-- SINISTRA -->
     <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
-
       <div class="card">
         <h3>Menu</h3>
         <div id="menu-list"></div>
@@ -95,92 +94,32 @@ export async function render(container) {
 
       <div class="card">
         <h3>Categorie disponibili</h3>
-
-        <button id="btn-new-category" class="app-button" type="button" style="width:100%; margin-bottom:10px;">
+        <button id="btn-new-category" class="app-button" style="width:100%; margin-bottom:10px;">
           + Nuova categoria
         </button>
-
         <div id="categorie-disponibili"></div>
       </div>
-
     </aside>
 
     <!-- CENTRO -->
     <main style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
-
       <div class="card">
         <h3>Impostazioni menu</h3>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <div>
-            <label>Nome menu</label>
-            <input id="menu-nome" class="input" placeholder="Es. Menu Cena">
-          </div>
-
-          <div>
-            <label>Slug pubblico</label>
-            <input id="menu-slug" class="input" placeholder="menu-cena">
-          </div>
+          <input id="menu-nome" class="input" placeholder="Nome menu">
+          <input id="menu-slug" class="input" placeholder="Slug">
         </div>
 
-        <label style="display:block; margin-top:10px;">Descrizione</label>
-        <textarea id="menu-descrizione" class="input" rows="3"></textarea>
+        <textarea id="menu-descrizione" class="input" rows="3" style="margin-top:10px;"></textarea>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-          <div>
-            <label>Logo</label>
-            <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
-              <input id="menu-logo-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg">
-              <button id="btn-upload-logo" class="app-button" type="button">Carica</button>
-            </div>
-            <input id="menu-logo-url" class="input" readonly>
-          </div>
-
-          <div>
-            <label>Cover / sfondo</label>
-            <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
-              <input id="menu-cover-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg">
-              <button id="btn-upload-cover" class="app-button" type="button">Carica</button>
-            </div>
-            <input id="menu-cover-url" class="input" readonly>
-          </div>
+        <div style="margin-top:10px;">
+          <button id="btn-save-menu" class="app-button primary">Salva menu</button>
         </div>
-
-        <div style="display:grid; grid-template-columns:120px 1fr auto; gap:10px; align-items:end; margin-top:10px;">
-          <div>
-            <label>Colore</label>
-            <input id="menu-bg-color-picker" type="color" value="#ffffff" style="width:100%; height:42px;">
-          </div>
-
-          <div>
-            <label>Colore sfondo</label>
-            <input id="menu-bg-color" class="input" placeholder="#ffffff">
-          </div>
-
-          <label style="display:flex; align-items:center; gap:8px; padding-bottom:10px;">
-            <input type="checkbox" id="menu-attivo" checked>
-            Attivo
-          </label>
-        </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-          <button id="btn-save-menu" class="app-button primary" type="button">Salva menu</button>
-          <button id="btn-copy-link" class="app-button" type="button">Copia link</button>
-        </div>
-
-        <div id="menu-link-box" style="margin-top:12px;"></div>
       </div>
 
       <div class="card">
-        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
-          <div>
-            <h3 style="margin:0;">Composizione menu</h3>
-            <p style="margin:4px 0 0; color:#64748b; font-size:13px;">
-              Trascina categorie e prodotti
-            </p>
-          </div>
-        </div>
-
+        <h3>Composizione menu</h3>
         <div id="menu-drop-zone" style="
           margin-top:12px;
           min-height:220px;
@@ -190,43 +129,28 @@ export async function render(container) {
           background:#f8fafc;
         "></div>
       </div>
-
     </main>
-`
 
     <!-- DESTRA -->
-    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto;">
-
+    <aside style="display:flex; flex-direction:column; gap:16px; overflow:auto; min-height:0;">
       <div class="card">
-        <h3>Prodotti disponibili</h3>
-
-        <button id="btn-new-product" class="app-button" type="button" style="width:100%; margin-bottom:10px;">
+        <h3>Prodotti</h3>
+        <button id="btn-new-product" class="app-button" style="width:100%; margin-bottom:10px;">
           + Nuovo prodotto
         </button>
-
-        <input id="product-search" class="input" placeholder="Cerca prodotto" style="margin-bottom:10px;">
         <div id="prodotti-disponibili"></div>
       </div>
 
       <div class="card">
-        <h3>Preview cliente</h3>
-        <div id="menu-preview" style="
-          border-radius:18px;
-          overflow:hidden;
-          border:1px solid #e5e7eb;
-          background:white;
-        "></div>
+        <h3>Preview</h3>
+        <div id="menu-preview"></div>
       </div>
-
     </aside>
 
   </div>
 
-  <div id="modal-root"></div>
 </section>
 `
-    </section>
-  `
 
   bindBaseEvents()
   await loadAll()
