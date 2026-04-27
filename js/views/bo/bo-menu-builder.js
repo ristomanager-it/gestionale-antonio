@@ -1368,7 +1368,6 @@ export async function render(container) {
           }
         </div>
       </div>
-    `
   }
 
   function renderLinkBox() {
