@@ -37,7 +37,6 @@ export async function render(container) {
   let menuCategorie = []
   let menuVoci = []
 
-  // 👉 NUOVO STATO UI
   let categoriaSelezionata = null
 
   container.innerHTML = `
@@ -45,55 +44,62 @@ export async function render(container) {
 
     <!-- HEADER -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="margin:0;">Menu Builder</h2>
+      <h2>Menu Builder</h2>
       <button id="btn-new-menu" class="app-button primary">+ Nuovo menu</button>
     </div>
 
     <!-- IDENTITÀ -->
-    <div class="card" style="padding:16px;">
-      <h3>Identità menu</h3>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <input id="menu-nome" class="input" placeholder="Nome menu">
-        <input id="menu-slug" class="input" placeholder="Slug">
-      </div>
-      <textarea id="menu-descrizione" class="input" placeholder="Descrizione" style="margin-top:10px;"></textarea>
+    <div class="card">
+      <input id="menu-nome" class="input" placeholder="Nome menu">
+      <input id="menu-slug" class="input" placeholder="Slug">
+      <textarea id="menu-descrizione" class="input" placeholder="Descrizione"></textarea>
     </div>
 
     <!-- DESIGN -->
-    <div class="card" style="padding:16px;">
+    <div class="card">
       <h3>Design</h3>
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
-        <input id="menu-logo-url" class="input" placeholder="Logo URL" readonly>
-        <input id="menu-bg-color" class="input" placeholder="#ffffff">
-        <label><input type="checkbox" id="menu-attivo" checked> Attivo</label>
-      </div>
+
+      <input type="color" id="menu-color-picker" value="#ffffff">
+      <input id="menu-bg-color" class="input" placeholder="#ffffff">
+
+      <select id="menu-font-weight" class="input">
+        <option value="normal">Normale</option>
+        <option value="bold">Grassetto</option>
+      </select>
+
+      <select id="menu-font-size" class="input">
+        <option value="14">Piccolo</option>
+        <option value="16">Medio</option>
+        <option value="20">Grande</option>
+      </select>
     </div>
 
     <!-- PUBBLICAZIONE -->
-    <div class="card" style="padding:16px;">
+    <div class="card">
       <h3>Pubblicazione</h3>
+
       <div id="menu-link-box"></div>
+
+      <input id="menu-short-link" class="input" placeholder="Short link">
+      <button id="btn-genera-short" class="app-button">Genera short link</button>
     </div>
 
     <!-- COMPOSIZIONE -->
-    <div class="card" style="padding:16px;">
+    <div class="card">
       <h3>Composizione menu</h3>
 
       <div style="display:grid; grid-template-columns:240px 1fr 300px; gap:16px;">
 
-        <!-- CATEGORIE -->
         <div>
           <h4>Categorie</h4>
           <div id="categorie-disponibili"></div>
         </div>
 
-        <!-- MENU -->
         <div>
           <h4>Menu</h4>
-          <div id="menu-drop-zone" style="min-height:300px; border:2px dashed #ccc; border-radius:12px;"></div>
+          <div id="menu-drop-zone" style="min-height:300px; border:2px dashed #ccc;"></div>
         </div>
 
-        <!-- PRODOTTI -->
         <div>
           <h4>Prodotti</h4>
           <input id="product-search" class="input" placeholder="Cerca">
@@ -104,8 +110,8 @@ export async function render(container) {
     </div>
 
     <!-- PREVIEW -->
-    <div class="card" style="padding:16px;">
-      <h3>Preview</h3>
+    <div class="card">
+      <h3>Preview LIVE</h3>
       <div id="menu-preview"></div>
     </div>
 
@@ -120,6 +126,22 @@ export async function render(container) {
     qs("#btn-save-menu")?.addEventListener("click", saveMenu)
 
     qs("#product-search").addEventListener("input", renderProdottiDisponibili)
+
+    qs("#menu-color-picker").oninput = e => {
+      qs("#menu-bg-color").value = e.target.value
+      renderPreview()
+    }
+
+    qsa("#menu-nome, #menu-descrizione, #menu-bg-color, #menu-font-weight, #menu-font-size")
+      .forEach(el => el.addEventListener("input", () => {
+        renderPreview()
+        renderLinkBox()
+      }))
+
+    qs("#btn-genera-short").onclick = () => {
+      const base = qs("#menu-slug").value || qs("#menu-nome").value
+      qs("#menu-short-link").value = makeSlug(base)
+    }
 
     const dropZone = qs("#menu-drop-zone")
 
@@ -183,6 +205,7 @@ export async function render(container) {
     renderProdottiDisponibili()
     renderBuilder()
     renderPreview()
+    renderLinkBox()
   }
 
   function renderMenuList() {
@@ -197,12 +220,7 @@ export async function render(container) {
 
   function renderCategorieDisponibili() {
     qs("#categorie-disponibili").innerHTML = categorieDisponibili.map(c => `
-      <div 
-        draggable="true" 
-        data-type="categoria" 
-        data-id="${c.id}"
-        style="padding:8px; border-radius:8px; cursor:pointer;"
-      >
+      <div draggable="true" data-type="categoria" data-id="${c.id}">
         ${c.nome}
       </div>
     `).join("")
@@ -243,7 +261,7 @@ export async function render(container) {
     }
 
     box.innerHTML = menuCategorie.map(cat => `
-      <div style="padding:10px; border-bottom:1px solid #ddd;">
+      <div>
         <h4>${cat.nome}</h4>
       </div>
     `).join("")
@@ -263,7 +281,30 @@ export async function render(container) {
   }
 
   function renderPreview() {
-    qs("#menu-preview").innerHTML = menuAttivo?.nome || "Preview"
+    const nome = qs("#menu-nome").value || menuAttivo?.nome || "Menu"
+    const desc = qs("#menu-descrizione").value || ""
+    const bg = qs("#menu-bg-color").value || "#ffffff"
+    const weight = qs("#menu-font-weight").value
+    const size = qs("#menu-font-size").value
+
+    qs("#menu-preview").innerHTML = `
+      <div style="background:${bg}; padding:20px;">
+        <h2 style="font-weight:${weight}; font-size:${size}px;">${nome}</h2>
+        <p>${desc}</p>
+      </div>
+    `
+  }
+
+  function renderLinkBox() {
+    const slug = makeSlug(qs("#menu-slug").value || qs("#menu-nome").value)
+    if (!slug) return
+
+    const url = BASE_PUBLIC_URL + "/#/menu/" + slug
+
+    qs("#menu-link-box").innerHTML = `
+      <input class="input" value="${url}" readonly>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(url)}">
+    `
   }
 
   async function saveMenu() {
@@ -283,6 +324,10 @@ export async function render(container) {
   function startNewMenu() {
     menuAttivo = null
     renderAll()
+  }
+
+  function makeSlug(str) {
+    return String(str || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
   }
 
   function qs(s) { return container.querySelector(s) }
