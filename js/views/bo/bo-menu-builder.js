@@ -2,29 +2,12 @@ const supabase = window.supabase
 
 export async function render(container) {
   const azienda_id = window.state?.azienda_id || window.state?.azienda?.id
-  const sede_id = window.state?.sedeAttiva?.id || null
   const ruolo = window.state?.ruolo
 
-  const STORAGE_BUCKET = "loghi-aziende"
   const BASE_PUBLIC_URL = "https://ristoflow-ai.com"
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
-    container.innerHTML = `
-      <section class="view">
-        <h2>Accesso negato</h2>
-        <p>Non hai i permessi per accedere al Back Office.</p>
-      </section>
-    `
-    return
-  }
-
-  if (!supabase || typeof supabase.from !== "function") {
-    container.innerHTML = `
-      <section class="view">
-        <h2>Errore</h2>
-        <p>Supabase non inizializzato.</p>
-      </section>
-    `
+    container.innerHTML = `<section class="view">Accesso negato</section>`
     return
   }
 
@@ -39,8 +22,13 @@ export async function render(container) {
 
   let categoriaSelezionata = null
 
+  // NUOVI STATI
+  let tagsDisponibili = ["pranzo", "cena", "evento", "estate"]
+  let tagsSelezionati = []
+  let campiTracciamento = []
+
   container.innerHTML = `
-  <section class="view" style="display:flex; flex-direction:column; gap:20px; padding:20px;">
+  <section class="view" style="display:flex; flex-direction:column; gap:16px; padding:16px;">
 
     <!-- HEADER -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -59,19 +47,27 @@ export async function render(container) {
     <div class="card">
       <h3>Design</h3>
 
-      <input type="color" id="menu-color-picker" value="#ffffff">
-      <input id="menu-bg-color" class="input" placeholder="#ffffff">
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+        <input type="color" id="menu-color-picker" value="#ffffff">
+        <input id="menu-bg-color" class="input" placeholder="#ffffff">
 
-      <select id="menu-font-weight" class="input">
-        <option value="normal">Normale</option>
-        <option value="bold">Grassetto</option>
-      </select>
+        <select id="menu-font-family" class="input">
+          <option value="Arial">Arial</option>
+          <option value="Roboto">Roboto</option>
+          <option value="Poppins">Poppins</option>
+        </select>
 
-      <select id="menu-font-size" class="input">
-        <option value="14">Piccolo</option>
-        <option value="16">Medio</option>
-        <option value="20">Grande</option>
-      </select>
+        <select id="menu-font-weight" class="input">
+          <option value="normal">Normale</option>
+          <option value="bold">Grassetto</option>
+        </select>
+
+        <select id="menu-font-size" class="input">
+          <option value="14">Piccolo</option>
+          <option value="16">Medio</option>
+          <option value="20">Grande</option>
+        </select>
+      </div>
     </div>
 
     <!-- PUBBLICAZIONE -->
@@ -80,8 +76,33 @@ export async function render(container) {
 
       <div id="menu-link-box"></div>
 
-      <input id="menu-short-link" class="input" placeholder="Short link">
-      <button id="btn-genera-short" class="app-button">Genera short link</button>
+      <div style="display:flex; gap:8px;">
+        <input id="menu-short-link" class="input" placeholder="Short link">
+        <button id="btn-genera-short" class="app-button">Genera</button>
+      </div>
+    </div>
+
+    <!-- TAG -->
+    <div class="card">
+      <h3>Tag</h3>
+
+      <input id="tag-input" class="input" placeholder="Scrivi e premi invio">
+
+      <div id="tag-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+    </div>
+
+    <!-- TRACCIAMENTO -->
+    <div class="card">
+      <h3>Raccolta dati cliente</h3>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+        ${["nome","cognome","email","telefono","cap","data_nascita"].map(campo => `
+          <label>
+            <input type="checkbox" data-campo="${campo}">
+            ${campo}
+          </label>
+        `).join("")}
+      </div>
     </div>
 
     <!-- COMPOSIZIONE -->
@@ -122,173 +143,67 @@ export async function render(container) {
   await loadAll()
 
   function bindEvents() {
+
     qs("#btn-new-menu").onclick = startNewMenu
-    qs("#btn-save-menu")?.addEventListener("click", saveMenu)
 
-    qs("#product-search").addEventListener("input", renderProdottiDisponibili)
-
+    // COLOR SYNC
     qs("#menu-color-picker").oninput = e => {
       qs("#menu-bg-color").value = e.target.value
       renderPreview()
     }
 
-    qsa("#menu-nome, #menu-descrizione, #menu-bg-color, #menu-font-weight, #menu-font-size")
-      .forEach(el => el.addEventListener("input", () => {
-        renderPreview()
-        renderLinkBox()
-      }))
+    // LIVE PREVIEW (FIX VERO)
+    qsa("#menu-nome, #menu-descrizione, #menu-bg-color, #menu-font-weight, #menu-font-size, #menu-font-family")
+      .forEach(el => el.addEventListener("input", renderPreview))
 
+    // SHORT LINK
     qs("#btn-genera-short").onclick = () => {
       const base = qs("#menu-slug").value || qs("#menu-nome").value
       qs("#menu-short-link").value = makeSlug(base)
     }
 
-    const dropZone = qs("#menu-drop-zone")
+    // TAG SYSTEM
+    qs("#tag-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        const val = e.target.value.trim()
+        if (!val) return
 
-    dropZone.addEventListener("dragover", (e) => e.preventDefault())
+        if (!tagsDisponibili.includes(val)) tagsDisponibili.push(val)
+        if (!tagsSelezionati.includes(val)) tagsSelezionati.push(val)
 
-    dropZone.addEventListener("drop", async (e) => {
-      e.preventDefault()
-      const type = e.dataTransfer.getData("type")
-      const id = e.dataTransfer.getData("id")
+        e.target.value = ""
+        renderTags()
+      }
+    })
 
-      if (type === "categoria") {
-        await addCategoriaToMenu(id)
+    // TRACCIAMENTO
+    qsa("[data-campo]").forEach(el => {
+      el.onchange = () => {
+        if (el.checked) campiTracciamento.push(el.dataset.campo)
+        else campiTracciamento = campiTracciamento.filter(c => c !== el.dataset.campo)
       }
     })
   }
 
-  async function loadAll() {
-    await Promise.all([
-      loadMenus(),
-      loadCategorieDisponibili(),
-      loadProdottiDisponibili()
-    ])
-
-    if (menus.length) await selectMenu(menus[0].id)
-    else renderAll()
-  }
-
-  async function loadMenus() {
-    const { data } = await supabase.from("menu").select("*").eq("azienda_id", azienda_id)
-    menus = data || []
-  }
-
-  async function loadCategorieDisponibili() {
-    const { data } = await supabase.from("categorie_vendita").select("*").eq("azienda_id", azienda_id)
-    categorieDisponibili = data || []
-  }
-
-  async function loadProdottiDisponibili() {
-    const { data } = await supabase.from("prodotti_vendita").select("*").eq("azienda_id", azienda_id)
-    prodottiDisponibili = data || []
-  }
-
-  async function selectMenu(id) {
-    const { data } = await supabase.from("menu").select("*").eq("id", id).single()
-    menuAttivo = data
-    await loadMenuComposition()
-    renderAll()
-  }
-
-  async function loadMenuComposition() {
-    const { data: cat } = await supabase.from("menu_categorie").select("*").eq("menu_id", menuAttivo.id)
-    const { data: voci } = await supabase.from("menu_voci").select("*").eq("menu_id", menuAttivo.id)
-
-    menuCategorie = cat || []
-    menuVoci = voci || []
-  }
-
-  function renderAll() {
-    renderMenuList()
-    renderCategorieDisponibili()
-    renderProdottiDisponibili()
-    renderBuilder()
-    renderPreview()
-    renderLinkBox()
-  }
-
-  function renderMenuList() {
-    qs("#menu-list") && (qs("#menu-list").innerHTML = menus.map(m => `
-      <div data-id="${m.id}">${m.nome}</div>
-    `).join(""))
-
-    qsa("[data-id]").forEach(el => {
-      el.onclick = () => selectMenu(el.dataset.id)
-    })
-  }
-
-  function renderCategorieDisponibili() {
-    qs("#categorie-disponibili").innerHTML = categorieDisponibili.map(c => `
-      <div draggable="true" data-type="categoria" data-id="${c.id}">
-        ${c.nome}
-      </div>
+  function renderTags() {
+    qs("#tag-list").innerHTML = tagsSelezionati.map(t => `
+      <span style="background:#e2e8f0; padding:4px 8px; border-radius:8px;">
+        ${t}
+      </span>
     `).join("")
-
-    qsa("[draggable]").forEach(el => {
-      el.ondragstart = e => {
-        e.dataTransfer.setData("type", el.dataset.type)
-        e.dataTransfer.setData("id", el.dataset.id)
-      }
-
-      el.onclick = () => {
-        categoriaSelezionata = el.dataset.id
-        renderProdottiDisponibili()
-      }
-    })
-  }
-
-  function renderProdottiDisponibili() {
-    let list = prodottiDisponibili
-
-    if (categoriaSelezionata) {
-      list = list.filter(p => String(p.categoria_vendita_id) === String(categoriaSelezionata))
-    }
-
-    qs("#prodotti-disponibili").innerHTML = list.map(p => `
-      <div draggable="true" data-type="prodotto" data-id="${p.id}">
-        ${p.nome}
-      </div>
-    `).join("")
-  }
-
-  function renderBuilder() {
-    const box = qs("#menu-drop-zone")
-
-    if (!menuCategorie.length) {
-      box.innerHTML = "Trascina categorie"
-      return
-    }
-
-    box.innerHTML = menuCategorie.map(cat => `
-      <div>
-        <h4>${cat.nome}</h4>
-      </div>
-    `).join("")
-  }
-
-  async function addCategoriaToMenu(id) {
-    if (!menuAttivo) return
-
-    await supabase.from("menu_categorie").insert({
-      menu_id: menuAttivo.id,
-      categoria_vendita_id: id,
-      azienda_id
-    })
-
-    await loadMenuComposition()
-    renderAll()
   }
 
   function renderPreview() {
-    const nome = qs("#menu-nome").value || menuAttivo?.nome || "Menu"
+    const nome = qs("#menu-nome").value || "Menu"
     const desc = qs("#menu-descrizione").value || ""
-    const bg = qs("#menu-bg-color").value || "#ffffff"
+    const bg = qs("#menu-bg-color").value || "#fff"
     const weight = qs("#menu-font-weight").value
     const size = qs("#menu-font-size").value
+    const font = qs("#menu-font-family").value
 
     qs("#menu-preview").innerHTML = `
-      <div style="background:${bg}; padding:20px;">
+      <div style="background:${bg}; padding:20px; font-family:${font};">
         <h2 style="font-weight:${weight}; font-size:${size}px;">${nome}</h2>
         <p>${desc}</p>
       </div>
@@ -307,27 +222,51 @@ export async function render(container) {
     `
   }
 
-  async function saveMenu() {
-    const nome = qs("#menu-nome").value
+  async function loadAll() {
+    const { data: m } = await supabase.from("menu").select("*").eq("azienda_id", azienda_id)
+    menus = m || []
 
-    if (!menuAttivo) {
-      const { data } = await supabase.from("menu").insert({ nome, azienda_id }).select().single()
-      menuAttivo = data
-    } else {
-      await supabase.from("menu").update({ nome }).eq("id", menuAttivo.id)
-    }
+    const { data: c } = await supabase.from("categorie_vendita").select("*")
+    categorieDisponibili = c || []
 
-    await loadMenus()
+    const { data: p } = await supabase.from("prodotti_vendita").select("*")
+    prodottiDisponibili = p || []
+
     renderAll()
+  }
+
+  function renderAll() {
+    renderCategorieDisponibili()
+    renderProdottiDisponibili()
+    renderBuilder()
+    renderPreview()
+    renderLinkBox()
+    renderTags()
+  }
+
+  function renderCategorieDisponibili() {
+    qs("#categorie-disponibili").innerHTML = categorieDisponibili.map(c => `
+      <div draggable="true" data-id="${c.id}">${c.nome}</div>
+    `).join("")
+  }
+
+  function renderProdottiDisponibili() {
+    qs("#prodotti-disponibili").innerHTML = prodottiDisponibili.map(p => `
+      <div>${p.nome}</div>
+    `).join("")
+  }
+
+  function renderBuilder() {
+    qs("#menu-drop-zone").innerHTML = menuCategorie.map(c => `<div>${c.nome}</div>`).join("")
+  }
+
+  function makeSlug(str) {
+    return String(str || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
   }
 
   function startNewMenu() {
     menuAttivo = null
     renderAll()
-  }
-
-  function makeSlug(str) {
-    return String(str || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
   }
 
   function qs(s) { return container.querySelector(s) }
