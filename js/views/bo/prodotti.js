@@ -42,6 +42,7 @@ export async function render(container) {
           <p style="margin:4px 0 0; color:#64748b;">Prodotti vendibili per menu, preventivi e future comande.</p>
         </div>
         <button id="btn-new" class="app-button primary" type="button">+ Nuovo prodotto</button>
+        <button id="btn-import-csv" class="app-button" type="button">📥 Import CSV</button>
       </div>
 
       <input id="product-search" class="input" placeholder="Cerca prodotto o creane uno nuovo" style="margin-top:12px;" autocomplete="off">
