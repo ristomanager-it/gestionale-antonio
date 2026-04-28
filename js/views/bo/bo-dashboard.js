@@ -20,10 +20,6 @@ export async function render(container) {
     return
   }
 
-  // -------------------------
-  // FETCH DATI DASHBOARD
-  // -------------------------
-
   let contattiCount = 0
   let tagCount = 0
   let templateCount = 0
@@ -63,10 +59,6 @@ export async function render(container) {
     console.error("Errore caricamento dashboard BO", err)
   }
 
-  // -------------------------
-  // UI
-  // -------------------------
-
   container.innerHTML = `
     <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
@@ -91,13 +83,20 @@ export async function render(container) {
         <div class="bo-menu-item" data-route="bo-template">✉️ Template</div>
         <div class="bo-menu-item" data-route="bo-marketing">📢 Campagne</div>
 
+        <!-- MENU -->
+        <div style="margin-top:10px; font-size:12px; opacity:0.6;">MENU</div>
+        <div class="bo-menu-item" data-route="bo-menu">🍽️ Builder Menù</div>
+        <div class="bo-menu-item" data-route="bo-categorie">📂 Categorie</div>
+        <div class="bo-menu-item" data-route="bo-prodotti">🍔 Prodotti</div>
+        <div class="bo-menu-item" data-route="bo-tag-menu">🏷️ Tag Menù</div>
+
+        <!-- PRODUZIONE -->
         <div style="margin-top:10px; font-size:12px; opacity:0.6;">PRODUZIONE</div>
-        <div class="bo-menu-item" data-route="bo-menu">🍽️ Menu</div>
-        
         <div class="bo-menu-item" data-route="bo-magazzino">📦 Magazzino</div>
         <div class="bo-menu-item" data-route="bo-produzione">🏭 Produzione</div>
         <div class="bo-menu-item" data-route="bo-comande">🧾 Comande</div>
-        <div class="bo-menu-item" data-route="bo-categorie">📂 Categorie</div>
+
+        <!-- CONFIG -->
         <div style="margin-top:10px; font-size:12px; opacity:0.6;">CONFIG</div>
         <div class="bo-menu-item" data-route="bo-booking">📅 Booking</div>
         <div class="bo-menu-item" data-route="bo-impostazioni">⚙️ Impostazioni</div>
@@ -136,26 +135,9 @@ export async function render(container) {
 
         </div>
 
-        <div class="card">
-          <h3>Azioni rapide</h3>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-
-            <button onclick="window.location.hash='#/bo-tag'">Tag</button>
-            <button onclick="window.location.hash='#/bo-template'">Template</button>
-            <button onclick="window.location.hash='#/bo-menu'">Menu</button>
-            <button onclick="window.location.hash='#/bo-magazzino'">Magazzino</button>
-
-          </div>
-        </div>
-
       </div>
     </div>
   `
-
-  // -------------------------
-  // MENU INTERAZIONE
-  // -------------------------
 
   const items = container.querySelectorAll(".bo-menu-item")
 
