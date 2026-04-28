@@ -325,7 +325,7 @@ function setupAutocomplete() {
     }
 
     let risultati = ricetteCache
-      .filter(r => (r.nome || "").toLowerCase().includes(q));
+     .filter(r => normalize(r.nome).includes(normalize(q)))
 
     if (filtroBozza)
       risultati = risultati.filter(r => r.stato === "bozza");
