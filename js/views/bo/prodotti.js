@@ -60,9 +60,13 @@ export async function render(container) {
       </select>
 
       <label>Ricetta collegata</label>
-      <select id="prod-ricetta" class="input">
-        <option value="">Non collegata</option>
-      </select>
+<select id="prod-ricetta" class="input">
+  <option value="">Non collegata</option>
+</select>
+
+<label>Contesto utilizzo</label>
+<input id="prod-contesto" class="input" list="contesto-options" placeholder="Es. ristorante, evento, delivery">
+<datalist id="contesto-options"></datalist>
 
       <div id="food-cost-box" style="
         margin:10px 0;
