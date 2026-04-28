@@ -37,72 +37,79 @@ export async function render(container) {
   let menuCategorie = []
   let menuVoci = []
 
+  // 👉 NUOVO STATO UI
+  let categoriaSelezionata = null
+
   container.innerHTML = `
-   <section class="view" style="display:flex; flex-direction:column; gap:16px; height:100%;">
-      
-      <div class="card" style="display:flex; justify-content:space-between;">
-        <h2>Menu Builder</h2>
-        <button id="btn-new-menu" class="app-button primary">+ Nuovo menu</button>
+  <section class="view" style="display:flex; flex-direction:column; gap:20px; padding:20px;">
+
+    <!-- HEADER -->
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">Menu Builder</h2>
+      <button id="btn-new-menu" class="app-button primary">+ Nuovo menu</button>
+    </div>
+
+    <!-- IDENTITÀ -->
+    <div class="card" style="padding:16px;">
+      <h3>Identità menu</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <input id="menu-nome" class="input" placeholder="Nome menu">
+        <input id="menu-slug" class="input" placeholder="Slug">
       </div>
+      <textarea id="menu-descrizione" class="input" placeholder="Descrizione" style="margin-top:10px;"></textarea>
+    </div>
 
-      <div style="display:grid; grid-template-columns:260px 1fr 280px; gap:16px; flex:1;">
+    <!-- DESIGN -->
+    <div class="card" style="padding:16px;">
+      <h3>Design</h3>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+        <input id="menu-logo-url" class="input" placeholder="Logo URL" readonly>
+        <input id="menu-bg-color" class="input" placeholder="#ffffff">
+        <label><input type="checkbox" id="menu-attivo" checked> Attivo</label>
+      </div>
+    </div>
 
-        <aside>
-          <div class="card">
-            <h3>Menu</h3>
-            <div id="menu-list"></div>
-          </div>
+    <!-- PUBBLICAZIONE -->
+    <div class="card" style="padding:16px;">
+      <h3>Pubblicazione</h3>
+      <div id="menu-link-box"></div>
+    </div>
 
-          <div class="card">
-            <h3>Categorie</h3>
-            <div id="categorie-disponibili"></div>
-          </div>
-        </aside>
+    <!-- COMPOSIZIONE -->
+    <div class="card" style="padding:16px;">
+      <h3>Composizione menu</h3>
 
-        <main style="display:flex; flex-direction:column; gap:16px;">
+      <div style="display:grid; grid-template-columns:240px 1fr 300px; gap:16px;">
 
-          <div class="card">
-            <h3>Impostazioni menu</h3>
+        <!-- CATEGORIE -->
+        <div>
+          <h4>Categorie</h4>
+          <div id="categorie-disponibili"></div>
+        </div>
 
-            <input id="menu-nome" class="input" placeholder="Nome menu">
-            <input id="menu-slug" class="input" placeholder="Slug">
+        <!-- MENU -->
+        <div>
+          <h4>Menu</h4>
+          <div id="menu-drop-zone" style="min-height:300px; border:2px dashed #ccc; border-radius:12px;"></div>
+        </div>
 
-            <textarea id="menu-descrizione" class="input" placeholder="Descrizione"></textarea>
-
-            <input id="menu-logo-url" class="input" placeholder="Logo URL" readonly>
-            <input id="menu-cover-url" class="input" placeholder="Cover URL" readonly>
-
-            <input id="menu-bg-color" class="input" placeholder="#ffffff">
-
-            <label>
-              <input type="checkbox" id="menu-attivo" checked> Attivo
-            </label>
-
-            <button id="btn-save-menu" class="app-button primary">Salva</button>
-          </div>
-
-          <div class="card">
-            <h3>Composizione</h3>
-            <div id="menu-drop-zone" style="min-height:200px; border:2px dashed #ccc;"></div>
-          </div>
-
-        </main>
-
-        <aside>
-          <div class="card">
-            <h3>Prodotti</h3>
-            <input id="product-search" class="input" placeholder="Cerca">
-            <div id="prodotti-disponibili"></div>
-          </div>
-
-          <div class="card">
-            <h3>Preview</h3>
-            <div id="menu-preview"></div>
-          </div>
-        </aside>
+        <!-- PRODOTTI -->
+        <div>
+          <h4>Prodotti</h4>
+          <input id="product-search" class="input" placeholder="Cerca">
+          <div id="prodotti-disponibili"></div>
+        </div>
 
       </div>
-    </section>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="card" style="padding:16px;">
+      <h3>Preview</h3>
+      <div id="menu-preview"></div>
+    </div>
+
+  </section>
   `
 
   bindEvents()
@@ -110,7 +117,7 @@ export async function render(container) {
 
   function bindEvents() {
     qs("#btn-new-menu").onclick = startNewMenu
-    qs("#btn-save-menu").onclick = saveMenu
+    qs("#btn-save-menu")?.addEventListener("click", saveMenu)
 
     qs("#product-search").addEventListener("input", renderProdottiDisponibili)
 
@@ -179,9 +186,9 @@ export async function render(container) {
   }
 
   function renderMenuList() {
-    qs("#menu-list").innerHTML = menus.map(m => `
+    qs("#menu-list") && (qs("#menu-list").innerHTML = menus.map(m => `
       <div data-id="${m.id}">${m.nome}</div>
-    `).join("")
+    `).join(""))
 
     qsa("[data-id]").forEach(el => {
       el.onclick = () => selectMenu(el.dataset.id)
@@ -190,7 +197,12 @@ export async function render(container) {
 
   function renderCategorieDisponibili() {
     qs("#categorie-disponibili").innerHTML = categorieDisponibili.map(c => `
-      <div draggable="true" data-type="categoria" data-id="${c.id}">
+      <div 
+        draggable="true" 
+        data-type="categoria" 
+        data-id="${c.id}"
+        style="padding:8px; border-radius:8px; cursor:pointer;"
+      >
         ${c.nome}
       </div>
     `).join("")
@@ -200,11 +212,22 @@ export async function render(container) {
         e.dataTransfer.setData("type", el.dataset.type)
         e.dataTransfer.setData("id", el.dataset.id)
       }
+
+      el.onclick = () => {
+        categoriaSelezionata = el.dataset.id
+        renderProdottiDisponibili()
+      }
     })
   }
 
   function renderProdottiDisponibili() {
-    qs("#prodotti-disponibili").innerHTML = prodottiDisponibili.map(p => `
+    let list = prodottiDisponibili
+
+    if (categoriaSelezionata) {
+      list = list.filter(p => String(p.categoria_vendita_id) === String(categoriaSelezionata))
+    }
+
+    qs("#prodotti-disponibili").innerHTML = list.map(p => `
       <div draggable="true" data-type="prodotto" data-id="${p.id}">
         ${p.nome}
       </div>
@@ -220,7 +243,7 @@ export async function render(container) {
     }
 
     box.innerHTML = menuCategorie.map(cat => `
-      <div>
+      <div style="padding:10px; border-bottom:1px solid #ddd;">
         <h4>${cat.nome}</h4>
       </div>
     `).join("")
