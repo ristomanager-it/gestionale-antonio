@@ -14,14 +14,27 @@ export async function render(container) {
   let categoriaAttiva = null
   let tagsDisponibili = []
   let tagsSelezionati = []
+  let formAperto = false
 
   container.innerHTML = `
   <section class="view" style="display:flex; gap:16px; padding:16px;">
 
-    <!-- FORM -->
-    <div style="width:380px;" class="card">
+    <!-- SINISTRA -->
+    <div style="flex:1;" class="card">
 
-      <h3>Categoria</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Categorie</h3>
+        <button id="btn-new" class="app-button primary">+ Nuova</button>
+      </div>
+
+      <div id="categorie-list" style="margin-top:10px;"></div>
+
+    </div>
+
+    <!-- FORM -->
+    <div id="form-box" style="width:380px; display:none;" class="card">
+
+      <h3 id="form-title">Nuova categoria</h3>
 
       <input id="cat-nome" class="input" placeholder="Nome categoria">
 
@@ -57,16 +70,10 @@ export async function render(container) {
 
       <div id="tag-list"></div>
 
-      <button id="btn-save" class="app-button primary">Salva</button>
-
-    </div>
-
-    <!-- LISTA -->
-    <div style="flex:1;" class="card">
-
-      <h3>Categorie</h3>
-
-      <div id="categorie-list"></div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button id="btn-save" class="app-button primary">Salva</button>
+        <button id="btn-cancel" class="app-button">Annulla</button>
+      </div>
 
     </div>
 
@@ -77,6 +84,13 @@ export async function render(container) {
   await loadAll()
 
   function bindEvents() {
+
+    qs("#btn-new").onclick = () => {
+      resetForm()
+      openForm()
+    }
+
+    qs("#btn-cancel").onclick = closeForm
 
     qs("#btn-save").onclick = saveCategoria
 
@@ -90,7 +104,6 @@ export async function render(container) {
     qs("#cat-img-file").onchange = async e => {
       const file = e.target.files[0]
       if (!file) return
-
       const url = await uploadImage(file)
       if (url) qs("#cat-img-url").value = url
     }
@@ -124,14 +137,49 @@ export async function render(container) {
   function renderLista() {
 
     qs("#categorie-list").innerHTML = categorie.map(c => `
-      <div data-id="${c.id}" style="padding:8px; border-bottom:1px solid #ddd; cursor:pointer;">
+      <div data-id="${c.id}" style="padding:10px; border-bottom:1px solid #ddd; cursor:pointer;">
         ${c.icona || ""} ${c.nome}
       </div>
     `).join("")
 
     qsa("[data-id]").forEach(el => {
-      el.onclick = () => selectCategoria(el.dataset.id)
+      el.onclick = () => {
+        selectCategoria(el.dataset.id)
+        openForm()
+      }
     })
+  }
+
+  function openForm() {
+    qs("#form-box").style.display = "block"
+    formAperto = true
+  }
+
+  function closeForm() {
+    qs("#form-box").style.display = "none"
+    formAperto = false
+  }
+
+  function resetForm() {
+    categoriaAttiva = null
+    tagsSelezionati = []
+
+    qs("#form-title").innerText = "Nuova categoria"
+
+    qs("#cat-nome").value = ""
+    qs("#cat-descrizione").value = ""
+    qs("#cat-descrizione-breve").value = ""
+    qs("#cat-colore").value = "#ffffff"
+    qs("#cat-icona").value = ""
+    qs("#cat-img-url").value = ""
+    qs("#cat-tipo").value = "food"
+    qs("#cat-ordine").value = 0
+
+    qs("#cat-attivo").checked = true
+    qs("#cat-evidenza").checked = false
+    qs("#cat-stagionale").checked = false
+
+    renderTags()
   }
 
   function selectCategoria(id) {
@@ -140,6 +188,8 @@ export async function render(container) {
     if (!c) return
 
     categoriaAttiva = c
+
+    qs("#form-title").innerText = "Modifica categoria"
 
     qs("#cat-nome").value = c.nome || ""
     qs("#cat-descrizione").value = c.descrizione || ""
@@ -186,6 +236,7 @@ export async function render(container) {
       await supabase.from("categorie_vendita").insert(payload)
     }
 
+    closeForm()
     await loadAll()
   }
 
