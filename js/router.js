@@ -60,7 +60,6 @@ const routes = {
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
-   
 
   // =========================
   // MARKETING (globale - lettura)
@@ -110,22 +109,28 @@ const routes = {
 
   comanda: () => import("./views/comanda.js"),
 
- // =========================
-// BACK OFFICE (COSTRUZIONE)
-// =========================
-"bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
-"bo-tag": () => import("./views/bo/bo-tag.js"),
-"bo-template": () => import("./views/bo/bo-template.js"),
+  // =========================
+  // BACK OFFICE (COSTRUZIONE)
+  // =========================
+  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
+  "bo-tag": () => import("./views/bo/bo-tag.js"),
+  "bo-template": () => import("./views/bo/bo-template.js"),
 
-// MENU (costruzione offerta)
-"bo-menu": () => import("./views/bo/bo-menu-builder.js"),
-"bo-categorie": () => import("./views/bo/categorie.js"),
-"bo-prodotti": () => import("./views/bo/prodotti.js"),
+  // MENU
+  "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
+  "bo-categorie": () => import("./views/bo/categorie.js"),
+  "bo-prodotti": () => import("./views/bo/prodotti.js"),
 
-// PRODUZIONE
-"bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-"bo-produzione": () => import("./views/bo/bo-produzione.js"),
-"bo-comande": () => import("./views/bo/bo-comande.js"),
+  // PRODUZIONE
+  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
+  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
+  "bo-comande": () => import("./views/bo/bo-comande.js")
+
+}; // 🔴 QUESTA MANCAVA
+
+/* =========================================================
+   ROUTE SCOPE
+========================================================= */
 
 const PUBLIC_ROUTES = new Set([
   "login",
@@ -170,7 +175,6 @@ const BO_ROUTES = new Set([
   "bo-produzione",
   "bo-comande"
 ]);
-
 /* =========================================================
    STORAGE KEYS
 ========================================================= */
