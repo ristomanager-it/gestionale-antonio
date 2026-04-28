@@ -408,7 +408,7 @@ function setupAutocomplete() {
   suggest.appendChild(div);
   suggest.classList.add("open");
 }
-
+}
 function openQuickModal(nome) {
 
   document.querySelectorAll(".modal-overlay").forEach(m => m.remove());
