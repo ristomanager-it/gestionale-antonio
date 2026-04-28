@@ -401,6 +401,7 @@ box.querySelectorAll("[data-id]").forEach(el => {
     qs("#prod-img-url").value = p.foto_url || ""
     qs("#prod-attivo").checked = p.attivo !== false
     qs("#prod-visibile").checked = p.visibile !== false
+    qs("#prod-contesto").value = p.contesto || ""
 
     renderTags()
     renderFoodCostBox()
