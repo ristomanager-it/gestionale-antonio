@@ -60,6 +60,7 @@ const routes = {
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
+   
 
   // =========================
   // MARKETING (globale - lettura)
@@ -122,6 +123,7 @@ const routes = {
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-produzione": () => import("./views/bo/bo-produzione.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js"),
+   "bo-categorie": () => import("./bo/bo-categorie.js"),
 };
 
 /* =========================================================
