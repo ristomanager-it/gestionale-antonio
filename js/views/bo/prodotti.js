@@ -320,53 +320,67 @@ function renderContesti() {
       return
     }
 
-    box.innerHTML = prodottiFiltrati.map(p => {
-      const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
-      const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
+   box.innerHTML = prodottiFiltrati.map(p => {
+  const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
+  const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
 
-      return `
-        <div data-id="${escapeAttribute(p.id)}" style="
-          display:grid;
-          grid-template-columns:64px 1fr auto;
-          gap:12px;
-          align-items:center;
-          padding:10px;
-          border-radius:14px;
-          border:1px solid ${hasFoodCost ? "#e5e7eb" : "#f59e0b"};
-          background:${hasFoodCost ? "#ffffff" : "#fffbeb"};
-          margin-bottom:10px;
-          cursor:pointer;
-        ">
-          <div style="
-            width:64px;
-            height:64px;
-            border-radius:12px;
-            background:${p.foto_url ? "url('" + escapeAttribute(p.foto_url) + "') center/cover" : "#e2e8f0"};
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:22px;
-          ">
-            ${p.foto_url ? "" : "🍽️"}
+  return `
+    <div data-id="${escapeAttribute(p.id)}" style="
+      display:grid;
+      grid-template-columns:64px 1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid ${hasFoodCost ? "#e5e7eb" : "#f59e0b"};
+      background:${hasFoodCost ? "#ffffff" : "#fffbeb"};
+      margin-bottom:10px;
+      cursor:pointer;
+    ">
+      <div style="
+        width:64px;
+        height:64px;
+        border-radius:12px;
+        background:${p.foto_url ? "url('" + escapeAttribute(p.foto_url) + "') center/cover" : "#e2e8f0"};
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:22px;
+      ">
+        ${p.foto_url ? "" : "🍽️"}
+      </div>
+
+      <div>
+        <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
+
+        <div style="font-size:12px; color:#64748b;">
+          ${escapeHtml(categoria?.nome || "Senza categoria")}
+        </div>
+
+        <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
+          ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
+        </div>
+
+        ${p.contesto ? `
+          <div style="font-size:12px; color:#0ea5e9;">
+            📍 ${escapeHtml(p.contesto)}
           </div>
+        ` : ""}
+      </div>
 
-         <div>
-  <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
-
-  <div style="font-size:12px; color:#64748b;">
-    ${escapeHtml(categoria?.nome || "Senza categoria")}
-  </div>
-
-  <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
-    ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
-  </div>
-
-  ${p.contesto ? `
-    <div style="font-size:12px; color:#0ea5e9;">
-      📍 ${escapeHtml(p.contesto)}
+      <div style="text-align:right;">
+        <div style="font-weight:800;">€ ${formatMoney(p.prezzo_base)}</div>
+        <div style="font-size:12px; color:#64748b;">
+          ${p.attivo === false ? "Off" : "Attivo"}
+        </div>
+      </div>
     </div>
-  ` : ""}
+  `
+}).join("")
 
+box.querySelectorAll("[data-id]").forEach(el => {
+  el.onclick = () => selectProdotto(el.dataset.id)
+})
 </div>
   function selectProdotto(id) {
     const p = prodotti.find(x => String(x.id) === String(id))
