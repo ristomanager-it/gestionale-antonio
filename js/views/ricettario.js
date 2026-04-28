@@ -1,6 +1,7 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 let ricetteCache = [];
+let categorieCache = [];
 let filtroBozza = false;
 let filtroInCompletamento = false;
 let filtroComplete = false;
@@ -66,7 +67,7 @@ export async function render(app) {
   });
 
   bindFiltri();
-  await loadRicette();
+  await loadAll();
   setupAutocomplete();
 }
 
@@ -82,6 +83,13 @@ function bindFiltri() {
   document.getElementById("f-complete")?.addEventListener("change", e => {
     filtroComplete = e.target.checked;
   });
+}
+
+async function loadAll() {
+  await Promise.all([
+    loadRicette(),
+    loadCategorie()
+  ]);
 }
 
 async function loadRicette() {
@@ -134,6 +142,19 @@ async function loadRicette() {
   });
 }
 
+async function loadCategorie() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+
+  const { data } = await supabase
+    .from("categorie_vendita")
+    .select("id, nome")
+    .eq("azienda_id", aziendaId)
+    .order("nome");
+
+  categorieCache = data || [];
+}
+
 function setupAutocomplete() {
 
   const input = document.getElementById("ric-search");
@@ -173,41 +194,20 @@ function setupAutocomplete() {
     risultati = risultati.slice(0, 15);
 
     if (!risultati.length) {
-
-      const div = document.createElement("div");
-      div.className = "suggest-item create-new";
-
-      div.textContent = `+ Crea prodotto "${input.value.trim()}"`;
-
-      div.onclick = () => {
-        window.state = window.state || {};
-        window.state.quickProductName = input.value.trim();
-
-        window.dispatchEvent(new CustomEvent("openQuickProductModal"));
-      };
-
-      suggest.appendChild(div);
-      suggest.classList.add("open");
+      renderCreateItem(input, suggest);
       return;
     }
 
     risultati.forEach(r => {
-
       const div = document.createElement("div");
       div.className = "suggest-item";
-
-      const resaTxt = (r.resa != null)
-        ? ` — ${r.resa} ${r.um || ""}`
-        : "";
 
       const badge =
         r.stato === "bozza" ? " 🔴" :
         r.stato === "in_completamento" ? " 🟡" :
         " 🟢";
 
-      const badgeGen = r.generata ? " ⚙️" : "";
-
-      div.textContent = `${r.nome}${resaTxt}${badge}${badgeGen}`;
+      div.textContent = `${r.nome}${badge}`;
 
       div.onclick = () => {
         suggest.innerHTML = "";
@@ -218,30 +218,100 @@ function setupAutocomplete() {
       suggest.appendChild(div);
     });
 
-    const createDiv = document.createElement("div");
-    createDiv.className = "suggest-item create-new";
+    renderCreateItem(input, suggest);
+  });
 
-    createDiv.textContent = `+ Crea prodotto "${input.value.trim()}"`;
+  function renderCreateItem(input, suggest) {
+    const div = document.createElement("div");
+    div.className = "suggest-item create-new";
 
-    createDiv.onclick = () => {
-      window.state = window.state || {};
-      window.state.quickProductName = input.value.trim();
+    div.textContent = `+ Crea prodotto "${input.value.trim()}"`;
 
-      window.dispatchEvent(new CustomEvent("openQuickProductModal"));
-    };
+    div.onclick = () => openQuickModal(input.value.trim());
 
-    suggest.appendChild(createDiv);
-
+    suggest.appendChild(div);
     suggest.classList.add("open");
-  });
+  }
+}
 
-  document.addEventListener("click", (e) => {
-    const wrap = input.closest(".input-wrap");
-    if (!wrap) return;
-    if (!wrap.contains(e.target)) {
-      suggest.classList.remove("open");
+function openQuickModal(nome) {
+
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+
+  modal.innerHTML = `
+    <div class="modal-box">
+
+      <h3>Nuovo prodotto</h3>
+
+      <label>Nome</label>
+      <input id="qp-nome" class="input" value="${escapeHtml(nome)}">
+
+      <label>Categoria</label>
+      <select id="qp-categoria" class="input">
+        <option value="">Seleziona</option>
+        ${categorieCache.map(c => `
+          <option value="${c.id}">${escapeHtml(c.nome)}</option>
+        `).join("")}
+      </select>
+
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button id="qp-save" class="app-button primary">Salva</button>
+        <button id="qp-close" class="app-button">Annulla</button>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector("#qp-close").onclick = () => modal.remove();
+
+  modal.querySelector("#qp-save").onclick = async () => {
+
+    const nomeVal = modal.querySelector("#qp-nome").value.trim();
+    const categoriaId = modal.querySelector("#qp-categoria").value;
+
+    if (!nomeVal || !categoriaId) {
+      alert("Compila nome e categoria");
+      return;
     }
-  });
+
+    const supabase = window.supabaseClient;
+    const azienda_id = window.state?.azienda?.id;
+
+    const { data: prodotto, error } = await supabase
+      .from("prodotti_vendita")
+      .insert({
+        azienda_id,
+        nome: nomeVal,
+        categoria_vendita_id: categoriaId,
+        stato: "bozza",
+        attivo: true
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Errore creazione prodotto");
+      return;
+    }
+
+    // crea ricetta minima
+    await supabase.from("ricette").insert({
+      azienda_id,
+      nome: nomeVal,
+      stato_strutturale: "bozza",
+      generata_automaticamente: true,
+      origine: "prodotto",
+      prodotto_vendita_id: prodotto.id,
+      attivo: true
+    });
+
+    modal.remove();
+    alert("Prodotto creato. Completa la ricetta dal ricettario.");
+  };
 }
 
 async function mostraRicetta(id) {
@@ -281,70 +351,22 @@ async function mostraRicetta(id) {
 
   const stato = ricetta.stato_strutturale || "bozza";
 
-  const bannerStato =
-    stato === "bozza"
-      ? `<div style="background:#ffe5e5;padding:8px;border-radius:6px;margin-bottom:10px;">
-           🔴 Ricetta in bozza – da completare
-         </div>`
-      : stato === "in_completamento"
-      ? `<div style="background:#fff6d6;padding:8px;border-radius:6px;margin-bottom:10px;">
-           🟡 Ricetta in completamento
-         </div>`
-      : `<div style="background:#e6fffa;padding:8px;border-radius:6px;margin-bottom:10px;">
-           🟢 Ricetta completa
-         </div>`;
-
-  const bannerOrigine = ricetta.generata_automaticamente
-    ? `<div style="background:#eef2ff;padding:8px;border-radius:6px;margin-bottom:10px;">
-         ⚙️ Ricetta generata automaticamente (${escapeHtml(ricetta.origine || "sistema")})
-       </div>`
-    : "";
-
   viewer.innerHTML = `
-
     <div>
-
-      ${bannerStato}
-      ${bannerOrigine}
-
       <h3>${escapeHtml(ricetta.nome)}</h3>
-
-      ${ricetta.descrizione ? `
-        <div class="page-subtitle" style="margin-bottom:12px;">
-          ${escapeHtml(ricetta.descrizione)}
-        </div>
-      ` : ""}
-
-      ${ricetta.note_procedimento ? `
-        <div style="margin-bottom:14px;">
-          <strong>Procedimento:</strong><br>
-          ${escapeHtml(ricetta.note_procedimento)}
-        </div>
-      ` : ""}
+      <p>Stato: ${stato}</p>
 
       <h4>Ingredienti</h4>
       <ul>
         ${ingredienti.map(i =>
-          `<li>${escapeHtml(i.nome_prodotto)} — ${i.quantita} ${i.unita_misura}</li>`
+          `<li>${escapeHtml(i.nome_prodotto)} — ${i.quantita}</li>`
         ).join("")}
       </ul>
 
-      ${fasi.length ? `
-        <h4 style="margin-top:18px;">Fasi</h4>
-        <ol>
-          ${fasi.map(f =>
-            `<li>${escapeHtml(f.nome_fase)}</li>`
-          ).join("")}
-        </ol>
-      ` : ""}
-
-      <div style="margin-top:18px;">
-        <button class="app-button"
-          onclick="window.location.hash='#/creaRicetta?id=${id}'">
-          ✏️ Completa / Modifica
-        </button>
-      </div>
-
+      <button class="app-button"
+        onclick="window.location.hash='#/creaRicetta?id=${id}'">
+        ✏️ Completa
+      </button>
     </div>
   `;
 }
