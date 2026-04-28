@@ -378,24 +378,35 @@ function setupAutocomplete() {
   });
 
   function renderCreateItem(input, suggest) {
-    const nome = input.value.trim();
+  const nome = input.value.trim();
 
-    if (!nome) return;
+  if (!nome) return;
 
-    const div = document.createElement("div");
-    div.className = "suggest-item create-new";
+  // 🔥 BLOCCO ANTI-DUPLICATO
+  const esiste = ricetteCache.find(r =>
+    normalize(r.nome) === normalize(nome)
+  );
 
-    div.textContent = `+ Crea prodotto "${nome}"`;
-
-    div.onclick = () => {
-      suggest.innerHTML = "";
-      suggest.classList.remove("open");
-      openQuickModal(nome);
-    };
-
-    suggest.appendChild(div);
-    suggest.classList.add("open");
+  if (esiste) {
+    suggest.innerHTML = "";
+    suggest.classList.remove("open");
+    mostraRicetta(esiste.id);
+    return;
   }
+
+  const div = document.createElement("div");
+  div.className = "suggest-item create-new";
+
+  div.textContent = `+ Crea prodotto "${nome}"`;
+
+  div.onclick = () => {
+    suggest.innerHTML = "";
+    suggest.classList.remove("open");
+    openQuickModal(nome);
+  };
+
+  suggest.appendChild(div);
+  suggest.classList.add("open");
 }
 
 function openQuickModal(nome) {
