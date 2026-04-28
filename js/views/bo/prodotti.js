@@ -177,26 +177,25 @@ export async function render(container) {
   }
 
   async function loadAll() {
-  await Promise.all([
-    loadProdotti(),
-    loadCategorie(),
-    loadRicette(),
-    loadTags()
-  ])
+    await Promise.all([
+      loadProdotti(),
+      loadCategorie(),
+      loadRicette(),
+      loadTags()
+    ])
 
-  prodottiFiltrati = [...prodotti]
-  renderAll()
-  renderContesti() // ← chiamata qui
-}
+    prodottiFiltrati = [...prodotti]
+    renderAll()
+    renderContesti()
+  }
 
-// FUORI dalla funzione loadAll
-function renderContesti() {
-  const contesti = ["ristorante", "evento", "delivery", "asporto"]
+  function renderContesti() {
+    const contesti = ["ristorante", "evento", "delivery", "asporto"]
 
-  qs("#contesto-options").innerHTML = contesti.map(c => `
-    <option value="${c}">
-  `).join("")
-}
+    qs("#contesto-options").innerHTML = contesti.map(c => `
+      <option value="${c}">
+    `).join("")
+  }
 
   async function loadProdotti() {
     const { data, error } = await supabase
@@ -320,67 +319,67 @@ function renderContesti() {
       return
     }
 
-   box.innerHTML = prodottiFiltrati.map(p => {
-  const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
-  const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
+    box.innerHTML = prodottiFiltrati.map(p => {
+      const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
+      const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
 
-  return `
-    <div data-id="${escapeAttribute(p.id)}" style="
-      display:grid;
-      grid-template-columns:64px 1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:10px;
-      border-radius:14px;
-      border:1px solid ${hasFoodCost ? "#e5e7eb" : "#f59e0b"};
-      background:${hasFoodCost ? "#ffffff" : "#fffbeb"};
-      margin-bottom:10px;
-      cursor:pointer;
-    ">
-      <div style="
-        width:64px;
-        height:64px;
-        border-radius:12px;
-        background:${p.foto_url ? "url('" + escapeAttribute(p.foto_url) + "') center/cover" : "#e2e8f0"};
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:22px;
-      ">
-        ${p.foto_url ? "" : "🍽️"}
-      </div>
-
-      <div>
-        <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
-
-        <div style="font-size:12px; color:#64748b;">
-          ${escapeHtml(categoria?.nome || "Senza categoria")}
-        </div>
-
-        <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
-          ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
-        </div>
-
-        ${p.contesto ? `
-          <div style="font-size:12px; color:#0ea5e9;">
-            📍 ${escapeHtml(p.contesto)}
+      return `
+        <div data-id="${escapeAttribute(p.id)}" style="
+          display:grid;
+          grid-template-columns:64px 1fr auto;
+          gap:12px;
+          align-items:center;
+          padding:10px;
+          border-radius:14px;
+          border:1px solid ${hasFoodCost ? "#e5e7eb" : "#f59e0b"};
+          background:${hasFoodCost ? "#ffffff" : "#fffbeb"};
+          margin-bottom:10px;
+          cursor:pointer;
+        ">
+          <div style="
+            width:64px;
+            height:64px;
+            border-radius:12px;
+            background:${p.foto_url ? "url('" + escapeAttribute(p.foto_url) + "') center/cover" : "#e2e8f0"};
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:22px;
+          ">
+            ${p.foto_url ? "" : "🍽️"}
           </div>
-        ` : ""}
-      </div>
 
-      <div style="text-align:right;">
-        <div style="font-weight:800;">€ ${formatMoney(p.prezzo_base)}</div>
-        <div style="font-size:12px; color:#64748b;">
-          ${p.attivo === false ? "Off" : "Attivo"}
+          <div>
+            <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
+
+            <div style="font-size:12px; color:#64748b;">
+              ${escapeHtml(categoria?.nome || "Senza categoria")}
+            </div>
+
+            <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
+              ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
+            </div>
+
+            ${p.contesto ? `
+              <div style="font-size:12px; color:#0ea5e9;">
+                📍 ${escapeHtml(p.contesto)}
+              </div>
+            ` : ""}
+          </div>
+
+          <div style="text-align:right;">
+            <div style="font-weight:800;">€ ${formatMoney(p.prezzo_base)}</div>
+            <div style="font-size:12px; color:#64748b;">
+              ${p.attivo === false ? "Off" : "Attivo"}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  `
-}).join("")
+      `
+    }).join("")
 
-box.querySelectorAll("[data-id]").forEach(el => {
-  el.onclick = () => selectProdotto(el.dataset.id)
-})
+    box.querySelectorAll("[data-id]").forEach(el => {
+      el.onclick = () => selectProdotto(el.dataset.id)
+    })
   }
 
   function selectProdotto(id) {
@@ -456,28 +455,26 @@ box.querySelectorAll("[data-id]").forEach(el => {
 
     const alertFoodCost = !foodCost || foodCost <= 0
 
-  const payload = {
-  azienda_id,
-  sede_id,
-  nome,
-  descrizione: qs("#prod-descrizione").value.trim() || null,
-  categoria_vendita_id: qs("#prod-categoria").value || null,
-  ricetta_id: ricettaId,
-  foto_url: qs("#prod-img-url").value.trim() || null,
-  prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
-  iva: parseNullableNumber(qs("#prod-iva").value),
-  porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
-  unita_porzione: qs("#prod-um").value || "pz",
-  food_cost_snapshot: foodCost,
-  alert_food_cost: alertFoodCost,
-  stato: alertFoodCost ? "bozza" : "completo",
-  tags: tagsSelezionati,
-  attivo: qs("#prod-attivo").checked,
-  visibile: qs("#prod-visibile").checked,
-
-  // 👇 AGGIUNTO
-  contesto: qs("#prod-contesto").value || null
-}
+    const payload = {
+      azienda_id,
+      sede_id,
+      nome,
+      descrizione: qs("#prod-descrizione").value.trim() || null,
+      categoria_vendita_id: qs("#prod-categoria").value || null,
+      ricetta_id: ricettaId,
+      foto_url: qs("#prod-img-url").value.trim() || null,
+      prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
+      iva: parseNullableNumber(qs("#prod-iva").value),
+      porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
+      unita_porzione: qs("#prod-um").value || "pz",
+      food_cost_snapshot: foodCost,
+      alert_food_cost: alertFoodCost,
+      stato: alertFoodCost ? "bozza" : "completo",
+      tags: tagsSelezionati,
+      attivo: qs("#prod-attivo").checked,
+      visibile: qs("#prod-visibile").checked,
+      contesto: qs("#prod-contesto").value || null
+    }
 
     let error
 
