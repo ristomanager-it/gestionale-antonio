@@ -436,43 +436,14 @@ export async function render(container) {
     renderLinkBox()
   }
 
-function renderAll() {
-  try {
+  function renderAll() {
     renderMenuList()
-  } catch (e) {
-    console.error("renderMenuList ERROR", e)
-  }
-
-  try {
     renderCategorieDisponibili()
-  } catch (e) {
-    console.error("renderCategorieDisponibili ERROR", e)
-  }
-
-  try {
     renderProdottiDisponibili()
-  } catch (e) {
-    console.error("renderProdottiDisponibili ERROR", e)
-  }
-
-  try {
     renderMenuBuilder()
-  } catch (e) {
-    console.error("renderMenuBuilder ERROR", e)
-  }
-
-  try {
     renderPreview()
-  } catch (e) {
-    console.error("renderPreview ERROR", e)
-  }
-
-  try {
     renderLinkBox()
-  } catch (e) {
-    console.error("renderLinkBox ERROR", e)
   }
-}
 
   function renderMenuList() {
     const box = qs("#menu-list")
@@ -650,11 +621,11 @@ function renderAll() {
             </div>
 
             <div style="display:flex; gap:6px;">
-  <button class="btn-cat-edit app-button" data-id="${escapeAttribute(cat.id)}">✏️</button>
-  <button class="btn-cat-up app-button" data-id="${escapeAttribute(cat.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
-  <button class="btn-cat-down app-button" data-id="${escapeAttribute(cat.id)}" ${index === menuCategorie.length - 1 ? "disabled" : ""}>↓</button>
-  <button class="btn-cat-remove app-button" data-id="${escapeAttribute(cat.id)}" style="background:#dc2626;color:white;">×</button>
-</div>
+              <button class="btn-cat-up app-button" data-id="${escapeAttribute(cat.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
+              <button class="btn-cat-down app-button" data-id="${escapeAttribute(cat.id)}" ${index === menuCategorie.length - 1 ? "disabled" : ""}>↓</button>
+              <button class="btn-cat-remove app-button" data-id="${escapeAttribute(cat.id)}" style="background:#dc2626;color:white;">×</button>
+            </div>
+          </div>
 
           <div class="product-drop-zone" data-menu-cat-id="${escapeAttribute(cat.id)}" style="
             min-height:70px;
@@ -677,170 +648,98 @@ function renderAll() {
     bindMenuBuilderEvents()
   }
 
- function renderMenuProductRow(p, index, total) {
-  const warning = p.alert_food_cost || !p.food_cost_snapshot ? "⚠️ Food cost mancante" : ""
+  function renderMenuProductRow(p, index, total) {
+    const warning = p.alert_food_cost || !p.food_cost_snapshot ? "⚠️ Food cost mancante" : ""
 
-  return `
-    <div style="
-      display:grid;
-      grid-template-columns:1fr 1fr 90px auto;
-      gap:8px;
-      align-items:center;
-      padding:8px;
-      border-radius:12px;
-      background:white;
-      border:1px solid ${warning ? "#f59e0b" : "#e5e7eb"};
-      margin-bottom:8px;
-    ">
+    return `
+      <div style="
+        display:grid;
+        grid-template-columns:1fr 92px 120px auto;
+        gap:8px;
+        align-items:center;
+        padding:8px;
+        border-radius:12px;
+        background:white;
+        border:1px solid ${warning ? "#f59e0b" : "#e5e7eb"};
+        margin-bottom:8px;
+      ">
+        <div>
+          <div style="font-weight:700;">${escapeHtml(p.nome || p.nome_snapshot || "Prodotto")}</div>
+          <div style="font-size:12px; color:${warning ? "#b45309" : "#64748b"};">
+            ${warning || `Food cost € ${formatMoney(p.food_cost_snapshot)}`}
+          </div>
+        </div>
 
-      <input class="menu-prod-nome input"
-        data-id="${escapeAttribute(p.id)}"
-        value="${escapeAttribute(p.nome || p.nome_snapshot || "")}"
-      >
+        <input class="menu-price-input input" data-id="${escapeAttribute(p.id)}" type="number" step="0.01" value="${p.prezzo_override || p.prezzo || p.prezzo_snapshot || 0}">
 
-      <input class="menu-prod-desc input"
-        data-id="${escapeAttribute(p.id)}"
-        value="${escapeAttribute(p.descrizione || p.descrizione_snapshot || "")}"
-      >
+        <div style="display:flex; gap:4px;">
+          <button class="btn-prod-up app-button" data-id="${escapeAttribute(p.id)}" ${index === 0 ? "disabled" : ""}>↑</button>
+          <button class="btn-prod-down app-button" data-id="${escapeAttribute(p.id)}" ${index === total - 1 ? "disabled" : ""}>↓</button>
+          <button class="btn-prod-remove app-button" data-id="${escapeAttribute(p.id)}" style="background:#dc2626;color:white;">×</button>
+        </div>
 
-      <input class="menu-price-input input"
-        data-id="${escapeAttribute(p.id)}"
-        type="number"
-        step="0.01"
-        value="${p.prezzo_override || p.prezzo || p.prezzo_snapshot || 0}"
-      >
-
-      <button class="btn-prod-remove app-button"
-        data-id="${escapeAttribute(p.id)}"
-        style="background:#dc2626;color:white;">×</button>
-    </div>
-  `
-}
-
-function bindMenuBuilderEvents() {
-
-  // ===== DROP PRODOTTI =====
-  qsa(".product-drop-zone").forEach((zone) => {
-    zone.addEventListener("dragover", (event) => {
-      event.preventDefault()
-      zone.style.borderColor = "#0284c7"
-      zone.style.background = "#eff6ff"
-    })
-
-    zone.addEventListener("dragleave", () => {
-      zone.style.borderColor = "#cbd5e1"
-      zone.style.background = "#f8fafc"
-    })
-
-    zone.addEventListener("drop", async (event) => {
-      event.preventDefault()
-      zone.style.borderColor = "#cbd5e1"
-      zone.style.background = "#f8fafc"
-
-      const type = event.dataTransfer.getData("type")
-      const id = event.dataTransfer.getData("id")
-      const menuCategoryId = zone.dataset.menuCatId
-
-    if (type === "prodotto") {
-
-  const existing = menuVoci.find(v => v.prodotto_vendita_id === id)
-
-  // 👉 SE GIÀ ESISTE → SPOSTO CATEGORIA
-  if (existing) {
-    console.log("MOVE PRODOTTO", {
-      prodottoId: id,
-      from: existing.categoria_id,
-      to: menuCategoryId
-    })
-
-    const { error } = await supabase
-      .from("menu_voci")
-      .update({
-        categoria_id: menuCategoryId
-      })
-      .eq("id", existing.id)
-      .eq("azienda_id", azienda_id)
-
-    if (error) {
-      console.error("MOVE ERROR", error)
-      return
-    }
-
-  } else {
-    // 👉 NON ESISTE → LO AGGIUNGO
-    console.log("ADD PRODOTTO", {
-      prodottoId: id,
-      categoria: menuCategoryId
-    })
-
-    await addProductToMenuCategory(id, menuCategoryId)
+        <span style="font-size:12px; color:#64748b;">${p.stato || ""}</span>
+      </div>
+    `
   }
 
-  await loadMenuComposition()
-  renderAll()
-}
+  function bindMenuBuilderEvents() {
+    qsa(".product-drop-zone").forEach((zone) => {
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault()
+        zone.style.borderColor = "#0284c7"
+        zone.style.background = "#eff6ff"
+      })
 
-  // ===== EDIT CATEGORIA =====
-  qsa(".btn-cat-edit").forEach((btn) => {
-    btn.onclick = () => openEditMenuCategory(btn.dataset.id)
-  })
+      zone.addEventListener("dragleave", () => {
+        zone.style.borderColor = "#cbd5e1"
+        zone.style.background = "#f8fafc"
+      })
 
+      zone.addEventListener("drop", async (event) => {
+        event.preventDefault()
+        zone.style.borderColor = "#cbd5e1"
+        zone.style.background = "#f8fafc"
 
-  // ===== AZIONI CATEGORIA =====
-  qsa(".btn-cat-remove").forEach((btn) => {
-    btn.onclick = () => removeMenuCategory(btn.dataset.id)
-  })
+        const type = event.dataTransfer.getData("type")
+        const id = event.dataTransfer.getData("id")
+        const menuCategoryId = zone.dataset.menuCatId
 
-  qsa(".btn-cat-up").forEach((btn) => {
-    btn.onclick = () => moveMenuCategory(btn.dataset.id, -1)
-  })
+        if (type === "prodotto") {
+          await addProductToMenuCategory(id, menuCategoryId)
+        }
+      })
+    })
 
-  qsa(".btn-cat-down").forEach((btn) => {
-    btn.onclick = () => moveMenuCategory(btn.dataset.id, 1)
-  })
+    qsa(".btn-cat-remove").forEach((btn) => {
+      btn.onclick = () => removeMenuCategory(btn.dataset.id)
+    })
 
+    qsa(".btn-cat-up").forEach((btn) => {
+      btn.onclick = () => moveMenuCategory(btn.dataset.id, -1)
+    })
 
-  // ===== AZIONI PRODOTTI =====
-  qsa(".btn-prod-remove").forEach((btn) => {
-    btn.onclick = () => removeMenuProduct(btn.dataset.id)
-  })
+    qsa(".btn-cat-down").forEach((btn) => {
+      btn.onclick = () => moveMenuCategory(btn.dataset.id, 1)
+    })
 
-  qsa(".btn-prod-up").forEach((btn) => {
-    btn.onclick = () => moveMenuProduct(btn.dataset.id, -1)
-  })
+    qsa(".btn-prod-remove").forEach((btn) => {
+      btn.onclick = () => removeMenuProduct(btn.dataset.id)
+    })
 
-  qsa(".btn-prod-down").forEach((btn) => {
-    btn.onclick = () => moveMenuProduct(btn.dataset.id, 1)
-  })
+    qsa(".btn-prod-up").forEach((btn) => {
+      btn.onclick = () => moveMenuProduct(btn.dataset.id, -1)
+    })
 
+    qsa(".btn-prod-down").forEach((btn) => {
+      btn.onclick = () => moveMenuProduct(btn.dataset.id, 1)
+    })
 
-  // ===== EDIT INLINE PRODOTTI =====
-  qsa(".menu-prod-nome").forEach((input) => {
-    input.onchange = () => {
-      console.log("UPDATE NOME", input.dataset.id, input.value)
+    qsa(".menu-price-input").forEach((input) => {
+      input.onchange = () => updateMenuProductPrice(input.dataset.id, Number(input.value))
+    })
+  }
 
-      updateMenuProductField(input.dataset.id, "nome", input.value)
-    }
-  })
-
-  qsa(".menu-prod-desc").forEach((input) => {
-    input.onchange = () => {
-      console.log("UPDATE DESC", input.dataset.id, input.value)
-
-      updateMenuProductField(input.dataset.id, "descrizione", input.value)
-    }
-  })
-
-
-  // ===== PREZZO =====
-  qsa(".menu-price-input").forEach((input) => {
-    input.onchange = () => {
-      console.log("UPDATE PREZZO", input.dataset.id, input.value)
-
-      updateMenuProductPrice(input.dataset.id, Number(input.value))
-    }
-  })
-}
   async function startNewMenu() {
     menuAttivo = null
     menuCategorie = []
@@ -1442,45 +1341,43 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
     return data?.publicUrl || null
   }
 
- function renderPreview() {
-  const box = qs("#menu-preview")
+  function renderPreview() {
+    const box = qs("#menu-preview")
 
-  const nome = qs("#menu-nome")?.value || menuAttivo?.nome || "Menu"
-  const descrizione = qs("#menu-descrizione")?.value || menuAttivo?.descrizione || ""
-  const logo = qs("#menu-logo-url")?.value || menuAttivo?.logo_url || ""
-  const cover = qs("#menu-cover-url")?.value || menuAttivo?.cover_url || ""
-  const bg = qs("#menu-bg-color")?.value || menuAttivo?.colore_sfondo || "#ffffff"
+    const nome = qs("#menu-nome")?.value || menuAttivo?.nome || "Menu"
+    const descrizione = qs("#menu-descrizione")?.value || menuAttivo?.descrizione || ""
+    const logo = qs("#menu-logo-url")?.value || menuAttivo?.logo_url || ""
+    const cover = qs("#menu-cover-url")?.value || menuAttivo?.cover_url || ""
+    const bg = qs("#menu-bg-color")?.value || menuAttivo?.colore_sfondo || "#ffffff"
 
-  box.innerHTML = `
-    <div style="
-      min-height:500px;
-      background:${String(escapeAttribute(bg) || "#ffffff")};
-    ">
+    box.innerHTML = `
       <div style="
-        height:130px;
-        background:${cover ? "url('" + escapeAttribute(cover) + "') center/cover" : "#0f172a"};
-        display:flex;
-        align-items:flex-end;
-        padding:14px;
-        color:white;
+        min-height:500px;
+        background:${escapeAttribute(bg)};
       ">
-        ${logo ? "<img src=\"" + escapeAttribute(logo) + "\" style=\"height:58px; width:58px; object-fit:contain; border-radius:12px; background:white; padding:4px; margin-right:10px;\">" : ""}
-        <div>
-          <div style="font-size:20px; font-weight:800;">${escapeHtml(nome)}</div>
-          ${descrizione ? "<div style=\"font-size:12px; opacity:.9;\">" + escapeHtml(descrizione) + "</div>" : ""}
+        <div style="
+          height:130px;
+          background:${cover ? `url('${escapeAttribute(cover)}') center/cover` : "#0f172a"};
+          display:flex;
+          align-items:flex-end;
+          padding:14px;
+          color:white;
+        ">
+          ${logo ? `<img src="${escapeAttribute(logo)}" style="height:58px; width:58px; object-fit:contain; border-radius:12px; background:white; padding:4px; margin-right:10px;">` : ""}
+          <div>
+            <div style="font-size:20px; font-weight:800;">${escapeHtml(nome)}</div>
+            ${descrizione ? `<div style="font-size:12px; opacity:.9;">${escapeHtml(descrizione)}</div>` : ""}
+          </div>
         </div>
-      </div>
 
-      <div style="padding:14px;">
-        ${
-          menuCategorie.length
-            ? menuCategorie.map((cat) => `
-              <div style="margin-bottom:18px;">
-                <h3 style="margin:0 0 8px;">${escapeHtml(cat.nome)}</h3>
-                ${
-                  menuVoci
-                    .filter((v) => v.categoria_id === cat.id)
-                    .map((v) => `
+        <div style="padding:14px;">
+          ${
+            menuCategorie.length
+              ? menuCategorie.map((cat) => `
+                <div style="margin-bottom:18px;">
+                  <h3 style="margin:0 0 8px;">${escapeHtml(cat.nome)}</h3>
+                  ${
+                    menuVoci.filter((v) => v.categoria_id === cat.id).map((v) => `
                       <div style="
                         display:grid;
                         grid-template-columns:1fr auto;
@@ -1490,29 +1387,21 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
                       ">
                         <div>
                           <div style="font-weight:700;">${escapeHtml(v.nome || v.nome_snapshot)}</div>
-                          ${
-                            (v.descrizione || v.descrizione_snapshot)
-                              ? "<div style=\"font-size:12px; color:#64748b;\">" + escapeHtml(v.descrizione || v.descrizione_snapshot) + "</div>"
-                              : ""
-                          }
-                          ${
-                            v.alert_food_cost
-                              ? "<div style=\"font-size:11px; color:#b45309;\">⚠️ Da completare</div>"
-                              : ""
-                          }
+                          ${v.descrizione || v.descrizione_snapshot ? `<div style="font-size:12px; color:#64748b;">${escapeHtml(v.descrizione || v.descrizione_snapshot)}</div>` : ""}
+                          ${v.alert_food_cost ? `<div style="font-size:11px; color:#b45309;">⚠️ Da completare</div>` : ""}
                         </div>
-                       <div style="font-weight:800;">${String("€ ") + formatMoney(v.prezzo_override || v.prezzo || v.prezzo_snapshot)}</div>
+                        <div style="font-weight:800;">€ ${formatMoney(v.prezzo_override || v.prezzo || v.prezzo_snapshot)}</div>
                       </div>
                     `).join("")
-                }
-              </div>
-            `).join("")
-            : `<div style="text-align:center; color:#64748b; padding:40px 10px;">Anteprima menu vuota</div>`
-        }
+                  }
+                </div>
+              `).join("")
+              : `<div style="text-align:center; color:#64748b; padding:40px 10px;">Anteprima menu vuota</div>`
+          }
+        </div>
       </div>
-    </div>
-  `
-}
+    `
+  }
 
   function renderLinkBox() {
     const box = qs("#menu-link-box")
@@ -1610,46 +1499,4 @@ console.log("MENU ATTIVO DOPO SELECT:", menuAttivo)
     const n = Number(value)
     return Number.isFinite(n) ? n : null
   }
-  function openEditMenuCategory(id) {
-  const cat = menuCategorie.find(c => c.id === id)
-  if (!cat) return
-
-  qs("#modal-root").innerHTML = `
-    <div style="position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center;">
-      <div style="background:white; padding:20px; border-radius:12px; width:400px;">
-        <h3>Modifica categoria</h3>
-        <input id="edit-cat-nome" class="input" value="${escapeAttribute(cat.nome)}">
-
-        <div style="margin-top:12px; display:flex; gap:8px;">
-          <button id="save-cat" class="app-button primary">Salva</button>
-          <button id="cancel-cat" class="app-button">Annulla</button>
-        </div>
-      </div>
-    </div>
-  `
-
-  qs("#cancel-cat").onclick = closeModal
-
-  qs("#save-cat").onclick = async () => {
-    const nome = qs("#edit-cat-nome").value.trim()
-
-    await supabase
-      .from("menu_categorie")
-      .update({ nome })
-      .eq("id", id)
-      .eq("azienda_id", azienda_id)
-
-    closeModal()
-    await loadMenuComposition()
-    renderAll()
-  }
-}
-
-async function updateMenuProductField(id, field, value) {
-  await supabase
-    .from("menu_voci")
-    .update({ [field]: value })
-    .eq("id", id)
-    .eq("azienda_id", azienda_id)
-}
 }
