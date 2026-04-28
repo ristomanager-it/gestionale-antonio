@@ -1,14 +1,28 @@
 const supabase = window.supabase || window.supabaseClient
 import { openImportProdottiCSVModal } from "../../components/importProdottiCSVModal.js";
+
 export async function render(container) {
-  const azienda_id = window.state?.azienda_id || window.state?.azienda?.id
+  const azienda_id = window.state?.azienda?.id
   const sede_id = window.state?.sedeAttiva?.id || null
   const ruolo = window.state?.ruolo
 
   const STORAGE_BUCKET = "loghi-aziende"
 
+  // controllo accesso
   if (ruolo !== "admin" && ruolo !== "superadmin") {
     container.innerHTML = `<section class="view">Accesso negato</section>`
+    return
+  }
+
+  // controllo supabase
+  if (!supabase || typeof supabase.from !== "function") {
+    container.innerHTML = `<section class="view">Supabase non inizializzato</section>`
+    return
+  }
+
+  // controllo azienda
+  if (!azienda_id) {
+    container.innerHTML = `<section class="view">Azienda non selezionata</section>`
     return
   }
 
