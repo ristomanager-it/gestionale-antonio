@@ -499,6 +499,31 @@ export async function render(container) {
       alert("Errore durante il salvataggio del prodotto.")
       return
     }
+    // AUTO CREAZIONE RICETTA
+if (!ricettaId) {
+  const { data: nuovaRicetta, error: errRicetta } = await supabase
+    .from("ricette")
+    .insert({
+      azienda_id,
+      nome,
+      descrizione: qs("#prod-descrizione").value.trim() || null,
+      costo_totale: 0,
+      costo_porzione: 0,
+      stato: "bozza"
+    })
+    .select()
+    .single()
+
+  if (!errRicetta && nuovaRicetta?.id) {
+    await supabase
+      .from("prodotti_vendita")
+      .update({
+        ricetta_id: nuovaRicetta.id
+      })
+      .eq("id", prodottoAttivo?.id)
+      .eq("azienda_id", azienda_id)
+  }
+}
 
     await loadProdotti()
     prodottiFiltrati = [...prodotti]
