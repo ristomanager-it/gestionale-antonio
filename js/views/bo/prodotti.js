@@ -443,55 +443,28 @@ function renderContesti() {
 
     const alertFoodCost = !foodCost || foodCost <= 0
 
-    const payload = {
-      azienda_id,
-      sede_id,
-      nome,
-      descrizione: qs("#prod-descrizione").value.trim() || null,
-      categoria_vendita_id: qs("#prod-categoria").value || null,
-      ricetta_id: ricettaId,
-      foto_url: qs("#prod-img-url").value.trim() || null,
-      prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
-      iva: parseNullableNumber(qs("#prod-iva").value),
-      porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
-      unita_porzione: qs("#prod-um").value || "pz",
-      food_cost_snapshot: foodCost,
-      alert_food_cost: alertFoodCost,
-      stato: alertFoodCost ? "bozza" : "completo",
-      tags: tagsSelezionati,
-      attivo: qs("#prod-attivo").checked,
-      visibile: qs("#prod-visibile").checked
-    }
+  const payload = {
+  azienda_id,
+  sede_id,
+  nome,
+  descrizione: qs("#prod-descrizione").value.trim() || null,
+  categoria_vendita_id: qs("#prod-categoria").value || null,
+  ricetta_id: ricettaId,
+  foto_url: qs("#prod-img-url").value.trim() || null,
+  prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
+  iva: parseNullableNumber(qs("#prod-iva").value),
+  porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
+  unita_porzione: qs("#prod-um").value || "pz",
+  food_cost_snapshot: foodCost,
+  alert_food_cost: alertFoodCost,
+  stato: alertFoodCost ? "bozza" : "completo",
+  tags: tagsSelezionati,
+  attivo: qs("#prod-attivo").checked,
+  visibile: qs("#prod-visibile").checked,
 
-    if (prodottoAttivo?.id) {
-      const { error } = await supabase
-        .from("prodotti_vendita")
-        .update(payload)
-        .eq("id", prodottoAttivo.id)
-        .eq("azienda_id", azienda_id)
-
-      if (error) {
-        console.error(error)
-        alert("Errore aggiornamento prodotto.")
-        return
-      }
-    } else {
-      const { error } = await supabase
-        .from("prodotti_vendita")
-        .insert(payload)
-
-      if (error) {
-        console.error(error)
-        alert("Errore creazione prodotto.")
-        return
-      }
-    }
-
-    closeForm()
-    await loadProdotti()
-    renderProdotti()
-  }
-
+  // 👇 AGGIUNTO
+  contesto: qs("#prod-contesto").value || null
+}
   function applyRicettaFoodCost() {
     const ricettaId = qs("#prod-ricetta").value
     const ricetta = ricette.find(r => String(r.id) === String(ricettaId))
