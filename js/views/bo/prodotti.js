@@ -350,27 +350,24 @@ function renderContesti() {
             ${p.foto_url ? "" : "🍽️"}
           </div>
 
-          <div>
-            <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
-            <div style="font-size:12px; color:#64748b;">${escapeHtml(categoria?.nome || "Senza categoria")}</div>
-            <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
-              ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
-            </div>
-          </div>
+         <div>
+  <strong>${escapeHtml(p.nome || "Prodotto")}</strong>
 
-          <div style="text-align:right;">
-            <div style="font-weight:800;">€ ${formatMoney(p.prezzo_base)}</div>
-            <div style="font-size:12px; color:#64748b;">${p.attivo === false ? "Off" : "Attivo"}</div>
-          </div>
-        </div>
-      `
-    }).join("")
+  <div style="font-size:12px; color:#64748b;">
+    ${escapeHtml(categoria?.nome || "Senza categoria")}
+  </div>
 
-    box.querySelectorAll("[data-id]").forEach(el => {
-      el.onclick = () => selectProdotto(el.dataset.id)
-    })
-  }
+  <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
+    ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
+  </div>
 
+  ${p.contesto ? `
+    <div style="font-size:12px; color:#0ea5e9;">
+      📍 ${escapeHtml(p.contesto)}
+    </div>
+  ` : ""}
+
+</div>
   function selectProdotto(id) {
     const p = prodotti.find(x => String(x.id) === String(id))
     if (!p) return
