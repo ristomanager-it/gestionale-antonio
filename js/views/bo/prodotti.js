@@ -177,16 +177,26 @@ export async function render(container) {
   }
 
   async function loadAll() {
-    await Promise.all([
-      loadProdotti(),
-      loadCategorie(),
-      loadRicette(),
-      loadTags()
-    ])
+  await Promise.all([
+    loadProdotti(),
+    loadCategorie(),
+    loadRicette(),
+    loadTags()
+  ])
 
-    prodottiFiltrati = [...prodotti]
-    renderAll()
-  }
+  prodottiFiltrati = [...prodotti]
+  renderAll()
+  renderContesti() // ← chiamata qui
+}
+
+// FUORI dalla funzione loadAll
+function renderContesti() {
+  const contesti = ["ristorante", "evento", "delivery", "asporto"]
+
+  qs("#contesto-options").innerHTML = contesti.map(c => `
+    <option value="${c}">
+  `).join("")
+}
 
   async function loadProdotti() {
     const { data, error } = await supabase
