@@ -2,12 +2,29 @@ const supabase = window.supabase
 
 export async function render(container) {
   const azienda_id = window.state?.azienda_id || window.state?.azienda?.id
+  const sede_id = window.state?.sedeAttiva?.id || null
   const ruolo = window.state?.ruolo
 
+  const STORAGE_BUCKET = "loghi-aziende"
   const BASE_PUBLIC_URL = "https://ristoflow-ai.com"
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
-    container.innerHTML = `<section class="view">Accesso negato</section>`
+    container.innerHTML = `
+      <section class="view">
+        <h2>Accesso negato</h2>
+        <p>Non hai i permessi per accedere al Back Office.</p>
+      </section>
+    `
+    return
+  }
+
+  if (!supabase || typeof supabase.from !== "function") {
+    container.innerHTML = `
+      <section class="view">
+        <h2>Errore</h2>
+        <p>Supabase non inizializzato.</p>
+      </section>
+    `
     return
   }
 
@@ -22,90 +39,76 @@ export async function render(container) {
 
   let categoriaSelezionata = null
 
-  // NUOVI STATI
-  let tagsDisponibili = ["pranzo", "cena", "evento", "estate"]
-  let tagsSelezionati = []
+  // 🔹 NUOVI STATI
+  let tags = []
   let campiTracciamento = []
 
   container.innerHTML = `
-  <section class="view" style="display:flex; flex-direction:column; gap:16px; padding:16px;">
+  <section class="view" style="display:flex; flex-direction:column; gap:20px; padding:20px;">
 
-    <!-- HEADER -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2>Menu Builder</h2>
       <button id="btn-new-menu" class="app-button primary">+ Nuovo menu</button>
     </div>
 
-    <!-- IDENTITÀ -->
     <div class="card">
       <input id="menu-nome" class="input" placeholder="Nome menu">
       <input id="menu-slug" class="input" placeholder="Slug">
       <textarea id="menu-descrizione" class="input" placeholder="Descrizione"></textarea>
     </div>
 
-    <!-- DESIGN -->
     <div class="card">
       <h3>Design</h3>
 
-      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
-        <input type="color" id="menu-color-picker" value="#ffffff">
-        <input id="menu-bg-color" class="input" placeholder="#ffffff">
+      <input type="color" id="menu-color-picker" value="#ffffff">
+      <input id="menu-bg-color" class="input" placeholder="#ffffff">
 
-        <select id="menu-font-family" class="input">
-          <option value="Arial">Arial</option>
-          <option value="Roboto">Roboto</option>
-          <option value="Poppins">Poppins</option>
-        </select>
+      <select id="menu-font-family" class="input">
+        <option value="Arial">Arial</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Poppins">Poppins</option>
+      </select>
 
-        <select id="menu-font-weight" class="input">
-          <option value="normal">Normale</option>
-          <option value="bold">Grassetto</option>
-        </select>
+      <select id="menu-font-weight" class="input">
+        <option value="normal">Normale</option>
+        <option value="bold">Grassetto</option>
+      </select>
 
-        <select id="menu-font-size" class="input">
-          <option value="14">Piccolo</option>
-          <option value="16">Medio</option>
-          <option value="20">Grande</option>
-        </select>
-      </div>
+      <select id="menu-font-size" class="input">
+        <option value="14">Piccolo</option>
+        <option value="16">Medio</option>
+        <option value="20">Grande</option>
+      </select>
     </div>
 
-    <!-- PUBBLICAZIONE -->
     <div class="card">
       <h3>Pubblicazione</h3>
 
       <div id="menu-link-box"></div>
 
-      <div style="display:flex; gap:8px;">
-        <input id="menu-short-link" class="input" placeholder="Short link">
-        <button id="btn-genera-short" class="app-button">Genera</button>
-      </div>
+      <input id="menu-short-link" class="input" placeholder="Short link">
+      <button id="btn-genera-short" class="app-button">Genera short link</button>
     </div>
 
     <!-- TAG -->
     <div class="card">
       <h3>Tag</h3>
-
-      <input id="tag-input" class="input" placeholder="Scrivi e premi invio">
-
-      <div id="tag-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+      <input id="tag-input" class="input" placeholder="Scrivi tag e premi invio">
+      <div id="tag-list" style="margin-top:8px;"></div>
     </div>
 
     <!-- TRACCIAMENTO -->
     <div class="card">
       <h3>Raccolta dati cliente</h3>
 
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
-        ${["nome","cognome","email","telefono","cap","data_nascita"].map(campo => `
-          <label>
-            <input type="checkbox" data-campo="${campo}">
-            ${campo}
-          </label>
-        `).join("")}
+      <div style="display:flex; gap:8px;">
+        <input id="campo-input" class="input" placeholder="Nuovo campo (es: allergie)">
+        <button id="add-campo">Aggiungi</button>
       </div>
+
+      <div id="campi-list" style="margin-top:8px;"></div>
     </div>
 
-    <!-- COMPOSIZIONE -->
     <div class="card">
       <h3>Composizione menu</h3>
 
@@ -130,7 +133,6 @@ export async function render(container) {
       </div>
     </div>
 
-    <!-- PREVIEW -->
     <div class="card">
       <h3>Preview LIVE</h3>
       <div id="menu-preview"></div>
@@ -143,61 +145,63 @@ export async function render(container) {
   await loadAll()
 
   function bindEvents() {
-
     qs("#btn-new-menu").onclick = startNewMenu
 
-    // COLOR SYNC
     qs("#menu-color-picker").oninput = e => {
       qs("#menu-bg-color").value = e.target.value
       renderPreview()
     }
 
-    // LIVE PREVIEW (FIX VERO)
     qsa("#menu-nome, #menu-descrizione, #menu-bg-color, #menu-font-weight, #menu-font-size, #menu-font-family")
       .forEach(el => el.addEventListener("input", renderPreview))
 
-    // SHORT LINK
     qs("#btn-genera-short").onclick = () => {
       const base = qs("#menu-slug").value || qs("#menu-nome").value
       qs("#menu-short-link").value = makeSlug(base)
     }
 
-    // TAG SYSTEM
+    // TAG
     qs("#tag-input").addEventListener("keydown", e => {
       if (e.key === "Enter") {
         e.preventDefault()
         const val = e.target.value.trim()
         if (!val) return
-
-        if (!tagsDisponibili.includes(val)) tagsDisponibili.push(val)
-        if (!tagsSelezionati.includes(val)) tagsSelezionati.push(val)
-
+        if (!tags.includes(val)) tags.push(val)
         e.target.value = ""
         renderTags()
       }
     })
 
-    // TRACCIAMENTO
-    qsa("[data-campo]").forEach(el => {
-      el.onchange = () => {
-        if (el.checked) campiTracciamento.push(el.dataset.campo)
-        else campiTracciamento = campiTracciamento.filter(c => c !== el.dataset.campo)
-      }
+    // TRACCIAMENTO DINAMICO
+    qs("#add-campo").onclick = () => {
+      const val = qs("#campo-input").value.trim()
+      if (!val) return
+      campiTracciamento.push(val)
+      qs("#campo-input").value = ""
+      renderCampi()
+    }
+
+    const dropZone = qs("#menu-drop-zone")
+    dropZone.addEventListener("dragover", e => e.preventDefault())
+    dropZone.addEventListener("drop", async e => {
+      e.preventDefault()
+      const id = e.dataTransfer.getData("id")
+      await addCategoriaToMenu(id)
     })
   }
 
   function renderTags() {
-    qs("#tag-list").innerHTML = tagsSelezionati.map(t => `
-      <span style="background:#e2e8f0; padding:4px 8px; border-radius:8px;">
-        ${t}
-      </span>
-    `).join("")
+    qs("#tag-list").innerHTML = tags.map(t => `<span>${t}</span>`).join("")
+  }
+
+  function renderCampi() {
+    qs("#campi-list").innerHTML = campiTracciamento.map(c => `<div>${c}</div>`).join("")
   }
 
   function renderPreview() {
     const nome = qs("#menu-nome").value || "Menu"
     const desc = qs("#menu-descrizione").value || ""
-    const bg = qs("#menu-bg-color").value || "#fff"
+    const bg = qs("#menu-bg-color").value || "#ffffff"
     const weight = qs("#menu-font-weight").value
     const size = qs("#menu-font-size").value
     const font = qs("#menu-font-family").value
@@ -242,6 +246,7 @@ export async function render(container) {
     renderPreview()
     renderLinkBox()
     renderTags()
+    renderCampi()
   }
 
   function renderCategorieDisponibili() {
@@ -258,6 +263,21 @@ export async function render(container) {
 
   function renderBuilder() {
     qs("#menu-drop-zone").innerHTML = menuCategorie.map(c => `<div>${c.nome}</div>`).join("")
+  }
+
+  async function addCategoriaToMenu(id) {
+    if (!menuAttivo) return
+
+    await supabase.from("menu_categorie").insert({
+      menu_id: menuAttivo.id,
+      categoria_vendita_id: id,
+      azienda_id
+    })
+
+    const { data } = await supabase.from("menu_categorie").select("*").eq("menu_id", menuAttivo.id)
+    menuCategorie = data || []
+
+    renderBuilder()
   }
 
   function makeSlug(str) {
