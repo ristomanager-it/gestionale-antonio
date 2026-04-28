@@ -1,5 +1,5 @@
 const supabase = window.supabase || window.supabaseClient
-import { openImportProdottiCSVModal } from "../components/importProdottiCSVModal.js";
+import { openImportProdottiCSVModal } from "../../components/importProdottiCSVModal.js";
 export async function render(container) {
   const azienda_id = window.state?.azienda_id || window.state?.azienda?.id
   const sede_id = window.state?.sedeAttiva?.id || null
