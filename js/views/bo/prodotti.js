@@ -381,6 +381,8 @@ function renderContesti() {
 box.querySelectorAll("[data-id]").forEach(el => {
   el.onclick = () => selectProdotto(el.dataset.id)
 })
+  }
+
   function selectProdotto(id) {
     const p = prodotti.find(x => String(x.id) === String(id))
     if (!p) return
@@ -476,6 +478,37 @@ box.querySelectorAll("[data-id]").forEach(el => {
   // 👇 AGGIUNTO
   contesto: qs("#prod-contesto").value || null
 }
+
+    let error
+
+    if (prodottoAttivo?.id) {
+      const result = await supabase
+        .from("prodotti_vendita")
+        .update(payload)
+        .eq("id", prodottoAttivo.id)
+        .eq("azienda_id", azienda_id)
+
+      error = result.error
+    } else {
+      const result = await supabase
+        .from("prodotti_vendita")
+        .insert(payload)
+
+      error = result.error
+    }
+
+    if (error) {
+      console.error("Errore salvataggio prodotto:", error)
+      alert("Errore durante il salvataggio del prodotto.")
+      return
+    }
+
+    await loadProdotti()
+    prodottiFiltrati = [...prodotti]
+    renderProdotti()
+    closeForm()
+  }
+
   function applyRicettaFoodCost() {
     const ricettaId = qs("#prod-ricetta").value
     const ricetta = ricette.find(r => String(r.id) === String(ricettaId))
