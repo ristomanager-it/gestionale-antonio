@@ -110,25 +110,22 @@ const routes = {
 
   comanda: () => import("./views/comanda.js"),
 
-  // =========================
-  // BACK OFFICE (COSTRUZIONE)
-  // =========================
-  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
-  "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js"),
+ // =========================
+// BACK OFFICE (COSTRUZIONE)
+// =========================
+"bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
+"bo-tag": () => import("./views/bo/bo-tag.js"),
+"bo-template": () => import("./views/bo/bo-template.js"),
 
-  // PRODUZIONE
-  "bo-menu": () => import("./views/bo/bo-menu.js"),
-   "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
-  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js"),
-  "bo-categorie": () => import("./views/bo/categorie.js")
-};
+// MENU (costruzione offerta)
+"bo-menu": () => import("./views/bo/bo-menu-builder.js"),
+"bo-categorie": () => import("./views/bo/categorie.js"),
+"bo-prodotti": () => import("./views/bo/prodotti.js"),
 
-/* =========================================================
-   ROUTE SCOPE
-========================================================= */
+// PRODUZIONE
+"bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
+"bo-produzione": () => import("./views/bo/bo-produzione.js"),
+"bo-comande": () => import("./views/bo/bo-comande.js"),
 
 const PUBLIC_ROUTES = new Set([
   "login",
@@ -158,10 +155,17 @@ const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
 
 const BO_ROUTES = new Set([
   "bo-dashboard",
-  "bo-marketing",
+
+  // MARKETING
   "bo-tag",
   "bo-template",
+
+  // MENU
   "bo-menu",
+  "bo-categorie",
+  "bo-prodotti",
+
+  // PRODUZIONE
   "bo-magazzino",
   "bo-produzione",
   "bo-comande"
