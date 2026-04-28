@@ -197,19 +197,39 @@ function renderStats() {
   const automatiche = ricetteCache.filter(r => r.generata).length;
 
   box.innerHTML = `
-    <div style="padding:10px 12px;border-radius:10px;background:#ffe5e5;">
+    <div data-stat="bozza" style="cursor:pointer;padding:10px 12px;border-radius:10px;background:#ffe5e5;">
       🔴 <strong>${bozze}</strong> da completare
     </div>
-    <div style="padding:10px 12px;border-radius:10px;background:#fff6d6;">
+    <div data-stat="in_completamento" style="cursor:pointer;padding:10px 12px;border-radius:10px;background:#fff6d6;">
       🟡 <strong>${inCompletamento}</strong> in completamento
     </div>
-    <div style="padding:10px 12px;border-radius:10px;background:#e6fffa;">
+    <div data-stat="completa" style="cursor:pointer;padding:10px 12px;border-radius:10px;background:#e6fffa;">
       🟢 <strong>${complete}</strong> complete
     </div>
     <div style="padding:10px 12px;border-radius:10px;background:#eef2ff;">
       ⚙️ <strong>${automatiche}</strong> generate automaticamente
     </div>
   `;
+
+  bindStatsClick();
+}
+
+function bindStatsClick() {
+  document.querySelectorAll("#ric-stats [data-stat]").forEach(el => {
+    el.addEventListener("click", () => {
+      const stato = el.dataset.stat;
+
+      filtroBozza = stato === "bozza";
+      filtroInCompletamento = stato === "in_completamento";
+      filtroComplete = stato === "completa";
+
+      document.getElementById("f-bozza").checked = filtroBozza;
+      document.getElementById("f-incomp").checked = filtroInCompletamento;
+      document.getElementById("f-complete").checked = filtroComplete;
+
+      renderRicetteList();
+    });
+  });
 }
 
 function getRicetteFiltrate() {
@@ -376,13 +396,13 @@ function setupAutocomplete() {
       suggest.classList.remove("open");
     }
   });
+}
 
-  function renderCreateItem(input, suggest) {
+function renderCreateItem(input, suggest) {
   const nome = input.value.trim();
 
   if (!nome) return;
 
-  // 🔥 BLOCCO ANTI-DUPLICATO
   const esiste = ricetteCache.find(r =>
     normalize(r.nome) === normalize(nome)
   );
@@ -405,12 +425,10 @@ function setupAutocomplete() {
     openQuickModal(nome);
   };
 
- suggest.appendChild(div);
-suggest.classList.add("open");
+  suggest.appendChild(div);
+  suggest.classList.add("open");
 }
 
-// 🔥 QUESTA CHIUDE setupAutocomplete
-}
 function openQuickModal(nome) {
 
   document.querySelectorAll(".modal-overlay").forEach(m => m.remove());
