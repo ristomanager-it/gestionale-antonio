@@ -405,9 +405,11 @@ function setupAutocomplete() {
     openQuickModal(nome);
   };
 
-  suggest.appendChild(div);
-  suggest.classList.add("open");
+ suggest.appendChild(div);
+suggest.classList.add("open");
 }
+
+// 🔥 QUESTA CHIUDE setupAutocomplete
 }
 function openQuickModal(nome) {
 
