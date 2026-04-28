@@ -123,7 +123,7 @@ const routes = {
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-produzione": () => import("./views/bo/bo-produzione.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js"),
-   "bo-categorie": () => import("./bo/bo-categorie.js"),
+  "bo-categorie": () => import("./views/bo/bo-categorie.js")
 };
 
 /* =========================================================
