@@ -1,17 +1,15 @@
-// js/views/ricettario.js
-
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 let ricetteCache = [];
-let filtroIncomplete = false;
-let filtroGenerate = false;
+let filtroBozza = false;
+let filtroInCompletamento = false;
 let filtroComplete = false;
 
 export async function render(app) {
 
   app.innerHTML = createPageLayout({
     title: "📖 Ricettario",
-    subtitle: "Ricerca e consultazione ricette",
+    subtitle: "Gestione e completamento ricette",
     content: `
 
       ${createCard({
@@ -29,16 +27,16 @@ export async function render(app) {
         body: `
           <div style="display:flex; gap:16px; flex-wrap:wrap;">
             <label>
-              <input type="checkbox" id="f-incomplete">
-              Solo incomplete
+              <input type="checkbox" id="f-bozza">
+              Solo bozze 🔴
             </label>
             <label>
-              <input type="checkbox" id="f-generate">
-              Generate da preventivo
+              <input type="checkbox" id="f-incomp">
+              In completamento 🟡
             </label>
             <label>
               <input type="checkbox" id="f-complete">
-              Solo complete
+              Complete 🟢
             </label>
           </div>
         `
@@ -73,12 +71,12 @@ export async function render(app) {
 }
 
 function bindFiltri() {
-  document.getElementById("f-incomplete")?.addEventListener("change", e => {
-    filtroIncomplete = e.target.checked;
+  document.getElementById("f-bozza")?.addEventListener("change", e => {
+    filtroBozza = e.target.checked;
   });
 
-  document.getElementById("f-generate")?.addEventListener("change", e => {
-    filtroGenerate = e.target.checked;
+  document.getElementById("f-incomp")?.addEventListener("change", e => {
+    filtroInCompletamento = e.target.checked;
   });
 
   document.getElementById("f-complete")?.addEventListener("change", e => {
@@ -102,8 +100,8 @@ async function loadRicette() {
       id,
       nome,
       stato_strutturale,
-      generata_da_preventivo,
-      scheda_completa,
+      generata_automaticamente,
+      origine,
       ricette_output (
         peso_finale,
         unita_misura
@@ -130,8 +128,8 @@ async function loadRicette() {
       stato: r.stato_strutturale || "bozza",
       resa: out?.peso_finale ?? null,
       um: out?.unita_misura ?? null,
-      generata: !!r.generata_da_preventivo,
-      completa: !!r.scheda_completa
+      generata: !!r.generata_automaticamente,
+      origine: r.origine || null
     };
   });
 }
@@ -154,14 +152,23 @@ function setupAutocomplete() {
     let risultati = ricetteCache
       .filter(r => (r.nome || "").toLowerCase().includes(q));
 
-    if (filtroIncomplete)
-      risultati = risultati.filter(r => !r.completa);
+    if (filtroBozza)
+      risultati = risultati.filter(r => r.stato === "bozza");
 
-    if (filtroGenerate)
-      risultati = risultati.filter(r => r.generata);
+    if (filtroInCompletamento)
+      risultati = risultati.filter(r => r.stato === "in_completamento");
 
     if (filtroComplete)
-      risultati = risultati.filter(r => r.completa);
+      risultati = risultati.filter(r => r.stato === "completa");
+
+    risultati.sort((a, b) => {
+      const an = a.nome.toLowerCase();
+      const bn = b.nome.toLowerCase();
+      const aStarts = an.startsWith(q) ? 0 : 1;
+      const bStarts = bn.startsWith(q) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return an.localeCompare(bn);
+    });
 
     risultati = risultati.slice(0, 15);
 
@@ -179,15 +186,14 @@ function setupAutocomplete() {
         ? ` — ${r.resa} ${r.um || ""}`
         : "";
 
-      const badgeIncomplete = !r.completa
-        ? ` 🔴`
-        : "";
+      const badge =
+        r.stato === "bozza" ? " 🔴" :
+        r.stato === "in_completamento" ? " 🟡" :
+        " 🟢";
 
-      const badgeGenerated = r.generata
-        ? ` 🟡`
-        : "";
+      const badgeGen = r.generata ? " ⚙️" : "";
 
-      div.textContent = `${r.nome}${resaTxt}${badgeIncomplete}${badgeGenerated}`;
+      div.textContent = `${r.nome}${resaTxt}${badge}${badgeGen}`;
 
       div.onclick = () => {
         suggest.innerHTML = "";
@@ -245,15 +251,24 @@ async function mostraRicetta(id) {
 
   const viewer = document.getElementById("ric-viewer");
 
-  const bannerIncomplete = ricetta.scheda_completa === false
-    ? `<div style="background:#ffe5e5;padding:8px;border-radius:6px;margin-bottom:10px;">
-         🔴 Scheda incompleta – Completa ingredienti e fasi
-       </div>`
-    : "";
+  const stato = ricetta.stato_strutturale || "bozza";
 
-  const bannerGenerated = ricetta.generata_da_preventivo
-    ? `<div style="background:#fff6d6;padding:8px;border-radius:6px;margin-bottom:10px;">
-         🟡 Ricetta generata automaticamente da preventivo
+  const bannerStato =
+    stato === "bozza"
+      ? `<div style="background:#ffe5e5;padding:8px;border-radius:6px;margin-bottom:10px;">
+           🔴 Ricetta in bozza – da completare
+         </div>`
+      : stato === "in_completamento"
+      ? `<div style="background:#fff6d6;padding:8px;border-radius:6px;margin-bottom:10px;">
+           🟡 Ricetta in completamento
+         </div>`
+      : `<div style="background:#e6fffa;padding:8px;border-radius:6px;margin-bottom:10px;">
+           🟢 Ricetta completa
+         </div>`;
+
+  const bannerOrigine = ricetta.generata_automaticamente
+    ? `<div style="background:#eef2ff;padding:8px;border-radius:6px;margin-bottom:10px;">
+         ⚙️ Ricetta generata automaticamente (${escapeHtml(ricetta.origine || "sistema")})
        </div>`
     : "";
 
@@ -261,8 +276,8 @@ async function mostraRicetta(id) {
 
     <div>
 
-      ${bannerIncomplete}
-      ${bannerGenerated}
+      ${bannerStato}
+      ${bannerOrigine}
 
       <h3>${escapeHtml(ricetta.nome)}</h3>
 
@@ -298,7 +313,7 @@ async function mostraRicetta(id) {
       <div style="margin-top:18px;">
         <button class="app-button"
           onclick="window.location.hash='#/creaRicetta?id=${id}'">
-          ✏️ Modifica
+          ✏️ Completa / Modifica
         </button>
       </div>
 
