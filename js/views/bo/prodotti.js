@@ -158,35 +158,48 @@ export async function render(container) {
   await loadAll()
 
   function bindEvents() {
-    qs("#btn-new").onclick = () => {
-      resetForm()
-      openForm()
-    }
+  // NUOVO PRODOTTO
+  qs("#btn-new").onclick = () => {
+    resetForm()
+    openForm()
+  }
 
-    qs("#btn-cancel").onclick = closeForm
-    qs("#btn-save").onclick = saveProdotto
-    qs("#btn-upload-img").onclick = uploadProductImage
-
-    qs("#product-search").addEventListener("input", () => {
-      clearTimeout(searchDebounce)
-      searchDebounce = setTimeout(renderProdotti, 300)
-    })
-
-    qs("#prod-ricetta").addEventListener("change", () => {
-      applyRicettaFoodCost()
-      renderFoodCostBox()
-    })
-
-    qs("#btn-add-tag").onclick = addTagFromInput
-
-    qs("#tag-input").addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        event.preventDefault()
-        addTagFromInput()
+  // 📥 IMPORT CSV (NUOVO)
+  qs("#btn-import-csv").onclick = () => {
+    openImportProdottiCSVModal({
+      onComplete: async () => {
+        await loadAll()
       }
     })
   }
 
+  // FORM
+  qs("#btn-cancel").onclick = closeForm
+  qs("#btn-save").onclick = saveProdotto
+  qs("#btn-upload-img").onclick = uploadProductImage
+
+  // SEARCH
+  qs("#product-search").addEventListener("input", () => {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(renderProdotti, 300)
+  })
+
+  // RICETTA
+  qs("#prod-ricetta").addEventListener("change", () => {
+    applyRicettaFoodCost()
+    renderFoodCostBox()
+  })
+
+  // TAGS
+  qs("#btn-add-tag").onclick = addTagFromInput
+
+  qs("#tag-input").addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      addTagFromInput()
+    }
+  })
+}
   async function loadAll() {
     await Promise.all([
       loadProdotti(),
