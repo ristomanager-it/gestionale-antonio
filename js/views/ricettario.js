@@ -48,7 +48,7 @@ export async function render(app) {
           <div class="input-wrap">
             <input id="ric-search"
               class="input"
-              placeholder="Cerca ricetta..."
+              placeholder="Cerca ricetta o crea prodotto..."
               autocomplete="off" />
             <div id="ric-suggest" class="suggest-list"></div>
           </div>
@@ -173,7 +173,21 @@ function setupAutocomplete() {
     risultati = risultati.slice(0, 15);
 
     if (!risultati.length) {
-      suggest.classList.remove("open");
+
+      const div = document.createElement("div");
+      div.className = "suggest-item create-new";
+
+      div.textContent = `+ Crea prodotto "${input.value.trim()}"`;
+
+      div.onclick = () => {
+        window.state = window.state || {};
+        window.state.quickProductName = input.value.trim();
+
+        window.dispatchEvent(new CustomEvent("openQuickProductModal"));
+      };
+
+      suggest.appendChild(div);
+      suggest.classList.add("open");
       return;
     }
 
@@ -203,6 +217,20 @@ function setupAutocomplete() {
 
       suggest.appendChild(div);
     });
+
+    const createDiv = document.createElement("div");
+    createDiv.className = "suggest-item create-new";
+
+    createDiv.textContent = `+ Crea prodotto "${input.value.trim()}"`;
+
+    createDiv.onclick = () => {
+      window.state = window.state || {};
+      window.state.quickProductName = input.value.trim();
+
+      window.dispatchEvent(new CustomEvent("openQuickProductModal"));
+    };
+
+    suggest.appendChild(createDiv);
 
     suggest.classList.add("open");
   });
