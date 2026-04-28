@@ -597,77 +597,54 @@ export async function render(container) {
     closeForm()
   }
 
-  async function ensureRicettaMinima({ prodotto, nome, descrizione }) {
+   async function ensureRicettaMinima({ prodotto, nome, descrizione }) {
     if (!prodotto?.id) return null
 
     if (prodotto.ricetta_id) {
       return prodotto.ricetta_id
     }
 
-    const ricettaEsistente = await findRicettaByProdotto(prodotto.id)
+    const { data: ricettaEsistente, error: findError } = await supabase
+      .from("ricette")
+      .select("id")
+      .eq("azienda_id", azienda_id)
+      .eq("prodotto_vendita_id", prodotto.id)
+      .maybeSingle()
+
+    if (findError) {
+      console.error("Errore ricerca ricetta esistente:", findError)
+      return null
+    }
 
     if (ricettaEsistente?.id) {
       return ricettaEsistente.id
     }
 
-    const payloadCompleto = {
-      azienda_id,
-      nome,
-      descrizione,
-      costo_totale: 0,
-      costo_porzione: 0,
-      stato_strutturale: "bozza",
-      generata_automaticamente: true,
-      origine: "prodotto",
-      prodotto_vendita_id: prodotto.id,
-      attivo: true
+    const { data: nuovaRicetta, error: createError } = await supabase
+      .from("ricette")
+      .insert({
+        azienda_id,
+        nome,
+        descrizione: descrizione || null,
+        costo_totale: 0,
+        costo_porzione: 0,
+        stato_strutturale: "bozza",
+        generata_automaticamente: true,
+        origine: "prodotto",
+        prodotto_vendita_id: prodotto.id,
+        attivo: true
+      })
+      .select("id")
+      .single()
+
+    if (createError) {
+      console.error("Errore creazione ricetta minima:", createError)
+      alert("Prodotto salvato, ma non è stato possibile creare la ricetta bozza.")
+      return null
     }
 
-    const payloadCompatibile = {
-      azienda_id,
-      nome,
-      descrizione,
-      costo_totale: 0,
-      costo_porzione: 0,
-      stato_strutturale: "bozza",
-      generata_da_preventivo: false,
-      scheda_completa: false,
-      attivo: true
-    }
-
-    const payloadMinimo = {
-      azienda_id,
-      nome,
-      descrizione,
-      costo_totale: 0,
-      costo_porzione: 0,
-      stato_strutturale: "bozza"
-    }
-
-    const tentativi = [
-      payloadCompleto,
-      payloadCompatibile,
-      payloadMinimo
-    ]
-
-    for (const payload of tentativi) {
-      const { data, error } = await supabase
-        .from("ricette")
-        .insert(payload)
-        .select()
-        .single()
-
-      if (!error && data?.id) {
-        return data.id
-      }
-
-      console.warn("Tentativo creazione ricetta minima fallito:", error)
-    }
-
-    alert("Prodotto salvato, ma non è stato possibile creare la ricetta bozza.")
-    return null
+    return nuovaRicetta?.id || null
   }
-
   async function findRicettaByProdotto(prodottoId) {
     const { data, error } = await supabase
       .from("ricette")
