@@ -17,6 +17,11 @@ export async function render(container) {
     return
   }
 
+  if (!azienda_id) {
+    container.innerHTML = `<section class="view">Azienda non selezionata</section>`
+    return
+  }
+
   let prodotti = []
   let prodottiFiltrati = []
   let categorie = []
@@ -24,6 +29,7 @@ export async function render(container) {
   let tagsDisponibili = []
   let tagsSelezionati = []
   let prodottoAttivo = null
+  let searchDebounce = null
 
   container.innerHTML = `
   <section class="view" style="display:flex; gap:16px; padding:16px;">
@@ -38,7 +44,7 @@ export async function render(container) {
         <button id="btn-new" class="app-button primary" type="button">+ Nuovo prodotto</button>
       </div>
 
-      <input id="product-search" class="input" placeholder="Cerca prodotto" style="margin-top:12px;">
+      <input id="product-search" class="input" placeholder="Cerca prodotto o creane uno nuovo" style="margin-top:12px;" autocomplete="off">
 
       <div id="prodotti-list" style="margin-top:12px;"></div>
 
@@ -60,13 +66,13 @@ export async function render(container) {
       </select>
 
       <label>Ricetta collegata</label>
-<select id="prod-ricetta" class="input">
-  <option value="">Non collegata</option>
-</select>
+      <select id="prod-ricetta" class="input">
+        <option value="">Crea automaticamente ricetta bozza</option>
+      </select>
 
-<label>Contesto utilizzo</label>
-<input id="prod-contesto" class="input" list="contesto-options" placeholder="Es. ristorante, evento, delivery">
-<datalist id="contesto-options"></datalist>
+      <label>Contesto utilizzo</label>
+      <input id="prod-contesto" class="input" list="contesto-options" placeholder="Es. ristorante, evento, delivery">
+      <datalist id="contesto-options"></datalist>
 
       <div id="food-cost-box" style="
         margin:10px 0;
@@ -160,7 +166,10 @@ export async function render(container) {
     qs("#btn-save").onclick = saveProdotto
     qs("#btn-upload-img").onclick = uploadProductImage
 
-    qs("#product-search").addEventListener("input", renderProdotti)
+    qs("#product-search").addEventListener("input", () => {
+      clearTimeout(searchDebounce)
+      searchDebounce = setTimeout(renderProdotti, 300)
+    })
 
     qs("#prod-ricetta").addEventListener("change", () => {
       applyRicettaFoodCost()
@@ -168,6 +177,7 @@ export async function render(container) {
     })
 
     qs("#btn-add-tag").onclick = addTagFromInput
+
     qs("#tag-input").addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault()
@@ -193,7 +203,7 @@ export async function render(container) {
     const contesti = ["ristorante", "evento", "delivery", "asporto"]
 
     qs("#contesto-options").innerHTML = contesti.map(c => `
-      <option value="${c}">
+      <option value="${escapeAttribute(c)}">
     `).join("")
   }
 
@@ -232,7 +242,7 @@ export async function render(container) {
   async function loadRicette() {
     const { data, error } = await supabase
       .from("ricette")
-      .select("id, nome, descrizione, costo_totale, costo_porzione")
+      .select("id, nome, descrizione, costo_totale, costo_porzione, stato_strutturale")
       .eq("azienda_id", azienda_id)
       .order("nome", { ascending: true })
 
@@ -286,7 +296,7 @@ export async function render(container) {
     const value = qs("#prod-ricetta")?.value || ""
 
     qs("#prod-ricetta").innerHTML = `
-      <option value="">Non collegata</option>
+      <option value="">Crea automaticamente ricetta bozza</option>
       ${ricette.map(r => `
         <option value="${escapeAttribute(r.id)}">${escapeHtml(r.nome || "")}</option>
       `).join("")}
@@ -306,21 +316,51 @@ export async function render(container) {
 
     prodottiFiltrati = prodotti.filter(p => {
       if (!search) return true
+
       return (
         String(p.nome || "").toLowerCase().includes(search) ||
         String(p.descrizione || "").toLowerCase().includes(search)
       )
     })
 
+    prodottiFiltrati.sort((a, b) => {
+      const an = String(a.nome || "").toLowerCase()
+      const bn = String(b.nome || "").toLowerCase()
+      const aStarts = search && an.startsWith(search) ? 0 : 1
+      const bStarts = search && bn.startsWith(search) ? 0 : 1
+      if (aStarts !== bStarts) return aStarts - bStarts
+      return an.localeCompare(bn)
+    })
+
     const box = qs("#prodotti-list")
 
     if (!prodottiFiltrati.length) {
-      box.innerHTML = `<div style="font-size:13px; color:#64748b;">Nessun prodotto creato.</div>`
+      box.innerHTML = `
+        <div style="font-size:13px; color:#64748b;">Nessun prodotto trovato.</div>
+
+        ${search.length >= 2 ? `
+          <button id="btn-create-from-search" class="app-button primary" type="button" style="margin-top:10px;">
+            + Crea prodotto "${escapeHtml(qs("#product-search").value.trim())}"
+          </button>
+        ` : `
+          <div style="font-size:12px; color:#94a3b8; margin-top:8px;">
+            Scrivi almeno 2 lettere per creare velocemente un nuovo prodotto.
+          </div>
+        `}
+      `
+
+      qs("#btn-create-from-search")?.addEventListener("click", () => {
+        resetForm()
+        qs("#prod-nome").value = qs("#product-search").value.trim()
+        openForm()
+      })
+
       return
     }
 
-    box.innerHTML = prodottiFiltrati.map(p => {
+    box.innerHTML = prodottiFiltrati.slice(0, 50).map(p => {
       const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
+      const hasRicetta = !!p.ricetta_id
       const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
 
       return `
@@ -331,8 +371,8 @@ export async function render(container) {
           align-items:center;
           padding:10px;
           border-radius:14px;
-          border:1px solid ${hasFoodCost ? "#e5e7eb" : "#f59e0b"};
-          background:${hasFoodCost ? "#ffffff" : "#fffbeb"};
+          border:1px solid ${hasRicetta && hasFoodCost ? "#e5e7eb" : "#f59e0b"};
+          background:${hasRicetta && hasFoodCost ? "#ffffff" : "#fffbeb"};
           margin-bottom:10px;
           cursor:pointer;
         ">
@@ -357,7 +397,7 @@ export async function render(container) {
             </div>
 
             <div style="font-size:12px; color:${hasFoodCost ? "#64748b" : "#b45309"};">
-              ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Food cost mancante"}
+              ${hasFoodCost ? `Food cost € ${formatMoney(p.food_cost_snapshot)}` : "⚠️ Ricetta/food cost da completare"}
             </div>
 
             ${p.contesto ? `
@@ -376,6 +416,20 @@ export async function render(container) {
         </div>
       `
     }).join("")
+
+    if (search.length >= 2) {
+      box.insertAdjacentHTML("beforeend", `
+        <button id="btn-create-from-search" class="app-button" type="button" style="margin-top:4px;">
+          + Crea nuovo prodotto "${escapeHtml(qs("#product-search").value.trim())}"
+        </button>
+      `)
+
+      qs("#btn-create-from-search")?.addEventListener("click", () => {
+        resetForm()
+        qs("#prod-nome").value = qs("#product-search").value.trim()
+        openForm()
+      })
+    }
 
     box.querySelectorAll("[data-id]").forEach(el => {
       el.onclick = () => selectProdotto(el.dataset.id)
@@ -424,6 +478,7 @@ export async function render(container) {
     qs("#prod-img-url").value = ""
     qs("#prod-attivo").checked = true
     qs("#prod-visibile").checked = true
+    qs("#prod-contesto").value = ""
     qs("#tag-input").value = ""
 
     renderTags()
@@ -446,8 +501,8 @@ export async function render(container) {
       return
     }
 
-    const ricettaId = qs("#prod-ricetta").value || null
-    const ricetta = ricette.find(r => String(r.id) === String(ricettaId))
+    const ricettaIdManuale = qs("#prod-ricetta").value || null
+    const ricetta = ricette.find(r => String(r.id) === String(ricettaIdManuale))
 
     const foodCost = ricetta
       ? Number(ricetta.costo_porzione || ricetta.costo_totale || 0)
@@ -461,7 +516,7 @@ export async function render(container) {
       nome,
       descrizione: qs("#prod-descrizione").value.trim() || null,
       categoria_vendita_id: qs("#prod-categoria").value || null,
-      ricetta_id: ricettaId,
+      ricetta_id: ricettaIdManuale,
       foto_url: qs("#prod-img-url").value.trim() || null,
       prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
       iva: parseNullableNumber(qs("#prod-iva").value),
@@ -476,59 +531,153 @@ export async function render(container) {
       contesto: qs("#prod-contesto").value || null
     }
 
-    let error
+    let prodottoSalvato = null
 
     if (prodottoAttivo?.id) {
-      const result = await supabase
+      const { data, error } = await supabase
         .from("prodotti_vendita")
         .update(payload)
         .eq("id", prodottoAttivo.id)
         .eq("azienda_id", azienda_id)
+        .select()
+        .single()
 
-      error = result.error
+      if (error) {
+        console.error("Errore aggiornamento prodotto:", error)
+        alert("Errore durante il salvataggio del prodotto.")
+        return
+      }
+
+      prodottoSalvato = data
     } else {
-      const result = await supabase
+      const { data, error } = await supabase
         .from("prodotti_vendita")
         .insert(payload)
+        .select()
+        .single()
 
-      error = result.error
+      if (error) {
+        console.error("Errore creazione prodotto:", error)
+        alert("Errore durante il salvataggio del prodotto.")
+        return
+      }
+
+      prodottoSalvato = data
     }
 
-    if (error) {
-      console.error("Errore salvataggio prodotto:", error)
-      alert("Errore durante il salvataggio del prodotto.")
-      return
-    }
-    // AUTO CREAZIONE RICETTA
-if (!ricettaId) {
-  const { data: nuovaRicetta, error: errRicetta } = await supabase
-    .from("ricette")
-    .insert({
-      azienda_id,
-      nome,
-      descrizione: qs("#prod-descrizione").value.trim() || null,
-      costo_totale: 0,
-      costo_porzione: 0,
-      stato: "bozza"
-    })
-    .select()
-    .single()
-
-  if (!errRicetta && nuovaRicetta?.id) {
-    await supabase
-      .from("prodotti_vendita")
-      .update({
-        ricetta_id: nuovaRicetta.id
+    if (!ricettaIdManuale && prodottoSalvato?.id) {
+      const ricettaMinimaId = await ensureRicettaMinima({
+        prodotto: prodottoSalvato,
+        nome,
+        descrizione: qs("#prod-descrizione").value.trim() || null
       })
-      .eq("id", prodottoAttivo?.id)
-      .eq("azienda_id", azienda_id)
-  }
-}
 
-    await loadProdotti()
+      if (ricettaMinimaId) {
+        await supabase
+          .from("prodotti_vendita")
+          .update({
+            ricetta_id: ricettaMinimaId,
+            food_cost_snapshot: null,
+            alert_food_cost: true,
+            stato: "bozza"
+          })
+          .eq("id", prodottoSalvato.id)
+          .eq("azienda_id", azienda_id)
+      }
+    }
+
+    await Promise.all([
+      loadProdotti(),
+      loadRicette()
+    ])
+
     prodottiFiltrati = [...prodotti]
+    renderRicettaOptions()
     renderProdotti()
     closeForm()
+  }
+
+  async function ensureRicettaMinima({ prodotto, nome, descrizione }) {
+    if (!prodotto?.id) return null
+
+    if (prodotto.ricetta_id) {
+      return prodotto.ricetta_id
+    }
+
+    const ricettaEsistente = await findRicettaByProdotto(prodotto.id)
+
+    if (ricettaEsistente?.id) {
+      return ricettaEsistente.id
+    }
+
+    const payloadCompleto = {
+      azienda_id,
+      nome,
+      descrizione,
+      costo_totale: 0,
+      costo_porzione: 0,
+      stato_strutturale: "bozza",
+      generata_automaticamente: true,
+      origine: "prodotto",
+      prodotto_vendita_id: prodotto.id,
+      attivo: true
+    }
+
+    const payloadCompatibile = {
+      azienda_id,
+      nome,
+      descrizione,
+      costo_totale: 0,
+      costo_porzione: 0,
+      stato_strutturale: "bozza",
+      generata_da_preventivo: false,
+      scheda_completa: false,
+      attivo: true
+    }
+
+    const payloadMinimo = {
+      azienda_id,
+      nome,
+      descrizione,
+      costo_totale: 0,
+      costo_porzione: 0,
+      stato_strutturale: "bozza"
+    }
+
+    const tentativi = [
+      payloadCompleto,
+      payloadCompatibile,
+      payloadMinimo
+    ]
+
+    for (const payload of tentativi) {
+      const { data, error } = await supabase
+        .from("ricette")
+        .insert(payload)
+        .select()
+        .single()
+
+      if (!error && data?.id) {
+        return data.id
+      }
+
+      console.warn("Tentativo creazione ricetta minima fallito:", error)
+    }
+
+    alert("Prodotto salvato, ma non è stato possibile creare la ricetta bozza.")
+    return null
+  }
+
+  async function findRicettaByProdotto(prodottoId) {
+    const { data, error } = await supabase
+      .from("ricette")
+      .select("id")
+      .eq("azienda_id", azienda_id)
+      .eq("prodotto_vendita_id", prodottoId)
+      .maybeSingle()
+
+    if (error) return null
+    return data || null
   }
 
   function applyRicettaFoodCost() {
@@ -548,16 +697,24 @@ if (!ricettaId) {
 
     if (!ricetta) {
       qs("#food-cost-box").innerHTML = `
-        ⚠️ Nessuna ricetta collegata. Il prodotto resterà in bozza con food cost mancante.
+        🔴 Nessuna ricetta collegata. Al salvataggio verrà creata una ricetta minima in stato bozza.
       `
       return
     }
 
     const foodCost = Number(ricetta.costo_porzione || ricetta.costo_totale || 0)
+    const stato = ricetta.stato_strutturale || "bozza"
+
+    if (stato !== "completa") {
+      qs("#food-cost-box").innerHTML = `
+        🟡 Ricetta collegata ma non completa. Stato: <strong>${escapeHtml(stato)}</strong>.
+      `
+      return
+    }
 
     if (!foodCost) {
       qs("#food-cost-box").innerHTML = `
-        ⚠️ Ricetta collegata ma food cost mancante.
+        ⚠️ Ricetta completa ma food cost mancante.
       `
       return
     }
@@ -685,7 +842,7 @@ if (!ricettaId) {
     return escapeHtml(value)
   }
 
-  function qs(s) {
-    return container.querySelector(s)
+  function qs(selector) {
+    return container.querySelector(selector)
   }
 }
