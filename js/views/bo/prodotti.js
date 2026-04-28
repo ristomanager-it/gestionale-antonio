@@ -600,10 +600,12 @@ export async function render(container) {
    async function ensureRicettaMinima({ prodotto, nome, descrizione }) {
     if (!prodotto?.id) return null
 
+    // già collegata
     if (prodotto.ricetta_id) {
       return prodotto.ricetta_id
     }
 
+    // controllo esistenza (idempotente)
     const { data: ricettaEsistente, error: findError } = await supabase
       .from("ricette")
       .select("id")
@@ -620,6 +622,7 @@ export async function render(container) {
       return ricettaEsistente.id
     }
 
+    // creazione unica
     const { data: nuovaRicetta, error: createError } = await supabase
       .from("ricette")
       .insert({
@@ -644,17 +647,6 @@ export async function render(container) {
     }
 
     return nuovaRicetta?.id || null
-  }
-  async function findRicettaByProdotto(prodottoId) {
-    const { data, error } = await supabase
-      .from("ricette")
-      .select("id")
-      .eq("azienda_id", azienda_id)
-      .eq("prodotto_vendita_id", prodottoId)
-      .maybeSingle()
-
-    if (error) return null
-    return data || null
   }
 
   function applyRicettaFoodCost() {
