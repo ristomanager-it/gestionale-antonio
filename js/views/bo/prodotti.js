@@ -381,7 +381,6 @@ function renderContesti() {
 box.querySelectorAll("[data-id]").forEach(el => {
   el.onclick = () => selectProdotto(el.dataset.id)
 })
-</div>
   function selectProdotto(id) {
     const p = prodotti.find(x => String(x.id) === String(id))
     if (!p) return
