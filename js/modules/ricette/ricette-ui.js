@@ -1,15 +1,13 @@
 // ============================================================
-// RICETTE UI
-// SOLO RENDER HTML (stateless)
+// RICETTE UI - DESKTOP COMPLETO
 // ============================================================
-
-// =========================
-// LAYOUT BASE
-// =========================
 
 export function renderLayout() {
   return `
-    <div id="ricette-editor-root"></div>
+    <div id="ricette-editor-root" style="display:flex; gap:20px; align-items:flex-start;">
+      <div id="col-left" style="flex:2; display:flex; flex-direction:column; gap:16px;"></div>
+      <div id="col-right" style="flex:1; display:flex; flex-direction:column; gap:16px;"></div>
+    </div>
   `;
 }
 
@@ -43,7 +41,85 @@ export function renderAnagrafica(ricetta) {
 }
 
 // =========================
-// INGREDIENTI
+// OUTPUT + PORZIONI
+// =========================
+
+export function renderOutput(output, costi) {
+  return `
+    <div class="card">
+      <h3>Output</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Numero porzioni</label>
+          <input id="r-porzioni" type="number" class="input" value="${output.porzioni || ""}" />
+        </div>
+
+        <div class="form-group">
+          <label>Peso porzione (kg)</label>
+          <input id="r-peso-porzione" type="number" step="0.001" class="input" value="${output.peso_porzione || ""}" />
+        </div>
+      </div>
+
+      <div class="form-help">
+        Costo porzione: € <strong>${format(costi.costoPorzione)}</strong>
+      </div>
+    </div>
+  `;
+}
+
+// =========================
+// CONSERVAZIONE
+// =========================
+
+export function renderConservazione(c) {
+  return `
+    <div class="card">
+      <h3>Conservazione</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Durata (giorni)</label>
+          <input id="c-giorni" type="number" class="input" value="${c.giorni || ""}" />
+        </div>
+
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="c-tipo" class="input">
+            <option value="">--</option>
+            <option value="frigo" ${c.tipo === "frigo" ? "selected" : ""}>Frigo</option>
+            <option value="freezer" ${c.tipo === "freezer" ? "selected" : ""}>Freezer</option>
+            <option value="ambiente" ${c.tipo === "ambiente" ? "selected" : ""}>Ambiente</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// =========================
+// COPRODOTTI
+// =========================
+
+export function renderCoprodotti(lista) {
+  return `
+    <div class="card">
+      <h3>Coprodotti</h3>
+
+      ${lista.map((c, i) => `
+        <div class="form-grid" data-cp="${i}">
+          <input class="input" data-field="nome" value="${c.nome || ""}" placeholder="Nome" />
+          <input class="input" type="number" data-field="quantita" value="${c.quantita || ""}" placeholder="Quantità" />
+        </div>
+      `).join("")}
+
+      <button id="btn-add-cp" class="app-button secondary">+ Coprodotto</button>
+    </div>
+  `;
+}
+
+// =========================
+// INGREDIENTI (TUO CODICE)
 // =========================
 
 export function renderIngredienti(ingredienti, prodotti) {
@@ -105,7 +181,7 @@ export function renderIngredienti(ingredienti, prodotti) {
 }
 
 // =========================
-// FASI (BASE INDUSTRIALE)
+// FASI (TUO CODICE)
 // =========================
 
 export function renderFasi(fasi) {
@@ -184,10 +260,6 @@ export function renderAzioni() {
     </div>
   `;
 }
-
-// =========================
-// UTILS
-// =========================
 
 function format(n) {
   return Number(n || 0).toFixed(2);
