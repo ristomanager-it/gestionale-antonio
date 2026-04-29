@@ -1252,17 +1252,36 @@ function getConfezioniValide() {
 
 function getTotaleConfezionatoKg() {
   return getConfezioniValide().reduce((sum, c) => {
-    const porzione = state.porzioni.find((p) => String(p.id) === String(c.porzione_id)) || null;
-    if (!porzione) return sum;
 
-    const pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
-    const kgConf = pesoPorzioneKg * Number(c.pezzi_per_confezione || 0);
-    const kgTot = kgConf * Number(c.numero_confezioni || 0);
+    const porzione = state.porzioni.find(
+      (p) => String(p.id) === String(c.porzione_id)
+    ) || null;
+
+    let pesoPorzioneKg = 0;
+
+    // ✔ caso standard (con porzione)
+    if (porzione) {
+      pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
+    }
+
+    // ✔ caso manuale (senza porzione)
+    else if (!porzione && Number(c.peso_manuale) > 0) {
+      pesoPorzioneKg = Number(c.peso_manuale);
+    }
+
+    // ❌ se non valido → skip
+    if (!pesoPorzioneKg) return sum;
+
+    const pezzi = Number(c.pezzi_per_confezione || 0);
+    const numConf = Number(c.numero_confezioni || 0);
+
+    const kgConf = pesoPorzioneKg * pezzi;
+    const kgTot = kgConf * numConf;
 
     return sum + kgTot;
+
   }, 0);
 }
-
 // ============================================================
 // UTILS
 // ============================================================
