@@ -61,11 +61,9 @@ export function initMenu() {
   function can(route){
     if(window.state?._allAccess) return true
     if(isSuperadmin()) return true
-
     if(window.hasPermesso){
       return window.hasPermesso(route)
     }
-
     return true
   }
 
@@ -104,7 +102,6 @@ export function initMenu() {
         ]
       },
 
-      // 🔥 SISTEMA OPERATIVO CUCINA
       {
         title:"OPERATIVO",
         items:[
@@ -204,7 +201,6 @@ export function initMenu() {
       })
 
       title.onclick = () => {
-
         const isOpen = itemsBox.classList.contains("open")
 
         document.querySelectorAll(".menu-subitems").forEach(el=>{
@@ -219,7 +215,6 @@ export function initMenu() {
           itemsBox.classList.add("open")
           title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
         }
-
       }
 
       sectionBox.appendChild(title)
@@ -240,7 +235,6 @@ export function initMenu() {
     }
 
     menu.appendChild(logout)
-
   }
 
   function openMenu(){
