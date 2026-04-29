@@ -127,7 +127,13 @@ const routes = {
   "bo-comande": () => import("./views/bo/bo-comande.js"),
   "bo-ricette": () => import("./views/bo/ricette-editor.js"),
 
-}; // 🔴 QUESTA MANCAVA
+
+    // =========================================================
+  // APP (OPERATIVO)
+  // =========================================================
+  "app-produzione": () => import("./views/app/app-produzione.js"),
+
+}; // 
 
 /* =========================================================
    ROUTE SCOPE
