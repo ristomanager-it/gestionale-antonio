@@ -116,6 +116,10 @@ export function initMenu() {
           {label:"Magazzino", route:"magazzino"},
           {label:"Ricettario", route:"ricettario"},
           {label:"Preparazioni", route:"preparazioni"}
+          {
+  label: "Produzione Operativa",
+  route: "#/app-produzione"
+}
         ]
       },
 
