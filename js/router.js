@@ -174,7 +174,7 @@ const BO_ROUTES = new Set([
   // PRODUZIONE
   "bo-magazzino",
   "bo-produzione",
-  "bo-comande"
+  "bo-comande",
    "bo-ricette",
 ]);
 /* =========================================================
