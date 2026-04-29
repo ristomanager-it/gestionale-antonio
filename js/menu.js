@@ -107,6 +107,7 @@ export function initMenu() {
       },
 
     {
+ {
   title:"OPERATIVO",
   items:[
     {label:"🪑 Sala", route:"sala"},
@@ -114,15 +115,14 @@ export function initMenu() {
     {label:"Planning Produzione", route:"planner-produzione"},
     {label:"Produzione", route:"produzione"},
 
-    // 🔥 NUOVO
-    {
-      label:"⚙️ Produzione Operativa",
-      route:"app-produzione"
-    },
+    // 🔥 NUOVO SISTEMA
+    {label:"⚙️ Produzione Operativa", route:"app-produzione"},
+
+    // 🔒 VECCHIO (fallback temporaneo)
+    {label:"Preparazioni", route:"preparazioni"},
 
     {label:"Magazzino", route:"magazzino"},
-    {label:"Ricettario", route:"ricettario"},
-    {label:"Preparazioni", route:"preparazioni"}
+    {label:"Ricettario", route:"ricettario"}
   ]
 },
 
