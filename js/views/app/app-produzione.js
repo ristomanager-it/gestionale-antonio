@@ -6,6 +6,7 @@
 
 import { createPageLayout, createCard } from "../../utils/pageLayout.js";
 import { creaLottoProduzione } from "../../modules/produzione/produzione-core.js";
+import { stampaEtichettaLotto } from "../../modules/produzione/produzione-print.js";
 let state = {
   azienda_id: null,
   sede_id: null,
