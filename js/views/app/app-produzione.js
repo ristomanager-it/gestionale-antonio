@@ -5,7 +5,7 @@
 // ============================================================
 
 import { createPageLayout, createCard } from "../../utils/pageLayout.js";
-
+import { creaLottoProduzione } from "../../modules/produzione/produzione-core.js";
 let state = {
   azienda_id: null,
   sede_id: null,
