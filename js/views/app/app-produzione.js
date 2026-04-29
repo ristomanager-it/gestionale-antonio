@@ -426,13 +426,28 @@ function renderConfezioni() {
   const wrap = document.getElementById("app-prod-confezioni");
   if (!wrap) return;
 
+  const btnAdd = document.getElementById("btn-app-add-confezione");
+
+  // 🔴 Nessuna ricetta
   if (!state.ricetta) {
     wrap.innerHTML = `<div class="form-help">Seleziona una ricetta per gestire il confezionamento.</div>`;
+    if (btnAdd) btnAdd.disabled = true;
     return;
   }
 
-  if (!state.porzioni.length) {
-    wrap.innerHTML = `<div class="form-help">Nessuna porzionatura configurata per questa ricetta.</div>`;
+  // 🟡 Nessuna porzionatura → modalità manuale
+  const manualMode = !state.porzioni.length;
+
+  if (btnAdd) btnAdd.disabled = false;
+
+  if (manualMode && !state.confezioni.length) {
+    wrap.innerHTML = `
+      <div class="form-help" style="color:#f59e0b;">
+        ⚠️ Questa ricetta NON ha porzionature configurate.<br>
+        Puoi comunque inserire confezioni manuali.<br>
+        👉 Consigliato completare la scheda ricetta.
+      </div>
+    `;
     return;
   }
 
@@ -442,8 +457,19 @@ function renderConfezioni() {
   }
 
   wrap.innerHTML = state.confezioni.map((row, idx) => {
-    const porzione = state.porzioni.find((p) => String(p.id) === String(row.porzione_id)) || null;
-    const pesoPorzioneKg = porzione ? toKg(porzione.peso_porzione, porzione.unita_misura) : 0;
+
+    let pesoPorzioneKg = 0;
+    let label = "";
+
+    if (!manualMode) {
+      const porzione = state.porzioni.find((p) => String(p.id) === String(row.porzione_id)) || null;
+      pesoPorzioneKg = porzione ? toKg(porzione.peso_porzione, porzione.unita_misura) : 0;
+      label = porzione?.label || "";
+    } else {
+      pesoPorzioneKg = toNumber(row.peso_manuale || 0);
+      label = "Manuale";
+    }
+
     const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione)));
     const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni)));
     const kgConf = pesoPorzioneKg * pezzi;
@@ -452,6 +478,10 @@ function renderConfezioni() {
     return `
       <div class="card menu-card" data-conf-idx="${idx}">
         <div class="form-grid">
+
+          ${
+            !manualMode
+              ? `
           <div class="form-group">
             <label>Porzionatura</label>
             <select class="input" data-field="porzione_id">
@@ -463,6 +493,14 @@ function renderConfezioni() {
               `).join("")}
             </select>
           </div>
+          `
+              : `
+          <div class="form-group">
+            <label>Peso unità (kg)</label>
+            <input class="input" type="number" step="0.001" data-field="peso_manuale" value="${escapeAttr(row.peso_manuale || "")}" />
+          </div>
+          `
+          }
 
           <div class="form-group">
             <label>Pezzi per confezione</label>
@@ -486,12 +524,15 @@ function renderConfezioni() {
 
           <div class="form-group">
             <label>Note confezione</label>
-            <input class="input" data-field="note" value="${escapeAttr(row.note)}" placeholder="Opzionale" />
+            <input class="input" data-field="note" value="${escapeAttr(row.note || "")}" placeholder="Opzionale" />
           </div>
+
         </div>
 
         <div class="form-actions">
-          <button type="button" class="app-button secondary" data-action="remove-conf">Rimuovi</button>
+          <button type="button" class="app-button secondary" data-action="remove-conf">
+            Rimuovi
+          </button>
         </div>
       </div>
     `;
