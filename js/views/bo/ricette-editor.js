@@ -1,6 +1,5 @@
 // ============================================================
-// BO - RICETTE EDITOR (VERSIONE DEFINITIVA)
-// Orchestrazione + UI modulare + CORE
+// BO - RICETTE EDITOR (VERSIONE COMPLETA ESTESA)
 // ============================================================
 
 import { createPageLayout } from "../../utils/pageLayout.js";
@@ -15,7 +14,10 @@ import {
   renderIngredienti,
   renderFasi,
   renderCosti,
-  renderAzioni
+  renderAzioni,
+  renderOutput,
+  renderConservazione,
+  renderCoprodotti
 } from "../../modules/ricette/ricette-ui.js";
 
 // =========================
@@ -32,6 +34,18 @@ let state = {
     resa_kg: 0
   },
 
+  output: {
+    porzioni: 0,
+    peso_porzione: 0
+  },
+
+  conservazione: {
+    giorni: 0,
+    tipo: ""
+  },
+
+  coprodotti: [],
+
   ingredienti: [],
   fasi: [],
 
@@ -40,7 +54,8 @@ let state = {
     lavoro: 0,
     energia: 0,
     industriale: 0,
-    costoKg: 0
+    costoKg: 0,
+    costoPorzione: 0
   }
 };
 
@@ -68,20 +83,28 @@ export async function render(app) {
 }
 
 // =========================
-// RENDER FULL
+// RENDER FULL (DESKTOP)
 // =========================
 
 function renderAll() {
-  const root = document.getElementById("ricette-editor-root");
-  if (!root) return;
+  const left = document.getElementById("col-left");
+  const right = document.getElementById("col-right");
+
+  if (!left || !right) return;
 
   ricalcolaCosti();
 
-  root.innerHTML = `
+  left.innerHTML = `
     ${renderAnagrafica(state.ricetta)}
     ${renderIngredienti(state.ingredienti, prodottiCache)}
     ${renderFasi(state.fasi)}
+  `;
+
+  right.innerHTML = `
     ${renderCosti(state.costi)}
+    ${renderOutput(state.output, state.costi)}
+    ${renderConservazione(state.conservazione)}
+    ${renderCoprodotti(state.coprodotti)}
     ${renderAzioni()}
   `;
 }
@@ -130,59 +153,71 @@ function bindEvents() {
 }
 
 // =========================
-// INPUT (ANAGRAFICA)
+// INPUT
 // =========================
 
 function onInput(e) {
   const t = e.target;
 
-  if (t.id === "r-nome") {
-    state.ricetta.nome = t.value;
-  }
-
-  if (t.id === "r-pezzi") {
-    state.ricetta.pezzi_base = Number(t.value || 0);
-  }
+  if (t.id === "r-nome") state.ricetta.nome = t.value;
+  if (t.id === "r-pezzi") state.ricetta.pezzi_base = Number(t.value || 0);
 
   if (t.id === "r-resa") {
     state.ricetta.resa_kg = Number(t.value || 0);
-    renderAll();
   }
+
+  if (t.id === "r-porzioni") {
+    state.output.porzioni = Number(t.value || 0);
+
+    if (state.ricetta.resa_kg) {
+      state.output.peso_porzione =
+        state.ricetta.resa_kg / state.output.porzioni;
+    }
+  }
+
+  if (t.id === "r-peso-porzione") {
+    state.output.peso_porzione = Number(t.value || 0);
+  }
+
+  if (t.id === "c-giorni") {
+    state.conservazione.giorni = Number(t.value || 0);
+  }
+
+  renderAll();
 }
 
 // =========================
-// CHANGE (INGREDIENTI / FASI)
+// CHANGE
 // =========================
 
 function onChange(e) {
   const t = e.target;
 
-  // INGREDIENTI
+  // ingredienti
   const ingCard = t.closest("[data-idx]");
   if (ingCard) {
     const idx = Number(ingCard.dataset.idx);
     const field = t.getAttribute("data-field");
 
-    if (!state.ingredienti[idx]) return;
-
     state.ingredienti[idx][field] = t.value;
-
     renderAll();
     return;
   }
 
-  // FASI
+  // fasi
   const faseCard = t.closest("[data-fase-idx]");
   if (faseCard) {
     const idx = Number(faseCard.dataset.faseIdx);
     const field = t.getAttribute("data-field");
 
-    if (!state.fasi[idx]) return;
-
     state.fasi[idx][field] = Number(t.value || 0);
-
     renderAll();
     return;
+  }
+
+  if (t.id === "c-tipo") {
+    state.conservazione.tipo = t.value;
+    renderAll();
   }
 }
 
@@ -191,58 +226,41 @@ function onChange(e) {
 // =========================
 
 function onClick(e) {
-  const btn = e.target.closest("[data-action], #btn-add-ing, #btn-add-fase, #btn-save");
+  const btn = e.target.closest("[data-action], #btn-add-ing, #btn-add-fase, #btn-add-cp, #btn-save");
   if (!btn) return;
 
-  // ADD INGREDIENTE
   if (btn.id === "btn-add-ing") {
-    state.ingredienti.push({
-      prodotto_id: "",
-      quantita: 0,
-      unita_misura: "kg"
-    });
-
+    state.ingredienti.push({ prodotto_id: "", quantita: 0, unita_misura: "kg" });
     renderAll();
     return;
   }
 
-  // REMOVE INGREDIENTE
   if (btn.dataset.action === "remove") {
-    const card = btn.closest("[data-idx]");
-    if (!card) return;
-
-    const idx = Number(card.dataset.idx);
+    const idx = Number(btn.closest("[data-idx]").dataset.idx);
     state.ingredienti.splice(idx, 1);
-
     renderAll();
     return;
   }
 
-  // ADD FASE
   if (btn.id === "btn-add-fase") {
-    state.fasi.push({
-      durata_min: 0,
-      lavoro_umano_min: 0,
-      potenza_kw: 0
-    });
-
+    state.fasi.push({ durata_min: 0, lavoro_umano_min: 0, potenza_kw: 0 });
     renderAll();
     return;
   }
 
-  // REMOVE FASE
   if (btn.dataset.action === "remove-fase") {
-    const card = btn.closest("[data-fase-idx]");
-    if (!card) return;
-
-    const idx = Number(card.dataset.faseIdx);
+    const idx = Number(btn.closest("[data-fase-idx]").dataset.faseIdx);
     state.fasi.splice(idx, 1);
-
     renderAll();
     return;
   }
 
-  // SAVE (placeholder)
+  if (btn.id === "btn-add-cp") {
+    state.coprodotti.push({ nome: "", quantita: 0 });
+    renderAll();
+    return;
+  }
+
   if (btn.id === "btn-save") {
     salvaRicetta();
   }
@@ -253,14 +271,17 @@ function onClick(e) {
 // =========================
 
 function ricalcolaCosti() {
-  const result = calcolaCostoRicettaCompleto({
+  const res = calcolaCostoRicettaCompleto({
     ingredienti: state.ingredienti,
     prodottiMap,
     fasi: state.fasi,
     resaKg: state.ricetta.resa_kg
   });
 
-  state.costi = result;
+  const peso = state.output.peso_porzione || 0;
+  const costoPorzione = peso ? res.costoKg * peso : 0;
+
+  state.costi = { ...res, costoPorzione };
 }
 
 // =========================
@@ -268,22 +289,5 @@ function ricalcolaCosti() {
 // =========================
 
 async function salvaRicetta() {
-  const supabase = window.supabaseClient;
-
-  if (!supabase) return;
-
-  const payload = {
-    azienda_id: state.azienda_id,
-    nome: state.ricetta.nome,
-    pezzi_base: state.ricetta.pezzi_base,
-
-    costo_materia_snapshot: state.costi.materia,
-    costo_lavoro_snapshot: state.costi.lavoro,
-    costo_energia_snapshot: state.costi.energia,
-    costo_industriale_snapshot: state.costi.industriale,
-    costo_kg_snapshot: state.costi.costoKg,
-    ultimo_ricalcolo: new Date().toISOString()
-  };
-
-  console.log("SALVATAGGIO (preview):", payload);
+  console.log("SAVE", state);
 }
