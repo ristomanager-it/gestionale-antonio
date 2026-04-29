@@ -95,7 +95,7 @@ export async function render(container) {
         <div class="bo-menu-item" data-route="bo-magazzino">📦 Magazzino</div>
         <div class="bo-menu-item" data-route="bo-produzione">🏭 Produzione</div>
         <div class="bo-menu-item" data-route="bo-comande">🧾 Comande</div>
-
+        <div class="bo-menu-item" data-route="bo-ricette">📖 Ricette</div>
         <!-- CONFIG -->
         <div style="margin-top:10px; font-size:12px; opacity:0.6;">CONFIG</div>
         <div class="bo-menu-item" data-route="bo-booking">📅 Booking</div>
