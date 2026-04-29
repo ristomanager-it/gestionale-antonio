@@ -1243,11 +1243,20 @@ function getScenarioSelezionato() {
 }
 
 function getConfezioniValide() {
-  return state.confezioni.filter((c) =>
-    c.porzione_id &&
-    Number(c.pezzi_per_confezione) > 0 &&
-    Number(c.numero_confezioni) > 0
-  );
+  return state.confezioni.filter((c) => {
+
+    const baseValida =
+      Number(c.pezzi_per_confezione) > 0 &&
+      Number(c.numero_confezioni) > 0;
+
+    // ✔ caso porzioni
+    if (c.porzione_id) return baseValida;
+
+    // ✔ caso manuale
+    if (!c.porzione_id && Number(c.peso_manuale) > 0) return baseValida;
+
+    return false;
+  });
 }
 
 function getTotaleConfezionatoKg() {
