@@ -162,6 +162,7 @@ function renderCardQuantita() {
           <select id="app-prod-um" class="input">
             <option value="kg" selected>kg</option>
             <option value="g">g</option>
+            <option value="pz">pz</option>
           </select>
         </div>
 
