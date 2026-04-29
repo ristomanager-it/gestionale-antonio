@@ -688,7 +688,7 @@ function bindEvents() {
       alert("Seleziona una ricetta prima");
       return;
     }
-    window.location.hash = "#/ricetta?id=" + state.ricetta.id;
+   window.location.hash = "#/bo-ricette?id=" + state.ricetta.id;
   });
 
   // ============================================================
