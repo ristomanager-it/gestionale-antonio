@@ -1,109 +1,109 @@
 // ============================================================
-// BO - RICETTE EDITOR (VERSIONE BASE MODULARE)
-// Multi-azienda + predisposizione multi-sede
+// BO - RICETTE EDITOR (VERSIONE DEFINITIVA)
+// Orchestrazione + UI modulare + CORE
 // ============================================================
 
-import { createPageLayout, createCard } from "../../utils/pageLayout.js";
+import { createPageLayout } from "../../utils/pageLayout.js";
+
 import {
   calcolaCostoRicettaCompleto
 } from "../../modules/ricette/ricette-core.js";
 
+import {
+  renderLayout,
+  renderAnagrafica,
+  renderIngredienti,
+  renderFasi,
+  renderCosti,
+  renderAzioni
+} from "../../modules/ricette/ricette-ui.js";
+
 // =========================
-// STATE LOCALE
+// STATE
 // =========================
+
+let state = {
+  azienda_id: null,
+  sede_id: null,
+
+  ricetta: {
+    nome: "",
+    pezzi_base: 0,
+    resa_kg: 0
+  },
+
+  ingredienti: [],
+  fasi: [],
+
+  costi: {
+    materia: 0,
+    lavoro: 0,
+    energia: 0,
+    industriale: 0,
+    costoKg: 0
+  }
+};
 
 let prodottiCache = [];
 let prodottiMap = new Map();
-
-let ingredienti = [];
-let fasi = [];
 
 // =========================
 // RENDER
 // =========================
 
 export async function render(app) {
+  state.azienda_id = window.state?.azienda?.id || null;
+  state.sede_id = window.state?.sede?.id || null;
+
   app.innerHTML = createPageLayout({
     title: "BO Ricette",
-    subtitle: "Editor modulare ricette (AI-ready)",
-    content: `
-      ${createCard({
-        title: "Anagrafica",
-        body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Nome ricetta</label>
-              <input id="r-nome" class="input" />
-            </div>
-
-            <div class="form-group">
-              <label>Pezzi base</label>
-              <input id="r-pezzi" type="number" class="input" />
-            </div>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Ingredienti",
-        body: `
-          <div id="ingredienti-container"></div>
-
-          <div class="form-actions">
-            <button id="btn-add-ing" class="app-button secondary">
-              + Ingrediente
-            </button>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Output",
-        body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Peso finale (kg)</label>
-              <input id="r-output-peso" type="number" step="0.001" class="input" />
-            </div>
-
-            <div class="form-group" style="grid-column:1/-1;">
-              <div id="r-cost-preview" class="small-muted">
-                Costi: —
-              </div>
-            </div>
-          </div>
-        `
-      })}
-    `
+    subtitle: "Editor modulare (AI-ready)",
+    content: renderLayout()
   });
 
   await loadProdotti();
+
+  renderAll();
   bindEvents();
-  renderIngredienti();
 }
 
 // =========================
-// DATA LOAD (AZIENDA + SEDE)
+// RENDER FULL
+// =========================
+
+function renderAll() {
+  const root = document.getElementById("ricette-editor-root");
+  if (!root) return;
+
+  ricalcolaCosti();
+
+  root.innerHTML = `
+    ${renderAnagrafica(state.ricetta)}
+    ${renderIngredienti(state.ingredienti, prodottiCache)}
+    ${renderFasi(state.fasi)}
+    ${renderCosti(state.costi)}
+    ${renderAzioni()}
+  `;
+}
+
+// =========================
+// DATA LOAD
 // =========================
 
 async function loadProdotti() {
   const supabase = window.supabaseClient;
 
-  const aziendaId = window.state?.azienda?.id;
-  const sedeId = window.state?.sede?.id || null;
-
-  if (!supabase || !aziendaId) return;
+  if (!supabase || !state.azienda_id) return;
 
   let query = supabase
     .from("prodotti")
     .select("id, descrizione, costo_medio, um")
-    .eq("azienda_id", aziendaId)
+    .eq("azienda_id", state.azienda_id)
     .eq("attivo", true)
     .order("descrizione");
 
-  // se esiste sede_id nel DB, attivalo
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
+  if (state.sede_id) {
+    query = query.eq("sede_id", state.sede_id);
   }
 
   const { data, error } = await query;
@@ -120,134 +120,170 @@ async function loadProdotti() {
 }
 
 // =========================
-// INGREDIENTI UI
-// =========================
-
-function renderIngredienti() {
-  const container = document.getElementById("ingredienti-container");
-  if (!container) return;
-
-  if (!ingredienti.length) {
-    container.innerHTML = `<div class="form-help">Nessun ingrediente</div>`;
-    return;
-  }
-
-  container.innerHTML = ingredienti.map((ing, idx) => {
-    return `
-      <div class="card menu-card" data-idx="${idx}">
-        <div class="form-grid">
-
-          <div class="form-group">
-            <label>Prodotto</label>
-            <select class="input" data-field="prodotto_id">
-              <option value="">Seleziona...</option>
-              ${prodottiCache.map(p => `
-                <option value="${p.id}" ${String(p.id) === String(ing.prodotto_id) ? "selected" : ""}>
-                  ${p.descrizione}
-                </option>
-              `).join("")}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Quantità</label>
-            <input type="number" step="0.001" class="input"
-              data-field="quantita"
-              value="${ing.quantita || ""}" />
-          </div>
-
-          <div class="form-group">
-            <label>UM</label>
-            <select class="input" data-field="unita_misura">
-              <option value="kg" ${ing.unita_misura === "kg" ? "selected" : ""}>kg</option>
-              <option value="g" ${ing.unita_misura === "g" ? "selected" : ""}>g</option>
-              <option value="pz" ${ing.unita_misura === "pz" ? "selected" : ""}>pz</option>
-            </select>
-          </div>
-
-        </div>
-
-        <div class="form-actions">
-          <button class="app-button secondary" data-action="remove">
-            Rimuovi
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-// =========================
 // EVENTS
 // =========================
 
 function bindEvents() {
-  document.getElementById("btn-add-ing")?.addEventListener("click", () => {
-    ingredienti.push({
-      prodotto_id: "",
-      quantita: "",
-      unita_misura: "kg"
-    });
-
-    renderIngredienti();
-  });
-
+  document.addEventListener("input", onInput);
   document.addEventListener("change", onChange);
   document.addEventListener("click", onClick);
 }
 
-function onChange(e) {
-  const target = e.target;
-  const card = target.closest("[data-idx]");
-  if (!card) return;
+// =========================
+// INPUT (ANAGRAFICA)
+// =========================
 
-  const idx = Number(card.dataset.idx);
-  const field = target.getAttribute("data-field");
-  if (!field) return;
+function onInput(e) {
+  const t = e.target;
 
-  ingredienti[idx][field] = target.value;
+  if (t.id === "r-nome") {
+    state.ricetta.nome = t.value;
+  }
 
-  aggiornaCosti();
-}
+  if (t.id === "r-pezzi") {
+    state.ricetta.pezzi_base = Number(t.value || 0);
+  }
 
-function onClick(e) {
-  const btn = e.target.closest("[data-action]");
-  if (!btn) return;
-
-  const card = btn.closest("[data-idx]");
-  if (!card) return;
-
-  const idx = Number(card.dataset.idx);
-
-  if (btn.dataset.action === "remove") {
-    ingredienti.splice(idx, 1);
-    renderIngredienti();
-    aggiornaCosti();
+  if (t.id === "r-resa") {
+    state.ricetta.resa_kg = Number(t.value || 0);
+    renderAll();
   }
 }
 
 // =========================
-// CALCOLO COSTI (CORE)
+// CHANGE (INGREDIENTI / FASI)
 // =========================
 
-function aggiornaCosti() {
-  const resaKg = Number(document.getElementById("r-output-peso")?.value || 0);
+function onChange(e) {
+  const t = e.target;
 
+  // INGREDIENTI
+  const ingCard = t.closest("[data-idx]");
+  if (ingCard) {
+    const idx = Number(ingCard.dataset.idx);
+    const field = t.getAttribute("data-field");
+
+    if (!state.ingredienti[idx]) return;
+
+    state.ingredienti[idx][field] = t.value;
+
+    renderAll();
+    return;
+  }
+
+  // FASI
+  const faseCard = t.closest("[data-fase-idx]");
+  if (faseCard) {
+    const idx = Number(faseCard.dataset.faseIdx);
+    const field = t.getAttribute("data-field");
+
+    if (!state.fasi[idx]) return;
+
+    state.fasi[idx][field] = Number(t.value || 0);
+
+    renderAll();
+    return;
+  }
+}
+
+// =========================
+// CLICK
+// =========================
+
+function onClick(e) {
+  const btn = e.target.closest("[data-action], #btn-add-ing, #btn-add-fase, #btn-save");
+  if (!btn) return;
+
+  // ADD INGREDIENTE
+  if (btn.id === "btn-add-ing") {
+    state.ingredienti.push({
+      prodotto_id: "",
+      quantita: 0,
+      unita_misura: "kg"
+    });
+
+    renderAll();
+    return;
+  }
+
+  // REMOVE INGREDIENTE
+  if (btn.dataset.action === "remove") {
+    const card = btn.closest("[data-idx]");
+    if (!card) return;
+
+    const idx = Number(card.dataset.idx);
+    state.ingredienti.splice(idx, 1);
+
+    renderAll();
+    return;
+  }
+
+  // ADD FASE
+  if (btn.id === "btn-add-fase") {
+    state.fasi.push({
+      durata_min: 0,
+      lavoro_umano_min: 0,
+      potenza_kw: 0
+    });
+
+    renderAll();
+    return;
+  }
+
+  // REMOVE FASE
+  if (btn.dataset.action === "remove-fase") {
+    const card = btn.closest("[data-fase-idx]");
+    if (!card) return;
+
+    const idx = Number(card.dataset.faseIdx);
+    state.fasi.splice(idx, 1);
+
+    renderAll();
+    return;
+  }
+
+  // SAVE (placeholder)
+  if (btn.id === "btn-save") {
+    salvaRicetta();
+  }
+}
+
+// =========================
+// CALCOLI
+// =========================
+
+function ricalcolaCosti() {
   const result = calcolaCostoRicettaCompleto({
-    ingredienti,
+    ingredienti: state.ingredienti,
     prodottiMap,
-    fasi,
-    resaKg
+    fasi: state.fasi,
+    resaKg: state.ricetta.resa_kg
   });
 
-  const el = document.getElementById("r-cost-preview");
-  if (!el) return;
+  state.costi = result;
+}
 
-  el.innerHTML = `
-    Materia: € ${result.materia.toFixed(2)}<br>
-    Lavoro: € ${result.lavoro.toFixed(2)}<br>
-    Energia: € ${result.energia.toFixed(2)}<br>
-    <strong>Industriale: € ${result.industriale.toFixed(2)}</strong><br>
-    Costo/kg: € ${result.costoKg.toFixed(2)}
-  `;
+// =========================
+// SAVE
+// =========================
+
+async function salvaRicetta() {
+  const supabase = window.supabaseClient;
+
+  if (!supabase) return;
+
+  const payload = {
+    azienda_id: state.azienda_id,
+    nome: state.ricetta.nome,
+    pezzi_base: state.ricetta.pezzi_base,
+
+    costo_materia_snapshot: state.costi.materia,
+    costo_lavoro_snapshot: state.costi.lavoro,
+    costo_energia_snapshot: state.costi.energia,
+    costo_industriale_snapshot: state.costi.industriale,
+    costo_kg_snapshot: state.costi.costoKg,
+    ultimo_ricalcolo: new Date().toISOString()
+  };
+
+  console.log("SALVATAGGIO (preview):", payload);
 }
