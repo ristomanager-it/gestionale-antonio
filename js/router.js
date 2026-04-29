@@ -125,7 +125,7 @@ const routes = {
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-produzione": () => import("./views/bo/bo-produzione.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js")
-     "bo-ricette": () => import("./views/bo/ricette-editor.js"),
+  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
 
 }; // 🔴 QUESTA MANCAVA
 
