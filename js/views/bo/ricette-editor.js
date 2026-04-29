@@ -70,7 +70,7 @@ let isBound = false;
 
 export async function render(app) {
   resetState();
-
+const ricettaId = window.routeParams?.id || null;
   state.azienda_id = window.state?.azienda?.id || window.state?.azienda_id || null;
   state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
 
@@ -80,10 +80,18 @@ export async function render(app) {
     content: renderLayout()
   });
 
-  await loadProdotti();
+ await loadProdotti();
 
+// 🔹 primo render veloce (UI subito visibile)
+renderAll();
+bindEvents();
+
+// 🔹 se arrivi da produzione con id
+if (ricettaId) {
+  await loadRicettaById(ricettaId);
+
+  // 🔹 aggiorna UI con dati caricati
   renderAll();
-  bindEvents();
 }
 
 function resetState() {
@@ -846,4 +854,61 @@ function setResult(el, message, isError = false) {
   if (!el) return;
   el.innerHTML = message;
   el.style.color = isError ? "#dc2626" : "#16a34a";
+}
+
+// ============================================================
+// LOAD RICETTA DA ID (per apertura da produzione)
+// ============================================================
+
+async function loadRicettaById(id) {
+  const supabase = window.supabaseClient;
+  if (!supabase || !id) return;
+
+  try {
+    // 🔹 Ricetta base
+    const { data: ricetta, error } = await supabase
+      .from("ricette")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) throw error;
+
+    state.ricetta = {
+      nome: ricetta.nome || "",
+      tipo: ricetta.tipo || "finita",
+      pezzi_base: ricetta.pezzi_base || 0,
+      resa_kg: ricetta.resa_kg || 0,
+      descrizione: ricetta.descrizione || ""
+    };
+
+    // 🔹 Ingredienti
+    const { data: ingredienti } = await supabase
+      .from("ricette_ingredienti")
+      .select("*")
+      .eq("ricetta_id", id)
+      .order("ordine");
+
+    state.ingredienti = ingredienti || [];
+
+    // 🔹 Fasi
+    const { data: fasi } = await supabase
+      .from("ricette_preparazione_fasi")
+      .select("*")
+      .eq("ricetta_id", id)
+      .order("ordine");
+
+    state.fasi = fasi || [];
+
+    // 🔹 Conservazione
+    const { data: scenari } = await supabase
+      .from("ricette_conservazione")
+      .select("*")
+      .eq("ricetta_id", id);
+
+    state.scenari_conservazione = scenari || [];
+
+  } catch (err) {
+    console.error("Errore load ricetta:", err);
+  }
 }
