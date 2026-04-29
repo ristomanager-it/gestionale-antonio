@@ -621,86 +621,41 @@ async function salvaProduzione() {
     return;
   }
 
-  const supabase = window.supabaseClient;
-  const scenario = getScenarioSelezionato();
-
   try {
-    const dettaglioConfezionamento = buildDettaglioConfezionamento();
-    const totaleConfezionato = getTotaleConfezionatoKg();
 
-    const { data: lotto, error: errLotto } = await supabase
-      .from("produzione_lotti")
-      .insert({
-        azienda_id: state.azienda_id,
-        sede_id: state.sede_id,
-        ricetta_id: state.ricetta.id,
-        data_produzione: state.produzione.data_produzione,
-        data_scadenza: state.produzione.data_scadenza,
-        quantita_output: state.produzione.peso_reale_kg,
-        unita_misura: "kg",
-        scenario_conservazione_id: state.produzione.scenario_id,
-        stato: "firmato",
-        note: state.produzione.note || "",
-        operatore_id: state.operatore.id,
-        firmato_at: new Date().toISOString(),
-        dettaglio_confezionamento: dettaglioConfezionamento,
-        resa_percentuale: calcolaResaPercentuale(),
-        scarto_percentuale: calcolaScartoPercentuale()
-      })
-      .select()
-      .single();
+    const lotto = await creaLottoProduzione({
+      ricetta: state.ricetta,
 
-    if (errLotto) throw errLotto;
+      dati: {
+        dataProduzione: state.produzione.data_produzione,
+        pesoRealeKg: state.produzione.peso_reale_kg,
+        scenarioId: state.produzione.scenario_id,
+        scadenza: state.produzione.data_scadenza,
+        noteLotto: state.produzione.note,
+        operatore: state.operatore
+      },
 
-    const lottoRef = lotto.lotto_uuid || lotto.id;
-
-    const righePayload = dettaglioConfezionamento.map((riga) => ({
-      azienda_id: state.azienda_id,
-      produzione_id: lottoRef,
-      ricetta_id: state.ricetta.id,
-      conservazione_id: state.produzione.scenario_id,
-      formato_label: riga.label || "CONFEZIONE",
-      quantita: riga.kg_totali_riga,
-      unita: "kg",
-      moltiplicatore_ricetta: getMoltiplicatoreRicetta(),
-      lotto: lotto.codice_lotto || "",
-      porzione_id: Number(riga.porzione_id),
-      note_confezionamento: `Confezioni=${riga.numero_confezioni} | Pezzi/Conf=${riga.pezzi_per_confezione} | Kg/Conf=${formatNumber(riga.kg_per_confezione)}${riga.note ? ` | ${riga.note}` : ""}`
-    }));
-
-    const { error: errRighe } = await supabase
-      .from("schede_produzione_righe")
-      .insert(righePayload);
-
-    if (errRighe) throw errRighe;
-
-    await generaMovimentiMagazzino({
-      lotto,
-      lottoRef,
-      dettaglioConfezionamento,
-      dataProduzione: state.produzione.data_produzione
+      confezioni: state.confezioni,
+      coprodotti: [], // pronto per futuro
+      porzioniCache: state.porzioni,
+      scenariConservazione: state.scenari
     });
 
-    await logEventoHaccp({
-      produzioneId: lottoRef,
-      tipo: "APP_PRODUZIONE_REGISTRATA",
-      payload: {
-        ricetta_id: state.ricetta.id,
-        scenario_id: scenario?.id || null,
-        scenario_label: scenario?.scenario_label || null,
-        data_scadenza: state.produzione.data_scadenza,
-        peso_reale_kg: state.produzione.peso_reale_kg,
-        totale_confezionato_kg: totaleConfezionato,
-        operatore_id: state.operatore.id
-      }
-    });
+    setResult(
+      result,
+      `✅ Produzione registrata. Lotto: ${escapeHtml(lotto.codice_lotto || lotto.id)}`,
+      false
+    );
 
-    setResult(result, `✅ Produzione registrata. Lotto: ${escapeHtml(lotto.codice_lotto || "")}`, false);
     lockUI();
 
   } catch (error) {
-    console.error("Errore salvaProduzione app:", error);
-    setResult(result, `❌ Errore: ${escapeHtml(error.message || "salvataggio non riuscito")}`, true);
+    console.error("Errore produzione:", error);
+    setResult(
+      result,
+      `❌ Errore: ${escapeHtml(error.message || "salvataggio non riuscito")}`,
+      true
+    );
   }
 }
 
