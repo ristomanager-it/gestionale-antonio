@@ -1073,10 +1073,26 @@ function buildLabelsForPrint() {
   const labels = [];
 
   for (const c of getConfezioniValide()) {
-    const porzione = state.porzioni.find((p) => String(p.id) === String(c.porzione_id)) || null;
-    if (!porzione) continue;
 
-    const pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
+    const porzione = state.porzioni.find(
+      (p) => String(p.id) === String(c.porzione_id)
+    ) || null;
+
+    let pesoPorzioneKg = 0;
+    let labelPorzione = "";
+
+    // ✔ caso standard
+    if (porzione) {
+      pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
+      labelPorzione = porzione.label || "";
+    }
+
+    // ✔ caso manuale
+    else {
+      pesoPorzioneKg = Number(c.peso_manuale || 0);
+      labelPorzione = "Manuale";
+    }
+
     const kgConf = pesoPorzioneKg * Number(c.pezzi_per_confezione || 0);
 
     for (let i = 0; i < Number(c.numero_confezioni || 0); i++) {
@@ -1087,7 +1103,7 @@ function buildLabelsForPrint() {
         dataProduzione: formatDateITA(state.produzione.data_produzione),
         dataScadenza: formatDateITA(state.produzione.data_scadenza),
         rows: [
-          { k: "Porzionatura", v: porzione.label || "" },
+          { k: "Tipo", v: labelPorzione },
           { k: "Pezzi", v: String(c.pezzi_per_confezione || "") },
           { k: "Peso", v: `${formatNumber(kgConf)} kg` },
           scenario?.scenario_label ? { k: "Scenario", v: scenario.scenario_label } : null,
@@ -1103,7 +1119,6 @@ function buildLabelsForPrint() {
 
   return labels;
 }
-
 function buildPrintHtml({ title, labels, format }) {
   const w = format.w;
   const h = format.h;
