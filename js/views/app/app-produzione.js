@@ -1,160 +1,16 @@
 // ============================================================
-// APP PRODUZIONE - VERSIONE OPERATORE SEMI AUTOMATICA
+// APP PRODUZIONE - VERSIONE OPERATORE COMPLETA
 // Vanilla JS + Supabase
-// Hash route prevista: #/app-produzione
+// Route: #/app-produzione
 // ============================================================
 
 import { createPageLayout, createCard } from "../../utils/pageLayout.js";
 import { creaLottoProduzione } from "../../modules/produzione/produzione-core.js";
-import { stampaEtichettaLotto } from "../../modules/produzione/produzione-print.js";
-let state = {
-  azienda_id: null,
-  sede_id: null,
 
-  ricette: [],
-  ricetta: null,
+let state = {};
 
-  porzioni: [],
-  scenari: [],
-
-  operatore: null,
-
-  produzione: {
-    data_produzione: "",
-    peso_reale_kg: 0,
-    scenario_id: "",
-    data_scadenza: "",
-    note: ""
-  },
-
-  confezioni: []
-};
-
-export async function render(container) {
-  resetState();
-
-  state.azienda_id = window.state?.azienda?.id || window.state?.azienda_id || null;
-  state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
-  state.produzione.data_produzione = todayISO();
-
-  container.innerHTML = createPageLayout({
-    title: "Produzione Operativa",
-    subtitle: "Produzione guidata: ricetta, peso reale, conservazione, confezionamento e lotto",
-    content: `
-      ${createCard({
-        title: "1. Ricetta",
-        body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Ricetta da produrre</label>
-              <select id="app-prod-ricetta" class="input">
-                <option value="">Caricamento ricette...</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Data produzione</label>
-              <input id="app-prod-data" type="date" class="input" value="${state.produzione.data_produzione}" />
-            </div>
-          </div>
-
-          <div id="app-prod-ricetta-info" class="form-help" style="margin-top:10px;">
-            Seleziona una ricetta.
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "2. Operatore",
-        body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>PIN operatore</label>
-              <input id="app-prod-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." />
-            </div>
-
-            <div class="form-group">
-              <label>Operatore</label>
-              <input id="app-prod-operatore" class="input" readonly placeholder="Non identificato" />
-            </div>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "3. Peso reale e conservazione",
-        body: `
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Peso reale prodotto (kg)</label>
-              <input id="app-prod-peso" type="number" min="0" step="0.001" class="input" placeholder="Es. 12.500" />
-            </div>
-
-            <div class="form-group">
-              <label>Scenario conservazione</label>
-              <select id="app-prod-scenario" class="input" disabled>
-                <option value="">Seleziona ricetta...</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Scadenza automatica</label>
-              <input id="app-prod-scadenza" type="date" class="input" readonly />
-            </div>
-
-            <div class="form-group">
-              <label>Note lotto</label>
-              <input id="app-prod-note" class="input" placeholder="Opzionale" />
-            </div>
-          </div>
-
-          <div id="app-prod-scenario-info" class="form-help" style="margin-top:10px;">
-            Lo scenario determina la scadenza del lotto.
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "4. Confezionamento guidato",
-        body: `
-          <div id="app-prod-confezioni"></div>
-
-          <div class="form-actions" style="margin-top:12px;">
-            <button id="btn-app-add-confezione" type="button" class="app-button secondary" disabled>
-              + Aggiungi confezione
-            </button>
-          </div>
-
-          <div id="app-prod-totali" class="form-help" style="margin-top:10px;">
-            Totale confezionato: 0 kg
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "5. Conferma",
-        body: `
-          <div class="form-actions">
-            <button id="btn-app-salva-produzione" type="button" class="app-button">
-              ✅ Registra produzione
-            </button>
-          </div>
-
-          <div id="app-prod-result" class="form-result"></div>
-        `
-      })}
-    `
-  });
-
-  await loadRicette();
-  bindEvents();
-  renderRicetteSelect();
-  renderConfezioni();
-  aggiornaTotali();
-}
-
-function resetState() {
-  state = {
+function getInitialState() {
+  return {
     azienda_id: null,
     sede_id: null,
 
@@ -168,14 +24,232 @@ function resetState() {
 
     produzione: {
       data_produzione: "",
+      quantita_prodotta: 0,
+      unita_misura: "kg",
       peso_reale_kg: 0,
       scenario_id: "",
       data_scadenza: "",
       note: ""
     },
 
-    confezioni: []
+    confezioni: [],
+
+    savedLotto: null,
+    savedLottoRef: null,
+    savedLabels: []
   };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+
+export async function render(container) {
+  state = getInitialState();
+
+  state.azienda_id = window.state?.azienda?.id || window.state?.azienda_id || null;
+  state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
+  state.produzione.data_produzione = todayISO();
+
+  container.innerHTML = createPageLayout({
+    title: "Produzione Operativa",
+    subtitle: "Ricetta, lotto, quantità prodotta, conservazione, confezionamento e stampa etichette",
+    content: `
+      ${renderCardRicetta()}
+      ${renderCardOperatore()}
+      ${renderCardQuantita()}
+      ${renderCardConservazione()}
+      ${renderCardConfezionamento()}
+      ${renderCardAzioni()}
+      ${renderModalStampa()}
+    `
+  });
+
+  await loadRicette();
+
+  bindEvents();
+  renderRicetteSelect();
+  renderScenarioSelect();
+  renderConfezioni();
+  aggiornaRicettaInfo();
+  aggiornaScenarioInfo();
+  aggiornaTotali();
+  aggiornaAlert();
+}
+
+function renderCardRicetta() {
+  return createCard({
+    title: "1. Ricetta",
+    body: `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Ricetta da produrre</label>
+          <select id="app-prod-ricetta" class="input">
+            <option value="">Caricamento ricette...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Data produzione</label>
+          <input id="app-prod-data" type="date" class="input" value="${escapeAttr(state.produzione.data_produzione)}" />
+        </div>
+      </div>
+
+      <div id="app-prod-ricetta-info" class="form-help" style="margin-top:10px;">
+        Seleziona una ricetta.
+      </div>
+    `
+  });
+}
+
+function renderCardOperatore() {
+  return createCard({
+    title: "2. Operatore",
+    body: `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>PIN operatore</label>
+          <input id="app-prod-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." />
+        </div>
+
+        <div class="form-group">
+          <label>Operatore</label>
+          <input id="app-prod-operatore" class="input" readonly placeholder="Non identificato" />
+        </div>
+      </div>
+    `
+  });
+}
+
+function renderCardQuantita() {
+  return createCard({
+    title: "3. Quantità prodotta",
+    body: `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Quantità prodotta reale</label>
+          <input id="app-prod-quantita" type="number" min="0" step="0.001" class="input" placeholder="Es. 12.500" />
+        </div>
+
+        <div class="form-group">
+          <label>UM</label>
+          <select id="app-prod-um" class="input">
+            <option value="kg" selected>kg</option>
+            <option value="g">g</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Equivalente kg</label>
+          <input id="app-prod-peso-kg" class="input" readonly placeholder="0,000 kg" />
+        </div>
+
+        <div class="form-group">
+          <label>Note lotto / destinazione</label>
+          <input id="app-prod-note" class="input" placeholder="Es. Battesimo Lucia, Trattoria Rossi..." />
+        </div>
+      </div>
+    `
+  });
+}
+
+function renderCardConservazione() {
+  return createCard({
+    title: "4. Conservazione",
+    body: `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Scenario conservazione</label>
+          <select id="app-prod-scenario" class="input" disabled>
+            <option value="">Seleziona ricetta...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Scadenza automatica</label>
+          <input id="app-prod-scadenza" type="date" class="input" readonly />
+        </div>
+
+        <div class="form-group">
+          <label>Temperatura</label>
+          <input id="app-prod-temperatura" class="input" readonly placeholder="—" />
+        </div>
+      </div>
+
+      <div id="app-prod-scenario-info" class="form-help" style="margin-top:10px;">
+        Lo scenario determina la scadenza del lotto.
+      </div>
+    `
+  });
+}
+
+function renderCardConfezionamento() {
+  return createCard({
+    title: "5. Confezionamento",
+    body: `
+      <div id="app-prod-confezioni"></div>
+
+      <div class="form-actions" style="margin-top:12px;">
+        <button id="btn-app-add-confezione" type="button" class="app-button secondary" disabled>
+          + Aggiungi confezione
+        </button>
+      </div>
+
+      <div id="app-prod-totali" class="form-help" style="margin-top:10px;"></div>
+      <div id="app-prod-alert" class="form-help" style="margin-top:10px;"></div>
+    `
+  });
+}
+
+function renderCardAzioni() {
+  return createCard({
+    title: "6. Conferma",
+    body: `
+      <div class="form-actions">
+        <button id="btn-app-salva-produzione" type="button" class="app-button">
+          ✅ Registra produzione
+        </button>
+
+        <button id="btn-app-open-stampa" type="button" class="app-button secondary" disabled>
+          🏷 Stampa etichette
+        </button>
+      </div>
+
+      <div id="app-prod-result" class="form-result"></div>
+    `
+  });
+}
+
+function renderModalStampa() {
+  return `
+    <div id="app-print-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
+      <div class="view" style="max-width:720px; margin:0 auto; background:var(--card-bg, #111); border-radius:14px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
+          <h3 style="margin:0;">🏷 Stampa etichette</h3>
+          <button id="app-print-close" class="app-button secondary" type="button">✕ Chiudi</button>
+        </div>
+
+        <div style="margin-top:14px; display:grid; gap:12px;">
+          <div class="form-group">
+            <label>Formato etichetta</label>
+            <select id="app-print-format" class="input">
+              <option value="50x50">50 x 50 mm</option>
+              <option value="70x40">70 x 40 mm</option>
+              <option value="100x150">100 x 150 mm</option>
+            </select>
+          </div>
+
+          <div id="app-print-info" class="form-help"></div>
+
+          <div class="form-actions">
+            <button id="btn-app-print-labels" type="button" class="app-button">
+              🖨 Stampa etichette confezioni
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ============================================================
@@ -301,7 +375,7 @@ async function resolveOperatoreByPin(pin) {
 }
 
 // ============================================================
-// RENDER UI
+// RENDER UI PARTS
 // ============================================================
 
 function renderRicetteSelect() {
@@ -353,7 +427,7 @@ function renderConfezioni() {
   if (!wrap) return;
 
   if (!state.ricetta) {
-    wrap.innerHTML = `<div class="form-help">Seleziona una ricetta.</div>`;
+    wrap.innerHTML = `<div class="form-help">Seleziona una ricetta per gestire il confezionamento.</div>`;
     return;
   }
 
@@ -363,15 +437,17 @@ function renderConfezioni() {
   }
 
   if (!state.confezioni.length) {
-    wrap.innerHTML = `<div class="form-help">Aggiungi almeno una confezione.</div>`;
+    wrap.innerHTML = `<div class="form-help">Nessuna confezione inserita. Premi “+ Aggiungi confezione”.</div>`;
     return;
   }
 
   wrap.innerHTML = state.confezioni.map((row, idx) => {
-    const porzione = state.porzioni.find((p) => String(p.id) === String(row.porzione_id));
+    const porzione = state.porzioni.find((p) => String(p.id) === String(row.porzione_id)) || null;
     const pesoPorzioneKg = porzione ? toKg(porzione.peso_porzione, porzione.unita_misura) : 0;
-    const kgConf = pesoPorzioneKg * toNumber(row.pezzi_per_confezione);
-    const kgTot = kgConf * toNumber(row.numero_confezioni);
+    const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione)));
+    const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni)));
+    const kgConf = pesoPorzioneKg * pezzi;
+    const kgTot = kgConf * numConf;
 
     return `
       <div class="card menu-card" data-conf-idx="${idx}">
@@ -404,13 +480,13 @@ function renderConfezioni() {
           </div>
 
           <div class="form-group">
-            <label>Kg totali</label>
+            <label>Kg totali riga</label>
             <input class="input" readonly value="${formatNumber(kgTot)} kg" />
           </div>
 
           <div class="form-group">
-            <label>Note</label>
-            <input class="input" data-field="note" value="${escapeAttr(row.note)}" />
+            <label>Note confezione</label>
+            <input class="input" data-field="note" value="${escapeAttr(row.note)}" placeholder="Opzionale" />
           </div>
         </div>
 
@@ -436,14 +512,18 @@ function aggiornaRicettaInfo() {
 
 function aggiornaScenarioInfo() {
   const el = document.getElementById("app-prod-scenario-info");
+  const temp = document.getElementById("app-prod-temperatura");
   if (!el) return;
 
   const scenario = getScenarioSelezionato();
 
   if (!scenario) {
     el.innerText = "Lo scenario determina la scadenza del lotto.";
+    if (temp) temp.value = "";
     return;
   }
+
+  if (temp) temp.value = scenario.temperatura || "";
 
   const parti = [
     scenario.scenario_label || "Scenario",
@@ -458,16 +538,55 @@ function aggiornaScenarioInfo() {
 
 function aggiornaTotali() {
   const el = document.getElementById("app-prod-totali");
+  const kgEl = document.getElementById("app-prod-peso-kg");
   if (!el) return;
 
   const totale = getTotaleConfezionatoKg();
   const peso = state.produzione.peso_reale_kg || 0;
   const diff = peso - totale;
 
+  if (kgEl) kgEl.value = `${formatNumber(peso)} kg`;
+
   el.innerHTML = `
+    Quantità prodotta: <strong>${formatNumber(peso)} kg</strong><br>
     Totale confezionato: <strong>${formatNumber(totale)} kg</strong><br>
-    Peso reale: <strong>${formatNumber(peso)} kg</strong><br>
     Differenza: <strong>${formatNumber(diff)} kg</strong>
+  `;
+}
+
+function aggiornaAlert() {
+  const el = document.getElementById("app-prod-alert");
+  if (!el) return;
+
+  const alerts = [];
+  const peso = state.produzione.peso_reale_kg || 0;
+  const totale = getTotaleConfezionatoKg();
+  const diff = peso - totale;
+
+  if (!state.ricetta) alerts.push("Seleziona una ricetta.");
+  if (!state.operatore?.id) alerts.push("Inserisci un PIN operatore valido.");
+  if (!state.produzione.scenario_id) alerts.push("Seleziona uno scenario conservazione.");
+  if (!peso || peso <= 0) alerts.push("Inserisci la quantità prodotta.");
+  if (!state.confezioni.length) alerts.push("Aggiungi almeno una confezione.");
+
+  if (peso > 0 && totale > 0 && Math.abs(diff) > 0.2) {
+    alerts.push(`Differenza quantità/confezionato: ${formatNumber(diff)} kg.`);
+  }
+
+  const valide = getConfezioniValide();
+  if (state.confezioni.length && !valide.length) {
+    alerts.push("Le confezioni inserite non sono valide.");
+  }
+
+  if (!alerts.length) {
+    el.innerHTML = `<span style="color:#16a34a;">✅ Nessun problema rilevato</span>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="color:#dc2626;">
+      ${alerts.map((a) => `<div>⚠️ ${escapeHtml(a)}</div>`).join("")}
+    </div>
   `;
 }
 
@@ -479,27 +598,34 @@ function bindEvents() {
   document.getElementById("app-prod-ricetta")?.addEventListener("change", onRicettaChange);
   document.getElementById("app-prod-data")?.addEventListener("change", onDataChange);
   document.getElementById("app-prod-pin")?.addEventListener("input", onPinInput);
-  document.getElementById("app-prod-peso")?.addEventListener("input", onPesoInput);
+  document.getElementById("app-prod-quantita")?.addEventListener("input", onQuantitaInput);
+  document.getElementById("app-prod-um")?.addEventListener("change", onUnitaInput);
   document.getElementById("app-prod-scenario")?.addEventListener("change", onScenarioChange);
   document.getElementById("app-prod-note")?.addEventListener("input", onNoteInput);
+
   document.getElementById("btn-app-add-confezione")?.addEventListener("click", addConfezione);
   document.getElementById("app-prod-confezioni")?.addEventListener("input", onConfezioneInput);
   document.getElementById("app-prod-confezioni")?.addEventListener("change", onConfezioneInput);
   document.getElementById("app-prod-confezioni")?.addEventListener("click", onConfezioneClick);
+
   document.getElementById("btn-app-salva-produzione")?.addEventListener("click", salvaProduzione);
+  document.getElementById("btn-app-open-stampa")?.addEventListener("click", openPrintModal);
+  document.getElementById("app-print-close")?.addEventListener("click", closePrintModal);
+  document.getElementById("app-print-backdrop")?.addEventListener("click", (e) => {
+    if (e.target?.id === "app-print-backdrop") closePrintModal();
+  });
+  document.getElementById("btn-app-print-labels")?.addEventListener("click", stampaEtichetteConfezioni);
 }
 
 async function onRicettaChange(e) {
   const ricettaId = e.target.value || "";
-  state.ricetta = state.ricette.find((r) => String(r.id) === String(ricettaId)) || null;
 
+  state.ricetta = state.ricette.find((r) => String(r.id) === String(ricettaId)) || null;
   state.porzioni = [];
   state.scenari = [];
   state.confezioni = [];
   state.produzione.scenario_id = "";
   state.produzione.data_scadenza = "";
-
-  aggiornaRicettaInfo();
 
   const btnAdd = document.getElementById("btn-app-add-confezione");
   if (btnAdd) btnAdd.disabled = !state.ricetta;
@@ -510,14 +636,17 @@ async function onRicettaChange(e) {
 
   renderScenarioSelect();
   renderConfezioni();
+  aggiornaRicettaInfo();
   aggiornaScenarioInfo();
   aggiornaScadenza();
   aggiornaTotali();
+  aggiornaAlert();
 }
 
 function onDataChange(e) {
   state.produzione.data_produzione = e.target.value || "";
   aggiornaScadenza();
+  aggiornaAlert();
 }
 
 async function onPinInput(e) {
@@ -527,27 +656,45 @@ async function onPinInput(e) {
   if (!pin) {
     state.operatore = null;
     if (out) out.value = "";
+    aggiornaAlert();
     return;
   }
 
   const operatore = await resolveOperatoreByPin(pin);
-
   state.operatore = operatore;
 
-  if (out) {
-    out.value = operatore ? operatore.nome : "PIN non valido";
-  }
+  if (out) out.value = operatore ? operatore.nome : "PIN non valido";
+
+  aggiornaAlert();
 }
 
-function onPesoInput(e) {
-  state.produzione.peso_reale_kg = toNumber(e.target.value);
+function onQuantitaInput(e) {
+  state.produzione.quantita_prodotta = toNumber(e.target.value);
+  state.produzione.peso_reale_kg = toKg(
+    state.produzione.quantita_prodotta,
+    state.produzione.unita_misura
+  );
+
   aggiornaTotali();
+  aggiornaAlert();
+}
+
+function onUnitaInput(e) {
+  state.produzione.unita_misura = e.target.value || "kg";
+  state.produzione.peso_reale_kg = toKg(
+    state.produzione.quantita_prodotta,
+    state.produzione.unita_misura
+  );
+
+  aggiornaTotali();
+  aggiornaAlert();
 }
 
 function onScenarioChange(e) {
   state.produzione.scenario_id = e.target.value || "";
   aggiornaScadenza();
   aggiornaScenarioInfo();
+  aggiornaAlert();
 }
 
 function onNoteInput(e) {
@@ -572,6 +719,7 @@ function onConfezioneInput(e) {
 
   renderConfezioni();
   aggiornaTotali();
+  aggiornaAlert();
 }
 
 function onConfezioneClick(e) {
@@ -587,6 +735,7 @@ function onConfezioneClick(e) {
     state.confezioni.splice(idx, 1);
     renderConfezioni();
     aggiornaTotali();
+    aggiornaAlert();
   }
 }
 
@@ -606,6 +755,7 @@ function addConfezione() {
 
   renderConfezioni();
   aggiornaTotali();
+  aggiornaAlert();
 }
 
 // ============================================================
@@ -623,7 +773,6 @@ async function salvaProduzione() {
   }
 
   try {
-
     const lotto = await creaLottoProduzione({
       ricetta: state.ricetta,
 
@@ -636,11 +785,15 @@ async function salvaProduzione() {
         operatore: state.operatore
       },
 
-      confezioni: state.confezioni,
-      coprodotti: [], // pronto per futuro
+      confezioni: getConfezioniValide(),
+      coprodotti: [],
       porzioniCache: state.porzioni,
       scenariConservazione: state.scenari
     });
+
+    state.savedLotto = lotto;
+    state.savedLottoRef = lotto.lotto_uuid || lotto.id;
+    state.savedLabels = buildLabelsForPrint();
 
     setResult(
       result,
@@ -648,7 +801,8 @@ async function salvaProduzione() {
       false
     );
 
-    lockUI();
+    lockUIAfterSave();
+    openPrintModal();
 
   } catch (error) {
     console.error("Errore produzione:", error);
@@ -666,95 +820,240 @@ function validaProduzione() {
   if (!state.ricetta?.id) return "Seleziona una ricetta.";
   if (!state.operatore?.id) return "Inserisci un PIN operatore valido.";
   if (!state.produzione.data_produzione) return "Inserisci la data produzione.";
-  if (!state.produzione.peso_reale_kg || state.produzione.peso_reale_kg <= 0) return "Inserisci il peso reale prodotto.";
+  if (!state.produzione.peso_reale_kg || state.produzione.peso_reale_kg <= 0) return "Inserisci la quantità prodotta.";
   if (!state.produzione.scenario_id) return "Seleziona uno scenario di conservazione.";
   if (!state.produzione.data_scadenza) return "La scadenza non è stata calcolata.";
-  if (!state.confezioni.length) return "Inserisci almeno una confezione.";
   if (!state.ricetta.prodotto_output_id) return "La ricetta non ha prodotto output collegato.";
 
-  const valide = state.confezioni.filter((c) =>
-    c.porzione_id &&
-    Number(c.pezzi_per_confezione) > 0 &&
-    Number(c.numero_confezioni) > 0
-  );
-
+  const valide = getConfezioniValide();
   if (!valide.length) return "Inserisci almeno una confezione valida.";
 
   return null;
 }
 
-// ============================================================
-// MAGAZZINO + HACCP
-// ============================================================
+function lockUIAfterSave() {
+  document.querySelectorAll("input, select").forEach((el) => {
+    el.setAttribute("disabled", "disabled");
+  });
 
-async function generaMovimentiMagazzino({ lotto, lottoRef, dettaglioConfezionamento, dataProduzione }) {
-  const supabase = window.supabaseClient;
+  const saveBtn = document.getElementById("btn-app-salva-produzione");
+  if (saveBtn) saveBtn.setAttribute("disabled", "disabled");
 
-  const { data: ingredienti, error: errIng } = await supabase
-    .from("ricetta_ingredienti")
-    .select("*")
-    .eq("azienda_id", state.azienda_id)
-    .eq("ricetta_id", state.ricetta.id);
+  const addBtn = document.getElementById("btn-app-add-confezione");
+  if (addBtn) addBtn.setAttribute("disabled", "disabled");
 
-  if (errIng) throw errIng;
-
-  const moltiplicatore = getMoltiplicatoreRicetta();
-
-  for (const ing of ingredienti || []) {
-    const prodottoId = ing.prodotto_id;
-    const qBase = toNumber(ing.quantita ?? ing.qta ?? ing.qta_ingrediente ?? 0);
-    if (!prodottoId || qBase <= 0) continue;
-
-    const { error } = await supabase
-      .from("magazzino_movimenti")
-      .insert({
-        azienda_id: state.azienda_id,
-        prodotto_id: prodottoId,
-        tipo_movimento: "SCARICO",
-        quantita: qBase * moltiplicatore,
-        data_movimento: dataProduzione,
-        riferimento_tipo: "LOTTO_PRODUZIONE",
-        riferimento_id: lottoRef,
-        note: `Scarico ingredienti lotto ${lotto.codice_lotto || ""}`
-      });
-
-    if (error) throw error;
-  }
-
-  for (const riga of dettaglioConfezionamento) {
-    const { error } = await supabase
-      .from("magazzino_movimenti")
-      .insert({
-        azienda_id: state.azienda_id,
-        prodotto_id: state.ricetta.prodotto_output_id,
-        tipo_movimento: "CARICO",
-        quantita: riga.kg_totali_riga,
-        data_movimento: dataProduzione,
-        riferimento_tipo: "LOTTO_PRODUZIONE",
-        riferimento_id: lottoRef,
-        note: `Carico prodotto finito lotto ${lotto.codice_lotto || ""} — ${riga.label || ""}`
-      });
-
-    if (error) throw error;
-  }
+  const printBtn = document.getElementById("btn-app-open-stampa");
+  if (printBtn) printBtn.removeAttribute("disabled");
 }
 
-async function logEventoHaccp({ produzioneId, tipo, payload }) {
-  const supabase = window.supabaseClient;
-  if (!supabase || !produzioneId || !tipo) return;
+// ============================================================
+// PRINT
+// ============================================================
 
-  try {
-    await supabase
-      .from("produzione_eventi_log")
-      .insert({
-        azienda_id: state.azienda_id,
-        produzione_id: produzioneId,
-        tipo_evento: tipo,
-        payload: payload || {}
-      });
-  } catch (error) {
-    console.warn("Log HACCP non registrato:", error);
+function openPrintModal() {
+  if (!state.savedLotto) {
+    alert("Salva prima la produzione.");
+    return;
   }
+
+  const info = document.getElementById("app-print-info");
+  if (info) {
+    info.innerHTML = `
+      Lotto: <strong>${escapeHtml(state.savedLotto.codice_lotto || state.savedLotto.id)}</strong><br>
+      Etichette pronte: <strong>${state.savedLabels.length}</strong>
+    `;
+  }
+
+  const backdrop = document.getElementById("app-print-backdrop");
+  if (backdrop) backdrop.style.display = "block";
+}
+
+function closePrintModal() {
+  const backdrop = document.getElementById("app-print-backdrop");
+  if (backdrop) backdrop.style.display = "none";
+}
+
+function stampaEtichetteConfezioni() {
+  if (!state.savedLotto) {
+    alert("Salva prima la produzione.");
+    return;
+  }
+
+  const formatId = document.getElementById("app-print-format")?.value || "50x50";
+  const format = getLabelFormat(formatId);
+  const labels = buildLabelsForPrint();
+
+  if (!labels.length) {
+    alert("Nessuna etichetta valida da stampare.");
+    return;
+  }
+
+  const html = buildPrintHtml({
+    title: "Etichette Produzione",
+    labels,
+    format
+  });
+
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert("Popup bloccato. Abilita le finestre popup per stampare.");
+    return;
+  }
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function buildLabelsForPrint() {
+  const lotto = state.savedLotto;
+  if (!lotto) return [];
+
+  const scenario = getScenarioSelezionato();
+  const labels = [];
+
+  for (const c of getConfezioniValide()) {
+    const porzione = state.porzioni.find((p) => String(p.id) === String(c.porzione_id)) || null;
+    if (!porzione) continue;
+
+    const pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
+    const kgConf = pesoPorzioneKg * Number(c.pezzi_per_confezione || 0);
+
+    for (let i = 0; i < Number(c.numero_confezioni || 0); i++) {
+      labels.push({
+        titolo: state.ricetta?.nome || "Prodotto",
+        lotto: lotto.codice_lotto || lotto.id,
+        lotto_uuid: lotto.lotto_uuid || lotto.id,
+        dataProduzione: formatDateITA(state.produzione.data_produzione),
+        dataScadenza: formatDateITA(state.produzione.data_scadenza),
+        rows: [
+          { k: "Porzionatura", v: porzione.label || "" },
+          { k: "Pezzi", v: String(c.pezzi_per_confezione || "") },
+          { k: "Peso", v: `${formatNumber(kgConf)} kg` },
+          scenario?.scenario_label ? { k: "Scenario", v: scenario.scenario_label } : null,
+          scenario?.temperatura ? { k: "Temperatura", v: scenario.temperatura } : null,
+          state.operatore?.nome ? { k: "Operatore", v: state.operatore.nome } : null,
+          state.produzione.note ? { k: "Note lotto", v: state.produzione.note } : null,
+          c.note ? { k: "Note confezione", v: c.note } : null
+        ].filter(Boolean),
+        footer: "Generato da Ristoflow — Produzione"
+      });
+    }
+  }
+
+  return labels;
+}
+
+function buildPrintHtml({ title, labels, format }) {
+  const w = format.w;
+  const h = format.h;
+
+  return `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    @page {
+      size: ${w}mm ${h}mm;
+      margin: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    .label {
+      width: ${w}mm;
+      height: ${h}mm;
+      box-sizing: border-box;
+      padding: ${w >= 100 ? 8 : 4}mm;
+      page-break-after: always;
+      overflow: hidden;
+      border: 1px solid #000;
+      position: relative;
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: ${w >= 100 ? 18 : 12}px;
+      margin-bottom: 3mm;
+    }
+
+    .lotto {
+      font-weight: 700;
+      font-size: ${w >= 100 ? 15 : 11}px;
+      margin-bottom: 2mm;
+    }
+
+    .dates,
+    .row,
+    .footer {
+      font-size: ${w >= 100 ? 12 : 9}px;
+      line-height: 1.25;
+      margin-bottom: 1mm;
+    }
+
+    .footer {
+      position: absolute;
+      left: ${w >= 100 ? 8 : 4}mm;
+      right: ${w >= 100 ? 8 : 4}mm;
+      bottom: 3mm;
+      font-size: ${w >= 100 ? 10 : 7}px;
+    }
+
+    .qr {
+      position: absolute;
+      right: ${w >= 100 ? 8 : 4}mm;
+      top: ${w >= 100 ? 8 : 4}mm;
+      font-size: ${w >= 100 ? 11 : 8}px;
+      border: 1px solid #000;
+      padding: 2mm;
+      max-width: 26mm;
+      overflow: hidden;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  ${(labels || []).map((label) => `
+    <div class="label">
+      <div class="title">${escapeHtml(label.titolo)}</div>
+      <div class="lotto">LOTTO: ${escapeHtml(label.lotto)}</div>
+      <div class="dates">Prod: ${escapeHtml(label.dataProduzione)} — Scad: ${escapeHtml(label.dataScadenza)}</div>
+
+      ${(label.rows || []).map((r) => `
+        <div class="row">${escapeHtml(r.k)}${r.k ? ": " : ""}${escapeHtml(r.v)}</div>
+      `).join("")}
+
+      <div class="qr">${escapeHtml(label.lotto_uuid || label.lotto)}</div>
+      <div class="footer">${escapeHtml(label.footer || "")}</div>
+    </div>
+  `).join("")}
+
+  <script>
+    window.onload = function(){
+      window.print();
+    };
+  </script>
+</body>
+</html>
+  `;
+}
+
+function getLabelFormat(id) {
+  const formats = {
+    "50x50": { id: "50x50", w: 50, h: 50 },
+    "70x40": { id: "70x40", w: 70, h: 40 },
+    "100x150": { id: "100x150", w: 100, h: 150 }
+  };
+
+  return formats[id] || formats["50x50"];
 }
 
 // ============================================================
@@ -783,65 +1082,25 @@ function getScenarioSelezionato() {
   return state.scenari.find((s) => String(s.id) === String(state.produzione.scenario_id)) || null;
 }
 
-function buildDettaglioConfezionamento() {
-  return state.confezioni
-    .filter((c) => c.porzione_id && Number(c.pezzi_per_confezione) > 0 && Number(c.numero_confezioni) > 0)
-    .map((c) => {
-      const porzione = state.porzioni.find((p) => String(p.id) === String(c.porzione_id)) || null;
-      const pesoPorzioneKg = porzione ? toKg(porzione.peso_porzione, porzione.unita_misura) : 0;
-      const kgPerConf = pesoPorzioneKg * Number(c.pezzi_per_confezione || 0);
-      const kgTot = kgPerConf * Number(c.numero_confezioni || 0);
-
-      return {
-        porzione_id: c.porzione_id,
-        label: porzione?.label || "",
-        peso_porzione_kg: pesoPorzioneKg,
-        pezzi_per_confezione: Number(c.pezzi_per_confezione || 0),
-        numero_confezioni: Number(c.numero_confezioni || 0),
-        kg_per_confezione: kgPerConf,
-        kg_totali_riga: kgTot,
-        note: c.note || ""
-      };
-    });
+function getConfezioniValide() {
+  return state.confezioni.filter((c) =>
+    c.porzione_id &&
+    Number(c.pezzi_per_confezione) > 0 &&
+    Number(c.numero_confezioni) > 0
+  );
 }
 
 function getTotaleConfezionatoKg() {
-  return buildDettaglioConfezionamento()
-    .reduce((sum, r) => sum + Number(r.kg_totali_riga || 0), 0);
-}
+  return getConfezioniValide().reduce((sum, c) => {
+    const porzione = state.porzioni.find((p) => String(p.id) === String(c.porzione_id)) || null;
+    if (!porzione) return sum;
 
-function getResaTeoricaKg() {
-  if (!state.ricetta?.resa_teorica) return null;
-  return toKg(state.ricetta.resa_teorica, state.ricetta.resa_unita || "kg");
-}
+    const pesoPorzioneKg = toKg(porzione.peso_porzione, porzione.unita_misura);
+    const kgConf = pesoPorzioneKg * Number(c.pezzi_per_confezione || 0);
+    const kgTot = kgConf * Number(c.numero_confezioni || 0);
 
-function getMoltiplicatoreRicetta() {
-  const teorica = getResaTeoricaKg();
-  if (!teorica || teorica <= 0) return 1;
-  if (!state.produzione.peso_reale_kg || state.produzione.peso_reale_kg <= 0) return 1;
-  return state.produzione.peso_reale_kg / teorica;
-}
-
-function calcolaResaPercentuale() {
-  const teorica = getResaTeoricaKg();
-  if (!teorica || teorica <= 0) return null;
-  return (state.produzione.peso_reale_kg / teorica) * 100;
-}
-
-function calcolaScartoPercentuale() {
-  const teorica = getResaTeoricaKg();
-  if (!teorica || teorica <= 0) return null;
-  return ((teorica - state.produzione.peso_reale_kg) / teorica) * 100;
-}
-
-// ============================================================
-// UI LOCK
-// ============================================================
-
-function lockUI() {
-  document.querySelectorAll("input, select, button").forEach((el) => {
-    if (el.id !== "logout-btn") el.setAttribute("disabled", "disabled");
-  });
+    return sum + kgTot;
+  }, 0);
 }
 
 // ============================================================
@@ -877,6 +1136,13 @@ function formatNumber(value) {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3
   });
+}
+
+function formatDateITA(dateISO) {
+  if (!dateISO) return "";
+  const d = new Date(dateISO + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return dateISO;
+  return d.toLocaleDateString("it-IT");
 }
 
 function setResult(el, message, isError = false) {
