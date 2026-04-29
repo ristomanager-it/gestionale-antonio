@@ -113,13 +113,14 @@ export function initMenu() {
           {label:"📅 Prenotazioni", route:"prenotazioni"},
           {label:"Planning Produzione", route:"planner-produzione"},
           {label:"Produzione", route:"produzione"},
-          {label:"Magazzino", route:"magazzino"},
-          {label:"Ricettario", route:"ricettario"},
-          {label:"Preparazioni", route:"preparazioni"}
-          {
+           {
   label: "Produzione Operativa",
   route: "#/app-produzione"
 }
+          {label:"Magazzino", route:"magazzino"},
+          {label:"Ricettario", route:"ricettario"},
+          {label:"Preparazioni", route:"preparazioni"}
+         
         ]
       },
 
