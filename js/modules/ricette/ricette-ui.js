@@ -1,5 +1,5 @@
 // ============================================================
-// RICETTE UI - DESKTOP COMPLETO
+// RICETTE UI - DESKTOP COMPLETO (FIX CONSERVAZIONE)
 // ============================================================
 
 export function renderLayout() {
@@ -41,7 +41,7 @@ export function renderAnagrafica(ricetta) {
 }
 
 // =========================
-// OUTPUT + PORZIONI
+// OUTPUT
 // =========================
 
 export function renderOutput(output, costi) {
@@ -69,30 +69,49 @@ export function renderOutput(output, costi) {
 }
 
 // =========================
-// CONSERVAZIONE
+// 🔥 NUOVA CONSERVAZIONE SCENARI
 // =========================
 
-export function renderConservazione(c) {
+export function renderConservazioneScenari(lista) {
   return `
     <div class="card">
-      <h3>Conservazione</h3>
+      <h3>Scenari conservazione</h3>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Durata (giorni)</label>
-          <input id="c-giorni" type="number" class="input" value="${c.giorni || ""}" />
-        </div>
+      ${lista.length === 0 ? `
+        <div class="form-help">Nessuno scenario</div>
+      ` : `
+        ${lista.map((s, i) => `
+          <div class="card menu-card" data-scenario-idx="${i}">
+            <div class="form-grid">
 
-        <div class="form-group">
-          <label>Tipo</label>
-          <select id="c-tipo" class="input">
-            <option value="">--</option>
-            <option value="frigo" ${c.tipo === "frigo" ? "selected" : ""}>Frigo</option>
-            <option value="freezer" ${c.tipo === "freezer" ? "selected" : ""}>Freezer</option>
-            <option value="ambiente" ${c.tipo === "ambiente" ? "selected" : ""}>Ambiente</option>
-          </select>
-        </div>
-      </div>
+              <input class="input" data-field="scenario_label"
+                placeholder="Nome scenario"
+                value="${s.scenario_label || ""}" />
+
+              <input class="input" data-field="abbattimento"
+                placeholder="Abbattimento"
+                value="${s.abbattimento || ""}" />
+
+              <input class="input" data-field="confezionamento"
+                placeholder="Confezionamento"
+                value="${s.confezionamento || ""}" />
+
+              <input class="input" type="number" data-field="shelf_life_giorni"
+                placeholder="Giorni"
+                value="${s.shelf_life_giorni || ""}" />
+
+            </div>
+
+            <button class="app-button secondary" data-action="remove-scenario">
+              Rimuovi
+            </button>
+          </div>
+        `).join("")}
+      `}
+
+      <button id="btn-add-scenario" class="app-button secondary">
+        + Scenario
+      </button>
     </div>
   `;
 }
@@ -119,7 +138,7 @@ export function renderCoprodotti(lista) {
 }
 
 // =========================
-// INGREDIENTI (TUO CODICE)
+// INGREDIENTI
 // =========================
 
 export function renderIngredienti(ingredienti, prodotti) {
@@ -141,33 +160,24 @@ export function renderIngredienti(ingredienti, prodotti) {
         <div class="card menu-card" data-idx="${idx}">
           <div class="form-grid">
 
-            <div class="form-group">
-              <label>Prodotto</label>
-              <select class="input" data-field="prodotto_id">
-                <option value="">Seleziona...</option>
-                ${prodotti.map(p => `
-                  <option value="${p.id}" ${String(p.id) === String(ing.prodotto_id) ? "selected" : ""}>
-                    ${p.descrizione}
-                  </option>
-                `).join("")}
-              </select>
-            </div>
+            <select class="input" data-field="prodotto_id">
+              <option value="">Seleziona...</option>
+              ${prodotti.map(p => `
+                <option value="${p.id}" ${String(p.id) === String(ing.prodotto_id) ? "selected" : ""}>
+                  ${p.descrizione}
+                </option>
+              `).join("")}
+            </select>
 
-            <div class="form-group">
-              <label>Quantità</label>
-              <input type="number" step="0.001" class="input"
-                data-field="quantita"
-                value="${ing.quantita || ""}" />
-            </div>
+            <input type="number" step="0.001" class="input"
+              data-field="quantita"
+              value="${ing.quantita || ""}" />
 
-            <div class="form-group">
-              <label>UM</label>
-              <select class="input" data-field="unita_misura">
-                <option value="kg" ${ing.unita_misura === "kg" ? "selected" : ""}>kg</option>
-                <option value="g" ${ing.unita_misura === "g" ? "selected" : ""}>g</option>
-                <option value="pz" ${ing.unita_misura === "pz" ? "selected" : ""}>pz</option>
-              </select>
-            </div>
+            <select class="input" data-field="unita_misura">
+              <option value="kg" ${ing.unita_misura === "kg" ? "selected" : ""}>kg</option>
+              <option value="g" ${ing.unita_misura === "g" ? "selected" : ""}>g</option>
+              <option value="pz" ${ing.unita_misura === "pz" ? "selected" : ""}>pz</option>
+            </select>
 
           </div>
 
@@ -181,7 +191,7 @@ export function renderIngredienti(ingredienti, prodotti) {
 }
 
 // =========================
-// FASI (TUO CODICE)
+// FASI
 // =========================
 
 export function renderFasi(fasi) {
@@ -203,20 +213,9 @@ export function renderFasi(fasi) {
         <div class="card menu-card" data-fase-idx="${idx}">
           <div class="form-grid">
 
-            <div class="form-group">
-              <label>Durata (min)</label>
-              <input type="number" class="input" data-field="durata_min" value="${f.durata_min || ""}" />
-            </div>
-
-            <div class="form-group">
-              <label>Lavoro umano (min)</label>
-              <input type="number" class="input" data-field="lavoro_umano_min" value="${f.lavoro_umano_min || ""}" />
-            </div>
-
-            <div class="form-group">
-              <label>Potenza (kW)</label>
-              <input type="number" step="0.1" class="input" data-field="potenza_kw" value="${f.potenza_kw || ""}" />
-            </div>
+            <input type="number" class="input" data-field="durata_min" value="${f.durata_min || ""}" />
+            <input type="number" class="input" data-field="lavoro_umano_min" value="${f.lavoro_umano_min || ""}" />
+            <input type="number" step="0.1" class="input" data-field="potenza_kw" value="${f.potenza_kw || ""}" />
 
           </div>
 
