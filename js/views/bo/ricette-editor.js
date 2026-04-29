@@ -683,105 +683,156 @@ function syncPorzioniDaPesoPorzione() {
   state.output.porzioni = Math.floor(state.ricetta.resa_kg / state.output.peso_porzione);
 }
 
-// =========================
-// SAVE
-// =========================
-
 async function salvaRicetta() {
   const resultEl = document.getElementById("ricetta-save-result");
   const supabase = window.supabaseClient;
 
-  if (!supabase) {
-    setResult(resultEl, "Errore: Supabase non inizializzato", true);
-    return;
-  }
+  try {
+    if (!supabase) throw new Error("Supabase non inizializzato");
+    if (!state.azienda_id) throw new Error("Azienda mancante");
+    if (!state.ricetta.nome.trim()) throw new Error("Nome ricetta obbligatorio");
+    if (!state.ricetta.resa_kg) throw new Error("Resa kg obbligatoria");
 
-  if (!state.azienda_id) {
-    setResult(resultEl, "Errore: azienda non trovata", true);
-    return;
-  }
+    // =========================
+    // 1. RICETTA
+    // =========================
 
-  if (!state.ricetta.nome.trim()) {
-    setResult(resultEl, "Inserisci il nome della ricetta", true);
-    return;
-  }
-
-  if (!state.ricetta.resa_kg) {
-    setResult(resultEl, "Inserisci la resa totale in kg", true);
-    return;
-  }
-
-  const payload = buildPayload();
-
-  console.log("SAVE RICETTA BO:", payload);
-  setResult(resultEl, "Anteprima salvataggio pronta in console. Prossimo step: insert/update DB completo.", false);
-}
-
-function buildPayload() {
-  return {
-    azienda_id: state.azienda_id,
-    sede_id: state.sede_id,
-
-    ricetta: {
-      ...state.ricetta,
-      costo_materia_snapshot: state.costi.materia,
-      costo_lavoro_snapshot: state.costi.lavoro,
-      costo_energia_snapshot: state.costi.energia,
-      costo_industriale_snapshot: state.costi.industriale,
-      costo_kg_snapshot: state.costi.costoKg,
-      ultimo_ricalcolo: new Date().toISOString()
-    },
-
-    ingredienti: state.ingredienti.map((ing, idx) => ({
-      ...ing,
-      ordine: idx + 1,
-      azienda_id: state.azienda_id
-    })),
-
-    fasi: state.fasi.map((fase, idx) => ({
-      ...fase,
-      ordine: idx + 1,
-      azienda_id: state.azienda_id
-    })),
-
-    output: {
-      azienda_id: state.azienda_id,
-      peso_finale: state.ricetta.resa_kg,
-      unita_misura: "kg"
-    },
-
-    porzione: {
-      azienda_id: state.azienda_id,
-      label: "Porzione standard",
-      peso_porzione: state.output.peso_porzione,
-      unita_misura: "kg",
-      attivo: true
-    },
-
-    conservazione: state.scenari_conservazione.map((scenario) => ({
-      azienda_id: state.azienda_id,
-      scenario_label: scenario.scenario_label,
-      abbattimento: scenario.abbattimento,
-      confezionamento: scenario.confezionamento,
-      shelf_life_giorni: scenario.shelf_life_giorni,
-      trattamento: scenario.trattamento,
-      temperatura: scenario.temperatura,
-      note: scenario.note,
-      attivo: scenario.attivo !== false,
-      passaggi: (scenario.passaggi || []).map((p, idx) => ({
-        ...p,
+    const { data: ricetta, error: errRicetta } = await supabase
+      .from("ricette")
+      .insert({
         azienda_id: state.azienda_id,
-        posizione: idx + 1
-      }))
-    })),
+        sede_id: state.sede_id,
+        nome: state.ricetta.nome,
+        tipo: state.ricetta.tipo,
+        resa_kg: state.ricetta.resa_kg,
+        pezzi_base: state.ricetta.pezzi_base,
+        descrizione: state.ricetta.descrizione,
+        costo_kg: state.costi.costoKg
+      })
+      .select()
+      .single();
 
-    coprodotti: state.coprodotti.map((cp) => ({
-      ...cp,
-      azienda_id: state.azienda_id
-    }))
-  };
+    if (errRicetta) throw errRicetta;
+
+    const ricetta_id = ricetta.id;
+
+    // =========================
+    // 2. INGREDIENTI
+    // =========================
+
+    if (state.ingredienti.length) {
+      const payload = state.ingredienti.map((i, idx) => ({
+        azienda_id: state.azienda_id,
+        ricetta_id,
+        prodotto_id: i.prodotto_id,
+        quantita: i.quantita,
+        unita_misura: i.unita_misura,
+        ordine: idx + 1
+      }));
+
+      const { error } = await supabase
+        .from("ricette_ingredienti")
+        .insert(payload);
+
+      if (error) throw error;
+    }
+
+    // =========================
+    // 3. FASI
+    // =========================
+
+    if (state.fasi.length) {
+      const payload = state.fasi.map((f, idx) => ({
+        azienda_id: state.azienda_id,
+        ricetta_id,
+        titolo: f.titolo,
+        durata_min: f.durata_min,
+        lavoro_umano_min: f.lavoro_umano_min,
+        potenza_kw: f.potenza_kw,
+        ordine: idx + 1
+      }));
+
+      const { error } = await supabase
+        .from("ricette_preparazione_fasi")
+        .insert(payload);
+
+      if (error) throw error;
+    }
+
+    // =========================
+    // 4. OUTPUT
+    // =========================
+
+    await supabase.from("ricette_output").insert({
+      azienda_id: state.azienda_id,
+      ricetta_id,
+      peso_totale: state.ricetta.resa_kg
+    });
+
+    // =========================
+    // 5. PORZIONE
+    // =========================
+
+    await supabase.from("ricette_porzione").insert({
+      azienda_id: state.azienda_id,
+      ricetta_id,
+      peso_porzione: state.output.peso_porzione
+    });
+
+    // =========================
+    // 6. CONSERVAZIONE
+    // =========================
+
+    for (const scenario of state.scenari_conservazione) {
+      const { data: cons, error } = await supabase
+        .from("ricette_conservazione")
+        .insert({
+          azienda_id: state.azienda_id,
+          ricetta_id,
+          scenario_label: scenario.scenario_label,
+          abbattimento: scenario.abbattimento,
+          confezionamento: scenario.confezionamento,
+          shelf_life_giorni: scenario.shelf_life_giorni,
+          temperatura: scenario.temperatura,
+          trattamento: scenario.trattamento,
+          note: scenario.note
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const cons_id = cons.id;
+
+      if (scenario.passaggi?.length) {
+        const payload = scenario.passaggi.map((p, idx) => ({
+          azienda_id: state.azienda_id,
+          ricetta_id,
+          ricette_conservazione_id: cons_id,
+          posizione: idx + 1,
+          titolo: p.titolo,
+          tipo_passaggio: p.tipo_passaggio,
+          attrezzatura: p.attrezzatura,
+          temperatura_c: p.temperatura_c,
+          durata_min: p.durata_min,
+          descrizione_operativa: p.descrizione_operativa
+        }));
+
+        const { error: errPass } = await supabase
+          .from("ricette_conservazione_passaggi")
+          .insert(payload);
+
+        if (errPass) throw errPass;
+      }
+    }
+
+    setResult(resultEl, "✅ Ricetta salvata correttamente", false);
+
+  } catch (err) {
+    console.error(err);
+    setResult(resultEl, "❌ Errore salvataggio: " + err.message, true);
+  }
 }
-
 // =========================
 // UTILS
 // =========================
