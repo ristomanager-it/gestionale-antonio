@@ -82,17 +82,44 @@ function renderCardRicetta() {
     title: "1. Ricetta",
     body: `
       <div class="form-grid">
+
         <div class="form-group">
           <label>Ricetta da produrre</label>
-          <select id="app-prod-ricetta" class="input">
-            <option value="">Caricamento ricette...</option>
-          </select>
+
+          <div style="display:flex; gap:8px; align-items:center;">
+
+            <select id="app-prod-ricetta" class="input" style="flex:1;">
+              <option value="">Caricamento ricette...</option>
+            </select>
+
+            <button 
+              id="btn-view-ricetta" 
+              type="button" 
+              class="app-button secondary"
+              title="Visualizza ricetta"
+              disabled
+              style="padding:0 12px;"
+            >
+              👁
+            </button>
+
+          </div>
+
+          <div class="form-help" style="margin-top:6px;">
+            Se hai dubbi puoi aprire la scheda ricetta
+          </div>
         </div>
 
         <div class="form-group">
           <label>Data produzione</label>
-          <input id="app-prod-data" type="date" class="input" value="${escapeAttr(state.produzione.data_produzione)}" />
+          <input 
+            id="app-prod-data" 
+            type="date" 
+            class="input" 
+            value="${escapeAttr(state.produzione.data_produzione)}" 
+          />
         </div>
+
       </div>
 
       <div id="app-prod-ricetta-info" class="form-help" style="margin-top:10px;">
@@ -101,7 +128,6 @@ function renderCardRicetta() {
     `
   });
 }
-
 function renderCardOperatore() {
   return createCard({
     title: "2. Operatore",
