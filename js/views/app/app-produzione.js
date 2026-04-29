@@ -873,18 +873,39 @@ function validaProduzione() {
 }
 
 function lockUIAfterSave() {
+
+  // 🔒 Blocca tutti i campi input
   document.querySelectorAll("input, select").forEach((el) => {
-    el.setAttribute("disabled", "disabled");
+    el.disabled = true;
   });
 
+  // 🔒 Bottone salva
   const saveBtn = document.getElementById("btn-app-salva-produzione");
-  if (saveBtn) saveBtn.setAttribute("disabled", "disabled");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.classList.add("disabled");
+  }
 
+  // 🔒 Bottone aggiungi confezione
   const addBtn = document.getElementById("btn-app-add-confezione");
-  if (addBtn) addBtn.setAttribute("disabled", "disabled");
+  if (addBtn) {
+    addBtn.disabled = true;
+    addBtn.classList.add("disabled");
+  }
 
+  // 🔓 Bottone stampa (ATTIVO SOLO DOPO SALVATAGGIO)
   const printBtn = document.getElementById("btn-app-open-stampa");
-  if (printBtn) printBtn.removeAttribute("disabled");
+  if (printBtn) {
+    printBtn.disabled = false;
+    printBtn.classList.remove("disabled");
+
+    // opzionale: evidenzia visivamente
+    printBtn.style.opacity = "1";
+    printBtn.style.cursor = "pointer";
+  }
+
+  // 🧠 Debug utile (puoi toglierlo dopo)
+  console.log("UI bloccata, stampa attiva");
 }
 
 // ============================================================
