@@ -70,7 +70,9 @@ let isBound = false;
 
 export async function render(app) {
   resetState();
-const ricettaId = window.routeParams?.id || null;
+
+  const ricettaId = window.routeParams?.id || null;
+
   state.azienda_id = window.state?.azienda?.id || window.state?.azienda_id || null;
   state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
 
@@ -80,18 +82,21 @@ const ricettaId = window.routeParams?.id || null;
     content: renderLayout()
   });
 
- await loadProdotti();
+  await loadProdotti();
 
-// 🔹 primo render veloce (UI subito visibile)
-renderAll();
-bindEvents();
-
-// 🔹 se arrivi da produzione con id
-if (ricettaId) {
-  await loadRicettaById(ricettaId);
-
-  // 🔹 aggiorna UI con dati caricati
+  // 🔹 render iniziale
   renderAll();
+  bindEvents();
+
+  // 🔹 apertura da produzione
+  if (ricettaId) {
+    try {
+      await loadRicettaById(ricettaId);
+      renderAll();
+    } catch (err) {
+      console.error("Errore apertura ricetta:", err);
+    }
+  }
 }
 
 function resetState() {
