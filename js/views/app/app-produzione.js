@@ -687,20 +687,41 @@ function bindEvents() {
 async function onRicettaChange(e) {
   const ricettaId = e.target.value || "";
 
+  // 🔄 Reset base
   state.ricetta = state.ricette.find((r) => String(r.id) === String(ricettaId)) || null;
   state.porzioni = [];
   state.scenari = [];
   state.confezioni = [];
+
   state.produzione.scenario_id = "";
   state.produzione.data_scadenza = "";
 
+  // 🔘 Bottoni
   const btnAdd = document.getElementById("btn-app-add-confezione");
   if (btnAdd) btnAdd.disabled = !state.ricetta;
 
+  const btnView = document.getElementById("btn-view-ricetta");
+  if (btnView) btnView.disabled = !state.ricetta;
+
+  // 🔄 UI immediata (evita lag percepito)
+  renderScenarioSelect();
+  renderConfezioni();
+  aggiornaRicettaInfo();
+  aggiornaScenarioInfo();
+  aggiornaScadenza();
+  aggiornaTotali();
+  aggiornaAlert();
+
+  // 📦 Caricamento dati ricetta
   if (state.ricetta) {
-    await loadRicettaDettagli(state.ricetta.id);
+    try {
+      await loadRicettaDettagli(state.ricetta.id);
+    } catch (err) {
+      console.error("Errore caricamento ricetta:", err);
+    }
   }
 
+  // 🔄 Re-render con dati reali
   renderScenarioSelect();
   renderConfezioni();
   aggiornaRicettaInfo();
@@ -709,7 +730,6 @@ async function onRicettaChange(e) {
   aggiornaTotali();
   aggiornaAlert();
 }
-
 function onDataChange(e) {
   state.produzione.data_produzione = e.target.value || "";
   aggiornaScadenza();
