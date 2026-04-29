@@ -175,6 +175,7 @@ const BO_ROUTES = new Set([
   "bo-magazzino",
   "bo-produzione",
   "bo-comande"
+   "bo-ricette",
 ]);
 /* =========================================================
    STORAGE KEYS
