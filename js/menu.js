@@ -106,23 +106,25 @@ export function initMenu() {
         ]
       },
 
-      {
-        title:"OPERATIVO",
-        items:[
-          {label:"🪑 Sala", route:"sala"},
-          {label:"📅 Prenotazioni", route:"prenotazioni"},
-          {label:"Planning Produzione", route:"planner-produzione"},
-          {label:"Produzione", route:"produzione"},
-           {
-  label: "Produzione Operativa",
-  route: "#/app-produzione"
-}
-          {label:"Magazzino", route:"magazzino"},
-          {label:"Ricettario", route:"ricettario"},
-          {label:"Preparazioni", route:"preparazioni"}
-         
-        ]
-      },
+    {
+  title:"OPERATIVO",
+  items:[
+    {label:"🪑 Sala", route:"sala"},
+    {label:"📅 Prenotazioni", route:"prenotazioni"},
+    {label:"Planning Produzione", route:"planner-produzione"},
+    {label:"Produzione", route:"produzione"},
+
+    // 🔥 NUOVO
+    {
+      label:"⚙️ Produzione Operativa",
+      route:"app-produzione"
+    },
+
+    {label:"Magazzino", route:"magazzino"},
+    {label:"Ricettario", route:"ricettario"},
+    {label:"Preparazioni", route:"preparazioni"}
+  ]
+},
 
       {
         title:"AMMINISTRAZIONE",
