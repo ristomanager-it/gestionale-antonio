@@ -662,28 +662,80 @@ function aggiornaAlert() {
 // ============================================================
 
 function bindEvents() {
-  document.getElementById("app-prod-ricetta")?.addEventListener("change", onRicettaChange);
-  document.getElementById("app-prod-data")?.addEventListener("change", onDataChange);
-  document.getElementById("app-prod-pin")?.addEventListener("input", onPinInput);
-  document.getElementById("app-prod-quantita")?.addEventListener("input", onQuantitaInput);
-  document.getElementById("app-prod-um")?.addEventListener("change", onUnitaInput);
-  document.getElementById("app-prod-scenario")?.addEventListener("change", onScenarioChange);
-  document.getElementById("app-prod-note")?.addEventListener("input", onNoteInput);
 
-  document.getElementById("btn-app-add-confezione")?.addEventListener("click", addConfezione);
-  document.getElementById("app-prod-confezioni")?.addEventListener("input", onConfezioneInput);
-  document.getElementById("app-prod-confezioni")?.addEventListener("change", onConfezioneInput);
-  document.getElementById("app-prod-confezioni")?.addEventListener("click", onConfezioneClick);
+  const on = (id, event, handler) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener(event, handler);
+  };
 
-  document.getElementById("btn-app-salva-produzione")?.addEventListener("click", salvaProduzione);
-  document.getElementById("btn-app-open-stampa")?.addEventListener("click", openPrintModal);
-  document.getElementById("app-print-close")?.addEventListener("click", closePrintModal);
-  document.getElementById("app-print-backdrop")?.addEventListener("click", (e) => {
-    if (e.target?.id === "app-print-backdrop") closePrintModal();
+  // ============================================================
+  // BASE FORM
+  // ============================================================
+
+  on("app-prod-ricetta", "change", onRicettaChange);
+  on("app-prod-data", "change", onDataChange);
+  on("app-prod-pin", "input", onPinInput);
+  on("app-prod-quantita", "input", onQuantitaInput);
+  on("app-prod-um", "change", onUnitaInput);
+  on("app-prod-scenario", "change", onScenarioChange);
+  on("app-prod-note", "input", onNoteInput);
+
+  // 👁 VIEW RICETTA
+  on("btn-view-ricetta", "click", () => {
+    if (!state.ricetta?.id) {
+      alert("Seleziona una ricetta prima");
+      return;
+    }
+    window.location.hash = "#/ricetta?id=" + state.ricetta.id;
   });
-  document.getElementById("btn-app-print-labels")?.addEventListener("click", stampaEtichetteConfezioni);
-}
 
+  // ============================================================
+  // CONFEZIONAMENTO
+  // ============================================================
+
+  on("btn-app-add-confezione", "click", addConfezione);
+
+  const confWrap = document.getElementById("app-prod-confezioni");
+  if (confWrap) {
+    confWrap.addEventListener("input", onConfezioneInput);
+    confWrap.addEventListener("change", onConfezioneInput);
+    confWrap.addEventListener("click", onConfezioneClick);
+  }
+
+  // ============================================================
+  // PRODUZIONE
+  // ============================================================
+
+  on("btn-app-salva-produzione", "click", salvaProduzione);
+
+  // 🏷 STAMPA (INTELLIGENTE)
+  on("btn-app-open-stampa", "click", () => {
+    if (!state.savedLotto) {
+      alert("⚠️ Devi prima registrare la produzione.");
+      return;
+    }
+    openPrintModal();
+  });
+
+  on("btn-app-print-labels", "click", stampaEtichetteConfezioni);
+
+  // ============================================================
+  // MODAL
+  // ============================================================
+
+  on("app-print-close", "click", closePrintModal);
+
+  const backdrop = document.getElementById("app-print-backdrop");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target?.id === "app-print-backdrop") {
+        closePrintModal();
+      }
+    });
+  }
+
+}
 async function onRicettaChange(e) {
   const ricettaId = e.target.value || "";
 
