@@ -59,7 +59,6 @@ export function initMenu() {
   }
 
   function can(route){
-
     if(window.state?._allAccess) return true
     if(isSuperadmin()) return true
 
@@ -72,7 +71,6 @@ export function initMenu() {
 
   function go(route){
     if(!can(route)) return
-
     window.location.hash = "#/" + route
     closeMenu()
   }
@@ -84,9 +82,9 @@ export function initMenu() {
       ...(isAdmin() ? [{
         title:"BACK OFFICE",
         items:[
-    {label:"⚙️ Back Office", route:"bo-dashboard"}
-  ]
-}] : []),
+          {label:"⚙️ Back Office", route:"bo-dashboard"}
+        ]
+      }] : []),
 
       ...(isSuperadmin() ? [{
         title:"PIATTAFORMA",
@@ -106,22 +104,18 @@ export function initMenu() {
         ]
       },
 
-    {
- {
-{
-  title:"OPERATIVO",
-  items:[
-    {label:"🪑 Sala", route:"sala"},
-    {label:"📅 Prenotazioni", route:"prenotazioni"},
-    {label:"Planning Produzione", route:"planner-produzione"},
-
-    // 🔥 NUOVO SISTEMA UNICO
-    {label:"⚙️ Produzione", route:"app-produzione"},
-
-    {label:"Magazzino", route:"magazzino"},
-    {label:"Ricettario", route:"ricettario"}
-  ]
-},
+      // 🔥 SISTEMA OPERATIVO CUCINA
+      {
+        title:"OPERATIVO",
+        items:[
+          {label:"🪑 Sala", route:"sala"},
+          {label:"📅 Prenotazioni", route:"prenotazioni"},
+          {label:"Planning Produzione", route:"planner-produzione"},
+          {label:"⚙️ Produzione", route:"app-produzione"},
+          {label:"Magazzino", route:"magazzino"},
+          {label:"Ricettario", route:"ricettario"}
+        ]
+      },
 
       {
         title:"AMMINISTRAZIONE",
@@ -202,15 +196,11 @@ export function initMenu() {
       itemsBox.className = "menu-subitems"
 
       items.forEach(item => {
-
         const row = document.createElement("div")
         row.className = "menu-subitem"
         row.innerText = item.label
-
         row.onclick = () => go(item.route)
-
         itemsBox.appendChild(row)
-
       })
 
       title.onclick = () => {
@@ -234,7 +224,6 @@ export function initMenu() {
 
       sectionBox.appendChild(title)
       sectionBox.appendChild(itemsBox)
-
       menu.appendChild(sectionBox)
 
     })
