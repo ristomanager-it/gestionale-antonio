@@ -1326,9 +1326,12 @@ function toKg(value, um) {
 
   if (u === "g" || u === "gr" || u === "grammi") return n / 1000;
   if (u === "ml") return n / 1000;
+
+  // 🔥 NUOVO
+  if (u === "pz") return n;
+
   return n;
 }
-
 function toNumber(value) {
   const n = Number(String(value ?? "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
