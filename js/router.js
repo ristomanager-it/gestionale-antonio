@@ -822,20 +822,37 @@ async function resolve() {
     route !== "home" &&
     route !== "booking-form-builder"
   ) {
-    const sedeRes = await ensureSedeContext(route);
-    if (!sedeRes.ok) {
-      if (sedeRes.redirected) return;
+   const contesto = await window.stateActions.caricaContestoOperativo();
 
-      if (route === "gestione-sedi") {
-        await renderView("gestione-sedi");
-        return;
-      }
+console.log("CONTESTO OPERATIVO:", contesto);
 
-      window.location.hash = "#/gestione-sedi?mode=first";
-      return;
-    }
+if (!contesto.ok) {
+
+  if (contesto.motivo === "Dipendente non trovato") {
+    app.innerHTML = `
+      <div class="view" style="padding:40px;text-align:center;">
+        <h2 style="color:#dc2626;">Errore accesso</h2>
+        <p>Dipendente non associato.</p>
+      </div>
+    `;
+    return;
   }
 
+  if (contesto.motivo === "Nessuna sede assegnata") {
+    window.location.hash = "#/gestione-sedi?mode=first";
+    return;
+  }
+
+  return;
+}
+
+// 👉 MULTI SEDE → scelta
+if (contesto.tipo === "dipendente_multi_sede") {
+  if (route !== "scegli-sede") {
+    window.location.hash = "#/scegli-sede";
+    return;
+  }
+}
   if (route === "homePiattaforma") {
     if (!isSuperadmin()) {
       window.location.hash = "#/home";
