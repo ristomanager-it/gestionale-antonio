@@ -853,6 +853,7 @@ if (contesto.tipo === "dipendente_multi_sede") {
     return;
   }
 }
+  }
   if (route === "homePiattaforma") {
     if (!isSuperadmin()) {
       window.location.hash = "#/home";
