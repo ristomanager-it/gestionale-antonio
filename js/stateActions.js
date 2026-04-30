@@ -214,7 +214,7 @@ window.stateActions = {
       .from("utenti_aziende")
       .select("ruolo")
       .eq("user_id", window.state.user.id)
-      .single();
+      .maybeSingle();
 
     window.state.ruolo = data?.ruolo || null;
   },
