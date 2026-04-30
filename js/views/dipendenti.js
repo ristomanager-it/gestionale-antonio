@@ -807,21 +807,26 @@ async function salvaDipendente(isEdit) {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-     body: JSON.stringify({
-  nome,
-  cognome,
-  email,
-  telefono,
-  ruolo,
-  mansione,
-  reparto_id: repartoId,
-  azienda_id: azienda.id,
-  sede_id: sediSelezionate[0] // 🔥 FIX
-})
-    const json = await res.json();
+       const res = await fetch(endpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    nome,
+    cognome,
+    email,
+    telefono,
+    ruolo,
+    mansione,
+    reparto_id: repartoId,
+    azienda_id: azienda.id,
+    sede_id: sediSelezionate[0]
+  })
+});
+
+const json = await res.json();
 
     if (!res.ok || !json.success) {
       console.error(json);
