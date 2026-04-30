@@ -810,18 +810,17 @@ async function salvaDipendente(isEdit) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({
-        nome,
-        cognome,
-        email,
-        telefono,
-        ruolo,
-        mansione,
-        reparto_id: repartoId,
-        azienda_id: azienda.id
-      })
-    });
-
+     body: JSON.stringify({
+  nome,
+  cognome,
+  email,
+  telefono,
+  ruolo,
+  mansione,
+  reparto_id: repartoId,
+  azienda_id: azienda.id,
+  sede_id: sediSelezionate[0] // 🔥 FIX
+})
     const json = await res.json();
 
     if (!res.ok || !json.success) {
