@@ -73,7 +73,7 @@ const routes = {
 
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
-
+"scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js"),
   magazzino: () => import("./views/magazzino/magazzino.js"),
 
