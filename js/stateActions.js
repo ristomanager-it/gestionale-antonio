@@ -27,6 +27,8 @@ window.stateActions = {
 
     window.state.sedi = [];
     window.state.sedeAttiva = null;
+    window.state.dipendente = null;
+    window.state.sediDipendente = [];
 
     if (window.uiActions?.renderSedeSelector) {
       window.uiActions.renderSedeSelector();
@@ -72,11 +74,78 @@ window.stateActions = {
     }
   },
 
+  async caricaDipendenteCorrente() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    window.state.dipendente = null;
+    window.state.sediDipendente = [];
+
+    if (!user?.id || !azienda?.id) {
+      return null;
+    }
+
+    const { data, error } = await window.supabase
+      .from("dipendenti")
+      .select("id, nome, cognome, email, user_id, azienda_id, reparto_id, attivo, profilo_completato")
+      .eq("user_id", user.id)
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Errore caricamento dipendente corrente:", error);
+      return null;
+    }
+
+    window.state.dipendente = data || null;
+    return data || null;
+  },
+
+  async caricaSediDipendente(dipendenteId) {
+    if (!dipendenteId) {
+      window.state.sediDipendente = [];
+      return [];
+    }
+
+    const { data, error } = await window.supabase
+      .from("dipendenti_sedi")
+      .select("sede_id, is_default, sedi(id, nome, indirizzo, latitudine, longitudine)")
+      .eq("dipendente_id", dipendenteId)
+      .order("is_default", { ascending: false });
+
+    if (error) {
+      console.error("Errore caricamento sedi dipendente:", error);
+      window.state.sediDipendente = [];
+      return [];
+    }
+
+    const sedi = (data || [])
+      .map((row) => {
+        if (!row.sedi) return null;
+
+        return {
+          id: row.sedi.id,
+          nome: row.sedi.nome,
+          indirizzo: row.sedi.indirizzo,
+          latitudine: row.sedi.latitudine,
+          longitudine: row.sedi.longitudine,
+          is_default: row.is_default === true,
+        };
+      })
+      .filter(Boolean);
+
+    window.state.sediDipendente = sedi;
+    return sedi;
+  },
+
   async caricaSedi() {
     const azienda = window.state.azienda;
-    if (!azienda) {
+
+    if (!azienda?.id) {
       window.state.sedi = [];
       window.state.sedeAttiva = null;
+      window.state.sediDipendente = [];
 
       localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
@@ -84,6 +153,26 @@ window.stateActions = {
         window.uiActions.renderSedeSelector();
       }
       return;
+    }
+
+    const ruolo = window.state.ruolo;
+    const isAdmin =
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin";
+
+    if (!isAdmin) {
+      let dipendente = window.state.dipendente;
+
+      if (!dipendente?.id) {
+        dipendente = await this.caricaDipendenteCorrente();
+      }
+
+      if (dipendente?.id) {
+        const sediDipendente = await this.caricaSediDipendente(dipendente.id);
+        this.setSedi(sediDipendente);
+        return;
+      }
     }
 
     const { data, error } = await window.supabase
@@ -108,6 +197,124 @@ window.stateActions = {
     this.setSedi(data || []);
   },
 
+  async caricaContestoOperativo() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    if (!user?.id || !azienda?.id) {
+      window.state.dipendente = null;
+      window.state.sediDipendente = [];
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+      return {
+        ok: false,
+        motivo: "Utente o azienda non caricati",
+      };
+    }
+
+    await this.caricaRuoloEReparti();
+    await this.caricaPermessiEffettivi();
+
+    const ruolo = window.state.ruolo;
+    const isAdmin =
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin";
+
+    if (isAdmin) {
+      await this.caricaSedi();
+
+      return {
+        ok: true,
+        tipo: "admin",
+        sedi: window.state.sedi || [],
+        sedeAttiva: window.state.sedeAttiva || null,
+      };
+    }
+
+    const dipendente = await this.caricaDipendenteCorrente();
+
+    if (!dipendente?.id) {
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+      window.state.sediDipendente = [];
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+      return {
+        ok: false,
+        motivo: "Dipendente non trovato",
+      };
+    }
+
+    const sedi = await this.caricaSediDipendente(dipendente.id);
+    this.setSedi(sedi);
+
+    if (sedi.length === 0) {
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+      return {
+        ok: false,
+        motivo: "Nessuna sede assegnata",
+      };
+    }
+
+    if (sedi.length === 1) {
+      window.state.sedeAttiva = sedi[0];
+      localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedi[0].id));
+
+      return {
+        ok: true,
+        tipo: "dipendente_sede_unica",
+        dipendente,
+        sedi,
+        sedeAttiva: sedi[0],
+      };
+    }
+
+    const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    const storedMatch = storedSedeId
+      ? sedi.find((s) => String(s.id) === String(storedSedeId))
+      : null;
+
+    if (storedMatch) {
+      window.state.sedeAttiva = storedMatch;
+
+      return {
+        ok: true,
+        tipo: "dipendente_multi_sede_con_sede_salvata",
+        dipendente,
+        sedi,
+        sedeAttiva: storedMatch,
+      };
+    }
+
+    const defaultSede = sedi.find((s) => s.is_default === true);
+
+    if (defaultSede) {
+      window.state.sedeAttiva = null;
+
+      return {
+        ok: true,
+        tipo: "dipendente_multi_sede",
+        dipendente,
+        sedi,
+        sedeSuggerita: defaultSede,
+      };
+    }
+
+    window.state.sedeAttiva = null;
+
+    return {
+      ok: true,
+      tipo: "dipendente_multi_sede",
+      dipendente,
+      sedi,
+      sedeSuggerita: null,
+    };
+  },
+
   resetAzienda() {
     window.state.azienda = null;
     window.state.permessi = null;
@@ -116,6 +323,8 @@ window.stateActions = {
     window.state.permessiOverride = {};
     window.state.reparti = [];
     window.state.repartoAttivo = null;
+    window.state.dipendente = null;
+    window.state.sediDipendente = [];
 
     localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
     localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
@@ -173,7 +382,6 @@ window.stateActions = {
       if (!error && data) {
         permessiDB = data;
       }
-
     } catch (e) {
       console.warn("Permessi DB fallback:", e);
     }
@@ -296,6 +504,8 @@ window.stateActions = {
       window.state.azienda = null;
       window.state.sedi = [];
       window.state.sedeAttiva = null;
+      window.state.dipendente = null;
+      window.state.sediDipendente = [];
 
       localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
       localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
