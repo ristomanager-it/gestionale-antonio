@@ -102,43 +102,49 @@ window.stateActions = {
     return data || null;
   },
 
-  async caricaSediDipendente(dipendenteId) {
-    if (!dipendenteId) {
-      window.state.sediDipendente = [];
-      return [];
-    }
+ async caricaSediUtente(userId) {
+  if (!userId) {
+    window.state.sediDipendente = [];
+    return [];
+  }
 
-    const { data, error } = await window.supabase
-      .from("dipendenti_sedi")
-      .select("sede_id, is_default, sedi(id, nome, indirizzo, latitudine, longitudine)")
-      .eq("dipendente_id", dipendenteId)
-      .order("is_default", { ascending: false });
+  const { data, error } = await window.supabase
+    .from("utenti_sedi")
+    .select(`
+      sede_id,
+      sedi (
+        id,
+        nome,
+        indirizzo,
+        latitudine,
+        longitudine
+      )
+    `)
+    .eq("user_id", userId);
 
-    if (error) {
-      console.error("Errore caricamento sedi dipendente:", error);
-      window.state.sediDipendente = [];
-      return [];
-    }
+  if (error) {
+    console.error("Errore caricamento sedi utente:", error);
+    window.state.sediDipendente = [];
+    return [];
+  }
 
-    const sedi = (data || [])
-      .map((row) => {
-        if (!row.sedi) return null;
+  const sedi = (data || [])
+    .map((row) => {
+      if (!row.sedi) return null;
 
-        return {
-          id: row.sedi.id,
-          nome: row.sedi.nome,
-          indirizzo: row.sedi.indirizzo,
-          latitudine: row.sedi.latitudine,
-          longitudine: row.sedi.longitudine,
-          is_default: row.is_default === true,
-        };
-      })
-      .filter(Boolean);
+      return {
+        id: row.sedi.id,
+        nome: row.sedi.nome,
+        indirizzo: row.sedi.indirizzo,
+        latitudine: row.sedi.latitudine,
+        longitudine: row.sedi.longitudine,
+      };
+    })
+    .filter(Boolean);
 
-    window.state.sediDipendente = sedi;
-    return sedi;
-  },
-
+  window.state.sediDipendente = sedi;
+  return sedi;
+}
   async caricaSedi() {
     const azienda = window.state.azienda;
 
@@ -162,40 +168,14 @@ window.stateActions = {
       ruolo === "admin";
 
     if (!isAdmin) {
-      let dipendente = window.state.dipendente;
+  const userId = window.state.user?.id;
 
-      if (!dipendente?.id) {
-        dipendente = await this.caricaDipendenteCorrente();
-      }
-
-      if (dipendente?.id) {
-        const sediDipendente = await this.caricaSediDipendente(dipendente.id);
-        this.setSedi(sediDipendente);
-        return;
-      }
-    }
-
-    const { data, error } = await window.supabase
-      .from("sedi")
-      .select("id, nome, indirizzo, latitudine, longitudine")
-      .eq("azienda_id", azienda.id)
-      .order("nome", { ascending: true });
-
-    if (error) {
-      console.error("Errore caricamento sedi:", error);
-      window.state.sedi = [];
-      window.state.sedeAttiva = null;
-
-      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-
-      if (window.uiActions?.renderSedeSelector) {
-        window.uiActions.renderSedeSelector();
-      }
-      return;
-    }
-
-    this.setSedi(data || []);
-  },
+  if (userId) {
+    const sediUtente = await this.caricaSediUtente(userId);
+    this.setSedi(sediUtente);
+    return;
+  }
+}
 
   async caricaContestoOperativo() {
     const user = window.state.user;
