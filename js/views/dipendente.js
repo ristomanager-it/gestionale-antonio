@@ -151,11 +151,11 @@ export async function render(container) {
   const profiloAI = normalizeProfiloAI(dip.profilo_ai);
   const ultimaValutazione = valutazioni.length > 0 ? valutazioni[0] : null;
   const messaggiTony = generaMessaggiTony({
-  presenza: presenzaData,
-  produzione: produzioneData,
-  quiz: quizData,
-  valutazione: ultimaValutazione
-});
+    presenza: presenzaData,
+    produzione: produzioneData,
+    quiz: quizData,
+    valutazione: ultimaValutazione
+  });
 
   const fotoUrl = dip.foto_url || "";
   const nomeCompleto = buildNomeCompleto(dip);
@@ -179,9 +179,16 @@ export async function render(container) {
         body: `
           <div style="display:grid; grid-template-columns:minmax(0, 120px) minmax(0, 1fr); gap:16px; align-items:start;">
             <div>
-              ${fotoUrl
-                ? `<img src="${escapeHtmlAttr(fotoUrl)}" alt="${escapeHtmlAttr(nomeCompleto)}" style="width:100px;height:100px;border-radius:18px;object-fit:cover;border:1px solid #e5e7eb;background:#f9fafb;">`
-                : `<div style="width:100px;height:100px;border-radius:18px;border:1px solid #e5e7eb;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>`}
+              <div id="dip-foto-preview">
+                ${fotoUrl
+                  ? `<img src="${escapeHtmlAttr(fotoUrl)}" alt="${escapeHtmlAttr(nomeCompleto)}" style="width:100px;height:100px;border-radius:18px;object-fit:cover;border:1px solid #e5e7eb;background:#f9fafb;">`
+                  : `<div style="width:100px;height:100px;border-radius:18px;border:1px solid #e5e7eb;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>`}
+              </div>
+              <div style="margin-top:10px;">
+                <div class="small-muted" style="margin-bottom:6px;">Upload foto</div>
+                <input id="dip-foto-input" type="file" accept="image/png,image/jpeg" class="input-pill">
+                <div class="small-muted" style="margin-top:6px;">Preview locale, senza salvataggio storage.</div>
+              </div>
             </div>
 
             <div style="display:grid; gap:10px;">
@@ -222,6 +229,7 @@ export async function render(container) {
             ${infoRow("Costo medio", dip.costo_medio || "-")}
             ${infoRow("Tipo operativo", dip.tipo_operativo || "-")}
             ${infoRow("Codice dipendente", dip.codice || "-")}
+            ${infoRow("PIN dipendente", dip.pin || dip.codice_pin || "-")}
           </div>
         `
       })}
@@ -412,11 +420,14 @@ export async function render(container) {
           `
           : `
             <div class="small-muted">Nessuna valutazione salvata.</div>
-        ${createCard({
-  title: "🤖 Tony - Assistente AI",
-  body: renderMessaggiTony(messaggiTony)
-})}  `
-     
+          `
+      })}
+
+      ${createCard({
+        title: "🤖 Tony - Assistente AI",
+        body: renderMessaggiTony(messaggiTony)
+      })}
+
     </div>
   `;
 
@@ -444,6 +455,34 @@ export async function render(container) {
       } else {
         window.location.hash = "#/dipendenti";
       }
+    };
+  }
+
+  const fotoInput = document.getElementById("dip-foto-input");
+  const fotoPreview = document.getElementById("dip-foto-preview");
+  if (fotoInput && fotoPreview) {
+    fotoInput.onchange = () => {
+      const file = fotoInput.files && fotoInput.files[0] ? fotoInput.files[0] : null;
+      if (!file) return;
+
+      const isValidType = file.type === "image/jpeg" || file.type === "image/png";
+      if (!isValidType) {
+        fotoInput.value = "";
+        fotoPreview.innerHTML = `<div class="small-muted" style="color:#dc2626;">Formato non valido. Usa JPG o PNG.</div>`;
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        fotoPreview.innerHTML = `
+          <img
+            src="${escapeHtmlAttr(String(reader.result || ""))}"
+            alt="${escapeHtmlAttr(nomeCompleto)}"
+            style="width:100px;height:100px;border-radius:18px;object-fit:cover;border:1px solid #e5e7eb;background:#f9fafb;"
+          >
+        `;
+      };
+      reader.readAsDataURL(file);
     };
   }
 
