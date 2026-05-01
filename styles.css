@@ -906,3 +906,58 @@ SALA
   color:#6b7280;
   text-align:center;
 }
+#pin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+#pin-modal {
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+  width:260px;
+  text-align:center;
+}
+
+.pin-title {
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+#pin-input {
+  width:100%;
+  font-size:22px;
+  text-align:center;
+  margin-bottom:12px;
+  padding:8px;
+}
+
+.pin-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.pin-btn {
+  padding:14px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  background:#f1f5f9;
+  cursor:pointer;
+}
+
+.pin-btn.ok {
+  background:#22c55e;
+  color:#fff;
+}
+
+.pin-btn.clear {
+  background:#ef4444;
+  color:#fff;
+}
