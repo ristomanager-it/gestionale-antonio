@@ -804,10 +804,7 @@ async function salvaDipendente(isEdit) {
 
     const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-       const res = await fetch(endpoint, {
+  const res = await fetch(endpoint, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -827,7 +824,6 @@ async function salvaDipendente(isEdit) {
 });
 
 const json = await res.json();
-
     if (!res.ok || !json.success) {
       console.error(json);
       if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
