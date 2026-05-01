@@ -412,14 +412,11 @@ export async function render(container) {
           `
           : `
             <div class="small-muted">Nessuna valutazione salvata.</div>
-          `
-      })}
-    
-      ${createCard({
+        ${createCard({
   title: "🤖 Tony - Assistente AI",
   body: renderMessaggiTony(messaggiTony)
-})}
-
+})}  `
+     
     </div>
   `;
 
