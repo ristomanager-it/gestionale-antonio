@@ -207,6 +207,7 @@ async function renderElenco() {
         Solo attivi
       </label>
       <button class="app-button small" id="dip-refresh">↻ Aggiorna</button>
+      <button class="app-button small gray" id="dip-self-edit">Modifica scheda</button>
     </div>
 
     <div class="small-muted" style="margin-bottom:10px;">
@@ -237,6 +238,7 @@ async function renderElenco() {
   `;
 
   document.getElementById("dip-refresh").onclick = () => caricaDipendenti();
+  document.getElementById("dip-self-edit").onclick = () => window._dipSelfEdit();
   document.getElementById("dip-search").addEventListener("input", () => caricaDipendenti());
   document.getElementById("dip-only-attivi").addEventListener("change", () => caricaDipendenti());
 
@@ -802,43 +804,38 @@ async function salvaDipendente(isEdit) {
       return;
     }
 
-  const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
+    const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
-const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    nome,
-    cognome,
-    email,
-    telefono,
-    ruolo,
-    mansione,
-    reparto_id: repartoId,
-    azienda_id: azienda.id,
-    sede_id: sediSelezionate[0]
-  })
-});
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        nome,
+        cognome,
+        email,
+        telefono,
+        ruolo,
+        mansione,
+        reparto_id: repartoId,
+        azienda_id: azienda.id,
+        sede_id: sediSelezionate[0]
+      })
+    });
 
-const json = await res.json();
+    let json = null;
 
-if (!res.ok || !json.success) {
-  console.error(json);
-  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
-  return;
-}
-if (!res.ok || !json.success) {
-  console.error(json);
-  if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
-  return;
-}
+    try {
+      json = await res.json();
+    } catch (jsonErr) {
+      console.error("Risposta non JSON da invita-dipendente:", jsonErr);
+      json = null;
+    }
 
-const json = await res.json();
-    if (!res.ok || !json.success) {
-      console.error(json);
+    if (!res.ok || !json?.success) {
+      console.error("Errore creazione dipendente:", json);
       if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
       return;
     }
@@ -910,6 +907,63 @@ window._dipEdit = async function (id) {
     } else {
       ruolo = "operatore";
     }
+  }
+
+  dip.ruolo = ruolo;
+
+  setTab("form");
+  await renderForm(dip);
+};
+
+window._dipSelfEdit = async function () {
+  const supabase = getSupabase();
+
+  const azienda = window.state?.azienda || null;
+
+  if (!azienda?.id) {
+    alert("Azienda non caricata");
+    return;
+  }
+
+  const {
+    data: { user },
+    error: userErr
+  } = await supabase.auth.getUser();
+
+  const currentUserId = user?.id || window.state?.user?.id || null;
+
+  if (userErr || !currentUserId) {
+    console.error(userErr);
+    alert("Utente non autenticato");
+    return;
+  }
+
+  const { data: dip, error } = await supabase
+    .from("dipendenti")
+    .select("*")
+    .eq("azienda_id", azienda.id)
+    .eq("user_id", currentUserId)
+    .maybeSingle();
+
+  if (error || !dip) {
+    console.error(error);
+    alert("Scheda dipendente non trovata");
+    return;
+  }
+
+  let ruolo = "operatore";
+
+  const { data: ua, error: uaErr } = await supabase
+    .from("utenti_aziende")
+    .select("ruolo")
+    .eq("azienda_id", azienda.id)
+    .eq("user_id", currentUserId)
+    .maybeSingle();
+
+  if (!uaErr && ua?.ruolo) {
+    ruolo = ua.ruolo;
+  } else if (dip?.ruolo) {
+    ruolo = dip.ruolo;
   }
 
   dip.ruolo = ruolo;
