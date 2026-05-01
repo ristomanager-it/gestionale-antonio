@@ -582,9 +582,21 @@ export async function render(app) {
 
    async function doTimbratura(tipo) {
 
-  const ok = await richiediPin(dipendenteId, azienda.id);
+  const pin = await creaPinModal();
+
+  if (!pin) {
+    setMsg("PIN non inserito", "error");
+    return;
+  }
+
+  const ok = await verificaPin({
+    dipendenteId,
+    aziendaId: azienda.id,
+    pin
+  });
+
   if (!ok) {
-    setMsg("PIN non valido", "error");
+    setMsg("PIN errato", "error");
     return;
   }
 
