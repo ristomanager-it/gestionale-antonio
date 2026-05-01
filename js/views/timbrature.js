@@ -272,7 +272,35 @@ function computeEmployeesFromRows(rows) {
 
   return { list, dentro, pausa, fuori };
 }
+async function richiediPin(dipendenteId, aziendaId) {
 
+  const pin = prompt("Inserisci PIN dipendente");
+
+  if (!pin) return false;
+
+  const { data, error } = await window.supabaseClient
+    .from("dipendenti")
+    .select("pin, codice_pin")
+    .eq("id", dipendenteId)
+    .eq("azienda_id", aziendaId)
+    .maybeSingle();
+
+  if (error || !data) return false;
+
+  const pinDb = data.pin || data.codice_pin;
+
+  if (!pinDb) {
+    alert("PIN non configurato");
+    return false;
+  }
+
+  if (String(pinDb) !== String(pin)) {
+    alert("PIN errato");
+    return false;
+  }
+
+  return true;
+}
 export async function render(app) {
   try {
     console.log("TIMBRATURE LOAD START");
