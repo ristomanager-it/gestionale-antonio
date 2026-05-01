@@ -579,10 +579,17 @@ export async function render(app) {
       if (panelOpen) refreshTimbratureList();
     }
 
-    async function doTimbratura(tipo) {
-      elPrimary.disabled = true;
-      elPausa.disabled = true;
-      elFine.disabled = true;
+   async function doTimbratura(tipo) {
+
+  const ok = await richiediPin(dipendenteId, azienda.id);
+  if (!ok) {
+    setMsg("PIN non valido", "error");
+    return;
+  }
+
+  elPrimary.disabled = true;
+  elPausa.disabled = true;
+  elFine.disabled = true;
 
       setMsg("Acquisizione posizione...", "info");
 
