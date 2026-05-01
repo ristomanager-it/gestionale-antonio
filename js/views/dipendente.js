@@ -150,6 +150,12 @@ export async function render(container) {
 
   const profiloAI = normalizeProfiloAI(dip.profilo_ai);
   const ultimaValutazione = valutazioni.length > 0 ? valutazioni[0] : null;
+  const messaggiTony = generaMessaggiTony({
+  presenza: presenzaData,
+  produzione: produzioneData,
+  quiz: quizData,
+  valutazione: ultimaValutazione
+});
 
   const fotoUrl = dip.foto_url || "";
   const nomeCompleto = buildNomeCompleto(dip);
