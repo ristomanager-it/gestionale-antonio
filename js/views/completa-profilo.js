@@ -32,10 +32,6 @@ export async function render(container) {
     return;
   }
 
-  if (dipendente.profilo_completato) {
-    window.location.hash = "#/home";
-    return;
-  }
 
   const profiloAI = dipendente.profilo_ai || {};
 
