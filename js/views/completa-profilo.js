@@ -20,6 +20,7 @@ export async function render(container) {
     .from("dipendenti")
     .select("*")
     .eq("user_id", user.id)
+    .eq("azienda_id", azienda.id)
     .maybeSingle();
 
   if (error || !dipendente) {
@@ -32,8 +33,9 @@ export async function render(container) {
     return;
   }
 
-
-  const profiloAI = dipendente.profilo_ai || {};
+  const profiloAI = normalizeProfiloAI(dipendente.profilo_ai);
+  const pinValue = dipendente.pin || dipendente.codice_pin || "";
+  const fotoUrl = dipendente.foto_url || "";
 
   const content = `
 
@@ -49,22 +51,59 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Telefono</label>
-            <input id="telefono" class="input" value="${dipendente.telefono || ""}">
+            <input id="telefono" class="input" value="${escapeHtmlAttr(dipendente.telefono || "")}">
+          </div>
+
+          <div class="form-group">
+            <label>PIN personale</label>
+            <input
+              id="pin"
+              class="input"
+              inputmode="numeric"
+              maxlength="6"
+              value="${escapeHtmlAttr(pinValue)}"
+              placeholder="Inserisci un PIN da 4 a 6 cifre"
+            >
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">
+              Il PIN servirà per il futuro accesso dipendente.
+            </div>
           </div>
 
           <div class="form-group">
             <label>Data nascita</label>
-            <input id="data_nascita" type="date" class="input" value="${dipendente.data_nascita || ""}">
+            <input id="data_nascita" type="date" class="input" value="${escapeHtmlAttr(dipendente.data_nascita || "")}">
           </div>
 
           <div class="form-group">
             <label>Luogo nascita</label>
-            <input id="luogo_nascita" class="input" value="${dipendente.luogo_nascita || ""}">
+            <input id="luogo_nascita" class="input" value="${escapeHtmlAttr(dipendente.luogo_nascita || "")}">
           </div>
 
           <div class="form-group">
             <label>Codice fiscale</label>
-            <input id="codice_fiscale" class="input" value="${dipendente.codice_fiscale || ""}">
+            <input id="codice_fiscale" class="input" value="${escapeHtmlAttr(dipendente.codice_fiscale || "")}">
+          </div>
+
+        </div>
+
+        <!-- FOTO PROFILO -->
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;">Foto profilo</div>
+
+          <div id="foto-preview" style="margin-bottom:12px;">
+            ${
+              fotoUrl
+                ? `<img src="${escapeHtmlAttr(fotoUrl)}" alt="Foto profilo" style="width:110px;height:110px;border-radius:18px;object-fit:cover;border:1px solid #e5e7eb;background:#f9fafb;">`
+                : `<div style="width:110px;height:110px;border-radius:18px;border:1px solid #e5e7eb;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:30px;">👤</div>`
+            }
+          </div>
+
+          <div class="form-group">
+            <label>Carica nuova foto</label>
+            <input id="foto" type="file" accept="image/png,image/jpeg" class="input">
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">
+              Preview locale JPG/PNG. Salvataggio storage non ancora attivo.
+            </div>
           </div>
 
         </div>
@@ -75,12 +114,12 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Indirizzo</label>
-            <input id="indirizzo" class="input" value="${dipendente.indirizzo || ""}">
+            <input id="indirizzo" class="input" value="${escapeHtmlAttr(dipendente.indirizzo || "")}">
           </div>
 
           <div class="form-group">
             <label>Città / Residenza</label>
-            <input id="residenza" class="input" value="${dipendente.residenza || ""}">
+            <input id="residenza" class="input" value="${escapeHtmlAttr(dipendente.residenza || "")}">
           </div>
 
         </div>
@@ -91,7 +130,7 @@ export async function render(container) {
 
           <div class="form-group">
             <label>IBAN</label>
-            <input id="iban" class="input" value="${dipendente.iban || ""}">
+            <input id="iban" class="input" value="${escapeHtmlAttr(dipendente.iban || "")}">
           </div>
 
         </div>
@@ -102,12 +141,12 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Nome</label>
-            <input id="em_nome" class="input" value="${dipendente.contatto_emergenza_nome || ""}">
+            <input id="em_nome" class="input" value="${escapeHtmlAttr(dipendente.contatto_emergenza_nome || "")}">
           </div>
 
           <div class="form-group">
             <label>Telefono</label>
-            <input id="em_tel" class="input" value="${dipendente.contatto_emergenza_telefono || ""}">
+            <input id="em_tel" class="input" value="${escapeHtmlAttr(dipendente.contatto_emergenza_telefono || "")}">
           </div>
 
         </div>
@@ -118,12 +157,12 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Perché lavori qui?</label>
-            <textarea id="motivazione" class="input">${profiloAI.motivazione || ""}</textarea>
+            <textarea id="motivazione" class="input">${escapeHtml(profiloAI.motivazione || "")}</textarea>
           </div>
 
           <div class="form-group">
             <label>Cosa ti motiva nel lavoro?</label>
-            <textarea id="motivazione_lavoro" class="input">${profiloAI.motivazione_lavoro || ""}</textarea>
+            <textarea id="motivazione_lavoro" class="input">${escapeHtml(profiloAI.motivazione_lavoro || "")}</textarea>
           </div>
 
         </div>
@@ -134,12 +173,12 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Cosa vuoi migliorare?</label>
-            <textarea id="crescita" class="input">${profiloAI.crescita || ""}</textarea>
+            <textarea id="crescita" class="input">${escapeHtml(profiloAI.crescita || profiloAI.obiettivi_personali || "")}</textarea>
           </div>
 
           <div class="form-group">
             <label>Cosa vuoi imparare?</label>
-            <textarea id="competenze" class="input">${profiloAI.competenze || ""}</textarea>
+            <textarea id="competenze" class="input">${escapeHtml(profiloAI.competenze || profiloAI.obiettivi_professionali || "")}</textarea>
           </div>
 
         </div>
@@ -150,12 +189,12 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Ruolo futuro desiderato</label>
-            <input id="ruolo_target" class="input" value="${profiloAI.ruolo_target || ""}">
+            <input id="ruolo_target" class="input" value="${escapeHtmlAttr(profiloAI.ruolo_target || "")}">
           </div>
 
           <div class="form-group">
             <label>Dove ti vedi tra 1 anno?</label>
-            <textarea id="visione_futura" class="input">${profiloAI.visione_futura || ""}</textarea>
+            <textarea id="visione_futura" class="input">${escapeHtml(profiloAI.visione_futura || "")}</textarea>
           </div>
 
         </div>
@@ -164,7 +203,7 @@ export async function render(container) {
 
       <div style="margin-top:20px;">
         <button class="app-button primary" id="btn-save" style="width:100%;">
-          Completa profilo
+          ${dipendente.profilo_completato ? "Salva modifiche" : "Completa profilo"}
         </button>
       </div>
 
@@ -176,18 +215,57 @@ export async function render(container) {
   `;
 
   container.innerHTML = createPageLayout({
-    title: "Completa profilo",
-    subtitle: "Inserisci i tuoi dati",
+    title: dipendente.profilo_completato ? "Modifica profilo" : "Completa profilo",
+    subtitle: dipendente.profilo_completato ? "Aggiorna i tuoi dati personali" : "Inserisci i tuoi dati",
     content: createCard({ body: content })
   });
 
   const form = document.getElementById("profilo-form");
   const msg = document.getElementById("msg");
   const btn = document.getElementById("btn-save");
+  const fotoInput = document.getElementById("foto");
+  const fotoPreview = document.getElementById("foto-preview");
+
+  if (fotoInput && fotoPreview) {
+    fotoInput.addEventListener("change", () => {
+      const file = fotoInput.files && fotoInput.files[0] ? fotoInput.files[0] : null;
+
+      if (!file) return;
+
+      const isValidType = file.type === "image/jpeg" || file.type === "image/png";
+
+      if (!isValidType) {
+        fotoInput.value = "";
+        fotoPreview.innerHTML = "<span style='color:red;'>Formato non valido. Usa JPG o PNG.</span>";
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        fotoPreview.innerHTML = `
+          <img
+            src="${escapeHtmlAttr(String(reader.result || ""))}"
+            alt="Foto profilo"
+            style="width:110px;height:110px;border-radius:18px;object-fit:cover;border:1px solid #e5e7eb;background:#f9fafb;"
+          >
+        `;
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
 
   form.addEventListener("submit", async (e) => {
 
     e.preventDefault();
+
+    const pin = document.getElementById("pin").value.trim();
+
+    if (pin && !/^[0-9]{4,6}$/.test(pin)) {
+      msg.innerHTML = "<span style='color:red;'>Il PIN deve contenere solo numeri e deve essere lungo da 4 a 6 cifre.</span>";
+      return;
+    }
 
     const profilo_ai = {
 
@@ -209,32 +287,74 @@ export async function render(container) {
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
 
+    const payload = {
+      telefono: document.getElementById("telefono").value,
+      data_nascita: document.getElementById("data_nascita").value || null,
+      luogo_nascita: document.getElementById("luogo_nascita").value,
+      codice_fiscale: document.getElementById("codice_fiscale").value,
+      indirizzo: document.getElementById("indirizzo").value,
+      residenza: document.getElementById("residenza").value,
+      iban: document.getElementById("iban").value,
+      contatto_emergenza_nome: document.getElementById("em_nome").value,
+      contatto_emergenza_telefono: document.getElementById("em_tel").value,
+      profilo_ai,
+      profilo_completato: true
+    };
+
+    if (Object.prototype.hasOwnProperty.call(dipendente, "pin")) {
+      payload.pin = pin || null;
+    } else if (Object.prototype.hasOwnProperty.call(dipendente, "codice_pin")) {
+      payload.codice_pin = pin || null;
+    }
+
     const { error } = await supabase
       .from("dipendenti")
-      .update({
-        telefono: document.getElementById("telefono").value,
-        data_nascita: document.getElementById("data_nascita").value,
-        luogo_nascita: document.getElementById("luogo_nascita").value,
-        codice_fiscale: document.getElementById("codice_fiscale").value,
-        indirizzo: document.getElementById("indirizzo").value,
-        residenza: document.getElementById("residenza").value,
-        iban: document.getElementById("iban").value,
-        contatto_emergenza_nome: document.getElementById("em_nome").value,
-        contatto_emergenza_telefono: document.getElementById("em_tel").value,
-        profilo_ai,
-        profilo_completato: true
-      })
-      .eq("id", dipendente.id);
+      .update(payload)
+      .eq("id", dipendente.id)
+      .eq("user_id", user.id)
+      .eq("azienda_id", azienda.id);
 
     if (error) {
+      console.error("Errore salvataggio profilo:", error);
       msg.innerHTML = "<span style='color:red;'>Errore salvataggio</span>";
       btn.disabled = false;
-      btn.innerText = "Completa profilo";
+      btn.innerText = dipendente.profilo_completato ? "Salva modifiche" : "Completa profilo";
       return;
     }
 
-    window.location.hash = "#/home";
+    msg.innerHTML = "<span style='color:green;'>Profilo salvato correttamente ✔</span>";
+
+    setTimeout(() => {
+      window.location.hash = "#/home";
+    }, 600);
 
   });
 
+}
+
+function normalizeProfiloAI(profiloAI) {
+  if (!profiloAI) return {};
+
+  if (typeof profiloAI === "object") {
+    return profiloAI;
+  }
+
+  try {
+    return JSON.parse(profiloAI);
+  } catch (_) {
+    return {};
+  }
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeHtmlAttr(str) {
+  return escapeHtml(str);
 }
