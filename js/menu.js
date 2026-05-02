@@ -59,14 +59,15 @@ export function initMenu() {
   }
 
   function can(route){
-    if(window.state?._allAccess) return true
-    if(isSuperadmin()) return true
-    if(window.hasPermesso){
-      return window.hasPermesso(route)
-    }
-    return true
+  if(window.state?._allAccess) return true
+  if(isSuperadmin()) return true
+
+  if(window.hasPermission){
+    return window.hasPermission(route)
   }
 
+  return true
+}
   function go(route){
     if(!can(route)) return
     window.location.hash = "#/" + route
