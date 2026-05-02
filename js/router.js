@@ -264,24 +264,94 @@ function hasPermission(area) {
   if (isSuperadmin()) return true;
 
   if (BO_ROUTES.has(area)) {
+    return ruolo === "admin" || rfunction hasPermission(area) {
+  if (area === "home") return true;
+
+  const ruolo = window.state?.viewAs || window.state?.ruolo;
+
+  if (window.state?._allAccess === true) return true;
+
+  if (isSuperadmin()) return true;
+
+  // BACKOFFICE
+  if (BO_ROUTES.has(area)) {
     return ruolo === "admin" || ruolo === "superadmin";
   }
 
-  if (area === "dipendenti" || area === "dipendente" || area === "crea-dipendente") {
-    return ["admin", "segreteria", "manager_cucina", "manager_sala"].includes(ruolo);
-  }
-
-  if (area === "gestione-sedi") {
-    return ruolo === "admin" || ruolo === "superadmin";
-  }
-
+  // ADMIN vede tutto
   if (ruolo === "admin") return true;
 
-  const permessi = window.state?.permessi || {};
+  // =========================
+  // MANAGER CUCINA
+  // =========================
+  if (ruolo === "manager_cucina") {
+    const allowed = [
+      "home",
+      "operativo",
+      "produzione",
+      "planner-produzione",
+      "ricettario",
+      "creaRicetta",
+      "preparazioni",
+      "storicoLotto",
+      "magazzino",
+      "acquisti",
+      "dipendenti",
+      "dipendente",
+      "timbrature",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form"
+    ];
 
-  return permessi[`${area}.read`] === true;
+    const blocked = [
+      "venduto",
+      "margini"
+    ];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+ // =========================
+// MANAGER SALA
+// =========================
+if (ruolo === "manager_sala") {
+  const allowed = [
+    "home",
+    "operativo",
+    "sala",
+    "comanda",
+    "prenotazioni",
+    "prenotazioni-dettaglio",
+    "prenotazioni-form",
+    "prenotazioni-tavoli",
+    "ricettario",
+    "timbrature",
+
+    // 👉 AGGIUNTE
+    "magazzino",
+    "acquisti",
+    "produzione",
+    "planner-produzione",
+    "preparazioni"
+  ];
+
+  const blocked = [
+    "venduto",
+    "margini"
+  ];
+
+  if (blocked.includes(area)) return false;
+  return allowed.includes(area);
 }
 
+  // =========================
+  // DEFAULT (operatore base)
+  // =========================
+  const permessi = window.state?.permessi || {};
+  return permessi[`${area}.read`] === true;
+}
 /* =========================================================
    UI HELPERS
 ========================================================= */
