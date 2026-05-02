@@ -263,22 +263,16 @@ function hasPermission(area) {
 
   if (isSuperadmin()) return true;
 
-  if (BO_ROUTES.has(area)) {
-    return ruolo === "admin" || rfunction hasPermission(area) {
-  if (area === "home") return true;
-
-  const ruolo = window.state?.viewAs || window.state?.ruolo;
-
-  if (window.state?._allAccess === true) return true;
-
-  if (isSuperadmin()) return true;
-
+  // =========================
   // BACKOFFICE
+  // =========================
   if (BO_ROUTES.has(area)) {
     return ruolo === "admin" || ruolo === "superadmin";
   }
 
-  // ADMIN vede tutto
+  // =========================
+  // ADMIN → tutto
+  // =========================
   if (ruolo === "admin") return true;
 
   // =========================
@@ -313,41 +307,98 @@ function hasPermission(area) {
     return allowed.includes(area);
   }
 
- // =========================
-// MANAGER SALA
-// =========================
-if (ruolo === "manager_sala") {
-  const allowed = [
-    "home",
-    "operativo",
-    "sala",
-    "comanda",
-    "prenotazioni",
-    "prenotazioni-dettaglio",
-    "prenotazioni-form",
-    "prenotazioni-tavoli",
-    "ricettario",
-    "timbrature",
+  // =========================
+  // MANAGER SALA
+  // =========================
+  if (ruolo === "manager_sala") {
+    const allowed = [
+      "home",
+      "operativo",
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "ricettario",
+      "timbrature",
 
-    // 👉 AGGIUNTE
-    "magazzino",
-    "acquisti",
-    "produzione",
-    "planner-produzione",
-    "preparazioni"
-  ];
+      // beverage + operatività
+      "magazzino",
+      "acquisti",
+      "produzione",
+      "planner-produzione",
+      "preparazioni"
+    ];
 
-  const blocked = [
-    "venduto",
-    "margini"
-  ];
+    const blocked = [
+      "venduto",
+      "margini"
+    ];
 
-  if (blocked.includes(area)) return false;
-  return allowed.includes(area);
-}
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
 
   // =========================
-  // DEFAULT (operatore base)
+  // OPERATORE CUCINA
+  // =========================
+  if (ruolo === "operatore_cucina") {
+    const allowed = [
+      "home",
+      "operativo",
+      "produzione",
+      "planner-produzione",
+      "preparazioni",
+      "ricettario",
+      "magazzino",
+      "timbrature"
+    ];
+
+    const blocked = [
+      "venduto",
+      "margini",
+      "acquisti",
+      "dipendenti",
+      "creaRicetta"
+    ];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // OPERATORE SALA (CAMERIERE)
+  // =========================
+  if (ruolo === "operatore_sala") {
+    const allowed = [
+      "home",
+      "operativo",
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "ricettario",
+      "timbrature"
+    ];
+
+    const blocked = [
+      "venduto",
+      "margini",
+      "produzione",
+      "magazzino",
+      "acquisti",
+      "dipendenti"
+    ];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // DEFAULT (fallback)
   // =========================
   const permessi = window.state?.permessi || {};
   return permessi[`${area}.read`] === true;
