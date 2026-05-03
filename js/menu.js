@@ -58,16 +58,21 @@ export function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
+  // 🔥 FIX QUI
   function can(route){
-  if(window.state?._allAccess) return true
-  if(isSuperadmin()) return true
 
-  if(window.hasPermission){
-    return window.hasPermission(route)
+    // ❗ se sei in viewAs NON usare _allAccess
+    if(!window.state?.viewAs && window.state?._allAccess) return true
+
+    if(isSuperadmin()) return true
+
+    if(window.hasPermission){
+      return window.hasPermission(route)
+    }
+
+    return true
   }
 
-  return true
-}
   function go(route){
     if(!can(route)) return
     window.location.hash = "#/" + route
@@ -235,6 +240,37 @@ export function initMenu() {
       closeMenu()
     }
 
+    menu.appendChild(logout)
+  }
+
+  function openMenu(){
+    renderMenu()
+    menu.classList.add("open")
+    overlay.classList.add("open")
+  }
+
+  function closeMenu(){
+    menu.classList.remove("open")
+    overlay.classList.remove("open")
+  }
+
+  toggle.onclick = () => {
+    if(menu.classList.contains("open")){
+      closeMenu()
+    }else{
+      openMenu()
+    }
+  }
+
+  overlay.onclick = closeMenu
+
+  window.menuController = {
+    refresh: renderMenu,
+    open: openMenu,
+    close: closeMenu
+  }
+
+}
     menu.appendChild(logout)
   }
 
