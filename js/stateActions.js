@@ -477,8 +477,14 @@ window.stateActions = {
       return;
     }
 
-    const ruolo = ruoloData?.ruolo || null;
-    window.state.ruolo = ruolo;
+  const ruolo = ruoloData?.ruolo || null;
+
+if (window.state.viewAs) {
+  console.log("🔁 VIEW AS ATTIVO:", window.state.viewAs);
+} else {
+  window.state.ruolo = ruolo;
+  console.log("Ruolo reale:", ruolo);
+}
 
     console.log("Ruolo:", ruolo);
 
