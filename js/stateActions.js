@@ -18,6 +18,20 @@ window.stateActions = {
     }
   },
 
+  setReparti(reparti) {
+    const lista = Array.isArray(reparti) ? reparti : [];
+    window.state.reparti = lista;
+
+    if (lista.length === 0) {
+      window.state.repartoAttivo = null;
+      return;
+    }
+
+    if (!window.state.repartoAttivo) {
+      window.state.repartoAttivo = lista[0];
+    }
+  },
+
   setAziende(aziende) {
     window.state.aziende = Array.isArray(aziende) ? aziende : [];
   },
