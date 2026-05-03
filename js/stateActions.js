@@ -189,268 +189,255 @@ window.stateActions = {
       return;
     }
 
-  const ruolo = window.state.viewAs || window.state.ruolo;
+    const ruolo = window.state.viewAs || window.state.ruolo;
 
-const isAdmin =
-  window.state.isSuperadmin === true ||
-  ruolo === "superadmin" ||
-  ruolo === "admin";
+    const isAdmin =
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin";
 
-if (!isAdmin) {
-  if (!user?.id) {
-    window.state.sedi = [];
-    window.state.sedeAttiva = null;
-    window.state.sediDipendente = [];
-    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    if (!isAdmin) {
+      if (!user?.id) {
+        window.state.sedi = [];
+        window.state.sedeAttiva = null;
+        window.state.sediDipendente = [];
+        localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
-    if (window.uiActions?.renderSedeSelector) {
-      window.uiActions.renderSedeSelector();
+        if (window.uiActions?.renderSedeSelector) {
+          window.uiActions.renderSedeSelector();
+        }
+        return;
+      }
+
+      const sediDipendente = await this.caricaSediDipendente(window.state.dipendente?.id);
+      this.setSedi(sediDipendente);
+      return;
     }
-    return;
-  }
 
-  const sediDipendente = await this.caricaSediDipendente(window.state.dipendente?.id);
-  this.setSedi(sediDipendente);
-  return;
-}
-
-const { data, error } = await window.supabase
-  .from("sedi")
-  .select("id, nome, indirizzo, latitudine, longitudine")
-  .eq("azienda_id", azienda.id)
-  .order("nome", { ascending: true });
-
-if (error) {
-  console.error("Errore caricamento sedi:", error);
-  window.state.sedi = [];
-  window.state.sedeAttiva = null;
-
-  localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-
-  if (window.uiActions?.renderSedeSelector) {
-    window.uiActions.renderSedeSelector();
-  }
-  return;
-}
-
-this.setSedi(data || []);
-},
-
-async caricaContestoOperativo() {
-  const user = window.state.user;
-  const azienda = window.state.azienda;
-
-  if (!user?.id || !azienda?.id) {
-    window.state.dipendente = null;
-    window.state.sediDipendente = [];
-    window.state.sedi = [];
-    window.state.sedeAttiva = null;
-    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-    return {
-      ok: false,
-      motivo: "Utente o azienda non caricati",
-    };
-  }
-
-  await this.caricaRuoloEReparti();
-  await this.caricaPermessiEffettivi();
-
-  const ruolo = window.state.viewAs || window.state.ruolo;
-
-  const isAdmin =
-    window.state.isSuperadmin === true ||
-    ruolo === "superadmin" ||
-    ruolo === "admin";
-
-  if (isAdmin) {
-    await this.caricaSedi();
-
-    return {
-      ok: true,
-      tipo: "admin",
-      sedi: window.state.sedi || [],
-      sedeAttiva: window.state.sedeAttiva || null,
-    };
-  }
-
-  const dipendente = await this.caricaDipendenteCorrente();
-  const sedi = await this.caricaSediDipendente(dipendente?.id);
-  this.setSedi(sedi);
-
-  if (!dipendente?.id && sedi.length === 0) {
-    window.state.sedi = [];
-    window.state.sedeAttiva = null;
-    window.state.sediDipendente = [];
-    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-
-    return {
-      ok: false,
-      motivo: "Dipendente non trovato",
-    };
-  }
-
-  if (sedi.length === 0) {
-    window.state.sedeAttiva = null;
-    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-
-    return {
-      ok: false,
-      motivo: "Nessuna sede assegnata",
-    };
-  }
-
-  if (sedi.length === 1) {
-    window.state.sedeAttiva = sedi[0];
-    localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedi[0].id));
-
-    return {
-      ok: true,
-      tipo: "dipendente_sede_unica",
-      dipendente,
-      sedi,
-      sedeAttiva: sedi[0],
-    };
-  }
-
-  const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
-  const storedMatch = storedSedeId
-    ? sedi.find((s) => String(s.id) === String(storedSedeId))
-    : null;
-
-  if (storedMatch) {
-    window.state.sedeAttiva = storedMatch;
-
-    return {
-      ok: true,
-      tipo: "dipendente_multi_sede_con_sede_salvata",
-      dipendente,
-      sedi,
-      sedeAttiva: storedMatch,
-    };
-  }
-
-  const defaultSede = sedi.find((s) => s.is_default === true);
-  const sedeAttiva = defaultSede || sedi[0];
-
-  window.state.sedeAttiva = sedeAttiva;
-  localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedeAttiva.id));
-
-  return {
-    ok: true,
-    tipo: "dipendente_multi_sede",
-    dipendente,
-    sedi,
-    sedeAttiva,
-    sedeSuggerita: defaultSede || null,
-  };
-},
-
-async caricaPermessiEffettivi() {
-  const user = window.state.user;
-  const azienda = window.state.azienda;
-
-  if (!user || !azienda) {
-    window.state.permessi = {};
-    window.state._allAccess = false;
-    return;
-  }
-
-  const ruolo = window.state.viewAs || window.state.ruolo;
-
-  if (
-    window.state.isSuperadmin === true ||
-    ruolo === "superadmin" ||
-    ruolo === "admin"
-  ) {
-    window.state.permessi = {};
-    window.state._allAccess = true;
-    return;
-  }
-
-  let permessiDB = {};
-
-  try {
-    const { data, error } = await window.supabase.rpc("permessi_effettivi", {
-      p_user_id: user.id,
-      p_azienda_id: azienda.id,
-    });
-
-    if (!error && data) {
-      permessiDB = data;
-    }
-  } catch (e) {
-    console.warn("Permessi DB fallback:", e);
-  }
-
-  window.state.permessi = permessiDB;
-  window.state._allAccess = false;
-},
-
-async caricaRuoloEReparti() {
-  const user = window.state.user;
-  const azienda = window.state.azienda;
-
-  if (!user || !azienda) {
-    window.state.ruolo = null;
-    window.state.reparti = [];
-    window.state.repartoAttivo = null;
-    return;
-  }
-
-  console.log("DEBUG caricaRuoloEReparti", { user, azienda });
-
-  const { data: ruoloData, error: ruoloError } = await window.supabase
-    .from("utenti_aziende")
-    .select("ruolo")
-    .eq("user_id", user.id)
-    .eq("azienda_id", azienda.id)
-    .eq("attivo", true)
-    .maybeSingle();
-
-  if (ruoloError) {
-    console.error("Errore ruolo:", ruoloError);
-    window.state.ruolo = null;
-    window.state.reparti = [];
-    window.state.repartoAttivo = null;
-    return;
-  }
-
-  const ruoloDB = ruoloData?.ruolo || null;
-
-  if (!window.state.viewAs) {
-    window.state.ruolo = ruoloDB;
-  } else {
-    console.log("🔁 VIEW AS ATTIVO:", window.state.viewAs);
-  }
-
-  const ruoloEffettivo = window.state.viewAs || ruoloDB;
-
-  console.log("Ruolo effettivo:", ruoloEffettivo);
-
-  if (
-    window.state.isSuperadmin === true ||
-    ruoloEffettivo === "superadmin" ||
-    ruoloEffettivo === "admin"
-  ) {
-    const { data: repartiData, error: repartiError } = await window.supabase
-      .from("reparti")
-      .select("id, nome")
+    const { data, error } = await window.supabase
+      .from("sedi")
+      .select("id, nome, indirizzo, latitudine, longitudine")
       .eq("azienda_id", azienda.id)
-      .eq("attivo", true)
-      .order("sort_order", { ascending: true });
+      .order("nome", { ascending: true });
 
-    if (repartiError) {
-      console.error("Errore reparti:", repartiError);
+    if (error) {
+      console.error("Errore caricamento sedi:", error);
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
+      return;
+    }
+
+    this.setSedi(data || []);
+  },
+
+  async caricaContestoOperativo() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    if (!user?.id || !azienda?.id) {
+      window.state.dipendente = null;
+      window.state.sediDipendente = [];
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+      return {
+        ok: false,
+        motivo: "Utente o azienda non caricati",
+      };
+    }
+
+    await this.caricaRuoloEReparti();
+    await this.caricaPermessiEffettivi();
+
+    const ruolo = window.state.viewAs || window.state.ruolo;
+
+    const isAdmin =
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin";
+
+    if (isAdmin) {
+      await this.caricaSedi();
+
+      return {
+        ok: true,
+        tipo: "admin",
+        sedi: window.state.sedi || [],
+        sedeAttiva: window.state.sedeAttiva || null,
+      };
+    }
+
+    const dipendente = await this.caricaDipendenteCorrente();
+    const sedi = await this.caricaSediDipendente(dipendente?.id);
+    this.setSedi(sedi);
+
+    if (!dipendente?.id && sedi.length === 0) {
+      window.state.sedi = [];
+      window.state.sedeAttiva = null;
+      window.state.sediDipendente = [];
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+      return {
+        ok: false,
+        motivo: "Dipendente non trovato",
+      };
+    }
+
+    if (sedi.length === 0) {
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+      return {
+        ok: false,
+        motivo: "Nessuna sede assegnata",
+      };
+    }
+
+    if (sedi.length === 1) {
+      window.state.sedeAttiva = sedi[0];
+      localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedi[0].id));
+
+      return {
+        ok: true,
+        tipo: "dipendente_sede_unica",
+        dipendente,
+        sedi,
+        sedeAttiva: sedi[0],
+      };
+    }
+
+    const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    const storedMatch = storedSedeId
+      ? sedi.find((s) => String(s.id) === String(storedSedeId))
+      : null;
+
+    if (storedMatch) {
+      window.state.sedeAttiva = storedMatch;
+
+      return {
+        ok: true,
+        tipo: "dipendente_multi_sede_con_sede_salvata",
+        dipendente,
+        sedi,
+        sedeAttiva: storedMatch,
+      };
+    }
+
+    const defaultSede = sedi.find((s) => s.is_default === true);
+    const sedeAttiva = defaultSede || sedi[0];
+
+    window.state.sedeAttiva = sedeAttiva;
+    localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedeAttiva.id));
+
+    return {
+      ok: true,
+      tipo: "dipendente_multi_sede",
+      dipendente,
+      sedi,
+      sedeAttiva,
+      sedeSuggerita: defaultSede || null,
+    };
+  },
+
+  async caricaPermessiEffettivi() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    if (!user || !azienda) {
+      window.state.permessi = {};
+      window.state._allAccess = false;
+      return;
+    }
+
+    const ruolo = window.state.viewAs || window.state.ruolo;
+
+    if (
+      window.state.isSuperadmin === true ||
+      ruolo === "superadmin" ||
+      ruolo === "admin"
+    ) {
+      window.state.permessi = {};
+      window.state._allAccess = true;
+      return;
+    }
+
+    let permessiDB = {};
+
+    try {
+      const { data, error } = await window.supabase.rpc("permessi_effettivi", {
+        p_user_id: user.id,
+        p_azienda_id: azienda.id,
+      });
+
+      if (!error && data) {
+        permessiDB = data;
+      }
+    } catch (e) {
+      console.warn("Permessi DB fallback:", e);
+    }
+
+    window.state.permessi = permessiDB;
+    window.state._allAccess = false;
+  },
+
+  async caricaRuoloEReparti() {
+    const user = window.state.user;
+    const azienda = window.state.azienda;
+
+    if (!user || !azienda) {
+      window.state.ruolo = null;
       window.state.reparti = [];
       window.state.repartoAttivo = null;
       return;
     }
 
-    this.setReparti(repartiData || []);
-    return;
-  }
-}
-      console.log("Reparti ADMIN:", repartiData);
+    const { data: ruoloData, error: ruoloError } = await window.supabase
+      .from("utenti_aziende")
+      .select("ruolo")
+      .eq("user_id", user.id)
+      .eq("azienda_id", azienda.id)
+      .eq("attivo", true)
+      .maybeSingle();
+
+    if (ruoloError) {
+      console.error("Errore ruolo:", ruoloError);
+      window.state.ruolo = null;
+      window.state.reparti = [];
+      window.state.repartoAttivo = null;
+      return;
+    }
+
+    const ruoloDB = ruoloData?.ruolo || null;
+    const ruoloEffettivo = window.state.viewAs || ruoloDB;
+
+    if (!window.state.viewAs) {
+      window.state.ruolo = ruoloDB;
+    }
+
+    if (
+      window.state.isSuperadmin === true ||
+      ruoloEffettivo === "superadmin" ||
+      ruoloEffettivo === "admin"
+    ) {
+      const { data: repartiData, error: repartiError } = await window.supabase
+        .from("reparti")
+        .select("id, nome")
+        .eq("azienda_id", azienda.id)
+        .eq("attivo", true)
+        .order("sort_order", { ascending: true });
+
+      if (repartiError) {
+        console.error("Errore reparti:", repartiError);
+        window.state.reparti = [];
+        window.state.repartoAttivo = null;
+        return;
+      }
 
       this.setReparti(repartiData || []);
       return;
@@ -471,9 +458,6 @@ async caricaRuoloEReparti() {
     }
 
     const reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
-
-    console.log("Reparti UTENTE:", reparti);
-
     this.setReparti(reparti);
   },
 
