@@ -275,26 +275,34 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "admin") return true;
 
-  // =========================
-  // MANAGER CUCINA
-  // =========================
-  if (ruolo === "manager_cucina") {
-    const allowed = [
-      "home",
-      "operativo",
-      "produzione",
-      "planner-produzione",
-      "ricettario",
-      "creaRicetta",
-      "preparazioni",
-      "storicoLotto",
-      "magazzino",
-      "acquisti",
-      "dipendenti",
-      "dipendente",
-      "timbrature",
-      "prenotazioni",
-      "prenotazioni-dettaglioif (window.state?._allAccess === true) return true;
+ // =========================
+// MANAGER CUCINA
+// =========================
+if (ruolo === "manager_cucina") {
+  const allowed = [
+    "home",
+    "operativo",
+    "produzione",
+    "planner-produzione",
+    "ricettario",
+    "creaRicetta",
+    "preparazioni",
+    "storicoLotto",
+    "magazzino",
+    "acquisti",
+    "dipendenti",
+    "dipendente",
+    "timbrature",
+    "prenotazioni",
+    "prenotazioni-dettaglio",
+    "prenotazioni-form"
+  ];
+
+  const blocked = ["venduto", "margini"];
+
+  if (blocked.includes(area)) return false;
+  return allowed.includes(area);
+}
 /* =========================================================
    UI HELPERS
 ========================================================= */
