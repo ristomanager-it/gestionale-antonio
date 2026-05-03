@@ -58,18 +58,12 @@ export function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
-  // 🔥 FIX QUI
   function can(route){
-
-    // ❗ se sei in viewAs NON usare _allAccess
     if(!window.state?.viewAs && window.state?._allAccess) return true
-
     if(isSuperadmin()) return true
-
     if(window.hasPermission){
       return window.hasPermission(route)
     }
-
     return true
   }
 
@@ -80,7 +74,6 @@ export function initMenu() {
   }
 
   function getMenu(){
-
     return [
 
       ...(isAdmin() ? [{
@@ -138,105 +131,43 @@ export function initMenu() {
           {label:"Venduto", route:"venduto"},
           {label:"Margini", route:"margini"}
         ]
-      },
-
-      {
-        title:"SEDI",
-        items:[
-          {label:"Cambia sede", route:"gestione-sedi"},
-          {label:"Crea sede", route:"gestione-sedi?mode=first"},
-          {label:"Gestisci sedi", route:"gestione-sedi?mode=manage"}
-        ]
-      },
-
-      {
-        title:"PERSONALE",
-        items:[
-          {label:"Timbratura", route:"timbrature"},
-          {label:"Programma lavoro", route:"programma"},
-          {label:"Permessi e ferie", route:"permessi"},
-          {label:"Documenti", route:"documenti"}
-        ]
       }
 
     ]
   }
 
   function renderMenu(){
-
     menu.innerHTML = ""
-
-    const sede = window.state?.sedeAttiva;
-    if(sede){
-      const sedeBox = document.createElement("div")
-      sedeBox.className = "menu-sede-attiva"
-      sedeBox.innerText = "📍 " + sede.nome
-      sedeBox.style.padding = "12px"
-      sedeBox.style.fontWeight = "700"
-      sedeBox.style.borderBottom = "1px solid #eee"
-      menu.appendChild(sedeBox)
-    }
 
     const struttura = getMenu()
 
     struttura.forEach(section => {
-
       const items = section.items.filter(i => can(i.route))
       if(items.length === 0) return
 
       const sectionBox = document.createElement("div")
-      sectionBox.className = "menu-section"
-
       const title = document.createElement("div")
-      title.className = "menu-category"
-
-      title.innerHTML = `
-        <span>${section.title}</span>
-        <span class="menu-arrow">›</span>
-      `
-
       const itemsBox = document.createElement("div")
+
+      title.innerHTML = `<span>${section.title}</span>`
       itemsBox.className = "menu-subitems"
 
       items.forEach(item => {
         const row = document.createElement("div")
-        row.className = "menu-subitem"
         row.innerText = item.label
         row.onclick = () => go(item.route)
         itemsBox.appendChild(row)
       })
 
-      title.onclick = () => {
-        const isOpen = itemsBox.classList.contains("open")
-
-        document.querySelectorAll(".menu-subitems").forEach(el=>{
-          el.classList.remove("open")
-        })
-
-        document.querySelectorAll(".menu-arrow").forEach(el=>{
-          el.style.transform = "rotate(0deg)"
-        })
-
-        if(!isOpen){
-          itemsBox.classList.add("open")
-          title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
-        }
-      }
-
       sectionBox.appendChild(title)
       sectionBox.appendChild(itemsBox)
       menu.appendChild(sectionBox)
-
     })
 
     const logout = document.createElement("div")
-    logout.className = "menu-logout"
     logout.innerText = "Logout"
-
     logout.onclick = () => {
-      if(window.router?.logout){
-        window.router.logout()
-      }
+      window.router?.logout?.()
       closeMenu()
     }
 
@@ -269,34 +200,4 @@ export function initMenu() {
     open: openMenu,
     close: closeMenu
   }
-    menu.appendChild(logout)
-  }
-
-  function openMenu(){
-    renderMenu()
-    menu.classList.add("open")
-    overlay.classList.add("open")
-  }
-
-  function closeMenu(){
-    menu.classList.remove("open")
-    overlay.classList.remove("open")
-  }
-
-  toggle.onclick = () => {
-    if(menu.classList.contains("open")){
-      closeMenu()
-    }else{
-      openMenu()
-    }
-  }
-
-  overlay.onclick = closeMenu
-
-  window.menuController = {
-    refresh: renderMenu,
-    open: openMenu,
-    close: closeMenu
-  }
-
 }
