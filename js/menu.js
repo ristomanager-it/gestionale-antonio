@@ -1,4 +1,4 @@
-function initMenu() {
+export function initMenu() {
 
   const menu = document.getElementById("global-menu")
   const toggle = document.getElementById("menu-toggle")
@@ -50,7 +50,7 @@ function initMenu() {
   }
 
   function isSuperadmin(){
-    return window.state?.ruolo === "superadmin"
+    return !window.state?.viewAs && window.state?.ruolo === "superadmin"
   }
 
   function isAdmin(){
@@ -58,7 +58,6 @@ function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
-  // 🔥 FIX: compatibile con viewAs
   function can(route){
     if(!window.state?.viewAs && window.state?._allAccess) return true
     if(isSuperadmin()) return true
@@ -90,7 +89,7 @@ function initMenu() {
       ...(isSuperadmin() ? [{
         title:"PIATTAFORMA",
         items:[
-          {label:"Dashboard SaaS", route:"home-piattaforma"},
+          {label:"Dashboard SaaS", route:"homePiattaforma"},
           {label:"Gestione Aziende", route:"gestioneAziende"},
           {label:"Crea Azienda", route:"creaAzienda"},
           {label:"Piani Abbonamento", route:"gestionePiani"}
@@ -268,5 +267,3 @@ function initMenu() {
   }
 
 }
-
-window.initMenu = initMenu;
