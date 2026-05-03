@@ -259,7 +259,8 @@ function hasPermission(area) {
 
   const ruolo = window.state?.viewAs || window.state?.ruolo;
 
-  if (window.state?._allAccess === true) return true;
+  // 🔥 FIX: non bypassare viewAs
+  if (!window.state?.viewAs && window.state?._allAccess === true) return true;
 
   if (isSuperadmin()) return true;
 
@@ -275,33 +276,125 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "admin") return true;
 
- // =========================
-// MANAGER CUCINA
-// =========================
-if (ruolo === "manager_cucina") {
-  const allowed = [
-    "home",
-    "operativo",
-    "produzione",
-    "planner-produzione",
-    "ricettario",
-    "creaRicetta",
-    "preparazioni",
-    "storicoLotto",
-    "magazzino",
-    "acquisti",
-    "dipendenti",
-    "dipendente",
-    "timbrature",
-    "prenotazioni",
-    "prenotazioni-dettaglio",
-    "prenotazioni-form"
-  ];
+  // =========================
+  // MANAGER CUCINA
+  // =========================
+  if (ruolo === "manager_cucina") {
+    const allowed = [
+      "home",
+      "operativo",
+      "produzione",
+      "planner-produzione",
+      "ricettario",
+      "creaRicetta",
+      "preparazioni",
+      "storicoLotto",
+      "magazzino",
+      "acquisti",
+      "dipendenti",
+      "dipendente",
+      "timbrature",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form"
+    ];
 
-  const blocked = ["venduto", "margini"];
+    const blocked = ["venduto", "margini"];
 
-  if (blocked.includes(area)) return false;
-  return allowed.includes(area);
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // MANAGER SALA
+  // =========================
+  if (ruolo === "manager_sala") {
+    const allowed = [
+      "home",
+      "operativo",
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "ricettario",
+      "timbrature",
+      "magazzino",
+      "acquisti",
+      "produzione",
+      "planner-produzione",
+      "preparazioni"
+    ];
+
+    const blocked = ["venduto", "margini"];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // OPERATORE CUCINA
+  // =========================
+  if (ruolo === "operatore_cucina") {
+    const allowed = [
+      "home",
+      "operativo",
+      "produzione",
+      "planner-produzione",
+      "preparazioni",
+      "ricettario",
+      "magazzino",
+      "timbrature"
+    ];
+
+    const blocked = [
+      "venduto",
+      "margini",
+      "acquisti",
+      "dipendenti",
+      "creaRicetta"
+    ];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // OPERATORE SALA
+  // =========================
+  if (ruolo === "operatore_sala") {
+    const allowed = [
+      "home",
+      "operativo",
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "ricettario",
+      "timbrature"
+    ];
+
+    const blocked = [
+      "venduto",
+      "margini",
+      "produzione",
+      "magazzino",
+      "acquisti",
+      "dipendenti"
+    ];
+
+    if (blocked.includes(area)) return false;
+    return allowed.includes(area);
+  }
+
+  // =========================
+  // DEFAULT (permessi DB)
+  // =========================
+  const permessi = window.state?.permessi || {};
+  return permessi[`${area}.read`] === true;
 }
 /* =========================================================
    UI HELPERS
