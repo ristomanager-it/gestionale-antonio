@@ -255,13 +255,16 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
+  // Sempre accessibile
   if (area === "home") return true;
 
-  const ruolo = window.state?.viewAs || window.state?.ruolo;
+  const viewAs = window.state?.viewAs;
+  const ruolo = viewAs || window.state?.ruolo;
 
-  // 🔥 FIX: non bypassare viewAs
-  if (!window.state?.viewAs && window.state?._allAccess === true) return true;
+  // 🔥 FIX CRITICO: _allAccess NON deve valere in simulazione
+  if (!viewAs && window.state?._allAccess === true) return true;
 
+  // Superadmin sempre libero
   if (isSuperadmin()) return true;
 
   // =========================
@@ -281,27 +284,13 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "manager_cucina") {
     const allowed = [
-      "home",
-      "operativo",
-      "produzione",
-      "planner-produzione",
-      "ricettario",
-      "creaRicetta",
-      "preparazioni",
-      "storicoLotto",
-      "magazzino",
-      "acquisti",
-      "dipendenti",
-      "dipendente",
-      "timbrature",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form"
+      "home","operativo","produzione","planner-produzione",
+      "ricettario","creaRicetta","preparazioni","storicoLotto",
+      "magazzino","acquisti","dipendenti","dipendente",
+      "timbrature","prenotazioni","prenotazioni-dettaglio","prenotazioni-form"
     ];
 
-    const blocked = ["venduto", "margini"];
-
-    if (blocked.includes(area)) return false;
+    if (["venduto","margini"].includes(area)) return false;
     return allowed.includes(area);
   }
 
@@ -310,26 +299,13 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "manager_sala") {
     const allowed = [
-      "home",
-      "operativo",
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "ricettario",
-      "timbrature",
-      "magazzino",
-      "acquisti",
-      "produzione",
-      "planner-produzione",
-      "preparazioni"
+      "home","operativo","sala","comanda",
+      "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
+      "prenotazioni-tavoli","ricettario","timbrature",
+      "magazzino","acquisti","produzione","planner-produzione","preparazioni"
     ];
 
-    const blocked = ["venduto", "margini"];
-
-    if (blocked.includes(area)) return false;
+    if (["venduto","margini"].includes(area)) return false;
     return allowed.includes(area);
   }
 
@@ -338,25 +314,11 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "operatore_cucina") {
     const allowed = [
-      "home",
-      "operativo",
-      "produzione",
-      "planner-produzione",
-      "preparazioni",
-      "ricettario",
-      "magazzino",
-      "timbrature"
+      "home","operativo","produzione","planner-produzione",
+      "preparazioni","ricettario","magazzino","timbrature"
     ];
 
-    const blocked = [
-      "venduto",
-      "margini",
-      "acquisti",
-      "dipendenti",
-      "creaRicetta"
-    ];
-
-    if (blocked.includes(area)) return false;
+    if (["venduto","margini","acquisti","dipendenti","creaRicetta"].includes(area)) return false;
     return allowed.includes(area);
   }
 
@@ -365,33 +327,17 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "operatore_sala") {
     const allowed = [
-      "home",
-      "operativo",
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "ricettario",
-      "timbrature"
+      "home","operativo","sala","comanda",
+      "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
+      "prenotazioni-tavoli","ricettario","timbrature"
     ];
 
-    const blocked = [
-      "venduto",
-      "margini",
-      "produzione",
-      "magazzino",
-      "acquisti",
-      "dipendenti"
-    ];
-
-    if (blocked.includes(area)) return false;
+    if (["venduto","margini","produzione","magazzino","acquisti","dipendenti"].includes(area)) return false;
     return allowed.includes(area);
   }
 
   // =========================
-  // DEFAULT (permessi DB)
+  // FALLBACK DB
   // =========================
   const permessi = window.state?.permessi || {};
   return permessi[`${area}.read`] === true;
