@@ -12,6 +12,12 @@ window.stateActions = {
     window.state.profilo = profilo || null;
   },
 
+  setRuolo(ruolo) {
+    if (!window.state.viewAs) {
+      window.state.ruolo = ruolo;
+    }
+  },
+
   setAziende(aziende) {
     window.state.aziende = Array.isArray(aziende) ? aziende : [];
   },
