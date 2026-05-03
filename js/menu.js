@@ -269,8 +269,6 @@ export function initMenu() {
     open: openMenu,
     close: closeMenu
   }
-
-}
     menu.appendChild(logout)
   }
 
