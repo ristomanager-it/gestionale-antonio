@@ -99,12 +99,17 @@ export async function render(container) {
           </div>
 
           <div class="form-group">
-            <label>Carica nuova foto</label>
-            <input id="foto" type="file" accept="image/png,image/jpeg" class="input">
-            <div style="font-size:12px;color:#64748b;margin-top:4px;">
-              Preview locale JPG/PNG. Salvataggio storage non ancora attivo.
-            </div>
-          </div>
+  <label>Carica nuova foto</label>
+  <input 
+    id="foto" 
+    type="file" 
+    accept="image/png,image/jpeg" 
+    capture="environment"
+    class="input">
+  <div style="font-size:12px;color:#64748b;margin-top:4px;">
+    Puoi scattare una foto o caricarla dalla galleria (JPG/PNG).
+  </div>
+</div>
 
         </div>
 
