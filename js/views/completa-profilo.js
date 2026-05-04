@@ -151,54 +151,60 @@ export async function render(container) {
 
         </div>
 
-        <!-- MOTIVAZIONE -->
-        <div class="card">
-          <div style="font-weight:700;margin-bottom:12px;">Motivazione</div>
+        <!-- ENERGIA / MOTIVAZIONE -->
+<div class="card">
+  <div style="font-weight:700;margin-bottom:12px;">Energia e motivazione</div>
 
-          <div class="form-group">
-            <label>Perché lavori qui?</label>
-            <textarea id="motivazione" class="input">${escapeHtml(profiloAI.motivazione || "")}</textarea>
-          </div>
+  <div class="form-group">
+    <label>Come ti senti quando lavori qui?</label>
+    <textarea id="energia" class="input">${escapeHtml(profiloAI.energia || "")}</textarea>
+  </div>
 
-          <div class="form-group">
-            <label>Cosa ti motiva nel lavoro?</label>
-            <textarea id="motivazione_lavoro" class="input">${escapeHtml(profiloAI.motivazione_lavoro || "")}</textarea>
-          </div>
+  <div class="form-group">
+    <label>Cosa ti dà più energia durante il lavoro?</label>
+    <textarea id="energia_driver" class="input">${escapeHtml(profiloAI.energia_driver || "")}</textarea>
+  </div>
 
-        </div>
+  <div class="form-group">
+    <label>Cosa ti pesa di più nel lavoro?</label>
+    <textarea id="attrito" class="input">${escapeHtml(profiloAI.attrito || "")}</textarea>
+  </div>
 
-        <!-- CRESCITA -->
-        <div class="card">
-          <div style="font-weight:700;margin-bottom:12px;">Crescita</div>
+  <div class="form-group">
+    <label>Cosa cambieresti subito se potessi?</label>
+    <textarea id="miglioramenti" class="input">${escapeHtml(profiloAI.miglioramenti || "")}</textarea>
+  </div>
+</div>
 
-          <div class="form-group">
-            <label>Cosa vuoi migliorare?</label>
-            <textarea id="crescita" class="input">${escapeHtml(profiloAI.crescita || profiloAI.obiettivi_personali || "")}</textarea>
-          </div>
+<!-- CRESCITA -->
+<div class="card">
+  <div style="font-weight:700;margin-bottom:12px;">Crescita</div>
 
-          <div class="form-group">
-            <label>Cosa vuoi imparare?</label>
-            <textarea id="competenze" class="input">${escapeHtml(profiloAI.competenze || profiloAI.obiettivi_professionali || "")}</textarea>
-          </div>
+  <div class="form-group">
+    <label>In cosa ti senti ancora debole?</label>
+    <textarea id="debolezze" class="input">${escapeHtml(profiloAI.debolezze || "")}</textarea>
+  </div>
 
-        </div>
+  <div class="form-group">
+    <label>Quale abilità vuoi sviluppare nei prossimi mesi?</label>
+    <textarea id="skill_target" class="input">${escapeHtml(profiloAI.skill_target || profiloAI.competenze || "")}</textarea>
+  </div>
+</div>
 
-        <!-- DIREZIONE -->
-        <div class="card">
-          <div style="font-weight:700;margin-bottom:12px;">Direzione</div>
+<!-- DIREZIONE -->
+<div class="card">
+  <div style="font-weight:700;margin-bottom:12px;">Direzione</div>
 
-          <div class="form-group">
-            <label>Ruolo futuro desiderato</label>
-            <input id="ruolo_target" class="input" value="${escapeHtmlAttr(profiloAI.ruolo_target || "")}">
-          </div>
+  <div class="form-group">
+    <label>Che ruolo ti piacerebbe avere qui?</label>
+    <input id="ruolo_target" class="input" value="${escapeHtmlAttr(profiloAI.ruolo_target || "")}">
+  </div>
 
-          <div class="form-group">
-            <label>Dove ti vedi tra 1 anno?</label>
-            <textarea id="visione_futura" class="input">${escapeHtml(profiloAI.visione_futura || "")}</textarea>
-          </div>
-
-        </div>
-
+  <div class="form-group">
+    <label>Cosa deve succedere per farti sentire soddisfatto tra 6 mesi?</label>
+    <textarea id="soddisfazione_6_mesi" class="input">${escapeHtml(profiloAI.soddisfazione_6_mesi || "")}</textarea>
+  </div>
+</div>
       </div>
 
       <div style="margin-top:20px;">
