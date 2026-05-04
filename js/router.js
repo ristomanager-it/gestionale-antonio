@@ -241,8 +241,19 @@ async function renderView(routeName) {
   }
 
   await module.render(app);
-}
 
+  // 🔥 QUI STA IL FIX (UNA VOLTA SOLA)
+  try {
+    if (foot) {
+      const { renderFooter, initFooter } = await import("./footer.js");
+      const footerHTML = await renderFooter();
+      foot.innerHTML = footerHTML;
+      initFooter();
+    }
+  } catch (e) {
+    console.error("Errore render footer:", e);
+  }
+}
 /* =========================================================
    PERMISSION CHECK
 ========================================================= */
