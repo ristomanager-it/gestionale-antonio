@@ -375,7 +375,7 @@ export async function render(app) {
     <div id="tb-people" style="margin-top:10px;"></div>
   `
 }) : ""}
-</div>
+
 ${createCard({
   title: isManager ? "Storico Timbrature" : "Le tue timbrature",
   body: `
@@ -402,6 +402,9 @@ ${createCard({
     </div>
   `
 })}
+    </div>
+  `
+});
 
     const elStatus = app.querySelector("#tb-status");
     const elPrimary = app.querySelector("#btn-primary");
