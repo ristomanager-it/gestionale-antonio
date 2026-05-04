@@ -933,10 +933,23 @@ if (contesto.tipo === "dipendente_multi_sede") {
     return;
   }
 
-  if (route === "home") {
-    await renderView("home");
+ if (route === "home") {
+
+  const ruolo = window.state?.ruolo || window.state?.viewAs;
+
+  if (ruolo === "admin") {
+    await renderView("home-admin");
     return;
   }
+
+  if (ruolo === "manager_cucina" || ruolo === "manager_sala") {
+    await renderView("home-manager");
+    return;
+  }
+
+  await renderView("home-operatore");
+  return;
+}
 
   if (PLATFORM_ROUTES.has(route)) {
     if (!isSuperadmin()) {
