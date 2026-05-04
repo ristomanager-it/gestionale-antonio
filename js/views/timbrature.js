@@ -344,21 +344,24 @@ export async function render(app) {
           <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
 
           <div class="tb-scroll-actions">
-            <button id="btn-primary" class="btn-timbratura round green" type="button">
-              ${svgIcon("play")}
-              <div class="tb-label">Entrata</div>
-            </button>
+           <div class="tb-actions-mobile">
 
-            <button id="btn-pausa" class="btn-timbratura square gray" type="button">
-              ${svgIcon("pause")}
-              <div class="tb-label">Pausa</div>
-            </button>
+  <button id="btn-primary" class="btn-timbratura big green" type="button">
+    ${svgIcon("play")}
+    <div class="tb-label">Entrata</div>
+  </button>
 
-            <button id="btn-fine" class="btn-timbratura round red" type="button">
-              ${svgIcon("stop")}
-              <div class="tb-label">Fine turno</div>
-            </button>
-          </div>
+  <button id="btn-pausa" class="btn-timbratura big gray" type="button">
+    ${svgIcon("pause")}
+    <div class="tb-label">Pausa</div>
+  </button>
+
+  <button id="btn-fine" class="btn-timbratura big red" type="button">
+    ${svgIcon("stop")}
+    <div class="tb-label">Fine turno</div>
+  </button>
+
+</div>
 
           <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
           <div id="tb-msg" style="margin-top:10px;"></div>
