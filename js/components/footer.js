@@ -2,55 +2,51 @@ export async function renderFooter(){
 
   const ruolo = window.state?.viewAs || window.state?.ruolo
   const aziendaId = window.state?.azienda?.id
-
   const supabase = window.supabase
 
   const alerts = await getFooterAlerts(ruolo, aziendaId, supabase)
 
   function can(route){
-
     if(window.state?._allAccess) return true
     if(window.state?.ruolo === "superadmin") return true
 
-    if(window.hasPermesso){
-      return window.hasPermesso(route)
+    if(window.hasPermission){
+      return window.hasPermission(route)
     }
 
     return true
   }
 
-  const footerConfig = {
+  // 🔥 NUOVA CONFIG COERENTE
+  let items = []
 
-    operatore: [
-      {icon:"⏱", label:"Timbratura", route:"timbrature", key:"timbrature"},
-      {icon:"📅", label:"Planner", route:"planner-produzione"},
-      {icon:"🍳", label:"Prep", route:"produzione"},
-      {icon:"📅", label:"Permessi", route:"permessi"}
-    ],
-
-    manager: [
-      {icon:"📅", label:"Planner", route:"planner-produzione"},
-      {icon:"📊", label:"Servizi", route:"servizi"},
-      {icon:"👥", label:"Personale", route:"dipendenti", key:"turni"},
-      {icon:"🍳", label:"Produzione", route:"produzione"}
-    ],
-
-    admin: [
-      {icon:"📊", label:"Dashboard", route:"home"},
-      {icon:"📅", label:"Planner", route:"planner-produzione"},
-      {icon:"💰", label:"Margini", route:"margini", key:"costi"},
-      {icon:"📈", label:"KPI", route:"kpi"}
+  // 👨‍🍳 OPERATORE
+  if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
+    items = [
+      {icon:"⏱", label:"Timbrature", route:"timbrature", key:"timbrature"},
+      {icon:"📅", label:"Planning", route:"planning-lavoro"},
+      {icon:"🪑", label:"Prenotazioni", route:"prenotazioni"},
+      {icon:"📄", label:"Richieste", route:"permessi"}
     ]
-
   }
 
-  const items = (footerConfig[ruolo] || []).filter(i => can(i.route))
+  // 🧑‍💼 MANAGER + ADMIN
+  else {
+    items = [
+      {icon:"🏠", label:"Dashboard", route:"home"},
+      {icon:"📅", label:"Planning", route:"planning-lavoro"},
+      {icon:"🪑", label:"Prenotazioni", route:"prenotazioni"},
+      {icon:"📦", label:"Magazzino", route:"magazzino"},
+      {icon:"⚙️", label:"Altro", route:"menu"}
+    ]
+  }
+
+  const visibleItems = items.filter(i => can(i.route))
 
   return `
-    <!-- 🔥 NAV FOOTER -->
     <div class="app-footer">
 
-      ${items.map(i => `
+      ${visibleItems.map(i => `
         <div class="footer-item" data-route="${i.route}">
 
           <div class="footer-icon">
@@ -65,13 +61,11 @@ export async function renderFooter(){
 
     </div>
 
-    <!-- 🔥 BRAND FISSO SOTTO -->
     <div class="footer-brand">
       © Ristoflow — Sistema operativo per la ristorazione
     </div>
 
     <style>
-
       .badge{
         position:absolute;
         width:8px;
@@ -84,14 +78,13 @@ export async function renderFooter(){
       .footer-icon{
         position:relative;
       }
-
     </style>
   `
 }
 
 
 // =====================================
-// ALERT LOGIC
+// ALERT LOGIC (lasciata invariata)
 // =====================================
 
 async function getFooterAlerts(ruolo, aziendaId, supabase){
@@ -102,7 +95,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   const today = new Date().toISOString().slice(0,10)
 
-  if(ruolo === "operatore"){
+  if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
 
     const { data } = await supabase
       .from("timbrature")
@@ -117,7 +110,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   }
 
-  if(ruolo === "manager"){
+  if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
 
     const { data } = await supabase
       .from("turni")
@@ -150,7 +143,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
 
 // =====================================
-// INIT
+// INIT (invariato)
 // =====================================
 
 export function initFooter(){
