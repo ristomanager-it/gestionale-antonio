@@ -1,4 +1,4 @@
-async function renderFooter(){
+export async function renderFooter(){
 
   const ruolo = window.state?.viewAs || window.state?.ruolo
   const aziendaId = window.state?.azienda?.id
@@ -145,7 +145,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 // INIT
 // =====================================
 
-function initFooter(){
+export function initFooter(){
 
   document.querySelectorAll(".footer-item").forEach(el => {
 
@@ -165,11 +165,3 @@ function initFooter(){
   })
 
 }
-
-
-// =====================================
-// EXPORT GLOBALE (IMPORTANTE)
-// =====================================
-
-window.renderFooter = renderFooter
-window.initFooter = initFooter
