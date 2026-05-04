@@ -244,7 +244,7 @@ async function renderView(routeName) {
   // 🔥 QUI STA IL FIX (UNA VOLTA SOLA)
   try {
     if (foot) {
-     const { renderFooter, initFooter } = await import("./components/footer.js");
+   
       const footerHTML = await renderFooter();
       foot.innerHTML = footerHTML;
       initFooter();
