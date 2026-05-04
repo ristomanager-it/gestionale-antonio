@@ -4,6 +4,7 @@ export async function render(container){
 
 const supabase = window.supabaseClient
 const azienda = window.state?.azienda
+const user = window.state?.user
 
 if (!window.state?.sedeAttiva) {
   window.location.hash = "#/prehome-sedi"
@@ -32,6 +33,8 @@ const statoServizio = servizioOggi?.tipo_servizio
 
 container.innerHTML = `
 
+<div id="subheader-timbratura"></div>
+
 <div class="view operatore-home-new">
 
   <div class="card stato-card">
@@ -41,9 +44,7 @@ container.innerHTML = `
 
   <div class="card">
     <div class="card-title">📋 Cosa devi fare</div>
-
     ${renderTasks(servizioOggi)}
-
   </div>
 
   <div class="card tony-card">
@@ -55,13 +56,11 @@ container.innerHTML = `
     </div>
 
     <div class="tony-actions">
-
       ${getTonyActions(servizioOggi).map(a=>`
         <button class="tony-btn" data-route="${a.route}">
           ${a.label}
         </button>
       `).join("")}
-
     </div>
 
     <div class="tony-input-wrap">
@@ -73,64 +72,66 @@ container.innerHTML = `
 </div>
 
 <style>
+.operatore-home-new{ padding-bottom:90px; }
 
-.operatore-home-new{
-padding-bottom:90px;
+.timbratura-bar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:white;
+  padding:10px;
+  display:flex;
+  gap:8px;
+  border-bottom:1px solid #eee;
 }
 
-.task{
-font-size:14px;
-padding:8px 0;
-cursor:pointer;
+.tb-btn{
+  flex:1;
+  border:none;
+  padding:12px;
+  border-radius:10px;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
 }
 
-/* 🔥 FIX CLICK FEEDBACK */
-.task:active{
-opacity:0.6;
-transform:scale(0.98);
-}
+.tb-btn.green{ background:#16a34a; }
+.tb-btn.gray{ background:#6b7280; }
+.tb-btn.red{ background:#dc2626; }
 
-.stato-card{
-background:#f0f9ff;
-}
+.task{ font-size:14px; padding:8px 0; cursor:pointer; }
+.task:active{ opacity:0.6; transform:scale(0.98); }
 
-.tony-card{
-background:#eef2ff;
-}
+.stato-card{ background:#f0f9ff; }
+.tony-card{ background:#eef2ff; }
 
-.tony-message{
-margin-top:6px;
-font-size:14px;
-}
+.tony-message{ margin-top:6px; font-size:14px; }
 
 .tony-actions{
-margin-top:10px;
-display:flex;
-gap:6px;
-flex-wrap:wrap;
+  margin-top:10px;
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
 }
 
 .tony-btn{
-background:#0E5A7A;
-color:white;
-border:none;
-padding:6px 10px;
-border-radius:10px;
-font-size:12px;
-cursor:pointer;
+  background:#0E5A7A;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:10px;
+  font-size:12px;
+  cursor:pointer;
 }
 
-.tony-input-wrap{
-margin-top:10px;
-}
+.tony-input-wrap{ margin-top:10px; }
 
 .tony-input-wrap input{
-width:100%;
-padding:8px;
-border-radius:10px;
-border:1px solid #ddd;
+  width:100%;
+  padding:8px;
+  border-radius:10px;
+  border:1px solid #ddd;
 }
-
 </style>
 `
 
@@ -139,7 +140,102 @@ container.innerHTML += renderFooter()
 initFooter()
 initTasks()
 initTony()
+renderTimbraturaBar()
 
+}
+
+// =========================
+// TIMBRATURA REAL
+// =========================
+
+async function renderTimbraturaBar(){
+
+  const el = document.getElementById("subheader-timbratura")
+  if(!el) return
+
+  const supabase = window.supabaseClient
+  const aziendaId = window.state?.azienda?.id
+  const userId = window.state?.user?.id
+  const today = new Date().toISOString().slice(0,10)
+
+  let stato = "none"
+
+  try{
+    const { data } = await supabase
+      .from("timbrature")
+      .select("*")
+      .eq("azienda_id", aziendaId)
+      .eq("user_id", userId)
+      .eq("data", today)
+      .order("created_at", { ascending: false })
+      .limit(1)
+
+    const last = data?.[0]
+
+    if(last){
+      if(last.tipo === "entrata") stato = "in"
+      if(last.tipo === "pausa") stato = "pausa"
+      if(last.tipo === "fine") stato = "out"
+    }
+
+  }catch(e){}
+
+  el.innerHTML = getTimbraturaUI(stato)
+
+  el.querySelectorAll(".tb-btn").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const action = btn.dataset.action
+
+      try{
+        await supabase.from("timbrature").insert({
+          azienda_id: aziendaId,
+          user_id: userId,
+          data: today,
+          tipo: action
+        })
+
+        renderTimbraturaBar()
+
+      }catch(e){
+        alert("Errore timbratura")
+      }
+    }
+  })
+}
+
+function getTimbraturaUI(stato){
+
+  if(stato === "none"){
+    return `
+      <div class="timbratura-bar">
+        <button class="tb-btn green" data-action="entrata">Inizia turno</button>
+      </div>
+    `
+  }
+
+  if(stato === "in"){
+    return `
+      <div class="timbratura-bar">
+        <button class="tb-btn gray" data-action="pausa">Pausa</button>
+        <button class="tb-btn red" data-action="fine">Fine turno</button>
+      </div>
+    `
+  }
+
+  if(stato === "pausa"){
+    return `
+      <div class="timbratura-bar">
+        <button class="tb-btn green" data-action="entrata">Riprendi</button>
+        <button class="tb-btn red" data-action="fine">Fine turno</button>
+      </div>
+    `
+  }
+
+  return `
+    <div class="timbratura-bar">
+      <button class="tb-btn green" data-action="entrata">Nuovo turno</button>
+    </div>
+  `
 }
 
 // =========================
