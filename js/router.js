@@ -245,9 +245,9 @@ async function renderView(routeName) {
   try {
     if (foot) {
    
-      const footerHTML = await renderFooter();
-      foot.innerHTML = footerHTML;
-      initFooter();
+      const footerHTML = await window.renderFooter();
+foot.innerHTML = footerHTML;
+window.initFooter();
     }
   } catch (e) {
     console.error("Errore render footer:", e);
