@@ -1,7 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
-import { renderFooter, initFooter } from "./footer.js";
-
+import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
 ========================================================= */
@@ -245,7 +244,7 @@ async function renderView(routeName) {
   // 🔥 QUI STA IL FIX (UNA VOLTA SOLA)
   try {
     if (foot) {
-      const { renderFooter, initFooter } = await import("./footer.js");
+     const { renderFooter, initFooter } = await import("./components/footer.js");
       const footerHTML = await renderFooter();
       foot.innerHTML = footerHTML;
       initFooter();
