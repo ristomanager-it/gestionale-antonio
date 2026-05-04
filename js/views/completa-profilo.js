@@ -275,20 +275,26 @@ export async function render(container) {
 
     const profilo_ai = {
 
-      // NUOVO MODELLO
-      motivazione: document.getElementById("motivazione").value,
-      motivazione_lavoro: document.getElementById("motivazione_lavoro").value,
-      crescita: document.getElementById("crescita").value,
-      competenze: document.getElementById("competenze").value,
-      ruolo_target: document.getElementById("ruolo_target").value,
-      visione_futura: document.getElementById("visione_futura").value,
+     const profilo_ai = {
 
-      // COMPATIBILITÀ (IMPORTANTISSIMO)
-      obiettivi_personali: document.getElementById("crescita").value,
-      obiettivi_professionali: document.getElementById("competenze").value,
-      tipo_crescita: document.getElementById("crescita").value
+  // 🔥 NUOVO MODELLO (coerente con il form)
+  energia: document.getElementById("energia").value,
+  energia_driver: document.getElementById("energia_driver").value,
+  attrito: document.getElementById("attrito").value,
+  miglioramenti: document.getElementById("miglioramenti").value,
+  debolezze: document.getElementById("debolezze").value,
+  skill_target: document.getElementById("skill_target").value,
+  ruolo_target: document.getElementById("ruolo_target").value,
+  soddisfazione_6_mesi: document.getElementById("soddisfazione_6_mesi").value,
 
-    };
+  // 🔁 COMPATIBILITÀ (NON TOCCARE → serve al resto del sistema)
+  crescita: document.getElementById("skill_target").value,
+  competenze: document.getElementById("skill_target").value,
+  obiettivi_personali: document.getElementById("debolezze").value,
+  obiettivi_professionali: document.getElementById("skill_target").value,
+  tipo_crescita: document.getElementById("skill_target").value
+
+};
 
     btn.disabled = true;
     btn.innerText = "Salvataggio...";
