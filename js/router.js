@@ -937,7 +937,7 @@ if (contesto.tipo === "dipendente_multi_sede") {
 
  if (route === "home") {
 
-  const ruolo = window.state?.ruolo || window.state?.viewAs;
+const ruolo = window.state?.viewAs || window.state?.ruolo;
 
   if (ruolo === "admin") {
     await renderView("home-admin");
