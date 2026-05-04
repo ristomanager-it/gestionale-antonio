@@ -113,16 +113,14 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
   if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
 
     const { data } = await supabase
-      .from("turni")
-      .select("id")
-      .eq("azienda_id", aziendaId)
-      .eq("data", today)
+  .from("turni_dipendenti")
+  .select("id")
+  .eq("azienda_id", aziendaId)
+  .limit(1)
 
-    if(!data || data.length === 0){
-      alerts.turni = true
-    }
-
-  }
+if (!data || data.length === 0) {
+  alerts.turni = true
+}
 
   if(ruolo === "admin" || ruolo === "superadmin"){
 
