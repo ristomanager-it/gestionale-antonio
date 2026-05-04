@@ -61,7 +61,10 @@
 
   <footer id="footer-root"></footer>
 
+  <!-- CORE STATE -->
   <script src="js/state.js?v=9"></script>
+
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
@@ -70,7 +73,7 @@
 
       const client = createClient(
         "https://cuhcscpvhypoaplcmtjk.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
+        "YOUR_PUBLIC_KEY"
       );
 
       window.supabase = client;
@@ -78,12 +81,14 @@
     })();
   </script>
 
+  <!-- CORE LOGIC -->
   <script src="js/stateActions.js?v=9"></script>
   <script src="js/ui-reparto.js?v=9"></script>
   <script src="js/db.js?v=9"></script>
   <script src="js/config/permessi.js?v=1"></script>
   <script src="js/utils/notify.js?v=1"></script>
 
+  <!-- HEADER UI -->
   <script>
     function renderHeaderUI() {
       try {
@@ -166,6 +171,7 @@
     });
   </script>
 
+  <!-- ROUTER (MODULE) -->
   <script type="module" src="js/router.js?v=11"></script>
 
 </body>
