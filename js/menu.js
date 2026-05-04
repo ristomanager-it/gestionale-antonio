@@ -58,48 +58,39 @@ export function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
- function can(route){
+  // 🔥 PERMESSI CORRETTI
+  function can(route){
 
-  const ruolo = getRuoloAttivo()
+    const ruolo = getRuoloAttivo()
 
-  // 🔥 superadmin sempre libero
-  if(isSuperadmin()) return true
+    // allAccess (solo fuori da viewAs)
+    if(!window.state?.viewAs && window.state?._allAccess) return true
 
-  // 🔥 admin sempre libero
-  if(ruolo === "admin") return true
+    if(isSuperadmin()) return true
+    if(ruolo === "admin") return true
 
-  // =========================
-  // MANAGER
-  // =========================
-  if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
+    // MANAGER
+    if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
+      if(["venduto", "margini"].includes(route)) return false
+    }
 
-    const blocked = ["venduto", "margini"]
+    // OPERATORE
+    if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
+      if([
+        "venduto",
+        "margini",
+        "fatture",
+        "dipendenti"
+      ].includes(route)) return false
+    }
 
-    if(blocked.includes(route)) return false
+    if(window.hasPermission){
+      return window.hasPermission(route)
+    }
+
+    return true
   }
 
-  // =========================
-  // OPERATORE
-  // =========================
-  if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
-
-    const blocked = [
-      "venduto",
-      "margini",
-      "fatture",
-      "dipendenti"
-    ]
-
-    if(blocked.includes(route)) return false
-  }
-
-  // 🔥 fallback su router (coerenza totale)
-  if(window.hasPermission){
-    return window.hasPermission(route)
-  }
-
-  return true
-}
   function go(route){
     if(!can(route)) return
     window.location.hash = "#/" + route
