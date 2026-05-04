@@ -6,7 +6,6 @@ export async function render(container, reparto) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
-  // 💣 BLOCCO SEDE
   if (!window.state?.sedeAttiva) {
     window.location.hash = "#/prehome-sedi";
     return;
@@ -16,6 +15,7 @@ export async function render(container, reparto) {
 
   let servizi = [];
   let staff = [];
+  let timbrature = [];
 
   try {
 
@@ -35,8 +35,50 @@ export async function render(container, reparto) {
 
     staff = staffData || [];
 
+    const { data: tData } = await supabase
+      .from("timbrature")
+      .select("*")
+      .eq("azienda_id", azienda.id)
+      .eq("data", today);
+
+    timbrature = tData || [];
+
   } catch(e) {
     console.error(e);
+  }
+
+  // =========================
+  // STATO STAFF LIVE
+  // =========================
+
+  const statoDip = {};
+
+  timbrature.forEach(t => {
+    statoDip[t.dipendente_id] = t.tipo;
+  });
+
+  const inTurno = Object.values(statoDip)
+    .filter(t => t === "inizio_turno" || t === "fine_pausa").length;
+
+  const inPausa = Object.values(statoDip)
+    .filter(t => t === "inizio_pausa").length;
+
+  const fuori = Math.max(0, staff.length - inTurno - inPausa);
+
+  // =========================
+  // STATO SERVIZIO
+  // =========================
+
+  const copertiTotali = servizi.reduce((acc, s) => acc + (s.coperti_previsti || 0), 0);
+
+  let alertServizio = "✔ Tutto sotto controllo";
+
+  if (copertiTotali > 50 && inTurno < 4) {
+    alertServizio = "⚠️ Staff insufficiente";
+  }
+
+  if (servizi.length === 0) {
+    alertServizio = "⚠️ Nessun servizio pianificato";
   }
 
   const serviziHtml = servizi.map(s => {
@@ -47,11 +89,15 @@ export async function render(container, reparto) {
       <div class="servizio-row">
         <div>${s.tipo_servizio}</div>
         <div>${s.coperti_previsti || 0} coperti</div>
-        <div>brigata ${staffCount}</div>
+        <div>👥 ${staffCount}</div>
       </div>
     `;
 
   }).join("");
+
+  // =========================
+  // RENDER
+  // =========================
 
   container.innerHTML = `
 
@@ -71,21 +117,59 @@ export async function render(container, reparto) {
 
     </div>
 
+    <!-- 👥 STATO STAFF -->
     <div class="card">
-      <div class="card-title">Servizi oggi</div>
-      ${serviziHtml || "Nessun servizio"}
-    </div>
 
-    <div class="grid">
+      <div class="card-title">👥 Stato squadra</div>
 
-      <div class="card" onclick="location.hash='#/servizi'">
-        <div class="card-title">Servizi</div>
-        <div class="card-sub">${servizi.length} oggi</div>
+      <div class="staff-grid">
+
+        <div class="staff-box green">
+          <div class="num">${inTurno}</div>
+          <div class="label">In turno</div>
+        </div>
+
+        <div class="staff-box yellow">
+          <div class="num">${inPausa}</div>
+          <div class="label">In pausa</div>
+        </div>
+
+        <div class="staff-box red">
+          <div class="num">${fuori}</div>
+          <div class="label">Fuori</div>
+        </div>
+
       </div>
 
-      <div class="card" onclick="location.hash='#/produzione'">
-        <div class="card-title">Produzioni</div>
-        <div class="card-sub">Lavorazioni cucina</div>
+    </div>
+
+    <!-- 🍽 STATO SERVIZIO -->
+    <div class="card">
+
+      <div class="card-title">🍽 Servizio oggi</div>
+
+      <div class="card-sub">${copertiTotali} coperti previsti</div>
+      <div class="card-sub">${servizi.length} servizi</div>
+
+      <div class="alert">${alertServizio}</div>
+
+      <div style="margin-top:10px;">
+        ${serviziHtml || "Nessun servizio"}
+      </div>
+
+    </div>
+
+    <!-- ⚡ AZIONI -->
+    <div class="grid">
+
+      <div class="card" onclick="location.hash='#/prenotazioni'">
+        <div class="card-title">Prenotazioni</div>
+        <div class="card-sub">Gestisci tavoli</div>
+      </div>
+
+      <div class="card" onclick="location.hash='#/planning-lavoro'">
+        <div class="card-title">Planning</div>
+        <div class="card-sub">Turni e orari</div>
       </div>
 
       <div class="card" onclick="location.hash='#/dipendenti'">
@@ -98,17 +182,10 @@ export async function render(container, reparto) {
         <div class="card-sub">Controllo presenze</div>
       </div>
 
-      <div class="card" onclick="location.hash='#/permessi'">
-        <div class="card-title">Permessi e ferie</div>
-        <div class="card-sub">Approva richieste</div>
-      </div>
-
     </div>
 
-    <!-- 💣 TONY AVATAR -->
-    <div class="tony-avatar" onclick="location.hash='#/ai'">
-      🤖
-    </div>
+    <!-- 🤖 -->
+    <div class="tony-avatar" onclick="location.hash='#/ai'">🤖</div>
 
   </div>
 
@@ -117,29 +194,17 @@ export async function render(container, reparto) {
   .header{
     display:flex;
     justify-content:space-between;
-    align-items:center;
     margin-bottom:20px;
   }
 
-  .saluto{
-    font-size:22px;
-    font-weight:800;
-  }
+  .saluto{ font-size:22px; font-weight:800; }
+  .utente{ font-size:13px; color:#6b7280; }
 
-  .utente{
-    font-size:13px;
-    color:#6b7280;
-  }
-
-  .header-right{
-    text-align:right;
-    font-size:13px;
-    color:#6b7280;
-  }
+  .header-right{ text-align:right; font-size:13px; }
 
   .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
     gap:12px;
     margin-top:12px;
   }
@@ -149,19 +214,47 @@ export async function render(container, reparto) {
     padding:16px;
     border-radius:14px;
     box-shadow:0 4px 12px rgba(0,0,0,0.05);
-    cursor:pointer;
   }
 
-  .card-title{
-    font-weight:700;
+  .card-title{ font-weight:700; }
+  .card-sub{ font-size:12px; color:#6b7280; }
+
+  .staff-grid{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
   }
 
-  .card-sub{
-    font-size:12px;
-    color:#6b7280;
+  .staff-box{
+    flex:1;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+    color:white;
   }
 
-  /* 💣 TONY FLOATING */
+  .staff-box.green{ background:#16a34a; }
+  .staff-box.yellow{ background:#eab308; }
+  .staff-box.red{ background:#dc2626; }
+
+  .staff-box .num{
+    font-size:20px;
+    font-weight:800;
+  }
+
+  .alert{
+    margin-top:6px;
+    font-size:13px;
+    font-weight:600;
+  }
+
+  .servizio-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    padding:6px 0;
+  }
+
   .tony-avatar{
     position:fixed;
     right:18px;
@@ -175,9 +268,6 @@ export async function render(container, reparto) {
     align-items:center;
     justify-content:center;
     font-size:24px;
-    cursor:pointer;
-    box-shadow:0 10px 24px rgba(0,0,0,0.25);
-    z-index:50;
   }
 
   </style>
@@ -185,7 +275,6 @@ export async function render(container, reparto) {
 
   initHeader();
   hydrateWeather();
-
 }
 
 function initHeader(){
@@ -196,7 +285,6 @@ function initHeader(){
   const ora = new Date().getHours();
 
   let saluto = "Buongiorno";
-
   if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
   if (ora >= 18) saluto = "Buonasera";
 
@@ -208,25 +296,17 @@ function initHeader(){
     month:"long",
     year:"numeric"
   });
-
 }
 
 async function hydrateWeather(){
 
   const box = document.getElementById("home-weather");
-
   if(!box) return;
 
   try{
-
-    const res = await fetch(
-      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
-    );
-
+    const res = await fetch(`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`);
     const data = await res.json();
-
     box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
-
   }catch{
     box.innerHTML = "☁️";
   }
