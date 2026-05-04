@@ -1,4 +1,4 @@
-export async function renderFooter(){
+async function renderFooter(){
 
   const ruolo = window.state?.viewAs || window.state?.ruolo
   const aziendaId = window.state?.azienda?.id
@@ -17,7 +17,6 @@ export async function renderFooter(){
     return true
   }
 
-  // 🔥 NUOVA CONFIG COERENTE
   let items = []
 
   // 👨‍🍳 OPERATORE
@@ -84,7 +83,7 @@ export async function renderFooter(){
 
 
 // =====================================
-// ALERT LOGIC (lasciata invariata)
+// ALERT LOGIC
 // =====================================
 
 async function getFooterAlerts(ruolo, aziendaId, supabase){
@@ -95,6 +94,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
 
   const today = new Date().toISOString().slice(0,10)
 
+  // 👨‍🍳 OPERATORE
   if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
 
     const { data } = await supabase
@@ -107,21 +107,23 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
     if(!data || data.length === 0){
       alerts.timbrature = true
     }
-
   }
 
+  // 🧑‍💼 MANAGER
   if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
 
     const { data } = await supabase
-  .from("turni_dipendenti")
-  .select("id")
-  .eq("azienda_id", aziendaId)
-  .limit(1)
+      .from("turni_dipendenti")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .limit(1)
 
-if (!data || data.length === 0) {
-  alerts.turni = true
-}
+    if(!data || data.length === 0){
+      alerts.turni = true
+    }
+  }
 
+  // 🧑‍💼 ADMIN
   if(ruolo === "admin" || ruolo === "superadmin"){
 
     const { data } = await supabase
@@ -133,7 +135,6 @@ if (!data || data.length === 0) {
     if(!data || data.length === 0){
       alerts.costi = true
     }
-
   }
 
   return alerts
@@ -141,10 +142,10 @@ if (!data || data.length === 0) {
 
 
 // =====================================
-// INIT (invariato)
+// INIT
 // =====================================
 
-export function initFooter(){
+function initFooter(){
 
   document.querySelectorAll(".footer-item").forEach(el => {
 
@@ -164,3 +165,11 @@ export function initFooter(){
   })
 
 }
+
+
+// =====================================
+// EXPORT GLOBALE (IMPORTANTE)
+// =====================================
+
+window.renderFooter = renderFooter
+window.initFooter = initFooter
