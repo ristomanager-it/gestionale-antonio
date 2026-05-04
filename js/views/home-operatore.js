@@ -13,6 +13,29 @@ if (!window.state?.sedeAttiva) {
 
 const today = new Date().toISOString().slice(0,10)
 
+// 🔥 stato timbratura reale
+let statoTimbratura = "none"
+
+try{
+  const { data } = await supabase
+    .from("timbrature")
+    .select("tipo, timestamp")
+    .eq("azienda_id", azienda.id)
+    .eq("dipendente_id", user.id)
+    .order("timestamp", { ascending:false })
+    .limit(1)
+
+  const last = data?.[0]
+
+  if(last){
+    if(last.tipo === "inizio_turno" || last.tipo === "fine_pausa") statoTimbratura = "in"
+    if(last.tipo === "inizio_pausa") statoTimbratura = "pausa"
+    if(last.tipo === "fine_turno") statoTimbratura = "out"
+  }
+
+}catch(e){}
+
+// 🔥 servizio
 let servizioOggi = null
 
 try{
@@ -33,7 +56,9 @@ const statoServizio = servizioOggi?.tipo_servizio
 
 container.innerHTML = `
 
-<div id="subheader-timbratura"></div>
+<div id="subheader-timbratura">
+  ${renderTimbraturaBar(statoTimbratura)}
+</div>
 
 <div class="view operatore-home-new">
 
@@ -72,7 +97,6 @@ container.innerHTML = `
 </div>
 
 <style>
-.operatore-home-new{ padding-bottom:90px; }
 
 .timbratura-bar{
   position:sticky;
@@ -80,13 +104,11 @@ container.innerHTML = `
   z-index:10;
   background:white;
   padding:10px;
-  display:flex;
-  gap:8px;
   border-bottom:1px solid #eee;
 }
 
-.tb-btn{
-  flex:1;
+.tb-main{
+  width:100%;
   border:none;
   padding:12px;
   border-radius:10px;
@@ -95,9 +117,17 @@ container.innerHTML = `
   cursor:pointer;
 }
 
-.tb-btn.green{ background:#16a34a; }
-.tb-btn.gray{ background:#6b7280; }
-.tb-btn.red{ background:#dc2626; }
+.tb-main.green{ background:#16a34a; }
+.tb-main.gray{ background:#6b7280; }
+.tb-main.red{ background:#dc2626; }
+
+.tb-status{
+  font-size:12px;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.operatore-home-new{ padding-bottom:90px; }
 
 .task{ font-size:14px; padding:8px 0; cursor:pointer; }
 .task:active{ opacity:0.6; transform:scale(0.98); }
@@ -132,6 +162,7 @@ container.innerHTML = `
   border-radius:10px;
   border:1px solid #ddd;
 }
+
 </style>
 `
 
@@ -140,84 +171,21 @@ container.innerHTML += renderFooter()
 initFooter()
 initTasks()
 initTony()
-renderTimbraturaBar()
+initTimbraturaClick()
 
 }
 
 // =========================
-// TIMBRATURA REAL
+// TIMBRATURA BAR
 // =========================
 
-async function renderTimbraturaBar(){
-
-  const el = document.getElementById("subheader-timbratura")
-  if(!el) return
-
-  const supabase = window.supabaseClient
-  const aziendaId = window.state?.azienda?.id
-  const userId = window.state?.user?.id
-  const today = new Date().toISOString().slice(0,10)
-
-  let stato = "none"
-
-  try{
-    const { data } = await supabase
-      .from("timbrature")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("user_id", userId)
-      .eq("data", today)
-      .order("created_at", { ascending: false })
-      .limit(1)
-
-    const last = data?.[0]
-
-    if(last){
-      if(last.tipo === "entrata") stato = "in"
-      if(last.tipo === "pausa") stato = "pausa"
-      if(last.tipo === "fine") stato = "out"
-    }
-
-  }catch(e){}
-
-  el.innerHTML = getTimbraturaUI(stato)
-
-  el.querySelectorAll(".tb-btn").forEach(btn=>{
-    btn.onclick = async ()=>{
-      const action = btn.dataset.action
-
-      try{
-        await supabase.from("timbrature").insert({
-          azienda_id: aziendaId,
-          user_id: userId,
-          data: today,
-          tipo: action
-        })
-
-        renderTimbraturaBar()
-
-      }catch(e){
-        alert("Errore timbratura")
-      }
-    }
-  })
-}
-
-function getTimbraturaUI(stato){
-
-  if(stato === "none"){
-    return `
-      <div class="timbratura-bar">
-        <button class="tb-btn green" data-action="entrata">Inizia turno</button>
-      </div>
-    `
-  }
+function renderTimbraturaBar(stato){
 
   if(stato === "in"){
     return `
       <div class="timbratura-bar">
-        <button class="tb-btn gray" data-action="pausa">Pausa</button>
-        <button class="tb-btn red" data-action="fine">Fine turno</button>
+        <div class="tb-status">🟢 In turno</div>
+        <button class="tb-main gray" data-route="timbrature">Gestisci pausa / fine</button>
       </div>
     `
   }
@@ -225,17 +193,42 @@ function getTimbraturaUI(stato){
   if(stato === "pausa"){
     return `
       <div class="timbratura-bar">
-        <button class="tb-btn green" data-action="entrata">Riprendi</button>
-        <button class="tb-btn red" data-action="fine">Fine turno</button>
+        <div class="tb-status">🟡 In pausa</div>
+        <button class="tb-main green" data-route="timbrature">Riprendi turno</button>
+      </div>
+    `
+  }
+
+  if(stato === "out"){
+    return `
+      <div class="timbratura-bar">
+        <div class="tb-status">🔴 Turno chiuso</div>
+        <button class="tb-main green" data-route="timbrature">Nuovo turno</button>
       </div>
     `
   }
 
   return `
     <div class="timbratura-bar">
-      <button class="tb-btn green" data-action="entrata">Nuovo turno</button>
+      <div class="tb-status">⚪ Non timbrato</div>
+      <button class="tb-main green" data-route="timbrature">Inizia turno</button>
     </div>
   `
+}
+
+// =========================
+// CLICK
+// =========================
+
+function initTimbraturaClick(){
+  document.querySelectorAll(".tb-main").forEach(btn=>{
+    btn.onclick = ()=>{
+      const route = btn.dataset.route
+      if(route){
+        window.location.hash = "#/" + route
+      }
+    }
+  })
 }
 
 // =========================
