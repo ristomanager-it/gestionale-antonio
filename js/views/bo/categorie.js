@@ -248,12 +248,19 @@ const azienda_id = window.state?.azienda?.id
 
   console.log("UPDATE CATEGORIA:", updatePayload)
 
-  await supabase
-    .from("categorie_vendita")
-    .update(updatePayload)
-    .eq("id", categoriaAttiva.id)
+ const updatePayload = {
+  nome: qs("#cat-nome").value,
+  descrizione: qs("#cat-descrizione").value || null,
+  immagine_url: qs("#cat-img-url").value || null,
+  attiva: qs("#cat-attivo").checked,
+  visibile: qs("#cat-evidenza").checked,
+  ordine: Number(qs("#cat-ordine").value || 0)
 }
 
+await supabase
+  .from("categorie_vendita")
+  .update(updatePayload)
+  .eq("id", categoriaAttiva.id)
     closeForm()
     await loadAll()
   }
