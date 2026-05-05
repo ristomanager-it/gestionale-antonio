@@ -8,7 +8,7 @@ export async function render(container) {
   }
 
   const ruolo = window.state?.ruolo
-  const azienda_id = window.state?.azienda_id
+ const azienda_id = window.state?.azienda?.id
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
     container.innerHTML = `
