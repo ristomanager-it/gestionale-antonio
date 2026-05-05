@@ -2,7 +2,7 @@ const supabase = window.supabase
 
 export async function render(container) {
 
-const azienda_id = window.state?.azienda?.id
+  const azienda_id = window.state?.azienda?.id
   const ruolo = window.state?.ruolo
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
@@ -14,12 +14,10 @@ const azienda_id = window.state?.azienda?.id
   let categoriaAttiva = null
   let tagsDisponibili = []
   let tagsSelezionati = []
-  let formAperto = false
 
   container.innerHTML = `
   <section class="view" style="display:flex; gap:16px; padding:16px;">
 
-    <!-- SINISTRA -->
     <div style="flex:1;" class="card">
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -31,35 +29,20 @@ const azienda_id = window.state?.azienda?.id
 
     </div>
 
-    <!-- FORM -->
     <div id="form-box" style="width:380px; display:none;" class="card">
 
       <h3 id="form-title">Nuova categoria</h3>
 
       <input id="cat-nome" class="input" placeholder="Nome categoria">
-
       <textarea id="cat-descrizione" class="input" placeholder="Descrizione"></textarea>
-      <input id="cat-descrizione-breve" class="input" placeholder="Descrizione breve">
-
-      <input type="color" id="cat-colore" value="#ffffff">
-
-      <input id="cat-icona" class="input" placeholder="Emoji (🍕)">
 
       <input id="cat-img-file" type="file">
       <input id="cat-img-url" class="input" placeholder="URL immagine" readonly>
 
-      <select id="cat-tipo" class="input">
-        <option value="food">Food</option>
-        <option value="drink">Drink</option>
-        <option value="dessert">Dessert</option>
-        <option value="altro">Altro</option>
-      </select>
-
       <input id="cat-ordine" type="number" class="input" placeholder="Ordine">
 
-      <label><input type="checkbox" id="cat-attivo" checked> Attivo</label>
-      <label><input type="checkbox" id="cat-evidenza"> Evidenza</label>
-      <label><input type="checkbox" id="cat-stagionale"> Stagionale</label>
+      <label><input type="checkbox" id="cat-attivo" checked> Attiva</label>
+      <label><input type="checkbox" id="cat-visibile" checked> Visibile</label>
 
       <hr>
 
@@ -91,7 +74,6 @@ const azienda_id = window.state?.azienda?.id
     }
 
     qs("#btn-cancel").onclick = closeForm
-
     qs("#btn-save").onclick = saveCategoria
 
     qs("#tag-input").addEventListener("keydown", e => {
@@ -138,7 +120,7 @@ const azienda_id = window.state?.azienda?.id
 
     qs("#categorie-list").innerHTML = categorie.map(c => `
       <div data-id="${c.id}" style="padding:10px; border-bottom:1px solid #ddd; cursor:pointer;">
-        ${c.icona || ""} ${c.nome}
+        ${c.nome}
       </div>
     `).join("")
 
@@ -152,15 +134,14 @@ const azienda_id = window.state?.azienda?.id
 
   function openForm() {
     qs("#form-box").style.display = "block"
-    formAperto = true
   }
 
   function closeForm() {
     qs("#form-box").style.display = "none"
-    formAperto = false
   }
 
   function resetForm() {
+
     categoriaAttiva = null
     tagsSelezionati = []
 
@@ -168,16 +149,11 @@ const azienda_id = window.state?.azienda?.id
 
     qs("#cat-nome").value = ""
     qs("#cat-descrizione").value = ""
-    qs("#cat-descrizione-breve").value = ""
-    qs("#cat-colore").value = "#ffffff"
-    qs("#cat-icona").value = ""
     qs("#cat-img-url").value = ""
-    qs("#cat-tipo").value = "food"
     qs("#cat-ordine").value = 0
 
     qs("#cat-attivo").checked = true
-    qs("#cat-evidenza").checked = false
-    qs("#cat-stagionale").checked = false
+    qs("#cat-visibile").checked = true
 
     renderTags()
   }
@@ -193,74 +169,55 @@ const azienda_id = window.state?.azienda?.id
 
     qs("#cat-nome").value = c.nome || ""
     qs("#cat-descrizione").value = c.descrizione || ""
-    qs("#cat-descrizione-breve").value = c.descrizione_breve || ""
-    qs("#cat-colore").value = c.colore_sfondo || "#fff"
-    qs("#cat-icona").value = c.icona || ""
     qs("#cat-img-url").value = c.immagine_url || ""
-    qs("#cat-tipo").value = c.tipo || "food"
     qs("#cat-ordine").value = c.ordine || 0
 
-    qs("#cat-attivo").checked = c.attivo
-    qs("#cat-evidenza").checked = c.evidenza
-    qs("#cat-stagionale").checked = c.stagionale
-
-    tagsSelezionati = c.tags || []
+    qs("#cat-attivo").checked = c.attiva ?? true
+    qs("#cat-visibile").checked = c.visibile ?? true
 
     renderTags()
   }
 
   async function saveCategoria() {
 
-    const nome = qs("#cat-nome").value
+    const nome = qs("#cat-nome").value.trim()
     if (!nome) return alert("Nome obbligatorio")
 
-    const payload = {
-      azienda_id,
-      nome,
-      descrizione: qs("#cat-descrizione").value,
-      descrizione_breve: qs("#cat-descrizione-breve").value,
-      colore_sfondo: qs("#cat-colore").value,
-      icona: qs("#cat-icona").value,
-      immagine_url: qs("#cat-img-url").value,
-      tipo: qs("#cat-tipo").value,
-      ordine: Number(qs("#cat-ordine").value || 0),
-      attivo: qs("#cat-attivo").checked,
-      evidenza: qs("#cat-evidenza").checked,
-      stagionale: qs("#cat-stagionale").checked,
-      tags: tagsSelezionati
+    if (categoriaAttiva) {
+
+      const updatePayload = {
+        nome,
+        descrizione: qs("#cat-descrizione").value || null,
+        immagine_url: qs("#cat-img-url").value || null,
+        attiva: qs("#cat-attivo").checked,
+        visibile: qs("#cat-visibile").checked,
+        ordine: Number(qs("#cat-ordine").value || 0)
+      }
+
+      console.log("UPDATE OK:", updatePayload)
+
+      await supabase
+        .from("categorie_vendita")
+        .update(updatePayload)
+        .eq("id", categoriaAttiva.id)
+
+    } else {
+
+      const insertPayload = {
+        azienda_id,
+        nome,
+        descrizione: qs("#cat-descrizione").value || null,
+        immagine_url: qs("#cat-img-url").value || null,
+        attiva: qs("#cat-attivo").checked,
+        visibile: qs("#cat-visibile").checked,
+        ordine: Number(qs("#cat-ordine").value || 0)
+      }
+
+      await supabase
+        .from("categorie_vendita")
+        .insert(insertPayload)
     }
 
-   if (categoriaAttiva) {
-
-  const updatePayload = {
-    nome,
-    descrizione: qs("#cat-descrizione").value || null,
-    descrizione_breve: qs("#cat-descrizione-breve").value || null,
-    colore_sfondo: qs("#cat-colore").value || null,
-    icona: qs("#cat-icona").value || null,
-    immagine_url: qs("#cat-img-url").value || null,
-    tipo: qs("#cat-tipo").value || null,
-    ordine: Number(qs("#cat-ordine").value || 0),
-    attivo: qs("#cat-attivo").checked,
-    evidenza: qs("#cat-evidenza").checked,
-    stagionale: qs("#cat-stagionale").checked
-  }
-
-  console.log("UPDATE CATEGORIA:", updatePayload)
-
- const updatePayload = {
-  nome: qs("#cat-nome").value,
-  descrizione: qs("#cat-descrizione").value || null,
-  immagine_url: qs("#cat-img-url").value || null,
-  attiva: qs("#cat-attivo").checked,
-  visibile: qs("#cat-evidenza").checked,
-  ordine: Number(qs("#cat-ordine").value || 0)
-}
-
-await supabase
-  .from("categorie_vendita")
-  .update(updatePayload)
-  .eq("id", categoriaAttiva.id)
     closeForm()
     await loadAll()
   }
