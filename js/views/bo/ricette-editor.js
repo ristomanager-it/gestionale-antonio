@@ -73,7 +73,7 @@ export async function render(app) {
 
   const ricettaId = window.routeParams?.id || null;
 
-  state.azienda_id = window.state?.azienda?.id || window.state?.azienda_id || null;
+ state.azienda_id = window.state?.azienda?.id || null;
   state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
 
   app.innerHTML = createPageLayout({
