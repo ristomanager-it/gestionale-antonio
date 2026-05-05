@@ -2,7 +2,7 @@ const supabase = window.supabase
 
 export async function render(container) {
   const ruolo = window.state?.ruolo
-  const azienda_id = window.state?.azienda_id || window.state?.azienda?.id
+ const azienda_id = window.state?.azienda?.id
   const sede_id = window.state?.sedeAttiva?.id || null
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
