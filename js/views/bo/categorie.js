@@ -174,8 +174,6 @@ export async function render(container) {
 
     qs("#cat-attivo").checked = c.attiva ?? true
     qs("#cat-visibile").checked = c.visibile ?? true
-
-    renderTags()
   }
 
   async function saveCategoria() {
