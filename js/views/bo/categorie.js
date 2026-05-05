@@ -230,11 +230,29 @@ const azienda_id = window.state?.azienda?.id
       tags: tagsSelezionati
     }
 
-    if (categoriaAttiva) {
-      await supabase.from("categorie_vendita").update(payload).eq("id", categoriaAttiva.id)
-    } else {
-      await supabase.from("categorie_vendita").insert(payload)
-    }
+   if (categoriaAttiva) {
+
+  const updatePayload = {
+    nome,
+    descrizione: qs("#cat-descrizione").value || null,
+    descrizione_breve: qs("#cat-descrizione-breve").value || null,
+    colore_sfondo: qs("#cat-colore").value || null,
+    icona: qs("#cat-icona").value || null,
+    immagine_url: qs("#cat-img-url").value || null,
+    tipo: qs("#cat-tipo").value || null,
+    ordine: Number(qs("#cat-ordine").value || 0),
+    attivo: qs("#cat-attivo").checked,
+    evidenza: qs("#cat-evidenza").checked,
+    stagionale: qs("#cat-stagionale").checked
+  }
+
+  console.log("UPDATE CATEGORIA:", updatePayload)
+
+  await supabase
+    .from("categorie_vendita")
+    .update(updatePayload)
+    .eq("id", categoriaAttiva.id)
+}
 
     closeForm()
     await loadAll()
