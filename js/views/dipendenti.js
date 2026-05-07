@@ -157,10 +157,9 @@ export async function render(container) {
   };
 
   document.getElementById("tab-elenco").onclick = () => setTab("elenco");
-  document.getElementById("tab-nuovo").onclick = async () => {
-    setTab("form");
-    await renderForm(null);
-  };
+ document.getElementById("tab-nuovo").onclick = () => {
+  window.location.hash = "#/crea-dipendente";
+};
 
   const btnNuovo = document.getElementById("tab-nuovo");
   if (btnNuovo && (!window.hasPermesso || !window.hasPermesso("dipendenti.create"))) {
