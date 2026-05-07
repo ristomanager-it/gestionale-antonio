@@ -86,6 +86,41 @@ function toggleGiorno(index, giorno) {
   renderTurni();
 }
 
+function calcolaCostoOrario() {
+  const tipoCompenso = document.getElementById("tipo-compenso")?.value || "orario";
+
+  const retribuzioneBase =
+    parseFloat(document.getElementById("retribuzione-base")?.value) || 0;
+
+  const oreMensili =
+    parseFloat(document.getElementById("ore-mensili")?.value) || 0;
+
+  const oreServizio =
+    parseFloat(document.getElementById("ore-servizio")?.value) || 0;
+
+  let costo = 0;
+
+  if (tipoCompenso === "orario") {
+    costo = retribuzioneBase;
+  }
+
+  if (tipoCompenso === "mensile" && oreMensili > 0) {
+    costo = retribuzioneBase / oreMensili;
+  }
+
+  if (tipoCompenso === "servizio" && oreServizio > 0) {
+    costo = retribuzioneBase / oreServizio;
+  }
+
+  const output = document.getElementById("costo-orario");
+
+  if (output) {
+    output.value = isFinite(costo)
+      ? costo.toFixed(2)
+      : "0.00";
+  }
+}
+
 function renderTurni() {
   ensureTurniState();
 
@@ -129,16 +164,16 @@ function renderTurni() {
                 class="giorno-btn"
                 data-turno="${index}"
                 data-giorno="${giorno.key}"
-               style="
-  border:none;
-  border-radius:999px;
-  padding:8px 12px;
-  cursor:pointer;
-  background:${active ? '#111827' : '#e5e7eb'};
-  color:${active ? '#ffffff' : '#111827'};
-  font-size:13px;
-  font-weight:600;
-"
+                style="
+                  border:none;
+                  border-radius:999px;
+                  padding:8px 12px;
+                  cursor:pointer;
+                  background:${active ? '#111827' : '#e5e7eb'};
+                  color:${active ? '#ffffff' : '#111827'};
+                  font-size:13px;
+                  font-weight:600;
+                "
               >
                 ${giorno.label}
               </button>
@@ -182,24 +217,24 @@ function renderTurni() {
     `).join("")}
 
     <div style="margin-top:14px;">
-  <button
-    type="button"
-    id="aggiungi-turno"
-    style="
-      width:100%;
-      background:#111827;
-      color:#ffffff;
-      border:none;
-      border-radius:10px;
-      padding:12px;
-      font-size:14px;
-      font-weight:600;
-      cursor:pointer;
-    "
-  >
-    + Aggiungi turno
-  </button>
-</div>
+      <button
+        type="button"
+        id="aggiungi-turno"
+        style="
+          width:100%;
+          background:#111827;
+          color:#ffffff;
+          border:none;
+          border-radius:10px;
+          padding:12px;
+          font-size:14px;
+          font-weight:600;
+          cursor:pointer;
+        "
+      >
+        + Aggiungi turno
+      </button>
+    </div>
   `;
 
   document
@@ -282,37 +317,40 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <div style="max-width:700px;margin:auto;width:100%;">
+      <div style="max-width:760px;margin:auto;width:100%;">
 
         <div style="margin-bottom:20px;">
           <h2 style="margin:0;">Nuovo dipendente</h2>
-          <div class="small-muted">Invita un membro del team</div>
+          <div class="small-muted">
+            Invita un membro del team
+          </div>
         </div>
 
         <div class="card">
 
           <div class="form-group">
             <label>Nome *</label>
-            <input id="nome" class="input" autocomplete="given-name">
+            <input id="nome" class="input">
           </div>
 
           <div class="form-group">
             <label>Cognome *</label>
-            <input id="cognome" class="input" autocomplete="family-name">
+            <input id="cognome" class="input">
           </div>
 
           <div class="form-group">
             <label>Email *</label>
-            <input id="email" class="input" type="email" autocomplete="email">
+            <input id="email" class="input" type="email">
           </div>
 
           <div class="form-group">
             <label>Telefono</label>
-            <input id="telefono" class="input" autocomplete="tel">
+            <input id="telefono" class="input">
           </div>
 
           <div class="form-group">
             <label>Ruolo *</label>
+
             <select id="ruolo" class="input">
               <option value="">Seleziona</option>
               <option value="operatore">Operatore</option>
@@ -323,20 +361,29 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Reparto *</label>
+
             <select id="reparto" class="input">
               <option value="">Seleziona reparto</option>
+
               ${(reparti || []).map(r => `
-                <option value="${r.id}">${r.nome}</option>
+                <option value="${r.id}">
+                  ${r.nome}
+                </option>
               `).join("")}
             </select>
           </div>
 
           <div class="form-group">
             <label>Sede *</label>
+
             <select id="sede" class="input">
               <option value="">Seleziona sede</option>
+
               ${(sedi || []).map(s => `
-                <option value="${s.id}" ${String(s.id) === String(sedeAttiva.id) ? "selected" : ""}>
+                <option
+                  value="${s.id}"
+                  ${String(s.id) === String(sedeAttiva.id) ? "selected" : ""}
+                >
                   ${s.nome}
                 </option>
               `).join("")}
@@ -345,18 +392,127 @@ export async function render(container) {
 
           <div class="form-group">
             <label>Mansione</label>
-            <input id="mansione" class="input" placeholder="es. pizzaiolo">
+
+            <input
+              id="mansione"
+              class="input"
+              placeholder="es. pizzaiolo"
+            >
           </div>
 
         </div>
 
-    
+        <div class="card" style="margin-top:20px;">
 
-  <div id="turni-container"></div>
-</div>
+          <h3 style="margin-top:0;margin-bottom:18px;">
+            Contratto e costo lavoro
+          </h3>
 
-<div style="margin-top:20px;">
-          <button id="crea" class="app-button primary" style="width:100%;">
+          <div class="form-group">
+            <label>Tipologia contratto</label>
+
+            <select id="tipo-contratto" class="input">
+              <option value="a_chiamata">A chiamata</option>
+              <option value="orario">Contratto orario</option>
+              <option value="mensile">Fisso mensile</option>
+              <option value="stagionale">Stagionale</option>
+              <option value="part_time">Part time</option>
+              <option value="full_time">Full time</option>
+              <option value="apprendistato">Apprendistato</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Contratto</label>
+
+            <input
+              id="contratto-nome"
+              class="input"
+              placeholder="es. Pubblici esercizi"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Tipo compenso</label>
+
+            <select id="tipo-compenso" class="input">
+              <option value="orario">A ore</option>
+              <option value="mensile">Mensile</option>
+              <option value="servizio">Per servizio</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Retribuzione base</label>
+
+            <input
+              type="number"
+              step="0.01"
+              id="retribuzione-base"
+              class="input"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Ore mensili contrattuali</label>
+
+            <input
+              type="number"
+              step="0.1"
+              id="ore-mensili"
+              class="input"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Ore medie per servizio</label>
+
+            <input
+              type="number"
+              step="0.1"
+              id="ore-servizio"
+              class="input"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Costo medio</label>
+
+            <input
+              type="text"
+              id="costo-medio"
+              class="input"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Costo orario calcolato</label>
+
+            <input
+              type="number"
+              step="0.01"
+              id="costo-orario"
+              class="input"
+              readonly
+            >
+          </div>
+
+        </div>
+
+        <div style="margin-top:24px;">
+          <h3 style="margin-bottom:12px;">
+            Turni
+          </h3>
+
+          <div id="turni-container"></div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button
+            id="crea"
+            class="app-button primary"
+            style="width:100%;"
+          >
             Invia invito
           </button>
         </div>
@@ -369,6 +525,24 @@ export async function render(container) {
 
   renderTurni();
 
+  document
+    .getElementById("tipo-compenso")
+    ?.addEventListener("change", calcolaCostoOrario);
+
+  document
+    .getElementById("retribuzione-base")
+    ?.addEventListener("input", calcolaCostoOrario);
+
+  document
+    .getElementById("ore-mensili")
+    ?.addEventListener("input", calcolaCostoOrario);
+
+  document
+    .getElementById("ore-servizio")
+    ?.addEventListener("input", calcolaCostoOrario);
+
+  calcolaCostoOrario();
+
   const btn = document.getElementById("crea");
   const msg = document.getElementById("msg");
 
@@ -379,22 +553,61 @@ export async function render(container) {
     const cognome = document.getElementById("cognome").value.trim();
     const email = document.getElementById("email").value.trim().toLowerCase();
     const telefono = document.getElementById("telefono").value.trim();
+
     const ruolo = document.getElementById("ruolo").value.trim();
-    const reparto_id = document.getElementById("reparto").value || null;
-    const sede_id = document.getElementById("sede").value || null;
-    const mansione = document.getElementById("mansione").value.trim();
+
+    const reparto_id =
+      document.getElementById("reparto").value || null;
+
+    const sede_id =
+      document.getElementById("sede").value || null;
+
+    const mansione =
+      document.getElementById("mansione").value.trim();
+
+    const tipo_contratto =
+      document.getElementById("tipo-contratto").value;
+
+    const contratto_nome =
+      document.getElementById("contratto-nome").value.trim();
+
+    const tipo_compenso =
+      document.getElementById("tipo-compenso").value;
+
+    const retribuzione_base =
+      parseFloat(document.getElementById("retribuzione-base").value) || 0;
+
+    const ore_mensili_contrattuali =
+      parseFloat(document.getElementById("ore-mensili").value) || 0;
+
+    const ore_medie_per_servizio =
+      parseFloat(document.getElementById("ore-servizio").value) || 0;
+
+    const costo_medio =
+      document.getElementById("costo-medio").value.trim();
+
+    const costo_orario =
+      parseFloat(document.getElementById("costo-orario").value) || 0;
 
     const turni =
       window.state?.creaDipendente?.turni ||
       getTurniDefault();
 
     if (!nome || !cognome || !email || !ruolo || !reparto_id || !sede_id) {
-      msg.innerHTML = "<span style='color:#dc2626;'>Compila tutti i campi obbligatori</span>";
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          Compila tutti i campi obbligatori
+        </span>
+      `;
       return;
     }
 
     if (!azienda?.id) {
-      msg.innerHTML = "<span style='color:#dc2626;'>Azienda non caricata</span>";
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          Azienda non caricata
+        </span>
+      `;
       return;
     }
 
@@ -409,7 +622,9 @@ export async function render(container) {
       const token = session?.access_token;
 
       if (!token) {
-        throw new Error("Sessione non valida. Effettua nuovamente il login.");
+        throw new Error(
+          "Sessione non valida. Effettua nuovamente il login."
+        );
       }
 
       const payload = {
@@ -421,11 +636,22 @@ export async function render(container) {
         reparto_id,
         sede_id,
         mansione,
+        tipo_contratto,
+        contratto_nome,
+        tipo_compenso,
+        retribuzione_base,
+        ore_mensili_contrattuali,
+        ore_medie_per_servizio,
+        costo_medio,
+        costo_orario,
         turni,
         azienda_id: azienda.id
       };
 
-      console.log("PAYLOAD INVITA DIPENDENTE:", payload);
+      console.log(
+        "PAYLOAD INVITA DIPENDENTE:",
+        payload
+      );
 
       const res = await fetch(
         "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
@@ -447,16 +673,28 @@ export async function render(container) {
         data = JSON.parse(raw);
       } catch (parseError) {
         console.error("RISPOSTA NON JSON:", raw);
-        throw new Error("Risposta non valida dal server");
+
+        throw new Error(
+          "Risposta non valida dal server"
+        );
       }
 
-      console.log("RISPOSTA INVITA DIPENDENTE:", data);
+      console.log(
+        "RISPOSTA INVITA DIPENDENTE:",
+        data
+      );
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Errore invito");
+        throw new Error(
+          data.error || "Errore invito"
+        );
       }
 
-      msg.innerHTML = "<span style='color:#16a34a;'>Invito inviato ✔</span>";
+      msg.innerHTML = `
+        <span style="color:#16a34a;">
+          Invito inviato ✔
+        </span>
+      `;
 
       window.state.creaDipendente = {
         turni: getTurniDefault()
@@ -465,10 +703,18 @@ export async function render(container) {
       setTimeout(() => {
         window.location.hash = "#/dipendenti";
       }, 1000);
-    } catch (err) {
-      console.error("ERRORE CREA DIPENDENTE:", err);
 
-      msg.innerHTML = "<span style='color:#dc2626;'>" + (err.message || "Errore invito") + "</span>";
+    } catch (err) {
+      console.error(
+        "ERRORE CREA DIPENDENTE:",
+        err
+      );
+
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          ${err.message || "Errore invito"}
+        </span>
+      `;
 
       btn.disabled = false;
       btn.innerText = "Invia invito";
