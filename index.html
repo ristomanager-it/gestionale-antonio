@@ -67,19 +67,22 @@
   <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
- <script>
-  (function () {
-    const { createClient } = window.supabase;
+  <!-- CHART JS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    const client = createClient(
-      "https://cuhcscpvhypoaplcmtjk.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
-    );
+  <script>
+    (function () {
+      const { createClient } = window.supabase;
 
-    window.supabase = client;
-    window.supabaseClient = client;
-  })();
-</script>
+      const client = createClient(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
+      );
+
+      window.supabase = client;
+      window.supabaseClient = client;
+    })();
+  </script>
 
   <!-- CORE LOGIC -->
   <script src="js/stateActions.js?v=9"></script>
@@ -92,6 +95,7 @@
   <script>
     function renderHeaderUI() {
       try {
+
         const azienda = window.state?.azienda || null;
         const sede = window.state?.sedeAttiva || null;
         const user = window.state?.user || null;
@@ -104,51 +108,92 @@
         const meteoEl = document.getElementById("header-meteo");
 
         if (logo) {
-          const logoUrl = sede?.logo_url || azienda?.logo_url || "assets/favicon-192.png";
+
+          const logoUrl =
+            sede?.logo_url ||
+            azienda?.logo_url ||
+            "assets/favicon-192.png";
+
           if (logo.getAttribute("src") !== logoUrl) {
             logo.src = logoUrl;
           }
+
         }
 
         if (nomeEl) {
-          nomeEl.textContent = sede?.nome || azienda?.nome || "Ristoflow";
+          nomeEl.textContent =
+            sede?.nome ||
+            azienda?.nome ||
+            "Ristoflow";
         }
 
         if (metaEl) {
-          if (sede?.nome && azienda?.nome && sede.nome !== azienda.nome) {
+
+          if (
+            sede?.nome &&
+            azienda?.nome &&
+            sede.nome !== azienda.nome
+          ) {
+
             metaEl.textContent = azienda.nome;
+
           } else {
+
             metaEl.textContent = "";
+
           }
+
         }
 
         if (salutoEl) {
+
           if (user?.email) {
-            const nomeUser = user.email.split("@")[0] || "utente";
+
+            const nomeUser =
+              user.email.split("@")[0] || "utente";
+
             const ora = new Date().getHours();
 
             let saluto = "Ciao";
-            if (ora < 12) saluto = "Buongiorno";
-            else if (ora < 18) saluto = "Buon pomeriggio";
-            else saluto = "Buonasera";
 
-            salutoEl.textContent = `${saluto}, ${nomeUser}`;
+            if (ora < 12) {
+              saluto = "Buongiorno";
+            } else if (ora < 18) {
+              saluto = "Buon pomeriggio";
+            } else {
+              saluto = "Buonasera";
+            }
+
+            salutoEl.textContent =
+              `${saluto}, ${nomeUser}`;
+
           } else {
+
             salutoEl.textContent = "";
+
           }
+
         }
 
         if (dataEl) {
+
           const oggi = new Date();
-          dataEl.textContent = oggi.toLocaleDateString("it-IT", {
-            weekday: "short",
-            day: "2-digit",
-            month: "short"
-          });
+
+          dataEl.textContent = oggi.toLocaleDateString(
+            "it-IT",
+            {
+              weekday: "short",
+              day: "2-digit",
+              month: "short"
+            }
+          );
+
         }
 
         if (meteoEl) {
+
           if (typeof window.getWeather === "function") {
+
             window.getWeather()
               .then((res) => {
                 meteoEl.innerHTML = res || "";
@@ -156,23 +201,36 @@
               .catch(() => {
                 meteoEl.textContent = "";
               });
+
           } else {
+
             meteoEl.textContent = "";
+
           }
+
         }
+
       } catch (e) {
+
         console.error("HEADER ERROR:", e);
+
       }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+
       renderHeaderUI();
+
       setInterval(renderHeaderUI, 3000);
+
     });
   </script>
 
   <!-- ROUTER (MODULE) -->
-  <script type="module" src="js/router.js?v=11"></script>
+  <script
+    type="module"
+    src="js/router.js?v=12"
+  ></script>
 
 </body>
 </html>
