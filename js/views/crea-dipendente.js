@@ -182,15 +182,24 @@ function renderTurni() {
     `).join("")}
 
     <div style="margin-top:14px;">
-      <button
-        type="button"
-        id="aggiungi-turno"
-        class="app-button secondary"
-        style="width:100%;"
-      >
-        + Aggiungi turno
-      </button>
-    </div>
+  <button
+    type="button"
+    id="aggiungi-turno"
+    style="
+      width:100%;
+      background:#111827;
+      color:#ffffff;
+      border:none;
+      border-radius:10px;
+      padding:12px;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+    "
+  >
+    + Aggiungi turno
+  </button>
+</div>
   `;
 
   document
