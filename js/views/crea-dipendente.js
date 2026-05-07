@@ -350,26 +350,27 @@ export async function render(container) {
 
         </div>
 
-        <div style="margin-top:24px;">
-          <h3 style="margin-bottom:12px;">
-            Turni
-          </h3>
+       <div style="margin-top:24px;">
+  <h3 style="margin-bottom:12px;">
+    Turni
+  </h3>
 
-          <div
-  style="
-    background:red;
-    color:white;
-    padding:20px;
-    margin-bottom:20px;
-    border-radius:12px;
-  "
->
-  TEST TURNI
+  <div
+    style="
+      background:red;
+      color:white;
+      padding:20px;
+      margin-bottom:20px;
+      border-radius:12px;
+    "
+  >
+    TEST TURNI
+  </div>
+
+  <div id="turni-container"></div>
 </div>
 
-<div id="turni-container"></div>
-
-        <div style="margin-top:20px;">
+<div style="margin-top:20px;">
           <button id="crea" class="app-button primary" style="width:100%;">
             Invia invito
           </button>
