@@ -7,7 +7,7 @@ export async function render(container, reparto) {
   const user = window.state?.user;
 
   if (!window.state?.sedeAttiva) {
-    window.location.hash = "#/prehome-sedi";
+  window.location.hash = "#/scegli-sede";
     return;
   }
 
