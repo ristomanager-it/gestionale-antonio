@@ -129,16 +129,16 @@ function renderTurni() {
                 class="giorno-btn"
                 data-turno="${index}"
                 data-giorno="${giorno.key}"
-                style="
-                  border:none;
-                  border-radius:999px;
-                  padding:8px 12px;
-                  cursor:pointer;
-                  background:${active ? "#111827" : "#e5e7eb"};
-                  color:${active ? "#ffffff" : "#111827"};
-                  font-size:13px;
-                  font-weight:600;
-                "
+               style="
+  border:none;
+  border-radius:999px;
+  padding:8px 12px;
+  cursor:pointer;
+  background:${active ? '#111827' : '#e5e7eb'};
+  color:${active ? '#ffffff' : '#111827'};
+  font-size:13px;
+  font-weight:600;
+"
               >
                 ${giorno.label}
               </button>
