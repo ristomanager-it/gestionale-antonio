@@ -1,17 +1,19 @@
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
-export async function render(container, reparto) {
+export async function render(container) {
 
   const supabase = window.supabaseClient;
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
   if (!window.state?.sedeAttiva) {
-  window.location.hash = "#/scegli-sede";
+    window.location.hash = "#/scegli-sede";
     return;
   }
 
-  const today = new Date().toISOString().slice(0,10);
+  const today = new Date()
+    .toISOString()
+    .slice(0,10);
 
   let servizi = [];
   let staff = [];
@@ -57,39 +59,67 @@ export async function render(container, reparto) {
     statoDip[t.dipendente_id] = t.tipo;
   });
 
-  const inTurno = Object.values(statoDip)
-    .filter(t => t === "inizio_turno" || t === "fine_pausa").length;
+  const inTurno = Object
+    .values(statoDip)
+    .filter(t =>
+      t === "inizio_turno" ||
+      t === "fine_pausa"
+    ).length;
 
-  const inPausa = Object.values(statoDip)
-    .filter(t => t === "inizio_pausa").length;
+  const inPausa = Object
+    .values(statoDip)
+    .filter(t => t === "inizio_pausa")
+    .length;
 
-  const fuori = Math.max(0, staff.length - inTurno - inPausa);
+  const fuori = Math.max(
+    0,
+    staff.length - inTurno - inPausa
+  );
 
   // =========================
   // STATO SERVIZIO
   // =========================
 
-  const copertiTotali = servizi.reduce((acc, s) => acc + (s.coperti_previsti || 0), 0);
+  const copertiTotali = servizi.reduce(
+    (acc, s) =>
+      acc + (s.coperti_previsti || 0),
+    0
+  );
 
-  let alertServizio = "✔ Tutto sotto controllo";
+  let alertServizio =
+    "✔ Tutto sotto controllo";
 
   if (copertiTotali > 50 && inTurno < 4) {
-    alertServizio = "⚠️ Staff insufficiente";
+    alertServizio =
+      "⚠️ Staff insufficiente";
   }
 
   if (servizi.length === 0) {
-    alertServizio = "⚠️ Nessun servizio pianificato";
+    alertServizio =
+      "⚠️ Nessun servizio pianificato";
   }
 
   const serviziHtml = servizi.map(s => {
 
-    const staffCount = staff.filter(st => st.servizio_id === s.id).length;
+    const staffCount = staff.filter(
+      st => st.servizio_id === s.id
+    ).length;
 
     return `
       <div class="servizio-row">
-        <div>${s.tipo_servizio}</div>
-        <div>${s.coperti_previsti || 0} coperti</div>
-        <div>👥 ${staffCount}</div>
+
+        <div>
+          ${s.tipo_servizio}
+        </div>
+
+        <div>
+          ${s.coperti_previsti || 0} coperti
+        </div>
+
+        <div>
+          👥 ${staffCount}
+        </div>
+
       </div>
     `;
 
@@ -103,16 +133,31 @@ export async function render(container, reparto) {
 
   <div class="view manager-home">
 
+    <!-- HEADER -->
     <div class="header">
 
       <div>
-        <div class="saluto" id="home-saluto"></div>
-        <div class="utente">${user?.email || ""}</div>
+
+        <div
+          class="saluto"
+          id="home-saluto"
+        >
+        </div>
+
+        <div class="utente">
+          ${user?.email || ""}
+        </div>
+
       </div>
 
       <div class="header-right">
+
         <div id="home-data"></div>
-        <div id="home-weather">☁️</div>
+
+        <div id="home-weather">
+          ☁️
+        </div>
+
       </div>
 
     </div>
@@ -120,38 +165,70 @@ export async function render(container, reparto) {
     <!-- 👥 STATO STAFF -->
     <div class="card">
 
-      <div class="card-title">👥 Stato squadra</div>
+      <div class="card-title">
+        👥 Stato squadra
+      </div>
 
       <div class="staff-grid">
 
         <div class="staff-box green">
-          <div class="num">${inTurno}</div>
-          <div class="label">In turno</div>
+
+          <div class="num">
+            ${inTurno}
+          </div>
+
+          <div class="label">
+            In turno
+          </div>
+
         </div>
 
         <div class="staff-box yellow">
-          <div class="num">${inPausa}</div>
-          <div class="label">In pausa</div>
+
+          <div class="num">
+            ${inPausa}
+          </div>
+
+          <div class="label">
+            In pausa
+          </div>
+
         </div>
 
         <div class="staff-box red">
-          <div class="num">${fuori}</div>
-          <div class="label">Fuori</div>
+
+          <div class="num">
+            ${fuori}
+          </div>
+
+          <div class="label">
+            Fuori
+          </div>
+
         </div>
 
       </div>
 
     </div>
 
-    <!-- 🍽 STATO SERVIZIO -->
+    <!-- 🍽 SERVIZIO -->
     <div class="card">
 
-      <div class="card-title">🍽 Servizio oggi</div>
+      <div class="card-title">
+        🍽 Servizio oggi
+      </div>
 
-      <div class="card-sub">${copertiTotali} coperti previsti</div>
-      <div class="card-sub">${servizi.length} servizi</div>
+      <div class="card-sub">
+        ${copertiTotali} coperti previsti
+      </div>
 
-      <div class="alert">${alertServizio}</div>
+      <div class="card-sub">
+        ${servizi.length} servizi
+      </div>
+
+      <div class="alert">
+        ${alertServizio}
+      </div>
 
       <div style="margin-top:10px;">
         ${serviziHtml || "Nessun servizio"}
@@ -162,45 +239,103 @@ export async function render(container, reparto) {
     <!-- ⚡ AZIONI -->
     <div class="grid">
 
-      <div class="card" onclick="location.hash='#/prenotazioni'">
-        <div class="card-title">Prenotazioni</div>
-        <div class="card-sub">Gestisci tavoli</div>
+      <div
+        class="card action-card"
+        data-route="prenotazioni"
+      >
+        <div class="card-title">
+          Prenotazioni
+        </div>
+
+        <div class="card-sub">
+          Gestisci tavoli
+        </div>
       </div>
 
-      <div class="card" onclick="location.hash='#/planning-lavoro'">
-        <div class="card-title">Planning</div>
-        <div class="card-sub">Turni e orari</div>
+      <div
+        class="card action-card"
+        data-route="planning-lavoro"
+      >
+        <div class="card-title">
+          Planning
+        </div>
+
+        <div class="card-sub">
+          Turni e orari
+        </div>
       </div>
 
-      <div class="card" onclick="location.hash='#/dipendenti'">
-        <div class="card-title">Brigata</div>
-        <div class="card-sub">${staff.length} assegnati</div>
+      <div
+        class="card action-card"
+        data-route="dipendenti"
+      >
+        <div class="card-title">
+          Brigata
+        </div>
+
+        <div class="card-sub">
+          ${staff.length} assegnati
+        </div>
       </div>
 
-      <div class="card" onclick="location.hash='#/timbrature'">
-        <div class="card-title">Timbrature</div>
-        <div class="card-sub">Controllo presenze</div>
+      <div
+        class="card action-card"
+        data-route="timbrature"
+      >
+        <div class="card-title">
+          Timbrature
+        </div>
+
+        <div class="card-sub">
+          Controllo presenze
+        </div>
       </div>
 
     </div>
 
     <!-- 🤖 -->
-    <div class="tony-avatar" onclick="location.hash='#/ai'">🤖</div>
+    <div
+      class="tony-avatar"
+      onclick="location.hash='#/ai'"
+    >
+      🤖
+    </div>
 
   </div>
 
   <style>
 
+  .manager-home{
+    padding:16px;
+    padding-bottom:100px;
+  }
+
   .header{
     display:flex;
     justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
     margin-bottom:20px;
   }
 
-  .saluto{ font-size:22px; font-weight:800; }
-  .utente{ font-size:13px; color:#6b7280; }
+  .saluto{
+    font-size:22px;
+    font-weight:800;
+    line-height:1.1;
+  }
 
-  .header-right{ text-align:right; font-size:13px; }
+  .utente{
+    margin-top:4px;
+    font-size:13px;
+    color:#6b7280;
+  }
+
+  .header-right{
+    text-align:right;
+    font-size:13px;
+    color:#6b7280;
+    font-weight:600;
+  }
 
   .grid{
     display:grid;
@@ -216,8 +351,15 @@ export async function render(container, reparto) {
     box-shadow:0 4px 12px rgba(0,0,0,0.05);
   }
 
-  .card-title{ font-weight:700; }
-  .card-sub{ font-size:12px; color:#6b7280; }
+  .card-title{
+    font-weight:700;
+  }
+
+  .card-sub{
+    font-size:12px;
+    color:#6b7280;
+    margin-top:4px;
+  }
 
   .staff-grid{
     display:flex;
@@ -233,9 +375,17 @@ export async function render(container, reparto) {
     color:white;
   }
 
-  .staff-box.green{ background:#16a34a; }
-  .staff-box.yellow{ background:#eab308; }
-  .staff-box.red{ background:#dc2626; }
+  .staff-box.green{
+    background:#16a34a;
+  }
+
+  .staff-box.yellow{
+    background:#eab308;
+  }
+
+  .staff-box.red{
+    background:#dc2626;
+  }
 
   .staff-box .num{
     font-size:20px;
@@ -253,6 +403,17 @@ export async function render(container, reparto) {
     justify-content:space-between;
     font-size:13px;
     padding:6px 0;
+    gap:10px;
+  }
+
+  .action-card{
+    cursor:pointer;
+    transition:0.15s;
+  }
+
+  .action-card:active{
+    transform:scale(0.97);
+    opacity:0.7;
   }
 
   .tony-avatar{
@@ -268,6 +429,30 @@ export async function render(container, reparto) {
     align-items:center;
     justify-content:center;
     font-size:24px;
+    box-shadow:0 10px 24px rgba(14,165,233,0.28);
+    z-index:50;
+    cursor:pointer;
+  }
+
+  @media (max-width:767px){
+
+    .manager-home{
+      padding:12px;
+      padding-bottom:100px;
+    }
+
+    .grid{
+      grid-template-columns:1fr;
+    }
+
+    .staff-grid{
+      flex-direction:column;
+    }
+
+    .saluto{
+      font-size:20px;
+    }
+
   }
 
   </style>
@@ -275,40 +460,107 @@ export async function render(container, reparto) {
 
   initHeader();
   hydrateWeather();
+  initActions();
 }
+
+// =========================
+// HEADER
+// =========================
 
 function initHeader(){
 
-  const salutoBox = document.getElementById("home-saluto");
-  const dataBox = document.getElementById("home-data");
+  const salutoBox =
+    document.getElementById("home-saluto");
+
+  const dataBox =
+    document.getElementById("home-data");
 
   const ora = new Date().getHours();
 
   let saluto = "Buongiorno";
-  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
-  if (ora >= 18) saluto = "Buonasera";
 
-  salutoBox.innerText = saluto;
+  if (ora >= 12 && ora < 18) {
+    saluto = "Buon pomeriggio";
+  }
 
-  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
-    weekday:"long",
-    day:"numeric",
-    month:"long",
-    year:"numeric"
-  });
+  if (ora >= 18) {
+    saluto = "Buonasera";
+  }
+
+  if (salutoBox) {
+    salutoBox.innerText = saluto;
+  }
+
+  if (dataBox) {
+
+    dataBox.innerText = new Date()
+      .toLocaleDateString(
+        "it-IT",
+        {
+          weekday:"long",
+          day:"numeric",
+          month:"long",
+          year:"numeric"
+        }
+      );
+
+  }
 }
+
+// =========================
+// ACTIONS
+// =========================
+
+function initActions(){
+
+  document
+    .querySelectorAll(".action-card")
+    .forEach(card => {
+
+      card.onclick = () => {
+
+        const route =
+          card.dataset.route;
+
+        if (route) {
+          window.location.hash =
+            "#/" + route;
+        }
+
+      };
+
+    });
+
+}
+
+// =========================
+// METEO
+// =========================
 
 async function hydrateWeather(){
 
-  const box = document.getElementById("home-weather");
+  const box =
+    document.getElementById("home-weather");
+
   if(!box) return;
 
-  try{
-    const res = await fetch(`${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`);
+  try {
+
+    const res = await fetch(
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+    );
+
     const data = await res.json();
-    box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
-  }catch{
+
+    box.innerHTML =
+      "🌤 " +
+      Math.round(data.current.temperature_2m) +
+      "°";
+
+  } catch {
+
     box.innerHTML = "☁️";
+
   }
 
 }
