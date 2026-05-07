@@ -406,7 +406,23 @@ async function loadProdotti() {
 
   prodottiCache = data || [];
   prodottiMap = new Map(prodottiCache.map(p => [String(p.id), p]));
+setupAutocomplete(
+  document.getElementById("r-output-search"),
+  document.getElementById("r-output-id"),
+  document.getElementById("r-output-suggest"),
+  (p) => {
+    const umSel = document.getElementById("r-output-um");
 
+    if (p?.um && umSel) {
+      const val = String(p.um).toLowerCase();
+      const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
+
+      if (ok) umSel.value = val;
+    }
+
+    aggiornaOutputInfo();
+  }
+);
   setupAutocomplete(
     document.getElementById("r-output-search"),
     document.getElementById("r-output-id"),
