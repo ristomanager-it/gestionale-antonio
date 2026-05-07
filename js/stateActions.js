@@ -12,9 +12,29 @@ window.stateActions = {
     window.state.profilo = profilo || null;
   },
 
-  setRuolo(ruolo) {
+   setRuolo(ruolo) {
     if (!window.state.viewAs) {
       window.state.ruolo = ruolo;
+    }
+  },
+
+  resetAzienda() {
+    window.state.azienda = null;
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+    window.state.ruolo = null;
+    window.state.reparti = [];
+    window.state.repartoAttivo = null;
+    window.state.dipendente = null;
+    window.state.sediDipendente = [];
+    window.state.permessi = {};
+    window.state._allAccess = false;
+
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+
+    if (window.uiActions?.renderSedeSelector) {
+      window.uiActions.renderSedeSelector();
     }
   },
 
@@ -31,7 +51,6 @@ window.stateActions = {
       window.state.repartoAttivo = lista[0];
     }
   },
-
   setAziende(aziende) {
     window.state.aziende = Array.isArray(aziende) ? aziende : [];
   },
