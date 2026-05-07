@@ -18,6 +18,9 @@ let ricettaId = null;
 let prodottiCache = [];
 let prodottiMap = new Map();
 
+let categoriePortataCache = [];
+let categoriePortataMap = new Map();
+
 let fasiTemplateCache = [];
 let fasiTemplateMap = new Map();
 
@@ -181,9 +184,14 @@ export async function render(app) {
 
             <div class="form-group" id="categoria-wrapper" style="display:none;">
               <label>Categoria portata *</label>
-              <select id="r-categoria" class="input">
-                <option value="">Seleziona categoria</option>
-              </select>
+              <div class="input-wrap">
+                <input id="r-categoria-search"
+                  class="input"
+                  autocomplete="off"
+                  placeholder="Cerca o crea categoria..." />
+                <input id="r-categoria-id" type="hidden" />
+                <div id="r-categoria-suggest" class="suggest-list"></div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -192,8 +200,17 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
-              <label>Foto piatto (URL)</label>
-              <input id="r-foto-url" class="input" placeholder="https://..." />
+              <label>Foto piatto</label>
+              <input id="r-foto-file"
+                type="file"
+                class="input"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+              <input id="r-foto-url" type="hidden" />
+              <div id="r-foto-preview-wrap" style="margin-top:10px; display:none;">
+                <img id="r-foto-preview"
+                  alt="Preview foto piatto"
+                  style="width:100%; max-width:260px; border-radius:12px; border:1px solid rgba(0,0,0,0.08);" />
+              </div>
             </div>
 
             <div class="form-group" style="grid-column:1/-1;">
@@ -421,14 +438,15 @@ async function loadCategoriePortata() {
 
   if (error) {
     console.error(error);
+    categoriePortataCache = [];
+    categoriePortataMap = new Map();
     return;
   }
 
-  const sel = document.getElementById("r-categoria");
-  if (!sel) return;
+  categoriePortataCache = data || [];
+  categoriePortataMap = new Map(categoriePortataCache.map(c => [String(c.id), c]));
 
-  sel.innerHTML = '<option value="">Seleziona categoria</option>' +
-    (data || []).map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+  setupCategoriaAutocomplete();
 }
 /* ============================================================
    FASI TEMPLATE
@@ -514,6 +532,131 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
 
     suggestBox.classList.add("open");
   });
+}
+
+
+function setupCategoriaAutocomplete() {
+  const input = document.getElementById("r-categoria-search");
+  const hidden = document.getElementById("r-categoria-id");
+  const suggestBox = document.getElementById("r-categoria-suggest");
+
+  if (!input || !hidden || !suggestBox) return;
+
+  input.addEventListener("input", () => {
+    const q = (input.value || "").toLowerCase().trim();
+    hidden.value = "";
+    suggestBox.innerHTML = "";
+
+    if (q.length < 1) {
+      suggestBox.classList.remove("open");
+      return;
+    }
+
+    const risultati = categoriePortataCache
+      .filter(c => (c.nome || "").toLowerCase().includes(q))
+      .slice(0, 10);
+
+    risultati.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "suggest-item";
+      div.textContent = c.nome;
+
+      div.onclick = () => {
+        input.value = c.nome;
+        hidden.value = c.id;
+        suggestBox.innerHTML = "";
+        suggestBox.classList.remove("open");
+      };
+
+      suggestBox.appendChild(div);
+    });
+
+    suggestBox.classList.add("open");
+  });
+
+  input.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    const nome = (input.value || "").trim();
+    if (!nome) return;
+
+    const esistente = categoriePortataCache.find(c =>
+      String(c.nome || "").toLowerCase() === nome.toLowerCase()
+    );
+
+    if (esistente) {
+      input.value = esistente.nome;
+      hidden.value = esistente.id;
+      suggestBox.innerHTML = "";
+      suggestBox.classList.remove("open");
+      return;
+    }
+
+    const supabase = window.supabaseClient;
+    const aziendaId = window.state.azienda.id;
+
+    const { data, error } = await supabase
+      .from("categorie_portata")
+      .insert({
+        azienda_id: aziendaId,
+        nome
+      })
+      .select("id, nome")
+      .single();
+
+    if (error) {
+      console.error(error);
+      return alert("Errore creazione categoria portata.");
+    }
+
+    categoriePortataCache.push(data);
+    categoriePortataMap.set(String(data.id), data);
+
+    input.value = data.nome;
+    hidden.value = data.id;
+    suggestBox.innerHTML = "";
+    suggestBox.classList.remove("open");
+  });
+}
+
+async function uploadFotoRicetta(file) {
+  if (!file) return null;
+
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state.azienda.id;
+
+  const ext = String(file.name || "").split(".").pop().toLowerCase();
+  const allowed = ["jpg", "jpeg", "png", "webp"];
+
+  if (!allowed.includes(ext)) {
+    alert("Formato immagine non supportato. Usa JPG, PNG o WEBP.");
+    return null;
+  }
+
+  const path = `${aziendaId}/ricetta_${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from("ricette")
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || undefined
+    });
+
+  if (uploadError) {
+    console.error(uploadError);
+    alert("Errore upload foto ricetta.");
+    return null;
+  }
+
+  const { data } = supabase
+    .storage
+    .from("ricette")
+    .getPublicUrl(path);
+
+  return data?.publicUrl || null;
 }
 
 function aggiornaOutputInfo() {
@@ -1230,8 +1373,18 @@ async function caricaRicettaCompleta() {
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
+  if (ricetta.foto_url) {
+    const fotoWrap = document.getElementById("r-foto-preview-wrap");
+    const fotoImg = document.getElementById("r-foto-preview");
+    if (fotoImg) fotoImg.src = ricetta.foto_url;
+    if (fotoWrap) fotoWrap.style.display = "";
+  }
   setVal("r-tipo", ricetta.tipo_ricetta || "base");
-  setVal("r-categoria", ricetta.categoria_portata_id ? String(ricetta.categoria_portata_id) : "");
+  setVal("r-categoria-id", ricetta.categoria_portata_id ? String(ricetta.categoria_portata_id) : "");
+  if (ricetta.categoria_portata_id) {
+    const cat = categoriePortataMap.get(String(ricetta.categoria_portata_id));
+    if (cat) setVal("r-categoria-search", cat.nome || "");
+  }
   const wrapCat = document.getElementById("categoria-wrapper");
   if (wrapCat) wrapCat.style.display = ((ricetta.tipo_ricetta || "base") === "finita") ? "" : "none";
 
@@ -1386,7 +1539,7 @@ async function salvaTutto() {
   const note_procedimento = getVal("r-note-proc").trim() || null;
   const foto_url = getVal("r-foto-url").trim() || null;
   const tipo_ricetta = getVal("r-tipo") || "base";
-  const categoria_portata_id_raw = getVal("r-categoria");
+  const categoria_portata_id_raw = getVal("r-categoria-id");
   const categoria_portata_id = categoria_portata_id_raw
     ? Number(categoria_portata_id_raw)
     : null;
@@ -2052,7 +2205,10 @@ function bindUI() {
     const tipo = getVal("r-tipo") || "base";
     const wrap = document.getElementById("categoria-wrapper");
     if (wrap) wrap.style.display = (tipo === "finita") ? "" : "none";
-    if (tipo !== "finita") setVal("r-categoria", "");
+    if (tipo !== "finita") {
+      setVal("r-categoria-search", "");
+      setVal("r-categoria-id", "");
+    }
   });
 
   // init visibilità
@@ -2069,6 +2225,26 @@ function bindUI() {
       outSearch.dataset.acBound = "1";
       setupAutocomplete(outSearch, outHidden, outSuggest, () => aggiornaOutputInfo());
     }
+  }
+
+  const fotoInput = document.getElementById("r-foto-file");
+  if (fotoInput && !fotoInput.dataset.uploadBound) {
+    fotoInput.dataset.uploadBound = "1";
+    fotoInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const url = await uploadFotoRicetta(file);
+      if (!url) return;
+
+      setVal("r-foto-url", url);
+
+      const wrap = document.getElementById("r-foto-preview-wrap");
+      const img = document.getElementById("r-foto-preview");
+
+      if (img) img.src = url;
+      if (wrap) wrap.style.display = "";
+    });
   }
 
   safeOn("btn-help", "click", () => {
