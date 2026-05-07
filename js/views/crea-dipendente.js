@@ -355,8 +355,19 @@ export async function render(container) {
             Turni
           </h3>
 
-          <div id="turni-container"></div>
-        </div>
+          <div
+  style="
+    background:red;
+    color:white;
+    padding:20px;
+    margin-bottom:20px;
+    border-radius:12px;
+  "
+>
+  TEST TURNI
+</div>
+
+<div id="turni-container"></div>
 
         <div style="margin-top:20px;">
           <button id="crea" class="app-button primary" style="width:100%;">
