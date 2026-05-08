@@ -995,3 +995,165 @@ SALA
   transform: scale(0.97);
   opacity: 0.9;
 }
+/* =========================================================
+FORM GRID SYSTEM
+========================================================= */
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:14px;
+align-items:start;
+}
+
+.form-grid > .form-group{
+min-width:0;
+}
+
+/* =========================================================
+INPUT WRAP / AUTOCOMPLETE
+========================================================= */
+
+.input-wrap{
+position:relative;
+width:100%;
+min-width:0;
+}
+
+.suggest-list{
+position:absolute;
+top:calc(100% + 4px);
+left:0;
+width:100%;
+max-height:260px;
+overflow-y:auto;
+
+background:#ffffff;
+border:1px solid var(--color-border);
+border-radius:12px;
+
+box-shadow:0 10px 24px rgba(0,0,0,0.08);
+
+z-index:200;
+display:none;
+}
+
+.suggest-list.open{
+display:block;
+}
+
+.suggest-item{
+padding:10px 12px;
+cursor:pointer;
+font-size:14px;
+border-bottom:1px solid rgba(0,0,0,0.04);
+background:#ffffff;
+}
+
+.suggest-item:last-child{
+border-bottom:none;
+}
+
+.suggest-item:hover{
+background:#F8FAFC;
+}
+
+/* =========================================================
+CARD HEADER ACTIONS
+========================================================= */
+
+.form-actions{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-top:12px;
+}
+
+/* =========================================================
+RICETTE / CARD INTERNE
+========================================================= */
+
+.azienda-card{
+width:100%;
+overflow:hidden;
+}
+
+.azienda-card .form-grid{
+margin-top:10px;
+}
+
+/* =========================================================
+IMMAGINI RICETTA
+========================================================= */
+
+#r-foto-preview{
+width:100%;
+height:auto;
+object-fit:cover;
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
+
+@media(max-width:768px){
+
+.form-grid{
+grid-template-columns:1fr;
+gap:12px;
+}
+
+.form-actions{
+flex-direction:column;
+align-items:stretch;
+}
+
+.form-actions .app-button{
+width:100%;
+}
+
+.app-button{
+min-height:44px;
+}
+
+.input{
+width:100%;
+min-width:0;
+}
+
+.suggest-list{
+max-height:220px;
+font-size:14px;
+}
+
+.suggest-item{
+padding:12px;
+}
+
+.card{
+overflow:hidden;
+}
+
+.card-body{
+padding:0;
+}
+
+.azienda-card{
+padding:12px !important;
+}
+
+.azienda-card > div:first-child{
+flex-wrap:wrap;
+align-items:flex-start;
+gap:10px;
+}
+
+.azienda-card button{
+flex-shrink:0;
+}
+
+#r-foto-preview-wrap{
+width:100%;
+}
+
+}
