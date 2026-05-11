@@ -167,16 +167,16 @@ export function initMenu() {
         ]
       },
 
-      {
-        title:"PERSONALE",
-        items:[
-          {label:"Timbratura", route:"timbrature"},
-          {label:"Programma lavoro", route:"programma"},
-          {label:"Permessi e ferie", route:"permessi"},
-          {label:"Documenti", route:"documenti"}
-        ]
-      }
-
+     {
+  title:"PERSONALE",
+  items:[
+    {label:"👤 Il mio profilo", route:"completa-profilo"},
+    {label:"Timbratura", route:"timbrature"},
+    {label:"Programma lavoro", route:"programma"},
+    {label:"Permessi e ferie", route:"permessi"},
+    {label:"Documenti", route:"documenti"}
+  ]
+}
     ]
   }
 
