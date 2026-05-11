@@ -280,7 +280,7 @@ export async function render(container) {
 
     const profilo_ai = {
 
-     const profilo_ai = {
+  
 
   // 🔥 NUOVO MODELLO (coerente con il form)
   energia: document.getElementById("energia").value,
