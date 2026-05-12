@@ -790,7 +790,7 @@ async function salvaRicetta() {
 
       if (payload.length) {
         const { error } = await supabase
-          .from("ricette_ingredienti")
+         .from("ricetta_ingredienti")
           .insert(payload);
 
         if (error) throw error;
@@ -990,7 +990,7 @@ async function loadRicettaById(id) {
     }
 
     const { data: ingredienti } = await supabase
-      .from("ricette_ingredienti")
+      .from("ricetta_ingredienti")
       .select("*")
       .eq("ricetta_id", id)
       .order("ordine");
