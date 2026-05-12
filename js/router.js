@@ -888,14 +888,56 @@ async function resolve() {
     return;
   }
 
-  if (
-    !PLATFORM_ROUTES.has(route) &&
-    !BO_ROUTES.has(route) &&
-    route !== "completaProfilo" &&
-    route !== "completaAzienda" &&
-    route !== "home" &&
-    route !== "booking-form-builder"
-  ) {
+  const ruoloCorrente =
+  window.state?.viewAs ||
+  window.state?.ruolo;
+
+const isDipendentePuro = [
+  "operatore_cucina",
+  "operatore_sala"
+].includes(ruoloCorrente);
+
+if (
+  isDipendentePuro &&
+  !PLATFORM_ROUTES.has(route) &&
+  !BO_ROUTES.has(route) &&
+  route !== "completaProfilo" &&
+  route !== "completaAzienda" &&
+  route !== "home" &&
+  route !== "booking-form-builder"
+) {
+
+  const contesto = await window.stateActions.caricaContestoOperativo();
+
+  console.log("CONTESTO OPERATIVO:", contesto);
+
+  if (!contesto.ok) {
+
+    if (contesto.motivo === "Dipendente non trovato") {
+      app.innerHTML = `
+        <div class="view" style="padding:40px;text-align:center;">
+          <h2 style="color:#dc2626;">Errore accesso</h2>
+          <p>Dipendente non associato.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (contesto.motivo === "Nessuna sede assegnata") {
+      window.location.hash = "#/gestione-sedi?mode=first";
+      return;
+    }
+
+    return;
+  }
+
+  if (contesto.tipo === "dipendente_multi_sede") {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+      return;
+    }
+  }
+}
    const contesto = await window.stateActions.caricaContestoOperativo();
 
 console.log("CONTESTO OPERATIVO:", contesto);
