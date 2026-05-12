@@ -321,15 +321,17 @@ export async function apriCaricoModal({ aziendaId }) {
         return;
       }
 
-      const insertResult = await insertProdottoCompat({
-        azienda_id: aziendaId,
-        codice_interno: codice,
-        descrizione,
-        unita_base: um,
-        scorta_minima: scortaNew,
-        fornitore_preferito: fornitore
-      });
+     const categoriaGenericaId = "METTI_UUID_CATEGORIA_GENERICA";
 
+const insertResult = await insertProdottoCompat({
+  azienda_id: aziendaId,
+  codice_interno: codice,
+  descrizione,
+  unita_base: um,
+  scorta_minima: scortaNew,
+  fornitore_preferito: fornitore,
+  categoria_interna_id: categoriaGenericaId
+});
       if (insertResult.error) {
         if (insertResult.error.code === "23505") {
           const { data: existing, error: existingError } = await window.supabaseClient
