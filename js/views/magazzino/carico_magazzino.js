@@ -26,35 +26,61 @@ export function renderCaricoModal() {
 
             <div class="rf-product-card" id="carico-um-card" style="display:none;">
               <div class="rf-product-section-title">Unità di misura</div>
+
               <div class="rf-product-grid">
                 <div class="rf-product-field">
                   <span class="rf-product-label">UM</span>
-                  <div id="carico-um-value" class="rf-product-value">—</div>
+
+                  <div id="carico-um-value" class="rf-product-value">
+                    —
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Quantità</div>
+              <div class="rf-product-section-title">
+                Quantità
+              </div>
 
               <div class="rf-field">
                 <label>Quantità</label>
-                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
+
+                <input
+                  id="carico-quantita"
+                  type="number"
+                  step="0.001"
+                  class="input"
+                  inputmode="decimal"
+                />
               </div>
             </div>
 
             <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Scorta minima / Riordino</div>
+              <div class="rf-product-section-title">
+                Scorta minima / Riordino
+              </div>
+
               <div class="rf-field">
                 <label>Quantità minima</label>
-                <input id="carico-scorta" type="number" class="input" />
+
+                <input
+                  id="carico-scorta"
+                  type="number"
+                  class="input"
+                />
               </div>
             </div>
 
             <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Categoria interna</div>
+              <div class="rf-product-section-title">
+                Categoria interna
+              </div>
 
-              <div class="rf-field" style="position:relative;">
+              <div
+                class="rf-field"
+                style="position:relative;"
+              >
                 <label>Categoria</label>
 
                 <input
@@ -67,32 +93,68 @@ export function renderCaricoModal() {
                 <div
                   id="categoria-suggerimenti"
                   class="rf-search-list"
-                  style="position:absolute; top:100%; left:0; right:0; display:none; z-index:20;"
+                  style="
+                    position:absolute;
+                    top:100%;
+                    left:0;
+                    right:0;
+                    display:none;
+                    z-index:20;
+                  "
                 ></div>
               </div>
             </div>
 
             <div class="rf-field" style="margin-top:10px;">
               <label>Data movimento</label>
-              <input id="carico-data" type="date" class="input" />
+
+              <input
+                id="carico-data"
+                type="date"
+                class="input"
+              />
             </div>
 
             <div class="rf-field" style="margin-top:10px;">
               <label>Note</label>
-              <input id="carico-note" class="input" />
+
+              <input
+                id="carico-note"
+                class="input"
+              />
             </div>
 
-            <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btn-conferma-carico" class="app-button tiny">
+            <div
+              style="
+                margin-top:14px;
+                display:flex;
+                gap:8px;
+                flex-wrap:wrap;
+              "
+            >
+              <button
+                id="btn-conferma-carico"
+                class="app-button tiny"
+              >
                 Registra Carico
               </button>
 
-              <button id="btn-annulla-carico" class="app-button tiny gray">
+              <button
+                id="btn-annulla-carico"
+                class="app-button tiny gray"
+              >
                 Annulla
               </button>
             </div>
 
-            <div id="carico-esito" style="margin-top:10px; font-size:13px;"></div>
+            <div
+              id="carico-esito"
+              style="
+                margin-top:10px;
+                font-size:13px;
+              "
+            ></div>
+
           </div>
         </div>
       </div>
@@ -100,32 +162,101 @@ export function renderCaricoModal() {
   `;
 }
 
-export async function apriCaricoModal({ aziendaId }) {
-  const backdrop = document.getElementById("rf-carico-backdrop");
+export async function apriCaricoModal({
+  aziendaId
+}) {
+  const backdrop =
+    document.getElementById(
+      "rf-carico-backdrop"
+    );
 
   if (!backdrop) {
-    console.error("Overlay carico non trovato nel DOM");
+    console.error(
+      "Overlay carico non trovato nel DOM"
+    );
+
     return;
   }
 
-  const search = backdrop.querySelector("#carico-search");
-  const risultati = backdrop.querySelector("#carico-risultati");
-  const prodottoBox = backdrop.querySelector("#carico-prodotto");
-  const form = backdrop.querySelector("#carico-form");
+  const search =
+    backdrop.querySelector(
+      "#carico-search"
+    );
 
-  const qtaEl = backdrop.querySelector("#carico-quantita");
-  const scortaEl = backdrop.querySelector("#carico-scorta");
-  const dataEl = backdrop.querySelector("#carico-data");
-  const noteEl = backdrop.querySelector("#carico-note");
-  const categoriaEl = backdrop.querySelector("#carico-categoria");
-  const categoriaSuggerimentiEl = backdrop.querySelector("#categoria-suggerimenti");
-  const esitoEl = backdrop.querySelector("#carico-esito");
-  const umValueEl = backdrop.querySelector("#carico-um-value");
-  const umCard = backdrop.querySelector("#carico-um-card");
+  const risultati =
+    backdrop.querySelector(
+      "#carico-risultati"
+    );
 
-  const btnClose = backdrop.querySelector("#btn-close-carico");
-  const btnAnnulla = backdrop.querySelector("#btn-annulla-carico");
-  const btnConferma = backdrop.querySelector("#btn-conferma-carico");
+  const prodottoBox =
+    backdrop.querySelector(
+      "#carico-prodotto"
+    );
+
+  const form =
+    backdrop.querySelector(
+      "#carico-form"
+    );
+
+  const qtaEl =
+    backdrop.querySelector(
+      "#carico-quantita"
+    );
+
+  const scortaEl =
+    backdrop.querySelector(
+      "#carico-scorta"
+    );
+
+  const dataEl =
+    backdrop.querySelector(
+      "#carico-data"
+    );
+
+  const noteEl =
+    backdrop.querySelector(
+      "#carico-note"
+    );
+
+  const categoriaEl =
+    backdrop.querySelector(
+      "#carico-categoria"
+    );
+
+  const categoriaSuggerimentiEl =
+    backdrop.querySelector(
+      "#categoria-suggerimenti"
+    );
+
+  const esitoEl =
+    backdrop.querySelector(
+      "#carico-esito"
+    );
+
+  const umValueEl =
+    backdrop.querySelector(
+      "#carico-um-value"
+    );
+
+  const umCard =
+    backdrop.querySelector(
+      "#carico-um-card"
+    );
+
+  const btnClose =
+    backdrop.querySelector(
+      "#btn-close-carico"
+    );
+
+  const btnAnnulla =
+    backdrop.querySelector(
+      "#btn-annulla-carico"
+    );
+
+  const btnConferma =
+    backdrop.querySelector(
+      "#btn-conferma-carico"
+    );
 
   let prodottoId = null;
   let prodottoSelezionato = null;
@@ -135,24 +266,34 @@ export async function apriCaricoModal({ aziendaId }) {
   let categorieCache = [];
 
   async function loadFornitori() {
-    const { data } = await window.supabaseClient
-      .from("fornitori")
-      .select("ragione_sociale")
-      .eq("azienda_id", aziendaId);
+    const { data } =
+      await window.supabaseClient
+        .from("fornitori")
+        .select("ragione_sociale")
+        .eq("azienda_id", aziendaId);
 
     fornitoriCache = data || [];
   }
 
   async function loadCategorie() {
-    const { data, error } = await window.supabaseClient
-      .from("categorie_interne_prodotti")
-      .select("id,nome")
-      .eq("azienda_id", aziendaId)
-      .order("nome");
+    const {
+      data,
+      error
+    } =
+      await window.supabaseClient
+        .from("categorie_interne_prodotti")
+        .select("id,nome")
+        .eq("azienda_id", aziendaId)
+        .order("nome");
 
     if (error) {
-      console.error("Errore load categorie", error);
+      console.error(
+        "Errore load categorie",
+        error
+      );
+
       categorieCache = [];
+
       return;
     }
 
@@ -160,13 +301,18 @@ export async function apriCaricoModal({ aziendaId }) {
   }
 
   function bindCreateButton(term) {
-    const btn = risultati.querySelector("#btn-nuovo-prodotto");
+    const btn =
+      risultati.querySelector(
+        "#btn-nuovo-prodotto"
+      );
 
     if (!btn) return;
 
     btn.onclick = () => {
       nuovoProdottoMode = true;
+
       prodottoId = null;
+
       prodottoSelezionato = null;
 
       mostraFormNuovoProdotto(term);
@@ -180,74 +326,97 @@ export async function apriCaricoModal({ aziendaId }) {
         .trim();
 
       if (!term) {
-        categoriaSuggerimentiEl.style.display = "none";
-        categoriaSuggerimentiEl.innerHTML = "";
+        categoriaSuggerimentiEl.style.display =
+          "none";
+
+        categoriaSuggerimentiEl.innerHTML =
+          "";
+
         return;
       }
 
-      const risultatiCategorie = categorieCache
-        .filter((c) =>
-          String(c.nome || "")
-            .toLowerCase()
-            .includes(term)
-        )
-        .slice(0, 5);
+      const risultatiCategorie =
+        categorieCache
+          .filter((c) =>
+            String(c.nome || "")
+              .toLowerCase()
+              .includes(term)
+          )
+          .slice(0, 5);
 
       if (!risultatiCategorie.length) {
-        categoriaSuggerimentiEl.style.display = "none";
-        categoriaSuggerimentiEl.innerHTML = "";
+        categoriaSuggerimentiEl.style.display =
+          "none";
+
+        categoriaSuggerimentiEl.innerHTML =
+          "";
+
         return;
       }
 
-      categoriaSuggerimentiEl.innerHTML = risultatiCategorie
-        .map((c) => `
-          <div
-            class="rf-search-item"
-            data-value="${escapeHtml(c.nome)}"
-          >
-            ${escapeHtml(c.nome)}
-          </div>
-        `)
-        .join("");
+      categoriaSuggerimentiEl.innerHTML =
+        risultatiCategorie
+          .map((c) => `
+            <div
+              class="rf-search-item"
+              data-value="${escapeHtml(c.nome)}"
+            >
+              ${escapeHtml(c.nome)}
+            </div>
+          `)
+          .join("");
 
-      categoriaSuggerimentiEl.style.display = "block";
+      categoriaSuggerimentiEl.style.display =
+        "block";
 
       categoriaSuggerimentiEl
-        .querySelectorAll(".rf-search-item")
+        .querySelectorAll(
+          ".rf-search-item"
+        )
         .forEach((el) => {
           el.onmousedown = (e) => {
             e.preventDefault();
 
             categoriaEl.value =
-              el.dataset.value || el.innerText;
+              el.dataset.value ||
+              el.innerText;
 
-            categoriaSuggerimentiEl.style.display = "none";
-            categoriaSuggerimentiEl.innerHTML = "";
+            categoriaSuggerimentiEl.style.display =
+              "none";
+
+            categoriaSuggerimentiEl.innerHTML =
+              "";
           };
         });
     };
 
     categoriaEl.onblur = () => {
       setTimeout(() => {
-        categoriaSuggerimentiEl.style.display = "none";
+        categoriaSuggerimentiEl.style.display =
+          "none";
       }, 150);
     };
   }
 
-  async function resolveCategoriaInternaId(nomeCategoria) {
-    const nome = String(nomeCategoria || "")
-      .trim();
+  async function resolveCategoriaInternaId(
+    nomeCategoria
+  ) {
+    const nome = String(
+      nomeCategoria || ""
+    ).trim();
 
     if (!nome) {
       return null;
     }
 
-    const categoriaEsistente = categorieCache.find(
-      (c) =>
-        String(c.nome || "")
-          .trim()
-          .toLowerCase() === nome.toLowerCase()
-    );
+    const categoriaEsistente =
+      categorieCache.find(
+        (c) =>
+          String(c.nome || "")
+            .trim()
+            .toLowerCase() ===
+          nome.toLowerCase()
+      );
 
     if (categoriaEsistente?.id) {
       return categoriaEsistente.id;
@@ -260,26 +429,43 @@ export async function apriCaricoModal({ aziendaId }) {
       sort_order: 999
     };
 
-    const { data, error } = await window.supabaseClient
-      .from("categorie_interne_prodotti")
-      .insert(insertPayload)
-      .select();
+    const {
+      data,
+      error
+    } =
+      await window.supabaseClient
+        .from(
+          "categorie_interne_prodotti"
+        )
+        .insert(insertPayload)
+        .select();
 
     if (error) {
-      console.error("ERRORE CREAZIONE CATEGORIA", error);
+      console.error(
+        "ERRORE CREAZIONE CATEGORIA",
+        error
+      );
+
       return null;
     }
 
-    const categoriaCreata = Array.isArray(data)
-      ? data[0]
-      : data;
+    const categoriaCreata =
+      Array.isArray(data)
+        ? data[0]
+        : data;
 
     if (!categoriaCreata?.id) {
-      console.error("Categoria senza ID", data);
+      console.error(
+        "Categoria senza ID",
+        data
+      );
+
       return null;
     }
 
-    categorieCache.push(categoriaCreata);
+    categorieCache.push(
+      categoriaCreata
+    );
 
     return categoriaCreata.id;
   }
@@ -287,17 +473,29 @@ export async function apriCaricoModal({ aziendaId }) {
   backdrop.style.display = "flex";
 
   risultati.innerHTML = "";
+
   prodottoBox.innerHTML = "";
-  prodottoBox.style.display = "none";
+
+  prodottoBox.style.display =
+    "none";
+
   form.style.display = "none";
+
   esitoEl.innerText = "";
 
   search.value = "";
+
   qtaEl.value = "";
+
   scortaEl.value = "";
+
   categoriaEl.value = "";
-  categoriaSuggerimentiEl.innerHTML = "";
-  categoriaSuggerimentiEl.style.display = "none";
+
+  categoriaSuggerimentiEl.innerHTML =
+    "";
+
+  categoriaSuggerimentiEl.style.display =
+    "none";
 
   dataEl.value = new Date()
     .toISOString()
@@ -306,6 +504,7 @@ export async function apriCaricoModal({ aziendaId }) {
   noteEl.value = "Inventario";
 
   await loadFornitori();
+
   await loadCategorie();
 
   bindCategoriaAutocomplete();
@@ -315,30 +514,41 @@ export async function apriCaricoModal({ aziendaId }) {
   };
 
   btnClose.onclick = close;
+
   btnAnnulla.onclick = close;
 
   backdrop.onclick = (e) => {
-    if (e.target.id === "rf-carico-backdrop") {
+    if (
+      e.target.id ===
+      "rf-carico-backdrop"
+    ) {
       close();
     }
   };
 
   search.oninput = async () => {
-    const term = search.value.trim();
+    const term =
+      search.value.trim();
 
     prodottoId = null;
+
     prodottoSelezionato = null;
+
     nuovoProdottoMode = false;
 
     prodottoBox.innerHTML = "";
-    prodottoBox.style.display = "none";
+
+    prodottoBox.style.display =
+      "none";
 
     form.style.display = "none";
 
     risultati.innerHTML = "";
+
     esitoEl.innerText = "";
 
     umValueEl.innerText = "—";
+
     umCard.style.display = "none";
 
     scortaEl.value = "";
@@ -350,7 +560,7 @@ export async function apriCaricoModal({ aziendaId }) {
     if (term.length < 2) {
       risultati.innerHTML = `
         <div class="rf-empty-state">
-          Digita almeno 2 caratteri oppure crea un nuovo prodotto
+          Digita almeno 2 caratteri
         </div>
 
         <button
@@ -367,36 +577,37 @@ export async function apriCaricoModal({ aziendaId }) {
       return;
     }
 
-    const safeTerm = sanitizeSearchTerm(term);
+    const safeTerm =
+      sanitizeSearchTerm(term);
 
-    const { data, error } = await window.supabaseClient
-      .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base, scorta_minima")
-      .eq("azienda_id", aziendaId)
-      .or(`
-        descrizione.ilike.%${safeTerm}%,
-        codice_interno.ilike.%${safeTerm}%
-      `)
-      .limit(10);
+    const {
+      data,
+      error
+    } =
+      await window.supabaseClient
+        .from("prodotti")
+        .select(`
+          id,
+          codice_interno,
+          descrizione,
+          unita_base,
+          scorta_minima
+        `)
+        .eq("azienda_id", aziendaId)
+        .or(`
+          descrizione.ilike.%${safeTerm}%,
+          codice_interno.ilike.%${safeTerm}%
+        `)
+        .limit(10);
 
     if (error) {
       console.error(error);
 
       risultati.innerHTML = `
         <div class="rf-empty-state">
-          Errore durante la ricerca
+          Errore ricerca prodotti
         </div>
-
-        <button
-          id="btn-nuovo-prodotto"
-          class="app-button tiny"
-          style="margin-top:10px;"
-        >
-          + Crea "${escapeHtml(term)}"
-        </button>
       `;
-
-      bindCreateButton(term);
 
       return;
     }
@@ -423,18 +634,26 @@ export async function apriCaricoModal({ aziendaId }) {
 
     risultati.innerHTML = `
       <div class="rf-search-list">
+
         ${data.map((p) => `
           <div class="rf-search-item">
+
             <div class="rf-search-row">
 
               <div class="rf-search-main">
+
                 <div class="rf-search-code">
-                  ${escapeHtml(p.codice_interno || "—")}
+                  ${escapeHtml(
+                    p.codice_interno || "—"
+                  )}
                 </div>
 
                 <div class="rf-search-title">
-                  ${escapeHtml(p.descrizione || "")}
+                  ${escapeHtml(
+                    p.descrizione || ""
+                  )}
                 </div>
+
               </div>
 
               <button
@@ -445,8 +664,10 @@ export async function apriCaricoModal({ aziendaId }) {
               </button>
 
             </div>
+
           </div>
         `).join("")}
+
       </div>
 
       <button
@@ -461,21 +682,28 @@ export async function apriCaricoModal({ aziendaId }) {
     bindCreateButton(term);
 
     risultati
-      .querySelectorAll(".carico-item-action")
+      .querySelectorAll(
+        ".carico-item-action"
+      )
       .forEach((btn) => {
         btn.onclick = async () => {
-          const id = String(btn.dataset.id);
-
-          prodottoId = id;
-          nuovoProdottoMode = false;
-
-          const prodotto = await loadDettaglioProdotto(
-            aziendaId,
-            id
+          const id = String(
+            btn.dataset.id
           );
 
+          prodottoId = id;
+
+          nuovoProdottoMode = false;
+
+          const prodotto =
+            await loadDettaglioProdotto(
+              aziendaId,
+              id
+            );
+
           if (!prodotto) {
-            prodottoBox.style.display = "block";
+            prodottoBox.style.display =
+              "block";
 
             prodottoBox.innerHTML = `
               <div class="rf-empty-state">
@@ -486,79 +714,113 @@ export async function apriCaricoModal({ aziendaId }) {
             return;
           }
 
-          prodottoSelezionato = prodotto;
+          prodottoSelezionato =
+            prodotto;
 
-          prodottoBox.style.display = "block";
+          prodottoBox.style.display =
+            "block";
 
           prodottoBox.innerHTML =
-            renderSchedaCaricoProdotto(prodotto);
+            renderSchedaCaricoProdotto(
+              prodotto
+            );
 
           umValueEl.innerText =
             prodotto.unita_base || "—";
 
-          umCard.style.display = "block";
+          umCard.style.display =
+            "block";
 
           scortaEl.value =
-            prodotto.scorta_minima || "";
+            prodotto.scorta_minima ||
+            "";
 
-          form.style.display = "block";
+          form.style.display =
+            "block";
         };
       });
   };
 
   btnConferma.onclick = async () => {
-    const q = Number(qtaEl.value || 0);
+    const q = Number(
+      qtaEl.value || 0
+    );
 
-    const scorta = Number(scortaEl.value || 0);
+    const scorta = Number(
+      scortaEl.value || 0
+    );
 
     const d = dataEl.value;
 
-    const note = noteEl.value || "";
+    const note =
+      noteEl.value || "";
 
     const categoria = String(
-      categoriaEl.value || "INVENTARIO"
-    ).trim() || "INVENTARIO";
+      categoriaEl.value ||
+      "INVENTARIO"
+    ).trim();
 
     let sedeId = null;
 
     try {
-      sedeId = getSedeAttivaId();
+      sedeId =
+        getSedeAttivaId();
     } catch (error) {
       alert(error.message);
+
       return;
     }
 
-    let finalProdottoId = prodottoId;
+    let finalProdottoId =
+      prodottoId;
 
-    if (!finalProdottoId && nuovoProdottoMode) {
+    if (
+      !finalProdottoId &&
+      nuovoProdottoMode
+    ) {
       const codice =
-        document.getElementById("new-codice")?.value || null;
+        document.getElementById(
+          "new-codice"
+        )?.value || null;
 
       const descrizione =
-        document.getElementById("new-descrizione")
-          ?.value
-          ?.trim();
+        document.getElementById(
+          "new-descrizione"
+        )?.value?.trim();
 
       const um =
-        document.getElementById("new-um")?.value || null;
+        document.getElementById(
+          "new-um"
+        )?.value || null;
 
       const scortaNew =
-        document.getElementById("new-scorta")?.value || null;
+        document.getElementById(
+          "new-scorta"
+        )?.value || null;
 
       const fornitore =
-        document.getElementById("new-fornitore")
-          ?.value || null;
+        document.getElementById(
+          "new-fornitore"
+        )?.value || null;
 
       if (!descrizione) {
-        alert("Inserisci descrizione prodotto");
+        alert(
+          "Inserisci descrizione prodotto"
+        );
+
         return;
       }
 
       const categoriaInternaId =
-        await resolveCategoriaInternaId(categoria);
+        await resolveCategoriaInternaId(
+          categoria || "INVENTARIO"
+        );
 
       if (!categoriaInternaId) {
-        alert("Errore categoria interna");
+        alert(
+          "Errore categoria interna"
+        );
+
         return;
       }
 
@@ -569,171 +831,213 @@ export async function apriCaricoModal({ aziendaId }) {
           descrizione,
           unita_base: um,
           scorta_minima: scortaNew,
-          fornitore_preferito: fornitore,
-          categoria_interna_id: categoriaInternaId
+          fornitore_preferito:
+            fornitore,
+          categoria_interna_id:
+            categoriaInternaId
         });
 
       if (insertResult.error) {
-        if (insertResult.error.code === "23505") {
-          const {
-            data: existing,
-            error: existingError
-          } = await window.supabaseClient
-            .from("prodotti")
-            .select("id")
-            .eq("azienda_id", aziendaId)
-            .ilike("descrizione", descrizione)
-            .limit(1)
-            .maybeSingle();
+        console.error(
+          insertResult.error
+        );
 
-          if (existingError) {
-            console.error(existingError);
+        alert(
+          "Errore creazione prodotto"
+        );
 
-            alert(
-              "Prodotto già esistente ma non recuperabile"
-            );
+        return;
+      }
 
-            return;
-          }
+      finalProdottoId =
+        insertResult?.data?.id;
 
-          if (!existing?.id) {
-            alert(
-              "Prodotto già esistente ma non trovato"
-            );
+      if (!finalProdottoId) {
+        console.error(
+          "Insert prodotto senza ID",
+          insertResult
+        );
 
-            return;
-          }
+        alert(
+          "Errore ID prodotto"
+        );
 
-          finalProdottoId = String(existing.id);
-        } else {
-          console.error(insertResult.error);
-
-          alert("Errore creazione prodotto");
-
-          return;
-        }
-      } else {
-        finalProdottoId =
-          String(insertResult.data.id);
+        return;
       }
     }
 
-    if (!finalProdottoId) {
-      alert("Seleziona o crea un prodotto");
+    const prodottoIdNumerico =
+      parseInt(
+        finalProdottoId,
+        10
+      );
+
+    if (
+      !finalProdottoId ||
+      Number.isNaN(
+        prodottoIdNumerico
+      )
+    ) {
+      console.error(
+        "ID prodotto non valido",
+        finalProdottoId
+      );
+
+      esitoEl.innerText =
+        "Errore ID prodotto";
+
       return;
     }
 
     if (!q || q <= 0) {
-      alert("Inserisci una quantità valida");
+      alert(
+        "Inserisci quantità valida"
+      );
+
       return;
     }
 
-    const { error: updateError } =
+    const {
+      error: updateError
+    } =
       await window.supabaseClient
         .from("prodotti")
         .update({
-          scorta_minima: scorta
+          scorta_minima:
+            scorta
         })
-        .eq("id", finalProdottoId)
-        .eq("azienda_id", aziendaId);
+        .eq(
+          "id",
+          prodottoIdNumerico
+        )
+        .eq(
+          "azienda_id",
+          aziendaId
+        );
 
     if (updateError) {
-      console.error(updateError);
+      console.error(
+        updateError
+      );
 
       esitoEl.innerText =
-        "Errore aggiornamento scorta minima";
+        "Errore aggiornamento prodotto";
 
       return;
     }
 
-    esitoEl.innerText = "Salvataggio...";
-
-    const causaleParts = [categoria];
+    const causaleParts = [
+      categoria ||
+      "INVENTARIO"
+    ];
 
     if (d) {
-      causaleParts.push(`data:${d}`);
+      causaleParts.push(
+        `data:${d}`
+      );
     }
 
     if (note) {
-      causaleParts.push(note);
+      causaleParts.push(
+        note
+      );
     }
 
     const movimentoPayload = {
-      azienda_id: aziendaId,
-      sede_id: sedeId,
-      prodotto_id: Number(finalProdottoId),
-      tipo_movimento: "carico",
-      quantita: q,
-      costo: 0,
-      causale: causaleParts.join(" | ")
+      azienda_id:
+        aziendaId,
+
+      sede_id:
+        sedeId,
+
+      prodotto_id:
+        prodottoIdNumerico,
+
+      tipo_movimento:
+        "carico",
+
+      quantita:
+        q,
+
+      costo:
+        0,
+
+      causale:
+        causaleParts.join(
+          " | "
+        )
     };
 
-    const { error: movimentoError } =
+    const {
+      error: movimentoError
+    } =
       await window.supabaseClient
-        .from("magazzino_movimenti")
-        .insert(movimentoPayload);
+        .from(
+          "magazzino_movimenti"
+        )
+        .insert(
+          movimentoPayload
+        );
 
     if (movimentoError) {
-      console.error(movimentoError);
+      console.error(
+        movimentoError
+      );
 
       esitoEl.innerText =
-        "Errore durante il salvataggio";
+        "Errore registrazione movimento";
 
       return;
     }
 
-    if (prodottoSelezionato) {
-      const nuovaGiacenza =
-        Number(
-          prodottoSelezionato.giacenza_attuale || 0
-        ) + q;
-
-      window.magazzinoEvents?.onGiacenzaUpdate?.({
-        prodotto: {
-          id:
-            prodottoSelezionato.prodotto_id ||
-            finalProdottoId,
-
-          nome:
-            prodottoSelezionato.descrizione
-        },
-
-        giacenza: nuovaGiacenza,
-
-        scorta_minima: scorta
-      });
-    }
-
-    esitoEl.innerText = "Carico registrato ✔";
+    esitoEl.innerText =
+      "Carico registrato ✔";
 
     setTimeout(() => {
       close();
     }, 500);
   };
 
-  async function insertProdottoCompat(payload) {
+  async function insertProdottoCompat(
+    payload
+  ) {
     const firstTry =
       await window.supabaseClient
         .from("prodotti")
         .insert(payload)
-        .select("id")
-        .single();
+        .select("id");
+
+    if (
+      firstTry?.data &&
+      Array.isArray(
+        firstTry.data
+      )
+    ) {
+      firstTry.data =
+        firstTry.data[0];
+    }
 
     if (!firstTry.error) {
       return firstTry;
     }
 
     const message = String(
-      firstTry.error.message || ""
+      firstTry.error
+        ?.message || ""
     );
 
     const missingFornitoreColumn =
-      firstTry.error.code === "PGRST204" ||
+      firstTry.error.code ===
+        "PGRST204" ||
       message
         .toLowerCase()
-        .includes("fornitore_preferito");
+        .includes(
+          "fornitore_preferito"
+        );
 
-    if (!missingFornitoreColumn) {
+    if (
+      !missingFornitoreColumn
+    ) {
       return firstTry;
     }
 
@@ -743,15 +1047,32 @@ export async function apriCaricoModal({ aziendaId }) {
 
     delete payloadFallback.fornitore_preferito;
 
-    return window.supabaseClient
-      .from("prodotti")
-      .insert(payloadFallback)
-      .select("id")
-      .single();
+    const fallbackResult =
+      await window.supabaseClient
+        .from("prodotti")
+        .insert(
+          payloadFallback
+        )
+        .select("id");
+
+    if (
+      fallbackResult?.data &&
+      Array.isArray(
+        fallbackResult.data
+      )
+    ) {
+      fallbackResult.data =
+        fallbackResult.data[0];
+    }
+
+    return fallbackResult;
   }
 
-  function mostraFormNuovoProdotto(term) {
-    prodottoBox.style.display = "block";
+  function mostraFormNuovoProdotto(
+    term
+  ) {
+    prodottoBox.style.display =
+      "block";
 
     prodottoBox.innerHTML = `
       <div class="rf-product-card">
@@ -762,7 +1083,11 @@ export async function apriCaricoModal({ aziendaId }) {
 
         <div class="rf-field">
           <label>Codice interno</label>
-          <input id="new-codice" class="input">
+
+          <input
+            id="new-codice"
+            class="input"
+          >
         </div>
 
         <div class="rf-field">
@@ -771,7 +1096,9 @@ export async function apriCaricoModal({ aziendaId }) {
           <input
             id="new-descrizione"
             class="input"
-            value="${escapeHtml(term)}"
+            value="${escapeHtml(
+              term
+            )}"
           >
         </div>
 
@@ -795,8 +1122,13 @@ export async function apriCaricoModal({ aziendaId }) {
           >
         </div>
 
-        <div class="rf-field" style="position:relative;">
-          <label>Fornitore preferito</label>
+        <div
+          class="rf-field"
+          style="position:relative;"
+        >
+          <label>
+            Fornitore preferito
+          </label>
 
           <input
             id="new-fornitore"
@@ -808,7 +1140,13 @@ export async function apriCaricoModal({ aziendaId }) {
           <div
             id="fornitore-suggerimenti"
             class="rf-search-list"
-            style="position:absolute; top:100%; left:0; right:0; display:none;"
+            style="
+              position:absolute;
+              top:100%;
+              left:0;
+              right:0;
+              display:none;
+            "
           ></div>
         </div>
 
@@ -816,33 +1154,50 @@ export async function apriCaricoModal({ aziendaId }) {
     `;
 
     const input =
-      document.getElementById("new-fornitore");
+      document.getElementById(
+        "new-fornitore"
+      );
 
     const box =
-      document.getElementById("fornitore-suggerimenti");
+      document.getElementById(
+        "fornitore-suggerimenti"
+      );
 
     input.oninput = () => {
-      const termInput = input.value
-        .toLowerCase()
-        .trim();
+      const termInput =
+        input.value
+          .toLowerCase()
+          .trim();
 
       if (!termInput) {
-        box.style.display = "none";
+        box.style.display =
+          "none";
+
         box.innerHTML = "";
+
         return;
       }
 
-      const res = fornitoriCache
-        .filter((f) =>
-          String(f.ragione_sociale || "")
-            .toLowerCase()
-            .includes(termInput)
-        )
-        .slice(0, 5);
+      const res =
+        fornitoriCache
+          .filter((f) =>
+            String(
+              f.ragione_sociale ||
+              ""
+            )
+              .toLowerCase()
+              .includes(
+                termInput
+              )
+          )
+          .slice(0, 5);
 
       if (!res.length) {
-        box.style.display = "none";
+        box.style.display =
+          "none";
+
         box.innerHTML = "";
+
         return;
       }
 
@@ -850,36 +1205,51 @@ export async function apriCaricoModal({ aziendaId }) {
         .map((f) => `
           <div
             class="rf-search-item"
-            data-value="${escapeHtml(f.ragione_sociale)}"
+            data-value="${escapeHtml(
+              f.ragione_sociale
+            )}"
           >
-            ${escapeHtml(f.ragione_sociale)}
+            ${escapeHtml(
+              f.ragione_sociale
+            )}
           </div>
         `)
         .join("");
 
-      box.style.display = "block";
+      box.style.display =
+        "block";
 
-      box.querySelectorAll(".rf-search-item")
+      box.querySelectorAll(
+        ".rf-search-item"
+      )
         .forEach((el) => {
-          el.onmousedown = (e) => {
-            e.preventDefault();
+          el.onmousedown =
+            (e) => {
+              e.preventDefault();
 
-            input.value =
-              el.dataset.value || el.innerText;
+              input.value =
+                el.dataset
+                  .value ||
+                el.innerText;
 
-            box.style.display = "none";
-            box.innerHTML = "";
-          };
+              box.style.display =
+                "none";
+
+              box.innerHTML =
+                "";
+            };
         });
     };
 
     input.onblur = () => {
       setTimeout(() => {
-        box.style.display = "none";
+        box.style.display =
+          "none";
       }, 150);
     };
 
-    form.style.display = "block";
+    form.style.display =
+      "block";
   }
 }
 
@@ -890,55 +1260,104 @@ async function loadDettaglioProdotto(
   let sedeId = null;
 
   try {
-    sedeId = getSedeAttivaId();
+    sedeId =
+      getSedeAttivaId();
   } catch (error) {
     console.error(error);
+
     return null;
   }
 
   const {
     data: prodottoRows,
     error: prodottoError
-  } = await window.supabaseClient
-    .from("v_magazzino_giacenze")
-    .select("*")
-    .eq("azienda_id", aziendaId)
-    .eq("sede_id", sedeId)
-    .eq("prodotto_id", prodottoId);
+  } =
+    await window.supabaseClient
+      .from(
+        "v_magazzino_giacenze"
+      )
+      .select("*")
+      .eq(
+        "azienda_id",
+        aziendaId
+      )
+      .eq(
+        "sede_id",
+        sedeId
+      )
+      .eq(
+        "prodotto_id",
+        prodottoId
+      );
 
   if (prodottoError) {
-    console.error(prodottoError);
+    console.error(
+      prodottoError
+    );
+
     return null;
   }
 
-  if (!prodottoRows || !prodottoRows.length) {
+  if (
+    !prodottoRows ||
+    !prodottoRows.length
+  ) {
     return null;
   }
 
   const prodotto =
-    collapseGiacenzeRows(prodottoRows);
+    collapseGiacenzeRows(
+      prodottoRows
+    );
 
-  const { data: movimenti } =
+  const {
+    data: movimenti
+  } =
     await window.supabaseClient
-      .from("magazzino_movimenti")
-      .select("tipo_movimento, quantita, created_at")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .eq("prodotto_id", prodottoId)
-      .order("created_at", {
-        ascending: false
-      })
+      .from(
+        "magazzino_movimenti"
+      )
+      .select(`
+        tipo_movimento,
+        quantita,
+        created_at
+      `)
+      .eq(
+        "azienda_id",
+        aziendaId
+      )
+      .eq(
+        "sede_id",
+        sedeId
+      )
+      .eq(
+        "prodotto_id",
+        prodottoId
+      )
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      )
       .limit(5);
 
-  const { data: mapping } =
+  const {
+    data: mapping
+  } =
     await window.supabaseClient
-      .from("prodotti_fornitore")
+      .from(
+        "prodotti_fornitore"
+      )
       .select(`
         fornitori:fornitore_id (
           ragione_sociale
         )
       `)
-      .eq("prodotto_id", prodottoId)
+      .eq(
+        "prodotto_id",
+        prodottoId
+      )
       .limit(1)
       .maybeSingle();
 
@@ -946,26 +1365,34 @@ async function loadDettaglioProdotto(
     ...prodotto,
 
     fornitore:
-      mapping?.fornitori?.ragione_sociale || "—",
+      mapping?.fornitori
+        ?.ragione_sociale ||
+      "—",
 
     ultimi_movimenti:
       movimenti || []
   };
 }
 
-function collapseGiacenzeRows(rows) {
-  const first = rows[0] || {};
+function collapseGiacenzeRows(
+  rows
+) {
+  const first =
+    rows[0] || {};
 
-  const giacenza_attuale = rows.reduce(
-    (sum, row) =>
-      sum +
-      Number(
-        row?.giacenza_attuale ||
-        row?.giacenza ||
-        0
-      ),
-    0
-  );
+  const giacenza_attuale =
+    rows.reduce(
+      (sum, row) =>
+        sum +
+        Number(
+          row
+            ?.giacenza_attuale ||
+          row
+            ?.giacenza ||
+          0
+        ),
+      0
+    );
 
   return {
     ...first,
@@ -973,7 +1400,9 @@ function collapseGiacenzeRows(rows) {
   };
 }
 
-function renderSchedaCaricoProdotto(prodotto) {
+function renderSchedaCaricoProdotto(
+  prodotto
+) {
   return `
     <div class="rf-product-card">
 
@@ -981,13 +1410,15 @@ function renderSchedaCaricoProdotto(prodotto) {
 
         <div class="rf-product-code">
           ${escapeHtml(
-            prodotto.codice_interno || "—"
+            prodotto.codice_interno ||
+            "—"
           )}
         </div>
 
         <div class="rf-product-title">
           ${escapeHtml(
-            prodotto.descrizione || ""
+            prodotto.descrizione ||
+            ""
           )}
         </div>
 
@@ -996,11 +1427,14 @@ function renderSchedaCaricoProdotto(prodotto) {
       <div class="rf-product-grid">
 
         <div class="rf-product-field">
-          <span class="rf-product-label">UM</span>
+          <span class="rf-product-label">
+            UM
+          </span>
 
           <div class="rf-product-value">
             ${escapeHtml(
-              prodotto.unita_base || "—"
+              prodotto.unita_base ||
+              "—"
             )}
           </div>
         </div>
@@ -1012,7 +1446,8 @@ function renderSchedaCaricoProdotto(prodotto) {
 
           <div class="rf-product-value">
             ${escapeHtml(
-              prodotto.fornitore || "—"
+              prodotto.fornitore ||
+              "—"
             )}
           </div>
         </div>
@@ -1049,26 +1484,34 @@ function renderSchedaCaricoProdotto(prodotto) {
 
       <div class="rf-mov-list">
 
-        ${(prodotto.ultimi_movimenti || []).length
-          ? prodotto.ultimi_movimenti
-            .map((m) => `
-              <div class="rf-mov-item">
+        ${(prodotto
+          .ultimi_movimenti ||
+          []).length
+          ? prodotto
+              .ultimi_movimenti
+              .map((m) => `
+                <div class="rf-mov-item">
 
-                <div class="rf-mov-main">
-                  ${escapeHtml(
-                    m.tipo_movimento || "—"
-                  )}
-                  ·
-                  ${formatNumber(m.quantita)}
+                  <div class="rf-mov-main">
+                    ${escapeHtml(
+                      m.tipo_movimento ||
+                      "—"
+                    )}
+                    ·
+                    ${formatNumber(
+                      m.quantita
+                    )}
+                  </div>
+
+                  <div class="rf-mov-meta">
+                    ${formatDateTime(
+                      m.created_at
+                    )}
+                  </div>
+
                 </div>
-
-                <div class="rf-mov-meta">
-                  ${formatDateTime(m.created_at)}
-                </div>
-
-              </div>
-            `)
-            .join("")
+              `)
+              .join("")
           : `
             <div class="rf-empty-state">
               Nessun movimento recente
@@ -1082,14 +1525,22 @@ function renderSchedaCaricoProdotto(prodotto) {
   `;
 }
 
-function sanitizeSearchTerm(value) {
-  return String(value ?? "")
-    .replace(/[%,'"]/g, "");
+function sanitizeSearchTerm(
+  value
+) {
+  return String(
+    value ?? ""
+  ).replace(
+    /[%,'"]/g,
+    ""
+  );
 }
 
 function getSedeAttivaId() {
   const sedeId =
-    window.state?.sedeAttiva?.id ?? null;
+    window.state
+      ?.sedeAttiva?.id ??
+    null;
 
   if (!sedeId) {
     throw new Error(
@@ -1101,36 +1552,69 @@ function getSedeAttivaId() {
 }
 
 function formatNumber(value) {
-  const n = Number(value || 0);
+  const n = Number(
+    value || 0
+  );
 
-  if (Number.isNaN(n)) {
+  if (
+    Number.isNaN(n)
+  ) {
     return "—";
   }
 
-  return n.toLocaleString("it-IT", {
-    maximumFractionDigits: 3
-  });
+  return n.toLocaleString(
+    "it-IT",
+    {
+      maximumFractionDigits:3
+    }
+  );
 }
 
-function formatDateTime(value) {
+function formatDateTime(
+  value
+) {
   if (!value) {
     return "—";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "—";
   }
 
-  return date.toLocaleString("it-IT");
+  return date.toLocaleString(
+    "it-IT"
+  );
 }
 
 function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#39;"
+    );
 }
