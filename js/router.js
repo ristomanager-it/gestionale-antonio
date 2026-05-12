@@ -77,6 +77,7 @@ const routes = {
   completaProfilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
   "scegli-sede": () => import("./views/scegli-sede.js"),
+
   acquisti: () => import("./views/acquisti/index.js"),
   magazzino: () => import("./views/magazzino/magazzino.js"),
 
@@ -113,7 +114,7 @@ const routes = {
   comanda: () => import("./views/comanda.js"),
 
   // =========================
-  // BACK OFFICE (COSTRUZIONE)
+  // BACK OFFICE
   // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
   "bo-tag": () => import("./views/bo/bo-tag.js"),
@@ -130,12 +131,9 @@ const routes = {
   "bo-comande": () => import("./views/bo/bo-comande.js"),
   "bo-ricette": () => import("./views/bo/ricette-editor.js"),
 
-  // =========================================================
-  // APP (OPERATIVO)
-  // =========================================================
+  // APP
   "app-produzione": () => import("./views/app/app-produzione.js"),
-
-}; //
+};
 
 /* =========================================================
    ROUTE SCOPE
@@ -165,21 +163,18 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
-const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
+const ROOT_ROUTES = new Set([
+  "home",
+  "homePiattaforma"
+]);
 
 const BO_ROUTES = new Set([
   "bo-dashboard",
-
-  // MARKETING
   "bo-tag",
   "bo-template",
-
-  // MENU
   "bo-menu",
   "bo-categorie",
   "bo-prodotti",
-
-  // PRODUZIONE
   "bo-magazzino",
   "bo-produzione",
   "bo-comande",
@@ -228,7 +223,10 @@ function parseHash() {
 ========================================================= */
 
 async function renderView(routeName) {
-  if (!routes[routeName]) routeName = "home";
+  if (!routes[routeName]) {
+    routeName = "home";
+  }
+
   if (!app) return;
 
   app.innerHTML = "";
@@ -263,7 +261,9 @@ async function renderView(routeName) {
 ========================================================= */
 
 function isSuperadmin() {
-  if (window.state?.isSuperadmin === true) return true;
+  if (window.state?.isSuperadmin === true) {
+    return true;
+  }
 
   const aziende = window.state?.aziende || [];
 
@@ -271,22 +271,32 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-  if (area === "home") return true;
+
+  if (area === "home") {
+    return true;
+  }
 
   const viewAs = window.state?.viewAs;
   const ruolo = viewAs || window.state?.ruolo;
 
-  if (!viewAs && window.state?._allAccess === true) return true;
+  if (!viewAs && window.state?._allAccess === true) {
+    return true;
+  }
 
-  if (isSuperadmin()) return true;
+  if (isSuperadmin()) {
+    return true;
+  }
 
   if (BO_ROUTES.has(area)) {
     return ruolo === "admin" || ruolo === "superadmin";
   }
 
-  if (ruolo === "admin") return true;
+  if (ruolo === "admin") {
+    return true;
+  }
 
   if (ruolo === "manager_cucina") {
+
     const allowed = [
       "home",
       "operativo",
@@ -307,12 +317,15 @@ function hasPermission(area) {
       "prenotazioni-form"
     ];
 
-    if (["venduto", "margini"].includes(area)) return false;
+    if (["venduto", "margini"].includes(area)) {
+      return false;
+    }
 
     return allowed.includes(area);
   }
 
   if (ruolo === "manager_sala") {
+
     const allowed = [
       "home",
       "operativo",
@@ -332,12 +345,15 @@ function hasPermission(area) {
       "permessi"
     ];
 
-    if (["venduto", "margini"].includes(area)) return false;
+    if (["venduto", "margini"].includes(area)) {
+      return false;
+    }
 
     return allowed.includes(area);
   }
 
   if (ruolo === "operatore_cucina") {
+
     const allowed = [
       "home",
       "operativo",
@@ -365,6 +381,7 @@ function hasPermission(area) {
   }
 
   if (ruolo === "operatore_sala") {
+
     const allowed = [
       "home",
       "operativo",
@@ -423,7 +440,11 @@ function getStoredAziendaId() {
 
 function setStoredAziendaId(id) {
   if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_AZIENDA_ID, String(id));
+
+  localStorage.setItem(
+    LS_KEYS.ACTIVE_AZIENDA_ID,
+    String(id)
+  );
 }
 
 function clearStoredAziendaId() {
@@ -436,7 +457,11 @@ function getStoredSedeId() {
 
 function setStoredSedeId(id) {
   if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_SEDE_ID, String(id));
+
+  localStorage.setItem(
+    LS_KEYS.ACTIVE_SEDE_ID,
+    String(id)
+  );
 }
 
 function clearStoredSedeId() {
@@ -444,16 +469,20 @@ function clearStoredSedeId() {
 }
 
 /* =========================================================
-   AUTH + CONTEXT HELPERS
+   AUTH HELPERS
 ========================================================= */
 
 async function getValidSession() {
+
   const { data } = await supabase.auth.getSession();
 
   let session = data?.session || null;
 
   if (!session) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
+
+    const { data: refreshed } =
+      await supabase.auth.refreshSession();
+
     session = refreshed?.session || null;
   }
 
@@ -461,6 +490,7 @@ async function getValidSession() {
 }
 
 async function loadAziendeForUser(userId) {
+
   const { data: aziende, error } = await supabase
     .from("utenti_aziende")
     .select(`
@@ -493,14 +523,18 @@ async function loadAziendeForUser(userId) {
 }
 
 function pickActiveAzienda(aziendePulite) {
+
   const storedId = getStoredAziendaId();
 
   if (storedId) {
+
     const match = aziendePulite.find(
       (a) => String(a.aziende.id) === String(storedId)
     );
 
-    if (match?.aziende) return match.aziende;
+    if (match?.aziende) {
+      return match.aziende;
+    }
   }
 
   if (aziendePulite.length === 1) {
@@ -510,7 +544,11 @@ function pickActiveAzienda(aziendePulite) {
   return null;
 }
 
-function applyAziendaContextFromLink(aziendePulite, azienda) {
+function applyAziendaContextFromLink(
+  aziendePulite,
+  azienda
+) {
+
   if (!azienda) return;
 
   const recordAttivo = aziendePulite.find(
@@ -521,17 +559,24 @@ function applyAziendaContextFromLink(aziendePulite, azienda) {
     (a) => a.ruolo === "superadmin"
   );
 
-  const ruoloEffettivo = window.state.isSuperadmin
-    ? "superadmin"
-    : recordAttivo?.ruolo || "admin";
+  const ruoloEffettivo =
+    window.state.isSuperadmin
+      ? "superadmin"
+      : recordAttivo?.ruolo || "admin";
 
   window.stateActions.setRuolo(ruoloEffettivo);
 
   window.state.ruolo = ruoloEffettivo;
-  window.state.permessiOverride = recordAttivo?.permessi_override || {};
+
+  window.state.permessiOverride =
+    recordAttivo?.permessi_override || {};
 }
 
-function isAziendaBlockedForUser(azienda, routeName) {
+function isAziendaBlockedForUser(
+  azienda,
+  routeName
+) {
+
   if (!azienda) return true;
 
   if (isSuperadmin()) return false;
@@ -550,34 +595,52 @@ function isAziendaBlockedForUser(azienda, routeName) {
 }
 
 async function ensureAziendaContext(routeName) {
+
   const user = window.state?.user;
 
   if (!user) {
-    return { ok: false, reason: "no_user" };
+    return {
+      ok: false,
+      reason: "no_user"
+    };
   }
 
-  const aziendePulite = await loadAziendeForUser(user.id);
+  const aziendePulite =
+    await loadAziendeForUser(user.id);
 
   window.stateActions.setAziende(aziendePulite);
 
   if (aziendePulite.length === 0) {
+
     window.stateActions.resetAzienda();
 
-    return { ok: false, reason: "no_aziende" };
+    return {
+      ok: false,
+      reason: "no_aziende"
+    };
   }
 
-  const activeAzienda = pickActiveAzienda(aziendePulite);
+  const activeAzienda =
+    pickActiveAzienda(aziendePulite);
 
   if (!activeAzienda) {
+
     window.stateActions.resetAzienda();
 
     if (routeName !== "sceltaAzienda") {
+
       window.location.hash = "#/sceltaAzienda";
 
-      return { ok: false, redirected: true };
+      return {
+        ok: false,
+        redirected: true
+      };
     }
 
-    return { ok: false, reason: "need_choice" };
+    return {
+      ok: false,
+      reason: "need_choice"
+    };
   }
 
   setStoredAziendaId(activeAzienda.id);
@@ -591,7 +654,10 @@ async function ensureAziendaContext(routeName) {
     window.state.azienda = activeAzienda;
   }
 
-  applyAziendaContextFromLink(aziendePulite, activeAzienda);
+  applyAziendaContextFromLink(
+    aziendePulite,
+    activeAzienda
+  );
 
   return {
     ok: true,
@@ -600,128 +666,12 @@ async function ensureAziendaContext(routeName) {
   };
 }
 
-async function loadPianoForAzienda(azienda) {
-  if (!azienda) {
-    window.state.piano = null;
-    return;
-  }
-
-  if (azienda.piano_id) {
-    const { data: piano, error } = await supabase
-      .from("piani_abbonamento")
-      .select("*")
-      .eq("id", azienda.piano_id)
-      .single();
-
-    if (error) {
-      console.error("Errore caricamento piano:", error);
-      window.state.piano = null;
-      return;
-    }
-
-    window.state.piano = piano || null;
-  } else {
-    window.state.piano = null;
-  }
-
-  const pianoFeatures = window.state.piano?.features || {};
-  const aziendaOverride = azienda.features || {};
-
-  window.state.featuresEffettive = {
-    ...pianoFeatures,
-    ...aziendaOverride,
-  };
-}
-
-async function loadSediForAzienda(aziendaId) {
-  const { data, error } = await supabase
-    .from("sedi")
-    .select("id, nome, indirizzo, latitudine, longitudine")
-    .eq("azienda_id", aziendaId)
-    .order("nome", { ascending: true });
-
-  if (error) {
-    console.error("Errore caricamento sedi:", error);
-    return [];
-  }
-
-  return data || [];
-}
-
-function pickActiveSede(sedi) {
-  const storedId = getStoredSedeId();
-
-  if (storedId) {
-    const match = sedi.find((s) => String(s.id) === String(storedId));
-
-    if (match) return match;
-  }
-
-  if (sedi.length === 1) return sedi[0];
-
-  return null;
-}
-
-async function ensureSedeContext(routeName) {
-  const azienda = window.state?.azienda;
-
-  if (!azienda?.id) {
-    return { ok: false, reason: "no_azienda" };
-  }
-
-  const sedi = await loadSediForAzienda(azienda.id);
-
-  if (window.stateActions?.setSedi) {
-    window.stateActions.setSedi(sedi);
-  } else {
-    window.state.sedi = sedi;
-  }
-
-  if (sedi.length === 0) {
-    clearStoredSedeId();
-
-    window.state.sedeAttiva = null;
-
-    if (routeName !== "gestione-sedi") {
-      window.location.hash = "#/gestione-sedi?mode=first";
-
-      return { ok: false, redirected: true };
-    }
-
-    return { ok: false, reason: "no_sedi" };
-  }
-
-  const sede = pickActiveSede(sedi);
-
-  if (!sede) {
-    window.state.sedeAttiva = null;
-
-    clearStoredSedeId();
-
-    if (routeName !== "gestione-sedi") {
-      window.location.hash = "#/gestione-sedi?mode=select";
-
-      return { ok: false, redirected: true };
-    }
-
-    return { ok: false, reason: "need_sede_choice" };
-  }
-
-  window.state.sedeAttiva = sede;
-
-  setStoredSedeId(sede.id);
-
-  return {
-    ok: true,
-    sede
-  };
-}
-
 /* =========================================================
    LOGOUT
 ========================================================= */
 
 async function doLogout() {
+
   try {
     await supabase.auth.signOut();
   } catch (e) {
@@ -760,6 +710,7 @@ async function doLogout() {
 ========================================================= */
 
 async function resolve() {
+
   if (!app) return;
 
   if (!window.location.hash) {
@@ -767,46 +718,18 @@ async function resolve() {
     return;
   }
 
-  const { route, segments, params } = parseHash();
+  const { route, segments, params } =
+    parseHash();
 
   console.log("ROUTE:", route);
 
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
-  if (route === "booking") {
-    const slug = segments[1];
-
-    if (!slug) {
-      app.innerHTML = "Link non valido";
-      return;
-    }
-
-    try {
-      const { data: link, error } = await supabase
-        .from("booking_links")
-        .select("form_id")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (error || !link) {
-        app.innerHTML = "Link non trovato";
-        return;
-      }
-
-      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
-      return;
-
-    } catch (e) {
-      console.error("Errore booking route:", e);
-      app.innerHTML = "Errore";
-      return;
-    }
-  }
-
   const session = await getValidSession();
 
   if (!session) {
+
     if (window.stateActions?.setUser) {
       window.stateActions.setUser(null);
     }
@@ -828,9 +751,10 @@ async function resolve() {
 
     setHeaderVisible(false);
 
-    const target = PUBLIC_ROUTES.has(route)
-      ? route
-      : "login";
+    const target =
+      PUBLIC_ROUTES.has(route)
+        ? route
+        : "login";
 
     await renderView(target);
 
@@ -839,213 +763,74 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  try {
-    const { data: dip } = await supabase
-      .from("dipendenti")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-
-    if (dip?.id) {
-      const { data: link } = await supabase
-        .from("dipendenti_sedi")
-        .select("sede_id, sedi(id, nome, logo_url)")
-        .eq("dipendente_id", dip.id)
-        .eq("is_default", true)
-        .maybeSingle();
-
-      if (link?.sedi) {
-        window.state.sedeAttiva = link.sedi;
-
-        localStorage.setItem(
-          "active_sede_id",
-          link.sedi.id
-        );
-      }
-    }
-
-  } catch (e) {
-    console.warn("Errore load sede dipendente:", e);
-  }
-
-  if (
-    PUBLIC_ROUTES.has(route) &&
-    route !== "activate" &&
-    route !== "setPassword" &&
-    route !== "set-password"
-  ) {
-    const tmpAziende = await loadAziendeForUser(session.user.id);
-
-    const hasPlatform = tmpAziende.some(
-      (a) => a.aziende?.stato === "piattaforma"
-    );
-
-    const isSa = tmpAziende.some(
-      (a) => a.ruolo === "superadmin"
-    );
-
-    if (route === "login") {
-      if (hasPlatform || isSa) {
-        window.location.hash = "#/homePiattaforma";
-        return;
-      }
-
-      window.location.hash = "#/home";
-      return;
-    }
-
-    setHeaderVisible(false);
-
-    await renderView(route);
-
-    return;
-  }
-
-  try {
-    const { data: dipCheck, error: dipCheckErr } = await supabase
-      .from("dipendenti")
-      .select("profilo_completato")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-
-    if (
-      !dipCheckErr &&
-      dipCheck &&
-      dipCheck.profilo_completato === false
-    ) {
-      if (route !== "completaProfilo") {
-        window.location.hash = "#/completaProfilo";
-        return;
-      }
-    }
-
-  } catch (e) {
-    console.warn("Check profilo dipendente fallito:", e);
-  }
-
-  setHeaderVisible(true);
-
-  const aziendaRes = await ensureAziendaContext(route);
+  const aziendaRes =
+    await ensureAziendaContext(route);
 
   if (!aziendaRes.ok) {
-    if (aziendaRes.redirected) return;
-
-    if (aziendaRes.reason === "no_aziende") {
-      app.innerHTML = `
-        <div class="view" style="padding:40px; text-align:center;">
-          <h2 style="color:#dc2626;">Accesso non consentito</h2>
-          <p>Nessuna azienda associata al tuo utente.</p>
-          <button id="btn-logout-force" style="margin-top:18px; padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
-            Torna al login
-          </button>
-        </div>
-      `;
-
-      const b = document.getElementById("btn-logout-force");
-
-      if (b) {
-        b.onclick = doLogout;
-      }
-
-      return;
-    }
-
-    if (route !== "sceltaAzienda") {
-      window.location.hash = "#/sceltaAzienda";
-      return;
-    }
-
-    await renderView("sceltaAzienda");
-
     return;
   }
-
-  const azienda = window.state.azienda;
-
-  try {
-    if (
-      azienda &&
-      azienda.stato !== "piattaforma" &&
-      (
-        azienda.profilo_completato === false ||
-        azienda.stato_attivazione === "bozza"
-      )
-    ) {
-      if (route !== "completaAzienda") {
-        window.location.hash = "#/completaAzienda";
-        return;
-      }
-    }
-
-  } catch (e) {
-    console.warn("Check profilo azienda fallito:", e);
-  }
-
-  await loadPianoForAzienda(azienda);
 
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
-
-  if (window.menuController?.refresh) {
-    window.menuController.refresh();
-  }
-
-  if (isAziendaBlockedForUser(azienda, route)) {
-    app.innerHTML = `
-      <div class="view" style="padding:40px; text-align:center;">
-        <h2 style="color:#dc2626;">Azienda non attiva</h2>
-        <p>L'accesso a questa azienda è bloccato (stato/stato_attivazione).</p>
-
-        <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-          <button id="btn-change-company" style="padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
-            Cambia azienda
-          </button>
-
-          <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
-            Logout
-          </button>
-        </div>
-      </div>
-    `;
-
-    const bc = document.getElementById("btn-change-company");
-
-    if (bc) {
-      bc.onclick = () => {
-        clearStoredAziendaId();
-        clearStoredSedeId();
-
-        window.stateActions.resetAzienda();
-
-        window.location.hash = "#/sceltaAzienda";
-      };
-    }
-
-    const bl = document.getElementById("btn-logout");
-
-    if (bl) {
-      bl.onclick = doLogout;
-    }
-
-    return;
-  }
-
-  /* =========================================================
-     FIX DEFINITIVO CONTESTO OPERATIVO
-     SOLO operatori usano caricaContestoOperativo()
-  ========================================================= */
 
   const ruoloCorrente =
     window.state?.viewAs ||
     window.state?.ruolo;
 
-  const isDipendenteOperativo = [
+  /* =========================================================
+     FIX CRITICO:
+     bootstrap sede SOLO operatori
+  ========================================================= */
+
+  const isOperatore = [
     "operatore_cucina",
     "operatore_sala"
   ].includes(ruoloCorrente);
 
+  if (isOperatore) {
+
+    try {
+
+      const { data: dip } = await supabase
+        .from("dipendenti")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (dip?.id) {
+
+        const { data: link } = await supabase
+          .from("dipendenti_sedi")
+          .select("sede_id, sedi(id, nome, logo_url)")
+          .eq("dipendente_id", dip.id)
+          .eq("is_default", true)
+          .maybeSingle();
+
+        if (link?.sedi) {
+
+          window.state.sedeAttiva = link.sedi;
+
+          localStorage.setItem(
+            "active_sede_id",
+            link.sedi.id
+          );
+        }
+      }
+
+    } catch (e) {
+      console.warn(
+        "Errore load sede dipendente:",
+        e
+      );
+    }
+  }
+
+  /* =========================================================
+     CONTESTO OPERATIVO SOLO OPERATORI
+  ========================================================= */
+
   if (
-    isDipendenteOperativo &&
+    isOperatore &&
     !PLATFORM_ROUTES.has(route) &&
     !BO_ROUTES.has(route) &&
     route !== "completaProfilo" &&
@@ -1057,11 +842,18 @@ async function resolve() {
     const contesto =
       await window.stateActions.caricaContestoOperativo();
 
-    console.log("CONTESTO OPERATIVO:", contesto);
+    console.log(
+      "CONTESTO OPERATIVO:",
+      contesto
+    );
 
     if (!contesto.ok) {
 
-      if (contesto.motivo === "Dipendente non trovato") {
+      if (
+        contesto.motivo ===
+        "Dipendente non trovato"
+      ) {
+
         app.innerHTML = `
           <div class="view" style="padding:40px;text-align:center;">
             <h2 style="color:#dc2626;">Errore accesso</h2>
@@ -1072,47 +864,45 @@ async function resolve() {
         return;
       }
 
-      if (contesto.motivo === "Nessuna sede assegnata") {
-        window.location.hash = "#/gestione-sedi?mode=first";
+      if (
+        contesto.motivo ===
+        "Nessuna sede assegnata"
+      ) {
+
+        window.location.hash =
+          "#/gestione-sedi?mode=first";
+
         return;
       }
 
       return;
     }
 
-    if (contesto.tipo === "dipendente_multi_sede") {
+    if (
+      contesto.tipo ===
+      "dipendente_multi_sede"
+    ) {
+
       if (route !== "scegli-sede") {
-        window.location.hash = "#/scegli-sede";
+
+        window.location.hash =
+          "#/scegli-sede";
+
         return;
       }
     }
-  }
-
-  if (route === "homePiattaforma") {
-    if (!isSuperadmin()) {
-      window.location.hash = "#/home";
-      return;
-    }
-
-    await renderView("homePiattaforma");
-
-    return;
   }
 
   if (route === "home") {
 
-    const ruolo =
-      window.state?.viewAs ||
-      window.state?.ruolo;
-
-    if (ruolo === "admin") {
+    if (ruoloCorrente === "admin") {
       await renderView("home-admin");
       return;
     }
 
     if (
-      ruolo === "manager_cucina" ||
-      ruolo === "manager_sala"
+      ruoloCorrente === "manager_cucina" ||
+      ruoloCorrente === "manager_sala"
     ) {
       await renderView("home-manager");
       return;
@@ -1123,36 +913,23 @@ async function resolve() {
     return;
   }
 
-  if (PLATFORM_ROUTES.has(route)) {
-    if (!isSuperadmin()) {
-      window.location.hash = "#/home";
-      return;
-    }
-
-    await renderView(route);
-
-    return;
-  }
-
-  if (route === "sceltaAzienda") {
-    await renderView("sceltaAzienda");
-    return;
-  }
-
-  if (route === "gestione-sedi") {
-    await renderView("gestione-sedi");
-    return;
-  }
-
-  if (routes[route]) {
+  if (
+    routes[route]
+  ) {
 
     if (
       !PUBLIC_ROUTES.has(route) &&
       !PREHOME_ROUTES.has(route) &&
       !ROOT_ROUTES.has(route)
     ) {
-      if (!hasPermission(route) && !isSuperadmin()) {
+
+      if (
+        !hasPermission(route) &&
+        !isSuperadmin()
+      ) {
+
         window.location.hash = "#/home";
+
         return;
       }
     }
@@ -1179,46 +956,52 @@ window.router = {
   },
 };
 
-window.addEventListener("hashchange", resolve);
+window.addEventListener(
+  "hashchange",
+  resolve
+);
 
-window.addEventListener("DOMContentLoaded", () => {
-  app = document.getElementById("app");
+window.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-  initMenu();
+    app = document.getElementById("app");
 
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log("AUTH CHANGE:", event, session);
+    initMenu();
 
-    if (session?.user) {
+    supabase.auth.onAuthStateChange(
+      (event, session) => {
 
-      if (window.stateActions?.setUser) {
-        window.stateActions.setUser(session.user);
+        console.log(
+          "AUTH CHANGE:",
+          event,
+          session
+        );
+
+        if (session?.user) {
+
+          if (window.stateActions?.setUser) {
+            window.stateActions.setUser(
+              session.user
+            );
+          }
+
+        } else {
+
+          if (window.stateActions?.setUser) {
+            window.stateActions.setUser(null);
+          }
+        }
       }
+    );
 
-    } else {
+    const logoutBtn =
+      document.getElementById("logout-btn");
 
-      if (window.stateActions?.setUser) {
-        window.stateActions.setUser(null);
-      }
-    }
-  });
-
-  try {
-    const saved = localStorage.getItem("reparto_attivo");
-
-    if (saved) {
-      window.state.repartoAttivo = JSON.parse(saved);
+    if (logoutBtn) {
+      logoutBtn.onclick = () => doLogout();
     }
 
-  } catch (e) {
-    console.warn("Errore restore reparto:", e);
+    resolve();
   }
-
-  const logoutBtn = document.getElementById("logout-btn");
-
-  if (logoutBtn) {
-    logoutBtn.onclick = () => doLogout();
-  }
-
-  resolve();
-});
+);
