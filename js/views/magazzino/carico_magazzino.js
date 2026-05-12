@@ -2,14 +2,25 @@ export function renderCaricoModal() {
   return `
     <div id="rf-carico-backdrop" class="rf-overlay-backdrop" style="display:none;">
       <div class="rf-overlay-card">
+
         <div class="rf-overlay-header">
-          <h3 class="rf-overlay-title">Carico Magazzino</h3>
-          <button id="btn-close-carico" class="app-button tiny gray">Chiudi</button>
+          <h3 class="rf-overlay-title">
+            Carico Magazzino
+          </h3>
+
+          <button
+            id="btn-close-carico"
+            class="app-button tiny gray"
+          >
+            Chiudi
+          </button>
         </div>
 
         <div class="rf-overlay-body">
+
           <div class="rf-field">
             <label>Prodotto</label>
+
             <input
               id="carico-search"
               class="input"
@@ -20,25 +31,49 @@ export function renderCaricoModal() {
 
           <div id="carico-risultati"></div>
 
-          <div id="carico-prodotto" class="rf-section-spacer" style="display:none;"></div>
+          <div
+            id="carico-prodotto"
+            class="rf-section-spacer"
+            style="display:none;"
+          ></div>
 
-          <div id="carico-form" class="rf-section-spacer" style="display:none;">
+          <div
+            id="carico-form"
+            class="rf-section-spacer"
+            style="display:none;"
+          >
 
-            <div class="rf-product-card" id="carico-um-card" style="display:none;">
-              <div class="rf-product-section-title">Unità di misura</div>
+            <div
+              class="rf-product-card"
+              id="carico-um-card"
+              style="display:none;"
+            >
+              <div class="rf-product-section-title">
+                Unità di misura
+              </div>
 
               <div class="rf-product-grid">
                 <div class="rf-product-field">
-                  <span class="rf-product-label">UM</span>
 
-                  <div id="carico-um-value" class="rf-product-value">
+                  <span class="rf-product-label">
+                    UM
+                  </span>
+
+                  <div
+                    id="carico-um-value"
+                    class="rf-product-value"
+                  >
                     —
                   </div>
+
                 </div>
               </div>
             </div>
 
-            <div class="rf-product-card" style="margin-top:10px;">
+            <div
+              class="rf-product-card"
+              style="margin-top:10px;"
+            >
               <div class="rf-product-section-title">
                 Quantità
               </div>
@@ -56,7 +91,10 @@ export function renderCaricoModal() {
               </div>
             </div>
 
-            <div class="rf-product-card" style="margin-top:10px;">
+            <div
+              class="rf-product-card"
+              style="margin-top:10px;"
+            >
               <div class="rf-product-section-title">
                 Scorta minima / Riordino
               </div>
@@ -72,7 +110,10 @@ export function renderCaricoModal() {
               </div>
             </div>
 
-            <div class="rf-product-card" style="margin-top:10px;">
+            <div
+              class="rf-product-card"
+              style="margin-top:10px;"
+            >
               <div class="rf-product-section-title">
                 Categoria interna
               </div>
@@ -172,7 +213,7 @@ export async function apriCaricoModal({
 
   if (!backdrop) {
     console.error(
-      "Overlay carico non trovato nel DOM"
+      "Overlay carico non trovato"
     );
 
     return;
@@ -259,10 +300,13 @@ export async function apriCaricoModal({
     );
 
   let prodottoId = null;
+
   let prodottoSelezionato = null;
+
   let nuovoProdottoMode = false;
 
   let fornitoriCache = [];
+
   let categorieCache = [];
 
   async function loadFornitori() {
@@ -281,14 +325,19 @@ export async function apriCaricoModal({
       error
     } =
       await window.supabaseClient
-        .from("categorie_interne_prodotti")
+        .from(
+          "categorie_interne_prodotti"
+        )
         .select("id,nome")
-        .eq("azienda_id", aziendaId)
+        .eq(
+          "azienda_id",
+          aziendaId
+        )
         .order("nome");
 
     if (error) {
       console.error(
-        "Errore load categorie",
+        "Errore categorie",
         error
       );
 
@@ -300,30 +349,12 @@ export async function apriCaricoModal({
     categorieCache = data || [];
   }
 
-  function bindCreateButton(term) {
-    const btn =
-      risultati.querySelector(
-        "#btn-nuovo-prodotto"
-      );
-
-    if (!btn) return;
-
-    btn.onclick = () => {
-      nuovoProdottoMode = true;
-
-      prodottoId = null;
-
-      prodottoSelezionato = null;
-
-      mostraFormNuovoProdotto(term);
-    };
-  }
-
   function bindCategoriaAutocomplete() {
     categoriaEl.oninput = () => {
-      const term = categoriaEl.value
-        .toLowerCase()
-        .trim();
+      const term =
+        categoriaEl.value
+          .toLowerCase()
+          .trim();
 
       if (!term) {
         categoriaSuggerimentiEl.style.display =
@@ -409,7 +440,7 @@ export async function apriCaricoModal({
       return null;
     }
 
-    const categoriaEsistente =
+    const existing =
       categorieCache.find(
         (c) =>
           String(c.nome || "")
@@ -418,15 +449,13 @@ export async function apriCaricoModal({
           nome.toLowerCase()
       );
 
-    if (categoriaEsistente?.id) {
-      return categoriaEsistente.id;
+    if (existing?.id) {
+      return existing.id;
     }
 
     const insertPayload = {
       azienda_id: aziendaId,
-      nome,
-      attivo: true,
-      sort_order: 999
+      nome
     };
 
     const {
@@ -470,6 +499,28 @@ export async function apriCaricoModal({
     return categoriaCreata.id;
   }
 
+  async function insertProdottoCompat(
+    payload
+  ) {
+    const firstTry =
+      await window.supabaseClient
+        .from("prodotti")
+        .insert(payload)
+        .select("id");
+
+    if (
+      firstTry?.data &&
+      Array.isArray(
+        firstTry.data
+      )
+    ) {
+      firstTry.data =
+        firstTry.data[0];
+    }
+
+    return firstTry;
+  }
+
   backdrop.style.display = "flex";
 
   risultati.innerHTML = "";
@@ -510,7 +561,8 @@ export async function apriCaricoModal({
   bindCategoriaAutocomplete();
 
   const close = () => {
-    backdrop.style.display = "none";
+    backdrop.style.display =
+      "none";
   };
 
   btnClose.onclick = close;
@@ -557,26 +609,6 @@ export async function apriCaricoModal({
       return;
     }
 
-    if (term.length < 2) {
-      risultati.innerHTML = `
-        <div class="rf-empty-state">
-          Digita almeno 2 caratteri
-        </div>
-
-        <button
-          id="btn-nuovo-prodotto"
-          class="app-button tiny"
-          style="margin-top:10px;"
-        >
-          + Crea "${escapeHtml(term)}"
-        </button>
-      `;
-
-      bindCreateButton(term);
-
-      return;
-    }
-
     const safeTerm =
       sanitizeSearchTerm(term);
 
@@ -593,11 +625,13 @@ export async function apriCaricoModal({
           unita_base,
           scorta_minima
         `)
-        .eq("azienda_id", aziendaId)
-        .or(`
-          descrizione.ilike.%${safeTerm}%,
-          codice_interno.ilike.%${safeTerm}%
-        `)
+        .eq(
+          "azienda_id",
+          aziendaId
+        )
+        .or(
+          `descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`
+        )
         .limit(10);
 
     if (error) {
@@ -627,7 +661,18 @@ export async function apriCaricoModal({
         </button>
       `;
 
-      bindCreateButton(term);
+      const btn =
+        risultati.querySelector(
+          "#btn-nuovo-prodotto"
+        );
+
+      btn.onclick = () => {
+        nuovoProdottoMode = true;
+
+        mostraFormNuovoProdotto(
+          term
+        );
+      };
 
       return;
     }
@@ -669,17 +714,7 @@ export async function apriCaricoModal({
         `).join("")}
 
       </div>
-
-      <button
-        id="btn-nuovo-prodotto"
-        class="app-button tiny"
-        style="margin-top:10px;"
-      >
-        + Crea "${escapeHtml(term)}"
-      </button>
     `;
-
-    bindCreateButton(term);
 
     risultati
       .querySelectorAll(
@@ -687,56 +722,17 @@ export async function apriCaricoModal({
       )
       .forEach((btn) => {
         btn.onclick = async () => {
-          const id = String(
-            btn.dataset.id
-          );
+          prodottoId =
+            btn.dataset.id;
 
-          prodottoId = id;
-
-          nuovoProdottoMode = false;
-
-          const prodotto =
-            await loadDettaglioProdotto(
-              aziendaId,
-              id
-            );
-
-          if (!prodotto) {
-            prodottoBox.style.display =
-              "block";
-
-            prodottoBox.innerHTML = `
-              <div class="rf-empty-state">
-                Prodotto non trovato
-              </div>
-            `;
-
-            return;
-          }
-
-          prodottoSelezionato =
-            prodotto;
-
-          prodottoBox.style.display =
+          form.style.display =
             "block";
-
-          prodottoBox.innerHTML =
-            renderSchedaCaricoProdotto(
-              prodotto
-            );
-
-          umValueEl.innerText =
-            prodotto.unita_base || "—";
 
           umCard.style.display =
             "block";
 
-          scortaEl.value =
-            prodotto.scorta_minima ||
-            "";
-
-          form.style.display =
-            "block";
+          umValueEl.innerText =
+            "—";
         };
       });
   };
@@ -750,26 +746,10 @@ export async function apriCaricoModal({
       scortaEl.value || 0
     );
 
-    const d = dataEl.value;
-
-    const note =
-      noteEl.value || "";
-
     const categoria = String(
       categoriaEl.value ||
       "INVENTARIO"
     ).trim();
-
-    let sedeId = null;
-
-    try {
-      sedeId =
-        getSedeAttivaId();
-    } catch (error) {
-      alert(error.message);
-
-      return;
-    }
 
     let finalProdottoId =
       prodottoId;
@@ -778,11 +758,6 @@ export async function apriCaricoModal({
       !finalProdottoId &&
       nuovoProdottoMode
     ) {
-      const codice =
-        document.getElementById(
-          "new-codice"
-        )?.value || null;
-
       const descrizione =
         document.getElementById(
           "new-descrizione"
@@ -793,19 +768,9 @@ export async function apriCaricoModal({
           "new-um"
         )?.value || null;
 
-      const scortaNew =
-        document.getElementById(
-          "new-scorta"
-        )?.value || null;
-
-      const fornitore =
-        document.getElementById(
-          "new-fornitore"
-        )?.value || null;
-
       if (!descrizione) {
         alert(
-          "Inserisci descrizione prodotto"
+          "Inserisci descrizione"
         );
 
         return;
@@ -813,12 +778,13 @@ export async function apriCaricoModal({
 
       const categoriaInternaId =
         await resolveCategoriaInternaId(
-          categoria || "INVENTARIO"
+          categoria ||
+          "INVENTARIO"
         );
 
       if (!categoriaInternaId) {
         alert(
-          "Errore categoria interna"
+          "Errore categoria"
         );
 
         return;
@@ -827,12 +793,8 @@ export async function apriCaricoModal({
       const insertResult =
         await insertProdottoCompat({
           azienda_id: aziendaId,
-          codice_interno: codice,
           descrizione,
           unita_base: um,
-          scorta_minima: scortaNew,
-          fornitore_preferito:
-            fornitore,
           categoria_interna_id:
             categoriaInternaId
         });
@@ -854,12 +816,8 @@ export async function apriCaricoModal({
 
       if (!finalProdottoId) {
         console.error(
-          "Insert prodotto senza ID",
+          "ID prodotto mancante",
           insertResult
-        );
-
-        alert(
-          "Errore ID prodotto"
         );
 
         return;
@@ -873,82 +831,23 @@ export async function apriCaricoModal({
       );
 
     if (
-      !finalProdottoId ||
       Number.isNaN(
         prodottoIdNumerico
       )
     ) {
       console.error(
-        "ID prodotto non valido",
+        "ID prodotto invalido",
         finalProdottoId
       );
 
-      esitoEl.innerText =
-        "Errore ID prodotto";
-
       return;
-    }
-
-    if (!q || q <= 0) {
-      alert(
-        "Inserisci quantità valida"
-      );
-
-      return;
-    }
-
-    const {
-      error: updateError
-    } =
-      await window.supabaseClient
-        .from("prodotti")
-        .update({
-          scorta_minima:
-            scorta
-        })
-        .eq(
-          "id",
-          prodottoIdNumerico
-        )
-        .eq(
-          "azienda_id",
-          aziendaId
-        );
-
-    if (updateError) {
-      console.error(
-        updateError
-      );
-
-      esitoEl.innerText =
-        "Errore aggiornamento prodotto";
-
-      return;
-    }
-
-    const causaleParts = [
-      categoria ||
-      "INVENTARIO"
-    ];
-
-    if (d) {
-      causaleParts.push(
-        `data:${d}`
-      );
-    }
-
-    if (note) {
-      causaleParts.push(
-        note
-      );
     }
 
     const movimentoPayload = {
-      azienda_id:
-        aziendaId,
+      azienda_id: aziendaId,
 
       sede_id:
-        sedeId,
+        getSedeAttivaId(),
 
       prodotto_id:
         prodottoIdNumerico,
@@ -956,16 +855,13 @@ export async function apriCaricoModal({
       tipo_movimento:
         "carico",
 
-      quantita:
-        q,
+      quantita: q,
 
-      costo:
-        0,
+      costo: 0,
 
       causale:
-        causaleParts.join(
-          " | "
-        )
+        categoria ||
+        "INVENTARIO"
     };
 
     const {
@@ -985,10 +881,21 @@ export async function apriCaricoModal({
       );
 
       esitoEl.innerText =
-        "Errore registrazione movimento";
+        "Errore movimento";
 
       return;
     }
+
+    await window.supabaseClient
+      .from("prodotti")
+      .update({
+        scorta_minima:
+          scorta
+      })
+      .eq(
+        "id",
+        prodottoIdNumerico
+      );
 
     esitoEl.innerText =
       "Carico registrato ✔";
@@ -997,76 +904,6 @@ export async function apriCaricoModal({
       close();
     }, 500);
   };
-
-  async function insertProdottoCompat(
-    payload
-  ) {
-    const firstTry =
-      await window.supabaseClient
-        .from("prodotti")
-        .insert(payload)
-        .select("id");
-
-    if (
-      firstTry?.data &&
-      Array.isArray(
-        firstTry.data
-      )
-    ) {
-      firstTry.data =
-        firstTry.data[0];
-    }
-
-    if (!firstTry.error) {
-      return firstTry;
-    }
-
-    const message = String(
-      firstTry.error
-        ?.message || ""
-    );
-
-    const missingFornitoreColumn =
-      firstTry.error.code ===
-        "PGRST204" ||
-      message
-        .toLowerCase()
-        .includes(
-          "fornitore_preferito"
-        );
-
-    if (
-      !missingFornitoreColumn
-    ) {
-      return firstTry;
-    }
-
-    const payloadFallback = {
-      ...payload
-    };
-
-    delete payloadFallback.fornitore_preferito;
-
-    const fallbackResult =
-      await window.supabaseClient
-        .from("prodotti")
-        .insert(
-          payloadFallback
-        )
-        .select("id");
-
-    if (
-      fallbackResult?.data &&
-      Array.isArray(
-        fallbackResult.data
-      )
-    ) {
-      fallbackResult.data =
-        fallbackResult.data[0];
-    }
-
-    return fallbackResult;
-  }
 
   function mostraFormNuovoProdotto(
     term
@@ -1079,15 +916,6 @@ export async function apriCaricoModal({
 
         <div class="rf-product-section-title">
           Nuovo prodotto
-        </div>
-
-        <div class="rf-field">
-          <label>Codice interno</label>
-
-          <input
-            id="new-codice"
-            class="input"
-          >
         </div>
 
         <div class="rf-field">
@@ -1108,421 +936,15 @@ export async function apriCaricoModal({
           <input
             id="new-um"
             class="input"
-            placeholder="kg / pz / lt"
           >
-        </div>
-
-        <div class="rf-field">
-          <label>Quantità riordino</label>
-
-          <input
-            id="new-scorta"
-            type="number"
-            class="input"
-          >
-        </div>
-
-        <div
-          class="rf-field"
-          style="position:relative;"
-        >
-          <label>
-            Fornitore preferito
-          </label>
-
-          <input
-            id="new-fornitore"
-            class="input"
-            placeholder="Scrivi o seleziona..."
-            autocomplete="off"
-          >
-
-          <div
-            id="fornitore-suggerimenti"
-            class="rf-search-list"
-            style="
-              position:absolute;
-              top:100%;
-              left:0;
-              right:0;
-              display:none;
-            "
-          ></div>
         </div>
 
       </div>
     `;
 
-    const input =
-      document.getElementById(
-        "new-fornitore"
-      );
-
-    const box =
-      document.getElementById(
-        "fornitore-suggerimenti"
-      );
-
-    input.oninput = () => {
-      const termInput =
-        input.value
-          .toLowerCase()
-          .trim();
-
-      if (!termInput) {
-        box.style.display =
-          "none";
-
-        box.innerHTML = "";
-
-        return;
-      }
-
-      const res =
-        fornitoriCache
-          .filter((f) =>
-            String(
-              f.ragione_sociale ||
-              ""
-            )
-              .toLowerCase()
-              .includes(
-                termInput
-              )
-          )
-          .slice(0, 5);
-
-      if (!res.length) {
-        box.style.display =
-          "none";
-
-        box.innerHTML = "";
-
-        return;
-      }
-
-      box.innerHTML = res
-        .map((f) => `
-          <div
-            class="rf-search-item"
-            data-value="${escapeHtml(
-              f.ragione_sociale
-            )}"
-          >
-            ${escapeHtml(
-              f.ragione_sociale
-            )}
-          </div>
-        `)
-        .join("");
-
-      box.style.display =
-        "block";
-
-      box.querySelectorAll(
-        ".rf-search-item"
-      )
-        .forEach((el) => {
-          el.onmousedown =
-            (e) => {
-              e.preventDefault();
-
-              input.value =
-                el.dataset
-                  .value ||
-                el.innerText;
-
-              box.style.display =
-                "none";
-
-              box.innerHTML =
-                "";
-            };
-        });
-    };
-
-    input.onblur = () => {
-      setTimeout(() => {
-        box.style.display =
-          "none";
-      }, 150);
-    };
-
     form.style.display =
       "block";
   }
-}
-
-async function loadDettaglioProdotto(
-  aziendaId,
-  prodottoId
-) {
-  let sedeId = null;
-
-  try {
-    sedeId =
-      getSedeAttivaId();
-  } catch (error) {
-    console.error(error);
-
-    return null;
-  }
-
-  const {
-    data: prodottoRows,
-    error: prodottoError
-  } =
-    await window.supabaseClient
-      .from(
-        "v_magazzino_giacenze"
-      )
-      .select("*")
-      .eq(
-        "azienda_id",
-        aziendaId
-      )
-      .eq(
-        "sede_id",
-        sedeId
-      )
-      .eq(
-        "prodotto_id",
-        prodottoId
-      );
-
-  if (prodottoError) {
-    console.error(
-      prodottoError
-    );
-
-    return null;
-  }
-
-  if (
-    !prodottoRows ||
-    !prodottoRows.length
-  ) {
-    return null;
-  }
-
-  const prodotto =
-    collapseGiacenzeRows(
-      prodottoRows
-    );
-
-  const {
-    data: movimenti
-  } =
-    await window.supabaseClient
-      .from(
-        "magazzino_movimenti"
-      )
-      .select(`
-        tipo_movimento,
-        quantita,
-        created_at
-      `)
-      .eq(
-        "azienda_id",
-        aziendaId
-      )
-      .eq(
-        "sede_id",
-        sedeId
-      )
-      .eq(
-        "prodotto_id",
-        prodottoId
-      )
-      .order(
-        "created_at",
-        {
-          ascending:false
-        }
-      )
-      .limit(5);
-
-  const {
-    data: mapping
-  } =
-    await window.supabaseClient
-      .from(
-        "prodotti_fornitore"
-      )
-      .select(`
-        fornitori:fornitore_id (
-          ragione_sociale
-        )
-      `)
-      .eq(
-        "prodotto_id",
-        prodottoId
-      )
-      .limit(1)
-      .maybeSingle();
-
-  return {
-    ...prodotto,
-
-    fornitore:
-      mapping?.fornitori
-        ?.ragione_sociale ||
-      "—",
-
-    ultimi_movimenti:
-      movimenti || []
-  };
-}
-
-function collapseGiacenzeRows(
-  rows
-) {
-  const first =
-    rows[0] || {};
-
-  const giacenza_attuale =
-    rows.reduce(
-      (sum, row) =>
-        sum +
-        Number(
-          row
-            ?.giacenza_attuale ||
-          row
-            ?.giacenza ||
-          0
-        ),
-      0
-    );
-
-  return {
-    ...first,
-    giacenza_attuale
-  };
-}
-
-function renderSchedaCaricoProdotto(
-  prodotto
-) {
-  return `
-    <div class="rf-product-card">
-
-      <div class="rf-product-heading">
-
-        <div class="rf-product-code">
-          ${escapeHtml(
-            prodotto.codice_interno ||
-            "—"
-          )}
-        </div>
-
-        <div class="rf-product-title">
-          ${escapeHtml(
-            prodotto.descrizione ||
-            ""
-          )}
-        </div>
-
-      </div>
-
-      <div class="rf-product-grid">
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">
-            UM
-          </span>
-
-          <div class="rf-product-value">
-            ${escapeHtml(
-              prodotto.unita_base ||
-              "—"
-            )}
-          </div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">
-            Fornitore
-          </span>
-
-          <div class="rf-product-value">
-            ${escapeHtml(
-              prodotto.fornitore ||
-              "—"
-            )}
-          </div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">
-            Giacenza
-          </span>
-
-          <div class="rf-product-value">
-            ${formatNumber(
-              prodotto.giacenza_attuale
-            )}
-          </div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">
-            Scorta minima
-          </span>
-
-          <div class="rf-product-value">
-            ${formatNumber(
-              prodotto.scorta_minima
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      <div class="rf-product-section-title">
-        Ultimi movimenti
-      </div>
-
-      <div class="rf-mov-list">
-
-        ${(prodotto
-          .ultimi_movimenti ||
-          []).length
-          ? prodotto
-              .ultimi_movimenti
-              .map((m) => `
-                <div class="rf-mov-item">
-
-                  <div class="rf-mov-main">
-                    ${escapeHtml(
-                      m.tipo_movimento ||
-                      "—"
-                    )}
-                    ·
-                    ${formatNumber(
-                      m.quantita
-                    )}
-                  </div>
-
-                  <div class="rf-mov-meta">
-                    ${formatDateTime(
-                      m.created_at
-                    )}
-                  </div>
-
-                </div>
-              `)
-              .join("")
-          : `
-            <div class="rf-empty-state">
-              Nessun movimento recente
-            </div>
-          `
-        }
-
-      </div>
-
-    </div>
-  `;
 }
 
 function sanitizeSearchTerm(
@@ -1539,8 +961,7 @@ function sanitizeSearchTerm(
 function getSedeAttivaId() {
   const sedeId =
     window.state
-      ?.sedeAttiva?.id ??
-    null;
+      ?.sedeAttiva?.id;
 
   if (!sedeId) {
     throw new Error(
@@ -1548,49 +969,7 @@ function getSedeAttivaId() {
     );
   }
 
-  return String(sedeId);
-}
-
-function formatNumber(value) {
-  const n = Number(
-    value || 0
-  );
-
-  if (
-    Number.isNaN(n)
-  ) {
-    return "—";
-  }
-
-  return n.toLocaleString(
-    "it-IT",
-    {
-      maximumFractionDigits:3
-    }
-  );
-}
-
-function formatDateTime(
-  value
-) {
-  if (!value) {
-    return "—";
-  }
-
-  const date =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "—";
-  }
-
-  return date.toLocaleString(
-    "it-IT"
-  );
+  return sedeId;
 }
 
 function escapeHtml(value) {
