@@ -297,11 +297,12 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "manager_cucina") {
     const allowed = [
-      "home","operativo","produzione","planner-produzione",
-      "ricettario","creaRicetta","preparazioni","storicoLotto",
-      "magazzino","acquisti","dipendenti","dipendente",
-      "timbrature","prenotazioni","prenotazioni-dettaglio","prenotazioni-form"
-    ];
+       "home","operativo","produzione","planner-produzione",
+  "ricettario","creaRicetta","preparazioni","storicoLotto",
+  "magazzino","acquisti","dipendenti","dipendente",
+  "timbrature","permessi",
+  "prenotazioni","prenotazioni-dettaglio","prenotazioni-form"
+];
 
     if (["venduto","margini"].includes(area)) return false;
     return allowed.includes(area);
@@ -312,12 +313,12 @@ function hasPermission(area) {
   // =========================
   if (ruolo === "manager_sala") {
     const allowed = [
-      "home","operativo","sala","comanda",
-      "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
-      "prenotazioni-tavoli","ricettario","timbrature",
-      "magazzino","acquisti","produzione","planner-produzione","preparazioni"
-    ];
-
+     "home","operativo","sala","comanda",
+  "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
+  "prenotazioni-tavoli","ricettario","timbrature",
+  "magazzino","acquisti","produzione","planner-produzione","preparazioni",
+  "permessi"
+];
     if (["venduto","margini"].includes(area)) return false;
     return allowed.includes(area);
   }
