@@ -54,9 +54,19 @@ export function renderCaricoModal() {
             <div class="rf-product-card" style="margin-top:10px;">
               <div class="rf-product-section-title">Categoria interna</div>
 
-              <div class="rf-field">
+              <div class="rf-field" style="position:relative;">
                 <label>Categoria</label>
-                <input id="carico-categoria" class="input" placeholder="es. inventario, rettifica..." />
+                <input
+                  id="carico-categoria"
+                  class="input"
+                  placeholder="Scrivi o seleziona..."
+                  autocomplete="off"
+                />
+                <div
+                  id="categoria-suggerimenti"
+                  class="rf-search-list"
+                  style="position:absolute; top:100%; left:0; right:0; display:none; z-index:20;"
+                ></div>
               </div>
             </div>
 
@@ -106,6 +116,7 @@ export async function apriCaricoModal({ aziendaId }) {
   const dataEl = backdrop.querySelector("#carico-data");
   const noteEl = backdrop.querySelector("#carico-note");
   const categoriaEl = backdrop.querySelector("#carico-categoria");
+  const categoriaSuggerimentiEl = backdrop.querySelector("#categoria-suggerimenti");
   const esitoEl = backdrop.querySelector("#carico-esito");
   const umValueEl = backdrop.querySelector("#carico-um-value");
   const umCard = backdrop.querySelector("#carico-um-card");
@@ -119,6 +130,7 @@ export async function apriCaricoModal({ aziendaId }) {
   let nuovoProdottoMode = false;
 
   let fornitoriCache = [];
+  let categorieCache = [];
 
   async function loadFornitori() {
     const { data } = await window.supabaseClient
@@ -129,6 +141,21 @@ export async function apriCaricoModal({ aziendaId }) {
     fornitoriCache = data || [];
   }
 
+  async function loadCategorie() {
+    const { data, error } = await window.supabaseClient
+      .from("categorie_interne_prodotti")
+      .select("id,nome")
+      .eq("azienda_id", aziendaId);
+
+    if (error) {
+      console.error(error);
+      categorieCache = [];
+      return;
+    }
+
+    categorieCache = data || [];
+  }
+
   function bindCreateButton(term) {
     const btn = risultati.querySelector("#btn-nuovo-prodotto");
     if (!btn) return;
@@ -137,6 +164,51 @@ export async function apriCaricoModal({ aziendaId }) {
       prodottoId = null;
       prodottoSelezionato = null;
       mostraFormNuovoProdotto(term);
+    };
+  }
+
+  function bindCategoriaAutocomplete() {
+    if (!categoriaEl || !categoriaSuggerimentiEl) return;
+
+    categoriaEl.oninput = () => {
+      const termInput = categoriaEl.value.toLowerCase().trim();
+
+      if (!termInput) {
+        categoriaSuggerimentiEl.style.display = "none";
+        categoriaSuggerimentiEl.innerHTML = "";
+        return;
+      }
+
+      const res = categorieCache
+        .filter((c) => String(c.nome || "").toLowerCase().includes(termInput))
+        .slice(0, 5);
+
+      if (!res.length) {
+        categoriaSuggerimentiEl.style.display = "none";
+        categoriaSuggerimentiEl.innerHTML = "";
+        return;
+      }
+
+      categoriaSuggerimentiEl.innerHTML = res.map((c) =>
+        `<div class="rf-search-item" data-value="${escapeHtml(c.nome)}">${escapeHtml(c.nome)}</div>`
+      ).join("");
+
+      categoriaSuggerimentiEl.style.display = "block";
+
+      categoriaSuggerimentiEl.querySelectorAll(".rf-search-item").forEach((el) => {
+        el.onmousedown = (e) => {
+          e.preventDefault();
+          categoriaEl.value = el.dataset.value || el.innerText;
+          categoriaSuggerimentiEl.style.display = "none";
+          categoriaSuggerimentiEl.innerHTML = "";
+        };
+      });
+    };
+
+    categoriaEl.onblur = () => {
+      setTimeout(() => {
+        categoriaSuggerimentiEl.style.display = "none";
+      }, 150);
     };
   }
 
@@ -152,10 +224,15 @@ export async function apriCaricoModal({ aziendaId }) {
   qtaEl.value = "";
   scortaEl.value = "";
   categoriaEl.value = "";
+  categoriaSuggerimentiEl.innerHTML = "";
+  categoriaSuggerimentiEl.style.display = "none";
   dataEl.value = new Date().toISOString().slice(0, 10);
   noteEl.value = "Inventario";
 
   await loadFornitori();
+  await loadCategorie();
+
+  bindCategoriaAutocomplete();
 
   const close = () => {
     backdrop.style.display = "none";
@@ -296,7 +373,7 @@ export async function apriCaricoModal({ aziendaId }) {
     const scorta = Number(scortaEl.value || 0);
     const d = dataEl.value;
     const note = noteEl.value || "";
-    const categoria = categoriaEl.value || "INVENTARIO";
+    const categoria = String(categoriaEl.value || "INVENTARIO").trim() || "INVENTARIO";
 
     let sedeId = null;
 
@@ -321,17 +398,23 @@ export async function apriCaricoModal({ aziendaId }) {
         return;
       }
 
-     const categoriaGenericaId = "METTI_UUID_CATEGORIA_GENERICA";
+      const categoriaInternaId = await resolveCategoriaInternaId(categoria);
 
-const insertResult = await insertProdottoCompat({
-  azienda_id: aziendaId,
-  codice_interno: codice,
-  descrizione,
-  unita_base: um,
-  scorta_minima: scortaNew,
-  fornitore_preferito: fornitore,
-  categoria_interna_id: categoriaGenericaId
-});
+      if (!categoriaInternaId) {
+        alert("Errore categoria interna prodotto");
+        return;
+      }
+
+      const insertResult = await insertProdottoCompat({
+        azienda_id: aziendaId,
+        codice_interno: codice,
+        descrizione,
+        unita_base: um,
+        scorta_minima: scortaNew,
+        fornitore_preferito: fornitore,
+        categoria_interna_id: categoriaInternaId
+      });
+
       if (insertResult.error) {
         if (insertResult.error.code === "23505") {
           const { data: existing, error: existingError } = await window.supabaseClient
@@ -429,6 +512,45 @@ const insertResult = await insertProdottoCompat({
     esitoEl.innerText = "Carico registrato ✔";
     setTimeout(() => close(), 500);
   };
+
+  async function resolveCategoriaInternaId(nomeCategoria) {
+    const nome = String(nomeCategoria || "").trim();
+
+    if (!nome) {
+      return null;
+    }
+
+    const existing = categorieCache.find(
+      (c) => String(c.nome || "").trim().toLowerCase() === nome.toLowerCase()
+    );
+
+    if (existing?.id) {
+      return String(existing.id);
+    }
+
+    const { data, error } = await window.supabaseClient
+      .from("categorie_interne_prodotti")
+      .insert({
+        azienda_id: aziendaId,
+        nome,
+        attivo: true,
+        sort_order: 999
+      })
+      .select("id,nome")
+      .single();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    if (data?.id) {
+      categorieCache.push(data);
+      return String(data.id);
+    }
+
+    return null;
+  }
 
   async function insertProdottoCompat(payload) {
     const firstTry = await window.supabaseClient
