@@ -1,4 +1,4 @@
-import { createPageLayout, createCard } from "../utils/pageLayout.js";
+import { createPageLayout, createCard } from "./utils/pageLayout.js";
 
 import {
   getWeather,
