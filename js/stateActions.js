@@ -368,20 +368,28 @@ window.stateActions = {
       };
     }
 
-    const defaultSede = sedi.find((s) => s.is_default === true);
-    const sedeAttiva = defaultSede || sedi[0];
+   const defaultSede = sedi.find((s) => s.is_default === true);
 
-    window.state.sedeAttiva = sedeAttiva;
-    localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedeAttiva.id));
+const sedeAttiva =
+  defaultSede || sedi[0];
 
-    return {
-      ok: true,
-      tipo: "dipendente_multi_sede",
-      dipendente,
-      sedi,
-      sedeAttiva,
-      sedeSuggerita: defaultSede || null,
-    };
+window.state.sedeAttiva =
+  sedeAttiva;
+
+localStorage.setItem(
+  this.LS_KEYS.ACTIVE_SEDE_ID,
+  String(sedeAttiva.id)
+);
+
+return {
+  ok: true,
+  tipo: "dipendente_multi_sede_con_sede_salvata",
+  dipendente,
+  sedi,
+  sedeAttiva,
+  sedeSuggerita:
+    defaultSede || null,
+};
   },
 
   async caricaPermessiEffettivi() {
