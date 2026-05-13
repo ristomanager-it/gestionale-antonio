@@ -295,21 +295,26 @@ function hasPermission(area) {
     return true;
   }
 
-  if (ruolo === "manager_cucina") {
+   if (ruolo === "manager") {
 
-    const allowed = [
+    const reparti =
+      window.state?.reparti || [];
+
+    const isCucina = reparti.some(
+      r =>
+        r.nome === "cucina" ||
+        r.codice === "cucina"
+    );
+
+    const isSala = reparti.some(
+      r =>
+        r.nome === "sala" ||
+        r.codice === "sala"
+    );
+
+    let allowed = [
       "home",
       "operativo",
-      "produzione",
-      "planner-produzione",
-      "ricettario",
-      "creaRicetta",
-      "preparazioni",
-      "storicoLotto",
-      "magazzino",
-      "acquisti",
-      "dipendenti",
-      "dipendente",
       "timbrature",
       "permessi",
       "prenotazioni",
@@ -317,53 +322,110 @@ function hasPermission(area) {
       "prenotazioni-form"
     ];
 
-    if (["venduto", "margini"].includes(area)) {
+    // =====================================================
+    // MANAGER CUCINA
+    // =====================================================
+
+    if (isCucina) {
+
+      allowed = [
+        ...allowed,
+
+        "produzione",
+        "planner-produzione",
+        "ricettario",
+        "creaRicetta",
+        "preparazioni",
+        "storicoLotto",
+        "magazzino",
+        "acquisti",
+        "dipendenti",
+        "dipendente"
+      ];
+    }
+
+    // =====================================================
+    // MANAGER SALA
+    // =====================================================
+
+    if (isSala) {
+
+      allowed = [
+        ...allowed,
+
+        "sala",
+        "comanda",
+        "prenotazioni-tavoli"
+      ];
+    }
+
+    if (
+      ["venduto", "margini"].includes(area)
+    ) {
       return false;
     }
 
     return allowed.includes(area);
   }
 
-  if (ruolo === "manager_sala") {
+  if (ruolo === "operatore") {
 
-    const allowed = [
+    const reparti =
+      window.state?.reparti || [];
+
+    const isCucina = reparti.some(
+      r =>
+        r.nome === "cucina" ||
+        r.codice === "cucina"
+    );
+
+    const isSala = reparti.some(
+      r =>
+        r.nome === "sala" ||
+        r.codice === "sala"
+    );
+
+    let allowed = [
       "home",
       "operativo",
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "ricettario",
-      "timbrature",
-      "magazzino",
-      "acquisti",
-      "produzione",
-      "planner-produzione",
-      "preparazioni",
-      "permessi"
-    ];
-
-    if (["venduto", "margini"].includes(area)) {
-      return false;
-    }
-
-    return allowed.includes(area);
-  }
-
-  if (ruolo === "operatore_cucina") {
-
-    const allowed = [
-      "home",
-      "operativo",
-      "produzione",
-      "planner-produzione",
-      "preparazioni",
-      "ricettario",
-      "magazzino",
       "timbrature"
     ];
+
+    // =====================================================
+    // OPERATORE CUCINA
+    // =====================================================
+
+    if (isCucina) {
+
+      allowed = [
+        ...allowed,
+
+        "produzione",
+        "planner-produzione",
+        "preparazioni",
+        "ricettario",
+        "magazzino"
+      ];
+    }
+
+    // =====================================================
+    // OPERATORE SALA
+    // =====================================================
+
+    if (isSala) {
+
+      allowed = [
+        ...allowed,
+
+        "sala",
+        "comanda",
+        "prenotazioni",
+        "prenotazioni-dettaglio",
+        "prenotazioni-form",
+        "prenotazioni-tavoli",
+        "ricettario"
+      ];
+    }
 
     if (
       [
@@ -380,42 +442,10 @@ function hasPermission(area) {
     return allowed.includes(area);
   }
 
-  if (ruolo === "operatore_sala") {
-
-    const allowed = [
-      "home",
-      "operativo",
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "ricettario",
-      "timbrature"
-    ];
-
-    if (
-      [
-        "venduto",
-        "margini",
-        "produzione",
-        "magazzino",
-        "acquisti",
-        "dipendenti"
-      ].includes(area)
-    ) {
-      return false;
-    }
-
-    return allowed.includes(area);
-  }
-
   const permessi = window.state?.permessi || {};
 
   return permessi[`${area}.read`] === true;
 }
-
 /* =========================================================
    UI HELPERS
 ========================================================= */
