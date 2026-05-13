@@ -20,7 +20,7 @@ export async function renderFooter(){
   let items = []
 
   // 👨‍🍳 OPERATORE
-  if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
+  if(ruolo === "operatore"){
     items = [
       {icon:"⏱", label:"Timbrature", route:"timbrature", key:"timbrature"},
       {icon:"📅", label:"Planning", route:"planning-lavoro"},
@@ -93,16 +93,20 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
   if(!aziendaId) return alerts
 
   const today = new Date().toISOString().slice(0,10)
+  const tomorrowDate = new Date()
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+  const tomorrow = tomorrowDate.toISOString().slice(0,10)
 
   // 👨‍🍳 OPERATORE
-  if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
+  if(ruolo === "operatore"){
 
     const { data } = await supabase
       .from("timbrature")
       .select("id")
       .eq("azienda_id", aziendaId)
       .eq("user_id", window.state.user.id)
-      .eq("data", today)
+      .gte("timestamp", `${today}T00:00:00`)
+      .lt("timestamp", `${tomorrow}T00:00:00`)
 
     if(!data || data.length === 0){
       alerts.timbrature = true
@@ -110,7 +114,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
   }
 
   // 🧑‍💼 MANAGER
-  if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
+  if(ruolo === "manager"){
 
     const { data } = await supabase
       .from("turni_dipendenti")
