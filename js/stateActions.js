@@ -516,24 +516,85 @@ if (!window.state.viewAs) {
       return;
     }
 
-    const { data: urData, error: urError } = await window.supabase
-      .from("utenti_reparti")
-      .select("reparto_id, reparti(id, nome)")
-      .eq("user_id", user.id)
-      .eq("azienda_id", azienda.id)
-      .eq("attivo", true);
+    // =====================================================
+// REPARTI DA utenti_reparti
+// =====================================================
 
-    if (urError) {
-      console.error("Errore utenti_reparti:", urError);
-      window.state.reparti = [];
-      window.state.repartoAttivo = null;
-      return;
-    }
+const { data: urData, error: urError } =
+  await window.supabase
+    .from("utenti_reparti")
+    .select(`
+      reparto_id,
+      reparti (
+        id,
+        nome
+      )
+    `)
+    .eq("user_id", user.id)
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true);
 
-    const reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
-    this.setReparti(reparti);
-  },
+if (!urError && urData?.length > 0) {
 
+  const reparti =
+    urData
+      .map(r => r.reparti)
+      .filter(Boolean);
+
+  this.setReparti(reparti);
+
+  return;
+}
+
+// =====================================================
+// FALLBACK DEFINITIVO:
+// dipendenti.reparto_id
+// =====================================================
+
+const { data: dipendente, error: dipError } =
+  await window.supabase
+    .from("dipendenti")
+    .select(`
+      reparto_id,
+      reparti (
+        id,
+        nome
+      )
+    `)
+    .eq("user_id", user.id)
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .maybeSingle();
+
+if (dipError) {
+
+  console.error(
+    "Errore fallback reparto dipendente:",
+    dipError
+  );
+
+  window.state.reparti = [];
+  window.state.repartoAttivo = null;
+
+  return;
+}
+
+if (!dipendente?.reparti) {
+
+  window.state.reparti = [];
+  window.state.repartoAttivo = null;
+
+  return;
+}
+
+this.setReparti([
+  dipendente.reparti
+]);
+
+console.log(
+  "REPARTI FALLBACK DIPENDENTE:",
+  window.state.reparti
+);
   autoSetAzienda() {
     const aziendeLink = window.state.aziende || [];
     const storedId = localStorage.getItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
