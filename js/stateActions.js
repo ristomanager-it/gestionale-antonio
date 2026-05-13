@@ -460,12 +460,38 @@ return {
       return;
     }
 
-    const ruoloDB = ruoloData?.ruolo || null;
-    const ruoloEffettivo = window.state.viewAs || ruoloDB;
+   const ruoloDB =
+  ruoloData?.ruolo || null;
 
-    if (!window.state.viewAs) {
-      window.state.ruolo = ruoloDB;
-    }
+// =====================================================
+// NORMALIZZAZIONE RUOLI
+// =====================================================
+
+let ruoloNormalizzato =
+  ruoloDB;
+
+if (
+  ruoloDB === "manager_cucina" ||
+  ruoloDB === "manager_sala"
+) {
+  ruoloNormalizzato = "manager";
+}
+
+if (
+  ruoloDB === "operatore_cucina" ||
+  ruoloDB === "operatore_sala"
+) {
+  ruoloNormalizzato = "operatore";
+}
+
+const ruoloEffettivo =
+  window.state.viewAs ||
+  ruoloNormalizzato;
+
+if (!window.state.viewAs) {
+  window.state.ruolo =
+    ruoloNormalizzato;
+}
 
     if (
       window.state.isSuperadmin === true ||
