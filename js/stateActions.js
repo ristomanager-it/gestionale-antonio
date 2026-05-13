@@ -1,3 +1,61 @@
+// js/stateActions.js
+// ======================================================
+// Azioni stato globali + normalizzazione contesto operativo
+// ======================================================
+
+(function () {
+  const ROLE_ALIASES = Object.freeze({
+    manager_cucina: "manager",
+    manager_sala: "manager",
+    operatore_cucina: "operatore",
+    operatore_sala: "operatore",
+  });
+
+  function normalizeRuolo(ruolo) {
+    const raw = String(ruolo || "").toLowerCase().trim();
+    return ROLE_ALIASES[raw] || raw || null;
+  }
+
+  function normalizeRepartoNome(nome) {
+    return String(nome || "").toLowerCase().trim();
+  }
+
+  function getRepartoNomeFromLegacyRole(ruolo) {
+    const raw = String(ruolo || "").toLowerCase().trim();
+    if (raw.endsWith("_cucina")) return "cucina";
+    if (raw.endsWith("_sala")) return "sala";
+    return null;
+  }
+
+  function uniqueByIdOrName(items) {
+    const out = [];
+    const seen = new Set();
+
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      if (!item) return;
+      const key = item.id ? `id:${item.id}` : `nome:${normalizeRepartoNome(item.nome)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+
+    return out;
+  }
+
+  window.normalizeRuolo = normalizeRuolo;
+  window.normalizeRepartoNome = normalizeRepartoNome;
+  window.getRepartoNomeFromLegacyRole = getRepartoNomeFromLegacyRole;
+  window.hasRepartoNome = function (nome) {
+    const target = normalizeRepartoNome(nome);
+    if (!target) return false;
+
+    const ruoloRaw = window.state?.ruoloRaw || window.state?.ruolo;
+    const legacyReparto = getRepartoNomeFromLegacyRole(ruoloRaw);
+    if (legacyReparto === target) return true;
+
+    return (window.state?.reparti || []).some((r) => normalizeRepartoNome(r?.nome) === target);
+  };
+
 window.stateActions = {
   LS_KEYS: {
     ACTIVE_AZIENDA_ID: "active_azienda_id",
@@ -13,8 +71,10 @@ window.stateActions = {
   },
 
    setRuolo(ruolo) {
+    const normalized = normalizeRuolo(ruolo);
     if (!window.state.viewAs) {
-      window.state.ruolo = ruolo;
+      window.state.ruoloRaw = ruolo || null;
+      window.state.ruolo = normalized;
     }
   },
 
@@ -80,7 +140,10 @@ window.stateActions = {
 
     const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
-    if (lista.length === 1) {
+    if (lista.length === 0) {
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    } else if (lista.length === 1) {
       window.state.sedeAttiva = lista[0];
       localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(lista[0].id));
     } else if (storedSedeId) {
@@ -88,15 +151,8 @@ window.stateActions = {
       window.state.sedeAttiva = match || null;
       if (!match) localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
     } else {
-      window.state.sedeAttiva = lista.length > 0 ? lista[0] : null;
-      if (window.state.sedeAttiva?.id) {
-        localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(window.state.sedeAttiva.id));
-      }
-    }
-
-    if (!window.state.sedeAttiva && lista.length > 0) {
-      window.state.sedeAttiva = lista[0];
-      localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(lista[0].id));
+      window.state.sedeAttiva = null;
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
     }
 
     if (window.uiActions?.renderSedeSelector) {
@@ -158,52 +214,86 @@ window.stateActions = {
       return [];
     }
 
-    const { data: utentiSediData, error: utentiSediError } = await window.supabase
-      .from("utenti_sedi")
-      .select("sede_id, is_default")
-      .eq("user_id", user.id)
-      .eq("azienda_id", azienda.id);
+    let sedeIds = [];
+    let defaultMap = {};
 
-    if (utentiSediError) {
-      console.error("Errore caricamento utenti_sedi:", utentiSediError);
-      window.state.sediDipendente = [];
-      return [];
+    try {
+      const { data: utentiSediData, error: utentiSediError } = await window.supabase
+        .from("utenti_sedi")
+        .select("sede_id, is_default")
+        .eq("user_id", user.id)
+        .eq("azienda_id", azienda.id);
+
+      if (!utentiSediError && Array.isArray(utentiSediData)) {
+        sedeIds = [...new Set(utentiSediData.map((row) => row.sede_id).filter(Boolean))];
+        defaultMap = utentiSediData.reduce((acc, row) => {
+          if (row.sede_id) acc[String(row.sede_id)] = row.is_default === true;
+          return acc;
+        }, {});
+      } else if (utentiSediError) {
+        console.warn("utenti_sedi non disponibile, uso fallback dipendenti.sede_id:", utentiSediError);
+      }
+    } catch (e) {
+      console.warn("Fallback sedi dipendente:", e);
     }
 
-    const righeUtentiSedi = utentiSediData || [];
-    const sedeIds = [...new Set(righeUtentiSedi.map((row) => row.sede_id).filter(Boolean))];
+    if (sedeIds.length === 0 && dipendenteId) {
+      try {
+        const { data: dipFallback, error: dipFallbackError } = await window.supabase
+          .from("dipendenti")
+          .select("sede_id")
+          .eq("id", dipendenteId)
+          .eq("azienda_id", azienda.id)
+          .maybeSingle();
+
+        if (!dipFallbackError && dipFallback?.sede_id) {
+          sedeIds = [dipFallback.sede_id];
+          defaultMap[String(dipFallback.sede_id)] = true;
+        }
+      } catch (e) {
+        console.warn("Fallback dipendenti.sede_id fallito:", e);
+      }
+    }
+
+    if (sedeIds.length === 0 && dipendenteId) {
+      try {
+        const { data: dsData, error: dsError } = await window.supabase
+          .from("dipendenti_sedi")
+          .select("sede_id, is_default")
+          .eq("dipendente_id", dipendenteId);
+
+        if (!dsError && Array.isArray(dsData)) {
+          sedeIds = [...new Set(dsData.map((row) => row.sede_id).filter(Boolean))];
+          defaultMap = dsData.reduce((acc, row) => {
+            if (row.sede_id) acc[String(row.sede_id)] = row.is_default === true;
+            return acc;
+          }, defaultMap);
+        }
+      } catch (e) {
+        console.warn("Fallback dipendenti_sedi fallito:", e);
+      }
+    }
 
     if (sedeIds.length === 0) {
       window.state.sediDipendente = [];
       return [];
     }
 
-    const defaultMap = righeUtentiSedi.reduce((acc, row) => {
-      if (row.sede_id) {
-        acc[String(row.sede_id)] = row.is_default === true;
-      }
-      return acc;
-    }, {});
-
     const { data: sediData, error: sediError } = await window.supabase
       .from("sedi")
-      .select("id, nome, indirizzo, latitudine, longitudine")
+      .select("id, nome, indirizzo, latitudine, longitudine, logo_url")
       .eq("azienda_id", azienda.id)
       .in("id", sedeIds)
       .order("nome", { ascending: true });
 
     if (sediError) {
-      console.error("Errore caricamento sedi da utenti_sedi:", sediError);
+      console.error("Errore caricamento sedi assegnate:", sediError);
       window.state.sediDipendente = [];
       return [];
     }
 
     const sedi = (sediData || []).map((sede) => ({
-      id: sede.id,
-      nome: sede.nome,
-      indirizzo: sede.indirizzo,
-      latitudine: sede.latitudine,
-      longitudine: sede.longitudine,
+      ...sede,
       is_default: defaultMap[String(sede.id)] === true,
     }));
 
@@ -369,17 +459,16 @@ window.stateActions = {
     }
 
     const defaultSede = sedi.find((s) => s.is_default === true);
-    const sedeAttiva = defaultSede || sedi[0];
 
-    window.state.sedeAttiva = sedeAttiva;
-    localStorage.setItem(this.LS_KEYS.ACTIVE_SEDE_ID, String(sedeAttiva.id));
+    window.state.sedeAttiva = null;
+    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
     return {
       ok: true,
       tipo: "dipendente_multi_sede",
       dipendente,
       sedi,
-      sedeAttiva,
+      sedeAttiva: null,
       sedeSuggerita: defaultSede || null,
     };
   },
@@ -453,10 +542,12 @@ window.stateActions = {
     }
 
     const ruoloDB = ruoloData?.ruolo || null;
-    const ruoloEffettivo = window.state.viewAs || ruoloDB;
+    const ruoloNormalizzato = normalizeRuolo(ruoloDB);
+    const ruoloEffettivo = window.state.viewAs || ruoloNormalizzato;
 
     if (!window.state.viewAs) {
-      window.state.ruolo = ruoloDB;
+      window.state.ruoloRaw = ruoloDB;
+      window.state.ruolo = ruoloNormalizzato;
     }
 
     if (
@@ -489,15 +580,41 @@ window.stateActions = {
       .eq("azienda_id", azienda.id)
       .eq("attivo", true);
 
+    let reparti = [];
+
     if (urError) {
-      console.error("Errore utenti_reparti:", urError);
-      window.state.reparti = [];
-      window.state.repartoAttivo = null;
-      return;
+      console.warn("utenti_reparti non disponibile, uso fallback dipendenti.reparto_id:", urError);
+    } else {
+      reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
     }
 
-    const reparti = (urData || []).map((r) => r.reparti).filter(Boolean);
-    this.setReparti(reparti);
+    if (reparti.length === 0) {
+      try {
+        const dip = window.state.dipendente || await this.caricaDipendenteCorrente();
+
+        if (dip?.reparto_id) {
+          const { data: repartoFallback, error: repartoFallbackError } = await window.supabase
+            .from("reparti")
+            .select("id, nome")
+            .eq("azienda_id", azienda.id)
+            .eq("id", dip.reparto_id)
+            .maybeSingle();
+
+          if (!repartoFallbackError && repartoFallback) {
+            reparti = [repartoFallback];
+          }
+        }
+      } catch (e) {
+        console.warn("Fallback dipendenti.reparto_id fallito:", e);
+      }
+    }
+
+    const repartoLegacy = getRepartoNomeFromLegacyRole(ruoloDB);
+    if (repartoLegacy && reparti.length === 0) {
+      reparti = [{ id: null, nome: repartoLegacy }];
+    }
+
+    this.setReparti(uniqueByIdOrName(reparti));
   },
 
   autoSetAzienda() {
@@ -548,3 +665,5 @@ window.stateActions = {
     window.state.azienda = null;
   },
 };
+
+})();
