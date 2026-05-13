@@ -488,7 +488,9 @@ window.stateActions = {
     if (
       window.state.isSuperadmin === true ||
       ruolo === "superadmin" ||
-      ruolo === "admin"
+      ruolo === "admin" ||
+      ruolo === "manager" ||
+      ruolo === "operatore"
     ) {
       window.state.permessi = {};
       window.state._allAccess = true;
