@@ -1808,6 +1808,13 @@ lista.querySelectorAll(".tavolo").forEach((el) => {
   }
 
   async function updateOnlineRequestStatus(onlineId, nextStatus) {
+    if (
+  window.hasPermission &&
+  !window.hasPermission("prenotazioni")
+) {
+  alert("Permesso negato");
+  return;
+}
     const safeOnlineId = String(onlineId || "").trim();
 
     if (!safeOnlineId || safeOnlineId === "undefined" || safeOnlineId === "null") {
