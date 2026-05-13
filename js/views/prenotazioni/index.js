@@ -1032,9 +1032,18 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     const from = formatDateInput(firstDay);
     const to = formatDateInput(lastDay);
 
-    let query = window.supabaseClient
+   let query = window.supabaseClient
       .from("prenotazioni_tavoli")
-      .select("*")
+      .select(`
+        id,
+        data,
+        coperti,
+        stato,
+        ora,
+        servizio,
+        sede_id,
+        azienda_id
+      `)
       .gte("data", from)
       .lte("data", to);
 
