@@ -328,7 +328,30 @@ function hasPermission(area) {
   // =====================================================
   // MANAGER
   // =====================================================
+console.log(
+  "ROLE CHECK:",
+  ruolo
+);
 
+console.log(
+  "REPARTI CHECK:",
+  reparti
+);
+
+console.log(
+  "AREA CHECK:",
+  area
+);
+
+console.log(
+  "IS CUCINA:",
+  isCucina
+);
+
+console.log(
+  "IS SALA:",
+  isSala
+);
   if (ruolo === "manager") {
 
     const reparti =
