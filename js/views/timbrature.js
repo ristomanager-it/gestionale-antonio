@@ -1,5 +1,5 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
-import { creaPinModal, verificaPin } from "../componentns/pinModal.js";
+import { creaPinModal, verificaPin } from "../components/pinModal.js";
 
 function escapeHtml(str) {
   return String(str ?? "")
