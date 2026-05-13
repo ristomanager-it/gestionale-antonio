@@ -15,6 +15,13 @@ export async function render(container) {
     .toISOString()
     .slice(0,10);
 
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const tomorrowStr = tomorrow
+    .toISOString()
+    .slice(0,10);
+
   let servizi = [];
   let staff = [];
   let timbrature = [];
@@ -42,7 +49,7 @@ export async function render(container) {
       .select("*")
       .eq("azienda_id", azienda.id)
       .gte("timestamp", `${today}T00:00:00`)
-      .lt("timestamp", `${tomorrow}T00:00:00`);
+      .lt("timestamp", `${tomorrowStr}T00:00:00`);
 
     timbrature = tData || [];
 
