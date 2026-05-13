@@ -261,25 +261,43 @@ async function renderView(routeName) {
 ========================================================= */
 
 function isSuperadmin() {
+
   if (window.state?.isSuperadmin === true) {
     return true;
   }
 
-  const aziende = window.state?.aziende || [];
+  const aziende =
+    window.state?.aziende || [];
 
-  return aziende.some((a) => a.ruolo === "superadmin");
+  return aziende.some(
+    (a) => a.ruolo === "superadmin"
+  );
 }
 
 function hasPermission(area) {
+
+  // =====================================================
+  // HOME SEMPRE ACCESSIBILE
+  // =====================================================
 
   if (area === "home") {
     return true;
   }
 
-  const viewAs = window.state?.viewAs;
-  const ruolo = viewAs || window.state?.ruolo;
+  const viewAs =
+    window.state?.viewAs;
 
-  if (!viewAs && window.state?._allAccess === true) {
+  const ruolo =
+    viewAs || window.state?.ruolo;
+
+  // =====================================================
+  // FULL ACCESS
+  // =====================================================
+
+  if (
+    !viewAs &&
+    window.state?._allAccess === true
+  ) {
     return true;
   }
 
@@ -287,71 +305,101 @@ function hasPermission(area) {
     return true;
   }
 
+  // =====================================================
+  // BACKOFFICE
+  // =====================================================
+
   if (BO_ROUTES.has(area)) {
-    return ruolo === "admin" || ruolo === "superadmin";
+
+    return (
+      ruolo === "admin" ||
+      ruolo === "superadmin"
+    );
   }
+
+  // =====================================================
+  // ADMIN
+  // =====================================================
 
   if (ruolo === "admin") {
     return true;
   }
 
-   if (ruolo === "manager") {
+  // =====================================================
+  // MANAGER
+  // =====================================================
+
+  if (ruolo === "manager") {
 
     const reparti =
       window.state?.reparti || [];
 
     const isCucina = reparti.some(
-  r =>
-    String(r.nome)
-      .toLowerCase()
-      .trim() === "cucina"
-);
+      r =>
+        String(r.nome)
+          .toLowerCase()
+          .trim() === "cucina"
+    );
 
-const isSala = reparti.some(
-  r =>
-    String(r.nome)
-      .toLowerCase()
-      .trim() === "sala"
-);
+    const isSala = reparti.some(
+      r =>
+        String(r.nome)
+          .toLowerCase()
+          .trim() === "sala"
+    );
+
     let allowed = [
+
+      // GENERICI
       "home",
       "operativo",
       "timbrature",
       "permessi",
+
+      // PRENOTAZIONI
       "prenotazioni",
       "prenotazioni-dettaglio",
       "prenotazioni-form"
     ];
 
-    // =====================================================
+    // =================================================
     // MANAGER CUCINA
-    // =====================================================
+    // =================================================
 
     if (isCucina) {
 
       allowed = [
+
         ...allowed,
 
+        // PRODUZIONE
         "produzione",
         "planner-produzione",
-        "ricettario",
-        "creaRicetta",
         "preparazioni",
         "storicoLotto",
+
+        // RICETTE
+        "ricettario",
+        "creaRicetta",
+
+        // MAGAZZINO
         "magazzino",
         "acquisti",
+
+        // STAFF
         "dipendenti",
         "dipendente"
       ];
     }
 
-    // =====================================================
+    // =================================================
     // MANAGER SALA
-    // =====================================================
+    // =================================================
 
     if (isSala) {
 
       allowed = [
+
         ...allowed,
 
         "sala",
@@ -360,14 +408,25 @@ const isSala = reparti.some(
       ];
     }
 
+    // =================================================
+    // AREE BLOCCATE
+    // =================================================
+
     if (
-      ["venduto", "margini"].includes(area)
+      [
+        "venduto",
+        "margini"
+      ].includes(area)
     ) {
       return false;
     }
 
     return allowed.includes(area);
   }
+
+  // =====================================================
+  // OPERATORE
+  // =====================================================
 
   if (ruolo === "operatore") {
 
@@ -376,29 +435,33 @@ const isSala = reparti.some(
 
     const isCucina = reparti.some(
       r =>
-        r.nome === "cucina" ||
-        r.codice === "cucina"
+        String(r.nome)
+          .toLowerCase()
+          .trim() === "cucina"
     );
 
     const isSala = reparti.some(
       r =>
-        r.nome === "sala" ||
-        r.codice === "sala"
+        String(r.nome)
+          .toLowerCase()
+          .trim() === "sala"
     );
 
     let allowed = [
+
       "home",
       "operativo",
       "timbrature"
     ];
 
-    // =====================================================
+    // =================================================
     // OPERATORE CUCINA
-    // =====================================================
+    // =================================================
 
     if (isCucina) {
 
       allowed = [
+
         ...allowed,
 
         "produzione",
@@ -409,24 +472,31 @@ const isSala = reparti.some(
       ];
     }
 
-    // =====================================================
+    // =================================================
     // OPERATORE SALA
-    // =====================================================
+    // =================================================
 
     if (isSala) {
 
       allowed = [
+
         ...allowed,
 
         "sala",
         "comanda",
+
         "prenotazioni",
         "prenotazioni-dettaglio",
         "prenotazioni-form",
         "prenotazioni-tavoli",
+
         "ricettario"
       ];
     }
+
+    // =================================================
+    // AREE BLOCCATE
+    // =================================================
 
     if (
       [
@@ -443,9 +513,16 @@ const isSala = reparti.some(
     return allowed.includes(area);
   }
 
-  const permessi = window.state?.permessi || {};
+  // =====================================================
+  // FALLBACK PERMESSI DB
+  // =====================================================
 
-  return permessi[`${area}.read`] === true;
+  const permessi =
+    window.state?.permessi || {};
+
+  return (
+    permessi[`${area}.read`] === true
+  );
 }
 /* =========================================================
    UI HELPERS
