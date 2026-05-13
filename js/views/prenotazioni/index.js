@@ -1,4 +1,11 @@
 export async function render(container) {
+  if (
+  window.hasPermission &&
+  !window.hasPermission("prenotazioni")
+) {
+  window.location.hash = "#/home";
+  return;
+}
   const aziendaId = window.state?.azienda?.id || null;
   const sedeId = window.state?.sedeAttiva?.id || null;
   const sedeNome = window.state?.sedeAttiva?.nome || "Prenotazioni";
