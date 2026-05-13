@@ -965,10 +965,25 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     let prenotazioni = Array.isArray(data) ? data : [];
 
     if (!prenotazioni.length) {
-      let fallbackQuery = window.supabaseClient
-        .from("prenotazioni_tavoli")
-        .select("*")
-        .order("ora", { ascending: true });
+     let fallbackQuery = window.supabaseClient
+  .from("prenotazioni_tavoli")
+  .select(`
+    id,
+    cliente_nome,
+    cognome,
+    cliente_telefono,
+    data,
+    ora,
+    coperti,
+    stato,
+    note,
+    tavolo_id,
+    contatto_id,
+    canale,
+    source,
+    created_at
+  `)
+  .order("ora", { ascending: true });
 
       if (aziendaId) {
         fallbackQuery = fallbackQuery.eq("azienda_id", aziendaId);
