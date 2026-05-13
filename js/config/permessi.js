@@ -77,15 +77,13 @@ window.PERM = Object.freeze({
 
 
 // ======================================================
-// 🔥 FUNZIONE CENTRALE PERMESSI (FIX)
+// 🔥 FUNZIONE CENTRALE PERMESSI
 // ======================================================
 
 window.hasPermesso = function (permesso) {
 
-  // 🔥 bypass totale per admin / superadmin
   if (window.state?._allAccess === true) return true;
 
-  // sicurezza
   if (!window.state || !window.state.permessi) return false;
 
   return !!window.state.permessi[permesso];
@@ -93,7 +91,7 @@ window.hasPermesso = function (permesso) {
 
 
 // ======================================================
-// Helper globale compatibile con hasPermesso()
+// Helper globale
 // ======================================================
 
 window.can = function (permKey) {
@@ -104,82 +102,141 @@ window.can = function (permKey) {
 // ======================================================
 // Compatibilità route → permessi centralizzati
 // ======================================================
+
 if (!window.hasPermission) {
+
   window.hasPermission = function (route) {
-    if (!route || route === "home") return true;
+
+    if (!route || route === "home") {
+      return true;
+    }
 
     const ruolo = window.normalizeRuolo
-      ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
-      : (window.state?.viewAs || window.state?.ruolo);
+      ? window.normalizeRuolo(
+          window.state?.viewAs ||
+          window.state?.ruolo
+        )
+      : (
+          window.state?.viewAs ||
+          window.state?.ruolo
+        );
 
-    if (!window.state?.viewAs && window.state?._allAccess === true) return true;
-    if (window.state?.isSuperadmin === true || ruolo === "superadmin") return true;
-    if (ruolo === "admin") return true;
+    // ==================================================
+    // SUPERADMIN
+    // ==================================================
 
-    const hasRep = (nome) => {
-      if (typeof window.hasRepartoNome === "function") return window.hasRepartoNome(nome);
-      return (window.state?.reparti || []).some(
-        (r) => String(r?.nome || "").toLowerCase().trim() === String(nome).toLowerCase().trim()
-      );
-    };
+    if (
+      window.state?.isSuperadmin === true ||
+      ruolo === "superadmin"
+    ) {
+      return true;
+    }
 
-    const managerCucina = [
-      "ricettario",
-      "creaRicetta",
-      "planner-produzione",
-      "produzione",
-      "app-produzione",
-      "preparazioni",
-      "magazzino",
-      "acquisti",
-      "dipendenti",
-      "dipendente",
-      "timbrature",
+    // ==================================================
+    // ADMIN
+    // ==================================================
+
+    if (
+      !window.state?.viewAs &&
+      (
+        window.state?._allAccess === true ||
+        ruolo === "admin"
+      )
+    ) {
+      return true;
+    }
+
+    // ==================================================
+    // ROUTE BLOCCATE SOLO A ADMIN/SUPERADMIN
+    // ==================================================
+
+    const gestioneOnly = [
+      "aziende",
+      "azienda",
+      "gestione-azienda",
+      "billing",
+      "abbonamento",
+      "utenti-aziende",
+      "superadmin",
+      "saas",
+      "logs",
+      "audit",
+      "ruoli-globali",
     ];
 
-    const managerSala = [
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "prenotazione-tavolo-form",
-      "timbrature",
-    ];
+    if (
+      ruolo === "manager" &&
+      gestioneOnly.includes(route)
+    ) {
+      return false;
+    }
 
-    const operatoreCucina = [
-      "produzione",
-      "app-produzione",
-      "preparazioni",
-      "ricettario",
-      "magazzino",
-      "timbrature",
-    ];
-
-    const operatoreSala = [
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "prenotazione-tavolo-form",
-      "timbrature",
-    ];
+    // ==================================================
+    // MANAGER = quasi tutto operativo
+    // ==================================================
 
     if (ruolo === "manager") {
-      if (["venduto", "margini"].includes(route)) return false;
-      if (hasRep("cucina") && managerCucina.includes(route)) return true;
-      if (hasRep("sala") && managerSala.includes(route)) return true;
+      return true;
     }
+
+    // ==================================================
+    // OPERATORE
+    // ==================================================
+
+    const operatoreAllowed = [
+
+      // cucina
+      "ricettario",
+      "produzione",
+      "app-produzione",
+      "preparazioni",
+      "magazzino",
+
+      // sala
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "prenotazione-tavolo-form",
+
+      // comuni
+      "home",
+      "timbrature",
+      "profilo",
+      "notifiche",
+
+    ];
+
+    const operatoreDenied = [
+      "dipendenti",
+      "dipendente",
+      "creaRicetta",
+      "acquisti",
+      "fatture",
+      "aziende",
+      "billing",
+      "superadmin",
+      "utenti-aziende",
+    ];
 
     if (ruolo === "operatore") {
-      if (["venduto", "margini", "fatture", "dipendenti", "acquisti", "creaRicetta"].includes(route)) return false;
-      if (hasRep("cucina") && operatoreCucina.includes(route)) return true;
-      if (hasRep("sala") && operatoreSala.includes(route)) return true;
+
+      if (operatoreDenied.includes(route)) {
+        return false;
+      }
+
+      return operatoreAllowed.includes(route);
+
     }
 
+    // ==================================================
+    // FALLBACK PERMESSI DB
+    // ==================================================
+
     return window.hasPermesso(`${route}.read`) === true;
+
   };
+
 }
