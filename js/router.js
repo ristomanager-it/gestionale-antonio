@@ -102,8 +102,9 @@ const routes = {
   "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
- prenotazioni: () => import("./views/prenotazioni/index.js"),
-"prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
+  prenotazioni: () => import("./views/prenotazioni/index.js"),
+  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
+
   campagne: () => import("./views/campagne/index.js"),
   "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
 
@@ -126,6 +127,7 @@ const routes = {
   "bo-produzione": () => import("./views/Bo/bo-produzione.js"),
   "bo-comande": () => import("./views/Bo/bo-comande.js"),
   "bo-ricette": () => import("./views/Bo/ricette-editor.js"),
+  "ricette-editor": () => import("./views/Bo/ricette-editor.js"),
 
 
     // =========================================================
@@ -267,100 +269,35 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-  if (area === "home") return true;
+  if (!area || area === "home") return true;
 
   const ruolo = window.normalizeRuolo
     ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
     : (window.state?.viewAs || window.state?.ruolo);
 
-  const hasRep = (nome) => {
-    if (typeof window.hasRepartoNome === "function") return window.hasRepartoNome(nome);
-    return (window.state?.reparti || []).some((r) => String(r?.nome || "").toLowerCase().trim() === nome);
-  };
+  // ROTTE PIATTAFORMA: per adesso SOLO superadmin.
+  // Nessun admin/manager/operatore deve entrare qui.
+  if (PLATFORM_ROUTES.has(area)) {
+    return isSuperadmin();
+  }
 
-  if (!window.state?.viewAs && window.state?._allAccess === true) return true;
+  // Rotte preliminari sempre consentite dopo login.
+  if (PREHOME_ROUTES.has(area)) return true;
+
+  // Superadmin vede tutto.
   if (isSuperadmin()) return true;
 
-  if (BO_ROUTES.has(area)) {
-    return ruolo === "admin" || ruolo === "superadmin";
-  }
-
-  if (ruolo === "admin") return true;
-
-  const cucinaRoutes = new Set([
-    "home",
-    "operativo",
-    "ricettario",
-    "creaRicetta",
-    "planner-produzione",
-    "produzione",
-    "app-produzione",
-    "preparazioni",
-    "magazzino",
-    "acquisti",
-    "dipendenti",
-    "dipendente",
-    "timbrature",
-  ]);
-
-  const salaRoutes = new Set([
-    "home",
-    "operativo",
-    "sala",
-    "comanda",
-    "prenotazioni",
-    "prenotazioni-dettaglio",
-    "prenotazioni-form",
-    "prenotazioni-tavoli",
-    "prenotazione-tavolo-form",
-    "timbrature",
-  ]);
-
-  if (ruolo === "manager") {
-    if (["venduto", "margini"].includes(area)) return false;
-    if (hasRep("cucina") && cucinaRoutes.has(area)) return true;
-    if (hasRep("sala") && salaRoutes.has(area)) return true;
-    const permessi = window.state?.permessi || {};
-    return permessi[`${area}.read`] === true;
-  }
-
-  if (ruolo === "operatore") {
-    if (["venduto", "margini", "fatture", "dipendenti", "acquisti", "creaRicetta"].includes(area)) return false;
-
-    const operatoreCucina = new Set([
-      "home",
-      "operativo",
-      "produzione",
-      "app-produzione",
-      "preparazioni",
-      "ricettario",
-      "magazzino",
-      "timbrature",
-    ]);
-
-    const operatoreSala = new Set([
-      "home",
-      "operativo",
-      "sala",
-      "comanda",
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-form",
-      "prenotazioni-tavoli",
-      "prenotazione-tavolo-form",
-      "timbrature",
-    ]);
-
-    if (hasRep("cucina") && operatoreCucina.has(area)) return true;
-    if (hasRep("sala") && operatoreSala.has(area)) return true;
-
-    const permessi = window.state?.permessi || {};
-    return permessi[`${area}.read`] === true;
+  // Admin / Manager / Operatore:
+  // accesso completo all'area azienda e all'operativo.
+  // Le rotte piattaforma sono già state bloccate sopra.
+  if (["admin", "manager", "operatore"].includes(ruolo)) {
+    return true;
   }
 
   const permessi = window.state?.permessi || {};
   return permessi[`${area}.read`] === true;
 }
+
 /* =========================================================
    UI HELPERS
 ========================================================= */
