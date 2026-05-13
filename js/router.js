@@ -556,6 +556,28 @@ function hasPermission(area) {
   const isSala =
     hasReparto("sala");
 
+  console.log("ROUTE:", area);
+
+  console.log(
+    "RUOLO:",
+    window.state?.ruolo
+  );
+
+  console.log(
+    "REPARTI:",
+    window.state?.reparti
+  );
+
+  console.log(
+    "IS CUCINA:",
+    isCucina
+  );
+
+  console.log(
+    "IS SALA:",
+    isSala
+  );
+
   /* =====================================================
      MANAGER
   ===================================================== */
