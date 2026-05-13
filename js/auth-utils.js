@@ -8,7 +8,7 @@
 // ============================================================
 export function hasPermesso(perm) {
 
-  const ruolo = window.state?.ruolo
+  const ruolo = window.normalizeRuolo ? window.normalizeRuolo(window.state?.ruolo) : window.state?.ruolo
   const permessi = window.state?.permessi || {}
   const override = window.state?.permessi_override || {}
 
@@ -80,7 +80,7 @@ export function hasPermesso(perm) {
 // ============================================================
 export function hasReparto(repartoId) {
 
-  const ruolo = window.state?.ruolo
+  const ruolo = window.normalizeRuolo ? window.normalizeRuolo(window.state?.ruolo) : window.state?.ruolo
 
   if (
     window.state?.isSuperadmin === true ||
