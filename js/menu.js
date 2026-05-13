@@ -47,7 +47,9 @@ export function initMenu() {
 
   function getRuoloAttivo(){
     const raw = window.state?.viewAs || window.state?.ruolo
-    return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw
+    return window.normalizeRuolo
+      ? window.normalizeRuolo(raw)
+      : raw
   }
 
   function isSuperadmin(){
@@ -62,11 +64,25 @@ export function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
+  function isManager(){
+    return getRuoloAttivo() === "manager"
+  }
+
   function can(route){
-    if(!window.state?.viewAs && window.state?._allAccess) return true
+
+    if(!route) return true
+
+    if(!window.state?.viewAs && window.state?._allAccess){
+      return true
+    }
+
     if(isSuperadmin()) return true
     if(isAdmin()) return true
-    if(window.hasPermission) return window.hasPermission(route)
+
+    if(window.hasPermission){
+      return window.hasPermission(route)
+    }
+
     return true
   }
 
@@ -80,12 +96,40 @@ export function initMenu() {
 
     return [
 
-      ...(isAdmin() ? [{
+      // ==================================================
+      // BACK OFFICE
+      // ==================================================
+
+      ...(
+        isAdmin() || isManager()
+      ) ? [{
         title:"BACK OFFICE",
         items:[
-          {label:"⚙️ Back Office", route:"bo-dashboard"}
+
+          {label:"⚙️ Back Office", route:"bo-dashboard"},
+
+          {label:"🍳 BO Ricette", route:"bo-ricette"},
+
+          {label:"🧾 Editor Ricette", route:"ricette-editor"},
+
+          {label:"📦 BO Magazzino", route:"bo-magazzino"},
+
+          {label:"🛒 BO Acquisti", route:"bo-acquisti"},
+
+          {label:"👨‍🍳 BO Produzione", route:"bo-produzione"},
+
+          {label:"👥 Gestione Personale", route:"dipendenti"},
+
+          {label:"📅 Prenotazioni BO", route:"prenotazioni"},
+
+          {label:"🪑 Gestione Sala", route:"sala"}
+
         ]
-      }] : []),
+      }] : [],
+
+      // ==================================================
+      // PIATTAFORMA
+      // ==================================================
 
       ...(isSuperadmin() ? [{
         title:"PIATTAFORMA",
@@ -97,6 +141,10 @@ export function initMenu() {
         ]
       }] : []),
 
+      // ==================================================
+      // GENERALE
+      // ==================================================
+
       {
         title:"GENERALE",
         items:[
@@ -105,37 +153,74 @@ export function initMenu() {
         ]
       },
 
+      // ==================================================
+      // OPERATIVO
+      // ==================================================
+
       {
         title:"OPERATIVO",
         items:[
+
           {label:"🪑 Sala", route:"sala"},
+
           {label:"📅 Prenotazioni", route:"prenotazioni"},
+
+          {label:"📅 Tavoli", route:"prenotazioni-tavoli"},
+
           {label:"Planning Produzione", route:"planner-produzione"},
+
           {label:"⚙️ Produzione", route:"app-produzione"},
+
+          {label:"Preparazioni", route:"preparazioni"},
+
           {label:"Magazzino", route:"magazzino"},
-          {label:"Ricettario", route:"ricettario"}
+
+          {label:"Ricettario", route:"ricettario"},
+
+          {label:"➕ Crea Ricetta", route:"creaRicetta"}
+
         ]
       },
+
+      // ==================================================
+      // AMMINISTRAZIONE
+      // ==================================================
 
       {
         title:"AMMINISTRAZIONE",
         items:[
+
           {label:"Acquisti", route:"acquisti"},
+
           {label:"Fatture", route:"fatture"},
+
           {label:"Dipendenti", route:"dipendenti"},
+
           {label:"Timbrature", route:"timbrature"},
+
           {label:"Permessi e ferie", route:"permessi"},
+
           {label:"Preventivi", route:"preventivi"}
+
         ]
       },
+
+      // ==================================================
+      // GESTIONE
+      // ==================================================
 
       {
         title:"GESTIONE",
         items:[
           {label:"Venduto", route:"venduto"},
-          {label:"Margini", route:"margini"}
+          {label:"Margini", route:"margini"},
+          {label:"Report", route:"report"}
         ]
       },
+
+      // ==================================================
+      // SEDI
+      // ==================================================
 
       {
         title:"SEDI",
@@ -145,6 +230,10 @@ export function initMenu() {
           {label:"Gestisci sedi", route:"gestione-sedi?mode=manage"}
         ]
       },
+
+      // ==================================================
+      // PERSONALE
+      // ==================================================
 
       {
         title:"PERSONALE",
@@ -164,14 +253,18 @@ export function initMenu() {
     menu.innerHTML = ""
 
     const sede = window.state?.sedeAttiva;
+
     if(sede){
+
       const sedeBox = document.createElement("div")
       sedeBox.className = "menu-sede-attiva"
       sedeBox.innerText = "📍 " + sede.nome
       sedeBox.style.padding = "12px"
       sedeBox.style.fontWeight = "700"
       sedeBox.style.borderBottom = "1px solid #eee"
+
       menu.appendChild(sedeBox)
+
     }
 
     const struttura = getMenu()
@@ -179,6 +272,7 @@ export function initMenu() {
     struttura.forEach(section => {
 
       const items = section.items.filter(i => can(i.route))
+
       if(items.length === 0) return
 
       const sectionBox = document.createElement("div")
@@ -196,48 +290,70 @@ export function initMenu() {
       itemsBox.className = "menu-subitems"
 
       items.forEach(item => {
+
         const row = document.createElement("div")
+
         row.className = "menu-subitem"
         row.innerText = item.label
         row.onclick = () => go(item.route)
+
         itemsBox.appendChild(row)
+
       })
 
       title.onclick = () => {
-        const isOpen = itemsBox.classList.contains("open")
 
-        document.querySelectorAll(".menu-subitems").forEach(el=>{
-          el.classList.remove("open")
-        })
+        const isOpen =
+          itemsBox.classList.contains("open")
 
-        document.querySelectorAll(".menu-arrow").forEach(el=>{
-          el.style.transform = "rotate(0deg)"
-        })
+        document
+          .querySelectorAll(".menu-subitems")
+          .forEach(el=>{
+            el.classList.remove("open")
+          })
+
+        document
+          .querySelectorAll(".menu-arrow")
+          .forEach(el=>{
+            el.style.transform = "rotate(0deg)"
+          })
 
         if(!isOpen){
+
           itemsBox.classList.add("open")
-          title.querySelector(".menu-arrow").style.transform = "rotate(90deg)"
+
+          title
+            .querySelector(".menu-arrow")
+            .style.transform = "rotate(90deg)"
+
         }
+
       }
 
       sectionBox.appendChild(title)
       sectionBox.appendChild(itemsBox)
+
       menu.appendChild(sectionBox)
 
     })
 
     const logout = document.createElement("div")
+
     logout.className = "menu-logout"
     logout.innerText = "Logout"
 
     logout.onclick = () => {
+
       if(window.router?.logout){
         window.router.logout()
       }
+
       closeMenu()
+
     }
 
     menu.appendChild(logout)
+
   }
 
   function openMenu(){
@@ -252,11 +368,13 @@ export function initMenu() {
   }
 
   toggle.onclick = () => {
+
     if(menu.classList.contains("open")){
       closeMenu()
     }else{
       openMenu()
     }
+
   }
 
   overlay.onclick = closeMenu
