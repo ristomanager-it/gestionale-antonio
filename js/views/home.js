@@ -1,4 +1,4 @@
-import { renderFooter, initFooter } from "../componentns/footer.js"
+import { renderFooter, initFooter } from "../components/footer.js"
 
 export async function render(container){
 
