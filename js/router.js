@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
-import { renderFooter, initFooter } from "./components/footer.js";
+import { renderFooter, initFooter } from "./componentns/footer.js";
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
 ========================================================= */
@@ -65,7 +65,7 @@ const routes = {
   // =========================
   // MARKETING (globale - lettura)
   // =========================
-  "bo-marketing": () => import("./views/bo/bo-marketing.js"),
+  "bo-marketing": () => import("./views/Bo/bo-marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -102,7 +102,7 @@ const routes = {
   "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
-  prenotazioni: () => import("./views/prenotazioni/index.js"),
+  prenotazioni: () => import("./views/prenotazioni/index (1).js"),
   "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
 
   campagne: () => import("./views/campagne/index.js"),
@@ -113,20 +113,20 @@ const routes = {
   // =========================
   // BACK OFFICE (COSTRUZIONE)
   // =========================
-  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
-  "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js"),
+  "bo-dashboard": () => import("./views/Bo/bo-dashboard.js"),
+  "bo-tag": () => import("./views/Bo/bo-tag.js"),
+  "bo-template": () => import("./views/Bo/bo-template.js"),
 
   // MENU
-  "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
-  "bo-categorie": () => import("./views/bo/categorie.js"),
-  "bo-prodotti": () => import("./views/bo/prodotti.js"),
+  "bo-menu": () => import("./views/Bo/bo-menu-builder.js"),
+  "bo-categorie": () => import("./views/Bo/categorie.js"),
+  "bo-prodotti": () => import("./views/Bo/prodotti.js"),
 
   // PRODUZIONE
-  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js"),
-  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
+  "bo-magazzino": () => import("./views/Bo/bo-magazzino.js"),
+  "bo-produzione": () => import("./views/Bo/bo-produzione.js"),
+  "bo-comande": () => import("./views/Bo/bo-comande.js"),
+  "bo-ricette": () => import("./views/Bo/ricette-editor.js"),
 
 
     // =========================================================
@@ -160,6 +160,7 @@ const PLATFORM_ROUTES = new Set([
 const PREHOME_ROUTES = new Set([
   "sceltaAzienda",
   "gestione-sedi",
+  "scegli-sede",
   "completaProfilo",
   "completaAzienda",
 ]);
@@ -267,90 +268,97 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-  // Sempre accessibile
   if (area === "home") return true;
 
-  const viewAs = window.state?.viewAs;
-  const ruolo = viewAs || window.state?.ruolo;
+  const ruolo = window.normalizeRuolo
+    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+    : (window.state?.viewAs || window.state?.ruolo);
 
-  // 🔥 FIX CRITICO: _allAccess NON deve valere in simulazione
-  if (!viewAs && window.state?._allAccess === true) return true;
+  const hasRep = (nome) => {
+    if (typeof window.hasRepartoNome === "function") return window.hasRepartoNome(nome);
+    return (window.state?.reparti || []).some((r) => String(r?.nome || "").toLowerCase().trim() === nome);
+  };
 
-  // Superadmin sempre libero
+  if (!window.state?.viewAs && window.state?._allAccess === true) return true;
   if (isSuperadmin()) return true;
 
-  // =========================
-  // BACKOFFICE
-  // =========================
   if (BO_ROUTES.has(area)) {
     return ruolo === "admin" || ruolo === "superadmin";
   }
 
-  // =========================
-  // ADMIN → tutto
-  // =========================
   if (ruolo === "admin") return true;
 
-  // =========================
-  // MANAGER CUCINA
-  // =========================
-  if (ruolo === "manager_cucina") {
-    const allowed = [
-      "home","operativo","produzione","planner-produzione",
-      "ricettario","creaRicetta","preparazioni","storicoLotto",
-      "magazzino","acquisti","dipendenti","dipendente",
-      "timbrature","prenotazioni","prenotazioni-dettaglio","prenotazioni-form"
-    ];
+  const cucinaRoutes = new Set([
+    "home",
+    "operativo",
+    "ricettario",
+    "creaRicetta",
+    "planner-produzione",
+    "produzione",
+    "app-produzione",
+    "preparazioni",
+    "magazzino",
+    "acquisti",
+    "dipendenti",
+    "dipendente",
+    "timbrature",
+  ]);
 
-    if (["venduto","margini"].includes(area)) return false;
-    return allowed.includes(area);
+  const salaRoutes = new Set([
+    "home",
+    "operativo",
+    "sala",
+    "comanda",
+    "prenotazioni",
+    "prenotazioni-dettaglio",
+    "prenotazioni-form",
+    "prenotazioni-tavoli",
+    "prenotazione-tavolo-form",
+    "timbrature",
+  ]);
+
+  if (ruolo === "manager") {
+    if (["venduto", "margini"].includes(area)) return false;
+    if (hasRep("cucina") && cucinaRoutes.has(area)) return true;
+    if (hasRep("sala") && salaRoutes.has(area)) return true;
+    const permessi = window.state?.permessi || {};
+    return permessi[`${area}.read`] === true;
   }
 
-  // =========================
-  // MANAGER SALA
-  // =========================
-  if (ruolo === "manager_sala") {
-    const allowed = [
-      "home","operativo","sala","comanda",
-      "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
-      "prenotazioni-tavoli","ricettario","timbrature",
-      "magazzino","acquisti","produzione","planner-produzione","preparazioni"
-    ];
+  if (ruolo === "operatore") {
+    if (["venduto", "margini", "fatture", "dipendenti", "acquisti", "creaRicetta"].includes(area)) return false;
 
-    if (["venduto","margini"].includes(area)) return false;
-    return allowed.includes(area);
+    const operatoreCucina = new Set([
+      "home",
+      "operativo",
+      "produzione",
+      "app-produzione",
+      "preparazioni",
+      "ricettario",
+      "magazzino",
+      "timbrature",
+    ]);
+
+    const operatoreSala = new Set([
+      "home",
+      "operativo",
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "prenotazione-tavolo-form",
+      "timbrature",
+    ]);
+
+    if (hasRep("cucina") && operatoreCucina.has(area)) return true;
+    if (hasRep("sala") && operatoreSala.has(area)) return true;
+
+    const permessi = window.state?.permessi || {};
+    return permessi[`${area}.read`] === true;
   }
 
-  // =========================
-  // OPERATORE CUCINA
-  // =========================
-  if (ruolo === "operatore_cucina") {
-    const allowed = [
-      "home","operativo","produzione","planner-produzione",
-      "preparazioni","ricettario","magazzino","timbrature"
-    ];
-
-    if (["venduto","margini","acquisti","dipendenti","creaRicetta"].includes(area)) return false;
-    return allowed.includes(area);
-  }
-
-  // =========================
-  // OPERATORE SALA
-  // =========================
-  if (ruolo === "operatore_sala") {
-    const allowed = [
-      "home","operativo","sala","comanda",
-      "prenotazioni","prenotazioni-dettaglio","prenotazioni-form",
-      "prenotazioni-tavoli","ricettario","timbrature"
-    ];
-
-    if (["venduto","margini","produzione","magazzino","acquisti","dipendenti"].includes(area)) return false;
-    return allowed.includes(area);
-  }
-
-  // =========================
-  // FALLBACK DB
-  // =========================
   const permessi = window.state?.permessi || {};
   return permessi[`${area}.read`] === true;
 }
@@ -466,12 +474,13 @@ function applyAziendaContextFromLink(aziendePulite, azienda) {
 
   window.state.isSuperadmin = aziendePulite.some((a) => a.ruolo === "superadmin");
 
-  const ruoloEffettivo = window.state.isSuperadmin
+  const ruoloEffettivoRaw = window.state.isSuperadmin
     ? "superadmin"
     : recordAttivo?.ruolo || "admin";
 
-  window.stateActions.setRuolo(ruoloEffettivo);
-  window.state.ruolo = ruoloEffettivo;
+  window.stateActions.setRuolo(ruoloEffettivoRaw);
+  window.state.ruoloRaw = ruoloEffettivoRaw;
+  window.state.ruolo = window.normalizeRuolo ? window.normalizeRuolo(ruoloEffettivoRaw) : ruoloEffettivoRaw;
   window.state.permessiOverride = recordAttivo?.permessi_override || {};
 }
 
@@ -730,33 +739,6 @@ async function resolve() {
 
   window.stateActions.setUser(session.user);
 
-  try {
-
-    const { data: dip } = await supabase
-      .from("dipendenti")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-
-    if (dip?.id) {
-
-      const { data: link } = await supabase
-        .from("dipendenti_sedi")
-        .select("sede_id, sedi(id, nome, logo_url)")
-        .eq("dipendente_id", dip.id)
-        .eq("is_default", true)
-        .maybeSingle();
-
-      if (link?.sedi) {
-        window.state.sedeAttiva = link.sedi;
-        localStorage.setItem("active_sede_id", link.sedi.id);
-      }
-    }
-
-  } catch (e) {
-    console.warn("Errore load sede dipendente:", e);
-  }
-
   if (
     PUBLIC_ROUTES.has(route) &&
     route !== "activate" &&
@@ -889,8 +871,7 @@ async function resolve() {
   if (
     !PLATFORM_ROUTES.has(route) &&
     !BO_ROUTES.has(route) &&
-    route !== "completaProfilo" &&
-    route !== "completaAzienda" &&
+    (!PREHOME_ROUTES.has(route) || route === "scegli-sede") &&
     route !== "home" &&
     route !== "booking-form-builder"
   ) {
@@ -911,11 +892,13 @@ if (!contesto.ok) {
   }
 
   if (contesto.motivo === "Nessuna sede assegnata") {
-    window.location.hash = "#/gestione-sedi?mode=first";
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+      return;
+    }
+  } else {
     return;
   }
-
-  return;
 }
 
 // 👉 MULTI SEDE → scelta
@@ -926,6 +909,22 @@ if (contesto.tipo === "dipendente_multi_sede") {
   }
 }
   }
+  if (
+    !PLATFORM_ROUTES.has(route) &&
+    !BO_ROUTES.has(route) &&
+    !PREHOME_ROUTES.has(route) &&
+    route !== "home" &&
+    route !== "booking-form-builder" &&
+    Array.isArray(window.state?.sedi) &&
+    window.state.sedi.length > 1 &&
+    !window.state?.sedeAttiva?.id
+  ) {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+    }
+    return;
+  }
+
   if (route === "homePiattaforma") {
     if (!isSuperadmin()) {
       window.location.hash = "#/home";
@@ -937,14 +936,16 @@ if (contesto.tipo === "dipendente_multi_sede") {
 
  if (route === "home") {
 
-const ruolo = window.state?.viewAs || window.state?.ruolo;
+const ruolo = window.normalizeRuolo
+    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+    : (window.state?.viewAs || window.state?.ruolo);
 
-  if (ruolo === "admin") {
+  if (ruolo === "admin" || ruolo === "superadmin") {
     await renderView("home-admin");
     return;
   }
 
-  if (ruolo === "manager_cucina" || ruolo === "manager_sala") {
+  if (ruolo === "manager") {
     await renderView("home-manager");
     return;
   }
@@ -989,6 +990,8 @@ const ruolo = window.state?.viewAs || window.state?.ruolo;
 /* =========================================================
    INIT
 ========================================================= */
+
+window.hasPermission = hasPermission;
 
 window.router = {
   reloadCurrentRoute() {
