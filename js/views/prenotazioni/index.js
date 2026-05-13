@@ -1116,10 +1116,14 @@ if (onlineModal.classList.contains("open")) {
     return value === "confermata" || value === "arrivata";
   }
 
-  function normalizeStatus(stato) {
-    return String(stato || "").trim().toLowerCase();
-  }
+ function normalizeStatus(stato) {
 
+  return String(stato || "")
+    .trim()
+    .toLowerCase()
+    .replace("-", "_");
+
+}
   function buildVisibleDays(centerDateString, before = 28, after = 28) {
     const baseDate = new Date(centerDateString || formatDateInput(today));
     const visible = [];
