@@ -662,11 +662,52 @@ async function normalizeStateRoleAndReparti() {
 }
 
 async function loadSediForCurrentUser(userId) {
-  const aziendaId = window.state?.azienda?.id;
+
+  const aziendaId =
+    window.state?.azienda?.id;
 
   if (!userId || !aziendaId) {
     return [];
   }
+
+  const { data: dip, error } =
+    await supabase
+      .from("dipendenti")
+      .select(`
+        id,
+        sede_id,
+        sedi (
+          id,
+          nome,
+          logo_url,
+          azienda_id
+        )
+      `)
+      .eq("user_id", userId)
+      .eq("azienda_id", aziendaId)
+      .maybeSingle();
+
+  if (error) {
+
+    console.warn(
+      "Errore caricamento sedi:",
+      error
+    );
+
+    return [];
+  }
+
+  if (!dip?.sedi) {
+    return [];
+  }
+
+  return [
+    {
+      ...dip.sedi,
+      is_default: true
+    }
+  ];
+}
 
   const { data: dip, error: dipError } = await supabase
     .from("dipendenti")
