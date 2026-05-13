@@ -30,7 +30,6 @@ let state = {
   sede_id: null,
 
   ricetta: {
-    id: null,
     nome: "",
     tipo: "finita",
     pezzi_base: 0,
@@ -74,16 +73,8 @@ export async function render(app) {
 
   const ricettaId = window.routeParams?.id || null;
 
-  state.azienda_id =
-    window.state?.azienda?.id ||
-    window.state?.aziendaAttiva?.id ||
-    window.state?.azienda_id ||
-    null;
-
-  state.sede_id =
-    window.state?.sede?.id ||
-    window.state?.sedeAttiva?.id ||
-    null;
+ state.azienda_id = window.state?.azienda?.id || null;
+  state.sede_id = window.state?.sede?.id || window.state?.sedeAttiva?.id || null;
 
   app.innerHTML = createPageLayout({
     title: "BO Ricette",
@@ -93,9 +84,11 @@ export async function render(app) {
 
   await loadProdotti();
 
+  // 🔹 render iniziale
   renderAll();
   bindEvents();
 
+  // 🔹 apertura da produzione
   if (ricettaId) {
     try {
       await loadRicettaById(ricettaId);
@@ -112,7 +105,6 @@ function resetState() {
     sede_id: null,
 
     ricetta: {
-      id: null,
       nome: "",
       tipo: "finita",
       pezzi_base: 0,
@@ -183,12 +175,18 @@ async function loadProdotti() {
 
   if (!supabase || !state.azienda_id) return;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("prodotti")
-    .select("id, descrizione, nome, costo_medio, costo_ultimo, um, unita_misura, unita_base")
+    .select("id, descrizione, nome, costo_medio, um, unita_misura")
     .eq("azienda_id", state.azienda_id)
     .eq("attivo", true)
     .order("descrizione", { ascending: true });
+
+  if (state.sede_id) {
+    query = query.eq("sede_id", state.sede_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Errore loadProdotti:", error);
@@ -397,13 +395,8 @@ function onChange(e) {
 
     if (field === "prodotto_id") {
       const prodotto = prodottiMap.get(String(t.value));
-      if (prodotto?.um || prodotto?.unita_misura || prodotto?.unita_base) {
-        state.ingredienti[idx].unita_misura = String(
-          prodotto.um ||
-          prodotto.unita_misura ||
-          prodotto.unita_base ||
-          "kg"
-        ).toLowerCase();
+      if (prodotto?.um || prodotto?.unita_misura) {
+        state.ingredienti[idx].unita_misura = String(prodotto.um || prodotto.unita_misura || "kg").toLowerCase();
       }
     }
 
@@ -460,13 +453,8 @@ function onChange(e) {
 
     if (field === "prodotto_id") {
       const prodotto = prodottiMap.get(String(t.value));
-      if (prodotto?.um || prodotto?.unita_misura || prodotto?.unita_base) {
-        state.coprodotti[idx].unita_misura = String(
-          prodotto.um ||
-          prodotto.unita_misura ||
-          prodotto.unita_base ||
-          "kg"
-        ).toLowerCase();
+      if (prodotto?.um || prodotto?.unita_misura) {
+        state.coprodotti[idx].unita_misura = String(prodotto.um || prodotto.unita_misura || "kg").toLowerCase();
       }
     }
 
@@ -587,7 +575,6 @@ function removeFase(btn) {
 
 function addScenarioConservazione() {
   state.scenari_conservazione.push({
-    id: null,
     scenario_label: "",
     abbattimento: "",
     confezionamento: "",
@@ -623,7 +610,6 @@ function addPassaggio(btn) {
   if (!Array.isArray(scenario.passaggi)) scenario.passaggi = [];
 
   scenario.passaggi.push({
-    id: null,
     posizione: scenario.passaggi.length + 1,
     gruppo_alternativa: null,
     titolo: "",
@@ -710,10 +696,6 @@ function syncPorzioniDaPesoPorzione() {
   state.output.porzioni = Math.floor(state.ricetta.resa_kg / state.output.peso_porzione);
 }
 
-// =========================
-// SAVE
-// =========================
-
 async function salvaRicetta() {
   const resultEl = document.getElementById("ricetta-save-result");
   const supabase = window.supabaseClient;
@@ -724,88 +706,62 @@ async function salvaRicetta() {
     if (!state.ricetta.nome.trim()) throw new Error("Nome ricetta obbligatorio");
     if (!state.ricetta.resa_kg) throw new Error("Resa kg obbligatoria");
 
-    setResult(resultEl, "Salvataggio in corso...", false);
+    // =========================
+    // 1. RICETTA
+    // =========================
 
-    const isUpdate = Boolean(state.ricetta.id);
-
-    const payloadRicetta = {
-      azienda_id: state.azienda_id,
-      sede_id: state.sede_id,
-      nome: state.ricetta.nome,
-      tipo: state.ricetta.tipo,
-      resa_kg: state.ricetta.resa_kg,
-      pezzi_base: state.ricetta.pezzi_base,
-      descrizione: state.ricetta.descrizione,
-      costo_kg: state.costi.costoKg,
-      scheda_completa: true,
-      stato_strutturale: "completa"
-    };
-
-    let ricetta = null;
-    let errRicetta = null;
-
-    if (isUpdate) {
-      const result = await supabase
-        .from("ricette")
-        .update(payloadRicetta)
-        .eq("id", state.ricetta.id)
-        .eq("azienda_id", state.azienda_id)
-        .select()
-        .single();
-
-      ricetta = result.data;
-      errRicetta = result.error;
-    } else {
-      const result = await supabase
-        .from("ricette")
-        .insert(payloadRicetta)
-        .select()
-        .single();
-
-      ricetta = result.data;
-      errRicetta = result.error;
-    }
+    const { data: ricetta, error: errRicetta } = await supabase
+      .from("ricette")
+      .insert({
+        azienda_id: state.azienda_id,
+        sede_id: state.sede_id,
+        nome: state.ricetta.nome,
+        tipo: state.ricetta.tipo,
+        resa_kg: state.ricetta.resa_kg,
+        pezzi_base: state.ricetta.pezzi_base,
+        descrizione: state.ricetta.descrizione,
+        costo_kg: state.costi.costoKg
+      })
+      .select()
+      .single();
 
     if (errRicetta) throw errRicetta;
-    if (!ricetta?.id) throw new Error("Ricetta salvata senza ID");
 
     const ricetta_id = ricetta.id;
-    state.ricetta.id = ricetta_id;
 
-    if (isUpdate) {
-      await deleteRicettaDettagli(supabase, ricetta_id);
-    }
+    // =========================
+    // 2. INGREDIENTI
+    // =========================
 
     if (state.ingredienti.length) {
-      const payload = state.ingredienti
-        .filter((i) => i.prodotto_id)
-        .map((i, idx) => ({
-          azienda_id: state.azienda_id,
-          ricetta_id,
-          prodotto_id: i.prodotto_id,
-          quantita: toNumber(i.quantita),
-          unita_misura: i.unita_misura || "kg",
-          ordine: idx + 1
-        }));
+      const payload = state.ingredienti.map((i, idx) => ({
+        azienda_id: state.azienda_id,
+        ricetta_id,
+        prodotto_id: i.prodotto_id,
+        quantita: i.quantita,
+        unita_misura: i.unita_misura,
+        ordine: idx + 1
+      }));
 
-      if (payload.length) {
-        const { error } = await supabase
-         .from("ricetta_ingredienti")
-          .insert(payload);
+      const { error } = await supabase
+        .from("ricette_ingredienti")
+        .insert(payload);
 
-        if (error) throw error;
-      }
+      if (error) throw error;
     }
+
+    // =========================
+    // 3. FASI
+    // =========================
 
     if (state.fasi.length) {
       const payload = state.fasi.map((f, idx) => ({
         azienda_id: state.azienda_id,
         ricetta_id,
         titolo: f.titolo,
-        descrizione_operativa: f.descrizione_operativa,
-        durata_min: toNumber(f.durata_min),
-        lavoro_umano_min: toNumber(f.lavoro_umano_min),
-        potenza_kw: toNumber(f.potenza_kw),
+        durata_min: f.durata_min,
+        lavoro_umano_min: f.lavoro_umano_min,
+        potenza_kw: f.potenza_kw,
         ordine: idx + 1
       }));
 
@@ -816,21 +772,29 @@ async function salvaRicetta() {
       if (error) throw error;
     }
 
-    await supabase
-      .from("ricette_output")
-      .insert({
-        azienda_id: state.azienda_id,
-        ricetta_id,
-        peso_totale: state.ricetta.resa_kg
-      });
+    // =========================
+    // 4. OUTPUT
+    // =========================
 
-    await supabase
-      .from("ricette_porzione")
-      .insert({
-        azienda_id: state.azienda_id,
-        ricetta_id,
-        peso_porzione: state.output.peso_porzione
-      });
+    await supabase.from("ricette_output").insert({
+      azienda_id: state.azienda_id,
+      ricetta_id,
+      peso_totale: state.ricetta.resa_kg
+    });
+
+    // =========================
+    // 5. PORZIONE
+    // =========================
+
+    await supabase.from("ricette_porzione").insert({
+      azienda_id: state.azienda_id,
+      ricetta_id,
+      peso_porzione: state.output.peso_porzione
+    });
+
+    // =========================
+    // 6. CONSERVAZIONE
+    // =========================
 
     for (const scenario of state.scenari_conservazione) {
       const { data: cons, error } = await supabase
@@ -841,7 +805,7 @@ async function salvaRicetta() {
           scenario_label: scenario.scenario_label,
           abbattimento: scenario.abbattimento,
           confezionamento: scenario.confezionamento,
-          shelf_life_giorni: toNumber(scenario.shelf_life_giorni),
+          shelf_life_giorni: scenario.shelf_life_giorni,
           temperatura: scenario.temperatura,
           trattamento: scenario.trattamento,
           note: scenario.note
@@ -863,7 +827,7 @@ async function salvaRicetta() {
           tipo_passaggio: p.tipo_passaggio,
           attrezzatura: p.attrezzatura,
           temperatura_c: p.temperatura_c,
-          durata_min: toNumber(p.durata_min),
+          durata_min: p.durata_min,
           descrizione_operativa: p.descrizione_operativa
         }));
 
@@ -882,42 +846,6 @@ async function salvaRicetta() {
     setResult(resultEl, "❌ Errore salvataggio: " + err.message, true);
   }
 }
-
-async function deleteRicettaDettagli(supabase, ricettaId) {
-  const { data: scenari } = await supabase
-    .from("ricette_conservazione")
-    .select("id")
-    .eq("ricetta_id", ricettaId);
-
-  const scenarioIds = (scenari || []).map((s) => s.id);
-
-  if (scenarioIds.length) {
-    const { error: errPassaggi } = await supabase
-      .from("ricette_conservazione_passaggi")
-      .delete()
-      .in("ricette_conservazione_id", scenarioIds);
-
-    if (errPassaggi) throw errPassaggi;
-  }
-
-  const deleteTargets = [
-    "ricette_ingredienti",
-    "ricette_preparazione_fasi",
-    "ricette_output",
-    "ricette_porzione",
-    "ricette_conservazione"
-  ];
-
-  for (const table of deleteTargets) {
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq("ricetta_id", ricettaId);
-
-    if (error) throw error;
-  }
-}
-
 // =========================
 // UTILS
 // =========================
@@ -942,6 +870,7 @@ async function loadRicettaById(id) {
   if (!supabase || !id) return;
 
   try {
+    // 🔹 Ricetta base
     const { data: ricetta, error } = await supabase
       .from("ricette")
       .select("*")
@@ -951,7 +880,6 @@ async function loadRicettaById(id) {
     if (error) throw error;
 
     state.ricetta = {
-      id: ricetta.id,
       nome: ricetta.nome || "",
       tipo: ricetta.tipo || "finita",
       pezzi_base: ricetta.pezzi_base || 0,
@@ -959,44 +887,16 @@ async function loadRicettaById(id) {
       descrizione: ricetta.descrizione || ""
     };
 
-    state.output = {
-      porzioni: ricetta.porzioni || 0,
-      peso_porzione: ricetta.peso_porzionatura_g || 0
-    };
-
-    const { data: output } = await supabase
-      .from("ricette_output")
-      .select("*")
-      .eq("ricetta_id", id)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (output?.peso_totale) {
-      state.ricetta.resa_kg = Number(output.peso_totale || state.ricetta.resa_kg || 0);
-    }
-
-    const { data: porzione } = await supabase
-      .from("ricette_porzione")
-      .select("*")
-      .eq("ricetta_id", id)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (porzione?.peso_porzione) {
-      state.output.peso_porzione = Number(porzione.peso_porzione || 0);
-      syncPorzioniDaPesoPorzione();
-    }
-
+    // 🔹 Ingredienti
     const { data: ingredienti } = await supabase
-      .from("ricetta_ingredienti")
+      .from("ricette_ingredienti")
       .select("*")
       .eq("ricetta_id", id)
       .order("ordine");
 
     state.ingredienti = ingredienti || [];
 
+    // 🔹 Fasi
     const { data: fasi } = await supabase
       .from("ricette_preparazione_fasi")
       .select("*")
@@ -1005,27 +905,13 @@ async function loadRicettaById(id) {
 
     state.fasi = fasi || [];
 
+    // 🔹 Conservazione
     const { data: scenari } = await supabase
       .from("ricette_conservazione")
       .select("*")
       .eq("ricetta_id", id);
 
-    const scenariRows = scenari || [];
-
-    const { data: passaggi } = await supabase
-      .from("ricette_conservazione_passaggi")
-      .select("*")
-      .eq("ricetta_id", id)
-      .order("posizione");
-
-    const passaggiRows = passaggi || [];
-
-    state.scenari_conservazione = scenariRows.map((scenario) => ({
-      ...scenario,
-      passaggi: passaggiRows.filter(
-        (p) => String(p.ricette_conservazione_id) === String(scenario.id)
-      )
-    }));
+    state.scenari_conservazione = scenari || [];
 
   } catch (err) {
     console.error("Errore load ricetta:", err);
