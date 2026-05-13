@@ -937,15 +937,17 @@ if (isOperatore) {
       return;
     }
 
-    if (
-      ruoloCorrente === "manager_cucina" ||
-      ruoloCorrente === "manager_sala"
-    ) {
+    if (ruoloCorrente === "manager") {
       await renderView("home-manager");
       return;
     }
 
-    await renderView("home-operatore");
+    if (ruoloCorrente === "operatore") {
+      await renderView("home-operatore");
+      return;
+    }
+
+    await renderView("home");
 
     return;
   }
