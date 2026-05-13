@@ -46,11 +46,15 @@ export function initMenu() {
   }
 
   function getRuoloAttivo(){
-    return window.state?.viewAs || window.state?.ruolo
+    const raw = window.state?.viewAs || window.state?.ruolo
+    return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw
   }
 
   function isSuperadmin(){
-    return !window.state?.viewAs && window.state?.ruolo === "superadmin"
+    return !window.state?.viewAs && (
+      window.state?.isSuperadmin === true ||
+      window.state?.ruolo === "superadmin"
+    )
   }
 
   function isAdmin(){
@@ -58,36 +62,11 @@ export function initMenu() {
     return r === "admin" || r === "superadmin"
   }
 
-  // 🔥 PERMESSI CORRETTI
   function can(route){
-
-    const ruolo = getRuoloAttivo()
-
-    // allAccess (solo fuori da viewAs)
     if(!window.state?.viewAs && window.state?._allAccess) return true
-
     if(isSuperadmin()) return true
-    if(ruolo === "admin") return true
-
-    // MANAGER
-    if(ruolo === "manager_cucina" || ruolo === "manager_sala"){
-      if(["venduto", "margini"].includes(route)) return false
-    }
-
-    // OPERATORE
-    if(ruolo === "operatore_cucina" || ruolo === "operatore_sala"){
-      if([
-        "venduto",
-        "margini",
-        "fatture",
-        "dipendenti"
-      ].includes(route)) return false
-    }
-
-    if(window.hasPermission){
-      return window.hasPermission(route)
-    }
-
+    if(isAdmin()) return true
+    if(window.hasPermission) return window.hasPermission(route)
     return true
   }
 
@@ -167,16 +146,16 @@ export function initMenu() {
         ]
       },
 
-     {
-  title:"PERSONALE",
-  items:[
-    {label:"👤 Il mio profilo", route:"completa-profilo"},
-    {label:"Timbratura", route:"timbrature"},
-    {label:"Programma lavoro", route:"programma"},
-    {label:"Permessi e ferie", route:"permessi"},
-    {label:"Documenti", route:"documenti"}
-  ]
-}
+      {
+        title:"PERSONALE",
+        items:[
+          {label:"Timbratura", route:"timbrature"},
+          {label:"Programma lavoro", route:"programma"},
+          {label:"Permessi e ferie", route:"permessi"},
+          {label:"Documenti", route:"documenti"}
+        ]
+      }
+
     ]
   }
 
