@@ -301,17 +301,18 @@ function hasPermission(area) {
       window.state?.reparti || [];
 
     const isCucina = reparti.some(
-      r =>
-        r.nome === "cucina" ||
-        r.codice === "cucina"
-    );
+  r =>
+    String(r.nome)
+      .toLowerCase()
+      .trim() === "cucina"
+);
 
-    const isSala = reparti.some(
-      r =>
-        r.nome === "sala" ||
-        r.codice === "sala"
-    );
-
+const isSala = reparti.some(
+  r =>
+    String(r.nome)
+      .toLowerCase()
+      .trim() === "sala"
+);
     let allowed = [
       "home",
       "operativo",
