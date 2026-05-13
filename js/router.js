@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
-import { renderFooter, initFooter } from "./componentns/footer.js";
+import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
 ========================================================= */
