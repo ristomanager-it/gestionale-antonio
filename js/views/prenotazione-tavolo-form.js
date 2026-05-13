@@ -1,5 +1,5 @@
-import { trovaOCreaContatto } from "/services/contatti.js";
-import { eseguiAutomazioni } from "/services/automazioni.js";
+import { trovaOCreaContatto } from "../services/contatti.js";
+import { eseguiAutomazioni } from "../services/automazioni.js";
 
 export async function render(container) {
 
