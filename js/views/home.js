@@ -1,4 +1,4 @@
-import { renderFooter, initFooter } from "../components/footer.js"
+import { renderFooter, initFooter } from "../componentns/footer.js"
 
 export async function render(container){
 
@@ -172,6 +172,9 @@ async function loadTony(ruolo){
 
   let insights = []
   const today = new Date().toISOString().slice(0,10)
+  const tomorrowDate = new Date()
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+  const tomorrow = tomorrowDate.toISOString().slice(0,10)
 
   if(ruolo === "operatore"){
 
@@ -180,7 +183,8 @@ async function loadTony(ruolo){
       .select("id")
       .eq("azienda_id", aziendaId)
       .eq("user_id", window.state.user.id)
-      .eq("data", today)
+      .gte("timestamp", `${today}T00:00:00`)
+      .lt("timestamp", `${tomorrow}T00:00:00`)
 
     if(!data || data.length === 0){
 
