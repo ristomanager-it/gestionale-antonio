@@ -6,21 +6,10 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
- const ruolo =
-  window.state?.ruolo;
-
-const isOperatore =
-  ruolo === "operatore";
-
-if (
-  isOperatore &&
-  !window.state?.sedeAttiva
-) {
-  window.location.hash =
-    "#/scegli-sede";
-
-  return;
-}
+  if (!window.state?.sedeAttiva) {
+    window.location.hash = "#/scegli-sede";
+    return;
+  }
 
   const today = new Date()
     .toISOString()
@@ -52,7 +41,8 @@ if (
       .from("timbrature")
       .select("*")
       .eq("azienda_id", azienda.id)
-      .eq("data", today);
+      .gte("timestamp", `${today}T00:00:00`)
+      .lt("timestamp", `${tomorrow}T00:00:00`);
 
     timbrature = tData || [];
 
