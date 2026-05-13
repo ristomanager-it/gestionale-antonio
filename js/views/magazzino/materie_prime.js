@@ -145,17 +145,22 @@ if (data) {
   giacenza = data.giacenza_attuale || 0;
 }
 
-    const { data: movimenti, error: movimentiError } = await window.supabaseClient
+    let movimenti = [];
+
+    const movimentiResult = await window.supabaseClient
       .from("magazzino_movimenti")
-      .select("tipo_movimento, quantita, data_movimento")
+      .select("tipo_movimento, quantita, created_at")
       .eq("azienda_id", azienda.id)
       .eq("sede_id", sedeId)
       .eq("prodotto_id", prodottoId)
-      .order("data_movimento", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(5);
 
-    if (movimentiError) {
-      console.error(movimentiError);
+    if (movimentiResult.error) {
+      console.error(movimentiResult.error);
+      movimenti = [];
+    } else {
+      movimenti = movimentiResult.data || [];
     }
 
     const { data: mapping, error: mappingError } = await window.supabaseClient
@@ -207,7 +212,7 @@ if (data) {
             ? movimenti.map((m) => `
               <div class="rf-mov-item">
                 <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-                <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
+                <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
               </div>
             `).join("")
             : `<div class="rf-empty-state">Nessun movimento</div>`
