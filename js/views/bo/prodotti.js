@@ -1,5 +1,5 @@
 const supabase = window.supabase || window.supabaseClient
-import { openImportProdottiCSVModal } from "../../components/importProdottiCSVModal.js";
+import { openImportProdottiCSVModal } from "../../componentns/importProdottiCSVModal.js";
 
 export async function render(container) {
   const azienda_id = window.state?.azienda?.id
@@ -8,15 +8,8 @@ export async function render(container) {
 
   const STORAGE_BUCKET = "loghi-aziende"
 
-   // controllo accesso
-  const ruoliAbilitati = [
-    "admin",
-    "superadmin",
-    "manager_cucina",
-    "manager_sala"
-  ]
-
-  if (!ruoliAbilitati.includes(ruolo)) {
+  // controllo accesso
+  if (ruolo !== "admin" && ruolo !== "superadmin") {
     container.innerHTML = `<section class="view">Accesso negato</section>`
     return
   }
@@ -33,6 +26,16 @@ export async function render(container) {
     return
   }
 
+  if (!supabase || typeof supabase.from !== "function") {
+    container.innerHTML = `<section class="view">Supabase non inizializzato</section>`
+    return
+  }
+
+  if (!azienda_id) {
+    container.innerHTML = `<section class="view">Azienda non selezionata</section>`
+    return
+  }
+
   let prodotti = []
   let prodottiFiltrati = []
   let categorie = []
@@ -41,6 +44,7 @@ export async function render(container) {
   let tagsSelezionati = []
   let prodottoAttivo = null
   let searchDebounce = null
+
   container.innerHTML = `
   <section class="view" style="display:flex; gap:16px; padding:16px;">
 
