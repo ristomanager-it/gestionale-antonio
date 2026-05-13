@@ -1,11 +1,4 @@
 export async function render(container) {
-  if (
-  window.hasPermission &&
-  !window.hasPermission("prenotazioni")
-) {
-  window.location.hash = "#/home";
-  return;
-}
   const aziendaId = window.state?.azienda?.id || null;
   const sedeId = window.state?.sedeAttiva?.id || null;
   const sedeNome = window.state?.sedeAttiva?.nome || "Prenotazioni";
@@ -666,7 +659,7 @@ export async function render(container) {
       position:fixed;
       left:50%;
       transform:translateX(-50%);
-      bottom:0;
+      bottom:72px;
       width:min(100%, 560px);
       background:#ffffff;
       border-top:1px solid #e5e7eb;
@@ -920,24 +913,10 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
 
     await loadDayStats();
 
-  let query = window.supabaseClient
-  .from("prenotazioni_tavoli")
-  .select(`
-    id,
-    cliente_nome,
-    cognome,
-    cliente_telefono,
-    data,
-    ora,
-    coperti,
-    stato,
-    note,
-    tavolo_id,
-    contatto_id,
-    canale,
-    source,
-    created_at
-  `);
+    let query = window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("*");
+
     if (aziendaId) {
       query = query.eq("azienda_id", aziendaId);
     }
@@ -965,25 +944,10 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     let prenotazioni = Array.isArray(data) ? data : [];
 
     if (!prenotazioni.length) {
-     let fallbackQuery = window.supabaseClient
-  .from("prenotazioni_tavoli")
-  .select(`
-    id,
-    cliente_nome,
-    cognome,
-    cliente_telefono,
-    data,
-    ora,
-    coperti,
-    stato,
-    note,
-    tavolo_id,
-    contatto_id,
-    canale,
-    source,
-    created_at
-  `)
-  .order("ora", { ascending: true });
+      let fallbackQuery = window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .select("*")
+        .order("ora", { ascending: true });
 
       if (aziendaId) {
         fallbackQuery = fallbackQuery.eq("azienda_id", aziendaId);
@@ -1032,7 +996,7 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     const from = formatDateInput(firstDay);
     const to = formatDateInput(lastDay);
 
-   let query = window.supabaseClient
+    let query = window.supabaseClient
       .from("prenotazioni_tavoli")
       .select(`
         id,
@@ -1040,7 +1004,6 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
         coperti,
         stato,
         ora,
-        servizio,
         sede_id,
         azienda_id
       `)
@@ -1161,14 +1124,10 @@ if (onlineModal.classList.contains("open")) {
     return value === "confermata" || value === "arrivata";
   }
 
- function normalizeStatus(stato) {
+  function normalizeStatus(stato) {
+    return String(stato || "").trim().toLowerCase();
+  }
 
-  return String(stato || "")
-    .trim()
-    .toLowerCase()
-    .replace("-", "_");
-
-}
   function buildVisibleDays(centerDateString, before = 28, after = 28) {
     const baseDate = new Date(centerDateString || formatDateInput(today));
     const visible = [];
@@ -1315,7 +1274,6 @@ if (onlineModal.classList.contains("open")) {
           </div>
 
           <div class="pren-right">
-          <span class="pren-ico tavolo" data-id="${escapeAttribute(p.id)}">🪑</span>
             ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
 
             ${telefono
@@ -1383,21 +1341,7 @@ if (onlineModal.classList.contains("open")) {
         alert(el.dataset.note || "Nessuna nota");
       };
     });
-lista.querySelectorAll(".tavolo").forEach((el) => {
 
-  el.onclick = async (event) => {
-
-    event.stopPropagation();
-
-    const id = el.dataset.id;
-
-    if (!id) return;
-
-    await openTavoli(id);
-
-  };
-
-});
     lista.querySelectorAll(".whatsapp").forEach((el) => {
       el.onclick = (event) => {
         event.stopPropagation();
@@ -1817,13 +1761,6 @@ lista.querySelectorAll(".tavolo").forEach((el) => {
   }
 
   async function updateOnlineRequestStatus(onlineId, nextStatus) {
-    if (
-  window.hasPermission &&
-  !window.hasPermission("prenotazioni")
-) {
-  alert("Permesso negato");
-  return;
-}
     const safeOnlineId = String(onlineId || "").trim();
 
     if (!safeOnlineId || safeOnlineId === "undefined" || safeOnlineId === "null") {
