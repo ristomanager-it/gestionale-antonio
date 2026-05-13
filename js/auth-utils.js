@@ -1,109 +1,97 @@
 // js/auth-utils.js
 // ============================================================
-// AUTH UTILS – Enterprise Permission Layer (DB READY)
+// AUTH UTILS – Enterprise Permission Layer
 // ============================================================
 
-// ============================================================
-// 🔐 Verifica singolo permesso
-// ============================================================
-export function hasPermesso(perm) {
+const PLATFORM_ONLY_PERMS = new Set([
+  "aziende.read",
+  "aziende.create",
+  "aziende.update",
+  "aziende.delete",
+  "billing.read",
+  "billing.create",
+  "billing.update",
+  "billing.delete",
+  "saas.read",
+  "saas.create",
+  "saas.update",
+  "saas.delete",
+  "superadmin.read",
+  "superadmin.create",
+  "superadmin.update",
+  "superadmin.delete",
+  "logs.read",
+  "audit.read"
+]);
 
-  const ruolo = window.normalizeRuolo ? window.normalizeRuolo(window.state?.ruolo) : window.state?.ruolo
-  const permessi = window.state?.permessi || {}
-  const override = window.state?.permessi_override || {}
-
-  // 🔥 SUPERADMIN = ACCESSO TOTALE (piattaforma + tutte aziende)
-  if (window.state?.isSuperadmin === true || ruolo === "superadmin") {
-    return true
-  }
-
-  // 🔥 ADMIN = tutto nella propria azienda
-  if (ruolo === "admin") {
-    return true
-  }
-
-  // ============================================================
-  // 🔥 OVERRIDE PRIORITARIO
-  // ============================================================
-  if (override.hasOwnProperty(perm)) {
-    return override[perm] === true
-  }
-
-  // ============================================================
-  // 🔥 PERMESSI DA DB (JSONB)
-  // ============================================================
-  if (permessi && typeof permessi === "object") {
-    if (permessi[perm] === true) return true
-  }
-
-  // ============================================================
-  // 🔥 FALLBACK RUOLO (BASE MINIMA)
-  // ============================================================
-  if (ruolo === "manager") {
-    const base = {
-      "acquisti.read": true,
-      "acquisti.create": true,
-      "fatture.create": true,
-      "price_alert.read": true,
-      "dipendenti.read": true,
-      "produzione.read": true,
-      "ricette.read": true
-    }
-    return base[perm] === true
-  }
-
-  if (ruolo === "segreteria") {
-    const base = {
-      "fatture.read": true,
-      "fatture.validate": true,
-      "pagamenti.read": true,
-      "acquisti.read": true
-    }
-    return base[perm] === true
-  }
-
-  if (ruolo === "operatore") {
-    const base = {
-      "produzione.read": true,
-      "ricette.read": true,
-      "timbrature.create": true
-    }
-    return base[perm] === true
-  }
-
-  return false
+function getRuolo() {
+  const raw = window.state?.viewAs || window.state?.ruolo;
+  return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw;
 }
 
+function isSuperadmin() {
+  return window.state?.isSuperadmin === true || getRuolo() === "superadmin";
+}
 
 // ============================================================
-// 🏢 Verifica accesso reparto
+// Verifica singolo permesso
 // ============================================================
+
+export function hasPermesso(perm) {
+  const ruolo = getRuolo();
+  const permessi = window.state?.permessi || {};
+  const override = window.state?.permessi_override || {};
+
+  if (isSuperadmin()) return true;
+
+  // I permessi piattaforma restano sempre esclusivi del superadmin.
+  if (PLATFORM_ONLY_PERMS.has(perm)) return false;
+
+  // Admin, manager e operatore hanno accesso completo all'area azienda.
+  if (["admin", "manager", "operatore"].includes(ruolo)) {
+    return true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(override, perm)) {
+    return override[perm] === true;
+  }
+
+  if (permessi && typeof permessi === "object") {
+    if (permessi[perm] === true) return true;
+  }
+
+  return false;
+}
+
+// ============================================================
+// Verifica accesso reparto
+// ============================================================
+
 export function hasReparto(repartoId) {
-
-  const ruolo = window.normalizeRuolo ? window.normalizeRuolo(window.state?.ruolo) : window.state?.ruolo
+  const ruolo = getRuolo();
 
   if (
-    window.state?.isSuperadmin === true ||
-    ruolo === "superadmin" ||
-    ruolo === "admin"
+    isSuperadmin() ||
+    ruolo === "admin" ||
+    ruolo === "manager" ||
+    ruolo === "operatore"
   ) {
-    return true
+    return true;
   }
 
   if (!window.state?.reparti || !Array.isArray(window.state.reparti)) {
-    return false
+    return false;
   }
 
-  return window.state.reparti.some(r => r.id === repartoId)
+  return window.state.reparti.some(r => r.id === repartoId);
 }
 
+// ============================================================
+// Render standard access denied
+// ============================================================
 
-// ============================================================
-// 🚫 Render standard access denied
-// ============================================================
 export function renderAccessDenied(container, message = "Accesso negato") {
-
-  if (!container) return
+  if (!container) return;
 
   container.innerHTML = `
     <section class="view">
@@ -112,25 +100,24 @@ export function renderAccessDenied(container, message = "Accesso negato") {
         Non disponi dei permessi necessari per questa operazione.
       </p>
     </section>
-  `
+  `;
 }
 
+// ============================================================
+// Controllo completo CRUD
+// ============================================================
 
-// ============================================================
-// 🛡️ Controllo completo CRUD
-// ============================================================
 export function requirePermessi({
   container = null,
   resource,
   action
 }) {
-
-  const perm = `${resource}.${action}`
+  const perm = `${resource}.${action}`;
 
   if (!hasPermesso(perm)) {
-    if (container) renderAccessDenied(container)
-    return false
+    if (container) renderAccessDenied(container);
+    return false;
   }
 
-  return true
+  return true;
 }
