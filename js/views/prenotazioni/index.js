@@ -1306,6 +1306,7 @@ if (onlineModal.classList.contains("open")) {
           </div>
 
           <div class="pren-right">
+          <span class="pren-ico tavolo" data-id="${escapeAttribute(p.id)}">🪑</span>
             ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
 
             ${telefono
