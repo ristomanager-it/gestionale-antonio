@@ -920,10 +920,24 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
 
     await loadDayStats();
 
-    let query = window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .select("*");
-
+  let query = window.supabaseClient
+  .from("prenotazioni_tavoli")
+  .select(`
+    id,
+    cliente_nome,
+    cognome,
+    cliente_telefono,
+    data,
+    ora,
+    coperti,
+    stato,
+    note,
+    tavolo_id,
+    contatto_id,
+    canale,
+    source,
+    created_at
+  `);
     if (aziendaId) {
       query = query.eq("azienda_id", aziendaId);
     }
