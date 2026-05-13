@@ -807,53 +807,60 @@ async function resolve() {
     window.state?.viewAs ||
     window.state?.ruolo;
 
-  /* =========================================================
-     FIX CRITICO:
-     bootstrap sede SOLO operatori
-  ========================================================= */
+ /* =========================================================
+   FIX CRITICO:
+   bootstrap sede SOLO operatori
+========================================================= */
 
-  const isOperatore = [
-    "operatore_cucina",
-    "operatore_sala"
-  ].includes(ruoloCorrente);
+const isOperatore =
+  ruoloCorrente === "operatore";
 
-  if (isOperatore) {
+if (isOperatore) {
 
-    try {
+  try {
 
-      const { data: dip } = await supabase
-        .from("dipendenti")
-        .select("id")
-        .eq("user_id", session.user.id)
+    const { data: dip } = await supabase
+      .from("dipendenti")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (dip?.id) {
+
+      const { data: link } = await supabase
+        .from("dipendenti_sedi")
+        .select(`
+          sede_id,
+          sedi(
+            id,
+            nome,
+            logo_url
+          )
+        `)
+        .eq("dipendente_id", dip.id)
+        .eq("is_default", true)
         .maybeSingle();
 
-      if (dip?.id) {
+      if (link?.sedi) {
 
-        const { data: link } = await supabase
-          .from("dipendenti_sedi")
-          .select("sede_id, sedi(id, nome, logo_url)")
-          .eq("dipendente_id", dip.id)
-          .eq("is_default", true)
-          .maybeSingle();
+        window.state.sedeAttiva =
+          link.sedi;
 
-        if (link?.sedi) {
-
-          window.state.sedeAttiva = link.sedi;
-
-          localStorage.setItem(
-            "active_sede_id",
-            link.sedi.id
-          );
-        }
+        localStorage.setItem(
+          "active_sede_id",
+          String(link.sedi.id)
+        );
       }
-
-    } catch (e) {
-      console.warn(
-        "Errore load sede dipendente:",
-        e
-      );
     }
+
+  } catch (e) {
+
+    console.warn(
+      "Errore load sede dipendente:",
+      e
+    );
   }
+}
 
   /* =========================================================
      CONTESTO OPERATIVO SOLO OPERATORI
