@@ -99,3 +99,87 @@ window.hasPermesso = function (permesso) {
 window.can = function (permKey) {
   return window.hasPermesso(permKey) === true;
 };
+
+
+// ======================================================
+// Compatibilità route → permessi centralizzati
+// ======================================================
+if (!window.hasPermission) {
+  window.hasPermission = function (route) {
+    if (!route || route === "home") return true;
+
+    const ruolo = window.normalizeRuolo
+      ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+      : (window.state?.viewAs || window.state?.ruolo);
+
+    if (!window.state?.viewAs && window.state?._allAccess === true) return true;
+    if (window.state?.isSuperadmin === true || ruolo === "superadmin") return true;
+    if (ruolo === "admin") return true;
+
+    const hasRep = (nome) => {
+      if (typeof window.hasRepartoNome === "function") return window.hasRepartoNome(nome);
+      return (window.state?.reparti || []).some(
+        (r) => String(r?.nome || "").toLowerCase().trim() === String(nome).toLowerCase().trim()
+      );
+    };
+
+    const managerCucina = [
+      "ricettario",
+      "creaRicetta",
+      "planner-produzione",
+      "produzione",
+      "app-produzione",
+      "preparazioni",
+      "magazzino",
+      "acquisti",
+      "dipendenti",
+      "dipendente",
+      "timbrature",
+    ];
+
+    const managerSala = [
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "prenotazione-tavolo-form",
+      "timbrature",
+    ];
+
+    const operatoreCucina = [
+      "produzione",
+      "app-produzione",
+      "preparazioni",
+      "ricettario",
+      "magazzino",
+      "timbrature",
+    ];
+
+    const operatoreSala = [
+      "sala",
+      "comanda",
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-form",
+      "prenotazioni-tavoli",
+      "prenotazione-tavolo-form",
+      "timbrature",
+    ];
+
+    if (ruolo === "manager") {
+      if (["venduto", "margini"].includes(route)) return false;
+      if (hasRep("cucina") && managerCucina.includes(route)) return true;
+      if (hasRep("sala") && managerSala.includes(route)) return true;
+    }
+
+    if (ruolo === "operatore") {
+      if (["venduto", "margini", "fatture", "dipendenti", "acquisti", "creaRicetta"].includes(route)) return false;
+      if (hasRep("cucina") && operatoreCucina.includes(route)) return true;
+      if (hasRep("sala") && operatoreSala.includes(route)) return true;
+    }
+
+    return window.hasPermesso(`${route}.read`) === true;
+  };
+}
