@@ -15,6 +15,13 @@ export async function render(container) {
     .toISOString()
     .slice(0,10);
 
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const tomorrowStr = tomorrow
+    .toISOString()
+    .slice(0,10);
+
   let servizi = [];
   let staff = [];
   let timbrature = [];
@@ -42,7 +49,7 @@ export async function render(container) {
       .select("*")
       .eq("azienda_id", azienda.id)
       .gte("timestamp", `${today}T00:00:00`)
-      .lt("timestamp", `${tomorrow}T00:00:00`);
+      .lt("timestamp", `${tomorrowStr}T00:00:00`);
 
     timbrature = tData || [];
 
@@ -545,23 +552,6 @@ async function hydrateWeather(){
 
   if(!box) return;
 
-  try {
-
-    const res = await fetch(
-      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
-    );
-
-    const data = await res.json();
-
-    box.innerHTML =
-      "🌤 " +
-      Math.round(data.current.temperature_2m) +
-      "°";
-
-  } catch {
-
-    box.innerHTML = "☁️";
-
-  }
+  box.innerHTML = "☁️";
 
 }
