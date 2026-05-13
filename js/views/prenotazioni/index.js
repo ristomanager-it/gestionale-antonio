@@ -1374,7 +1374,21 @@ if (onlineModal.classList.contains("open")) {
         alert(el.dataset.note || "Nessuna nota");
       };
     });
+lista.querySelectorAll(".tavolo").forEach((el) => {
 
+  el.onclick = async (event) => {
+
+    event.stopPropagation();
+
+    const id = el.dataset.id;
+
+    if (!id) return;
+
+    await openTavoli(id);
+
+  };
+
+});
     lista.querySelectorAll(".whatsapp").forEach((el) => {
       el.onclick = (event) => {
         event.stopPropagation();
