@@ -98,7 +98,7 @@ const routes = {
   sala: () => import("./views/sala.js"),
 
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
-  "prenotazione-tavolo-form": () => import("./views/prenotazione-tavolo-form.js"),
+  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
