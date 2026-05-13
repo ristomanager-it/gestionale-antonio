@@ -6,10 +6,21 @@ export async function render(container) {
   const azienda = window.state?.azienda;
   const user = window.state?.user;
 
-  if (!window.state?.sedeAttiva) {
-    window.location.hash = "#/scegli-sede";
-    return;
-  }
+ const ruolo =
+  window.state?.ruolo;
+
+const isOperatore =
+  ruolo === "operatore";
+
+if (
+  isOperatore &&
+  !window.state?.sedeAttiva
+) {
+  window.location.hash =
+    "#/scegli-sede";
+
+  return;
+}
 
   const today = new Date()
     .toISOString()
