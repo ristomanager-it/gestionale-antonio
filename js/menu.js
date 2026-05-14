@@ -79,7 +79,21 @@ export function initMenu() {
     closeMenu();
   }
 
-  function getMenu() {
+  
+    const profilo = `
+      <div class="user-mini-profile" style="padding:16px;border-top:1px solid #e5e7eb;margin-top:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="${window.state?.userProfile?.foto_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((window.state?.userProfile?.nome || 'Utente') + ' ' + (window.state?.userProfile?.cognome || ''))}" 
+          style="width:52px;height:52px;border-radius:50%;object-fit:cover;background:#f3f4f6;">
+          <div>
+            <div style="font-weight:700;">${window.state?.userProfile?.nome || ''} ${window.state?.userProfile?.cognome || ''}</div>
+            <div style="font-size:12px;color:#64748b;">${getRuoloAttivo() || ''}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+function getMenu() {
 
     const sections = [];
 
