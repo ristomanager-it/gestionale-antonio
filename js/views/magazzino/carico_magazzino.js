@@ -206,7 +206,7 @@ export async function apriCaricoModal({ aziendaId }) {
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base, scorta_minima")
+      .select("id, codice_interno, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto")
       .eq("azienda_id", aziendaId)
       .or(`descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`)
       .limit(10);
@@ -315,6 +315,7 @@ export async function apriCaricoModal({ aziendaId }) {
       const um = document.getElementById("new-um")?.value || null;
       const scortaNew = document.getElementById("new-scorta")?.value || null;
       const fornitore = document.getElementById("new-fornitore")?.value || null;
+      const fornitoreId = await resolveFornitoreId(aziendaId, fornitore);
 
       if (!descrizione) {
         alert("Inserisci descrizione prodotto");
@@ -327,7 +328,7 @@ export async function apriCaricoModal({ aziendaId }) {
         descrizione,
         unita_base: um,
         scorta_minima: scortaNew,
-        fornitore_preferito: fornitore
+        fornitore_preferito_id: fornitoreId
       });
 
       if (insertResult.error) {
@@ -393,7 +394,7 @@ export async function apriCaricoModal({ aziendaId }) {
     const movimentoPayload = {
       azienda_id: aziendaId,
       sede_id: sedeId,
-      prodotto_id: Number(finalProdottoId),
+      prodotto_id: finalProdottoId,
       tipo_movimento: "carico",
       quantita: q,
       costo: 0,
@@ -472,6 +473,27 @@ export async function apriCaricoModal({ aziendaId }) {
     }
 
     return lastResult || { error: new Error("Inserimento movimento non riuscito") };
+  }
+
+
+  async function resolveFornitoreId(aziendaId, nomeFornitore) {
+    const nome = String(nomeFornitore || "").trim();
+    if (!nome) return null;
+
+    const { data, error } = await window.supabaseClient
+      .from("fornitori")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .ilike("ragione_sociale", nome)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("Fornitore preferito non risolto:", error);
+      return null;
+    }
+
+    return data?.id || null;
   }
 
   async function insertProdottoCompat(payload) {
@@ -651,59 +673,92 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
     return null;
   }
 
-  const { data: prodottoRows, error: prodottoError } = await window.supabaseClient
-    .from("v_magazzino_giacenze")
-    .select("*")
+  const { data: prodotto, error: prodottoError } = await window.supabaseClient
+    .from("prodotti")
+    .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto, attivo")
     .eq("azienda_id", aziendaId)
-    .eq("sede_id", sedeId)
-    .eq("prodotto_id", prodottoId);
+    .eq("id", prodottoId)
+    .maybeSingle();
 
-  if (prodottoError) {
+  if (prodottoError || !prodotto) {
     console.error(prodottoError);
     return null;
   }
 
-  if (!prodottoRows || !prodottoRows.length) {
-    return null;
-  }
+  const prodottoNormalizzato = normalizeProdotto(prodotto);
 
-  const prodotto = collapseGiacenzeRows(prodottoRows);
-
-  const { data: movimenti } = await window.supabaseClient
+  const { data: movimenti, error: movimentiError } = await window.supabaseClient
     .from("magazzino_movimenti")
-    .select("tipo_movimento, quantita, created_at")
+    .select("tipo_movimento, quantita, created_at, causale")
     .eq("azienda_id", aziendaId)
     .eq("sede_id", sedeId)
     .eq("prodotto_id", prodottoId)
-    .order("created_at", { ascending: false })
-    .limit(5);
+    .order("created_at", { ascending: false });
 
-  const { data: mapping } = await window.supabaseClient
-    .from("prodotti_fornitore")
-    .select("fornitori:fornitore_id (ragione_sociale)")
-    .eq("prodotto_id", prodottoId)
-    .limit(1)
-    .maybeSingle();
+  if (movimentiError) {
+    console.error(movimentiError);
+  }
+
+  const storico = movimenti || [];
+  const giacenzaDaMovimenti = storico.reduce((sum, movimento) => {
+    const q = Number(movimento?.quantita || 0);
+    const tipo = String(movimento?.tipo_movimento || "").toLowerCase();
+
+    if (["scarico", "consumo", "rettifica_negativa", "uscita"].includes(tipo)) {
+      return sum - q;
+    }
+
+    return sum + q;
+  }, 0);
+
+  let fornitore = "—";
+
+  if (prodottoNormalizzato.fornitore_preferito_id) {
+    const { data: fornitorePreferito } = await window.supabaseClient
+      .from("fornitori")
+      .select("ragione_sociale, nome")
+      .eq("id", prodottoNormalizzato.fornitore_preferito_id)
+      .maybeSingle();
+
+    fornitore = fornitorePreferito?.ragione_sociale || fornitorePreferito?.nome || "—";
+  }
+
+  if (fornitore === "—") {
+    const { data: mapping } = await window.supabaseClient
+      .from("prodotti_fornitore")
+      .select("fornitori:fornitore_id (ragione_sociale, nome)")
+      .eq("prodotto_id", prodottoId)
+      .limit(1)
+      .maybeSingle();
+
+    fornitore =
+      mapping?.fornitori?.ragione_sociale ||
+      mapping?.fornitori?.nome ||
+      "—";
+  }
+
+  return {
+    ...prodottoNormalizzato,
+    prodotto_id: prodottoNormalizzato.id,
+    giacenza_attuale: giacenzaDaMovimenti,
+    fornitore,
+    ultimi_movimenti: storico.slice(0, 5),
+    storico_movimenti: storico
+  };
+}
+
+function normalizeProdotto(prodotto) {
+  const um = prodotto.unita_base || prodotto.unita_misura || prodotto.um || "—";
+  const descrizione = prodotto.descrizione || prodotto.nome || "";
 
   return {
     ...prodotto,
-    fornitore: mapping?.fornitori?.ragione_sociale || "—",
-    ultimi_movimenti: movimenti || []
+    descrizione,
+    unita_base: um,
+    scorta_minima: prodotto.scorta_minima ?? prodotto.quantita_riordino ?? 0
   };
 }
 
-function collapseGiacenzeRows(rows) {
-  const first = rows[0] || {};
-  const giacenza_attuale = rows.reduce(
-    (sum, row) => sum + Number(row?.giacenza_attuale || row?.giacenza || 0),
-    0
-  );
-
-  return {
-    ...first,
-    giacenza_attuale
-  };
-}
 
 function renderSchedaCaricoProdotto(prodotto) {
   return `
