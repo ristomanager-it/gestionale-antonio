@@ -1,5 +1,46 @@
 import { supabase } from "../supabaseClient.js";
 
+function ruoloAttivo() {
+  const raw = window.state?.viewAs || window.state?.ruolo;
+  return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw;
+}
+
+function puoGestireSedi() {
+  return ["admin", "superadmin"].includes(ruoloAttivo());
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function backButtonHtml(fallback = "#/home") {
+  return `<button class="app-button tiny gray rf-back-button" data-back-fallback="${fallback}">← Indietro</button>`;
+}
+
+function bindBackButton(container) {
+  const btn = container.querySelector(".rf-back-button");
+  if (!btn) return;
+  btn.onclick = () => {
+    const fallback = btn.dataset.backFallback || "#/home";
+    if (window.history.length > 1) {
+      window.history.back();
+      setTimeout(() => {
+        if (!window.location.hash || window.location.hash === "#/gestione-sedi") {
+          window.location.hash = fallback;
+        }
+      }, 200);
+    } else {
+      window.location.hash = fallback;
+    }
+  };
+}
+
+
 export async function render(container) {
 
   const azienda = window.state?.azienda;
@@ -14,12 +55,12 @@ export async function render(container) {
 
   const sedi = window.state.sedi || [];
 
-  if (sedi.length === 0 || mode === "first") {
+  if ((sedi.length === 0 || mode === "first") && puoGestireSedi()) {
     renderWizardPrimaSede(container, azienda.id);
     return;
   }
 
-  if (mode === "manage") {
+  if (mode === "manage" && puoGestireSedi()) {
     renderGestioneSedi(container, sedi);
     return;
   }
@@ -36,20 +77,23 @@ function renderSelezioneSede(container, sedi) {
 
   container.innerHTML = `
     <div class="view">
+      ${backButtonHtml("#/home")}
       <h2>Seleziona sede</h2>
 
       ${sedi.map(s => `
         <div class="card" style="margin-bottom:10px; cursor:pointer;"
           onclick="selectSede('${s.id}')">
 
-          <div style="font-weight:700;">${s.nome}</div>
-          <div style="font-size:12px; opacity:0.7;">${s.indirizzo || ""}</div>
+          <div style="font-weight:700;">${escapeHtml(s.nome)}</div>
+          <div style="font-size:12px; opacity:0.7;">${escapeHtml(s.indirizzo || "")}</div>
 
         </div>
       `).join("")}
 
     </div>
   `;
+
+  bindBackButton(container);
 }
 
 window.selectSede = function(id){
@@ -63,17 +107,22 @@ GESTIONE
 ========================= */
 
 function renderGestioneSedi(container, sedi){
+  if (!puoGestireSedi()) {
+    renderSelezioneSede(container, sedi);
+    return;
+  }
 
   container.innerHTML = `
     <div class="view">
+      ${backButtonHtml("#/gestione-sedi")}
 
       <h2>Gestione sedi</h2>
 
       ${sedi.map(s => `
         <div class="card" style="margin-bottom:10px;">
 
-          <div style="font-weight:700;">${s.nome}</div>
-          <div style="font-size:12px; opacity:0.7;">${s.indirizzo || ""}</div>
+          <div style="font-weight:700;">${escapeHtml(s.nome)}</div>
+          <div style="font-size:12px; opacity:0.7;">${escapeHtml(s.indirizzo || "")}</div>
 
           ${s.logo_url ? `<img src="${s.logo_url}" style="height:40px; margin-top:6px;" />` : ""}
 
@@ -90,7 +139,9 @@ function renderGestioneSedi(container, sedi){
       </button>
 
     </div>
-  `
+  `;
+
+  bindBackButton(container);
 }
 
 
@@ -99,9 +150,14 @@ CREAZIONE
 ========================= */
 
 function renderWizardPrimaSede(container, aziendaId){
+  if (!puoGestireSedi()) {
+    window.location.hash = "#/gestione-sedi";
+    return;
+  }
 
   container.innerHTML = `
     <div class="view">
+      ${backButtonHtml("#/gestione-sedi")}
 
       <h2>Crea sede</h2>
 
@@ -117,6 +173,8 @@ function renderWizardPrimaSede(container, aziendaId){
 
     </div>
   `;
+
+  bindBackButton(container);
 
   document.getElementById("save").onclick = async () => {
 
@@ -166,6 +224,10 @@ MODIFICA
 ========================= */
 
 window.editSede = async function(id){
+  if (!puoGestireSedi()) {
+    alert("Non hai i permessi per modificare le sedi.");
+    return;
+  }
 
   const sede = window.state.sedi.find(s => String(s.id) === String(id));
   if(!sede) return;
@@ -264,6 +326,10 @@ DISATTIVA
 ========================= */
 
 window.disattivaSede = async function(id){
+  if (!puoGestireSedi()) {
+    alert("Non hai i permessi per modificare le sedi.");
+    return;
+  }
 
   if(!confirm("Disattivare sede?")) return;
 
