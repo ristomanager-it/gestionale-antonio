@@ -106,7 +106,7 @@ export async function renderPreparazioni(container, azienda) {
 
     results.querySelectorAll(".open-prep").forEach(row=>{
       row.onclick=()=>{
-        const id = Number(row.dataset.id);
+        const id = row.dataset.id;
         openScheda(id);
         results.innerHTML="";
       };
@@ -120,27 +120,43 @@ export async function renderPreparazioni(container, azienda) {
 
     const sedeId = window.state?.sedeAttiva?.id;
 
-    const {data,error} = await window.supabaseClient
-      .from("v_magazzino_giacenze")
-      .select("*")
+    const {data: prodotto,error} = await window.supabaseClient
+      .from("prodotti")
+      .select("id,codice_interno,nome,descrizione,unita_base,unita_misura,um,scorta_minima,quantita_riordino")
       .eq("azienda_id",azienda.id)
-      .eq("sede_id",sedeId)
-      .eq("prodotto_id",prodottoId)
-      .single();
+      .eq("id",prodottoId)
+      .maybeSingle();
 
-    if(error || !data){
+    if(error || !prodotto){
+      console.error(error);
       scheda.innerHTML=`<div class="rf-empty-state">Preparazione non trovata</div>`;
       return;
     }
 
     const {data:movimenti} = await window.supabaseClient
       .from("magazzino_movimenti")
-      .select("tipo_movimento,quantita,data_movimento")
+      .select("tipo_movimento,quantita,created_at,causale")
       .eq("azienda_id",azienda.id)
       .eq("sede_id",sedeId)
       .eq("prodotto_id",prodottoId)
-      .order("data_movimento",{ascending:false})
-      .limit(5);
+      .order("created_at",{ascending:false})
+      .limit(50);
+
+    const listaMovimenti = movimenti || [];
+    const giacenza = listaMovimenti.reduce((sum, movimento) => {
+      const q = Number(movimento?.quantita || 0);
+      const tipo = String(movimento?.tipo_movimento || "").toLowerCase();
+      return ["scarico","consumo","rettifica_negativa","uscita"].includes(tipo) ? sum - q : sum + q;
+    }, 0);
+
+    const data = {
+      ...prodotto,
+      prodotto_id: prodotto.id,
+      descrizione: prodotto.descrizione || prodotto.nome || "",
+      unita_base: prodotto.unita_base || prodotto.unita_misura || prodotto.um || "—",
+      scorta_minima: prodotto.scorta_minima ?? prodotto.quantita_riordino ?? 0,
+      giacenza_attuale: giacenza
+    };
 
     const canEdit = ["admin","manager"].includes(window.state?.ruolo);
 
@@ -175,13 +191,13 @@ export async function renderPreparazioni(container, azienda) {
 
       <div class="rf-mov-list">
       ${
-        movimenti?.length
-        ? movimenti.map(m=>`
+        listaMovimenti.length
+        ? listaMovimenti.slice(0,5).map(m=>`
           <div class="rf-mov-item">
             <div class="rf-mov-main">
               ${escapeHtml(m.tipo_movimento)} · ${formatNumber(m.quantita)}
             </div>
-            <div class="rf-mov-meta">${formatDateTime(m.data_movimento)}</div>
+            <div class="rf-mov-meta">${formatDateTime(m.created_at)}${m.causale ? " · " + escapeHtml(m.causale) : ""}</div>
           </div>
         `).join("")
         : `<div class="rf-empty-state">Nessun movimento</div>`
@@ -208,6 +224,7 @@ export async function renderPreparazioni(container, azienda) {
     }
 
   }
+
 
   function apriFormModifica(prodotto){
 
