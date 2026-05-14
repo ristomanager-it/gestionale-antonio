@@ -125,3 +125,16 @@ window.hasPermission = function (route) {
 
   return window.hasPermesso(`${route}.read`) === true;
 };
+
+
+const RESTRICTED_SEDI_ROUTES = new Set(["gestione-sedi"]);
+
+const originalHasPermission = window.hasPermission;
+window.hasPermission = function(route){
+  const ruolo = getRuoloPermessi();
+  const cleanRoute = String(route || "").split("?")[0];
+  if (RESTRICTED_SEDI_ROUTES.has(cleanRoute) && ["manager","operatore"].includes(ruolo)) {
+    return false;
+  }
+  return originalHasPermission(route);
+};
