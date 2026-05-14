@@ -99,7 +99,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     `;
 
     const apriDaElemento = (element) => {
-      const id = Number(element.dataset.id);
+      const id = element.dataset.id;
       if (!id) return;
       openScheda(id);
       results.innerHTML = "";
@@ -127,34 +127,37 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       return;
     }
 
-    const { data, error } = await window.supabaseClient
-      .from("v_magazzino_giacenze")
-      .select("*")
+    const { data: prodotto, error: prodottoError } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id")
       .eq("azienda_id", azienda.id)
-      .eq("sede_id", sedeId)
-      .eq("prodotto_id", prodottoId)
+      .eq("id", prodottoId)
       .maybeSingle();
 
-    if (error) {
-  console.error(error);
-}
+    if (prodottoError || !prodotto) {
+      console.error(prodottoError);
+      scheda.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`;
+      return;
+    }
 
-let giacenza = 0;
-
-if (data) {
-  giacenza = data.giacenza_attuale || 0;
-}
+    const data = {
+      ...prodotto,
+      prodotto_id: prodotto.id,
+      descrizione: prodotto.descrizione || prodotto.nome || "",
+      unita_base: prodotto.unita_base || prodotto.unita_misura || prodotto.um || "—",
+      scorta_minima: prodotto.scorta_minima ?? prodotto.quantita_riordino ?? 0
+    };
 
     let movimenti = [];
 
     const movimentiResult = await window.supabaseClient
       .from("magazzino_movimenti")
-      .select("tipo_movimento, quantita, created_at")
+      .select("tipo_movimento, quantita, created_at, causale")
       .eq("azienda_id", azienda.id)
       .eq("sede_id", sedeId)
       .eq("prodotto_id", prodottoId)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(50);
 
     if (movimentiResult.error) {
       console.error(movimentiResult.error);
@@ -163,15 +166,42 @@ if (data) {
       movimenti = movimentiResult.data || [];
     }
 
-    const { data: mapping, error: mappingError } = await window.supabaseClient
-      .from("prodotti_fornitore")
-      .select("fornitori:fornitore_id (ragione_sociale)")
-      .eq("prodotto_id", prodottoId)
-      .limit(1)
-      .maybeSingle();
+    const giacenza = movimenti.reduce((sum, movimento) => {
+      const q = Number(movimento?.quantita || 0);
+      const tipo = String(movimento?.tipo_movimento || "").toLowerCase();
 
-    if (mappingError) {
-      console.error(mappingError);
+      if (["scarico", "consumo", "rettifica_negativa", "uscita"].includes(tipo)) {
+        return sum - q;
+      }
+
+      return sum + q;
+    }, 0);
+
+    let fornitore = "—";
+
+    if (data.fornitore_preferito_id) {
+      const { data: fornitorePreferito } = await window.supabaseClient
+        .from("fornitori")
+        .select("ragione_sociale, nome")
+        .eq("id", data.fornitore_preferito_id)
+        .maybeSingle();
+
+      fornitore = fornitorePreferito?.ragione_sociale || fornitorePreferito?.nome || "—";
+    }
+
+    if (fornitore === "—") {
+      const { data: mapping, error: mappingError } = await window.supabaseClient
+        .from("prodotti_fornitore")
+        .select("fornitori:fornitore_id (ragione_sociale, nome)")
+        .eq("prodotto_id", prodottoId)
+        .limit(1)
+        .maybeSingle();
+
+      if (mappingError) {
+        console.error(mappingError);
+      }
+
+      fornitore = mapping?.fornitori?.ragione_sociale || mapping?.fornitori?.nome || "—";
     }
 
     const canEdit = ["admin", "manager"].includes(window.state?.ruolo);
@@ -191,7 +221,7 @@ if (data) {
 
           <div class="rf-product-field">
             <span class="rf-product-label">Fornitore</span>
-            <div class="rf-product-value">${escapeHtml(mapping?.fornitori?.ragione_sociale || "—")}</div>
+            <div class="rf-product-value">${escapeHtml(fornitore || "—")}</div>
           </div>
 
           <div class="rf-product-field">
@@ -209,10 +239,10 @@ if (data) {
 
         <div class="rf-mov-list">
           ${(movimenti || []).length
-            ? movimenti.map((m) => `
+            ? movimenti.slice(0, 5).map((m) => `
               <div class="rf-mov-item">
                 <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-                <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
+                <div class="rf-mov-meta">${formatDateTime(m.created_at)}${m.causale ? " · " + escapeHtml(m.causale) : ""}</div>
               </div>
             `).join("")
             : `<div class="rf-empty-state">Nessun movimento</div>`
@@ -236,10 +266,11 @@ if (data) {
     const btnModifica = scheda.querySelector("#btn-modifica-mp");
     if (btnModifica) {
       btnModifica.onclick = () => {
-        renderEditForm(data, mapping?.fornitori?.ragione_sociale || "—");
+        renderEditForm(data, fornitore || "—");
       };
     }
   }
+
 
   function renderEditForm(prodotto, fornitore) {
     scheda.innerHTML = `
