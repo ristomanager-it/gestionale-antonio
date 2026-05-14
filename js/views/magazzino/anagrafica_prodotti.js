@@ -55,8 +55,9 @@ export async function renderAnagraficaProdotti(container) {
 
     const { data, error } = await window.db
       .from("prodotti")
-      .select("id, meta, descrizione, tipo_prodotto, um")
-      .or(`descrizione.ilike.%${term}%,meta.ilike.%${term}%`)
+      .select("id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id")
+      .eq("azienda_id", azienda?.id)
+      .or(`descrizione.ilike.%${term}%,nome.ilike.%${term}%,codice_interno.ilike.%${term}%`)
       .limit(15);
 
     if (error) {
@@ -72,8 +73,8 @@ export async function renderAnagraficaProdotti(container) {
 
     risultati.innerHTML = data.map(p => `
       <div class="rf-search-item">
-        <div>${escapeHtml(p.meta || "")}</div>
-        <div>${escapeHtml(p.descrizione || "")}</div>
+        <div>${escapeHtml(p.codice_interno || "—")}</div>
+        <div>${escapeHtml(p.descrizione || p.nome || "")}</div>
         <button data-id="${p.id}">Apri</button>
       </div>
     `).join("");
@@ -87,26 +88,133 @@ export async function renderAnagraficaProdotti(container) {
 }
 
 async function apriSchedaProdotto(box, prodottoId) {
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id;
 
-  const { data, error } = await window.db
+  const { data: prodotto, error } = await window.db
     .from("prodotti")
-    .select("*")
+    .select("id, azienda_id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, attivo")
+    .eq("azienda_id", aziendaId)
     .eq("id", prodottoId)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error || !prodotto) {
+    console.error(error);
     box.innerHTML = "Errore caricamento";
     return;
   }
 
+  const { data: movimenti, error: movimentiError } = await window.db
+    .from("magazzino_movimenti")
+    .select("sede_id, tipo_movimento, quantita, created_at, causale")
+    .eq("azienda_id", aziendaId)
+    .eq("prodotto_id", prodottoId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (movimentiError) {
+    console.error(movimentiError);
+  }
+
+  const movimentiFiltrati = sedeId
+    ? (movimenti || []).filter(m => String(m.sede_id || sedeId) === String(sedeId))
+    : (movimenti || []);
+
+  const giacenza = movimentiFiltrati.reduce((sum, movimento) => {
+    const q = Number(movimento?.quantita || 0);
+    const tipo = String(movimento?.tipo_movimento || "").toLowerCase();
+    return ["scarico", "consumo", "rettifica_negativa", "uscita"].includes(tipo) ? sum - q : sum + q;
+  }, 0);
+
+  let fornitore = "—";
+
+  if (prodotto.fornitore_preferito_id) {
+    const { data: f } = await window.db
+      .from("fornitori")
+      .select("ragione_sociale, nome")
+      .eq("id", prodotto.fornitore_preferito_id)
+      .maybeSingle();
+
+    fornitore = f?.ragione_sociale || f?.nome || "—";
+  }
+
+  if (fornitore === "—") {
+    const { data: mapping } = await window.db
+      .from("prodotti_fornitore")
+      .select("fornitori:fornitore_id (ragione_sociale, nome)")
+      .eq("prodotto_id", prodottoId)
+      .limit(1)
+      .maybeSingle();
+
+    fornitore = mapping?.fornitori?.ragione_sociale || mapping?.fornitori?.nome || "—";
+  }
+
+  const um = prodotto.unita_base || prodotto.unita_misura || prodotto.um || "—";
+  const scorta = prodotto.scorta_minima ?? prodotto.quantita_riordino ?? 0;
+
   box.innerHTML = `
-    <div>
-      <h3>${escapeHtml(data.descrizione)}</h3>
-      <p>UM: ${escapeHtml(data.um)}</p>
-      <p>Giacenza: ${data.giacenza_attuale || 0}</p>
+    <div class="rf-product-card">
+      <div class="rf-product-heading">
+        <div class="rf-product-code">${escapeHtml(prodotto.codice_interno || "—")}</div>
+        <div class="rf-product-title">${escapeHtml(prodotto.descrizione || prodotto.nome || "")}</div>
+      </div>
+
+      <div class="rf-product-grid">
+        <div class="rf-product-field">
+          <span class="rf-product-label">UM</span>
+          <div class="rf-product-value">${escapeHtml(um)}</div>
+        </div>
+        <div class="rf-product-field">
+          <span class="rf-product-label">Fornitore preferito</span>
+          <div class="rf-product-value">${escapeHtml(fornitore)}</div>
+        </div>
+        <div class="rf-product-field">
+          <span class="rf-product-label">Giacenza attuale</span>
+          <div class="rf-product-value">${formatNumber(giacenza)}</div>
+        </div>
+        <div class="rf-product-field">
+          <span class="rf-product-label">Scorta minima</span>
+          <div class="rf-product-value">${formatNumber(scorta)}</div>
+        </div>
+        <div class="rf-product-field">
+          <span class="rf-product-label">Tipo</span>
+          <div class="rf-product-value">${escapeHtml(prodotto.tipo_prodotto || "—")}</div>
+        </div>
+        <div class="rf-product-field">
+          <span class="rf-product-label">Stato</span>
+          <div class="rf-product-value">${prodotto.attivo === false ? "Non attivo" : "Attivo"}</div>
+        </div>
+      </div>
+
+      <div class="rf-product-section-title">Storico movimenti</div>
+      <div class="rf-mov-list">
+        ${(movimentiFiltrati || []).length
+          ? movimentiFiltrati.map(m => `
+            <div class="rf-mov-item">
+              <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
+              <div class="rf-mov-meta">${formatDateTime(m.created_at)} ${m.causale ? "· " + escapeHtml(m.causale) : ""}</div>
+            </div>
+          `).join("")
+          : `<div class="rf-empty-state">Nessun movimento registrato</div>`
+        }
+      </div>
     </div>
   `;
 }
+
+function formatNumber(value) {
+  const n = Number(value || 0);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("it-IT", { maximumFractionDigits: 3 });
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("it-IT");
+}
+
 
 function escapeHtml(str) {
   return String(str || "").replaceAll("<","&lt;").replaceAll(">","&gt;");
