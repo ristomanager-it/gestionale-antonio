@@ -64,9 +64,10 @@ export function initMenu() {
 
   function can(route) {
     if (!route) return true;
+    const cleanRoute = String(route).split("?")[0];
 
     if (window.hasPermission) {
-      return window.hasPermission(route);
+      return window.hasPermission(cleanRoute);
     }
 
     if (isSuperadmin()) return true;
@@ -79,19 +80,83 @@ export function initMenu() {
     closeMenu();
   }
 
-  
-    const profilo = `
-      <div class="user-mini-profile" style="padding:16px;border-top:1px solid #e5e7eb;margin-top:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="${window.state?.userProfile?.foto_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((window.state?.userProfile?.nome || 'Utente') + ' ' + (window.state?.userProfile?.cognome || ''))}" 
-          style="width:52px;height:52px;border-radius:50%;object-fit:cover;background:#f3f4f6;">
-          <div>
-            <div style="font-weight:700;">${window.state?.userProfile?.nome || ''} ${window.state?.userProfile?.cognome || ''}</div>
-            <div style="font-size:12px;color:#64748b;">${getRuoloAttivo() || ''}</div>
-          </div>
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function getProfiloUtente() {
+    const user = window.state?.user || {};
+    const meta = user.user_metadata || {};
+    const profile = window.state?.userProfile || window.state?.profilo || window.state?.dipendente || {};
+
+    const nome = profile.nome || meta.nome || meta.first_name || "";
+    const cognome = profile.cognome || meta.cognome || meta.last_name || "";
+    const displayName = [nome, cognome].filter(Boolean).join(" ").trim() || "Utente";
+    const foto = profile.foto_url || profile.avatar_url || meta.foto_url || meta.avatar_url || "";
+    const ruolo = getRuoloAttivo() || "";
+
+    return {
+      nome,
+      cognome,
+      displayName,
+      foto,
+      ruolo
+    };
+  }
+
+  async function loadMenuUserProfile() {
+    const user = window.state?.user;
+    const aziendaId = window.state?.azienda?.id;
+    if (!user?.id || !aziendaId || window.state?.userProfile?.__loadedFor === user.id) return;
+
+    try {
+      const { data } = await window.supabaseClient
+        .from("dipendenti")
+        .select("nome, cognome, telefono, email, foto_url, avatar_url, ruolo")
+        .eq("user_id", user.id)
+        .eq("azienda_id", aziendaId)
+        .maybeSingle();
+
+      if (data) {
+        window.state.userProfile = {
+          ...data,
+          __loadedFor: user.id
+        };
+      }
+    } catch (e) {
+      console.warn("Profilo menu non caricato:", e);
+    }
+  }
+
+  function renderMenuHeader() {
+    const azienda = window.state?.azienda;
+    const sede = window.state?.sedeAttiva;
+    const profilo = getProfiloUtente();
+    const avatar = profilo.foto || ("https://ui-avatars.com/api/?name=" + encodeURIComponent(profilo.displayName));
+
+    const header = document.createElement("div");
+    header.className = "menu-user-header";
+    header.innerHTML = `
+      <div class="menu-company-name">${escapeHtml(azienda?.nome || "Ristoflow")}</div>
+      <div class="menu-company-site">${escapeHtml(sede?.nome || "Nessuna sede attiva")}</div>
+      <div class="menu-user-row">
+        <img class="menu-user-avatar" src="${escapeHtml(avatar)}" alt="Foto profilo" />
+        <div class="menu-user-info">
+          <div class="menu-user-name">${escapeHtml(profilo.displayName)}</div>
+          <div class="menu-user-role">${escapeHtml(profilo.ruolo)}</div>
         </div>
       </div>
     `;
+
+    return header;
+  }
+
 
 function getMenu() {
 
@@ -172,11 +237,20 @@ function getMenu() {
       },
       {
         title: "SEDI",
-        items: [
-          { label: "Cambia sede", route: "gestione-sedi" },
-          { label: "Crea sede", route: "gestione-sedi?mode=first" },
-          { label: "Gestisci sedi", route: "gestione-sedi?mode=manage" }
-        ]
+        items: (() => {
+          const ruolo = getRuoloAttivo();
+          if (["manager", "operatore"].includes(ruolo)) {
+            return [
+              { label: "Cambia sede", route: "gestione-sedi" }
+            ];
+          }
+
+          return [
+            { label: "Cambia sede", route: "gestione-sedi" },
+            { label: "Crea sede", route: "gestione-sedi?mode=first" },
+            { label: "Gestisci sedi", route: "gestione-sedi?mode=manage" }
+          ];
+        })()
       },
       {
         title: "PERSONALE",
@@ -194,17 +268,7 @@ function getMenu() {
 
     menu.innerHTML = "";
 
-    const sede = window.state?.sedeAttiva;
-
-    if (sede) {
-      const sedeBox = document.createElement("div");
-      sedeBox.className = "menu-sede-attiva";
-      sedeBox.innerText = "📍 " + sede.nome;
-      sedeBox.style.padding = "12px";
-      sedeBox.style.fontWeight = "700";
-      sedeBox.style.borderBottom = "1px solid #eee";
-      menu.appendChild(sedeBox);
-    }
+    menu.appendChild(renderMenuHeader());
 
     const struttura = getMenu();
 
@@ -271,7 +335,8 @@ function getMenu() {
     menu.appendChild(logout);
   }
 
-  function openMenu() {
+  async function openMenu() {
+    await loadMenuUserProfile();
     renderMenu();
     menu.classList.add("open");
     overlay.classList.add("open");
