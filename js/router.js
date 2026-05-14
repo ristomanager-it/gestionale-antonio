@@ -905,6 +905,18 @@ const ruolo = window.normalizeRuolo
   }
 
   if (route === "gestione-sedi") {
+    const ruoloSedi = window.normalizeRuolo
+      ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+      : (window.state?.viewAs || window.state?.ruolo);
+
+    if (["manager", "operatore"].includes(ruoloSedi)) {
+      const modeSedi = window.routeParams?.mode || "select";
+      if (modeSedi !== "select") {
+        window.location.hash = "#/gestione-sedi";
+        return;
+      }
+    }
+
     await renderView("gestione-sedi");
     return;
   }
