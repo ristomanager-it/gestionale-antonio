@@ -501,7 +501,9 @@ async function caricaDipendenti() {
 
   </tr>
 `;
+ });
 
+}
 async function renderRepartiDatalist(selectedNome = "") {
   await window.stateActions.caricaRuoloEReparti();
   const reparti = window.state.reparti || [];
