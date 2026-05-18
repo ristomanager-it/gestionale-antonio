@@ -1166,14 +1166,18 @@ function escapeHtml(str) {
    REINVITA DIPENDENTE
 ========================================= */
 
-window.reinvitaDipendente = async function (dipendente) {
+window.reinvitaDipendente = async function (id) {
 
   try {
 
-    const session = await supabase.auth.getSession();
+    const supabase = window.supabase;
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
     const accessToken =
-      session?.data?.session?.access_token;
+      session?.access_token;
 
     if (!accessToken) {
       throw new Error("Sessione non valida");
@@ -1184,6 +1188,19 @@ window.reinvitaDipendente = async function (dipendente) {
 
     const sedeId =
       window.state?.sedeAttiva?.id || null;
+
+    const { data: dipendente, error } =
+      await supabase
+        .from("dipendenti")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+    if (error || !dipendente) {
+      throw new Error(
+        "Dipendente non trovato"
+      );
+    }
 
     const payload = {
       nome: dipendente.nome,
@@ -1212,7 +1229,8 @@ window.reinvitaDipendente = async function (dipendente) {
       }
     );
 
-    const result = await response.json();
+    const result =
+      await response.json();
 
     console.log(
       "RISPOSTA REINVITO:",
