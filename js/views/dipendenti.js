@@ -439,26 +439,68 @@ async function caricaDipendenti() {
       .filter(Boolean)
       .join(", ") || "-";
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${escapeHtml(nomeCompleto)}</td>
-        <td>${escapeHtml(repartoNome)}</td>
-        <td>${escapeHtml(d.mansione || "-")}</td>
-        <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
-        <td>${escapeHtml(d.costo_medio || "-")}</td>
-        <td>${escapeHtml(d.email || "-")}</td>
-        <td>${escapeHtml(ruolo)}</td>
-        <td>${escapeHtml(sediNomi)}</td>
-        <td>${d.attivo ? "✔" : "❌"}</td>
-        <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-          ${canRead ? `<button class="app-button tiny gray" onclick="window._dipOpen('${d.id}')">Scheda</button>` : ""}
-          ${canUpdate ? `<button class="app-button tiny" onclick="window._dipEdit('${d.id}')">Modifica</button>` : ""}
-          ${canDelete ? `<button class="app-button tiny red" onclick="window._dipDelete('${d.id}')">Elimina</button>` : ""}
-        </td>
-      </tr>
-    `;
-  });
-}
+  tbody.innerHTML += `
+  <tr>
+    <td>${escapeHtml(nomeCompleto)}</td>
+    <td>${escapeHtml(repartoNome)}</td>
+    <td>${escapeHtml(d.mansione || "-")}</td>
+    <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
+    <td>${escapeHtml(d.costo_medio || "-")}</td>
+    <td>${escapeHtml(d.email || "-")}</td>
+    <td>${escapeHtml(ruolo)}</td>
+    <td>${escapeHtml(sediNomi)}</td>
+    <td>${d.attivo ? "✔" : "❌"}</td>
+
+    <td style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+
+      ${canRead
+        ? `
+          <button
+            class="app-button tiny gray"
+            onclick="window._dipOpen('${d.id}')"
+          >
+            Scheda
+          </button>
+        `
+        : ""}
+
+      ${canUpdate
+        ? `
+          <button
+            class="app-button tiny"
+            onclick="window._dipEdit('${d.id}')"
+          >
+            Modifica
+          </button>
+        `
+        : ""}
+
+      ${canUpdate
+        ? `
+          <button
+            class="app-button tiny orange"
+            onclick="window.reinvitaDipendente('${d.id}')"
+          >
+            Reinvia
+          </button>
+        `
+        : ""}
+
+      ${canDelete
+        ? `
+          <button
+            class="app-button tiny red"
+            onclick="window._dipDelete('${d.id}')"
+          >
+            Elimina
+          </button>
+        `
+        : ""}
+
+    </td>
+
+  </tr>
+`;
 
 async function renderRepartiDatalist(selectedNome = "") {
   await window.stateActions.caricaRuoloEReparti();
