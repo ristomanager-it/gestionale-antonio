@@ -1162,3 +1162,82 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+/* =========================================
+   REINVITA DIPENDENTE
+========================================= */
+
+window.reinvitaDipendente = async function (dipendente) {
+
+  try {
+
+    const session = await supabase.auth.getSession();
+
+    const accessToken =
+      session?.data?.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error("Sessione non valida");
+    }
+
+    const aziendaId =
+      window.state?.azienda?.id;
+
+    const sedeId =
+      window.state?.sedeAttiva?.id || null;
+
+    const payload = {
+      nome: dipendente.nome,
+      cognome: dipendente.cognome,
+      email: dipendente.email,
+      telefono: dipendente.telefono || "",
+      ruolo: dipendente.ruolo || "dipendente",
+      azienda_id: aziendaId,
+      sede_id: sedeId
+    };
+
+    console.log(
+      "REINVIO INVITO:",
+      payload
+    );
+
+    const response = await fetch(
+      "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-dipendente",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await response.json();
+
+    console.log(
+      "RISPOSTA REINVITO:",
+      result
+    );
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || "Errore reinvito"
+      );
+    }
+
+    alert(
+      "Invito reinviato con successo"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "ERRORE REINVITO:",
+      err
+    );
+
+    alert(
+      err.message || "Errore reinvito"
+    );
+  }
+};
