@@ -1409,7 +1409,20 @@ function renderDays() {
     const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
+function parseLocalDate(value) {
 
+  const [y, m, d] =
+    String(value)
+      .split("-")
+      .map(Number);
+
+  return new Date(
+    y,
+    m - 1,
+    d
+  );
+
+}
   function formatDateHuman(dateString) {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return dateString;
