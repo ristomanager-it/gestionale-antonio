@@ -269,35 +269,109 @@ function isSuperadmin() {
 }
 
 function hasPermission(area) {
-  if (!area || area === "home") return true;
 
-  const ruolo = window.normalizeRuolo
-    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
-    : (window.state?.viewAs || window.state?.ruolo);
-
-  // ROTTE PIATTAFORMA: per adesso SOLO superadmin.
-  // Nessun admin/manager/operatore deve entrare qui.
-  if (PLATFORM_ROUTES.has(area)) {
-    return isSuperadmin();
-  }
-
-  // Rotte preliminari sempre consentite dopo login.
-  if (PREHOME_ROUTES.has(area)) return true;
-
-  // Superadmin vede tutto.
-  if (isSuperadmin()) return true;
-
-  // Admin / Manager / Operatore:
-  // accesso completo all'area azienda e all'operativo.
-  // Le rotte piattaforma sono già state bloccate sopra.
-  if (["admin", "manager", "operatore"].includes(ruolo)) {
+  if (!area || area === "home") {
     return true;
   }
 
-  const permessi = window.state?.permessi || {};
-  return permessi[`${area}.read`] === true;
-}
+  const ruolo = window.normalizeRuolo
+    ? window.normalizeRuolo(
+        window.state?.viewAs ||
+        window.state?.ruolo
+      )
+    : (
+        window.state?.viewAs ||
+        window.state?.ruolo
+      );
 
+  /* =========================================
+     SUPERADMIN
+  ========================================= */
+
+  if (isSuperadmin()) {
+    return true;
+  }
+
+  /* =========================================
+     ROTTE PIATTAFORMA
+  ========================================= */
+
+  if (PLATFORM_ROUTES.has(area)) {
+    return ruolo === "superadmin";
+  }
+
+  /* =========================================
+     ROTTE PREHOME
+  ========================================= */
+
+  if (PREHOME_ROUTES.has(area)) {
+    return true;
+  }
+
+  /* =========================================
+     ADMIN
+  ========================================= */
+
+  if (ruolo === "admin") {
+    return true;
+  }
+
+  /* =========================================
+     MANAGER
+  ========================================= */
+
+  if (ruolo === "manager") {
+
+    const blocked = [
+      "gestioneAziende",
+      "creaAzienda",
+      "modificaAzienda",
+      "gestionePiani"
+    ];
+
+    return !blocked.includes(area);
+  }
+
+  /* =========================================
+     OPERATORE
+  ========================================= */
+
+  if (ruolo === "operatore") {
+
+    const allowed = [
+
+      "home",
+      "home-operatore",
+
+      "sala",
+      "comanda",
+      "timbrature",
+
+      "profilo",
+      "completaProfilo",
+
+      "scegli-sede",
+
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+
+      "app-produzione"
+    ];
+
+    return allowed.includes(area);
+  }
+
+  /* =========================================
+     FALLBACK PERMESSI
+  ========================================= */
+
+  const permessi =
+    window.state?.permessi || {};
+
+  return (
+    permessi[`${area}.read`] === true
+  );
+}
 /* =========================================================
    UI HELPERS
 ========================================================= */
