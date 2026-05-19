@@ -1022,27 +1022,68 @@ export async function render(container) {
     renderStatusChips();
   }
 
-  function renderDays() {
-    const baseDate = new Date(filtroData.value || today);
-    const visible = [];
+function renderDays() {
 
-    for (let i = -3; i <= 10; i++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() + i);
-      visible.push(d);
-    }
+  const current =
+    filtroData.value
+      ? parseLocalDate(filtroData.value)
+      : new Date();
 
-    daysContainer.innerHTML = visible.map((d) => {
-      const value = formatDateInput(d);
-      const isActive = value === filtroData.value;
-      return `
-        <button type="button" class="pren-day ${isActive ? "is-active" : ""}" data-day="${value}">
-          <div class="pren-day-top">${getDayLabel(d)}</div>
-          <div class="pren-day-bottom">${String(d.getDate()).padStart(2, "0")}</div>
-        </button>
-      `;
-    }).join("");
+  const visible = [];
 
+  for (let i = -3; i <= 10; i++) {
+
+    const d = new Date(current);
+
+    d.setDate(current.getDate() + i);
+
+    visible.push(d);
+
+  }
+
+  daysContainer.innerHTML = visible.map((d) => {
+
+    const value = formatDateInput(d);
+
+    const isActive =
+      value === filtroData.value;
+
+    return `
+      <button
+        type="button"
+        class="pren-day ${isActive ? "is-active" : ""}"
+        data-day="${value}"
+      >
+        <div class="pren-day-top">
+          ${getDayLabel(d)}
+        </div>
+
+        <div class="pren-day-bottom">
+          ${String(d.getDate()).padStart(2, "0")}
+        </div>
+      </button>
+    `;
+
+  }).join("");
+
+  daysContainer
+    .querySelectorAll("[data-day]")
+    .forEach((btn) => {
+
+      btn.onclick = () => {
+
+        filtroData.value =
+          btn.dataset.day;
+
+        syncActiveDayFromInput();
+
+        load();
+
+      };
+
+    });
+
+}
     daysContainer.querySelectorAll("[data-day]").forEach((btn) => {
       btn.onclick = () => {
         filtroData.value = btn.dataset.day;
