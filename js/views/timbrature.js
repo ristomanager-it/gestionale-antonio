@@ -322,7 +322,20 @@ export async function render(app) {
       return;
     }
 
-    const dipendenteId = user.id;
+    const { data: dipendenteData } =
+  await window.supabaseClient
+    .from("dipendenti")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("azienda_id", azienda.id)
+    .single();
+
+if (!dipendenteData) {
+  throw new Error("Dipendente non trovato");
+}
+
+const dipendenteId =
+  dipendenteData.id;
     const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
 
     const isManager = canSeeAll(ruolo);
