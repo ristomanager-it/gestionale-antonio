@@ -356,6 +356,7 @@ function hasPermission(area) {
       "prenotazioni-dettaglio",
 
       "app-produzione"
+       "planner-produzione",
     ];
 
     return allowed.includes(area);
