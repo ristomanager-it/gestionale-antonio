@@ -42,26 +42,36 @@ let app = null;
 const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
-"home-admin": () => import("./views/home-admin.js"),
-"home-manager": () => import("./views/home-manager.js"),
-"home-operatore": () => import("./views/home-operatore.js"),
+
+  "home-admin": () => import("./views/home-admin.js"),
+  "home-manager": () => import("./views/home-manager.js"),
+  "home-operatore": () => import("./views/home-operatore.js"),
+
   homePiattaforma: () => import("./views/home-piattaforma.js"),
+
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
+
   activate: () => import("./views/activate.js"),
+
   cliente: () => import("./views/cliente.js"),
+
   setPassword: () => import("./views/set-password.js"),
   "set-password": () => import("./views/set-password.js"),
 
   sceltaAzienda: () => import("./views/scelta-azienda.js"),
+
   "gestione-sedi": () => import("./views/gestione-sedi.js"),
 
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
 
+  "permessi-operatore": () =>
+    import("./views/permessi-operatore/index.js"),
+};
   // =========================
   // MARKETING (globale - lettura)
   // =========================
