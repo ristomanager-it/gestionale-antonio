@@ -481,18 +481,6 @@ function hasPermission(area) {
   );
 
 }
-  // =====================================
-  // FALLBACK PERMESSI LEGACY
-  // =====================================
-
-  const permessi =
-    window.state?.permessi || {};
-
-  return (
-    permessi[`${area}.read`] === true
-  );
-
-}
   
 /* =========================================================
    UI HELPERS
