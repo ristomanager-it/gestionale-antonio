@@ -71,7 +71,7 @@ const routes = {
 
   "permessi-operatore": () =>
     import("./views/permessi-operatore/index.js"),
-};
+
   // =========================
   // MARKETING (globale - lettura)
   // =========================
