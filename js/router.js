@@ -890,6 +890,50 @@ async function resolve() {
 
 console.log("CONTESTO OPERATIVO:", contesto);
 
+/* =========================================
+   CARICA PERMESSI EXTRA
+========================================= */
+
+try {
+
+  const dipendenteId =
+    window.state?.dipendente?.id;
+
+  const aziendaId =
+    window.state?.azienda?.id;
+
+  if (dipendenteId && aziendaId) {
+
+    const { data: permessiData } =
+      await supabase
+        .from("permessi_utenti")
+        .select("permesso")
+        .eq("azienda_id", aziendaId)
+        .eq("dipendente_id", dipendenteId)
+        .eq("attivo", true);
+
+    window.state.permessiExtra =
+      (permessiData || [])
+        .map(p => p.permesso);
+
+  } else {
+
+    window.state.permessiExtra = [];
+
+  }
+
+} catch (e) {
+
+  console.error(
+    "Errore caricamento permessi extra:",
+    e
+  );
+
+  window.state.permessiExtra = [];
+
+}
+
+if (!contesto.ok) {
 if (!contesto.ok) {
 
   if (contesto.motivo === "Dipendente non trovato") {
