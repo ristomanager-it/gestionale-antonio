@@ -257,17 +257,6 @@ initFooter();
     console.error("Errore render footer:", e);
   }
 }
-/* =========================================================
-   PERMISSION CHECK
-========================================================= */
-
-function isSuperadmin() {
-  if (window.state?.isSuperadmin === true) return true;
-
-  const aziende = window.state?.aziende || [];
-  return aziende.some((a) => a.ruolo === "superadmin");
-}
-
 function hasPermission(area) {
 
   if (!area || area === "home") {
@@ -284,57 +273,52 @@ function hasPermission(area) {
         window.state?.ruolo
       );
 
-  /* =========================================
-     SUPERADMIN
-  ========================================= */
+  const extra =
+    window.state?.permessiExtra || [];
 
-  if (isSuperadmin()) {
-    return true;
-  }
-
-  /* =========================================
-     ROTTE PIATTAFORMA
-  ========================================= */
+  // =====================================
+  // ROTTE PIATTAFORMA
+  // =====================================
 
   if (PLATFORM_ROUTES.has(area)) {
-    return ruolo === "superadmin";
+    return isSuperadmin();
   }
 
-  /* =========================================
-     ROTTE PREHOME
-  ========================================= */
+  // =====================================
+  // PREHOME
+  // =====================================
 
   if (PREHOME_ROUTES.has(area)) {
     return true;
   }
 
-  /* =========================================
-     ADMIN
-  ========================================= */
+  // =====================================
+  // SUPERADMIN
+  // =====================================
+
+  if (isSuperadmin()) {
+    return true;
+  }
+
+  // =====================================
+  // ADMIN
+  // =====================================
 
   if (ruolo === "admin") {
     return true;
   }
 
-  /* =========================================
-     MANAGER
-  ========================================= */
+  // =====================================
+  // MANAGER
+  // =====================================
 
   if (ruolo === "manager") {
-
-    const blocked = [
-      "gestioneAziende",
-      "creaAzienda",
-      "modificaAzienda",
-      "gestionePiani"
-    ];
-
-    return !blocked.includes(area);
+    return true;
   }
 
-  /* =========================================
-     OPERATORE
-  ========================================= */
+  // =====================================
+  // OPERATORE BASE
+  // =====================================
 
   if (ruolo === "operatore") {
 
@@ -345,23 +329,76 @@ function hasPermission(area) {
 
       "sala",
       "comanda",
+
       "timbrature",
 
       "profilo",
-      "completaProfilo",
-
-      "scegli-sede",
+      "completa-profilo",
 
       "prenotazioni",
       "prenotazioni-dettaglio",
 
-      "app-produzione",
-       "planner-produzione",
+      "app-produzione"
+
     ];
 
-    return allowed.includes(area);
+    if (allowed.includes(area)) {
+      return true;
+    }
+
   }
 
+  // =====================================
+  // PERMESSI EXTRA
+  // =====================================
+
+  const routePermissions = {
+
+    "planner-produzione":
+      "planning.write",
+
+    "acquisti":
+      "acquisti.write",
+
+    "magazzino":
+      "magazzino.write",
+
+    "ricettario":
+      "ricette.write",
+
+    "creaRicetta":
+      "ricette.write",
+
+    "dipendenti":
+      "dipendenti.read",
+
+    "crea-dipendente":
+      "dipendenti.write"
+
+  };
+
+  const neededPermission =
+    routePermissions[area];
+
+  if (
+    neededPermission &&
+    extra.includes(neededPermission)
+  ) {
+    return true;
+  }
+
+  // =====================================
+  // FALLBACK PERMESSI LEGACY
+  // =====================================
+
+  const permessi =
+    window.state?.permessi || {};
+
+  return (
+    permessi[`${area}.read`] === true
+  );
+
+}
   /* =========================================
      FALLBACK PERMESSI
   ========================================= */
