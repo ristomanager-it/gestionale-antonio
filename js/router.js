@@ -345,6 +345,7 @@ function hasPermission(area) {
   // =====================================
   // ROTTE PIATTAFORMA
   // =====================================
+
   if (PLATFORM_ROUTES.has(area)) {
     return isSuperadmin();
   }
@@ -366,19 +367,33 @@ function hasPermission(area) {
   }
 
   // =====================================
-  // ADMIN
+  // TIMBRATURE GLOBALI
   // =====================================
 
-  if (ruolo === "admin") {
+  if (
+    area === "timbrature" &&
+    (
+      ruolo === "admin" ||
+      ruolo === "manager" ||
+      ruolo === "superadmin"
+    )
+  ) {
+
     return true;
+
   }
 
   // =====================================
-  // MANAGER
+  // ADMIN / MANAGER
   // =====================================
 
-  if (ruolo === "manager") {
+  if (
+    ruolo === "admin" ||
+    ruolo === "manager"
+  ) {
+
     return true;
+
   }
 
   // =====================================
@@ -449,9 +464,23 @@ function hasPermission(area) {
     neededPermission &&
     extra.includes(neededPermission)
   ) {
+
     return true;
+
   }
 
+  // =====================================
+  // FALLBACK LEGACY
+  // =====================================
+
+  const permessi =
+    window.state?.permessi || {};
+
+  return (
+    permessi[`${area}.read`] === true
+  );
+
+}
   // =====================================
   // FALLBACK PERMESSI LEGACY
   // =====================================
