@@ -829,13 +829,13 @@ notificationAudio.volume = 0.6;
   prenotazioni: [],
   tavoli: [],
   onlineRequests: [],
-  lastOnlineCount: 0, // 👈 QUI
+  lastOnlineCount: 0,
   currentPrenId: null,
   daysCenterDate: formatDateInput(today),
   renderedDays: [],
-  dayStats: {}
+  dayStats: {},
+  isAutoScrolling: false
 };
-
   renderDays(true);
   attachDayInfiniteScroll();
 
