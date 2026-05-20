@@ -662,18 +662,45 @@ export async function render(app) {
     async function doTimbratura(tipo) {
       if (!isOperatore || !dipendenteId) return;
 
-      const pin = await creaPinModal();
+    const pinRaw = await creaPinModal();
 
-      if (!normalizePin(pin)) {
-        setMsg("PIN non inserito", "error");
-        return;
-      }
+console.log("PIN RAW:", pinRaw);
+console.log("TIPO PIN:", typeof pinRaw);
 
-      const pinOk = await verificaPinTimbrature({
-        aziendaId: azienda.id,
-        dipendenteId,
-        pin,
-      });
+if (typeof pinRaw === "object") {
+  console.log(
+    "PIN OBJECT:",
+    JSON.stringify(pinRaw)
+  );
+}
+
+const pinNormalizzato =
+  normalizePin(
+    typeof pinRaw === "object"
+      ? (
+          pinRaw?.pin ||
+          pinRaw?.value ||
+          pinRaw?.codice ||
+          ""
+        )
+      : pinRaw
+  );
+
+console.log(
+  "PIN NORMALIZZATO:",
+  pinNormalizzato
+);
+
+if (!pinNormalizzato) {
+  setMsg("PIN non inserito", "error");
+  return;
+}
+
+const pinOk = await verificaPinTimbrature({
+  aziendaId: azienda.id,
+  dipendenteId,
+  pin: pinNormalizzato,
+});
 
       if (!pinOk) {
         setMsg("PIN errato", "error");
