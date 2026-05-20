@@ -84,7 +84,7 @@ async function fetchDipendenteByUser(aziendaId, userId) {
 
   const { data, error } = await window.supabaseClient
     .from("dipendenti")
-    .select("id, nome, cognome, nome_completo, pin, codice_pin")
+    .select("id, nome, cognome, pin")
     .eq("azienda_id", aziendaId)
     .eq("user_id", userId)
     .limit(1);
@@ -98,7 +98,7 @@ async function fetchDipendentiAzienda(aziendaId) {
 
   const { data, error } = await window.supabaseClient
     .from("dipendenti")
-    .select("id, nome, cognome, nome_completo, attivo")
+    .select("id, nome, cognome, attivo")
     .eq("azienda_id", aziendaId)
     .order("nome", { ascending: true });
 
@@ -180,23 +180,21 @@ async function verificaPinTimbrature({ aziendaId, dipendenteId, pin }) {
 
   const { data, error } = await window.supabaseClient
     .from("dipendenti")
-    .select("pin, codice_pin")
+    .select("pin")
     .eq("azienda_id", aziendaId)
     .eq("id", dipendenteId)
     .maybeSingle();
 
   if (error || !data) return false;
 
-  const possibiliPin = [data.pin, data.codice_pin]
-    .map(normalizePin)
-    .filter(Boolean);
+  const pinDb = normalizePin(data.pin);
 
-  if (!possibiliPin.length) {
-    alert("PIN non configurato per questo dipendente");
+  if (!pinDb) {
+    alert("PIN non configurato");
     return false;
   }
 
-  return possibiliPin.includes(pinInserito);
+  return pinDb === pinInserito;
 }
 
 function tipoToLabel(tipo) {
@@ -280,9 +278,7 @@ function svgIcon(name) {
 }
 
 function getDipendenteNome(d) {
-  return normalizeText(d?.nome_completo) ||
-    normalizeText(`${d?.nome || ""} ${d?.cognome || ""}`) ||
-    "Dipendente";
+  return normalizeText(`${d?.nome || ""} ${d?.cognome || ""}`) || "Dipendente";
 }
 
 function buildRowsTable(rows) {
