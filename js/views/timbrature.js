@@ -1,5 +1,5 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
-import { creaPinModal, verificaPin } from "../components/pinModal.js";
+import { creaPinModal } from "../components/pinModal.js";
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -23,10 +23,32 @@ function toNum(n) {
   return Number.isFinite(x) ? x : null;
 }
 
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizePin(value) {
+  return String(value ?? "").trim();
+}
+
+function getRuoloAttivo() {
+  const raw =
+    window.state?.viewAs ||
+    window.state?.ruolo ||
+    window.state?.utenteAzienda?.ruolo ||
+    "";
+
+  if (window.normalizeRuolo) return window.normalizeRuolo(raw);
+  return String(raw || "").trim().toLowerCase();
+}
+
+function canSeeAll(ruolo) {
+  return ruolo === "admin" || ruolo === "manager" || ruolo === "superadmin";
+}
+
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = (d) => (d * Math.PI) / 180;
-
   const p1 = toRad(lat1);
   const p2 = toRad(lat2);
   const dLat = toRad(lat2 - lat1);
@@ -36,8 +58,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(p1) * Math.cos(p2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 function getPosition(options = {}) {
@@ -48,20 +69,46 @@ function getPosition(options = {}) {
       reject(err);
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve(pos),
-      (err) => reject(err),
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
-        ...options,
-      }
-    );
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 0,
+      ...options,
+    });
   });
 }
 
+async function fetchDipendenteByUser(aziendaId, userId) {
+  if (!aziendaId || !userId) return null;
+
+  const { data, error } = await window.supabaseClient
+    .from("dipendenti")
+    .select("id, nome, cognome, nome_completo, pin, codice_pin")
+    .eq("azienda_id", aziendaId)
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+async function fetchDipendentiAzienda(aziendaId) {
+  if (!aziendaId) return [];
+
+  const { data, error } = await window.supabaseClient
+    .from("dipendenti")
+    .select("id, nome, cognome, nome_completo, attivo")
+    .eq("azienda_id", aziendaId)
+    .order("nome", { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
 async function fetchActiveGeofences(aziendaId) {
+  if (!aziendaId) return [];
+
   const { data, error } = await window.supabaseClient
     .from("geofence_aziende")
     .select("id, nome, lat, lon, raggio_m, attivo")
@@ -73,11 +120,17 @@ async function fetchActiveGeofences(aziendaId) {
 }
 
 async function insertTimbratura(payload) {
+  if (!payload?.azienda_id) throw new Error("azienda_id mancante");
+  if (!payload?.dipendente_id) throw new Error("dipendente_id mancante");
+  if (!payload?.tipo) throw new Error("tipo timbratura mancante");
+
   const { error } = await window.supabaseClient.from("timbrature").insert([payload]);
   if (error) throw error;
 }
 
 async function fetchLastTipo(aziendaId, dipendenteId) {
+  if (!aziendaId || !dipendenteId) return null;
+
   const { data, error } = await window.supabaseClient
     .from("timbrature")
     .select("tipo, timestamp")
@@ -87,11 +140,12 @@ async function fetchLastTipo(aziendaId, dipendenteId) {
     .limit(1);
 
   if (error) throw error;
-  const row = (data || [])[0];
-  return row?.tipo || null;
+  return data?.[0]?.tipo || null;
 }
 
-async function fetchRecentForDipendente(aziendaId, dipendenteId, limit = 50) {
+async function fetchRecentForDipendente(aziendaId, dipendenteId, limit = 80) {
+  if (!aziendaId || !dipendenteId) return [];
+
   const { data, error } = await window.supabaseClient
     .from("timbrature")
     .select("dipendente_id, dip_nome, tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m, canale")
@@ -104,7 +158,9 @@ async function fetchRecentForDipendente(aziendaId, dipendenteId, limit = 50) {
   return data || [];
 }
 
-async function fetchRecentForAzienda(aziendaId, limit = 250) {
+async function fetchRecentForAzienda(aziendaId, limit = 500) {
+  if (!aziendaId) return [];
+
   const { data, error } = await window.supabaseClient
     .from("timbrature")
     .select("dipendente_id, dip_nome, tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m, canale")
@@ -116,14 +172,41 @@ async function fetchRecentForAzienda(aziendaId, limit = 250) {
   return data || [];
 }
 
+async function verificaPinTimbrature({ aziendaId, dipendenteId, pin }) {
+  if (!aziendaId || !dipendenteId) return false;
+
+  const pinInserito = normalizePin(pin);
+  if (!pinInserito) return false;
+
+  const { data, error } = await window.supabaseClient
+    .from("dipendenti")
+    .select("pin, codice_pin")
+    .eq("azienda_id", aziendaId)
+    .eq("id", dipendenteId)
+    .maybeSingle();
+
+  if (error || !data) return false;
+
+  const possibiliPin = [data.pin, data.codice_pin]
+    .map(normalizePin)
+    .filter(Boolean);
+
+  if (!possibiliPin.length) {
+    alert("PIN non configurato per questo dipendente");
+    return false;
+  }
+
+  return possibiliPin.includes(pinInserito);
+}
+
 function tipoToLabel(tipo) {
   switch (tipo) {
     case "inizio_turno":
       return "Entrata";
     case "inizio_pausa":
-      return "Inizia pausa";
+      return "Pausa";
     case "fine_pausa":
-      return "Rientro da pausa";
+      return "Rientro";
     case "fine_turno":
       return "Fine turno";
     default:
@@ -134,8 +217,7 @@ function tipoToLabel(tipo) {
 function tipoToState(tipo) {
   if (tipo === "inizio_turno" || tipo === "fine_pausa") return "Dentro";
   if (tipo === "inizio_pausa") return "In pausa";
-  if (tipo === "fine_turno") return "Fuori";
-  return "Fuori";
+  return "Fuori turno";
 }
 
 function computeUiFromLastTipo(lastTipo) {
@@ -150,8 +232,6 @@ function computeUiFromLastTipo(lastTipo) {
 
   if (lastTipo === "inizio_turno" || lastTipo === "fine_pausa") {
     ui.stato = "In turno";
-    ui.primaryLabel = "Entrata";
-    ui.primaryAction = "inizio_turno";
     ui.primaryEnabled = false;
     ui.pausaEnabled = true;
     ui.fineEnabled = true;
@@ -168,46 +248,41 @@ function computeUiFromLastTipo(lastTipo) {
     return ui;
   }
 
-  if (lastTipo === "fine_turno") {
-    ui.primaryLabel = "Fine turno";
-    return ui;
-  }
-
   return ui;
 }
 
-function buildGeoResultView(geo_esito, geo_motivo) {
-  if (!geo_esito) return `<span style="opacity:.7;">—</span>`;
-  const badge = `<span style="
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:800;
-    border:1px solid rgba(0,0,0,.12);
-    background:${geo_esito === "OK" ? "rgba(22,163,74,.10)" : "rgba(220,38,38,.10)"};
-  ">${escapeHtml(geo_esito)}</span>`;
+function buildGeoResultView(geoEsito, geoMotivo) {
+  if (!geoEsito) return `<span style="opacity:.7;">—</span>`;
 
-  const motive = geo_motivo ? ` <span style="opacity:.7;">(${escapeHtml(geo_motivo)})</span>` : "";
-  return `${badge}${motive}`;
+  const badge = `
+    <span style="
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid rgba(0,0,0,.12);
+      background:${geoEsito === "OK" ? "rgba(22,163,74,.10)" : "rgba(220,38,38,.10)"};
+    ">${escapeHtml(geoEsito)}</span>
+  `;
+
+  return `${badge}${geoMotivo ? ` <span style="opacity:.7;">(${escapeHtml(geoMotivo)})</span>` : ""}`;
 }
 
 function svgIcon(name) {
   const common = `class="tb-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
-  if (name === "play") {
-    return `<svg ${common} fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-  }
-  if (name === "pause") {
-    return `<svg ${common} fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>`;
-  }
-  if (name === "stop") {
-    return `<svg ${common} fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
-  }
+
+  if (name === "play") return `<svg ${common} fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  if (name === "pause") return `<svg ${common} fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>`;
+  if (name === "stop") return `<svg ${common} fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
+
   return `<svg ${common} fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>`;
 }
 
-function canSeeAll(ruolo) {
-  return ruolo === "admin" || ruolo === "manager" || ruolo === "superadmin";
+function getDipendenteNome(d) {
+  return normalizeText(d?.nome_completo) ||
+    normalizeText(`${d?.nome || ""} ${d?.cognome || ""}`) ||
+    "Dipendente";
 }
 
 function buildRowsTable(rows) {
@@ -215,7 +290,7 @@ function buildRowsTable(rows) {
     return `<div class="timbrature-muted">Nessuna timbratura trovata.</div>`;
   }
 
-  const head = `
+  return `
     <table class="tb-table">
       <thead>
         <tr>
@@ -227,91 +302,140 @@ function buildRowsTable(rows) {
         </tr>
       </thead>
       <tbody>
+        ${rows
+          .map((r) => {
+            const coords =
+              r.lat != null && r.lon != null
+                ? `${Number(r.lat).toFixed(6)}, ${Number(r.lon).toFixed(6)} ± ${r.accuracy_m != null ? Number(r.accuracy_m).toFixed(0) : "?"}m`
+                : "posizione non disponibile";
+
+            return `
+              <tr>
+                <td>
+                  <strong>${escapeHtml(r.dip_nome || "Dipendente")}</strong>
+                  <br>
+                  <span style="opacity:.7;">${escapeHtml(r.canale || "")}</span>
+                </td>
+                <td>${escapeHtml(tipoToLabel(r.tipo))}</td>
+                <td>${escapeHtml(formatDateTime(r.timestamp))}</td>
+                <td>${buildGeoResultView(r.geo_esito, r.geo_motivo)}</td>
+                <td style="opacity:.8;">${escapeHtml(coords)}</td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
   `;
-
-  const body = rows
-    .map((r) => {
-      const geo = buildGeoResultView(r.geo_esito, r.geo_motivo);
-      const coords =
-        r.lat != null && r.lon != null
-          ? `${Number(r.lat).toFixed(6)}, ${Number(r.lon).toFixed(6)} ± ${r.accuracy_m != null ? Number(r.accuracy_m).toFixed(0) : "?"}m`
-          : `posizione non disponibile`;
-
-      return `
-        <tr>
-          <td><strong>${escapeHtml(r.dip_nome || "")}</strong><br><span style="opacity:.7;">${escapeHtml(r.canale || "")}</span></td>
-          <td>${escapeHtml(tipoToLabel(r.tipo))}</td>
-          <td>${escapeHtml(formatDateTime(r.timestamp))}</td>
-          <td>${geo}</td>
-          <td style="opacity:.8;">${escapeHtml(coords)}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const tail = `</tbody></table>`;
-  return head + body + tail;
 }
 
-function computeEmployeesFromRows(rows) {
-  const latestByEmp = new Map();
+function computeEmployeesStatus(dipendenti, rows) {
+  const latestByDip = new Map();
+
   for (const r of rows) {
-    const key = r.dipendente_id || r.dip_nome || "unknown";
-    if (!latestByEmp.has(key)) {
-      latestByEmp.set(key, r);
-    }
+    if (!r.dipendente_id) continue;
+    if (!latestByDip.has(r.dipendente_id)) latestByDip.set(r.dipendente_id, r);
   }
 
-  const list = Array.from(latestByEmp.values()).map((r) => {
-    const stato = tipoToState(r.tipo);
-    return { dipendente_id: r.dipendente_id, dip_nome: r.dip_nome, stato, ts: r.timestamp };
+  const list = dipendenti.map((d) => {
+    const latest = latestByDip.get(d.id);
+    return {
+      dipendente_id: d.id,
+      dip_nome: latest?.dip_nome || getDipendenteNome(d),
+      stato: tipoToState(latest?.tipo),
+      ts: latest?.timestamp || null,
+      attivo: d.attivo !== false,
+    };
   });
 
-  const dentro = list.filter((x) => x.stato === "Dentro");
-  const pausa = list.filter((x) => x.stato === "In pausa");
-  const fuori = list.filter((x) => x.stato === "Fuori");
-
-  return { list, dentro, pausa, fuori };
+  return {
+    list,
+    dentro: list.filter((x) => x.stato === "Dentro"),
+    pausa: list.filter((x) => x.stato === "In pausa"),
+    fuori: list.filter((x) => x.stato === "Fuori turno"),
+  };
 }
-async function richiediPin(dipendenteId, aziendaId) {
 
-  const pin = prompt("Inserisci PIN dipendente");
+function renderOperatorCard() {
+  return createCard({
+    title: "Timbratura",
+    body: `
+      <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
 
-  if (!pin) return false;
+      <div class="tb-scroll-actions">
+        <div class="tb-actions-mobile">
+          <button id="btn-primary" class="btn-timbratura big green" type="button">
+            ${svgIcon("play")}
+            <div class="tb-label">Entrata</div>
+          </button>
 
-  const { data, error } = await window.supabaseClient
-    .from("dipendenti")
-    .select("pin, codice_pin")
-    .eq("id", dipendenteId)
-    .eq("azienda_id", aziendaId)
-    .maybeSingle();
+          <button id="btn-pausa" class="btn-timbratura big gray" type="button">
+            ${svgIcon("pause")}
+            <div class="tb-label">Pausa</div>
+          </button>
 
-  if (error || !data) return false;
+          <button id="btn-fine" class="btn-timbratura big red" type="button">
+            ${svgIcon("stop")}
+            <div class="tb-label">Fine turno</div>
+          </button>
+        </div>
+      </div>
 
-  const pinDb = data.pin || data.codice_pin;
-
-  if (!pinDb) {
-    alert("PIN non configurato");
-    return false;
-  }
-
-  if (String(pinDb) !== String(pin)) {
-    alert("PIN errato");
-    return false;
-  }
-
-  return true;
+      <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
+      <div id="tb-msg" style="margin-top:10px;"></div>
+    `,
+  });
 }
+
+function renderManagerCards() {
+  return `
+    ${createCard({
+      title: "Monitor live",
+      body: `
+        <div id="tb-chips" class="tb-chips"></div>
+        <div id="tb-people" style="margin-top:10px;"></div>
+      `,
+    })}
+
+    ${createCard({
+      title: "Storico Timbrature",
+      body: `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <button id="tb-toggle" class="app-button small" type="button">Mostra Timbrature 📋</button>
+        </div>
+
+        <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
+          <div class="timbrature-toolbar">
+            <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
+            <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+          </div>
+
+          <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+        </div>
+      `,
+    })}
+  `;
+}
+
+function renderOperatorHistoryCard() {
+  return createCard({
+    title: "Le tue timbrature",
+    body: `
+      <div id="tb-panel" class="timbrature-card" style="margin-top:12px;">
+        <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+      </div>
+    `,
+  });
+}
+
 export async function render(app) {
   try {
-    console.log("TIMBRATURE LOAD START");
-    console.log("render start");
-
     const azienda = window.state?.azienda;
     const user = window.state?.user;
-    const ruolo = window.state?.ruolo;
+    const ruolo = getRuoloAttivo();
+    const isManager = canSeeAll(ruolo);
 
-    if (!azienda || !user) {
+    if (!azienda?.id || !user?.id) {
       app.innerHTML = `
         <div class="login-wrapper">
           <div class="login-card">
@@ -322,149 +446,44 @@ export async function render(app) {
       return;
     }
 
-   const { data: dipendentiData, error: dipErr } =
-  await window.supabaseClient
-    .from("dipendenti")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("azienda_id", azienda.id)
-    .limit(1);
+    const dipendenteData = await fetchDipendenteByUser(azienda.id, user.id);
+    const dipendenteId = dipendenteData?.id || null;
+    const isOperatore = !isManager && !!dipendenteId;
 
-if (dipErr) {
+    if (!isManager && !dipendenteId) {
+      app.innerHTML = createPageLayout({
+        title: "Timbrature",
+        subtitle: "",
+        content: createCard({
+          title: "Dipendente non collegato",
+          body: `
+            <div class="timbrature-muted">
+              Il tuo utente non è collegato a un record dipendente valido.
+              Contatta un amministratore per completare l'associazione.
+            </div>
+          `,
+        }),
+      });
+      return;
+    }
 
-  console.error(
-    "ERRORE DIPENDENTE:",
-    dipErr
-  );
-
-  throw dipErr;
-
-}
-
-const dipendenteData =
-  dipendentiData?.[0] || null;
-
-if (!dipendenteData) {
-
-  const ruoloNorm =
-    window.normalizeRuolo
-      ? window.normalizeRuolo(
-          window.state?.viewAs ||
-          window.state?.ruolo
-        )
-      : (
-          window.state?.viewAs ||
-          window.state?.ruolo
-        );
-
-  // ADMIN / MANAGER / SUPERADMIN
-  // possono entrare senza record dipendente
-
-  if (
-    ruoloNorm === "admin" ||
-    ruoloNorm === "manager" ||
-    ruoloNorm === "superadmin"
-  ) {
-
-    console.warn(
-      "Accesso admin senza dipendente"
-    );
-
-  } else {
-
-    throw new Error(
-      "Dipendente non trovato"
-    );
-
-  }
-
-}
-
-
-const dipendenteId =
-  dipendenteData?.id || null;
-    const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
-
-    const isManager = canSeeAll(ruolo);
-
-    let panelOpen = false;
+    let panelOpen = !isManager;
     let cachedRowsAll = [];
     let cachedRowsMine = [];
+    let cachedDipendenti = [];
     let selectedDip = "ALL";
 
     app.innerHTML = createPageLayout({
       title: "Timbrature",
       subtitle: "",
       content: `
-    <div class="timbrature-page">
-
-      ${createCard({
-        title: "Timbratura",
-        body: `
-          <div class="timbrature-muted" id="tb-status">Caricamento stato...</div>
-
-          <div class="tb-scroll-actions">
-           <div class="tb-actions-mobile">
-
-  <button id="btn-primary" class="btn-timbratura big green" type="button">
-    ${svgIcon("play")}
-    <div class="tb-label">Entrata</div>
-  </button>
-
-  <button id="btn-pausa" class="btn-timbratura big gray" type="button">
-    ${svgIcon("pause")}
-    <div class="tb-label">Pausa</div>
-  </button>
-
-  <button id="btn-fine" class="btn-timbratura big red" type="button">
-    ${svgIcon("stop")}
-    <div class="tb-label">Fine turno</div>
-  </button>
-
-</div>
-
-          <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
-          <div id="tb-msg" style="margin-top:10px;"></div>
-        `
-      })}
-
-     ${isManager ? createCard({
-  title: "Stato Dipendenti",
-  body: `
-    <div id="tb-chips" class="tb-chips"></div>
-    <div id="tb-people" style="margin-top:10px;"></div>
-  `
-}) : ""}
-
-${createCard({
-  title: isManager ? "Storico Timbrature" : "Le tue timbrature",
-  body: `
-    
-    ${isManager ? `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-        <button id="tb-toggle" class="app-button small">Mostra Timbrature 📋</button>
-      </div>
-    ` : ""}
-
-    <div id="tb-panel" class="timbrature-card" style="margin-top:12px; ${isManager ? "display:none;" : ""}">
-      
-      ${isManager ? `
-        <div class="timbrature-toolbar">
-          <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
-          <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+        <div class="timbrature-page">
+          ${isOperatore ? renderOperatorCard() : ""}
+          ${isManager ? renderManagerCards() : ""}
+          ${isOperatore ? renderOperatorHistoryCard() : ""}
         </div>
-      ` : ""}
-
-      <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">
-        Caricamento...
-      </div>
-
-    </div>
-  `
-})}
-    </div>
-  `
-});
+      `,
+    });
 
     const elStatus = app.querySelector("#tb-status");
     const elPrimary = app.querySelector("#btn-primary");
@@ -473,20 +492,16 @@ ${createCard({
     const elMsg = app.querySelector("#tb-msg");
     const elList = app.querySelector("#tb-list");
     const elLastGeo = app.querySelector("#tb-last-geo");
-
     const elToggle = app.querySelector("#tb-toggle");
     const elPanel = app.querySelector("#tb-panel");
     const elSearch = app.querySelector("#tb-search");
     const elFilter = app.querySelector("#tb-filter");
-
     const elChips = app.querySelector("#tb-chips");
     const elPeople = app.querySelector("#tb-people");
 
-    if (!elStatus || !elPrimary || !elPausa || !elFine || !elMsg || !elLastGeo) {
-      throw new Error("TIMBRATURE_DOM_MISSING");
-    }
-
     function setMsg(text, kind = "info") {
+      if (!elMsg) return;
+
       const bg =
         kind === "ok"
           ? "rgba(0,160,80,.10)"
@@ -502,13 +517,14 @@ ${createCard({
             : "rgba(0,0,0,.10)";
 
       elMsg.innerHTML = `
-        <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">${text}</div>
+        <div style="padding:10px 12px; border-radius:10px; background:${bg}; border:1px solid ${border};">
+          ${text}
+        </div>
       `;
     }
 
     function applyListFilters(rows) {
       const q = String(elSearch?.value || "").trim().toLowerCase();
-
       let out = rows;
 
       if (isManager && selectedDip && selectedDip !== "ALL") {
@@ -534,243 +550,151 @@ ${createCard({
       const rows = applyListFilters(rowsBase);
       elList.innerHTML = buildRowsTable(rows);
 
-      const last = rowsBase[0];
-      if (last) {
-        elLastGeo.innerHTML = `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`;
-      } else {
-        elLastGeo.innerHTML = "";
+      if (elLastGeo) {
+        const last = rowsBase[0];
+        elLastGeo.innerHTML = last
+          ? `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`
+          : "";
       }
     }
 
     function refreshDipendentiSummary() {
       if (!isManager || !elChips || !elPeople) return;
 
-      const base = isManager ? cachedRowsAll : cachedRowsMine;
-      const { dentro, pausa, fuori } = computeEmployeesFromRows(base);
+      const { dentro, pausa, fuori } = computeEmployeesStatus(cachedDipendenti, cachedRowsAll);
 
       elChips.innerHTML = `
-        <span class="tb-chip"><span class="tb-dot in"></span> Dentro: ${dentro.length}</span>
-        <span class="tb-chip"><span class="tb-dot pause"></span> Pausa: ${pausa.length}</span>
-        <span class="tb-chip"><span class="tb-dot out"></span> Fuori: ${fuori.length}</span>
+        <span class="tb-chip"><span class="tb-dot in"></span> Presenti: ${dentro.length}</span>
+        <span class="tb-chip"><span class="tb-dot pause"></span> In pausa: ${pausa.length}</span>
+        <span class="tb-chip"><span class="tb-dot out"></span> Fuori turno: ${fuori.length}</span>
       `;
 
       const renderGroup = (title, items, dotClass) => {
         if (!items.length) return "";
+
         const names = items
           .sort((a, b) => String(a.dip_nome || "").localeCompare(String(b.dip_nome || "")))
-          .map((x) => `<span class="tb-chip"><span class="tb-dot ${dotClass}"></span>${escapeHtml(x.dip_nome || "")}</span>`)
-          .join(" ");
-        return `<div style="margin-top:10px;"><div style="font-weight:900; margin-bottom:6px;">${escapeHtml(title)}</div><div style="display:flex; gap:8px; flex-wrap:wrap;">${names}</div></div>`;
+          .map((x) => `
+            <span class="tb-chip">
+              <span class="tb-dot ${dotClass}"></span>
+              ${escapeHtml(x.dip_nome || "Dipendente")}
+            </span>
+          `)
+          .join("");
+
+        return `
+          <div style="margin-top:10px;">
+            <div style="font-weight:900; margin-bottom:6px;">${escapeHtml(title)}</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">${names}</div>
+          </div>
+        `;
       };
 
       elPeople.innerHTML =
-        renderGroup("Dentro", dentro, "in") +
+        renderGroup("Presenti", dentro, "in") +
         renderGroup("In pausa", pausa, "pause") +
-        renderGroup("Fuori", fuori, "out");
+        renderGroup("Fuori turno", fuori, "out");
     }
 
-  async function loadData() {
+    function refreshFilterOptions() {
+      if (!isManager || !elFilter) return;
 
-  // =====================================
-  // ADMIN / MANAGER
-  // =====================================
+      const options = cachedDipendenti
+        .map((d) => ({
+          id: d.id,
+          name: getDipendenteNome(d),
+        }))
+        .filter((x) => x.id)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-  if (
-    isManager &&
-    !dipendenteId
-  ) {
+      elFilter.innerHTML =
+        `<option value="ALL">Tutti i dipendenti</option>` +
+        options
+          .map((o) => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`)
+          .join("");
 
-    cachedRowsMine = [];
-
-  } else {
-
-    try {
-
-      cachedRowsMine =
-        await fetchRecentForDipendente(
-          azienda.id,
-          dipendenteId,
-          120
-        );
-
-    } catch (e) {
-
-      console.error(
-        "TIMBRATURE fetchRecentForDipendente ERROR:",
-        e
-      );
-
-      throw e;
-
+      elFilter.value = selectedDip;
     }
 
-  }
+    async function loadManagerData() {
+      if (!isManager) return;
 
-  // =====================================
-  // DATI GLOBALI
-  // =====================================
+      cachedDipendenti = await fetchDipendentiAzienda(azienda.id);
+      cachedRowsAll = await fetchRecentForAzienda(azienda.id, 500);
 
-  if (isManager) {
-
-    try {
-
-      cachedRowsAll =
-        await fetchRecentForAzienda(
-          azienda.id,
-          500
-        );
-
-    } catch (e) {
-
-      console.error(
-        "TIMBRATURE fetchRecentForAzienda ERROR:",
-        e
-      );
-
-      throw e;
-
-    }
-
-  } else {
-
-    cachedRowsAll = [];
-
-  }
-
-  if (isManager && elFilter) {
-
-    const options = [];
-    const seen = new Map();
-
-    for (const r of cachedRowsAll) {
-
-      if (!r.dipendente_id) continue;
-
-      if (!seen.has(r.dipendente_id)) {
-
-        seen.set(
-          r.dipendente_id,
-          r.dip_nome || "Dipendente"
-        );
-
-      }
-
-    }
-
-    for (const [id, name] of seen.entries()) {
-
-      options.push({ id, name });
-
-    }
-
-    options.sort((a, b) =>
-      String(a.name).localeCompare(
-        String(b.name)
-      )
-    );
-
-    elFilter.innerHTML =
-      `<option value="ALL">Tutti i dipendenti</option>` +
-      options.map((o) =>
-        `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`
-      ).join("");
-
-  }
-
-}
-      
-
-    async function refreshUi() {
-      elMsg.innerHTML = "";
-
-     let lastTipo = null;
-
-// =====================================
-// SOLO DIPENDENTE OPERATIVO
-// =====================================
-
-if (dipendenteId) {
-
-  try {
-
-    lastTipo =
-      await fetchLastTipo(
-        azienda.id,
-        dipendenteId
-      );
-
-  } catch (e) {
-
-    console.error(
-      "TIMBRATURE fetchLastTipo ERROR:",
-      e
-    );
-
-    throw e;
-
-  }
-
-}
-
-      const ui = computeUiFromLastTipo(lastTipo);
-
-      elStatus.textContent = `Stato attuale: ${ui.stato}`;
-
-      const primaryLabel = ui.primaryLabel;
-      const primaryLabelEl = elPrimary.querySelector(".tb-label");
-      if (!primaryLabelEl) throw new Error("TIMBRATURE_PRIMARY_LABEL_MISSING");
-      primaryLabelEl.textContent = primaryLabel;
-
-      elPrimary.disabled = !ui.primaryEnabled;
-      elPausa.disabled = !ui.pausaEnabled;
-      elFine.disabled = !ui.fineEnabled;
-
-      elPrimary.classList.remove("active");
-      elPausa.classList.remove("active");
-      elFine.classList.remove("active");
-
-      if (ui.stato === "Fuori turno") {
-        elPrimary.classList.add("active");
-      }
-
-      if (ui.stato === "In turno") {
-        elPausa.classList.add("active");
-      }
-
-      if (ui.stato === "In pausa") {
-        elPrimary.classList.add("active");
-      }
-
-      await loadData();
+      refreshFilterOptions();
       refreshDipendentiSummary();
+
       if (panelOpen) refreshTimbratureList();
     }
 
-   async function doTimbratura(tipo) {
+    async function loadOperatorData() {
+      if (!isOperatore || !dipendenteId) return;
 
-  const pin = await creaPinModal();
+      cachedRowsMine = await fetchRecentForDipendente(azienda.id, dipendenteId, 120);
+      refreshTimbratureList();
+    }
 
-  if (!pin) {
-    setMsg("PIN non inserito", "error");
-    return;
-  }
+    async function refreshOperatorUi() {
+      if (!isOperatore || !dipendenteId) return;
 
-  const ok = await verificaPin({
-    dipendenteId,
-    aziendaId: azienda.id,
-    pin
-  });
+      if (elMsg) elMsg.innerHTML = "";
 
-  if (!ok) {
-    setMsg("PIN errato", "error");
-    return;
-  }
+      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+      const ui = computeUiFromLastTipo(lastTipo);
 
-  elPrimary.disabled = true;
-  elPausa.disabled = true;
-  elFine.disabled = true;
+      if (elStatus) elStatus.textContent = `Stato attuale: ${ui.stato}`;
+
+      const primaryLabelEl = elPrimary?.querySelector(".tb-label");
+      if (primaryLabelEl) primaryLabelEl.textContent = ui.primaryLabel;
+
+      if (elPrimary) elPrimary.disabled = !ui.primaryEnabled;
+      if (elPausa) elPausa.disabled = !ui.pausaEnabled;
+      if (elFine) elFine.disabled = !ui.fineEnabled;
+
+      elPrimary?.classList.remove("active");
+      elPausa?.classList.remove("active");
+      elFine?.classList.remove("active");
+
+      if (ui.stato === "Fuori turno") elPrimary?.classList.add("active");
+      if (ui.stato === "In turno") elPausa?.classList.add("active");
+      if (ui.stato === "In pausa") elPrimary?.classList.add("active");
+
+      await loadOperatorData();
+    }
+
+    async function doTimbratura(tipo) {
+      if (!isOperatore || !dipendenteId) return;
+
+      const pin = await creaPinModal();
+
+      if (!normalizePin(pin)) {
+        setMsg("PIN non inserito", "error");
+        return;
+      }
+
+      const pinOk = await verificaPinTimbrature({
+        aziendaId: azienda.id,
+        dipendenteId,
+        pin,
+      });
+
+      if (!pinOk) {
+        setMsg("PIN errato", "error");
+        return;
+      }
+
+      if (elPrimary) elPrimary.disabled = true;
+      if (elPausa) elPausa.disabled = true;
+      if (elFine) elFine.disabled = true;
 
       setMsg("Acquisizione posizione...", "info");
+
+      const dipNome =
+        getDipendenteNome(dipendenteData) ||
+        user?.user_metadata?.full_name ||
+        user?.email ||
+        "Dipendente";
 
       const basePayload = {
         azienda_id: azienda.id,
@@ -795,6 +719,7 @@ if (dipendenteId) {
       } catch (err) {
         const code = typeof err?.code === "number" ? err.code : null;
         let motivo = "GEO_UNAVAILABLE";
+
         if (err?.message === "GEO_UNSUPPORTED" || err?.code === "GEO_UNSUPPORTED") motivo = "GEO_UNSUPPORTED";
         else if (code === 1) motivo = "GEO_DENIED";
         else if (code === 2) motivo = "GEO_UNAVAILABLE";
@@ -809,13 +734,17 @@ if (dipendenteId) {
             geo_esito: "KO",
             geo_motivo: motivo,
           });
-          setMsg(`Timbratura registrata, ma geolocalizzazione non disponibile (${escapeHtml(motivo)}).`, "error");
+
+          setMsg(
+            `Timbratura registrata, ma geolocalizzazione non disponibile (${escapeHtml(motivo)}).`,
+            "error"
+          );
         } catch (e2) {
           console.error("TIMBRATURE insertTimbratura GEO FALLBACK ERROR:", e2);
           setMsg(`Errore salvataggio timbratura: ${escapeHtml(e2.message || e2)}`, "error");
         }
 
-        await refreshUi();
+        await refreshOperatorUi();
         return;
       }
 
@@ -838,6 +767,7 @@ if (dipendenteId) {
             const fLat = toNum(f.lat);
             const fLon = toNum(f.lon);
             const raggio = Number(f.raggio_m ?? 0);
+
             if (fLat == null || fLon == null || !Number.isFinite(raggio) || raggio <= 0) continue;
 
             const dist = haversineMeters(lat, lon, fLat, fLon);
@@ -880,65 +810,88 @@ if (dipendenteId) {
         setMsg(`Errore salvataggio timbratura: ${escapeHtml(err.message || err)}`, "error");
       }
 
-      await refreshUi();
+      await refreshOperatorUi();
     }
 
-    if (elToggle && elPanel) {
-      elToggle.addEventListener("click", () => {
-        panelOpen = !panelOpen;
-        elPanel.style.display = panelOpen ? "block" : "none";
-        elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
-        if (panelOpen) refreshTimbratureList();
-      });
-    }
-
-    if (elSearch) {
-      elSearch.addEventListener("input", () => {
-        if (!panelOpen) return;
-        refreshTimbratureList();
-      });
-    }
-
-    if (elFilter) {
-      elFilter.addEventListener("change", () => {
-        selectedDip = elFilter.value || "ALL";
-        if (!panelOpen) return;
-        refreshTimbratureList();
-      });
-    }
-
-    elPrimary.addEventListener("click", async () => {
-      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-      const ui = computeUiFromLastTipo(lastTipo);
-
-      if (ui.stato === "Fuori turno") {
-        await doTimbratura("inizio_turno");
-        return;
+    if (isManager) {
+      if (elToggle && elPanel) {
+        elToggle.addEventListener("click", () => {
+          panelOpen = !panelOpen;
+          elPanel.style.display = panelOpen ? "block" : "none";
+          elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
+          if (panelOpen) refreshTimbratureList();
+        });
       }
-      if (ui.stato === "In pausa") {
-        await doTimbratura("fine_pausa");
-        return;
+
+      if (elSearch) {
+        elSearch.addEventListener("input", () => {
+          if (panelOpen) refreshTimbratureList();
+        });
       }
-    });
 
-    elPausa.addEventListener("click", async () => {
-      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-      const ui = computeUiFromLastTipo(lastTipo);
-      if (ui.stato !== "In turno") return;
-      await doTimbratura("inizio_pausa");
-    });
+      if (elFilter) {
+        elFilter.addEventListener("change", () => {
+          selectedDip = elFilter.value || "ALL";
+          if (panelOpen) refreshTimbratureList();
+        });
+      }
 
-    elFine.addEventListener("click", async () => {
-      const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-      const ui = computeUiFromLastTipo(lastTipo);
-      if (ui.stato === "Fuori turno") return;
-      await doTimbratura("fine_turno");
-    });
+      await loadManagerData();
+      return;
+    }
 
-    await refreshUi();
-    console.log("analisi completata");
+    if (isOperatore) {
+      elPrimary?.addEventListener("click", async () => {
+        if (!dipendenteId) return;
+
+        const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+        const ui = computeUiFromLastTipo(lastTipo);
+
+        if (ui.stato === "Fuori turno") {
+          await doTimbratura("inizio_turno");
+          return;
+        }
+
+        if (ui.stato === "In pausa") {
+          await doTimbratura("fine_pausa");
+        }
+      });
+
+      elPausa?.addEventListener("click", async () => {
+        if (!dipendenteId) return;
+
+        const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+        const ui = computeUiFromLastTipo(lastTipo);
+
+        if (ui.stato !== "In turno") return;
+        await doTimbratura("inizio_pausa");
+      });
+
+      elFine?.addEventListener("click", async () => {
+        if (!dipendenteId) return;
+
+        const lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
+        const ui = computeUiFromLastTipo(lastTipo);
+
+        if (ui.stato === "Fuori turno") return;
+        await doTimbratura("fine_turno");
+      });
+
+      await refreshOperatorUi();
+    }
   } catch (e) {
     console.error("TIMBRATURE ERROR:", e);
-    app.innerHTML = "<div>Errore caricamento</div>";
+    app.innerHTML = createPageLayout({
+      title: "Timbrature",
+      subtitle: "",
+      content: createCard({
+        title: "Errore caricamento",
+        body: `
+          <div class="timbrature-muted">
+            ${escapeHtml(e?.message || "Errore imprevisto durante il caricamento delle timbrature.")}
+          </div>
+        `,
+      }),
+    });
   }
 }
