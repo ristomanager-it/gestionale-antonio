@@ -1,7 +1,7 @@
 export async function render(container) {
 
-  const supabase =
-    window.supabaseClient;
+ const supabase =
+  window.supabaseClient || window.supabase;
 
   const aziendaId =
     window.state?.azienda?.id;
