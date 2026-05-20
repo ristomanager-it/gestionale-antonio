@@ -322,16 +322,34 @@ export async function render(app) {
       return;
     }
 
-    const { data: dipendenteData } =
+   const { data: dipendentiData, error: dipErr } =
   await window.supabaseClient
     .from("dipendenti")
     .select("id")
     .eq("user_id", user.id)
     .eq("azienda_id", azienda.id)
-    .single();
+    .limit(1);
+
+if (dipErr) {
+
+  console.error(
+    "ERRORE DIPENDENTE:",
+    dipErr
+  );
+
+  throw dipErr;
+
+}
+
+const dipendenteData =
+  dipendentiData?.[0] || null;
 
 if (!dipendenteData) {
-  throw new Error("Dipendente non trovato");
+
+  throw new Error(
+    "Dipendente non trovato"
+  );
+
 }
 
 const dipendenteId =
