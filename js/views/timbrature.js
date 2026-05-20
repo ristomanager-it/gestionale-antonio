@@ -683,13 +683,34 @@ ${createCard({
     async function refreshUi() {
       elMsg.innerHTML = "";
 
-      let lastTipo = null;
-      try {
-        lastTipo = await fetchLastTipo(azienda.id, dipendenteId);
-      } catch (e) {
-        console.error("TIMBRATURE fetchLastTipo ERROR:", e);
-        throw e;
-      }
+     let lastTipo = null;
+
+// =====================================
+// SOLO DIPENDENTE OPERATIVO
+// =====================================
+
+if (dipendenteId) {
+
+  try {
+
+    lastTipo =
+      await fetchLastTipo(
+        azienda.id,
+        dipendenteId
+      );
+
+  } catch (e) {
+
+    console.error(
+      "TIMBRATURE fetchLastTipo ERROR:",
+      e
+    );
+
+    throw e;
+
+  }
+
+}
 
       const ui = computeUiFromLastTipo(lastTipo);
 
