@@ -984,13 +984,15 @@ window._dipSelfEdit = async function () {
     return;
   }
 
-  const { data: dip, error } = await supabase
-    .from("dipendenti")
-    .select("*")
-    .eq("azienda_id", azienda.id)
-    .eq("user_id", currentUserId)
-    .maybeSingle();
+const { data: dipRows, error } = await supabase
+  .from("dipendenti")
+  .select("*")
+  .eq("azienda_id", azienda.id)
+  .eq("user_id", currentUserId)
+  .limit(1);
 
+const dip =
+  dipRows?.[0] || null;
   if (error || !dip) {
     console.error(error);
     alert("Scheda dipendente non trovata");
