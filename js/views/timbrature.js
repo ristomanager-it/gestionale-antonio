@@ -367,31 +367,6 @@ if (!dipendenteData) {
   ) {
 
     console.warn(
-      "Accesso timbrature admin senza dipendente"
-    );
-
-  } else {
-
-    if (!dipendenteData) {
-
-  const ruoloNorm =
-    window.normalizeRuolo
-      ? window.normalizeRuolo(
-          window.state?.viewAs ||
-          window.state?.ruolo
-        )
-      : (
-          window.state?.viewAs ||
-          window.state?.ruolo
-        );
-
-  if (
-    ruoloNorm === "admin" ||
-    ruoloNorm === "manager" ||
-    ruoloNorm === "superadmin"
-  ) {
-
-    console.warn(
       "Accesso admin senza dipendente"
     );
 
@@ -404,6 +379,7 @@ if (!dipendenteData) {
   }
 
 }
+
 
 const dipendenteId =
   dipendenteData?.id || null;
