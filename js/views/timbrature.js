@@ -381,7 +381,7 @@ if (!dipendenteData) {
 }
 
 const dipendenteId =
-  dipendenteData.id;
+  dipendenteData?.id || null;
     const dipNome = user?.user_metadata?.full_name || user?.email || "Dipendente";
 
     const isManager = canSeeAll(ruolo);
