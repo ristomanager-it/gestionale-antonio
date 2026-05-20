@@ -1,4 +1,4 @@
-export default async function renderPermessiOperatore(container) {
+export async function render(container) {
 
   const supabase =
     window.supabaseClient;
