@@ -126,16 +126,9 @@ const operatori =
         .toLowerCase()
         .trim();
 
-    // ESCLUDE SOLO ADMIN / SUPERADMIN
-
-    if (
-      ruolo.includes("admin") ||
-      ruolo.includes("superadmin")
-    ) {
-      return false;
-    }
-
-    return true;
+    return (
+      ruolo === "operatore"
+    );
 
   });
 
