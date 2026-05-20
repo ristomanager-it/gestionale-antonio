@@ -372,6 +372,31 @@ if (!dipendenteData) {
 
   } else {
 
+    if (!dipendenteData) {
+
+  const ruoloNorm =
+    window.normalizeRuolo
+      ? window.normalizeRuolo(
+          window.state?.viewAs ||
+          window.state?.ruolo
+        )
+      : (
+          window.state?.viewAs ||
+          window.state?.ruolo
+        );
+
+  if (
+    ruoloNorm === "admin" ||
+    ruoloNorm === "manager" ||
+    ruoloNorm === "superadmin"
+  ) {
+
+    console.warn(
+      "Accesso admin senza dipendente"
+    );
+
+  } else {
+
     throw new Error(
       "Dipendente non trovato"
     );
