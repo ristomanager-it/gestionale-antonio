@@ -456,7 +456,10 @@ export function initMenu() {
             label: "Nuovo dipendente",
             route: "crea-dipendente"
           },
-
+{
+  label: "🔐 Permessi operatori",
+  route: "permessi-operatore"
+},
           {
             label: "Timbrature",
             route: "timbrature"
