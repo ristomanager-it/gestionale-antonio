@@ -346,9 +346,37 @@ const dipendenteData =
 
 if (!dipendenteData) {
 
-  throw new Error(
-    "Dipendente non trovato"
-  );
+  const ruoloNorm =
+    window.normalizeRuolo
+      ? window.normalizeRuolo(
+          window.state?.viewAs ||
+          window.state?.ruolo
+        )
+      : (
+          window.state?.viewAs ||
+          window.state?.ruolo
+        );
+
+  // ADMIN / MANAGER / SUPERADMIN
+  // possono entrare senza record dipendente
+
+  if (
+    ruoloNorm === "admin" ||
+    ruoloNorm === "manager" ||
+    ruoloNorm === "superadmin"
+  ) {
+
+    console.warn(
+      "Accesso timbrature admin senza dipendente"
+    );
+
+  } else {
+
+    throw new Error(
+      "Dipendente non trovato"
+    );
+
+  }
 
 }
 
