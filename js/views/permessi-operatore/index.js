@@ -1,7 +1,7 @@
 export async function render(container) {
 
- const supabase =
-  window.supabaseClient || window.supabase;
+  const supabase =
+    window.supabaseClient || window.supabase;
 
   const aziendaId =
     window.state?.azienda?.id;
@@ -15,6 +15,7 @@ export async function render(container) {
     `;
 
     return;
+
   }
 
   const PERMESSI = [
@@ -72,35 +73,91 @@ export async function render(container) {
 
   async function load() {
 
-    list.innerHTML =
-      `<div class="card">Caricamento...</div>`;
+    list.innerHTML = `
+      <div class="card">
+        Caricamento...
+      </div>
+    `;
 
-    const { data: dipendenti } =
-      await supabase
-        .from("dipendenti")
-        .select(`
-          id,
-          nome,
-          cognome,
-          ruolo
-        `)
-        .eq("azienda_id", aziendaId)
-        .eq("ruolo", "operatore")
-        .order("nome");
+    // =====================================
+    // DIPENDENTI
+    // =====================================
 
-    const { data: permessiData } =
-      await supabase
-        .from("permessi_utenti")
-        .select(`
-          id,
-          dipendente_id,
-          permesso,
-          attivo
-        `)
-        .eq("azienda_id", aziendaId);
+    const {
+      data: dipendenti,
+      error: dipErr
+    } = await supabase
+      .from("dipendenti")
+      .select(`
+        id,
+        nome,
+        cognome,
+        ruolo
+      `)
+      .eq("azienda_id", aziendaId)
+      .order("nome");
 
-    const map =
-      {};
+    if (dipErr) {
+
+      console.error(
+        "Errore dipendenti:",
+        dipErr
+      );
+
+      list.innerHTML = `
+        <div class="card">
+          Errore caricamento dipendenti
+        </div>
+      `;
+
+      return;
+
+    }
+
+    // =====================================
+    // SOLO OPERATORI
+    // =====================================
+
+    const operatori =
+      (dipendenti || [])
+        .filter(d => {
+
+          const ruolo =
+            window.normalizeRuolo
+              ? window.normalizeRuolo(d.ruolo)
+              : d.ruolo;
+
+          return ruolo === "operatore";
+
+        });
+
+    // =====================================
+    // PERMESSI
+    // =====================================
+
+    const {
+      data: permessiData,
+      error: permErr
+    } = await supabase
+      .from("permessi_utenti")
+      .select(`
+        id,
+        dipendente_id,
+        permesso,
+        attivo
+      `)
+      .eq("azienda_id", aziendaId);
+
+    if (permErr) {
+
+      console.error(
+        "Errore permessi:",
+        permErr
+      );
+
+    }
+
+    const map = {};
 
     (permessiData || [])
       .forEach(p => {
@@ -114,76 +171,108 @@ export async function render(container) {
 
       });
 
+    // =====================================
+    // EMPTY
+    // =====================================
+
+    if (operatori.length === 0) {
+
+      list.innerHTML = `
+        <div class="card">
+          Nessun operatore trovato
+        </div>
+      `;
+
+      return;
+
+    }
+
+    // =====================================
+    // RENDER
+    // =====================================
+
     list.innerHTML = "";
 
-    (dipendenti || [])
-      .forEach(d => {
+    operatori.forEach(d => {
 
-        const card =
-          document.createElement("div");
+      const card =
+        document.createElement("div");
 
-        card.className =
-          "card";
+      card.className =
+        "card";
 
-        card.style.marginBottom =
-          "16px";
+      card.style.marginBottom =
+        "16px";
 
-        card.innerHTML = `
+      card.innerHTML = `
 
-          <div style="
-            font-size:18px;
-            font-weight:700;
-            margin-bottom:16px;
-          ">
-            ${d.nome} ${d.cognome}
-          </div>
+        <div style="
+          font-size:18px;
+          font-weight:700;
+          margin-bottom:16px;
+        ">
+          ${d.nome || ""}
+          ${d.cognome || ""}
+        </div>
 
-          <div class="perm-grid">
+        <div class="perm-grid">
 
-            ${PERMESSI.map(p => {
+          ${PERMESSI.map(p => {
 
-              const active =
-                map[d.id]?.[p.key] === true;
+            const active =
+              map[d.id]?.[p.key] === true;
 
-              return `
+            return `
 
-                <label
-                  class="perm-item"
-                >
+              <label
+                class="perm-item"
+                style="
+                  display:flex;
+                  align-items:center;
+                  gap:10px;
+                  margin-bottom:12px;
+                "
+              >
 
-                  <input
-                    type="checkbox"
-                    data-dip="${d.id}"
-                    data-perm="${p.key}"
-                    ${active ? "checked" : ""}
-                  />
+                <input
+                  type="checkbox"
+                  data-dip="${d.id}"
+                  data-perm="${p.key}"
+                  ${active ? "checked" : ""}
+                />
 
-                  <span>
-                    ${p.label}
-                  </span>
+                <span>
+                  ${p.label}
+                </span>
 
-                </label>
+              </label>
 
-              `;
+            `;
 
-            }).join("")}
+          }).join("")}
 
-          </div>
+        </div>
 
-        `;
+      `;
 
-        list.appendChild(card);
+      list.appendChild(card);
 
-      });
+    });
 
     bindEvents();
 
   }
 
+  // =====================================
+  // EVENTS
+  // =====================================
+
   function bindEvents() {
 
     list
-      .querySelectorAll("input[type='checkbox']")
+      .querySelectorAll(
+        "input[type='checkbox']"
+      )
       .forEach(input => {
 
         input.onchange =
@@ -198,41 +287,76 @@ export async function render(container) {
             const checked =
               input.checked;
 
-            if (checked) {
+            try {
 
-              await supabase
-                .from("permessi_utenti")
-                .upsert({
+              // =========================
+              // ATTIVA
+              // =========================
 
-                  azienda_id:
-                    aziendaId,
+              if (checked) {
 
-                  dipendente_id:
-                    dipendenteId,
+                const { error } =
+                  await supabase
+                    .from("permessi_utenti")
+                    .upsert({
 
-                  permesso,
+                      azienda_id:
+                        aziendaId,
 
-                  attivo: true
+                      dipendente_id:
+                        dipendenteId,
 
-                });
+                      permesso,
 
-            } else {
+                      attivo: true
 
-              await supabase
-                .from("permessi_utenti")
-                .delete()
-                .eq(
-                  "azienda_id",
-                  aziendaId
-                )
-                .eq(
-                  "dipendente_id",
-                  dipendenteId
-                )
-                .eq(
-                  "permesso",
-                  permesso
-                );
+                    });
+
+                if (error) {
+                  throw error;
+                }
+
+              }
+
+              // =========================
+              // DISATTIVA
+              // =========================
+
+              else {
+
+                const { error } =
+                  await supabase
+                    .from("permessi_utenti")
+                    .delete()
+                    .eq(
+                      "azienda_id",
+                      aziendaId
+                    )
+                    .eq(
+                      "dipendente_id",
+                      dipendenteId
+                    )
+                    .eq(
+                      "permesso",
+                      permesso
+                    );
+
+                if (error) {
+                  throw error;
+                }
+
+              }
+
+            } catch (e) {
+
+              console.error(
+                "Errore salvataggio permesso:",
+                e
+              );
+
+              alert(
+                "Errore salvataggio permesso"
+              );
 
             }
 
