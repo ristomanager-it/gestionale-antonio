@@ -551,10 +551,9 @@ export function initMenu() {
         items: [
 
           {
-            label: "👤 Profilo",
-            route: "completaProfilo"
-          },
-
+  label: "👤 Profilo",
+  route: "completa-profilo"
+},
           {
             label: "🕒 Timbratura",
             route: "timbrature"
