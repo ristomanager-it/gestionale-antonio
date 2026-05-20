@@ -114,22 +114,30 @@ export async function render(container) {
 
     }
 
-    // =====================================
-    // SOLO OPERATORI
-    // =====================================
+// =====================================
+// SOLO UTENTI NON ADMIN
+// =====================================
 
-    const operatori =
-      (dipendenti || [])
-        .filter(d => {
+const operatori =
+  (dipendenti || []).filter(d => {
 
-          const ruolo =
-            window.normalizeRuolo
-              ? window.normalizeRuolo(d.ruolo)
-              : d.ruolo;
+    const ruolo =
+      String(d.ruolo || "")
+        .toLowerCase()
+        .trim();
 
-          return ruolo === "operatore";
+    // ESCLUDE SOLO ADMIN / SUPERADMIN
 
-        });
+    if (
+      ruolo.includes("admin") ||
+      ruolo.includes("superadmin")
+    ) {
+      return false;
+    }
+
+    return true;
+
+  });
 
     // =====================================
     // PERMESSI
