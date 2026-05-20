@@ -1202,11 +1202,31 @@ if (onlineModal.classList.contains("open")) {
   }
 
   function centerActiveDay() {
-    const active = daysContainer.querySelector(".pren-day.is-active");
-    if (!active) return;
-    const left = active.offsetLeft - (daysContainer.clientWidth / 2) + (active.clientWidth / 2);
-    daysContainer.scrollLeft = Math.max(0, left);
-  }
+
+  const active =
+    daysContainer.querySelector(".pren-day.is-active");
+
+  if (!active) return;
+
+  state.isAutoScrolling = true;
+
+  const left =
+    active.offsetLeft -
+    (daysContainer.clientWidth / 2) +
+    (active.clientWidth / 2);
+
+  daysContainer.scrollTo({
+    left: Math.max(0, left),
+    behavior: "instant"
+  });
+
+  setTimeout(() => {
+
+    state.isAutoScrolling = false;
+
+  }, 120);
+
+}
 
   function attachDayInfiniteScroll() {
     if (daysContainer.dataset.infiniteBound === "true") return;
