@@ -236,37 +236,93 @@ function parseHash() {
 ========================================================= */
 
 async function renderView(routeName) {
-  if (!routes[routeName]) routeName = "home";
+
+  if (!routes[routeName]) {
+    routeName = "home";
+  }
+
   if (!app) return;
 
   app.innerHTML = "";
 
-  const sub = document.getElementById("page-subheader");
-  const foot = document.getElementById("footer-root");
+  const sub =
+    document.getElementById("page-subheader");
+
+  const foot =
+    document.getElementById("footer-root");
 
   if (sub) sub.innerHTML = "";
   if (foot) foot.innerHTML = "";
 
-  const module = await routes[routeName]();
+  const module =
+    await routes[routeName]();
 
   if (!module.render) {
-    throw new Error(`La view ${routeName} non esporta render()`);
+
+    throw new Error(
+      `La view ${routeName} non esporta render()`
+    );
+
   }
 
   await module.render(app);
 
-  // 🔥 QUI STA IL FIX (UNA VOLTA SOLA)
+  // 🔥 FOOTER
   try {
+
     if (foot) {
-   
-     const footerHTML = await renderFooter();
-foot.innerHTML = footerHTML;
-initFooter();
+
+      const footerHTML =
+        await renderFooter();
+
+      foot.innerHTML =
+        footerHTML;
+
+      initFooter();
+
     }
+
   } catch (e) {
-    console.error("Errore render footer:", e);
+
+    console.error(
+      "Errore render footer:",
+      e
+    );
+
   }
+
 }
+
+/* =========================================================
+   SUPERADMIN
+========================================================= */
+
+function isSuperadmin() {
+
+  return (
+
+    !window.state?.viewAs &&
+
+    (
+
+      window.state?.isSuperadmin === true ||
+
+      (
+
+        window.normalizeRuolo
+          ? window.normalizeRuolo(
+              window.state?.ruolo
+            )
+          : window.state?.ruolo
+
+      ) === "superadmin"
+
+    )
+
+  );
+
+}
+
 function hasPermission(area) {
 
   if (!area || area === "home") {
@@ -289,7 +345,6 @@ function hasPermission(area) {
   // =====================================
   // ROTTE PIATTAFORMA
   // =====================================
-
   if (PLATFORM_ROUTES.has(area)) {
     return isSuperadmin();
   }
