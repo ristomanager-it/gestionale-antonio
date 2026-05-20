@@ -1228,33 +1228,96 @@ if (onlineModal.classList.contains("open")) {
 
 }
 
-  function attachDayInfiniteScroll() {
-    if (daysContainer.dataset.infiniteBound === "true") return;
+ function attachDayInfiniteScroll() {
 
-    daysContainer.addEventListener("scroll", async () => {
+  if (
+    daysContainer.dataset.infiniteBound === "true"
+  ) return;
+
+  daysContainer.addEventListener(
+    "scroll",
+    async () => {
+
+      if (state.isAutoScrolling) return;
+
       const threshold = 140;
-      const nearLeft = daysContainer.scrollLeft <= threshold;
-      const nearRight = daysContainer.scrollLeft + daysContainer.clientWidth >= daysContainer.scrollWidth - threshold;
+
+      const nearLeft =
+        daysContainer.scrollLeft <= threshold;
+
+      const nearRight =
+        daysContainer.scrollLeft +
+        daysContainer.clientWidth >=
+        daysContainer.scrollWidth - threshold;
 
       if (nearLeft) {
-        const center = new Date(state.daysCenterDate);
-        center.setDate(center.getDate() - 21);
-        state.daysCenterDate = formatDateInput(center);
-        renderDays(false);
-        requestAnimationFrame(centerActiveDay);
-        await loadDayStats();
-      } else if (nearRight) {
-        const center = new Date(state.daysCenterDate);
-        center.setDate(center.getDate() + 21);
-        state.daysCenterDate = formatDateInput(center);
-        renderDays(false);
-        requestAnimationFrame(centerActiveDay);
-        await loadDayStats();
-      }
-    }, { passive: true });
 
-    daysContainer.dataset.infiniteBound = "true";
-  }
+        state.isAutoScrolling = true;
+
+        const center =
+          parseLocalDate(state.daysCenterDate);
+
+        center.setDate(
+          center.getDate() - 21
+        );
+
+        state.daysCenterDate =
+          formatDateInput(center);
+
+        renderDays(false);
+
+        requestAnimationFrame(() => {
+
+          centerActiveDay();
+
+          setTimeout(() => {
+            state.isAutoScrolling = false;
+          }, 120);
+
+        });
+
+        await loadDayStats();
+
+      }
+
+      else if (nearRight) {
+
+        state.isAutoScrolling = true;
+
+        const center =
+          parseLocalDate(state.daysCenterDate);
+
+        center.setDate(
+          center.getDate() + 21
+        );
+
+        state.daysCenterDate =
+          formatDateInput(center);
+
+        renderDays(false);
+
+        requestAnimationFrame(() => {
+
+          centerActiveDay();
+
+          setTimeout(() => {
+            state.isAutoScrolling = false;
+          }, 120);
+
+        });
+
+        await loadDayStats();
+
+      }
+
+    },
+    { passive: true }
+  );
+
+  daysContainer.dataset.infiniteBound =
+    "true";
+
+}
 
   function syncActiveDayFromInput(centerScroll = false) {
     renderDays(centerScroll);
