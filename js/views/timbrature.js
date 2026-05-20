@@ -569,10 +569,115 @@ ${createCard({
         renderGroup("Fuori", fuori, "out");
     }
 
-    async function loadData() {
-      try {
-        cachedRowsMine = await fetchRecentForDipendente(azienda.id, dipendenteId, 120);
-      } catch (e) {
+  async function loadData() {
+
+  // =====================================
+  // ADMIN / MANAGER
+  // =====================================
+
+  if (
+    isManager &&
+    !dipendenteId
+  ) {
+
+    cachedRowsMine = [];
+
+  } else {
+
+    try {
+
+      cachedRowsMine =
+        await fetchRecentForDipendente(
+          azienda.id,
+          dipendenteId,
+          120
+        );
+
+    } catch (e) {
+
+      console.error(
+        "TIMBRATURE fetchRecentForDipendente ERROR:",
+        e
+      );
+
+      throw e;
+
+    }
+
+  }
+
+  // =====================================
+  // DATI GLOBALI
+  // =====================================
+
+  if (isManager) {
+
+    try {
+
+      cachedRowsAll =
+        await fetchRecentForAzienda(
+          azienda.id,
+          500
+        );
+
+    } catch (e) {
+
+      console.error(
+        "TIMBRATURE fetchRecentForAzienda ERROR:",
+        e
+      );
+
+      throw e;
+
+    }
+
+  } else {
+
+    cachedRowsAll = [];
+
+  }
+
+  if (isManager && elFilter) {
+
+    const options = [];
+    const seen = new Map();
+
+    for (const r of cachedRowsAll) {
+
+      if (!r.dipendente_id) continue;
+
+      if (!seen.has(r.dipendente_id)) {
+
+        seen.set(
+          r.dipendente_id,
+          r.dip_nome || "Dipendente"
+        );
+
+      }
+
+    }
+
+    for (const [id, name] of seen.entries()) {
+
+      options.push({ id, name });
+
+    }
+
+    options.sort((a, b) =>
+      String(a.name).localeCompare(
+        String(b.name)
+      )
+    );
+
+    elFilter.innerHTML =
+      `<option value="ALL">Tutti i dipendenti</option>` +
+      options.map((o) =>
+        `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`
+      ).join("");
+
+  }
+
+}
         console.error("TIMBRATURE fetchRecentForDipendente ERROR:", e);
         throw e;
       }
