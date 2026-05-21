@@ -525,8 +525,11 @@ function renderManagerCards() {
           </button>
         </div>
 
-        <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
-
+        <div
+          id="tb-panel"
+          class="timbrature-card"
+          style="margin-top:12px; display:none;"
+        >
           <div class="timbrature-toolbar">
             <input
               id="tb-search"
@@ -543,13 +546,26 @@ function renderManagerCards() {
           </div>
 
           <div id="tb-list" style="margin-top:10px;"></div>
-
         </div>
       `,
     })}
   `;
 }
 
+function renderOperatorHistoryCard() {
+  return createCard({
+    title: "Le tue timbrature",
+    body: `
+      <div
+        id="tb-panel"
+        class="timbrature-card"
+        style="margin-top:12px;"
+      >
+        <div id="tb-list" style="margin-top:10px;"></div>
+      </div>
+    `,
+  });
+}
 function renderOperatorHistoryCard() {
   return createCard({
     title: "Le tue timbrature",
