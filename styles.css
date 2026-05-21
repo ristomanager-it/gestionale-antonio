@@ -1458,3 +1458,49 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   }
 
 }
+.tb-table-wrapper{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+.tb-table{
+  width:100%;
+  min-width:780px;
+  border-collapse:collapse;
+}
+
+.tb-table th,
+.tb-table td{
+  white-space:nowrap;
+}
+
+.timbrature-page{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.timbrature-card{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+@media (max-width:768px){
+
+  .tb-actions-mobile{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .btn-timbratura.big{
+    width:100%;
+  }
+
+  .tb-table{
+    min-width:720px;
+  }
+
+}
