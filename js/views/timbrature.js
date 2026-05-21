@@ -797,6 +797,8 @@ const pinOk = await verificaPinTimbrature({
 
       const basePayload = {
         azienda_id: azienda.id,
+        sede_id:
+  window.state?.sedeAttiva?.id || null,
         dipendente_id: dipendenteId,
         dip_nome: dipNome,
         canale: "web",
