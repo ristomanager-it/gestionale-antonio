@@ -95,7 +95,7 @@ async function fetchDipendenteByUser(aziendaId, userId) {
 
 async function fetchDipendentiAzienda(
   aziendaId,
-  sedeId
+  sedeUuid
 ) {
 
   if (!aziendaId) {
@@ -106,15 +106,15 @@ async function fetchDipendentiAzienda(
     window.supabaseClient
       .from("dipendenti")
       .select(
-        "id, nome, cognome, attivo, sede_id"
+        "id, nome, cognome, attivo, sede_uuid"
       )
       .eq("azienda_id", aziendaId);
 
-  if (sedeId) {
+  if (sedeUuid) {
     query =
       query.eq(
-        "sede_id",
-        sedeId
+        "sede_uuid",
+        sedeUuid
       );
   }
 
@@ -185,7 +185,7 @@ async function fetchRecentForDipendente(aziendaId, dipendenteId, limit = 80) {
 
 async function fetchRecentForAzienda(
   aziendaId,
-  sedeId,
+  sedeUuid,
   limit = 500
 ) {
 
@@ -207,15 +207,15 @@ async function fetchRecentForAzienda(
         lon,
         accuracy_m,
         canale,
-        sede_id
+        sede_uuid
       `)
       .eq("azienda_id", aziendaId);
 
-  if (sedeId) {
+  if (sedeUuid) {
     query =
       query.eq(
-        "sede_id",
-        sedeId
+        "sede_uuid",
+        sedeUuid
       );
   }
 
@@ -797,8 +797,8 @@ const pinOk = await verificaPinTimbrature({
 
       const basePayload = {
         azienda_id: azienda.id,
-        sede_id:
-  window.state?.sedeAttiva?.id || null,
+        sede_uuid:
+          window.state?.sedeAttiva?.id || null,
         dipendente_id: dipendenteId,
         dip_nome: dipNome,
         canale: "web",
