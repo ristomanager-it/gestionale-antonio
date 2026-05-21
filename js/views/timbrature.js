@@ -102,19 +102,59 @@ async function fetchDipendentiAzienda(
     return [];
   }
 
+  let userIds = [];
+
+  if (sedeUuid) {
+    let utentiSedeQuery =
+      window.supabaseClient
+        .from("utenti_sedi")
+        .select("user_id, sede_uuid")
+        .eq("sede_uuid", sedeUuid);
+
+    utentiSedeQuery =
+      utentiSedeQuery.eq(
+        "azienda_id",
+        aziendaId
+      );
+
+    const {
+      data: utentiSede,
+      error: utentiSedeError
+    } =
+      await utentiSedeQuery;
+
+    if (utentiSedeError) {
+      throw utentiSedeError;
+    }
+
+    userIds =
+      Array.from(
+        new Set(
+          (utentiSede || [])
+            .map((row) => row?.user_id)
+            .filter(Boolean)
+            .map((id) => String(id))
+        )
+      );
+
+    if (!userIds.length) {
+      return [];
+    }
+  }
+
   let query =
     window.supabaseClient
       .from("dipendenti")
       .select(
-        "id, nome, cognome, attivo, sede_uuid"
+        "id, nome, cognome, attivo, user_id"
       )
       .eq("azienda_id", aziendaId);
 
   if (sedeUuid) {
     query =
-      query.eq(
-        "sede_uuid",
-        sedeUuid
+      query.in(
+        "user_id",
+        userIds
       );
   }
 
@@ -131,6 +171,7 @@ async function fetchDipendentiAzienda(
   return data || [];
 
 }
+
 async function fetchActiveGeofences(aziendaId) {
   if (!aziendaId) return [];
 
@@ -678,20 +719,20 @@ export async function render(app) {
     async function loadManagerData() {
       if (!isManager) return;
 
-    const sedeId =
+    const sedeUuid =
   window.state?.sedeAttiva?.id ||
   null;
 
 cachedDipendenti =
   await fetchDipendentiAzienda(
     azienda.id,
-    sedeId
+    sedeUuid
   );
 
 cachedRowsAll =
   await fetchRecentForAzienda(
     azienda.id,
-    sedeId,
+    sedeUuid,
     500
   );
       refreshFilterOptions();
