@@ -520,39 +520,30 @@ function renderManagerCards() {
       title: "Storico Timbrature",
       body: `
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <button id="tb-toggle" class="app-button small" type="button">Mostra Timbrature 📋</button>
+          <button id="tb-toggle" class="app-button small" type="button">
+            Mostra Timbrature 📋
+          </button>
         </div>
 
         <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
+
           <div class="timbrature-toolbar">
-            <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
-            <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
-          </div>
+            <input
+              id="tb-search"
+              class="input-pill"
+              placeholder="Cerca..."
+              style="flex:1; min-width:220px;"
+            />
 
-         function renderManagerCards() {
-  return `
-    ${createCard({
-      title: "Monitor live",
-      body: `
-        <div id="tb-chips" class="tb-chips"></div>
-        <div id="tb-people" style="margin-top:10px;"></div>
-      `,
-    })}
-
-    ${createCard({
-      title: "Storico Timbrature",
-      body: `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <button id="tb-toggle" class="app-button small" type="button">Mostra Timbrature 📋</button>
-        </div>
-
-        <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
-          <div class="timbrature-toolbar">
-            <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
-            <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+            <select
+              id="tb-filter"
+              class="input-pill"
+              style="max-width:260px;"
+            ></select>
           </div>
 
           <div id="tb-list" style="margin-top:10px;"></div>
+
         </div>
       `,
     })}
