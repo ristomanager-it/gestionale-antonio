@@ -15,6 +15,8 @@ export async function render(container) {
     .toISOString()
     .slice(0,10);
 
+  const sedeUuid = window.state?.sedeAttiva?.id || null;
+
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -44,12 +46,18 @@ export async function render(container) {
 
     staff = staffData || [];
 
-    const { data: tData } = await supabase
+    let timbratureQuery = supabase
       .from("timbrature")
       .select("*")
       .eq("azienda_id", azienda.id)
       .gte("timestamp", `${today}T00:00:00`)
       .lt("timestamp", `${tomorrowStr}T00:00:00`);
+
+    if (sedeUuid) {
+      timbratureQuery = timbratureQuery.eq("sede_uuid", sedeUuid);
+    }
+
+    const { data: tData } = await timbratureQuery;
 
     timbrature = tData || [];
 
