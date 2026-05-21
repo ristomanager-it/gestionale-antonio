@@ -104,7 +104,7 @@ async function getFooterAlerts(ruolo, aziendaId, supabase){
       .from("timbrature")
       .select("id")
       .eq("azienda_id", aziendaId)
-      .eq("user_id", window.state.user.id)
+     .eq("dipendente_id", dipendenteId)
       .gte("timestamp", `${today}T00:00:00`)
       .lt("timestamp", `${tomorrow}T00:00:00`)
 
