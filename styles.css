@@ -1349,6 +1349,7 @@ textarea {
     grid-template-columns: 1fr !important;
   }
 }
+
 /* =========================================
 TIMBRATURE MOBILE FIX DEFINITIVO
 ========================================= */
@@ -1372,17 +1373,18 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   width: 100%;
 }
 
-.tb-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-}
-
 .tb-table-wrapper {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 14px;
+}
+
+.tb-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
 }
 
 .tb-table th,
@@ -1395,28 +1397,41 @@ TIMBRATURE MOBILE FIX DEFINITIVO
 
 .tb-scroll-actions {
   width: 100%;
-  overflow-x: auto;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .tb-actions-mobile {
   width: 100%;
+  max-width: 100%;
+}
+
+#tb-list {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
 
-  .timbrature-page {
-    padding: 0;
+  .timbrature-page,
+  .timbrature-card,
+  #tb-list {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .tb-table-wrapper {
+    width: calc(100% + 12px);
+    max-width: calc(100% + 12px);
     margin-left: -6px;
     margin-right: -6px;
-    width: calc(100% + 12px);
     padding-bottom: 6px;
   }
 
   .tb-table {
-    min-width: 900px;
+    min-width: 920px;
     font-size: 12px;
   }
 
@@ -1429,14 +1444,17 @@ TIMBRATURE MOBILE FIX DEFINITIVO
     flex-direction: column;
   }
 
+  .timbrature-toolbar input,
+  .timbrature-toolbar select,
   .timbrature-toolbar .input-pill {
     width: 100%;
     max-width: 100%;
+    min-width: 0 !important;
   }
 
   .btn-timbratura.big {
-    min-height: 72px;
     width: 100%;
+    min-height: 72px;
   }
 
 }
