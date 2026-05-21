@@ -1485,3 +1485,142 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   }
 
 }
+/* =========================================
+TIMBRATURE MOBILE FIX DEFINITIVO
+========================================= */
+
+.timbrature-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.timbrature-card {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.timbrature-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: center;
+}
+
+.timbrature-toolbar input,
+.timbrature-toolbar select,
+.timbrature-toolbar .input,
+.timbrature-toolbar .input-pill {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tb-scroll-actions {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.tb-actions-mobile {
+  width: 100%;
+  max-width: 100%;
+}
+
+#tb-list {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tb-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin: 0;
+  padding-bottom: 6px;
+  border-radius: 14px;
+}
+
+.tb-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.tb-table th,
+.tb-table td {
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+
+  .timbrature-page,
+  .timbrature-card,
+  #tb-list {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .timbrature-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .timbrature-toolbar input,
+  .timbrature-toolbar select,
+  .timbrature-toolbar .input,
+  .timbrature-toolbar .input-pill,
+  .timbrature-toolbar .app-button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+  }
+
+  .tb-actions-mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .btn-timbratura.big {
+    width: 100%;
+    min-height: 72px;
+  }
+
+  .tb-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding-bottom: 6px;
+  }
+
+  .tb-table {
+    width: 100%;
+    min-width: 720px;
+    font-size: 12px;
+    table-layout: auto;
+  }
+
+  .tb-table th,
+  .tb-table td {
+    padding: 8px;
+  }
+
+}
