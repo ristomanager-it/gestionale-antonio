@@ -1443,3 +1443,21 @@ TIMBRATURE
   }
 
 }
+#tb-list{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.tb-table-wrapper{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+.tb-table{
+  width:100%;
+  min-width:720px;
+  border-collapse:collapse;
+}
