@@ -93,19 +93,44 @@ async function fetchDipendenteByUser(aziendaId, userId) {
   return data?.[0] || null;
 }
 
-async function fetchDipendentiAzienda(aziendaId) {
-  if (!aziendaId) return [];
+async function fetchDipendentiAzienda(
+  aziendaId,
+  sedeId
+) {
 
-  const { data, error } = await window.supabaseClient
-    .from("dipendenti")
-    .select("id, nome, cognome, attivo")
-    .eq("azienda_id", aziendaId)
-    .order("nome", { ascending: true });
+  if (!aziendaId) {
+    return [];
+  }
 
-  if (error) throw error;
+  let query =
+    window.supabaseClient
+      .from("dipendenti")
+      .select(
+        "id, nome, cognome, attivo, sede_id"
+      )
+      .eq("azienda_id", aziendaId);
+
+  if (sedeId) {
+    query =
+      query.eq(
+        "sede_id",
+        sedeId
+      );
+  }
+
+  const { data, error } =
+    await query.order(
+      "nome",
+      { ascending: true }
+    );
+
+  if (error) {
+    throw error;
+  }
+
   return data || [];
-}
 
+}
 async function fetchActiveGeofences(aziendaId) {
   if (!aziendaId) return [];
 
