@@ -172,17 +172,34 @@ async function fetchDipendentiAzienda(
 
 }
 
-async function fetchActiveGeofences(aziendaId) {
+async function fetchActiveGeofences(aziendaId, sedeUuid = null) {
   if (!aziendaId) return [];
 
-  const { data, error } = await window.supabaseClient
-    .from("geofence_aziende")
-    .select("id, nome, lat, lon, raggio_m, attivo")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true);
+  const sede =
+    (window.state?.sedeAttiva && String(window.state.sedeAttiva.id) === String(sedeUuid || window.state.sedeAttiva.id)
+      ? window.state.sedeAttiva
+      : null) ||
+    (Array.isArray(window.state?.sedi)
+      ? window.state.sedi.find((s) => String(s.id) === String(sedeUuid))
+      : null);
 
-  if (error) throw error;
-  return data || [];
+  const lat = toNum(sede?.latitudine);
+  const lon = toNum(sede?.longitudine);
+  const raggio = toNum(sede?.raggio_geofence_m) || 120;
+
+  if (lat == null || lon == null) {
+    return [];
+  }
+
+  return [{
+    id: sede?.id || sedeUuid || "sede-attiva",
+    nome: sede?.nome || "Sede attiva",
+    lat,
+    lon,
+    raggio_m: raggio,
+    attivo: true,
+    sede_uuid: sede?.id || sedeUuid || null
+  }];
 }
 
 async function insertTimbratura(payload) {
@@ -897,7 +914,10 @@ const pinOk = await verificaPinTimbrature({
       let geo_motivo = "NO_GEOFENCE_CONFIGURED";
 
       try {
-        const fences = await fetchActiveGeofences(azienda.id);
+        const fences = await fetchActiveGeofences(
+          azienda.id,
+          window.state?.sedeAttiva?.id || null
+        );
 
         if (!fences.length) {
           geo_esito = "KO";
