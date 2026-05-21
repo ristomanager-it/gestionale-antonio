@@ -175,24 +175,47 @@ async function loadTony(ruolo){
   const tomorrowDate = new Date()
   tomorrowDate.setDate(tomorrowDate.getDate() + 1)
   const tomorrow = tomorrowDate.toISOString().slice(0,10)
+  const sedeUuid = window.state?.sedeAttiva?.id || null
 
   if(ruolo === "operatore"){
 
-    const { data } = await supabase
+    let dipendenteId = window.state?.dipendente?.id || null
+
+    if(!dipendenteId && window.state?.user?.id){
+      const { data: dipData, error: dipError } = await supabase
+        .from("dipendenti")
+        .select("id")
+        .eq("azienda_id", aziendaId)
+        .eq("user_id", window.state.user.id)
+        .limit(1)
+
+      if(dipError){
+        console.error("HOME TONY DIPENDENTE ERROR:", dipError)
+      }
+
+      dipendenteId = dipData?.[0]?.id || null
+
+      if(dipendenteId){
+        window.state.dipendente = {
+          ...(window.state.dipendente || {}),
+          id: dipendenteId
+        }
+      }
+    }
+
+    let query = supabase
       .from("timbrature")
       .select("id")
       .eq("azienda_id", aziendaId)
-     const dipendenteId =
-  window.state?.dipendente?.id ||
-  null;
-
-if (!dipendenteId) {
-  return;
-}
-
-.eq("dipendente_id", dipendenteId)
+      .eq("dipendente_id", dipendenteId)
       .gte("timestamp", `${today}T00:00:00`)
       .lt("timestamp", `${tomorrow}T00:00:00`)
+
+    if(sedeUuid){
+      query = query.eq("sede_uuid", sedeUuid)
+    }
+
+    const { data } = await query
 
     if(!data || data.length === 0){
 
