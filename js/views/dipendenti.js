@@ -11,11 +11,11 @@ function getSupabase() {
   return window.supabase;
 }
 
-function getSedeAttivaId() {
+function getSedeAttivaUuid() {
   return window.state?.sedeAttiva?.id || null;
 }
 
-function getSelectedSediIds() {
+function getSelectedSediUuids() {
   return Array.from(document.querySelectorAll("#dip-sedi-container input[type='checkbox']:checked"))
     .map((el) => String(el.value))
     .filter(Boolean);
@@ -28,7 +28,7 @@ async function getSediAssociateUtente(userId) {
 
   const { data, error } = await supabase
     .from("utenti_sedi")
-    .select("user_id, sede_id")
+    .select("user_id, sede_uuid")
     .eq("user_id", userId);
 
   if (error) {
@@ -36,16 +36,16 @@ async function getSediAssociateUtente(userId) {
     return [];
   }
 
-  return (data || []).map((row) => String(row.sede_id)).filter(Boolean);
+  return (data || []).map((row) => String(row.sede_uuid)).filter(Boolean);
 }
 
-async function syncUtenteSedi(userId, sedeIds = []) {
+async function syncUtenteSedi(userId, sedeUuids = []) {
   const supabase = getSupabase();
   const aziendaId = window.state?.azienda?.id || null;
 
   if (!userId) return;
 
-  const unici = Array.from(new Set((sedeIds || []).map(String).filter(Boolean)));
+  const unici = Array.from(new Set((sedeUuids || []).map(String).filter(Boolean)));
 
   const { error: deleteError } = await supabase
     .from("utenti_sedi")
@@ -59,9 +59,9 @@ async function syncUtenteSedi(userId, sedeIds = []) {
 
   if (!unici.length) return;
 
-  const rows = unici.map((sedeId) => ({
+  const rows = unici.map((sedeUuid) => ({
     user_id: userId,
-    sede_id: sedeId,
+    sede_uuid: sedeUuid,
     ...(aziendaId ? { azienda_id: aziendaId } : {})
   }));
 
@@ -75,12 +75,12 @@ async function syncUtenteSedi(userId, sedeIds = []) {
   }
 }
 
-async function renderSediSelector(selectedIds = []) {
+async function renderSediSelector(selectedUuids = []) {
   const container = document.getElementById("dip-sedi-container");
   if (!container) return;
 
   const sedi = Array.isArray(window.state?.sedi) ? window.state.sedi : [];
-  const selectedSet = new Set((selectedIds || []).map(String));
+  const selectedSet = new Set((selectedUuids || []).map(String));
 
   if (!sedi.length) {
     container.innerHTML = `
@@ -262,7 +262,7 @@ async function loadSediMap() {
 async function caricaDipendenti() {
   const supabase = getSupabase();
   const azienda = window.state.azienda;
-  const sedeAttivaId = getSedeAttivaId();
+  const sedeAttivaUuid = getSedeAttivaUuid();
   const q = (document.getElementById("dip-search")?.value || "").trim().toLowerCase();
   const onlyAttivi = !!document.getElementById("dip-only-attivi")?.checked;
 
@@ -272,7 +272,7 @@ async function caricaDipendenti() {
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  if (!sedeAttivaId) {
+  if (!sedeAttivaUuid) {
     tbody.innerHTML = `
       <tr>
         <td colspan="10" class="small-muted">Seleziona una sede attiva</td>
@@ -283,8 +283,8 @@ async function caricaDipendenti() {
 
   let utentiSedeQuery = supabase
     .from("utenti_sedi")
-    .select("user_id, sede_id")
-    .eq("sede_id", sedeAttivaId);
+    .select("user_id, sede_uuid")
+    .eq("sede_uuid", sedeAttivaUuid);
 
   if (azienda?.id) {
     utentiSedeQuery = utentiSedeQuery.eq("azienda_id", azienda.id);
@@ -366,7 +366,7 @@ async function caricaDipendenti() {
 
   let tutteLeAssegnazioniQuery = supabase
     .from("utenti_sedi")
-    .select("user_id, sede_id");
+    .select("user_id, sede_uuid");
 
   if (azienda?.id) {
     tutteLeAssegnazioniQuery = tutteLeAssegnazioniQuery.eq("azienda_id", azienda.id);
@@ -382,20 +382,20 @@ async function caricaDipendenti() {
 
   (tutteLeAssegnazioni || []).forEach((row) => {
     const userId = row?.user_id ? String(row.user_id) : null;
-    const sedeId = row?.sede_id ? String(row.sede_id) : null;
+    const sedeUuid = row?.sede_uuid ? String(row.sede_uuid) : null;
 
-    if (!userId || !sedeId) return;
+    if (!userId || !sedeUuid) return;
 
     if (!sediPerUtente.has(userId)) {
       sediPerUtente.set(userId, []);
     }
 
-    sediPerUtente.get(userId).push(sedeId);
+    sediPerUtente.get(userId).push(sedeUuid);
   });
 
   const filtered = (data || []).filter((d) => {
-    const sediIds = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
-    const sediNomi = sediIds
+    const sediUuids = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
+    const sediNomi = sediUuids
       .map((id) => sediMap.get(String(id))?.nome || "")
       .join(" ")
       .toLowerCase();
@@ -433,8 +433,8 @@ async function caricaDipendenti() {
     const nomeCompleto = [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.nome || "-";
     const repartoNome = repartiMap.get(String(d.reparto_id))?.nome || "-";
     const ruolo = d.user_id ? (ruoliMap.get(String(d.user_id)) || "operatore") : "-";
-    const sediIds = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
-    const sediNomi = sediIds
+    const sediUuids = d.user_id ? (sediPerUtente.get(String(d.user_id)) || []) : [];
+    const sediNomi = sediUuids
       .map((id) => sediMap.get(String(id))?.nome || "")
       .filter(Boolean)
       .join(", ") || "-";
@@ -703,8 +703,8 @@ async function renderForm(dip) {
   let sediAssociate = [];
   if (dip?.user_id) {
     sediAssociate = await getSediAssociateUtente(dip.user_id);
-  } else if (getSedeAttivaId()) {
-    sediAssociate = [String(getSedeAttivaId())];
+  } else if (getSedeAttivaUuid()) {
+    sediAssociate = [String(getSedeAttivaUuid())];
   }
 
   await renderSediSelector(sediAssociate);
@@ -767,7 +767,7 @@ async function salvaDipendente(isEdit) {
   const telefono = (document.getElementById("dip-telefono")?.value || "").trim();
   const mansione = (document.getElementById("dip-mansione")?.value || "").trim();
   const ruolo = document.getElementById("dip-ruolo-app")?.value || "operatore";
-  const sediSelezionate = getSelectedSediIds();
+  const sediSelezionate = getSelectedSediUuids();
 
   if (!nome || !email) {
     if (msg) msg.innerHTML = `<span style="color:#dc2626;">Nome e email obbligatori</span>`;
@@ -867,7 +867,7 @@ async function salvaDipendente(isEdit) {
         mansione,
         reparto_id: repartoId,
         azienda_id: azienda.id,
-        sede_id: sediSelezionate[0]
+        sede_uuid: sediSelezionate[0]
       })
     });
 
@@ -1188,7 +1188,7 @@ window.reinvitaDipendente = async function (id) {
     const aziendaId =
       window.state?.azienda?.id;
 
-    const sedeId =
+    const sedeUuid =
       window.state?.sedeAttiva?.id || null;
 
     const { data: dipendente, error } =
@@ -1211,7 +1211,7 @@ window.reinvitaDipendente = async function (id) {
       telefono: dipendente.telefono || "",
       ruolo: dipendente.ruolo || "dipendente",
       azienda_id: aziendaId,
-      sede_id: sedeId
+      sede_uuid: sedeUuid
     };
 
     console.log(
