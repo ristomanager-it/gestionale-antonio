@@ -566,16 +566,7 @@ function renderOperatorHistoryCard() {
     `,
   });
 }
-function renderOperatorHistoryCard() {
-  return createCard({
-    title: "Le tue timbrature",
-    body: `
-      <div id="tb-panel" class="timbrature-card" style="margin-top:12px;">
-        <div id="tb-list" style="margin-top:10px;"></div>
-      </div>
-    `,
-  });
-}
+
 export async function render(app) {
   try {
     const azienda = window.state?.azienda;
