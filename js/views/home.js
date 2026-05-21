@@ -182,7 +182,15 @@ async function loadTony(ruolo){
       .from("timbrature")
       .select("id")
       .eq("azienda_id", aziendaId)
-      .eq("user_id", window.state.user.id)
+     const dipendenteId =
+  window.state?.dipendente?.id ||
+  null;
+
+if (!dipendenteId) {
+  return;
+}
+
+.eq("dipendente_id", dipendenteId)
       .gte("timestamp", `${today}T00:00:00`)
       .lt("timestamp", `${tomorrow}T00:00:00`)
 
