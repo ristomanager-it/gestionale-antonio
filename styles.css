@@ -1401,13 +1401,15 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  border-radius: 14px;
+  touch-action: pan-x;
+  margin: 0;
   padding-bottom: 6px;
+  border-radius: 14px;
 }
 
 .tb-table {
-  width: 100%;
-  min-width: 820px;
+  width: max-content;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -1426,12 +1428,16 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   #tb-list {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     overflow-x: hidden;
   }
 
   .timbrature-toolbar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+    width: 100%;
   }
 
   .timbrature-toolbar input,
@@ -1448,6 +1454,7 @@ TIMBRATURE MOBILE FIX DEFINITIVO
     display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
+    width: 100%;
   }
 
   .btn-timbratura.big {
@@ -1456,14 +1463,19 @@ TIMBRATURE MOBILE FIX DEFINITIVO
   }
 
   .tb-table-wrapper {
-    width: calc(100% + 12px);
-    max-width: calc(100% + 12px);
-    margin-left: -6px;
-    margin-right: -6px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    margin: 0;
+    padding-bottom: 6px;
   }
 
   .tb-table {
-    min-width: 820px;
+    width: max-content;
+    min-width: 720px;
     font-size: 12px;
   }
 
