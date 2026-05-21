@@ -678,9 +678,22 @@ export async function render(app) {
     async function loadManagerData() {
       if (!isManager) return;
 
-      cachedDipendenti = await fetchDipendentiAzienda(azienda.id);
-      cachedRowsAll = await fetchRecentForAzienda(azienda.id, 500);
+    const sedeId =
+  window.state?.sedeAttiva?.id ||
+  null;
 
+cachedDipendenti =
+  await fetchDipendentiAzienda(
+    azienda.id,
+    sedeId
+  );
+
+cachedRowsAll =
+  await fetchRecentForAzienda(
+    azienda.id,
+    sedeId,
+    500
+  );
       refreshFilterOptions();
       refreshDipendentiSummary();
 
