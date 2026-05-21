@@ -10,6 +10,31 @@ export async function render(container){
   }
 
   const today = new Date().toISOString().slice(0,10);
+  const sedeUuid = window.state?.sedeAttiva?.id || null;
+
+  let dipendenteId = window.state?.dipendente?.id || null;
+
+  if (!dipendenteId && azienda?.id && user?.id) {
+    const { data: dipData, error: dipError } = await supabase
+      .from("dipendenti")
+      .select("id")
+      .eq("azienda_id", azienda.id)
+      .eq("user_id", user.id)
+      .limit(1);
+
+    if (dipError) {
+      console.error("HOME OPERATORE DIPENDENTE ERROR:", dipError);
+    }
+
+    dipendenteId = dipData?.[0]?.id || null;
+
+    if (dipendenteId) {
+      window.state.dipendente = {
+        ...(window.state.dipendente || {}),
+        id: dipendenteId
+      };
+    }
+  }
 
   // =========================
   // TIMBRATURA
@@ -19,11 +44,17 @@ export async function render(container){
 
   try {
 
-    const { data } = await supabase
+    let query = supabase
       .from("timbrature")
       .select("tipo, timestamp")
       .eq("azienda_id", azienda.id)
-      .eq("dipendente_id", user.id)
+      .eq("dipendente_id", dipendenteId);
+
+    if (sedeUuid) {
+      query = query.eq("sede_uuid", sedeUuid);
+    }
+
+    const { data } = await query
       .order("timestamp", { ascending:false })
       .limit(1);
 
