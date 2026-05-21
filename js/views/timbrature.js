@@ -529,7 +529,30 @@ function renderManagerCards() {
             <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
           </div>
 
-          <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+         function renderManagerCards() {
+  return `
+    ${createCard({
+      title: "Monitor live",
+      body: `
+        <div id="tb-chips" class="tb-chips"></div>
+        <div id="tb-people" style="margin-top:10px;"></div>
+      `,
+    })}
+
+    ${createCard({
+      title: "Storico Timbrature",
+      body: `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <button id="tb-toggle" class="app-button small" type="button">Mostra Timbrature 📋</button>
+        </div>
+
+        <div id="tb-panel" class="timbrature-card" style="margin-top:12px; display:none;">
+          <div class="timbrature-toolbar">
+            <input id="tb-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:220px;" />
+            <select id="tb-filter" class="input-pill" style="max-width:260px;"></select>
+          </div>
+
+          <div id="tb-list" style="margin-top:10px;"></div>
         </div>
       `,
     })}
@@ -541,12 +564,11 @@ function renderOperatorHistoryCard() {
     title: "Le tue timbrature",
     body: `
       <div id="tb-panel" class="timbrature-card" style="margin-top:12px;">
-        <div id="tb-list" class="timbrature-muted" style="margin-top:10px;">Caricamento...</div>
+        <div id="tb-list" style="margin-top:10px;"></div>
       </div>
     `,
   });
 }
-
 export async function render(app) {
   try {
     const azienda = window.state?.azienda;
