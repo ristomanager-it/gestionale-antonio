@@ -391,7 +391,8 @@ function buildRowsTable(rows) {
   }
 
   return `
-    <table class="tb-table">
+    <div class="tb-table-wrapper">
+      <table class="tb-table">
       <thead>
         <tr>
           <th>Dipendente</th>
@@ -425,7 +426,8 @@ function buildRowsTable(rows) {
           })
           .join("")}
       </tbody>
-    </table>
+      </table>
+    </div>
   `;
 }
 
@@ -548,9 +550,10 @@ export async function render(app) {
 
     const dipendenteData = await fetchDipendenteByUser(azienda.id, user.id);
     const dipendenteId = dipendenteData?.id || null;
-    const isOperatore = !isManager && !!dipendenteId;
+    const canTimbrare = !!dipendenteId;
+    const isOperatore = canTimbrare;
 
-    if (!isManager && !dipendenteId) {
+    if (!canTimbrare && !isManager) {
       app.innerHTML = createPageLayout({
         title: "Timbrature",
         subtitle: "",
@@ -578,9 +581,9 @@ export async function render(app) {
       subtitle: "",
       content: `
         <div class="timbrature-page">
-          ${isOperatore ? renderOperatorCard() : ""}
+          ${canTimbrare ? renderOperatorCard() : ""}
           ${isManager ? renderManagerCards() : ""}
-          ${isOperatore ? renderOperatorHistoryCard() : ""}
+          ${canTimbrare ? renderOperatorHistoryCard() : ""}
         </div>
       `,
     });
@@ -979,7 +982,6 @@ const pinOk = await verificaPinTimbrature({
       }
 
       await loadManagerData();
-      return;
     }
 
     if (isOperatore) {
