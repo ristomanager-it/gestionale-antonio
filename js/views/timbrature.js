@@ -183,18 +183,56 @@ async function fetchRecentForDipendente(aziendaId, dipendenteId, limit = 80) {
   return data || [];
 }
 
-async function fetchRecentForAzienda(aziendaId, limit = 500) {
-  if (!aziendaId) return [];
+async function fetchRecentForAzienda(
+  aziendaId,
+  sedeId,
+  limit = 500
+) {
 
-  const { data, error } = await window.supabaseClient
-    .from("timbrature")
-    .select("dipendente_id, dip_nome, tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m, canale")
-    .eq("azienda_id", aziendaId)
-    .order("timestamp", { ascending: false })
-    .limit(limit);
+  if (!aziendaId) {
+    return [];
+  }
 
-  if (error) throw error;
+  let query =
+    window.supabaseClient
+      .from("timbrature")
+      .select(`
+        dipendente_id,
+        dip_nome,
+        tipo,
+        timestamp,
+        geo_esito,
+        geo_motivo,
+        lat,
+        lon,
+        accuracy_m,
+        canale,
+        sede_id
+      `)
+      .eq("azienda_id", aziendaId);
+
+  if (sedeId) {
+    query =
+      query.eq(
+        "sede_id",
+        sedeId
+      );
+  }
+
+  const { data, error } =
+    await query
+      .order(
+        "timestamp",
+        { ascending: false }
+      )
+      .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
   return data || [];
+
 }
 
 async function verificaPinTimbrature({ aziendaId, dipendenteId, pin }) {
