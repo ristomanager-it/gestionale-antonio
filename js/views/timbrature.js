@@ -402,9 +402,30 @@ function getDipendenteNome(d) {
   return normalizeText(`${d?.nome || ""} ${d?.cognome || ""}`) || "Dipendente";
 }
 
-function buildRowsTable(rows) {
+function buildRowsTable(rows, options = {}) {
+  const showSensitive = options.showSensitive === true;
+  const showDetails = options.showDetails === true;
+
   if (!rows.length) {
     return `<div class="timbrature-muted">Nessuna timbratura trovata.</div>`;
+  }
+
+  if (!showSensitive) {
+    return `
+      <div class="tb-operator-list">
+        ${rows
+          .map((r) => `
+            <div class="tb-operator-row">
+              <div class="tb-operator-main">
+                <strong>${escapeHtml(tipoToLabel(r.tipo))}</strong>
+                <span>${escapeHtml(formatDateTime(r.timestamp))}</span>
+              </div>
+              <span class="tb-status-pill">${escapeHtml(tipoToState(r.tipo))}</span>
+            </div>
+          `)
+          .join("")}
+      </div>
+    `;
   }
 
   return `
@@ -417,11 +438,12 @@ function buildRowsTable(rows) {
           <th>Data/Ora</th>
           <th>Geofence</th>
           <th>Posizione</th>
+          ${showDetails ? `<th>Dettagli</th>` : ""}
         </tr>
       </thead>
       <tbody>
         ${rows
-          .map((r) => {
+          .map((r, index) => {
             const coords =
               r.lat != null && r.lon != null
                 ? `${Number(r.lat).toFixed(6)}, ${Number(r.lon).toFixed(6)} ± ${r.accuracy_m != null ? Number(r.accuracy_m).toFixed(0) : "?"}m`
@@ -438,12 +460,148 @@ function buildRowsTable(rows) {
                 <td>${escapeHtml(formatDateTime(r.timestamp))}</td>
                 <td>${buildGeoResultView(r.geo_esito, r.geo_motivo)}</td>
                 <td style="opacity:.8;">${escapeHtml(coords)}</td>
+                ${
+                  showDetails
+                    ? `<td><button class="app-button small tb-detail-btn" type="button" data-tb-index="${index}">Dettagli</button></td>`
+                    : ""
+                }
               </tr>
             `;
           })
           .join("")}
       </tbody>
       </table>
+    </div>
+  `;
+}
+
+function computeOperatorSummary(rows) {
+  const ordered = [...rows].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const byDay = new Map();
+
+  for (const row of ordered) {
+    const ts = row?.timestamp ? new Date(row.timestamp) : null;
+    if (!ts || Number.isNaN(ts.getTime())) continue;
+
+    const dayKey = ts.toISOString().slice(0, 10);
+    if (!byDay.has(dayKey)) {
+      byDay.set(dayKey, {
+        dayKey,
+        label: ts.toLocaleDateString(),
+        ms: 0,
+        openStart: null,
+        pausaStart: null,
+      });
+    }
+
+    const day = byDay.get(dayKey);
+
+    if (row.tipo === "inizio_turno") {
+      day.openStart = ts;
+      day.pausaStart = null;
+    } else if (row.tipo === "inizio_pausa" && day.openStart) {
+      day.ms += Math.max(0, ts - day.openStart);
+      day.openStart = null;
+      day.pausaStart = ts;
+    } else if (row.tipo === "fine_pausa") {
+      day.openStart = ts;
+      day.pausaStart = null;
+    } else if (row.tipo === "fine_turno") {
+      if (day.openStart) {
+        day.ms += Math.max(0, ts - day.openStart);
+      }
+      day.openStart = null;
+      day.pausaStart = null;
+    }
+  }
+
+  const items = [...byDay.values()]
+    .sort((a, b) => String(b.dayKey).localeCompare(String(a.dayKey)))
+    .slice(0, 7);
+
+  if (!items.length) {
+    return `<div class="timbrature-muted">Resoconto ore non disponibile.</div>`;
+  }
+
+  const formatMs = (ms) => {
+    const minutes = Math.floor(ms / 60000);
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${String(m).padStart(2, "0")}m`;
+  };
+
+  return `
+    <div class="tb-summary">
+      <div class="tb-summary-title">Resoconto ore</div>
+      ${items
+        .map((item) => `
+          <div class="tb-summary-row">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(formatMs(item.ms))}</strong>
+          </div>
+        `)
+        .join("")}
+    </div>
+  `;
+}
+
+function buildTimbraturaDetailsModal(row) {
+  const coords =
+    row?.lat != null && row?.lon != null
+      ? `${Number(row.lat).toFixed(6)}, ${Number(row.lon).toFixed(6)}`
+      : "Posizione non disponibile";
+
+  const accuracy =
+    row?.accuracy_m != null
+      ? `${Number(row.accuracy_m).toFixed(0)} m`
+      : "Non disponibile";
+
+  return `
+    <div class="tb-modal-backdrop" data-tb-modal-close="1">
+      <div class="tb-modal-card" role="dialog" aria-modal="true" aria-label="Dettagli timbratura">
+        <div class="tb-modal-header">
+          <div>
+            <div class="tb-modal-kicker">Dettagli timbratura</div>
+            <h3>${escapeHtml(row?.dip_nome || "Dipendente")}</h3>
+          </div>
+          <button class="tb-modal-close" type="button" data-tb-modal-close="1" aria-label="Chiudi">×</button>
+        </div>
+
+        <div class="tb-modal-grid">
+          <div class="tb-detail-field">
+            <span>Tipo</span>
+            <strong>${escapeHtml(tipoToLabel(row?.tipo))}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Data/Ora</span>
+            <strong>${escapeHtml(formatDateTime(row?.timestamp))}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Geofence</span>
+            <strong>${row?.geo_esito ? escapeHtml(row.geo_esito) : "—"}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Motivo geofence</span>
+            <strong>${escapeHtml(row?.geo_motivo || "—")}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Coordinate GPS</span>
+            <strong>${escapeHtml(coords)}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Precisione GPS</span>
+            <strong>${escapeHtml(accuracy)}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Canale</span>
+            <strong>${escapeHtml(row?.canale || "—")}</strong>
+          </div>
+          <div class="tb-detail-field">
+            <span>Sede</span>
+            <strong>${escapeHtml(row?.sede_uuid || "—")}</strong>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -500,7 +658,6 @@ function renderOperatorCard() {
         </div>
       </div>
 
-      <div id="tb-last-geo" class="timbrature-muted" style="margin-top:12px;"></div>
       <div id="tb-msg" style="margin-top:10px;"></div>
     `,
   });
@@ -526,26 +683,26 @@ function renderManagerCards() {
         </div>
 
         <div
-          id="tb-panel"
+          id="tb-manager-panel"
           class="timbrature-card"
           style="margin-top:12px; display:none;"
         >
           <div class="timbrature-toolbar">
             <input
-              id="tb-search"
+              id="tb-manager-search"
               class="input-pill"
               placeholder="Cerca..."
               style="flex:1; min-width:220px;"
             />
 
             <select
-              id="tb-filter"
+              id="tb-manager-filter"
               class="input-pill"
               style="max-width:260px;"
             ></select>
           </div>
 
-          <div id="tb-list" style="margin-top:10px;"></div>
+          <div id="tb-manager-list" style="margin-top:10px;"></div>
         </div>
       `,
     })}
@@ -557,11 +714,11 @@ function renderOperatorHistoryCard() {
     title: "Le tue timbrature",
     body: `
       <div
-        id="tb-panel"
+        id="tb-operator-panel"
         class="timbrature-card"
         style="margin-top:12px;"
       >
-        <div id="tb-list" style="margin-top:10px;"></div>
+        <div id="tb-operator-list" style="margin-top:10px;"></div>
       </div>
     `,
   });
@@ -630,12 +787,12 @@ export async function render(app) {
     const elPausa = app.querySelector("#btn-pausa");
     const elFine = app.querySelector("#btn-fine");
     const elMsg = app.querySelector("#tb-msg");
-    const elList = app.querySelector("#tb-list");
-    const elLastGeo = app.querySelector("#tb-last-geo");
+    const elManagerList = app.querySelector("#tb-manager-list");
+    const elOperatorList = app.querySelector("#tb-operator-list");
     const elToggle = app.querySelector("#tb-toggle");
-    const elPanel = app.querySelector("#tb-panel");
-    const elSearch = app.querySelector("#tb-search");
-    const elFilter = app.querySelector("#tb-filter");
+    const elPanel = app.querySelector("#tb-manager-panel");
+    const elSearch = app.querySelector("#tb-manager-search");
+    const elFilter = app.querySelector("#tb-manager-filter");
     const elChips = app.querySelector("#tb-chips");
     const elPeople = app.querySelector("#tb-people");
 
@@ -683,19 +840,48 @@ export async function render(app) {
       return out;
     }
 
-    function refreshTimbratureList() {
-      if (!elList) return;
+    function refreshManagerTimbratureList() {
+      if (!isManager || !elManagerList) return;
 
-      const rowsBase = isManager ? cachedRowsAll : cachedRowsMine;
-      const rows = applyListFilters(rowsBase);
-      elList.innerHTML = buildRowsTable(rows);
+      const rows = applyListFilters(cachedRowsAll);
+      elManagerList.innerHTML = buildRowsTable(rows, {
+        showSensitive: true,
+        showDetails: true,
+      });
+    }
 
-      if (elLastGeo) {
-        const last = rowsBase[0];
-        elLastGeo.innerHTML = last
-          ? `Ultimo esito geofence: ${buildGeoResultView(last.geo_esito, last.geo_motivo)}`
-          : "";
-      }
+    function refreshOperatorTimbratureList() {
+      if (!isOperatore || !elOperatorList) return;
+
+      const rows = applyListFilters(cachedRowsMine);
+      elOperatorList.innerHTML = `
+        ${computeOperatorSummary(cachedRowsMine)}
+        ${buildRowsTable(rows, {
+          showSensitive: false,
+          showDetails: false,
+        })}
+      `;
+    }
+
+    function openTimbraturaDetails(index) {
+      if (!isManager) return;
+
+      const rows = applyListFilters(cachedRowsAll);
+      const row = rows[Number(index)];
+
+      if (!row) return;
+
+      const existing = app.querySelector(".tb-modal-backdrop");
+      if (existing) existing.remove();
+
+      app.insertAdjacentHTML("beforeend", buildTimbraturaDetailsModal(row));
+
+      const modal = app.querySelector(".tb-modal-backdrop");
+      modal?.addEventListener("click", (event) => {
+        if (event.target?.dataset?.tbModalClose === "1") {
+          modal.remove();
+        }
+      });
     }
 
     function refreshDipendentiSummary() {
@@ -778,14 +964,14 @@ cachedRowsAll =
       refreshFilterOptions();
       refreshDipendentiSummary();
 
-      if (panelOpen) refreshTimbratureList();
+      if (panelOpen) refreshManagerTimbratureList();
     }
 
     async function loadOperatorData() {
       if (!isOperatore || !dipendenteId) return;
 
       cachedRowsMine = await fetchRecentForDipendente(azienda.id, dipendenteId, 120);
-      refreshTimbratureList();
+      refreshOperatorTimbratureList();
     }
 
     async function refreshOperatorUi() {
@@ -1004,20 +1190,29 @@ const pinOk = await verificaPinTimbrature({
           panelOpen = !panelOpen;
           elPanel.style.display = panelOpen ? "block" : "none";
           elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
-          if (panelOpen) refreshTimbratureList();
+          if (panelOpen) refreshManagerTimbratureList();
         });
       }
 
       if (elSearch) {
         elSearch.addEventListener("input", () => {
-          if (panelOpen) refreshTimbratureList();
+          if (panelOpen) refreshManagerTimbratureList();
         });
       }
 
       if (elFilter) {
         elFilter.addEventListener("change", () => {
           selectedDip = elFilter.value || "ALL";
-          if (panelOpen) refreshTimbratureList();
+          if (panelOpen) refreshManagerTimbratureList();
+        });
+      }
+
+
+      if (elManagerList) {
+        elManagerList.addEventListener("click", (event) => {
+          const btn = event.target?.closest?.("[data-tb-index]");
+          if (!btn) return;
+          openTimbraturaDetails(btn.dataset.tbIndex);
         });
       }
 
