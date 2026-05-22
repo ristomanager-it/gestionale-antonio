@@ -1,5 +1,3 @@
-styles.css
-
 /* =========================================================
 RISTOFLOW DESIGN SYSTEM
 ========================================================= */
@@ -279,6 +277,13 @@ color:#fff;
 background:var(--color-primary-dark);
 }
 
+.app-button.small{
+padding:7px 12px;
+border-radius:999px;
+font-size:12px;
+min-height:auto;
+}
+
 /* =========================================================
 FORM SYSTEM
 ========================================================= */
@@ -363,7 +368,9 @@ background:#ffffff;
 border-bottom:none;
 }
 
-.suggest-item:hover
+.suggest-item:hover{
+background:#F8FAFC;
+}
 
 /* =========================================================
 TABLES
@@ -502,6 +509,247 @@ font-size:12px;
 font-size:15px;
 }
 
+
+.input-pill{
+width:100%;
+max-width:100%;
+padding:10px 12px;
+border-radius:999px;
+border:1px solid var(--color-border);
+background:#ffffff;
+font-size:14px;
+outline:none;
+}
+
+.input-pill:focus{
+border-color:var(--color-primary);
+}
+
+.timbrature-muted{
+color:var(--color-text-muted);
+font-size:13px;
+}
+
+.tb-chips{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+align-items:center;
+}
+
+.tb-chip{
+display:inline-flex;
+align-items:center;
+gap:7px;
+padding:6px 10px;
+border-radius:999px;
+background:#F8FAFC;
+border:1px solid rgba(0,0,0,0.06);
+font-size:12px;
+font-weight:800;
+white-space:nowrap;
+}
+
+.tb-dot{
+width:9px;
+height:9px;
+border-radius:999px;
+display:inline-block;
+flex:0 0 auto;
+background:#9ca3af;
+}
+
+.tb-dot.in{
+background:#22c55e;
+}
+
+.tb-dot.pause{
+background:#f59e0b;
+}
+
+.tb-dot.out{
+background:#9ca3af;
+}
+
+.tb-operator-list{
+display:flex;
+flex-direction:column;
+gap:8px;
+width:100%;
+max-width:100%;
+}
+
+.tb-operator-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+width:100%;
+max-width:100%;
+padding:10px 12px;
+border-radius:14px;
+background:#F8FAFC;
+border:1px solid rgba(0,0,0,0.05);
+}
+
+.tb-operator-main{
+display:flex;
+flex-direction:column;
+gap:2px;
+min-width:0;
+}
+
+.tb-operator-main strong,
+.tb-operator-main span{
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.tb-operator-main span{
+font-size:12px;
+color:var(--color-text-muted);
+}
+
+.tb-status-pill{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:5px 9px;
+border-radius:999px;
+background:#ffffff;
+border:1px solid rgba(0,0,0,0.06);
+font-size:12px;
+font-weight:800;
+white-space:nowrap;
+flex:0 0 auto;
+}
+
+.tb-summary{
+width:100%;
+max-width:100%;
+padding:12px;
+border-radius:16px;
+background:#F8FAFC;
+border:1px solid rgba(0,0,0,0.05);
+margin-bottom:12px;
+}
+
+.tb-summary-title{
+font-weight:900;
+font-size:13px;
+margin-bottom:8px;
+color:var(--color-primary);
+}
+
+.tb-summary-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+padding:6px 0;
+border-top:1px solid rgba(0,0,0,0.05);
+font-size:13px;
+}
+
+.tb-summary-row:first-of-type{
+border-top:none;
+}
+
+.tb-detail-btn{
+background:#ffffff;
+border:1px solid rgba(14,90,122,0.20);
+color:var(--color-primary);
+}
+
+.tb-modal-backdrop{
+position:fixed;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:18px;
+background:rgba(15,23,42,.45);
+z-index:1500;
+}
+
+.tb-modal-card{
+width:min(100%,680px);
+max-height:calc(100dvh - 36px);
+overflow:auto;
+background:#ffffff;
+border-radius:22px;
+box-shadow:var(--shadow-medium);
+padding:18px;
+}
+
+.tb-modal-header{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:14px;
+padding-bottom:12px;
+border-bottom:1px solid rgba(0,0,0,0.06);
+}
+
+.tb-modal-kicker{
+font-size:11px;
+font-weight:900;
+letter-spacing:.04em;
+text-transform:uppercase;
+color:var(--color-primary);
+}
+
+.tb-modal-header h3{
+margin:2px 0 0;
+font-size:18px;
+line-height:1.2;
+}
+
+.tb-modal-close{
+width:36px;
+height:36px;
+border:none;
+border-radius:999px;
+background:#F3F4F6;
+color:var(--color-text);
+font-size:24px;
+line-height:1;
+cursor:pointer;
+flex:0 0 auto;
+}
+
+.tb-modal-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:10px;
+margin-top:14px;
+}
+
+.tb-detail-field{
+padding:12px;
+border-radius:14px;
+background:#F8FAFC;
+border:1px solid rgba(0,0,0,0.05);
+min-width:0;
+}
+
+.tb-detail-field span{
+display:block;
+font-size:11px;
+font-weight:800;
+text-transform:uppercase;
+color:var(--color-text-muted);
+margin-bottom:4px;
+}
+
+.tb-detail-field strong{
+display:block;
+font-size:13px;
+font-weight:800;
+overflow-wrap:anywhere;
+}
+
 /* =========================================================
 OVERLAY
 ========================================================= */
@@ -536,7 +784,7 @@ background:#111827;
 color:white;
 transform:translateX(-100%);
 transition:transform .25s ease;
-z-index:1000;
+z-index:1200;
 overflow-y:auto;
 padding:20px 0;
 }
@@ -552,7 +800,7 @@ background:rgba(0,0,0,.4);
 opacity:0;
 pointer-events:none;
 transition:opacity .2s ease;
-z-index:999;
+z-index:1199;
 }
 
 .menu-overlay.open{
@@ -732,6 +980,27 @@ border-radius:18px 18px 0 0;
 .rf-overlay-body{
 padding-left:12px;
 padding-right:12px;
+}
+
+.tb-operator-row{
+align-items:flex-start;
+}
+
+.tb-modal-backdrop{
+align-items:flex-end;
+padding:0;
+}
+
+.tb-modal-card{
+width:100vw;
+max-width:100vw;
+max-height:calc(100dvh - env(safe-area-inset-top));
+border-radius:18px 18px 0 0;
+padding:16px 12px calc(16px + env(safe-area-inset-bottom));
+}
+
+.tb-modal-grid{
+grid-template-columns:1fr;
 }
 
 }
