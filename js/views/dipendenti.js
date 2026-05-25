@@ -28,7 +28,7 @@ async function getSediAssociateUtente(userId) {
 
   const { data, error } = await supabase
     .from("utenti_sedi")
-    .select("user_id, sede_uuid")
+    .select("user_id, sede_id")
     .eq("user_id", userId);
 
   if (error) {
@@ -36,7 +36,7 @@ async function getSediAssociateUtente(userId) {
     return [];
   }
 
-  return (data || []).map((row) => String(row.sede_uuid)).filter(Boolean);
+  return (data || []).map((row) => String(row.sede_id)).filter(Boolean);
 }
 
 async function syncUtenteSedi(userId, sedeUuids = []) {
@@ -61,7 +61,7 @@ async function syncUtenteSedi(userId, sedeUuids = []) {
 
   const rows = unici.map((sedeUuid) => ({
     user_id: userId,
-    sede_uuid: sedeUuid,
+    sede_id: sedeUuid,
     ...(aziendaId ? { azienda_id: aziendaId } : {})
   }));
 
@@ -283,8 +283,8 @@ async function caricaDipendenti() {
 
   let utentiSedeQuery = supabase
     .from("utenti_sedi")
-    .select("user_id, sede_uuid")
-    .eq("sede_uuid", sedeAttivaUuid);
+    .select("user_id, sede_id")
+    .eq("sede_id", sedeAttivaUuid);
 
   if (azienda?.id) {
     utentiSedeQuery = utentiSedeQuery.eq("azienda_id", azienda.id);
@@ -366,7 +366,7 @@ async function caricaDipendenti() {
 
   let tutteLeAssegnazioniQuery = supabase
     .from("utenti_sedi")
-    .select("user_id, sede_uuid");
+    .select("user_id, sede_id");
 
   if (azienda?.id) {
     tutteLeAssegnazioniQuery = tutteLeAssegnazioniQuery.eq("azienda_id", azienda.id);
@@ -382,7 +382,7 @@ async function caricaDipendenti() {
 
   (tutteLeAssegnazioni || []).forEach((row) => {
     const userId = row?.user_id ? String(row.user_id) : null;
-    const sedeUuid = row?.sede_uuid ? String(row.sede_uuid) : null;
+    const sedeUuid = row?.sede_id ? String(row.sede_id) : null;
 
     if (!userId || !sedeUuid) return;
 
@@ -867,7 +867,7 @@ async function salvaDipendente(isEdit) {
         mansione,
         reparto_id: repartoId,
         azienda_id: azienda.id,
-        sede_uuid: sediSelezionate[0]
+        sede_id: sediSelezionate[0]
       })
     });
 
@@ -1211,7 +1211,7 @@ window.reinvitaDipendente = async function (id) {
       telefono: dipendente.telefono || "",
       ruolo: dipendente.ruolo || "dipendente",
       azienda_id: aziendaId,
-      sede_uuid: sedeUuid
+      sede_id: sedeUuid
     };
 
     console.log(
