@@ -20,6 +20,16 @@ export async function render(app) {
             onclick="window.location.hash='#/produzione'">
             ← Centro Produzione
           </button>
+
+          <button class="app-button"
+            onclick="window.location.hash='#/ricette-semplici'">
+            🥗 Ricette semplici / Food cost
+          </button>
+
+          <button class="app-button secondary"
+            onclick="window.location.hash='#/creaRicetta'">
+            🏭 Ricetta avanzata / Produzione
+          </button>
         `
       })}
 
