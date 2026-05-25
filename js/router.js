@@ -454,6 +454,8 @@ function hasPermission(area) {
 
     "crea-dipendente":
       "dipendenti.write"
+     "ricette-semplici":
+  "ricette.write",
 
   };
 
