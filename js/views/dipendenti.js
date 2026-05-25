@@ -799,16 +799,6 @@ async function salvaDipendente(isEdit) {
       const id = document.getElementById("dip-id")?.value;
       const userId = document.getElementById("dip-user-id")?.value || null;
 
-      const tipoCompenso = document.getElementById("dip-tipo-compenso")?.value || "orario";
-      const retribuzioneBase = parseFloat(document.getElementById("dip-retribuzione-base")?.value) || null;
-      const oreMensili = parseFloat(document.getElementById("dip-ore-mensili")?.value) || null;
-      const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || null;
-      const costoOrario = parseFloat(document.getElementById("dip-costo")?.value) || null;
-      const costoMedio = (document.getElementById("dip-costo-medio")?.value || "").trim() || null;
-      const oraIngresso = document.getElementById("dip-ora-ingresso")?.value || null;
-      const oraUscita = document.getElementById("dip-ora-uscita")?.value || null;
-      const attivoCheck = document.getElementById("dip-attivo")?.checked ?? true;
-
       const { error } = await window.supabase
         .from("dipendenti")
         .update({
@@ -817,16 +807,7 @@ async function salvaDipendente(isEdit) {
           email,
           telefono,
           mansione,
-          reparto_id: repartoId,
-          tipo_compenso: tipoCompenso,
-          retribuzione_base: retribuzioneBase,
-          ore_mensili_contrattuali: oreMensili,
-          ore_medie_per_servizio: oreServizio,
-          costo_orario: costoOrario,
-          costo_medio: costoMedio,
-          ora_ingresso: oraIngresso,
-          ora_uscita: oraUscita,
-          attivo: attivoCheck
+          reparto_id: repartoId
         })
         .eq("id", id)
         .eq("azienda_id", azienda.id);
@@ -854,12 +835,11 @@ async function salvaDipendente(isEdit) {
         const jsonRuolo = await resRuolo.json();
 
         if (!resRuolo.ok || !jsonRuolo.success) {
-          console.error("Errore ruolo:", jsonRuolo);
-          if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore aggiornamento ruolo</span>`;
-          return;
+          // non blocchiamo: l'anagrafica è già salvata, il ruolo si aggiornerà quando l'utente accetterà l'invito
+          console.warn("Ruolo non aggiornato (utente non ancora collegato):", jsonRuolo);
+        } else {
+          await syncUtenteSedi(userId, sediSelezionate);
         }
-
-        await syncUtenteSedi(userId, sediSelezionate);
       }
 
       if (msg) msg.innerHTML = `<span style="color:#16a34a;">Dipendente aggiornato ✔</span>`;
