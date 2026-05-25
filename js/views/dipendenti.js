@@ -742,13 +742,13 @@ async function renderForm(dip) {
 
 function calcolaCosto() {
   const tipo = document.getElementById("dip-tipo-compenso")?.value || "orario";
-  const baseRaw = document.getElementById("dip-retribuzione-base")?.value;
+  const baseRaw = document.getElementById("dip-retribuzione-base")?.value ?? "";
   const base = parseFloat(baseRaw) || 0;
   const oreMensili = parseFloat(document.getElementById("dip-ore-mensili")?.value) || 0;
   const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || 0;
 
-  // Se la retribuzione base è vuota, non sovrascrivere il costo orario manuale
-  if (!baseRaw || baseRaw.trim() === "") return;
+  // Se retribuzione base vuota, non sovrascrivere il costo orario inserito manualmente
+  if (baseRaw.trim() === "") return;
 
   let costo = 0;
 
