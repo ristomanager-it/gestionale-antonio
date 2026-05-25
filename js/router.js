@@ -433,33 +433,33 @@ function hasPermission(area) {
   // PERMESSI EXTRA
   // =====================================
 
-  const routePermissions = {
+const routePermissions = {
 
-    "planner-produzione":
-      "planning.write",
+  "planner-produzione":
+    "planning.write",
 
-    "acquisti":
-      "acquisti.write",
+  "acquisti":
+    "acquisti.write",
 
-    "magazzino":
-      "magazzino.write",
+  "magazzino":
+    "magazzino.write",
 
-    "ricettario":
-      "ricette.write",
+  "ricettario":
+    "ricette.write",
 
-    "creaRicetta":
-      "ricette.write",
+  "creaRicetta":
+    "ricette.write",
 
-    "dipendenti":
-      "dipendenti.read",
+  "dipendenti":
+    "dipendenti.read",
 
-    "crea-dipendente":
-      "dipendenti.write",
-     
-     "ricette-semplici":
-  "ricette.write",
+  "crea-dipendente":
+    "dipendenti.write",
 
-  };
+  "ricette-semplici":
+    "ricette.write",
+
+};
 
   const neededPermission =
     routePermissions[area];
