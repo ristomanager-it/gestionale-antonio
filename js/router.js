@@ -68,7 +68,7 @@ const routes = {
   operativo: () => import("./views/operativo.js"),
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
-
+"ricette-semplici": () => import("./views/ricette-semplici.js"),
   "permessi-operatore": () =>
     import("./views/permessi-operatore/index.js"),
 
