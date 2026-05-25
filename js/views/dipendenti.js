@@ -658,8 +658,8 @@ async function renderForm(dip) {
             <input type="text" id="dip-costo-medio" class="input-pill" value="${dip?.costo_medio ?? ""}" />
           </label>
 
-          <label>Costo orario (calcolato)
-            <input type="number" step="0.01" id="dip-costo" class="input-pill" readonly value="${dip?.costo_orario ?? ""}" />
+          <label>Costo orario €/h
+            <input type="number" step="0.01" id="dip-costo" class="input-pill" value="${dip?.costo_orario ?? ""}" />
           </label>
         </div>
 
@@ -799,6 +799,16 @@ async function salvaDipendente(isEdit) {
       const id = document.getElementById("dip-id")?.value;
       const userId = document.getElementById("dip-user-id")?.value || null;
 
+      const tipoCompenso = document.getElementById("dip-tipo-compenso")?.value || "orario";
+      const retribuzioneBase = parseFloat(document.getElementById("dip-retribuzione-base")?.value) || null;
+      const oreMensili = parseFloat(document.getElementById("dip-ore-mensili")?.value) || null;
+      const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || null;
+      const costoOrario = parseFloat(document.getElementById("dip-costo")?.value) || null;
+      const costoMedio = (document.getElementById("dip-costo-medio")?.value || "").trim() || null;
+      const oraIngresso = document.getElementById("dip-ora-ingresso")?.value || null;
+      const oraUscita = document.getElementById("dip-ora-uscita")?.value || null;
+      const attivoCheck = document.getElementById("dip-attivo")?.checked ?? true;
+
       const { error } = await window.supabase
         .from("dipendenti")
         .update({
@@ -807,7 +817,16 @@ async function salvaDipendente(isEdit) {
           email,
           telefono,
           mansione,
-          reparto_id: repartoId
+          reparto_id: repartoId,
+          tipo_compenso: tipoCompenso,
+          retribuzione_base: retribuzioneBase,
+          ore_mensili_contrattuali: oreMensili,
+          ore_medie_per_servizio: oreServizio,
+          costo_orario: costoOrario,
+          costo_medio: costoMedio,
+          ora_ingresso: oraIngresso,
+          ora_uscita: oraUscita,
+          attivo: attivoCheck
         })
         .eq("id", id)
         .eq("azienda_id", azienda.id);
@@ -835,7 +854,6 @@ async function salvaDipendente(isEdit) {
         const jsonRuolo = await resRuolo.json();
 
         if (!resRuolo.ok || !jsonRuolo.success) {
-          // non blocchiamo: l'anagrafica è già salvata, il ruolo si aggiornerà quando l'utente accetterà l'invito
           console.warn("Ruolo non aggiornato (utente non ancora collegato):", jsonRuolo);
         } else {
           await syncUtenteSedi(userId, sediSelezionate);
