@@ -212,7 +212,7 @@ async function loadTony(ruolo){
       .lt("timestamp", `${tomorrow}T00:00:00`)
 
     if(sedeUuid){
-      query = query.eq("sede_uuid", sedeUuid)
+      query = query.eq("sede_id", sedeUuid)
     }
 
     const { data } = await query
