@@ -246,51 +246,44 @@ async function fetchRecentForAzienda(
   sedeUuid,
   limit = 500
 ) {
+  if (!aziendaId) return [];
 
-  if (!aziendaId) {
-    return [];
-  }
+  let query = window.supabaseClient
+    .from("timbrature")
+    .select(`dipendente_id, dip_nome, tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m, canale, sede_id`)
+    .eq("azienda_id", aziendaId);
 
-  let query =
-    window.supabaseClient
-      .from("timbrature")
-      .select(`
-        dipendente_id,
-        dip_nome,
-        tipo,
-        timestamp,
-        geo_esito,
-        geo_motivo,
-        lat,
-        lon,
-        accuracy_m,
-        canale,
-        sede_id
-      `)
-      .eq("azienda_id", aziendaId);
+  if (sedeUuid) query = query.eq("sede_id", sedeUuid);
 
-  if (sedeUuid) {
-    query =
-      query.eq(
-        "sede_id",
-        sedeUuid
-      );
-  }
+  const { data, error } = await query
+    .order("timestamp", { ascending: false })
+    .limit(limit);
 
-  const { data, error } =
-    await query
-      .order(
-        "timestamp",
-        { ascending: false }
-      )
-      .limit(limit);
-
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return data || [];
+}
 
+async function fetchRecentForAziendaConDate(aziendaId, sedeUuid, dateFrom, dateTo, limit = 2000) {
+  if (!aziendaId) return [];
+
+  const from = dateFrom + "T00:00:00.000Z";
+  const to = dateTo + "T23:59:59.999Z";
+
+  let query = window.supabaseClient
+    .from("timbrature")
+    .select(`dipendente_id, dip_nome, tipo, timestamp, geo_esito, geo_motivo, lat, lon, accuracy_m, canale, sede_id`)
+    .eq("azienda_id", aziendaId)
+    .gte("timestamp", from)
+    .lte("timestamp", to);
+
+  if (sedeUuid) query = query.eq("sede_id", sedeUuid);
+
+  const { data, error } = await query
+    .order("timestamp", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
 }
 
 async function verificaPinTimbrature({ aziendaId, dipendenteId, pin }) {
@@ -663,7 +656,171 @@ function renderOperatorCard() {
   });
 }
 
+function getTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getWeekStart() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getMonthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function getPrevMonthRange() {
+  const d = new Date();
+  const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
+  const m = d.getMonth() === 0 ? 12 : d.getMonth();
+  const from = `${y}-${String(m).padStart(2, '0')}-01`;
+  const last = new Date(y, m, 0).getDate();
+  const to = `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+  return { from, to };
+}
+
+function computeOrePerDipendente(rows) {
+  const byDip = new Map();
+
+  const ordered = [...rows].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  for (const row of ordered) {
+    if (!row.dipendente_id) continue;
+    const key = row.dipendente_id;
+
+    if (!byDip.has(key)) {
+      byDip.set(key, {
+        nome: row.dip_nome || key,
+        ms: 0,
+        openStart: null,
+      });
+    }
+
+    const d = byDip.get(key);
+    const ts = new Date(row.timestamp);
+
+    if (row.tipo === 'inizio_turno') {
+      d.openStart = ts;
+    } else if (row.tipo === 'inizio_pausa' && d.openStart) {
+      d.ms += Math.max(0, ts - d.openStart);
+      d.openStart = null;
+    } else if (row.tipo === 'fine_pausa') {
+      d.openStart = ts;
+    } else if (row.tipo === 'fine_turno') {
+      if (d.openStart) {
+        d.ms += Math.max(0, ts - d.openStart);
+        d.openStart = null;
+      }
+    }
+  }
+
+  return [...byDip.entries()].map(([id, val]) => ({
+    id,
+    nome: val.nome,
+    ms: val.ms,
+  })).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+}
+
+function formatMs(ms) {
+  const minutes = Math.floor(ms / 60000);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
+}
+
+function renderOreRiepilogo(rows) {
+  const ore = computeOrePerDipendente(rows);
+  if (!ore.length) return '';
+
+  const totaleMs = ore.reduce((acc, d) => acc + d.ms, 0);
+
+  return `
+    <div style="margin-bottom:16px; padding:12px; background:rgba(0,0,0,.04); border-radius:12px;">
+      <div style="font-weight:900; margin-bottom:8px;">Ore lavorate nel periodo</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${ore.map(d => `
+          <div style="padding:6px 12px; background:white; border-radius:8px; border:1px solid rgba(0,0,0,.1); font-size:14px;">
+            <strong>${escapeHtml(d.nome)}</strong>: ${escapeHtml(formatMs(d.ms))}
+          </div>
+        `).join('')}
+        <div style="padding:6px 12px; background:rgba(0,100,200,.08); border-radius:8px; border:1px solid rgba(0,100,200,.2); font-size:14px;">
+          <strong>Totale</strong>: ${escapeHtml(formatMs(totaleMs))}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildRowsCards(rows, options = {}) {
+  const showSensitive = options.showSensitive === true;
+
+  if (!rows.length) {
+    return `<div class="timbrature-muted">Nessuna timbratura trovata.</div>`;
+  }
+
+  if (!showSensitive) {
+    return `
+      <div class="tb-operator-list">
+        ${rows.map((r) => `
+          <div class="tb-operator-row">
+            <div class="tb-operator-main">
+              <strong>${escapeHtml(tipoToLabel(r.tipo))}</strong>
+              <span>${escapeHtml(formatDateTime(r.timestamp))}</span>
+            </div>
+            <span class="tb-status-pill">${escapeHtml(tipoToState(r.tipo))}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      ${rows.map((r, index) => {
+        const coords = r.lat != null && r.lon != null
+          ? `${Number(r.lat).toFixed(4)}, ${Number(r.lon).toFixed(4)}`
+          : null;
+
+        return `
+          <div style="
+            background:white;
+            border:1px solid rgba(0,0,0,.1);
+            border-radius:12px;
+            padding:12px 14px;
+            display:flex;
+            flex-direction:column;
+            gap:4px;
+          ">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <strong style="font-size:15px;">${escapeHtml(r.dip_nome || 'Dipendente')}</strong>
+              <span style="
+                padding:3px 10px;
+                border-radius:999px;
+                font-size:12px;
+                font-weight:700;
+                background:${r.tipo === 'inizio_turno' ? 'rgba(22,163,74,.12)' : r.tipo === 'fine_turno' ? 'rgba(220,38,38,.10)' : 'rgba(0,0,0,.06)'};
+              ">${escapeHtml(tipoToLabel(r.tipo))}</span>
+            </div>
+            <div style="font-size:13px; opacity:.7;">${escapeHtml(formatDateTime(r.timestamp))}</div>
+            ${r.geo_esito ? `<div style="font-size:12px; opacity:.6;">Geofence: ${escapeHtml(r.geo_esito)} ${r.geo_motivo ? '• ' + escapeHtml(r.geo_motivo) : ''}</div>` : ''}
+            ${coords ? `<div style="font-size:12px; opacity:.5;">📍 ${escapeHtml(coords)}</div>` : ''}
+            <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+              <button class="app-button tiny gray tb-detail-btn" type="button" data-tb-index="${index}">Dettagli</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function renderManagerCards() {
+  const today = getTodayStr();
+
   return `
     ${createCard({
       title: "Monitor live",
@@ -682,26 +839,29 @@ function renderManagerCards() {
           </button>
         </div>
 
-        <div
-          id="tb-manager-panel"
-          class="timbrature-card"
-          style="margin-top:12px; display:none;"
-        >
-          <div class="timbrature-toolbar">
-            <input
-              id="tb-manager-search"
-              class="input-pill"
-              placeholder="Cerca..."
-              style="flex:1; min-width:220px;"
-            />
+        <div id="tb-manager-panel" class="timbrature-card" style="margin-top:12px; display:none;">
 
-            <select
-              id="tb-manager-filter"
-              class="input-pill"
-              style="max-width:260px;"
-            ></select>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <button class="app-button small gray tb-date-btn" data-range="oggi">Oggi</button>
+            <button class="app-button small gray tb-date-btn" data-range="settimana">Settimana</button>
+            <button class="app-button small gray tb-date-btn" data-range="mese">Mese</button>
+            <button class="app-button small gray tb-date-btn" data-range="mese-prec">Mese prec.</button>
+            <button class="app-button small gray tb-date-btn" data-range="custom">Da... a...</button>
           </div>
 
+          <div id="tb-date-custom" style="display:none; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center;">
+            <input type="date" id="tb-date-from" class="input-pill" style="max-width:160px;" value="${today}" />
+            <span>→</span>
+            <input type="date" id="tb-date-to" class="input-pill" style="max-width:160px;" value="${today}" />
+            <button class="app-button small" id="tb-date-apply">Applica</button>
+          </div>
+
+          <div class="timbrature-toolbar">
+            <input id="tb-manager-search" class="input-pill" placeholder="Cerca..." style="flex:1; min-width:180px;" />
+            <select id="tb-manager-filter" class="input-pill" style="max-width:220px;"></select>
+          </div>
+
+          <div id="tb-ore-riepilogo" style="margin-top:12px;"></div>
           <div id="tb-manager-list" style="margin-top:10px;"></div>
         </div>
       `,
@@ -844,7 +1004,11 @@ export async function render(app) {
       if (!isManager || !elManagerList) return;
 
       const rows = applyListFilters(cachedRowsAll);
-      elManagerList.innerHTML = buildRowsTable(rows, {
+
+      const elOre = app.querySelector("#tb-ore-riepilogo");
+      if (elOre) elOre.innerHTML = renderOreRiepilogo(cachedRowsAll);
+
+      elManagerList.innerHTML = buildRowsCards(rows, {
         showSensitive: true,
         showDetails: true,
       });
@@ -942,25 +1106,17 @@ export async function render(app) {
       elFilter.value = selectedDip;
     }
 
+    let activeDateFrom = getTodayStr();
+    let activeDateTo = getTodayStr();
+
     async function loadManagerData() {
       if (!isManager) return;
 
-    const sedeUuid =
-  window.state?.sedeAttiva?.id ||
-  null;
+      const sedeUuid = window.state?.sedeAttiva?.id || null;
 
-cachedDipendenti =
-  await fetchDipendentiAzienda(
-    azienda.id,
-    sedeUuid
-  );
+      cachedDipendenti = await fetchDipendentiAzienda(azienda.id, sedeUuid);
+      cachedRowsAll = await fetchRecentForAziendaConDate(azienda.id, sedeUuid, activeDateFrom, activeDateTo);
 
-cachedRowsAll =
-  await fetchRecentForAzienda(
-    azienda.id,
-    sedeUuid,
-    500
-  );
       refreshFilterOptions();
       refreshDipendentiSummary();
 
@@ -1191,6 +1347,51 @@ const pinOk = await verificaPinTimbrature({
           elPanel.style.display = panelOpen ? "block" : "none";
           elToggle.textContent = panelOpen ? "Nascondi Timbrature 📋" : "Mostra Timbrature 📋";
           if (panelOpen) refreshManagerTimbratureList();
+        });
+      }
+
+      // Gestione bottoni filtro data
+      app.querySelectorAll(".tb-date-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const range = btn.dataset.range;
+          const customDiv = app.querySelector("#tb-date-custom");
+
+          app.querySelectorAll(".tb-date-btn").forEach(b => b.className = "app-button small gray tb-date-btn");
+          btn.className = "app-button small tb-date-btn";
+
+          if (range === "custom") {
+            if (customDiv) customDiv.style.display = "flex";
+            return;
+          }
+
+          if (customDiv) customDiv.style.display = "none";
+
+          if (range === "oggi") {
+            activeDateFrom = activeDateTo = getTodayStr();
+          } else if (range === "settimana") {
+            activeDateFrom = getWeekStart();
+            activeDateTo = getTodayStr();
+          } else if (range === "mese") {
+            activeDateFrom = getMonthStart();
+            activeDateTo = getTodayStr();
+          } else if (range === "mese-prec") {
+            const { from, to } = getPrevMonthRange();
+            activeDateFrom = from;
+            activeDateTo = to;
+          }
+
+          await loadManagerData();
+        });
+      });
+
+      const btnApply = app.querySelector("#tb-date-apply");
+      if (btnApply) {
+        btnApply.addEventListener("click", async () => {
+          const from = app.querySelector("#tb-date-from")?.value;
+          const to = app.querySelector("#tb-date-to")?.value;
+          if (from) activeDateFrom = from;
+          if (to) activeDateTo = to;
+          await loadManagerData();
         });
       }
 
