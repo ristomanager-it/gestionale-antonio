@@ -51,7 +51,7 @@ export async function render(container){
       .eq("dipendente_id", dipendenteId);
 
     if (sedeUuid) {
-      query = query.eq("sede_uuid", sedeUuid);
+      query = query.eq("sede_id", sedeUuid);
     }
 
     const { data } = await query
