@@ -54,7 +54,7 @@ export async function render(container) {
       .lt("timestamp", `${tomorrowStr}T00:00:00`);
 
     if (sedeUuid) {
-      timbratureQuery = timbratureQuery.eq("sede_uuid", sedeUuid);
+      timbratureQuery = timbratureQuery.eq("sede_id", sedeUuid);
     }
 
     const { data: tData } = await timbratureQuery;
