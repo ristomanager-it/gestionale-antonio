@@ -108,8 +108,8 @@ async function fetchDipendentiAzienda(
     let utentiSedeQuery =
       window.supabaseClient
         .from("utenti_sedi")
-        .select("user_id, sede_uuid")
-        .eq("sede_uuid", sedeUuid);
+        .select("user_id, sede_id")
+        .eq("sede_id", sedeUuid);
 
     utentiSedeQuery =
       utentiSedeQuery.eq(
@@ -198,7 +198,7 @@ async function fetchActiveGeofences(aziendaId, sedeUuid = null) {
     lon,
     raggio_m: raggio,
     attivo: true,
-    sede_uuid: sede?.id || sedeUuid || null
+    sede_id: sede?.id || sedeUuid || null
   }];
 }
 
@@ -265,14 +265,14 @@ async function fetchRecentForAzienda(
         lon,
         accuracy_m,
         canale,
-        sede_uuid
+        sede_id
       `)
       .eq("azienda_id", aziendaId);
 
   if (sedeUuid) {
     query =
       query.eq(
-        "sede_uuid",
+        "sede_id",
         sedeUuid
       );
   }
@@ -598,7 +598,7 @@ function buildTimbraturaDetailsModal(row) {
           </div>
           <div class="tb-detail-field">
             <span>Sede</span>
-            <strong>${escapeHtml(row?.sede_uuid || "—")}</strong>
+            <strong>${escapeHtml(row?.sede_id || "—")}</strong>
           </div>
         </div>
       </div>
@@ -1064,7 +1064,7 @@ const pinOk = await verificaPinTimbrature({
 
       const basePayload = {
         azienda_id: azienda.id,
-        sede_uuid:
+        sede_id:
           window.state?.sedeAttiva?.id || null,
         dipendente_id: dipendenteId,
         dip_nome: dipNome,
