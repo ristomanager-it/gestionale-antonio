@@ -1,8 +1,9 @@
 /* =========================================================
 RISTOFLOW DESIGN SYSTEM
 ========================================================= */
-
 :root{
+  --app-header-height:72px;
+  --bottom-nav-height:78px;
 
 --color-primary:#0E5A7A;
 --color-primary-soft:#1F6D8F;
