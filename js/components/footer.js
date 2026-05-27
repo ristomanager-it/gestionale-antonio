@@ -61,6 +61,11 @@ export async function renderFooter(){
         icon:"📄",
         label:"Richieste",
         route:"permessi"
+      },
+      {
+        icon:"👤",
+        label:"Profilo",
+        route:"profilo"
       }
     ]
 
@@ -94,6 +99,11 @@ export async function renderFooter(){
         icon:"⚙️",
         label:"Altro",
         route:"menu"
+      },
+      {
+        icon:"👤",
+        label:"Profilo",
+        route:"profilo"
       }
     ]
 
