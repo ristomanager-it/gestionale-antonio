@@ -24,9 +24,12 @@ export async function render(app) {
   <div class="chat-header">
     <div class="chat-header-left">
       <img src="${TONY_AVATAR}" class="chat-avatar-img"/>
+
       <div class="chat-header-meta">
         <div class="chat-name">Tony</div>
-        <div class="chat-status" id="tony-status">Assistente operativo</div>
+        <div class="chat-status" id="tony-status">
+          Assistente operativo
+        </div>
       </div>
     </div>
   </div>
@@ -34,23 +37,68 @@ export async function render(app) {
   <div id="chat-messages" class="chat-messages"></div>
 
   <div class="chat-quick-actions">
-    <button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">📊 Briefing</button>
-    <button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">🍳 Produzione</button>
-    <button class="chat-chip" data-prompt="Analizza le vendite degli ultimi giorni">📈 Vendite</button>
-    <button class="chat-chip" data-prompt="Dimmi se ho prodotti sottoscorta">📦 Magazzino</button>
-    <button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi">📢 Marketing</button>
-    <button class="chat-chip" data-voice="ricetta">🎤 Nuova ricetta</button>
-    <button class="chat-chip" data-prompt="Cosa devo spingere in sala oggi?">🍽️ Sala</button>
+    <button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">
+      📊 Briefing
+    </button>
+
+    <button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">
+      🍳 Produzione
+    </button>
+
+    <button class="chat-chip" data-prompt="Analizza le vendite degli ultimi giorni">
+      📈 Vendite
+    </button>
+
+    <button class="chat-chip" data-prompt="Dimmi se ho prodotti sottoscorta">
+      📦 Magazzino
+    </button>
+
+    <button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi">
+      📢 Marketing
+    </button>
+
+    <button class="chat-chip" data-voice="ricetta">
+      🎤 Nuova ricetta
+    </button>
+
+    <button class="chat-chip" data-prompt="Cosa devo spingere in sala oggi?">
+      🍽️ Sala
+    </button>
   </div>
 
-  <div id="voice-transcript-bar" style="display:none; padding:8px 14px; background:#fff3cd; font-size:13px; color:#856404; border-top:1px solid #ffc107;">
-    🎤 <span id="voice-transcript-text">Trascrizione in corso...</span>
+  <div
+    id="voice-transcript-bar"
+    style="display:none;"
+  >
+    🎤
+    <span id="voice-transcript-text">
+      Trascrizione in corso...
+    </span>
   </div>
 
   <div class="chat-input-bar">
-    <button id="chat-mic" class="chat-mic-btn" title="Parla con Tony">🎤</button>
-    <textarea id="chat-input" rows="1" placeholder="Scrivi a Tony..."></textarea>
-    <button id="chat-send" class="chat-send-btn">➤</button>
+
+    <button
+      id="chat-mic"
+      class="chat-mic-btn"
+      title="Parla con Tony"
+    >
+      🎤
+    </button>
+
+    <textarea
+      id="chat-input"
+      rows="1"
+      placeholder="Scrivi a Tony..."
+    ></textarea>
+
+    <button
+      id="chat-send"
+      class="chat-send-btn"
+    >
+      ➤
+    </button>
+
   </div>
 
 </div>
@@ -58,6 +106,9 @@ export async function render(app) {
 <style>
 
 :root{
+  --app-header-height:72px;
+  --bottom-nav-height:78px;
+
   --wa-bg:#efeae2;
   --wa-header:#0E5A7A;
   --wa-user:#d9fdd3;
@@ -66,29 +117,54 @@ export async function render(app) {
   --wa-border:#d1d7db;
 }
 
+/* =========================================================
+   CHAT SHELL
+========================================================= */
+
 .chat-shell{
-  position:fixed;
-  inset:0;
+  position:relative;
+
   display:flex;
   flex-direction:column;
+
+  width:100%;
+
+  height:calc(
+    100dvh
+    - var(--app-header-height)
+    - var(--bottom-nav-height)
+  );
+
+  min-height:0;
+
   background:var(--wa-bg);
+
   overflow:hidden;
 }
 
+/* =========================================================
+   HEADER
+========================================================= */
+
 .chat-header{
+  position:sticky;
+  top:0;
+  z-index:20;
+
   height:64px;
   min-height:64px;
-  background:var(--wa-header);
-  color:white;
+
   display:flex;
   align-items:center;
-  padding:
-    env(safe-area-inset-top,0)
-    14px
-    0
-    14px;
-  z-index:20;
+
+  padding:0 14px;
+
+  background:var(--wa-header);
+  color:white;
+
   box-shadow:0 1px 2px rgba(0,0,0,.15);
+
+  flex-shrink:0;
 }
 
 .chat-header-left{
@@ -116,23 +192,33 @@ export async function render(app) {
   opacity:.85;
 }
 
+/* =========================================================
+   MESSAGES
+========================================================= */
+
 .chat-messages{
   flex:1;
+  min-height:0;
+
   overflow-y:auto;
   overflow-x:hidden;
-  padding:12px 10px;
+
   display:flex;
   flex-direction:column;
   gap:10px;
+
+  padding:12px 10px 20px;
+
   -webkit-overflow-scrolling:touch;
   scroll-behavior:smooth;
 }
 
 .msg-row{
+  width:100%;
+
   display:flex;
   align-items:flex-end;
   gap:6px;
-  width:100%;
 }
 
 .msg-row.user{
@@ -142,8 +228,10 @@ export async function render(app) {
 .msg-avatar{
   width:30px;
   height:30px;
+
   border-radius:50%;
   object-fit:cover;
+
   flex-shrink:0;
 }
 
@@ -153,14 +241,21 @@ export async function render(app) {
 
 .msg-bubble{
   max-width:82%;
+
   padding:9px 11px 6px;
+
   border-radius:8px;
+
   font-size:14px;
   line-height:1.45;
+
   position:relative;
+
   word-break:break-word;
-  box-shadow:0 1px .5px rgba(0,0,0,.13);
+
   background:var(--wa-ai);
+
+  box-shadow:0 1px .5px rgba(0,0,0,.13);
 }
 
 .msg-row.user .msg-bubble{
@@ -177,7 +272,9 @@ export async function render(app) {
   justify-content:flex-end;
   align-items:center;
   gap:4px;
+
   margin-top:4px;
+
   font-size:10px;
   color:#667781;
 }
@@ -186,32 +283,54 @@ export async function render(app) {
   display:inline-flex;
   align-items:center;
   gap:4px;
+
   margin-bottom:6px;
+
   font-size:10px;
+
   padding:3px 7px;
+
   border-radius:999px;
+
   background:rgba(14,90,122,.1);
   color:#0E5A7A;
 }
 
 .msg-action-card{
   margin-top:8px;
+
   padding:8px 10px;
+
   border-radius:8px;
+
   background:rgba(14,90,122,.08);
+
   border:1px solid rgba(14,90,122,.15);
+
   font-size:12px;
 }
+
+/* =========================================================
+   QUICK ACTIONS
+========================================================= */
 
 .chat-quick-actions{
   display:flex;
   gap:8px;
+
   overflow-x:auto;
+
   padding:8px 10px;
+
   background:#f0f2f5;
+
   border-top:1px solid #e5e7eb;
+
   scrollbar-width:none;
+
   -webkit-overflow-scrolling:touch;
+
+  flex-shrink:0;
 }
 
 .chat-quick-actions::-webkit-scrollbar{
@@ -220,52 +339,85 @@ export async function render(app) {
 
 .chat-chip{
   flex-shrink:0;
+
   border:none;
+
   background:white;
+
   border-radius:999px;
+
   padding:8px 12px;
+
   font-size:12px;
+
   white-space:nowrap;
+
   cursor:pointer;
+
   box-shadow:0 1px 2px rgba(0,0,0,.08);
 }
 
+/* =========================================================
+   INPUT BAR
+========================================================= */
+
 .chat-input-bar{
-  position:relative;
+  position:sticky;
+  bottom:0;
+  z-index:30;
+
   display:flex;
   align-items:flex-end;
   gap:8px;
-  padding:8px 10px
-    calc(8px + env(safe-area-inset-bottom,0));
+
+  padding:8px 10px;
+
   background:#f0f2f5;
+
   border-top:1px solid #dfe3e8;
+
+  flex-shrink:0;
 }
 
 #chat-input{
   flex:1;
+
   min-height:42px;
   max-height:110px;
+
   resize:none;
+
   border:none;
   outline:none;
+
   border-radius:22px;
+
   padding:11px 14px;
-  font-size:15px;
-  background:var(--wa-input);
-  overflow-y:auto;
+
+  font-size:16px;
   line-height:1.4;
+
+  background:var(--wa-input);
+
+  overflow-y:auto;
+
+  -webkit-appearance:none;
 }
 
 .chat-send-btn,
 .chat-mic-btn{
   width:44px;
   height:44px;
+
   border:none;
   border-radius:50%;
+
   flex-shrink:0;
+
   display:flex;
   align-items:center;
   justify-content:center;
+
   cursor:pointer;
 }
 
@@ -290,37 +442,59 @@ export async function render(app) {
   0%{
     transform:scale(1);
   }
+
   50%{
     transform:scale(1.08);
   }
+
   100%{
     transform:scale(1);
   }
 }
 
+/* =========================================================
+   TRANSCRIPT BAR
+========================================================= */
+
 #voice-transcript-bar{
-  padding:8px 12px !important;
-  font-size:12px !important;
+  padding:8px 12px;
+  font-size:12px;
+
+  background:#fff3cd;
+  color:#856404;
+
+  border-top:1px solid #ffc107;
 }
+
+/* =========================================================
+   CHART
+========================================================= */
 
 .chart-box{
   width:100%;
+
   overflow:hidden;
+
   background:white;
+
   border-radius:10px;
+
   padding:10px;
 }
+
+/* =========================================================
+   DESKTOP
+========================================================= */
 
 @media (min-width: 900px){
 
   .chat-shell{
-    position:relative;
-    inset:auto;
     max-width:1100px;
+
     margin:auto;
-    height:calc(100vh - 90px);
+
     border-radius:18px;
-    overflow:hidden;
+
     box-shadow:0 10px 30px rgba(0,0,0,.08);
   }
 
@@ -331,65 +505,93 @@ export async function render(app) {
   });
 
   app.innerHTML = html;
+
   initChat();
 }
 
 function getNowTime() {
-  return new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  return new Date().toLocaleTimeString(
+    "it-IT",
+    {
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  );
 }
 
 function scrollChatToBottom() {
   const container = document.getElementById("chat-messages");
-  if (container) container.scrollTop = container.scrollHeight;
+
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 function setTonyStatus(text) {
   const el = document.getElementById("tony-status");
-  if (el) el.textContent = text;
+
+  if (el) {
+    el.textContent = text;
+  }
 }
 
 function addMessage(text, type, options = {}) {
   const container = document.getElementById("chat-messages");
+
   if (!container) return null;
 
   const row = document.createElement("div");
-  row.className = `msg-row ${type}`;
+  row.className = \`msg-row \${type}\`;
 
   const avatar = document.createElement("img");
   avatar.className = "msg-avatar";
-  avatar.src = type === "ai" ? TONY_AVATAR : USER_AVATAR;
+  avatar.src = type === "ai"
+    ? TONY_AVATAR
+    : USER_AVATAR;
+
   row.appendChild(avatar);
 
   const bubble = document.createElement("div");
   bubble.className = "msg-bubble";
 
-  // Badge vocale
   if (options.isVoice) {
     const badge = document.createElement("span");
+
     badge.className = "msg-voice-badge";
     badge.textContent = "🎤 vocale";
+
     bubble.appendChild(badge);
   }
 
   const textNode = document.createElement("span");
   textNode.textContent = text;
+
   bubble.appendChild(textNode);
 
-  // Card azione eseguita
   if (options.action && options.actionExecuted) {
     const card = document.createElement("div");
+
     card.className = "msg-action-card";
-    card.innerHTML = `<strong>✅ Azione eseguita:</strong> ${escapeHtml(options.action.type.replace(/_/g, " "))}`;
+
+    card.innerHTML = \`
+      <strong>✅ Azione eseguita:</strong>
+      \${escapeHtml(options.action.type.replace(/_/g, " "))}
+    \`;
+
     bubble.appendChild(card);
   }
 
   const meta = document.createElement("div");
+
   meta.className = "msg-meta";
   meta.textContent = getNowTime();
+
   bubble.appendChild(meta);
 
   row.appendChild(bubble);
+
   container.appendChild(row);
+
   scrollChatToBottom();
 
   return bubble;
@@ -404,28 +606,40 @@ function escapeHtml(str) {
 
 function renderChart(chart) {
   const container = document.getElementById("chat-messages");
-  if (!container || !chart?.labels || !chart?.data) return;
+
+  if (!container || !chart?.labels || !chart?.data) {
+    return;
+  }
 
   const box = document.createElement("div");
   box.className = "chart-box";
+
   const canvas = document.createElement("canvas");
+
   box.appendChild(canvas);
+
   container.appendChild(box);
 
   new Chart(canvas, {
     type: "bar",
     data: {
       labels: chart.labels,
-      datasets: [{
-        label: chart.label || "Vendite",
-        data: chart.data,
-        backgroundColor: "rgba(14,90,122,0.7)",
-        borderRadius: 6,
-      }]
+      datasets: [
+        {
+          label: chart.label || "Vendite",
+          data: chart.data,
+          backgroundColor: "rgba(14,90,122,0.7)",
+          borderRadius: 6,
+        }
+      ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } }
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
     }
   });
 
@@ -445,37 +659,50 @@ async function callTony(messages, audioBase64 = null) {
     body.audio_base64 = audioBase64;
   }
 
-  const { data, error } = await supabase.functions.invoke("assistente-ai", { body });
+  const { data, error } = await supabase.functions.invoke(
+    "assistente-ai",
+    { body }
+  );
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
+
   return data;
 }
 
-// ============================================================
-// REGISTRAZIONE AUDIO
-// ============================================================
-
 async function startRecording() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
     audioChunks = [];
 
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "audio/mp4";
+    const mimeType =
+      MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/mp4";
 
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    mediaRecorder = new MediaRecorder(
+      stream,
+      { mimeType }
+    );
 
     mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunks.push(e.data);
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
     };
 
     mediaRecorder.start(100);
+
     isRecording = true;
 
     const mic = document.getElementById("chat-mic");
+
     if (mic) {
       mic.classList.add("recording");
       mic.textContent = "⏹";
@@ -486,34 +713,45 @@ async function startRecording() {
 
   } catch (err) {
     console.error("Microfono non disponibile:", err);
-    alert("Impossibile accedere al microfono. Controlla i permessi del browser.");
+
+    alert(
+      "Impossibile accedere al microfono. Controlla i permessi del browser."
+    );
   }
 }
 
 function stopRecording() {
   return new Promise((resolve) => {
+
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
       resolve(null);
       return;
     }
 
     mediaRecorder.onstop = async () => {
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
 
-      // Ferma stream microfono
-      mediaRecorder.stream?.getTracks().forEach(t => t.stop());
+      const blob = new Blob(
+        audioChunks,
+        { type: mediaRecorder.mimeType }
+      );
 
-      // Converti in base64
+      mediaRecorder.stream?.getTracks().forEach((t) => t.stop());
+
       const reader = new FileReader();
+
       reader.onload = () => resolve(reader.result);
+
       reader.onerror = () => resolve(null);
+
       reader.readAsDataURL(blob);
     };
 
     mediaRecorder.stop();
+
     isRecording = false;
 
     const mic = document.getElementById("chat-mic");
+
     if (mic) {
       mic.classList.remove("recording");
       mic.textContent = "🎤";
@@ -525,6 +763,7 @@ function stopRecording() {
 }
 
 async function sendVoiceMessage(promptPrefix = "") {
+
   const audioBase64 = await stopRecording();
 
   if (!audioBase64) {
@@ -532,191 +771,349 @@ async function sendVoiceMessage(promptPrefix = "") {
     return;
   }
 
-  // Mostra bar trascrizione
   const bar = document.getElementById("voice-transcript-bar");
   const barText = document.getElementById("voice-transcript-text");
-  if (bar) bar.style.display = "block";
-  if (barText) barText.textContent = "Trascrizione in corso...";
 
-  const loadingBubble = addMessage("Tony sta ascoltando...", "ai");
+  if (bar) {
+    bar.style.display = "block";
+  }
+
+  if (barText) {
+    barText.textContent = "Trascrizione in corso...";
+  }
+
+  const loadingBubble = addMessage(
+    "Tony sta ascoltando...",
+    "ai"
+  );
 
   try {
-    // Se c'è un prefix (es. "Crea questa ricetta:"), lo aggiungiamo nel contesto
+
     const messagesForTony = promptPrefix
-      ? [...conversation, { role: "system", content: `Modalità: ${promptPrefix}` }]
+      ? [
+          ...conversation,
+          {
+            role: "system",
+            content: \`Modalità: \${promptPrefix}\`
+          }
+        ]
       : conversation;
 
-    const data = await callTony(messagesForTony, audioBase64);
+    const data = await callTony(
+      messagesForTony,
+      audioBase64
+    );
 
-    if (loadingBubble) loadingBubble.parentElement?.remove();
-
-    // Mostra testo trascritto
-    const voiceInput = data?.voice_input;
-    if (voiceInput) {
-      if (barText) barText.textContent = `"${voiceInput}"`;
-      addMessage(voiceInput, "user", { isVoice: true });
-      conversation.push({ role: "user", content: voiceInput });
-    } else {
-      if (bar) bar.style.display = "none";
+    if (loadingBubble) {
+      loadingBubble.parentElement?.remove();
     }
 
-    const reply = data?.reply || "Non ho capito, puoi ripetere?";
-    addMessage(reply, "ai", {
-      action: data?.action,
-      actionExecuted: data?.action_executed,
+    const voiceInput = data?.voice_input;
+
+    if (voiceInput) {
+
+      if (barText) {
+        barText.textContent = \`"\${voiceInput}"\`;
+      }
+
+      addMessage(
+        voiceInput,
+        "user",
+        { isVoice: true }
+      );
+
+      conversation.push({
+        role: "user",
+        content: voiceInput
+      });
+
+    } else if (bar) {
+      bar.style.display = "none";
+    }
+
+    const reply =
+      data?.reply ||
+      "Non ho capito, puoi ripetere?";
+
+    addMessage(
+      reply,
+      "ai",
+      {
+        action: data?.action,
+        actionExecuted: data?.action_executed,
+      }
+    );
+
+    conversation.push({
+      role: "assistant",
+      content: reply
     });
 
-    conversation.push({ role: "assistant", content: reply });
+    if (data?.chart) {
+      renderChart(data.chart);
+    }
 
-    if (data?.chart) renderChart(data.chart);
+    if (
+      data?.action?.type === "crea_ricetta" &&
+      data?.action_executed
+    ) {
 
-    // Gestione azione ricetta
-    if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
       setTimeout(() => {
-        if (confirm("Tony ha creato la ricetta! Vuoi aprirla per completarla?")) {
-          const ricettaId = data?.action_result?.id;
+
+        if (
+          confirm(
+            "Tony ha creato la ricetta! Vuoi aprirla per completarla?"
+          )
+        ) {
+
+          const ricettaId =
+            data?.action_result?.id;
+
           if (ricettaId) {
-            window.location.hash = `#/crea-ricetta?id=${ricettaId}`;
+            window.location.hash =
+              \`#/crea-ricetta?id=\${ricettaId}\`;
           }
         }
+
       }, 500);
     }
 
   } catch (err) {
+
     console.error("Tony voice error:", err);
-    if (loadingBubble) loadingBubble.textContent = "Errore nella risposta vocale";
-    if (bar) bar.style.display = "none";
+
+    if (loadingBubble) {
+      loadingBubble.textContent =
+        "Errore nella risposta vocale";
+    }
+
+    if (bar) {
+      bar.style.display = "none";
+    }
   }
 
   setTonyStatus("Assistente operativo");
 }
 
-// ============================================================
-// INIT CHAT
-// ============================================================
-
 async function loadInitialBriefing() {
+
   try {
+
     setTonyStatus("⏳ Caricamento briefing...");
 
-    const data = await callTony([{
-      role: "user",
-      content: "Dammi il briefing operativo di oggi"
-    }]);
+    const data = await callTony([
+      {
+        role: "user",
+        content: "Dammi il briefing operativo di oggi"
+      }
+    ]);
 
-    const reply = data?.reply || "Ciao! Sono Tony, il tuo assistente operativo.";
+    const reply =
+      data?.reply ||
+      "Ciao! Sono Tony, il tuo assistente operativo.";
+
     addMessage(reply, "ai");
 
-    if (data?.chart) renderChart(data.chart);
+    if (data?.chart) {
+      renderChart(data.chart);
+    }
 
-    conversation.push({ role: "assistant", content: reply });
+    conversation.push({
+      role: "assistant",
+      content: reply
+    });
+
     setTonyStatus("Assistente operativo");
 
   } catch {
-    addMessage("Ciao! Sono Tony. Come posso aiutarti oggi?", "ai");
+
+    addMessage(
+      "Ciao! Sono Tony. Come posso aiutarti oggi?",
+      "ai"
+    );
+
     setTonyStatus("Assistente operativo");
   }
 }
 
 function initChat() {
+
   const input = document.getElementById("chat-input");
   const send = document.getElementById("chat-send");
   const mic = document.getElementById("chat-mic");
+
   const chips = document.querySelectorAll(".chat-chip");
 
   loadInitialBriefing();
 
-  // ── Invia messaggio testo ──
   async function sendMessage(forcedPrompt = "") {
-    const prompt = (forcedPrompt || input?.value || "").trim();
+
+    const prompt =
+      (forcedPrompt || input?.value || "")
+        .trim();
+
     if (!prompt) return;
 
     addMessage(prompt, "user");
-    conversation.push({ role: "user", content: prompt });
 
-    if (input) input.value = "";
-    if (send) send.disabled = true;
+    conversation.push({
+      role: "user",
+      content: prompt
+    });
+
+    if (input) {
+      input.value = "";
+    }
+
+    if (send) {
+      send.disabled = true;
+    }
 
     setTonyStatus("⏳ Tony sta scrivendo...");
-    const loadingBubble = addMessage("Tony sta scrivendo...", "ai");
+
+    const loadingBubble = addMessage(
+      "Tony sta scrivendo...",
+      "ai"
+    );
 
     try {
+
       const data = await callTony(conversation);
 
-      if (loadingBubble) loadingBubble.parentElement?.remove();
+      if (loadingBubble) {
+        loadingBubble.parentElement?.remove();
+      }
 
-      const reply = data?.reply || "Nessuna risposta.";
-      addMessage(reply, "ai", {
-        action: data?.action,
-        actionExecuted: data?.action_executed,
+      const reply =
+        data?.reply ||
+        "Nessuna risposta.";
+
+      addMessage(
+        reply,
+        "ai",
+        {
+          action: data?.action,
+          actionExecuted: data?.action_executed,
+        }
+      );
+
+      conversation.push({
+        role: "assistant",
+        content: reply
       });
 
-      conversation.push({ role: "assistant", content: reply });
+      if (data?.chart) {
+        renderChart(data.chart);
+      }
 
-      if (data?.chart) renderChart(data.chart);
+      if (
+        data?.action?.type === "crea_ricetta" &&
+        data?.action_executed
+      ) {
 
-      // Gestione azione ricetta
-      if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
         setTimeout(() => {
-          if (confirm("Tony ha creato la ricetta! Vuoi aprirla per completarla?")) {
-            const ricettaId = data?.action_result?.id;
-            if (ricettaId) window.location.hash = `#/crea-ricetta?id=${ricettaId}`;
+
+          if (
+            confirm(
+              "Tony ha creato la ricetta! Vuoi aprirla per completarla?"
+            )
+          ) {
+
+            const ricettaId =
+              data?.action_result?.id;
+
+            if (ricettaId) {
+              window.location.hash =
+                \`#/crea-ricetta?id=\${ricettaId}\`;
+            }
           }
+
         }, 500);
       }
 
     } catch {
-      if (loadingBubble) loadingBubble.textContent = "Errore nella risposta di Tony";
+
+      if (loadingBubble) {
+        loadingBubble.textContent =
+          "Errore nella risposta di Tony";
+      }
     }
 
-    if (send) send.disabled = false;
+    if (send) {
+      send.disabled = false;
+    }
+
     setTonyStatus("Assistente operativo");
+
     scrollChatToBottom();
   }
 
-  // ── Bottone invio ──
-  if (send) send.onclick = () => sendMessage();
-
-  // ── Enter per inviare ──
-  if (input) {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Auto-resize textarea
-    input.addEventListener("input", () => {
-      input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 120) + "px";
-    });
+  if (send) {
+    send.onclick = () => sendMessage();
   }
 
-  // ── Chip rapidi ──
-  chips.forEach(chip => {
+  if (input) {
+
+    input.addEventListener(
+      "keydown",
+      (e) => {
+
+        if (
+          e.key === "Enter" &&
+          !e.shiftKey
+        ) {
+
+          e.preventDefault();
+
+          sendMessage();
+        }
+      }
+    );
+
+    input.addEventListener(
+      "input",
+      () => {
+
+        input.style.height = "auto";
+
+        input.style.height =
+          Math.min(input.scrollHeight, 110) + "px";
+      }
+    );
+  }
+
+  chips.forEach((chip) => {
+
     chip.onclick = () => {
+
       const voiceMode = chip.dataset.voice;
       const prompt = chip.dataset.prompt;
 
       if (voiceMode === "ricetta") {
-        // Attiva microfono con modalità ricetta
+
         if (!isRecording) {
-          addMessage("🎤 Parla ora: descrivi la ricetta (nome, ingredienti, dosi, conservazione, porzionatura...)", "ai");
-          startRecording().then(() => {
-            // Il bottone mic gestirà lo stop
-          });
+
+          addMessage(
+            "🎤 Parla ora: descrivi la ricetta (nome, ingredienti, dosi, conservazione, porzionatura...)",
+            "ai"
+          );
+
+          startRecording();
         }
+
         return;
       }
 
-      if (prompt) sendMessage(prompt);
+      if (prompt) {
+        sendMessage(prompt);
+      }
     };
   });
 
-  // ── Bottone microfono ──
   if (mic) {
+
     mic.onclick = async () => {
+
       if (!isRecording) {
         await startRecording();
       } else {
