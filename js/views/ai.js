@@ -60,11 +60,20 @@ export async function render(app) {
 .chat-shell {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 140px);
+  height: calc(100svh - 140px);
+  max-height: calc(100dvh - 140px);
   background: #e5ddd5;
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 600px) {
+  .chat-shell {
+    height: calc(100svh - 100px);
+    max-height: calc(100dvh - 100px);
+    border-radius: 10px;
+  }
 }
 
 .chat-header {
