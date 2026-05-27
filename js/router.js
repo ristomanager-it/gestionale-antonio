@@ -419,7 +419,8 @@ function hasPermission(area) {
       "prenotazioni",
       "prenotazioni-dettaglio",
 
-      "app-produzione"
+      "app-produzione",
+      "ai"
 
     ];
 
