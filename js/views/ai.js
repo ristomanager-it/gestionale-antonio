@@ -1,4 +1,5 @@
-import { createPageLayout } from "../utils/pageLayout.js";
+// pageLayout non usato per Tony — layout fullscreen
+// import { createPageLayout } from "../utils/pageLayout.js";
 import { supabase } from "../supabaseClient.js";
 
 let conversation = [];
@@ -15,10 +16,7 @@ const USER_AVATAR =
 export async function render(app) {
   conversation = [];
 
-  const html = createPageLayout({
-    title: "Tony",
-    subtitle: "Il tuo assistente AI Ristoflow",
-    content: `
+  const html = `
 <div class="chat-shell">
 
   <div class="chat-header">
@@ -57,9 +55,18 @@ export async function render(app) {
 
 <style>
 
+/* Nascondo header page per Tony — layout WhatsApp fullscreen */
+.page-header { display: none !important; }
+.page { padding: 0 !important; margin: 0 !important; height: 100% !important; }
+
 .chat-shell {
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 60px;
   height: calc(100vh - 140px);
   background: #e5ddd5;
   border-radius: 18px;
@@ -264,8 +271,7 @@ export async function render(app) {
 }
 
 </style>
-`
-  });
+`;
 
   app.innerHTML = html;
   initChat();
