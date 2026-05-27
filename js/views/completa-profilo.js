@@ -2,6 +2,12 @@ import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 export async function render(container) {
+  // Salva la pagina precedente per tornare indietro dopo il salvataggio
+  const currentHash = window.location.hash;
+  if (currentHash !== "#/profilo" && currentHash !== "#/completaProfilo") {
+    sessionStorage.setItem("prev_hash", currentHash || "#/home");
+  }
+
   const user = window.state?.user;
   const azienda = window.state?.azienda;
 
@@ -355,7 +361,9 @@ export async function render(container) {
     msg.innerHTML = "<span style='color:green;'>Profilo salvato correttamente ✔</span>";
 
     setTimeout(() => {
-      window.location.hash = "#/home";
+      // Torna alla pagina precedente o alla home
+      const prevHash = sessionStorage.getItem("prev_hash") || "#/home";
+      window.location.hash = prevHash;
     }, 600);
   });
 }
