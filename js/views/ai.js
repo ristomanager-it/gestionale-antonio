@@ -41,13 +41,14 @@ export async function render(app) {
 /* Reset page layout per Tony */
 .page-header { display: none !important; }
 .page { padding: 0 !important; margin: 0 !important; }
+#footer-root { display: none !important; }
 
 .chat-shell {
   position: fixed;
   top: 60px;
   left: 0;
   right: 0;
-  bottom: 55px;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   background: #e5ddd5;
