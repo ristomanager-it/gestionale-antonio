@@ -519,29 +519,13 @@ function getNowTime() {
   );
 }
 
-function scrollChatToBottom() {
-  const container = document.getElementById("chat-messages");
-
-  if (container) {
-    container.scrollTop = container.scrollHeight;
-  }
-}
-
-function setTonyStatus(text) {
-  const el = document.getElementById("tony-status");
-
-  if (el) {
-    el.textContent = text;
-  }
-}
-
 function addMessage(text, type, options = {}) {
   const container = document.getElementById("chat-messages");
 
   if (!container) return null;
 
   const row = document.createElement("div");
-  row.className = \`msg-row \${type}\`;
+  row.className = `msg-row ${type}`;
 
   const avatar = document.createElement("img");
   avatar.className = "msg-avatar";
@@ -573,14 +557,13 @@ function addMessage(text, type, options = {}) {
 
     card.className = "msg-action-card";
 
-    card.innerHTML = \`
+    card.innerHTML = `
       <strong>✅ Azione eseguita:</strong>
-      \${escapeHtml(options.action.type.replace(/_/g, " "))}
-    \`;
+      ${escapeHtml(options.action.type.replace(/_/g, " "))}
+    `;
 
     bubble.appendChild(card);
   }
-
   const meta = document.createElement("div");
 
   meta.className = "msg-meta";
