@@ -378,6 +378,34 @@ Dammi consigli pratici su come può migliorare nel suo ruolo attuale e avvicinar
 Sii motivante, diretto e concreto. NON mostrare dati economici.`;
 }
 
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderChart(chart) {
+  const container = document.getElementById("chat-messages");
+  if (!container || !chart?.labels || !chart?.data) return;
+  const box = document.createElement("div");
+  box.className = "chart-box";
+  box.style.cssText = "width:100%;max-width:600px;margin-top:8px;";
+  const canvas = document.createElement("canvas");
+  box.appendChild(canvas);
+  container.appendChild(box);
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: chart.labels,
+      datasets: [{ label: chart.label || "Vendite", data: chart.data, backgroundColor: "rgba(14,90,122,0.7)", borderRadius: 6 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+  scrollBottom();
+}
+
 // ── API Tony ───────────────────────────────────────────
 
 async function callTony(messages, audioBase64 = null) {
@@ -497,6 +525,14 @@ async function loadInitialBriefing(ruolo) {
     setStatus("Assistente operativo");
   }
 }
+
+// Fix altezza mobile
+function setVh() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty("--vh", `${vh}px`);
+}
+setVh();
+window.addEventListener("resize", setVh);
 
 function initChat(ruolo) {
   const input = document.getElementById("chat-input");
