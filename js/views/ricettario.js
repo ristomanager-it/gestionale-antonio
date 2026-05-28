@@ -131,7 +131,9 @@ async function loadRicette() {
     return;
   }
 
-  const { data, error } = await supabase
+  const sedeId = window.state?.sedeAttiva?.id || null;
+
+  let query = supabase
     .from("ricette")
     .select(`
       id,
@@ -148,6 +150,12 @@ async function loadRicette() {
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome");
+
+  if (sedeId) {
+    query = query.eq("sede_id", sedeId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Errore caricamento ricette:", error);
@@ -608,6 +616,7 @@ async function ensureRicettaMinima({ prodotto, nome, azienda_id }) {
     .from("ricette")
     .insert({
       azienda_id,
+      sede_id: window.state?.sedeAttiva?.id || null,
       nome,
       costo_totale: 0,
       costo_porzione: 0,
