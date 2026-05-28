@@ -430,11 +430,21 @@ async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+    // Rileva il miglior formato supportato dal browser
+    let mimeType = "audio/webm";
+    if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+      mimeType = "audio/webm;codecs=opus";
+    } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+      mimeType = "audio/webm";
+    } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+      mimeType = "audio/mp4";
+    } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+      mimeType = "audio/ogg";
+    }
 
     mediaRecorder = new MediaRecorder(stream, { mimeType });
+    // Salva il mimeType per usarlo nella conversione
+    mediaRecorder._mimeType = mimeType;
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start(100);
     isRecording = true;
@@ -451,7 +461,8 @@ function stopRecording() {
   return new Promise((resolve) => {
     if (!mediaRecorder || mediaRecorder.state === "inactive") { resolve(null); return; }
     mediaRecorder.onstop = async () => {
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      const actualMime = mediaRecorder._mimeType || mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(audioChunks, { type: actualMime });
       mediaRecorder.stream?.getTracks().forEach(t => t.stop());
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
