@@ -1592,6 +1592,7 @@ async function salvaTutto() {
       pezzi_base,
       prodotto_output_id: Number(prodotto_output_id),
       azienda_id: aziendaId,
+      sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
       stato_strutturale: "bozza",
       tipo_ricetta,
