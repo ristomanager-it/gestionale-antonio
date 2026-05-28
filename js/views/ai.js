@@ -414,6 +414,7 @@ async function callTony(messages, audioBase64 = null) {
     messages,
     azienda_id: window.state?.azienda?.id,
     azienda: window.state?.azienda?.nome,
+    sede_id: window.state?.sedeAttiva?.id || null,
     lat: window.state?.sedeAttiva?.latitudine,
     lon: window.state?.sedeAttiva?.longitudine,
   };
