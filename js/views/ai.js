@@ -420,9 +420,32 @@ async function callTony(messages, audioBase64 = null) {
   };
   if (audioBase64) body.audio_base64 = audioBase64;
 
-  const { data, error } = await supabase.functions.invoke("assistente-ai", { body });
-  if (error) throw error;
-  return data;
+  // Fetch diretto con timeout 60s invece di supabase.functions.invoke
+  const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  const session = await window.supabase?.auth?.getSession();
+  const token = session?.data?.session?.access_token || "";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/assistente-ai`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": token,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
 }
 
 // ── Registrazione audio ────────────────────────────────
