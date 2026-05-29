@@ -232,7 +232,7 @@ function renderLiveCost() {
 function resetForm() {
   editingId = null;
   ingredienti = [];
-  document.getElementById("rs-form-title").textContent = "Nuova ricetta semplice";
+  document.getElementById("rs-form-title").textContent = "Nuova ricetta";
   document.getElementById("rs-nome").value = "";
   document.getElementById("rs-categoria-operativa").value = "cucina";
   document.getElementById("rs-categoria-food").value = "primi";
@@ -256,7 +256,7 @@ async function editRicetta(id) {
   if (error) throw error;
 
   editingId = data.id;
-  document.getElementById("rs-form-title").textContent = "Modifica ricetta semplice";
+  document.getElementById("rs-form-title").textContent = "Modifica ricetta";
   document.getElementById("rs-nome").value = data.nome || "";
   document.getElementById("rs-categoria-operativa").value = data.categoria_operativa || "cucina";
   document.getElementById("rs-categoria-food").value = data.categoria_food || "primi";
@@ -284,7 +284,7 @@ async function saveRicetta() {
   if (!ingredienti.length) return alert("Aggiungi almeno un ingrediente.");
 
   for (const ing of ingredienti) {
-    if (!ing.prodotto_id || toNumber(ing.quantita) <= 0) {
+    if (!ing.prodotto_id || !toNumber(ing.quantita)) {
       return alert("Completa prodotto e quantità per ogni ingrediente.");
     }
   }
@@ -367,7 +367,7 @@ async function saveRicetta() {
 
 function renderShell() {
   return createPageLayout({
-    title: "Ricette semplici",
+    title: "Ricette",
     subtitle: "Food cost live da magazzino/acquisti, senza prodotto output obbligatorio",
     content: `
       <div class="ricette-semplici-page">
@@ -504,7 +504,7 @@ export async function render(app) {
     });
 
     app.querySelector("#rs-add-ing")?.addEventListener("click", () => {
-      ingredienti.push({ prodotto_id: "", quantita: 1, unita_misura: "" });
+      ingredienti.push({ prodotto_id: "", quantita: "", unita_misura: "", _nome: "" });
       renderIngredienti();
     });
 
@@ -516,15 +516,68 @@ export async function render(app) {
       const index = Number(row.dataset.index);
       if (!Number.isInteger(index) || !ingredienti[index]) return;
 
+      // Autocomplete ricerca prodotto
+      if (event.target.classList.contains("rs-ing-search")) {
+        const term = event.target.value.toLowerCase().trim();
+        const dropdown = row.querySelector(".rs-ing-dropdown");
+        if (!dropdown) return;
+
+        if (term.length < 1) { dropdown.style.display = "none"; return; }
+
+        const matches = prodottiCache.filter(p =>
+          (p.nome || p.descrizione || "").toLowerCase().includes(term)
+        ).slice(0, 8);
+
+        if (!matches.length) { dropdown.style.display = "none"; return; }
+
+        dropdown.style.display = "block";
+        dropdown.innerHTML = matches.map(p => `
+          <div data-id="${p.id}" style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+            <span>${escapeHtml(p.nome || p.descrizione)}</span>
+            <span style="color:#6b7280;font-size:11px;">${money(productCost(p))}/${escapeHtml(productUm(p))}</span>
+          </div>
+        `).join("");
+
+        dropdown.querySelectorAll("[data-id]").forEach(item => {
+          item.onclick = (e) => {
+            e.stopPropagation();
+            const p = prodottiCache.find(x => String(x.id) === item.dataset.id);
+            if (!p) return;
+            const hiddenInput = row.querySelector(".rs-ing-product");
+            const searchInput = row.querySelector(".rs-ing-search");
+            hiddenInput.value = p.id;
+            searchInput.value = p.nome || p.descrizione;
+            dropdown.style.display = "none";
+            ingredienti[index].prodotto_id = String(p.id);
+            ingredienti[index].unita_misura = productUm(p);
+            ingredienti[index]._nome = p.nome || p.descrizione;
+            // Aggiorna costo e UM nella riga senza re-render completo
+            const costBox = row.querySelector(".rs-ing-cost");
+            if (costBox) {
+              const qta = toNumber(ingredienti[index].quantita);
+              costBox.innerHTML = `<small>${escapeHtml(productUm(p))}</small><strong>${money(qta * productCost(p))}</strong><span>${money(productCost(p))} cad.</span>`;
+            }
+            renderLiveCost();
+          };
+        });
+        return;
+      }
+
       if (event.target.classList.contains("rs-ing-qta")) {
         ingredienti[index].quantita = event.target.value;
         renderLiveCost();
         const costBox = row.querySelector(".rs-ing-cost");
         const p = prodottiCache.find((x) => String(x.id) === String(ingredienti[index].prodotto_id));
-        if (costBox) {
+        if (costBox && p) {
           const total = toNumber(ingredienti[index].quantita) * productCost(p);
           costBox.innerHTML = `<small>${escapeHtml(productUm(p) || "")}</small><strong>${money(total)}</strong><span>${money(productCost(p))} cad.</span>`;
         }
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".rs-ing-search")) {
+        document.querySelectorAll(".rs-ing-dropdown").forEach(d => d.style.display = "none");
       }
     });
 
@@ -567,7 +620,7 @@ export async function render(app) {
   } catch (e) {
     console.error(e);
     app.innerHTML = createPageLayout({
-      title: "Ricette semplici",
+      title: "Ricette",
       subtitle: "",
       content: createCard({
         title: "Errore caricamento",
