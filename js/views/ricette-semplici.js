@@ -41,11 +41,27 @@ function productUm(p) {
   return p?.unita_misura || p?.um || p?.unita_base || "";
 }
 
+function convertToKg(quantita, um) {
+  // Converte qualsiasi UM in kg per il calcolo del food cost (costo_medio è €/kg)
+  const q = toNumber(quantita);
+  const u = (um || "").toLowerCase().trim();
+  if (u === "g" || u === "gr" || u === "grammi") return q / 1000;
+  if (u === "ml") return q / 1000;
+  if (u === "cl") return q / 100;
+  if (u === "l" || u === "lt" || u === "litri") return q; // 1L ≈ 1kg
+  if (u === "kg") return q;
+  // pz, fetta, cucchiaio ecc → usa peso_unita_g se disponibile
+  return q; // fallback: usa valore diretto
+}
+
 function calcLocalFoodCost() {
   let total = 0;
   for (const ing of ingredienti) {
     const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
-    total += toNumber(ing.quantita) * productCost(p);
+    if (!p) continue;
+    const costoKg = productCost(p); // €/kg
+    const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
+    total += qta_kg * costoKg;
   }
 
   const prezzo = toNumber(document.getElementById("rs-prezzo")?.value);
@@ -185,7 +201,8 @@ function renderIngredienti() {
     wrap.innerHTML = ingredienti.map((ing, index) => {
       const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
       const costo = productCost(p);
-      const totale = toNumber(ing.quantita) * costo;
+      const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
+      const totale = qta_kg * costo;
 
       return `
         <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;">
@@ -265,14 +282,19 @@ function resetForm() {
 async function editRicetta(id) {
   const aziendaId = getAziendaId();
 
+  // Reset editingId prima di caricare per evitare bug con ricetta precedente
+  editingId = null;
+  ingredienti = [];
+
   const { data, error } = await supa()
     .from("ricette")
     .select("*")
     .eq("azienda_id", aziendaId)
-    .eq("id", id)
+    .eq("id", String(id))
     .single();
 
   if (error) throw error;
+  if (!data) { alert("Ricetta non trovata"); return; }
 
   editingId = data.id;
   document.getElementById("rs-form-title").textContent = "Modifica ricetta";
@@ -628,8 +650,8 @@ export async function render(app) {
             // Aggiorna costo e UM nella riga senza re-render completo
             const costBox = row.querySelector(".rs-ing-cost");
             if (costBox) {
-              const qta = toNumber(ingredienti[index].quantita);
-              costBox.innerHTML = `<small>${escapeHtml(productUm(p))}</small><strong>${money(qta * productCost(p))}</strong><span>${money(productCost(p))} cad.</span>`;
+              const qta_kg = convertToKg(ingredienti[index].quantita, ingredienti[index].unita_misura || productUm(p));
+              costBox.textContent = qta_kg > 0 ? money(qta_kg * productCost(p)) : "—";
             }
             renderLiveCost();
           };
