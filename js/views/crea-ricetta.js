@@ -1670,9 +1670,10 @@ async function salvaTutto() {
   if (tipo_ricetta === "base" && categoria_portata_id) {
     return alert("Una ricetta BASE non può avere categoria portata.");
   }
-  if (!prodotto_output_id) return alert("Seleziona il prodotto output.");
-  if (!output_peso || output_peso <= 0) return alert("Inserisci il peso finale (resa) dell'output.");
-  if (!output_um) return alert("Seleziona unità misura output.");
+  // Output non obbligatorio — si può salvare senza
+  // if (!prodotto_output_id) return alert("Seleziona il prodotto output.");
+  // if (!output_peso || output_peso <= 0) return alert("Inserisci il peso finale (resa) dell'output.");
+  // if (!output_um) return alert("Seleziona unità misura output.");
 
   const esito = document.getElementById("r-esito");
   if (esito) esito.innerText = "Salvataggio in corso...";
@@ -1758,7 +1759,7 @@ async function salvaTutto() {
     if (error) {
       console.error(error);
       if (esito) esito.innerText = "";
-      return alert("Errore salvataggio output ricetta.");
+      console.warn("Errore salvataggio output ricetta — non bloccante:", errOutput);
     }
   }
 
