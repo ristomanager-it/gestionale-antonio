@@ -8,6 +8,16 @@ export function renderCaricoModal() {
         </div>
 
         <div class="rf-overlay-body">
+
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <button id="tab-materia-prima" class="app-button tiny" style="flex:1;background:#0E5A7A;color:white;">
+              🧂 Materia Prima
+            </button>
+            <button id="tab-preparazione" class="app-button tiny gray" style="flex:1;">
+              🍳 Preparazione
+            </button>
+          </div>
+
           <div class="rf-field">
             <label>Prodotto</label>
             <input
@@ -204,12 +214,15 @@ export async function apriCaricoModal({ aziendaId }) {
 
     const safeTerm = sanitizeSearchTerm(term);
 
-    const { data, error } = await window.supabaseClient
+    let searchQuery = window.supabaseClient
       .from("prodotti")
       .select("id, codice_interno, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto")
       .eq("azienda_id", aziendaId)
+      .eq("tipo_prodotto", tipoCarico)
       .or(`descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`)
       .limit(10);
+
+    const { data, error } = await searchQuery;
 
     if (error) {
       console.error(error);
