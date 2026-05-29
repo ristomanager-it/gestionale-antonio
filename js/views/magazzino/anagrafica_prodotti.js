@@ -152,6 +152,18 @@ async function apriSchedaProdotto(box, prodottoId) {
   const um = prodotto.unita_base || prodotto.unita_misura || prodotto.um || "—";
   const scorta = prodotto.scorta_minima ?? prodotto.quantita_riordino ?? 0;
 
+  // Carica lista fornitori per select
+  const { data: fornitori_list } = await window.db
+    .from("fornitori")
+    .select("id, ragione_sociale")
+    .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
+    .order("ragione_sociale");
+
+  const fornitoriOptions = (fornitori_list || []).map(f =>
+    `<option value="${f.id}" ${String(f.id) === String(prodotto.fornitore_preferito_id) ? "selected" : ""}>${escapeHtml(f.ragione_sociale)}</option>`
+  ).join("");
+
   box.innerHTML = `
     <div class="rf-product-card">
       <div class="rf-product-heading">
@@ -165,16 +177,8 @@ async function apriSchedaProdotto(box, prodottoId) {
           <div class="rf-product-value">${escapeHtml(um)}</div>
         </div>
         <div class="rf-product-field">
-          <span class="rf-product-label">Fornitore preferito</span>
-          <div class="rf-product-value">${escapeHtml(fornitore)}</div>
-        </div>
-        <div class="rf-product-field">
           <span class="rf-product-label">Giacenza attuale</span>
           <div class="rf-product-value">${formatNumber(giacenza)}</div>
-        </div>
-        <div class="rf-product-field">
-          <span class="rf-product-label">Scorta minima</span>
-          <div class="rf-product-value">${formatNumber(scorta)}</div>
         </div>
         <div class="rf-product-field">
           <span class="rf-product-label">Tipo</span>
@@ -186,7 +190,41 @@ async function apriSchedaProdotto(box, prodottoId) {
         </div>
       </div>
 
-      <div class="rf-product-section-title">Storico movimenti</div>
+      <div class="rf-product-section-title" style="margin-top:14px;">✏️ Modifica scheda</div>
+      <div class="rf-product-card" style="margin-top:8px;">
+
+        <div class="rf-field">
+          <label>Nome prodotto</label>
+          <input id="edit-nome" class="input" value="${escapeHtml(prodotto.nome || prodotto.descrizione || "")}" />
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>Fornitore preferito</label>
+          <select id="edit-fornitore" class="input">
+            <option value="">-- Seleziona fornitore --</option>
+            ${fornitoriOptions}
+          </select>
+        </div>
+
+        <div class="rf-product-grid" style="margin-top:10px;">
+          <div class="rf-field">
+            <label>Scorta minima</label>
+            <input id="edit-scorta" type="number" class="input" value="${prodotto.scorta_minima ?? ""}" />
+          </div>
+          <div class="rf-field">
+            <label>Q.tà riordino</label>
+            <input id="edit-riordino" type="number" class="input" value="${prodotto.quantita_riordino ?? ""}" />
+          </div>
+        </div>
+
+        <div id="edit-esito" style="font-size:13px;margin-top:8px;min-height:16px;"></div>
+
+        <button id="btn-salva-prodotto" class="app-button tiny" style="margin-top:10px;width:100%;">
+          💾 Salva modifiche
+        </button>
+      </div>
+
+      <div class="rf-product-section-title" style="margin-top:16px;">Storico movimenti</div>
       <div class="rf-mov-list">
         ${(movimentiFiltrati || []).length
           ? movimentiFiltrati.map(m => `
@@ -200,6 +238,41 @@ async function apriSchedaProdotto(box, prodottoId) {
       </div>
     </div>
   `;
+
+  // Binding salvataggio
+  box.querySelector("#btn-salva-prodotto").onclick = async () => {
+    const esito = box.querySelector("#edit-esito");
+    const nome = box.querySelector("#edit-nome").value.trim();
+    const fornitoreId = box.querySelector("#edit-fornitore").value || null;
+    const scorta = box.querySelector("#edit-scorta").value;
+    const riordino = box.querySelector("#edit-riordino").value;
+
+    if (!nome) { esito.textContent = "❌ Nome obbligatorio"; esito.style.color = "#dc2626"; return; }
+
+    esito.textContent = "Salvataggio...";
+    esito.style.color = "#6b7280";
+
+    const { error } = await window.db
+      .from("prodotti")
+      .update({
+        nome,
+        descrizione: nome,
+        fornitore_preferito_id: fornitoreId,
+        scorta_minima: scorta ? Number(scorta) : null,
+        quantita_riordino: riordino ? Number(riordino) : null,
+      })
+      .eq("id", prodottoId)
+      .eq("azienda_id", aziendaId);
+
+    if (error) {
+      console.error(error);
+      esito.textContent = "❌ Errore salvataggio";
+      esito.style.color = "#dc2626";
+    } else {
+      esito.textContent = "✅ Salvato";
+      esito.style.color = "#16a34a";
+    }
+  };
 }
 
 function formatNumber(value) {
