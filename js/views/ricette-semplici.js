@@ -586,6 +586,17 @@ export async function render(app) {
     renderRicetteList();
     renderIngredienti();
 
+    // Apri ricetta da URL se presente (?id=X)
+    const ricettaIdFromUrl = window.routeParams?.id 
+      || new URLSearchParams(window.location.hash.split("?")[1] || "").get("id");
+    if (ricettaIdFromUrl) {
+      try {
+        await editRicetta(ricettaIdFromUrl);
+      } catch(e) {
+        console.error("Errore apertura ricetta da URL:", e);
+      }
+    }
+
     app.querySelector("#rs-search")?.addEventListener("input", renderRicetteList);
     app.querySelector("#rs-filter-categoria")?.addEventListener("change", renderRicetteList);
     app.querySelector("#rs-new")?.addEventListener("click", resetForm);
