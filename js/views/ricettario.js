@@ -893,6 +893,17 @@ async function mostraRicetta(id) {
         </div>
       `}
 
+      ${(() => {
+        const fc = ingredienti.reduce((tot, i) => {
+          return tot + (Number(i.quantita || 0) * Number(i.costo_unitario || i.costo_medio || 0));
+        }, 0);
+        return fc > 0 ? `
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:#166534;">🍽️ Food cost stimato</span>
+            <strong style="color:#166534;font-size:16px;">€${fc.toFixed(2)}</strong>
+          </div>` : "";
+      })()}
+
       ${ricetta.note_procedimento ? `
         <div style="margin-bottom:14px;">
           <strong>Procedimento:</strong><br>
@@ -903,11 +914,17 @@ async function mostraRicetta(id) {
       <h4>Ingredienti</h4>
       ${
         ingredienti.length
-          ? `<ul>
-              ${ingredienti.map(i =>
-                `<li>${escapeHtml(i.nome_prodotto)} — ${escapeHtml(i.quantita)} ${escapeHtml(i.unita_misura || "")}</li>`
-              ).join("")}
-            </ul>`
+          ? `<div style="margin-bottom:8px;">
+              ${ingredienti.map(i => {
+                const costo = Number(i.costo_unitario || i.costo_medio || 0);
+                const qta = Number(i.quantita || 0);
+                const costoRiga = costo > 0 ? (qta * costo).toFixed(3) : null;
+                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+                  <span>${escapeHtml(i.nome_prodotto)} — ${escapeHtml(String(i.quantita))} ${escapeHtml(i.unita_misura || "")}</span>
+                  ${costoRiga ? `<span style="color:#0E5A7A;font-weight:600;">€${costoRiga}</span>` : ""}
+                </div>`;
+              }).join("")}
+            </div>`
           : `<div style="color:#b45309;">⚠️ Nessun ingrediente inserito</div>`
       }
 
@@ -926,14 +943,19 @@ async function mostraRicetta(id) {
       }
 
       <div style="margin-top:18px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="app-button primary"
-          onclick="window.location.hash='#/creaRicetta?id=${id}'">
+        <button class="app-button primary" id="btn-vai-modifica-ricetta" data-ricetta-id="${id}">
           ✏️ Completa / Modifica
         </button>
       </div>
 
     </div>
   `;
+
+  // Binding bottone modifica dopo innerHTML
+  document.getElementById("btn-vai-modifica-ricetta")?.addEventListener("click", function() {
+    const rid = this.dataset.ricettaId;
+    if (rid) window.location.hash = `#/creaRicetta?id=${rid}`;
+  });
 }
 
 function getBadgeStato(stato) {
