@@ -117,6 +117,16 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     });
   };
 
+  // Cache fornitori
+  let fornitori_cache = [];
+  const { data: f_list } = await window.supabaseClient
+    .from("fornitori")
+    .select("id, ragione_sociale")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("ragione_sociale");
+  fornitori_cache = f_list || [];
+
   async function openScheda(prodottoId) {
     scheda.innerHTML = `<div class="rf-empty-state">Caricamento scheda...</div>`;
 
@@ -266,16 +276,24 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     const btnModifica = scheda.querySelector("#btn-modifica-mp");
     if (btnModifica) {
       btnModifica.onclick = () => {
-        renderEditForm(data, fornitore || "—");
+        renderEditForm({
+          ...data,
+          fornitore_preferito_id: prodotto.fornitore_preferito_id,
+          quantita_riordino: prodotto.quantita_riordino
+        }, fornitore || "—");
       };
     }
   }
 
 
-  function renderEditForm(prodotto, fornitore) {
+  function renderEditForm(prodotto, fornitoreNome) {
+    const fornitoriOptions = fornitori_cache.map(f =>
+      `<option value="${f.id}" ${String(f.id) === String(prodotto.fornitore_preferito_id || "") ? "selected" : ""}>${escapeHtml(f.ragione_sociale)}</option>`
+    ).join("");
+
     scheda.innerHTML = `
       <div class="rf-product-card">
-        <div class="rf-product-section-title">Modifica prodotto</div>
+        <div class="rf-product-section-title">✏️ Modifica prodotto</div>
 
         <div class="rf-field">
           <label>Codice interno</label>
@@ -283,71 +301,86 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
-          <label>Descrizione</label>
-          <input id="edit-mp-descrizione" class="input" value="${escapeAttr(prodotto.descrizione || "")}" />
+          <label>Nome / Descrizione</label>
+          <input id="edit-mp-descrizione" class="input" value="${escapeAttr(prodotto.descrizione || prodotto.nome || "")}" />
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
-          <label>UM</label>
+          <label>Unità di misura</label>
           <input id="edit-mp-um" class="input" value="${escapeAttr(prodotto.unita_base || "")}" />
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
           <label>Scorta minima</label>
-          <input id="edit-mp-scorta" type="number" step="0.001" class="input" value="${escapeAttr(prodotto.scorta_minima ?? 0)}" />
+          <input id="edit-mp-scorta" type="number" step="0.001" min="0" class="input" value="${escapeAttr(prodotto.scorta_minima ?? "")}" placeholder="es. 5" />
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
-          <label>Fornitore</label>
-          <input class="input" value="${escapeAttr(fornitore || "—")}" disabled />
+          <label>Quantità riordino</label>
+          <input id="edit-mp-riordino" type="number" step="0.001" min="0" class="input" value="${escapeAttr(prodotto.quantita_riordino ?? "")}" placeholder="es. 20" />
         </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>Fornitore preferito</label>
+          <select id="edit-mp-fornitore" class="input">
+            <option value="">-- Seleziona fornitore --</option>
+            ${fornitoriOptions}
+          </select>
+        </div>
+
+        <div id="mp-esito" style="margin-top:10px; font-size:13px; min-height:16px;"></div>
 
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="btn-salva-mp" class="app-button tiny">Salva</button>
+          <button id="btn-salva-mp" class="app-button tiny">💾 Salva</button>
           <button id="btn-annulla-mp" class="app-button tiny gray">Annulla</button>
         </div>
-
-        <div id="mp-esito" style="margin-top:10px; font-size:13px;"></div>
       </div>
     `;
 
-    const btnAnnulla = scheda.querySelector("#btn-annulla-mp");
-    const btnSalva = scheda.querySelector("#btn-salva-mp");
-    const esito = scheda.querySelector("#mp-esito");
+    scheda.querySelector("#btn-annulla-mp").onclick = () => openScheda(prodotto.prodotto_id);
 
-    btnAnnulla.onclick = () => openScheda(prodotto.prodotto_id);
-
-    btnSalva.onclick = async () => {
+    scheda.querySelector("#btn-salva-mp").onclick = async () => {
+      const esito = scheda.querySelector("#mp-esito");
       const codice = scheda.querySelector("#edit-mp-codice").value.trim();
       const descrizione = scheda.querySelector("#edit-mp-descrizione").value.trim();
       const unitaBase = scheda.querySelector("#edit-mp-um").value.trim();
-      const scortaMinima = Number(scheda.querySelector("#edit-mp-scorta").value || 0);
+      const scortaVal = scheda.querySelector("#edit-mp-scorta").value;
+      const riordineVal = scheda.querySelector("#edit-mp-riordino").value;
+      const fornitoreId = scheda.querySelector("#edit-mp-fornitore").value || null;
 
       if (!descrizione) {
-        esito.innerText = "Inserisci la descrizione";
+        esito.innerText = "❌ Inserisci il nome prodotto";
+        esito.style.color = "#dc2626";
         return;
       }
 
       esito.innerText = "Salvataggio...";
+      esito.style.color = "#6b7280";
 
       const { error } = await window.supabaseClient
         .from("prodotti")
         .update({
           codice_interno: codice || null,
+          nome: descrizione,
           descrizione,
           unita_base: unitaBase || null,
-          scorta_minima: scortaMinima
+          scorta_minima: scortaVal !== "" ? Number(scortaVal) : null,
+          quantita_riordino: riordineVal !== "" ? Number(riordineVal) : null,
+          fornitore_preferito_id: fornitoreId,
         })
         .eq("id", prodotto.prodotto_id)
         .eq("azienda_id", azienda.id);
 
       if (error) {
         console.error(error);
-        esito.innerText = "Errore durante il salvataggio";
+        esito.innerText = "❌ Errore salvataggio";
+        esito.style.color = "#dc2626";
         return;
       }
 
-      openScheda(prodotto.prodotto_id);
+      esito.innerText = "✅ Salvato";
+      esito.style.color = "#16a34a";
+      setTimeout(() => openScheda(prodotto.prodotto_id), 700);
     };
   }
 }
