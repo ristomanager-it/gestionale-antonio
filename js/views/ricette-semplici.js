@@ -376,7 +376,7 @@ function renderShell() {
           body: `
             <div class="tb-toolbar">
               <button class="app-button secondary" type="button" onclick="window.location.hash='#/ricettario'">← Ricettario</button>
-              <button class="app-button secondary" type="button" onclick="window.location.hash='#/creaRicetta'">Produzione avanzata</button>
+              <button class="app-button secondary" type="button" onclick="window.location.hash='#/crea-ricetta-avanzata'">Produzione avanzata</button>
               <button id="rs-new" class="app-button" type="button">Nuova ricetta semplice</button>
             </div>
           `
