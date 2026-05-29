@@ -431,10 +431,7 @@ export function initMenu() {
             label: "➕ Crea Ricetta",
             route: "creaRicetta"
           },
-{
-  label: "🍽️ Ricette Semplici",
-  route: "ricette-semplici"
-},
+
         ]
 
       },
