@@ -422,7 +422,16 @@ function hasPermission(area) {
       "prenotazioni-dettaglio",
 
       "app-produzione",
-      "ai"
+      "ai",
+
+      // ── Aggiunti per operatore ──
+      "magazzino",
+      "ricettario",
+      "creaRicetta",
+      "ricette-semplici",
+      "crea-ricetta-avanzata",
+      "permessi",
+      "preparazioni"
 
     ];
 
