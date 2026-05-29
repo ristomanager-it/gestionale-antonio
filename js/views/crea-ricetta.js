@@ -1692,7 +1692,9 @@ async function salvaTutto() {
       attivo: true,
       stato_strutturale: "bozza",
       tipo_ricetta,
-      categoria_portata_id
+      categoria_portata_id,
+      creato_da: window.state?.user?.id || null,
+      creato_da_tony: false
     };
 
     const { data, error } = await supabase
@@ -1719,7 +1721,9 @@ async function salvaTutto() {
       prodotto_output_id: Number(prodotto_output_id),
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
-      categoria_portata_id
+      categoria_portata_id,
+      modificato_da: window.state?.user?.id || null,
+      modificato_il: new Date().toISOString()
     };
 
     const { error } = await supabase
