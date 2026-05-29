@@ -6,7 +6,103 @@ let filtroBozza = true;
 let filtroInCompletamento = false;
 let filtroComplete = false;
 
+
+// ============================================================
+// 🔐 PIN RICETTE — verifica una volta per sessione
+// ============================================================
+
+async function richiediPinRicette(container) {
+  // Già verificato in questa sessione?
+  if (sessionStorage.getItem("pin_ricette_ok") === "true") return true;
+
+  const dipendente = window.state?.dipendente;
+  const pinSalvato = dipendente?.pin;
+
+  // Se non ha PIN, accesso libero
+  if (!pinSalvato) {
+    sessionStorage.setItem("pin_ricette_ok", "true");
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,0.5);
+      display:flex;align-items:center;justify-content:center;
+      z-index:9999;
+    `;
+    overlay.innerHTML = `
+      <div style="
+        background:white;border-radius:16px;padding:28px;
+        width:300px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);
+      ">
+        <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+        <h3 style="margin:0 0 6px;font-size:17px;">Accesso Ricette</h3>
+        <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
+          Inserisci il tuo PIN per continuare
+        </p>
+        <input
+          id="pin-input"
+          type="password"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="••••"
+          style="
+            width:100%;padding:12px;font-size:22px;letter-spacing:8px;
+            text-align:center;border:2px solid #e5e7eb;border-radius:10px;
+            outline:none;box-sizing:border-box;margin-bottom:12px;
+          "
+        />
+        <div id="pin-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
+        <button id="pin-confirm" style="
+          width:100%;padding:12px;background:#0E5A7A;color:white;
+          border:none;border-radius:10px;font-size:15px;cursor:pointer;
+        ">Conferma</button>
+        <button id="pin-cancel" style="
+          width:100%;padding:10px;background:transparent;color:#6b7280;
+          border:none;font-size:13px;cursor:pointer;margin-top:6px;
+        ">Annulla</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector("#pin-input");
+    const errEl = overlay.querySelector("#pin-error");
+    input.focus();
+
+    function verify() {
+      if (input.value === String(pinSalvato)) {
+        sessionStorage.setItem("pin_ricette_ok", "true");
+        overlay.remove();
+        resolve(true);
+      } else {
+        errEl.textContent = "PIN errato, riprova";
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    overlay.querySelector("#pin-confirm").onclick = verify;
+    overlay.querySelector("#pin-cancel").onclick = () => {
+      overlay.remove();
+      resolve(false);
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verify();
+    });
+  });
+}
+
+
 export async function render(app) {
+
+  // 🔐 PIN per accesso ricettario
+  const pinOk = await richiediPinRicette(app);
+  if (!pinOk) {
+    window.history.back();
+    return;
+  }
 
   app.innerHTML = createPageLayout({
     title: "📖 Ricettario",
