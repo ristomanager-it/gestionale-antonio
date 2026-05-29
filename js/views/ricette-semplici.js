@@ -189,9 +189,17 @@ function renderIngredienti() {
 
       return `
         <div class="rs-ing-row" data-index="${index}">
-          <select class="input rs-ing-product">
-            ${renderProductOptions(ing.prodotto_id)}
-          </select>
+          <div style="position:relative;flex:1;">
+            <input 
+              class="input rs-ing-search" 
+              placeholder="Cerca prodotto..." 
+              autocomplete="off"
+              value="${escapeHtml(p?.nome || p?.descrizione || ing._nome || "")}"
+              data-selected-id="${escapeHtml(ing.prodotto_id || "")}"
+            />
+            <input type="hidden" class="rs-ing-product" value="${escapeHtml(ing.prodotto_id || "")}" />
+            <div class="rs-ing-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
           <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(ing.quantita || "")}" placeholder="Q.tà">
           <div class="rs-ing-cost">
             <small>${escapeHtml(productUm(p) || ing.unita_misura || "UM")}</small>
