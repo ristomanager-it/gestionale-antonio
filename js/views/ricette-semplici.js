@@ -188,25 +188,44 @@ function renderIngredienti() {
       const totale = toNumber(ing.quantita) * costo;
 
       return `
-        <div class="rs-ing-row" data-index="${index}">
-          <div style="position:relative;flex:1;">
-            <input 
-              class="input rs-ing-search" 
-              placeholder="Cerca prodotto..." 
-              autocomplete="off"
-              value="${escapeHtml(p?.nome || p?.descrizione || ing._nome || "")}"
-              data-selected-id="${escapeHtml(ing.prodotto_id || "")}"
-            />
-            <input type="hidden" class="rs-ing-product" value="${escapeHtml(ing.prodotto_id || "")}" />
-            <div class="rs-ing-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+        <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="position:relative;flex:1;">
+              <input 
+                class="input rs-ing-search" 
+                placeholder="Cerca prodotto..." 
+                autocomplete="off"
+                value="${escapeHtml(p?.nome || p?.descrizione || ing._nome || "")}"
+                data-selected-id="${escapeHtml(ing.prodotto_id || "")}"
+                style="width:100%;"
+              />
+              <input type="hidden" class="rs-ing-product" value="${escapeHtml(ing.prodotto_id || "")}" />
+              <div class="rs-ing-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+            </div>
+            <button class="delete-icon-btn rs-ing-delete" type="button" style="flex-shrink:0;">🗑</button>
           </div>
-          <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(ing.quantita || "")}" placeholder="Q.tà">
-          <div class="rs-ing-cost">
-            <small>${escapeHtml(productUm(p) || ing.unita_misura || "UM")}</small>
-            <strong>${money(totale)}</strong>
-            <span>${money(costo)} cad.</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="flex:1;">
+              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Quantità</label>
+              <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(String(ing.quantita || ""))}" placeholder="es. 0.5" style="width:100%;">
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Unità misura</label>
+              <select class="input rs-ing-um" style="width:100%;">
+                <option value="">—</option>
+                ${["g","kg","ml","l","pz","cl","fetta","spicchio","cucchiaio","cucchiaino","q.b."].map(u =>
+                  `<option value="${u}" ${(ing.unita_misura || productUm(p) || "") === u ? "selected" : ""}>${u}</option>`
+                ).join("")}
+              </select>
+            </div>
+            <div style="flex:1;text-align:right;">
+              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Costo</label>
+              <div class="rs-ing-cost" style="font-size:13px;font-weight:600;color:#0E5A7A;padding-top:6px;">
+                ${totale > 0 ? money(totale) : "—"}
+              </div>
+            </div>
           </div>
-          <button class="delete-icon-btn rs-ing-delete" type="button">🗑</button>
+          ${costo > 0 ? `<div style="font-size:11px;color:#94a3b8;">${money(costo)} / ${escapeHtml(productUm(p) || ing.unita_misura || "unità")}</div>` : ""}
         </div>
       `;
     }).join("");
@@ -346,7 +365,7 @@ async function saveRicetta() {
       ricetta_id: ricettaId,
       prodotto_id: Number(ing.prodotto_id),
       quantita: toNumber(ing.quantita),
-      unita_misura: productUm(p) || ing.unita_misura || "",
+      unita_misura: ing.unita_misura || productUm(p) || "",
       costo_unitario: costoUnit,
       costo_totale: toNumber(ing.quantita) * costoUnit,
       ordine: index
@@ -474,6 +493,57 @@ function renderShell() {
   });
 }
 
+
+// ============================================================
+// 🔐 PIN RICETTE
+// ============================================================
+async function richiediPin(app) {
+  if (sessionStorage.getItem("pin_ricette_ok") === "true") return true;
+
+  const dipendente = window.state?.dipendente;
+  const pinSalvato = dipendente?.pin;
+
+  if (!pinSalvato) {
+    sessionStorage.setItem("pin_ricette_ok", "true");
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;";
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:28px;width:300px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+        <h3 style="margin:0 0 6px;font-size:17px;">Accesso Ricette</h3>
+        <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">Inserisci il tuo PIN per continuare</p>
+        <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+          style="width:100%;padding:12px;font-size:22px;letter-spacing:8px;text-align:center;border:2px solid #e5e7eb;border-radius:10px;outline:none;box-sizing:border-box;margin-bottom:12px;" />
+        <div id="pin-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
+        <button id="pin-ok" style="width:100%;padding:12px;background:#0E5A7A;color:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;">Conferma</button>
+        <button id="pin-cancel" style="width:100%;padding:10px;background:transparent;color:#6b7280;border:none;font-size:13px;cursor:pointer;margin-top:6px;">Annulla</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector("#pin-input");
+    const errEl = overlay.querySelector("#pin-error");
+    input.focus();
+    function verify() {
+      if (String(input.value) === String(pinSalvato)) {
+        sessionStorage.setItem("pin_ricette_ok", "true");
+        overlay.remove();
+        resolve(true);
+      } else {
+        errEl.textContent = "PIN errato, riprova";
+        input.value = "";
+        input.focus();
+      }
+    }
+    overlay.querySelector("#pin-ok").onclick = verify;
+    overlay.querySelector("#pin-cancel").onclick = () => { overlay.remove(); resolve(false); };
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") verify(); });
+  });
+}
+
+
 export async function render(app) {
   const aziendaId = getAziendaId();
 
@@ -481,6 +551,10 @@ export async function render(app) {
     app.innerHTML = `<div class="card"><h3>Azienda non selezionata</h3></div>`;
     return;
   }
+
+  // 🔐 PIN obbligatorio
+  const pinOk = await richiediPin(app);
+  if (!pinOk) { window.history.back(); return; }
 
   app.innerHTML = renderShell();
 
@@ -570,8 +644,18 @@ export async function render(app) {
         const p = prodottiCache.find((x) => String(x.id) === String(ingredienti[index].prodotto_id));
         if (costBox && p) {
           const total = toNumber(ingredienti[index].quantita) * productCost(p);
-          costBox.innerHTML = `<small>${escapeHtml(productUm(p) || "")}</small><strong>${money(total)}</strong><span>${money(productCost(p))} cad.</span>`;
+          costBox.textContent = total > 0 ? money(total) : "—";
         }
+      }
+    });
+
+    app.addEventListener("change", (ev) => {
+      const row2 = ev.target.closest?.(".rs-ing-row");
+      if (!row2) return;
+      const idx2 = Number(row2.dataset.index);
+      if (!Number.isInteger(idx2) || !ingredienti[idx2]) return;
+      if (ev.target.classList.contains("rs-ing-um")) {
+        ingredienti[idx2].unita_misura = ev.target.value;
       }
     });
 
