@@ -10,12 +10,14 @@ export function renderCaricoModal() {
         <div class="rf-overlay-body">
 
           <div style="display:flex;gap:8px;margin-bottom:14px;">
-            <button id="tab-materia-prima" class="app-button tiny" style="flex:1;background:#0E5A7A;color:white;">
-              🧂 Materia Prima
-            </button>
-            <button id="tab-preparazione" class="app-button tiny gray" style="flex:1;">
-              🍳 Preparazione
-            </button>
+            <button id="tab-mp" style="
+              flex:1;padding:10px;border:none;border-radius:10px;
+              background:#0E5A7A;color:white;font-size:13px;font-weight:600;cursor:pointer;
+            ">🧂 Materia Prima</button>
+            <button id="tab-prep" style="
+              flex:1;padding:10px;border:none;border-radius:10px;
+              background:#e5e7eb;color:#374151;font-size:13px;font-weight:600;cursor:pointer;
+            ">🍳 Preparazione</button>
           </div>
 
           <div class="rf-field">
@@ -23,7 +25,7 @@ export function renderCaricoModal() {
             <input
               id="carico-search"
               class="input"
-              placeholder="Cerca codice o descrizione..."
+              placeholder="Cerca materia prima..."
               autocomplete="off"
             />
           </div>
@@ -98,7 +100,10 @@ export function renderCaricoModal() {
   `;
 }
 
+let _tipoCarico = "materia_prima";
+
 export async function apriCaricoModal({ aziendaId }) {
+  _tipoCarico = "materia_prima"; // reset al default
   const backdrop = document.getElementById("rf-carico-backdrop");
 
   if (!backdrop) {
@@ -158,6 +163,33 @@ export async function apriCaricoModal({ aziendaId }) {
   form.style.display = "none";
   esitoEl.innerText = "";
 
+  // ── Binding tab ──
+  const tabMP = backdrop.querySelector("#tab-mp");
+  const tabPrep = backdrop.querySelector("#tab-prep");
+
+  function setTab(tipo) {
+    _tipoCarico = tipo;
+    if (tipo === "materia_prima") {
+      tabMP.style.background = "#0E5A7A"; tabMP.style.color = "white";
+      tabPrep.style.background = "#e5e7eb"; tabPrep.style.color = "#374151";
+      search.placeholder = "Cerca materia prima...";
+    } else {
+      tabPrep.style.background = "#0E5A7A"; tabPrep.style.color = "white";
+      tabMP.style.background = "#e5e7eb"; tabMP.style.color = "#374151";
+      search.placeholder = "Cerca preparazione...";
+    }
+    search.value = "";
+    risultati.innerHTML = "";
+    prodottoBox.style.display = "none";
+    form.style.display = "none";
+    nuovoProdottoMode = false;
+    prodottoId = null;
+    prodottoSelezionato = null;
+  }
+
+  tabMP.onclick = () => setTab("materia_prima");
+  tabPrep.onclick = () => setTab("preparazione");
+
   search.value = "";
   qtaEl.value = "";
   scortaEl.value = "";
@@ -214,15 +246,13 @@ export async function apriCaricoModal({ aziendaId }) {
 
     const safeTerm = sanitizeSearchTerm(term);
 
-    let searchQuery = window.supabaseClient
+    const { data, error } = await window.supabaseClient
       .from("prodotti")
       .select("id, codice_interno, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto")
       .eq("azienda_id", aziendaId)
-      .eq("tipo_prodotto", tipoCarico)
+      .eq("tipo_prodotto", _tipoCarico)
       .or(`descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`)
       .limit(10);
-
-    const { data, error } = await searchQuery;
 
     if (error) {
       console.error(error);
@@ -335,13 +365,19 @@ export async function apriCaricoModal({ aziendaId }) {
         return;
       }
 
+      const categoriaInterna = document.getElementById("new-categoria-interna")?.value || null;
+      const categoriaGestione = document.getElementById("new-categoria-gestione")?.value || null;
+
       const insertResult = await insertProdottoCompat({
         azienda_id: aziendaId,
         codice_interno: codice,
         descrizione,
         unita_base: um,
         scorta_minima: scortaNew,
-        fornitore_preferito_id: fornitoreId
+        fornitore_preferito_id: fornitoreId,
+        tipo_prodotto: _tipoCarico,
+        ...(categoriaInterna ? { categoria_interna: categoriaInterna } : {}),
+        ...(categoriaGestione ? { categoria_gestione: categoriaGestione } : {})
       });
 
       if (insertResult.error) {
@@ -624,6 +660,37 @@ export async function apriCaricoModal({ aziendaId }) {
           <input id="new-fornitore" class="input" placeholder="Scrivi o seleziona..." autocomplete="off">
           <div id="fornitore-suggerimenti" class="rf-search-list" style="position:absolute; top:100%; left:0; right:0; display:none;"></div>
         </div>
+
+        ${_tipoCarico === "materia_prima" ? `
+        <div class="rf-field">
+          <label>Categoria interna</label>
+          <input id="new-categoria-interna" class="input" placeholder="es. Latticini, Carni, Verdure...">
+        </div>
+
+        <div class="rf-field">
+          <label>Categoria gestione</label>
+          <select id="new-categoria-gestione" class="input">
+            <option value="">-- Seleziona --</option>
+            <option value="secco">Secco</option>
+            <option value="fresco">Fresco</option>
+            <option value="surgelato">Surgelato</option>
+            <option value="bevande">Bevande</option>
+            <option value="pulizia">Pulizia</option>
+            <option value="altro">Altro</option>
+          </select>
+          <div style="
+            background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;
+            padding:8px 10px;font-size:12px;color:#92400e;margin-top:6px;
+          ">
+            📌 Non sai a quale categoria appartiene? Chiedi al responsabile prima di procedere.
+          </div>
+        </div>
+        ` : `
+        <div class="rf-field">
+          <label>Ricetta collegata (opzionale)</label>
+          <input id="new-ricetta-ref" class="input" placeholder="Nome ricetta di riferimento">
+        </div>
+        `}
 
       </div>
     `;
