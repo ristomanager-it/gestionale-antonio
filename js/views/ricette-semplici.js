@@ -332,6 +332,7 @@ async function saveRicetta() {
 
   const calc = calcLocalFoodCost();
 
+  const userId = window.state?.user?.id || null;
   const payload = {
     azienda_id: aziendaId,
     sede_id: sedeId,
