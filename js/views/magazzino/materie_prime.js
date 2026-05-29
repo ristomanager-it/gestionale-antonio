@@ -139,7 +139,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
     const { data: prodotto, error: prodottoError } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id")
+      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, alias_ocr")
       .eq("azienda_id", azienda.id)
       .eq("id", prodottoId)
       .maybeSingle();
@@ -245,6 +245,11 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           </div>
         </div>
 
+        ${prodotto.alias_ocr?.length ? `
+        <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+          🔍 Alias OCR: ${escapeHtml((prodotto.alias_ocr || []).join(", "))}
+        </div>` : ""}
+
         <div class="rf-product-section-title">Ultimi movimenti</div>
 
         <div class="rf-mov-list">
@@ -328,6 +333,16 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           </select>
         </div>
 
+        <div class="rf-field" style="margin-top:10px;">
+          <label>Alias OCR <span style="font-size:11px;color:#6b7280;">(termini alternativi per match fattura, separati da virgola)</span></label>
+          <input id="edit-mp-alias" class="input" 
+            value="${escapeAttr((prodotto.alias_ocr || []).join(", "))}" 
+            placeholder="es. farina 00 spadoni, farina 00 petra, farina bianca" />
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;margin-top:6px;">
+            📌 Aggiungi tutti i nomi con cui questo prodotto compare nelle fatture — il sistema userà questi termini per riconoscerlo automaticamente.
+          </div>
+        </div>
+
         <div id="mp-esito" style="margin-top:10px; font-size:13px; min-height:16px;"></div>
 
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -347,6 +362,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       const scortaVal = scheda.querySelector("#edit-mp-scorta").value;
       const riordineVal = scheda.querySelector("#edit-mp-riordino").value;
       const fornitoreId = scheda.querySelector("#edit-mp-fornitore").value || null;
+      const aliasVal = scheda.querySelector("#edit-mp-alias").value.trim();
 
       if (!descrizione) {
         esito.innerText = "❌ Inserisci il nome prodotto";
@@ -367,6 +383,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           scorta_minima: scortaVal !== "" ? Number(scortaVal) : null,
           quantita_riordino: riordineVal !== "" ? Number(riordineVal) : null,
           fornitore_preferito_id: fornitoreId,
+          alias_ocr: aliasVal ? aliasVal.split(",").map(a => a.trim().toLowerCase()).filter(Boolean) : [],
         })
         .eq("id", prodotto.prodotto_id)
         .eq("azienda_id", azienda.id);
