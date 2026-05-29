@@ -712,12 +712,27 @@ async function loadSediForAzienda(aziendaId) {
 }
 
 function pickActiveSede(sedi) {
+  // 1. Ultima sede usata (localStorage)
   const storedId = getStoredSedeId();
   if (storedId) {
     const match = sedi.find((s) => String(s.id) === String(storedId));
     if (match) return match;
   }
+
+  // 2. Sede principale del dipendente
+  const sedePrincipale = window.state?.dipendente?.sede_principale
+    || window.state?.dipendente?.sede_id;
+  if (sedePrincipale) {
+    const match = sedi.find((s) => String(s.id) === String(sedePrincipale));
+    if (match) {
+      setStoredSedeId(match.id);
+      return match;
+    }
+  }
+
+  // 3. Unica sede disponibile
   if (sedi.length === 1) return sedi[0];
+
   return null;
 }
 
@@ -1070,11 +1085,17 @@ if (!contesto.ok) {
   }
 }
 
-// 👉 MULTI SEDE → scelta
+// 👉 MULTI SEDE → usa sede_principale se disponibile
 if (contesto.tipo === "dipendente_multi_sede") {
-  if (route !== "scegli-sede") {
-    window.location.hash = "#/scegli-sede";
-    return;
+  const sedePrincipale = window.state?.dipendente?.sede_principale
+    || window.state?.dipendente?.sede_id;
+  const haSedeAttiva = window.state?.sedeAttiva?.id;
+
+  if (!haSedeAttiva && !sedePrincipale) {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+      return;
+    }
   }
 }
   }
