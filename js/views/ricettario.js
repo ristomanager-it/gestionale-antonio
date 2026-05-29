@@ -126,6 +126,10 @@ export async function render(app) {
             onclick="window.location.hash='#/creaRicetta'">
             🏭 Ricetta avanzata / Produzione
           </button>
+          <button class="app-button secondary"
+            onclick="mostraStoricoModifiche()">
+            📋 Storico modifiche
+          </button>
         `
       })}
 
@@ -238,6 +242,11 @@ async function loadRicette() {
       generata_automaticamente,
       origine,
       prodotto_vendita_id,
+      creato_da,
+      modificato_da,
+      modificato_il,
+      created_at,
+      creato_da_tony,
       ricette_output (
         peso_finale,
         unita_misura
@@ -259,6 +268,22 @@ async function loadRicette() {
     return;
   }
 
+  // Carica nomi dipendenti per tracciamento
+  const userIds = [...new Set(
+    (data || []).flatMap(r => [r.creato_da, r.modificato_da].filter(Boolean))
+  )];
+  let dipendentiMap = {};
+  if (userIds.length > 0) {
+    const { data: dips } = await supabase
+      .from("dipendenti")
+      .select("user_id, nome, cognome")
+      .in("user_id", userIds)
+      .eq("azienda_id", aziendaId);
+    (dips || []).forEach(d => {
+      dipendentiMap[d.user_id] = [d.nome, d.cognome].filter(Boolean).join(" ");
+    });
+  }
+
   ricetteCache = (data || []).map(r => {
     const out = Array.isArray(r.ricette_output)
       ? r.ricette_output[0]
@@ -272,7 +297,13 @@ async function loadRicette() {
       um: out?.unita_misura ?? null,
       generata: !!r.generata_automaticamente,
       origine: r.origine || null,
-      prodotto_vendita_id: r.prodotto_vendita_id || null
+      prodotto_vendita_id: r.prodotto_vendita_id || null,
+      creato_da: r.creato_da || null,
+      creato_da_nome: r.creato_da ? (dipendentiMap[r.creato_da] || "Sconosciuto") : (r.creato_da_tony ? "🤖 Tony AI" : null),
+      modificato_da_nome: r.modificato_da ? (dipendentiMap[r.modificato_da] || "Sconosciuto") : null,
+      modificato_il: r.modificato_il || null,
+      created_at: r.created_at || null,
+      creato_da_tony: !!r.creato_da_tony
     };
   });
 }
@@ -418,6 +449,10 @@ function renderRicetteList() {
             <strong>${escapeHtml(r.nome)}</strong>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">
               ${badge} · ${origine} · ${resaTxt}
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
+              ${r.creato_da_nome ? `✍️ ${escapeHtml(r.creato_da_nome)}` : ""}
+              ${r.modificato_da_nome ? ` · ✏️ ${escapeHtml(r.modificato_da_nome)} ${r.modificato_il ? "il " + new Date(r.modificato_il).toLocaleDateString("it-IT") : ""}` : ""}
             </div>
           </div>
           <button class="app-button" type="button" data-edit-ricetta="${escapeAttribute(r.id)}">
@@ -934,4 +969,118 @@ function normalize(str) {
 }
 function escapeAttribute(str) {
   return escapeHtml(str);
+}
+
+
+// ============================================================
+// 📋 STORICO MODIFICHE RICETTE
+// ============================================================
+
+async function mostraStoricoModifiche() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id || null;
+
+  // Mostra overlay
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.5);z-index:9999;
+    overflow-y:auto;padding:20px;box-sizing:border-box;
+  `;
+  overlay.innerHTML = `
+    <div style="
+      max-width:700px;margin:0 auto;background:white;
+      border-radius:16px;padding:24px;
+    ">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">📋 Storico modifiche ricette</h3>
+        <button id="close-storico" style="
+          border:none;background:#f1f5f9;border-radius:8px;
+          padding:6px 12px;cursor:pointer;font-size:14px;
+        ">✕ Chiudi</button>
+      </div>
+      <div id="storico-content">
+        <div style="text-align:center;color:#64748b;padding:20px;">Caricamento...</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#close-storico").onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  // Carica dati
+  try {
+    let query = supabase
+      .from("ricette")
+      .select(`
+        id, nome, stato_strutturale, created_at,
+        creato_da, modificato_da, modificato_il, creato_da_tony
+      `)
+      .eq("azienda_id", aziendaId)
+      .order("modificato_il", { ascending: false, nullsFirst: false });
+
+    if (sedeId) query = query.eq("sede_id", sedeId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Carica nomi dipendenti
+    const userIds = [...new Set(
+      (data || []).flatMap(r => [r.creato_da, r.modificato_da].filter(Boolean))
+    )];
+    let dipMap = {};
+    if (userIds.length > 0) {
+      const { data: dips } = await supabase
+        .from("dipendenti")
+        .select("user_id, nome, cognome")
+        .in("user_id", userIds)
+        .eq("azienda_id", aziendaId);
+      (dips || []).forEach(d => {
+        dipMap[d.user_id] = [d.nome, d.cognome].filter(Boolean).join(" ");
+      });
+    }
+
+    const content = document.getElementById("storico-content");
+    if (!data?.length) {
+      content.innerHTML = `<div style="text-align:center;color:#64748b;padding:20px;">Nessuna ricetta trovata.</div>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f8fafc;text-align:left;">
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">Ricetta</th>
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">Creata da</th>
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">Modificata da</th>
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">Ultima modifica</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(data || []).map(r => `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:10px;">
+                <strong>${escapeHtml(r.nome || "")}</strong>
+                <div style="font-size:11px;color:#94a3b8;">${getBadgeStato(r.stato_strutturale || "bozza")}</div>
+              </td>
+              <td style="padding:10px;color:#374151;">
+                ${r.creato_da_tony ? "🤖 Tony AI" : (r.creato_da ? escapeHtml(dipMap[r.creato_da] || "Sconosciuto") : "—")}
+                ${r.created_at ? `<div style="font-size:11px;color:#94a3b8;">${new Date(r.created_at).toLocaleDateString("it-IT")}</div>` : ""}
+              </td>
+              <td style="padding:10px;color:#374151;">
+                ${r.modificato_da ? escapeHtml(dipMap[r.modificato_da] || "Sconosciuto") : "—"}
+              </td>
+              <td style="padding:10px;color:#374151;">
+                ${r.modificato_il ? new Date(r.modificato_il).toLocaleDateString("it-IT", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    document.getElementById("storico-content").innerHTML =
+      `<div style="color:#dc2626;">Errore caricamento: ${err.message}</div>`;
+  }
 }
