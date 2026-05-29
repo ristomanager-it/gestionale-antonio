@@ -94,7 +94,8 @@ const routes = {
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
-  creaRicetta: () => import("./views/crea-ricetta.js"),
+  creaRicetta: () => import("./views/ricette-semplici.js"),
+  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
@@ -450,6 +451,9 @@ const routePermissions = {
     "ricette.write",
 
   "creaRicetta":
+    "ricette.write",
+
+  "crea-ricetta-avanzata":
     "ricette.write",
 
   "dipendenti":
