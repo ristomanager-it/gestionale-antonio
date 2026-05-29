@@ -808,7 +808,7 @@ async function mostraRicetta(id) {
 
     supabase
       .from("ricetta_ingredienti")
-      .select("*")
+      .select("*, prodotti(costo_medio, costo_ultimo, peso_unita_g, unita_base)")
       .eq("ricetta_id", id),
 
     supabase
@@ -895,7 +895,13 @@ async function mostraRicetta(id) {
 
       ${(() => {
         const fc = ingredienti.reduce((tot, i) => {
-          return tot + (Number(i.quantita || 0) * Number(i.costo_unitario || i.costo_medio || 0));
+          const costoKg = Number(i.prodotti?.costo_medio || i.prodotti?.costo_ultimo || 0);
+          const qta = Number(i.quantita || 0);
+          const um = (i.unita_misura || "").toLowerCase();
+          const qtaKg = um === "g" || um === "gr" ? qta/1000 :
+                        um === "ml" ? qta/1000 :
+                        um === "cl" ? qta/100 : qta;
+          return tot + (qtaKg * costoKg);
         }, 0);
         return fc > 0 ? `
           <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
@@ -916,9 +922,16 @@ async function mostraRicetta(id) {
         ingredienti.length
           ? `<div style="margin-bottom:8px;">
               ${ingredienti.map(i => {
-                const costo = Number(i.costo_unitario || i.costo_medio || 0);
+                // Costo da join prodotti
+                const costoKg = Number(i.prodotti?.costo_medio || i.prodotti?.costo_ultimo || 0);
                 const qta = Number(i.quantita || 0);
-                const costoRiga = costo > 0 ? (qta * costo).toFixed(3) : null;
+                const um = (i.unita_misura || "").toLowerCase();
+                // Converti UM in kg per calcolo food cost
+                const qtaKg = um === "g" || um === "gr" ? qta/1000 :
+                              um === "ml" ? qta/1000 :
+                              um === "cl" ? qta/100 :
+                              qta;
+                const costoRiga = costoKg > 0 ? (qtaKg * costoKg).toFixed(3) : null;
                 return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
                   <span>${escapeHtml(i.nome_prodotto)} — ${escapeHtml(String(i.quantita))} ${escapeHtml(i.unita_misura || "")}</span>
                   ${costoRiga ? `<span style="color:#0E5A7A;font-weight:600;">€${costoRiga}</span>` : ""}
