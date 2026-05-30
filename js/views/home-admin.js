@@ -1,853 +1,62 @@
-import { createPageLayout, createCard } from "../utils/pageLayout.js";
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+
+let gaugeChart = null;
+let currentPeriod = "day";
+let currentProducts = [];
+let currentMetrics = null;
+
+// Drill-down periodo corrente
+let _drillFrom = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+let _drillTo = new Date().toISOString().slice(0,10);
+
+const PERIOD_LABELS = {
+  day: "Giorno",
+  week: "Settimana",
+  month: "Mese",
+  year: "Anno",
+  custom: "Personalizzato"
+};
+
+/* =========================================================
+   RENDER VIEW
+========================================================= */
 
-const supa = () => window.supabaseClient || window.supabase;
-
-let prodottiCache = [];
-let ricetteCache = [];
-let editingId = null;
-let ingredienti = [];
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function money(value) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value || 0));
-}
-
-function toNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function getAziendaId() {
-  return window.state?.azienda?.id || null;
-}
-
-function getSedeId() {
-  return window.state?.sedeAttiva?.id || window.state?.utenteAzienda?.sede_id || null;
-}
-
-function productCost(p) {
-  // costo_medio è sempre in €/kg (dopo fix import)
-  return toNumber(p?.costo_medio || p?.costo_ultimo || 0);
-}
-
-function productCostPerUm(p, um) {
-  // Converte il costo/kg nel costo per la UM richiesta
-  const costoKg = productCost(p);
-  const u = (um || "").toLowerCase();
-  if (u === "pz" && p?.peso_unita_g > 0) {
-    // 1 pz = peso_unita_g grammi = peso_unita_g/1000 kg
-    return costoKg * (p.peso_unita_g / 1000);
-  }
-  return costoKg;
-}
-
-function productUm(p) {
-  return p?.unita_misura || p?.um || p?.unita_base || "";
-}
-
-function convertToKg(quantita, um, prodotto) {
-  const q = toNumber(quantita);
-  const u = (um || "").toLowerCase().trim();
-  if (u === "g" || u === "gr" || u === "grammi") return q / 1000;
-  if (u === "ml") return q / 1000;
-  if (u === "cl") return q / 100;
-  if (u === "l" || u === "lt" || u === "litri") return q;
-  if (u === "kg") return q;
-  if (u === "pz" && prodotto?.peso_unita_g > 0) {
-    // pz → converti in kg usando peso unitario
-    return q * (prodotto.peso_unita_g / 1000);
-  }
-  return q;
-}
-
-function calcLocalFoodCost() {
-  let total = 0;
-  for (const ing of ingredienti) {
-    if (ing._libero) {
-      // Ingrediente libero: usa costo manuale se inserito
-      const costoLib = toNumber(ing._costo || 0);
-      const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
-      total += qta_kg * costoLib;
-      continue;
-    }
-    const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
-    if (!p) continue;
-    const costoKg = productCost(p); // €/kg
-    const qta_kg = convertToKg(ing.quantita, ing.unita_misura, p);
-    total += qta_kg * costoKg;
-  }
-
-  return {
-    food_cost: Math.round(total * 100) / 100,
-    food_cost_percentuale: 0,
-    margine: 0
-  };
-}
-
-async function loadProducts() {
-  const aziendaId = getAziendaId();
-  if (!aziendaId) return [];
-
-  const { data, error } = await supa()
-    .from("prodotti")
-    .select("id, nome, descrizione, um, unita_misura, unita_base, costo_medio, costo_ultimo, attivo, stato, azienda_id")
-    .eq("azienda_id", aziendaId)
-    .order("nome", { ascending: true });
-
-  if (error) throw error;
-  prodottiCache = (data || []).filter((p) => p.attivo !== false && p.stato !== "eliminato");
-  return prodottiCache;
-}
-
-async function loadRicette() {
-  const aziendaId = getAziendaId();
-  const sedeId = getSedeId();
-
-  let q = supa()
-    .from("view_ricette_food_cost")
-    .select("*")
-    .eq("azienda_id", aziendaId)
-    .eq("tipo_ricetta", "semplice")
-    .order("nome", { ascending: true });
-
-  if (sedeId) q = q.or(`sede_id.is.null,sede_id.eq.${sedeId}`);
-
-  const { data, error } = await q;
-  if (error) {
-    console.warn("View food cost non disponibile, fallback su ricette:", error);
-
-    let fallback = supa()
-      .from("ricette")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("tipo_ricetta", "semplice")
-      .order("nome", { ascending: true });
-
-    if (sedeId) fallback = fallback.or(`sede_id.is.null,sede_id.eq.${sedeId}`);
-
-    const res = await fallback;
-    if (res.error) throw res.error;
-    ricetteCache = res.data || [];
-    return ricetteCache;
-  }
-
-  ricetteCache = data || [];
-  return ricetteCache;
-}
-
-async function loadIngredienti(ricettaId) {
-  const { data, error } = await supa()
-    .from("ricette_ingredienti")
-    .select("*")
-    .eq("ricetta_id", ricettaId)
-    .order("ordine", { ascending: true });
-
-  if (error) throw error;
-  return data || [];
-}
-
-function renderRicetteList() {
-  const wrap = document.getElementById("rs-list");
-  if (!wrap) return;
-
-  const q = String(document.getElementById("rs-search")?.value || "").toLowerCase().trim();
-  const categoria = String(document.getElementById("rs-filter-categoria")?.value || "").trim();
-
-  const list = ricetteCache.filter((r) => {
-    const matchText = !q || String(r.nome || "").toLowerCase().includes(q);
-    const matchCat = !categoria || String(r.categoria_food || "") === categoria;
-    return matchText && matchCat;
-  });
-
-  // Nasconde lista se nessuna ricerca attiva
-  const q_check = String(document.getElementById("rs-search")?.value || "").trim();
-  const cat_check = String(document.getElementById("rs-filter-categoria")?.value || "").trim();
-  if (!q_check && !cat_check) {
-    wrap.innerHTML = `<div class="timbrature-muted" style="padding:12px;color:#94a3b8;font-size:13px;">🔍 Cerca una ricetta per nome o filtra per categoria</div>`;
-    return;
-  }
-
-  if (!list.length) {
-    wrap.innerHTML = `<div class="timbrature-muted">Nessuna ricetta trovata.</div>`;
-    return;
-  }
-
-  wrap.innerHTML = `
-    <div class="rs-grid">
-      ${list.map((r) => {
-        const fc = r.food_cost_live ?? r.food_cost_totale ?? r.food_cost ?? r.costo_materia_prima ?? 0;
-        const pct = r.food_cost_percentuale_live ?? r.food_cost_percentuale ?? 0;
-        const marg = r.margine_live ?? r.margine ?? 0;
-
-        return `
-          <div class="rs-card-wrap" style="position:relative;">
-            <button class="rs-card" type="button" data-edit="${escapeHtml(r.id)}">
-              <div class="rs-card-head">
-                <strong>${escapeHtml(r.nome || "Ricetta")}</strong>
-                <span>${escapeHtml(r.categoria_food || "Senza categoria")}</span>
-              </div>
-              <div class="rs-card-kpis">
-                <div><small>Food cost</small><b>${money(fc)}</b></div>
-                <div><small>Food cost %</small><b>${Number(pct || 0).toFixed(1)}%</b></div>
-              </div>
-            </button>
-            <button class="rs-card-delete" type="button" data-delete="${escapeHtml(r.id)}" data-nome="${escapeHtml(r.nome || "")}"
-              style="position:absolute;top:6px;right:6px;background:#fee2e2;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:#dc2626;">
-              🗑
-            </button>
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-}
-
-function renderProductOptions(selectedId = "") {
-  return `
-    <option value="">Seleziona prodotto da magazzino</option>
-    ${prodottiCache.map((p) => `
-      <option value="${escapeHtml(p.id)}" ${String(selectedId) === String(p.id) ? "selected" : ""}>
-        ${escapeHtml(p.nome || p.descrizione || "Prodotto")} — ${money(productCost(p))}/${escapeHtml(productUm(p))}
-      </option>
-    `).join("")}
-  `;
-}
-
-function renderIngredienti() {
-  const wrap = document.getElementById("rs-ingredienti");
-  if (!wrap) return;
-
-  if (!ingredienti.length) {
-    wrap.innerHTML = `<div class="timbrature-muted">Aggiungi ingredienti dal magazzino. Il costo viene calcolato automaticamente.</div>`;
-  } else {
-    wrap.innerHTML = ingredienti.map((ing, index) => {
-      const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
-      const costo = productCost(p);
-      const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
-      const totale = qta_kg * costo;
-
-      // Ingrediente libero (non in magazzino)
-      if (ing._libero) {
-        return `
-          <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;margin-bottom:8px;">
-            <div style="display:flex;gap:6px;align-items:center;">
-              <div style="flex:1;">
-                <input class="input rs-ing-nome-libero" placeholder="Nome ingrediente libero..." 
-                  value="${escapeHtml(ing._nome || "")}" style="width:100%;"
-                  title="Ingrediente non in magazzino">
-              </div>
-              <button class="delete-icon-btn rs-ing-delete" type="button" style="flex-shrink:0;">🗑</button>
-            </div>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <div style="flex:1;">
-                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Quantità</label>
-                <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(String(ing.quantita || ""))}" placeholder="es. 0.5" style="width:100%;">
-              </div>
-              <div style="flex:1;">
-                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Unità misura</label>
-                <select class="input rs-ing-um" style="width:100%;">
-                  <option value="">—</option>
-                  ${["g","kg","ml","l","pz","cl","fetta","cucchiaio","cucchiaino","q.b."].map(u =>
-                    `<option value="${u}" ${(ing.unita_misura || "g") === u ? "selected" : ""}>${u}</option>`
-                  ).join("")}
-                </select>
-              </div>
-              <div style="flex:1;">
-                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Costo/kg €</label>
-                <input class="input rs-ing-costo-lib" type="number" min="0" step="0.01" value="${escapeHtml(String(ing._costo || ""))}" placeholder="0.00" style="width:100%;">
-              </div>
-            </div>
-            <div style="font-size:11px;color:#ea580c;">📦 Ingrediente libero — non collegato al magazzino</div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;">
-          <div style="display:flex;gap:6px;align-items:center;">
-            <div style="position:relative;flex:1;">
-              <input 
-                class="input rs-ing-search" 
-                placeholder="Cerca prodotto..." 
-                autocomplete="off"
-                value="${escapeHtml(p?.nome || p?.descrizione || ing._nome || "")}"
-                data-selected-id="${escapeHtml(ing.prodotto_id || "")}"
-                style="width:100%;"
-              />
-              <input type="hidden" class="rs-ing-product" value="${escapeHtml(ing.prodotto_id || "")}" />
-              <div class="rs-ing-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
-            </div>
-            <button class="delete-icon-btn rs-ing-delete" type="button" style="flex-shrink:0;">🗑</button>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <div style="flex:1;">
-              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Quantità</label>
-              <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(String(ing.quantita || ""))}" placeholder="es. 0.5" style="width:100%;">
-            </div>
-            <div style="flex:1;">
-              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Unità misura</label>
-              <select class="input rs-ing-um" style="width:100%;">
-                <option value="">—</option>
-                ${["g","kg","ml","l","pz","cl","fetta","spicchio","cucchiaio","cucchiaino","q.b."].map(u =>
-                  `<option value="${u}" ${(ing.unita_misura || productUm(p) || "") === u ? "selected" : ""}>${u}</option>`
-                ).join("")}
-              </select>
-            </div>
-            <div style="flex:1;text-align:right;">
-              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Costo</label>
-              <div class="rs-ing-cost" style="font-size:13px;font-weight:600;color:#0E5A7A;padding-top:6px;">
-                ${totale > 0 ? money(totale) : "—"}
-              </div>
-            </div>
-          </div>
-          ${costo > 0 ? `<div style="font-size:11px;color:#94a3b8;">${money(costo)} / ${escapeHtml(productUm(p) || ing.unita_misura || "unità")}</div>` : ""}
-        </div>
-      `;
-    }).join("");
-  }
-
-  renderLiveCost();
-}
-
-function renderLiveCost() {
-  const calc = calcLocalFoodCost();
-  const box = document.getElementById("rs-live-cost");
-  if (!box) return;
-
-  box.innerHTML = `
-    <div class="tb-kpi-grid compact">
-      <div class="tb-kpi"><span>Food cost live</span><strong>${money(calc.food_cost)}</strong></div>
-      <div class="tb-kpi"><span>Food cost %</span><strong>${calc.food_cost_percentuale.toFixed(1)}%</strong></div>
-      <div class="tb-kpi"><span>Margine stimato</span><strong>${money(calc.margine)}</strong></div>
-    </div>
-  `;
-}
-
-function resetForm() {
-  editingId = null;
-  ingredienti = [];
-  document.getElementById("rs-form-title").textContent = "Nuova ricetta";
-  document.getElementById("rs-nome").value = "";
-  document.getElementById("rs-categoria-operativa").value = "cucina";
-  document.getElementById("rs-categoria-food").value = "primi";
-  document.getElementById("rs-prezzo").value = "";
-  document.getElementById("rs-porzioni").value = "1";
-  document.getElementById("rs-descrizione").value = "";
-  document.getElementById("rs-procedimento").value = "";
-  renderIngredienti();
-}
-
-async function editRicetta(id) {
-  const aziendaId = getAziendaId();
-
-  // Reset editingId prima di caricare per evitare bug con ricetta precedente
-  editingId = null;
-  ingredienti = [];
-
-  const { data, error } = await supa()
-    .from("ricette")
-    .select("*")
-    .eq("azienda_id", aziendaId)
-    .eq("id", String(id))
-    .single();
-
-  if (error) throw error;
-  if (!data) { alert("Ricetta non trovata"); return; }
-
-  editingId = data.id;
-  document.getElementById("rs-form-title").textContent = "Modifica ricetta";
-  document.getElementById("rs-nome").value = data.nome || "";
-  document.getElementById("rs-categoria-operativa").value = data.categoria_operativa || "cucina";
-  document.getElementById("rs-categoria-food").value = data.categoria_food || "primi";
-  document.getElementById("rs-prezzo").value = data.prezzo_vendita ?? data.prezzo_ristorante ?? "";
-  document.getElementById("rs-porzioni").value = data.porzioni ?? data.pezzi_base ?? 1;
-  document.getElementById("rs-descrizione").value = data.descrizione || "";
-  document.getElementById("rs-procedimento").value = data.note_procedimento || "";
-
-  ingredienti = (await loadIngredienti(data.id)).map((row) => ({
-    prodotto_id: row.prodotto_id,
-    quantita: row.quantita,
-    unita_misura: row.unita_misura
-  }));
-
-  renderIngredienti();
-  document.getElementById("rs-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-async function saveRicetta() {
-  const aziendaId = getAziendaId();
-  const sedeId = getSedeId();
-
-  const nome = document.getElementById("rs-nome").value.trim();
-  if (!nome) return alert("Inserisci il nome ricetta.");
-  if (!ingredienti.length) return alert("Aggiungi almeno un ingrediente.");
-
-  for (const ing of ingredienti) {
-    if (!ing.prodotto_id || !toNumber(ing.quantita)) {
-      return alert("Completa prodotto e quantità per ogni ingrediente.");
-    }
-  }
-
-  const calc = calcLocalFoodCost();
-
-  const userId = window.state?.user?.id || null;
-  const payload = {
-    azienda_id: aziendaId,
-    sede_id: sedeId,
-    nome,
-    descrizione: document.getElementById("rs-descrizione").value.trim(),
-    note_procedimento: document.getElementById("rs-procedimento").value.trim(),
-    tipo_ricetta: "semplice",
-    categoria_operativa: document.getElementById("rs-categoria-operativa").value,
-    categoria_food: document.getElementById("rs-categoria-food").value,
-    pezzi_base: toNumber(document.getElementById("rs-porzioni").value) || null,
-    note_produzione: `Resa: ${document.getElementById("rs-porzioni")?.value || ""} ${document.getElementById("rs-resa-um")?.value || "kg"}`,
-    porzioni: Math.max(1, toNumber(document.getElementById("rs-porzioni").value) || 1),
-    costo_materia_prima: calc.food_cost,
-    food_cost_percentuale: calc.food_cost_percentuale,
-    margine: calc.margine,
-    attivo: true,
-    aggiornato_il: new Date().toISOString()
-  };
-
-  let ricettaId = editingId;
-
-  if (editingId) {
-    const { error } = await supa()
-      .from("ricette")
-      .update(payload)
-      .eq("id", editingId)
-      .eq("azienda_id", aziendaId);
-
-    if (error) throw error;
-  } else {
-    const { data, error } = await supa()
-      .from("ricette")
-      .insert([payload])
-      .select("id")
-      .single();
-
-    if (error) throw error;
-    ricettaId = data.id;
-  }
-
-  await supa()
-    .from("ricette_ingredienti")
-    .delete()
-    .eq("ricetta_id", ricettaId)
-    .eq("azienda_id", aziendaId);
-
-  const rows = ingredienti.map((ing, index) => {
-    const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
-    const costoUnit = productCost(p);
-    return {
-      azienda_id: aziendaId,
-      sede_id: sedeId,
-      ricetta_id: ricettaId,
-      prodotto_id: Number(ing.prodotto_id),
-      quantita: toNumber(ing.quantita),
-      unita_misura: ing.unita_misura || productUm(p) || "",
-      costo_unitario: costoUnit,
-      costo_totale: toNumber(ing.quantita) * costoUnit,
-      ordine: index
-    };
-  });
-
-  const { error: ingError } = await supa()
-    .from("ricette_ingredienti")
-    .insert(rows);
-
-  if (ingError) throw ingError;
-
-  await loadRicette();
-  renderRicetteList();
-  resetForm();
-  alert("Ricetta salvata.");
-}
-
-function renderShell() {
-  return createPageLayout({
-    title: "Ricette",
-    subtitle: "Food cost live da magazzino/acquisti, senza prodotto output obbligatorio",
-    content: `
-      <div class="ricette-semplici-page">
-        ${createCard({
-          title: "Azioni",
-          body: `
-            <div class="tb-toolbar">
-              <button class="app-button secondary" type="button" onclick="window.location.hash='#/ricettario'">← Ricettario</button>
-              <button class="app-button secondary" type="button" onclick="window.location.hash='#/crea-ricetta-avanzata'">Produzione avanzata</button>
-              <button id="rs-new" class="app-button" type="button">Nuova ricetta semplice</button>
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "🔍 Cerca ricetta esistente",
-          body: `
-            <div class="tb-toolbar">
-              <input id="rs-search" class="input-pill tb-search" placeholder="Cerca ricetta..." style="flex:1;">
-              <select id="rs-filter-categoria" class="input-pill">
-                <option value="">Tutte le categorie</option>
-                <option value="antipasti">Antipasti</option>
-                <option value="primi">Primi</option>
-                <option value="secondi">Secondi</option>
-                <option value="dessert">Dessert</option>
-                <option value="bevande">Bevande</option>
-                <option value="panificati">Panificati</option>
-                <option value="salse">Salse</option>
-                <option value="basi">Basi</option>
-                <option value="semilavorati">Semilavorati</option>
-                <option value="impasti">Impasti</option>
-              </select>
-            </div>
-            <div id="rs-list" style="margin-top:12px;max-height:320px;overflow-y:auto;"></div>
-          `
-        })}
-
-        ${createCard({
-          title: `<span id="rs-form-title">Nuova ricetta semplice</span>`,
-          body: `
-            <div id="rs-editor">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Nome ricetta *</label>
-                  <input id="rs-nome" class="input" placeholder="Es. Lasagna, Salsa pomodoro, Focaccia">
-                </div>
-                <div class="form-group">
-                  <label>Area</label>
-                  <select id="rs-categoria-operativa" class="input">
-                    <option value="cucina">Cucina / Menu</option>
-                    <option value="produzione">Produzione / Magazzino</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Categoria</label>
-                  <select id="rs-categoria-food" class="input">
-                    <option value="antipasti">Antipasti</option>
-                    <option value="primi">Primi</option>
-                    <option value="secondi">Secondi</option>
-                    <option value="dessert">Dessert</option>
-                    <option value="bevande">Bevande</option>
-                    <option value="panificati">Panificati</option>
-                    <option value="salse">Salse</option>
-                    <option value="basi">Basi</option>
-                    <option value="semilavorati">Semilavorati</option>
-                    <option value="impasti">Impasti</option>
-                  </select>
-                </div>
-                <input type="hidden" id="rs-prezzo" value="0">
-                <div class="form-group">
-                  <label>Resa totale (peso finito)</label>
-                  <div style="display:flex;gap:6px;align-items:center;">
-                    <input id="rs-porzioni" class="input" type="number" step="0.001" min="0" placeholder="es. 1.5">
-                    <select id="rs-resa-um" class="input" style="width:80px;">
-                      <option value="kg">kg</option>
-                      <option value="g">g</option>
-                      <option value="l">l</option>
-                      <option value="pz">pz</option>
-                    </select>
-                  </div>
-                  <small style="color:#6b7280;font-size:11px;">Peso/volume totale prodotto finito (es. 1.5 kg di impasto)</small>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label>Descrizione</label>
-                  <textarea id="rs-descrizione" class="input" rows="2"></textarea>
-                </div>
-              </div>
-
-              <h3 style="margin-top:18px;">Ingredienti da magazzino</h3>
-              <p class="timbrature-muted">Il costo ingrediente viene preso automaticamente da <strong>prodotti.costo_medio</strong>, con fallback su <strong>prodotti.costo_ultimo</strong>.</p>
-              <div id="rs-ingredienti"></div>
-              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-                <button id="rs-add-ing" class="app-button small" type="button">+ Da magazzino</button>
-                <button id="rs-add-ing-libero" class="app-button small secondary" type="button">+ Ingrediente libero</button>
-              </div>
-
-              <div id="rs-live-cost" style="margin-top:14px;"></div>
-
-              <div class="form-group" style="margin-top:14px;">
-                <label>Procedimento</label>
-                <textarea id="rs-procedimento" class="input" rows="4"></textarea>
-              </div>
-
-              <div class="tb-toolbar" style="margin-top:14px;">
-                <button id="rs-save" class="app-button" type="button">Salva ricetta semplice</button>
-                <button id="rs-reset" class="app-button secondary" type="button">Annulla</button>
-              </div>
-            </div>
-          `
-        })}
-      </div>
-    `
-  });
-}
-
-
-// ============================================================
-// 🔐 PIN RICETTE
-// ============================================================
-async function richiediPin(app) {
-  if (sessionStorage.getItem("pin_ricette_ok") === "true") return true;
-
-  const dipendente = window.state?.dipendente;
-  const pinSalvato = dipendente?.pin;
-
-  if (!pinSalvato) {
-    sessionStorage.setItem("pin_ricette_ok", "true");
-    return true;
-  }
-
-  return new Promise((resolve) => {
-    const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;";
-    overlay.innerHTML = `
-      <div style="background:white;border-radius:16px;padding:28px;width:300px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-        <div style="font-size:32px;margin-bottom:8px;">🔐</div>
-        <h3 style="margin:0 0 6px;font-size:17px;">Accesso Ricette</h3>
-        <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">Inserisci il tuo PIN per continuare</p>
-        <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
-          style="width:100%;padding:12px;font-size:22px;letter-spacing:8px;text-align:center;border:2px solid #e5e7eb;border-radius:10px;outline:none;box-sizing:border-box;margin-bottom:12px;" />
-        <div id="pin-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-        <button id="pin-ok" style="width:100%;padding:12px;background:#0E5A7A;color:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;">Conferma</button>
-        <button id="pin-cancel" style="width:100%;padding:10px;background:transparent;color:#6b7280;border:none;font-size:13px;cursor:pointer;margin-top:6px;">Annulla</button>
-      </div>`;
-    document.body.appendChild(overlay);
-    const input = overlay.querySelector("#pin-input");
-    const errEl = overlay.querySelector("#pin-error");
-    input.focus();
-    function verify() {
-      if (String(input.value) === String(pinSalvato)) {
-        sessionStorage.setItem("pin_ricette_ok", "true");
-        overlay.remove();
-        resolve(true);
-      } else {
-        errEl.textContent = "PIN errato, riprova";
-        input.value = "";
-        input.focus();
-      }
-    }
-    overlay.querySelector("#pin-ok").onclick = verify;
-    overlay.querySelector("#pin-cancel").onclick = () => { overlay.remove(); resolve(false); };
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") verify(); });
-  });
-}
-
-
-async function openModalIngredienteLibero() {
-  const aziendaId = getAziendaId();
-  const sedeId = window.state?.sedeAttiva?.id || null;
-
-  const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
-  const box = document.createElement("div");
-  box.style.cssText = "background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);";
-  box.innerHTML = `
-    <h3 style="margin:0 0 16px;font-size:16px;">➕ Nuovo ingrediente</h3>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Nome prodotto</label>
-      <input id="lib-nome" class="input" placeholder="es. Ritagli di carne, Macinato..." style="width:100%;box-sizing:border-box;">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div>
-        <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Unità misura</label>
-        <select id="lib-um" class="input" style="width:100%;">
-          <option value="kg">kg</option>
-          <option value="g">g</option>
-          <option value="l">l</option>
-          <option value="pz">pz</option>
-          <option value="ml">ml</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Costo/kg € (opz.)</label>
-        <input id="lib-costo" class="input" type="number" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;">
-      </div>
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Categoria</label>
-      <select id="lib-categoria" class="input" style="width:100%;">
-        <option value="Varie">Varie</option>
-        <option value="Carni">Carni</option>
-        <option value="Verdure e Frutta">Verdure e Frutta</option>
-        <option value="Latticini e Formaggi">Latticini e Formaggi</option>
-        <option value="Pasta e Cereali">Pasta e Cereali</option>
-        <option value="Pesce">Pesce</option>
-        <option value="Dispensa">Dispensa</option>
-        <option value="Semilavorati">Semilavorati</option>
-      </select>
-    </div>
-    <div id="lib-feedback" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-    <div style="display:flex;gap:8px;">
-      <button id="lib-salva" class="app-button" style="flex:1;">Crea e aggiungi</button>
-      <button id="lib-annulla" class="app-button secondary">Annulla</button>
-    </div>
-  `;
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  overlay.querySelector("#lib-annulla").onclick = () => overlay.remove();
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-  overlay.querySelector("#lib-nome").focus();
-
-  overlay.querySelector("#lib-salva").onclick = async () => {
-    const feedback = overlay.querySelector("#lib-feedback");
-    const nome = overlay.querySelector("#lib-nome").value.trim();
-    const um = overlay.querySelector("#lib-um").value;
-    const costo = toNumber(overlay.querySelector("#lib-costo").value);
-    const categoria = overlay.querySelector("#lib-categoria").value;
-
-    if (!nome) { feedback.innerHTML = `<span style="color:#dc2626;">Inserisci il nome</span>`; return; }
-
-    feedback.innerHTML = `<span style="color:#64748b;">Creazione in corso...</span>`;
-
-    try {
-      // Cerca se esiste già
-      const { data: existing } = await supa()
-        .from("prodotti")
-        .select("id, nome, costo_medio")
-        .eq("azienda_id", aziendaId)
-        .ilike("nome", nome)
-        .maybeSingle();
-
-      let prodottoId, prodottoNome, prodottoCosto;
-
-      if (existing) {
-        prodottoId = existing.id;
-        prodottoNome = existing.nome;
-        prodottoCosto = toNumber(existing.costo_medio);
-        feedback.innerHTML = `<span style="color:#16a34a;">✅ Trovato in magazzino: ${prodottoNome}</span>`;
-      } else {
-        // Crea nuovo prodotto
-        const { data: nuovo, error } = await supa()
-          .from("prodotti")
-          .insert({
-            azienda_id: aziendaId,
-            nome: nome,
-            nome_interno: nome,
-            unita_base: um,
-            categoria_interna: categoria,
-            categoria_bilancio_id: 7,
-            costo_medio: costo || 0,
-            costo_ultimo: costo || 0,
-            attivo: true
-          })
-          .select("id, nome")
-          .single();
-
-        if (error) throw error;
-        prodottoId = nuovo.id;
-        prodottoNome = nuovo.nome;
-        prodottoCosto = costo;
-
-        // Crea movimento giacenza 0 per registrare il prodotto in magazzino
-        if (sedeId) {
-          await supa().from("magazzino_movimenti").insert({
-            azienda_id: aziendaId,
-            sede_id: sedeId,
-            prodotto_id: prodottoId,
-            tipo_movimento: "carico",
-            quantita: 0.001,
-            costo: costo || 0,
-            causale: "Creazione da ricetta"
-          });
-        }
-
-        // Aggiunge alla cache locale
-        prodottiCache.push({
-          id: prodottoId,
-          nome: prodottoNome,
-          nome_interno: nome,
-          unita_base: um,
-          costo_medio: prodottoCosto,
-          costo_ultimo: prodottoCosto,
-          categoria_interna: categoria
-        });
-
-        feedback.innerHTML = `<span style="color:#16a34a;">✅ Prodotto creato e aggiunto al magazzino</span>`;
-      }
-
-      // Aggiunge all'elenco ingredienti
-      setTimeout(() => {
-        ingredienti.push({
-          prodotto_id: prodottoId,
-          _nome: prodottoNome,
-          quantita: "",
-          unita_misura: um,
-        });
-        renderIngredienti();
-        overlay.remove();
-      }, 600);
-
-    } catch(err) {
-      feedback.innerHTML = `<span style="color:#dc2626;">Errore: ${err.message}</span>`;
-    }
-  };
-}
 
 async function exportAcquistiCSV() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
-
   const { data } = await supabase
     .from("magazzino_movimenti")
     .select("created_at, causale, quantita, costo, categorie_bilancio(nome), prodotti(nome, nome_interno)")
-    .eq("azienda_id", aziendaId)
-    .eq("tipo_movimento", "carico")
-    .gt("costo", 0)
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  if (!data?.length) { alert("Nessun dato da esportare"); return; }
-
-  const rows = [["Data","Prodotto","Causale","Categoria","Quantita","Costo unitario","Totale"]];
-  data.forEach(r => {
-    rows.push([
-      new Date(r.created_at).toLocaleDateString("it-IT"),
-      r.prodotti?.nome_interno || r.prodotti?.nome || "",
-      r.causale || "",
-      r.categorie_bilancio?.nome || "",
-      String(r.quantita || 0).replace(".", ","),
-      String(r.costo || 0).replace(".", ","),
-      String(Math.round(r.quantita * r.costo * 100) / 100).replace(".", ",")
-    ]);
-  });
-
-  // Aggiungi spese extra
+    .eq("azienda_id", aziendaId).eq("tipo_movimento", "carico").gt("costo", 0)
+    .order("created_at", { ascending: false }).limit(5000);
   const { data: spese } = await supabase
     .from("spese_extra")
     .select("data, descrizione, importo, categorie_bilancio(nome)")
-    .eq("azienda_id", aziendaId)
-    .order("data", { ascending: false });
-
-  (spese || []).forEach(r => {
-    rows.push([
-      new Date(r.data).toLocaleDateString("it-IT"),
-      r.descrizione || "",
-      "Spesa extra",
-      r.categorie_bilancio?.nome || "",
-      "1",
-      String(r.importo || 0).replace(".", ","),
-      String(r.importo || 0).replace(".", ",")
-    ]);
-  });
-
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(";")).join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    .eq("azienda_id", aziendaId).order("data", { ascending: false });
+  const rows = [["Data","Prodotto","Causale","Categoria","Quantita","Costo/kg","Totale"]];
+  (data||[]).forEach(r => rows.push([
+    new Date(r.created_at).toLocaleDateString("it-IT"),
+    r.prodotti?.nome_interno||r.prodotti?.nome||"",
+    r.causale||"",
+    r.categorie_bilancio?.nome||"",
+    String(r.quantita||0).replace(".",","),
+    String(r.costo||0).replace(".",","),
+    String(Math.round((r.quantita||0)*(r.costo||0)*100)/100).replace(".",",")
+  ]));
+  (spese||[]).forEach(r => rows.push([
+    new Date(r.data).toLocaleDateString("it-IT"),
+    r.descrizione||"","Spesa extra",
+    r.categorie_bilancio?.nome||"","1",
+    String(r.importo||0).replace(".",","),
+    String(r.importo||0).replace(".",",")
+  ]));
+  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(";")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `acquisti_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+  a.href=url; a.download="acquisti_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -855,369 +64,1173 @@ async function openDrillDown(tipo, from, to) {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
-
-  const titoli = { mp: "📦 Materie Prime", sf: "📋 Spese Fisse", cl: "👥 Costo Lavoro" };
+  const titoli = {mp:"📦 Materie Prime",sf:"📋 Spese Fisse",cl:"👥 Costo Lavoro"};
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
   const box = document.createElement("div");
   box.style.cssText = "background:white;border-radius:16px;padding:24px;width:100%;max-width:700px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);";
-  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <h3 style="margin:0;font-size:17px;">${titoli[tipo]}</h3>
-    <button id="close-drill" style="border:none;background:#f1f5f9;border-radius:8px;padding:8px 14px;cursor:pointer;">✕ Chiudi</button>
-  </div><div id="drill-body"><div style="text-align:center;padding:30px;color:#64748b;">Caricamento...</div></div>`;
+  box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3 style="margin:0;font-size:17px;">'+titoli[tipo]+'</h3><button id="close-drill" style="border:none;background:#f1f5f9;border-radius:8px;padding:8px 14px;cursor:pointer;">✕ Chiudi</button></div><div id="drill-body"><div style="text-align:center;padding:30px;color:#64748b;">Caricamento...</div></div>';
   overlay.appendChild(box);
   document.body.appendChild(overlay);
   box.querySelector("#close-drill").onclick = () => overlay.remove();
-  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
   const el = box.querySelector("#drill-body");
-  const fromDate = (from || _drillFrom);
-  const toDate = (to || _drillTo);
-
+  const f = from||_drillFrom; const t = to||_drillTo;
   try {
-    if (tipo === "mp") {
-      const { data } = await supabase
-        .from("magazzino_movimenti")
-        .select("created_at, quantita, costo, prodotti(nome, nome_interno), categorie_bilancio(nome)")
-        .eq("azienda_id", aziendaId)
-        .eq("tipo_movimento", "carico")
-        .gt("costo", 0)
-        .gte("created_at", fromDate)
-        .lte("created_at", toDate + "T23:59:59")
-        .in("categoria_bilancio_id", [3,7])
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      const totale = (data||[]).reduce((s,r) => s + (r.quantita||0)*(r.costo||0), 0);
-      el.innerHTML = `
-        <div style="background:#f0fdf4;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;">
-          <span style="color:#166534;font-weight:500;">Totale periodo</span>
-          <strong style="color:#166534;font-size:20px;">€${Math.round(totale*100)/100}</strong>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead><tr style="background:#f8fafc;">
-            <th style="padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;">Data</th>
-            <th style="padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;">Prodotto</th>
-            <th style="padding:8px;text-align:right;border-bottom:1px solid #e5e7eb;">Qtà</th>
-            <th style="padding:8px;text-align:right;border-bottom:1px solid #e5e7eb;">Totale</th>
-          </tr></thead>
-          <tbody>${(data||[]).map(r => `<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:8px;color:#64748b;">${new Date(r.created_at).toLocaleDateString("it-IT")}</td>
-            <td style="padding:8px;">${r.prodotti?.nome_interno||r.prodotti?.nome||""}</td>
-            <td style="padding:8px;text-align:right;">${Number(r.quantita||0).toFixed(2)}</td>
-            <td style="padding:8px;text-align:right;font-weight:600;">€${Math.round((r.quantita||0)*(r.costo||0)*100)/100}</td>
-          </tr>`).join("")}</tbody>
-        </table>`;
-
-    } else if (tipo === "sf") {
-      const { data } = await supabase
-        .from("spese_extra")
-        .select("data, descrizione, importo, categorie_bilancio(nome)")
-        .eq("azienda_id", aziendaId)
-        .neq("categoria_bilancio_id", 14)
-        .gte("data", fromDate)
-        .lte("data", toDate)
-        .order("data", { ascending: false });
-
-      const totale = (data||[]).reduce((s,r) => s+Number(r.importo||0), 0);
-      el.innerHTML = `
-        <div style="background:#fffbeb;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;">
-          <span style="color:#92400e;font-weight:500;">Totale spese fisse</span>
-          <strong style="color:#92400e;font-size:20px;">€${Math.round(totale*100)/100}</strong>
-        </div>
-        ${!data?.length ? '<div style="color:#64748b;text-align:center;padding:20px;">Nessuna spesa nel periodo</div>' : `
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead><tr style="background:#f8fafc;">
-            <th style="padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;">Data</th>
-            <th style="padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;">Descrizione</th>
-            <th style="padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;">Categoria</th>
-            <th style="padding:8px;text-align:right;border-bottom:1px solid #e5e7eb;">Importo</th>
-          </tr></thead>
-          <tbody>${data.map(r => `<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:8px;">${new Date(r.data).toLocaleDateString("it-IT")}</td>
-            <td style="padding:8px;">${r.descrizione||""}</td>
-            <td style="padding:8px;color:#64748b;">${r.categorie_bilancio?.nome||""}</td>
-            <td style="padding:8px;text-align:right;font-weight:600;">€${Number(r.importo||0).toFixed(2)}</td>
-          </tr>`).join("")}</tbody>
-        </table>`}`;
-
-    } else if (tipo === "cl") {
-      const { data: paghe } = await supabase
-        .from("spese_extra").select("data, descrizione, importo")
-        .eq("azienda_id", aziendaId).eq("categoria_bilancio_id", 14)
-        .gte("data", fromDate).lte("data", toDate).order("data", { ascending: false });
-
-      const { data: timb } = await supabase
-        .from("timbrature").select("dip_nome, ore_lavorate, costo_orario, timestamp")
-        .eq("azienda_id", aziendaId).eq("tipo", "fine_turno")
-        .gte("timestamp", fromDate).lte("timestamp", toDate+"T23:59:59")
-        .order("timestamp", { ascending: false }).limit(100);
-
-      const totPaghe = (paghe||[]).reduce((s,r) => s+Number(r.importo||0), 0);
-      const totTimb = (timb||[]).reduce((s,r) => s+(Number(r.ore_lavorate||0)*Number(r.costo_orario||0)), 0);
-
-      el.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
-          <div style="background:#eff6ff;border-radius:10px;padding:14px;text-align:center;">
-            <div style="font-size:12px;color:#1d4ed8;margin-bottom:4px;">💳 Paghe registrate</div>
-            <strong style="font-size:22px;color:#1d4ed8;">€${totPaghe.toFixed(2)}</strong>
-          </div>
-          <div style="background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;">
-            <div style="font-size:12px;color:#166534;margin-bottom:4px;">⏱️ Costo timbrature</div>
-            <strong style="font-size:22px;color:#166534;">€${totTimb.toFixed(2)}</strong>
-          </div>
-        </div>
-        ${paghe?.length ? `<h4 style="font-size:13px;margin:0 0 8px;">Paghe</h4>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
-          <tbody>${paghe.map(r=>`<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:8px;">${new Date(r.data).toLocaleDateString("it-IT")}</td>
-            <td style="padding:8px;">${r.descrizione||""}</td>
-            <td style="padding:8px;text-align:right;font-weight:600;">€${Number(r.importo).toFixed(2)}</td>
-          </tr>`).join("")}</tbody></table>` : ""}
-        ${timb?.length ? `<h4 style="font-size:13px;margin:0 0 8px;">Ultime timbrature</h4>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <tbody>${timb.map(r=>`<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:8px;">${r.dip_nome||""}</td>
-            <td style="padding:8px;text-align:right;">${Number(r.ore_lavorate||0).toFixed(1)}h</td>
-            <td style="padding:8px;text-align:right;">€${(Number(r.ore_lavorate||0)*Number(r.costo_orario||0)).toFixed(2)}</td>
-          </tr>`).join("")}</tbody></table>` : '<div style="color:#64748b;font-size:13px;">Nessuna timbratura nel periodo</div>'}`;
+    if (tipo==="mp") {
+      const {data} = await supabase.from("magazzino_movimenti")
+        .select("created_at,quantita,costo,prodotti(nome,nome_interno)")
+        .eq("azienda_id",aziendaId).eq("tipo_movimento","carico").gt("costo",0)
+        .gte("created_at",f).lte("created_at",t+"T23:59:59")
+        .in("categoria_bilancio_id",[3,7]).order("created_at",{ascending:false}).limit(200);
+      const tot = (data||[]).reduce((s,r)=>s+(r.quantita||0)*(r.costo||0),0);
+      el.innerHTML = '<div style="background:#f0fdf4;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;"><span style="color:#166534;font-weight:500;">Totale periodo</span><strong style="color:#166534;font-size:20px;">€'+Math.round(tot*100)/100+'</strong></div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f8fafc;"><th style="padding:8px;text-align:left;">Data</th><th style="padding:8px;text-align:left;">Prodotto</th><th style="padding:8px;text-align:right;">Qtà</th><th style="padding:8px;text-align:right;">Totale</th></tr></thead><tbody>'+(data||[]).map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;color:#64748b;">'+new Date(r.created_at).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.prodotti?.nome_interno||r.prodotti?.nome||"")+'</td><td style="padding:8px;text-align:right;">'+Number(r.quantita||0).toFixed(2)+'</td><td style="padding:8px;text-align:right;font-weight:600;">€'+Math.round((r.quantita||0)*(r.costo||0)*100)/100+'</td></tr>').join("")+'</tbody></table>';
+    } else if (tipo==="sf") {
+      const {data} = await supabase.from("spese_extra")
+        .select("data,descrizione,importo,categorie_bilancio(nome)")
+        .eq("azienda_id",aziendaId).neq("categoria_bilancio_id",14)
+        .gte("data",f).lte("data",t).order("data",{ascending:false});
+      const tot = (data||[]).reduce((s,r)=>s+Number(r.importo||0),0);
+      el.innerHTML = '<div style="background:#fffbeb;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;"><span style="color:#92400e;font-weight:500;">Totale spese fisse</span><strong style="color:#92400e;font-size:20px;">€'+Math.round(tot*100)/100+'</strong></div>'+(!data?.length?'<div style="color:#64748b;text-align:center;padding:20px;">Nessuna spesa nel periodo</div>':'<table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>'+data.map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;">'+new Date(r.data).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.descrizione||"")+'</td><td style="padding:8px;color:#64748b;">'+(r.categorie_bilancio?.nome||"")+'</td><td style="padding:8px;text-align:right;font-weight:600;">€'+Number(r.importo||0).toFixed(2)+'</td></tr>').join("")+'</tbody></table>');
+    } else if (tipo==="cl") {
+      const {data:paghe} = await supabase.from("spese_extra").select("data,descrizione,importo").eq("azienda_id",aziendaId).eq("categoria_bilancio_id",14).gte("data",f).lte("data",t).order("data",{ascending:false});
+      const {data:timb} = await supabase.from("timbrature").select("dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(100);
+      const totP = (paghe||[]).reduce((s,r)=>s+Number(r.importo||0),0);
+      const totT = (timb||[]).reduce((s,r)=>s+(Number(r.ore_lavorate||0)*Number(r.costo_orario||0)),0);
+      el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"><div style="background:#eff6ff;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#1d4ed8;margin-bottom:4px;">💳 Paghe</div><strong style="font-size:22px;color:#1d4ed8;">€'+totP.toFixed(2)+'</strong></div><div style="background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#166534;margin-bottom:4px;">⏱️ Timbrature</div><strong style="font-size:22px;color:#166534;">€'+totT.toFixed(2)+'</strong></div></div>'+(paghe?.length?'<table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>'+paghe.map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;">'+new Date(r.data).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.descrizione||"")+'</td><td style="padding:8px;text-align:right;">€'+Number(r.importo).toFixed(2)+'</td></tr>').join("")+'</tbody></table>':'<div style="color:#64748b;font-size:13px;">Nessuna paga nel periodo</div>');
     }
-  } catch(e) {
-    el.innerHTML = `<div style="color:#dc2626;">Errore: ${e.message}</div>`;
+  } catch(e) { el.innerHTML = '<div style="color:#dc2626;">Errore: '+e.message+'</div>'; }
+}
+
+export async function render(container) {
+  const user = window.state?.user;
+  const azienda = window.state?.azienda;
+  const sede = window.state?.sedeAttiva;
+
+  destroyGauge();
+  updateHeader(azienda, sede);
+  hideLegacyTopbar();
+
+  container.innerHTML = `
+  <div class="view home-admin">
+    <div class="home-grid">
+      <section class="card admin-kpi-card">
+        <div class="admin-kpi-top">
+          <div>
+            <div class="admin-saluto" id="home-saluto"></div>
+            <div class="admin-utente" id="home-utente"></div>
+          </div>
+
+          <div class="admin-top-right">
+            <div class="admin-data" id="home-data"></div>
+            <div class="admin-meteo" id="home-weather">☁️</div>
+          </div>
+        </div>
+
+        <div class="admin-filters">
+          <div class="admin-filter-buttons">
+            <button type="button" class="period-btn active" data-period="day">Giorno</button>
+            <button type="button" class="period-btn" data-period="week">Settimana</button>
+            <button type="button" class="period-btn" data-period="month">Mese</button>
+            <button type="button" class="period-btn" data-period="year">Anno</button>
+            <button type="button" id="btn-export-acquisti" style="margin-left:8px;padding:6px 12px;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;font-size:13px;">⬇️ CSV</button>
+          </div>
+
+          <div class="admin-filter-range">
+            <label>
+              <span>Dal</span>
+              <input id="filter-from" type="date">
+            </label>
+            <label>
+              <span>Al</span>
+              <input id="filter-to" type="date">
+            </label>
+            <button type="button" id="apply-custom-range" class="range-btn">Applica</button>
+          </div>
+        </div>
+
+        <div class="admin-period-label" id="period-label">Periodo: Giorno</div>
+
+        <div class="admin-incasso-row">
+          <div>
+            <div class="admin-incasso-label">Incasso</div>
+            <div class="admin-incasso-value" id="incassoTotale">€ 0</div>
+            <div class="admin-incasso-iva">Con IVA <span id="incassoIva">€ 0</span></div>
+          </div>
+        </div>
+
+        <div class="admin-gauge-wrap">
+          <canvas id="admin-gauge"></canvas>
+        </div>
+
+        <div class="admin-bep">
+          BEP giornaliero <span id="bepValore">€ 0</span>
+        </div>
+
+        <div class="admin-kpi-row">
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">MP</div>
+            <div class="admin-kpi-euro" id="materiaPrimaValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
+            <div class="admin-kpi-perc" id="materiaPrimaPerc">0%</div>
+            <div id="acquisti-breakdown" style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.6;"></div>
+          </div>
+
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">SF</div>
+            <div class="admin-kpi-euro" id="speseFisseValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
+            <div class="admin-kpi-perc" id="speseFissePerc">0%</div>
+          </div>
+
+          <div class="admin-kpi-col">
+            <div class="admin-kpi-name">CL</div>
+            <div class="admin-kpi-euro" id="costoLavoroValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
+            <div class="admin-kpi-perc" id="costoLavoroPerc">0%</div>
+          </div>
+
+          <div class="admin-kpi-col admin-kpi-col-strong">
+            <div class="admin-kpi-name">Margine</div>
+            <div class="admin-kpi-euro" id="margineValore">€ 0</div>
+            <div class="admin-kpi-perc" id="marginePerc">0%</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card admin-sales-card">
+        <div class="admin-sales-head">
+          <div>
+            <h3>Prodotti venduti</h3>
+            <div class="admin-sales-subtitle">Ordina l’elenco per KPI e filtra per categoria</div>
+          </div>
+
+          <div class="admin-sales-filters">
+            <select id="sales-category-filter">
+              <option value="all">Tutte le categorie</option>
+            </select>
+
+            <select id="sales-sort-filter">
+              <option value="incasso">Incasso</option>
+              <option value="numero">Numero</option>
+              <option value="margine">Margine</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="sales-list" class="admin-sales-list"></div>
+      </section>
+    </div>
+
+    ${renderTony()}
+  </div>
+
+  <style>
+    .home-admin{
+      padding:16px !important;
+    }
+
+    .home-grid{
+      display:grid;
+      grid-template-columns:1.2fr 0.9fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .admin-kpi-card,
+    .admin-sales-card{
+      padding:18px !important;
+      border-radius:18px;
+    }
+
+    .admin-kpi-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:14px;
+    }
+
+    .admin-saluto{
+      font-size:22px;
+      line-height:1.1;
+      font-weight:800;
+      color:var(--color-text);
+    }
+
+    .admin-utente{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--color-text-muted);
+    }
+
+    .admin-top-right{
+      text-align:right;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:110px;
+    }
+
+    .admin-data{
+      font-size:13px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-meteo{
+      font-size:16px;
+      font-weight:700;
+      color:var(--color-text);
+    }
+
+    .admin-filters{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .admin-filter-buttons{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .period-btn,
+    .range-btn{
+      border:none;
+      background:#EEF2F7;
+      color:var(--color-text);
+      padding:8px 12px;
+      border-radius:10px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .period-btn.active{
+      background:var(--color-primary);
+      color:#fff;
+    }
+
+    .admin-filter-range{
+      display:flex;
+      align-items:end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .admin-filter-range label{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+    }
+
+    .admin-filter-range input{
+      border:1px solid var(--color-border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      min-height:36px;
+      font-size:13px;
+    }
+
+    .admin-period-label{
+      font-size:13px;
+      color:var(--color-text-muted);
+      margin-bottom:14px;
+      font-weight:700;
+    }
+
+    .admin-incasso-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .admin-incasso-label{
+      font-size:12px;
+      color:var(--color-text-muted);
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+      font-weight:700;
+    }
+
+    .admin-incasso-value{
+      font-size:28px;
+      line-height:1;
+      font-weight:900;
+      margin-top:4px;
+      color:var(--color-text);
+    }
+
+    .admin-incasso-iva{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-gauge-wrap{
+      position:relative;
+      height:220px;
+      margin:4px 0 6px;
+    }
+
+    .admin-bep{
+      text-align:center;
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:16px;
+      color:var(--color-text);
+    }
+
+    .admin-kpi-row{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      align-items:start;
+      text-align:center;
+    }
+
+    .admin-kpi-col{
+      padding:0 4px;
+    }
+
+    .admin-kpi-col-strong .admin-kpi-euro,
+    .admin-kpi-col-strong .admin-kpi-perc{
+      color:var(--color-primary);
+    }
+
+    .admin-kpi-name{
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+    }
+
+    .admin-kpi-euro{
+      margin-top:6px;
+      font-size:18px;
+      font-weight:800;
+      color:var(--color-text);
+      line-height:1.1;
+    }
+
+    .admin-kpi-perc{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+      line-height:1.1;
+    }
+
+    .admin-sales-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .admin-sales-head h3{
+      margin:0;
+      font-size:20px;
+      line-height:1.1;
+    }
+
+    .admin-sales-subtitle{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:600;
+    }
+
+    .admin-sales-filters{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .admin-sales-filters select{
+      border:1px solid var(--color-border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      min-height:38px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .admin-sales-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .admin-sales-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      border:1px solid var(--color-border);
+      border-radius:14px;
+      padding:12px 14px;
+      background:#fff;
+    }
+
+    .admin-sales-left{
+      min-width:0;
+      flex:1;
+    }
+
+    .admin-sales-name{
+      font-size:15px;
+      font-weight:800;
+      color:var(--color-text);
+      line-height:1.1;
+    }
+
+    .admin-sales-category{
+      font-size:12px;
+      color:var(--color-text-muted);
+      font-weight:700;
+      margin-top:4px;
+    }
+
+    .admin-sales-value-card{
+      min-width:110px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#EEF2F7;
+      text-align:center;
+      flex-shrink:0;
+    }
+
+    .admin-sales-value-label{
+      font-size:11px;
+      color:var(--color-text-muted);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+      line-height:1;
+    }
+
+    .admin-sales-value{
+      margin-top:6px;
+      font-size:14px;
+      font-weight:800;
+      color:var(--color-text);
+      line-height:1.1;
+    }
+
+    .tony-avatar{
+      position:fixed;
+      right:18px;
+      bottom:90px;
+      width:56px;
+      height:56px;
+      border-radius:50%;
+      background:var(--color-primary);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(14,90,122,0.28);
+      z-index:60;
+    }
+
+    @media (max-width: 1100px){
+      .home-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 767px){
+      .home-admin{
+        padding:12px !important;
+      }
+
+      .admin-kpi-card,
+      .admin-sales-card{
+        padding:14px !important;
+      }
+
+      .admin-saluto{
+        font-size:18px;
+      }
+
+      .admin-gauge-wrap{
+        height:180px;
+      }
+
+      .admin-kpi-row{
+        grid-template-columns:repeat(2,1fr);
+        gap:14px 10px;
+      }
+
+      .admin-sales-row{
+        align-items:flex-start;
+      }
+
+      .admin-sales-value-card{
+        min-width:92px;
+      }
+
+      .tony-avatar{
+        width:52px;
+        height:52px;
+        right:14px;
+        bottom:84px;
+      }
+    }
+  </style>
+  `;
+
+  initTopbar(user);
+  initDateRangeDefaults();
+  initPeriodFilter();
+  initSalesFilters();
+  hydrateWeather();
+  await refreshDashboard("day");
+
+  // Binding click KPI drill-down
+  setTimeout(() => {
+    document.getElementById("kpi-mp-click")?.addEventListener("click", () => openDrillDown("mp", _drillFrom, _drillTo));
+    document.getElementById("kpi-sf-click")?.addEventListener("click", () => openDrillDown("sf", _drillFrom, _drillTo));
+    document.getElementById("kpi-cl-click")?.addEventListener("click", () => openDrillDown("cl", _drillFrom, _drillTo));
+    document.getElementById("btn-export-acquisti")?.addEventListener("click", exportAcquistiCSV);
+  }, 300);
+}
+
+/* =========================================================
+   HEADER / TOPBAR
+========================================================= */
+
+function hideLegacyTopbar() {
+  const bar = document.querySelector(".topbar-info");
+  if (bar) {
+    bar.style.display = "none";
   }
 }
 
-export async function render(app) {
-  const aziendaId = getAziendaId();
+function updateHeader(azienda, sede) {
+  const box = document.getElementById("header-azienda-nome");
 
-  if (!aziendaId) {
-    app.innerHTML = `<div class="card"><h3>Azienda non selezionata</h3></div>`;
+  if (!box) return;
+
+  if (sede && sede.nome) {
+    box.innerText = sede.nome;
     return;
   }
 
-  // 🔐 PIN obbligatorio
-  const pinOk = await richiediPin(app);
-  if (!pinOk) { window.history.back(); return; }
+  if (azienda && azienda.nome) {
+    box.innerText = azienda.nome;
+    return;
+  }
 
-  app.innerHTML = renderShell();
+  box.innerText = "Ristoflow";
+}
+
+function initTopbar(user) {
+  const salutoBox = document.getElementById("home-saluto");
+  const utenteBox = document.getElementById("home-utente");
+  const dataBox = document.getElementById("home-data");
+
+  if (!salutoBox || !utenteBox || !dataBox) return;
+
+  const ora = new Date().getHours();
+
+  let saluto = "Buongiorno";
+  if (ora >= 12 && ora < 18) saluto = "Buon pomeriggio";
+  if (ora >= 18) saluto = "Buonasera";
+
+  const email = user?.email || "";
+  const nomeUtente = email ? email.split("@")[0] : "utente";
+
+  salutoBox.innerText = saluto;
+  utenteBox.innerText = nomeUtente;
+
+  dataBox.innerText = new Date().toLocaleDateString("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+function initDateRangeDefaults() {
+  const fromInput = document.getElementById("filter-from");
+  const toInput = document.getElementById("filter-to");
+
+  if (!fromInput || !toInput) return;
+
+  const today = new Date();
+  const prior = new Date();
+  prior.setDate(today.getDate() - 6);
+
+  fromInput.value = toISODate(prior);
+  toInput.value = toISODate(today);
+}
+
+function initPeriodFilter() {
+  const buttons = Array.from(document.querySelectorAll(".period-btn"));
+  const applyBtn = document.getElementById("apply-custom-range");
+
+  buttons.forEach((btn) => {
+    btn.onclick = async () => {
+      buttons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      await refreshDashboard(btn.dataset.period || "day");
+    };
+  });
+
+  if (applyBtn) {
+    applyBtn.onclick = async () => {
+      buttons.forEach((b) => b.classList.remove("active"));
+      await refreshDashboard("custom");
+    };
+  }
+}
+
+function initSalesFilters() {
+  const categorySelect = document.getElementById("sales-category-filter");
+  const sortSelect = document.getElementById("sales-sort-filter");
+
+  if (!categorySelect || !sortSelect) return;
+
+  categorySelect.onchange = () => renderSalesList();
+  sortSelect.onchange = () => renderSalesList();
+}
+
+function populateSalesCategoryFilter(items = []) {
+  const categorySelect = document.getElementById("sales-category-filter");
+  if (!categorySelect) return;
+
+  const currentValue = categorySelect.value || "all";
+  const categories = Array.from(
+    new Set(
+      items
+        .map((item) => item.categoria || "Senza categoria")
+        .filter(Boolean)
+    )
+  ).sort((a, b) => String(a).localeCompare(String(b), "it"));
+
+  categorySelect.innerHTML = `<option value="all">Tutte le categorie</option>`;
+
+  categories.forEach((categoria) => {
+    const option = document.createElement("option");
+    option.value = categoria;
+    option.textContent = categoria;
+    categorySelect.appendChild(option);
+  });
+
+  if (categories.includes(currentValue)) {
+    categorySelect.value = currentValue;
+  } else {
+    categorySelect.value = "all";
+  }
+}
+
+/* =========================================================
+   KPI / DASHBOARD
+========================================================= */
+
+async function refreshDashboard(period) {
+  const _r = getDateRange(period);
+  if (_r?.from) _drillFrom = _r.from.slice(0,10);
+  if (_r?.to) _drillTo = _r.to.slice(0,10);
+  currentPeriod = period;
+
+  const { from: _f, to: _t } = getDateRange(period);
+  _drillFrom = _f || _drillFrom;
+  _drillTo = _t || _drillTo;
+  const metrics = await fetchDashboardData(period);
+
+  if (!metrics) {
+    setText("period-label", "Periodo: " + getPeriodLabel(period, getDaysByPeriod(period)));
+    setText("incassoTotale", formatCurrency(0));
+    setText("incassoIva", formatCurrency(0));
+    setText("bepValore", formatCurrency(0));
+
+    setText("materiaPrimaValore", formatCurrency(0));
+    setText("speseFisseValore", formatCurrency(0));
+    setText("costoLavoroValore", formatCurrency(0));
+    setText("margineValore", formatCurrency(0));
+
+    setText("materiaPrimaPerc", "0%");
+    setText("speseFissePerc", "0%");
+    setText("costoLavoroPerc", "0%");
+    setText("marginePerc", "0%");
+
+    currentMetrics = {
+      label: getPeriodLabel(period, getDaysByPeriod(period)),
+      incasso: 0,
+      incassoIva: 0,
+      materiaPrima: 0,
+      speseFisse: 0,
+      costoLavoro: 0,
+      margine: 0,
+      bep: 0,
+      materiaPrimaPerc: 0,
+      speseFissePerc: 0,
+      costoLavoroPerc: 0,
+      marginePerc: 0
+    };
+    currentProducts = [];
+    populateSalesCategoryFilter(currentProducts);
+    renderGauge(currentMetrics);
+    renderSalesList();
+    return;
+  }
+
+  currentMetrics = metrics;
+  currentProducts = Array.isArray(metrics.prodotti) ? metrics.prodotti : [];
+
+  setText("period-label", "Periodo: " + metrics.label);
+  setText("incassoTotale", formatCurrency(metrics.incasso));
+  setText("incassoIva", formatCurrency(metrics.incassoIva));
+  setText("bepValore", formatCurrency(metrics.bep));
+
+  setText("materiaPrimaValore", formatCurrency(metrics.materiaPrima));
+  const breakdownEl = document.getElementById("acquisti-breakdown");
+  if (breakdownEl) {
+    if (metrics.acquisti_categorie?.length) {
+      breakdownEl.innerHTML = metrics.acquisti_categorie
+        .map(a => `<span>${a.categoria}: <b>${formatCurrency(a.totale)}</b></span>`)
+        .join("<br>");
+    } else {
+      breakdownEl.innerHTML = "";
+    }
+  }
+  setText("speseFisseValore", formatCurrency(metrics.speseFisse));
+  setText("costoLavoroValore", formatCurrency(metrics.costoLavoro));
+  setText("margineValore", formatCurrency(metrics.margine));
+
+  setText("materiaPrimaPerc", metrics.materiaPrimaPerc + "%");
+  setText("speseFissePerc", metrics.speseFissePerc + "%");
+  setText("costoLavoroPerc", metrics.costoLavoroPerc + "%");
+  setText("marginePerc", metrics.marginePerc + "%");
+
+  populateSalesCategoryFilter(currentProducts);
+  renderGauge(metrics);
+  renderSalesList();
+}
+
+async function fetchDashboardData(period) {
+  const azienda = window.state?.azienda;
+  const sede = window.state?.sedeAttiva;
+  const supabase = window.supabaseClient;
+
+  if (!azienda || !supabase) return null;
+
+  const { from, to } = getDateRange(period);
+  const days = getDaysByPeriod(period);
+
+  const payload = {
+    azienda_id: azienda.id,
+    data_da: from,
+    data_a: to
+  };
+
+  if (sede?.id != null) {
+    payload.sede_id = sede.id;
+  }
 
   try {
-    await loadProducts();
-    await loadRicette();
-    renderRicetteList();
-    renderIngredienti();
+    const { data, error } = await supabase.functions.invoke("dashboard-kpi", {
+      body: payload
+    });
 
-    // Apri ricetta da URL se presente (?id=X)
-    const ricettaIdFromUrl = window.routeParams?.id 
-      || new URLSearchParams(window.location.hash.split("?")[1] || "").get("id");
-    if (ricettaIdFromUrl) {
-      try {
-        await editRicetta(ricettaIdFromUrl);
-      } catch(e) {
-        console.error("Errore apertura ricetta da URL:", e);
-      }
+    if (error) {
+      console.error("dashboard-kpi invoke error:", error);
+      return null;
     }
 
-    app.querySelector("#rs-search")?.addEventListener("input", renderRicetteList);
+    const incasso = toNumber(data?.incasso);
+    const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
+    // Legge acquisti reali da v_contabilita_categorie per il mese corrente
+    let materiaPrima = toNumber(data?.materia_prima);
+    let acquisti_categorie = [];
+    try {
+      // Usa il range del periodo selezionato
+      const { data: acquisti } = await supabase
+        .from("magazzino_movimenti")
+        .select("categoria_bilancio_id, quantita, costo, categorie_bilancio(nome)")
+        .eq("azienda_id", azienda.id)
+        .eq("tipo_movimento", "carico")
+        .gte("created_at", from)
+        .lte("created_at", to)
+        .limit(5000);
 
-    // ── Elimina ricetta ──
-    app.addEventListener("click", async (e) => {
-      const btn = e.target.closest?.("[data-delete]");
-      if (!btn) return;
-      const id = btn.dataset.delete;
-      const nome = btn.dataset.nome;
-      if (!confirm(`Eliminare la ricetta "${nome}"? L'operazione è irreversibile.`)) return;
-      try {
-        await supa().from("ricetta_ingredienti").delete().eq("ricetta_id", id);
-        await supa().from("ricette").delete().eq("id", id);
-        ricetteCache = ricetteCache.filter(r => String(r.id) !== String(id));
-        renderRicetteList();
-        if (String(editingId) === String(id)) resetForm();
-        alert("Ricetta eliminata.");
-      } catch(err) {
-        alert("Errore eliminazione: " + err.message);
-      }
-    });
-
-    // ── Ingrediente libero → crea prodotto al volo ──
-    app.querySelector("#rs-add-ing-libero")?.addEventListener("click", () => {
-      openModalIngredienteLibero();
-    });
-
-    // Ingrediente libero
-    app.querySelector("#rs-add-ing-libero")?.addEventListener("click", () => {
-      ingredienti.push({
-        prodotto_id: null,
-        _nome: "",
-        quantita: "",
-        unita_misura: "g",
-        _libero: true
-      });
-      renderIngredienti();
-      // Focus sull'ultimo campo nome libero
-      const rows = app.querySelectorAll(".rs-ing-row");
-      const last = rows[rows.length - 1];
-      last?.querySelector(".rs-ing-nome-libero")?.focus();
-    });
-    app.querySelector("#rs-filter-categoria")?.addEventListener("change", renderRicetteList);
-    app.querySelector("#rs-new")?.addEventListener("click", resetForm);
-    app.querySelector("#rs-reset")?.addEventListener("click", resetForm);
-    app.querySelector("#rs-save")?.addEventListener("click", async () => {
-      try {
-        await saveRicetta();
-      } catch (e) {
-        console.error(e);
-        alert(e?.message || "Errore salvataggio ricetta.");
-      }
-    });
-
-    app.querySelector("#rs-add-ing")?.addEventListener("click", () => {
-      ingredienti.push({ prodotto_id: "", quantita: "", unita_misura: "", _nome: "" });
-      renderIngredienti();
-    });
-
-    app.querySelector("#rs-prezzo")?.addEventListener("input", renderLiveCost);
-
-    app.addEventListener("input", (event) => {
-      const row = event.target.closest?.(".rs-ing-row");
-      if (!row) return;
-      const index = Number(row.dataset.index);
-      if (!Number.isInteger(index) || !ingredienti[index]) return;
-
-      // Autocomplete ricerca prodotto
-      if (event.target.classList.contains("rs-ing-search")) {
-        const term = event.target.value.toLowerCase().trim();
-        const dropdown = row.querySelector(".rs-ing-dropdown");
-        if (!dropdown) return;
-
-        if (term.length < 1) { dropdown.style.display = "none"; return; }
-
-        const matches = prodottiCache.filter(p =>
-          (p.nome || p.descrizione || "").toLowerCase().includes(term)
-        ).slice(0, 8);
-
-        if (!matches.length) { dropdown.style.display = "none"; return; }
-
-        dropdown.style.display = "block";
-        dropdown.innerHTML = matches.map(p => `
-          <div data-id="${p.id}" style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
-            <span>${escapeHtml(p.nome || p.descrizione)}</span>
-            <span style="color:#6b7280;font-size:11px;">${money(productCost(p))}/${escapeHtml(productUm(p))}</span>
-          </div>
-        `).join("");
-
-        dropdown.querySelectorAll("[data-id]").forEach(item => {
-          item.onclick = (e) => {
-            e.stopPropagation();
-            const p = prodottiCache.find(x => String(x.id) === item.dataset.id);
-            if (!p) return;
-            const hiddenInput = row.querySelector(".rs-ing-product");
-            const searchInput = row.querySelector(".rs-ing-search");
-            hiddenInput.value = p.id;
-            searchInput.value = p.nome || p.descrizione;
-            dropdown.style.display = "none";
-            ingredienti[index].prodotto_id = String(p.id);
-            ingredienti[index].unita_misura = productUm(p);
-            ingredienti[index]._nome = p.nome || p.descrizione;
-            // Aggiorna costo e UM nella riga senza re-render completo
-            const costBox = row.querySelector(".rs-ing-cost");
-            if (costBox) {
-              const qta_kg = convertToKg(ingredienti[index].quantita, ingredienti[index].unita_misura || productUm(p));
-              costBox.textContent = qta_kg > 0 ? money(qta_kg * productCost(p)) : "—";
-            }
-            renderLiveCost();
-          };
-        });
-        return;
-      }
-
-      if (event.target.classList.contains("rs-ing-qta")) {
-        ingredienti[index].quantita = event.target.value;
-        renderLiveCost();
-        const costBox = row.querySelector(".rs-ing-cost");
-        const p = prodottiCache.find((x) => String(x.id) === String(ingredienti[index].prodotto_id));
-        if (costBox && p) {
-          const total = toNumber(ingredienti[index].quantita) * productCost(p);
-          costBox.textContent = total > 0 ? money(total) : "—";
+      if (acquisti?.length) {
+        // Aggrega per categoria
+        const map = new Map();
+        for (const r of acquisti) {
+          const cat = r.categorie_bilancio?.nome || "Altro";
+          const val = (Number(r.quantita || 0) * Number(r.costo || 0));
+          map.set(cat, (map.get(cat) || 0) + val);
         }
+        acquisti_categorie = [...map.entries()].map(([categoria, totale]) => ({ categoria, totale: Math.round(totale * 100) / 100 }));
+        const totaleAcquisti = acquisti_categorie.reduce((s, r) => s + r.totale, 0);
+        if (totaleAcquisti > 0) materiaPrima = Math.round(totaleAcquisti * 100) / 100;
       }
-    });
+    } catch(e) { console.warn("Errore lettura acquisti:", e); }
+    const speseFisse = toNumber(data?.spese_fisse);
+    const costoLavoro = toNumber(data?.costo_lavoro);
+    const margine = data?.margine != null
+      ? toNumber(data.margine)
+      : roundCurrency(incasso - materiaPrima - speseFisse - costoLavoro);
+    const bep = data?.bep != null
+      ? toNumber(data.bep)
+      : roundCurrency(materiaPrima + speseFisse + costoLavoro);
 
-    app.addEventListener("change", (ev) => {
-      const row2 = ev.target.closest?.(".rs-ing-row");
-      if (!row2) return;
-      const idx2 = Number(row2.dataset.index);
-      if (!Number.isInteger(idx2) || !ingredienti[idx2]) return;
-      if (ev.target.classList.contains("rs-ing-um")) {
-        ingredienti[idx2].unita_misura = ev.target.value;
-      }
-    });
+    const prodotti = normalizeProducts(data?.prodotti || []);
 
-    app.addEventListener("input", (ev) => {
-      const row2 = ev.target.closest?.(".rs-ing-row");
-      if (!row2) return;
-      const idx2 = Number(row2.dataset.index);
-      if (!Number.isInteger(idx2) || !ingredienti[idx2]) return;
-      if (ev.target.classList.contains("rs-ing-nome-libero")) {
-        ingredienti[idx2]._nome = ev.target.value;
-      }
-      if (ev.target.classList.contains("rs-ing-costo-lib")) {
-        ingredienti[idx2]._costo = toNumber(ev.target.value);
-        renderLiveCost();
-      }
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".rs-ing-search")) {
-        document.querySelectorAll(".rs-ing-dropdown").forEach(d => d.style.display = "none");
-      }
-    });
-
-    app.addEventListener("change", (event) => {
-      const row = event.target.closest?.(".rs-ing-row");
-      if (!row) return;
-      const index = Number(row.dataset.index);
-      if (!Number.isInteger(index) || !ingredienti[index]) return;
-
-      if (event.target.classList.contains("rs-ing-product")) {
-        const p = prodottiCache.find((x) => String(x.id) === String(event.target.value));
-        ingredienti[index].prodotto_id = event.target.value;
-        ingredienti[index].unita_misura = productUm(p);
-        renderIngredienti();
-      }
-    });
-
-    app.addEventListener("click", async (event) => {
-      const editBtn = event.target.closest?.("[data-edit]");
-      if (editBtn) {
-        try {
-          await editRicetta(editBtn.dataset.edit);
-        } catch (e) {
-          console.error(e);
-          alert("Errore apertura ricetta.");
-        }
-        return;
-      }
-
-      const del = event.target.closest?.(".rs-ing-delete");
-      if (del) {
-        const row = del.closest(".rs-ing-row");
-        const index = Number(row?.dataset?.index);
-        if (Number.isInteger(index)) {
-          ingredienti.splice(index, 1);
-          renderIngredienti();
-        }
-      }
-    });
-  } catch (e) {
-    console.error(e);
-    app.innerHTML = createPageLayout({
-      title: "Ricette",
-      subtitle: "",
-      content: createCard({
-        title: "Errore caricamento",
-        body: escapeHtml(e?.message || "Errore imprevisto.")
-      })
-    });
+    return {
+      label: getPeriodLabel(period, days),
+      days,
+      incasso,
+      incassoIva,
+      materiaPrima,
+      speseFisse,
+      costoLavoro,
+      margine,
+      bep,
+      materiaPrimaPerc: toPercent(materiaPrima, incasso),
+      speseFissePerc: toPercent(speseFisse, incasso),
+      costoLavoroPerc: toPercent(costoLavoro, incasso),
+      marginePerc: toPercent(margine, incasso),
+      acquisti_categorie,
+      prodotti
+    };
+  } catch (err) {
+    console.error("dashboard-kpi unexpected error:", err);
+    return null;
   }
+}
+
+function normalizeProducts(list) {
+  return (Array.isArray(list) ? list : []).map((item) => {
+    const nome = item?.nome || item?.nome_prodotto || item?.descrizione || `Prodotto ${item?.prodotto_id ?? ""}`.trim();
+    const categoria = item?.categoria || item?.categoria_nome || item?.categoria_portata || "Senza categoria";
+    const incasso = toNumber(item?.incasso);
+    const numero = toNumber(item?.numero ?? item?.pezzi ?? item?.quantita);
+    const margine = item?.margine != null ? toNumber(item.margine) : incasso;
+
+    return {
+      prodotto_id: item?.prodotto_id ?? null,
+      nome,
+      categoria,
+      incasso,
+      numero,
+      margine
+    };
+  });
+}
+
+/* =========================================================
+   GAUGE
+========================================================= */
+
+function renderGauge(metrics) {
+  const canvas = document.getElementById("admin-gauge");
+  if (!canvas) return;
+  if (typeof Chart === "undefined") return;
+
+  destroyGauge();
+
+  gaugeChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: ["Materia prima", "Spese fisse", "Costo lavoro", "Margine"],
+      datasets: [
+        {
+          data: [
+            metrics.materiaPrima || 0,
+            metrics.speseFisse || 0,
+            metrics.costoLavoro || 0,
+            Math.max(metrics.margine || 0, 0)
+          ],
+          backgroundColor: [
+            "#f97316",
+            "#8b5cf6",
+            "#ef4444",
+            "#22c55e"
+          ],
+          borderWidth: 0,
+          hoverOffset: 0
+        }
+      ]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "72%",
+      events: [],
+      interaction: {
+        mode: null
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "bottom",
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            padding: 14,
+            font: {
+              size: 11,
+              weight: "700"
+            }
+          }
+        },
+        tooltip: {
+          enabled: false
+        }
+      }
+    }
+  });
+}
+
+function destroyGauge() {
+  if (gaugeChart) {
+    try {
+      gaugeChart.destroy();
+    } catch (e) {
+      console.warn("Gauge destroy error:", e);
+    }
+    gaugeChart = null;
+  }
+}
+
+/* =========================================================
+   SALES
+========================================================= */
+
+function renderSalesList() {
+  const box = document.getElementById("sales-list");
+  const categoryFilter = document.getElementById("sales-category-filter");
+  const sortFilter = document.getElementById("sales-sort-filter");
+
+  if (!box) return;
+
+  const category = categoryFilter?.value || "all";
+  const sortBy = sortFilter?.value || "incasso";
+
+  let items = Array.isArray(currentProducts) ? [...currentProducts] : [];
+
+  if (category !== "all") {
+    items = items.filter((item) => (item.categoria || "Senza categoria") === category);
+  }
+
+  items.sort((a, b) => {
+    if (sortBy === "numero") return toNumber(b.numero) - toNumber(a.numero);
+    if (sortBy === "margine") return toNumber(b.margine) - toNumber(a.margine);
+    return toNumber(b.incasso) - toNumber(a.incasso);
+  });
+
+  if (!items.length) {
+    box.innerHTML = `
+      <div class="admin-sales-row">
+        <div class="admin-sales-left">
+          <div class="admin-sales-name">Nessun prodotto nel periodo</div>
+          <div class="admin-sales-category">Prova a cambiare filtro o intervallo date</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = items.map((item) => {
+    return `
+      <div class="admin-sales-row">
+        <div class="admin-sales-left">
+          <div class="admin-sales-name">${escapeHtml(item.nome)}</div>
+          <div class="admin-sales-category">${escapeHtml(item.categoria || "Senza categoria")}</div>
+        </div>
+
+        <div class="admin-sales-value-card">
+          <div class="admin-sales-value-label">${sortByLabel(sortBy)}</div>
+          <div class="admin-sales-value">${sortBy === "numero" ? formatNumber(item.numero) : formatCurrency(item[sortBy])}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* =========================================================
+   TONY
+========================================================= */
+
+function renderTony() {
+  return `
+    <div class="tony-avatar" onclick="location.hash='#/ai'">🤖</div>
+  `;
+}
+
+/* =========================================================
+   METEO
+========================================================= */
+
+async function hydrateWeather() {
+  const box = document.getElementById("home-weather");
+  if (!box) return;
+
+  try {
+    const res = await fetch(
+      `${OPEN_METEO_URL}?latitude=41.9&longitude=12.49&current=temperature_2m`
+    );
+    const data = await res.json();
+
+    if (data?.current?.temperature_2m != null) {
+      box.innerHTML = "🌤 " + Math.round(data.current.temperature_2m) + "°";
+      return;
+    }
+
+    box.innerHTML = "☁️";
+  } catch {
+    box.innerHTML = "☁️";
+  }
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = value;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0
+  }).format(toNumber(value));
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("it-IT", {
+    maximumFractionDigits: 0
+  }).format(toNumber(value));
+}
+
+function toPercent(value, total) {
+  const safeTotal = toNumber(total);
+  if (!safeTotal) return 0;
+  return Math.round((toNumber(value) / safeTotal) * 100);
+}
+
+function roundCurrency(value) {
+  return Math.round(toNumber(value));
+}
+
+function toNumber(value) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toISODate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getDateRange(period) {
+  const today = new Date();
+
+  if (period === "day") {
+    const d = toISODate(today);
+    return { from: d, to: d };
+  }
+
+  if (period === "week") {
+    const from = new Date();
+    from.setDate(today.getDate() - 6);
+    return { from: toISODate(from), to: toISODate(today) };
+  }
+
+  if (period === "month") {
+    const from = new Date();
+    from.setDate(today.getDate() - 29);
+    return { from: toISODate(from), to: toISODate(today) };
+  }
+
+  if (period === "year") {
+    const from = new Date();
+    from.setDate(today.getDate() - 364);
+    return { from: toISODate(from), to: toISODate(today) };
+  }
+
+  const fromInput = document.getElementById("filter-from");
+  const toInput = document.getElementById("filter-to");
+
+  return {
+    from: fromInput?.value || toISODate(today),
+    to: toInput?.value || toISODate(today)
+  };
+}
+
+function getDaysByPeriod(period) {
+  if (period === "week") return 7;
+  if (period === "month") return 30;
+  if (period === "year") return 365;
+  if (period === "custom") {
+    const fromInput = document.getElementById("filter-from");
+    const toInput = document.getElementById("filter-to");
+
+    if (!fromInput?.value || !toInput?.value) return 1;
+
+    const from = new Date(fromInput.value + "T00:00:00");
+    const to = new Date(toInput.value + "T00:00:00");
+
+    const diff = Math.round((to - from) / 86400000) + 1;
+
+    return diff > 0 ? diff : 1;
+  }
+
+  return 1;
+}
+
+function getPeriodLabel(period, days) {
+  if (period !== "custom") return PERIOD_LABELS[period] || "Giorno";
+
+  const fromInput = document.getElementById("filter-from");
+  const toInput = document.getElementById("filter-to");
+
+  if (!fromInput?.value || !toInput?.value) {
+    return PERIOD_LABELS.custom;
+  }
+
+  return `Dal ${fromInput.value} al ${toInput.value} (${days} gg)`;
+}
+
+function sortByLabel(sortBy) {
+  if (sortBy === "numero") return "Numero";
+  if (sortBy === "margine") return "Margine";
+  return "Incasso";
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
