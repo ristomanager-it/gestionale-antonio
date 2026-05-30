@@ -765,23 +765,27 @@ async function fetchDashboardData(period) {
     let materiaPrima = toNumber(data?.materia_prima);
     let acquisti_categorie = [];
     try {
-      const oggi = new Date();
-      const inizioMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1).toISOString();
-      const fineRange = to || new Date().toISOString();
+      // Usa il range del periodo selezionato
       const { data: acquisti } = await supabase
-        .from("v_contabilita_categorie")
-        .select("categoria_bilancio, totale_speso, mese")
+        .from("magazzino_movimenti")
+        .select("categoria_bilancio_id, quantita, costo, categorie_bilancio(nome)")
         .eq("azienda_id", azienda.id)
-        .gte("mese", inizioMese)
-        .limit(20);
+        .eq("tipo_movimento", "carico")
+        .gte("created_at", from)
+        .lte("created_at", to)
+        .limit(5000);
 
       if (acquisti?.length) {
-        acquisti_categorie = acquisti.map(r => ({
-          categoria: r.categoria_bilancio || "Altro",
-          totale: Number(r.totale_speso || 0)
-        }));
+        // Aggrega per categoria
+        const map = new Map();
+        for (const r of acquisti) {
+          const cat = r.categorie_bilancio?.nome || "Altro";
+          const val = (Number(r.quantita || 0) * Number(r.costo || 0));
+          map.set(cat, (map.get(cat) || 0) + val);
+        }
+        acquisti_categorie = [...map.entries()].map(([categoria, totale]) => ({ categoria, totale: Math.round(totale * 100) / 100 }));
         const totaleAcquisti = acquisti_categorie.reduce((s, r) => s + r.totale, 0);
-        if (totaleAcquisti > 0) materiaPrima = totaleAcquisti;
+        if (totaleAcquisti > 0) materiaPrima = Math.round(totaleAcquisti * 100) / 100;
       }
     } catch(e) { console.warn("Errore lettura acquisti:", e); }
     const speseFisse = toNumber(data?.spese_fisse);
