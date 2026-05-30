@@ -422,16 +422,7 @@ function hasPermission(area) {
       "prenotazioni-dettaglio",
 
       "app-produzione",
-      "ai",
-
-      // ── Aggiunti per operatore ──
-      "magazzino",
-      "ricettario",
-      "creaRicetta",
-      "ricette-semplici",
-      "crea-ricetta-avanzata",
-      "permessi",
-      "preparazioni"
+      "ai"
 
     ];
 
@@ -866,6 +857,21 @@ async function resolve() {
     } catch (e) {
       console.error("Errore booking route:", e);
       app.innerHTML = "Errore";
+      return;
+    }
+  }
+
+  // ── Route menu pubblico (senza login) ──
+  if (route === "menu") {
+    const slug = segments[1];
+    if (!slug) { app.innerHTML = "Link non valido"; return; }
+    try {
+      const { renderMenuPubblico } = await import("./views/menu-pubblico.js");
+      await renderMenuPubblico(app, slug);
+      return;
+    } catch(e) {
+      console.error("Errore menu pubblico:", e);
+      app.innerHTML = "Menu non trovato";
       return;
     }
   }
