@@ -367,6 +367,7 @@ export async function apriCaricoModal({ aziendaId }) {
 
       const categoriaInterna = document.getElementById("new-categoria-interna")?.value || null;
       const categoriaGestione = document.getElementById("new-categoria-gestione")?.value || null;
+      const categoriaBilancioId = document.getElementById("new-categoria-bilancio-id")?.value || null;
 
       const insertResult = await insertProdottoCompat({
         azienda_id: aziendaId,
@@ -378,8 +379,7 @@ export async function apriCaricoModal({ aziendaId }) {
         tipo_prodotto: _tipoCarico,
         ...(categoriaInterna ? { categoria_interna: categoriaInterna } : {}),
         ...(categoriaGestione ? { categoria_interna: categoriaGestione } : {}),
-        categoria_bilancio_id: ['Materiali e Pulizia','Attrezzature'].includes(categoriaGestione) ? 9 :
-                               categoriaGestione ? 7 : null
+        categoria_bilancio_id: categoriaBilancioId ? Number(categoriaBilancioId) : 7
       });
 
       if (insertResult.error) {
@@ -670,24 +670,7 @@ export async function apriCaricoModal({ aziendaId }) {
         </div>
 
         <div class="rf-field">
-          <label>Categoria bilancio</label>
-          <select id="new-categoria-gestione" class="input">
-            <option value="">-- Seleziona --</option>
-            <option value="Carni">🥩 Carni</option>
-            <option value="Verdure e Frutta">🥦 Verdure e Frutta</option>
-            <option value="Latticini e Formaggi">🧀 Latticini e Formaggi</option>
-            <option value="Pasta e Cereali">🌾 Pasta e Cereali</option>
-            <option value="Pesce">🐟 Pesce</option>
-            <option value="Dispensa">🫙 Dispensa</option>
-            <option value="Bevande">🍷 Bevande</option>
-            <option value="Bar e Servizio">☕ Bar e Servizio</option>
-            <option value="Materiali e Pulizia">🧹 Materiali e Pulizia</option>
-            <option value="Attrezzature">🔧 Attrezzature</option>
-            <option value="Varie">📦 Varie</option>
-          </select>
-          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;margin-top:6px;">
-            📌 Seleziona la categoria corretta — determina come viene contabilizzato l'acquisto.
-          </div>
+          <input type="hidden" id="new-categoria-bilancio-id" value="7">
         </div>
         ` : `
         <div class="rf-field">
