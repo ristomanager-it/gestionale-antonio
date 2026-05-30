@@ -84,20 +84,20 @@ export async function render(container) {
         <div class="admin-kpi-row">
           <div class="admin-kpi-col">
             <div class="admin-kpi-name">MP</div>
-            <div class="admin-kpi-euro" id="materiaPrimaValore" style="cursor:pointer;" onclick="openDrillDown('mp', currentFrom, currentTo)">€ 0</div>
+            <div class="admin-kpi-euro" id="materiaPrimaValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
             <div class="admin-kpi-perc" id="materiaPrimaPerc">0%</div>
             <div id="acquisti-breakdown" style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.6;"></div>
           </div>
 
           <div class="admin-kpi-col">
             <div class="admin-kpi-name">SF</div>
-            <div class="admin-kpi-euro" id="speseFisseValore" style="cursor:pointer;" onclick="openDrillDown('sf', currentFrom, currentTo)">€ 0</div>
+            <div class="admin-kpi-euro" id="speseFisseValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
             <div class="admin-kpi-perc" id="speseFissePerc">0%</div>
           </div>
 
           <div class="admin-kpi-col">
             <div class="admin-kpi-name">CL</div>
-            <div class="admin-kpi-euro" id="costoLavoroValore" style="cursor:pointer;" onclick="openDrillDown('cl', currentFrom, currentTo)">€ 0</div>
+            <div class="admin-kpi-euro" id="costoLavoroValore" style="cursor:pointer;text-decoration:underline dotted;" title="Clicca per dettaglio">€ 0</div>
             <div class="admin-kpi-perc" id="costoLavoroPerc">0%</div>
           </div>
 
@@ -657,6 +657,9 @@ function populateSalesCategoryFilter(items = []) {
 async function refreshDashboard(period) {
   currentPeriod = period;
 
+  const { from: _f, to: _t } = getDateRange(period);
+  _drillFrom = _f;
+  _drillTo = _t;
   const metrics = await fetchDashboardData(period);
 
   if (!metrics) {
