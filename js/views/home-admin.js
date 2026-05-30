@@ -5,6 +5,10 @@ let currentPeriod = "day";
 let currentProducts = [];
 let currentMetrics = null;
 
+// Drill-down periodo corrente
+let _drillFrom = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+let _drillTo = new Date().toISOString().slice(0,10);
+
 const PERIOD_LABELS = {
   day: "Giorno",
   week: "Settimana",
