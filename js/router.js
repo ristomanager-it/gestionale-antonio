@@ -127,7 +127,7 @@ const routes = {
   // BACK OFFICE (COSTRUZIONE)
   // =========================
   "bo-dashboard": () => import("./views/Bo/bo-dashboard.js"),
-  "bo-tag": () => import("./views/Bo/bo-tag.js"),
+  "bo-tag": () => import("./views/bo/bo-tag.js"),
   "bo-template": () => import("./views/Bo/bo-template.js"),
 
   // MENU
