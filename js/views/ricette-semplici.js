@@ -98,7 +98,7 @@ async function loadProducts() {
 
   const { data, error } = await supa()
     .from("prodotti")
-    .select("id, nome, descrizione, um, unita_misura, unita_base, costo_medio, costo_ultimo, attivo, stato, azienda_id")
+    .select("id, nome, nome_interno, descrizione, um, unita_misura, unita_base, costo_medio, costo_ultimo, peso_unita_g, attivo, stato, azienda_id")
     .eq("azienda_id", aziendaId)
     .order("nome", { ascending: true });
 
@@ -115,7 +115,6 @@ async function loadRicette() {
     .from("view_ricette_food_cost")
     .select("*")
     .eq("azienda_id", aziendaId)
-    .eq("tipo_ricetta", "semplice")
     .order("nome", { ascending: true });
 
   if (sedeId) q = q.or(`sede_id.is.null,sede_id.eq.${sedeId}`);
@@ -128,7 +127,6 @@ async function loadRicette() {
       .from("ricette")
       .select("*")
       .eq("azienda_id", aziendaId)
-      .eq("tipo_ricetta", "semplice")
       .order("nome", { ascending: true });
 
     if (sedeId) fallback = fallback.or(`sede_id.is.null,sede_id.eq.${sedeId}`);
