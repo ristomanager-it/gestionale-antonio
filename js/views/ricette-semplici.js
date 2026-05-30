@@ -57,6 +57,13 @@ function convertToKg(quantita, um) {
 function calcLocalFoodCost() {
   let total = 0;
   for (const ing of ingredienti) {
+    if (ing._libero) {
+      // Ingrediente libero: usa costo manuale se inserito
+      const costoLib = toNumber(ing._costo || 0);
+      const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
+      total += qta_kg * costoLib;
+      continue;
+    }
     const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
     if (!p) continue;
     const costoKg = productCost(p); // €/kg
@@ -64,14 +71,10 @@ function calcLocalFoodCost() {
     total += qta_kg * costoKg;
   }
 
-  const prezzo = toNumber(document.getElementById("rs-prezzo")?.value);
-  const percent = prezzo > 0 ? (total / prezzo) * 100 : 0;
-  const margine = prezzo > 0 ? prezzo - total : 0;
-
   return {
     food_cost: Math.round(total * 100) / 100,
-    food_cost_percentuale: Math.round(percent * 100) / 100,
-    margine: Math.round(margine * 100) / 100
+    food_cost_percentuale: 0,
+    margine: 0
   };
 }
 
@@ -203,6 +206,42 @@ function renderIngredienti() {
       const costo = productCost(p);
       const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
       const totale = qta_kg * costo;
+
+      // Ingrediente libero (non in magazzino)
+      if (ing._libero) {
+        return `
+          <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;margin-bottom:8px;">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;">
+                <input class="input rs-ing-nome-libero" placeholder="Nome ingrediente libero..." 
+                  value="${escapeHtml(ing._nome || "")}" style="width:100%;"
+                  title="Ingrediente non in magazzino">
+              </div>
+              <button class="delete-icon-btn rs-ing-delete" type="button" style="flex-shrink:0;">🗑</button>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;">
+                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Quantità</label>
+                <input class="input rs-ing-qta" type="number" min="0" step="0.001" value="${escapeHtml(String(ing.quantita || ""))}" placeholder="es. 0.5" style="width:100%;">
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Unità misura</label>
+                <select class="input rs-ing-um" style="width:100%;">
+                  <option value="">—</option>
+                  ${["g","kg","ml","l","pz","cl","fetta","cucchiaio","cucchiaino","q.b."].map(u =>
+                    `<option value="${u}" ${(ing.unita_misura || "g") === u ? "selected" : ""}>${u}</option>`
+                  ).join("")}
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:2px;">Costo/kg €</label>
+                <input class="input rs-ing-costo-lib" type="number" min="0" step="0.01" value="${escapeHtml(String(ing._costo || ""))}" placeholder="0.00" style="width:100%;">
+              </div>
+            </div>
+            <div style="font-size:11px;color:#ea580c;">📦 Ingrediente libero — non collegato al magazzino</div>
+          </div>
+        `;
+      }
 
       return `
         <div class="rs-ing-row" data-index="${index}" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;">
@@ -342,8 +381,8 @@ async function saveRicetta() {
     tipo_ricetta: "semplice",
     categoria_operativa: document.getElementById("rs-categoria-operativa").value,
     categoria_food: document.getElementById("rs-categoria-food").value,
-    prezzo_vendita: toNumber(document.getElementById("rs-prezzo").value),
-    pezzi_base: Math.max(1, Math.round(toNumber(document.getElementById("rs-porzioni").value) || 1)),
+    pezzi_base: toNumber(document.getElementById("rs-porzioni").value) || null,
+    note_produzione: `Resa: ${document.getElementById("rs-porzioni")?.value || ""} ${document.getElementById("rs-resa-um")?.value || "kg"}`,
     porzioni: Math.max(1, toNumber(document.getElementById("rs-porzioni").value) || 1),
     costo_materia_prima: calc.food_cost,
     food_cost_percentuale: calc.food_cost_percentuale,
@@ -425,10 +464,10 @@ function renderShell() {
         })}
 
         ${createCard({
-          title: "Elenco ricette",
+          title: "🔍 Cerca ricetta esistente",
           body: `
             <div class="tb-toolbar">
-              <input id="rs-search" class="input-pill tb-search" placeholder="Cerca ricetta...">
+              <input id="rs-search" class="input-pill tb-search" placeholder="Cerca ricetta..." style="flex:1;">
               <select id="rs-filter-categoria" class="input-pill">
                 <option value="">Tutte le categorie</option>
                 <option value="antipasti">Antipasti</option>
@@ -443,7 +482,7 @@ function renderShell() {
                 <option value="impasti">Impasti</option>
               </select>
             </div>
-            <div id="rs-list" style="margin-top:12px;"></div>
+            <div id="rs-list" style="margin-top:12px;max-height:320px;overflow-y:auto;"></div>
           `
         })}
 
@@ -478,13 +517,19 @@ function renderShell() {
                     <option value="impasti">Impasti</option>
                   </select>
                 </div>
+                <input type="hidden" id="rs-prezzo" value="0">
                 <div class="form-group">
-                  <label>Prezzo vendita / porzione</label>
-                  <input id="rs-prezzo" class="input" type="number" step="0.01" placeholder="Serve solo per margine e %">
-                </div>
-                <div class="form-group">
-                  <label>Porzioni</label>
-                  <input id="rs-porzioni" class="input" type="number" step="1" min="1" value="1">
+                  <label>Resa totale (peso finito)</label>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <input id="rs-porzioni" class="input" type="number" step="0.001" min="0" placeholder="es. 1.5">
+                    <select id="rs-resa-um" class="input" style="width:80px;">
+                      <option value="kg">kg</option>
+                      <option value="g">g</option>
+                      <option value="l">l</option>
+                      <option value="pz">pz</option>
+                    </select>
+                  </div>
+                  <small style="color:#6b7280;font-size:11px;">Peso/volume totale prodotto finito (es. 1.5 kg di impasto)</small>
                 </div>
                 <div class="form-group" style="grid-column:1/-1;">
                   <label>Descrizione</label>
@@ -495,7 +540,10 @@ function renderShell() {
               <h3 style="margin-top:18px;">Ingredienti da magazzino</h3>
               <p class="timbrature-muted">Il costo ingrediente viene preso automaticamente da <strong>prodotti.costo_medio</strong>, con fallback su <strong>prodotti.costo_ultimo</strong>.</p>
               <div id="rs-ingredienti"></div>
-              <button id="rs-add-ing" class="app-button small" type="button" style="margin-top:10px;">+ Aggiungi ingrediente</button>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <button id="rs-add-ing" class="app-button small" type="button">+ Da magazzino</button>
+                <button id="rs-add-ing-libero" class="app-button small secondary" type="button">+ Ingrediente libero</button>
+              </div>
 
               <div id="rs-live-cost" style="margin-top:14px;"></div>
 
@@ -599,6 +647,22 @@ export async function render(app) {
     }
 
     app.querySelector("#rs-search")?.addEventListener("input", renderRicetteList);
+
+    // Ingrediente libero
+    app.querySelector("#rs-add-ing-libero")?.addEventListener("click", () => {
+      ingredienti.push({
+        prodotto_id: null,
+        _nome: "",
+        quantita: "",
+        unita_misura: "g",
+        _libero: true
+      });
+      renderIngredienti();
+      // Focus sull'ultimo campo nome libero
+      const rows = app.querySelectorAll(".rs-ing-row");
+      const last = rows[rows.length - 1];
+      last?.querySelector(".rs-ing-nome-libero")?.focus();
+    });
     app.querySelector("#rs-filter-categoria")?.addEventListener("change", renderRicetteList);
     app.querySelector("#rs-new")?.addEventListener("click", resetForm);
     app.querySelector("#rs-reset")?.addEventListener("click", resetForm);
@@ -690,6 +754,20 @@ export async function render(app) {
       if (!Number.isInteger(idx2) || !ingredienti[idx2]) return;
       if (ev.target.classList.contains("rs-ing-um")) {
         ingredienti[idx2].unita_misura = ev.target.value;
+      }
+    });
+
+    app.addEventListener("input", (ev) => {
+      const row2 = ev.target.closest?.(".rs-ing-row");
+      if (!row2) return;
+      const idx2 = Number(row2.dataset.index);
+      if (!Number.isInteger(idx2) || !ingredienti[idx2]) return;
+      if (ev.target.classList.contains("rs-ing-nome-libero")) {
+        ingredienti[idx2]._nome = ev.target.value;
+      }
+      if (ev.target.classList.contains("rs-ing-costo-lib")) {
+        ingredienti[idx2]._costo = toNumber(ev.target.value);
+        renderLiveCost();
       }
     });
 
