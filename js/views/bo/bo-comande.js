@@ -283,13 +283,21 @@ export async function render(container) {
       const prenotazione = prenotazioniOggi.find(p => String(p.tavolo_id) === String(t.id));
       const isOccupato = !!comanda;
       const haPrenotazione = !!prenotazione && !isOccupato;
+      // Controlla se ha dessert in corso
+      const hasDessert = isOccupato && righeComanda.some(r =>
+        String(r.comanda_id) === String(comanda?.id) &&
+        r.stato !== 'annullato' && r.stato !== 'servito' &&
+        (r.nome_snapshot || '').match(/dessert|dolce|caffè|caffe|amaro|gelato|tiramisù/i)
+      );
+      const borderColor = isOccupato ? (hasDessert ? '#f59e0b' : '#dc2626') : haPrenotazione ? '#3b82f6' : '#22c55e';
+      const bgColor = isOccupato ? (hasDessert ? '#fef3c7' : '#fee2e2') : haPrenotazione ? '#eff6ff' : '#f0fdf4';
 
       return `
         <button data-tavolo="${t.id}" style="
           width:120px;height:120px;
           border-radius:16px;
-          border:3px solid ${isOccupato ? '#dc2626' : haPrenotazione ? '#f59e0b' : '#22c55e'};
-          background:${isOccupato ? '#fee2e2' : haPrenotazione ? '#fef3c7' : '#f0fdf4'};
+          border:3px solid ${borderColor};
+          background:${bgColor};
           cursor:pointer;
           display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
           transition:transform 0.1s;
@@ -408,7 +416,7 @@ export async function render(container) {
         padding:12px 8px;cursor:pointer;text-align:center;
         display:flex;flex-direction:column;align-items:center;gap:6px;
         transition:background 0.1s;
-        ${!p.disponibile ? 'opacity:0.4;pointer-events:none;' : ''}
+        ${p.disponibile === false ? 'opacity:0.4;pointer-events:none;' : ''}
       ">
         ${p.foto_url ? `<img src="${p.foto_url}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">` : '<div style="font-size:32px;">🍽️</div>'}
         <div style="font-size:12px;font-weight:600;line-height:1.3;color:#0f172a;">${esc(p.nome)}</div>
@@ -422,10 +430,19 @@ export async function render(container) {
   }
 
   // ── Aggiungi prodotto alla comanda ──
-  async function aggiungiProdotto(prodottoId) {
+  async function aggiungiProdotto(prodottoId, pesoKg = null) {
     if (!comandaAttiva) return;
     const prodotto = prodottiVendita.find(p => String(p.id) === String(prodottoId));
     if (!prodotto) return;
+
+    // Prodotto a peso — chiedi peso in kg
+    if (prodotto.unita_porzione === 'kg' || prodotto.unita_porzione === 'g' || prodotto.tags?.peso) {
+      const input = prompt(`Peso per "${prodotto.nome}" (in kg, es. 0.800):`, '');
+      if (!input) return;
+      const peso = parseFloat(input.replace(',','.'));
+      if (isNaN(peso) || peso <= 0) { alert('Peso non valido'); return; }
+      pesoKg = peso;
+    }
 
     // Cerca riga esistente non ancora inviata
     const rigaEsistente = righeComanda.find(r =>
@@ -445,12 +462,14 @@ export async function render(container) {
       const catNome = (cat?.nome || '').toLowerCase();
       const stampante = ['bevande','vini rossi','vini bianchi','le bollicine','amari','caffetteria'].some(c => catNome.includes(c)) ? 'bar' : 'cucina';
 
+      const prezzoFinale = pesoKg ? (prodotto.prezzo_base || 0) * pesoKg : (prodotto.prezzo_base || 0);
+      const nomeFinale = pesoKg ? `${prodotto.nome} (${pesoKg}kg)` : prodotto.nome;
       const { data, error } = await supa().from('comanda_righe').insert({
         azienda_id: aziendaId,
         comanda_id: comandaAttiva.id,
         prodotto_vendita_id: prodotto.id,
-        nome_snapshot: prodotto.nome,
-        prezzo_snapshot: prodotto.prezzo_base || 0,
+        nome_snapshot: nomeFinale,
+        prezzo_snapshot: prezzoFinale,
         quantita: 1,
         stato: 'in_attesa',
         stampante,
@@ -560,8 +579,15 @@ export async function render(container) {
   async function aggiungiNoteRiga(rigaId) {
     const riga = righeComanda.find(r => String(r.id) === String(rigaId));
     if (!riga) return;
-    const nota = prompt('Note per questo piatto:', riga.note || '');
-    if (nota === null) return;
+    // Note veloci con shortcut
+    const shortcut = ['senza sale', 'senza glutine', 'ben cotto', 'al sangue', 'senza cipolla', 'senza aglio', 'allergia frutta secca', 'piccante'];
+    const scelta = prompt(
+      'Note per questo piatto:\n\nShortcut: ' + shortcut.map((s,i) => (i+1)+'. '+s).join(' | ') + '\n\nScrivi numero o nota libera:',
+      riga.note || ''
+    );
+    if (scelta === null) return;
+    const num = parseInt(scelta);
+    const nota = (!isNaN(num) && num >= 1 && num <= shortcut.length) ? shortcut[num-1] : scelta;
     await supa().from('comanda_righe').update({ note: nota }).eq('id', rigaId);
     riga.note = nota;
     renderRighe();
@@ -704,13 +730,44 @@ export async function render(container) {
 
   // ── Vista cucina ──
   async function loadCucinaDisplay() {
-    const { data } = await supa()
+    // Carica righe in preparazione o pronte
+    const { data: righeIn } = await supa()
       .from('comanda_righe')
-      .select('*, comande(tavoli(nome))')
+      .select('*')
       .eq('azienda_id', aziendaId)
-      .or('stato.eq.in_preparazione,stato.eq.pronto')
+      .eq('stato', 'in_preparazione')
       .eq('stampante', 'cucina')
       .order('created_at');
+
+    const { data: righePronte } = await supa()
+      .from('comanda_righe')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .eq('stato', 'pronto')
+      .eq('stampante', 'cucina')
+      .order('created_at');
+
+    const data = [...(righeIn||[]), ...(righePronte||[])];
+
+    // Carica nomi tavoli separatamente
+    const comandaIds = [...new Set(data.map(r => r.comanda_id).filter(Boolean))];
+    let tavoliMap = {};
+    if (comandaIds.length) {
+      const { data: comandeData } = await supa()
+        .from('comande')
+        .select('id, tavolo_id')
+        .in('id', comandaIds);
+      const tavoloIds = [...new Set((comandeData||[]).map(c => c.tavolo_id).filter(Boolean))];
+      if (tavoloIds.length) {
+        const { data: tavoliData } = await supa()
+          .from('tavoli')
+          .select('id, nome')
+          .in('id', tavoloIds);
+        const tavMap = {};
+        (tavoliData||[]).forEach(t => tavMap[t.id] = t.nome);
+        (comandeData||[]).forEach(c => tavoliMap[c.id] = tavMap[c.tavolo_id] || '?');
+      }
+    }
 
     const box = container.querySelector('#cucina-righe');
     if (!data?.length) {
@@ -727,7 +784,7 @@ export async function render(container) {
           </span>
         </div>
         <div style="font-size:13px;color:#64748b;">
-          Tavolo: <strong>${r.comande?.tavoli?.nome || '?'}</strong> — Qtà: <strong>${r.quantita}</strong>
+          Tavolo: <strong>${tavoliMap[r.comanda_id] || '?'}</strong> — Qtà: <strong>${r.quantita}</strong>
           ${r.note ? `— Note: ${esc(r.note)}` : ''}
         </div>
         <div style="margin-top:8px;display:flex;gap:6px;">
