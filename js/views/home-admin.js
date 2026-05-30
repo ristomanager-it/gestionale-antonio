@@ -86,6 +86,7 @@ export async function render(container) {
             <div class="admin-kpi-name">MP</div>
             <div class="admin-kpi-euro" id="materiaPrimaValore">€ 0</div>
             <div class="admin-kpi-perc" id="materiaPrimaPerc">0%</div>
+            <div id="acquisti-breakdown" style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.6;"></div>
           </div>
 
           <div class="admin-kpi-col">
@@ -704,6 +705,16 @@ async function refreshDashboard(period) {
   setText("bepValore", formatCurrency(metrics.bep));
 
   setText("materiaPrimaValore", formatCurrency(metrics.materiaPrima));
+  const breakdownEl = document.getElementById("acquisti-breakdown");
+  if (breakdownEl) {
+    if (metrics.acquisti_categorie?.length) {
+      breakdownEl.innerHTML = metrics.acquisti_categorie
+        .map(a => `<span>${a.categoria}: <b>${formatCurrency(a.totale)}</b></span>`)
+        .join("<br>");
+    } else {
+      breakdownEl.innerHTML = "";
+    }
+  }
   setText("speseFisseValore", formatCurrency(metrics.speseFisse));
   setText("costoLavoroValore", formatCurrency(metrics.costoLavoro));
   setText("margineValore", formatCurrency(metrics.margine));
@@ -750,7 +761,29 @@ async function fetchDashboardData(period) {
 
     const incasso = toNumber(data?.incasso);
     const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
-    const materiaPrima = toNumber(data?.materia_prima);
+    // Legge acquisti reali da v_contabilita_categorie per il mese corrente
+    let materiaPrima = toNumber(data?.materia_prima);
+    let acquisti_categorie = [];
+    try {
+      const oggi = new Date();
+      const inizioMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1).toISOString();
+      const fineRange = to || new Date().toISOString();
+      const { data: acquisti } = await supabase
+        .from("v_contabilita_categorie")
+        .select("categoria_bilancio, totale_speso, mese")
+        .eq("azienda_id", azienda.id)
+        .gte("mese", inizioMese)
+        .limit(20);
+
+      if (acquisti?.length) {
+        acquisti_categorie = acquisti.map(r => ({
+          categoria: r.categoria_bilancio || "Altro",
+          totale: Number(r.totale_speso || 0)
+        }));
+        const totaleAcquisti = acquisti_categorie.reduce((s, r) => s + r.totale, 0);
+        if (totaleAcquisti > 0) materiaPrima = totaleAcquisti;
+      }
+    } catch(e) { console.warn("Errore lettura acquisti:", e); }
     const speseFisse = toNumber(data?.spese_fisse);
     const costoLavoro = toNumber(data?.costo_lavoro);
     const margine = data?.margine != null
@@ -776,6 +809,7 @@ async function fetchDashboardData(period) {
       speseFissePerc: toPercent(speseFisse, incasso),
       costoLavoroPerc: toPercent(costoLavoro, incasso),
       marginePerc: toPercent(margine, incasso),
+      acquisti_categorie,
       prodotti
     };
   } catch (err) {
