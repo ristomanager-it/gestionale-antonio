@@ -76,7 +76,7 @@ const routes = {
   // =========================
   // MARKETING (globale - lettura)
   // =========================
-  "bo-marketing": () => import("./views/Bo/bo-marketing.js"),
+  "bo-marketing": () => import("./views/bo/bo-marketing.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -131,16 +131,16 @@ const routes = {
   "bo-template": () => import("./views/Bo/bo-template.js"),
 
   // MENU
-  "bo-menu": () => import("./views/Bo/bo-menu-builder.js"),
-  "bo-categorie": () => import("./views/Bo/categorie.js"),
-  "bo-prodotti": () => import("./views/Bo/prodotti.js"),
+  "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
+  "bo-categorie": () => import("./views/bo/categorie.js"),
+  "bo-prodotti": () => import("./views/bo/prodotti.js"),
 
   // PRODUZIONE
-  "bo-magazzino": () => import("./views/Bo/bo-magazzino.js"),
-  "bo-produzione": () => import("./views/Bo/bo-produzione.js"),
-  "bo-comande": () => import("./views/Bo/bo-comande.js"),
-  "bo-ricette": () => import("./views/Bo/ricette-editor.js"),
-  "ricette-editor": () => import("./views/Bo/ricette-editor.js"),
+  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
+  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
+  "bo-comande": () => import("./views/bo/bo-comande.js"),
+  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
+  "ricette-editor": () => import("./views/bo/ricette-editor.js"),
 
 
     // =========================================================
