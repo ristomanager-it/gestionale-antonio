@@ -3,6 +3,19 @@
 
 const supa = () => window.supabaseClient || window.supabase;
 
+async function waitForAuth(maxWait = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    const s = supa();
+    if (s) {
+      const { data } = await s.auth.getSession();
+      if (data?.session) return true;
+    }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return false;
+}
+
 // ── Configurazione up-sell / cross-sell ──
 const UPSELL_RULES = {
   'secondi':    { msg: '🥗 Aggiungi un contorno?', cat: 'Contorni' },
@@ -24,6 +37,13 @@ export async function render(container) {
 
   if (!aziendaId) {
     container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>';
+    return;
+  }
+
+  // Aspetta sessione auth prima di fare query
+  const authOk = await waitForAuth();
+  if (!authOk) {
+    container.innerHTML = '<section class="view"><h2>Sessione non disponibile. Ricarica la pagina.</h2></section>';
     return;
   }
 
@@ -172,16 +192,16 @@ export async function render(container) {
   }
 
   async function loadSale() {
-    const q = supa().from('sale').select('*').eq('azienda_id', aziendaId).eq('attiva', true);
-    if (sedeId) q.eq('sede_id', sedeId);
+    let q = supa().from('sale').select('*').eq('azienda_id', aziendaId);
+    if (sedeId) q = q.eq('sede_id', sedeId);
     const { data } = await q.order('nome');
     sale = data || [];
   }
 
   async function loadTavoli() {
-    const q = supa().from('tavoli').select('*').eq('azienda_id', aziendaId).eq('attivo', true);
-    if (sedeId) q.eq('sede_id', sedeId);
-    if (salaSelezionata) q.eq('sala_id', salaSelezionata);
+    let q = supa().from('tavoli').select('*').eq('azienda_id', aziendaId);
+    if (sedeId) q = q.eq('sede_id', sedeId);
+    if (salaSelezionata) q = q.eq('sala_id', salaSelezionata);
     const { data } = await q.order('nome');
     tavoli = data || [];
   }
@@ -191,14 +211,14 @@ export async function render(container) {
       .from('comande')
       .select('*')
       .eq('azienda_id', aziendaId)
-      .in('stato', ['aperta', 'in_corso'])
+      .neq('stato', 'chiusa')
       .order('created_at', { ascending: false });
     comande = data || [];
   }
 
   async function loadProdotti() {
-    const q = supa().from('prodotti_vendita').select('*').eq('azienda_id', aziendaId).eq('attivo', true).eq('visibile', true);
-    if (sedeId) q.eq('sede_id', sedeId);
+    let q = supa().from('prodotti_vendita').select('*').eq('azienda_id', aziendaId);
+    if (sedeId) q = q.eq('sede_id', sedeId);
     const { data } = await q.order('nome');
     prodottiVendita = data || [];
   }
@@ -688,7 +708,7 @@ export async function render(container) {
       .from('comanda_righe')
       .select('*, comande(tavoli(nome))')
       .eq('azienda_id', aziendaId)
-      .in('stato', ['in_preparazione', 'pronto'])
+      .or('stato.eq.in_preparazione,stato.eq.pronto')
       .eq('stampante', 'cucina')
       .order('created_at');
 
@@ -742,6 +762,7 @@ export async function render(container) {
       azienda_id: aziendaId,
       sede_id: sedeId,
       nome: nome.trim(),
+      attiva: true,
     }).select('*').single();
     if (data) { sale.push(data); renderSaleTabs(); }
   }
