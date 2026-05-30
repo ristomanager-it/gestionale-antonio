@@ -377,7 +377,9 @@ export async function apriCaricoModal({ aziendaId }) {
         fornitore_preferito_id: fornitoreId,
         tipo_prodotto: _tipoCarico,
         ...(categoriaInterna ? { categoria_interna: categoriaInterna } : {}),
-        ...(categoriaGestione ? { categoria_gestione: categoriaGestione } : {})
+        ...(categoriaGestione ? { categoria_interna: categoriaGestione } : {}),
+        categoria_bilancio_id: ['Materiali e Pulizia','Attrezzature'].includes(categoriaGestione) ? 9 :
+                               categoriaGestione ? 7 : null
       });
 
       if (insertResult.error) {
@@ -663,26 +665,28 @@ export async function apriCaricoModal({ aziendaId }) {
 
         ${_tipoCarico === "materia_prima" ? `
         <div class="rf-field">
-          <label>Categoria interna</label>
-          <input id="new-categoria-interna" class="input" placeholder="es. Latticini, Carni, Verdure...">
+          <label>Nome interno prodotto <span style="font-size:11px;color:#6b7280;">(breve, es. "Farina Manitoba")</span></label>
+          <input id="new-categoria-interna" class="input" placeholder="es. Farina Manitoba, Petto di pollo...">
         </div>
 
         <div class="rf-field">
-          <label>Categoria gestione</label>
+          <label>Categoria bilancio</label>
           <select id="new-categoria-gestione" class="input">
             <option value="">-- Seleziona --</option>
-            <option value="secco">Secco</option>
-            <option value="fresco">Fresco</option>
-            <option value="surgelato">Surgelato</option>
-            <option value="bevande">Bevande</option>
-            <option value="pulizia">Pulizia</option>
-            <option value="altro">Altro</option>
+            <option value="Carni">🥩 Carni</option>
+            <option value="Verdure e Frutta">🥦 Verdure e Frutta</option>
+            <option value="Latticini e Formaggi">🧀 Latticini e Formaggi</option>
+            <option value="Pasta e Cereali">🌾 Pasta e Cereali</option>
+            <option value="Pesce">🐟 Pesce</option>
+            <option value="Dispensa">🫙 Dispensa</option>
+            <option value="Bevande">🍷 Bevande</option>
+            <option value="Bar e Servizio">☕ Bar e Servizio</option>
+            <option value="Materiali e Pulizia">🧹 Materiali e Pulizia</option>
+            <option value="Attrezzature">🔧 Attrezzature</option>
+            <option value="Varie">📦 Varie</option>
           </select>
-          <div style="
-            background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;
-            padding:8px 10px;font-size:12px;color:#92400e;margin-top:6px;
-          ">
-            📌 Non sai a quale categoria appartiene? Chiedi al responsabile prima di procedere.
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;margin-top:6px;">
+            📌 Seleziona la categoria corretta — determina come viene contabilizzato l'acquisto.
           </div>
         </div>
         ` : `
