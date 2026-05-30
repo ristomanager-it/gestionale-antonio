@@ -658,8 +658,8 @@ async function refreshDashboard(period) {
   currentPeriod = period;
 
   const { from: _f, to: _t } = getDateRange(period);
-  _drillFrom = _f;
-  _drillTo = _t;
+  _drillFrom = _f || _drillFrom;
+  _drillTo = _t || _drillTo;
   const metrics = await fetchDashboardData(period);
 
   if (!metrics) {
