@@ -34,24 +34,38 @@ function getSedeId() {
 }
 
 function productCost(p) {
+  // costo_medio è sempre in €/kg (dopo fix import)
   return toNumber(p?.costo_medio || p?.costo_ultimo || 0);
+}
+
+function productCostPerUm(p, um) {
+  // Converte il costo/kg nel costo per la UM richiesta
+  const costoKg = productCost(p);
+  const u = (um || "").toLowerCase();
+  if (u === "pz" && p?.peso_unita_g > 0) {
+    // 1 pz = peso_unita_g grammi = peso_unita_g/1000 kg
+    return costoKg * (p.peso_unita_g / 1000);
+  }
+  return costoKg;
 }
 
 function productUm(p) {
   return p?.unita_misura || p?.um || p?.unita_base || "";
 }
 
-function convertToKg(quantita, um) {
-  // Converte qualsiasi UM in kg per il calcolo del food cost (costo_medio è €/kg)
+function convertToKg(quantita, um, prodotto) {
   const q = toNumber(quantita);
   const u = (um || "").toLowerCase().trim();
   if (u === "g" || u === "gr" || u === "grammi") return q / 1000;
   if (u === "ml") return q / 1000;
   if (u === "cl") return q / 100;
-  if (u === "l" || u === "lt" || u === "litri") return q; // 1L ≈ 1kg
+  if (u === "l" || u === "lt" || u === "litri") return q;
   if (u === "kg") return q;
-  // pz, fetta, cucchiaio ecc → usa peso_unita_g se disponibile
-  return q; // fallback: usa valore diretto
+  if (u === "pz" && prodotto?.peso_unita_g > 0) {
+    // pz → converti in kg usando peso unitario
+    return q * (prodotto.peso_unita_g / 1000);
+  }
+  return q;
 }
 
 function calcLocalFoodCost() {
@@ -67,7 +81,7 @@ function calcLocalFoodCost() {
     const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
     if (!p) continue;
     const costoKg = productCost(p); // €/kg
-    const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
+    const qta_kg = convertToKg(ing.quantita, ing.unita_misura, p);
     total += qta_kg * costoKg;
   }
 
@@ -153,8 +167,16 @@ function renderRicetteList() {
     return matchText && matchCat;
   });
 
+  // Nasconde lista se nessuna ricerca attiva
+  const q_check = String(document.getElementById("rs-search")?.value || "").trim();
+  const cat_check = String(document.getElementById("rs-filter-categoria")?.value || "").trim();
+  if (!q_check && !cat_check) {
+    wrap.innerHTML = `<div class="timbrature-muted" style="padding:12px;color:#94a3b8;font-size:13px;">🔍 Cerca una ricetta per nome o filtra per categoria</div>`;
+    return;
+  }
+
   if (!list.length) {
-    wrap.innerHTML = `<div class="timbrature-muted">Nessuna ricetta semplice trovata.</div>`;
+    wrap.innerHTML = `<div class="timbrature-muted">Nessuna ricetta trovata.</div>`;
     return;
   }
 
@@ -166,17 +188,22 @@ function renderRicetteList() {
         const marg = r.margine_live ?? r.margine ?? 0;
 
         return `
-          <button class="rs-card" type="button" data-edit="${escapeHtml(r.id)}">
-            <div class="rs-card-head">
-              <strong>${escapeHtml(r.nome || "Ricetta")}</strong>
-              <span>${escapeHtml(r.categoria_food || "Senza categoria")}</span>
-            </div>
-            <div class="rs-card-kpis">
-              <div><small>Food cost</small><b>${money(fc)}</b></div>
-              <div><small>Food cost %</small><b>${Number(pct || 0).toFixed(1)}%</b></div>
-              <div><small>Margine</small><b>${money(marg)}</b></div>
-            </div>
-          </button>
+          <div class="rs-card-wrap" style="position:relative;">
+            <button class="rs-card" type="button" data-edit="${escapeHtml(r.id)}">
+              <div class="rs-card-head">
+                <strong>${escapeHtml(r.nome || "Ricetta")}</strong>
+                <span>${escapeHtml(r.categoria_food || "Senza categoria")}</span>
+              </div>
+              <div class="rs-card-kpis">
+                <div><small>Food cost</small><b>${money(fc)}</b></div>
+                <div><small>Food cost %</small><b>${Number(pct || 0).toFixed(1)}%</b></div>
+              </div>
+            </button>
+            <button class="rs-card-delete" type="button" data-delete="${escapeHtml(r.id)}" data-nome="${escapeHtml(r.nome || "")}"
+              style="position:absolute;top:6px;right:6px;background:#fee2e2;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:#dc2626;">
+              🗑
+            </button>
+          </div>
         `;
       }).join("")}
     </div>
@@ -615,6 +642,157 @@ async function richiediPin(app) {
 }
 
 
+async function openModalIngredienteLibero() {
+  const aziendaId = getAziendaId();
+  const sedeId = window.state?.sedeAttiva?.id || null;
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const box = document.createElement("div");
+  box.style.cssText = "background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);";
+  box.innerHTML = `
+    <h3 style="margin:0 0 16px;font-size:16px;">➕ Nuovo ingrediente</h3>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Nome prodotto</label>
+      <input id="lib-nome" class="input" placeholder="es. Ritagli di carne, Macinato..." style="width:100%;box-sizing:border-box;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Unità misura</label>
+        <select id="lib-um" class="input" style="width:100%;">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="l">l</option>
+          <option value="pz">pz</option>
+          <option value="ml">ml</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Costo/kg € (opz.)</label>
+        <input id="lib-costo" class="input" type="number" step="0.01" placeholder="0.00" style="width:100%;box-sizing:border-box;">
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">Categoria</label>
+      <select id="lib-categoria" class="input" style="width:100%;">
+        <option value="Varie">Varie</option>
+        <option value="Carni">Carni</option>
+        <option value="Verdure e Frutta">Verdure e Frutta</option>
+        <option value="Latticini e Formaggi">Latticini e Formaggi</option>
+        <option value="Pasta e Cereali">Pasta e Cereali</option>
+        <option value="Pesce">Pesce</option>
+        <option value="Dispensa">Dispensa</option>
+        <option value="Semilavorati">Semilavorati</option>
+      </select>
+    </div>
+    <div id="lib-feedback" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button id="lib-salva" class="app-button" style="flex:1;">Crea e aggiungi</button>
+      <button id="lib-annulla" class="app-button secondary">Annulla</button>
+    </div>
+  `;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#lib-annulla").onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.querySelector("#lib-nome").focus();
+
+  overlay.querySelector("#lib-salva").onclick = async () => {
+    const feedback = overlay.querySelector("#lib-feedback");
+    const nome = overlay.querySelector("#lib-nome").value.trim();
+    const um = overlay.querySelector("#lib-um").value;
+    const costo = toNumber(overlay.querySelector("#lib-costo").value);
+    const categoria = overlay.querySelector("#lib-categoria").value;
+
+    if (!nome) { feedback.innerHTML = `<span style="color:#dc2626;">Inserisci il nome</span>`; return; }
+
+    feedback.innerHTML = `<span style="color:#64748b;">Creazione in corso...</span>`;
+
+    try {
+      // Cerca se esiste già
+      const { data: existing } = await supa()
+        .from("prodotti")
+        .select("id, nome, costo_medio")
+        .eq("azienda_id", aziendaId)
+        .ilike("nome", nome)
+        .maybeSingle();
+
+      let prodottoId, prodottoNome, prodottoCosto;
+
+      if (existing) {
+        prodottoId = existing.id;
+        prodottoNome = existing.nome;
+        prodottoCosto = toNumber(existing.costo_medio);
+        feedback.innerHTML = `<span style="color:#16a34a;">✅ Trovato in magazzino: ${prodottoNome}</span>`;
+      } else {
+        // Crea nuovo prodotto
+        const { data: nuovo, error } = await supa()
+          .from("prodotti")
+          .insert({
+            azienda_id: aziendaId,
+            nome: nome,
+            nome_interno: nome,
+            unita_base: um,
+            categoria_interna: categoria,
+            categoria_bilancio_id: 7,
+            costo_medio: costo || 0,
+            costo_ultimo: costo || 0,
+            attivo: true
+          })
+          .select("id, nome")
+          .single();
+
+        if (error) throw error;
+        prodottoId = nuovo.id;
+        prodottoNome = nuovo.nome;
+        prodottoCosto = costo;
+
+        // Crea movimento giacenza 0 per registrare il prodotto in magazzino
+        if (sedeId) {
+          await supa().from("magazzino_movimenti").insert({
+            azienda_id: aziendaId,
+            sede_id: sedeId,
+            prodotto_id: prodottoId,
+            tipo_movimento: "carico",
+            quantita: 0.001,
+            costo: costo || 0,
+            causale: "Creazione da ricetta"
+          });
+        }
+
+        // Aggiunge alla cache locale
+        prodottiCache.push({
+          id: prodottoId,
+          nome: prodottoNome,
+          nome_interno: nome,
+          unita_base: um,
+          costo_medio: prodottoCosto,
+          costo_ultimo: prodottoCosto,
+          categoria_interna: categoria
+        });
+
+        feedback.innerHTML = `<span style="color:#16a34a;">✅ Prodotto creato e aggiunto al magazzino</span>`;
+      }
+
+      // Aggiunge all'elenco ingredienti
+      setTimeout(() => {
+        ingredienti.push({
+          prodotto_id: prodottoId,
+          _nome: prodottoNome,
+          quantita: "",
+          unita_misura: um,
+        });
+        renderIngredienti();
+        overlay.remove();
+      }, 600);
+
+    } catch(err) {
+      feedback.innerHTML = `<span style="color:#dc2626;">Errore: ${err.message}</span>`;
+    }
+  };
+}
+
 export async function render(app) {
   const aziendaId = getAziendaId();
 
@@ -647,6 +825,30 @@ export async function render(app) {
     }
 
     app.querySelector("#rs-search")?.addEventListener("input", renderRicetteList);
+
+    // ── Elimina ricetta ──
+    app.addEventListener("click", async (e) => {
+      const btn = e.target.closest?.("[data-delete]");
+      if (!btn) return;
+      const id = btn.dataset.delete;
+      const nome = btn.dataset.nome;
+      if (!confirm(`Eliminare la ricetta "${nome}"? L'operazione è irreversibile.`)) return;
+      try {
+        await supa().from("ricetta_ingredienti").delete().eq("ricetta_id", id);
+        await supa().from("ricette").delete().eq("id", id);
+        ricetteCache = ricetteCache.filter(r => String(r.id) !== String(id));
+        renderRicetteList();
+        if (String(editingId) === String(id)) resetForm();
+        alert("Ricetta eliminata.");
+      } catch(err) {
+        alert("Errore eliminazione: " + err.message);
+      }
+    });
+
+    // ── Ingrediente libero → crea prodotto al volo ──
+    app.querySelector("#rs-add-ing-libero")?.addEventListener("click", () => {
+      openModalIngredienteLibero();
+    });
 
     // Ingrediente libero
     app.querySelector("#rs-add-ing-libero")?.addEventListener("click", () => {
