@@ -263,6 +263,92 @@ export async function render(container) {
         </div>
       </div>
     </div>
+
+    <!-- ── MODAL: Chiusura conto ── -->
+    <div id="modal-conto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:24px;width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:24px 24px 16px;border-bottom:1px solid #f1f5f9;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:20px;font-weight:700;color:#0f172a;">🧾 Conto</div>
+              <div id="conto-tavolo-info" style="font-size:13px;color:#64748b;margin-top:2px;"></div>
+            </div>
+            <button id="btn-conto-chiudi-x" style="background:#f1f5f9;border:none;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;">✕</button>
+          </div>
+        </div>
+
+        <!-- Righe editabili -->
+        <div id="conto-righe" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+
+        <!-- Totale -->
+        <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:15px;color:#64748b;">Totale</div>
+            <div style="font-size:28px;font-weight:800;color:#0E5A7A;" id="conto-totale-display">€ 0,00</div>
+          </div>
+
+          <!-- Metodo pagamento -->
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button data-pag="contanti" style="flex:1;padding:10px;border:2px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;font-size:13px;font-weight:600;">💵 Contanti</button>
+            <button data-pag="carta" style="flex:1;padding:10px;border:2px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;font-size:13px;font-weight:600;">💳 Carta</button>
+            <button data-pag="dividi" style="flex:1;padding:10px;border:2px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;font-size:13px;font-weight:600;">👥 Dividi</button>
+          </div>
+
+          <!-- Contanti: calcolo resto -->
+          <div id="conto-contanti-box" style="display:none;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-size:13px;color:#64748b;white-space:nowrap;">Ricevuto €</div>
+              <input id="conto-ricevuto" type="number" step="0.50" style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:16px;font-weight:700;text-align:right;" placeholder="0,00">
+              <div style="font-size:13px;color:#64748b;white-space:nowrap;">Resto:</div>
+              <div id="conto-resto" style="font-size:18px;font-weight:800;color:#16a34a;min-width:64px;text-align:right;">€ 0,00</div>
+            </div>
+          </div>
+
+          <button id="btn-conferma-conto" style="width:100%;padding:15px;border:none;border-radius:14px;background:#0E5A7A;color:white;font-size:16px;font-weight:700;cursor:pointer;">
+            ✅ Chiudi e libera tavolo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODAL: Divisione conto ── -->
+    <div id="modal-divisione" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1200;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:24px;width:560px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:20px 24px 14px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:18px;font-weight:700;color:#0f172a;">👥 Divisione conto</div>
+          <button id="btn-div-chiudi-x" style="background:#f1f5f9;border:none;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;">✕</button>
+        </div>
+
+        <!-- Modalità -->
+        <div style="padding:14px 24px;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;">
+          <button data-divmod="equa" style="flex:1;padding:9px;border:2px solid #0E5A7A;border-radius:10px;background:#f0f9ff;cursor:pointer;font-size:13px;font-weight:600;color:#0E5A7A;">⚖️ Divisione equa</button>
+          <button data-divmod="piatti" style="flex:1;padding:9px;border:2px solid #e5e7eb;border-radius:10px;background:white;cursor:pointer;font-size:13px;font-weight:600;color:#374151;">🍽️ Per piatto</button>
+        </div>
+
+        <!-- Numero persone -->
+        <div style="padding:14px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;color:#64748b;">Persone:</div>
+          <div style="display:flex;gap:6px;" id="div-persone-btns">
+            ${[2,3,4,5,6,7,8].map(n => `
+              <button data-np="${n}" style="width:38px;height:38px;border-radius:10px;border:2px solid #e5e7eb;background:white;font-size:14px;font-weight:700;cursor:pointer;color:#374151;">${n}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Contenuto divisione -->
+        <div id="div-contenuto" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+
+        <!-- Footer -->
+        <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;display:flex;gap:10px;">
+          <button id="btn-div-annulla" style="flex:1;padding:12px;border:1px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;font-size:14px;">← Torna al conto</button>
+          <button id="btn-div-conferma" style="flex:2;padding:12px;border:none;border-radius:12px;background:#0E5A7A;color:white;cursor:pointer;font-size:14px;font-weight:700;">✅ Chiudi tavolo</button>
+        </div>
+      </div>
+    </div>
   `;
 
   // ── Orologio ──
@@ -1058,31 +1144,323 @@ export async function render(container) {
     mostraToast(`✅ ${righeNuove.length} piatti inviati in cucina!`, 'success');
   }
 
-  function mostraPreconto() {
-    const righeAttive = righeComanda.filter(r => r.stato !== 'annullato');
-    const totale = righeAttive.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
-    const testo = righeAttive.map(r =>
-      `${r.quantita}x ${r.nome_snapshot} — €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2)}`
-    ).join('\n');
-    alert(`📋 PRECONTO — ${container.querySelector('#comanda-tavolo-nome').textContent}\n\n${testo}\n\n──────────\nTOTALE: €${totale.toFixed(2)}`);
+  // ══════════════════════════════════════════
+  // MODAL CONTO — riepilogo con edit inline
+  // ══════════════════════════════════════════
+  let _pagamentoScelto = null; // 'contanti' | 'carta' | 'dividi'
+  let _righeContoLocali = []; // copia editabile delle righe
+
+  function mostraPreconto() { apriModalConto(); }
+  function chiudiComanda()   { apriModalConto(); }
+
+  function apriModalConto() {
+    if (!comandaAttiva) return;
+    // Copia righe attive in stato locale editabile
+    _righeContoLocali = righeComanda
+      .filter(r => r.stato !== 'annullato')
+      .map(r => ({ ...r }));
+    _pagamentoScelto = null;
+
+    const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva.tavolo_id));
+    container.querySelector('#conto-tavolo-info').textContent =
+      [tavolo?.nome, comandaAttiva.cliente_nome, comandaAttiva.coperti ? `${comandaAttiva.coperti} coperti` : null]
+        .filter(Boolean).join(' · ');
+
+    renderContoRighe();
+    aggiornaContoTotale();
+    resetPagamentoBtns();
+
+    container.querySelector('#modal-conto').style.display = 'flex';
   }
 
-  async function chiudiComanda() {
+  function renderContoRighe() {
+    const box = container.querySelector('#conto-righe');
+    if (!_righeContoLocali.length) {
+      box.innerHTML = `<div style="color:#94a3b8;text-align:center;padding:20px;">Nessun prodotto</div>`;
+      return;
+    }
+    box.innerHTML = _righeContoLocali.map((r, i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;color:#0f172a;">${esc(r.nome_snapshot)}</div>
+          ${r.note ? `<div style="font-size:11px;color:#94a3b8;">${esc(r.note)}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button data-conto-decr="${i}" style="width:28px;height:28px;border:1px solid #e5e7eb;border-radius:8px;background:white;cursor:pointer;font-size:15px;color:#374151;">−</button>
+          <span style="min-width:22px;text-align:center;font-size:15px;font-weight:700;">${r.quantita}</span>
+          <button data-conto-incr="${i}" style="width:28px;height:28px;border:1px solid #e5e7eb;border-radius:8px;background:white;cursor:pointer;font-size:15px;color:#374151;">+</button>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#0E5A7A;min-width:64px;text-align:right;">
+          €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2).replace('.',',')}
+        </div>
+        <button data-conto-rm="${i}" style="background:#fee2e2;border:none;border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;color:#dc2626;" title="Rimuovi">✕</button>
+      </div>
+    `).join('');
+
+    box.querySelectorAll('[data-conto-incr]').forEach(btn => {
+      btn.onclick = () => {
+        _righeContoLocali[+btn.dataset.contoIncr].quantita++;
+        renderContoRighe(); aggiornaContoTotale();
+      };
+    });
+    box.querySelectorAll('[data-conto-decr]').forEach(btn => {
+      btn.onclick = () => {
+        const i = +btn.dataset.contoDecr;
+        if (_righeContoLocali[i].quantita <= 1) {
+          _righeContoLocali.splice(i, 1);
+        } else {
+          _righeContoLocali[i].quantita--;
+        }
+        renderContoRighe(); aggiornaContoTotale();
+      };
+    });
+    box.querySelectorAll('[data-conto-rm]').forEach(btn => {
+      btn.onclick = () => {
+        _righeContoLocali.splice(+btn.dataset.contoRm, 1);
+        renderContoRighe(); aggiornaContoTotale();
+      };
+    });
+  }
+
+  function aggiornaContoTotale() {
+    const tot = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
+    container.querySelector('#conto-totale-display').textContent = `€ ${tot.toFixed(2).replace('.',',')}`;
+    // aggiorna resto se contanti
+    aggiornaResto();
+    return tot;
+  }
+
+  function aggiornaResto() {
+    const tot = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
+    const ricevuto = parseFloat(container.querySelector('#conto-ricevuto')?.value || 0);
+    const resto = ricevuto - tot;
+    const el = container.querySelector('#conto-resto');
+    if (el) {
+      el.textContent = `€ ${Math.max(0, resto).toFixed(2).replace('.',',')}`;
+      el.style.color = resto >= 0 ? '#16a34a' : '#dc2626';
+    }
+  }
+
+  function resetPagamentoBtns() {
+    container.querySelectorAll('[data-pag]').forEach(btn => {
+      btn.style.background = 'white';
+      btn.style.borderColor = '#e5e7eb';
+      btn.style.color = '#374151';
+    });
+    container.querySelector('#conto-contanti-box').style.display = 'none';
+  }
+
+  // Binding pagamento
+  container.querySelectorAll('[data-pag]').forEach(btn => {
+    btn.onclick = () => {
+      _pagamentoScelto = btn.dataset.pag;
+      resetPagamentoBtns();
+      btn.style.background = '#f0f9ff';
+      btn.style.borderColor = '#0E5A7A';
+      btn.style.color = '#0E5A7A';
+
+      if (_pagamentoScelto === 'contanti') {
+        container.querySelector('#conto-contanti-box').style.display = 'block';
+        container.querySelector('#conto-ricevuto').focus();
+      } else if (_pagamentoScelto === 'dividi') {
+        chiudiModalConto();
+        apriModalDivisione();
+      }
+    };
+  });
+
+  container.querySelector('#conto-ricevuto').addEventListener('input', aggiornaResto);
+
+  container.querySelector('#btn-conto-chiudi-x').onclick = chiudiModalConto;
+  function chiudiModalConto() {
+    container.querySelector('#modal-conto').style.display = 'none';
+  }
+
+  container.querySelector('#btn-conferma-conto').onclick = async () => {
+    if (!_pagamentoScelto || _pagamentoScelto === 'dividi') {
+      mostraToast('Seleziona metodo di pagamento', 'warning'); return;
+    }
+    await eseguiChiusuraConto(_pagamentoScelto);
+  };
+
+  async function eseguiChiusuraConto(metodoPagamento, subConti = null) {
     if (!comandaAttiva) return;
-    if (!confirm('Chiudere la comanda e liberare il tavolo?')) return;
+
+    // Sincronizza le modifiche fatte nel modal alle righe reali
+    for (const rl of _righeContoLocali) {
+      const originale = righeComanda.find(r => String(r.id) === String(rl.id));
+      if (originale && originale.quantita !== rl.quantita) {
+        await supa().from('comanda_righe').update({ quantita: rl.quantita }).eq('id', rl.id);
+        originale.quantita = rl.quantita;
+      }
+    }
+    // Righe rimosse nel modal → annulla
+    const idRimasti = new Set(_righeContoLocali.map(r => String(r.id)));
+    for (const r of righeComanda.filter(r => r.stato !== 'annullato' && !idRimasti.has(String(r.id)))) {
+      await supa().from('comanda_righe').update({ stato: 'annullato' }).eq('id', r.id);
+      r.stato = 'annullato';
+    }
+
+    const totaleFinale = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
+
     await supa().from('comande').update({
       stato: 'chiusa',
       chiusa_at: new Date().toISOString(),
+      totale: totaleFinale,
+      metodo_pagamento: metodoPagamento,
       cameriere_chiusura: cameriereAttivo?.nome || null,
+      sub_conti: subConti ? JSON.stringify(subConti) : null,
     }).eq('id', comandaAttiva.id);
+
     comande = comande.filter(c => String(c.id) !== String(comandaAttiva.id));
     comandaAttiva = null;
     righeComanda = [];
+    _righeContoLocali = [];
+
+    chiudiModalConto();
+    chiudiModalDivisione();
     switchView('tavoli');
     await loadComande();
     renderMapTavoli();
-    mostraToast('Comanda chiusa ✓', 'success');
+    mostraToast(`✅ Conto chiuso — €${totaleFinale.toFixed(2)} (${metodoPagamento})`, 'success');
   }
+
+  // ══════════════════════════════════════════
+  // MODAL DIVISIONE CONTO
+  // ══════════════════════════════════════════
+  let _divPersone = 2;
+  let _divMode = 'equa'; // 'equa' | 'piatti'
+  let _divAssegnazioni = {}; // rigaIdx → personaIdx (per mode piatti)
+
+  function apriModalDivisione() {
+    _divPersone = comandaAttiva?.coperti || 2;
+    _divMode = 'equa';
+    _divAssegnazioni = {};
+    aggiornaDivPersoneBtns();
+    aggiornaDivModeBtns();
+    renderDivisione();
+    container.querySelector('#modal-divisione').style.display = 'flex';
+  }
+
+  function chiudiModalDivisione() {
+    container.querySelector('#modal-divisione').style.display = 'none';
+  }
+
+  function aggiornaDivPersoneBtns() {
+    container.querySelectorAll('[data-np]').forEach(btn => {
+      const n = +btn.dataset.np;
+      btn.style.background = n === _divPersone ? '#0E5A7A' : 'white';
+      btn.style.color = n === _divPersone ? 'white' : '#374151';
+      btn.style.borderColor = n === _divPersone ? '#0E5A7A' : '#e5e7eb';
+    });
+  }
+
+  function aggiornaDivModeBtns() {
+    container.querySelectorAll('[data-divmod]').forEach(btn => {
+      const attivo = btn.dataset.divmod === _divMode;
+      btn.style.background = attivo ? '#f0f9ff' : 'white';
+      btn.style.borderColor = attivo ? '#0E5A7A' : '#e5e7eb';
+      btn.style.color = attivo ? '#0E5A7A' : '#374151';
+    });
+  }
+
+  container.querySelectorAll('[data-np]').forEach(btn => {
+    btn.onclick = () => { _divPersone = +btn.dataset.np; aggiornaDivPersoneBtns(); renderDivisione(); };
+  });
+
+  container.querySelectorAll('[data-divmod]').forEach(btn => {
+    btn.onclick = () => { _divMode = btn.dataset.divmod; _divAssegnazioni = {}; aggiornaDivModeBtns(); renderDivisione(); };
+  });
+
+  function renderDivisione() {
+    const box = container.querySelector('#div-contenuto');
+    const colori = ['#0E5A7A','#7c3aed','#16a34a','#dc2626','#f59e0b','#0891b2','#be185d','#4f46e5'];
+    const tot = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
+
+    if (_divMode === 'equa') {
+      const perPersona = tot / _divPersone;
+      box.innerHTML = `
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:13px;color:#64748b;margin-bottom:8px;">Totale €${tot.toFixed(2).replace('.',',')} ÷ ${_divPersone} persone</div>
+          <div style="font-size:36px;font-weight:800;color:#0E5A7A;">€${perPersona.toFixed(2).replace('.',',')}</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px;">a testa</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;">
+          ${Array.from({length:_divPersone},(_,i) => `
+            <div style="background:#f8fafc;border-radius:14px;padding:14px;text-align:center;border:2px solid ${colori[i%colori.length]}20;">
+              <div style="font-size:22px;margin-bottom:4px;">👤</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Persona ${i+1}</div>
+              <div style="font-size:18px;font-weight:700;color:${colori[i%colori.length]};">€${perPersona.toFixed(2).replace('.',',')}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      // Modalità per piatto: ogni riga assegnabile a una persona
+      const totPerPersona = Array(_divPersone).fill(0);
+      _righeContoLocali.forEach((r, i) => {
+        const p = _divAssegnazioni[i];
+        if (p != null) totPerPersona[p] += Number(r.prezzo_snapshot||0) * Number(r.quantita||1);
+      });
+
+      box.innerHTML = `
+        <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Tocca il numero per assegnare ogni piatto a una persona.</div>
+        ${_righeContoLocali.map((r, i) => {
+          const assegnato = _divAssegnazioni[i];
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:500;">${esc(r.nome_snapshot)}</div>
+                <div style="font-size:12px;color:#64748b;">${r.quantita}x — €${(Number(r.prezzo_snapshot||0)*r.quantita).toFixed(2).replace('.',',')}</div>
+              </div>
+              <div style="display:flex;gap:4px;">
+                ${Array.from({length:_divPersone},(_,p) => `
+                  <button data-assegna-riga="${i}" data-assegna-p="${p}" style="
+                    width:32px;height:32px;border-radius:8px;border:2px solid ${assegnato===p ? colori[p%colori.length] : '#e5e7eb'};
+                    background:${assegnato===p ? colori[p%colori.length] : 'white'};
+                    color:${assegnato===p ? 'white' : '#374151'};
+                    font-size:12px;font-weight:700;cursor:pointer;
+                  ">${p+1}</button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+
+        <!-- Riepilogo per persona -->
+        <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">
+          ${Array.from({length:_divPersone},(_,p) => `
+            <div style="background:#f8fafc;border-radius:12px;padding:12px;text-align:center;border:2px solid ${colori[p%colori.length]}30;">
+              <div style="font-size:11px;color:#64748b;margin-bottom:2px;">Persona ${p+1}</div>
+              <div style="font-size:17px;font-weight:800;color:${colori[p%colori.length]};">€${totPerPersona[p].toFixed(2).replace('.',',')}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      box.querySelectorAll('[data-assegna-riga]').forEach(btn => {
+        btn.onclick = () => {
+          const ri = +btn.dataset.assegnaRiga;
+          const p = +btn.dataset.assegnaP;
+          _divAssegnazioni[ri] = _divAssegnazioni[ri] === p ? undefined : p;
+          renderDivisione();
+        };
+      });
+    }
+  }
+
+  container.querySelector('#btn-div-annulla').onclick = () => {
+    chiudiModalDivisione();
+    apriModalConto();
+  };
+  container.querySelector('#btn-div-chiudi-x').onclick = chiudiModalDivisione;
+
+  container.querySelector('#btn-div-conferma').onclick = async () => {
+    const subConti = _divMode === 'equa'
+      ? { modo: 'equa', persone: _divPersone }
+      : { modo: 'piatti', assegnazioni: _divAssegnazioni };
+    await eseguiChiusuraConto('diviso', subConti);
+  };
 
   // ══════════════════════════════════════════
   // DISPLAY CUCINA
