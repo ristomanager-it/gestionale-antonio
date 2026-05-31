@@ -3,7 +3,18 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 const CANALE_PREVENTIVO = "banchetto";
 
-let menuRows = [];
+// Sezioni del menu — ogni sezione ha un array di portate
+const SEZIONI_MENU = [
+  { id: 'aperitivo',   label: '🥂 Aperitivo',        icon: '🥂' },
+  { id: 'antipasti',   label: '🥗 Antipasti',         icon: '🥗' },
+  { id: 'primi',       label: '🍝 Primi piatti',      icon: '🍝' },
+  { id: 'secondi',     label: '🥩 Secondi piatti',    icon: '🥩' },
+  { id: 'contorni',    label: '🥦 Contorni',          icon: '🥦' },
+  { id: 'dolci',       label: '🍰 Dolci & Fine pasto', icon: '🍰' },
+  { id: 'servizi',     label: '✨ Servizi',            icon: '✨', isServizi: true },
+];
+
+let menuSezioni = {}; // sezioneId → [{ ricetta_id, ricetta_nome, prezzo_pp, totale, is_placeholder }]
 let extraRows = [];
 
 let ricetteCache = [];
@@ -12,7 +23,8 @@ let prezziByRicettaId = new Map();
 let lastDiscountEdited = "perc";
 
 export async function render(container) {
-  menuRows = [];
+  menuSezioni = {};
+  SEZIONI_MENU.forEach(s => { menuSezioni[s.id] = []; });
   extraRows = [];
   ricetteCache = [];
   prezziByRicettaId = new Map();
@@ -136,35 +148,22 @@ export async function render(container) {
         ${createCard({
           title: "Menu Evento",
           body: `
-            <datalist id="ricette-datalist">
-              ${ricetteCache
-                .map((r) => `<option value="${escapeAttr(r.nome)}" data-id="${r.id}"></option>`)
-                .join("")}
-            </datalist>
+            <datalist id="ricette-datalist"></datalist>
 
-            <div id="preventivo-menu-tbody"></div>
-
-            <div class="form-actions">
-              <button type="button"
-                class="app-button secondary"
-                id="btn-add-menu-row">
-                + Aggiungi Portata
-              </button>
-            </div>
-          `
-        })}
-
-        ${createCard({
-          title: "Extra",
-          body: `
-            <div id="preventivo-extra-tbody"></div>
-
-            <div class="form-actions">
-              <button type="button"
-                class="app-button secondary"
-                id="btn-add-extra">
-                + Aggiungi Extra
-              </button>
+            <div id="sezioni-menu-container">
+              ${SEZIONI_MENU.map(s => `
+                <div class="sezione-menu" data-sezione="${s.id}" style="margin-bottom:24px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e5e7eb;">
+                    <div style="font-size:15px;font-weight:700;color:#0f172a;">${s.label}</div>
+                    <button type="button" class="app-button secondary btn-add-portata" data-sezione="${s.id}" style="font-size:12px;padding:5px 12px;">
+                      + Aggiungi portata
+                    </button>
+                  </div>
+                  <div class="portate-container" id="portate-${s.id}">
+                    <div class="sezione-empty" style="color:#94a3b8;font-size:13px;padding:8px 0;font-style:italic;">Nessuna portata — clicca per aggiungere</div>
+                  </div>
+                </div>
+              `).join("")}
             </div>
           `
         })}
@@ -231,9 +230,18 @@ export async function render(container) {
   });
 
   bindPreventivoEvents();
-  renderMenuRows();
+  aggiornaDatalist();
+  renderTutteSezioni();
   renderExtraRows();
   recalcPreventivoTotali();
+
+function aggiornaDatalist() {
+  const dl = document.getElementById("ricette-datalist");
+  if (!dl) return;
+  dl.innerHTML = ricetteCache
+    .map(r => `<option value="${escapeAttr(r.nome)}" data-id="${r.id}"></option>`)
+    .join("");
+}
 }
 
 /* ============================================================ */
@@ -340,145 +348,112 @@ function bindPreventivoEvents() {
     }
   });
 
-  /* ================= MENU ================= */
-  document.getElementById("btn-add-menu-row")?.addEventListener("click", addMenuRow);
-
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("input", onMenuTableInput);
-  document.getElementById("preventivo-menu-tbody")?.addEventListener("click", onMenuTableClick);
-
-  /* ================= EXTRA ================= */
-  document.getElementById("btn-add-extra")?.addEventListener("click", addExtraRow);
-
-  document.getElementById("preventivo-extra-tbody")?.addEventListener("input", onExtraTableInput);
-  document.getElementById("preventivo-extra-tbody")?.addEventListener("click", onExtraTableClick);
-}
-
-/* ============================================================ */
-/* MENU ROWS (PORTATE) */
-/* ============================================================ */
-
-function addMenuRow() {
-  menuRows.push({
-    ricetta_id: "",
-    ricetta_nome: "",
-    prezzo_pp: 0,
-    totale: 0,
-    is_placeholder: false
+  /* ================= SEZIONI MENU ================= */
+  document.querySelectorAll(".btn-add-portata").forEach(btn => {
+    btn.addEventListener("click", () => addPortataASezione(btn.dataset.sezione));
   });
 
-  renderMenuRows();
+  document.getElementById("sezioni-menu-container")?.addEventListener("input", onSezioniInput);
+  document.getElementById("sezioni-menu-container")?.addEventListener("click", onSezioniClick);
+}
+
+/* ============================================================ */
+/* SEZIONI MENU (PORTATE) */
+/* ============================================================ */
+
+function addPortataASezione(sezioneId) {
+  if (!menuSezioni[sezioneId]) menuSezioni[sezioneId] = [];
+  menuSezioni[sezioneId].push({
+    ricetta_id: "", ricetta_nome: "", prezzo_pp: 0, totale: 0, is_placeholder: false, sezione: sezioneId
+  });
+  renderSezione(sezioneId);
   recalcPreventivoTotali();
 }
 
-function removeMenuRow(index) {
-  menuRows.splice(index, 1);
-  renderMenuRows();
+function removePortataSezione(sezioneId, idx) {
+  menuSezioni[sezioneId].splice(idx, 1);
+  renderSezione(sezioneId);
   recalcPreventivoTotali();
 }
 
-function renderMenuRows() {
-  const body = document.getElementById("preventivo-menu-tbody");
-  if (!body) return;
+function renderSezione(sezioneId) {
+  const box = document.getElementById(`portate-${sezioneId}`);
+  if (!box) return;
+  const portate = menuSezioni[sezioneId] || [];
+  const sezione = SEZIONI_MENU.find(s => s.id === sezioneId);
 
-  body.innerHTML = menuRows
-    .map(
-      (row, index) => `
-      <div class="card menu-card" data-index="${index}">
+  if (!portate.length) {
+    box.innerHTML = `<div class="sezione-empty" style="color:#94a3b8;font-size:13px;padding:8px 0;font-style:italic;">Nessuna portata — clicca per aggiungere</div>`;
+    return;
+  }
 
-        <div class="form-group">
-          <label>Portata</label>
-          <input
-            class="input"
-            type="text"
-            list="ricette-datalist"
-            data-field="ricetta_nome"
-            value="${escapeAttr(row.ricetta_nome || "")}"
-            placeholder="Scrivi o seleziona una portata..."
-          >
-          ${
-            row.is_placeholder
-              ? `<div class="small-muted" style="margin-top:6px;">🟡 Ricetta generata da preventivo (scheda incompleta)</div>`
-              : ``
-          }
-        </div>
-
-        <div class="form-group">
-          <label>Prezzo pp (€)</label>
-          <input class="input" type="number" step="0.01" min="0" data-field="prezzo_pp" value="${toNumber(
-            row.prezzo_pp
-          )}">
-        </div>
-
-        <div class="form-actions">
-          <button type="button"
-            class="app-button secondary"
-            data-action="remove-menu">
-            Rimuovi
-          </button>
-        </div>
-
+  box.innerHTML = portate.map((row, idx) => `
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;background:#f8fafc;border-radius:10px;padding:10px;" data-sezione="${sezioneId}" data-idx="${idx}">
+      <div style="flex:1;">
+        <input class="input" type="text" list="ricette-datalist"
+          data-field="ricetta_nome" data-sezione="${sezioneId}" data-idx="${idx}"
+          value="${escapeAttr(row.ricetta_nome || '')}"
+          placeholder="${sezione?.isServizi ? 'Es. Fotografo, Musica, Fuochi...' : 'Scrivi o seleziona portata...'}"
+          style="margin-bottom:4px;">
+        ${row.is_placeholder ? `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">🟡 Portata libera</div>` : ''}
       </div>
-    `
-    )
-    .join("");
+      <div style="width:100px;">
+        <input class="input" type="number" step="0.01" min="0"
+          data-field="prezzo_pp" data-sezione="${sezioneId}" data-idx="${idx}"
+          value="${toNumber(row.prezzo_pp)}"
+          placeholder="€/pp">
+      </div>
+      <button type="button" data-action="remove-portata" data-sezione="${sezioneId}" data-idx="${idx}"
+        style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;margin-top:2px;">✕</button>
+    </div>
+  `).join('');
 }
 
-function onMenuTableInput(e) {
+function renderTutteSezioni() {
+  SEZIONI_MENU.forEach(s => renderSezione(s.id));
+}
+
+function onSezioniInput(e) {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
-
-  const card = target.closest("[data-index]");
-  if (!card) return;
-
-  const idx = Number(card.getAttribute("data-index"));
-  if (!Number.isFinite(idx) || !menuRows[idx]) return;
-
   const field = target.getAttribute("data-field");
-  if (!field) return;
+  const sezioneId = target.getAttribute("data-sezione");
+  const idx = Number(target.getAttribute("data-idx"));
+  if (!field || !sezioneId || !Number.isFinite(idx)) return;
+  if (!menuSezioni[sezioneId]?.[idx]) return;
 
-  if (field === "ricetta_nome" && target instanceof HTMLInputElement) {
+  if (field === "ricetta_nome") {
     const nome = (target.value ?? "").toString().trim();
-    menuRows[idx].ricetta_nome = nome;
-
+    menuSezioni[sezioneId][idx].ricetta_nome = nome;
     const match = findRicettaByNome(nome);
     if (match) {
-      menuRows[idx].ricetta_id = String(match.id);
-      menuRows[idx].is_placeholder = false;
-
+      menuSezioni[sezioneId][idx].ricetta_id = String(match.id);
+      menuSezioni[sezioneId][idx].is_placeholder = false;
       const prezzo = prezziByRicettaId.get(String(match.id)) ?? 0;
-      menuRows[idx].prezzo_pp = Math.max(0, toNumber(prezzo));
+      menuSezioni[sezioneId][idx].prezzo_pp = Math.max(0, toNumber(prezzo));
+      // Aggiorna il campo prezzo nella UI
+      const prezzoInput = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sezioneId}"][data-idx="${idx}"]`);
+      if (prezzoInput) prezzoInput.value = menuSezioni[sezioneId][idx].prezzo_pp;
     } else {
-      menuRows[idx].ricetta_id = "";
-      menuRows[idx].is_placeholder = false;
+      menuSezioni[sezioneId][idx].ricetta_id = "";
     }
-
     recalcPreventivoTotali();
     return;
   }
 
-  if (field === "prezzo_pp" && target instanceof HTMLInputElement) {
-    menuRows[idx].prezzo_pp = Math.max(0, toNumber(target.value));
+  if (field === "prezzo_pp") {
+    menuSezioni[sezioneId][idx].prezzo_pp = Math.max(0, toNumber(target.value));
     recalcPreventivoTotali();
-    return;
   }
 }
 
-function onMenuTableClick(e) {
-  const target = e.target;
-  if (!(target instanceof HTMLElement)) return;
-
-  const btn = target.closest("[data-action]");
+function onSezioniClick(e) {
+  const btn = e.target.closest("[data-action]");
   if (!btn) return;
-
-  const action = btn.getAttribute("data-action");
-  const card = btn.closest("[data-index]");
-  if (!card) return;
-
-  const idx = Number(card.getAttribute("data-index"));
-  if (!Number.isFinite(idx)) return;
-
-  if (action === "remove-menu") {
-    removeMenuRow(idx);
+  if (btn.getAttribute("data-action") === "remove-portata") {
+    const sezioneId = btn.getAttribute("data-sezione");
+    const idx = Number(btn.getAttribute("data-idx"));
+    if (sezioneId && Number.isFinite(idx)) removePortataSezione(sezioneId, idx);
   }
 }
 
@@ -629,11 +604,15 @@ function recalcPreventivoTotali() {
   /* ================= MENU ================= */
   let subtMenu = 0;
 
-  menuRows.forEach((row) => {
-    const prezzoPP = Math.max(0, toNumber(row.prezzo_pp));
-    row.prezzo_pp = prezzoPP;
-    row.totale = prezzoPP * invitati;
-    subtMenu += row.totale;
+  Object.values(menuSezioni).forEach(portate => {
+    portate.forEach(row => {
+      const prezzoPP = Math.max(0, toNumber(row.prezzo_pp));
+      row.prezzo_pp = prezzoPP;
+      // Servizi: non moltiplicare per invitati
+      const sezione = SEZIONI_MENU.find(s => s.id === row.sezione);
+      row.totale = sezione?.isServizi ? prezzoPP : prezzoPP * invitati;
+      subtMenu += row.totale;
+    });
   });
 
   /* ================= EXTRA ================= */
@@ -748,26 +727,30 @@ async function savePreventivo() {
     const preventivoId = Number(insertedPrev.id);
 
     const righeToInsert = [];
-    for (const row of menuRows) {
-      const nome = (row.ricetta_nome || "").trim();
-      if (!nome) continue;
+    for (const sezione of SEZIONI_MENU) {
+      const portate = menuSezioni[sezione.id] || [];
+      for (const row of portate) {
+        const nome = (row.ricetta_nome || "").trim();
+        if (!nome) continue;
 
-      const { ricettaId, isPlaceholder } = await getOrCreateRicettaPlaceholderByNome(nome, aziendaId, preventivoId);
+        const { ricettaId, isPlaceholder } = await getOrCreateRicettaPlaceholderByNome(nome, aziendaId, preventivoId);
 
-      const prezzo = Math.max(0, toNumber(row.prezzo_pp));
-      righeToInsert.push({
-        azienda_id: aziendaId,
-        preventivo_id: preventivoId,
-        ricetta_id: ricettaId ? Number(ricettaId) : null,
-        nome_portata: nome,
-        quantita: 1,
-        prezzo_unitario: prezzo,
-        ricetta_placeholder: Boolean(isPlaceholder),
-        ricetta_non_strutturata: Boolean(isPlaceholder)
-      });
+        const prezzo = Math.max(0, toNumber(row.prezzo_pp));
+        righeToInsert.push({
+          azienda_id: aziendaId,
+          preventivo_id: preventivoId,
+          ricetta_id: ricettaId ? Number(ricettaId) : null,
+          nome_portata: nome,
+          quantita: 1,
+          prezzo_unitario: prezzo,
+          ricetta_placeholder: Boolean(isPlaceholder),
+          ricetta_non_strutturata: Boolean(isPlaceholder),
+          sezione_menu: sezione.id,
+        });
 
-      row.ricetta_id = ricettaId ? String(ricettaId) : "";
-      row.is_placeholder = Boolean(isPlaceholder);
+        row.ricetta_id = ricettaId ? String(ricettaId) : "";
+        row.is_placeholder = Boolean(isPlaceholder);
+      }
     }
 
     if (!righeToInsert.length) {
@@ -866,10 +849,11 @@ function emailCurrentPreventivoViaMailto() {
   const location = getVal("preventivo-location");
   const totale = getVal("preventivo-totale");
 
-  const righeMenu = menuRows
-    .filter((r) => (r.ricetta_nome || "").trim())
-    .map((r) => `- ${r.ricetta_nome}`)
-    .join("\n");
+  const righeMenu = SEZIONI_MENU.flatMap(s =>
+    (menuSezioni[s.id] || [])
+      .filter(r => (r.ricetta_nome || "").trim())
+      .map(r => `[${s.label}] ${r.ricetta_nome}`)
+  ).join("\n");
 
   const righeExtra = extraRows
     .filter((r) => (r.descrizione || "").trim())
@@ -923,10 +907,19 @@ function printCurrentPreventivo() {
   const location = getVal("preventivo-location");
   const totale = getVal("preventivo-totale");
 
-  const menuHtml = menuRows
-    .filter((r) => (r.ricetta_nome || "").trim())
-    .map((r) => `<li>${escapeHtml(r.ricetta_nome)}</li>`)
-    .join("");
+  // Raggruppa per sezione per la stampa
+  const menuHtml = SEZIONI_MENU.map(s => {
+    const portate = (menuSezioni[s.id] || []).filter(r => (r.ricetta_nome || "").trim());
+    if (!portate.length) return '';
+    return `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${s.label}</div>
+        <ul style="margin:0;padding-left:18px;">
+          ${portate.map(r => `<li style="margin-bottom:4px;">${escapeHtml(r.ricetta_nome)}${r.prezzo_pp ? ` <span style="color:#64748b;font-size:12px;">— €${toNumber(r.prezzo_pp).toFixed(2)} pp</span>` : ''}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }).join('');
 
   const extraHtml = extraRows
     .filter((r) => (r.descrizione || "").trim())
@@ -936,56 +929,164 @@ function printCurrentPreventivo() {
   const win = window.open("", "_blank");
   if (!win) return;
 
+  const nInvitati = getVal("preventivo-n-invitati");
+  const nomeFesteggiato = getVal("preventivo-nome-festeggiato");
+  const tipoServizio = getVal("preventivo-tipo-servizio");
+  const acconto = getVal("preventivo-acconto");
+  const saldo = getVal("preventivo-saldo");
+  const sconto = getVal("preventivo-sconto-euro");
+  const note = getVal("preventivo-note");
+
   win.document.write(`
-    <html>
+    <!DOCTYPE html>
+    <html lang="it">
       <head>
-        <title>Preventivo</title>
+        <title>Preventivo — ${escapeHtml(nomeAzienda)}</title>
         <meta charset="utf-8" />
         <style>
-          body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
-          .header { text-align: center; margin-bottom: 40px; }
-          .logo { max-height: 90px; margin-bottom: 12px; }
-          h1 { margin: 0; font-size: 24px; }
-          h2 { margin: 28px 0 10px 0; font-size: 16px; }
-          .muted { color: #666; font-size: 12px; }
-          .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; margin-top: 12px; }
-          ul { margin: 8px 0 0 18px; }
-          .tot { font-size: 20px; font-weight: 700; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Georgia', serif; color: #1a1a2e; background: white; }
+          @media print { body { padding: 0; } .no-print { display: none; } }
+
+          .page { max-width: 800px; margin: 0 auto; padding: 48px 40px; }
+
+          /* Header */
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 3px solid #1a1a2e; }
+          .header-logo img { max-height: 80px; max-width: 180px; object-fit: contain; }
+          .header-logo .nome-azienda { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+          .header-right { text-align: right; }
+          .header-right .doc-title { font-size: 28px; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; color: #1a1a2e; }
+          .header-right .doc-date { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+          /* Cliente */
+          .cliente-box { background: #f8fafc; border-left: 4px solid #1a1a2e; padding: 20px 24px; margin-bottom: 32px; border-radius: 0 8px 8px 0; }
+          .cliente-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 4px; }
+          .cliente-box .valore { font-size: 16px; font-weight: 600; color: #1a1a2e; }
+          .cliente-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+          /* Menu */
+          .menu-section { margin-bottom: 36px; }
+          .menu-section h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 600; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+          .portata-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dotted #e5e7eb; }
+          .portata-nome { font-size: 14px; color: #1a1a2e; }
+          .portata-prezzo { font-size: 13px; color: #64748b; white-space: nowrap; margin-left: 16px; }
+
+          /* Economica */
+          .economia { margin-top: 36px; border-top: 2px solid #1a1a2e; padding-top: 24px; }
+          .economia-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+          .economia-row.totale { font-size: 20px; font-weight: 700; border-top: 1px solid #1a1a2e; margin-top: 8px; padding-top: 12px; }
+          .economia-row.muted { color: #64748b; font-size: 13px; }
+
+          /* Footer */
+          .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-end; }
+          .footer-note { font-size: 12px; color: #64748b; max-width: 400px; font-style: italic; }
+          .firma-box { text-align: right; }
+          .firma-line { border-top: 1px solid #1a1a2e; width: 180px; margin-top: 40px; padding-top: 6px; font-size: 11px; color: #64748b; }
+
+          /* Print button */
+          .print-bar { text-align: center; padding: 20px; background: #f8fafc; margin-bottom: 0; }
+          .print-bar button { background: #1a1a2e; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; cursor: pointer; margin: 0 6px; }
         </style>
       </head>
-
       <body>
-        <div class="header">
-          ${logo ? `<img src="${logo}" class="logo" />` : ""}
-          <h1>${escapeHtml(nomeAzienda)}</h1>
+
+        <div class="print-bar no-print">
+          <button onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+          <button onclick="window.close()">✕ Chiudi</button>
         </div>
 
-        <div class="box">
-          <div><strong>Cliente:</strong> ${escapeHtml(clienteNome)} ${escapeHtml(clienteCognome)}</div>
-          <div><strong>Evento:</strong> ${escapeHtml(tipologiaEvento)}</div>
-          <div><strong>Data:</strong> ${escapeHtml(dataEvento)}</div>
-          <div><strong>Location:</strong> ${escapeHtml(location)}</div>
-        </div>
+        <div class="page">
 
-        <h2>Menù</h2>
-        <div class="box">
-          ${menuHtml ? `<ul>${menuHtml}</ul>` : `<div class="muted">Nessuna portata selezionata.</div>`}
-        </div>
+          <!-- Header -->
+          <div class="header">
+            <div class="header-logo">
+              ${logo ? `<img src="${escapeHtml(logo)}" alt="Logo">` : `<div class="nome-azienda">${escapeHtml(nomeAzienda)}</div>`}
+            </div>
+            <div class="header-right">
+              <div class="doc-title">Preventivo</div>
+              <div class="doc-date">Data: ${new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}</div>
+            </div>
+          </div>
 
-        <h2>Extra</h2>
-        <div class="box">
-          ${extraHtml ? `<ul>${extraHtml}</ul>` : `<div class="muted">Nessun extra.</div>`}
-        </div>
+          <!-- Cliente e Evento -->
+          <div class="cliente-box">
+            <div class="cliente-grid">
+              <div>
+                <div class="label">Cliente</div>
+                <div class="valore">${escapeHtml(clienteNome)} ${escapeHtml(clienteCognome)}</div>
+              </div>
+              <div>
+                <div class="label">Tipologia evento</div>
+                <div class="valore">${escapeHtml(tipologiaEvento)}</div>
+              </div>
+              <div>
+                <div class="label">Data evento</div>
+                <div class="valore">${dataEvento ? new Date(dataEvento).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}) : '—'}</div>
+              </div>
+              <div>
+                <div class="label">Invitati</div>
+                <div class="valore">${escapeHtml(nInvitati)} persone</div>
+              </div>
+              ${location ? `<div><div class="label">Location</div><div class="valore">${escapeHtml(location)}</div></div>` : ''}
+              ${nomeFesteggiato ? `<div><div class="label">Festeggiato</div><div class="valore">${escapeHtml(nomeFesteggiato)}</div></div>` : ''}
+              ${tipoServizio ? `<div><div class="label">Tipo servizio</div><div class="valore">${escapeHtml(tipoServizio)}</div></div>` : ''}
+            </div>
+          </div>
 
-        <h2>Totale</h2>
-        <div class="box tot">
-          € ${escapeHtml(String(totale))}
-        </div>
+          <!-- Menu per sezioni -->
+          <div class="menu-section">
+            ${menuHtml || '<p style="color:#94a3b8;font-style:italic;">Nessuna portata inserita.</p>'}
+          </div>
 
-        <div style="margin-top:30px;">
-          <button onclick="window.print()">Stampa</button>
-        </div>
+          <!-- Extra -->
+          ${extraHtml ? `
+          <div class="menu-section">
+            <h2>Servizi aggiuntivi</h2>
+            ${extraHtml}
+          </div>` : ''}
 
+          <!-- Sezione economica -->
+          <div class="economia">
+            <div class="economia-row muted">
+              <span>Subtotale menu</span>
+              <span>€ ${escapeHtml(getVal("preventivo-subtotale-menu"))}</span>
+            </div>
+            ${Number(getVal("preventivo-subtotale-extra")) > 0 ? `
+            <div class="economia-row muted">
+              <span>Subtotale extra</span>
+              <span>€ ${escapeHtml(getVal("preventivo-subtotale-extra"))}</span>
+            </div>` : ''}
+            ${Number(sconto) > 0 ? `
+            <div class="economia-row muted">
+              <span>Sconto</span>
+              <span>− € ${escapeHtml(sconto)}</span>
+            </div>` : ''}
+            <div class="economia-row totale">
+              <span>Totale complessivo</span>
+              <span>€ ${escapeHtml(totale)}</span>
+            </div>
+            ${Number(acconto) > 0 ? `
+            <div class="economia-row muted" style="margin-top:8px;">
+              <span>Acconto versato</span>
+              <span>€ ${escapeHtml(acconto)}</span>
+            </div>
+            <div class="economia-row" style="font-weight:600;">
+              <span>Saldo residuo</span>
+              <span>€ ${escapeHtml(saldo)}</span>
+            </div>` : ''}
+          </div>
+
+          <!-- Footer -->
+          <div class="footer">
+            <div class="footer-note">
+              ${note ? escapeHtml(note) : 'Il presente preventivo ha validità 30 giorni dalla data di emissione. Per accettazione si prega di restituire copia firmata.'}
+            </div>
+            <div class="firma-box">
+              <div class="firma-line">Firma per accettazione</div>
+            </div>
+          </div>
+
+        </div>
       </body>
     </html>
   `);
