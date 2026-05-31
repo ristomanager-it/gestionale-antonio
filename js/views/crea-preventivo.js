@@ -23,6 +23,8 @@ export async function render(container) {
   prezziByRicettaId = new Map();
   lastDiscountEdited = "perc";
 
+  // Aspetta che sedeAttiva sia disponibile (il router può chiamare render prima dell'auth)
+  await aspettaSedeAttiva();
   await loadRicetteEPrezzi();
 
   container.innerHTML = createPageLayout({
@@ -230,6 +232,15 @@ function aggiornaDatalist() {
 /* ============================================================ */
 /* DATA LOAD */
 /* ============================================================ */
+
+async function aspettaSedeAttiva(maxWait = 4000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    if (window.state?.sedeAttiva?.id) return;
+    await new Promise(r => setTimeout(r, 150));
+  }
+  console.warn('crea-preventivo: sedeAttiva non disponibile dopo timeout');
+}
 
 async function loadRicetteEPrezzi() {
   const supabase = window.supabaseClient;
