@@ -148,6 +148,11 @@ const routes = {
   // =========================================================
   "app-produzione": () => import("./views/app/app-produzione.js"),
 
+  // =========================
+  // DISPLAY (tablet fissi)
+  // =========================
+  "display-cucina": () => import("./views/display/display-cucina.js"),
+
 }; // 
 
 /* =========================================================
@@ -198,6 +203,11 @@ const BO_ROUTES = new Set([
   "bo-produzione",
   "bo-comande",
    "bo-ricette",
+]);
+
+// Display tablet — bypassano auth contesto operativo, hanno PIN proprio
+const DISPLAY_ROUTES = new Set([
+  "display-cucina",
 ]);
 /* =========================================================
    STORAGE KEYS
@@ -1031,6 +1041,7 @@ async function resolve() {
   if (
     !PLATFORM_ROUTES.has(route) &&
     !BO_ROUTES.has(route) &&
+    !DISPLAY_ROUTES.has(route) &&
     (!PREHOME_ROUTES.has(route) || route === "scegli-sede") &&
     route !== "home" &&
     route !== "booking-form-builder"
@@ -1121,6 +1132,7 @@ if (contesto.tipo === "dipendente_multi_sede") {
   if (
     !PLATFORM_ROUTES.has(route) &&
     !BO_ROUTES.has(route) &&
+    !DISPLAY_ROUTES.has(route) &&
     !PREHOME_ROUTES.has(route) &&
     route !== "home" &&
     route !== "booking-form-builder" &&
