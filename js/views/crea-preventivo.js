@@ -3,18 +3,10 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 const CANALE_PREVENTIVO = "banchetto";
 
-// Sezioni del menu — ogni sezione ha un array di portate
-const SEZIONI_MENU = [
-  { id: 'aperitivo',   label: '🥂 Aperitivo',        icon: '🥂' },
-  { id: 'antipasti',   label: '🥗 Antipasti',         icon: '🥗' },
-  { id: 'primi',       label: '🍝 Primi piatti',      icon: '🍝' },
-  { id: 'secondi',     label: '🥩 Secondi piatti',    icon: '🥩' },
-  { id: 'contorni',    label: '🥦 Contorni',          icon: '🥦' },
-  { id: 'dolci',       label: '🍰 Dolci & Fine pasto', icon: '🍰' },
-  { id: 'servizi',     label: '✨ Servizi',            icon: '✨', isServizi: true },
-];
-
-let menuSezioni = {}; // sezioneId → [{ ricetta_id, ricetta_nome, prezzo_pp, totale, is_placeholder }]
+// Sezioni dinamiche — l'utente le crea al momento
+let sezioniDinamiche = []; // [{ id, label, isServizi }]
+let sezioneCounter = 0;
+let menuSezioni = {}; // sezioneId → [{ ricetta_id, ricetta_nome, prezzo_pp, totale, is_placeholder, sezione }]
 let extraRows = [];
 
 let ricetteCache = [];
@@ -23,8 +15,9 @@ let prezziByRicettaId = new Map();
 let lastDiscountEdited = "perc";
 
 export async function render(container) {
+  sezioniDinamiche = [];
+  sezioneCounter = 0;
   menuSezioni = {};
-  SEZIONI_MENU.forEach(s => { menuSezioni[s.id] = []; });
   extraRows = [];
   ricetteCache = [];
   prezziByRicettaId = new Map();
@@ -148,22 +141,16 @@ export async function render(container) {
         ${createCard({
           title: "Menu Evento",
           body: `
-            <datalist id="ricette-datalist"></datalist>
+            <!-- Autocomplete dropdown custom -->
+            <div id="ac-dropdown" style="display:none;position:fixed;background:white;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;max-height:220px;overflow-y:auto;min-width:280px;"></div>
 
-            <div id="sezioni-menu-container">
-              ${SEZIONI_MENU.map(s => `
-                <div class="sezione-menu" data-sezione="${s.id}" style="margin-bottom:24px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e5e7eb;">
-                    <div style="font-size:15px;font-weight:700;color:#0f172a;">${s.label}</div>
-                    <button type="button" class="app-button secondary btn-add-portata" data-sezione="${s.id}" style="font-size:12px;padding:5px 12px;">
-                      + Aggiungi portata
-                    </button>
-                  </div>
-                  <div class="portate-container" id="portate-${s.id}">
-                    <div class="sezione-empty" style="color:#94a3b8;font-size:13px;padding:8px 0;font-style:italic;">Nessuna portata — clicca per aggiungere</div>
-                  </div>
-                </div>
-              `).join("")}
+            <!-- Sezioni dinamiche -->
+            <div id="sezioni-menu-container" style="margin-bottom:16px;"></div>
+
+            <!-- Azioni sezioni -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <input id="nuova-sezione-nome" class="input" placeholder="Nome sezione (es. Antipasti, Primi...)" style="flex:1;min-width:180px;padding:8px 12px;font-size:14px;">
+              <button type="button" id="btn-add-sezione" class="app-button secondary" style="white-space:nowrap;">+ Aggiungi sezione</button>
             </div>
           `
         })}
@@ -236,11 +223,7 @@ export async function render(container) {
   recalcPreventivoTotali();
 
 function aggiornaDatalist() {
-  const dl = document.getElementById("ricette-datalist");
-  if (!dl) return;
-  dl.innerHTML = ricetteCache
-    .map(r => `<option value="${escapeAttr(r.nome)}" data-id="${r.id}"></option>`)
-    .join("");
+  // Datalist non usata — autocomplete custom gestisce tutto
 }
 }
 
@@ -349,17 +332,72 @@ function bindPreventivoEvents() {
   });
 
   /* ================= SEZIONI MENU ================= */
-  document.querySelectorAll(".btn-add-portata").forEach(btn => {
-    btn.addEventListener("click", () => addPortataASezione(btn.dataset.sezione));
-  });
-
+  document.getElementById("btn-add-sezione")?.addEventListener("click", aggiungiSezione);
+  document.getElementById("nuova-sezione-nome")?.addEventListener("keydown", e => { if(e.key==='Enter'){ e.preventDefault(); aggiungiSezione(); } });
   document.getElementById("sezioni-menu-container")?.addEventListener("input", onSezioniInput);
   document.getElementById("sezioni-menu-container")?.addEventListener("click", onSezioniClick);
+  document.addEventListener("click", chiudiAutocomplete);
 }
 
 /* ============================================================ */
-/* SEZIONI MENU (PORTATE) */
+/* SEZIONI DINAMICHE */
 /* ============================================================ */
+
+function aggiungiSezione() {
+  const inp = document.getElementById("nuova-sezione-nome");
+  const label = (inp?.value || "").trim();
+  if (!label) { inp?.focus(); return; }
+  const id = "sez_" + (++sezioneCounter);
+  const isServizi = label.toLowerCase().includes("servizi") || label.toLowerCase().includes("service");
+  sezioniDinamiche.push({ id, label, isServizi });
+  menuSezioni[id] = [];
+  if (inp) inp.value = "";
+  renderContenitoreSezioni();
+  // Aggiungi automaticamente la prima portata
+  addPortataASezione(id);
+}
+
+function rimuoviSezione(sezioneId) {
+  sezioniDinamiche = sezioniDinamiche.filter(s => s.id !== sezioneId);
+  delete menuSezioni[sezioneId];
+  renderContenitoreSezioni();
+  recalcPreventivoTotali();
+}
+
+function renderContenitoreSezioni() {
+  const box = document.getElementById("sezioni-menu-container");
+  if (!box) return;
+  if (!sezioniDinamiche.length) {
+    box.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:12px 0;font-style:italic;">Nessuna sezione — aggiungine una qui sotto</div>`;
+    return;
+  }
+  box.innerHTML = sezioniDinamiche.map(s => `
+    <div class="sezione-menu" data-sezione="${s.id}" style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e5e7eb;">
+        <div style="font-size:14px;font-weight:700;color:#0f172a;">${escapeHtml(s.label)}</div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="app-button secondary btn-add-portata" data-sezione="${s.id}" style="font-size:12px;padding:5px 12px;">
+            + Aggiungi portata
+          </button>
+          <button type="button" data-action="remove-sezione" data-sezione="${s.id}" style="background:#fee2e2;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;color:#dc2626;font-size:12px;">
+            Elimina sezione
+          </button>
+        </div>
+      </div>
+      <div class="portate-container" id="portate-${s.id}" style="padding:10px 14px;">
+        <div style="color:#94a3b8;font-size:13px;padding:4px 0;font-style:italic;">Nessuna portata</div>
+      </div>
+    </div>
+  `).join("");
+
+  // Rebind bottoni aggiungi portata
+  box.querySelectorAll(".btn-add-portata").forEach(btn => {
+    btn.addEventListener("click", () => addPortataASezione(btn.dataset.sezione));
+  });
+
+  // Rirenderizza portate esistenti
+  sezioniDinamiche.forEach(s => renderSezione(s.id));
+}
 
 function addPortataASezione(sezioneId) {
   if (!menuSezioni[sezioneId]) menuSezioni[sezioneId] = [];
@@ -368,6 +406,13 @@ function addPortataASezione(sezioneId) {
   });
   renderSezione(sezioneId);
   recalcPreventivoTotali();
+  // Focus sull'ultimo input aggiunto
+  setTimeout(() => {
+    const portate = menuSezioni[sezioneId];
+    const lastIdx = portate.length - 1;
+    const inp = document.querySelector(`[data-field="ricetta_nome"][data-sezione="${sezioneId}"][data-idx="${lastIdx}"]`);
+    inp?.focus();
+  }, 50);
 }
 
 function removePortataSezione(sezioneId, idx) {
@@ -380,37 +425,109 @@ function renderSezione(sezioneId) {
   const box = document.getElementById(`portate-${sezioneId}`);
   if (!box) return;
   const portate = menuSezioni[sezioneId] || [];
-  const sezione = SEZIONI_MENU.find(s => s.id === sezioneId);
+  const sezione = sezioniDinamiche.find(s => s.id === sezioneId);
 
   if (!portate.length) {
-    box.innerHTML = `<div class="sezione-empty" style="color:#94a3b8;font-size:13px;padding:8px 0;font-style:italic;">Nessuna portata — clicca per aggiungere</div>`;
+    box.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:4px 0;font-style:italic;">Nessuna portata</div>`;
     return;
   }
 
   box.innerHTML = portate.map((row, idx) => `
-    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;background:#f8fafc;border-radius:10px;padding:10px;" data-sezione="${sezioneId}" data-idx="${idx}">
-      <div style="flex:1;">
-        <input class="input" type="text" list="ricette-datalist"
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;position:relative;" data-sezione="${sezioneId}" data-idx="${idx}">
+      <div style="flex:1;position:relative;">
+        <input class="input portata-input" type="text" autocomplete="off"
           data-field="ricetta_nome" data-sezione="${sezioneId}" data-idx="${idx}"
           value="${escapeAttr(row.ricetta_nome || '')}"
-          placeholder="${sezione?.isServizi ? 'Es. Fotografo, Musica, Fuochi...' : 'Scrivi o seleziona portata...'}"
-          style="margin-bottom:4px;">
-        ${row.is_placeholder ? `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">🟡 Portata libera</div>` : ''}
+          placeholder="${sezione?.isServizi ? 'Es. Fotografo, Musica, Fuochi...' : 'Scrivi portata...'}"
+          style="width:100%;">
+        ${row.ricetta_id ? `<div style="font-size:11px;color:#16a34a;margin-top:2px;">✓ Ricetta collegata</div>` : row.ricetta_nome ? `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">Portata libera</div>` : ''}
       </div>
-      <div style="width:100px;">
+      <div style="width:110px;">
         <input class="input" type="number" step="0.01" min="0"
           data-field="prezzo_pp" data-sezione="${sezioneId}" data-idx="${idx}"
-          value="${toNumber(row.prezzo_pp)}"
+          value="${toNumber(row.prezzo_pp) || ''}"
           placeholder="€/pp">
       </div>
       <button type="button" data-action="remove-portata" data-sezione="${sezioneId}" data-idx="${idx}"
-        style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;margin-top:2px;">✕</button>
+        style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;flex-shrink:0;">✕</button>
     </div>
   `).join('');
 }
 
 function renderTutteSezioni() {
-  SEZIONI_MENU.forEach(s => renderSezione(s.id));
+  renderContenitoreSezioni();
+}
+
+/* ============================================================ */
+/* AUTOCOMPLETE CUSTOM */
+/* ============================================================ */
+
+let acTarget = null; // input corrente
+
+function mostraAutocomplete(input, query) {
+  const dropdown = document.getElementById("ac-dropdown");
+  if (!dropdown) return;
+
+  const q = query.toLowerCase().trim();
+  const risultati = ricetteCache
+    .filter(r => normalizeNome(r.nome).includes(q))
+    .slice(0, 12);
+
+  if (!risultati.length) { chiudiAutocomplete(); return; }
+
+  acTarget = input;
+  const rect = input.getBoundingClientRect();
+  dropdown.style.display = "block";
+  dropdown.style.top = (rect.bottom + window.scrollY + 4) + "px";
+  dropdown.style.left = rect.left + "px";
+  dropdown.style.width = Math.max(rect.width, 280) + "px";
+
+  dropdown.innerHTML = risultati.map(r => {
+    const prezzo = prezziByRicettaId.get(String(r.id));
+    return `<div data-rid="${r.id}" data-rnome="${escapeAttr(r.nome)}" data-rprezzo="${prezzo || 0}"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;"
+      onmouseenter="this.style.background='#f0f9ff'" onmouseleave="this.style.background='white'">
+      <span>${escapeHtml(r.nome)}</span>
+      ${prezzo ? `<span style="font-size:12px;color:#0E5A7A;font-weight:600;">€${toNumber(prezzo).toFixed(2)}</span>` : ''}
+    </div>`;
+  }).join("");
+
+  dropdown.querySelectorAll("[data-rid]").forEach(el => {
+    el.addEventListener("mousedown", e => {
+      e.preventDefault();
+      selezionaRicetta(el.dataset.rid, el.dataset.rnome, el.dataset.rprezzo);
+    });
+  });
+}
+
+function chiudiAutocomplete(e) {
+  if (e && document.getElementById("ac-dropdown")?.contains(e.target)) return;
+  const dd = document.getElementById("ac-dropdown");
+  if (dd) dd.style.display = "none";
+  acTarget = null;
+}
+
+function selezionaRicetta(ricettaId, ricettaNome, ricettaPrezzo) {
+  chiudiAutocomplete();
+  if (!acTarget) return;
+  const sezioneId = acTarget.getAttribute("data-sezione");
+  const idx = Number(acTarget.getAttribute("data-idx"));
+  if (!sezioneId || !Number.isFinite(idx) || !menuSezioni[sezioneId]?.[idx]) return;
+
+  acTarget.value = ricettaNome;
+  menuSezioni[sezioneId][idx].ricetta_id = String(ricettaId);
+  menuSezioni[sezioneId][idx].ricetta_nome = ricettaNome;
+  menuSezioni[sezioneId][idx].is_placeholder = false;
+  const prezzo = Math.max(0, toNumber(ricettaPrezzo));
+  menuSezioni[sezioneId][idx].prezzo_pp = prezzo;
+
+  // Aggiorna campo prezzo
+  const prezzoInput = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sezioneId}"][data-idx="${idx}"]`);
+  if (prezzoInput) prezzoInput.value = prezzo || "";
+
+  // Aggiorna badge
+  renderSezione(sezioneId);
+  recalcPreventivoTotali();
 }
 
 function onSezioniInput(e) {
@@ -423,19 +540,14 @@ function onSezioniInput(e) {
   if (!menuSezioni[sezioneId]?.[idx]) return;
 
   if (field === "ricetta_nome") {
-    const nome = (target.value ?? "").toString().trim();
-    menuSezioni[sezioneId][idx].ricetta_nome = nome;
-    const match = findRicettaByNome(nome);
-    if (match) {
-      menuSezioni[sezioneId][idx].ricetta_id = String(match.id);
-      menuSezioni[sezioneId][idx].is_placeholder = false;
-      const prezzo = prezziByRicettaId.get(String(match.id)) ?? 0;
-      menuSezioni[sezioneId][idx].prezzo_pp = Math.max(0, toNumber(prezzo));
-      // Aggiorna il campo prezzo nella UI
-      const prezzoInput = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sezioneId}"][data-idx="${idx}"]`);
-      if (prezzoInput) prezzoInput.value = menuSezioni[sezioneId][idx].prezzo_pp;
+    const nome = (target.value ?? "").toString();
+    menuSezioni[sezioneId][idx].ricetta_nome = nome.trim();
+    menuSezioni[sezioneId][idx].ricetta_id = "";
+    // Autocomplete dopo 2 caratteri
+    if (nome.trim().length >= 2) {
+      mostraAutocomplete(target, nome.trim());
     } else {
-      menuSezioni[sezioneId][idx].ricetta_id = "";
+      chiudiAutocomplete();
     }
     recalcPreventivoTotali();
     return;
@@ -450,10 +562,14 @@ function onSezioniInput(e) {
 function onSezioniClick(e) {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
-  if (btn.getAttribute("data-action") === "remove-portata") {
-    const sezioneId = btn.getAttribute("data-sezione");
+  const action = btn.getAttribute("data-action");
+  const sezioneId = btn.getAttribute("data-sezione");
+  if (action === "remove-portata") {
     const idx = Number(btn.getAttribute("data-idx"));
     if (sezioneId && Number.isFinite(idx)) removePortataSezione(sezioneId, idx);
+  }
+  if (action === "remove-sezione") {
+    if (sezioneId) rimuoviSezione(sezioneId);
   }
 }
 
@@ -604,12 +720,11 @@ function recalcPreventivoTotali() {
   /* ================= MENU ================= */
   let subtMenu = 0;
 
-  Object.values(menuSezioni).forEach(portate => {
+  Object.entries(menuSezioni).forEach(([sezioneId, portate]) => {
+    const sezione = sezioniDinamiche.find(s => s.id === sezioneId);
     portate.forEach(row => {
       const prezzoPP = Math.max(0, toNumber(row.prezzo_pp));
       row.prezzo_pp = prezzoPP;
-      // Servizi: non moltiplicare per invitati
-      const sezione = SEZIONI_MENU.find(s => s.id === row.sezione);
       row.totale = sezione?.isServizi ? prezzoPP : prezzoPP * invitati;
       subtMenu += row.totale;
     });
@@ -727,7 +842,7 @@ async function savePreventivo() {
     const preventivoId = Number(insertedPrev.id);
 
     const righeToInsert = [];
-    for (const sezione of SEZIONI_MENU) {
+    for (const sezione of sezioniDinamiche) {
       const portate = menuSezioni[sezione.id] || [];
       for (const row of portate) {
         const nome = (row.ricetta_nome || "").trim();
@@ -849,7 +964,7 @@ function emailCurrentPreventivoViaMailto() {
   const location = getVal("preventivo-location");
   const totale = getVal("preventivo-totale");
 
-  const righeMenu = SEZIONI_MENU.flatMap(s =>
+  const righeMenu = sezioniDinamiche.flatMap(s =>
     (menuSezioni[s.id] || [])
       .filter(r => (r.ricetta_nome || "").trim())
       .map(r => `[${s.label}] ${r.ricetta_nome}`)
@@ -908,7 +1023,7 @@ function printCurrentPreventivo() {
   const totale = getVal("preventivo-totale");
 
   // Raggruppa per sezione per la stampa
-  const menuHtml = SEZIONI_MENU.map(s => {
+  const menuHtml = sezioniDinamiche.map(s => {
     const portate = (menuSezioni[s.id] || []).filter(r => (r.ricetta_nome || "").trim());
     if (!portate.length) return '';
     return `
