@@ -243,7 +243,6 @@ export async function render(container) {
 async function loadRicetteEPrezzi() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
-  // I preventivi sono per la sede Catering Ricevimenti — filtra per sede attiva
   const sedeId = window.state?.sedeAttiva?.id || null;
 
   ricetteCache = [];
@@ -251,36 +250,27 @@ async function loadRicetteEPrezzi() {
 
   if (!supabase || !aziendaId) return;
 
-  // Step 1: recupera prodotti_vendita_id della sede corrente
-  let prodottoIds = null;
-  if (sedeId) {
-    const { data: prodotti } = await supabase
-      .from("prodotti_vendita")
-      .select("id")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId);
-    prodottoIds = (prodotti || []).map(p => p.id);
-  }
-
-  // Step 2: carica tutte le ricette dell'azienda
-  const { data: ricette } = await supabase
+  // Filtra ricette per sede_id e solo food (tramite join su prodotti_vendita)
+  let query = supabase
     .from("ricette")
-    .select("id, nome, attivo, prodotto_vendita_id")
+    .select("id, nome, attivo, sede_id, generata_da_preventivo, prodotto_vendita_id, prodotti_vendita(famiglia)")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
 
-  // Step 3: filtra — tieni solo ricette della sede o placeholder (generate da preventivo)
-  const tutteRicette = ricette || [];
-  if (prodottoIds !== null) {
-    const prodSet = new Set(prodottoIds.map(String));
-    ricetteCache = tutteRicette.filter(r =>
-      !r.prodotto_vendita_id ||
-      prodSet.has(String(r.prodotto_vendita_id))
-    );
-  } else {
-    ricetteCache = tutteRicette;
+  if (sedeId) {
+    query = query.or(`sede_id.eq.${sedeId},and(sede_id.is.null,generata_da_preventivo.eq.true)`);
   }
+
+  const { data: ricette } = await query;
+
+  // Tieni solo food (famiglia='food') + placeholder senza prodotto collegato
+  const tutteRicette = ricette || [];
+  ricetteCache = tutteRicette.filter(r => {
+    if (!r.prodotto_vendita_id) return true; // placeholder — tieni sempre
+    const famiglia = r.prodotti_vendita?.famiglia;
+    return !famiglia || famiglia === 'food';
+  });
 
   const { data: prezzi } = await supabase
     .from("ricette_prezzi_canale")
