@@ -250,24 +250,23 @@ async function loadRicetteEPrezzi() {
 
   if (!supabase || !aziendaId) return;
 
-  // Filtra ricette per sede_id e solo food (tramite join su prodotti_vendita)
+  // Filtra ricette per sede_id — solo la sede attiva, solo food
   let query = supabase
     .from("ricette")
-    .select("id, nome, attivo, sede_id, generata_da_preventivo, prodotto_vendita_id, prodotti_vendita(famiglia)")
+    .select("id, nome, attivo, sede_id, prodotto_vendita_id, prodotti_vendita(famiglia)")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
 
   if (sedeId) {
-    query = query.or(`sede_id.eq.${sedeId},and(sede_id.is.null,generata_da_preventivo.eq.true)`);
+    query = query.eq("sede_id", sedeId);
   }
 
   const { data: ricette } = await query;
 
-  // Tieni solo food (famiglia='food') + placeholder senza prodotto collegato
+  // Escludi beverage — tieni solo food
   const tutteRicette = ricette || [];
   ricetteCache = tutteRicette.filter(r => {
-    if (!r.prodotto_vendita_id) return true; // placeholder — tieni sempre
     const famiglia = r.prodotti_vendita?.famiglia;
     return !famiglia || famiglia === 'food';
   });
