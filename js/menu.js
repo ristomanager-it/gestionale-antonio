@@ -344,6 +344,11 @@ export function initMenu() {
           },
 
           {
+            label: "⚙️ Configurazione",
+            route: "bo-configurazione"
+          },
+
+          {
             label: "🏷️ Tag",
             route: "bo-tag"
           },
@@ -390,6 +395,11 @@ export function initMenu() {
           {
             label: "🪑 Sala",
             route: "sala"
+          },
+
+          {
+            label: "👨‍🍳 Display Cucina",
+            route: "display-cucina"
           },
 
           {
