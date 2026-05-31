@@ -1,0 +1,470 @@
+// js/views/bo/bo-configurazione.js
+// Control room del ristorante — configurazione centralizzata
+// Tab: Operativo | Sala | Menu & Comunicazione | (futuro: Cassa, Integrazioni)
+
+const supa = () => window.supabaseClient || window.supabase;
+
+async function waitForAuth(maxWait = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    const s = supa();
+    if (s) { const { data } = await s.auth.getSession(); if (data?.session) return true; }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return false;
+}
+
+const COLORI_SETTORI = ['#f59e0b','#16a34a','#0E5A7A','#7c3aed','#dc2626','#0891b2','#be185d','#84cc16'];
+
+export async function render(container) {
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId    = window.state?.sedeAttiva?.id;
+
+  if (!aziendaId) { container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>'; return; }
+  const authOk = await waitForAuth();
+  if (!authOk) { container.innerHTML = '<section class="view"><h2>Sessione non disponibile.</h2></section>'; return; }
+
+  let tabAttivo = 'operativo';
+  let settori = [], postazioni = [], prodottiVendita = [], categorieVendita = [], ricette = [];
+
+  // ════════════════════════════════════════
+  // SHELL
+  // ════════════════════════════════════════
+  container.innerHTML = `
+  <div style="min-height:100vh;background:#f8fafc;">
+
+    <!-- Header -->
+    <div style="background:white;border-bottom:1px solid #e5e7eb;padding:20px 28px 0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="width:40px;height:40px;background:#0E5A7A;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">⚙️</div>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
+          <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
+        </div>
+      </div>
+      <!-- Tab nav -->
+      <div style="display:flex;gap:0;overflow-x:auto;">
+        ${[
+          { id:'operativo',      icon:'👨‍🍳', label:'Operativo'         },
+          { id:'sala',           icon:'🪑', label:'Sala & Prenotazioni' },
+          { id:'menu',           icon:'📋', label:'Menu & Comunicazione'},
+          { id:'cassa',          icon:'💳', label:'Cassa & Stampa'      },
+          { id:'integrazioni',   icon:'🔗', label:'Integrazioni'        },
+        ].map(t => `
+          <button data-tab="${t.id}" style="
+            padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
+            color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;
+            transition:all 0.15s;
+          ">${t.icon} ${t.label}</button>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Contenuto tab -->
+    <div id="tab-content" style="padding:28px;max-width:900px;"></div>
+  </div>
+  `;
+
+  // ════════════════════════════════════════
+  // TAB NAVIGATION
+  // ════════════════════════════════════════
+  function switchTab(id) {
+    tabAttivo = id;
+    container.querySelectorAll('[data-tab]').forEach(btn => {
+      const att = btn.dataset.tab === id;
+      btn.style.color       = att ? '#0E5A7A' : '#64748b';
+      btn.style.borderBottomColor = att ? '#0E5A7A' : 'transparent';
+      btn.style.background  = att ? '#f0f9ff' : 'none';
+    });
+    const box = container.querySelector('#tab-content');
+    switch(id) {
+      case 'operativo':    renderTabOperativo(box);    break;
+      case 'sala':         renderTabSala(box);         break;
+      case 'menu':         renderTabMenu(box);         break;
+      case 'cassa':        renderTabPresto(box,'💳','Cassa & Stampa',    'Gestione cassa, stampanti fiscali, integrazioni registratori telematici.');  break;
+      case 'integrazioni': renderTabPresto(box,'🔗','Integrazioni',      'Connessione con sistemi POS, piattaforme delivery, Google, WhatsApp.');  break;
+    }
+  }
+
+  container.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+
+  // ════════════════════════════════════════
+  // PRESTO DISPONIBILE (tab vuoti)
+  // ════════════════════════════════════════
+  function renderTabPresto(box, icon, titolo, desc) {
+    box.innerHTML = `
+      <div style="text-align:center;padding:80px 40px;">
+        <div style="font-size:56px;margin-bottom:16px;">${icon}</div>
+        <div style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:8px;">${titolo}</div>
+        <div style="font-size:14px;color:#64748b;max-width:400px;margin:0 auto 24px;">${desc}</div>
+        <div style="display:inline-block;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:8px 20px;font-size:13px;color:#0E5A7A;font-weight:600;">🚧 In arrivo nella prossima versione</div>
+      </div>
+    `;
+  }
+
+  // ════════════════════════════════════════
+  // TAB: OPERATIVO
+  // ════════════════════════════════════════
+  async function renderTabOperativo(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+    await Promise.all([loadSettori(), loadPostazioni(), loadProdotti(), loadCategorie(), loadRicette()]);
+    box.innerHTML = `
+      <!-- Sezione: Settori -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Reparti operativi — ogni tablet display mostra il suo settore</div>
+          </div>
+          <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo settore</button>
+        </div>
+        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px;"></div>
+        <!-- Form nuovo settore -->
+        <div id="form-settore" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuovo settore</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:160px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome *</label>
+              <input id="settore-nome" class="input" placeholder="es. Piscina, Antipasti, Pasticceria..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
+            </div>
+            <div style="min-width:120px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Colore</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;" id="colori-settore">
+                ${COLORI_SETTORI.map(c => `<button data-col="${c}" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:${c};cursor:pointer;"></button>`).join('')}
+              </div>
+            </div>
+            <div style="min-width:120px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Ordine</label>
+              <input id="settore-ordine" type="number" value="0" min="0" style="width:80px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-salva-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">Salva</button>
+              <button id="btn-annulla-settore" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sezione: Postazioni -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">📱 Postazioni display</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Tablet fissi — ogni postazione ha un URL dedicato e mostra il suo settore</div>
+          </div>
+          <button id="btn-nuova-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuova postazione</button>
+        </div>
+        <div id="lista-postazioni" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
+        <!-- Form nuova postazione -->
+        <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuova postazione</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome postazione *</label>
+              <input id="post-nome" class="input" placeholder="es. Tablet Cucina, Bar Piscina..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Settore (opzionale)</label>
+              <select id="post-settore" style="width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
+                <option value="">Tutti i settori</option>
+                ${settori.map(s => `<option value="${s.nome.toLowerCase()}">${s.nome}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="background:#f0f9ff;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#0E5A7A;" id="post-url-preview">
+            URL: <strong>#/display-cucina</strong>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-salva-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">Salva postazione</button>
+            <button id="btn-annulla-postazione" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sezione: Prodotti → Settore -->
+      <div style="margin-bottom:36px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Prodotti per settore</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Assegna ogni prodotto al settore che lo prepara — il display riceverà solo le sue portate</div>
+        </div>
+        <div id="lista-prodotti-settore" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Sezione: Tempi & Alert -->
+      <div style="margin-bottom:36px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">⏱️ Tempi di esecuzione & Alert</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Tempo medio di preparazione per ricetta — usato per il timer e l'alert ritardo sul display cucina</div>
+        </div>
+        <div id="lista-tempi" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    `;
+
+    renderListaSettori();
+    renderListaPostazioni();
+    renderListaProdottiSettore();
+    renderListaTempi();
+    bindOperativo();
+  }
+
+  function bindOperativo() {
+    // Settori
+    let coloreSelezionato = COLORI_SETTORI[0];
+    container.querySelector('#btn-nuovo-settore').onclick = () => {
+      container.querySelector('#form-settore').style.display = 'block';
+      container.querySelector('#settore-nome').focus();
+    };
+    container.querySelector('#btn-annulla-settore').onclick = () => container.querySelector('#form-settore').style.display = 'none';
+    container.querySelectorAll('[data-col]').forEach(btn => {
+      btn.onclick = () => {
+        coloreSelezionato = btn.dataset.col;
+        container.querySelectorAll('[data-col]').forEach(b => b.style.borderColor = b.dataset.col === coloreSelezionato ? '#0f172a' : 'transparent');
+      };
+    });
+    container.querySelector('#btn-salva-settore').onclick = async () => {
+      const nome = container.querySelector('#settore-nome').value.trim();
+      if (!nome) { mostraToast('Inserisci il nome del settore','warning'); return; }
+      const ordine = parseInt(container.querySelector('#settore-ordine').value)||0;
+      const { data, error } = await supa().from('settori').insert({ azienda_id:aziendaId, nome, colore:coloreSelezionato, ordine }).select('*').single();
+      if (error) { mostraToast('Errore salvataggio: '+error.message,'error'); return; }
+      settori.push(data);
+      container.querySelector('#settore-nome').value = '';
+      container.querySelector('#form-settore').style.display = 'none';
+      renderListaSettori();
+      mostraToast('Settore "'+nome+'" creato ✅','success');
+    };
+
+    // Postazioni — preview URL live
+    const postSettore = container.querySelector('#post-settore');
+    const postNome    = container.querySelector('#post-nome');
+    const urlPreview  = container.querySelector('#post-url-preview');
+    const aggiornaUrl = () => {
+      const s = postSettore?.value;
+      const url = s ? `#/display-cucina?settore=${s}` : '#/display-cucina';
+      if (urlPreview) urlPreview.innerHTML = `URL tablet: <strong>${url}</strong> — <a href="${url}" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda →</a>`;
+    };
+    postSettore?.addEventListener('change', aggiornaUrl);
+    container.querySelector('#btn-nuova-postazione').onclick = () => { container.querySelector('#form-postazione').style.display='block'; postNome?.focus(); };
+    container.querySelector('#btn-annulla-postazione').onclick = () => container.querySelector('#form-postazione').style.display='none';
+    container.querySelector('#btn-salva-postazione').onclick = async () => {
+      const nome = postNome?.value.trim();
+      if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
+      const settoreNome = postSettore?.value || null;
+      const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
+      const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:sedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
+      if (error) { mostraToast('Errore: '+error.message,'error'); return; }
+      postazioni.push(data);
+      if (postNome) postNome.value = '';
+      container.querySelector('#form-postazione').style.display = 'none';
+      renderListaPostazioni();
+      mostraToast('Postazione "'+nome+'" creata ✅','success');
+    };
+  }
+
+  function renderListaSettori() {
+    const box = container.querySelector('#lista-settori');
+    if (!box) return;
+    if (!settori.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun settore. Creane uno per iniziare.</div>'; return; }
+    box.innerHTML = settori.map((s,i) => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+        <div style="width:14px;height:14px;border-radius:50%;background:${s.colore||COLORI_SETTORI[i%COLORI_SETTORI.length]};flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(s.nome)}</div>
+          <div style="font-size:11px;color:#94a3b8;">Ordine: ${s.ordine||0}</div>
+        </div>
+        <button data-del-settore="${s.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;">Elimina</button>
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-del-settore]').forEach(btn => btn.onclick = async () => {
+      if (!confirm('Eliminare questo settore?')) return;
+      await supa().from('settori').delete().eq('id', btn.dataset.delSettore);
+      settori = settori.filter(s => s.id !== btn.dataset.delSettore);
+      renderListaSettori();
+    });
+  }
+
+  function renderListaPostazioni() {
+    const box = container.querySelector('#lista-postazioni');
+    if (!box) return;
+    if (!postazioni.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna postazione. Creane una per ogni tablet fisso.</div>'; return; }
+    box.innerHTML = postazioni.map(p => {
+      const url = p.url_display || '#/display-cucina';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:24px;">📱</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(p.nome)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.settore_nome ? `Settore: ${esc(p.settore_nome)}` : 'Tutti i settori'}</div>
+            <div style="font-size:12px;color:#0E5A7A;margin-top:2px;font-family:monospace;">${esc(url)}</div>
+          </div>
+          <a href="${url}" target="_blank" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Apri →</a>
+          <button data-del-post="${p.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
+        </div>
+      `;
+    }).join('');
+    box.querySelectorAll('[data-del-post]').forEach(btn => btn.onclick = async () => {
+      if (!confirm('Eliminare questa postazione?')) return;
+      await supa().from('postazioni').delete().eq('id', btn.dataset.delPost);
+      postazioni = postazioni.filter(p => p.id !== btn.dataset.delPost);
+      renderListaPostazioni();
+    });
+  }
+
+  function renderListaProdottiSettore() {
+    const box = container.querySelector('#lista-prodotti-settore');
+    if (!box) return;
+    if (!prodottiVendita.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessun prodotto trovato.</div>'; return; }
+    // Raggruppa per categoria
+    const catMap = {};
+    categorieVendita.forEach(c => catMap[c.id] = c.nome);
+    const perCat = {};
+    prodottiVendita.forEach(p => {
+      const cn = catMap[p.categoria_vendita_id] || 'Senza categoria';
+      if (!perCat[cn]) perCat[cn] = [];
+      perCat[cn].push(p);
+    });
+    box.innerHTML = Object.entries(perCat).map(([cat, prods]) => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">
+        <div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">${esc(cat)}</div>
+        ${prods.map(p => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">
+            <div style="flex:1;font-size:13px;color:#0f172a;">${esc(p.nome)}</div>
+            <select data-prod-settore="${p.id}" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">
+              <option value="">— Nessun settore —</option>
+              ${settori.map(s => `<option value="${s.id}" ${p.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-prod-settore]').forEach(sel => {
+      sel.onchange = async () => {
+        const pid = sel.dataset.prodSettore;
+        const sid = sel.value || null;
+        await supa().from('prodotti_vendita').update({ settore_id: sid }).eq('id', pid);
+        // Aggiorna comanda_righe: quando il prodotto viene aggiunto, usa il settore_id
+        mostraToast('Settore aggiornato ✅','success');
+      };
+    });
+  }
+
+  function renderListaTempi() {
+    const box = container.querySelector('#lista-tempi');
+    if (!box) return;
+    if (!ricette.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessuna ricetta trovata. Aggiungi le ricette nel Ricettario per impostare i tempi.</div>'; return; }
+    box.innerHTML = ricette.map(r => {
+      const prodotto = prodottiVendita.find(p => String(p.id) === String(r.prodotto_vendita_id));
+      if (!prodotto) return '';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(prodotto.nome)}</div>
+            <div style="font-size:11px;color:#64748b;">Ricetta ID: ${r.id.slice(0,8)}...</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="number" data-ricetta-tempo="${r.id}" value="${r.tempo_esecuzione_min||15}" min="1" max="120"
+              style="width:64px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-weight:600;text-align:center;">
+            <span style="font-size:12px;color:#64748b;">min</span>
+            <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Alert oltre questo tempo</span>
+          </div>
+        </div>
+      `;
+    }).filter(Boolean).join('');
+    box.querySelectorAll('[data-ricetta-tempo]').forEach(inp => {
+      inp.onchange = async () => {
+        const rid = inp.dataset.ricettaTempo;
+        const val = parseInt(inp.value)||15;
+        await supa().from('ricette').update({ tempo_esecuzione_min: val }).eq('id', rid);
+        mostraToast('Tempo aggiornato ✅','success');
+      };
+    });
+  }
+
+  // ════════════════════════════════════════
+  // TAB: SALA & PRENOTAZIONI
+  // ════════════════════════════════════════
+  function renderTabSala(box) {
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        ${[
+          { icon:'🪑', titolo:'Tavoli e sale',        desc:'Crea e organizza sale e tavoli del locale. Imposta coperti minimi e massimi.',  link:'bo-comande',           cta:'Vai a Comande' },
+          { icon:'📅', titolo:'Prenotazioni',          desc:'Gestisci le prenotazioni, visualizza il piano sala e conferma gli arrivi.',      link:'prenotazioni',         cta:'Vai a Prenotazioni' },
+          { icon:'📝', titolo:'Form prenotazione',     desc:'Personalizza il form online che i clienti compilano per prenotare un tavolo.',   link:'booking-form-builder', cta:'Configura form' },
+          { icon:'💬', titolo:'Messaggi automatici',   desc:'Email e SMS di conferma, promemoria e follow-up post visita.',                   link:null,                   cta:'Presto disponibile' },
+        ].map(c => cardLink(c)).join('')}
+      </div>
+    `;
+    box.querySelectorAll('[data-nav]').forEach(btn => btn.onclick = () => { window.location.hash = '#/' + btn.dataset.nav; });
+  }
+
+  // ════════════════════════════════════════
+  // TAB: MENU & COMUNICAZIONE
+  // ════════════════════════════════════════
+  function renderTabMenu(box) {
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        ${[
+          { icon:'📋', titolo:'Menu digitale',         desc:'Costruisci il menu digitale del locale, gestisci sezioni e descrizioni.',        link:'bo-menu',     cta:'Vai al Menu builder' },
+          { icon:'🏷️', titolo:'Categorie prodotto',   desc:'Crea e organizza le categorie del menu (Antipasti, Primi, Pizza...).',           link:'bo-categorie', cta:'Gestisci categorie' },
+          { icon:'🛒', titolo:'Prodotti',               desc:'Aggiungi e modifica i prodotti in vendita con prezzi, foto e varianti.',         link:'bo-prodotti',  cta:'Gestisci prodotti' },
+          { icon:'📣', titolo:'Campagne marketing',    desc:'Crea campagne email/SMS per fidelizzare i clienti e promuovere eventi.',         link:'campagne',     cta:'Vai alle Campagne' },
+          { icon:'💬', titolo:'Messaggi automatici',   desc:'Configura risposte automatiche, conferme prenotazione e messaggi di follow-up.', link:null,           cta:'Presto disponibile' },
+          { icon:'🌐', titolo:'QR Code menu',           desc:'Genera QR code per il menu digitale da mettere sui tavoli.',                    link:null,           cta:'Presto disponibile' },
+        ].map(c => cardLink(c)).join('')}
+      </div>
+    `;
+    box.querySelectorAll('[data-nav]').forEach(btn => btn.onclick = () => { window.location.hash = '#/' + btn.dataset.nav; });
+  }
+
+  function cardLink({ icon, titolo, desc, link, cta }) {
+    const disabled = !link;
+    return `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;${disabled?'opacity:0.65;':''}">
+        <div style="font-size:28px;">${icon}</div>
+        <div style="font-size:15px;font-weight:700;color:#0f172a;">${titolo}</div>
+        <div style="font-size:13px;color:#64748b;flex:1;">${desc}</div>
+        <button ${link?`data-nav="${link}"`:'disabled'} style="
+          padding:8px 14px;border:none;border-radius:10px;cursor:${disabled?'default':'pointer'};font-size:13px;font-weight:600;
+          background:${disabled?'#f1f5f9':'#0E5A7A'};color:${disabled?'#94a3b8':'white'};
+          align-self:flex-start;
+        ">${cta}</button>
+      </div>
+    `;
+  }
+
+  // ════════════════════════════════════════
+  // CARICA DATI
+  // ════════════════════════════════════════
+  async function loadSettori() {
+    try { const{data}=await supa().from('settori').select('*').eq('azienda_id',aziendaId).order('ordine'); settori=data||[]; } catch(e){settori=[];}
+  }
+  async function loadPostazioni() {
+    try { const{data}=await supa().from('postazioni').select('*').eq('azienda_id',aziendaId).order('nome'); postazioni=data||[]; } catch(e){postazioni=[];}
+  }
+  async function loadProdotti() {
+    try { let q=supa().from('prodotti_vendita').select('*').eq('azienda_id',aziendaId); if(sedeId)q=q.eq('sede_id',sedeId); const{data}=await q.order('nome'); prodottiVendita=data||[]; } catch(e){prodottiVendita=[];}
+  }
+  async function loadCategorie() {
+    try { const{data}=await supa().from('categorie_vendita').select('*').eq('azienda_id',aziendaId).order('nome'); categorieVendita=data||[]; } catch(e){categorieVendita=[];}
+  }
+  async function loadRicette() {
+    try { const{data}=await supa().from('ricette').select('*').eq('azienda_id',aziendaId); ricette=data||[]; } catch(e){ricette=[];}
+  }
+
+  // ════════════════════════════════════════
+  // TOAST
+  // ════════════════════════════════════════
+  function mostraToast(msg, tipo='info') {
+    const c={success:'#16a34a',error:'#dc2626',warning:'#f59e0b',info:'#0E5A7A'};
+    const t=document.createElement('div');
+    t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${c[tipo]};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);`;
+    t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+  }
+
+  // ── Init ──
+  switchTab('operativo');
+}
+
+function esc(s) {
+  return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
