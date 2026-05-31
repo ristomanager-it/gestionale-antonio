@@ -21,6 +21,7 @@ async function waitForAuth(maxWait = 3000) {
 // Struttura: { pin, nome, ruolo: 'full' | 'limited', colore }
 // 'limited' = può aggiungere solo categorie in CATEGORIE_LIMITED
 const CAMERIERI_DEFAULT = [
+  { pin: '0000', nome: 'Admin', ruolo: 'manager', colore: '#dc2626' },
   { pin: '1111', nome: 'Mario', ruolo: 'full', colore: '#0E5A7A' },
   { pin: '2222', nome: 'Sara', ruolo: 'full', colore: '#7c3aed' },
   { pin: '3333', nome: 'Luca', ruolo: 'limited', colore: '#16a34a' },
