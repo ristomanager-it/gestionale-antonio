@@ -244,7 +244,7 @@ async function loadRicetteEPrezzi() {
   // Filtra ricette per sede_id — solo la sede attiva, solo food
   let query = supabase
     .from("ricette")
-    .select("id, nome, attivo, sede_id, prodotto_vendita_id, prodotti_vendita(famiglia)")
+    .select("id, nome, attivo, sede_id, prodotto_vendita_id, costo_porzione, prezzo_vendita, prodotti_vendita(famiglia)")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
@@ -260,6 +260,13 @@ async function loadRicetteEPrezzi() {
   ricetteCache = tutteRicette.filter(r => {
     const famiglia = r.prodotti_vendita?.famiglia;
     return !famiglia || famiglia === 'food';
+  });
+
+  // Precarica prezzi vendita dalla ricetta stessa (se non in ricette_prezzi_canale)
+  ricetteCache.forEach(r => {
+    if (r.prezzo_vendita && !prezziByRicettaId.has(String(r.id))) {
+      prezziByRicettaId.set(String(r.id), toNumber(r.prezzo_vendita));
+    }
   });
 
   const { data: prezzi } = await supabase
@@ -432,26 +439,41 @@ function renderSezione(sezioneId) {
     return;
   }
 
-  box.innerHTML = portate.map((row, idx) => `
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;position:relative;" data-sezione="${sezioneId}" data-idx="${idx}">
-      <div style="flex:1;position:relative;">
-        <input class="input portata-input" type="text" autocomplete="off"
-          data-field="ricetta_nome" data-sezione="${sezioneId}" data-idx="${idx}"
-          value="${escapeAttr(row.ricetta_nome || '')}"
-          placeholder="${sezione?.isServizi ? 'Es. Fotografo, Musica, Fuochi...' : 'Scrivi portata...'}"
-          style="width:100%;">
-        ${row.ricetta_id ? `<div style="font-size:11px;color:#16a34a;margin-top:2px;">✓ Ricetta collegata</div>` : row.ricetta_nome ? `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">Portata libera</div>` : ''}
+  box.innerHTML = portate.map((row, idx) => {
+    const collegata = !!row.ricetta_id && !row.is_placeholder;
+    const placeholder = !!row.is_placeholder;
+    const haPrezzo = toNumber(row.prezzo_pp) > 0;
+    return `
+    <div style="margin-bottom:10px;background:#f8fafc;border-radius:10px;padding:10px 12px;border-left:3px solid ${collegata ? '#16a34a' : placeholder ? '#f59e0b' : '#e5e7eb'};" data-sezione="${sezioneId}" data-idx="${idx}">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;position:relative;">
+          <input class="input portata-input" type="text" autocomplete="off"
+            data-field="ricetta_nome" data-sezione="${sezioneId}" data-idx="${idx}"
+            value="${escapeAttr(row.ricetta_nome || '')}"
+            placeholder="${sezione?.isServizi ? 'Es. Fotografo, Musica, Fuochi...' : 'Scrivi o cerca portata...'}"
+            style="width:100%;">
+        </div>
+        <div style="width:110px;">
+          <input class="input" type="number" step="0.01" min="0"
+            data-field="prezzo_pp" data-sezione="${sezioneId}" data-idx="${idx}"
+            value="${toNumber(row.prezzo_pp) || ''}"
+            placeholder="€/pp"
+            title="Prezzo a persona (uso interno)">
+        </div>
+        <button type="button" data-action="remove-portata" data-sezione="${sezioneId}" data-idx="${idx}"
+          style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;flex-shrink:0;">✕</button>
       </div>
-      <div style="width:110px;">
-        <input class="input" type="number" step="0.01" min="0"
-          data-field="prezzo_pp" data-sezione="${sezioneId}" data-idx="${idx}"
-          value="${toNumber(row.prezzo_pp) || ''}"
-          placeholder="€/pp">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;">
+        ${collegata ? `<span style="font-size:11px;color:#16a34a;font-weight:600;">✓ In ricettario</span>` : ''}
+        ${placeholder ? `
+          <span style="font-size:11px;color:#f59e0b;font-weight:600;">⚠ Non in ricettario</span>
+          <a href="#/ricette-editor" style="font-size:11px;color:#0E5A7A;text-decoration:underline;">→ Completa scheda ricetta</a>
+        ` : ''}
+        ${!collegata && !placeholder && row.ricetta_nome ? `<span style="font-size:11px;color:#94a3b8;">Portata libera — verrà creata in ricettario</span>` : ''}
+        ${!haPrezzo && row.ricetta_nome ? `<span style="font-size:11px;color:#dc2626;">⚠ Inserisci prezzo pp</span>` : ''}
       </div>
-      <button type="button" data-action="remove-portata" data-sezione="${sezioneId}" data-idx="${idx}"
-        style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;flex-shrink:0;">✕</button>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderTutteSezioni() {
@@ -473,8 +495,6 @@ function mostraAutocomplete(input, query) {
     .filter(r => normalizeNome(r.nome).includes(q))
     .slice(0, 12);
 
-  if (!risultati.length) { chiudiAutocomplete(); return; }
-
   acTarget = input;
   const rect = input.getBoundingClientRect();
   dropdown.style.display = "block";
@@ -482,15 +502,32 @@ function mostraAutocomplete(input, query) {
   dropdown.style.left = rect.left + "px";
   dropdown.style.width = Math.max(rect.width, 280) + "px";
 
-  dropdown.innerHTML = risultati.map(r => {
+  // Risultati trovati + opzione "usa come nuova portata"
+  const righeRisultati = risultati.map(r => {
     const prezzo = prezziByRicettaId.get(String(r.id));
+    const foodCost = r.costo_porzione ? ` · food cost €${toNumber(r.costo_porzione).toFixed(2)}` : '';
     return `<div data-rid="${r.id}" data-rnome="${escapeAttr(r.nome)}" data-rprezzo="${prezzo || 0}"
-      style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;background:white;"
       onmouseenter="this.style.background='#f0f9ff'" onmouseleave="this.style.background='white'">
-      <span>${escapeHtml(r.nome)}</span>
-      ${prezzo ? `<span style="font-size:12px;color:#0E5A7A;font-weight:600;">€${toNumber(prezzo).toFixed(2)}</span>` : ''}
+      <div>
+        <div>${escapeHtml(r.nome)}</div>
+        ${foodCost ? `<div style="font-size:11px;color:#94a3b8;">${foodCost}</div>` : ''}
+      </div>
+      ${prezzo ? `<span style="font-size:12px;color:#0E5A7A;font-weight:600;white-space:nowrap;margin-left:8px;">€${toNumber(prezzo).toFixed(2)}/pp</span>` : '<span style="font-size:11px;color:#94a3b8;margin-left:8px;">no prezzo</span>'}
     </div>`;
   }).join("");
+
+  // Opzione crea nuova se nessuna corrispondenza esatta
+  const esattoMatch = risultati.find(r => normalizeNome(r.nome) === q);
+  const rigaNuova = !esattoMatch ? `
+    <div data-nuova="${escapeAttr(query)}"
+      style="padding:10px 14px;cursor:pointer;font-size:13px;color:#0E5A7A;background:#f0f9ff;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:6px;"
+      onmouseenter="this.style.background='#e0f2fe'" onmouseleave="this.style.background='#f0f9ff'">
+      <span>+</span> <span>Crea "<strong>${escapeHtml(query)}</strong>" come nuova portata</span>
+    </div>
+  ` : '';
+
+  dropdown.innerHTML = righeRisultati + rigaNuova;
 
   dropdown.querySelectorAll("[data-rid]").forEach(el => {
     el.addEventListener("mousedown", e => {
@@ -498,6 +535,30 @@ function mostraAutocomplete(input, query) {
       selezionaRicetta(el.dataset.rid, el.dataset.rnome, el.dataset.rprezzo);
     });
   });
+
+  dropdown.querySelectorAll("[data-nuova]").forEach(el => {
+    el.addEventListener("mousedown", e => {
+      e.preventDefault();
+      const nome = el.dataset.nuova;
+      chiudiAutocomplete();
+      if (!acTarget) return;
+      const sid = acTarget.getAttribute("data-sezione");
+      const idx = Number(acTarget.getAttribute("data-idx"));
+      if (!sid || !Number.isFinite(idx)) return;
+      acTarget.value = nome;
+      menuSezioni[sid][idx].ricetta_id = "";
+      menuSezioni[sid][idx].ricetta_nome = nome;
+      menuSezioni[sid][idx].is_placeholder = true; // verrà creata al salvataggio
+      renderSezione(sid);
+      // Focus sul prezzo
+      setTimeout(() => {
+        const pp = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sid}"][data-idx="${idx}"]`);
+        if (pp) pp.focus();
+      }, 50);
+    });
+  });
+
+  if (!risultati.length && esattoMatch === undefined && !query) { chiudiAutocomplete(); }
 }
 
 function chiudiAutocomplete(e) {
@@ -518,15 +579,20 @@ function selezionaRicetta(ricettaId, ricettaNome, ricettaPrezzo) {
   menuSezioni[sezioneId][idx].ricetta_id = String(ricettaId);
   menuSezioni[sezioneId][idx].ricetta_nome = ricettaNome;
   menuSezioni[sezioneId][idx].is_placeholder = false;
-  const prezzo = Math.max(0, toNumber(ricettaPrezzo));
-  menuSezioni[sezioneId][idx].prezzo_pp = prezzo;
 
-  // Aggiorna campo prezzo
-  const prezzoInput = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sezioneId}"][data-idx="${idx}"]`);
-  if (prezzoInput) prezzoInput.value = prezzo || "";
+  // Carica prezzo vendita se disponibile, altrimenti lascia editabile
+  const prezzoNumerica = Math.max(0, toNumber(ricettaPrezzo));
+  menuSezioni[sezioneId][idx].prezzo_pp = prezzoNumerica;
 
-  // Aggiorna badge
+  // Aggiorna badge e prezzo nella UI
   renderSezione(sezioneId);
+  // Dopo il render rimetti focus sul campo prezzo se non ha prezzo
+  if (!prezzoNumerica) {
+    setTimeout(() => {
+      const prezzoInput = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sezioneId}"][data-idx="${idx}"]`);
+      if (prezzoInput) prezzoInput.focus();
+    }, 50);
+  }
   recalcPreventivoTotali();
 }
 
@@ -1022,15 +1088,34 @@ function printCurrentPreventivo() {
   const location = getVal("preventivo-location");
   const totale = getVal("preventivo-totale");
 
-  // Raggruppa per sezione per la stampa
+  // Calcola totale menu pp (solo portate non-servizi)
+  const invPrint = Math.max(1, toNumber(getVal("preventivo-n-invitati")) || 1);
+  let subtMenuPP = 0;
+  sezioniDinamiche.forEach(s => {
+    if (!s.isServizi) {
+      (menuSezioni[s.id] || []).forEach(r => { subtMenuPP += Math.max(0, toNumber(r.prezzo_pp)); });
+    }
+  });
+
+  // Sezioni menu: portate senza prezzi (per cliente), servizi con prezzo
   const menuHtml = sezioniDinamiche.map(s => {
     const portate = (menuSezioni[s.id] || []).filter(r => (r.ricetta_nome || "").trim());
     if (!portate.length) return '';
     return `
       <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${s.label}</div>
+        <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${escapeHtml(s.label)}</div>
         <ul style="margin:0;padding-left:18px;">
-          ${portate.map(r => `<li style="margin-bottom:4px;">${escapeHtml(r.ricetta_nome)}${r.prezzo_pp ? ` <span style="color:#64748b;font-size:12px;">— €${toNumber(r.prezzo_pp).toFixed(2)} pp</span>` : ''}</li>`).join('')}
+          ${portate.map(r => {
+            if (s.isServizi) {
+              // Servizi: mostra prezzo
+              return `<li style="margin-bottom:6px;display:flex;justify-content:space-between;">
+                <span>${escapeHtml(r.ricetta_nome)}</span>
+                ${toNumber(r.prezzo_pp) > 0 ? `<strong>€ ${toNumber(r.prezzo_pp).toFixed(2)}</strong>` : ''}
+              </li>`;
+            }
+            // Portate normali: solo nome, senza prezzo
+            return `<li style="margin-bottom:4px;">${escapeHtml(r.ricetta_nome)}</li>`;
+          }).join('')}
         </ul>
       </div>
     `;
@@ -1162,8 +1247,12 @@ function printCurrentPreventivo() {
 
           <!-- Sezione economica -->
           <div class="economia">
+            <div class="economia-row" style="font-size:15px;font-weight:600;background:#f0f9ff;padding:10px 12px;border-radius:8px;margin-bottom:8px;">
+              <span>Menu a persona</span>
+              <span>€ ${subtMenuPP.toFixed(2)}</span>
+            </div>
             <div class="economia-row muted">
-              <span>Subtotale menu</span>
+              <span>Totale menu (${invPrint} invitati)</span>
               <span>€ ${escapeHtml(getVal("preventivo-subtotale-menu"))}</span>
             </div>
             ${Number(getVal("preventivo-subtotale-extra")) > 0 ? `
