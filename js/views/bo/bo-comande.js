@@ -512,7 +512,9 @@ export async function render(container) {
   }
 
   async function loadCategorie() {
-    const { data } = await supa().from('categorie_vendita').select('*').eq('azienda_id', aziendaId).order('nome');
+    let q = supa().from('categorie_vendita').select('*').eq('azienda_id', aziendaId);
+    if (sedeId) q = q.eq('sede_id', sedeId);
+    const { data } = await q.order('nome');
     categorieVendita = data || [];
   }
 
