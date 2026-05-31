@@ -54,6 +54,13 @@ export async function render(container) {
     return;
   }
 
+  // Nascondi footer globale — la comanda usa tutta l'altezza dello schermo
+  const _footerEl = document.getElementById('footer-root');
+  if (_footerEl) _footerEl.style.display = 'none';
+  // Ripristina alla distruzione del componente (navigazione via hashchange)
+  const _ripristinaFooter = () => { if (_footerEl) _footerEl.style.display = ''; };
+  window.addEventListener('hashchange', _ripristinaFooter, { once: true });
+
   // ── Stato locale ──
   let sale = [];
   let tavoli = [];
@@ -67,6 +74,7 @@ export async function render(container) {
   let salaSelezionata = null;
   let viewMode = 'pin'; // pin | tavoli | comanda | cucina
   let cameriereAttivo = null; // { pin, nome, ruolo, colore }
+  let uscitaCorrente = 1; // numero uscita attiva (1=prima uscita, 2=seconda, ecc.)
 
   // ── Shell HTML ──
   container.innerHTML = `
@@ -137,13 +145,25 @@ export async function render(container) {
               </div>
             </div>
             <div style="display:flex;gap:8px;">
-              <button id="btn-invia-cucina" style="background:#16a34a;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">📤 Invia cucina</button>
-              <button id="btn-preconto" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">🧾 Preconto</button>
+              <div id="badge-uscita" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:5px 10px;font-size:12px;color:#374151;font-weight:600;white-space:nowrap;">🍽️ Uscita 1</div>
+              <button id="btn-nuova-uscita" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;">+ Nuova uscita</button>
+              <button id="btn-invia-cucina" style="background:#16a34a;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">📤 Invia</button>
+              <button id="btn-preconto" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">🧾 Conto</button>
               <button id="btn-chiudi-comanda" style="background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">✅ Chiudi</button>
             </div>
           </div>
 
-          <div style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 340px;">
+          <div id="comanda-grid" style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 340px;">
+            <style>
+              @media(max-width:700px){
+                #comanda-grid { grid-template-columns:1fr!important; grid-template-rows:1fr auto; }
+                #comanda-grid > div:first-child { border-right:none!important; border-bottom:1px solid #e5e7eb; min-height:0; }
+                #comanda-grid > div:last-child { max-height:45vh; }
+                #view-comanda > div:first-child { flex-wrap:wrap; gap:6px; }
+                #view-comanda > div:first-child > div:last-child { flex-wrap:wrap; }
+                #view-comanda > div:first-child > div:last-child button { padding:6px 10px!important; font-size:12px!important; }
+              }
+            </style>
 
             <div style="overflow:hidden;display:flex;flex-direction:column;border-right:1px solid #e5e7eb;">
               <div style="overflow-x:auto;white-space:nowrap;padding:8px 12px;background:white;border-bottom:1px solid #e5e7eb;flex-shrink:0;" id="cat-tabs"></div>
@@ -181,8 +201,9 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Apertura tavolo ── -->
-    <div id="modal-apertura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-      <div style="background:white;border-radius:20px;padding:32px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div id="modal-apertura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom);">
+      <div style="background:white;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,0.2);">
+        <div style="width:40px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto 20px;"></div>
         <div style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;">🪑 Apri tavolo</div>
         <div id="apertura-tavolo-nome" style="font-size:14px;color:#64748b;margin-bottom:24px;"></div>
 
@@ -700,6 +721,8 @@ export async function render(container) {
     container.querySelector('#comanda-coperti').value = comanda.coperti || 2;
     container.querySelector('#comanda-note').value = comanda.note || '';
 
+    uscitaCorrente = 1;
+    aggiornaLabelUscita();
     switchView('comanda');
     categoriaSelezionata = null;
     // Se cameriere limited: pre-filtra su categorie accessibili
@@ -841,6 +864,7 @@ export async function render(container) {
         stato: 'in_attesa',
         stampante,
         cameriere: cameriereAttivo?.nome || null,
+        uscita_numero: uscitaCorrente,
       }).select('*').single();
 
       if (!error && data) righeComanda.push(data);
@@ -1050,6 +1074,8 @@ export async function render(container) {
     comandaAttiva.totale = totale;
   }
 
+  const COLORI_USCITA = ['#0E5A7A','#7c3aed','#16a34a','#dc2626','#f59e0b','#0891b2','#be185d'];
+
   function renderRighe() {
     const box = container.querySelector('#righe-comanda');
     const righeAttive = righeComanda.filter(r => r.stato !== 'annullato');
@@ -1058,28 +1084,53 @@ export async function render(container) {
       return;
     }
     const statoColori = { 'in_attesa':'#64748b','in_preparazione':'#f59e0b','pronto':'#16a34a','servito':'#94a3b8' };
-    const statoLabel = { 'in_attesa':'⏳','in_preparazione':'🔥','pronto':'✅','servito':'🍽️' };
+    const statoLabel  = { 'in_attesa':'⏳','in_preparazione':'🔥','pronto':'✅','servito':'🍽️' };
 
-    box.innerHTML = righeAttive.map(r => `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #f1f5f9;" data-riga="${r.id}">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(r.nome_snapshot)}</div>
-          ${r.note ? `<div style="font-size:11px;color:#64748b;">${esc(r.note)}</div>` : ''}
-          ${r.cameriere ? `<div style="font-size:10px;color:#94a3b8;">${esc(r.cameriere)}</div>` : ''}
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <button data-decr="${r.id}" style="width:24px;height:24px;border:1px solid #e5e7eb;border-radius:6px;background:white;cursor:pointer;font-size:14px;">−</button>
-          <span style="min-width:20px;text-align:center;font-size:14px;font-weight:600;">${r.quantita}</span>
-          <button data-incr="${r.id}" style="width:24px;height:24px;border:1px solid #e5e7eb;border-radius:6px;background:white;cursor:pointer;font-size:14px;">+</button>
-        </div>
-        <div style="font-size:13px;font-weight:600;color:#0E5A7A;min-width:52px;text-align:right;">
-          €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2).replace('.',',')}
-        </div>
-        <span style="color:${statoColori[r.stato]||'#64748b'};font-size:16px;" title="${r.stato}">${statoLabel[r.stato]||'⏳'}</span>
-        <button data-note-riga="${r.id}" style="background:#f1f5f9;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;">📝</button>
-        <button data-annulla="${r.id}" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
-      </div>
-    `).join('');
+    // Raggruppa per uscita
+    const uscite = {};
+    righeAttive.forEach(r => {
+      const u = r.uscita_numero || 1;
+      if (!uscite[u]) uscite[u] = [];
+      uscite[u].push(r);
+    });
+
+    box.innerHTML = Object.entries(uscite)
+      .sort(([a],[b]) => +a - +b)
+      .map(([uscita, righe]) => {
+        const u = +uscita;
+        const colore = COLORI_USCITA[(u-1) % COLORI_USCITA.length];
+        const isCorrente = u === uscitaCorrente;
+        return `
+          <div style="border-left:3px solid ${colore};margin-bottom:4px;">
+            <div style="padding:4px 8px;background:${colore}10;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;font-weight:700;color:${colore};text-transform:uppercase;letter-spacing:0.5px;">
+                🍽️ ${u === 1 ? 'Prima uscita' : u === 2 ? 'Seconda uscita' : u === 3 ? 'Terza uscita' : `Uscita ${u}`}
+                ${isCorrente ? '<span style="background:'+colore+';color:white;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px;">ATTIVA</span>' : ''}
+              </span>
+            </div>
+            ${righe.map(r => `
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 8px 8px 10px;border-bottom:1px solid #f1f5f9;" data-riga="${r.id}">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(r.nome_snapshot)}</div>
+                  ${r.note ? `<div style="font-size:11px;color:#64748b;">${esc(r.note)}</div>` : ''}
+                  ${r.cameriere ? `<div style="font-size:10px;color:#94a3b8;">${esc(r.cameriere)}</div>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <button data-decr="${r.id}" style="width:24px;height:24px;border:1px solid #e5e7eb;border-radius:6px;background:white;cursor:pointer;font-size:14px;">−</button>
+                  <span style="min-width:20px;text-align:center;font-size:14px;font-weight:600;">${r.quantita}</span>
+                  <button data-incr="${r.id}" style="width:24px;height:24px;border:1px solid #e5e7eb;border-radius:6px;background:white;cursor:pointer;font-size:14px;">+</button>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:#0E5A7A;min-width:52px;text-align:right;">
+                  €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2).replace('.',',')}
+                </div>
+                <span style="color:${statoColori[r.stato]||'#64748b'};font-size:16px;" title="${r.stato}">${statoLabel[r.stato]||'⏳'}</span>
+                <button data-note-riga="${r.id}" style="background:#f1f5f9;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;">📝</button>
+                <button data-annulla="${r.id}" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }).join('');
 
     box.querySelectorAll('[data-incr]').forEach(btn => btn.onclick = () => cambiaQuantita(btn.dataset.incr, 1));
     box.querySelectorAll('[data-decr]').forEach(btn => btn.onclick = () => cambiaQuantita(btn.dataset.decr, -1));
@@ -1164,9 +1215,22 @@ export async function render(container) {
   // ══════════════════════════════════════════
   // INVIA CUCINA + PRECONTO + CHIUDI
   // ══════════════════════════════════════════
+  function aggiornaLabelUscita() {
+    const badge = container.querySelector('#badge-uscita');
+    if (badge) {
+      const labels = ['Prima','Seconda','Terza','Quarta','Quinta','Sesta','Settima','Ottava'];
+      const label = labels[uscitaCorrente-1] || `Uscita ${uscitaCorrente}`;
+      badge.textContent = `🍽️ ${label} uscita`;
+    }
+  }
+
   async function inviaInCucina() {
-    const righeNuove = righeComanda.filter(r => r.stato === 'in_attesa');
-    if (!righeNuove.length) { mostraToast('Nessun prodotto da inviare', 'warning'); return; }
+    // Invia solo le righe in_attesa dell'uscita corrente
+    const righeNuove = righeComanda.filter(r => r.stato === 'in_attesa' && (r.uscita_numero||1) === uscitaCorrente);
+    if (!righeNuove.length) {
+      mostraToast(`Nessun prodotto in attesa per l'uscita ${uscitaCorrente}`, 'warning');
+      return;
+    }
     for (const r of righeNuove) {
       await supa().from('comanda_righe').update({ stato: 'in_preparazione' }).eq('id', r.id);
       r.stato = 'in_preparazione';
@@ -1174,7 +1238,24 @@ export async function render(container) {
     await supa().from('comande').update({ stato: 'in_corso' }).eq('id', comandaAttiva.id);
     comandaAttiva.stato = 'in_corso';
     renderRighe();
-    mostraToast(`✅ ${righeNuove.length} piatti inviati in cucina!`, 'success');
+    const labels = ['prima','seconda','terza','quarta','quinta'];
+    const label = labels[uscitaCorrente-1] || `uscita ${uscitaCorrente}`;
+    mostraToast(`✅ ${righeNuove.length} piatti inviati — ${label} uscita!`, 'success');
+  }
+
+  function nuovaUscita() {
+    // Verifica che ci siano righe nell'uscita corrente già inviate o almeno una
+    const righeUscita = righeComanda.filter(r => r.stato !== 'annullato' && (r.uscita_numero||1) === uscitaCorrente);
+    if (!righeUscita.length) {
+      mostraToast(`Aggiungi almeno un prodotto all'uscita ${uscitaCorrente} prima di crearne una nuova`, 'warning');
+      return;
+    }
+    uscitaCorrente++;
+    aggiornaLabelUscita();
+    renderRighe();
+    const labels = ['Prima','Seconda','Terza','Quarta','Quinta'];
+    const label = labels[uscitaCorrente-1] || `Uscita ${uscitaCorrente}`;
+    mostraToast(`🍽️ ${label} uscita attiva — aggiungi i prossimi piatti`, 'info');
   }
 
   // ══════════════════════════════════════════
@@ -1680,6 +1761,7 @@ export async function render(container) {
   container.querySelector('#btn-refresh').onclick = () => loadAll();
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
   container.querySelector('#btn-invia-cucina').onclick = () => inviaInCucina();
+  container.querySelector('#btn-nuova-uscita').onclick = () => nuovaUscita();
   container.querySelector('#btn-preconto').onclick = () => mostraPreconto();
   container.querySelector('#btn-chiudi-comanda').onclick = () => chiudiComanda();
   container.querySelector('#btn-nuova-sala').onclick = () => creaNuovaSala();
