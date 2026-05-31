@@ -203,10 +203,17 @@ export async function render(container) {
           `).join('')}
         </div>
 
-        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Nome cliente <span style="font-weight:400;color:#94a3b8;">(opzionale)</span></label>
-        <input id="apertura-nominativo" class="input" placeholder="es. Famiglia Rossi, Tavolo prenotato..." style="width:100%;box-sizing:border-box;margin-bottom:8px;font-size:14px;padding:10px 12px;">
+        <!-- Frase guida nominativo -->
+        <div style="background:#f0f9ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;border-left:3px solid #0E5A7A;">
+          <div style="font-size:11px;font-weight:600;color:#0E5A7A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">💬 Suggerisci al cliente</div>
+          <div style="font-size:13px;color:#0f172a;font-style:italic;">"Benvenuti! Come posso intestare il tavolo?"</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;">Se preferisce non dirlo, va bene — procedi lo stesso.</div>
+        </div>
 
-        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Telefono <span style="font-weight:400;color:#94a3b8;">(opzionale)</span></label>
+        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Nome <span style="font-weight:400;color:#94a3b8;">— opzionale</span></label>
+        <input id="apertura-nominativo" class="input" placeholder="es. Rossi, Famiglia Bianchi..." style="width:100%;box-sizing:border-box;margin-bottom:10px;font-size:14px;padding:10px 12px;">
+
+        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Telefono <span style="font-weight:400;color:#94a3b8;">— opzionale</span></label>
         <input id="apertura-telefono" class="input" placeholder="es. 333 123 4567" style="width:100%;box-sizing:border-box;margin-bottom:24px;font-size:14px;padding:10px 12px;" type="tel">
 
         <div style="display:flex;gap:10px;">
@@ -640,19 +647,26 @@ export async function render(container) {
       return;
     }
 
-    box.innerHTML = list.map(p => `
-      <button data-prodotto="${p.id}" style="
-        background:white;border:1px solid #e5e7eb;border-radius:12px;
-        padding:12px 8px;cursor:pointer;text-align:center;
-        display:flex;flex-direction:column;align-items:center;gap:6px;
-        transition:background 0.1s;
-        ${p.disponibile === false ? 'opacity:0.4;pointer-events:none;' : ''}
-      ">
-        ${p.foto_url ? `<img src="${p.foto_url}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">` : '<div style="font-size:32px;">🍽️</div>'}
-        <div style="font-size:12px;font-weight:600;line-height:1.3;color:#0f172a;">${esc(p.nome)}</div>
-        <div style="font-size:13px;color:#0E5A7A;font-weight:700;">€${Number(p.prezzo_base||0).toFixed(2).replace('.',',')}</div>
-      </button>
-    `).join('');
+    box.innerHTML = list.map(p => {
+      const esaurito = p.disponibile === false;
+      const pochePortate = !esaurito && p.porzioni_disponibili != null && p.porzioni_disponibili <= 3 && p.porzioni_disponibili > 0;
+      return `
+        <button data-prodotto="${p.id}" ${esaurito ? 'disabled' : ''} style="
+          background:${esaurito ? '#f8fafc' : 'white'};
+          border:1px solid ${esaurito ? '#e5e7eb' : pochePortate ? '#f59e0b' : '#e5e7eb'};
+          border-radius:12px;padding:12px 8px;cursor:${esaurito ? 'default' : 'pointer'};text-align:center;
+          display:flex;flex-direction:column;align-items:center;gap:6px;
+          transition:background 0.1s;position:relative;
+          ${esaurito ? 'opacity:0.55;' : ''}
+        ">
+          ${esaurito ? `<div style="position:absolute;top:6px;right:6px;background:#ef4444;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:0.3px;">ESAURITO</div>` : ''}
+          ${pochePortate ? `<div style="position:absolute;top:6px;right:6px;background:#f59e0b;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;">ULTIME ${p.porzioni_disponibili}</div>` : ''}
+          ${p.foto_url ? `<img src="${p.foto_url}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;${esaurito?'filter:grayscale(1);':''}">` : `<div style="font-size:32px;${esaurito?'filter:grayscale(1);opacity:0.5;':''}">🍽️</div>`}
+          <div style="font-size:12px;font-weight:600;line-height:1.3;color:${esaurito?'#94a3b8':'#0f172a'};">${esc(p.nome)}</div>
+          <div style="font-size:13px;color:${esaurito?'#94a3b8':'#0E5A7A'};font-weight:700;">€${Number(p.prezzo_base||0).toFixed(2).replace('.',',')}</div>
+        </button>
+      `;
+    }).join('');
 
     box.querySelectorAll('[data-prodotto]').forEach(btn => {
       btn.onclick = () => aggiungiProdotto(btn.dataset.prodotto);
@@ -660,12 +674,18 @@ export async function render(container) {
   }
 
   // ══════════════════════════════════════════
-  // AGGIUNGI PRODOTTO + MODAL UPSELL
+  // AGGIUNGI PRODOTTO + SCARICO MAGAZZINO + MODAL UPSELL
   // ══════════════════════════════════════════
-  async function aggiungiProdotto(prodottoId, pesoKg = null) {
+  async function aggiungiProdotto(prodottoId, pesoKg = null, skipUpsell = false) {
     if (!comandaAttiva) return;
     const prodotto = prodottiVendita.find(p => String(p.id) === String(prodottoId));
     if (!prodotto) return;
+
+    // Blocca se esaurito (doppio check lato client)
+    if (prodotto.disponibile === false) {
+      mostraToast(`❌ ${prodotto.nome} è esaurito`, 'error');
+      return;
+    }
 
     if (prodotto.unita_porzione === 'kg' || prodotto.unita_porzione === 'g' || prodotto.tags?.peso) {
       const input = prompt(`Peso per "${prodotto.nome}" (in kg, es. 0.800):`, '');
@@ -701,19 +721,107 @@ export async function render(container) {
         quantita: 1,
         stato: 'in_attesa',
         stampante,
-        cameriere: cameriereAttivo?.nome || null, // ← tracciamento
+        cameriere: cameriereAttivo?.nome || null,
       }).select('*').single();
 
       if (!error && data) righeComanda.push(data);
     }
 
+    // ── SCARICO MAGAZZINO IN TEMPO REALE ──
+    await scaricoMagazzino(prodotto, pesoKg);
+
     await aggiornaTotale();
     renderRighe();
     renderTotale();
+    renderGrigliaProdotti(container.querySelector('#search-prodotto')?.value || '');
 
-    // Mostra modal upsell (non per upsell-prodotti aggiuntivi, evita loop)
-    mostraModalUpsell(prodotto);
+    if (!skipUpsell) mostraModalUpsell(prodotto);
     checkCrossSell();
+  }
+
+  // ── Scarico magazzino al tap ──
+  async function scaricoMagazzino(prodotto, pesoKg = null) {
+    try {
+      // METODO 1: porzioni_disponibili impostato → scala 1 porzione
+      if (prodotto.porzioni_disponibili != null) {
+        const nuovePorzioni = Math.max(0, (prodotto.porzioni_disponibili || 0) - 1);
+        const esaurito = nuovePorzioni === 0;
+
+        await supa().from('prodotti_vendita')
+          .update({
+            porzioni_disponibili: nuovePorzioni,
+            disponibile: !esaurito,
+          })
+          .eq('id', prodotto.id);
+
+        // Aggiorna stato locale
+        prodotto.porzioni_disponibili = nuovePorzioni;
+        prodotto.disponibile = !esaurito;
+
+        if (esaurito) {
+          mostraToast(`⚠️ ${prodotto.nome} — ultima porzione! Ora esaurito.`, 'warning');
+        } else if (nuovePorzioni <= 3) {
+          mostraToast(`⚠️ ${prodotto.nome} — rimangono solo ${nuovePorzioni} porzioni`, 'warning');
+        }
+        return;
+      }
+
+      // METODO 2: nessuna gestione porzioni → scala via ricetta sulle giacenze
+      const { data: ricetta } = await supa()
+        .from('ricette')
+        .select('id')
+        .eq('prodotto_vendita_id', prodotto.id)
+        .single();
+
+      if (!ricetta) return; // nessuna ricetta collegata, skip
+
+      const { data: ingredienti } = await supa()
+        .from('ricetta_ingredienti')
+        .select('ingrediente_id, quantita, unita')
+        .eq('ricetta_id', ricetta.id);
+
+      if (!ingredienti?.length) return;
+
+      const quantitaScalata = pesoKg || 1; // se a peso, scala proporzionalmente
+
+      for (const ing of ingredienti) {
+        const qtScala = Number(ing.quantita || 0) * quantitaScalata;
+        if (!qtScala) continue;
+
+        // Decrementa giacenza
+        const { data: giacenza } = await supa()
+          .from('giacenze')
+          .select('id, quantita, scorta_minima')
+          .eq('azienda_id', aziendaId)
+          .eq('ingrediente_id', ing.ingrediente_id)
+          .single();
+
+        if (!giacenza) continue;
+
+        const nuovaQt = Math.max(0, Number(giacenza.quantita || 0) - qtScala);
+        await supa().from('giacenze')
+          .update({ quantita: nuovaQt })
+          .eq('id', giacenza.id);
+
+        // Avvisa se sotto scorta minima
+        const scoreMin = Number(giacenza.scorta_minima || 0);
+        if (scoreMin > 0 && nuovaQt <= scoreMin && nuovaQt > 0) {
+          mostraToast(`⚠️ Scorta bassa: ${prodotto.nome}`, 'warning');
+        }
+
+        // Se a zero → segna prodotto come esaurito
+        if (nuovaQt === 0) {
+          await supa().from('prodotti_vendita')
+            .update({ disponibile: false })
+            .eq('id', prodotto.id);
+          prodotto.disponibile = false;
+          mostraToast(`❌ ${prodotto.nome} esaurito — rimosso dalla griglia`, 'warning');
+        }
+      }
+    } catch (err) {
+      // Scarico non bloccante — l'ordine è già stato preso
+      console.warn('Scarico magazzino warning:', err);
+    }
   }
 
   // ── Modal upsell al tap prodotto ──
@@ -762,10 +870,9 @@ export async function render(container) {
 
       el.querySelectorAll('[data-upsell-prod]').forEach(btn => {
         btn.onclick = async () => {
-          // Traccia: upsell accettato
           await tracciaSuggerimento(prodotto.id, btn.dataset.upsellProd, 'accettato');
           chiudiModalUpsell();
-          await aggiungiProdotto(btn.dataset.upsellProd);
+          await aggiungiProdotto(btn.dataset.upsellProd, null, true); // skipUpsell=true evita loop
         };
         btn.onmouseenter = () => { btn.style.borderColor = '#0E5A7A'; btn.style.background = '#f0f9ff'; };
         btn.onmouseleave = () => { btn.style.borderColor = '#e5e7eb'; btn.style.background = 'white'; };
