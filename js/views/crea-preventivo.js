@@ -243,20 +243,44 @@ export async function render(container) {
 async function loadRicetteEPrezzi() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
+  // I preventivi sono per la sede Catering Ricevimenti — filtra per sede attiva
+  const sedeId = window.state?.sedeAttiva?.id || null;
 
   ricetteCache = [];
   prezziByRicettaId = new Map();
 
   if (!supabase || !aziendaId) return;
 
+  // Step 1: recupera prodotti_vendita_id della sede corrente
+  let prodottoIds = null;
+  if (sedeId) {
+    const { data: prodotti } = await supabase
+      .from("prodotti_vendita")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeId);
+    prodottoIds = (prodotti || []).map(p => p.id);
+  }
+
+  // Step 2: carica tutte le ricette dell'azienda
   const { data: ricette } = await supabase
     .from("ricette")
-    .select("id, nome, attivo")
+    .select("id, nome, attivo, prodotto_vendita_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome", { ascending: true });
 
-  ricetteCache = ricette || [];
+  // Step 3: filtra — tieni solo ricette della sede o placeholder (generate da preventivo)
+  const tutteRicette = ricette || [];
+  if (prodottoIds !== null) {
+    const prodSet = new Set(prodottoIds.map(String));
+    ricetteCache = tutteRicette.filter(r =>
+      !r.prodotto_vendita_id ||
+      prodSet.has(String(r.prodotto_vendita_id))
+    );
+  } else {
+    ricetteCache = tutteRicette;
+  }
 
   const { data: prezzi } = await supabase
     .from("ricette_prezzi_canale")
