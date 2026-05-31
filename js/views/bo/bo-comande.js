@@ -40,19 +40,31 @@ const CROSS_SELL_FINE_PASTO = [
 ];
 
 export async function render(container) {
+  // Aspetta auth prima di leggere il contesto
+  const authOk = await waitForAuth();
+  if (!authOk) {
+    container.innerHTML = '<section class="view"><h2>Sessione non disponibile. Ricarica la pagina.</h2></section>';
+    return;
+  }
+
+  // Aspetta che sedeAttiva sia disponibile (router può chiamare render prima del contesto)
+  await (async () => {
+    const start = Date.now();
+    while (Date.now() - start < 4000) {
+      if (window.state?.azienda?.id) return;
+      await new Promise(r => setTimeout(r, 150));
+    }
+  })();
+
   const aziendaId = window.state?.azienda?.id;
-  const sedeId = window.state?.sedeAttiva?.id;
 
   if (!aziendaId) {
     container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>';
     return;
   }
 
-  const authOk = await waitForAuth();
-  if (!authOk) {
-    container.innerHTML = '<section class="view"><h2>Sessione non disponibile. Ricarica la pagina.</h2></section>';
-    return;
-  }
+  // Leggi sedeId DOPO auth — così è sempre aggiornato
+  let sedeId = window.state?.sedeAttiva?.id || null;
 
   // Nascondi footer globale — la comanda usa tutta l'altezza dello schermo
   const _footerEl = document.getElementById('footer-root');
