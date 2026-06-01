@@ -865,7 +865,7 @@ async function mostraRicetta(id) {
 
   viewer.innerHTML = `
 
-    <div style="border-left:5px solid ${border}; padding-left:14px;">
+    <div style="border-left:5px solid ${border}; padding-left:14px; overflow:hidden; word-break:break-word; max-width:100%; box-sizing:border-box;">
 
       ${bannerStato}
       ${bannerOrigine}
@@ -932,9 +932,9 @@ async function mostraRicetta(id) {
                               um === "cl" ? qta/100 :
                               qta;
                 const costoRiga = costoKg > 0 ? (qtaKg * costoKg).toFixed(3) : null;
-                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
-                  <span>${escapeHtml(i.nome_prodotto)} — ${escapeHtml(String(i.quantita))} ${escapeHtml(i.unita_misura || "")}</span>
-                  ${costoRiga ? `<span style="color:#0E5A7A;font-weight:600;">€${costoRiga}</span>` : ""}
+                return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap;">
+                  <span style="flex:1;min-width:0;word-break:break-word;">${escapeHtml(i.nome_prodotto)} — ${escapeHtml(String(i.quantita))} ${escapeHtml(i.unita_misura || "")}</span>
+                  ${costoRiga ? `<span style="color:#0E5A7A;font-weight:600;white-space:nowrap;">€${costoRiga}</span>` : ""}
                 </div>`;
               }).join("")}
             </div>`
@@ -967,7 +967,7 @@ async function mostraRicetta(id) {
   // Binding bottone modifica dopo innerHTML
   document.getElementById("btn-vai-modifica-ricetta")?.addEventListener("click", function() {
     const rid = this.dataset.ricettaId;
-    if (rid) window.location.hash = `#/creaRicetta?id=${rid}`;
+    if (rid) window.location.hash = `#/crea-ricetta-avanzata?id=${rid}`;
   });
 }
 
