@@ -1,73 +1,126 @@
 // js/views/bo/bo-dispositivi.js
 // Gestione dispositivi cucina connessi — roner, forno, abbattitore, bilancia, sonda
 
+import { createPageLayout, createCard } from '../../utils/pageLayout.js';
+
 const supa = () => window.supabaseClient || window.supabase;
 
 const TIPI_DISPOSITIVO = [
-  { id: 'roner',             label: 'Roner / Circolatore',    icon: '🌡️', colore: '#0E5A7A' },
-  { id: 'forno',             label: 'Forno',                  icon: '🔥', colore: '#dc2626' },
-  { id: 'abbattitore',       label: 'Abbattitore',            icon: '❄️', colore: '#0891b2' },
-  { id: 'bilancia',          label: 'Bilancia',               icon: '⚖️', colore: '#16a34a' },
-  { id: 'sonda_temperatura', label: 'Sonda temperatura',      icon: '📡', colore: '#f59e0b' },
-  { id: 'altro',             label: 'Altro',                  icon: '🔧', colore: '#64748b' },
+  { id: 'roner',             label: 'Roner / Circolatore', icon: '🌡️', colore: '#0E5A7A' },
+  { id: 'forno',             label: 'Forno',               icon: '🔥', colore: '#dc2626' },
+  { id: 'abbattitore',       label: 'Abbattitore',         icon: '❄️', colore: '#0891b2' },
+  { id: 'bilancia',          label: 'Bilancia',            icon: '⚖️', colore: '#16a34a' },
+  { id: 'sonda_temperatura', label: 'Sonda temperatura',   icon: '📡', colore: '#f59e0b' },
+  { id: 'altro',             label: 'Altro',               icon: '🔧', colore: '#64748b' },
 ];
 
 const PROTOCOLLI = [
-  { id: 'bluetooth', label: 'Bluetooth' },
-  { id: 'wifi',      label: 'Wi-Fi' },
-  { id: 'lan',       label: 'LAN / Ethernet' },
-  { id: 'mqtt',      label: 'MQTT' },
-  { id: 'usb',       label: 'USB' },
-  { id: 'manuale',   label: 'Manuale (no connessione)' },
+  { id: 'bluetooth', label: 'Bluetooth'          },
+  { id: 'wifi',      label: 'Wi-Fi'              },
+  { id: 'lan',       label: 'LAN / Ethernet'     },
+  { id: 'mqtt',      label: 'MQTT'               },
+  { id: 'usb',       label: 'USB'                },
+  { id: 'manuale',   label: 'Manuale (nessuna)'  },
 ];
 
 export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
   const sedeId    = window.state?.sedeAttiva?.id;
-  if (!aziendaId) { container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>'; return; }
+  if (!aziendaId) {
+    container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>';
+    return;
+  }
 
   let dispositivi = [], settori = [], tariffe = [];
   let tabAttivo = 'dispositivi';
-  let formAperto = false;
   let dispositivoInEdit = null;
 
   // ════════════════════════════════════════
-  // SHELL
+  // SHELL — usa pageLayout + CSS responsive
   // ════════════════════════════════════════
-  container.innerHTML = `
-  <div style="min-height:100vh;background:#f8fafc;">
-    <div style="background:white;border-bottom:1px solid #e5e7eb;padding:20px 28px 0;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-        <div style="width:40px;height:40px;background:#0E5A7A;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔌</div>
-        <div>
-          <div style="font-size:20px;font-weight:700;color:#0f172a;">Dispositivi connessi</div>
-          <div style="font-size:13px;color:#64748b;">Gestione attrezzature, connessioni e costi energetici</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:0;">
-        ${[
-          {id:'dispositivi', label:'🔌 Dispositivi'},
-          {id:'energia',     label:'⚡ Energia & Costi'},
-          {id:'log',         label:'📋 Log eventi'},
-        ].map(t=>`<button data-tab="${t.id}" style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;">${t.label}</button>`).join('')}
-      </div>
-    </div>
-    <div id="tab-content" style="padding:28px;max-width:960px;"></div>
-  </div>
-  `;
+  container.innerHTML = createPageLayout({
+    title: '🔌 Dispositivi connessi',
+    subtitle: 'Attrezzature, connessioni e costi energetici',
+    content: `
+      <style>
+        .disp-tabs { display:flex; overflow-x:auto; gap:0; margin:-16px -16px 20px; padding:0 16px;
+                     background:white; border-bottom:1px solid #e5e7eb; }
+        .disp-tab  { padding:12px 18px; border:none; background:none; cursor:pointer;
+                     font-size:13px; font-weight:600; color:#64748b;
+                     border-bottom:3px solid transparent; white-space:nowrap; flex-shrink:0; }
+        .disp-tab.att { color:#0E5A7A; border-bottom-color:#0E5A7A; background:#f0f9ff; }
 
-  container.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.onclick = () => { tabAttivo = btn.dataset.tab; aggiornaTabs(); renderTab(); };
+        .disp-filtri { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+        .disp-filtro { padding:6px 12px; border:2px solid #e5e7eb; border-radius:20px;
+                       background:white; color:#374151; cursor:pointer; font-size:12px; font-weight:600; }
+        .disp-filtro.att { border-color:#0E5A7A; background:#f0f9ff; color:#0E5A7A; }
+
+        .disp-card { background:white; border:1px solid #e5e7eb; border-radius:14px;
+                     padding:14px 16px; margin-bottom:10px; }
+        .disp-card-inner { display:flex; align-items:flex-start; gap:12px; }
+        .disp-icon { width:44px; height:44px; border-radius:12px; display:flex;
+                     align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+        .disp-info { flex:1; min-width:0; }
+        .disp-nome { font-size:15px; font-weight:700; color:#0f172a; }
+        .disp-sub  { font-size:12px; color:#64748b; margin-top:2px; }
+        .disp-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+        .disp-tag  { background:#f1f5f9; padding:2px 8px; border-radius:6px; font-size:11px; color:#374151; }
+        .disp-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+        .disp-btn { padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px;
+                    font-weight:600; border:none; }
+
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        @media(max-width:600px) {
+          .form-grid { grid-template-columns:1fr; }
+          .disp-card-inner { flex-wrap:wrap; }
+        }
+
+        .form-field label { font-size:12px; color:#64748b; display:block; margin-bottom:4px; }
+        .form-field input, .form-field select, .form-field textarea {
+          width:100%; box-sizing:border-box; padding:9px 12px;
+          border:1px solid #e5e7eb; border-radius:8px; font-size:14px; background:white; }
+
+        .energia-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+        @media(max-width:600px) { .energia-grid { grid-template-columns:1fr; } }
+
+        .stat-card { background:white; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
+        .stat-val  { font-size:32px; font-weight:800; margin:8px 0 4px; }
+        .stat-sub  { font-size:12px; color:#64748b; }
+
+        .costi-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:8px;
+                     padding:10px 8px; background:#f8fafc; border-radius:8px; margin-bottom:4px; align-items:center; }
+        @media(max-width:600px) {
+          .costi-row { grid-template-columns:1fr 1fr; }
+          .costi-row span:nth-child(3) { display:none; }
+        }
+
+        .log-row { display:flex; gap:10px; padding:10px 12px; background:white;
+                   border-radius:10px; margin-bottom:6px; border-left:3px solid #e5e7eb; align-items:flex-start; }
+        .log-ts  { font-size:11px; color:#94a3b8; white-space:nowrap; min-width:110px; flex-shrink:0; }
+        @media(max-width:600px) { .log-ts { min-width:80px; font-size:10px; } }
+      </style>
+
+      <!-- Tab bar -->
+      <div class="disp-tabs">
+        <button class="disp-tab att" data-tab="dispositivi">🔌 Dispositivi</button>
+        <button class="disp-tab" data-tab="energia">⚡ Energia</button>
+        <button class="disp-tab" data-tab="log">📋 Log</button>
+      </div>
+
+      <!-- Contenuto -->
+      <div id="disp-content"></div>
+    `
   });
 
-  function aggiornaTabs() {
-    container.querySelectorAll('[data-tab]').forEach(btn => {
-      const att = btn.dataset.tab === tabAttivo;
-      btn.style.color = att ? '#0E5A7A' : '#64748b';
-      btn.style.borderBottomColor = att ? '#0E5A7A' : 'transparent';
-      btn.style.background = att ? '#f0f9ff' : 'none';
-    });
-  }
+  // Tab switching
+  container.querySelectorAll('.disp-tab').forEach(btn => {
+    btn.onclick = () => {
+      container.querySelectorAll('.disp-tab').forEach(b => b.classList.remove('att'));
+      btn.classList.add('att');
+      tabAttivo = btn.dataset.tab;
+      renderTab();
+    };
+  });
 
   // ════════════════════════════════════════
   // CARICA DATI
@@ -86,7 +139,8 @@ export async function render(container) {
     } catch(e) { settori = []; }
 
     try {
-      const { data } = await supa().from('tariffe_energia').select('*').eq('azienda_id', aziendaId).order('valida_dal', {ascending:false});
+      const { data } = await supa().from('tariffe_energia').select('*')
+        .eq('azienda_id', aziendaId).order('valida_dal', { ascending: false });
       tariffe = data || [];
     } catch(e) { tariffe = []; }
   }
@@ -96,224 +150,213 @@ export async function render(container) {
   // ════════════════════════════════════════
   function renderTabDispositivi(box) {
     box.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:600;color:#374151;">${dispositivi.length} dispositivi registrati</div>
-        <button id="btn-nuovo-dispositivo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi dispositivo</button>
-      </div>
-
-      <!-- Griglia tipi -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="filtro-tipo">
-        <button data-filtro="" style="padding:6px 14px;border:2px solid #0E5A7A;border-radius:20px;background:#f0f9ff;color:#0E5A7A;cursor:pointer;font-size:12px;font-weight:600;">Tutti</button>
-        ${TIPI_DISPOSITIVO.map(t=>`<button data-filtro="${t.id}" style="padding:6px 14px;border:2px solid #e5e7eb;border-radius:20px;background:white;color:#374151;cursor:pointer;font-size:12px;font-weight:600;">${t.icon} ${t.label}</button>`).join('')}
-      </div>
-
-      <!-- Lista dispositivi -->
-      <div id="lista-dispositivi"></div>
-
-      <!-- Form nuovo/edit -->
-      <div id="form-dispositivo" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-top:16px;"></div>
+      ${createCard({ title: '', body: `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:14px;font-weight:600;color:#374151;">${dispositivi.length} dispositivi</div>
+          <button id="btn-nuovo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi</button>
+        </div>
+        <div class="disp-filtri">
+          <button class="disp-filtro att" data-filtro="">Tutti</button>
+          ${TIPI_DISPOSITIVO.map(t => `<button class="disp-filtro" data-filtro="${t.id}">${t.icon} ${t.label}</button>`).join('')}
+        </div>
+        <div id="lista-disp"></div>
+      `})}
+      <div id="form-disp" style="display:none;margin-top:12px;"></div>
     `;
 
-    renderListaDispositivi('');
+    renderLista('');
 
-    box.querySelector('#btn-nuovo-dispositivo').onclick = () => apriForm(null);
+    box.querySelector('#btn-nuovo').onclick = () => apriForm(null);
 
-    box.querySelectorAll('[data-filtro]').forEach(btn => btn.onclick = () => {
-      box.querySelectorAll('[data-filtro]').forEach(b => {
-        b.style.borderColor = '#e5e7eb'; b.style.background = 'white'; b.style.color = '#374151';
-      });
-      btn.style.borderColor = '#0E5A7A'; btn.style.background = '#f0f9ff'; btn.style.color = '#0E5A7A';
-      renderListaDispositivi(btn.dataset.filtro);
+    box.querySelectorAll('.disp-filtro').forEach(btn => {
+      btn.onclick = () => {
+        box.querySelectorAll('.disp-filtro').forEach(b => b.classList.remove('att'));
+        btn.classList.add('att');
+        renderLista(btn.dataset.filtro);
+      };
     });
   }
 
-  function renderListaDispositivi(filtroTipo) {
-    const box = container.querySelector('#lista-dispositivi');
+  function renderLista(filtro) {
+    const box = container.querySelector('#lista-disp');
     if (!box) return;
-    const lista = filtroTipo ? dispositivi.filter(d => d.tipo === filtroTipo) : dispositivi;
+    const lista = filtro ? dispositivi.filter(d => d.tipo === filtro) : dispositivi;
     if (!lista.length) {
-      box.innerHTML = `<div style="color:#94a3b8;text-align:center;padding:40px;font-size:14px;">Nessun dispositivo${filtroTipo?' di questo tipo':''} — clicca "+ Aggiungi" per iniziare</div>`;
+      box.innerHTML = `<div style="color:#94a3b8;text-align:center;padding:32px;font-size:13px;">
+        Nessun dispositivo${filtro ? ' di questo tipo' : ''} — clicca "+ Aggiungi"</div>`;
       return;
     }
     box.innerHTML = lista.map(d => {
-      const tipo = TIPI_DISPOSITIVO.find(t => t.id === d.tipo) || TIPI_DISPOSITIVO.at(-1);
+      const tipo  = TIPI_DISPOSITIVO.find(t => t.id === d.tipo) || TIPI_DISPOSITIVO.at(-1);
       const proto = PROTOCOLLI.find(p => p.id === d.protocollo);
-      const settore = settori.find(s => s.id === d.settore_id);
-      const kwh = d.potenza_w ? (d.potenza_w / 1000).toFixed(2) : null;
+      const sett  = settori.find(s => s.id === d.settore_id);
+      const kwh   = d.potenza_w ? (d.potenza_w / 1000).toFixed(2) : null;
       return `
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
-          <div style="width:48px;height:48px;border-radius:12px;background:${tipo.colore}15;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${tipo.icon}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;">${esc(d.nome)}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px;">
-              ${tipo.label}
-              ${d.marca ? ` · ${esc(d.marca)}` : ''}
-              ${d.modello ? ` ${esc(d.modello)}` : ''}
-              ${settore ? ` · ${esc(settore.nome)}` : ''}
-            </div>
-            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
-              ${proto ? `<span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:11px;color:#374151;">${proto.label}</span>` : ''}
-              ${d.mac_address ? `<span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:11px;color:#374151;font-family:monospace;">${esc(d.mac_address)}</span>` : ''}
-              ${d.ip_address ? `<span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:11px;color:#374151;font-family:monospace;">${esc(d.ip_address)}</span>` : ''}
-              ${kwh ? `<span style="background:#fef3c7;padding:2px 8px;border-radius:6px;font-size:11px;color:#92400e;">⚡ ${kwh} kW</span>` : ''}
-              ${!d.attivo ? `<span style="background:#fee2e2;padding:2px 8px;border-radius:6px;font-size:11px;color:#dc2626;">Disattivo</span>` : ''}
+        <div class="disp-card">
+          <div class="disp-card-inner">
+            <div class="disp-icon" style="background:${tipo.colore}18;">${tipo.icon}</div>
+            <div class="disp-info">
+              <div class="disp-nome">${esc(d.nome)}</div>
+              <div class="disp-sub">${tipo.label}${d.marca ? ' · ' + esc(d.marca) : ''}${d.modello ? ' ' + esc(d.modello) : ''}${sett ? ' · ' + esc(sett.nome) : ''}</div>
+              <div class="disp-tags">
+                ${proto ? `<span class="disp-tag">${proto.label}</span>` : ''}
+                ${d.mac_address ? `<span class="disp-tag" style="font-family:monospace;">${esc(d.mac_address)}</span>` : ''}
+                ${d.ip_address  ? `<span class="disp-tag" style="font-family:monospace;">${esc(d.ip_address)}</span>` : ''}
+                ${kwh ? `<span class="disp-tag" style="background:#fef3c7;color:#92400e;">⚡ ${kwh} kW</span>` : ''}
+                ${!d.attivo ? `<span class="disp-tag" style="background:#fee2e2;color:#dc2626;">Disattivo</span>` : ''}
+              </div>
             </div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            ${d.protocollo === 'bluetooth' ? `<button data-connect="${d.id}" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;">🔵 Connetti</button>` : ''}
-            <button data-edit="${d.id}" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;">Modifica</button>
-            <button data-del="${d.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
+          <div class="disp-actions">
+            ${d.protocollo === 'bluetooth' ? `<button class="disp-btn" data-connect="${d.id}" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;">🔵 Connetti</button>` : ''}
+            <button class="disp-btn" data-edit="${d.id}" style="background:#f1f5f9;color:#374151;">Modifica</button>
+            <button class="disp-btn" data-del="${d.id}" style="background:#fee2e2;color:#dc2626;">Elimina</button>
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
 
-    box.querySelectorAll('[data-edit]').forEach(btn => btn.onclick = () => apriForm(dispositivi.find(d => d.id === btn.dataset.edit)));
-    box.querySelectorAll('[data-del]').forEach(btn => btn.onclick = () => eliminaDispositivo(btn.dataset.del));
-    box.querySelectorAll('[data-connect]').forEach(btn => btn.onclick = () => connettiBluetooth(btn.dataset.connect));
+    box.querySelectorAll('[data-edit]').forEach(btn    => btn.onclick = () => apriForm(dispositivi.find(d => d.id === btn.dataset.edit)));
+    box.querySelectorAll('[data-del]').forEach(btn     => btn.onclick = () => elimina(btn.dataset.del));
+    box.querySelectorAll('[data-connect]').forEach(btn => btn.onclick = () => connettiBt(btn.dataset.connect));
   }
 
   function apriForm(dispositivo) {
     dispositivoInEdit = dispositivo;
-    const box = container.querySelector('#form-dispositivo');
+    const box = container.querySelector('#form-disp');
     if (!box) return;
     box.style.display = 'block';
-    box.innerHTML = `
-      <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:20px;">${dispositivo ? 'Modifica dispositivo' : 'Nuovo dispositivo'}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome *</label>
-          <input id="d-nome" class="input" value="${esc(dispositivo?.nome||'')}" placeholder="es. Roner Cucina 1" style="width:100%;box-sizing:border-box;padding:9px 12px;">
+    box.innerHTML = createCard({ title: dispositivo ? 'Modifica dispositivo' : 'Nuovo dispositivo', body: `
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Nome *</label>
+          <input id="d-nome" value="${esc(dispositivo?.nome||'')}" placeholder="es. Roner Cucina 1">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Tipo *</label>
-          <select id="d-tipo" style="width:100%;padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
-            ${TIPI_DISPOSITIVO.map(t=>`<option value="${t.id}" ${dispositivo?.tipo===t.id?'selected':''}>${t.icon} ${t.label}</option>`).join('')}
+        <div class="form-field">
+          <label>Tipo *</label>
+          <select id="d-tipo">
+            ${TIPI_DISPOSITIVO.map(t => `<option value="${t.id}" ${dispositivo?.tipo===t.id?'selected':''}>${t.icon} ${t.label}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Marca</label>
-          <input id="d-marca" class="input" value="${esc(dispositivo?.marca||'')}" placeholder="es. Rational, Unox, Ohaus..." style="width:100%;box-sizing:border-box;padding:9px 12px;">
+        <div class="form-field">
+          <label>Marca</label>
+          <input id="d-marca" value="${esc(dispositivo?.marca||'')}" placeholder="es. Rational, Unox, Ohaus...">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Modello</label>
-          <input id="d-modello" class="input" value="${esc(dispositivo?.modello||'')}" placeholder="es. SCC61G" style="width:100%;box-sizing:border-box;padding:9px 12px;">
+        <div class="form-field">
+          <label>Modello</label>
+          <input id="d-modello" value="${esc(dispositivo?.modello||'')}" placeholder="es. SCC61G">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Protocollo connessione</label>
-          <select id="d-protocollo" style="width:100%;padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
-            ${PROTOCOLLI.map(p=>`<option value="${p.id}" ${dispositivo?.protocollo===p.id?'selected':''}>${p.label}</option>`).join('')}
+        <div class="form-field">
+          <label>Protocollo</label>
+          <select id="d-protocollo">
+            ${PROTOCOLLI.map(p => `<option value="${p.id}" ${dispositivo?.protocollo===p.id?'selected':''}>${p.label}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Reparto / Settore</label>
-          <select id="d-settore" style="width:100%;padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
+        <div class="form-field">
+          <label>Settore</label>
+          <select id="d-settore">
             <option value="">— Nessuno —</option>
-            ${settori.map(s=>`<option value="${s.id}" ${dispositivo?.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
+            ${settori.map(s => `<option value="${s.id}" ${dispositivo?.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">MAC Address <span style="color:#94a3b8;">(Bluetooth)</span></label>
-          <input id="d-mac" class="input" value="${esc(dispositivo?.mac_address||'')}" placeholder="es. 00:1A:2B:3C:4D:5E" style="width:100%;box-sizing:border-box;padding:9px 12px;font-family:monospace;">
+        <div class="form-field">
+          <label>MAC Address <span style="color:#94a3b8;">(Bluetooth)</span></label>
+          <input id="d-mac" value="${esc(dispositivo?.mac_address||'')}" placeholder="00:1A:2B:3C:4D:5E" style="font-family:monospace;">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">IP Address <span style="color:#94a3b8;">(Wi-Fi/LAN)</span></label>
-          <input id="d-ip" class="input" value="${esc(dispositivo?.ip_address||'')}" placeholder="es. 192.168.1.100" style="width:100%;box-sizing:border-box;padding:9px 12px;font-family:monospace;">
+        <div class="form-field">
+          <label>IP Address <span style="color:#94a3b8;">(Wi-Fi/LAN)</span></label>
+          <input id="d-ip" value="${esc(dispositivo?.ip_address||'')}" placeholder="192.168.1.100" style="font-family:monospace;">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Potenza (Watt) <span style="color:#94a3b8;">— per costo energetico</span></label>
-          <input id="d-potenza" class="input" type="number" value="${dispositivo?.potenza_w||''}" placeholder="es. 1200" style="width:100%;box-sizing:border-box;padding:9px 12px;">
+        <div class="form-field">
+          <label>Potenza (Watt) <span style="color:#94a3b8;">— costo energetico</span></label>
+          <input id="d-potenza" type="number" value="${dispositivo?.potenza_w||''}" placeholder="es. 1200">
         </div>
-        <div>
-          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Numero di serie</label>
-          <input id="d-seriale" class="input" value="${esc(dispositivo?.numero_serie||'')}" placeholder="es. SN123456" style="width:100%;box-sizing:border-box;padding:9px 12px;">
+        <div class="form-field">
+          <label>Numero di serie</label>
+          <input id="d-seriale" value="${esc(dispositivo?.numero_serie||'')}" placeholder="es. SN123456">
         </div>
       </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Note</label>
-        <textarea id="d-note" class="input" rows="2" placeholder="Note tecniche, istruzioni di collegamento..." style="width:100%;box-sizing:border-box;padding:9px 12px;resize:vertical;">${esc(dispositivo?.note||'')}</textarea>
+      <div class="form-field" style="margin-top:12px;">
+        <label>Note</label>
+        <textarea id="d-note" rows="2" placeholder="Note tecniche, istruzioni...">${esc(dispositivo?.note||'')}</textarea>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0;">
         <input type="checkbox" id="d-attivo" ${!dispositivo||dispositivo.attivo?'checked':''} style="width:16px;height:16px;">
-        <label for="d-attivo" style="font-size:13px;color:#374151;">Dispositivo attivo</label>
+        <label for="d-attivo" style="font-size:13px;">Dispositivo attivo</label>
       </div>
-      <div style="display:flex;gap:10px;">
-        <button id="btn-salva-dispositivo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Salva</button>
-        <button id="btn-annulla-form" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:14px;">Annulla</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="btn-salva" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Salva</button>
+        <button id="btn-annulla" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:14px;">Annulla</button>
       </div>
-    `;
+    `});
 
-    box.querySelector('#btn-annulla-form').onclick = () => { box.style.display='none'; dispositivoInEdit=null; };
-    box.querySelector('#btn-salva-dispositivo').onclick = () => salvaDispositivo();
+    box.querySelector('#btn-annulla').onclick = () => { box.style.display='none'; dispositivoInEdit=null; };
+    box.querySelector('#btn-salva').onclick   = () => salva();
+    box.scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
-  async function salvaDispositivo() {
+  async function salva() {
     const nome = container.querySelector('#d-nome')?.value.trim();
-    if (!nome) { mostraToast('Inserisci il nome del dispositivo','warning'); return; }
-    const record = {
-      azienda_id: aziendaId,
-      sede_id: sedeId || null,
+    if (!nome) { toast('Inserisci il nome del dispositivo','warning'); return; }
+    const rec = {
+      azienda_id:   aziendaId,
+      sede_id:      sedeId || null,
       nome,
-      tipo: container.querySelector('#d-tipo')?.value,
-      marca: container.querySelector('#d-marca')?.value.trim() || null,
-      modello: container.querySelector('#d-modello')?.value.trim() || null,
-      protocollo: container.querySelector('#d-protocollo')?.value || null,
-      settore_id: container.querySelector('#d-settore')?.value || null,
-      mac_address: container.querySelector('#d-mac')?.value.trim() || null,
-      ip_address: container.querySelector('#d-ip')?.value.trim() || null,
-      potenza_w: parseInt(container.querySelector('#d-potenza')?.value) || null,
+      tipo:         container.querySelector('#d-tipo')?.value,
+      marca:        container.querySelector('#d-marca')?.value.trim() || null,
+      modello:      container.querySelector('#d-modello')?.value.trim() || null,
+      protocollo:   container.querySelector('#d-protocollo')?.value || null,
+      settore_id:   container.querySelector('#d-settore')?.value || null,
+      mac_address:  container.querySelector('#d-mac')?.value.trim() || null,
+      ip_address:   container.querySelector('#d-ip')?.value.trim() || null,
+      potenza_w:    parseInt(container.querySelector('#d-potenza')?.value) || null,
       numero_serie: container.querySelector('#d-seriale')?.value.trim() || null,
-      note: container.querySelector('#d-note')?.value.trim() || null,
-      attivo: container.querySelector('#d-attivo')?.checked ?? true,
+      note:         container.querySelector('#d-note')?.value.trim() || null,
+      attivo:       container.querySelector('#d-attivo')?.checked ?? true,
     };
-
     try {
       if (dispositivoInEdit) {
-        await supa().from('dispositivi').update(record).eq('id', dispositivoInEdit.id);
-        const idx = dispositivi.findIndex(d => d.id === dispositivoInEdit.id);
-        if (idx >= 0) dispositivi[idx] = { ...dispositivoInEdit, ...record };
+        await supa().from('dispositivi').update(rec).eq('id', dispositivoInEdit.id);
+        const i = dispositivi.findIndex(d => d.id === dispositivoInEdit.id);
+        if (i >= 0) dispositivi[i] = { ...dispositivoInEdit, ...rec };
       } else {
-        const { data } = await supa().from('dispositivi').insert(record).select('*').single();
+        const { data } = await supa().from('dispositivi').insert(rec).select('*').single();
         if (data) dispositivi.push(data);
       }
-      container.querySelector('#form-dispositivo').style.display = 'none';
+      container.querySelector('#form-disp').style.display = 'none';
       dispositivoInEdit = null;
-      renderListaDispositivi('');
-      mostraToast(`Dispositivo "${nome}" salvato ✅`, 'success');
-    } catch(e) { mostraToast('Errore salvataggio: ' + e.message, 'error'); }
+      renderLista('');
+      toast(`"${nome}" salvato ✅`, 'success');
+    } catch(e) { toast('Errore: ' + e.message, 'error'); }
   }
 
-  async function eliminaDispositivo(id) {
+  async function elimina(id) {
     if (!confirm('Eliminare questo dispositivo?')) return;
     await supa().from('dispositivi').delete().eq('id', id);
     dispositivi = dispositivi.filter(d => d.id !== id);
-    renderListaDispositivi('');
-    mostraToast('Dispositivo eliminato','success');
+    renderLista('');
+    toast('Dispositivo eliminato', 'success');
   }
 
   // ════════════════════════════════════════
   // BLUETOOTH
   // ════════════════════════════════════════
-  async function connettiBluetooth(dispositivoId) {
-    const d = dispositivi.find(x => x.id === dispositivoId);
+  async function connettiBt(id) {
+    const d = dispositivi.find(x => x.id === id);
     if (!d) return;
-    if (!navigator.bluetooth) { mostraToast('Bluetooth non supportato in questo browser (usa Chrome)','error'); return; }
+    if (!navigator.bluetooth) { toast('Bluetooth non supportato — usa Chrome', 'error'); return; }
     try {
-      mostraToast('Ricerca dispositivo Bluetooth...','info');
-      const filters = [];
-      if (d.tipo === 'bilancia') filters.push({ services: ['weight_scale'] });
-      else if (d.tipo === 'sonda_temperatura') filters.push({ services: ['health_thermometer'] });
-      else filters.push({ acceptAllDevices: true });
-
-      const device = await navigator.bluetooth.requestDevice(
-        filters.length ? { filters } : { acceptAllDevices: true, optionalServices: ['battery_service'] }
-      );
-      mostraToast(`Connesso a ${device.name || d.nome} ✅`, 'success');
-      // Salva GATT per uso futuro
+      toast('Ricerca dispositivo...', 'info');
+      const opts = d.tipo === 'bilancia'
+        ? { filters: [{ services: ['weight_scale'] }] }
+        : d.tipo === 'sonda_temperatura'
+        ? { filters: [{ services: ['health_thermometer'] }] }
+        : { acceptAllDevices: true, optionalServices: ['battery_service'] };
+      const device = await navigator.bluetooth.requestDevice(opts);
+      toast(`Connesso a ${device.name || d.nome} ✅`, 'success');
       window._btDevices = window._btDevices || {};
-      window._btDevices[dispositivoId] = device;
+      window._btDevices[id] = device;
     } catch(e) {
-      if (e.name !== 'NotFoundError') mostraToast('Errore Bluetooth: ' + e.message, 'error');
+      if (e.name !== 'NotFoundError') toast('Errore Bluetooth: ' + e.message, 'error');
     }
   }
 
@@ -322,60 +365,50 @@ export async function render(container) {
   // ════════════════════════════════════════
   function renderTabEnergia(box) {
     const tariffa = tariffe[0]?.tariffa_kwh_eur || 0.25;
-    const dispositiviConPotenza = dispositivi.filter(d => d.potenza_w && d.attivo);
+    const conPotenza = dispositivi.filter(d => d.potenza_w && d.attivo);
+    const totKw = conPotenza.reduce((s, d) => s + (d.potenza_w || 0), 0) / 1000;
 
     box.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">
-        <!-- Tariffa corrente -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;">
-          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px;">⚡ Tariffa energia</div>
-          <div style="font-size:13px;color:#64748b;margin-bottom:6px;">€/kWh corrente</div>
-          <div style="font-size:36px;font-weight:800;color:#0E5A7A;margin-bottom:16px;">€ ${tariffa.toFixed(4)}</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="nuova-tariffa" type="number" step="0.001" value="${tariffa}" style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
-            <button id="btn-salva-tariffa" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;">Aggiorna</button>
+      <div class="energia-grid">
+        ${createCard({ title: '⚡ Tariffa energia', body: `
+          <div class="stat-sub">€/kWh corrente</div>
+          <div class="stat-val" style="color:#0E5A7A;">€ ${tariffa.toFixed(4)}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <input id="nuova-tariffa" type="number" step="0.001" value="${tariffa}"
+              style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+            <button id="btn-tariffa" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;">Aggiorna</button>
           </div>
-        </div>
-
-        <!-- Riepilogo dispositivi -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;">
-          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px;">🔌 Potenza installata</div>
-          <div style="font-size:36px;font-weight:800;color:#f59e0b;margin-bottom:4px;">
-            ${(dispositiviConPotenza.reduce((s,d)=>s+(d.potenza_w||0),0)/1000).toFixed(1)} kW
-          </div>
-          <div style="font-size:13px;color:#64748b;">${dispositiviConPotenza.length} dispositivi con potenza registrata</div>
-        </div>
+        `})}
+        ${createCard({ title: '🔌 Potenza installata', body: `
+          <div class="stat-sub">Dispositivi attivi con potenza</div>
+          <div class="stat-val" style="color:#f59e0b;">${totKw.toFixed(1)} kW</div>
+          <div class="stat-sub">${conPotenza.length} dispositivi</div>
+        `})}
       </div>
 
-      <!-- Calcola costo per dispositivo -->
-      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:20px;">
-        <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px;">📊 Costo per dispositivo</div>
-        ${dispositiviConPotenza.length ? `
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;padding:0 8px;">
-            <div>Dispositivo</div><div>kW</div><div>€/ora</div><div>€/8h turno</div>
-          </div>
-          ${dispositiviConPotenza.map(d=>{
-            const kw = (d.potenza_w/1000);
-            const eOra = kw * tariffa;
-            const eTurno = eOra * 8;
-            const tipo = TIPI_DISPOSITIVO.find(t=>t.id===d.tipo);
-            return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:10px 8px;background:#f8fafc;border-radius:8px;margin-bottom:4px;align-items:center;">
-              <div style="font-size:13px;font-weight:500;">${tipo?.icon||''} ${esc(d.nome)}</div>
-              <div style="font-size:13px;color:#374151;">${kw.toFixed(2)}</div>
-              <div style="font-size:13px;color:#374151;">€ ${eOra.toFixed(3)}</div>
-              <div style="font-size:13px;font-weight:600;color:#0E5A7A;">€ ${eTurno.toFixed(2)}</div>
-            </div>`;
-          }).join('')}
-        ` : '<div style="color:#94a3b8;font-size:13px;">Nessun dispositivo con potenza registrata. Aggiungila nella scheda dispositivo.</div>'}
-      </div>
+      ${createCard({ title: '📊 Costo per dispositivo', body: conPotenza.length ? `
+        <div class="costi-row" style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">
+          <span>Dispositivo</span><span>kW</span><span>€/ora</span><span>€/turno 8h</span>
+        </div>
+        ${conPotenza.map(d => {
+          const kw = d.potenza_w / 1000;
+          const tipo = TIPI_DISPOSITIVO.find(t => t.id === d.tipo);
+          return `<div class="costi-row">
+            <span style="font-size:13px;font-weight:500;">${tipo?.icon||''} ${esc(d.nome)}</span>
+            <span style="font-size:13px;">${kw.toFixed(2)}</span>
+            <span style="font-size:13px;">€ ${(kw*tariffa).toFixed(3)}</span>
+            <span style="font-size:13px;font-weight:700;color:#0E5A7A;">€ ${(kw*tariffa*8).toFixed(2)}</span>
+          </div>`;
+        }).join('')}
+      ` : '<div style="color:#94a3b8;font-size:13px;">Nessun dispositivo con potenza registrata.</div>' })}
     `;
 
-    box.querySelector('#btn-salva-tariffa')?.addEventListener('click', async () => {
+    box.querySelector('#btn-tariffa')?.addEventListener('click', async () => {
       const val = parseFloat(container.querySelector('#nuova-tariffa')?.value);
-      if (isNaN(val) || val <= 0) { mostraToast('Inserisci una tariffa valida','warning'); return; }
-      await supa().from('tariffe_energia').insert({ azienda_id:aziendaId, tariffa_kwh_eur:val });
+      if (isNaN(val) || val <= 0) { toast('Inserisci una tariffa valida', 'warning'); return; }
+      await supa().from('tariffe_energia').insert({ azienda_id: aziendaId, tariffa_kwh_eur: val });
       tariffe.unshift({ tariffa_kwh_eur: val });
-      mostraToast(`Tariffa aggiornata: €${val}/kWh ✅`,'success');
+      toast(`Tariffa aggiornata: €${val}/kWh ✅`, 'success');
       renderTab();
     });
   }
@@ -384,52 +417,53 @@ export async function render(container) {
   // TAB LOG
   // ════════════════════════════════════════
   async function renderTabLog(box) {
-    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento log...</div>';
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;text-align:center;">Caricamento...</div>';
     let logs = [];
     try {
       const { data } = await supa()
         .from('dispositivo_log')
         .select('*, dispositivi(nome,tipo)')
         .eq('azienda_id', aziendaId)
-        .order('created_at', {ascending:false})
+        .order('created_at', { ascending: false })
         .limit(100);
       logs = data || [];
     } catch(e) {}
 
-    if (!logs.length) { box.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:40px;">Nessun evento registrato ancora.</div>'; return; }
+    if (!logs.length) {
+      box.innerHTML = createCard({ title: '📋 Log eventi', body: '<div style="color:#94a3b8;text-align:center;padding:32px;">Nessun evento registrato ancora.</div>' });
+      return;
+    }
 
-    const TIPO_EVENTO_COLOR = { avvio:'#16a34a', stop:'#dc2626', peso:'#0E5A7A', temperatura:'#f59e0b', allarme:'#dc2626', fine:'#64748b' };
+    const COLORI = { avvio:'#16a34a', stop:'#dc2626', peso:'#0E5A7A', temperatura:'#f59e0b', allarme:'#dc2626', fine:'#64748b' };
 
-    box.innerHTML = `
-      <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:14px;">Ultimi 100 eventi</div>
-      ${logs.map(l => {
-        const d = l.dispositivi;
-        const tipo = TIPI_DISPOSITIVO.find(t=>t.id===d?.tipo);
-        const colore = TIPO_EVENTO_COLOR[l.tipo_evento] || '#64748b';
-        return `<div style="display:flex;gap:12px;padding:10px 14px;background:white;border-radius:10px;margin-bottom:6px;border-left:3px solid ${colore};align-items:flex-start;">
-          <div style="flex-shrink:0;font-size:11px;color:#94a3b8;min-width:140px;">${new Date(l.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;color:#0f172a;">${tipo?.icon||'🔌'} ${esc(d?.nome||'Dispositivo')}</div>
-            <div style="font-size:12px;color:#374151;margin-top:2px;">
-              <span style="color:${colore};font-weight:600;">${l.tipo_evento}</span>
-              ${l.valore_numerico!=null ? ` · ${l.valore_numerico} ${l.valore_unita||''}` : ''}
-              ${l.valore_target!=null ? ` (target: ${l.valore_target})` : ''}
-              ${l.operatore_nome ? ` · ${esc(l.operatore_nome)}` : ''}
-            </div>
-            ${l.costo_energetico_eur ? `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">⚡ Costo: €${Number(l.costo_energetico_eur).toFixed(4)}</div>` : ''}
-            ${l.conforme===false ? `<div style="font-size:11px;color:#dc2626;margin-top:2px;">⚠️ Fuori parametri HACCP</div>` : ''}
+    box.innerHTML = createCard({ title: `📋 Log eventi (${logs.length})`, body: logs.map(l => {
+      const d = l.dispositivi;
+      const tipo = TIPI_DISPOSITIVO.find(t => t.id === d?.tipo);
+      const col  = COLORI[l.tipo_evento] || '#64748b';
+      return `<div class="log-row" style="border-left-color:${col};">
+        <div class="log-ts">${new Date(l.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${tipo?.icon||'🔌'} ${esc(d?.nome||'Dispositivo')}</div>
+          <div style="font-size:12px;color:#374151;margin-top:2px;">
+            <span style="color:${col};font-weight:600;">${l.tipo_evento}</span>
+            ${l.valore_numerico!=null ? ` · ${l.valore_numerico} ${l.valore_unita||''}` : ''}
+            ${l.valore_target!=null   ? ` (target: ${l.valore_target})` : ''}
+            ${l.operatore_nome        ? ` · ${esc(l.operatore_nome)}` : ''}
           </div>
-        </div>`;
-      }).join('')}
-    `;
+          ${l.costo_energetico_eur ? `<div style="font-size:11px;color:#f59e0b;">⚡ €${Number(l.costo_energetico_eur).toFixed(4)}</div>` : ''}
+          ${l.conforme===false      ? `<div style="font-size:11px;color:#dc2626;">⚠️ Fuori parametri HACCP</div>` : ''}
+        </div>
+      </div>`;
+    }).join('') });
   }
 
   // ════════════════════════════════════════
-  // RENDER TAB
+  // RENDER TAB + TOAST
   // ════════════════════════════════════════
   async function renderTab() {
-    aggiornaTabs();
-    const box = container.querySelector('#tab-content');
+    const box = container.querySelector('#disp-content');
+    if (!box) return;
+    box.innerHTML = '';
     switch(tabAttivo) {
       case 'dispositivi': renderTabDispositivi(box); break;
       case 'energia':     renderTabEnergia(box);     break;
@@ -437,11 +471,13 @@ export async function render(container) {
     }
   }
 
-  function mostraToast(msg, tipo='info') {
-    const c={success:'#16a34a',error:'#dc2626',warning:'#f59e0b',info:'#0E5A7A'};
-    const t=document.createElement('div');
-    t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${c[tipo]};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);`;
-    t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+  function toast(msg, tipo='info') {
+    const c = { success:'#16a34a', error:'#dc2626', warning:'#f59e0b', info:'#0E5A7A' };
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${c[tipo]};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);max-width:90vw;text-align:center;`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
   }
 
   // ── Init ──
@@ -449,4 +485,6 @@ export async function render(container) {
   renderTab();
 }
 
-function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); }
+function esc(s) {
+  return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
