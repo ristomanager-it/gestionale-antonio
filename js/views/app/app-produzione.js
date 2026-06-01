@@ -675,15 +675,6 @@ function renderFasiHaccp() {
   wrap.style.display = "";
 
   list.innerHTML = state.fasi.map((f, idx) => {
-    const log = state.logHaccp[idx] || {};
-    const hasTempPrevista = f.temperatura != null;
-    const tipoLabel = {
-      preparazione: "🔪 Preparazione",
-      cottura: "🔥 Cottura",
-      raffreddamento: "❄️ Raffreddamento",
-      attesa: "⏳ Attesa"
-    }[f.tipo_fase] || f.tipo_fase;
-
     const log = state.logHaccp[idx];
     const automatico = log.fonte_dato === "automatico";
     const disp = log.dispositivo;
