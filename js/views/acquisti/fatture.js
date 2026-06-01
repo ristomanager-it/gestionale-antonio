@@ -851,6 +851,10 @@ async function openDocumentoUploadModal(azienda) {
         console.error("ERRORE RIGHE FATTURA:", righeError);
         throw new Error(righeError.message || "Errore salvataggio righe fattura");
       }
+
+      // Aggiorna costo_medio sui prodotti abbinati
+      // costo_per_unita = prezzo_unitario / quantita_confezione
+      await aggiornasCostoMedioProdotti(righe, azienda.id);
     } else {
       const { data: insertedRows, error } = await window.db
         .insert("ddt_acquisto", {
@@ -1063,6 +1067,28 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
 
           <div class="rf-grid-2">
             <div class="rf-field">
+              <label>Unità di misura <span style="font-size:11px;color:#667085;">(come lo usi nelle ricette)</span></label>
+              <select id="rf-um" class="input">
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="lt">lt</option>
+                <option value="ml">ml</option>
+                <option value="pz">pz</option>
+              </select>
+            </div>
+            <div class="rf-field">
+              <label>Qtà per confezione <span style="font-size:11px;color:#667085;">(es. CT da 6 → scrivi 6)</span></label>
+              <input id="rf-qta-confezione" type="number" step="0.001" min="0.001" class="input" placeholder="Es. 6 (o 1 se singolo)" value="1" />
+            </div>
+          </div>
+
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;">
+            💡 <strong>Esempio:</strong> Latte CT da 6 × 1lt → UM: <strong>lt</strong>, Qtà per confezione: <strong>6</strong><br>
+            Il sistema dividerà automaticamente il prezzo fattura per 6 → costo corretto per litro nelle ricette.
+          </div>
+
+          <div class="rf-grid-2">
+            <div class="rf-field">
               <label>Scorta minima</label>
               <input id="rf-scorta-minima" type="number" step="0.001" class="input" placeholder="Es. 1" />
             </div>
@@ -1154,6 +1180,8 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
       const nomeCategoriaInterna = String(inputInternaText.value || "").trim();
       const scortaMinima = parseLocaleNumber(inputScortaMinima.value, 0);
       const quantitaRiordino = parseLocaleNumber(inputQuantitaRiordino.value, 0);
+      const umReale = modalRoot.querySelector("#rf-um")?.value || "pz";
+      const qtaConfezione = Math.max(0.001, parseLocaleNumber(modalRoot.querySelector("#rf-qta-confezione")?.value, 1));
 
       if (!nomeInterno) {
         setFeedback("Inserisci il nome prodotto interno.", true);
@@ -1227,8 +1255,11 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         scorta_minima: Number.isFinite(scortaMinima) ? scortaMinima : 0,
         quantita_riordino: Number.isFinite(quantitaRiordino) ? quantitaRiordino : 0,
         tipo_prodotto: "materia_prima",
-        um: "pz",
-        unita_misura: "pz",
+        um: umReale,
+        unita_base: umReale,
+        unita_misura: umReale,
+        quantita_confezione: qtaConfezione,
+        um_confezione: umReale,
         costo_medio: 0,
         costo_ultimo: 0,
         attivo: true
@@ -1287,6 +1318,43 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
       close();
     });
   });
+}
+
+async function aggiornasCostoMedioProdotti(righe, aziendaId) {
+  const supabase = window.supabaseClient;
+
+  // Raggruppa per prodotto_id: prende l'ultimo prezzo unitario della fattura
+  const costiPerProdotto = new Map();
+  for (const riga of righe) {
+    if (!riga.prodotto_id) continue;
+    const prezzoUnitario = parseLocaleNumber(riga.prezzo_unitario, 0);
+    if (prezzoUnitario <= 0) continue;
+    costiPerProdotto.set(String(riga.prodotto_id), prezzoUnitario);
+  }
+
+  if (!costiPerProdotto.size) return;
+
+  // Per ogni prodotto, carica quantita_confezione e calcola costo_per_unita
+  for (const [prodottoId, prezzoBruto] of costiPerProdotto.entries()) {
+    const { data: prod } = await supabase
+      .from("prodotti")
+      .select("quantita_confezione, um, unita_base")
+      .eq("id", prodottoId)
+      .eq("azienda_id", aziendaId)
+      .maybeSingle();
+
+    const qtaConfezione = Math.max(0.001, Number(prod?.quantita_confezione ?? 1));
+    const costoPerUnita = prezzoBruto / qtaConfezione;
+
+    await supabase
+      .from("prodotti")
+      .update({
+        costo_medio: costoPerUnita,
+        costo_ultimo: costoPerUnita
+      })
+      .eq("id", prodottoId)
+      .eq("azienda_id", aziendaId);
+  }
 }
 
 function ensureAcquistiModalStyles() {
