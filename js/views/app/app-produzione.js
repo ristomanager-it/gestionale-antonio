@@ -19,6 +19,8 @@ function getInitialState() {
 
     porzioni: [],
     scenari: [],
+    fasi: [],          // ricette_preparazione_fasi della ricetta selezionata
+    logHaccp: [],      // righe compilate dal cuoco, una per fase
 
     operatore: null,
 
@@ -57,6 +59,7 @@ export async function render(container) {
     content: `
       ${renderCardRicetta()}
       ${renderCardOperatore()}
+      ${renderCardHaccp()}
       ${renderCardQuantita()}
       ${renderCardConservazione()}
       ${renderCardConfezionamento()}
@@ -330,8 +333,42 @@ async function loadRicette() {
 async function loadRicettaDettagli(ricettaId) {
   await Promise.all([
     loadPorzioni(ricettaId),
-    loadScenari(ricettaId)
+    loadScenari(ricettaId),
+    loadFasiRicetta(ricettaId)
   ]);
+}
+
+async function loadFasiRicetta(ricettaId) {
+  const supabase = window.supabaseClient;
+  if (!supabase || !state.azienda_id || !ricettaId) return;
+
+  const { data, error } = await supabase
+    .from("ricette_preparazione_fasi")
+    .select("id, ordine, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, lavoro_umano_min, note")
+    .eq("ricetta_id", ricettaId)
+    .eq("azienda_id", state.azienda_id)
+    .order("ordine", { ascending: true });
+
+  if (error) { console.error(error); state.fasi = []; return; }
+
+  state.fasi = (data || []);
+  // inizializza log HACCP vuoto per ogni fase
+  state.logHaccp = state.fasi.map(f => ({
+    fase_id: f.id,
+    fase_ordine: f.ordine,
+    fase_nome: f.nome_fase || f.tipo_fase || `Fase ${f.ordine}`,
+    fase_tipo: f.tipo_fase,
+    tecnologia_prevista: f.tecnologia || "",
+    temperatura_prevista: f.temperatura ?? null,
+    temperatura_rilevata: "",
+    ora_inizio: "",
+    ora_fine: "",
+    esito: "ok",
+    note: "",
+    firmato: false
+  }));
+
+  renderFasiHaccp();
 }
 
 async function loadPorzioni(ricettaId) {
@@ -568,6 +605,357 @@ function renderConfezioni() {
   }).join("");
 }
 
+// ============================================================
+// HACCP — CARD E LOGICA
+// ============================================================
+
+function renderCardHaccp() {
+  return createCard({
+    title: "3. Processo & Registro HACCP",
+    body: `
+      <div id="haccp-empty" style="color:#94a3b8;font-size:13px;font-style:italic;">
+        Seleziona una ricetta per vedere le fasi di produzione.
+      </div>
+      <div id="haccp-fasi-wrap" style="display:none;">
+        <div style="font-size:13px;color:#64748b;margin-bottom:12px;">
+          Registra temperatura, orari e firma per ogni fase. Il sistema genera automaticamente il registro HACCP del lotto.
+        </div>
+        <div id="haccp-fasi-list"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="btn-haccp-salva" class="app-button secondary" type="button">
+            💾 Salva registro HACCP
+          </button>
+          <button id="btn-haccp-stampa" class="app-button gray small" type="button">
+            🖨️ Stampa registro
+          </button>
+        </div>
+        <div id="haccp-esito" style="font-size:13px;margin-top:8px;min-height:16px;"></div>
+      </div>
+    `
+  });
+}
+
+function renderFasiHaccp() {
+  const empty = document.getElementById("haccp-empty");
+  const wrap = document.getElementById("haccp-fasi-wrap");
+  const list = document.getElementById("haccp-fasi-list");
+
+  if (!wrap || !list) return;
+
+  if (!state.fasi.length) {
+    if (empty) empty.style.display = "";
+    wrap.style.display = "none";
+    return;
+  }
+
+  if (empty) empty.style.display = "none";
+  wrap.style.display = "";
+
+  list.innerHTML = state.fasi.map((f, idx) => {
+    const log = state.logHaccp[idx] || {};
+    const hasTempPrevista = f.temperatura != null;
+    const tipoLabel = {
+      preparazione: "🔪 Preparazione",
+      cottura: "🔥 Cottura",
+      raffreddamento: "❄️ Raffreddamento",
+      attesa: "⏳ Attesa"
+    }[f.tipo_fase] || f.tipo_fase;
+
+    return `
+      <div class="haccp-fase-card" data-idx="${idx}" style="
+        border:1px solid #e2e8f0;
+        border-radius:12px;
+        padding:14px 16px;
+        margin-bottom:12px;
+        background:#f8fafc;
+        border-left:4px solid ${f.tipo_fase === 'cottura' ? '#f97316' : f.tipo_fase === 'raffreddamento' ? '#0ea5e9' : '#0E5A7A'};
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <span style="font-weight:700;font-size:15px;">Fase ${f.ordine} — ${escapeAttr(f.nome_fase || f.tipo_fase)}</span>
+            <span style="margin-left:8px;font-size:12px;color:#64748b;">${tipoLabel}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${f.tecnologia ? `<span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:20px;font-size:12px;">🔧 ${escapeAttr(f.tecnologia)}</span>` : ""}
+            ${hasTempPrevista ? `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;font-size:12px;">🌡 prevista: ${f.temperatura}°C</span>` : ""}
+            ${f.durata_min ? `<span style="background:#f0fdf4;color:#166534;padding:3px 8px;border-radius:20px;font-size:12px;">⏱ ${f.durata_min} min</span>` : ""}
+          </div>
+        </div>
+
+        ${f.descrizione_operativa ? `
+        <div style="background:#fff;border-radius:8px;padding:10px 12px;font-size:13px;color:#374151;margin-bottom:12px;border:1px solid #e5e7eb;">
+          📋 ${escapeAttr(f.descrizione_operativa)}
+        </div>` : ""}
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+
+          <div>
+            <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Ora inizio</label>
+            <input type="datetime-local" class="input haccp-ora-inizio" data-idx="${idx}"
+              value="${escapeAttr(log.ora_inizio || '')}"
+              style="margin-top:4px;font-size:14px;">
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Ora fine</label>
+            <input type="datetime-local" class="input haccp-ora-fine" data-idx="${idx}"
+              value="${escapeAttr(log.ora_fine || '')}"
+              style="margin-top:4px;font-size:14px;">
+          </div>
+
+          ${hasTempPrevista ? `
+          <div>
+            <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Temp. rilevata (°C)</label>
+            <input type="number" step="0.1" class="input haccp-temp" data-idx="${idx}"
+              value="${escapeAttr(String(log.temperatura_rilevata || ''))}"
+              placeholder="es. 72.5"
+              style="margin-top:4px;font-size:14px;">
+          </div>` : ""}
+
+          <div>
+            <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Esito</label>
+            <select class="input haccp-esito" data-idx="${idx}" style="margin-top:4px;font-size:14px;">
+              <option value="ok" ${log.esito === 'ok' ? 'selected' : ''}>✅ OK</option>
+              <option value="attenzione" ${log.esito === 'attenzione' ? 'selected' : ''}>⚠️ Attenzione</option>
+              <option value="nc" ${log.esito === 'nc' ? 'selected' : ''}>❌ Non conforme</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div style="margin-top:10px;">
+          <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Note fase</label>
+          <input type="text" class="input haccp-note" data-idx="${idx}"
+            value="${escapeAttr(log.note || '')}"
+            placeholder="Annotazioni, deviazioni, azioni correttive..."
+            style="margin-top:4px;font-size:14px;">
+        </div>
+
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="app-button small haccp-firma-btn ${log.firmato ? 'gray' : ''}" data-idx="${idx}">
+            ${log.firmato ? `✅ Firmato — ${escapeAttr(log.firmato_da || '')}` : '✍️ Firma fase'}
+          </button>
+          ${log.firmato ? `<span style="font-size:12px;color:#64748b;">${escapeAttr(log.firmato_il || '')}</span>` : ''}
+        </div>
+
+      </div>
+    `;
+  }).join("");
+
+  // bind eventi
+  list.querySelectorAll(".haccp-ora-inizio").forEach(el => {
+    el.addEventListener("change", e => {
+      const idx = Number(e.target.dataset.idx);
+      state.logHaccp[idx].ora_inizio = e.target.value;
+      calcolaDurataReale(idx);
+    });
+  });
+  list.querySelectorAll(".haccp-ora-fine").forEach(el => {
+    el.addEventListener("change", e => {
+      const idx = Number(e.target.dataset.idx);
+      state.logHaccp[idx].ora_fine = e.target.value;
+      calcolaDurataReale(idx);
+    });
+  });
+  list.querySelectorAll(".haccp-temp").forEach(el => {
+    el.addEventListener("input", e => {
+      const idx = Number(e.target.dataset.idx);
+      state.logHaccp[idx].temperatura_rilevata = e.target.value;
+      verificaTemperatura(idx, el);
+    });
+  });
+  list.querySelectorAll(".haccp-esito").forEach(el => {
+    el.addEventListener("change", e => {
+      const idx = Number(e.target.dataset.idx);
+      state.logHaccp[idx].esito = e.target.value;
+    });
+  });
+  list.querySelectorAll(".haccp-note").forEach(el => {
+    el.addEventListener("input", e => {
+      const idx = Number(e.target.dataset.idx);
+      state.logHaccp[idx].note = e.target.value;
+    });
+  });
+  list.querySelectorAll(".haccp-firma-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = Number(btn.dataset.idx);
+      firmaFase(idx);
+    });
+  });
+
+  // btn salva e stampa
+  document.getElementById("btn-haccp-salva")?.addEventListener("click", salvaLogHaccp);
+  document.getElementById("btn-haccp-stampa")?.addEventListener("click", stampaRegistroHaccp);
+}
+
+function calcolaDurataReale(idx) {
+  const log = state.logHaccp[idx];
+  if (!log.ora_inizio || !log.ora_fine) return;
+  const start = new Date(log.ora_inizio);
+  const end = new Date(log.ora_fine);
+  const diffMin = (end - start) / 60000;
+  log.durata_reale_min = diffMin > 0 ? Math.round(diffMin * 10) / 10 : 0;
+}
+
+function verificaTemperatura(idx, inputEl) {
+  const log = state.logHaccp[idx];
+  const fase = state.fasi[idx];
+  if (!fase?.temperatura || !log.temperatura_rilevata) {
+    inputEl.style.borderColor = "";
+    return;
+  }
+  const rilevata = Number(log.temperatura_rilevata);
+  const prevista = Number(fase.temperatura);
+  const scarto = Math.abs(rilevata - prevista);
+  const ok = scarto <= 3; // tolleranza ±3°C
+  inputEl.style.borderColor = ok ? "#22c55e" : "#ef4444";
+  log.temperatura_ok = ok;
+  if (!ok && log.esito === "ok") {
+    log.esito = "attenzione";
+    // aggiorna select
+    const sel = inputEl.closest(".haccp-fase-card")?.querySelector(".haccp-esito");
+    if (sel) sel.value = "attenzione";
+  }
+}
+
+function firmaFase(idx) {
+  const operatore = document.getElementById("app-prod-operatore")?.value?.trim();
+  if (!operatore) {
+    alert("Inserisci prima il PIN operatore per firmare.");
+    return;
+  }
+  const log = state.logHaccp[idx];
+  log.firmato = true;
+  log.firmato_da = operatore;
+  log.firmato_il = new Date().toLocaleString("it-IT");
+  // Imposta automaticamente ora fine se non compilata
+  if (!log.ora_fine) {
+    const now = new Date();
+    const iso = now.toISOString().slice(0, 16);
+    log.ora_fine = iso;
+    calcolaDurataReale(idx);
+  }
+  renderFasiHaccp();
+}
+
+async function salvaLogHaccp() {
+  const supabase = window.supabaseClient;
+  const esito = document.getElementById("haccp-esito");
+  if (!state.ricetta?.id) { if(esito) esito.textContent = "Seleziona prima una ricetta."; return; }
+  if (!state.logHaccp.length) { if(esito) esito.textContent = "Nessuna fase da registrare."; return; }
+
+  if (esito) esito.textContent = "Salvataggio...";
+
+  const operatoreNome = document.getElementById("app-prod-operatore")?.value?.trim() || null;
+  const lotto_id = state.savedLotto?.id || null;
+
+  const rows = state.logHaccp.map(log => ({
+    azienda_id: state.azienda_id,
+    sede_id: state.sede_id,
+    lotto_id,
+    ricetta_id: state.ricetta.id,
+    fase_id: log.fase_id || null,
+    fase_ordine: log.fase_ordine,
+    fase_nome: log.fase_nome,
+    fase_tipo: log.fase_tipo,
+    tecnologia_prevista: log.tecnologia_prevista || null,
+    temperatura_prevista: log.temperatura_prevista ?? null,
+    operatore_nome: operatoreNome,
+    temperatura_rilevata: log.temperatura_rilevata !== "" ? Number(log.temperatura_rilevata) : null,
+    temperatura_ok: log.temperatura_ok ?? null,
+    ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
+    ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+    durata_reale_min: log.durata_reale_min ?? null,
+    esito: log.esito || "ok",
+    note: log.note || null,
+    firmato_da: log.firmato_da || null,
+    firmato_il: log.firmato ? new Date().toISOString() : null
+  }));
+
+  const { error } = await supabase.from("produzione_log_haccp").insert(rows);
+
+  if (error) {
+    console.error(error);
+    if (esito) { esito.textContent = "❌ Errore salvataggio HACCP"; esito.style.color = "#dc2626"; }
+    return;
+  }
+
+  if (esito) { esito.textContent = "✅ Registro HACCP salvato"; esito.style.color = "#16a34a"; }
+}
+
+function stampaRegistroHaccp() {
+  const azienda = window.state?.azienda;
+  const nomeRicetta = state.ricetta?.nome || "—";
+  const dataOggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+  const operatore = document.getElementById("app-prod-operatore")?.value?.trim() || "—";
+  const lotto = state.savedLottoRef || "—";
+
+  const righe = state.logHaccp.map((log, idx) => {
+    const fase = state.fasi[idx];
+    const esitoIcon = { ok: "✅", attenzione: "⚠️", nc: "❌" }[log.esito] || "";
+    const tempPrev = fase?.temperatura != null ? `${fase.temperatura}°C` : "—";
+    const tempRil = log.temperatura_rilevata !== "" ? `${log.temperatura_rilevata}°C` : "—";
+    return `
+      <tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:10px 8px;font-weight:600;">${log.fase_ordine}</td>
+        <td style="padding:10px 8px;">${escapeAttr(log.fase_nome)}</td>
+        <td style="padding:10px 8px;font-size:12px;color:#64748b;">${escapeAttr(log.tecnologia_prevista || "—")}</td>
+        <td style="padding:10px 8px;text-align:center;">${tempPrev}</td>
+        <td style="padding:10px 8px;text-align:center;font-weight:700;color:${log.temperatura_ok === false ? '#dc2626' : '#16a34a'}">${tempRil}</td>
+        <td style="padding:10px 8px;font-size:12px;">${log.ora_inizio ? new Date(log.ora_inizio).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+        <td style="padding:10px 8px;font-size:12px;">${log.ora_fine ? new Date(log.ora_fine).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+        <td style="padding:10px 8px;font-size:12px;">${log.durata_reale_min != null ? `${log.durata_reale_min} min` : "—"}</td>
+        <td style="padding:10px 8px;text-align:center;">${esitoIcon}</td>
+        <td style="padding:10px 8px;font-size:11px;color:#64748b;">${escapeAttr(log.note || "")}</td>
+        <td style="padding:10px 8px;font-size:11px;">${escapeAttr(log.firmato_da || "—")}</td>
+      </tr>`;
+  }).join("");
+
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+    <title>Registro HACCP — ${escapeAttr(nomeRicetta)}</title>
+    <style>
+      * { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
+      body { padding: 32px; color: #1a1a2e; }
+      h1 { font-size: 20px; margin-bottom: 4px; }
+      .sub { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+      .meta { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-bottom:24px; }
+      .meta-item { background:#f8fafc; border-radius:8px; padding:10px; }
+      .meta-label { font-size:10px; text-transform:uppercase; color:#64748b; letter-spacing:1px; }
+      .meta-value { font-size:15px; font-weight:700; margin-top:3px; }
+      table { width:100%; border-collapse:collapse; font-size:13px; }
+      th { background:#0E5A7A; color:white; padding:10px 8px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; }
+      .firma-box { margin-top:32px; display:flex; justify-content:flex-end; gap:40px; }
+      .firma-line { border-top: 1px solid #1a1a2e; width:200px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
+      @media print { body { padding:16px; } .no-print { display:none; } }
+    </style></head><body>
+    <div class="no-print" style="text-align:center;padding:12px;background:#f8fafc;margin-bottom:16px;">
+      <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa / Salva PDF</button>
+    </div>
+    <h1>Registro HACCP Produzione</h1>
+    <div class="sub">${escapeAttr(azienda?.nome || "")} — Generato il ${dataOggi}</div>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Ricetta</div><div class="meta-value">${escapeAttr(nomeRicetta)}</div></div>
+      <div class="meta-item"><div class="meta-label">Lotto</div><div class="meta-value">${escapeAttr(lotto)}</div></div>
+      <div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">${dataOggi}</div></div>
+      <div class="meta-item"><div class="meta-label">Responsabile</div><div class="meta-value">${escapeAttr(operatore)}</div></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Fase</th><th>Attrezzatura</th><th>T° prevista</th><th>T° rilevata</th>
+        <th>Inizio</th><th>Fine</th><th>Durata</th><th>Esito</th><th>Note</th><th>Firma</th>
+      </tr></thead>
+      <tbody>${righe}</tbody>
+    </table>
+    <div class="firma-box">
+      <div class="firma-line">Firma responsabile produzione</div>
+      <div class="firma-line">Firma responsabile HACCP</div>
+    </div>
+    </body></html>`);
+  win.document.close();
+}
+
 function aggiornaRicettaInfo() {
   const el = document.getElementById("app-prod-ricetta-info");
   if (!el) return;
@@ -581,14 +969,9 @@ function aggiornaRicettaInfo() {
     ? `Resa teorica: ${state.ricetta.resa_teorica} ${state.ricetta.resa_unita || "kg"}`
     : "";
 
-  const attrezzatura = state.ricetta.attrezzatura
-    ? `🔧 Attrezzatura: ${state.ricetta.attrezzatura}`
-    : "";
-
   el.innerHTML = [
     `<strong>${state.ricetta.nome}</strong>`,
-    resa,
-    attrezzatura
+    resa
   ].filter(Boolean).join(" &nbsp;·&nbsp; ");
 }
 
