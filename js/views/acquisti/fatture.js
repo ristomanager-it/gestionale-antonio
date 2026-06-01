@@ -994,6 +994,80 @@ async function openDocumentoUploadModal(azienda) {
   renderRighe();
 }
 
+/* ============================================================
+   PARSING AUTOMATICO DESCRIZIONE FATTURA
+   Estrae UM e quantità confezione da stringhe tipo:
+   "Nepi Eff Nat 1lt x12"  → um=lt, qta=12
+   "Latte CT 6x1lt"        → um=lt, qta=6
+   "Farina kg 25"          → um=kg, qta=1
+   "Acqua 0.5lt x24"       → um=lt, qta=24
+============================================================ */
+function parseDescrizioneConfezione(desc) {
+  if (!desc) return { um: "pz", qtaConfezione: 1 };
+
+  const s = desc.toLowerCase().trim();
+  let um = "pz";
+  let qtaConfezione = 1;
+
+  // Pattern UM riconosciuti
+  const umPatterns = [
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*lt\b/,   um: "lt"  },
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*l\b/,    um: "lt"  },
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*ml\b/,   um: "ml"  },
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*cl\b/,   um: "ml"  }, // cl → ml
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*kg\b/,   um: "kg"  },
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*g\b/,    um: "g"   },
+    { regex: /\b(\d+(?:[.,]\d+)?)\s*gr\b/,   um: "g"   },
+  ];
+
+  // Pattern moltiplicatore: x12, x 12, *12, ct12, ct 12, pz12
+  const moltiplicatorePatterns = [
+    /[x×\*]\s*(\d+)/i,
+    /\bct\s*(\d+)\b/i,
+    /\bpz\s*(\d+)\b/i,
+    /\bb(?:ott(?:iglia)?)?\.?\s*(\d+)\b/i,
+    /(\d+)\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:lt|l|kg|g|gr|ml|cl)/i, // "12x1lt"
+  ];
+
+  // Estrai UM dalla descrizione
+  for (const p of umPatterns) {
+    if (p.regex.test(s)) {
+      um = p.um;
+      break;
+    }
+  }
+  // Fallback: UM senza numero davanti (es. "acqua lt", "farina kg")
+  if (um === "pz") {
+    if (/\blt\b|\blitri?\b/.test(s)) um = "lt";
+    else if (/\bml\b/.test(s)) um = "ml";
+    else if (/\bkg\b|\bchilo/.test(s)) um = "kg";
+    else if (/\bgr?\b|\bgramm/.test(s)) um = "g";
+  }
+
+  // Estrai moltiplicatore (quante unità nella confezione)
+  for (const p of moltiplicatorePatterns) {
+    const m = s.match(p);
+    if (m) {
+      // Prende il gruppo numerico più grande (es. in "12x1lt" prende 12)
+      const candidates = m.slice(1).map(Number).filter(n => n > 1);
+      if (candidates.length) {
+        qtaConfezione = Math.max(...candidates);
+        break;
+      }
+    }
+  }
+
+  // Caso "cl": converti in ml (1cl = 10ml)
+  if (/\bcl\b/.test(s) && um === "ml") {
+    const clMatch = s.match(/\b(\d+(?:[.,]\d+)?)\s*cl\b/);
+    if (clMatch) {
+      // Lascia um=ml, la conversione è gestita nel costo
+    }
+  }
+
+  return { um, qtaConfezione };
+}
+
 async function openCreateProductModal({ azienda, descrizioneFattura }) {
   ensureAcquistiModalStyles();
 
@@ -1077,14 +1151,17 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
               </select>
             </div>
             <div class="rf-field">
-              <label>Qtà per confezione <span style="font-size:11px;color:#667085;">(es. CT da 6 → scrivi 6)</span></label>
-              <input id="rf-qta-confezione" type="number" step="0.001" min="0.001" class="input" placeholder="Es. 6 (o 1 se singolo)" value="1" />
+              <label>Qtà per confezione <span style="font-size:11px;color:#667085;">(es. x12 → scrivi 12)</span></label>
+              <input id="rf-qta-confezione" type="number" step="0.001" min="0.001" class="input" placeholder="Es. 12 (o 1 se singolo)" value="1" />
             </div>
           </div>
 
+          <div id="rf-parsing-banner" style="display:none;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px 12px;font-size:12px;color:#065f46;margin-top:4px;">
+          </div>
+
           <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;">
-            💡 <strong>Esempio:</strong> Latte CT da 6 × 1lt → UM: <strong>lt</strong>, Qtà per confezione: <strong>6</strong><br>
-            Il sistema dividerà automaticamente il prezzo fattura per 6 → costo corretto per litro nelle ricette.
+            💡 <strong>Esempio:</strong> "Nepi Eff Nat 1lt x12" → UM: <strong>lt</strong>, Qtà: <strong>12</strong> → costo = prezzo / 12<br>
+            Verifica sempre i valori rilevati automaticamente.
           </div>
 
           <div class="rf-grid-2">
@@ -1110,6 +1187,22 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
   `;
 
   document.body.appendChild(modalRoot);
+
+  // ── Parsing automatico descrizione fattura ──
+  const parsed = parseDescrizioneConfezione(descrizioneFattura);
+  const selUm = modalRoot.querySelector("#rf-um");
+  const inpQta = modalRoot.querySelector("#rf-qta-confezione");
+  const banner = modalRoot.querySelector("#rf-parsing-banner");
+
+  if (selUm) selUm.value = parsed.um;
+  if (inpQta) inpQta.value = parsed.qtaConfezione;
+
+  if (banner) {
+    if (parsed.um !== "pz" || parsed.qtaConfezione > 1) {
+      banner.style.display = "";
+      banner.innerHTML = `✅ Rilevato automaticamente: <strong>UM = ${parsed.um}</strong>, <strong>Qtà confezione = ${parsed.qtaConfezione}</strong> — verifica e correggi se necessario.`;
+    }
+  }
 
   const inputNomeInterno = modalRoot.querySelector("#rf-prod-nome-interno");
   const selectGestione = modalRoot.querySelector("#rf-cat-gestione");
