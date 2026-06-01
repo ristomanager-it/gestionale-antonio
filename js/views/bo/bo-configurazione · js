@@ -81,7 +81,7 @@ export async function render(container) {
       case 'operativo':    renderTabOperativo(box);    break;
       case 'sala':         renderTabSala(box);         break;
       case 'menu':         renderTabMenu(box);         break;
-      case 'cassa':        renderTabPresto(box,'💳','Cassa & Stampa',    'Gestione cassa, stampanti fiscali, integrazioni registratori telematici.');  break;
+      case 'cassa':        renderTabCassa(box); break;
       case 'integrazioni': renderTabPresto(box,'🔗','Integrazioni',      'Connessione con sistemi POS, piattaforme delivery, Google, WhatsApp.');  break;
     }
   }
@@ -91,6 +91,274 @@ export async function render(container) {
   // ════════════════════════════════════════
   // PRESTO DISPONIBILE (tab vuoti)
   // ════════════════════════════════════════
+  // ════════════════════════════════════════
+  // TAB: CASSA & STAMPANTI FISCALI
+  // ════════════════════════════════════════
+  async function renderTabCassa(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: stampanti } = await supa()
+      .from('stampanti_fiscali')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .order('created_at', { ascending: true });
+
+    const { data: sedi } = await supa()
+      .from('sedi')
+      .select('id, nome')
+      .eq('azienda_id', aziendaId)
+      .order('nome');
+
+    const sediOpts = (sedi || []).map(s =>
+      `<option value="${s.id}">${esc(s.nome)}</option>`
+    ).join('');
+
+    box.innerHTML = `
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#0f172a;">🖨️ Stampanti fiscali</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Registratori telematici collegati per sede</div>
+          </div>
+          <button id="btn-nuova-stampante" style="background:#0E5A7A;color:white;border:none;padding:9px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi stampante</button>
+        </div>
+
+        <div id="lista-stampanti"></div>
+
+        <!-- Form nuova/modifica stampante -->
+        <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-stampante-title">Nuova stampante</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Nome</label>
+              <input id="sp-nome" class="input" placeholder="Es. Cassa principale" style="margin-top:4px;">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+              <select id="sp-sede" class="input" style="margin-top:4px;">
+                <option value="">— Tutte le sedi —</option>
+                ${sediOpts}
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Modello</label>
+              <select id="sp-modello" class="input" style="margin-top:4px;">
+                <option value="Epson FP-81 II RT">Epson FP-81 II RT</option>
+                <option value="Epson FP-90III RT">Epson FP-90III RT</option>
+                <option value="Custom RT">Custom RT</option>
+                <option value="Ditron">Ditron</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Matricola</label>
+              <input id="sp-matricola" class="input" placeholder="Es. 99IEB040357" style="margin-top:4px;">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Indirizzo IP</label>
+              <input id="sp-ip" class="input" placeholder="Es. 192.168.0.102" style="margin-top:4px;">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Porta HTTP</label>
+              <input id="sp-porta" class="input" type="number" value="80" style="margin-top:4px;">
+            </div>
+
+          </div>
+
+          <div style="margin-top:16px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Reparti IVA</label>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Configura i reparti come impostati sulla stampante</div>
+            <div id="reparti-wrap" style="margin-top:6px;"></div>
+            <button type="button" id="btn-add-reparto" style="margin-top:8px;background:#f1f5f9;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#374151;">+ Aggiungi reparto</button>
+          </div>
+
+          <div id="sp-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
+
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button id="btn-salva-stampante" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+            <button id="btn-test-stampante" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">🔌 Test connessione</button>
+            <button id="btn-annulla-stampante" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    let editingId = null;
+    let repartiRows = [
+      { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
+      { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+      { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
+    ];
+
+    function renderReparti() {
+      const wrap = box.querySelector('#reparti-wrap');
+      if (!wrap) return;
+      wrap.innerHTML = repartiRows.map((r, idx) => `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <input type="number" min="1" max="99" value="${r.reparto}" data-rep-idx="${idx}" data-field="reparto"
+            style="width:60px;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="#">
+          <input type="number" min="0" max="100" step="0.1" value="${r.iva}" data-rep-idx="${idx}" data-field="iva"
+            style="width:70px;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="IVA%">
+          <input type="text" value="${esc(r.descrizione)}" data-rep-idx="${idx}" data-field="descrizione"
+            style="flex:1;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="Es. Alimenti">
+          <button data-del-rep="${idx}" style="background:#fee2e2;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;color:#dc2626;font-size:12px;">✕</button>
+        </div>
+      `).join('');
+
+      wrap.querySelectorAll('[data-rep-idx]').forEach(el => {
+        el.addEventListener('input', () => {
+          const idx = +el.dataset.repIdx;
+          const field = el.dataset.field;
+          repartiRows[idx][field] = field === 'descrizione' ? el.value : Number(el.value);
+        });
+      });
+      wrap.querySelectorAll('[data-del-rep]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          repartiRows.splice(+btn.dataset.delRep, 1);
+          renderReparti();
+        });
+      });
+    }
+
+    function renderListaStampanti(lista) {
+      const el = box.querySelector('#lista-stampanti');
+      if (!lista || !lista.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Nessuna stampante configurata.</div>';
+        return;
+      }
+      el.innerHTML = lista.map(s => {
+        const sedeName = (sedi || []).find(x => x.id === s.sede_id)?.nome || 'Tutte le sedi';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#0f172a;">${esc(s.nome)}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${esc(s.modello || '—')} · ${esc(s.matricola || '—')} · IP: <strong>${esc(s.ip)}</strong>:${s.porta || 80} · ${esc(sedeName)}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="background:${s.attiva ? '#dcfce7' : '#fee2e2'};color:${s.attiva ? '#15803d' : '#dc2626'};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">
+                ${s.attiva ? '✅ Attiva' : '⏸ Disattiva'}
+              </span>
+              <button data-edit="${s.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;font-weight:600;">✏️ Modifica</button>
+              <button data-toggle="${s.id}" data-attiva="${s.attiva}" style="background:#f1f5f9;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#374151;">
+                ${s.attiva ? '⏸ Disattiva' : '▶️ Attiva'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => apriForm(lista.find(s => s.id === btn.dataset.edit)));
+      });
+      el.querySelectorAll('[data-toggle]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await supa().from('stampanti_fiscali')
+            .update({ attiva: btn.dataset.attiva !== 'true' })
+            .eq('id', btn.dataset.toggle);
+          renderTabCassa(box);
+        });
+      });
+    }
+
+    function apriForm(stampante = null) {
+      editingId = stampante?.id || null;
+      box.querySelector('#form-stampante-title').textContent = stampante ? 'Modifica stampante' : 'Nuova stampante';
+      box.querySelector('#sp-nome').value = stampante?.nome || '';
+      box.querySelector('#sp-sede').value = stampante?.sede_id || '';
+      box.querySelector('#sp-modello').value = stampante?.modello || 'Epson FP-81 II RT';
+      box.querySelector('#sp-matricola').value = stampante?.matricola || '';
+      box.querySelector('#sp-ip').value = stampante?.ip || '';
+      box.querySelector('#sp-porta').value = stampante?.porta || 80;
+      repartiRows = stampante?.reparti_iva || [
+        { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
+        { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+        { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
+      ];
+      renderReparti();
+      box.querySelector('#form-stampante-wrap').style.display = '';
+      box.querySelector('#sp-esito').textContent = '';
+    }
+
+    renderListaStampanti(stampanti || []);
+    renderReparti();
+
+    box.querySelector('#btn-nuova-stampante').onclick = () => apriForm(null);
+    box.querySelector('#btn-annulla-stampante').onclick = () => {
+      box.querySelector('#form-stampante-wrap').style.display = 'none';
+    };
+    box.querySelector('#btn-add-reparto').onclick = () => {
+      repartiRows.push({ reparto: repartiRows.length + 1, iva: 10, descrizione: '' });
+      renderReparti();
+    };
+
+    box.querySelector('#btn-test-stampante').onclick = async () => {
+      const ip = box.querySelector('#sp-ip').value.trim();
+      const porta = box.querySelector('#sp-porta').value || 80;
+      const esito = box.querySelector('#sp-esito');
+      if (!ip) { esito.textContent = '❌ Inserisci IP stampante'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '🔌 Test in corso...'; esito.style.color = '#64748b';
+      try {
+        const r = await fetch(`http://${ip}:${porta}/cgi-bin/fpmate.cgi`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/xml' },
+          body: '<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><printerCommand><queryPrinterStatus/></printerCommand></s:Body></s:Envelope>',
+          signal: AbortSignal.timeout(5000)
+        });
+        if (r.ok) { esito.textContent = '✅ Stampante raggiungibile!'; esito.style.color = '#16a34a'; }
+        else { esito.textContent = `⚠️ Risposta HTTP ${r.status}`; esito.style.color = '#f59e0b'; }
+      } catch (e) {
+        esito.textContent = '❌ Non raggiungibile — verifica IP e rete locale (il browser potrebbe bloccare chiamate HTTP locali)';
+        esito.style.color = '#dc2626';
+      }
+    };
+
+    box.querySelector('#btn-salva-stampante').onclick = async () => {
+      const esito = box.querySelector('#sp-esito');
+      const nome = box.querySelector('#sp-nome').value.trim();
+      const ip   = box.querySelector('#sp-ip').value.trim();
+      if (!nome || !ip) { esito.textContent = '❌ Nome e IP obbligatori'; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id:  aziendaId,
+        sede_id:     box.querySelector('#sp-sede').value || null,
+        nome,
+        modello:     box.querySelector('#sp-modello').value,
+        matricola:   box.querySelector('#sp-matricola').value.trim() || null,
+        ip,
+        porta:       Number(box.querySelector('#sp-porta').value) || 80,
+        attiva:      true,
+        reparti_iva: repartiRows
+      };
+
+      let error;
+      if (editingId) {
+        ({ error } = await supa().from('stampanti_fiscali').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supa().from('stampanti_fiscali').insert(payload));
+      }
+
+      if (error) { esito.textContent = '❌ Errore: ' + error.message; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      setTimeout(() => renderTabCassa(box), 800);
+    };
+  }
+
+  function esc(v) {
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
   function renderTabPresto(box, icon, titolo, desc) {
     box.innerHTML = `
       <div style="text-align:center;padding:80px 40px;">
