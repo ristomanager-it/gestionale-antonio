@@ -35,8 +35,6 @@ let outputSecondariCache = [];
 
 let _autocompleteDocBound = false;
 
-let dispositividCache = [];
-
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
 
@@ -293,10 +291,8 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
-              <label>Dispositivo produzione</label>
-              <select id="r-dispositivo-id" class="input">
-                <option value="">— Seleziona dispositivo —</option>
-              </select>
+              <label>Attrezzatura produzione</label>
+              <input id="r-attrezzatura" class="input" placeholder="Es. teglia inox, roner, abbattitore..." />
             </div>
 
             <div class="form-group">
@@ -471,7 +467,6 @@ export async function render(app) {
   await loadProdotti();
   await loadCategoriePortata();
   await loadFasiTemplate();
-  await loadDispositivi();
   bindUI();
 
   if (ricettaId) {
@@ -558,37 +553,6 @@ setupAutocomplete(
       aggiornaOutputInfo();
     }
   );
-}
-
-/* ============================================================
-   DISPOSITIVI
-============================================================ */
-async function loadDispositivi() {
-  const supabase = window.supabaseClient;
-  const aziendaId = window.state.azienda.id;
-
-  const { data, error } = await supabase
-    .from("dispositivi")
-    .select("id, nome, tipo")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
-    .order("nome");
-
-  if (error) {
-    console.error("loadDispositivi:", error);
-    dispositividCache = [];
-    return;
-  }
-
-  dispositividCache = data || [];
-
-  const sel = document.getElementById("r-dispositivo-id");
-  if (!sel) return;
-
-  sel.innerHTML = `<option value="">— Seleziona dispositivo —</option>` +
-    dispositividCache.map(d =>
-      `<option value="${d.id}">${escapeHtml(d.nome)}${d.tipo ? ` (${escapeHtml(d.tipo)})` : ""}</option>`
-    ).join("");
 }
 
 /* ============================================================
@@ -1541,9 +1505,7 @@ async function caricaRicettaCompleta() {
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
-  if (ricetta.dispositivo_id) {
-    setVal("r-dispositivo-id", ricetta.dispositivo_id);
-  }
+  setVal("r-attrezzatura", ricetta.attrezzatura || "");
   if (ricetta.foto_url) {
     const fotoWrap = document.getElementById("r-foto-preview-wrap");
     const fotoImg = document.getElementById("r-foto-preview");
@@ -1753,7 +1715,7 @@ async function salvaTutto() {
       stato_strutturale: "bozza",
       tipo_ricetta,
       categoria_portata_id,
-      dispositivo_id: getVal("r-dispositivo-id") || null,
+      attrezzatura: getVal("r-attrezzatura") || null,
       creato_da: window.state?.user?.id || null,
       creato_da_tony: false
     };
@@ -1783,7 +1745,7 @@ async function salvaTutto() {
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
-      dispositivo_id: getVal("r-dispositivo-id") || null,
+      attrezzatura: getVal("r-attrezzatura") || null,
       modificato_da: window.state?.user?.id || null,
       modificato_il: new Date().toISOString()
     };
