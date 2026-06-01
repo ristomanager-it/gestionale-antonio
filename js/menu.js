@@ -264,7 +264,7 @@ export function initMenu() {
       });
     }
 
-    // ── OPERATIVO — usato ogni giorno, da tutti i dispositivi ──
+    // ── OPERATIVO ──
     sections.push({
       title: "OPERATIVO",
       items: [
@@ -279,20 +279,20 @@ export function initMenu() {
       ]
     });
 
-    // ── CUCINA — produzione e ricettario ──
+    // ── CUCINA ──
     sections.push({
       title: "CUCINA",
       items: [
-        { label: "📖 Ricettario",         route: "ricettario"        },
-        { label: "➕ Nuova ricetta",       route: "creaRicetta"       },
-        { label: "⚙️ Produzione",         route: "app-produzione"    },
-        { label: "📋 Planning",           route: "planner-produzione" },
-        { label: "🧪 Preparazioni",       route: "preparazioni"      },
-        { label: "🔌 Dispositivi",        route: "bo-dispositivi"    },
+        { label: "📖 Ricettario",         route: "ricettario"         },
+        { label: "➕ Nuova ricetta",       route: "crea-ricetta-avanzata" },
+        { label: "🏭 Produzione",          route: "produzione"         },
+        { label: "🧪 Preparazioni",        route: "preparazioni"       },
+        { label: "📋 Planning",            route: "planner-produzione" },
+        { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
       ]
     });
 
-    // ── GESTIONE — backoffice, solo admin/manager ──
+    // ── GESTIONE ──
     if (isAziendaRole() || isSuperadmin()) {
       sections.push({
         title: "GESTIONE",
