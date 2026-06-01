@@ -293,6 +293,7 @@ async function loadRicette() {
       id,
       nome,
       pezzi_base,
+      attrezzatura,
       prodotto_output_id,
       ricette_output (
         peso_finale,
@@ -318,6 +319,7 @@ async function loadRicette() {
       id: r.id,
       nome: r.nome,
       pezzi_base: r.pezzi_base,
+      attrezzatura: r.attrezzatura || null,
       prodotto_output_id: r.prodotto_output_id,
       resa_teorica: output?.peso_finale ?? null,
       resa_unita: output?.unita_misura || "kg"
@@ -575,7 +577,19 @@ function aggiornaRicettaInfo() {
     return;
   }
 
-  el.innerText = `Ricetta: ${state.ricetta.nome} — Resa teorica: ${state.ricetta.resa_teorica ?? "-"} ${state.ricetta.resa_unita || "kg"}`;
+  const resa = state.ricetta.resa_teorica != null
+    ? `Resa teorica: ${state.ricetta.resa_teorica} ${state.ricetta.resa_unita || "kg"}`
+    : "";
+
+  const attrezzatura = state.ricetta.attrezzatura
+    ? `🔧 Attrezzatura: ${state.ricetta.attrezzatura}`
+    : "";
+
+  el.innerHTML = [
+    `<strong>${state.ricetta.nome}</strong>`,
+    resa,
+    attrezzatura
+  ].filter(Boolean).join(" &nbsp;·&nbsp; ");
 }
 
 function aggiornaScenarioInfo() {
