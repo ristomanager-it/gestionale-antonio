@@ -248,345 +248,108 @@ export function initMenu() {
   }
 
   function getMenu() {
-
     const sections = [];
+    const ruolo = getRuoloAttivo();
 
+    // ── PIATTAFORMA (solo superadmin) ──
     if (isSuperadmin()) {
-
       sections.push({
-
         title: "PIATTAFORMA",
-
         items: [
-
-          {
-            label: "Dashboard SaaS",
-            route: "homePiattaforma"
-          },
-
-          {
-            label: "Gestione Aziende",
-            route: "gestioneAziende"
-          },
-
-          {
-            label: "Crea Azienda",
-            route: "creaAzienda"
-          },
-
-          {
-            label: "Piani Abbonamento",
-            route: "gestionePiani"
-          }
-
+          { label: "Dashboard SaaS",    route: "homePiattaforma" },
+          { label: "Gestione Aziende",  route: "gestioneAziende" },
+          { label: "Crea Azienda",      route: "creaAzienda"     },
+          { label: "Piani Abbonamento", route: "gestionePiani"   },
         ]
-
       });
-
     }
 
+    // ── OPERATIVO — usato ogni giorno, da tutti i dispositivi ──
     sections.push({
-
-      title: "GENERALE",
-
+      title: "OPERATIVO",
       items: [
-
-        {
-          label: "Home",
-          route: "home"
-        },
-
-        {
-          label: "📘 Manuale operativo",
-          route: "manuale"
-        }
-
+        { label: "🏠 Home",             route: "home"                },
+        { label: "🪑 Comande",          route: "bo-comande"          },
+        { label: "📅 Prenotazioni",     route: "prenotazioni"        },
+        { label: "🗓️ Tavoli",          route: "prenotazioni-tavoli" },
+        { label: "📑 Preventivi",       route: "preventivi"          },
+        { label: "👨‍🍳 Display Cucina", route: "display-cucina"      },
+        { label: "📦 Magazzino",        route: "magazzino"           },
+        { label: "🕒 Timbratura",       route: "timbrature"          },
       ]
-
     });
 
+    // ── CUCINA — produzione e ricettario ──
+    sections.push({
+      title: "CUCINA",
+      items: [
+        { label: "📖 Ricettario",         route: "ricettario"        },
+        { label: "➕ Nuova ricetta",       route: "creaRicetta"       },
+        { label: "⚙️ Produzione",         route: "app-produzione"    },
+        { label: "📋 Planning",           route: "planner-produzione" },
+        { label: "🧪 Preparazioni",       route: "preparazioni"      },
+        { label: "🔌 Dispositivi",        route: "bo-dispositivi"    },
+      ]
+    });
+
+    // ── GESTIONE — backoffice, solo admin/manager ──
     if (isAziendaRole() || isSuperadmin()) {
-
       sections.push({
-
-        title: "BACK OFFICE",
-
+        title: "GESTIONE",
         items: [
-
-          {
-            label: "⚙️ Back Office",
-            route: "bo-dashboard"
-          },
-
-          {
-            label: "🍳 BO Ricette",
-            route: "bo-ricette"
-          },
-
-          {
-            label: "🧾 Editor Ricette",
-            route: "ricette-editor"
-          },
-
-          {
-            label: "📦 BO Magazzino",
-            route: "bo-magazzino"
-          },
-
-          {
-            label: "👨‍🍳 BO Produzione",
-            route: "bo-produzione"
-          },
-
-          {
-            label: "🪑 BO Comande",
-            route: "bo-comande"
-          },
-
-          {
-            label: "⚙️ Configurazione",
-            route: "bo-configurazione"
-          },
-
-          {
-            label: "🔌 Dispositivi",
-            route: "bo-dispositivi"
-          },
-
-          {
-            label: "🏷️ Tag",
-            route: "bo-tag"
-          },
-
-          {
-            label: "📄 Template",
-            route: "bo-template"
-          },
-
-          {
-            label: "📋 Menu Builder",
-            route: "bo-menu"
-          },
-
-          {
-            label: "📂 Categorie",
-            route: "bo-categorie"
-          },
-
-          {
-            label: "🧺 Prodotti",
-            route: "bo-prodotti"
-          },
-
-          {
-            label: "📣 Marketing",
-            route: "bo-marketing"
-          }
-
+          { label: "📊 Dashboard",        route: "bo-dashboard"      },
+          { label: "🧺 Prodotti",         route: "bo-prodotti"       },
+          { label: "📂 Categorie",        route: "bo-categorie"      },
+          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
+          { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
+          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
+          { label: "📋 Menu Builder",     route: "bo-menu"           },
+          { label: "🏷️ Tag",             route: "bo-tag"            },
+          { label: "📄 Template",         route: "bo-template"       },
+          { label: "📣 Marketing",        route: "bo-marketing"      },
+          { label: "🛒 Acquisti",         route: "acquisti"          },
+          { label: "💰 Venduto",          route: "venduto"           },
+          { label: "📈 Margini",          route: "margini"           },
         ]
-
       });
 
+      sections.push({
+        title: "CONFIGURAZIONE",
+        items: [
+          { label: "⚙️ Configurazione",   route: "bo-configurazione" },
+          { label: "👥 Dipendenti",       route: "dipendenti"        },
+          { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
+          { label: "🔐 Permessi",         route: "permessi-operatore"},
+          { label: "📆 Ferie",            route: "permessi"          },
+          { label: "📘 Manuale",          route: "manuale"           },
+        ]
+      });
     }
 
-    sections.push(
+    // ── SEDI ──
+    sections.push({
+      title: "SEDI",
+      items: (() => {
+        if (["manager","operatore"].includes(ruolo)) {
+          return [{ label: "🔄 Cambia sede", route: "gestione-sedi" }];
+        }
+        return [
+          { label: "🔄 Cambia sede",   route: "gestione-sedi"              },
+          { label: "➕ Crea sede",     route: "gestione-sedi?mode=first"   },
+          { label: "⚙️ Gestisci sedi", route: "gestione-sedi?mode=manage" },
+        ];
+      })()
+    });
 
-      {
-
-        title: "OPERATIVO",
-
-        items: [
-
-          {
-            label: "🪑 Sala",
-            route: "sala"
-          },
-
-          {
-            label: "👨‍🍳 Display Cucina",
-            route: "display-cucina"
-          },
-
-          {
-            label: "📅 Prenotazioni",
-            route: "prenotazioni"
-          },
-
-          {
-            label: "📅 Tavoli",
-            route: "prenotazioni-tavoli"
-          },
-
-          {
-            label: "Planning Produzione",
-            route: "planner-produzione"
-          },
-
-          {
-            label: "⚙️ Produzione",
-            route: "app-produzione"
-          },
-
-          {
-            label: "Preparazioni",
-            route: "preparazioni"
-          },
-
-          {
-            label: "Magazzino",
-            route: "magazzino"
-          },
-
-          {
-            label: "Ricettario",
-            route: "ricettario"
-          },
-
-          {
-            label: "➕ Crea Ricetta",
-            route: "creaRicetta"
-          },
-
-        ]
-
-      },
-
-      {
-
-        title: "AMMINISTRAZIONE",
-
-        items: [
-
-          {
-            label: "Acquisti",
-            route: "acquisti"
-          },
-
-          {
-            label: "Dipendenti",
-            route: "dipendenti"
-          },
-
-          {
-            label: "Nuovo dipendente",
-            route: "crea-dipendente"
-          },
-{
-  label: "🔐 Permessi operatori",
-  route: "permessi-operatore"
-},
-          {
-            label: "Timbrature",
-            route: "timbrature"
-          },
-
-          {
-            label: "Permessi e ferie",
-            route: "permessi"
-          },
-
-          {
-            label: "Preventivi",
-            route: "preventivi"
-          }
-
-        ]
-
-      },
-
-      {
-
-        title: "GESTIONE AZIENDA",
-
-        items: [
-
-          {
-            label: "Venduto",
-            route: "venduto"
-          },
-
-          {
-            label: "Margini",
-            route: "margini"
-          }
-
-        ]
-
-      },
-
-      {
-
-        title: "SEDI",
-
-        items: (() => {
-
-          const ruolo =
-            getRuoloAttivo();
-
-          if (
-            ["manager", "operatore"]
-              .includes(ruolo)
-          ) {
-
-            return [
-
-              {
-                label: "Cambia sede",
-                route: "gestione-sedi"
-              }
-
-            ];
-
-          }
-
-          return [
-
-            {
-              label: "Cambia sede",
-              route: "gestione-sedi"
-            },
-
-            {
-              label: "Crea sede",
-              route: "gestione-sedi?mode=first"
-            },
-
-            {
-              label: "Gestisci sedi",
-              route: "gestione-sedi?mode=manage"
-            }
-
-          ];
-
-        })()
-
-      },
-
-      {
-
-        title: "PERSONALE",
-
-        items: [
-
-          {
-  label: "👤 Profilo",
-  route: "completa-profilo"
-},
-          {
-            label: "🕒 Timbratura",
-            route: "timbrature"
-          },
-
-          {
-            label: "📆 Permessi e ferie",
-            route: "permessi"
-          }
-
-        ]
-
-      }
-
-    );
+    // ── PERSONALE ──
+    sections.push({
+      title: "PERSONALE",
+      items: [
+        { label: "👤 Profilo",          route: "completa-profilo" },
+        { label: "🕒 Timbratura",       route: "timbrature"       },
+        { label: "📆 Permessi e ferie", route: "permessi"         },
+      ]
+    });
 
     return sections;
   }
