@@ -47,6 +47,22 @@ export function renderCaricoModal() {
             </div>
 
             <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Prezzo di acquisto</div>
+
+              <div class="rf-field">
+                <label>Prezzo confezione (€) <span style="font-size:11px;color:#6b7280;">lascia 0 per non aggiornare</span></label>
+                <input id="carico-prezzo" type="number" step="0.001" min="0" class="input" inputmode="decimal" value="0" />
+              </div>
+
+              <div class="rf-field" style="margin-top:8px;">
+                <label>Qtà per confezione <span style="font-size:11px;color:#6b7280;">es. CT da 6 → scrivi 6</span></label>
+                <input id="carico-qta-confezione" type="number" step="0.001" min="0.001" class="input" value="1" />
+              </div>
+
+              <div id="carico-costo-preview" style="font-size:12px;color:#0E5A7A;margin-top:6px;min-height:16px;"></div>
+            </div>
+
+            <div class="rf-product-card" style="margin-top:10px;">
               <div class="rf-product-section-title">Quantità</div>
 
               <div class="rf-field">
@@ -125,9 +141,23 @@ export async function apriCaricoModal({ aziendaId }) {
   const umValueEl = backdrop.querySelector("#carico-um-value");
   const umCard = backdrop.querySelector("#carico-um-card");
 
-  const btnClose = backdrop.querySelector("#btn-close-carico");
-  const btnAnnulla = backdrop.querySelector("#btn-annulla-carico");
-  const btnConferma = backdrop.querySelector("#btn-conferma-carico");
+  const prezzoEl = backdrop.querySelector("#carico-prezzo");
+  const qtaConfezioneEl = backdrop.querySelector("#carico-qta-confezione");
+  const costoPrevEl = backdrop.querySelector("#carico-costo-preview");
+
+  function aggiornaCostoPreview() {
+    const prezzo = Number(prezzoEl?.value || 0);
+    const qtaConf = Math.max(0.001, Number(qtaConfezioneEl?.value || 1));
+    if (prezzo > 0 && costoPrevEl) {
+      const costoUnit = prezzo / qtaConf;
+      costoPrevEl.textContent = `→ Costo per unità: € ${costoUnit.toFixed(4)}`;
+    } else if (costoPrevEl) {
+      costoPrevEl.textContent = "";
+    }
+  }
+
+  prezzoEl?.addEventListener("input", aggiornaCostoPreview);
+  qtaConfezioneEl?.addEventListener("input", aggiornaCostoPreview);
 
   let prodottoId = null;
   let prodottoSelezionato = null;
@@ -434,6 +464,22 @@ export async function apriCaricoModal({ aziendaId }) {
       console.error(updateError);
       esitoEl.innerText = "Errore aggiornamento scorta minima";
       return;
+    }
+
+    // Aggiorna costo_medio se è stato inserito un prezzo
+    const prezzoAcquisto = Number(prezzoEl?.value || 0);
+    if (prezzoAcquisto > 0) {
+      const qtaConfezione = Math.max(0.001, Number(qtaConfezioneEl?.value || 1));
+      const costoPerUnita = prezzoAcquisto / qtaConfezione;
+      await window.supabaseClient
+        .from("prodotti")
+        .update({
+          costo_medio: costoPerUnita,
+          costo_ultimo: costoPerUnita,
+          quantita_confezione: qtaConfezione
+        })
+        .eq("id", finalProdottoId)
+        .eq("azienda_id", aziendaId);
     }
 
     esitoEl.innerText = "Salvataggio...";
