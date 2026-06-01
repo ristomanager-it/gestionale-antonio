@@ -142,6 +142,7 @@ const routes = {
   "bo-ricette": () => import("./views/bo/ricette-editor.js"),
   "ricette-editor": () => import("./views/bo/ricette-editor.js"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
+  "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
 
 
     // =========================================================
@@ -205,6 +206,7 @@ const BO_ROUTES = new Set([
   "bo-comande",
   "bo-ricette",
   "bo-configurazione",
+  "bo-dispositivi",
 ]);
 
 // Display tablet — bypassano auth contesto operativo, hanno PIN proprio
