@@ -35,6 +35,8 @@ let outputSecondariCache = [];
 
 let _autocompleteDocBound = false;
 
+let dispositividCache = [];
+
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
 
@@ -291,6 +293,13 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
+              <label>Dispositivo produzione</label>
+              <select id="r-dispositivo-id" class="input">
+                <option value="">— Seleziona dispositivo —</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label>Pezzi base</label>
               <input id="r-pezzi-base" type="number" min="0" class="input" />
             </div>
@@ -462,6 +471,7 @@ export async function render(app) {
   await loadProdotti();
   await loadCategoriePortata();
   await loadFasiTemplate();
+  await loadDispositivi();
   bindUI();
 
   if (ricettaId) {
@@ -488,7 +498,7 @@ async function loadProdotti() {
 
   const { data, error } = await supabase
     .from("prodotti")
-    .select("id, descrizione, um, costo_medio")
+    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("descrizione");
@@ -501,7 +511,22 @@ async function loadProdotti() {
   }
 
   prodottiCache = data || [];
+  // Calcola costo_per_um_base per ogni prodotto:
+  // Se il prodotto ha quantita_confezione (es. ct da 6 lt), il costo_medio è per confezione
+  // → costo per unità base = costo_medio / quantita_confezione
+  prodottiCache.forEach(p => {
+    const costoMedio = Number(p.costo_medio ?? 0);
+    const qtaConfezione = Number(p.quantita_confezione ?? 0);
+    if (qtaConfezione > 0) {
+      p._costo_per_unita = costoMedio / qtaConfezione;
+      p._um_unitaria = p.um_confezione || p.unita_base || p.um || "pz";
+    } else {
+      p._costo_per_unita = costoMedio;
+      p._um_unitaria = p.unita_base || p.um || "pz";
+    }
+  });
   prodottiMap = new Map(prodottiCache.map(p => [String(p.id), p]));
+
 setupAutocomplete(
   document.getElementById("r-output-search"),
   document.getElementById("r-output-id"),
@@ -533,6 +558,37 @@ setupAutocomplete(
       aggiornaOutputInfo();
     }
   );
+}
+
+/* ============================================================
+   DISPOSITIVI
+============================================================ */
+async function loadDispositivi() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state.azienda.id;
+
+  const { data, error } = await supabase
+    .from("dispositivi")
+    .select("id, nome, tipo")
+    .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
+    .order("nome");
+
+  if (error) {
+    console.error("loadDispositivi:", error);
+    dispositividCache = [];
+    return;
+  }
+
+  dispositividCache = data || [];
+
+  const sel = document.getElementById("r-dispositivo-id");
+  if (!sel) return;
+
+  sel.innerHTML = `<option value="">— Seleziona dispositivo —</option>` +
+    dispositividCache.map(d =>
+      `<option value="${d.id}">${escapeHtml(d.nome)}${d.tipo ? ` (${escapeHtml(d.tipo)})` : ""}</option>`
+    ).join("");
 }
 
 /* ============================================================
@@ -1485,6 +1541,9 @@ async function caricaRicettaCompleta() {
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
+  if (ricetta.dispositivo_id) {
+    setVal("r-dispositivo-id", ricetta.dispositivo_id);
+  }
   if (ricetta.foto_url) {
     const fotoWrap = document.getElementById("r-foto-preview-wrap");
     const fotoImg = document.getElementById("r-foto-preview");
@@ -1694,6 +1753,7 @@ async function salvaTutto() {
       stato_strutturale: "bozza",
       tipo_ricetta,
       categoria_portata_id,
+      dispositivo_id: getVal("r-dispositivo-id") || null,
       creato_da: window.state?.user?.id || null,
       creato_da_tony: false
     };
@@ -1723,6 +1783,7 @@ async function salvaTutto() {
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
+      dispositivo_id: getVal("r-dispositivo-id") || null,
       modificato_da: window.state?.user?.id || null,
       modificato_il: new Date().toISOString()
     };
@@ -2195,9 +2256,11 @@ function computeCostoIndustriale({ outputPrincipale, ingredienti, outputSecondar
   let costoTotale = 0;
   for (const r of (ingredienti || [])) {
     const p = prodottiMap.get(String(r.prodotto_id));
-    const costoMedio = Number(p?.costo_medio ?? 0);
+    // Usa _costo_per_unita che già tiene conto della divisione per quantità confezione
+    // es. latte ct 6x1lt a €7 → _costo_per_unita = 7/6 = 1.167 €/lt
+    const costoPerUnita = Number(p?._costo_per_unita ?? p?.costo_medio ?? 0);
     const qta = Number(r.quantita ?? 0);
-    costoTotale += (costoMedio * qta);
+    costoTotale += (costoPerUnita * qta);
   }
 
   const p1 = convertToBase(outputPrincipale.peso, outputPrincipale.um);
