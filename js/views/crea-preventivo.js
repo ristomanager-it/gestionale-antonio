@@ -8,6 +8,7 @@ let sezioniDinamiche = []; // [{ id, label, isServizi }]
 let sezioneCounter = 0;
 let menuSezioni = {}; // sezioneId → [{ ricetta_id, ricetta_nome, prezzo_pp, totale, is_placeholder, sezione }]
 let extraRows = [];
+let serviziRows = []; // [{ descrizione, prezzo_totale }]
 
 let ricetteCache = [];
 let prezziByRicettaId = new Map();
@@ -19,6 +20,7 @@ export async function render(container) {
   sezioneCounter = 0;
   menuSezioni = {};
   extraRows = [];
+  serviziRows = [];
   ricetteCache = [];
   prezziByRicettaId = new Map();
   lastDiscountEdited = "perc";
@@ -131,6 +133,11 @@ export async function render(container) {
                 <input class="input" type="number" id="preventivo-location-prezzo" value="0" min="0" step="0.01">
               </div>
 
+              <div class="form-group">
+                <label>Intolleranze / Allergie</label>
+                <input class="input" type="text" id="preventivo-intolleranze" placeholder="Es. glutine, lattosio, frutta secca...">
+              </div>
+
             </div>
 
             <div class="form-group" style="margin-top:16px;">
@@ -153,6 +160,18 @@ export async function render(container) {
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
               <input id="nuova-sezione-nome" class="input" placeholder="Nome sezione (es. Antipasti, Primi...)" style="flex:1;min-width:180px;padding:8px 12px;font-size:14px;">
               <button type="button" id="btn-add-sezione" class="app-button secondary" style="white-space:nowrap;">+ Aggiungi sezione</button>
+            </div>
+          `
+        })}
+
+        ${createCard({
+          title: "Servizi",
+          body: `
+            <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Aggiungi servizi aggiuntivi (fotografo, musica, allestimento, ecc.) con prezzo fisso non moltiplicato per invitati.</p>
+            <div id="servizi-container" style="margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input id="nuova-servizio-nome" class="input" placeholder="Nome servizio (es. Fotografo, DJ...)" style="flex:1;min-width:180px;padding:8px 12px;font-size:14px;">
+              <button type="button" id="btn-add-servizio" class="app-button secondary" style="white-space:nowrap;">+ Aggiungi servizio</button>
             </div>
           `
         })}
@@ -195,6 +214,17 @@ export async function render(container) {
               <div class="form-group">
                 <label>Acconto (€)</label>
                 <input class="input" type="number" id="preventivo-acconto" value="0" min="0" step="0.01">
+              </div>
+
+              <div class="form-group">
+                <label>Tipo acconto</label>
+                <select class="input" id="preventivo-tipo-acconto">
+                  <option value="">— Seleziona —</option>
+                  <option value="contanti">Contanti</option>
+                  <option value="assegno">Assegno</option>
+                  <option value="carta">Carta di credito</option>
+                  <option value="bonifico">Bonifico</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -355,6 +385,10 @@ function bindPreventivoEvents() {
   document.getElementById("sezioni-menu-container")?.addEventListener("input", onSezioniInput);
   document.getElementById("sezioni-menu-container")?.addEventListener("click", onSezioniClick);
   document.addEventListener("click", chiudiAutocomplete);
+
+  document.getElementById("btn-add-servizio")?.addEventListener("click", aggiungiServizio);
+  document.getElementById("nuova-servizio-nome")?.addEventListener("keydown", e => { if(e.key==='Enter'){ e.preventDefault(); aggiungiServizio(); } });
+  renderServiziRows();
 }
 
 /* ============================================================ */
@@ -665,6 +699,59 @@ function normalizeNome(nome) {
 }
 
 /* ============================================================ */
+/* SERVIZI ROWS */
+/* ============================================================ */
+
+function aggiungiServizio() {
+  const inp = document.getElementById("nuova-servizio-nome");
+  const label = (inp?.value || "").trim();
+  if (!label) { inp?.focus(); return; }
+  serviziRows.push({ descrizione: label, prezzo_totale: 0 });
+  if (inp) inp.value = "";
+  renderServiziRows();
+  recalcPreventivoTotali();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll(".servizio-prezzo");
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
+  }, 50);
+}
+
+function renderServiziRows() {
+  const box = document.getElementById("servizi-container");
+  if (!box) return;
+  if (!serviziRows.length) {
+    box.innerHTML = `<div style="color:#94a3b8;font-size:13px;font-style:italic;padding:4px 0;">Nessun servizio aggiunto</div>`;
+    return;
+  }
+  box.innerHTML = serviziRows.map((row, idx) => `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;background:#f8fafc;padding:10px 12px;border-radius:10px;border-left:3px solid #0E5A7A;">
+      <div style="flex:1;font-size:14px;font-weight:600;color:#1a1a2e;">${escapeHtml(row.descrizione)}</div>
+      <input class="input servizio-prezzo" type="number" step="0.01" min="0"
+        data-idx="${idx}" value="${row.prezzo_totale || ''}" placeholder="€ totale"
+        style="width:130px;">
+      <button type="button" data-action="remove-servizio" data-idx="${idx}"
+        style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#dc2626;font-size:13px;">✕</button>
+    </div>
+  `).join("");
+
+  box.querySelectorAll(".servizio-prezzo").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const idx = Number(inp.dataset.idx);
+      serviziRows[idx].prezzo_totale = Math.max(0, toNumber(inp.value));
+      recalcPreventivoTotali();
+    });
+  });
+  box.querySelectorAll("[data-action='remove-servizio']").forEach(btn => {
+    btn.addEventListener("click", () => {
+      serviziRows.splice(Number(btn.dataset.idx), 1);
+      renderServiziRows();
+      recalcPreventivoTotali();
+    });
+  });
+}
+
+/* ============================================================ */
 /* EXTRA ROWS */
 /* ============================================================ */
 
@@ -821,8 +908,12 @@ function recalcPreventivoTotali() {
     subtExtra += row.totale;
   });
 
+  /* ================= SERVIZI ================= */
+  let subtServizi = 0;
+  serviziRows.forEach(row => { subtServizi += Math.max(0, toNumber(row.prezzo_totale)); });
+
   /* ================= BASE ================= */
-  const base = subtMenu + subtExtra + locationPrezzo;
+  const base = subtMenu + subtExtra + subtServizi + locationPrezzo;
 
   /* ================= SCONTI ================= */
   let scontoPerc = clamp(toNumber(getVal("preventivo-sconto-perc")), 0, 100);
@@ -1031,54 +1122,9 @@ function emailCurrentPreventivoViaMailto() {
 
   recalcPreventivoTotali();
 
-  const azienda = window.state?.azienda;
-  const nomeAzienda = azienda?.nome || "La nostra azienda";
-
-  const clienteNome = getVal("preventivo-cliente-nome");
-  const clienteCognome = getVal("preventivo-cliente-cognome");
-  const dataEvento = getVal("preventivo-data-evento");
-  const tipologiaEvento = getVal("preventivo-titolo");
-  const location = getVal("preventivo-location");
-  const totale = getVal("preventivo-totale");
-
-  const righeMenu = sezioniDinamiche.flatMap(s =>
-    (menuSezioni[s.id] || [])
-      .filter(r => (r.ricetta_nome || "").trim())
-      .map(r => `[${s.label}] ${r.ricetta_nome}`)
-  ).join("\n");
-
-  const righeExtra = extraRows
-    .filter((r) => (r.descrizione || "").trim())
-    .map((r) => `- ${r.descrizione}`)
-    .join("\n");
-
-  const subject = `Preventivo ${tipologiaEvento || ""} - ${nomeAzienda}`.trim();
-
-  const body = `
-Gentile ${clienteNome} ${clienteCognome},
-
-ti inviamo il preventivo per il tuo evento.
-
-Evento: ${tipologiaEvento || "—"}
-Data: ${dataEvento || "—"}
-Location: ${location || "—"}
-
-Menù proposto:
-${righeMenu || "- (nessuna portata selezionata)"}
-
-Extra:
-${righeExtra || "- (nessun extra)"}
-
-Totale complessivo: € ${totale}
-
-Per qualsiasi informazione rimaniamo a disposizione.
-
-Cordiali saluti,
-${nomeAzienda}
-  `.trim();
-
-  const mailtoLink = `mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailtoLink;
+  // Apre il PDF in una nuova finestra con istruzioni chiare per salvare e inviare
+  const win = buildPrintWindow({ showEmailInstructions: true, clienteEmail });
+  if (!win) return;
 }
 
 /* ============================================================ */
@@ -1087,10 +1133,18 @@ ${nomeAzienda}
 
 function printCurrentPreventivo() {
   recalcPreventivoTotali();
+  buildPrintWindow({ showEmailInstructions: false, clienteEmail: null });
+}
 
+function buildPrintWindow({ showEmailInstructions = false, clienteEmail = null } = {}) {
   const azienda = window.state?.azienda;
   const nomeAzienda = azienda?.nome || "Azienda";
   const logo = azienda?.logo_url || "";
+  const iban = azienda?.iban || "";
+  const indirizzoAzienda = [azienda?.indirizzo, azienda?.citta, azienda?.cap].filter(Boolean).join(", ");
+  const telefonoAzienda = azienda?.telefono || "";
+  const emailAzienda = azienda?.email || "";
+  const pIvaAzienda = azienda?.partita_iva ? `P.IVA: ${azienda.partita_iva}` : "";
 
   const clienteNome = getVal("preventivo-cliente-nome");
   const clienteCognome = getVal("preventivo-cliente-cognome");
@@ -1098,8 +1152,9 @@ function printCurrentPreventivo() {
   const tipologiaEvento = getVal("preventivo-titolo");
   const location = getVal("preventivo-location");
   const totale = getVal("preventivo-totale");
+  const intolleranze = getVal("preventivo-intolleranze");
+  const tipoAcconto = getVal("preventivo-tipo-acconto");
 
-  // Calcola totale menu pp (solo portate non-servizi)
   const invPrint = Math.max(1, toNumber(getVal("preventivo-n-invitati")) || 1);
   let subtMenuPP = 0;
   sezioniDinamiche.forEach(s => {
@@ -1108,7 +1163,7 @@ function printCurrentPreventivo() {
     }
   });
 
-  // Sezioni menu: portate senza prezzi (per cliente), servizi con prezzo
+  // HTML sezioni menu (senza prezzi per portate, con prezzi per servizi)
   const menuHtml = sezioniDinamiche.map(s => {
     const portate = (menuSezioni[s.id] || []).filter(r => (r.ricetta_nome || "").trim());
     if (!portate.length) return '';
@@ -1116,37 +1171,45 @@ function printCurrentPreventivo() {
       <div style="margin-bottom:20px;">
         <div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${escapeHtml(s.label)}</div>
         <ul style="margin:0;padding-left:18px;">
-          ${portate.map(r => {
-            if (s.isServizi) {
-              // Servizi: mostra prezzo
-              return `<li style="margin-bottom:6px;display:flex;justify-content:space-between;">
-                <span>${escapeHtml(r.ricetta_nome)}</span>
-                ${toNumber(r.prezzo_pp) > 0 ? `<strong>€ ${toNumber(r.prezzo_pp).toFixed(2)}</strong>` : ''}
-              </li>`;
-            }
-            // Portate normali: solo nome, senza prezzo
-            return `<li style="margin-bottom:4px;">${escapeHtml(r.ricetta_nome)}</li>`;
-          }).join('')}
+          ${portate.map(r => `<li style="margin-bottom:4px;">${escapeHtml(r.ricetta_nome)}</li>`).join('')}
         </ul>
       </div>
     `;
   }).join('');
 
-  const extraHtml = extraRows
-    .filter((r) => (r.descrizione || "").trim())
-    .map((r) => `<li>${escapeHtml(r.descrizione)}</li>`)
-    .join("");
+  // HTML servizi
+  const serviziHtml = serviziRows.filter(r => r.descrizione).map(r => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dotted #e5e7eb;">
+      <span style="font-size:14px;">${escapeHtml(r.descrizione)}</span>
+      ${toNumber(r.prezzo_totale) > 0 ? `<strong style="font-size:14px;">€ ${toNumber(r.prezzo_totale).toFixed(2)}</strong>` : ''}
+    </div>
+  `).join('');
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-
-  const nInvitati = getVal("preventivo-n-invitati");
-  const nomeFesteggiato = getVal("preventivo-nome-festeggiato");
-  const tipoServizio = getVal("preventivo-tipo-servizio");
   const acconto = getVal("preventivo-acconto");
   const saldo = getVal("preventivo-saldo");
   const sconto = getVal("preventivo-sconto-euro");
   const note = getVal("preventivo-note");
+  const nomeFesteggiato = getVal("preventivo-nome-festeggiato");
+  const tipoServizio = getVal("preventivo-tipo-servizio");
+  const nInvitati = getVal("preventivo-n-invitati");
+
+  const subtMenu = getVal("preventivo-subtotale-menu");
+  const subtServizi = serviziRows.reduce((acc, r) => acc + Math.max(0, toNumber(r.prezzo_totale)), 0);
+
+  const emailBar = showEmailInstructions && clienteEmail ? `
+    <div class="email-bar no-print" style="background:#ecfdf5;border:1px solid #6ee7b7;padding:14px 20px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;font-size:14px;color:#065f46;">
+        <strong>📧 Come inviare via email:</strong> Clicca "Stampa / Salva PDF", poi salva come PDF. Invia il file a <strong>${escapeHtml(clienteEmail)}</strong>.
+      </div>
+      <a href="mailto:${encodeURIComponent(clienteEmail)}?subject=${encodeURIComponent(`Preventivo ${tipologiaEvento} - ${nomeAzienda}`)}" 
+        style="background:#059669;color:white;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;white-space:nowrap;">
+        ✉️ Apri email
+      </a>
+    </div>
+  ` : '';
+
+  const win = window.open("", "_blank");
+  if (!win) return null;
 
   win.document.write(`
     <!DOCTYPE html>
@@ -1161,57 +1224,62 @@ function printCurrentPreventivo() {
 
           .page { max-width: 800px; margin: 0 auto; padding: 48px 40px; }
 
-          /* Header */
-          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 3px solid #1a1a2e; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #0E5A7A; }
           .header-logo img { max-height: 80px; max-width: 180px; object-fit: contain; }
-          .header-logo .nome-azienda { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+          .header-logo .nome-azienda { font-size: 22px; font-weight: 700; color: #0E5A7A; }
+          .header-azienda-info { font-size: 11px; color: #64748b; margin-top: 6px; line-height: 1.6; }
           .header-right { text-align: right; }
-          .header-right .doc-title { font-size: 28px; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; color: #1a1a2e; }
+          .header-right .doc-title { font-size: 28px; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; color: #0E5A7A; }
           .header-right .doc-date { font-size: 12px; color: #64748b; margin-top: 6px; }
 
-          /* Cliente */
-          .cliente-box { background: #f8fafc; border-left: 4px solid #1a1a2e; padding: 20px 24px; margin-bottom: 32px; border-radius: 0 8px 8px 0; }
-          .cliente-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 4px; }
-          .cliente-box .valore { font-size: 16px; font-weight: 600; color: #1a1a2e; }
-          .cliente-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+          .cliente-box { background: #f0f9ff; border-left: 4px solid #0E5A7A; padding: 20px 24px; margin-bottom: 28px; border-radius: 0 8px 8px 0; }
+          .cliente-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+          .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 3px; }
+          .valore { font-size: 15px; font-weight: 600; color: #1a1a2e; }
 
-          /* Menu */
-          .menu-section { margin-bottom: 36px; }
-          .menu-section h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 600; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
-          .portata-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dotted #e5e7eb; }
-          .portata-nome { font-size: 14px; color: #1a1a2e; }
-          .portata-prezzo { font-size: 13px; color: #64748b; white-space: nowrap; margin-left: 16px; }
+          .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 700; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+          .menu-section { margin-bottom: 28px; }
 
-          /* Economica */
-          .economia { margin-top: 36px; border-top: 2px solid #1a1a2e; padding-top: 24px; }
+          .economia { margin-top: 32px; border-top: 2px solid #0E5A7A; padding-top: 20px; }
           .economia-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
           .economia-row.totale { font-size: 20px; font-weight: 700; border-top: 1px solid #1a1a2e; margin-top: 8px; padding-top: 12px; }
           .economia-row.muted { color: #64748b; font-size: 13px; }
 
-          /* Footer */
-          .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-end; }
-          .footer-note { font-size: 12px; color: #64748b; max-width: 400px; font-style: italic; }
-          .firma-box { text-align: right; }
-          .firma-line { border-top: 1px solid #1a1a2e; width: 180px; margin-top: 40px; padding-top: 6px; font-size: 11px; color: #64748b; }
+          .iban-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 16px; margin-top: 20px; font-size: 13px; }
+          .iban-box strong { display: block; margin-bottom: 4px; }
 
-          /* Print button */
-          .print-bar { text-align: center; padding: 20px; background: #f8fafc; margin-bottom: 0; }
-          .print-bar button { background: #1a1a2e; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; cursor: pointer; margin: 0 6px; }
+          .intolleranze-box { background: #fef2f2; border-left: 3px solid #ef4444; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 13px; }
+
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-end; }
+          .footer-note { font-size: 12px; color: #64748b; max-width: 380px; font-style: italic; }
+          .firma-line { border-top: 1px solid #1a1a2e; width: 180px; margin-top: 40px; padding-top: 6px; font-size: 11px; color: #64748b; text-align: right; }
+
+          .print-bar { text-align: center; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+          .print-bar button { background: #0E5A7A; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; margin: 0 6px; }
+          .print-bar button.secondary { background: #64748b; }
         </style>
       </head>
       <body>
 
         <div class="print-bar no-print">
           <button onclick="window.print()">🖨️ Stampa / Salva PDF</button>
-          <button onclick="window.close()">✕ Chiudi</button>
+          <button class="secondary" onclick="window.close()">✕ Chiudi</button>
         </div>
+
+        ${emailBar}
 
         <div class="page">
 
-          <!-- Header -->
+          <!-- HEADER AZIENDA -->
           <div class="header">
             <div class="header-logo">
               ${logo ? `<img src="${escapeHtml(logo)}" alt="Logo">` : `<div class="nome-azienda">${escapeHtml(nomeAzienda)}</div>`}
+              <div class="header-azienda-info">
+                ${indirizzoAzienda ? `${escapeHtml(indirizzoAzienda)}<br>` : ''}
+                ${telefonoAzienda ? `Tel: ${escapeHtml(telefonoAzienda)}<br>` : ''}
+                ${emailAzienda ? `${escapeHtml(emailAzienda)}<br>` : ''}
+                ${pIvaAzienda ? `${escapeHtml(pIvaAzienda)}` : ''}
+              </div>
             </div>
             <div class="header-right">
               <div class="doc-title">Preventivo</div>
@@ -1219,7 +1287,7 @@ function printCurrentPreventivo() {
             </div>
           </div>
 
-          <!-- Cliente e Evento -->
+          <!-- CLIENTE E EVENTO -->
           <div class="cliente-box">
             <div class="cliente-grid">
               <div>
@@ -1244,32 +1312,40 @@ function printCurrentPreventivo() {
             </div>
           </div>
 
-          <!-- Menu per sezioni -->
-          <div class="menu-section">
-            ${menuHtml || '<p style="color:#94a3b8;font-style:italic;">Nessuna portata inserita.</p>'}
-          </div>
-
-          <!-- Extra -->
-          ${extraHtml ? `
-          <div class="menu-section">
-            <h2>Servizi aggiuntivi</h2>
-            ${extraHtml}
+          <!-- INTOLLERANZE -->
+          ${intolleranze ? `
+          <div class="intolleranze-box">
+            <strong>⚠️ Intolleranze / Allergie:</strong> ${escapeHtml(intolleranze)}
           </div>` : ''}
 
-          <!-- Sezione economica -->
+          <!-- MENU PER SEZIONI -->
+          ${menuHtml ? `
+          <div class="menu-section">
+            <div class="section-title">Menù</div>
+            ${menuHtml}
+          </div>` : ''}
+
+          <!-- SERVIZI -->
+          ${serviziHtml ? `
+          <div class="menu-section">
+            <div class="section-title">Servizi</div>
+            ${serviziHtml}
+          </div>` : ''}
+
+          <!-- SEZIONE ECONOMICA -->
           <div class="economia">
             <div class="economia-row" style="font-size:15px;font-weight:600;background:#f0f9ff;padding:10px 12px;border-radius:8px;margin-bottom:8px;">
-              <span>Menu a persona</span>
+              <span>Menù a persona</span>
               <span>€ ${subtMenuPP.toFixed(2)}</span>
             </div>
             <div class="economia-row muted">
-              <span>Totale menu (${invPrint} invitati)</span>
-              <span>€ ${escapeHtml(getVal("preventivo-subtotale-menu"))}</span>
+              <span>Totale menù (${invPrint} invitati)</span>
+              <span>€ ${escapeHtml(subtMenu)}</span>
             </div>
-            ${Number(getVal("preventivo-subtotale-extra")) > 0 ? `
+            ${subtServizi > 0 ? `
             <div class="economia-row muted">
-              <span>Subtotale extra</span>
-              <span>€ ${escapeHtml(getVal("preventivo-subtotale-extra"))}</span>
+              <span>Totale servizi</span>
+              <span>€ ${subtServizi.toFixed(2)}</span>
             </div>` : ''}
             ${Number(sconto) > 0 ? `
             <div class="economia-row muted">
@@ -1282,7 +1358,7 @@ function printCurrentPreventivo() {
             </div>
             ${Number(acconto) > 0 ? `
             <div class="economia-row muted" style="margin-top:8px;">
-              <span>Acconto versato</span>
+              <span>Acconto versato${tipoAcconto ? ` (${escapeHtml(tipoAcconto)})` : ''}</span>
               <span>€ ${escapeHtml(acconto)}</span>
             </div>
             <div class="economia-row" style="font-weight:600;">
@@ -1291,12 +1367,19 @@ function printCurrentPreventivo() {
             </div>` : ''}
           </div>
 
-          <!-- Footer -->
+          <!-- IBAN -->
+          ${iban ? `
+          <div class="iban-box">
+            <strong>💳 Coordinate bancarie per il pagamento:</strong>
+            ${escapeHtml(nomeAzienda)} — IBAN: <strong>${escapeHtml(iban)}</strong>
+          </div>` : ''}
+
+          <!-- FOOTER -->
           <div class="footer">
             <div class="footer-note">
               ${note ? escapeHtml(note) : 'Il presente preventivo ha validità 30 giorni dalla data di emissione. Per accettazione si prega di restituire copia firmata.'}
             </div>
-            <div class="firma-box">
+            <div>
               <div class="firma-line">Firma per accettazione</div>
             </div>
           </div>
@@ -1307,6 +1390,7 @@ function printCurrentPreventivo() {
   `);
 
   win.document.close();
+  return win;
 }
 
 /* ============================================================ */
