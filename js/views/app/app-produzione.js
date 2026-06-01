@@ -21,6 +21,7 @@ function getInitialState() {
     scenari: [],
     fasi: [],          // ricette_preparazione_fasi della ricetta selezionata
     logHaccp: [],      // righe compilate dal cuoco, una per fase
+    dispositivi: {},   // map dispositivo_id → { nome, tipo, connesso, temperatura_min, temperatura_max }
 
     operatore: null,
 
@@ -344,29 +345,51 @@ async function loadFasiRicetta(ricettaId) {
 
   const { data, error } = await supabase
     .from("ricette_preparazione_fasi")
-    .select("id, ordine, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, lavoro_umano_min, note")
+    .select("id, ordine, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, lavoro_umano_min, note, dispositivo_id")
     .eq("ricetta_id", ricettaId)
     .eq("azienda_id", state.azienda_id)
     .order("ordine", { ascending: true });
 
   if (error) { console.error(error); state.fasi = []; return; }
+  state.fasi = data || [];
 
-  state.fasi = (data || []);
-  // inizializza log HACCP vuoto per ogni fase
-  state.logHaccp = state.fasi.map(f => ({
-    fase_id: f.id,
-    fase_ordine: f.ordine,
-    fase_nome: f.nome_fase || f.tipo_fase || `Fase ${f.ordine}`,
-    fase_tipo: f.tipo_fase,
-    tecnologia_prevista: f.tecnologia || "",
-    temperatura_prevista: f.temperatura ?? null,
-    temperatura_rilevata: "",
-    ora_inizio: "",
-    ora_fine: "",
-    esito: "ok",
-    note: "",
-    firmato: false
-  }));
+  // Carica info dispositivi unici usati nelle fasi
+  const dispIds = [...new Set(state.fasi.map(f => f.dispositivo_id).filter(Boolean))];
+  state.dispositivi = {};
+  if (dispIds.length) {
+    const { data: disps } = await supabase
+      .from("dispositivi")
+      .select("id, nome, tipo, connesso, temperatura_min, temperatura_max, marca, modello, api_endpoint, topic_mqtt")
+      .in("id", dispIds);
+    (disps || []).forEach(d => { state.dispositivi[d.id] = d; });
+  }
+
+  // inizializza log HACCP per ogni fase
+  state.logHaccp = state.fasi.map(f => {
+    const disp = f.dispositivo_id ? (state.dispositivi[f.dispositivo_id] || null) : null;
+    const automatico = disp?.connesso === true;
+    return {
+      fase_id: f.id,
+      fase_ordine: f.ordine,
+      fase_nome: f.nome_fase || f.tipo_fase || `Fase ${f.ordine}`,
+      fase_tipo: f.tipo_fase,
+      dispositivo_id: f.dispositivo_id || null,
+      dispositivo: disp,
+      fonte_dato: automatico ? "automatico" : "manuale",
+      tecnologia_prevista: disp ? disp.nome : (f.tecnologia || ""),
+      temperatura_prevista: f.temperatura ?? null,
+      temperatura_min: disp?.temperatura_min ?? null,
+      temperatura_max: disp?.temperatura_max ?? null,
+      temperatura_rilevata: "",
+      ora_inizio: "",
+      ora_fine: "",
+      esito: "ok",
+      note: "",
+      firmato: false,
+      firmato_da: "",
+      firmato_il: ""
+    };
+  });
 
   renderFasiHaccp();
 }
@@ -661,6 +684,27 @@ function renderFasiHaccp() {
       attesa: "⏳ Attesa"
     }[f.tipo_fase] || f.tipo_fase;
 
+    const log = state.logHaccp[idx];
+    const automatico = log.fonte_dato === "automatico";
+    const disp = log.dispositivo;
+    const hasTempPrevista = f.temperatura != null || disp?.temperatura_min != null;
+    const tempPrevLabel = f.temperatura != null ? `${f.temperatura}°C` :
+      (disp?.temperatura_min != null && disp?.temperatura_max != null)
+        ? `${disp.temperatura_min}–${disp.temperatura_max}°C`
+        : disp?.temperatura_min != null ? `min ${disp.temperatura_min}°C` : null;
+
+    // Badge dispositivo
+    const dispBadge = disp
+      ? automatico
+        ? `<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:20px;font-size:12px;">🤖 ${escapeAttr(disp.nome)} — Automatico</span>`
+        : `<span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;">✋ ${escapeAttr(disp.nome)} — Manuale</span>`
+      : `<span style="background:#f1f5f9;color:#64748b;padding:3px 10px;border-radius:20px;font-size:12px;">✋ Nessun dispositivo — Manuale</span>`;
+
+    // Se automatico: i campi sono in sola lettura con placeholder "in attesa dati..."
+    const inputStyle = automatico ? `background:#f0fdf4;color:#166534;` : "";
+    const inputReadonly = automatico ? "readonly" : "";
+    const placeholderTemp = automatico ? "In attesa dal dispositivo..." : "es. 72.5";
+
     return `
       <div class="haccp-fase-card" data-idx="${idx}" style="
         border:1px solid #e2e8f0;
@@ -675,9 +719,9 @@ function renderFasiHaccp() {
             <span style="font-weight:700;font-size:15px;">Fase ${f.ordine} — ${escapeAttr(f.nome_fase || f.tipo_fase)}</span>
             <span style="margin-left:8px;font-size:12px;color:#64748b;">${tipoLabel}</span>
           </div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            ${f.tecnologia ? `<span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:20px;font-size:12px;">🔧 ${escapeAttr(f.tecnologia)}</span>` : ""}
-            ${hasTempPrevista ? `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;font-size:12px;">🌡 prevista: ${f.temperatura}°C</span>` : ""}
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            ${dispBadge}
+            ${tempPrevLabel ? `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;font-size:12px;">🌡 prevista: ${tempPrevLabel}</span>` : ""}
             ${f.durata_min ? `<span style="background:#f0fdf4;color:#166534;padding:3px 8px;border-radius:20px;font-size:12px;">⏱ ${f.durata_min} min</span>` : ""}
           </div>
         </div>
@@ -687,20 +731,26 @@ function renderFasiHaccp() {
           📋 ${escapeAttr(f.descrizione_operativa)}
         </div>` : ""}
 
+        ${automatico ? `
+        <div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:10px 12px;font-size:13px;color:#15803d;margin-bottom:12px;">
+          🤖 I dati di questa fase vengono registrati automaticamente da <strong>${escapeAttr(disp.nome)}</strong>.
+          Puoi comunque aggiungere note o correggere manualmente.
+        </div>` : ""}
+
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
 
           <div>
             <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Ora inizio</label>
             <input type="datetime-local" class="input haccp-ora-inizio" data-idx="${idx}"
-              value="${escapeAttr(log.ora_inizio || '')}"
-              style="margin-top:4px;font-size:14px;">
+              value="${escapeAttr(log.ora_inizio || '')}" ${inputReadonly}
+              style="margin-top:4px;font-size:14px;${inputStyle}">
           </div>
 
           <div>
             <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Ora fine</label>
             <input type="datetime-local" class="input haccp-ora-fine" data-idx="${idx}"
-              value="${escapeAttr(log.ora_fine || '')}"
-              style="margin-top:4px;font-size:14px;">
+              value="${escapeAttr(log.ora_fine || '')}" ${inputReadonly}
+              style="margin-top:4px;font-size:14px;${inputStyle}">
           </div>
 
           ${hasTempPrevista ? `
@@ -708,8 +758,8 @@ function renderFasiHaccp() {
             <label style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Temp. rilevata (°C)</label>
             <input type="number" step="0.1" class="input haccp-temp" data-idx="${idx}"
               value="${escapeAttr(String(log.temperatura_rilevata || ''))}"
-              placeholder="es. 72.5"
-              style="margin-top:4px;font-size:14px;">
+              placeholder="${placeholderTemp}" ${inputReadonly}
+              style="margin-top:4px;font-size:14px;${inputStyle}">
           </div>` : ""}
 
           <div>
@@ -858,6 +908,8 @@ async function salvaLogHaccp() {
     fase_ordine: log.fase_ordine,
     fase_nome: log.fase_nome,
     fase_tipo: log.fase_tipo,
+    dispositivo_id: log.dispositivo_id || null,
+    fonte_dato: log.fonte_dato || "manuale",
     tecnologia_prevista: log.tecnologia_prevista || null,
     temperatura_prevista: log.temperatura_prevista ?? null,
     operatore_nome: operatoreNome,
