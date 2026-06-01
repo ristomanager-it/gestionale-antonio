@@ -35,6 +35,8 @@ let outputSecondariCache = [];
 
 let _autocompleteDocBound = false;
 
+let dispositividCache = []; // { id, nome, tipo, connesso, temperatura_min, temperatura_max }
+
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
 
@@ -467,6 +469,7 @@ export async function render(app) {
   await loadProdotti();
   await loadCategoriePortata();
   await loadFasiTemplate();
+  await loadDispositivi();
   bindUI();
 
   if (ricettaId) {
@@ -580,6 +583,34 @@ async function loadCategoriePortata() {
 
   setupCategoriaAutocomplete();
 }
+/* ============================================================
+   DISPOSITIVI
+============================================================ */
+async function loadDispositivi() {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state.azienda.id;
+
+  const { data, error } = await supabase
+    .from("dispositivi")
+    .select("id, nome, tipo, connesso, temperatura_min, temperatura_max, marca, modello")
+    .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
+    .order("nome");
+
+  if (error) { console.error("loadDispositivi:", error); dispositividCache = []; return; }
+  dispositividCache = data || [];
+}
+
+function buildDispositvoOptions(selectedId = "") {
+  const nessuno = `<option value="">— Nessun dispositivo (manuale) —</option>`;
+  if (!dispositividCache.length) return nessuno;
+  return nessuno + dispositividCache.map(d => {
+    const badge = d.connesso ? "🤖 AUTO" : "✋ manuale";
+    const label = `${d.nome}${d.marca ? ` (${d.marca})` : ""} — ${badge}`;
+    return `<option value="${d.id}" ${String(d.id) === String(selectedId) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
 /* ============================================================
    FASI TEMPLATE
 ============================================================ */
@@ -1001,8 +1032,16 @@ function aggiungiFase(initial = {}) {
       </div>
 
       <div class="form-group">
-        <label>Tecnologia (opz.)</label>
-        <input class="fase-tecnologia input" value="${escapeAttr(initial.tecnologia || "")}" />
+        <label>Dispositivo</label>
+        <select class="fase-dispositivo input">
+          ${buildDispositvoOptions(initial.dispositivo_id || "")}
+        </select>
+        <div class="fase-dispositivo-badge" style="margin-top:4px;font-size:12px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Attrezzatura (testo libero)</label>
+        <input class="fase-tecnologia input" value="${escapeAttr(initial.tecnologia || "")}" placeholder="Es. teglia inox, sac à poche..." />
       </div>
 
       <div class="form-group">
@@ -1053,6 +1092,28 @@ function aggiungiFase(initial = {}) {
 
   container.appendChild(card);
   renumberFasi();
+
+  // Badge ibrido dispositivo
+  const selDisp = card.querySelector(".fase-dispositivo");
+  const badgeDisp = card.querySelector(".fase-dispositivo-badge");
+  function aggiornaBadgeDisp() {
+    const id = selDisp?.value;
+    if (!id) { if (badgeDisp) badgeDisp.innerHTML = ""; return; }
+    const d = dispositividCache.find(x => String(x.id) === String(id));
+    if (!d || !badgeDisp) return;
+    if (d.connesso) {
+      badgeDisp.innerHTML = `<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:20px;">🤖 Automatico — i dati arriveranno dal dispositivo</span>`;
+    } else {
+      badgeDisp.innerHTML = `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;">✋ Manuale — il cuoco inserirà i dati in produzione</span>`;
+    }
+    // Precompila temperatura prevista se il dispositivo ha soglie
+    const tempEl = card.querySelector(".fase-temperatura");
+    if (tempEl && !tempEl.value && d.temperatura_min != null) {
+      tempEl.value = d.temperatura_min;
+    }
+  }
+  selDisp?.addEventListener("change", aggiornaBadgeDisp);
+  aggiornaBadgeDisp(); // esegui subito se c'è già un valore
 }
 
 function renumberFasi() {
@@ -1916,8 +1977,7 @@ async function salvaTutto() {
       const tecnologia = (r.querySelector(".fase-tecnologia")?.value || "").trim() || null;
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
-
-      
+      const dispositivo_id = r.querySelector(".fase-dispositivo")?.value || null;
 
       rows.push({
         ricetta_id: ricettaIdNum,
@@ -1930,6 +1990,7 @@ async function salvaTutto() {
         temperatura,
         note,
         descrizione_operativa,
+        dispositivo_id: dispositivo_id || null,
         richiede_conferma: false,
         fase_template_id: null,
         parametri: {},
