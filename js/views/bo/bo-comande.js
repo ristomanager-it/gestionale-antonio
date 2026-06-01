@@ -520,14 +520,34 @@ export async function render(container) {
     let q = supa().from('prodotti_vendita').select('*').eq('azienda_id', aziendaId);
     if (sedeId) q = q.eq('sede_id', sedeId);
     const { data } = await q.order('nome');
-    prodottiVendita = data || [];
+    // Fallback: se la sede non ha prodotti propri, carica quelli azienda-wide
+    if (sedeId && (!data || !data.length)) {
+      const { data: fallback } = await supa()
+        .from('prodotti_vendita')
+        .select('*')
+        .eq('azienda_id', aziendaId)
+        .order('nome');
+      prodottiVendita = fallback || [];
+    } else {
+      prodottiVendita = data || [];
+    }
   }
 
   async function loadCategorie() {
     let q = supa().from('categorie_vendita').select('*').eq('azienda_id', aziendaId);
     if (sedeId) q = q.eq('sede_id', sedeId);
     const { data } = await q.order('nome');
-    categorieVendita = data || [];
+    // Fallback: se la sede non ha categorie proprie, carica quelle azienda-wide
+    if (sedeId && (!data || !data.length)) {
+      const { data: fallback } = await supa()
+        .from('categorie_vendita')
+        .select('*')
+        .eq('azienda_id', aziendaId)
+        .order('nome');
+      categorieVendita = fallback || [];
+    } else {
+      categorieVendita = data || [];
+    }
   }
 
   async function loadPrenotazioniOggi() {
