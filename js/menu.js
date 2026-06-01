@@ -349,6 +349,11 @@ export function initMenu() {
           },
 
           {
+            label: "🔌 Dispositivi",
+            route: "bo-dispositivi"
+          },
+
+          {
             label: "🏷️ Tag",
             route: "bo-tag"
           },
