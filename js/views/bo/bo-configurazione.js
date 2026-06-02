@@ -1,6 +1,8 @@
 // js/views/bo/bo-configurazione.js
 // Control room del ristorante — configurazione centralizzata
-// Tab: Operativo | Sala | Menu & Comunicazione | (futuro: Cassa, Integrazioni)
+// Tab: Operativo | Sala | Menu & Comunicazione | Cassa | Integrazioni
+
+import { createPageLayout } from "../../utils/pageLayout.js";
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -26,44 +28,31 @@ export async function render(container) {
 
   let tabAttivo = 'operativo';
   let settori = [], postazioni = [], prodottiVendita = [], categorieVendita = [], ricette = [];
+  let tavoli = [], sale = [];
 
-  // ════════════════════════════════════════
-  // SHELL
-  // ════════════════════════════════════════
-  container.innerHTML = `
-  <div style="min-height:100vh;background:#f8fafc;">
-
-    <!-- Header -->
-    <div style="background:white;border-bottom:1px solid #e5e7eb;padding:20px 28px 0;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-        <div style="width:40px;height:40px;background:#0E5A7A;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">⚙️</div>
-        <div>
-          <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
-          <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
-        </div>
-      </div>
+  container.innerHTML = createPageLayout({
+    title: "Configurazione",
+    subtitle: "Control room — impostazioni operative del ristorante",
+    content: `
       <!-- Tab nav -->
-      <div style="display:flex;gap:0;overflow-x:auto;">
+      <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;">
         ${[
-          { id:'operativo',      icon:'👨‍🍳', label:'Operativo'         },
-          { id:'sala',           icon:'🪑', label:'Sala & Prenotazioni' },
-          { id:'menu',           icon:'📋', label:'Menu & Comunicazione'},
-          { id:'cassa',          icon:'💳', label:'Cassa & Stampa'      },
-          { id:'integrazioni',   icon:'🔗', label:'Integrazioni'        },
+          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'          },
+          { id:'sala',         icon:'🪑', label:'Sala'                 },
+          { id:'menu',         icon:'📋', label:'Menu'                 },
+          { id:'cassa',        icon:'💳', label:'Cassa'                },
+          { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
         ].map(t => `
           <button data-tab="${t.id}" style="
-            padding:10px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
-            color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;
-            transition:all 0.15s;
+            padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
+            color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;
           ">${t.icon} ${t.label}</button>
         `).join('')}
       </div>
-    </div>
-
-    <!-- Contenuto tab -->
-    <div id="tab-content" style="padding:28px;max-width:900px;"></div>
-  </div>
-  `;
+      <!-- Contenuto tab -->
+      <div id="tab-content"></div>
+    `
+  });
 
   // ════════════════════════════════════════
   // TAB NAVIGATION
@@ -627,7 +616,7 @@ export async function render(container) {
         <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(prodotto.nome)}</div>
-            <div style="font-size:11px;color:#64748b;">Ricetta ID: ${r.id.slice(0,8)}...</div>
+            <div style="font-size:11px;color:#64748b;">Ricetta ID: ${String(r.id).slice(0,8)}...</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <input type="number" data-ricetta-tempo="${r.id}" value="${r.tempo_esecuzione_min||15}" min="1" max="120"
@@ -649,20 +638,303 @@ export async function render(container) {
   }
 
   // ════════════════════════════════════════
-  // TAB: SALA & PRENOTAZIONI
+  // TAB: SALA & TAVOLI
   // ════════════════════════════════════════
-  function renderTabSala(box) {
+  async function renderTabSala(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    // Carica sale e tavoli
+    const { data: saleData } = await supa()
+      .from('sale').select('*')
+      .eq('azienda_id', aziendaId)
+      .order('nome');
+    sale = saleData || [];
+
+    const { data: tavoliData } = await supa()
+      .from('tavoli').select('*')
+      .eq('azienda_id', aziendaId)
+      .order('numero');
+    tavoli = tavoliData || [];
+
     box.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        ${[
-          { icon:'🪑', titolo:'Tavoli e sale',        desc:'Crea e organizza sale e tavoli del locale. Imposta coperti minimi e massimi.',  link:'bo-comande',           cta:'Vai a Comande' },
-          { icon:'📅', titolo:'Prenotazioni',          desc:'Gestisci le prenotazioni, visualizza il piano sala e conferma gli arrivi.',      link:'prenotazioni',         cta:'Vai a Prenotazioni' },
-          { icon:'📝', titolo:'Form prenotazione',     desc:'Personalizza il form online che i clienti compilano per prenotare un tavolo.',   link:'booking-form-builder', cta:'Configura form' },
-          { icon:'💬', titolo:'Messaggi automatici',   desc:'Email e SMS di conferma, promemoria e follow-up post visita.',                   link:null,                   cta:'Presto disponibile' },
-        ].map(c => cardLink(c)).join('')}
+      <!-- SALE -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🏠 Sale</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Crea le sale del locale (es. Sala interna, Terrazza, Giardino)</div>
+          </div>
+          <button id="btn-nuova-sala" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuova sala</button>
+        </div>
+
+        <div id="lista-sale" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+
+        <div id="form-sala" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-sala-title">Nuova sala</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome sala *</label>
+              <input id="sala-nome" class="input" placeholder="Es. Sala interna, Terrazza..." style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Capienza massima</label>
+              <input id="sala-capienza" type="number" min="1" class="input" placeholder="Es. 50" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Note</label>
+              <input id="sala-note" class="input" placeholder="Es. Solo su prenotazione, Accessibile..." style="width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <div id="sala-esito" style="font-size:13px;min-height:16px;margin-top:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button id="btn-salva-sala" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva</button>
+            <button id="btn-annulla-sala" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAVOLI -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🪑 Tavoli</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Aggiungi tavoli con numero, coperti minimi/massimi e sala di appartenenza</div>
+          </div>
+          <button id="btn-nuovo-tavolo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo tavolo</button>
+        </div>
+
+        <!-- Filtro per sala -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button data-filter-sala="" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #0E5A7A;background:#0E5A7A;color:white;font-size:12px;cursor:pointer;font-weight:600;">Tutti</button>
+          ${sale.map(s => `<button data-filter-sala="${s.id}" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">${esc(s.nome)}</button>`).join('')}
+        </div>
+
+        <div id="lista-tavoli-conf" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:12px;"></div>
+
+        <div id="form-tavolo" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-tavolo-title">Nuovo tavolo</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Numero / Nome *</label>
+              <input id="tavolo-numero" class="input" placeholder="Es. 1, T1, Bar..." style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Sala</label>
+              <select id="tavolo-sala" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">— Nessuna sala —</option>
+                ${sale.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Coperti min</label>
+              <input id="tavolo-min" type="number" min="1" value="1" class="input" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Coperti max *</label>
+              <input id="tavolo-max" type="number" min="1" value="4" class="input" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Sedie (fisiche)</label>
+              <input id="tavolo-sedie" type="number" min="0" class="input" placeholder="Es. 4" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Posizione</label>
+              <select id="tavolo-posizione" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">—</option>
+                <option value="interno">Interno</option>
+                <option value="esterno">Esterno</option>
+                <option value="terrazza">Terrazza</option>
+                <option value="giardino">Giardino</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+          </div>
+          <div id="tavolo-esito" style="font-size:13px;min-height:16px;margin-top:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button id="btn-salva-tavolo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva</button>
+            <button id="btn-annulla-tavolo" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRENOTAZIONI link -->
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:12px;">📅 Prenotazioni e piantina</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          ${[
+            { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci le prenotazioni e conferma gli arrivi.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
+            { icon:'🗺️', titolo:'Piantina sala', desc:'Visualizza e assegna i tavoli graficamente.', link:'prenotazioni-tavoli', cta:'Vai alla Piantina' },
+          ].map(c => cardLink(c)).join('')}
+        </div>
       </div>
     `;
-    box.querySelectorAll('[data-nav]').forEach(btn => btn.onclick = () => { window.location.hash = '#/' + btn.dataset.nav; });
+
+    renderListaSale();
+    renderListaTavoliConf();
+    bindSala();
+  }
+
+  function renderListaSale() {
+    const box = container.querySelector('#lista-sale');
+    if (!box) return;
+    if (!sale.length) {
+      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna sala. Creane una per organizzare i tavoli.</div>';
+      return;
+    }
+    box.innerHTML = sale.map(s => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">🏠 ${esc(s.nome)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">
+            ${s.capienza_max ? `Capienza: ${s.capienza_max} posti` : ''}
+            ${s.note ? ` · ${esc(s.note)}` : ''}
+            · ${tavoli.filter(t => t.sala_id === s.id).length} tavoli
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button data-del-sala="${s.id}" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>
+      </div>
+    `).join('');
+
+    box.querySelectorAll('[data-del-sala]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questa sala? I tavoli associati rimarranno.')) return;
+        await supa().from('sale').delete().eq('id', btn.dataset.delSala);
+        sale = sale.filter(s => s.id !== btn.dataset.delSala);
+        renderListaSale();
+        renderListaTavoliConf();
+      });
+    });
+  }
+
+  let filtroSalaAttivo = '';
+  function renderListaTavoliConf() {
+    const box = container.querySelector('#lista-tavoli-conf');
+    if (!box) return;
+    const filtered = filtroSalaAttivo
+      ? tavoli.filter(t => t.sala_id === filtroSalaAttivo)
+      : tavoli;
+    if (!filtered.length) {
+      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;grid-column:1/-1;">Nessun tavolo. Aggiungine uno.</div>';
+      return;
+    }
+    box.innerHTML = filtered.map(t => {
+      const salaNome = sale.find(s => s.id === t.sala_id)?.nome || '';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative;">
+          <div style="font-size:20px;font-weight:700;color:#0E5A7A;margin-bottom:4px;">T${esc(String(t.numero || t.nome || '?'))}</div>
+          <div style="font-size:12px;color:#64748b;">${salaNome ? `🏠 ${esc(salaNome)}` : ''}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">👥 ${t.coperti_min||1}–${t.coperti_max||4} coperti${t.sedie ? ` · 🪑 ${t.sedie} sedie` : ''}</div>
+          ${t.posizione ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${esc(t.posizione)}</div>` : ''}
+          <button data-del-tavolo="${t.id}" style="position:absolute;top:8px;right:8px;background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">🗑</button>
+        </div>
+      `;
+    }).join('');
+
+    box.querySelectorAll('[data-del-tavolo]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questo tavolo?')) return;
+        await supa().from('tavoli').delete().eq('id', btn.dataset.delTavolo);
+        tavoli = tavoli.filter(t => t.id !== btn.dataset.delTavolo);
+        renderListaTavoliConf();
+      });
+    });
+  }
+
+  function bindSala() {
+    // Sale
+    let editingSalaId = null;
+    container.querySelector('#btn-nuova-sala')?.addEventListener('click', () => {
+      editingSalaId = null;
+      container.querySelector('#form-sala-title').textContent = 'Nuova sala';
+      container.querySelector('#sala-nome').value = '';
+      container.querySelector('#sala-capienza').value = '';
+      container.querySelector('#sala-note').value = '';
+      container.querySelector('#form-sala').style.display = '';
+      container.querySelector('#sala-nome').focus();
+    });
+    container.querySelector('#btn-annulla-sala')?.addEventListener('click', () => {
+      container.querySelector('#form-sala').style.display = 'none';
+    });
+    container.querySelector('#btn-salva-sala')?.addEventListener('click', async () => {
+      const esito = container.querySelector('#sala-esito');
+      const nome = container.querySelector('#sala-nome').value.trim();
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: sedeId || null,
+        nome,
+        capienza_max: parseInt(container.querySelector('#sala-capienza').value) || null,
+        note: container.querySelector('#sala-note').value.trim() || null,
+      };
+      const { data, error } = await supa().from('sale').insert(payload).select('*').single();
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      sale.push(data);
+      container.querySelector('#form-sala').style.display = 'none';
+      renderListaSale();
+      mostraToast('Sala "' + nome + '" creata ✅', 'success');
+    });
+
+    // Tavoli
+    container.querySelector('#btn-nuovo-tavolo')?.addEventListener('click', () => {
+      container.querySelector('#form-tavolo-title').textContent = 'Nuovo tavolo';
+      container.querySelector('#tavolo-numero').value = '';
+      container.querySelector('#tavolo-sala').value = '';
+      container.querySelector('#tavolo-min').value = '1';
+      container.querySelector('#tavolo-max').value = '4';
+      container.querySelector('#tavolo-sedie').value = '';
+      container.querySelector('#form-tavolo').style.display = '';
+      container.querySelector('#tavolo-numero').focus();
+    });
+    container.querySelector('#btn-annulla-tavolo')?.addEventListener('click', () => {
+      container.querySelector('#form-tavolo').style.display = 'none';
+    });
+    container.querySelector('#btn-salva-tavolo')?.addEventListener('click', async () => {
+      const esito = container.querySelector('#tavolo-esito');
+      const numero = container.querySelector('#tavolo-numero').value.trim();
+      const max = parseInt(container.querySelector('#tavolo-max').value);
+      if (!numero || !max) { esito.textContent = '❌ Numero e coperti max obbligatori'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: sedeId || null,
+        sala_id: container.querySelector('#tavolo-sala').value || null,
+        numero: isNaN(Number(numero)) ? null : Number(numero),
+        nome: numero,
+        coperti_min: parseInt(container.querySelector('#tavolo-min').value) || 1,
+        coperti_max: max,
+        sedie: parseInt(container.querySelector('#tavolo-sedie').value) || null,
+        posizione: container.querySelector('#tavolo-posizione').value || null,
+        attivo: true,
+      };
+      const { data, error } = await supa().from('tavoli').insert(payload).select('*').single();
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      tavoli.push(data);
+      container.querySelector('#form-tavolo').style.display = 'none';
+      renderListaTavoliConf();
+      mostraToast('Tavolo ' + numero + ' aggiunto ✅', 'success');
+    });
+
+    // Filtro sala
+    container.querySelectorAll('.btn-filter-sala').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filtroSalaAttivo = btn.dataset.filterSala;
+        container.querySelectorAll('.btn-filter-sala').forEach(b => {
+          const att = b.dataset.filterSala === filtroSalaAttivo;
+          b.style.background = att ? '#0E5A7A' : 'white';
+          b.style.color = att ? 'white' : '#374151';
+          b.style.borderColor = att ? '#0E5A7A' : '#e5e7eb';
+        });
+        renderListaTavoliConf();
+      });
+    });
+
+    // Nav buttons
+    container.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => { window.location.hash = '#/' + btn.dataset.nav; });
+    });
   }
 
   // ════════════════════════════════════════
