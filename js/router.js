@@ -106,6 +106,12 @@ const routes = {
   ai: () => import("./views/ai.js"),
 
   permessi: () => import("./views/permessi-ferie.js"),
+
+  // ── HR — Gestione personale ──
+  "hr-richieste": () => import("./views/hr-richieste.js"),
+  "hr-admin":     () => import("./views/hr-admin.js"),
+  "hr-documenti": () => import("./views/hr-documenti.js"),
+  "hr-documenti-me": () => import("./views/hr-documenti.js"),
   manuale: () => import("./views/manuale.js"),
 
   sala: () => import("./views/sala.js"),
