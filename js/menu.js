@@ -320,7 +320,8 @@ export function initMenu() {
           { label: "👥 Dipendenti",       route: "dipendenti"        },
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
-          { label: "📆 Ferie",            route: "permessi"          },
+          { label: "📆 Gestione ferie",   route: "hr-admin"          },
+          { label: "📁 Documenti HR",     route: "hr-documenti"      },
           { label: "📘 Manuale",          route: "manuale"           },
         ]
       });
@@ -345,9 +346,10 @@ export function initMenu() {
     sections.push({
       title: "PERSONALE",
       items: [
-        { label: "👤 Profilo",          route: "completa-profilo" },
-        { label: "🕒 Timbratura",       route: "timbrature"       },
-        { label: "📆 Permessi e ferie", route: "permessi"         },
+        { label: "👤 Profilo",            route: "completa-profilo" },
+        { label: "🕒 Timbratura",         route: "timbrature"       },
+        { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
+        { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
       ]
     });
 
