@@ -634,7 +634,7 @@ export async function render(container) {
       try {
         const supabaseUrl = window.supabaseClient?.supabaseUrl || 'https://cuhcscpvhypoaplcmtjk.supabase.co';
         const supabaseKey = window.supabaseClient?.supabaseKey || window.SUPABASE_ANON_KEY || '';
-        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
+        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send-ts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
           body: JSON.stringify({
