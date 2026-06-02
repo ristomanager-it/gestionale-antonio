@@ -282,7 +282,7 @@ async function loadRicetteEPrezzi() {
 
   if (!supabase || !aziendaId) return;
 
-  // Filtra ricette per sede_id — solo la sede attiva, solo food
+  // Carica tutte le ricette dell'azienda — il preventivo è trasversale alle sedi
   let query = supabase
     .from("ricette")
     .select("id, nome, attivo, sede_id, prodotto_vendita_id, costo_porzione, prezzo_vendita, prodotti_vendita(famiglia)")
@@ -290,18 +290,12 @@ async function loadRicetteEPrezzi() {
     .eq("attivo", true)
     .order("nome", { ascending: true });
 
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
-  }
-
   const { data: ricette } = await query;
 
-  // Escludi beverage — tieni solo food
-  const tutteRicette = ricette || [];
-  ricetteCache = tutteRicette.filter(r => {
-    const famiglia = r.prodotti_vendita?.famiglia;
-    return !famiglia || famiglia === 'food';
-  });
+  // Se la sede non ha ricette, carica tutte le ricette dell'azienda
+  let tutteRicette = ricette || [];
+  // Tutte le ricette attive — preventivo può includere food, bevande e semilavorati
+  ricetteCache = tutteRicette;
 
   // Precarica prezzi vendita dalla ricetta stessa (se non in ricette_prezzi_canale)
   ricetteCache.forEach(r => {
