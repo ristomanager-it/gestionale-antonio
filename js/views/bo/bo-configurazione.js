@@ -118,11 +118,11 @@ export async function render(container) {
         <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
           <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-stampante-title">Nuova stampante</div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Nome</label>
-              <input id="sp-nome" class="input" placeholder="Es. Cassa principale" style="margin-top:4px;">
+              <input id="sp-nome" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. Cassa principale" style="margin-top:4px;">
             </div>
 
             <div>
@@ -146,17 +146,17 @@ export async function render(container) {
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Matricola</label>
-              <input id="sp-matricola" class="input" placeholder="Es. 99IEB040357" style="margin-top:4px;">
+              <input id="sp-matricola" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. 99IEB040357" style="margin-top:4px;">
             </div>
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Indirizzo IP</label>
-              <input id="sp-ip" class="input" placeholder="Es. 192.168.0.102" style="margin-top:4px;">
+              <input id="sp-ip" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. 192.168.0.102" style="margin-top:4px;">
             </div>
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Porta HTTP</label>
-              <input id="sp-porta" class="input" type="number" value="80" style="margin-top:4px;">
+              <input id="sp-porta" class="input" type="number" style="width:100%;box-sizing:border-box;" value="80" style="margin-top:4px;">
             </div>
 
           </div>
@@ -415,7 +415,7 @@ export async function render(container) {
         <!-- Form nuova postazione -->
         <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuova postazione</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome postazione *</label>
               <input id="post-nome" class="input" placeholder="es. Tablet Cucina, Bar Piscina..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
@@ -671,7 +671,7 @@ export async function render(container) {
 
         <div id="form-sala" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-sala-title">Nuova sala</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome sala *</label>
               <input id="sala-nome" class="input" placeholder="Es. Sala interna, Terrazza..." style="width:100%;box-sizing:border-box;">
@@ -713,7 +713,7 @@ export async function render(container) {
 
         <div id="form-tavolo" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-tavolo-title">Nuovo tavolo</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Numero / Nome *</label>
               <input id="tavolo-numero" class="input" placeholder="Es. 1, T1, Bar..." style="width:100%;box-sizing:border-box;">
@@ -760,7 +760,7 @@ export async function render(container) {
       <!-- PRENOTAZIONI link -->
       <div>
         <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:12px;">📅 Prenotazioni e piantina</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
           ${[
             { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci le prenotazioni e conferma gli arrivi.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
             { icon:'🗺️', titolo:'Piantina sala', desc:'Visualizza e assegna i tavoli graficamente.', link:'prenotazioni-tavoli', cta:'Vai alla Piantina' },
@@ -942,7 +942,7 @@ export async function render(container) {
   // ════════════════════════════════════════
   function renderTabMenu(box) {
     box.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
         ${[
           { icon:'📋', titolo:'Menu digitale',         desc:'Costruisci il menu digitale del locale, gestisci sezioni e descrizioni.',        link:'bo-menu',     cta:'Vai al Menu builder' },
           { icon:'🏷️', titolo:'Categorie prodotto',   desc:'Crea e organizza le categorie del menu (Antipasti, Primi, Pizza...).',           link:'bo-categorie', cta:'Gestisci categorie' },
