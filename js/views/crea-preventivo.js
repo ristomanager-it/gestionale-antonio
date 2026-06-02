@@ -282,38 +282,36 @@ async function loadRicetteEPrezzi() {
 
   if (!supabase || !aziendaId) return;
 
-  // Carica tutte le ricette dell'azienda — il preventivo è trasversale alle sedi
   let query = supabase
-    .from("ricette")
-    .select("id, nome, attivo, sede_id, prodotto_vendita_id, costo_porzione, prezzo_vendita, prodotti_vendita(famiglia)")
+    .from("prodotti_vendita")
+    .select("id, nome, tipo, canale, prezzo_base, descrizione, categoria_vendita_id, ricetta_id, attivo")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
-    .order("nome", { ascending: true });
+    .in("canale", ["evento", "tutti"])
+    .order("ordinamento")
+    .order("nome");
 
-  const { data: ricette } = await query;
+  if (sedeId) query = query.eq("sede_id", sedeId);
 
-  // Se la sede non ha ricette, carica tutte le ricette dell'azienda
-  let tutteRicette = ricette || [];
-  // Tutte le ricette attive — preventivo può includere food, bevande e semilavorati
-  ricetteCache = tutteRicette;
+  const { data: prodotti } = await query;
 
-  // Precarica prezzi vendita dalla ricetta stessa (se non in ricette_prezzi_canale)
-  ricetteCache.forEach(r => {
-    if (r.prezzo_vendita && !prezziByRicettaId.has(String(r.id))) {
-      prezziByRicettaId.set(String(r.id), toNumber(r.prezzo_vendita));
+  ricetteCache = (prodotti || []).map(p => ({
+    id: p.id,
+    nome: p.nome,
+    tipo: p.tipo,
+    canale: p.canale,
+    prezzo_vendita: p.prezzo_base,
+    costo_porzione: null,
+    ricetta_id: p.ricetta_id,
+    _isProdottoVendita: true,
+  }));
+
+  ricetteCache.forEach(p => {
+    if (p.prezzo_vendita) {
+      prezziByRicettaId.set(String(p.id), toNumber(p.prezzo_vendita));
     }
   });
-
-  const { data: prezzi } = await supabase
-    .from("ricette_prezzi_canale")
-    .select("ricetta_id, prezzo_vendita")
-    .eq("azienda_id", aziendaId)
-    .eq("canale", CANALE_PREVENTIVO)
-    .eq("attivo", true);
-
-  prezziByRicettaId = new Map((prezzi || []).map((p) => [String(p.ricetta_id), toNumber(p.prezzo_vendita)]));
 }
-
 /* ============================================================ */
 /* BIND EVENTS */
 /* ============================================================ */
@@ -584,20 +582,141 @@ function mostraAutocomplete(input, query) {
       const sid = acTarget.getAttribute("data-sezione");
       const idx = Number(acTarget.getAttribute("data-idx"));
       if (!sid || !Number.isFinite(idx)) return;
-      acTarget.value = nome;
-      menuSezioni[sid][idx].ricetta_id = "";
-      menuSezioni[sid][idx].ricetta_nome = nome;
-      menuSezioni[sid][idx].is_placeholder = true; // verrà creata al salvataggio
-      renderSezione(sid);
-      // Focus sul prezzo
-      setTimeout(() => {
-        const pp = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sid}"][data-idx="${idx}"]`);
-        if (pp) pp.focus();
-      }, 50);
+      // Apri modal al volo per creare prodotto_vendita
+      apriModalNuovoProdotto(nome, (nuovoProdotto) => {
+        acTarget.value = nuovoProdotto.nome;
+        menuSezioni[sid][idx].ricetta_id = nuovoProdotto.id;
+        menuSezioni[sid][idx].ricetta_nome = nuovoProdotto.nome;
+        menuSezioni[sid][idx].prezzo_pp = nuovoProdotto.prezzo_base || 0;
+        menuSezioni[sid][idx].is_placeholder = false;
+        renderSezione(sid);
+        recalcPreventivoTotali();
+        setTimeout(() => {
+          const pp = document.querySelector(`[data-field="prezzo_pp"][data-sezione="${sid}"][data-idx="${idx}"]`);
+          if (pp) pp.focus();
+        }, 50);
+      });
     });
   });
 
   if (!risultati.length && esattoMatch === undefined && !query) { chiudiAutocomplete(); }
+}
+
+/* ============================================================ */
+/* MODAL AL VOLO — Nuovo prodotto vendita                       */
+/* ============================================================ */
+function apriModalNuovoProdotto(nomeIniziale, onSalvato) {
+  const existing = document.getElementById("modal-nuovo-prodotto");
+  if (existing) existing.remove();
+
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id;
+
+  const modal = document.createElement("div");
+  modal.id = "modal-nuovo-prodotto";
+  modal.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.5);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;padding:20px;box-sizing:border-box;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;">+ Nuovo prodotto catalogo</div>
+        <button id="modal-prod-close" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Nome *</label>
+          <input id="mp-nome" class="input" value="${escapeAttr(nomeIniziale)}" style="margin-top:4px;width:100%;box-sizing:border-box;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Tipo</label>
+            <select id="mp-tipo" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="portata">Portata</option>
+              <option value="servizio">Servizio</option>
+              <option value="bevanda">Bevanda</option>
+              <option value="menu_fisso">Menu fisso</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Prezzo base (€)</label>
+            <input id="mp-prezzo" type="number" step="0.01" min="0" class="input" placeholder="Es. 15.00" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Descrizione (opz.)</label>
+          <textarea id="mp-descrizione" class="input" rows="2" style="margin-top:4px;width:100%;box-sizing:border-box;" placeholder="Breve descrizione per il preventivo..."></textarea>
+        </div>
+        <div style="background:#f0f9ff;border-radius:8px;padding:10px 12px;font-size:12px;color:#0369a1;">
+          💡 Verrà aggiunto al catalogo con canale <strong>evento</strong> per la sede attiva. Potrai modificarlo in Configurazione → Menu.
+        </div>
+      </div>
+
+      <div id="mp-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button id="mp-salva" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;flex:1;">💾 Salva e inserisci</button>
+        <button id="mp-annulla" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector("#modal-prod-close").onclick = close;
+  modal.querySelector("#mp-annulla").onclick = close;
+  modal.addEventListener("click", e => { if (e.target === modal) close(); });
+
+  modal.querySelector("#mp-nome").focus();
+
+  modal.querySelector("#mp-salva").onclick = async () => {
+    const esito = modal.querySelector("#mp-esito");
+    const nome = modal.querySelector("#mp-nome").value.trim();
+    if (!nome) { esito.textContent = "❌ Nome obbligatorio"; esito.style.color = "#dc2626"; return; }
+    esito.textContent = "Salvataggio..."; esito.style.color = "#64748b";
+
+    const payload = {
+      azienda_id: aziendaId,
+      sede_id: sedeId || null,
+      nome,
+      tipo: modal.querySelector("#mp-tipo").value || "portata",
+      canale: "evento",
+      prezzo_base: parseFloat(modal.querySelector("#mp-prezzo").value) || null,
+      descrizione: modal.querySelector("#mp-descrizione").value.trim() || null,
+      attivo: true,
+      visibile: true,
+      disponibile: true,
+    };
+
+    const supabase = window.supabaseClient;
+    const { data, error } = await supabase
+      .from("prodotti_vendita")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (error) { esito.textContent = "❌ " + error.message; esito.style.color = "#dc2626"; return; }
+
+    // Aggiorna cache locale
+    ricetteCache.push({
+      id: data.id,
+      nome: data.nome,
+      tipo: data.tipo,
+      canale: data.canale,
+      prezzo_vendita: data.prezzo_base,
+      _isProdottoVendita: true,
+    });
+    if (data.prezzo_base) prezziByRicettaId.set(String(data.id), toNumber(data.prezzo_base));
+
+    close();
+    if (typeof onSalvato === "function") onSalvato(data);
+  };
 }
 
 function chiudiAutocomplete(e) {
