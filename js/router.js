@@ -110,6 +110,7 @@ const routes = {
   // ── HR — Gestione personale ──
   "hr-richieste":    () => import("./views/hr-richieste.js"),
   "hr-admin":        () => import("./views/hr-admin.js"),
+  "hr-fascicolo":    () => import("./views/hr-fascicolo.js"),
   "hr-documenti":    () => import("./views/hr-documenti.js"),
   "hr-documenti-me": () => import("./views/hr-documenti.js"),
   manuale: () => import("./views/manuale.js"),
