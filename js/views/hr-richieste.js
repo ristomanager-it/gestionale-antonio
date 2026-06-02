@@ -155,24 +155,24 @@ export async function render(container) {
 
     if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
 
-    // Notifica in-app agli admin
+    // Notifica in-app agli admin via window.notify
     const { data: admins } = await supa()
       .from('dipendenti')
-      .select('id')
+      .select('id, user_id')
       .eq('azienda_id', aziendaId)
       .in('ruolo', ['admin', 'manager']);
 
-    if (admins?.length) {
-      await supa().from('notifiche').insert(
-        admins.map(a => ({
-          azienda_id: aziendaId,
-          dipendente_id: a.id,
-          tipo: 'richiesta_ferie',
-          titolo: `${tipo} — ${me.nome} ${me.cognome}`,
-          testo: `Richiesta per il ${dataInizio}${dataFine !== dataInizio ? ` → ${dataFine}` : ''}`,
-          link: '#/hr-admin',
-        }))
-      ).catch(() => {});
+    if (admins?.length && window.notify) {
+      const destinatari = admins.map(a => a.user_id).filter(Boolean);
+      await window.notify({
+        tipo: 'richiesta_ferie',
+        titolo: `${tipo} — ${me.nome} ${me.cognome}`,
+        messaggio: `Richiesta per il ${dataInizio}${dataFine !== dataInizio ? ` → ${dataFine}` : ''}`,
+        destinatari,
+        riferimento_id: nuova.id,
+        riferimento_tipo: 'richiesta_assenza',
+        priorita: 'normale'
+      });
     }
 
     esito.textContent = '✅ Richiesta inviata!'; esito.style.color = '#16a34a';
