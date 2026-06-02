@@ -71,7 +71,7 @@ export async function render(container) {
       case 'sala':         renderTabSala(box);         break;
       case 'menu':         renderTabMenu(box);         break;
       case 'cassa':        renderTabCassa(box); break;
-      case 'integrazioni': renderTabPresto(box,'🔗','Integrazioni',      'Connessione con sistemi POS, piattaforme delivery, Google, WhatsApp.');  break;
+      case 'integrazioni': renderTabIntegrazioni(box); break;
     }
   }
 
@@ -346,6 +346,308 @@ export async function render(container) {
 
   function esc(v) {
     return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ════════════════════════════════════════
+  // TAB: INTEGRAZIONI
+  // ════════════════════════════════════════
+  async function renderTabIntegrazioni(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: connessioni } = await supa()
+      .from('whatsapp_connessioni')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .order('created_at');
+
+    const { data: sedi } = await supa()
+      .from('sedi').select('id, nome')
+      .eq('azienda_id', aziendaId).order('nome');
+
+    const sediOpts = (sedi || []).map(s =>
+      `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`
+    ).join('');
+
+    box.innerHTML = `
+      <!-- WhatsApp -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">💬 WhatsApp Business</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega un numero WhatsApp per gestione personale e marketing</div>
+          </div>
+          <button id="btn-nuova-wa" style="background:#25D366;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Collega numero</button>
+        </div>
+
+        <div id="lista-wa"></div>
+
+        <!-- Form nuova connessione -->
+        <div id="form-wa-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:16px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;" id="form-wa-title">Nuova connessione WhatsApp</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div>
+
+          <!-- Scelta modalità -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px;">
+            <div id="card-meta" data-modalita="meta" style="border:2px solid #0E5A7A;border-radius:12px;padding:16px;cursor:pointer;background:#f0f9ff;">
+              <div style="font-size:20px;margin-bottom:6px;">🌐</div>
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">Meta Cloud API</div>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">Ufficiale, scalabile. Ideale per marketing e conferme automatiche. Richiede numero dedicato.</div>
+              <div style="margin-top:8px;font-size:11px;background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:20px;display:inline-block;">✅ Raccomandato</div>
+            </div>
+            <div id="card-qr" data-modalita="qr" style="border:2px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;background:white;">
+              <div style="font-size:20px;margin-bottom:6px;">📱</div>
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">WhatsApp Web (QR)</div>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">Colleghi il tuo telefono. Ideale per personale e invii informali. Richiede Raspberry Pi.</div>
+              <div style="margin-top:8px;font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;display:inline-block;">⚙️ Richiede bridge locale</div>
+            </div>
+          </div>
+
+          <input type="hidden" id="wa-modalita" value="meta">
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Nome connessione</label>
+              <input id="wa-nome" class="input" placeholder="Es. WhatsApp Ristorante" style="margin-top:4px;width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+              <select id="wa-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+                <option value="">— Tutte le sedi —</option>
+                ${sediOpts}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono</label>
+              <input id="wa-numero" class="input" placeholder="+39 333 1234567" style="margin-top:4px;width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+
+          <!-- Campi Meta API -->
+          <div id="campi-meta">
+            <div style="background:#f0f9ff;border-radius:10px;padding:14px;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:10px;">🌐 Credenziali Meta Cloud API</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID</label>
+                  <input id="wa-phone-id" class="input" placeholder="Es. 1141494992381602" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">WhatsApp Business Account ID</label>
+                  <input id="wa-waba-id" class="input" placeholder="Es. 3242783175905717" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">App ID</label>
+                  <input id="wa-app-id" class="input" placeholder="Es. 924572413940466" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">Access Token</label>
+                  <textarea id="wa-token" class="input" rows="2" placeholder="EAANI5MpN..." style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campi QR Bridge -->
+          <div id="campi-qr" style="display:none;">
+            <div style="background:#fffbeb;border-radius:10px;padding:14px;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">📱 Configurazione Bridge Locale</div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#64748b;">URL Bridge (Raspberry Pi)</label>
+                <input id="wa-bridge-url" class="input" placeholder="http://192.168.1.x:3001" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+              </div>
+              <div style="margin-top:12px;font-size:12px;color:#64748b;">
+                Il bridge è il file <strong>whatsapp-bridge.js</strong> che gira sul Raspberry Pi. Assicurati che sia avviato prima di procedere.
+              </div>
+              <!-- QR Code display -->
+              <div id="qr-display" style="display:none;margin-top:16px;text-align:center;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Scansiona con WhatsApp sul telefono:</div>
+                <div id="qr-code-wrap" style="background:white;display:inline-block;padding:16px;border-radius:12px;border:1px solid #e5e7eb;"></div>
+              </div>
+              <button id="btn-mostra-qr" style="display:none;margin-top:12px;background:#25D366;color:white;border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;">📱 Mostra QR code</button>
+            </div>
+          </div>
+
+          <div id="wa-esito" style="font-size:13px;min-height:16px;margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="btn-salva-wa" style="background:#25D366;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+            <button id="btn-test-wa" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">📤 Invia messaggio test</button>
+            <button id="btn-annulla-wa" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Altre integrazioni — presto -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;opacity:0.6;">
+        ${[
+          { icon:'📦', titolo:'Delivery (Glovo/JustEat)', desc:'Presto disponibile' },
+          { icon:'📅', titolo:'Google Calendar', desc:'Presto disponibile' },
+          { icon:'⭐', titolo:'Google Reviews', desc:'Presto disponibile' },
+        ].map(c => `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+            <div style="font-size:24px;">${c.icon}</div>
+            <div style="font-weight:700;font-size:14px;margin-top:6px;">${c.titolo}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">${c.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    let editingWaId = null;
+
+    // Render lista connessioni
+    function renderListaWa() {
+      const el = box.querySelector('#lista-wa');
+      if (!connessioni?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun numero WhatsApp collegato.</div>';
+        return;
+      }
+      el.innerHTML = connessioni.map(c => {
+        const statoColor = { connesso:'#dcfce7', non_connesso:'#fee2e2', in_attesa:'#fef3c7', errore:'#fee2e2' };
+        const statoText = { connesso:'#15803d', non_connesso:'#dc2626', in_attesa:'#92400e', errore:'#dc2626' };
+        const sedeName = (sedi || []).find(s => s.id === c.sede_id)?.nome || 'Tutte le sedi';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:24px;">${c.modalita === 'meta' ? '🌐' : '📱'}</div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;">${esc(c.nome || c.numero_telefono || '—')}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${c.modalita === 'meta' ? 'Meta Cloud API' : 'WhatsApp Web'} · ${esc(sedeName)}
+                ${c.numero_telefono ? ` · ${esc(c.numero_telefono)}` : ''}
+              </div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                Messaggi inviati: ${c.messaggi_inviati || 0}
+                ${c.ultimo_messaggio_il ? ` · Ultimo: ${new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT')}` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="background:${statoColor[c.stato]||'#f1f5f9'};color:${statoText[c.stato]||'#374151'};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">${c.stato || 'non_connesso'}</span>
+              <button data-edit-wa="${c.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;">✏️</button>
+              <button data-del-wa="${c.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.querySelectorAll('[data-edit-wa]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const c = connessioni.find(x => x.id === btn.dataset.editWa);
+          if (c) apriFormWa(c);
+        });
+      });
+      el.querySelectorAll('[data-del-wa]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Eliminare questa connessione?')) return;
+          await supa().from('whatsapp_connessioni').delete().eq('id', btn.dataset.delWa);
+          const idx = connessioni.findIndex(x => x.id === btn.dataset.delWa);
+          if (idx >= 0) connessioni.splice(idx, 1);
+          renderListaWa();
+          mostraToast('Connessione eliminata', 'success');
+        });
+      });
+    }
+
+    function apriFormWa(c = null) {
+      editingWaId = c?.id || null;
+      const form = box.querySelector('#form-wa-wrap');
+      box.querySelector('#form-wa-title').textContent = c ? 'Modifica connessione' : 'Nuova connessione WhatsApp';
+      box.querySelector('#wa-nome').value = c?.nome || '';
+      box.querySelector('#wa-sede').value = c?.sede_id || sedeId || '';
+      box.querySelector('#wa-numero').value = c?.numero_telefono || '';
+      box.querySelector('#wa-modalita').value = c?.modalita || 'meta';
+      box.querySelector('#wa-phone-id').value = c?.meta_phone_number_id || '';
+      box.querySelector('#wa-waba-id').value = c?.meta_waba_id || '';
+      box.querySelector('#wa-app-id').value = c?.meta_app_id || '';
+      box.querySelector('#wa-token').value = c?.meta_access_token || '';
+      box.querySelector('#wa-bridge-url').value = c?.qr_bridge_url || '';
+      aggiornaVisibilitaCampi(c?.modalita || 'meta');
+      form.style.display = '';
+      box.querySelector('#wa-esito').textContent = '';
+    }
+
+    function aggiornaVisibilitaCampi(modalita) {
+      box.querySelector('#campi-meta').style.display = modalita === 'meta' ? '' : 'none';
+      box.querySelector('#campi-qr').style.display = modalita === 'qr' ? '' : 'none';
+      box.querySelector('#card-meta').style.borderColor = modalita === 'meta' ? '#0E5A7A' : '#e5e7eb';
+      box.querySelector('#card-meta').style.background = modalita === 'meta' ? '#f0f9ff' : 'white';
+      box.querySelector('#card-qr').style.borderColor = modalita === 'qr' ? '#25D366' : '#e5e7eb';
+      box.querySelector('#card-qr').style.background = modalita === 'qr' ? '#f0fdf4' : 'white';
+      box.querySelector('#wa-modalita').value = modalita;
+    }
+
+    renderListaWa();
+
+    // Bind scelta modalità
+    box.querySelector('#card-meta').addEventListener('click', () => aggiornaVisibilitaCampi('meta'));
+    box.querySelector('#card-qr').addEventListener('click', () => aggiornaVisibilitaCampi('qr'));
+    box.querySelector('#btn-nuova-wa').addEventListener('click', () => apriFormWa(null));
+    box.querySelector('#btn-annulla-wa').addEventListener('click', () => {
+      box.querySelector('#form-wa-wrap').style.display = 'none';
+    });
+
+    // Salva
+    box.querySelector('#btn-salva-wa').addEventListener('click', async () => {
+      const esito = box.querySelector('#wa-esito');
+      const nome = box.querySelector('#wa-nome').value.trim();
+      const modalita = box.querySelector('#wa-modalita').value;
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: box.querySelector('#wa-sede').value || null,
+        nome,
+        modalita,
+        numero_telefono: box.querySelector('#wa-numero').value.trim() || null,
+        meta_phone_number_id: box.querySelector('#wa-phone-id').value.trim() || null,
+        meta_waba_id: box.querySelector('#wa-waba-id').value.trim() || null,
+        meta_app_id: box.querySelector('#wa-app-id').value.trim() || null,
+        meta_access_token: box.querySelector('#wa-token').value.trim() || null,
+        qr_bridge_url: box.querySelector('#wa-bridge-url').value.trim() || null,
+        attivo: true,
+        stato: 'non_connesso',
+        updated_at: new Date().toISOString(),
+      };
+
+      let error;
+      if (editingWaId) {
+        ({ error } = await supa().from('whatsapp_connessioni').update(payload).eq('id', editingWaId));
+      } else {
+        const { data, error: insErr } = await supa().from('whatsapp_connessioni').insert(payload).select('*').single();
+        error = insErr;
+        if (data) connessioni.push(data);
+      }
+
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      renderListaWa();
+      setTimeout(() => { box.querySelector('#form-wa-wrap').style.display = 'none'; }, 600);
+      mostraToast('Connessione WhatsApp salvata ✅', 'success');
+    });
+
+    // Test invio messaggio
+    box.querySelector('#btn-test-wa').addEventListener('click', async () => {
+      const esito = box.querySelector('#wa-esito');
+      const numero = prompt('Numero destinatario test (es. +393331234567):');
+      if (!numero) return;
+      esito.textContent = 'Invio in corso...'; esito.style.color = '#64748b';
+      try {
+        const res = await fetch(`${window.location.origin.replace('github.io', 'supabase.co')}/functions/v1/whatsapp-send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.supabaseAnonKey || ''}` },
+          body: JSON.stringify({
+            azienda_id: aziendaId,
+            sede_id: sedeId,
+            numero_dest: numero,
+            template_name: 'hello_world',
+            contesto: 'test'
+          })
+        });
+        const data = await res.json();
+        if (data.success) { esito.textContent = '✅ Messaggio inviato!'; esito.style.color = '#16a34a'; }
+        else { esito.textContent = '❌ ' + (data.error || 'Errore'); esito.style.color = '#dc2626'; }
+      } catch (e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
   }
 
   function renderTabPresto(box, icon, titolo, desc) {
