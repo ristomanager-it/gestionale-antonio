@@ -52,8 +52,10 @@ export async function render(container) {
                   transition:all 0.15s;
                 "
               >
-                <div style="width:40px;height:40px;border-radius:10px;background:${isAttiva ? '#0E5A7A' : '#f1f5f9'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
-                  🏠
+                <div style="width:40px;height:40px;border-radius:10px;background:${isAttiva ? '#0E5A7A' : '#f1f5f9'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden;">
+                  ${s.logo_url 
+                    ? `<img src="${s.logo_url}" style="width:40px;height:40px;object-fit:cover;border-radius:10px;">` 
+                    : `<span style="color:${isAttiva ? 'white' : '#64748b'};">🏠</span>`}
                 </div>
                 <div style="flex:1;">
                   <div style="font-weight:700;font-size:15px;color:#0f172a;">${s.nome || "Sede"}</div>
