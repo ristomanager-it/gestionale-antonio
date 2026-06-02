@@ -632,9 +632,11 @@ export async function render(container) {
       if (!numero) return;
       esito.textContent = 'Invio in corso...'; esito.style.color = '#64748b';
       try {
-        const res = await fetch(`${window.location.origin.replace('github.io', 'supabase.co')}/functions/v1/whatsapp-send`, {
+        const supabaseUrl = window.supabaseClient?.supabaseUrl || 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+        const supabaseKey = window.supabaseClient?.supabaseKey || window.SUPABASE_ANON_KEY || '';
+        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.supabaseAnonKey || ''}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
           body: JSON.stringify({
             azienda_id: aziendaId,
             sede_id: sedeId,
