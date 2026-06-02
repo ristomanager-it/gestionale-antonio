@@ -321,7 +321,8 @@ export function initMenu() {
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
-          { label: "📁 Documenti HR",     route: "hr-documenti"      },
+          { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
+          { label: "📁 Documenti HR",      route: "hr-documenti"      },
           { label: "📘 Manuale",          route: "manuale"           },
         ]
       });
