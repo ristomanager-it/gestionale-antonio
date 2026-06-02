@@ -215,13 +215,38 @@ export async function render(container) {
 
   async function loadRighe() {
     try {
-      // Carica righe in_attesa (appena inviate) e in_preparazione
-      const { data } = await supa()
-        .from('comanda_righe').select('*')
-        .eq('azienda_id', aziendaId)
-        .in('stato', ['in_attesa', 'in_preparazione'])
-        .order('created_at');
-      righeAttive = data || [];
+      // Carica righe in_attesa e in_preparazione filtrate per sede
+      let righeQuery;
+      if (sedeId) {
+        // Filtra per sede tramite join con comande
+        const { data: comandeSede } = await supa()
+          .from('comande')
+          .select('id')
+          .eq('azienda_id', aziendaId)
+          .eq('sede_id', sedeId)
+          .in('stato', ['aperta', 'in_corso']);
+        const comandaIds = (comandeSede || []).map(c => c.id);
+        if (!comandaIds.length) {
+          righeAttive = [];
+          return;
+        }
+        const { data } = await supa()
+          .from('comanda_righe')
+          .select('*')
+          .eq('azienda_id', aziendaId)
+          .in('stato', ['in_attesa', 'in_preparazione'])
+          .in('comanda_id', comandaIds)
+          .order('created_at');
+        righeAttive = data || [];
+      } else {
+        const { data } = await supa()
+          .from('comanda_righe')
+          .select('*')
+          .eq('azienda_id', aziendaId)
+          .in('stato', ['in_attesa', 'in_preparazione'])
+          .order('created_at');
+        righeAttive = data || [];
+      }
     } catch(e) { righeAttive = []; }
   }
 
