@@ -938,22 +938,290 @@ export async function render(container) {
   }
 
   // ════════════════════════════════════════
-  // TAB: MENU & COMUNICAZIONE
+  // TAB: MENU & CATALOGO PRODOTTI
   // ════════════════════════════════════════
-  function renderTabMenu(box) {
+  async function renderTabMenu(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: categorie } = await supa()
+      .from('categorie_vendita')
+      .select('id, nome')
+      .eq('azienda_id', aziendaId)
+      .eq('sede_id', sedeId)
+      .order('nome');
+
+    const { data: sedi } = await supa()
+      .from('sedi').select('id, nome')
+      .eq('azienda_id', aziendaId).order('nome');
+
+    let prodotti = [];
+    const caricaProdotti = async (filtroCanale = '', filtroTipo = '', filtroQ = '') => {
+      let q = supa().from('prodotti_vendita').select('*, categorie_vendita(nome)')
+        .eq('azienda_id', aziendaId);
+      if (sedeId) q = q.eq('sede_id', sedeId);
+      if (filtroCanale) q = q.eq('canale', filtroCanale);
+      if (filtroTipo) q = q.eq('tipo', filtroTipo);
+      if (filtroQ) q = q.ilike('nome', `%${filtroQ}%`);
+      const { data } = await q.order('ordinamento').order('nome');
+      prodotti = data || [];
+    };
+
+    await caricaProdotti();
+
+    const canaliOpts = ['tutti', 'evento', 'ristorante', 'trattoria', 'bar']
+      .map(c => `<option value="${c}">${c}</option>`).join('');
+    const tipiOpts = ['', 'portata', 'servizio', 'menu_fisso', 'bevanda', 'altro']
+      .map(t => `<option value="${t}">${t || '— tutti i tipi —'}</option>`).join('');
+    const catOpts = (categorie || []).map(c =>
+      `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+
     box.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Catalogo prodotti</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Portate, servizi e menu — usati da preventivi, comande e menu digitale</div>
+        </div>
+        <button id="btn-nuovo-prodotto" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi prodotto</button>
+      </div>
+
+      <!-- Filtri -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <input id="filtro-q" class="input" placeholder="🔍 Cerca..." style="flex:1;min-width:150px;max-width:220px;">
+        <select id="filtro-canale" class="input" style="min-width:120px;">${canaliOpts}</select>
+        <select id="filtro-tipo" class="input" style="min-width:130px;">${tipiOpts}</select>
+        <button id="btn-applica-filtri" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">Filtra</button>
+      </div>
+
+      <!-- Lista prodotti -->
+      <div id="lista-prodotti-cat"></div>
+
+      <!-- Form prodotto -->
+      <div id="form-prodotto-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-prodotto-title">Nuovo prodotto</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Nome *</label>
+            <input id="pv-nome" class="input" placeholder="Es. Risotto al tartufo" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Canale</label>
+            <select id="pv-canale" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="tutti">Tutti</option>
+              <option value="evento">Evento / Preventivi</option>
+              <option value="ristorante">Ristorante</option>
+              <option value="trattoria">Trattoria</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Tipo</label>
+            <select id="pv-tipo" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="portata">Portata</option>
+              <option value="servizio">Servizio</option>
+              <option value="menu_fisso">Menu fisso</option>
+              <option value="bevanda">Bevanda</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Categoria</label>
+            <select id="pv-categoria" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="">— Nessuna —</option>
+              ${catOpts}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Prezzo base (€)</label>
+            <input id="pv-prezzo" type="number" step="0.01" min="0" class="input" placeholder="Es. 15.00" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">IVA (%)</label>
+            <select id="pv-iva" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="10">10% (Ristorazione)</option>
+              <option value="22">22% (Alcolici)</option>
+              <option value="4">4% (Prima necessità)</option>
+              <option value="0">Esente</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+            <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Ordinamento</label>
+            <input id="pv-ordine" type="number" min="0" class="input" value="0" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Descrizione</label>
+          <textarea id="pv-descrizione" class="input" rows="2" placeholder="Descrizione breve per menu e preventivi..." style="margin-top:4px;width:100%;box-sizing:border-box;"></textarea>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-attivo" checked> Attivo
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-visibile" checked> Visibile nel menu
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-disponibile" checked> Disponibile oggi
+          </label>
+        </div>
+
+        <div id="pv-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button id="btn-salva-prodotto" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+          <button id="btn-annulla-prodotto" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+        </div>
+      </div>
+
+      <!-- Link utili -->
+      <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
         ${[
-          { icon:'📋', titolo:'Menu digitale',         desc:'Costruisci il menu digitale del locale, gestisci sezioni e descrizioni.',        link:'bo-menu',     cta:'Vai al Menu builder' },
-          { icon:'🏷️', titolo:'Categorie prodotto',   desc:'Crea e organizza le categorie del menu (Antipasti, Primi, Pizza...).',           link:'bo-categorie', cta:'Gestisci categorie' },
-          { icon:'🛒', titolo:'Prodotti',               desc:'Aggiungi e modifica i prodotti in vendita con prezzi, foto e varianti.',         link:'bo-prodotti',  cta:'Gestisci prodotti' },
-          { icon:'📣', titolo:'Campagne marketing',    desc:'Crea campagne email/SMS per fidelizzare i clienti e promuovere eventi.',         link:'campagne',     cta:'Vai alle Campagne' },
-          { icon:'💬', titolo:'Messaggi automatici',   desc:'Configura risposte automatiche, conferme prenotazione e messaggi di follow-up.', link:null,           cta:'Presto disponibile' },
-          { icon:'🌐', titolo:'QR Code menu',           desc:'Genera QR code per il menu digitale da mettere sui tavoli.',                    link:null,           cta:'Presto disponibile' },
-        ].map(c => cardLink(c)).join('')}
+          { icon:'🏷️', titolo:'Categorie', link:'bo-categorie', cta:'Gestisci categorie' },
+          { icon:'📋', titolo:'Menu digitale', link:'bo-menu', cta:'Menu builder' },
+          { icon:'📣', titolo:'Marketing', link:'campagne', cta:'Campagne' },
+        ].map(c => cardLink({ ...c, desc: '' })).join('')}
       </div>
     `;
-    box.querySelectorAll('[data-nav]').forEach(btn => btn.onclick = () => { window.location.hash = '#/' + btn.dataset.nav; });
+
+    let editingProdId = null;
+
+    function renderListaProdotti() {
+      const el = box.querySelector('#lista-prodotti-cat');
+      if (!prodotti.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Nessun prodotto trovato.</div>';
+        return;
+      }
+
+      const CANALE_COLORS = { evento:'#dbeafe', ristorante:'#dcfce7', trattoria:'#fef3c7', bar:'#f3e8ff', tutti:'#f1f5f9' };
+      const CANALE_TEXT = { evento:'#1d4ed8', ristorante:'#15803d', trattoria:'#92400e', bar:'#7e22ce', tutti:'#374151' };
+
+      el.innerHTML = prodotti.map(p => {
+        const catNome = p.categorie_vendita?.nome || '';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${catNome ? `${esc(catNome)} · ` : ''}${p.tipo || ''}
+                ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <span style="background:${CANALE_COLORS[p.canale]||'#f1f5f9'};color:${CANALE_TEXT[p.canale]||'#374151'};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">${p.canale || 'tutti'}</span>
+              ${!p.attivo ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;">Disattivo</span>' : ''}
+              ${!p.disponibile ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;">Non disponibile</span>' : ''}
+              <button data-edit-prod="${p.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;">✏️</button>
+              <button data-del-prod="${p.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.querySelectorAll('[data-edit-prod]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = prodotti.find(x => x.id === btn.dataset.editProd);
+          if (p) apriFormProdotto(p);
+        });
+      });
+      el.querySelectorAll('[data-del-prod]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Eliminare questo prodotto?')) return;
+          await supa().from('prodotti_vendita').delete().eq('id', btn.dataset.delProd);
+          prodotti = prodotti.filter(x => x.id !== btn.dataset.delProd);
+          renderListaProdotti();
+          mostraToast('Prodotto eliminato', 'success');
+        });
+      });
+    }
+
+    function apriFormProdotto(p = null) {
+      editingProdId = p?.id || null;
+      box.querySelector('#form-prodotto-title').textContent = p ? 'Modifica prodotto' : 'Nuovo prodotto';
+      box.querySelector('#pv-nome').value = p?.nome || '';
+      box.querySelector('#pv-canale').value = p?.canale || 'tutti';
+      box.querySelector('#pv-tipo').value = p?.tipo || 'portata';
+      box.querySelector('#pv-categoria').value = p?.categoria_vendita_id || '';
+      box.querySelector('#pv-prezzo').value = p?.prezzo_base || '';
+      box.querySelector('#pv-iva').value = p?.iva || '10';
+      box.querySelector('#pv-sede').value = p?.sede_id || sedeId || '';
+      box.querySelector('#pv-ordine').value = p?.ordinamento || 0;
+      box.querySelector('#pv-descrizione').value = p?.descrizione || '';
+      box.querySelector('#pv-attivo').checked = p?.attivo ?? true;
+      box.querySelector('#pv-visibile').checked = p?.visibile ?? true;
+      box.querySelector('#pv-disponibile').checked = p?.disponibile ?? true;
+      box.querySelector('#pv-esito').textContent = '';
+      box.querySelector('#form-prodotto-wrap').style.display = '';
+      box.querySelector('#pv-nome').focus();
+    }
+
+    renderListaProdotti();
+
+    // Bind form
+    box.querySelector('#btn-nuovo-prodotto').addEventListener('click', () => apriFormProdotto(null));
+    box.querySelector('#btn-annulla-prodotto').addEventListener('click', () => {
+      box.querySelector('#form-prodotto-wrap').style.display = 'none';
+    });
+    box.querySelector('#btn-applica-filtri').addEventListener('click', async () => {
+      const q = box.querySelector('#filtro-q').value.trim();
+      const canale = box.querySelector('#filtro-canale').value;
+      const tipo = box.querySelector('#filtro-tipo').value;
+      await caricaProdotti(canale === 'tutti' ? '' : canale, tipo, q);
+      renderListaProdotti();
+    });
+    box.querySelector('#filtro-q').addEventListener('keydown', async e => {
+      if (e.key === 'Enter') box.querySelector('#btn-applica-filtri').click();
+    });
+
+    box.querySelector('#btn-salva-prodotto').addEventListener('click', async () => {
+      const esito = box.querySelector('#pv-esito');
+      const nome = box.querySelector('#pv-nome').value.trim();
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: box.querySelector('#pv-sede').value || sedeId || null,
+        nome,
+        canale: box.querySelector('#pv-canale').value || 'tutti',
+        tipo: box.querySelector('#pv-tipo').value || 'portata',
+        categoria_vendita_id: box.querySelector('#pv-categoria').value || null,
+        prezzo_base: parseFloat(box.querySelector('#pv-prezzo').value) || null,
+        iva: parseFloat(box.querySelector('#pv-iva').value) || 10,
+        ordinamento: parseInt(box.querySelector('#pv-ordine').value) || 0,
+        descrizione: box.querySelector('#pv-descrizione').value.trim() || null,
+        attivo: box.querySelector('#pv-attivo').checked,
+        visibile: box.querySelector('#pv-visibile').checked,
+        disponibile: box.querySelector('#pv-disponibile').checked,
+      };
+
+      let error;
+      if (editingProdId) {
+        ({ error } = await supa().from('prodotti_vendita').update(payload).eq('id', editingProdId));
+      } else {
+        ({ error } = await supa().from('prodotti_vendita').insert(payload));
+      }
+
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      await caricaProdotti();
+      renderListaProdotti();
+      setTimeout(() => { box.querySelector('#form-prodotto-wrap').style.display = 'none'; }, 600);
+      mostraToast(`"${nome}" salvato ✅`, 'success');
+    });
+
+    box.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => { window.location.hash = '#/' + btn.dataset.nav; });
+    });
   }
 
   function cardLink({ icon, titolo, desc, link, cta }) {
