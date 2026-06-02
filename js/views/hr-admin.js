@@ -9,7 +9,7 @@ export async function render(container) {
   container.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
 
   const { data: richieste } = await supa()
-    .from('hr_richieste')
+    .from('richieste_assenze')
     .select('*, dipendenti(nome, cognome, email, mansione, foto_url)')
     .eq('azienda_id', aziendaId)
     .order('created_at', { ascending: false });
@@ -31,13 +31,13 @@ export async function render(container) {
   };
 
   const STATI = {
-    in_attesa: { label: 'In attesa', bg: '#fef3c7', color: '#92400e' },
-    approvata: { label: 'Approvata', bg: '#dcfce7', color: '#15803d' },
-    rifiutata: { label: 'Rifiutata', bg: '#fee2e2', color: '#dc2626' },
+    richiesto: { label: 'In attesa', bg: '#fef3c7', color: '#92400e' },
+    approvato: { label: 'Approvata', bg: '#dcfce7', color: '#15803d' },
+    rifiutato: { label: 'Rifiutata', bg: '#fee2e2', color: '#dc2626' },
     annullata: { label: 'Annullata', bg: '#f1f5f9', color: '#64748b' },
   };
 
-  let filtroStato = 'in_attesa';
+  let filtroStato = 'richiesto';
 
   container.innerHTML = `
     <div style="min-height:100vh;background:#f8fafc;padding:20px;">
@@ -107,7 +107,7 @@ export async function render(container) {
     }
 
     el.innerHTML = lista.map(r => {
-      const s = STATI[r.stato] || STATI.in_attesa;
+      const s = STATI[r.stato] || STATI.richiesto;
       const t = TIPI[r.tipo] || r.tipo;
       const dip = r.dipendenti || {};
       const date = r.data_fine && r.data_fine !== r.data_inizio
@@ -125,13 +125,13 @@ export async function render(container) {
               <div style="font-size:12px;color:#64748b;">${dip.mansione || ''}</div>
               <div style="font-size:13px;font-weight:600;color:#0f172a;margin-top:6px;">${t}</div>
               <div style="font-size:12px;color:#64748b;margin-top:2px;">📅 ${date}${r.turno ? ` · ${r.turno}` : ''}</div>
-              ${r.note_dipendente ? `<div style="font-size:12px;color:#374151;margin-top:4px;background:#f8fafc;padding:6px 10px;border-radius:6px;">💬 ${r.note_dipendente}</div>` : ''}
+              ${r.note ? `<div style="font-size:12px;color:#374151;margin-top:4px;background:#f8fafc;padding:6px 10px;border-radius:6px;">💬 ${r.note}</div>` : ''}
               ${r.allegato_url ? `<a href="${r.allegato_url}" target="_blank" style="font-size:12px;color:#0E5A7A;display:inline-block;margin-top:4px;">📎 Vedi allegato</a>` : ''}
-              ${r.note_admin ? `<div style="font-size:12px;color:#0E5A7A;margin-top:4px;">👨‍💼 ${r.note_admin}</div>` : ''}
+              ${r.note_risposta ? `<div style="font-size:12px;color:#0E5A7A;margin-top:4px;">👨‍💼 ${r.note_risposta}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
               <span style="background:${s.bg};color:${s.color};padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">${s.label}</span>
-              ${r.stato === 'in_attesa' ? `
+              ${r.stato === 'richiesto' ? `
                 <button data-id="${r.id}" class="btn-rispondi" style="background:#0E5A7A;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;">Rispondi</button>
               ` : ''}
             </div>
@@ -182,12 +182,12 @@ export async function render(container) {
     const noteAdmin = container.querySelector('#modal-note').value.trim();
 
     const { error } = await supa()
-      .from('hr_richieste')
+      .from('richieste_assenze')
       .update({
         stato: nuovoStato,
-        note_admin: noteAdmin || null,
-        gestita_da: meAdmin?.id || null,
-        gestita_il: new Date().toISOString(),
+        note_risposta: noteAdmin || null,
+        approvato_da: meAdmin?.id || null,
+        updated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', richiestaAttiva.id);
@@ -198,16 +198,16 @@ export async function render(container) {
     const idx = richieste.findIndex(r => r.id === richiestaAttiva.id);
     if (idx >= 0) {
       richieste[idx].stato = nuovoStato;
-      richieste[idx].note_admin = noteAdmin;
+      richieste[idx].note_risposta = noteAdmin;
     }
 
     // Notifica in-app al dipendente
     await supa().from('notifiche').insert({
       azienda_id: aziendaId,
       dipendente_id: richiestaAttiva.dipendente_id,
-      tipo: nuovoStato === 'approvata' ? 'approvazione' : 'rifiuto',
-      titolo: nuovoStato === 'approvata' ? '✅ Richiesta approvata' : '❌ Richiesta rifiutata',
-      testo: noteAdmin || (nuovoStato === 'approvata' ? 'La tua richiesta è stata approvata.' : 'La tua richiesta è stata rifiutata.'),
+      tipo: nuovoStato === 'approvato' ? 'approvazione' : 'rifiuto',
+      titolo: nuovoStato === 'approvato' ? '✅ Richiesta approvato' : '❌ Richiesta rifiutato',
+      testo: noteAdmin || (nuovoStato === 'approvato' ? 'La tua richiesta è stata approvato.' : 'La tua richiesta è stata rifiutato.'),
       link: '#/hr-richieste',
       riferimento_tipo: 'hr_richiesta',
       riferimento_id: richiestaAttiva.id,
@@ -222,10 +222,10 @@ export async function render(container) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` },
         body: JSON.stringify({
           to: [dipEmail],
-          subject: nuovoStato === 'approvata' ? '✅ Richiesta approvata' : '❌ Richiesta rifiutata',
+          subject: nuovoStato === 'approvato' ? '✅ Richiesta approvato' : '❌ Richiesta rifiutato',
           html: `
             <h2>Ciao ${dipNome},</h2>
-            <p>La tua richiesta di <strong>${TIPI[richiestaAttiva.tipo]}</strong> per il <strong>${richiestaAttiva.data_inizio}</strong> è stata <strong>${nuovoStato === 'approvata' ? 'APPROVATA ✅' : 'RIFIUTATA ❌'}</strong>.</p>
+            <p>La tua richiesta di <strong>${TIPI[richiestaAttiva.tipo]}</strong> per il <strong>${richiestaAttiva.data_inizio}</strong> è stata <strong>${nuovoStato === 'approvato' ? 'APPROVATA ✅' : 'RIFIUTATA ❌'}</strong>.</p>
             ${noteAdmin ? `<p>Note: ${noteAdmin}</p>` : ''}
           `
         })
@@ -237,6 +237,6 @@ export async function render(container) {
     renderLista();
   }
 
-  container.querySelector('#btn-approva').addEventListener('click', () => rispondi('approvata'));
-  container.querySelector('#btn-rifiuta').addEventListener('click', () => rispondi('rifiutata'));
+  container.querySelector('#btn-approva').addEventListener('click', () => rispondi('approvato'));
+  container.querySelector('#btn-rifiuta').addEventListener('click', () => rispondi('rifiutato'));
 }
