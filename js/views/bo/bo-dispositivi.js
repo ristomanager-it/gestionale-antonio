@@ -203,6 +203,8 @@ export async function render(container) {
                 ${d.mac_address ? `<span class="disp-tag" style="font-family:monospace;">${esc(d.mac_address)}</span>` : ''}
                 ${d.ip_address  ? `<span class="disp-tag" style="font-family:monospace;">${esc(d.ip_address)}</span>` : ''}
                 ${kwh ? `<span class="disp-tag" style="background:#fef3c7;color:#92400e;">⚡ ${kwh} kW</span>` : ''}
+                ${d.connesso ? `<span class="disp-tag" style="background:#dcfce7;color:#15803d;">🤖 Automatico</span>` : `<span class="disp-tag" style="background:#f1f5f9;color:#64748b;">✋ Manuale</span>`}
+                ${d.temperatura_min != null ? `<span class="disp-tag" style="background:#fef3c7;color:#92400e;">🌡 ${d.temperatura_min}–${d.temperatura_max??'?'}°C</span>` : ''}
                 ${!d.attivo ? `<span class="disp-tag" style="background:#fee2e2;color:#dc2626;">Disattivo</span>` : ''}
               </div>
             </div>
@@ -275,6 +277,42 @@ export async function render(container) {
           <input id="d-seriale" value="${esc(dispositivo?.numero_serie||'')}" placeholder="es. SN123456">
         </div>
       </div>
+
+      <!-- HACCP & Connettività -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb;">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;">🌡️ HACCP & Connettività automatica</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Temperatura min HACCP (°C)</label>
+            <input id="d-temp-min" type="number" step="0.1" value="${dispositivo?.temperatura_min??''}" placeholder="es. 63">
+          </div>
+          <div class="form-field">
+            <label>Temperatura max HACCP (°C)</label>
+            <input id="d-temp-max" type="number" step="0.1" value="${dispositivo?.temperatura_max??''}" placeholder="es. 68">
+          </div>
+          <div class="form-field">
+            <label>API Endpoint <span style="color:#94a3b8;">(se connesso automaticamente)</span></label>
+            <input id="d-api-endpoint" value="${esc(dispositivo?.api_endpoint||'')}" placeholder="http://192.168.1.x/api/temp" style="font-family:monospace;">
+          </div>
+          <div class="form-field">
+            <label>Topic MQTT <span style="color:#94a3b8;">(se usa MQTT)</span></label>
+            <input id="d-topic-mqtt" value="${esc(dispositivo?.topic_mqtt||'')}" placeholder="ristoflow/roner1/temperatura" style="font-family:monospace;">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+          <input type="checkbox" id="d-connesso" ${dispositivo?.connesso?'checked':''} style="width:16px;height:16px;">
+          <label for="d-connesso" style="font-size:13px;">
+            🤖 <strong>Dispositivo automatico</strong> — i dati arrivano direttamente dal dispositivo (non servono inserimenti manuali in produzione)
+          </label>
+        </div>
+        ${dispositivo?.connesso ? `
+        <div style="background:#dcfce7;border-radius:8px;padding:8px 12px;font-size:12px;color:#15803d;margin-top:8px;">
+          ✅ Automatico attivo — in app-produzione i dati di questa fase arriveranno dal dispositivo
+        </div>` : `
+        <div style="background:#fef3c7;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400e;margin-top:8px;">
+          ✋ Manuale — il cuoco inserirà i dati di questa fase in produzione
+        </div>`}
+      </div>
       <div class="form-field" style="margin-top:12px;">
         <label>Note</label>
         <textarea id="d-note" rows="2" placeholder="Note tecniche, istruzioni...">${esc(dispositivo?.note||'')}</textarea>
@@ -312,6 +350,11 @@ export async function render(container) {
       numero_serie: container.querySelector('#d-seriale')?.value.trim() || null,
       note:         container.querySelector('#d-note')?.value.trim() || null,
       attivo:       container.querySelector('#d-attivo')?.checked ?? true,
+      connesso:     container.querySelector('#d-connesso')?.checked ?? false,
+      temperatura_min: parseFloat(container.querySelector('#d-temp-min')?.value) || null,
+      temperatura_max: parseFloat(container.querySelector('#d-temp-max')?.value) || null,
+      api_endpoint: container.querySelector('#d-api-endpoint')?.value.trim() || null,
+      topic_mqtt:   container.querySelector('#d-topic-mqtt')?.value.trim() || null,
     };
     try {
       if (dispositivoInEdit) {
