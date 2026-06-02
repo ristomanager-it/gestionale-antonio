@@ -1132,6 +1132,17 @@ if (contesto.tipo === "dipendente_multi_sede") {
     }
   }
 }
+
+// Admin senza dipendente — se ha già una sede in localStorage non chiedere
+if (!window.state?.sedeAttiva?.id) {
+  const storedSedeId = localStorage.getItem("active_sede_id");
+  if (storedSedeId && Array.isArray(window.state?.sedi)) {
+    const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
+    if (sede) {
+      window.state.sedeAttiva = sede;
+    }
+  }
+}
   }
   if (
     !PLATFORM_ROUTES.has(route) &&
