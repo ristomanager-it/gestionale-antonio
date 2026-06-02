@@ -108,9 +108,9 @@ const routes = {
   permessi: () => import("./views/permessi-ferie.js"),
 
   // ── HR — Gestione personale ──
-  "hr-richieste": () => import("./views/hr-richieste.js"),
-  "hr-admin":     () => import("./views/hr-admin.js"),
-  "hr-documenti": () => import("./views/hr-documenti.js"),
+  "hr-richieste":    () => import("./views/hr-richieste.js"),
+  "hr-admin":        () => import("./views/hr-admin.js"),
+  "hr-documenti":    () => import("./views/hr-documenti.js"),
   "hr-documenti-me": () => import("./views/hr-documenti.js"),
   manuale: () => import("./views/manuale.js"),
 
@@ -432,16 +432,30 @@ function hasPermission(area) {
 
       "sala",
       "comanda",
+      "bo-comande",
 
+      // Cucina
+      "ricettario",
+      "crea-ricetta-avanzata",
+      "preparazioni",
+      "app-produzione",
+      "produzione",
+      "display-cucina",
+
+      // Timbrature e profilo
       "timbrature",
-
       "profilo",
       "completa-profilo",
 
+      // Prenotazioni
       "prenotazioni",
       "prenotazioni-dettaglio",
+      "prenotazioni-tavoli",
 
-      "app-produzione",
+      // HR personale
+      "hr-richieste",
+      "hr-documenti-me",
+
       "ai"
 
     ];
