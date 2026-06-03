@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lavora con noi — Ristoflow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0E5A7A 0%, #1a8fb5 100%);
+      padding: 48px 24px 40px;
+      text-align: center;
+      color: white;
+    }
+    .hero-logo { font-size: 40px; margin-bottom: 12px; }
+    .hero-azienda { font-size: 13px; opacity: .75; margin-bottom: 8px; letter-spacing: .5px; text-transform: uppercase; }
+    .hero-titolo { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+    .hero-sub { font-size: 16px; opacity: .88; line-height: 1.6; max-width: 520px; margin: 0 auto; }
+
+    .intro-box {
+      max-width: 640px;
+      margin: -20px auto 0;
+      background: white;
+      border-radius: 16px;
+      padding: 28px 28px 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      position: relative;
+      z-index: 2;
+    }
+    .intro-testo { font-size: 15px; line-height: 1.8; color: #374151; font-style: italic; border-left: 3px solid #0E5A7A; padding-left: 16px; }
+
+    .form-wrap {
+      max-width: 640px;
+      margin: 24px auto 48px;
+      padding: 0 16px;
+    }
+
+    .step-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .step-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #e2e8f0; transition: all .3s;
+    }
+    .step-dot.attivo { background: #0E5A7A; transform: scale(1.3); }
+    .step-dot.fatto  { background: #25D366; }
+    .step-label { font-size: 12px; color: #94a3b8; margin-left: 4px; }
+
+    .sezione {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: none;
+    }
+    .sezione.attiva { display: block; }
+
+    .sezione-titolo {
+      font-size: 11px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .campo { margin-bottom: 18px; }
+    .campo label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .campo .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+    input[type="text"], input[type="tel"], input[type="email"], input[type="date"], select, textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; font-size: 15px; font-family: inherit;
+      outline: none; transition: border .2s, box-shadow .2s; background: white;
+      color: #0f172a;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #0E5A7A;
+      box-shadow: 0 0 0 3px rgba(14,90,122,.1);
+    }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+
+    .scelta-griglia {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .scelta-btn {
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 500;
+      color: #374151; background: white; transition: all .15s; text-align: left;
+    }
+    .scelta-btn:hover { border-color: #0E5A7A; color: #0E5A7A; background: #f0f9ff; }
+    .scelta-btn.selezionato { border-color: #0E5A7A; background: #0E5A7A; color: white; }
+
+    .domanda-aperta {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .domanda-testo {
+      font-size: 15px; font-weight: 600; color: #0f172a;
+      line-height: 1.5; margin-bottom: 12px;
+    }
+    .domanda-hint { font-size: 12px; color: #64748b; margin-bottom: 10px; font-style: italic; }
+    .char-count { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 4px; }
+
+    .btn-nav {
+      display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;
+    }
+    .btn-avanti {
+      background: #0E5A7A; color: white; border: none;
+      border-radius: 12px; padding: 14px 28px; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all .2s; flex: 1; max-width: 220px;
+    }
+    .btn-avanti:hover { background: #0c4f6b; transform: translateY(-1px); }
+    .btn-avanti:disabled { background: #94a3b8; transform: none; cursor: not-allowed; }
+    .btn-indietro {
+      background: #f1f5f9; color: #374151; border: none;
+      border-radius: 12px; padding: 14px 20px; font-size: 15px;
+      cursor: pointer;
+    }
+
+    .esito { text-align: center; padding: 40px 20px; display: none; }
+    .esito.visibile { display: block; }
+    .esito-icon { font-size: 56px; margin-bottom: 16px; }
+    .esito-titolo { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+    .esito-testo { font-size: 15px; color: #374151; line-height: 1.7; max-width: 440px; margin: 0 auto; }
+
+    .errore { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+    .errore.visibile { display: block; }
+
+    @media (max-width: 480px) {
+      .hero { padding: 36px 20px 32px; }
+      .hero-titolo { font-size: 22px; }
+      .intro-box, .sezione { padding: 20px; }
+      .scelta-griglia { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-logo">🍽️</div>
+  <div class="hero-azienda" id="nome-azienda">Campo Antico Ricevimenti</div>
+  <div class="hero-titolo">Scopriamo se siamo fatti<br>per lavorare insieme</div>
+  <div class="hero-sub">Non stiamo cercando solo esperienza o titoli. Cerchiamo persone con voglia di crescere, imparare e costruire qualcosa nel tempo.</div>
+</div>
+
+<!-- INTRO -->
+<div class="intro-box">
+  <div class="intro-testo">
+    Non esistono risposte giuste o sbagliate.<br>
+    Rispondi con sincerità — è quello che conta davvero.
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="form-wrap">
+
+  <!-- Barra progresso -->
+  <div class="step-bar">
+    <div class="step-dot attivo" id="dot-0"></div>
+    <div class="step-dot" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+    <span class="step-label" id="step-label">Passo 1 di 3</span>
+  </div>
+
+  <!-- ═══ PASSO 1: Dati base ═══════════════════════════════════════ -->
+  <div class="sezione attiva" id="step-0">
+    <div class="sezione-titolo">👤 Chi sei</div>
+
+    <div class="campo">
+      <label>Nome *</label>
+      <input type="text" id="f-nome" placeholder="Il tuo nome">
+      <div class="errore" id="err-nome">Inserisci il tuo nome</div>
+    </div>
+    <div class="campo">
+      <label>Cognome *</label>
+      <input type="text" id="f-cognome" placeholder="Il tuo cognome">
+      <div class="errore" id="err-cognome">Inserisci il tuo cognome</div>
+    </div>
+    <div class="campo">
+      <label>Telefono *</label>
+      <input type="tel" id="f-telefono" placeholder="+39 333 1234567">
+      <div class="hint">Ti contatteremo su WhatsApp</div>
+      <div class="errore" id="err-telefono">Inserisci un numero valido</div>
+    </div>
+    <div class="campo">
+      <label>Email</label>
+      <input type="email" id="f-email" placeholder="la-tua@email.it">
+    </div>
+    <div class="campo">
+      <label>Città in cui vivi</label>
+      <input type="text" id="f-citta" placeholder="Es. Milano">
+    </div>
+
+    <div class="btn-nav">
+      <button class="btn-avanti" onclick="avanti(0)">Continua →</button>
+    </div>
+  </div>
+
+  <!-- ═══ PASSO 2: Ruolo e area ════════════════════════════════════ -->
+  <div class="sezione" id="step-1">
+    <div class="sezione-titolo">🎯 Cosa ti interessa</div>
+
+    <div class="campo">
+      <label>Qual è il ruolo per cui ti candidi? *</label>
+      <select id="f-ruolo">
+        <option value="">— seleziona —</option>
+        <option value="Cameriere">Cameriere</option>
+        <option value="Chef de rang">Chef de rang</option>
+        <option value="Responsabile sala">Responsabile sala</option>
+        <option value="Cuoco">Cuoco</option>
+        <option value="Pizzaiolo">Pizzaiolo</option>
+        <option value="Pasticcere">Pasticcere</option>
+        <option value="Barista">Barista</option>
+        <option value="Lavapiatti">Lavapiatti</option>
+        <option value="Magazzino">Magazzino</option>
+        <option value="Amministrazione">Amministrazione</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Direzione / Gestione">Direzione / Gestione</option>
+        <option value="Non so ancora">Non so ancora — parliamone</option>
+      </select>
+      <div class="errore" id="err-ruolo">Seleziona un ruolo</div>
+    </div>
+
+    <div class="campo">
+      <label>Quale area ti attrae di più? *</label>
+      <div class="scelta-griglia" id="griglia-area">
+        <button class="scelta-btn" data-val="sala" onclick="selezionaArea(this)">🍽️ Sala</button>
+        <button class="scelta-btn" data-val="bar" onclick="selezionaArea(this)">🍹 Bar</button>
+        <button class="scelta-btn" data-val="cucina" onclick="selezionaArea(this)">👨‍🍳 Cucina</button>
+        <button class="scelta-btn" data-val="pizzeria" onclick="selezionaArea(this)">🍕 Pizzeria</button>
+        <button class="scelta-btn" data-val="pasticceria" onclick="selezionaArea(this)">🧁 Pasticceria</button>
+        <button class="scelta-btn" data-val="magazzino" onclick="selezionaArea(this)">📦 Magazzino</button>
+        <button class="scelta-btn" data-val="amministrazione" onclick="selezionaArea(this)">📊 Amministrazione</button>
+        <button class="scelta-btn" data-val="gestione" onclick="selezionaArea(this)">🏢 Gestione</button>
+      </div>
+      <div class="errore" id="err-area">Seleziona un'area</div>
+    </div>
+
+    <div class="campo">
+      <label>C'è un ruolo che sogni di ricoprire un giorno?</label>
+      <input type="text" id="f-ruolo-sogno" placeholder="Es. Head chef, Direttore di sala...">
+    </div>
+
+    <div class="btn-nav">
+      <button class="btn-indietro" onclick="indietro(1)">← Indietro</button>
+      <button class="btn-avanti" onclick="avanti(1)">Continua →</button>
+    </div>
+  </div>
+
+  <!-- ═══ PASSO 3: Le 3 domande filtro ════════════════════════════ -->
+  <div class="sezione" id="step-2">
+    <div class="sezione-titolo">💬 Tre domande — rispondi con sincerità</div>
+
+    <div class="domanda-aperta">
+      <div class="domanda-testo">Raccontaci una situazione in cui hai fatto qualcosa che non ti era stato chiesto, solo perché lo ritenevi giusto o volevi impararlo.</div>
+      <div class="domanda-hint">Può essere al lavoro, a scuola, in qualsiasi contesto.</div>
+      <textarea id="r-1" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-1','cc-1')"></textarea>
+      <div class="char-count" id="cc-1">0 parole</div>
+      <div class="errore" id="err-r1">Rispondi a questa domanda (almeno 20 parole)</div>
+    </div>
+
+    <div class="domanda-aperta">
+      <div class="domanda-testo">Raccontaci il giorno di lavoro più impegnativo che ricordi. Come lo hai affrontato?</div>
+      <div class="domanda-hint">Non importa il settore — importa come hai reagito.</div>
+      <textarea id="r-2" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-2','cc-2')"></textarea>
+      <div class="char-count" id="cc-2">0 parole</div>
+      <div class="errore" id="err-r2">Rispondi a questa domanda (almeno 20 parole)</div>
+    </div>
+
+    <div class="domanda-aperta">
+      <div class="domanda-testo">Dove ti immagini tra 5 anni? Cosa stai facendo oggi per arrivarci?</div>
+      <div class="domanda-hint">Sii specifico — "voglio crescere" è diverso da "voglio aprire il mio locale".</div>
+      <textarea id="r-3" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-3','cc-3')"></textarea>
+      <div class="char-count" id="cc-3">0 parole</div>
+      <div class="errore" id="err-r3">Rispondi a questa domanda (almeno 20 parole)</div>
+    </div>
+
+    <div id="errore-invio" style="color:#dc2626;font-size:13px;margin-bottom:12px;display:none;"></div>
+
+    <div class="btn-nav">
+      <button class="btn-indietro" onclick="indietro(2)">← Indietro</button>
+      <button class="btn-avanti" id="btn-invia" onclick="invia()">Invia candidatura 🚀</button>
+    </div>
+  </div>
+
+  <!-- ═══ ESITO ════════════════════════════════════════════════════ -->
+  <div class="sezione attiva esito" id="esito" style="display:none;">
+    <div class="esito-icon">🎉</div>
+    <div class="esito-titolo">Candidatura ricevuta!</div>
+    <div class="esito-testo">
+      Abbiamo ricevuto la tua candidatura e la valuteremo con attenzione.<br><br>
+      Se la tua candidatura supera il primo filtro, riceverai un messaggio WhatsApp con le istruzioni per la fase successiva.<br><br>
+      <strong>Grazie per il tuo tempo e la tua sincerità.</strong>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── CONFIG ─────────────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+  const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+  const AZIENDA_ID   = 'b331365f-17db-4dda-aa2f-77a09427fe42';
+
+  // Leggi ruolo da URL param (?ruolo=cuoco)
+  const urlParams  = new URLSearchParams(window.location.search);
+  const ruoloParam = urlParams.get('ruolo');
+  if (ruoloParam) {
+    const sel = document.getElementById('f-ruolo');
+    for (const opt of sel.options) {
+      if (opt.value.toLowerCase() === ruoloParam.toLowerCase()) { sel.value = opt.value; break; }
+    }
+  }
+
+  let areaSelezionata = '';
+  let stepCorrente = 0;
+
+  // ─── SCORING INLINE (semplificato, senza import ES module) ──────────────────
+  const KW_POS = {
+    mentalita_proprietario: ['non era richiesto ma','nessuno me lo aveva chiesto ma','non era compito mio ma','dopo il turno','a fine servizio','fuori orario','ho voluto capire come','per il puro piacere','per passione','ho fatto in più','non mi hanno chiesto ma','spontaneamente ho'],
+    pressione:              ['ce l\'ho fatta','l\'ho superata','non mi sono perso','sono rimasto lucido','12 ore','turno lungo','servizio pieno','ho resistito','ho tenuto duro','non ho mollato','stressante ma','duro ma'],
+    crescita:               ['voglio diventare','voglio crescere','sto imparando','sto studiando','non mi accontento','obiettivo','ambizione','non voglio fermarmi','tra 5 anni','tra 3 anni'],
+    curiosita:              ['imparato da solo','volevo capire','per curiosità','ho approfondito','ho ricercato','fuori dall\'orario','dopo il lavoro'],
+    responsabilita:         ['ho sbagliato','errore mio','ho rimediato','mi sono assunto'],
+    mentalita_positiva:     ['ho trovato il modo','ho proposto','si può fare','invece di lamentarmi','invece di aspettare'],
+    leadership:             ['ho aiutato','ho formato','ho organizzato','ho preso l\'iniziativa','senza che nessuno me lo chiedesse'],
+  };
+  const KW_NEG = {
+    mentalita_proprietario: ['aspettavo','nessuno mi diceva','non era compito mio e quindi','non mi riguardava','finito il turno sono andato'],
+    responsabilita:         ['colpa di','per colpa del','non dipendeva da me','nessuno mi aveva detto'],
+    mentalita_positiva:     ['impossibile','non si può','sempre così','non cambierà mai'],
+    pressione:              ['non reggo','mi blocco','troppo stress','ho abbandonato'],
+  };
+
+  function scoraRisposta(testo) {
+    const t = (testo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'");
+    const scores = {};
+    for (const [ind, kws] of Object.entries(KW_POS)) {
+      let p = 0;
+      for (const kw of kws) { if (t.includes(kw)) p += 2; }
+      scores[ind] = (scores[ind] || 0) + p;
+    }
+    for (const [ind, kws] of Object.entries(KW_NEG)) {
+      for (const kw of kws) { if (t.includes(kw)) scores[ind] = (scores[ind] || 0) - 2; }
+    }
+    const parole = testo.trim().split(/\s+/).length;
+    const bonus = parole > 80 ? 2 : parole > 40 ? 1 : parole < 15 ? -1 : 0;
+    for (const k of Object.keys(scores)) scores[k] = Math.max(0, Math.min(10, scores[k] + bonus));
+    const vals = Object.values(scores);
+    const media = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    return { scores, score_totale: Math.round(media * 10) / 10 };
+  }
+
+  // ─── NAVIGAZIONE ────────────────────────────────────────────────────────────
+  function avanti(step) {
+    if (!validaStep(step)) return;
+    document.getElementById('step-' + step).classList.remove('attiva');
+    stepCorrente = step + 1;
+    document.getElementById('step-' + stepCorrente).classList.add('attiva');
+    aggiornaProgresso(stepCorrente);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function indietro(step) {
+    document.getElementById('step-' + step).classList.remove('attiva');
+    stepCorrente = step - 1;
+    document.getElementById('step-' + stepCorrente).classList.add('attiva');
+    aggiornaProgresso(stepCorrente);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function aggiornaProgresso(step) {
+    for (let i = 0; i < 3; i++) {
+      const dot = document.getElementById('dot-' + i);
+      dot.className = 'step-dot';
+      if (i < step)       dot.classList.add('fatto');
+      else if (i === step) dot.classList.add('attivo');
+    }
+    document.getElementById('step-label').textContent = `Passo ${step + 1} di 3`;
+  }
+
+  function selezionaArea(btn) {
+    document.querySelectorAll('#griglia-area .scelta-btn').forEach(b => b.classList.remove('selezionato'));
+    btn.classList.add('selezionato');
+    areaSelezionata = btn.dataset.val;
+  }
+
+  function aggiornaCount(idTA, idCC) {
+    const t = document.getElementById(idTA).value.trim();
+    const n = t ? t.split(/\s+/).length : 0;
+    document.getElementById(idCC).textContent = n + (n === 1 ? ' parola' : ' parole');
+  }
+
+  // ─── VALIDAZIONE ────────────────────────────────────────────────────────────
+  function mostraErrore(id, visibile) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('visibile', visibile);
+  }
+
+  function validaStep(step) {
+    let ok = true;
+    if (step === 0) {
+      const nome = document.getElementById('f-nome').value.trim();
+      const cognome = document.getElementById('f-cognome').value.trim();
+      const tel = document.getElementById('f-telefono').value.trim();
+      mostraErrore('err-nome',     !nome);
+      mostraErrore('err-cognome',  !cognome);
+      mostraErrore('err-telefono', tel.length < 8);
+      if (!nome || !cognome || tel.length < 8) ok = false;
+    }
+    if (step === 1) {
+      const ruolo = document.getElementById('f-ruolo').value;
+      mostraErrore('err-ruolo', !ruolo);
+      mostraErrore('err-area',  !areaSelezionata);
+      if (!ruolo || !areaSelezionata) ok = false;
+    }
+    if (step === 2) {
+      const min = 20;
+      ['r-1','r-2','r-3'].forEach((id, i) => {
+        const t = document.getElementById(id).value.trim();
+        const n = t ? t.split(/\s+/).length : 0;
+        mostraErrore('err-' + id.replace('-',''), n < min);
+        if (n < min) ok = false;
+      });
+    }
+    return ok;
+  }
+
+  // ─── INVIO ──────────────────────────────────────────────────────────────────
+  async function invia() {
+    if (!validaStep(2)) return;
+
+    const btn = document.getElementById('btn-invia');
+    btn.disabled = true;
+    btn.textContent = 'Invio in corso...';
+
+    const risposte = [
+      { domanda_id: 'iniziativa_spontanea', domanda_testo: 'Raccontaci una situazione in cui hai fatto qualcosa che non ti era stato chiesto, solo perché lo ritenevi giusto o volevi impararlo.', risposta: document.getElementById('r-1').value.trim() },
+      { domanda_id: 'giorno_impegnativo',   domanda_testo: 'Raccontaci il giorno di lavoro più impegnativo che ricordi. Come lo hai affrontato?',                                               risposta: document.getElementById('r-2').value.trim() },
+      { domanda_id: 'obiettivo_5anni',      domanda_testo: 'Dove ti immagini tra 5 anni? Cosa stai facendo oggi per arrivarci?',                                                               risposta: document.getElementById('r-3').value.trim() },
+    ];
+
+    // Calcola punteggi
+    const scoresAgg = {};
+    for (const r of risposte) {
+      const { scores } = scoraRisposta(r.risposta);
+      for (const [k,v] of Object.entries(scores)) scoresAgg[k] = ((scoresAgg[k]||0) + v);
+      r.scores = scores;
+    }
+    const pesi = { mentalita_proprietario: 1.5, curiosita: 1, crescita: 1, responsabilita: 1, mentalita_positiva: 1, pressione: 1, leadership: 1 };
+    const totPesi = Object.values(pesi).reduce((a,b)=>a+b,0);
+    let scorePesato = 0;
+    for (const [k,p] of Object.entries(pesi)) scorePesato += ((scoresAgg[k]||0)/3) * p;
+    const score_totale = Math.round((scorePesato / totPesi) * 10) / 10;
+
+    const candidatura = {
+      azienda_id:        AZIENDA_ID,
+      nome:              document.getElementById('f-nome').value.trim(),
+      cognome:           document.getElementById('f-cognome').value.trim(),
+      telefono:          document.getElementById('f-telefono').value.trim(),
+      email:             document.getElementById('f-email').value.trim() || null,
+      citta:             document.getElementById('f-citta').value.trim() || null,
+      ruolo_desiderato:  document.getElementById('f-ruolo').value,
+      area_interesse:    areaSelezionata,
+      ruolo_sogno:       document.getElementById('f-ruolo-sogno').value.trim() || null,
+      score_totale,
+      score_curiosita:             Math.round((scoresAgg.curiosita||0)/3 * 10)/10,
+      score_crescita:              Math.round((scoresAgg.crescita||0)/3 * 10)/10,
+      score_responsabilita:        Math.round((scoresAgg.responsabilita||0)/3 * 10)/10,
+      score_mentalita_positiva:    Math.round((scoresAgg.mentalita_positiva||0)/3 * 10)/10,
+      score_pressione:             Math.round((scoresAgg.pressione||0)/3 * 10)/10,
+      score_leadership:            Math.round((scoresAgg.leadership||0)/3 * 10)/10,
+      score_mentalita_proprietario: Math.round((scoresAgg.mentalita_proprietario||0)/3 * 10)/10,
+      fonte: urlParams.get('fonte') || 'pubblico',
+      fase_attuale: 1,
+      fase_label: 'Ricevuta',
+    };
+
+    try {
+      // 1. Salva candidatura
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature`, {
+        method: 'POST',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify(candidatura)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      const [cand] = await res.json();
+
+      // 2. Salva risposte
+      const risposteDaSalvare = risposte.map(r => ({
+        candidatura_id: cand.id,
+        fase: 1,
+        domanda_id: r.domanda_id,
+        domanda_testo: r.domanda_testo,
+        risposta: r.risposta,
+        score_curiosita:              r.scores?.curiosita || 0,
+        score_crescita:               r.scores?.crescita || 0,
+        score_responsabilita:         r.scores?.responsabilita || 0,
+        score_mentalita_positiva:     r.scores?.mentalita_positiva || 0,
+        score_pressione:              r.scores?.pressione || 0,
+        score_leadership:             r.scores?.leadership || 0,
+        score_mentalita_proprietario: r.scores?.mentalita_proprietario || 0,
+        score_totale_risposta:        r.scores ? Object.values(r.scores).reduce((a,b)=>a+b,0)/Object.keys(r.scores).length : 0,
+      }));
+
+      await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
+        method: 'POST',
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(risposteDaSalvare)
+      });
+
+      // 3. Notifica via Edge Function
+      await fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ candidatura_id: cand.id, azienda_id: AZIENDA_ID, evento: 'nuova_candidatura' })
+      }).catch(() => {}); // non bloccare se fallisce
+
+      // Mostra esito
+      document.getElementById('step-2').classList.remove('attiva');
+      document.getElementById('esito').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      const el = document.getElementById('errore-invio');
+      el.textContent = 'Si è verificato un errore. Riprova tra qualche istante.';
+      el.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Invia candidatura 🚀';
+    }
+  }
+</script>
+</body>
+</html>
