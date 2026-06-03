@@ -608,7 +608,7 @@ async function invia() {
     });
 
     // Notifica
-    fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica`, {
+    fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica-ts`, {
       method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ANON_KEY}`},
       body: JSON.stringify({candidatura_id:cand.id, azienda_id:aziendaId, evento:'nuova_candidatura', score:scoreFinale, classificazione:cls.label})
     }).catch(()=>{});
