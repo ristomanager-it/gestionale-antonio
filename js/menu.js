@@ -298,15 +298,6 @@ export function initMenu() {
         title: "GESTIONE",
         items: [
           { label: "📊 Dashboard",        route: "bo-dashboard"      },
-          { label: "🧺 Prodotti",         route: "bo-prodotti"       },
-          { label: "📂 Categorie",        route: "bo-categorie"      },
-          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
-          { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
-          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
-          { label: "📋 Menu Builder",     route: "bo-menu"           },
-          { label: "🏷️ Tag",             route: "bo-tag"            },
-          { label: "📄 Template",         route: "bo-template"       },
-          { label: "📣 Marketing",        route: "bo-marketing"      },
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
@@ -314,16 +305,44 @@ export function initMenu() {
       });
 
       sections.push({
-        title: "CONFIGURAZIONE",
+        title: "MENU & PRODOTTI",
         items: [
-          { label: "⚙️ Configurazione",   route: "bo-configurazione" },
-          { label: "👥 Dipendenti",       route: "dipendenti"        },
+          { label: "📋 Menu Builder",     route: "bo-menu"           },
+          { label: "🧺 Prodotti",         route: "bo-prodotti"       },
+          { label: "📂 Categorie",        route: "bo-categorie"      },
+          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
+          { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
+          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
+        ]
+      });
+
+      sections.push({
+        title: "MARKETING & CRM",
+        items: [
+          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
+          { label: "💬 Template WhatsApp",route: "bo-template"       },
+          { label: "📣 Campagne",         route: "bo-marketing"      },
+        ]
+      });
+
+      sections.push({
+        title: "PERSONALE",
+        items: [
+          { label: "👥 Candidature",      route: "bo-candidature"    },
+          { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
           { label: "📁 Documenti HR",      route: "hr-documenti"      },
           { label: "📘 Manuale",          route: "manuale"           },
+        ]
+      });
+
+      sections.push({
+        title: "CONFIGURAZIONE",
+        items: [
+          { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
         ]
       });
     }
