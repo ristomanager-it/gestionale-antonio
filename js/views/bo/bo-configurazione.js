@@ -641,7 +641,7 @@ export async function render(container) {
             azienda_id: aziendaId,
             sede_id: sedeId,
             numero_dest: numero,
-            template_name: 'hello_world',
+            template_name: 'ristoflow_notifica',
             contesto: 'test'
           })
         });
