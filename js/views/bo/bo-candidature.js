@@ -381,7 +381,7 @@ export async function render(container) {
 
     // 3. WhatsApp via Edge Function
     esito.textContent = 'Invio WhatsApp...'; esito.style.color = '#64748b';
-    const waRes = await fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica`, {
+    const waRes = await fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica-ts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
       body: JSON.stringify({
