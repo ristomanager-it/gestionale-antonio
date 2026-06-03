@@ -3,143 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lavora con noi — Ristoflow</title>
+  <title>Lavora con noi</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
-      min-height: 100vh;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, #0E5A7A 0%, #1a8fb5 100%);
-      padding: 48px 24px 40px;
-      text-align: center;
-      color: white;
-    }
+    .hero { background: linear-gradient(135deg, #0E5A7A 0%, #1a8fb5 100%); padding: 48px 24px 40px; text-align: center; color: white; }
     .hero-logo { font-size: 40px; margin-bottom: 12px; }
     .hero-azienda { font-size: 13px; opacity: .75; margin-bottom: 8px; letter-spacing: .5px; text-transform: uppercase; }
     .hero-titolo { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
     .hero-sub { font-size: 16px; opacity: .88; line-height: 1.6; max-width: 520px; margin: 0 auto; }
 
-    .intro-box {
-      max-width: 640px;
-      margin: -20px auto 0;
-      background: white;
-      border-radius: 16px;
-      padding: 28px 28px 20px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.08);
-      position: relative;
-      z-index: 2;
-    }
+    .intro-box { max-width: 640px; margin: -20px auto 0; background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,.08); position: relative; z-index: 2; }
     .intro-testo { font-size: 15px; line-height: 1.8; color: #374151; font-style: italic; border-left: 3px solid #0E5A7A; padding-left: 16px; }
 
-    .form-wrap {
-      max-width: 640px;
-      margin: 24px auto 48px;
-      padding: 0 16px;
-    }
+    .form-wrap { max-width: 640px; margin: 24px auto 48px; padding: 0 16px; }
 
-    .step-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-    .step-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: #e2e8f0; transition: all .3s;
-    }
+    .step-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; transition: all .3s; }
     .step-dot.attivo { background: #0E5A7A; transform: scale(1.3); }
-    .step-dot.fatto  { background: #25D366; }
+    .step-dot.fatto { background: #25D366; }
     .step-label { font-size: 12px; color: #94a3b8; margin-left: 4px; }
 
-    .sezione {
-      background: white;
-      border-radius: 16px;
-      padding: 28px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06);
-      display: none;
-    }
+    .sezione { background: white; border-radius: 16px; padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: none; }
     .sezione.attiva { display: block; }
-
-    .sezione-titolo {
-      font-size: 11px; font-weight: 700; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 20px;
-      display: flex; align-items: center; gap: 8px;
-    }
+    .sezione-titolo { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 20px; }
 
     .campo { margin-bottom: 18px; }
     .campo label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 6px; }
     .campo .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
 
-    input[type="text"], input[type="tel"], input[type="email"], input[type="date"], select, textarea {
-      width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0;
-      border-radius: 10px; font-size: 15px; font-family: inherit;
-      outline: none; transition: border .2s, box-shadow .2s; background: white;
-      color: #0f172a;
+    input[type="text"], input[type="tel"], input[type="email"], select, textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 15px; font-family: inherit; outline: none; transition: border .2s; background: white; color: #0f172a;
     }
-    input:focus, select:focus, textarea:focus {
-      border-color: #0E5A7A;
-      box-shadow: 0 0 0 3px rgba(14,90,122,.1);
-    }
+    input:focus, select:focus, textarea:focus { border-color: #0E5A7A; box-shadow: 0 0 0 3px rgba(14,90,122,.1); }
     textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
 
-    .scelta-griglia {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-    }
-    .scelta-btn {
-      border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 500;
-      color: #374151; background: white; transition: all .15s; text-align: left;
-    }
+    .scelta-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .scelta-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 500; color: #374151; background: white; transition: all .15s; text-align: left; }
     .scelta-btn:hover { border-color: #0E5A7A; color: #0E5A7A; background: #f0f9ff; }
     .scelta-btn.selezionato { border-color: #0E5A7A; background: #0E5A7A; color: white; }
 
-    .domanda-aperta {
-      background: #f8fafc;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 18px;
-    }
-    .domanda-testo {
-      font-size: 15px; font-weight: 600; color: #0f172a;
-      line-height: 1.5; margin-bottom: 12px;
-    }
+    .domanda-aperta { background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+    .domanda-testo { font-size: 15px; font-weight: 600; color: #0f172a; line-height: 1.5; margin-bottom: 8px; }
     .domanda-hint { font-size: 12px; color: #64748b; margin-bottom: 10px; font-style: italic; }
     .char-count { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 4px; }
 
-    .btn-nav {
-      display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;
-    }
-    .btn-avanti {
-      background: #0E5A7A; color: white; border: none;
-      border-radius: 12px; padding: 14px 28px; font-size: 15px; font-weight: 700;
-      cursor: pointer; transition: all .2s; flex: 1; max-width: 220px;
-    }
+    .btn-nav { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn-avanti { background: #0E5A7A; color: white; border: none; border-radius: 12px; padding: 14px 28px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; flex: 1; max-width: 220px; }
     .btn-avanti:hover { background: #0c4f6b; transform: translateY(-1px); }
     .btn-avanti:disabled { background: #94a3b8; transform: none; cursor: not-allowed; }
-    .btn-indietro {
-      background: #f1f5f9; color: #374151; border: none;
-      border-radius: 12px; padding: 14px 20px; font-size: 15px;
-      cursor: pointer;
-    }
-
-    .esito { text-align: center; padding: 40px 20px; display: none; }
-    .esito.visibile { display: block; }
-    .esito-icon { font-size: 56px; margin-bottom: 16px; }
-    .esito-titolo { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
-    .esito-testo { font-size: 15px; color: #374151; line-height: 1.7; max-width: 440px; margin: 0 auto; }
+    .btn-indietro { background: #f1f5f9; color: #374151; border: none; border-radius: 12px; padding: 14px 20px; font-size: 15px; cursor: pointer; }
 
     .errore { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
     .errore.visibile { display: block; }
+
+    .loading { text-align: center; padding: 60px 20px; color: #64748b; font-size: 15px; }
+
+    .esito-wrap { text-align: center; padding: 48px 20px; }
+    .esito-icon { font-size: 56px; margin-bottom: 16px; }
+    .esito-titolo { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+    .esito-testo { font-size: 15px; color: #374151; line-height: 1.7; max-width: 440px; margin: 0 auto; }
 
     @media (max-width: 480px) {
       .hero { padding: 36px 20px 32px; }
@@ -151,401 +76,556 @@
 </head>
 <body>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-logo">🍽️</div>
-  <div class="hero-azienda" id="nome-azienda">Campo Antico Ricevimenti</div>
-  <div class="hero-titolo">Scopriamo se siamo fatti<br>per lavorare insieme</div>
-  <div class="hero-sub">Non stiamo cercando solo esperienza o titoli. Cerchiamo persone con voglia di crescere, imparare e costruire qualcosa nel tempo.</div>
-</div>
-
-<!-- INTRO -->
-<div class="intro-box">
-  <div class="intro-testo">
-    Non esistono risposte giuste o sbagliate.<br>
-    Rispondi con sincerità — è quello che conta davvero.
-  </div>
-</div>
-
-<!-- FORM -->
-<div class="form-wrap">
-
-  <!-- Barra progresso -->
-  <div class="step-bar">
-    <div class="step-dot attivo" id="dot-0"></div>
-    <div class="step-dot" id="dot-1"></div>
-    <div class="step-dot" id="dot-2"></div>
-    <span class="step-label" id="step-label">Passo 1 di 3</span>
-  </div>
-
-  <!-- ═══ PASSO 1: Dati base ═══════════════════════════════════════ -->
-  <div class="sezione attiva" id="step-0">
-    <div class="sezione-titolo">👤 Chi sei</div>
-
-    <div class="campo">
-      <label>Nome *</label>
-      <input type="text" id="f-nome" placeholder="Il tuo nome">
-      <div class="errore" id="err-nome">Inserisci il tuo nome</div>
-    </div>
-    <div class="campo">
-      <label>Cognome *</label>
-      <input type="text" id="f-cognome" placeholder="Il tuo cognome">
-      <div class="errore" id="err-cognome">Inserisci il tuo cognome</div>
-    </div>
-    <div class="campo">
-      <label>Telefono *</label>
-      <input type="tel" id="f-telefono" placeholder="+39 333 1234567">
-      <div class="hint">Ti contatteremo su WhatsApp</div>
-      <div class="errore" id="err-telefono">Inserisci un numero valido</div>
-    </div>
-    <div class="campo">
-      <label>Email</label>
-      <input type="email" id="f-email" placeholder="la-tua@email.it">
-    </div>
-    <div class="campo">
-      <label>Città in cui vivi</label>
-      <input type="text" id="f-citta" placeholder="Es. Milano">
-    </div>
-
-    <div class="btn-nav">
-      <button class="btn-avanti" onclick="avanti(0)">Continua →</button>
-    </div>
-  </div>
-
-  <!-- ═══ PASSO 2: Ruolo e area ════════════════════════════════════ -->
-  <div class="sezione" id="step-1">
-    <div class="sezione-titolo">🎯 Cosa ti interessa</div>
-
-    <div class="campo">
-      <label>Qual è il ruolo per cui ti candidi? *</label>
-      <select id="f-ruolo">
-        <option value="">— seleziona —</option>
-        <option value="Cameriere">Cameriere</option>
-        <option value="Chef de rang">Chef de rang</option>
-        <option value="Responsabile sala">Responsabile sala</option>
-        <option value="Cuoco">Cuoco</option>
-        <option value="Pizzaiolo">Pizzaiolo</option>
-        <option value="Pasticcere">Pasticcere</option>
-        <option value="Barista">Barista</option>
-        <option value="Lavapiatti">Lavapiatti</option>
-        <option value="Magazzino">Magazzino</option>
-        <option value="Amministrazione">Amministrazione</option>
-        <option value="Marketing">Marketing</option>
-        <option value="Direzione / Gestione">Direzione / Gestione</option>
-        <option value="Non so ancora">Non so ancora — parliamone</option>
-      </select>
-      <div class="errore" id="err-ruolo">Seleziona un ruolo</div>
-    </div>
-
-    <div class="campo">
-      <label>Quale area ti attrae di più? *</label>
-      <div class="scelta-griglia" id="griglia-area">
-        <button class="scelta-btn" data-val="sala" onclick="selezionaArea(this)">🍽️ Sala</button>
-        <button class="scelta-btn" data-val="bar" onclick="selezionaArea(this)">🍹 Bar</button>
-        <button class="scelta-btn" data-val="cucina" onclick="selezionaArea(this)">👨‍🍳 Cucina</button>
-        <button class="scelta-btn" data-val="pizzeria" onclick="selezionaArea(this)">🍕 Pizzeria</button>
-        <button class="scelta-btn" data-val="pasticceria" onclick="selezionaArea(this)">🧁 Pasticceria</button>
-        <button class="scelta-btn" data-val="magazzino" onclick="selezionaArea(this)">📦 Magazzino</button>
-        <button class="scelta-btn" data-val="amministrazione" onclick="selezionaArea(this)">📊 Amministrazione</button>
-        <button class="scelta-btn" data-val="gestione" onclick="selezionaArea(this)">🏢 Gestione</button>
-      </div>
-      <div class="errore" id="err-area">Seleziona un'area</div>
-    </div>
-
-    <div class="campo">
-      <label>C'è un ruolo che sogni di ricoprire un giorno?</label>
-      <input type="text" id="f-ruolo-sogno" placeholder="Es. Head chef, Direttore di sala...">
-    </div>
-
-    <div class="btn-nav">
-      <button class="btn-indietro" onclick="indietro(1)">← Indietro</button>
-      <button class="btn-avanti" onclick="avanti(1)">Continua →</button>
-    </div>
-  </div>
-
-  <!-- ═══ PASSO 3: Le 3 domande filtro ════════════════════════════ -->
-  <div class="sezione" id="step-2">
-    <div class="sezione-titolo">💬 Tre domande — rispondi con sincerità</div>
-
-    <div class="domanda-aperta">
-      <div class="domanda-testo">Raccontaci una situazione in cui hai fatto qualcosa che non ti era stato chiesto, solo perché lo ritenevi giusto o volevi impararlo.</div>
-      <div class="domanda-hint">Può essere al lavoro, a scuola, in qualsiasi contesto.</div>
-      <textarea id="r-1" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-1','cc-1')"></textarea>
-      <div class="char-count" id="cc-1">0 parole</div>
-      <div class="errore" id="err-r1">Rispondi a questa domanda (almeno 20 parole)</div>
-    </div>
-
-    <div class="domanda-aperta">
-      <div class="domanda-testo">Raccontaci il giorno di lavoro più impegnativo che ricordi. Come lo hai affrontato?</div>
-      <div class="domanda-hint">Non importa il settore — importa come hai reagito.</div>
-      <textarea id="r-2" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-2','cc-2')"></textarea>
-      <div class="char-count" id="cc-2">0 parole</div>
-      <div class="errore" id="err-r2">Rispondi a questa domanda (almeno 20 parole)</div>
-    </div>
-
-    <div class="domanda-aperta">
-      <div class="domanda-testo">Dove ti immagini tra 5 anni? Cosa stai facendo oggi per arrivarci?</div>
-      <div class="domanda-hint">Sii specifico — "voglio crescere" è diverso da "voglio aprire il mio locale".</div>
-      <textarea id="r-3" placeholder="Scrivi qui la tua risposta..." oninput="aggiornaCount('r-3','cc-3')"></textarea>
-      <div class="char-count" id="cc-3">0 parole</div>
-      <div class="errore" id="err-r3">Rispondi a questa domanda (almeno 20 parole)</div>
-    </div>
-
-    <div id="errore-invio" style="color:#dc2626;font-size:13px;margin-bottom:12px;display:none;"></div>
-
-    <div class="btn-nav">
-      <button class="btn-indietro" onclick="indietro(2)">← Indietro</button>
-      <button class="btn-avanti" id="btn-invia" onclick="invia()">Invia candidatura 🚀</button>
-    </div>
-  </div>
-
-  <!-- ═══ ESITO ════════════════════════════════════════════════════ -->
-  <div class="sezione attiva esito" id="esito" style="display:none;">
-    <div class="esito-icon">🎉</div>
-    <div class="esito-titolo">Candidatura ricevuta!</div>
-    <div class="esito-testo">
-      Abbiamo ricevuto la tua candidatura e la valuteremo con attenzione.<br><br>
-      Se la tua candidatura supera il primo filtro, riceverai un messaggio WhatsApp con le istruzioni per la fase successiva.<br><br>
-      <strong>Grazie per il tuo tempo e la tua sincerità.</strong>
-    </div>
-  </div>
-
+<div id="root">
+  <div class="loading">⏳ Caricamento...</div>
 </div>
 
 <script>
-  // ─── CONFIG ─────────────────────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
-  const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
-  const AZIENDA_ID   = 'b331365f-17db-4dda-aa2f-77a09427fe42';
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
 
-  // Leggi ruolo da URL param (?ruolo=cuoco)
-  const urlParams  = new URLSearchParams(window.location.search);
-  const ruoloParam = urlParams.get('ruolo');
-  if (ruoloParam) {
-    const sel = document.getElementById('f-ruolo');
-    for (const opt of sel.options) {
-      if (opt.value.toLowerCase() === ruoloParam.toLowerCase()) { sel.value = opt.value; break; }
-    }
+// ─── LEGGI PARAMS URL ────────────────────────────────────────────────────────
+// Supporta: ?a=AZIENDA_ID  oppure  ?a=AZIENDA_ID&r=cuoco
+const urlParams  = new URLSearchParams(window.location.search);
+const aziendaId  = urlParams.get('a');
+const ruoloParam = urlParams.get('r') || '';
+const fonte      = urlParams.get('f') || 'pubblico';
+
+let aziendaInfo  = null;
+let stepCorrente = 0;
+let areaSelezionata = '';
+
+// ─── SCORING ─────────────────────────────────────────────────────────────────
+const KW = {
+  curiosita: {
+    pos: ['imparato da solo','volevo capire','per curiosità','ho approfondito','ho ricercato','fuori dall\'orario','dopo il lavoro','nel tempo libero','ho studiato da solo','mi sono chiesto'],
+    neg: ['non mi interessa','non ho tempo','non serve a niente']
+  },
+  crescita: {
+    pos: ['voglio diventare','voglio crescere','sto imparando','sto studiando','non mi accontento','obiettivo','ambizione','tra 5 anni','voglio di più','non voglio fermarmi'],
+    neg: ['stabile','tranquillo','non cambiare','non so','non ci ho pensato']
+  },
+  responsabilita: {
+    pos: ['ho sbagliato','errore mio','ho rimediato','mi sono assunto','ho corretto','ho risolto'],
+    neg: ['colpa di','per colpa del','non dipendeva da me','nessuno mi aveva detto','è stata colpa loro']
+  },
+  mentalita_positiva: {
+    pos: ['ho trovato il modo','ho proposto','si può fare','invece di lamentarmi','invece di aspettare','ho agito'],
+    neg: ['impossibile','non si può','sempre così','non cambierà','inutile']
+  },
+  pressione: {
+    pos: ['ce l\'ho fatta','non mi sono perso','sono rimasto lucido','12 ore','turno lungo','servizio pieno','ho resistito','non ho mollato','stressante ma','duro ma'],
+    neg: ['non reggo','mi blocco','troppo stress','ho abbandonato']
+  },
+  leadership: {
+    pos: ['ho aiutato','ho formato','ho organizzato','ho preso l\'iniziativa','senza che nessuno','ho guidato','ho coordinato'],
+    neg: ['aspettavo ordini','aspettavo istruzioni']
+  },
+  mentalita_proprietario: {
+    pos: ['non era richiesto ma','nessuno me lo aveva chiesto','non era compito mio ma','dopo il turno','a fine servizio','ho voluto capire','per il puro piacere','ho fatto in più','trattavo come mio'],
+    neg: ['aspettavo','nessuno mi diceva','non era compito mio e quindi','finito il turno sono andato','non mi riguardava']
   }
+};
 
-  let areaSelezionata = '';
-  let stepCorrente = 0;
+// Pesi per indicatore (totale base 100 + bonus/malus)
+const PESI = { curiosita: 20, crescita: 20, responsabilita: 15, pressione: 15, mentalita_positiva: 10, leadership: 10, mentalita_proprietario: 10 };
 
-  // ─── SCORING INLINE (semplificato, senza import ES module) ──────────────────
-  const KW_POS = {
-    mentalita_proprietario: ['non era richiesto ma','nessuno me lo aveva chiesto ma','non era compito mio ma','dopo il turno','a fine servizio','fuori orario','ho voluto capire come','per il puro piacere','per passione','ho fatto in più','non mi hanno chiesto ma','spontaneamente ho'],
-    pressione:              ['ce l\'ho fatta','l\'ho superata','non mi sono perso','sono rimasto lucido','12 ore','turno lungo','servizio pieno','ho resistito','ho tenuto duro','non ho mollato','stressante ma','duro ma'],
-    crescita:               ['voglio diventare','voglio crescere','sto imparando','sto studiando','non mi accontento','obiettivo','ambizione','non voglio fermarmi','tra 5 anni','tra 3 anni'],
-    curiosita:              ['imparato da solo','volevo capire','per curiosità','ho approfondito','ho ricercato','fuori dall\'orario','dopo il lavoro'],
-    responsabilita:         ['ho sbagliato','errore mio','ho rimediato','mi sono assunto'],
-    mentalita_positiva:     ['ho trovato il modo','ho proposto','si può fare','invece di lamentarmi','invece di aspettare'],
-    leadership:             ['ho aiutato','ho formato','ho organizzato','ho preso l\'iniziativa','senza che nessuno me lo chiedesse'],
-  };
-  const KW_NEG = {
-    mentalita_proprietario: ['aspettavo','nessuno mi diceva','non era compito mio e quindi','non mi riguardava','finito il turno sono andato'],
-    responsabilita:         ['colpa di','per colpa del','non dipendeva da me','nessuno mi aveva detto'],
-    mentalita_positiva:     ['impossibile','non si può','sempre così','non cambierà mai'],
-    pressione:              ['non reggo','mi blocco','troppo stress','ho abbandonato'],
-  };
-
-  function scoraRisposta(testo) {
-    const t = (testo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'");
-    const scores = {};
-    for (const [ind, kws] of Object.entries(KW_POS)) {
-      let p = 0;
-      for (const kw of kws) { if (t.includes(kw)) p += 2; }
-      scores[ind] = (scores[ind] || 0) + p;
-    }
-    for (const [ind, kws] of Object.entries(KW_NEG)) {
-      for (const kw of kws) { if (t.includes(kw)) scores[ind] = (scores[ind] || 0) - 2; }
-    }
+function scoraRisposta(testo) {
+  const t = (testo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'");
+  const scores = {};
+  const kwPos = [], kwNeg = [];
+  for (const [ind, {pos, neg}] of Object.entries(KW)) {
+    let p = 0;
+    for (const kw of pos) { if (t.includes(kw)) { p += 2; kwPos.push({indicatore:ind,keyword:kw}); } }
+    for (const kw of neg) { if (t.includes(kw)) { p -= 2; kwNeg.push({indicatore:ind,keyword:kw}); } }
     const parole = testo.trim().split(/\s+/).length;
-    const bonus = parole > 80 ? 2 : parole > 40 ? 1 : parole < 15 ? -1 : 0;
-    for (const k of Object.keys(scores)) scores[k] = Math.max(0, Math.min(10, scores[k] + bonus));
-    const vals = Object.values(scores);
-    const media = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-    return { scores, score_totale: Math.round(media * 10) / 10 };
+    if (parole > 80) p += 2; else if (parole > 40) p += 1; else if (parole < 15) p -= 1;
+    scores[ind] = Math.max(0, Math.min(10, p));
+  }
+  return { scores, kwPos, kwNeg };
+}
+
+function calcolaScoreTotale(tutteRisposte) {
+  const agg = Object.fromEntries(Object.keys(KW).map(k => [k, []]));
+  for (const r of tutteRisposte) {
+    const { scores } = scoraRisposta(r.risposta);
+    for (const [k,v] of Object.entries(scores)) agg[k].push(v);
+  }
+  // Media per indicatore → applica peso
+  let totale = 0;
+  const perIndicatore = {};
+  for (const [k, vals] of Object.entries(agg)) {
+    const media = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    const peso = PESI[k] || 10;
+    // Scala: 10/10 = peso pieno, 0/10 = 0
+    const contributo = (media / 10) * peso;
+    perIndicatore[k] = Math.round(contributo * 10) / 10;
+    totale += contributo;
+  }
+  // Bonus: controlla keyword speciali nelle risposte
+  const tuttoTesto = tutteRisposte.map(r=>r.risposta).join(' ').toLowerCase();
+  let bonus = 0;
+  const bonusKw = ['imparato da solo','ho imparato una nuova','ho risolto un problema che non era','mi interessa capire come funziona tutta','voglio capire come funziona l\'azienda'];
+  for (const kw of bonusKw) { if (tuttoTesto.includes(kw)) bonus += 5; }
+  bonus = Math.min(25, bonus); // max bonus 25
+
+  // Malus
+  let malus = 0;
+  const malusKw = { vittimismo: ['colpa degli altri','colpa del capo','colpa dei colleghi','colpa dell\'azienda'], scarico: ['non era mai colpa mia','non è mai colpa mia'], passivo: ['aspetto istruzioni','faccio solo quello che mi dicono'], curiosita_zero: ['non mi interessa imparare','non ho tempo di studiare'] };
+  for (const [tipo, kws] of Object.entries(malusKw)) {
+    for (const kw of kws) { if (tuttoTesto.includes(kw)) malus += tipo === 'vittimismo' || tipo === 'scarico' ? 15 : 10; }
   }
 
-  // ─── NAVIGAZIONE ────────────────────────────────────────────────────────────
-  function avanti(step) {
-    if (!validaStep(step)) return;
-    document.getElementById('step-' + step).classList.remove('attiva');
-    stepCorrente = step + 1;
-    document.getElementById('step-' + stepCorrente).classList.add('attiva');
-    aggiornaProgresso(stepCorrente);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scoreTotale = Math.min(100, Math.max(0, Math.round(totale + bonus - malus)));
+  return { scoreTotale, perIndicatore, bonus, malus };
+}
+
+function classificazione(score) {
+  if (score >= 90) return { label: 'Talento ad alto potenziale', priorita: 'Priorità assoluta', colore: '#15803d' };
+  if (score >= 80) return { label: 'Futuro responsabile',        priorita: 'Da approfondire subito', colore: '#0E5A7A' };
+  if (score >= 70) return { label: 'Buon profilo',               priorita: 'Colloquio consigliato', colore: '#2563eb' };
+  if (score >= 60) return { label: 'Operativo standard',         priorita: 'Valutare in base alle necessità', colore: '#d97706' };
+  return              { label: 'Non in linea con la cultura',    priorita: 'Non procedere', colore: '#dc2626' };
+}
+
+// ─── CARICA AZIENDA E AVVIA ──────────────────────────────────────────────────
+async function init() {
+  const root = document.getElementById('root');
+
+  if (!aziendaId) {
+    root.innerHTML = `<div class="loading">⚠️ Link non valido.<br><small>Manca il parametro azienda.</small></div>`;
+    return;
   }
 
-  function indietro(step) {
-    document.getElementById('step-' + step).classList.remove('attiva');
-    stepCorrente = step - 1;
-    document.getElementById('step-' + stepCorrente).classList.add('attiva');
-    aggiornaProgresso(stepCorrente);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Carica info azienda da Supabase
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/aziende?id=eq.${aziendaId}&select=id,nome,logo_url`, {
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+  });
+  const aziende = await res.json();
+
+  if (!aziende?.length) {
+    root.innerHTML = `<div class="loading">⚠️ Azienda non trovata.</div>`;
+    return;
   }
 
-  function aggiornaProgresso(step) {
-    for (let i = 0; i < 3; i++) {
-      const dot = document.getElementById('dot-' + i);
-      dot.className = 'step-dot';
-      if (i < step)       dot.classList.add('fatto');
-      else if (i === step) dot.classList.add('attivo');
-    }
-    document.getElementById('step-label').textContent = `Passo ${step + 1} di 3`;
+  aziendaInfo = aziende[0];
+  document.title = `Lavora con noi — ${aziendaInfo.nome}`;
+
+  // Carica ruoli attivi per questa azienda
+  const resRuoli = await fetch(`${SUPABASE_URL}/rest/v1/candidature_ruoli?azienda_id=eq.${aziendaId}&attivo=eq.true&order=ordine`, {
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+  });
+  const ruoli = await resRuoli.json() || [];
+
+  renderForm(ruoli);
+}
+
+// ─── RENDER FORM ─────────────────────────────────────────────────────────────
+function renderForm(ruoli) {
+  const root = document.getElementById('root');
+
+  const opzioniRuoli = ruoli.length > 0
+    ? ruoli.map(r => `<option value="${r.nome}" ${r.slug === ruoloParam ? 'selected' : ''}>${r.nome}</option>`).join('')
+    : `<option value="">Nessun ruolo disponibile</option>`;
+
+  root.innerHTML = `
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-logo">${aziendaInfo.logo_url ? `<img src="${aziendaInfo.logo_url}" style="height:48px;border-radius:12px;">` : '🍽️'}</div>
+      <div class="hero-azienda">${aziendaInfo.nome}</div>
+      <div class="hero-titolo">Scopriamo se siamo fatti<br>per lavorare insieme</div>
+      <div class="hero-sub">Non stiamo cercando solo esperienza o titoli. Cerchiamo persone con voglia di crescere, imparare e costruire qualcosa nel tempo.</div>
+    </div>
+
+    <!-- INTRO -->
+    <div class="intro-box">
+      <div class="intro-testo">
+        Non esistono risposte giuste o sbagliate.<br>
+        Rispondi con sincerità — è quello che conta davvero.
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="form-wrap">
+      <div class="step-bar">
+        <div class="step-dot attivo" id="dot-0"></div>
+        <div class="step-dot" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+        <span class="step-label" id="step-label">Sezione 1 di 4</span>
+      </div>
+
+      <!-- STEP 0: Chi sei -->
+      <div class="sezione attiva" id="step-0">
+        <div class="sezione-titolo">👤 Chi sei — Percorso personale</div>
+        <div class="campo"><label>Nome *</label><input type="text" id="f-nome" placeholder="Il tuo nome"><div class="errore" id="err-nome">Campo obbligatorio</div></div>
+        <div class="campo"><label>Cognome *</label><input type="text" id="f-cognome" placeholder="Il tuo cognome"><div class="errore" id="err-cognome">Campo obbligatorio</div></div>
+        <div class="campo"><label>Telefono * <span style="font-size:11px;font-weight:400;color:#94a3b8;">(riceverai aggiornamenti su WhatsApp)</span></label><input type="tel" id="f-telefono" placeholder="+39 333 1234567"><div class="errore" id="err-telefono">Inserisci un numero valido</div></div>
+        <div class="campo"><label>Email</label><input type="email" id="f-email" placeholder="la-tua@email.it"></div>
+        <div class="campo"><label>Città</label><input type="text" id="f-citta" placeholder="Es. Milano"></div>
+        <div class="campo"><label>Ruolo desiderato *</label><select id="f-ruolo"><option value="">— seleziona —</option>${opzioniRuoli}</select><div class="errore" id="err-ruolo">Seleziona un ruolo</div></div>
+        <div class="campo"><label>Esperienze precedenti</label><textarea id="f-esperienze" rows="3" placeholder="Descrivi brevemente le tue esperienze lavorative, anche in settori diversi..."></textarea></div>
+        <div class="campo"><label>Presentati in poche righe</label><textarea id="f-presentazione" rows="3" placeholder="Chi sei, cosa ti caratterizza..."></textarea></div>
+        <div class="btn-nav"><button class="btn-avanti" onclick="avanti(0)">Continua →</button></div>
+      </div>
+
+      <!-- STEP 1: Mentalità + Curiosità -->
+      <div class="sezione" id="step-1">
+        <div class="sezione-titolo">🧠 Mentalità e curiosità</div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Raccontaci una situazione in cui hai visto un problema e hai deciso di intervenire senza che nessuno te lo chiedesse.</div>
+          <textarea id="r-1" placeholder="Rispondi con un esempio concreto..." oninput="cc('r-1','c-1')"></textarea>
+          <div class="char-count" id="c-1">0 parole</div>
+          <div class="errore" id="err-r1">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Qual è una cosa importante che hai imparato da solo negli ultimi 12 mesi?</div>
+          <div class="domanda-hint">Può essere qualsiasi cosa: lavoro, sport, tecnologia, cucina...</div>
+          <textarea id="r-2" placeholder="Cosa hai imparato e come..." oninput="cc('r-2','c-2')"></textarea>
+          <div class="char-count" id="c-2">0 parole</div>
+          <div class="errore" id="err-r2">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Raccontaci un errore che hai commesso. Cosa hai imparato?</div>
+          <textarea id="r-3" placeholder="Sii onesto — dimostra quanto sei capace di imparare dagli errori..." oninput="cc('r-3','c-3')"></textarea>
+          <div class="char-count" id="c-3">0 parole</div>
+          <div class="errore" id="err-r3">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Qual è la cosa più difficile che hai ottenuto nella tua vita?</div>
+          <textarea id="r-4" placeholder="Può essere qualsiasi risultato — personale o professionale..." oninput="cc('r-4','c-4')"></textarea>
+          <div class="char-count" id="c-4">0 parole</div>
+          <div class="errore" id="err-r4">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="campo">
+          <label>Quando inizi un nuovo lavoro, cosa ti interessa di più? *</label>
+          <div class="scelta-griglia" id="griglia-interesse">
+            <button class="scelta-btn" data-val="compito" onclick="sel(this,'griglia-interesse','v-interesse')">Fare bene il mio compito</button>
+            <button class="scelta-btn" data-val="reparto" onclick="sel(this,'griglia-interesse','v-interesse')">Capire come lavora il reparto</button>
+            <button class="scelta-btn" data-val="azienda" onclick="sel(this,'griglia-interesse','v-interesse')">Capire come funziona tutta l'azienda</button>
+          </div>
+          <input type="hidden" id="v-interesse">
+          <div class="errore" id="err-interesse">Seleziona un'opzione</div>
+        </div>
+
+        <div class="btn-nav">
+          <button class="btn-indietro" onclick="indietro(1)">← Indietro</button>
+          <button class="btn-avanti" onclick="avanti(1)">Continua →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Pressione + Responsabilità -->
+      <div class="sezione" id="step-2">
+        <div class="sezione-titolo">💪 Pressione, responsabilità e mentalità</div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Raccontaci il giorno di lavoro più impegnativo che ricordi. Come lo hai affrontato?</div>
+          <textarea id="r-5" placeholder="Descrivi la situazione e come hai reagito..." oninput="cc('r-5','c-5')"></textarea>
+          <div class="char-count" id="c-5">0 parole</div>
+          <div class="errore" id="err-r5">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="campo">
+          <label>Quando il lavoro aumenta improvvisamente, come reagisci? *</label>
+          <div class="scelta-griglia" id="griglia-pressione">
+            <button class="scelta-btn" data-val="disagio" onclick="sel(this,'griglia-pressione','v-pressione')">Mi sento a disagio</button>
+            <button class="scelta-btn" data-val="compito" onclick="sel(this,'griglia-pressione','v-pressione')">Mi concentro sul mio compito</button>
+            <button class="scelta-btn" data-val="team" onclick="sel(this,'griglia-pressione','v-pressione')">Aiuto il team</button>
+            <button class="scelta-btn" data-val="meglio" onclick="sel(this,'griglia-pressione','v-pressione')">Rendo meglio</button>
+          </div>
+          <input type="hidden" id="v-pressione">
+          <div class="errore" id="err-pressione">Seleziona un'opzione</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Se un collega dimentica qualcosa di importante che potrebbe creare un problema al team, cosa fai normalmente?</div>
+          <textarea id="r-6" placeholder="Descrivi come gestiresti la situazione..." oninput="cc('r-6','c-6')"></textarea>
+          <div class="char-count" id="c-6">0 parole</div>
+          <div class="errore" id="err-r6">Rispondi con almeno 15 parole</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Raccontaci una situazione in cui hai lavorato più del necessario semplicemente per imparare o per fare bene.</div>
+          <textarea id="r-7" placeholder="Un esempio concreto..." oninput="cc('r-7','c-7')"></textarea>
+          <div class="char-count" id="c-7">0 parole</div>
+          <div class="errore" id="err-r7">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="campo">
+          <label>Quando qualcosa va male, qual è il tuo primo istinto? *</label>
+          <div class="scelta-griglia" id="griglia-mentalita">
+            <button class="scelta-btn" data-val="colpevole" onclick="sel(this,'griglia-mentalita','v-mentalita')">Cerco il colpevole</button>
+            <button class="scelta-btn" data-val="capire" onclick="sel(this,'griglia-mentalita','v-mentalita')">Cerco di capire cosa è successo</button>
+            <button class="scelta-btn" data-val="risolvere" onclick="sel(this,'griglia-mentalita','v-mentalita')">Cerco di risolvere</button>
+            <button class="scelta-btn" data-val="prevenire" onclick="sel(this,'griglia-mentalita','v-mentalita')">Evito che succeda di nuovo</button>
+          </div>
+          <input type="hidden" id="v-mentalita">
+          <div class="errore" id="err-mentalita">Seleziona un'opzione</div>
+        </div>
+
+        <div class="btn-nav">
+          <button class="btn-indietro" onclick="indietro(2)">← Indietro</button>
+          <button class="btn-avanti" onclick="avanti(2)">Continua →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Hospitality + Finale -->
+      <div class="sezione" id="step-3">
+        <div class="sezione-titolo">🍽️ Hospitality e ambizioni</div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Perché vuoi lavorare in questo settore?</div>
+          <div class="domanda-hint">Sii specifico — cosa ti attrae davvero della ristorazione e dell'hospitality.</div>
+          <textarea id="r-8" placeholder="La tua motivazione reale..." oninput="cc('r-8','c-8')"></textarea>
+          <div class="char-count" id="c-8">0 parole</div>
+          <div class="errore" id="err-r8">Rispondi con almeno 20 parole</div>
+        </div>
+
+        <div class="campo">
+          <label>Quale area ti interessa maggiormente? *</label>
+          <div class="scelta-griglia" id="griglia-area">
+            <button class="scelta-btn" data-val="sala" onclick="sel(this,'griglia-area','v-area')">🍽️ Sala</button>
+            <button class="scelta-btn" data-val="bar" onclick="sel(this,'griglia-area','v-area')">🍹 Bar</button>
+            <button class="scelta-btn" data-val="cucina" onclick="sel(this,'griglia-area','v-area')">👨‍🍳 Cucina</button>
+            <button class="scelta-btn" data-val="pizzeria" onclick="sel(this,'griglia-area','v-area')">🍕 Pizzeria</button>
+            <button class="scelta-btn" data-val="pasticceria" onclick="sel(this,'griglia-area','v-area')">🧁 Pasticceria</button>
+            <button class="scelta-btn" data-val="produzione" onclick="sel(this,'griglia-area','v-area')">🏭 Produzione</button>
+            <button class="scelta-btn" data-val="magazzino" onclick="sel(this,'griglia-area','v-area')">📦 Magazzino</button>
+            <button class="scelta-btn" data-val="acquisti" onclick="sel(this,'griglia-area','v-area')">🛒 Acquisti</button>
+            <button class="scelta-btn" data-val="amministrazione" onclick="sel(this,'griglia-area','v-area')">📊 Amministrazione</button>
+            <button class="scelta-btn" data-val="marketing" onclick="sel(this,'griglia-area','v-area')">📣 Marketing</button>
+            <button class="scelta-btn" data-val="gestione" onclick="sel(this,'griglia-area','v-area')">🏢 Gestione</button>
+            <button class="scelta-btn" data-val="direzione" onclick="sel(this,'griglia-area','v-area')">🎯 Direzione</button>
+          </div>
+          <input type="hidden" id="v-area">
+          <div class="errore" id="err-area">Seleziona un'area</div>
+        </div>
+
+        <div class="domanda-aperta">
+          <div class="domanda-testo">Dove ti vedi tra 5 anni?</div>
+          <textarea id="r-9" placeholder="Sii specifico — obiettivi concreti, non generici..." oninput="cc('r-9','c-9')"></textarea>
+          <div class="char-count" id="c-9">0 parole</div>
+          <div class="errore" id="err-r9">Rispondi con almeno 15 parole</div>
+        </div>
+
+        <div class="domanda-aperta" style="border:2px solid #0E5A7A;background:#f0f9ff;">
+          <div class="domanda-testo" style="color:#0E5A7A;">💬 Domanda finale — Perché dovremmo investire su di te?</div>
+          <div class="domanda-hint">Questa è la tua risposta più importante. Prenditi il tempo che ti serve.</div>
+          <textarea id="r-10" placeholder="Convincici..." oninput="cc('r-10','c-10')" style="min-height:160px;"></textarea>
+          <div class="char-count" id="c-10">0 parole</div>
+          <div class="errore" id="err-r10">Rispondi con almeno 30 parole</div>
+        </div>
+
+        <!-- CV — solo alla fine -->
+        <div class="campo" style="border-top:1px solid #f1f5f9;padding-top:16px;margin-top:8px;">
+          <label>CV (opzionale)</label>
+          <div class="hint" style="margin-bottom:8px;">Solo se vuoi allegarlo — non è obbligatorio e non influisce sul punteggio.</div>
+          <input type="file" id="f-cv" accept=".pdf,.doc,.docx" style="width:100%;padding:8px;border:1px dashed #e2e8f0;border-radius:8px;cursor:pointer;">
+        </div>
+
+        <div id="errore-invio" style="color:#dc2626;font-size:13px;margin-bottom:12px;display:none;"></div>
+
+        <div class="btn-nav">
+          <button class="btn-indietro" onclick="indietro(3)">← Indietro</button>
+          <button class="btn-avanti" id="btn-invia" onclick="invia()" style="max-width:260px;">Invia candidatura 🚀</button>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ─── NAVIGAZIONE ─────────────────────────────────────────────────────────────
+function avanti(step) {
+  if (!valida(step)) return;
+  document.getElementById('step-'+step).classList.remove('attiva');
+  stepCorrente = step + 1;
+  document.getElementById('step-'+stepCorrente).classList.add('attiva');
+  aggProg(stepCorrente);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function indietro(step) {
+  document.getElementById('step-'+step).classList.remove('attiva');
+  stepCorrente = step - 1;
+  document.getElementById('step-'+stepCorrente).classList.add('attiva');
+  aggProg(stepCorrente);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function aggProg(step) {
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('dot-'+i);
+    d.className = 'step-dot';
+    if (i<step) d.classList.add('fatto');
+    else if (i===step) d.classList.add('attivo');
   }
+  document.getElementById('step-label').textContent = `Sezione ${step+1} di 4`;
+}
+function sel(btn, grigliaId, hiddenId) {
+  document.querySelectorAll('#'+grigliaId+' .scelta-btn').forEach(b=>b.classList.remove('selezionato'));
+  btn.classList.add('selezionato');
+  document.getElementById(hiddenId).value = btn.dataset.val;
+}
+function cc(taId, ccId) {
+  const t = document.getElementById(taId)?.value.trim();
+  const n = t ? t.split(/\s+/).length : 0;
+  const el = document.getElementById(ccId);
+  if (el) el.textContent = n + (n===1?' parola':' parole');
+}
+function err(id, vis) { const e=document.getElementById(id); if(e) e.classList.toggle('visibile',vis); }
 
-  function selezionaArea(btn) {
-    document.querySelectorAll('#griglia-area .scelta-btn').forEach(b => b.classList.remove('selezionato'));
-    btn.classList.add('selezionato');
-    areaSelezionata = btn.dataset.val;
+function nParole(id) {
+  const v = document.getElementById(id)?.value.trim();
+  return v ? v.split(/\s+/).length : 0;
+}
+
+function valida(step) {
+  let ok = true;
+  if (step===0) {
+    const nome=document.getElementById('f-nome')?.value.trim();
+    const cog=document.getElementById('f-cognome')?.value.trim();
+    const tel=document.getElementById('f-telefono')?.value.trim();
+    const ruolo=document.getElementById('f-ruolo')?.value;
+    err('err-nome',!nome); err('err-cognome',!cog); err('err-telefono',tel.length<8); err('err-ruolo',!ruolo);
+    if(!nome||!cog||tel.length<8||!ruolo) ok=false;
   }
-
-  function aggiornaCount(idTA, idCC) {
-    const t = document.getElementById(idTA).value.trim();
-    const n = t ? t.split(/\s+/).length : 0;
-    document.getElementById(idCC).textContent = n + (n === 1 ? ' parola' : ' parole');
+  if (step===1) {
+    ['r-1','r-2','r-3','r-4'].forEach((id,i) => { const n=nParole(id); err('err-'+id.replace('-',''),n<20); if(n<20) ok=false; });
+    const int=document.getElementById('v-interesse')?.value;
+    err('err-interesse',!int); if(!int) ok=false;
   }
-
-  // ─── VALIDAZIONE ────────────────────────────────────────────────────────────
-  function mostraErrore(id, visibile) {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('visibile', visibile);
+  if (step===2) {
+    const n5=nParole('r-5'); err('err-r5',n5<20); if(n5<20) ok=false;
+    const pr=document.getElementById('v-pressione')?.value;
+    err('err-pressione',!pr); if(!pr) ok=false;
+    const n6=nParole('r-6'); err('err-r6',n6<15); if(n6<15) ok=false;
+    const n7=nParole('r-7'); err('err-r7',n7<20); if(n7<20) ok=false;
+    const men=document.getElementById('v-mentalita')?.value;
+    err('err-mentalita',!men); if(!men) ok=false;
   }
-
-  function validaStep(step) {
-    let ok = true;
-    if (step === 0) {
-      const nome = document.getElementById('f-nome').value.trim();
-      const cognome = document.getElementById('f-cognome').value.trim();
-      const tel = document.getElementById('f-telefono').value.trim();
-      mostraErrore('err-nome',     !nome);
-      mostraErrore('err-cognome',  !cognome);
-      mostraErrore('err-telefono', tel.length < 8);
-      if (!nome || !cognome || tel.length < 8) ok = false;
-    }
-    if (step === 1) {
-      const ruolo = document.getElementById('f-ruolo').value;
-      mostraErrore('err-ruolo', !ruolo);
-      mostraErrore('err-area',  !areaSelezionata);
-      if (!ruolo || !areaSelezionata) ok = false;
-    }
-    if (step === 2) {
-      const min = 20;
-      ['r-1','r-2','r-3'].forEach((id, i) => {
-        const t = document.getElementById(id).value.trim();
-        const n = t ? t.split(/\s+/).length : 0;
-        mostraErrore('err-' + id.replace('-',''), n < min);
-        if (n < min) ok = false;
-      });
-    }
-    return ok;
+  if (step===3) {
+    const n8=nParole('r-8'); err('err-r8',n8<20); if(n8<20) ok=false;
+    const area=document.getElementById('v-area')?.value;
+    err('err-area',!area); if(!area) ok=false;
+    const n9=nParole('r-9'); err('err-r9',n9<15); if(n9<15) ok=false;
+    const n10=nParole('r-10'); err('err-r10',n10<30); if(n10<30) ok=false;
   }
+  return ok;
+}
 
-  // ─── INVIO ──────────────────────────────────────────────────────────────────
-  async function invia() {
-    if (!validaStep(2)) return;
+// ─── INVIO ───────────────────────────────────────────────────────────────────
+async function invia() {
+  if (!valida(3)) return;
+  const btn = document.getElementById('btn-invia');
+  btn.disabled = true; btn.textContent = 'Invio in corso...';
 
-    const btn = document.getElementById('btn-invia');
-    btn.disabled = true;
-    btn.textContent = 'Invio in corso...';
+  const risposte = [
+    {domanda_id:'problema_intervento',        domanda_testo:'Hai visto un problema e hai deciso di intervenire senza che nessuno te lo chiedesse.',    risposta:document.getElementById('r-1').value.trim()},
+    {domanda_id:'apprendimento_autonomo',     domanda_testo:'Cosa hai imparato da solo negli ultimi 12 mesi.',                                          risposta:document.getElementById('r-2').value.trim()},
+    {domanda_id:'errore_e_apprendimento',     domanda_testo:'Un errore che hai commesso e cosa hai imparato.',                                           risposta:document.getElementById('r-3').value.trim()},
+    {domanda_id:'cosa_difficile_ottenuto',    domanda_testo:'La cosa più difficile che hai ottenuto nella tua vita.',                                    risposta:document.getElementById('r-4').value.trim()},
+    {domanda_id:'giorno_impegnativo',         domanda_testo:'Il giorno di lavoro più impegnativo che ricordi.',                                           risposta:document.getElementById('r-5').value.trim()},
+    {domanda_id:'collega_dimentica',          domanda_testo:'Se un collega dimentica qualcosa di importante cosa fai.',                                   risposta:document.getElementById('r-6').value.trim()},
+    {domanda_id:'lavorato_piu_del_necessario',domanda_testo:'Una situazione in cui hai lavorato più del necessario per imparare.',                        risposta:document.getElementById('r-7').value.trim()},
+    {domanda_id:'perche_hospitality',         domanda_testo:'Perché vuoi lavorare in questo settore.',                                                   risposta:document.getElementById('r-8').value.trim()},
+    {domanda_id:'dove_tra_5_anni',            domanda_testo:'Dove ti vedi tra 5 anni.',                                                                  risposta:document.getElementById('r-9').value.trim()},
+    {domanda_id:'perche_investire_su_te',     domanda_testo:'Perché dovremmo investire su di te.',                                                       risposta:document.getElementById('r-10').value.trim()},
+    // Risposte a scelta
+    {domanda_id:'interesse_nuovo_lavoro',     domanda_testo:'Quando inizi un nuovo lavoro cosa ti interessa di più.',                                     risposta:document.getElementById('v-interesse').value},
+    {domanda_id:'reazione_pressione',         domanda_testo:'Quando il lavoro aumenta improvvisamente come reagisci.',                                    risposta:document.getElementById('v-pressione').value},
+    {domanda_id:'istinto_quando_va_male',     domanda_testo:'Quando qualcosa va male qual è il tuo primo istinto.',                                       risposta:document.getElementById('v-mentalita').value},
+    {domanda_id:'area_interesse',             domanda_testo:'Area di interesse.',                                                                         risposta:document.getElementById('v-area').value},
+  ];
 
-    const risposte = [
-      { domanda_id: 'iniziativa_spontanea', domanda_testo: 'Raccontaci una situazione in cui hai fatto qualcosa che non ti era stato chiesto, solo perché lo ritenevi giusto o volevi impararlo.', risposta: document.getElementById('r-1').value.trim() },
-      { domanda_id: 'giorno_impegnativo',   domanda_testo: 'Raccontaci il giorno di lavoro più impegnativo che ricordi. Come lo hai affrontato?',                                               risposta: document.getElementById('r-2').value.trim() },
-      { domanda_id: 'obiettivo_5anni',      domanda_testo: 'Dove ti immagini tra 5 anni? Cosa stai facendo oggi per arrivarci?',                                                               risposta: document.getElementById('r-3').value.trim() },
-    ];
+  // Scoring solo sulle risposte aperte (prime 10)
+  const { scoreTotale, perIndicatore, bonus, malus } = calcolaScoreTotale(risposte.slice(0,10));
 
-    // Calcola punteggi
-    const scoresAgg = {};
-    for (const r of risposte) {
-      const { scores } = scoraRisposta(r.risposta);
-      for (const [k,v] of Object.entries(scores)) scoresAgg[k] = ((scoresAgg[k]||0) + v);
-      r.scores = scores;
-    }
-    const pesi = { mentalita_proprietario: 1.5, curiosita: 1, crescita: 1, responsabilita: 1, mentalita_positiva: 1, pressione: 1, leadership: 1 };
-    const totPesi = Object.values(pesi).reduce((a,b)=>a+b,0);
-    let scorePesato = 0;
-    for (const [k,p] of Object.entries(pesi)) scorePesato += ((scoresAgg[k]||0)/3) * p;
-    const score_totale = Math.round((scorePesato / totPesi) * 10) / 10;
+  // Bonus scelte multiple positive
+  const pr = document.getElementById('v-pressione').value;
+  const men = document.getElementById('v-mentalita').value;
+  const int = document.getElementById('v-interesse').value;
+  let bonusScelte = 0;
+  if (['team','meglio'].includes(pr)) bonusScelte += 5;
+  if (['capire','risolvere','prevenire'].includes(men)) bonusScelte += 5;
+  if (int === 'azienda') bonusScelte += 5;
 
-    const candidatura = {
-      azienda_id:        AZIENDA_ID,
-      nome:              document.getElementById('f-nome').value.trim(),
-      cognome:           document.getElementById('f-cognome').value.trim(),
-      telefono:          document.getElementById('f-telefono').value.trim(),
-      email:             document.getElementById('f-email').value.trim() || null,
-      citta:             document.getElementById('f-citta').value.trim() || null,
-      ruolo_desiderato:  document.getElementById('f-ruolo').value,
-      area_interesse:    areaSelezionata,
-      ruolo_sogno:       document.getElementById('f-ruolo-sogno').value.trim() || null,
-      score_totale,
-      score_curiosita:             Math.round((scoresAgg.curiosita||0)/3 * 10)/10,
-      score_crescita:              Math.round((scoresAgg.crescita||0)/3 * 10)/10,
-      score_responsabilita:        Math.round((scoresAgg.responsabilita||0)/3 * 10)/10,
-      score_mentalita_positiva:    Math.round((scoresAgg.mentalita_positiva||0)/3 * 10)/10,
-      score_pressione:             Math.round((scoresAgg.pressione||0)/3 * 10)/10,
-      score_leadership:            Math.round((scoresAgg.leadership||0)/3 * 10)/10,
-      score_mentalita_proprietario: Math.round((scoresAgg.mentalita_proprietario||0)/3 * 10)/10,
-      fonte: urlParams.get('fonte') || 'pubblico',
-      fase_attuale: 1,
-      fase_label: 'Ricevuta',
-    };
+  const scoreFinale = Math.min(100, scoreTotale + bonusScelte);
+  const cls = classificazione(scoreFinale);
 
-    try {
-      // 1. Salva candidatura
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify(candidatura)
-      });
+  const candidatura = {
+    azienda_id: aziendaId,
+    nome: document.getElementById('f-nome').value.trim(),
+    cognome: document.getElementById('f-cognome').value.trim(),
+    telefono: document.getElementById('f-telefono').value.trim(),
+    email: document.getElementById('f-email').value.trim() || null,
+    citta: document.getElementById('f-citta').value.trim() || null,
+    ruolo_desiderato: document.getElementById('f-ruolo').value,
+    area_interesse: document.getElementById('v-area').value,
+    score_totale: scoreFinale,
+    score_curiosita: perIndicatore.curiosita || 0,
+    score_crescita: perIndicatore.crescita || 0,
+    score_responsabilita: perIndicatore.responsabilita || 0,
+    score_mentalita_positiva: perIndicatore.mentalita_positiva || 0,
+    score_pressione: perIndicatore.pressione || 0,
+    score_leadership: perIndicatore.leadership || 0,
+    score_mentalita_proprietario: perIndicatore.mentalita_proprietario || 0,
+    fonte, fase_attuale: 1, fase_label: 'Ricevuta',
+  };
 
-      if (!res.ok) throw new Error(await res.text());
-      const [cand] = await res.json();
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature`, {
+      method: 'POST',
+      headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
+      body: JSON.stringify(candidatura)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const [cand] = await res.json();
 
-      // 2. Salva risposte
-      const risposteDaSalvare = risposte.map(r => ({
-        candidatura_id: cand.id,
-        fase: 1,
-        domanda_id: r.domanda_id,
-        domanda_testo: r.domanda_testo,
-        risposta: r.risposta,
-        score_curiosita:              r.scores?.curiosita || 0,
-        score_crescita:               r.scores?.crescita || 0,
-        score_responsabilita:         r.scores?.responsabilita || 0,
-        score_mentalita_positiva:     r.scores?.mentalita_positiva || 0,
-        score_pressione:              r.scores?.pressione || 0,
-        score_leadership:             r.scores?.leadership || 0,
-        score_mentalita_proprietario: r.scores?.mentalita_proprietario || 0,
-        score_totale_risposta:        r.scores ? Object.values(r.scores).reduce((a,b)=>a+b,0)/Object.keys(r.scores).length : 0,
-      }));
+    // Salva risposte
+    const rDB = risposte.map((r,i) => ({
+      candidatura_id: cand.id, fase: 1,
+      domanda_id: r.domanda_id, domanda_testo: r.domanda_testo, risposta: r.risposta,
+      score_totale_risposta: i < 10 ? (Object.values(scoraRisposta(r.risposta).scores).reduce((a,b)=>a+b,0)/7) : 0
+    }));
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
+      method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify(rDB)
+    });
 
-      await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
-        method: 'POST',
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(risposteDaSalvare)
-      });
+    // Notifica
+    fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ANON_KEY}`},
+      body: JSON.stringify({candidatura_id:cand.id, azienda_id:aziendaId, evento:'nuova_candidatura', score:scoreFinale, classificazione:cls.label})
+    }).catch(()=>{});
 
-      // 3. Notifica via Edge Function
-      await fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-        body: JSON.stringify({ candidatura_id: cand.id, azienda_id: AZIENDA_ID, evento: 'nuova_candidatura' })
-      }).catch(() => {}); // non bloccare se fallisce
-
-      // Mostra esito
-      document.getElementById('step-2').classList.remove('attiva');
-      document.getElementById('esito').style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    } catch (err) {
-      const el = document.getElementById('errore-invio');
-      el.textContent = 'Si è verificato un errore. Riprova tra qualche istante.';
-      el.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Invia candidatura 🚀';
-    }
+    // Esito
+    document.getElementById('root').innerHTML = `
+      <div class="hero"><div class="hero-logo">🎉</div><div class="hero-azienda">${aziendaInfo.nome}</div><div class="hero-titolo">Candidatura ricevuta!</div></div>
+      <div class="form-wrap">
+        <div class="sezione attiva" style="text-align:center;padding:40px 24px;">
+          <div style="font-size:48px;margin-bottom:16px;">✅</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:12px;">Grazie ${cand.nome}!</div>
+          <div style="font-size:15px;color:#374151;line-height:1.8;max-width:420px;margin:0 auto;">
+            Abbiamo ricevuto la tua candidatura e la valuteremo con attenzione.<br><br>
+            Se il tuo profilo supera la prima selezione, riceverai un messaggio WhatsApp con le istruzioni per la fase successiva.<br><br>
+            <strong>Grazie per la tua sincerità.</strong>
+          </div>
+        </div>
+      </div>`;
+  } catch(e) {
+    const el = document.getElementById('errore-invio');
+    el.textContent = 'Errore durante l\'invio. Riprova.';
+    el.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Invia candidatura 🚀';
   }
+}
+
+init();
 </script>
 </body>
 </html>
