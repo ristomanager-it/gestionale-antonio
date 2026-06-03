@@ -224,9 +224,20 @@ async function init() {
 function renderForm(ruoli) {
   const root = document.getElementById('root');
 
-  const opzioniRuoli = ruoli.length > 0
-    ? ruoli.map(r => `<option value="${r.nome}" ${r.slug === ruoloParam ? 'selected' : ''}>${r.nome}</option>`).join('')
-    : `<option value="">Nessun ruolo disponibile</option>`;
+  // Ruoli di default se la tabella è vuota
+  const RUOLI_DEFAULT = [
+    {nome:'Cameriere',slug:'cameriere'},{nome:'Chef de rang',slug:'chef_de_rang'},
+    {nome:'Responsabile sala',slug:'responsabile_sala'},{nome:'Cuoco',slug:'cuoco'},
+    {nome:'Pizzaiolo',slug:'pizzaiolo'},{nome:'Pasticcere',slug:'pasticcere'},
+    {nome:'Barista',slug:'barista'},{nome:'Lavapiatti',slug:'lavapiatti'},
+    {nome:'Magazzino',slug:'magazzino'},{nome:'Amministrazione',slug:'amministrazione'},
+    {nome:'Marketing',slug:'marketing'},{nome:'Gestione / Direzione',slug:'direzione'},
+    {nome:'Non so ancora — parliamone',slug:'altro'},
+  ];
+  const listaRuoli = ruoli.length > 0 ? ruoli : RUOLI_DEFAULT;
+  const opzioniRuoli = listaRuoli.map(r =>
+    `<option value="${r.nome}" ${(r.slug === ruoloParam || r.nome.toLowerCase() === ruoloParam.toLowerCase()) ? 'selected' : ''}>${r.nome}</option>`
+  ).join('');
 
   root.innerHTML = `
     <!-- HERO -->
