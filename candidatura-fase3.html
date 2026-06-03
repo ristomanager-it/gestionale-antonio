@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sfida pratica — Ristoflow</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --c-primary:   #0E5A7A;
+      --c-secondary: #1a8fb5;
+      --c-primary-light: #f0f9ff;
+      --c-primary-dark:  #0c4f6b;
+    }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
     .hero { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 40px 24px 32px; text-align: center; color: white; }
     .hero-titolo { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
@@ -45,6 +51,24 @@ const SFIDE_DEFAULT = [
   { titolo: 'Il cliente difficile', testo: 'Un cliente si lamenta del servizio in modo aggressivo davanti agli altri tavoli. Il tuo responsabile non è in sala.\n\nCome gestisci la situazione? Cosa dici, cosa fai, cosa eviti?' },
 ];
 
+
+// Applica brand dal DB usando il token
+async function applyBrand(aziendaId) {
+  if (!aziendaId) return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/aziende?id=eq.${aziendaId}&select=colore_primario,colore_secondario`, {
+      headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`}
+    });
+    const data = await r.json();
+    const az = data?.[0];
+    if (!az) return;
+    const root = document.documentElement;
+    if (az.colore_primario)   root.style.setProperty('--c-primary', az.colore_primario);
+    if (az.colore_secondario) root.style.setProperty('--c-secondary', az.colore_secondario);
+    if (az.colore_primario)   root.style.setProperty('--c-primary-dark', az.colore_primario + 'dd');
+    if (az.colore_primario)   root.style.setProperty('--c-primary-light', az.colore_primario + '15');
+  } catch(e) {}
+}
 async function init() {
   const root = document.getElementById('root');
   if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
@@ -52,6 +76,7 @@ async function init() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`} });
   const data = await res.json();
   cand = data?.[0];
+  if (cand?.azienda_id) await applyBrand(cand.azienda_id);
   if (!cand) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
   if (cand.fase_attuale >= 5) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
   if (cand.scadenza_fase3 && new Date(cand.scadenza_fase3) < new Date()) { root.innerHTML = '<div class="loading">⏰ Il tempo per completare questa fase è scaduto.</div>'; return; }
