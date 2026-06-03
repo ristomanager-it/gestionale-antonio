@@ -329,6 +329,7 @@ export function initMenu() {
         title: "PERSONALE",
         items: [
           { label: "👥 Candidature",      route: "bo-candidature"    },
+          { label: "💬 Survey team",       route: "bo-survey"         },
           { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
