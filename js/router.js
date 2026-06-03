@@ -137,6 +137,7 @@ const routes = {
   "bo-tag": () => import("./views/bo/bo-tag.js"),
   "bo-template": () => import("./views/bo/bo-template.js"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
+  "bo-survey":      () => import("./views/bo/bo-survey.js"),
 
   // MENU
   "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
@@ -203,6 +204,7 @@ const BO_ROUTES = new Set([
   "bo-tag",
   "bo-template",
   "bo-candidature",
+  "bo-survey",
 
   // MENU
   "bo-menu",
