@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sfida pratica — Ristoflow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
+    .hero { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 40px 24px 32px; text-align: center; color: white; }
+    .hero-titolo { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .hero-sub { font-size: 14px; opacity: .85; line-height: 1.5; }
+    .wrap { max-width: 640px; margin: 24px auto 48px; padding: 0 16px; }
+    .card { background: white; border-radius: 16px; padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .sfida-box { background: #f5f3ff; border: 2px solid #7c3aed; border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+    .sfida-label { font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .sfida-testo { font-size: 16px; font-weight: 600; color: #0f172a; line-height: 1.6; }
+    textarea { width: 100%; padding: 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 14px; font-family: inherit; outline: none; transition: border .2s; resize: vertical; min-height: 220px; line-height: 1.7; }
+    textarea:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.1); }
+    .char-count { font-size: 12px; color: #94a3b8; text-align: right; margin-top: 6px; }
+    .hint-box { background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #92400e; margin-bottom: 20px; line-height: 1.6; }
+    .scadenza-box { background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #92400e; margin-bottom: 16px; }
+    .btn-invia { width: 100%; background: #7c3aed; color: white; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: all .2s; }
+    .btn-invia:hover { background: #6d28d9; }
+    .btn-invia:disabled { background: #94a3b8; cursor: not-allowed; }
+    .loading { text-align: center; padding: 60px 20px; color: #64748b; }
+    .errore { color: #dc2626; font-size: 13px; margin-top: 8px; display: none; }
+    .errore.v { display: block; }
+    @media(max-width:480px) { .hero { padding: 28px 16px; } .card { padding: 18px; } }
+  </style>
+</head>
+<body>
+<div id="root"><div class="loading">⏳ Verifica accesso...</div></div>
+<script>
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+const params = new URLSearchParams(window.location.search);
+const TOKEN = params.get('t');
+let cand = null, sfida = null;
+
+// Sfide di default se non configurate nel DB
+const SFIDE_DEFAULT = [
+  { titolo: 'Il tuo primo giorno', testo: 'È il tuo primo giorno in un locale che non conosci. Nessuno ti spiega nulla e il servizio inizia tra un\'ora.\n\nDescrivi cosa fai, cosa osservi, come ti organizzi.\n\nNon esistono risposte giuste — vogliamo capire come ragioni.' },
+  { titolo: 'Il collega che non arriva', testo: 'Hai appena finito un turno di 12 ore. Il collega del turno dopo non arriva e non risponde al telefono. Il locale è pieno.\n\nCosa fai? Cosa pensi? Come gestisci la situazione?' },
+  { titolo: 'Il cliente difficile', testo: 'Un cliente si lamenta del servizio in modo aggressivo davanti agli altri tavoli. Il tuo responsabile non è in sala.\n\nCome gestisci la situazione? Cosa dici, cosa fai, cosa eviti?' },
+];
+
+async function init() {
+  const root = document.getElementById('root');
+  if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`} });
+  const data = await res.json();
+  cand = data?.[0];
+  if (!cand) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
+  if (cand.fase_attuale >= 5) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
+  if (cand.scadenza_fase3 && new Date(cand.scadenza_fase3) < new Date()) { root.innerHTML = '<div class="loading">⏰ Il tempo per completare questa fase è scaduto.</div>'; return; }
+
+  // Carica sfida dal DB (per ruolo o generica)
+  const resSfide = await fetch(`${SUPABASE_URL}/rest/v1/candidature_sfide?azienda_id=eq.${cand.azienda_id}&attiva=eq.true&order=created_at&limit=3`, { headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`} });
+  const sfideDB = await resSfide.json();
+
+  // Seleziona sfida: prima cerca per ruolo, poi generica, poi default
+  const sfideRuolo = (sfideDB||[]).filter(s => s.ruolo_slug === cand.ruolo_desiderato?.toLowerCase().replace(/\s+/g,'_'));
+  const sfideGeneric = (sfideDB||[]).filter(s => !s.ruolo_slug);
+  const tuttiSfide = [...sfideRuolo, ...sfideGeneric, ...SFIDE_DEFAULT];
+  // Sceglie pseudo-casualmente in base all'ID candidatura
+  const idx = cand.id.charCodeAt(0) % tuttiSfide.length;
+  sfida = tuttiSfide[idx];
+
+  renderForm();
+}
+
+function renderForm() {
+  const scadStr = cand.scadenza_fase3 ? new Date(cand.scadenza_fase3).toLocaleString('it-IT') : null;
+  document.getElementById('root').innerHTML = `
+    <div class="hero">
+      <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Fase 3 — Sfida pratica</div>
+      <div class="hero-titolo">Ciao ${cand.nome}! ⭐</div>
+      <div class="hero-sub">Sei arrivato alla fase 3. Dimostraci come ragioni.</div>
+    </div>
+    <div class="wrap">
+      ${scadStr ? `<div class="scadenza-box">⏰ Hai tempo fino al <strong>${scadStr}</strong></div>` : ''}
+
+      <div class="card">
+        <div class="hint-box">
+          📖 <strong>Come funziona:</strong> Leggi con attenzione la situazione descritta sotto. Non esistono risposte giuste o sbagliate — ci interessa capire come pensi, come agisci e come ti poni davanti alle difficoltà. Rispondi in modo dettagliato e concreto.
+        </div>
+
+        <div class="sfida-box">
+          <div class="sfida-label">🎯 La tua sfida</div>
+          <div class="sfida-testo">${sfida.testo.replace(/\n/g,'<br>')}</div>
+        </div>
+
+        <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:8px;">La tua risposta *</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Descrivi in dettaglio cosa faresti, cosa penseresti, come ti comporteresti. Più sei specifico, meglio è.</div>
+        <textarea id="risposta-sfida" oninput="cc()" placeholder="Scrivi qui la tua risposta..."></textarea>
+        <div class="char-count" id="cc-sfida">0 parole</div>
+        <div class="errore" id="e-sfida">Rispondi con almeno 50 parole — questa è la tua fase più importante</div>
+        <div id="e-invio" style="color:#dc2626;font-size:13px;margin-top:8px;display:none;"></div>
+        <button class="btn-invia" id="btn-invia" onclick="invia()">Invia la mia risposta 🚀</button>
+      </div>
+
+    </div>`;
+}
+
+function cc() {
+  const n = (document.getElementById('risposta-sfida')?.value.trim()||'').split(/\s+/).filter(Boolean).length;
+  document.getElementById('cc-sfida').textContent = n + (n===1?' parola':' parole');
+  // Feedback colore
+  const el = document.getElementById('cc-sfida');
+  el.style.color = n >= 50 ? '#15803d' : n >= 30 ? '#d97706' : '#94a3b8';
+}
+
+async function invia() {
+  const risposta = document.getElementById('risposta-sfida').value.trim();
+  const nP = risposta.split(/\s+/).filter(Boolean).length;
+  const errEl = document.getElementById('e-sfida');
+  if (nP < 50) { errEl.classList.add('v'); return; }
+  errEl.classList.remove('v');
+
+  const btn = document.getElementById('btn-invia');
+  btn.disabled=true; btn.textContent='Invio in corso...';
+
+  try {
+    // Salva risposta
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
+      method:'POST',
+      headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify([{ candidatura_id:cand.id, fase:3, domanda_id:'sfida_pratica', domanda_testo:sfida.testo, risposta, score_totale_risposta: Math.min(10, nP/20) }])
+    });
+
+    // Avanza a fase 5 (completata)
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature?id=eq.${cand.id}`, {
+      method:'PATCH',
+      headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ fase_attuale:5, fase_label:'Fase 3 completata', updated_at:new Date().toISOString() })
+    });
+
+    // Log
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature_fasi_log`, {
+      method:'POST',
+      headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ candidatura_id:cand.id, fase_da:4, fase_a:5, fase_label:'Fase 3 completata' })
+    });
+
+    document.getElementById('root').innerHTML = `
+      <div class="hero" style="background:linear-gradient(135deg,#15803d,#22c55e);">
+        <div style="font-size:48px;margin-bottom:12px;">🏆</div>
+        <div class="hero-titolo">Risposta inviata!</div>
+        <div class="hero-sub">Hai completato tutte le fasi del questionario.</div>
+      </div>
+      <div class="wrap"><div class="card" style="text-align:center;padding:40px 24px;">
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px;">Complimenti ${cand.nome}!</div>
+        <div style="font-size:14px;color:#374151;line-height:1.8;">Hai completato tutte le fasi della selezione.<br><br>Valuteremo la tua risposta con la massima attenzione.<br>Riceverai un aggiornamento via WhatsApp nei prossimi giorni.<br><br><strong>Grazie per aver dimostrato chi sei. 🙏</strong></div>
+      </div></div>`;
+  } catch(e) {
+    document.getElementById('e-invio').textContent='Errore. Riprova.';
+    document.getElementById('e-invio').style.display='block';
+    btn.disabled=false; btn.textContent='Invia la mia risposta 🚀';
+  }
+}
+init();
+</script>
+</body>
+</html>
