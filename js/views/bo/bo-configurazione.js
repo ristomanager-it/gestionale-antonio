@@ -35,7 +35,7 @@ export async function render(container) {
     subtitle: "Control room — impostazioni operative del ristorante",
     content: `
       <!-- Tab nav -->
-      <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;">
+      <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
         ${[
           { id:'operativo',    icon:'👨‍🍳', label:'Operativo'          },
           { id:'sala',         icon:'🪑', label:'Sala'                 },
@@ -44,8 +44,9 @@ export async function render(container) {
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
         ].map(t => `
           <button data-tab="${t.id}" style="
-            padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
+            padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
             color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;
+            flex-shrink:0;
           ">${t.icon} ${t.label}</button>
         `).join('')}
       </div>
@@ -118,11 +119,11 @@ export async function render(container) {
         <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
           <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-stampante-title">Nuova stampante</div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;">
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Nome</label>
-              <input id="sp-nome" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. Cassa principale" style="margin-top:4px;">
+              <input id="sp-nome" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. Cassa principale">
             </div>
 
             <div>
@@ -146,17 +147,17 @@ export async function render(container) {
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Matricola</label>
-              <input id="sp-matricola" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. 99IEB040357" style="margin-top:4px;">
+              <input id="sp-matricola" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. 99IEB040357">
             </div>
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Indirizzo IP</label>
-              <input id="sp-ip" class="input" style="width:100%;box-sizing:border-box;" placeholder="Es. 192.168.0.102" style="margin-top:4px;">
+              <input id="sp-ip" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. 192.168.0.102">
             </div>
 
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Porta HTTP</label>
-              <input id="sp-porta" class="input" type="number" style="width:100%;box-sizing:border-box;" value="80" style="margin-top:4px;">
+              <input id="sp-porta" class="input" type="number" style="width:100%;box-sizing:border-box;margin-top:4px;" value="80">
             </div>
 
           </div>
@@ -404,7 +405,7 @@ export async function render(container) {
 
           <input type="hidden" id="wa-modalita" value="meta">
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin-bottom:16px;">
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;">Nome connessione</label>
               <input id="wa-nome" class="input" placeholder="Es. WhatsApp Ristorante" style="margin-top:4px;width:100%;box-sizing:border-box;">
@@ -426,7 +427,7 @@ export async function render(container) {
           <div id="campi-meta">
             <div style="background:#f0f9ff;border-radius:10px;padding:14px;margin-bottom:14px;">
               <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:10px;">🌐 Credenziali Meta Cloud API</div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
                 <div>
                   <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID</label>
                   <input id="wa-phone-id" class="input" placeholder="Es. 1141494992381602" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
@@ -478,7 +479,7 @@ export async function render(container) {
       </div>
 
       <!-- Altre integrazioni — presto -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;opacity:0.6;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
         ${[
           { icon:'📦', titolo:'Delivery (Glovo/JustEat)', desc:'Presto disponibile' },
           { icon:'📅', titolo:'Google Calendar', desc:'Presto disponibile' },
@@ -679,7 +680,7 @@ export async function render(container) {
           </div>
           <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo settore</button>
         </div>
-        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px;"></div>
+        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:12px;"></div>
         <!-- Form nuovo settore -->
         <div id="form-settore" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuovo settore</div>
@@ -719,7 +720,7 @@ export async function render(container) {
         <!-- Form nuova postazione -->
         <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuova postazione</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome postazione *</label>
               <input id="post-nome" class="input" placeholder="es. Tablet Cucina, Bar Piscina..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
@@ -975,7 +976,7 @@ export async function render(container) {
 
         <div id="form-sala" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-sala-title">Nuova sala</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome sala *</label>
               <input id="sala-nome" class="input" placeholder="Es. Sala interna, Terrazza..." style="width:100%;box-sizing:border-box;">
@@ -1013,11 +1014,11 @@ export async function render(container) {
           ${sale.map(s => `<button data-filter-sala="${s.id}" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">${esc(s.nome)}</button>`).join('')}
         </div>
 
-        <div id="lista-tavoli-conf" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:12px;"></div>
+        <div id="lista-tavoli-conf" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr));gap:10px;margin-bottom:12px;"></div>
 
         <div id="form-tavolo" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-tavolo-title">Nuovo tavolo</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
             <div>
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Numero / Nome *</label>
               <input id="tavolo-numero" class="input" placeholder="Es. 1, T1, Bar..." style="width:100%;box-sizing:border-box;">
@@ -1064,7 +1065,7 @@ export async function render(container) {
       <!-- PRENOTAZIONI link -->
       <div>
         <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:12px;">📅 Prenotazioni e piantina</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
           ${[
             { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci le prenotazioni e conferma gli arrivi.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
             { icon:'🗺️', titolo:'Piantina sala', desc:'Visualizza e assegna i tavoli graficamente.', link:'prenotazioni-tavoli', cta:'Vai alla Piantina' },
@@ -1304,7 +1305,7 @@ export async function render(container) {
       <div id="form-prodotto-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
         <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-prodotto-title">Nuovo prodotto</div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;">
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;">Nome *</label>
             <input id="pv-nome" class="input" placeholder="Es. Risotto al tartufo" style="margin-top:4px;width:100%;box-sizing:border-box;">
@@ -1387,7 +1388,7 @@ export async function render(container) {
       </div>
 
       <!-- Link utili -->
-      <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+      <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
         ${[
           { icon:'🏷️', titolo:'Categorie', link:'bo-categorie', cta:'Gestisci categorie' },
           { icon:'📋', titolo:'Menu digitale', link:'bo-menu', cta:'Menu builder' },
