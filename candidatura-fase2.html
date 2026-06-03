@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questionario approfondito — Ristoflow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
+    .hero { background: linear-gradient(135deg, #0E5A7A 0%, #1a8fb5 100%); padding: 40px 24px 32px; text-align: center; color: white; }
+    .hero-titolo { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .hero-sub { font-size: 14px; opacity: .85; line-height: 1.5; }
+    .wrap { max-width: 640px; margin: 24px auto 48px; padding: 0 16px; }
+    .card { background: white; border-radius: 16px; padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .sezione-titolo { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 20px; }
+    .domanda { background: #f8fafc; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    .domanda-testo { font-size: 15px; font-weight: 600; color: #0f172a; line-height: 1.5; margin-bottom: 8px; }
+    .domanda-hint { font-size: 12px; color: #64748b; margin-bottom: 10px; font-style: italic; }
+    .scelta-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
+    .scelta-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 500; color: #374151; background: white; transition: all .15s; text-align: left; }
+    .scelta-btn:hover { border-color: #0E5A7A; color: #0E5A7A; }
+    .scelta-btn.sel { border-color: #0E5A7A; background: #0E5A7A; color: white; }
+    textarea, input[type="text"] { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border .2s; resize: vertical; min-height: 110px; line-height: 1.6; }
+    textarea:focus, input:focus { border-color: #0E5A7A; box-shadow: 0 0 0 3px rgba(14,90,122,.1); }
+    .char-count { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 3px; }
+    .errore { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+    .errore.v { display: block; }
+    .step-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 20px; }
+    .step-dot { width: 9px; height: 9px; border-radius: 50%; background: #e2e8f0; transition: all .3s; }
+    .step-dot.on { background: #0E5A7A; transform: scale(1.3); }
+    .step-dot.done { background: #25D366; }
+    .step-lbl { font-size: 12px; color: #94a3b8; margin-left: 4px; }
+    .sezione { display: none; }
+    .sezione.attiva { display: block; }
+    .btn-nav { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-avanti { background: #0E5A7A; color: white; border: none; border-radius: 12px; padding: 13px 28px; font-size: 15px; font-weight: 700; cursor: pointer; flex: 1; max-width: 200px; }
+    .btn-avanti:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-back { background: #f1f5f9; color: #374151; border: none; border-radius: 12px; padding: 13px 20px; font-size: 15px; cursor: pointer; }
+    .loading { text-align: center; padding: 60px 20px; color: #64748b; }
+    .scadenza-box { background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #92400e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    @media(max-width:480px) { .hero { padding: 28px 16px; } .card { padding: 18px; } }
+  </style>
+</head>
+<body>
+<div id="root"><div class="loading">⏳ Verifica accesso...</div></div>
+<script>
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+const params = new URLSearchParams(window.location.search);
+const TOKEN = params.get('t');
+let cand = null, step = 0;
+
+// Scoring semplificato (stesso motore di fase 1)
+const KW_POS = {
+  mentalita_proprietario: ['non era richiesto','nessuno me lo aveva chiesto','dopo il turno','ho voluto capire','per passione','ho fatto in più'],
+  curiosita: ['imparato da solo','volevo capire','per curiosità','ho approfondito','ho ricercato'],
+  crescita: ['voglio diventare','voglio crescere','non mi accontento','obiettivo','ambizione'],
+  responsabilita: ['ho sbagliato','ho rimediato','mi sono assunto','ho corretto'],
+  mentalita_positiva: ['ho trovato il modo','ho proposto','invece di lamentarmi','ho agito'],
+  pressione: ['ce l\'ho fatta','non mi sono perso','ho resistito','non ho mollato','12 ore'],
+  leadership: ['ho aiutato','ho organizzato','ho guidato','senza che nessuno']
+};
+const KW_NEG = {
+  responsabilita: ['colpa di','non dipendeva da me'],
+  mentalita_positiva: ['impossibile','non si può','sempre così'],
+  pressione: ['non reggo','mi blocco'],
+  mentalita_proprietario: ['aspettavo','non era compito mio e quindi']
+};
+function scoraRisposta(testo) {
+  const t = (testo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'");
+  const scores = {};
+  for (const [k,kws] of Object.entries(KW_POS)) { let p=0; for (const kw of kws) if(t.includes(kw)) p+=2; scores[k]=(scores[k]||0)+p; }
+  for (const [k,kws] of Object.entries(KW_NEG)) { for (const kw of kws) if(t.includes(kw)) scores[k]=(scores[k]||0)-2; }
+  const parole = testo.trim().split(/\s+/).length;
+  for (const k of Object.keys(scores)) { if(parole>80) scores[k]+=2; else if(parole>40) scores[k]+=1; else if(parole<15) scores[k]-=1; scores[k]=Math.max(0,Math.min(10,scores[k])); }
+  return scores;
+}
+
+async function init() {
+  const root = document.getElementById('root');
+  if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`} });
+  const data = await res.json();
+  cand = data?.[0];
+  if (!cand) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
+  if (cand.fase_attuale >= 3) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
+  // Controlla scadenza
+  if (cand.scadenza_fase2 && new Date(cand.scadenza_fase2) < new Date()) {
+    root.innerHTML = '<div class="loading">⏰ Il tempo per completare questa fase è scaduto.</div>'; return;
+  }
+  renderForm();
+}
+
+function renderForm() {
+  const scadStr = cand.scadenza_fase2 ? new Date(cand.scadenza_fase2).toLocaleString('it-IT') : null;
+  document.getElementById('root').innerHTML = `
+    <div class="hero">
+      <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Fase 2 — Questionario approfondito</div>
+      <div class="hero-titolo">Ciao ${cand.nome}! 👋</div>
+      <div class="hero-sub">Rispondi con sincerità. Non esistono risposte giuste o sbagliate.</div>
+    </div>
+    <div class="wrap">
+      ${scadStr ? `<div class="scadenza-box">⏰ Hai tempo fino al <strong>${scadStr}</strong> per completare questo questionario.</div>` : ''}
+      <div class="step-bar">
+        <div class="step-dot on" id="d0"></div><div class="step-dot" id="d1"></div>
+        <div class="step-dot" id="d2"></div><div class="step-dot" id="d3"></div>
+        <span class="step-lbl" id="slbl">Sezione 1 di 4</span>
+      </div>
+
+      <!-- SEZ 1: Curiosità e crescita -->
+      <div class="sezione attiva card" id="s0">
+        <div class="sezione-titolo">🔍 Curiosità e crescita</div>
+        <div class="domanda">
+          <div class="domanda-testo">Quando inizi un nuovo lavoro, cosa ti interessa di più?</div>
+          <div class="scelta-griglia" id="g-interesse">
+            <button class="scelta-btn" data-v="compito" onclick="sel(this,'g-interesse','v-interesse')">Fare bene il mio compito</button>
+            <button class="scelta-btn" data-v="reparto" onclick="sel(this,'g-interesse','v-interesse')">Capire come lavora il reparto</button>
+            <button class="scelta-btn" data-v="azienda" onclick="sel(this,'g-interesse','v-interesse')">Capire tutta l'azienda</button>
+          </div>
+          <input type="hidden" id="v-interesse">
+          <div class="errore" id="e-interesse">Seleziona un'opzione</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Hai mai imparato qualcosa che non era richiesto dal tuo ruolo? Raccontaci cosa e perché.</div>
+          <textarea id="r-c1" oninput="cc('r-c1','cc-c1')" placeholder="Descrivi cosa hai imparato e la motivazione..."></textarea>
+          <div class="char-count" id="cc-c1">0 parole</div>
+          <div class="errore" id="e-c1">Rispondi con almeno 20 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">C'è una competenza che stai cercando di sviluppare oggi?</div>
+          <textarea id="r-c2" oninput="cc('r-c2','cc-c2')" placeholder="Qual è e come la stai sviluppando..."></textarea>
+          <div class="char-count" id="cc-c2">0 parole</div>
+          <div class="errore" id="e-c2">Rispondi con almeno 15 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Se potessi imparare gratuitamente qualsiasi competenza professionale, quale sceglieresti? Perché?</div>
+          <textarea id="r-c3" oninput="cc('r-c3','cc-c3')" placeholder="Quale competenza e perché..."></textarea>
+          <div class="char-count" id="cc-c3">0 parole</div>
+          <div class="errore" id="e-c3">Rispondi con almeno 15 parole</div>
+        </div>
+        <div class="btn-nav"><button class="btn-avanti" onclick="avanti(0)">Continua →</button></div>
+      </div>
+
+      <!-- SEZ 2: Pressione -->
+      <div class="sezione card" id="s1">
+        <div class="sezione-titolo">💪 Energia e pressione</div>
+        <div class="domanda">
+          <div class="domanda-testo">Cosa preferisci? Spiega brevemente il motivo.</div>
+          <div class="scelta-griglia" id="g-lavoro">
+            <button class="scelta-btn" data-v="prevedibile" onclick="sel(this,'g-lavoro','v-lavoro')">Lavoro prevedibile e ripetitivo</button>
+            <button class="scelta-btn" data-v="dinamico" onclick="sel(this,'g-lavoro','v-lavoro')">Lavoro dinamico con sfide continue</button>
+          </div>
+          <input type="hidden" id="v-lavoro">
+          <textarea id="r-p0" oninput="cc('r-p0','cc-p0')" placeholder="Spiega il motivo..." style="margin-top:10px;"></textarea>
+          <div class="char-count" id="cc-p0">0 parole</div>
+          <div class="errore" id="e-lavoro">Seleziona un'opzione</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">In una giornata particolarmente intensa, cosa ti pesa di più?</div>
+          <textarea id="r-p1" oninput="cc('r-p1','cc-p1')" placeholder="Cosa ti stanca o ti mette a disagio..."></textarea>
+          <div class="char-count" id="cc-p1">0 parole</div>
+          <div class="errore" id="e-p1">Rispondi con almeno 15 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Hai mai lavorato in situazioni di forte pressione? Cosa hai imparato da quell'esperienza?</div>
+          <textarea id="r-p2" oninput="cc('r-p2','cc-p2')" placeholder="Descrivi la situazione e cosa ne hai ricavato..."></textarea>
+          <div class="char-count" id="cc-p2">0 parole</div>
+          <div class="errore" id="e-p2">Rispondi con almeno 20 parole</div>
+        </div>
+        <div class="btn-nav">
+          <button class="btn-back" onclick="vai(0)">← Indietro</button>
+          <button class="btn-avanti" onclick="avanti(1)">Continua →</button>
+        </div>
+      </div>
+
+      <!-- SEZ 3: Responsabilità -->
+      <div class="sezione card" id="s2">
+        <div class="sezione-titolo">🎯 Responsabilità</div>
+        <div class="domanda">
+          <div class="domanda-testo">Qual è la caratteristica che ti infastidisce maggiormente in un collega? Perché?</div>
+          <textarea id="r-r1" oninput="cc('r-r1','cc-r1')" placeholder="Cosa non sopporti e perché..."></textarea>
+          <div class="char-count" id="cc-r1">0 parole</div>
+          <div class="errore" id="e-r1">Rispondi con almeno 15 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Qual è la critica più utile che hai ricevuto nella tua vita professionale?</div>
+          <textarea id="r-r2" oninput="cc('r-r2','cc-r2')" placeholder="Cosa ti è stato detto e come ti ha cambiato..."></textarea>
+          <div class="char-count" id="cc-r2">0 parole</div>
+          <div class="errore" id="e-r2">Rispondi con almeno 20 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Quale frase ti rappresenta meglio?</div>
+          <div class="scelta-griglia" id="g-frase">
+            <button class="scelta-btn" data-v="compito" onclick="sel(this,'g-frase','v-frase')">Faccio il mio lavoro</button>
+            <button class="scelta-btn" data-v="gruppo" onclick="sel(this,'g-frase','v-frase')">Aiuto il gruppo</button>
+            <button class="scelta-btn" data-v="miglioro" onclick="sel(this,'g-frase','v-frase')">Miglioro continuamente</button>
+            <button class="scelta-btn" data-v="responsabilita" onclick="sel(this,'g-frase','v-frase')">Voglio responsabilità</button>
+          </div>
+          <input type="hidden" id="v-frase">
+          <div class="errore" id="e-frase">Seleziona un'opzione</div>
+        </div>
+        <div class="btn-nav">
+          <button class="btn-back" onclick="vai(1)">← Indietro</button>
+          <button class="btn-avanti" onclick="avanti(2)">Continua →</button>
+        </div>
+      </div>
+
+      <!-- SEZ 4: Ambizione -->
+      <div class="sezione card" id="s3">
+        <div class="sezione-titolo">🚀 Ambizione</div>
+        <div class="domanda">
+          <div class="domanda-testo">Cosa significa per te avere successo nel lavoro?</div>
+          <textarea id="r-a1" oninput="cc('r-a1','cc-a1')" placeholder="Il tuo concetto di successo..."></textarea>
+          <div class="char-count" id="cc-a1">0 parole</div>
+          <div class="errore" id="e-a1">Rispondi con almeno 20 parole</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Preferiresti più responsabilità o maggiore tranquillità? Spiega perché.</div>
+          <div class="scelta-griglia" id="g-pref">
+            <button class="scelta-btn" data-v="responsabilita" onclick="sel(this,'g-pref','v-pref')">Più responsabilità</button>
+            <button class="scelta-btn" data-v="tranquillita" onclick="sel(this,'g-pref','v-pref')">Maggiore tranquillità</button>
+          </div>
+          <input type="hidden" id="v-pref">
+          <textarea id="r-a2" oninput="cc('r-a2','cc-a2')" placeholder="Spiega il motivo..." style="margin-top:10px;"></textarea>
+          <div class="char-count" id="cc-a2">0 parole</div>
+          <div class="errore" id="e-pref">Seleziona un'opzione</div>
+        </div>
+        <div class="domanda">
+          <div class="domanda-testo">Qual è l'obiettivo professionale più importante che vorresti raggiungere?</div>
+          <textarea id="r-a3" oninput="cc('r-a3','cc-a3')" placeholder="Il tuo grande obiettivo..." style="min-height:130px;"></textarea>
+          <div class="char-count" id="cc-a3">0 parole</div>
+          <div class="errore" id="e-a3">Rispondi con almeno 20 parole</div>
+        </div>
+        <div id="err-invio" style="color:#dc2626;font-size:13px;margin-bottom:10px;display:none;"></div>
+        <div class="btn-nav">
+          <button class="btn-back" onclick="vai(2)">← Indietro</button>
+          <button class="btn-avanti" id="btn-invia" onclick="invia()">Invia ✅</button>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+function sel(btn, gId, hId) {
+  document.querySelectorAll('#'+gId+' .scelta-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById(hId).value = btn.dataset.v;
+}
+function cc(ta, cc) {
+  const n = (document.getElementById(ta)?.value.trim()||'').split(/\s+/).filter(Boolean).length;
+  document.getElementById(cc).textContent = n + (n===1?' parola':' parole');
+}
+function nP(id) { return (document.getElementById(id)?.value.trim()||'').split(/\s+/).filter(Boolean).length; }
+function err(id, v) { document.getElementById(id)?.classList.toggle('v', v); }
+
+function valida(s) {
+  let ok = true;
+  if (s===0) {
+    const int=document.getElementById('v-interesse')?.value; err('e-interesse',!int); if(!int) ok=false;
+    const c1=nP('r-c1'); err('e-c1',c1<20); if(c1<20) ok=false;
+    const c2=nP('r-c2'); err('e-c2',c2<15); if(c2<15) ok=false;
+    const c3=nP('r-c3'); err('e-c3',c3<15); if(c3<15) ok=false;
+  }
+  if (s===1) {
+    const lav=document.getElementById('v-lavoro')?.value; err('e-lavoro',!lav); if(!lav) ok=false;
+    const p1=nP('r-p1'); err('e-p1',p1<15); if(p1<15) ok=false;
+    const p2=nP('r-p2'); err('e-p2',p2<20); if(p2<20) ok=false;
+  }
+  if (s===2) {
+    const r1=nP('r-r1'); err('e-r1',r1<15); if(r1<15) ok=false;
+    const r2=nP('r-r2'); err('e-r2',r2<20); if(r2<20) ok=false;
+    const fr=document.getElementById('v-frase')?.value; err('e-frase',!fr); if(!fr) ok=false;
+  }
+  if (s===3) {
+    const a1=nP('r-a1'); err('e-a1',a1<20); if(a1<20) ok=false;
+    const pref=document.getElementById('v-pref')?.value; err('e-pref',!pref); if(!pref) ok=false;
+    const a3=nP('r-a3'); err('e-a3',a3<20); if(a3<20) ok=false;
+  }
+  return ok;
+}
+
+function vai(n) {
+  document.getElementById('s'+step).classList.remove('attiva');
+  step = n;
+  document.getElementById('s'+step).classList.add('attiva');
+  for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.className='step-dot';if(i<step)d.classList.add('done');else if(i===step)d.classList.add('on');}
+  document.getElementById('slbl').textContent=`Sezione ${step+1} di 4`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function avanti(n) { if(!valida(n)) return; vai(n+1); }
+
+async function invia() {
+  if (!valida(3)) return;
+  const btn = document.getElementById('btn-invia');
+  btn.disabled=true; btn.textContent='Invio...';
+
+  const g = id => document.getElementById(id)?.value.trim()||'';
+
+  const risposte = [
+    {domanda_id:'interesse_nuovo_lavoro',    domanda_testo:'Cosa ti interessa di più quando inizi un nuovo lavoro.',               risposta: g('v-interesse')},
+    {domanda_id:'appreso_non_richiesto',     domanda_testo:'Cosa hai imparato che non era richiesto dal tuo ruolo.',               risposta: g('r-c1')},
+    {domanda_id:'competenza_in_sviluppo',    domanda_testo:'Competenza che stai sviluppando oggi.',                                 risposta: g('r-c2')},
+    {domanda_id:'competenza_gratuita',       domanda_testo:'Competenza che impareresti gratuitamente.',                             risposta: g('r-c3')},
+    {domanda_id:'tipo_lavoro_preferito',     domanda_testo:'Preferisci lavoro prevedibile o dinamico.',                             risposta: g('v-lavoro')+' — '+g('r-p0')},
+    {domanda_id:'cosa_pesa_in_giornata',     domanda_testo:'Cosa ti pesa di più in una giornata intensa.',                         risposta: g('r-p1')},
+    {domanda_id:'esperienza_pressione',      domanda_testo:'Hai lavorato sotto forte pressione? Cosa hai imparato.',               risposta: g('r-p2')},
+    {domanda_id:'collega_fastidioso',        domanda_testo:'Caratteristica che ti infastidisce in un collega.',                     risposta: g('r-r1')},
+    {domanda_id:'critica_utile',             domanda_testo:'La critica più utile ricevuta.',                                        risposta: g('r-r2')},
+    {domanda_id:'frase_che_rappresenta',     domanda_testo:'La frase che ti rappresenta.',                                          risposta: g('v-frase')},
+    {domanda_id:'successo_definizione',      domanda_testo:'Cosa significa avere successo nel lavoro.',                             risposta: g('r-a1')},
+    {domanda_id:'responsabilita_vs_tranq',   domanda_testo:'Preferisci responsabilità o tranquillità.',                             risposta: g('v-pref')+' — '+g('r-a2')},
+    {domanda_id:'obiettivo_professionale',   domanda_testo:'Obiettivo professionale più importante.',                               risposta: g('r-a3')},
+  ];
+
+  // Calcola punteggi aggiornati
+  let scoreAgg = {};
+  for (const r of risposte) {
+    const s = scoraRisposta(r.risposta);
+    for (const [k,v] of Object.entries(s)) scoreAgg[k] = (scoreAgg[k]||0) + v;
+  }
+  const nR = risposte.length;
+  const pesi = {mentalita_proprietario:1.5,curiosita:1,crescita:1,responsabilita:1,mentalita_positiva:1,pressione:1,leadership:1};
+  const totP = Object.values(pesi).reduce((a,b)=>a+b,0);
+  let sp = 0;
+  for (const [k,p] of Object.entries(pesi)) sp += ((scoreAgg[k]||0)/nR) * p;
+  const scoreF2 = Math.round((sp/totP)*10*10)/10;
+
+  try {
+    // Salva risposte
+    const rDB = risposte.map(r => ({ candidatura_id: cand.id, fase: 2, domanda_id: r.domanda_id, domanda_testo: r.domanda_testo, risposta: r.risposta, score_totale_risposta: Object.values(scoraRisposta(r.risposta)).reduce((a,b)=>a+b,0)/7 }));
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify(rDB) });
+
+    // Avanza fase e aggiorna score
+    const newScore = ((cand.score_totale||0) + scoreF2) / 2;
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature?id=eq.${cand.id}`, { method:'PATCH', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ fase_attuale: 3, fase_label: 'Fase 2 completata', score_totale: Math.round(newScore*10)/10, updated_at: new Date().toISOString() }) });
+
+    // Log fase
+    await fetch(`${SUPABASE_URL}/rest/v1/candidature_fasi_log`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ candidatura_id: cand.id, fase_da: 2, fase_a: 3, fase_label: 'Fase 2 completata' }) });
+
+    document.getElementById('root').innerHTML = `
+      <div class="hero"><div style="font-size:40px;margin-bottom:12px;">🎉</div><div class="hero-titolo">Questionario completato!</div><div class="hero-sub">Grazie ${cand.nome}. Valuteremo le tue risposte con attenzione.</div></div>
+      <div class="wrap"><div class="card" style="text-align:center;padding:40px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">✅</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px;">Ottimo lavoro!</div>
+        <div style="font-size:14px;color:#374151;line-height:1.8;">Abbiamo ricevuto le tue risposte.<br>Ti contatteremo via WhatsApp per i prossimi aggiornamenti.<br><br><strong>Grazie per la tua sincerità.</strong></div>
+      </div></div>`;
+  } catch(e) {
+    const el = document.getElementById('err-invio');
+    el.textContent='Errore durante l\'invio. Riprova.'; el.style.display='block';
+    btn.disabled=false; btn.textContent='Invia ✅';
+  }
+}
+init();
+</script>
+</body>
+</html>
