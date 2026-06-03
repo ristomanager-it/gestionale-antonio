@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Questionario approfondito — Ristoflow</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --c-primary:   #0E5A7A;
+      --c-secondary: #1a8fb5;
+      --c-primary-light: #f0f9ff;
+      --c-primary-dark:  #0c4f6b;
+    }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
     .hero { background: linear-gradient(135deg, #0E5A7A 0%, #1a8fb5 100%); padding: 40px 24px 32px; text-align: center; color: white; }
     .hero-titolo { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
@@ -18,22 +24,22 @@
     .domanda-hint { font-size: 12px; color: #64748b; margin-bottom: 10px; font-style: italic; }
     .scelta-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
     .scelta-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 500; color: #374151; background: white; transition: all .15s; text-align: left; }
-    .scelta-btn:hover { border-color: #0E5A7A; color: #0E5A7A; }
-    .scelta-btn.sel { border-color: #0E5A7A; background: #0E5A7A; color: white; }
+    .scelta-btn:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .scelta-btn.sel { border-color: var(--c-primary); background: var(--c-primary); color: white; }
     textarea, input[type="text"] { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border .2s; resize: vertical; min-height: 110px; line-height: 1.6; }
-    textarea:focus, input:focus { border-color: #0E5A7A; box-shadow: 0 0 0 3px rgba(14,90,122,.1); }
+    textarea:focus, input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(14,90,122,.1); }
     .char-count { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 3px; }
     .errore { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
     .errore.v { display: block; }
     .step-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 20px; }
     .step-dot { width: 9px; height: 9px; border-radius: 50%; background: #e2e8f0; transition: all .3s; }
-    .step-dot.on { background: #0E5A7A; transform: scale(1.3); }
+    .step-dot.on { background: var(--c-primary); transform: scale(1.3); }
     .step-dot.done { background: #25D366; }
     .step-lbl { font-size: 12px; color: #94a3b8; margin-left: 4px; }
     .sezione { display: none; }
     .sezione.attiva { display: block; }
     .btn-nav { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-    .btn-avanti { background: #0E5A7A; color: white; border: none; border-radius: 12px; padding: 13px 28px; font-size: 15px; font-weight: 700; cursor: pointer; flex: 1; max-width: 200px; }
+    .btn-avanti { background: var(--c-primary); color: white; border: none; border-radius: 12px; padding: 13px 28px; font-size: 15px; font-weight: 700; cursor: pointer; flex: 1; max-width: 200px; }
     .btn-avanti:disabled { background: #94a3b8; cursor: not-allowed; }
     .btn-back { background: #f1f5f9; color: #374151; border: none; border-radius: 12px; padding: 13px 20px; font-size: 15px; cursor: pointer; }
     .loading { text-align: center; padding: 60px 20px; color: #64748b; }
@@ -76,18 +82,39 @@ function scoraRisposta(testo) {
   return scores;
 }
 
+
+// Applica brand dal DB usando il token
+async function applyBrand(aziendaId) {
+  if (!aziendaId) return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/aziende?id=eq.${aziendaId}&select=colore_primario,colore_secondario`, {
+      headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`}
+    });
+    const data = await r.json();
+    const az = data?.[0];
+    if (!az) return;
+    const root = document.documentElement;
+    if (az.colore_primario)   root.style.setProperty('--c-primary', az.colore_primario);
+    if (az.colore_secondario) root.style.setProperty('--c-secondary', az.colore_secondario);
+    if (az.colore_primario)   root.style.setProperty('--c-primary-dark', az.colore_primario + 'dd');
+    if (az.colore_primario)   root.style.setProperty('--c-primary-light', az.colore_primario + '15');
+  } catch(e) {}
+}
 async function init() {
   const root = document.getElementById('root');
   if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`} });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Accept':'application/json'} });
   const data = await res.json();
   cand = data?.[0];
-  if (!cand) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
-  if (cand.fase_attuale >= 3) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
-  // Controlla scadenza
-  if (cand.scadenza_fase2 && new Date(cand.scadenza_fase2) < new Date()) {
-    root.innerHTML = '<div class="loading">⏰ Il tempo per completare questa fase è scaduto.</div>'; return;
+  if (cand?.azienda_id) await applyBrand(cand.azienda_id);
+  if (!cand) {
+    console.error('Candidatura non trovata per token:', TOKEN, 'risposta:', data);
+    root.innerHTML = '<div class="loading">⚠️ Link non trovato. Controlla di aver copiato il link correttamente.</div>';
+    return;
   }
+  if (cand.fase_attuale >= 3) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
+  // Controlla scadenza — mostra warning ma non blocca
+  // (il gestore può estendere la scadenza dal BO)
   renderForm();
 }
 
