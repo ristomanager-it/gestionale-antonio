@@ -985,7 +985,7 @@ export async function render(container) {
     if (!data.success) {
       const dettaglio = data.error || 'Errore Meta';
       console.error('[Template] Errore Meta:', data);
-      esito.innerHTML = \`❌ \${dettaglio}<br><span style="font-size:11px;color:#94a3b8;">Controlla la console per i dettagli completi</span>\`;
+      esito.innerHTML = `❌ ${dettaglio}<br><span style="font-size:11px;color:#94a3b8;">Controlla la console per i dettagli completi</span>`;
       esito.style.color = '#dc2626';
       return;
     }
