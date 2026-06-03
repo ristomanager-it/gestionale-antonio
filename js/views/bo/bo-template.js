@@ -185,10 +185,7 @@ export async function render(container) {
               <div style="font-size:13px;color:#64748b;">Automazioni, tag e wildcard</div>
             </div>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button id="btn-guida" style="background:white;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:600;">📖 Come funziona</button>
-            <button id="btn-nuovo-template" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">+ Nuovo template</button>
-          </div>
+          <button id="btn-nuovo-template" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">+ Nuovo template</button>
         </div>
 
         <!-- Tabs -->
@@ -490,125 +487,6 @@ export async function render(container) {
           </div>
         </div>
 
-        <!-- Modal guida -->
-        <div id="modal-guida" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;padding:20px;box-sizing:border-box;overflow-y:auto;">
-          <div style="background:white;border-radius:20px;width:100%;max-width:620px;margin:0 auto;overflow:hidden;">
-
-            <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);padding:24px 28px 20px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;">📖</div>
-                  <div>
-                    <div style="font-size:18px;font-weight:700;color:white;">Guida ai Template WhatsApp</div>
-                    <div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:2px;">Come creare messaggi automatici per il tuo ristorante</div>
-                  </div>
-                </div>
-                <button id="btn-chiudi-guida" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&#x2715;</button>
-              </div>
-            </div>
-
-            <div style="padding:24px 28px;max-height:72vh;overflow-y:auto;">
-
-              <div style="margin-bottom:22px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#eff6ff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x1F4AC;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Cos&#39;&#232; un template?</div>
-                </div>
-                <div style="font-size:13px;color:#374151;line-height:1.7;background:#f8fafc;border-radius:10px;padding:14px;">
-                  Un template &#232; un <strong>messaggio preimpostato</strong> che Ristoflow invia automaticamente via WhatsApp ai tuoi clienti. Lo crei una volta, lo fai approvare da Meta, e poi parte da solo nei momenti giusti.<br><br>
-                  Esempio: ogni volta che confermi una prenotazione, il cliente riceve: <em style="color:#15803d;">"Ciao Mario, la tua prenotazione per sabato 14 alle 20:00 &#232; confermata! Ti aspettiamo &#x1F60A;"</em>
-                </div>
-              </div>
-
-              <div style="margin-bottom:22px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x1F4C2;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Le 3 categorie Meta</div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                  <div style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:10px;padding:12px 14px;">
-                    <div style="font-weight:700;font-size:13px;color:#15803d;">UTILITY &#x2014; usa questa per quasi tutto &#x2705;</div>
-                    <div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5;">Conferme prenotazione, reminder, documenti, timbrature. Approvazione rapida (minuti/ore), gratuita.</div>
-                  </div>
-                  <div style="border:1px solid #fde68a;background:#fffbeb;border-radius:10px;padding:12px 14px;">
-                    <div style="font-weight:700;font-size:13px;color:#92400e;">MARKETING &#x2014; per promozioni e campagne</div>
-                    <div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5;">Offerte, inviti eventi, messaggi a clienti inattivi. Approvazione pi&#249; lenta, ha un costo per messaggio.</div>
-                  </div>
-                  <div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;">
-                    <div style="font-weight:700;font-size:13px;color:#64748b;">AUTHENTICATION &#x2014; solo codici OTP, non serve per la ristorazione</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style="margin-bottom:22px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x1F527;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Variabili: personalizza ogni messaggio</div>
-                </div>
-                <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:8px;">Clicca i bottoni colorati per inserire le variabili nel testo. Ristoflow le sostituisce in automatico con i dati reali del cliente:</div>
-                <div style="background:#f8fafc;border-radius:10px;padding:14px;">
-                  <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Tu scrivi</div>
-                  <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:#374151;line-height:1.6;">Ciao <span style="background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:4px;">{{nome_completo}}</span>, prenotazione del <span style="background:#d1fae5;color:#065f46;padding:1px 5px;border-radius:4px;">{{data_prenotazione}}</span> alle <span style="background:#fef9c3;color:#713f12;padding:1px 5px;border-radius:4px;">{{ora_prenotazione}}</span> confermata!</div>
-                  <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Il cliente riceve</div>
-                  <div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:10px;font-size:12px;color:#15803d;line-height:1.6;">Ciao <strong>Mario Rossi</strong>, prenotazione del <strong>sabato 14 giugno</strong> alle <strong>20:00</strong> confermata!</div>
-                </div>
-                <div style="margin-top:8px;font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;line-height:1.5;">
-                  &#x26A0;&#xFE0F; Meta richiede <code style="background:white;padding:1px 4px;border-radius:3px;">{{1}}</code>, <code style="background:white;padding:1px 4px;border-radius:3px;">{{2}}</code>... non i nomi. <strong>Ristoflow converte tutto automaticamente</strong> &#x2014; tu scrivi i nomi leggibili, il sistema fa il resto.
-                </div>
-              </div>
-
-              <div style="margin-bottom:22px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#fce7f3;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x26A1;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Trigger: quando parte il messaggio</div>
-                </div>
-                <div style="font-size:13px;color:#374151;margin-bottom:10px;line-height:1.5;">Ogni template pu&#242; partire automaticamente quando accade qualcosa. Senza trigger &#232; solo manuale.</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x2705; Prenotazione confermata</div><div style="color:#64748b;margin-top:1px;">Parte subito quando confermi</div></div>
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x23F0; Reminder 24h prima</div><div style="color:#64748b;margin-top:1px;">Promemoria il giorno prima</div></div>
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x1F634; Cliente inattivo 45gg</div><div style="color:#64748b;margin-top:1px;">Messaggio "ci manchi"</div></div>
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x1F382; Compleanno</div><div style="color:#64748b;margin-top:1px;">Auguri automatici</div></div>
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x2B50; Richiesta recensione</div><div style="color:#64748b;margin-top:1px;">X giorni dopo l&#39;evento</div></div>
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;"><div style="font-weight:600;color:#0f172a;">&#x1F6AB; Solo manuale</div><div style="color:#64748b;margin-top:1px;">Lo invii tu quando vuoi</div></div>
-                </div>
-              </div>
-
-              <div style="margin-bottom:22px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#f3e8ff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x1F3F7;&#xFE0F;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Tag e LTV: invia al cliente giusto</div>
-                </div>
-                <div style="font-size:13px;color:#374151;margin-bottom:10px;line-height:1.5;">Filtra chi riceve ogni messaggio in base ai tag e al livello fedealt&#224; (LTV &#x1F31F;&#x2615;&#x1F37D;&#xFE0F;&#x2B50;&#x1F48E;):</div>
-                <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
-                  <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;"><span>&#x1F48E;</span><div><strong>Offerta esclusiva:</strong> solo ai clienti con tag <code style="background:white;padding:1px 4px;border-radius:3px;">vip</code> e livello &#x2B50; Fedele o superiore</div></div>
-                  <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;"><span>&#x1F377;</span><div><strong>Serata degustazione:</strong> solo a chi ha tag <code style="background:white;padding:1px 4px;border-radius:3px;">wine_lover</code></div></div>
-                  <div style="background:#fef3c7;border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;"><span>&#x1F634;</span><div><strong>Promozione riattivazione:</strong> tag <code style="background:white;padding:1px 4px;border-radius:3px;">inattivo</code>, escludi sempre <code style="background:white;padding:1px 4px;border-radius:3px;">blacklist</code></div></div>
-                </div>
-              </div>
-
-              <div style="margin-bottom:8px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="width:28px;height:28px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">&#x23F3;</div>
-                  <div style="font-size:15px;font-weight:700;color:#0f172a;">Dopo aver inviato a Meta</div>
-                </div>
-                <div style="font-size:13px;color:#374151;line-height:1.7;background:#f8fafc;border-radius:10px;padding:14px;">
-                  Il template va in revisione. <strong>UTILITY</strong>: approvato in minuti/ore. <strong>MARKETING</strong>: fino a 24h.<br><br>
-                  Finch&#233; &#232; <span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;">&#x23F3; In attesa</span> non puoi inviarlo &#x2014; clicca "Aggiorna" per controllare.<br><br>
-                  Se &#232; <span style="background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;">&#x274C; Rifiutato</span>: tono troppo commerciale in UTILITY, o URL non approvato. Eliminalo e ricrealo con testo pi&#249; neutro.<br><br>
-                  &#x1F4A1; <strong>Inizia con questi 3:</strong> <em>conferma prenotazione</em> + <em>reminder 24h</em> + <em>richiesta recensione</em>. Coprono il 90% dei casi.
-                </div>
-              </div>
-
-            </div>
-
-            <div style="padding:16px 28px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;">
-              <button id="btn-chiudi-guida-bottom" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:600;">
-                Ho capito, iniziamo &#x1F680;
-              </button>
-            </div>
-
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -971,15 +849,6 @@ export async function render(container) {
     container.querySelector('#modal-test').style.display = 'none';
   });
 
-  // ─── MODAL GUIDA ──────────────────────────────────────────────────────────
-  const modalGuida  = container.querySelector('#modal-guida');
-  const apriGuida   = () => { modalGuida.style.display = 'flex'; };
-  const chiudiGuida = () => { modalGuida.style.display = 'none'; };
-  container.querySelector('#btn-guida').addEventListener('click', apriGuida);
-  container.querySelector('#btn-chiudi-guida').addEventListener('click', chiudiGuida);
-  container.querySelector('#btn-chiudi-guida-bottom').addEventListener('click', chiudiGuida);
-  modalGuida.addEventListener('click', e => { if (e.target === modalGuida) chiudiGuida(); });
-
   // Nuovo tag
   container.querySelector('#btn-nuovo-tag').addEventListener('click', () => {
     const f = container.querySelector('#form-tag');
@@ -1067,7 +936,38 @@ export async function render(container) {
 
     // Converti wildcard → {{1}}, {{2}}...
     const { testoConvertito, map } = convertiWildcard(testoOriginale);
-    const esempi = esempiRaw ? esempiRaw.split(',').map(s => s.trim()) : ['esempio'];
+    // Conta le variabili nel testo convertito
+    const nVarConvertite = Object.keys(map).length;
+
+    let esempi;
+    if (esempiRaw) {
+      esempi = esempiRaw.split(',').map(s => s.trim());
+      // Padding: se esempi < variabili, aggiunge placeholder
+      while (esempi.length < nVarConvertite) esempi.push('esempio');
+    } else {
+      // Genera esempi automatici uno per variabile
+      esempi = Object.values(map).map(k => {
+        const defaults = {
+          nome: 'Mario', cognome: 'Rossi', nome_completo: 'Mario Rossi',
+          telefono: '+393331234567', data_prenotazione: '15 Giugno 2026',
+          ora_prenotazione: '20:00', num_persone: '4', nome_sala: 'Sala Principale',
+          numero_tavolo: '5', data_evento: '20 Luglio 2026', tipo_evento: 'Matrimonio',
+          nome_evento: 'Evento Rossi', importo: '1500', ora_ingresso: '08:30',
+          ora_uscita: '17:30', data_oggi: new Date().toLocaleDateString('it-IT'),
+          nome_ristorante: 'Campo Antico', telefono_ristorante: '+390123456789',
+          indirizzo: 'Via Roma 1',
+        };
+        return defaults[k] || k;
+      });
+      if (esempi.length === 0) esempi = ['esempio'];
+    }
+
+    // Validazione: esempi devono corrispondere alle variabili
+    if (nVarConvertite > 0 && esempi.length < nVarConvertite) {
+      esito.textContent = `❌ Hai ${nVarConvertite} variabili ma solo ${esempi.length} esempi. Aggiungili nel campo "Valori di esempio".`;
+      esito.style.color = '#dc2626';
+      return;
+    }
 
     esito.textContent = 'Invio a Meta...'; esito.style.color = '#64748b';
 
@@ -1083,7 +983,9 @@ export async function render(container) {
 
     const data = await res.json();
     if (!data.success) {
-      esito.textContent = '❌ ' + (data.error || 'Errore Meta');
+      const dettaglio = data.error || 'Errore Meta';
+      console.error('[Template] Errore Meta:', data);
+      esito.innerHTML = \`❌ \${dettaglio}<br><span style="font-size:11px;color:#94a3b8;">Controlla la console per i dettagli completi</span>\`;
       esito.style.color = '#dc2626';
       return;
     }
