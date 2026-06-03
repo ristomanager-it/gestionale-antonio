@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Come stai? — Ristoflow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
+    .hero { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 40px 24px 32px; text-align: center; color: white; }
+    .hero-titolo { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .hero-sub { font-size: 14px; opacity: .85; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+    .wrap { max-width: 600px; margin: 24px auto 48px; padding: 0 16px; }
+    .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .domanda-n { font-size: 11px; font-weight: 700; color: #a855f7; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .domanda-testo { font-size: 16px; font-weight: 600; color: #0f172a; line-height: 1.5; margin-bottom: 14px; }
+    .anonima-badge { display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; color: #64748b; padding: 2px 9px; border-radius: 10px; font-size: 11px; margin-bottom: 14px; }
+    /* Scala */
+    .scala-wrap { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
+    .scala-btn { width: 52px; height: 52px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; font-size: 22px; transition: all .15s; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; }
+    .scala-btn:hover { border-color: #a855f7; background: #faf5ff; }
+    .scala-btn.sel { border-color: #7c3aed; background: #7c3aed; }
+    .scala-lbl { font-size: 9px; color: #94a3b8; }
+    .scala-btn.sel .scala-lbl { color: white; opacity: .8; }
+    /* Scelta */
+    .scelta-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .scelta-opt { border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; cursor: pointer; font-size: 14px; color: #374151; background: white; transition: all .15s; text-align: left; }
+    .scelta-opt:hover { border-color: #a855f7; color: #7c3aed; }
+    .scelta-opt.sel { border-color: #7c3aed; background: #7c3aed; color: white; font-weight: 600; }
+    /* Testo */
+    textarea { width: 100%; padding: 12px 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; font-family: inherit; outline: none; transition: border .2s; resize: vertical; min-height: 110px; line-height: 1.6; }
+    textarea:focus { border-color: #7c3aed; }
+    .char-count { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 4px; }
+    /* Navigazione */
+    .nav-wrap { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-av { flex: 1; background: #7c3aed; color: white; border: none; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; }
+    .btn-av:hover { background: #6d28d9; }
+    .btn-av:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-bk { background: #f1f5f9; color: #374151; border: none; border-radius: 12px; padding: 14px 20px; font-size: 15px; cursor: pointer; }
+    /* Progress */
+    .progress-bar { height: 4px; background: #e2e8f0; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a855f7); border-radius: 2px; transition: width .4s; }
+    .loading { text-align: center; padding: 60px 20px; color: #64748b; }
+    @media(max-width:480px) { .hero { padding: 28px 16px; } .card { padding: 18px; } .scala-btn { width: 44px; height: 44px; font-size: 18px; } }
+  </style>
+</head>
+<body>
+<div id="root"><div class="loading">⏳ Caricamento...</div></div>
+<script>
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+
+const TOKEN = new URLSearchParams(window.location.search).get('t');
+let invio = null, survey = null, domande = [], dipendente = null;
+let step = 0;
+const risposte = {}; // { domanda_id: valore }
+
+const EMOJI_SCALA = ['','😞','😕','😐','🙂','😊'];
+
+async function init() {
+  const root = document.getElementById('root');
+  if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
+
+  // Carica invio
+  const r1 = await fetch(`${SUPABASE_URL}/rest/v1/survey_invii?token=eq.${TOKEN}&select=*,survey(*),dipendenti(nome,cognome)`, {
+    headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`}
+  });
+  const data = await r1.json();
+  invio = data?.[0];
+
+  if (!invio) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
+  if (invio.completato) { root.innerHTML = `<div class="loading">✅ Hai già completato questo survey. Grazie!</div>`; return; }
+
+  survey = invio.survey;
+  dipendente = invio.dipendenti;
+
+  // Carica domande
+  const r2 = await fetch(`${SUPABASE_URL}/rest/v1/survey_domande?survey_id=eq.${survey.id}&order=ordine`, {
+    headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`}
+  });
+  domande = await r2.json() || [];
+
+  renderStep();
+}
+
+function renderStep() {
+  if (step >= domande.length) { inviaRisposte(); return; }
+  const d = domande[step];
+  const perc = Math.round((step / domande.length) * 100);
+  const valore = risposte[d.id];
+
+  document.getElementById('root').innerHTML = `
+    <div class="hero">
+      <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${survey.titolo}</div>
+      <div class="hero-titolo">Ciao ${dipendente?.nome || 'collega'}! 👋</div>
+      <div class="hero-sub">${survey.descrizione || 'Pochi minuti per dirci come stai. Rispondi con sincerità.'}</div>
+    </div>
+    <div class="wrap">
+      <div class="progress-bar"><div class="progress-fill" style="width:${perc}%;"></div></div>
+      <div style="font-size:12px;color:#94a3b8;text-align:right;margin-bottom:12px;">${step+1} di ${domande.length}</div>
+
+      <div class="card">
+        <div class="domanda-n">Domanda ${step+1}</div>
+        ${d.anonima ? '<div class="anonima-badge">🔒 Risposta anonima</div>' : ''}
+        <div class="domanda-testo">${d.testo}</div>
+
+        ${d.tipo === 'scala' ? `
+          <div class="scala-wrap">
+            ${[1,2,3,4,5].map(v => `
+              <button class="scala-btn ${valore === v ? 'sel' : ''}" onclick="selScala(${d.id},'${d.id}',${v})">
+                <span>${EMOJI_SCALA[v]}</span>
+                <span class="scala-lbl">${v}</span>
+              </button>
+            `).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;padding:0 4px;">
+            <span>Per niente</span><span>Moltissimo</span>
+          </div>
+        ` : ''}
+
+        ${d.tipo === 'scelta' ? `
+          <div class="scelta-wrap">
+            ${(d.opzioni||[]).map(op => `
+              <button class="scelta-opt ${valore === op ? 'sel' : ''}" onclick="selScelta('${d.id}','${op.replace(/'/g,"\\'")}',this)">
+                ${op}
+              </button>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${d.tipo === 'aperta' ? `
+          <textarea id="ta-${d.id}" placeholder="Scrivi qui la tua risposta..." oninput="salvaAperta('${d.id}',this)">${valore || ''}</textarea>
+          <div class="char-count" id="cc-${d.id}">${valore ? valore.split(/\s+/).filter(Boolean).length : 0} parole</div>
+        ` : ''}
+
+        <div class="nav-wrap">
+          ${step > 0 ? `<button class="btn-bk" onclick="vai(${step-1})">← Indietro</button>` : ''}
+          <button class="btn-av" id="btn-av" onclick="avanti()" ${!valore && d.tipo !== 'aperta' ? 'disabled' : ''}>
+            ${step < domande.length - 1 ? 'Continua →' : 'Invia le risposte ✅'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function selScala(domandaId, elId, valore) {
+  risposte[domandaId] = valore;
+  // Aggiorna UI
+  document.querySelectorAll('.scala-btn').forEach((b,i) => b.classList.toggle('sel', i+1 === valore));
+  document.getElementById('btn-av').disabled = false;
+}
+
+function selScelta(domandaId, valore, btn) {
+  risposte[domandaId] = valore;
+  document.querySelectorAll('.scelta-opt').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('btn-av').disabled = false;
+}
+
+function salvaAperta(domandaId, ta) {
+  risposte[domandaId] = ta.value;
+  const n = ta.value.trim().split(/\s+/).filter(Boolean).length;
+  const cc = document.getElementById('cc-' + domandaId);
+  if (cc) cc.textContent = n + (n===1?' parola':' parole');
+}
+
+function vai(n) { step = n; renderStep(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function avanti() {
+  const d = domande[step];
+  // Domande aperte: salva anche se vuote (opzionali)
+  if (d.tipo === 'aperta' && !risposte[d.id]) {
+    risposte[d.id] = '';
+  }
+  step++;
+  if (step >= domande.length) { inviaRisposte(); return; }
+  renderStep();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function inviaRisposte() {
+  document.getElementById('root').innerHTML = `
+    <div class="hero"><div class="hero-titolo">Invio in corso... ⏳</div></div>
+    <div class="wrap"><div class="card" style="text-align:center;padding:40px;">
+      <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+      <div>Stiamo salvando le tue risposte...</div>
+    </div></div>`;
+
+  try {
+    // Costruisci array risposte
+    const rDB = domande.map(d => {
+      const val = risposte[d.id];
+      const isAlert = d.alert_valori && (d.alert_valori || []).includes(val);
+      return {
+        survey_id: survey.id,
+        invio_id: invio.id,
+        domanda_id: d.id,
+        dipendente_id: d.anonima ? null : invio.dipendente_id,
+        risposta_testo: d.tipo === 'aperta' ? (val || null) : null,
+        risposta_scala: d.tipo === 'scala' ? (val || null) : null,
+        risposta_scelta: d.tipo === 'scelta' ? (val || null) : null,
+        alert_triggerato: isAlert,
+      };
+    }).filter(r => r.risposta_testo !== null || r.risposta_scala !== null || r.risposta_scelta !== null);
+
+    // Salva risposte
+    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/survey_risposte`, {
+      method: 'POST',
+      headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify(rDB)
+    });
+    if (!r1.ok) throw new Error(await r1.text());
+
+    // Segna invio come completato
+    await fetch(`${SUPABASE_URL}/rest/v1/survey_invii?id=eq.${invio.id}`, {
+      method: 'PATCH',
+      headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ completato: true, completato_il: new Date().toISOString() })
+    });
+
+    // Notifica se alert triggerato
+    const hasAlert = rDB.some(r => r.alert_triggerato);
+    if (hasAlert) {
+      fetch(`${SUPABASE_URL}/functions/v1/survey-alert-ts`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':`Bearer ${ANON_KEY}`},
+        body: JSON.stringify({ invio_id: invio.id, survey_id: survey.id, azienda_id: invio.azienda_id })
+      }).catch(()=>{});
+    }
+
+    document.getElementById('root').innerHTML = `
+      <div class="hero" style="background:linear-gradient(135deg,#15803d,#22c55e);">
+        <div style="font-size:48px;margin-bottom:12px;">🙏</div>
+        <div class="hero-titolo">Grazie ${dipendente?.nome || ''}!</div>
+        <div class="hero-sub">Le tue risposte sono state salvate. Il tuo feedback è prezioso.</div>
+      </div>
+      <div class="wrap"><div class="card" style="text-align:center;padding:40px 24px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:12px;">Hai completato il survey ✅</div>
+        <div style="font-size:14px;color:#374151;line-height:1.8;">
+          Leggeremo ogni risposta con attenzione.<br>
+          Il tuo punto di vista ci aiuta a migliorare.<br><br>
+          <strong>Grazie per la tua sincerità.</strong>
+        </div>
+      </div></div>`;
+
+  } catch(e) {
+    document.getElementById('root').innerHTML = `
+      <div class="loading">❌ Errore durante l'invio. <button onclick="inviaRisposte()" style="color:#7c3aed;background:none;border:none;cursor:pointer;font-size:14px;">Riprova</button></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
