@@ -429,6 +429,9 @@ export async function render(container) {
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button id="btn-crea-template-meta" style="background:#25D366;color:white;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;">
+              📋 Crea template WhatsApp
+            </button>
             <a id="link-form-pubblico" href="/candidatura.html?a=${aziendaId}" target="_blank"
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;">
               🔗 Form pubblico
@@ -477,6 +480,38 @@ export async function render(container) {
       </div>
     </div>
   `;
+
+  // Crea template Meta
+  const btnCreaTemplate = container.querySelector('#btn-crea-template-meta');
+  if (btnCreaTemplate) {
+    btnCreaTemplate.addEventListener('click', async () => {
+      if (!confirm('Crea i 6 template WhatsApp su Meta per le candidature?\n\nAttenzione: fallo solo una volta. I template verranno inviati a Meta per approvazione.')) return;
+      btnCreaTemplate.disabled = true;
+      btnCreaTemplate.textContent = '⏳ Creazione in corso...';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/crea-template-candidature-ts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          body: JSON.stringify({ azienda_id: aziendaId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btnCreaTemplate.textContent = `✅ Creati ${data.creati}/6 — In attesa approvazione Meta`;
+          btnCreaTemplate.style.background = '#15803d';
+        } else {
+          const falliti = (data.results || []).filter(r => !r.success).map(r => r.name + ': ' + r.error).join('\n');
+          alert('Risultato:\n' + (falliti || JSON.stringify(data)));
+          btnCreaTemplate.disabled = false;
+          btnCreaTemplate.textContent = '📋 Crea template WhatsApp';
+        }
+        console.log('Template Meta:', data);
+      } catch(e) {
+        alert('Errore: ' + e.message);
+        btnCreaTemplate.disabled = false;
+        btnCreaTemplate.textContent = '📋 Crea template WhatsApp';
+      }
+    });
+  }
 
   // Copia link form pubblico
   const linkPubblico = `${window.location.origin}/candidatura.html?a=${aziendaId}`;
