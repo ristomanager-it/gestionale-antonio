@@ -428,7 +428,15 @@ export async function render(container) {
               <div style="font-size:13px;color:#64748b;">${tutte.length} candidature totali</div>
             </div>
           </div>
-          <a href="/candidatura.html" target="_blank" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;">🔗 Form pubblico</a>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <a id="link-form-pubblico" href="/candidatura.html?a=${aziendaId}" target="_blank"
+              style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;">
+              🔗 Form pubblico
+            </a>
+            <button id="btn-copia-link" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">
+              📋 Copia link
+            </button>
+          </div>
         </div>
 
         <!-- KPI fasi -->
@@ -469,6 +477,18 @@ export async function render(container) {
       </div>
     </div>
   `;
+
+  // Copia link form pubblico
+  const linkPubblico = `${window.location.origin}/candidatura.html?a=${aziendaId}`;
+  const btnCopia = container.querySelector('#btn-copia-link');
+  if (btnCopia) {
+    btnCopia.addEventListener('click', () => {
+      navigator.clipboard.writeText(linkPubblico).then(() => {
+        btnCopia.textContent = '✅ Copiato!';
+        setTimeout(() => { btnCopia.textContent = '📋 Copia link'; }, 2000);
+      });
+    });
+  }
 
   // Filtri
   container.querySelectorAll('[data-filtro-fase]').forEach(btn => {
