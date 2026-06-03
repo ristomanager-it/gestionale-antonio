@@ -78,6 +78,23 @@ export async function render(container) {
             <textarea id="hr-note" class="input" rows="2" placeholder="Motivo, dettagli..." style="width:100%;box-sizing:border-box;"></textarea>
           </div>
 
+          <!-- Allegato — visibile solo per malattia -->
+          <div id="hr-allegato-wrap" style="display:none;margin-top:12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;">
+            <label style="font-size:12px;font-weight:600;color:#0E5A7A;display:block;margin-bottom:8px;">📎 Certificato medico</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <button id="btn-mode-file" data-mode="file" class="btn-allegato-mode" style="flex:1;padding:8px;border-radius:8px;border:2px solid #0E5A7A;background:#f0f9ff;color:#0E5A7A;cursor:pointer;font-size:12px;font-weight:600;">📁 Carica file</button>
+              <button id="btn-mode-url" data-mode="url" class="btn-allegato-mode" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e5e7eb;background:white;color:#64748b;cursor:pointer;font-size:12px;">🔗 Inserisci link</button>
+            </div>
+            <div id="allegato-file-wrap">
+              <input id="hr-allegato" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" style="font-size:13px;width:100%;">
+              <div style="font-size:11px;color:#64748b;margin-top:4px;">Foto o PDF — max 10MB</div>
+            </div>
+            <div id="allegato-url-wrap" style="display:none;">
+              <input id="hr-allegato-url" class="input" placeholder="https://... (link al documento)" style="width:100%;box-sizing:border-box;">
+              <div style="font-size:11px;color:#64748b;margin-top:4px;">Es. link Google Drive, Dropbox, email del medico</div>
+            </div>
+          </div>
+
           <div id="hr-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
 
           <button id="btn-invia" style="margin-top:16px;background:#0E5A7A;color:white;border:none;border-radius:10px;padding:12px 24px;cursor:pointer;font-size:14px;font-weight:600;width:100%;">
@@ -111,6 +128,7 @@ export async function render(container) {
               <div style="font-weight:700;font-size:14px;">${r.tipo}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">📅 ${date}</div>
               ${r.note ? `<div style="font-size:12px;color:#64748b;margin-top:3px;">💬 ${r.note}</div>` : ''}
+              ${r.allegato_url ? `<a href="${r.allegato_url}" target="_blank" style="font-size:12px;color:#0E5A7A;display:inline-block;margin-top:4px;">📎 ${r.allegato_nome || 'Vedi allegato'}</a>` : ''}
             </div>
             <span style="background:${s.bg};color:${s.color};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;">${s.label}</span>
           </div>
@@ -120,6 +138,27 @@ export async function render(container) {
   }
 
   renderLista();
+
+  // Mostra/nascondi allegato per malattia
+  container.querySelector('#hr-tipo').addEventListener('change', function() {
+    const wrap = container.querySelector('#hr-allegato-wrap');
+    wrap.style.display = this.value === 'malattia' ? '' : 'none';
+  });
+
+  // Toggle file / url
+  container.querySelectorAll('.btn-allegato-mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      container.querySelectorAll('.btn-allegato-mode').forEach(b => {
+        const attivo = b.dataset.mode === mode;
+        b.style.border = attivo ? '2px solid #0E5A7A' : '1px solid #e5e7eb';
+        b.style.background = attivo ? '#f0f9ff' : 'white';
+        b.style.color = attivo ? '#0E5A7A' : '#64748b';
+      });
+      container.querySelector('#allegato-file-wrap').style.display = mode === 'file' ? '' : 'none';
+      container.querySelector('#allegato-url-wrap').style.display = mode === 'url' ? '' : 'none';
+    });
+  });
 
   container.querySelector('#btn-invia').addEventListener('click', async () => {
     const esito = container.querySelector('#hr-esito');
@@ -136,6 +175,36 @@ export async function render(container) {
 
     esito.textContent = 'Invio...'; esito.style.color = '#64748b';
 
+    // Gestione allegato
+    let allegatoUrl = null;
+    let allegatoNome = null;
+
+    if (tipo === 'malattia') {
+      const modeUrl = container.querySelector('#allegato-url-wrap')?.style.display !== 'none';
+      if (modeUrl) {
+        allegatoUrl = container.querySelector('#hr-allegato-url')?.value.trim() || null;
+        allegatoNome = allegatoUrl ? 'link esterno' : null;
+      } else {
+        const file = container.querySelector('#hr-allegato')?.files?.[0];
+        if (file) {
+          esito.textContent = 'Caricamento allegato...'; esito.style.color = '#64748b';
+          const path = `${aziendaId}/${me.id}/${Date.now()}-${file.name}`;
+          const { error: upErr } = await supa().storage.from('documenti-hr').upload(path, file);
+          if (upErr) {
+            esito.textContent = '❌ Errore caricamento: ' + upErr.message;
+            esito.style.color = '#dc2626';
+            return;
+          }
+          // Crea signed URL valido 1 anno
+          const { data: signed } = await supa().storage
+            .from('documenti-hr')
+            .createSignedUrl(path, 365 * 24 * 60 * 60);
+          allegatoUrl = signed?.signedUrl || null;
+          allegatoNome = file.name;
+        }
+      }
+    }
+
     const { data: nuova, error } = await supa()
       .from('richieste_assenze')
       .insert({
@@ -149,6 +218,8 @@ export async function render(container) {
         stato: 'richiesto',
         richiesto_da: user.id,
         tipo_ruolo_richiedente: me.ruolo,
+        allegato_url: allegatoUrl,
+        allegato_nome: allegatoNome,
       })
       .select('*')
       .single();
