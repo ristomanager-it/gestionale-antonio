@@ -1,6 +1,6 @@
 // js/utils/ltv.js
 // Modulo LTV riutilizzabile — importa e usa ovunque nel gestionale
-
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
 const supa = () => window.supabaseClient || window.supabase;
 
 // ─── LIVELLI FISSI (specchio della tabella ltv_livelli_sistema) ───────────────
