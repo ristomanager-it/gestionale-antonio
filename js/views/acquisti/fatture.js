@@ -34,6 +34,8 @@ const CATEGORIE_GESTIONE_ACQUISTI = [
 ];
 
 export async function renderFatture(container, azienda) {
+  // Variabile per categoria bilancio classificata dall'AI
+  let categoriaBilancioSuggerita = null; // { id, nome, codice_conto, confidenza, motivo }
   ensureAcquistiModalStyles();
 
   container.innerHTML = `
@@ -729,6 +731,25 @@ async function openDocumentoUploadModal(azienda) {
       }
 
       applyOcrResult(data);
+      setFeedback("Documento analizzato. Classificazione in corso...");
+
+      // ── Classificazione bilancio automatica ──
+      try {
+        const { data: classData } = await supabase.functions.invoke("classifica-bilancio-ts", {
+          body: {
+            fornitore: data.fornitore,
+            righe: data.righe,
+            totale: data.totale || null,
+          }
+        });
+        if (classData?.success && classData?.classificazione) {
+          categoriaBilancioSuggerita = classData.classificazione;
+          renderBadgeCategoria(classData.classificazione);
+        }
+      } catch(e) {
+        console.warn("Classificazione bilancio non disponibile:", e);
+      }
+
       setFeedback("Documento analizzato. Controlla i dati e salva.");
     } finally {
       isUploadingOcr = false;
@@ -774,6 +795,61 @@ async function openDocumentoUploadModal(azienda) {
 
     updateTotaleFromRighe();
   }
+
+  // ── Badge categoria bilancio suggerita dall'AI ──
+  function renderBadgeCategoria(cls) {
+    // Cerca o crea il badge nel form
+    let badge = document.getElementById("badge-categoria-bilancio");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.id = "badge-categoria-bilancio";
+      badge.style.cssText = "margin:10px 0;padding:10px 14px;border-radius:10px;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;";
+      // Inserisci prima del pulsante salva
+      const btnSalva = document.querySelector("#btn-salva-documento") || document.querySelector("[data-action='salva']");
+      if (btnSalva) btnSalva.parentElement.insertBefore(badge, btnSalva);
+    }
+
+    const conf = cls.confidenza || 0;
+    const bg    = conf >= 80 ? "#dcfce7" : conf >= 50 ? "#fef3c7" : "#fee2e2";
+    const color = conf >= 80 ? "#15803d" : conf >= 50 ? "#92400e" : "#dc2626";
+    const emoji = conf >= 80 ? "✅" : conf >= 50 ? "⚠️" : "❓";
+
+    badge.style.background = bg;
+    badge.style.border = `1px solid ${color}30`;
+    badge.innerHTML = `
+      <div>
+        <div style="font-weight:700;color:${color};">${emoji} ${cls.categoria_nome}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;">${cls.motivo || ""} — Confidenza: ${conf}%</div>
+        ${cls.codice_conto ? `<div style="font-size:11px;color:#94a3b8;">Conto: ${cls.codice_conto}</div>` : ""}
+      </div>
+      <select id="sel-categoria-bilancio" style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;">
+        <option value="">Cambia categoria...</option>
+      </select>
+    `;
+
+    // Carica opzioni select
+    const sel = badge.querySelector("#sel-categoria-bilancio");
+    if (sel && window._categorieBilancio) {
+      window._categorieBilancio.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        if (c.id === cls.categoria_id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = () => {
+        const found = window._categorieBilancio?.find(c => String(c.id) === sel.value);
+        if (found) {
+          categoriaBilancioSuggerita = { ...categoriaBilancioSuggerita, categoria_id: found.id, categoria_nome: found.nome, codice_conto: found.codice_conto };
+          renderBadgeCategoria(categoriaBilancioSuggerita);
+        }
+      };
+    }
+  }
+
+  // Precarica categorie bilancio per il select
+  supabase.from("categorie_bilancio").select("id,nome,codice_conto,tipo").eq("attivo", true).order("ordine")
+    .then(({ data }) => { if (data) window._categorieBilancio = data; });
 
   async function saveDocumento() {
     const tipoDocumento = elTipoDocumento.value;
