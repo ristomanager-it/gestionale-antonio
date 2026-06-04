@@ -95,6 +95,7 @@ const routes = {
   ricettario: () => import("./views/ricettario.js"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   creaRicetta: () => import("./views/ricette-semplici.js"),
+  "crea-ricetta":          () => import("./views/ricette-semplici.js"),
   "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
