@@ -592,6 +592,12 @@ export async function render(container) {
                 <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Zona geografica</label>
                 <input id="nc-zona" class="mk-input" placeholder="Es. Viterbo, Roma — lascia vuoto per Italia">
               </div>
+              <div style="margin-bottom:14px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Testo annuncio</label>
+                <textarea id="nc-testo" class="mk-input" rows="5" placeholder="Scrivi il testo oppure clicca 🤖 Genera con AI..." style="resize:vertical;font-size:13px;line-height:1.6;box-sizing:border-box;width:100%;"></textarea>
+                <button id="btn-genera-aida" style="margin-top:6px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600;color:#0E5A7A;">🤖 Genera testo con AI (Tony)</button>
+                <div id="nc-aida-status" style="font-size:12px;color:#64748b;margin-top:4px;min-height:14px;"></div>
+              </div>
               <div id="nc-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
               <div style="display:flex;gap:8px;">
                 <button id="btn-crea-campagna" class="mk-btn" style="flex:1;background:#1877f2;color:white;padding:12px;">
@@ -625,6 +631,66 @@ export async function render(container) {
       content.querySelector('#filtro-stato')?.addEventListener('change', async function() {
         filtroStato = this.value;
         await renderContent();
+      });
+
+      // Genera testo AIDA con Tony
+      content.querySelector('#btn-genera-aida')?.addEventListener('click', async () => {
+        const status = content.querySelector('#nc-aida-status');
+        const textarea = content.querySelector('#nc-testo');
+        const paginaId = content.querySelector('#nc-pagina')?.value;
+        const pagina = pagine.find(p => p.pagina_id === paginaId);
+        const obiettivo = content.querySelector('#nc-obiettivo')?.value;
+        const obiettivoLabel = {
+          'OUTCOME_AWARENESS': 'visibilità e notorietà del locale',
+          'OUTCOME_TRAFFIC': 'portare persone al sito o alle prenotazioni',
+          'OUTCOME_ENGAGEMENT': 'aumentare interazioni sui social',
+          'OUTCOME_LEADS': 'raccogliere contatti e richieste'
+        }[obiettivo] || 'promozione del locale';
+
+        status.textContent = '🤖 Tony sta scrivendo...'; status.style.color = '#64748b';
+
+        const { data: identita } = await supa().from('azienda_identita')
+          .select('*').eq('azienda_id', window.state?.azienda?.id).maybeSingle();
+
+        const prompt = `Sei un esperto di marketing per la ristorazione. Scrivi un testo pubblicitario per Facebook/Instagram usando il metodo AIDA per ${pagina?.pagina_nome || 'questo locale'}.
+
+OBIETTIVO: ${obiettivoLabel}
+MISSION: ${identita?.mission || 'cucina di qualità e tradizione'}
+POSIZIONAMENTO: ${identita?.posizionamento || 'ristorante autentico del territorio'}
+CLIENTE IDEALE: ${identita?.cliente_ideale || 'famiglie e coppie'}
+TONE OF VOICE: ${identita?.tone_of_voice || 'caldo e familiare'}
+PAROLE CHIAVE: ${identita?.parole_chiave || 'tradizione, qualità, territorio'}
+DIFFERENZIAZIONE: ${identita?.differenziazione || 'cucina autentica'}
+
+STRUTTURA AIDA OBBLIGATORIA:
+🔥 ATTENZIONE: frase che cattura (provocazione o problema)
+💡 INTERESSE: dichiara la negatività comune e poi il contrasto positivo
+✨ DESIDERIO: spiega la proposta unica che risolve il problema
+📅 AZIONE: invito chiaro e urgente con call to action
+
+Max 150 parole, in italiano, pronto da copiare su Facebook/Instagram. Solo il testo, niente titoli o spiegazioni.`;
+
+        try {
+          const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0' },
+            body: JSON.stringify({
+              azienda_id: window.state?.azienda?.id,
+              messages: [{ role: 'user', content: prompt }]
+            })
+          });
+          const data = await res.json();
+          const testo = data?.reply || '';
+          if (testo) {
+            textarea.value = testo;
+            status.textContent = '✅ Testo generato — modificalo se vuoi';
+            status.style.color = '#15803d';
+          } else {
+            status.textContent = '❌ Errore generazione'; status.style.color = '#dc2626';
+          }
+        } catch(e) {
+          status.textContent = '❌ ' + e.message; status.style.color = '#dc2626';
+        }
       });
 
       content.querySelector('#btn-nuova-campagna')?.addEventListener('click', () => {
