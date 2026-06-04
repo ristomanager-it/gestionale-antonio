@@ -1,6 +1,6 @@
 // js/views/bo/bo-bilancio.js
 // Bilancio live — conto economico in tempo reale con export PDF
-
+import { createPageLayout, createCard } from "../utils/pageLayout.js";
 const supa = () => window.supabaseClient || window.supabase;
 
 export async function render(container) {
