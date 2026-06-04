@@ -2,6 +2,7 @@
 // Control room del ristorante — configurazione centralizzata
 // Tab: Operativo | Sala | Menu & Comunicazione | Cassa | Integrazioni
 
+
 const supa = () => window.supabaseClient || window.supabase;
 
 async function waitForAuth(maxWait = 3000) {
@@ -44,7 +45,7 @@ export async function render(container) {
           { id:'menu',         icon:'📋', label:'Menu'                 },
           { id:'cassa',        icon:'💳', label:'Cassa'                },
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
-          { id:'identita',    icon:'🎯', label:'Identità & Brand'      },
+          { id:'identita',     icon:'🎯', label:'Identità & Brand'      },
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
@@ -78,7 +79,7 @@ export async function render(container) {
       case 'menu':         renderTabMenu(box);         break;
       case 'cassa':        renderTabCassa(box); break;
       case 'integrazioni': renderTabIntegrazioni(box); break;
-      case 'identita':    renderTabIdentita(box);    break;
+      case 'identita':     renderTabIdentita(box);    break;
     }
   }
 
@@ -484,6 +485,40 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- Google Ads -->
+      <div style="margin-bottom:36px;margin-top:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🎯 Google Ads</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega il tuo account Google Ads per gestire campagne dall'app</div>
+          </div>
+          <button id="btn-collega-google" style="background:#4285F4;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔗 Collega Google Ads</button>
+        </div>
+        <div id="lista-google-ads" style="margin-bottom:16px;"></div>
+        <div id="form-google-ads" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-top:12px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Aggiungi account Google Ads</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Customer ID *</label>
+              <input id="gads-customer-id" class="input" placeholder="Es. 541-378-5462" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Nome account</label>
+              <input id="gads-nome" class="input" placeholder="Es. Campo Antico Ricevimenti" style="width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:12px;">
+            ⚠️ Dopo aver inserito il Customer ID, clicca "Autorizza Google" per collegare l'account. Si aprirà una finestra di autorizzazione Google.
+          </div>
+          <div id="gads-esito" style="font-size:13px;min-height:14px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-autorizza-google" style="background:#4285F4;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔐 Autorizza Google</button>
+            <button id="btn-salva-gads" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva solo Customer ID</button>
+            <button id="btn-annulla-gads" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Altre integrazioni — presto -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
         ${[
@@ -583,6 +618,92 @@ export async function render(container) {
     }
 
     renderListaWa();
+
+    // ── Google Ads ──
+    async function renderListaGoogleAds() {
+      const el = box.querySelector('#lista-google-ads');
+      if (!el) return;
+      const { data: gads } = await supa().from('google_ads_connessioni')
+        .select('*').eq('azienda_id', aziendaId).order('created_at');
+      if (!gads?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun account Google Ads collegato.</div>';
+        return;
+      }
+      el.innerHTML = gads.map(g => `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:24px;">🎯</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${esc(g.customer_nome || g.customer_id)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">Customer ID: ${esc(g.customer_id)} ${g.refresh_token ? '· ✅ Autorizzato' : '· ⚠️ Non autorizzato'}</div>
+          </div>
+          <button data-del-gads="${g.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-del-gads]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Rimuovere questo account Google Ads?')) return;
+          await supa().from('google_ads_connessioni').delete().eq('id', btn.dataset.delGads);
+          renderListaGoogleAds();
+        });
+      });
+    }
+
+    renderListaGoogleAds();
+
+    box.querySelector('#btn-collega-google')?.addEventListener('click', () => {
+      box.querySelector('#form-google-ads').style.display = '';
+    });
+    box.querySelector('#btn-annulla-gads')?.addEventListener('click', () => {
+      box.querySelector('#form-google-ads').style.display = 'none';
+    });
+
+    // Autorizza Google — apre popup OAuth
+    box.querySelector('#btn-autorizza-google')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#gads-esito');
+      esito.textContent = 'Apertura autorizzazione Google...'; esito.style.color = '#64748b';
+      const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/google-ads-oauth?action=authorize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          body: JSON.stringify({ azienda_id: aziendaId, sede_id: sedeId || '' })
+        });
+        const { url } = await res.json();
+        const popup = window.open(url, 'google-auth', 'width=600,height=700,left=200,top=100');
+        window.addEventListener('message', async (e) => {
+          if (e.data?.success) {
+            esito.textContent = '✅ Google Ads autorizzato!'; esito.style.color = '#15803d';
+            // Salva anche customer_id se inserito
+            const customerId = box.querySelector('#gads-customer-id')?.value.replace(/-/g,'').trim();
+            const nome = box.querySelector('#gads-nome')?.value.trim();
+            if (customerId) {
+              await supa().from('google_ads_connessioni').update({
+                customer_id: customerId, customer_nome: nome || null
+              }).eq('azienda_id', aziendaId).is('customer_id', null);
+            }
+            renderListaGoogleAds();
+            setTimeout(() => { box.querySelector('#form-google-ads').style.display = 'none'; }, 1500);
+          }
+        }, { once: true });
+      } catch(e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
+
+    // Salva solo Customer ID (senza OAuth)
+    box.querySelector('#btn-salva-gads')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#gads-esito');
+      const customerId = box.querySelector('#gads-customer-id')?.value.replace(/-/g,'').trim();
+      const nome = box.querySelector('#gads-nome')?.value.trim();
+      if (!customerId) { esito.textContent = '❌ Customer ID obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const { error } = await supa().from('google_ads_connessioni').insert({
+        azienda_id: aziendaId, customer_id: customerId, customer_nome: nome || null, attivo: true
+      });
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '✅ Salvato — ora clicca "Autorizza Google" per completare';
+      esito.style.color = '#15803d';
+      renderListaGoogleAds();
+    });
 
     // Bind scelta modalità
     box.querySelector('#card-meta').addEventListener('click', () => aggiornaVisibilitaCampi('meta'));
@@ -1580,21 +1701,12 @@ export async function render(container) {
     t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
   }
 
-  // ── Init ──
-  switchTab('operativo');
-}
 
-function esc(s) {
-  return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
-}
 
   // ════════════════════════════════════════
   // TAB: IDENTITÀ & BRAND
   // ════════════════════════════════════════
   async function renderTabIdentita(box) {
-    const supa = () => window.supabaseClient || window.supabase;
-    const aziendaId = window.state?.azienda?.id;
-
     // Carica identità esistente
     const { data: ident } = await supa()
       .from('azienda_identita')
@@ -1609,106 +1721,81 @@ function esc(s) {
         .id-card { background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px; }
         .id-label { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px; }
         .id-desc { font-size:12px;color:#94a3b8;margin-bottom:8px;font-style:italic; }
-        .id-ta { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;resize:vertical;min-height:80px;line-height:1.6;box-sizing:border-box;transition:border .2s; }
+        .id-ta { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;resize:vertical;min-height:80px;line-height:1.6;box-sizing:border-box; }
         .id-ta:focus { border-color:#0E5A7A; }
-        .id-input { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:border .2s; }
+        .id-input { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box; }
         .id-input:focus { border-color:#0E5A7A; }
       </style>
-
       <div style="max-width:720px;">
-
         <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:white;border-radius:14px;padding:20px;margin-bottom:20px;">
           <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎯 Identità & Brand</div>
-          <div style="font-size:13px;opacity:.85;line-height:1.5;">
-            Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>
-            Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.
-          </div>
+          <div style="font-size:13px;opacity:.85;line-height:1.5;">Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.</div>
         </div>
-
-        <!-- VISION & MISSION -->
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🌟 Vision & Mission</div>
           <div style="margin-bottom:16px;">
             <span class="id-label">Vision — Dove vogliamo arrivare</span>
-            <div class="id-desc">Il futuro che vogliamo costruire. Es. "Diventare il riferimento per la cucina laziale autentica nel Viterbese"</div>
-            <textarea id="id-vision" class="id-ta" placeholder="Scrivi la vision dell'azienda...">${val('vision')}</textarea>
+            <div class="id-desc">Es. "Diventare il riferimento per la cucina laziale autentica nel Viterbese"</div>
+            <textarea id="id-vision" class="id-ta" placeholder="Scrivi la vision...">${val('vision')}</textarea>
           </div>
           <div>
             <span class="id-label">Mission — Perché esistiamo</span>
-            <div class="id-desc">Il motivo per cui siamo qui ogni giorno. Es. "Portare in tavola la tradizione laziale con ingredienti del territorio"</div>
-            <textarea id="id-mission" class="id-ta" placeholder="Scrivi la mission dell'azienda...">${val('mission')}</textarea>
+            <div class="id-desc">Es. "Portare in tavola la tradizione laziale con ingredienti del territorio"</div>
+            <textarea id="id-mission" class="id-ta" placeholder="Scrivi la mission...">${val('mission')}</textarea>
           </div>
         </div>
-
-        <!-- POSIZIONAMENTO -->
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">📍 Posizionamento & Cliente ideale</div>
           <div style="margin-bottom:16px;">
             <span class="id-label">Posizionamento</span>
-            <div class="id-desc">Come vogliamo essere percepiti rispetto ai competitor. Es. "Il ristorante di territorio per famiglie e coppie che cercano autenticità"</div>
             <textarea id="id-posizionamento" class="id-ta" placeholder="Come vogliamo essere percepiti...">${val('posizionamento')}</textarea>
           </div>
           <div style="margin-bottom:16px;">
             <span class="id-label">Cliente ideale</span>
-            <div class="id-desc">Chi vogliamo attrarre. Es. "Coppie 35-55, famiglie con bambini, turisti che cercano cucina locale"</div>
-            <textarea id="id-cliente" class="id-ta" placeholder="Descrivi il cliente ideale...">${val('cliente_ideale')}</textarea>
+            <textarea id="id-cliente" class="id-ta" placeholder="Es. Coppie 35-55, famiglie, turisti...">${val('cliente_ideale')}</textarea>
           </div>
           <div>
             <span class="id-label">Differenziazione</span>
-            <div class="id-desc">Cosa ci distingue dai competitor. Es. "Selezione vini locali, orto proprio, servizio familiare"</div>
             <textarea id="id-diff" class="id-ta" placeholder="Cosa ci rende unici...">${val('differenziazione')}</textarea>
           </div>
         </div>
-
-        <!-- VALORI & COMUNICAZIONE -->
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">💬 Valori & Comunicazione</div>
           <div style="margin-bottom:16px;">
             <span class="id-label">Valori aziendali</span>
-            <div class="id-desc">Cosa guida ogni decisione. Es. "Qualità, territorio, accoglienza, onestà"</div>
-            <textarea id="id-valori" class="id-ta" style="min-height:60px;" placeholder="I valori che ci guidano...">${val('valori')}</textarea>
+            <textarea id="id-valori" class="id-ta" style="min-height:60px;" placeholder="Es. Qualità, territorio, accoglienza...">${val('valori')}</textarea>
           </div>
           <div style="margin-bottom:16px;">
             <span class="id-label">Tone of voice</span>
-            <div class="id-desc">Come comunichiamo con i clienti. Es. "Caldo e familiare, mai formale — come se invitassimo amici a casa"</div>
-            <input id="id-tov" class="id-input" placeholder="Es. Caldo, familiare, autentico, mai troppo formale" value="${val('tone_of_voice')}">
+            <input id="id-tov" class="id-input" placeholder="Es. Caldo, familiare, autentico" value="${val('tone_of_voice')}">
           </div>
           <div>
-            <span class="id-label">Parole chiave del brand</span>
-            <div class="id-desc">Keywords che rappresentano il vostro brand. Usate nelle campagne AI.</div>
-            <input id="id-kw" class="id-input" placeholder="Es. tradizione, territorio, famiglia, vino, Lazio" value="${val('parole_chiave')}">
+            <span class="id-label">Parole chiave brand</span>
+            <input id="id-kw" class="id-input" placeholder="Es. tradizione, territorio, famiglia, vino" value="${val('parole_chiave')}">
           </div>
         </div>
-
-        <!-- OBIETTIVI -->
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🚀 Obiettivi business</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
             <div>
-              <span class="id-label">Obiettivo breve termine (3-6 mesi)</span>
-              <textarea id="id-obj-breve" class="id-ta" style="min-height:70px;" placeholder="Es. Aumentare prenotazioni pranzo del 20%">${val('obiettivo_breve')}</textarea>
+              <span class="id-label">Breve termine (3-6 mesi)</span>
+              <textarea id="id-obj-breve" class="id-ta" style="min-height:70px;" placeholder="Es. +20% prenotazioni pranzo">${val('obiettivo_breve')}</textarea>
             </div>
             <div>
-              <span class="id-label">Obiettivo lungo termine (1-3 anni)</span>
-              <textarea id="id-obj-lungo" class="id-ta" style="min-height:70px;" placeholder="Es. Aprire una seconda sede a Viterbo">${val('obiettivo_lungo')}</textarea>
+              <span class="id-label">Lungo termine (1-3 anni)</span>
+              <textarea id="id-obj-lungo" class="id-ta" style="min-height:70px;" placeholder="Es. Aprire seconda sede">${val('obiettivo_lungo')}</textarea>
             </div>
           </div>
         </div>
-
         <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
-
-        <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">
-          💾 Salva identità aziendale
-        </button>
-
+        <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">💾 Salva identità aziendale</button>
       </div>
     `;
 
     box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
       const esito = box.querySelector('#id-esito');
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
-
-      const payload = {
+      const { error } = await supa().from('azienda_identita').upsert({
         azienda_id: aziendaId,
         vision: box.querySelector('#id-vision').value.trim() || null,
         mission: box.querySelector('#id-mission').value.trim() || null,
@@ -1721,17 +1808,16 @@ function esc(s) {
         obiettivo_breve: box.querySelector('#id-obj-breve').value.trim() || null,
         obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
         updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supa().from('azienda_identita').upsert(payload, { onConflict: 'azienda_id' });
-
-      if (error) {
-        esito.textContent = '❌ ' + error.message;
-        esito.style.color = '#dc2626';
-      } else {
-        esito.textContent = '✅ Identità salvata!';
-        esito.style.color = '#15803d';
-        setTimeout(() => { esito.textContent = ''; }, 3000);
-      }
+      }, { onConflict: 'azienda_id' });
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; }
+      else { esito.textContent = '✅ Identità salvata!'; esito.style.color = '#15803d'; setTimeout(() => { esito.textContent = ''; }, 3000); }
     });
   }
+
+  // ── Init ──
+  switchTab('operativo');
+}
+
+function esc(s) {
+  return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
