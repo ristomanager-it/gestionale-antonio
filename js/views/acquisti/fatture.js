@@ -45,7 +45,10 @@ export async function renderFatture(container, azienda) {
           <h3 style="margin:0;">Acquisti · Fatture / DDT</h3>
           <div style="font-size:13px; color:#667085; margin-top:4px;"></div>
         </div>
-        <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
+          <button id="btn-scarica-acquisti" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">📥 Scarica CSV</button>
+        </div>
       </div>
     </div>
 
@@ -77,6 +80,36 @@ export async function renderFatture(container, azienda) {
       <div id="documenti-results" style="margin-top:14px;"></div>
     </div>
   `;
+
+  // Scarica CSV acquisti
+  container.querySelector('#btn-scarica-acquisti')?.addEventListener('click', async () => {
+    const aziendaId = window.state?.azienda?.id;
+    if (!aziendaId) return;
+    const { data } = await (window.supabaseClient||window.supabase)
+      .from('fatture_acquisto')
+      .select('data_documento,numero_documento,imponibile,iva,totale,classificazione_ok,categorie_bilancio(nome,codice_conto),fornitori(ragione_sociale)')
+      .eq('azienda_id', aziendaId)
+      .order('data_documento', { ascending: false })
+      .limit(5000);
+    const rows = [['Data','Numero','Fornitore','Categoria bilancio','Conto','Imponibile','IVA','Totale','Confermata']];
+    (data||[]).forEach(r => rows.push([
+      r.data_documento||'',
+      r.numero_documento||'',
+      r.fornitori?.ragione_sociale||'',
+      r.categorie_bilancio?.nome||'Non classificata',
+      r.categorie_bilancio?.codice_conto||'',
+      String(r.imponibile||0).replace('.',','),
+      String(r.iva||0).replace('.',','),
+      String(r.totale||0).replace('.',','),
+      r.classificazione_ok ? 'Sì' : 'No'
+    ]));
+    const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='acquisti_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
 
   const inputFornitore = container.querySelector("#filter-fornitore");
   const inputDataDa = container.querySelector("#filter-data-da");
