@@ -63,6 +63,13 @@ export async function render(container) {
       <input id="product-search" class="input" placeholder="Cerca prodotto o creane uno nuovo" style="margin-top:12px;" autocomplete="off">
 
       <div id="prodotti-list" style="margin-top:12px;"></div>
+      <style>
+        .prod-row { transition: background .15s; }
+        .prod-row.drag-over { outline: 2px solid #0E5A7A; background: #eff6ff !important; }
+        .prod-row.dragging { opacity: 0.4; }
+        .drag-handle { cursor: grab; color: #cbd5e1; font-size: 18px; user-select: none; padding: 0 8px 0 4px; }
+        .drag-handle:active { cursor: grabbing; }
+      </style>
 
     </div>
 
@@ -355,10 +362,14 @@ export async function render(container) {
     })
 
     prodottiFiltrati.sort((a, b) => {
+      if (!search) {
+        // Ordine personalizzato quando non si sta cercando
+        return (a.ordine || 9999) - (b.ordine || 9999)
+      }
       const an = String(a.nome || "").toLowerCase()
       const bn = String(b.nome || "").toLowerCase()
-      const aStarts = search && an.startsWith(search) ? 0 : 1
-      const bStarts = search && bn.startsWith(search) ? 0 : 1
+      const aStarts = an.startsWith(search) ? 0 : 1
+      const bStarts = bn.startsWith(search) ? 0 : 1
       if (aStarts !== bStarts) return aStarts - bStarts
       return an.localeCompare(bn)
     })
@@ -389,15 +400,19 @@ export async function render(container) {
       return
     }
 
+    const isDraggable = !search;
     box.innerHTML = prodottiFiltrati.slice(0, 50).map(p => {
       const categoria = categorie.find(c => String(c.id) === String(p.categoria_vendita_id))
       const hasRicetta = !!p.ricetta_id
       const hasFoodCost = Number(p.food_cost_snapshot || 0) > 0 && p.alert_food_cost !== true
 
       return `
-        <div data-id="${escapeAttribute(p.id)}" style="
+        <div data-id="${escapeAttribute(p.id)}"
+          class="prod-row"
+          ${isDraggable ? 'draggable="true"' : ''}
+          style="
           display:grid;
-          grid-template-columns:64px 1fr auto;
+          grid-template-columns:${isDraggable ? '28px ' : ''}64px 1fr auto;
           gap:12px;
           align-items:center;
           padding:10px;
@@ -407,6 +422,7 @@ export async function render(container) {
           margin-bottom:10px;
           cursor:pointer;
         ">
+          ${isDraggable ? '<span class="drag-handle" onclick="event.stopPropagation()">⠿</span>' : ''}
           <div style="
             width:64px;
             height:64px;
@@ -463,8 +479,61 @@ export async function render(container) {
     }
 
     box.querySelectorAll("[data-id]").forEach(el => {
-      el.onclick = () => selectProdotto(el.dataset.id)
+      el.onclick = (e) => {
+        if (e.target.classList.contains('drag-handle')) return;
+        selectProdotto(el.dataset.id);
+      }
     })
+
+    // Drag & drop solo senza ricerca attiva
+    if (isDraggable) {
+      let dragSrc = null;
+      box.querySelectorAll('.prod-row').forEach(row => {
+        row.addEventListener('dragstart', e => {
+          dragSrc = row;
+          row.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('dragging');
+          box.querySelectorAll('.prod-row').forEach(r => r.classList.remove('drag-over'));
+        });
+        row.addEventListener('dragover', e => {
+          e.preventDefault();
+          if (row === dragSrc) return;
+          box.querySelectorAll('.prod-row').forEach(r => r.classList.remove('drag-over'));
+          row.classList.add('drag-over');
+        });
+        row.addEventListener('drop', async e => {
+          e.preventDefault();
+          if (!dragSrc || dragSrc === row) return;
+          row.classList.remove('drag-over');
+
+          // Riordina DOM
+          const rows = [...box.querySelectorAll('.prod-row')];
+          const srcIdx = rows.indexOf(dragSrc);
+          const dstIdx = rows.indexOf(row);
+          if (srcIdx < dstIdx) box.insertBefore(dragSrc, row.nextSibling);
+          else box.insertBefore(dragSrc, row);
+
+          // Calcola nuovo ordine e salva
+          const newOrder = [...box.querySelectorAll('.prod-row')].map((r, i) => ({
+            id: r.dataset.id, ordine: i + 1
+          }));
+
+          // Aggiorna locale
+          newOrder.forEach(({id, ordine}) => {
+            const p = prodotti.find(x => String(x.id) === id);
+            if (p) p.ordine = ordine;
+          });
+
+          // Salva DB
+          await Promise.all(newOrder.map(({id, ordine}) =>
+            supabase.from('prodotti_vendita').update({ ordine }).eq('id', id)
+          ));
+        });
+      });
+    }
   }
 
   function selectProdotto(id) {
