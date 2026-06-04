@@ -16,6 +16,8 @@ export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
 
   container.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
+  // Assicura padding mobile
+  container.style.padding = '0';
 
   const [
     { data: tagSistema },
@@ -73,7 +75,7 @@ export async function render(container) {
       .info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1d4ed8;line-height:1.5}
     </style>
 
-    <div style="min-height:100vh;background:#f8fafc;padding:20px;">
+    <div style="min-height:100vh;background:#f8fafc;padding:12px 12px 40px;">
       <div style="max-width:820px;margin:0 auto;">
 
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:0;">
@@ -277,7 +279,7 @@ export async function render(container) {
             <button id="btn-nuovo-custom" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo tag</button>
           </div>
           <div id="form-custom" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px;">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px;">
               <div><span class="lbl">Nome chiave *</span><input id="ct-nome" class="input" placeholder="es. habitue_venerdi" style="width:100%;box-sizing:border-box;"><div style="font-size:11px;color:#94a3b8;margin-top:2px;">Minuscolo, no spazi</div></div>
               <div><span class="lbl">Etichetta *</span><input id="ct-label" class="input" placeholder="es. Habitué venerdì" style="width:100%;box-sizing:border-box;"></div>
               <div><span class="lbl">Icona (emoji)</span><input id="ct-icona" class="input" placeholder="🍽️" style="width:100%;box-sizing:border-box;"></div>
