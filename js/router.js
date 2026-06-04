@@ -137,6 +137,7 @@ const routes = {
   "bo-tag": () => import("./views/bo/bo-tag.js"),
   "bo-template": () => import("./views/bo/bo-template.js"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
+  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),
 
   // MENU
@@ -204,6 +205,7 @@ const BO_ROUTES = new Set([
   "bo-tag",
   "bo-template",
   "bo-candidature",
+  "bo-bilancio",
   "bo-survey",
 
   // MENU
@@ -422,6 +424,7 @@ function hasPermission(area) {
     "bo-marketing",
     // Personale — selezione e ascolto
     "bo-candidature",
+  "bo-bilancio",
     "bo-survey",
   ]);
 
