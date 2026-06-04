@@ -764,6 +764,7 @@ export async function render(container) {
   // ─── CAMPAGNE GOOGLE ADS ───────────────────────────────────────────────────
 
   async function renderCampagneGoogle(content) {
+    const supa = () => window.supabaseClient || window.supabase;
     content.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
 
     // Carica connessioni Google Ads
