@@ -209,7 +209,7 @@ export async function render(container) {
       .from('richieste_assenze')
       .insert({
         azienda_id: aziendaId,
-        sede_id: sedeId,
+        sede_id: null, // sede_id è integer nel DB, UUID non compatibile
         dipendente_id: user.id,
         tipo,
         data_inizio: dataInizio,
