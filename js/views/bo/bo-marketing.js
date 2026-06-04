@@ -351,14 +351,14 @@ export async function render(container) {
       // Calcola date periodo
       const oggi = new Date();
       const datePreset = periodoStats;
-      const statusFilter = filtroStato !== 'ALL' ? `["${filtroStato}"]` : '["ACTIVE","PAUSED","ARCHIVED"]';
+      const statusFilter = filtroStato !== 'ALL' ? [filtroStato] : ['ACTIVE','PAUSED','ARCHIVED'];
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
         body: JSON.stringify({ endpoint: `${accountId}/campaigns`, params: {
           fields: `id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,insights.date_preset(${datePreset}){impressions,clicks,spend,reach,cpm,cpc}`,
-          effective_status: statusFilter,
+          effective_status: JSON.stringify(statusFilter),
           limit: 50
         }})
       });
