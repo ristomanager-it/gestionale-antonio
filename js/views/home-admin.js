@@ -133,7 +133,7 @@ export async function render(container) {
             <button type="button" class="period-btn" data-period="week">Settimana</button>
             <button type="button" class="period-btn" data-period="month">Mese</button>
             <button type="button" class="period-btn" data-period="year">Anno</button>
-            <button type="button" id="btn-export-acquisti" style="margin-left:8px;padding:6px 12px;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;font-size:13px;">⬇️ CSV</button>
+
           </div>
 
           <div class="admin-filter-range">
@@ -607,7 +607,7 @@ export async function render(container) {
     document.getElementById("kpi-mp-click")?.addEventListener("click", () => openDrillDown("mp", _drillFrom, _drillTo));
     document.getElementById("kpi-sf-click")?.addEventListener("click", () => openDrillDown("sf", _drillFrom, _drillTo));
     document.getElementById("kpi-cl-click")?.addEventListener("click", () => openDrillDown("cl", _drillFrom, _drillTo));
-    document.getElementById("btn-export-acquisti")?.addEventListener("click", exportAcquistiCSV);
+
   }, 300);
 }
 
