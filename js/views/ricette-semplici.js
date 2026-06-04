@@ -684,8 +684,12 @@ async function openModalIngredienteLibero() {
       </select>
     </div>
     <div id="lib-feedback" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
-    <div style="display:flex;gap:8px;">
-      <button id="lib-salva" class="app-button" style="flex:1;">Crea e aggiungi</button>
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:12px;">
+      💡 Se il prodotto non esiste ancora, aprilo nella scheda anagrafica per compilarlo correttamente con prezzo, fornitore e unità di misura.
+    </div>
+    <div style="display:flex;gap:8px;flex-direction:column;">
+      <button id="lib-salva" class="app-button" style="width:100%;">🔍 Cerca e aggiungi alla ricetta</button>
+      <button id="lib-apri-anagrafica" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:10px;padding:10px;cursor:pointer;font-size:13px;font-weight:600;width:100%;">📋 Apri scheda anagrafica prodotto</button>
       <button id="lib-annulla" class="app-button secondary">Annulla</button>
     </div>
   `;
@@ -695,6 +699,18 @@ async function openModalIngredienteLibero() {
   overlay.querySelector("#lib-annulla").onclick = () => overlay.remove();
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   overlay.querySelector("#lib-nome").focus();
+
+  // Apri anagrafica prodotti
+  overlay.querySelector("#lib-apri-anagrafica").onclick = async () => {
+    overlay.remove();
+    try {
+      const { renderAnagraficaProdotti } = await import("../magazzino/anagrafica_prodotti.js");
+      renderAnagraficaProdotti(document.body);
+    } catch(e) {
+      console.error("Impossibile aprire anagrafica:", e);
+      alert("Vai in Magazzino → Anagrafica Prodotti per creare il prodotto, poi torna qui.");
+    }
+  };
 
   overlay.querySelector("#lib-salva").onclick = async () => {
     const feedback = overlay.querySelector("#lib-feedback");
@@ -708,20 +724,31 @@ async function openModalIngredienteLibero() {
     feedback.innerHTML = `<span style="color:#64748b;">Creazione in corso...</span>`;
 
     try {
-      // Cerca se esiste già
-      const { data: existing } = await supa()
+      // Cerca se esiste già (con wildcard e fallback su nome_interno)
+      let existing = null;
+      const { data: found1 } = await supa()
         .from("prodotti")
-        .select("id, nome, costo_medio")
+        .select("id, nome, costo_medio, costo_ultimo")
         .eq("azienda_id", aziendaId)
-        .ilike("nome", nome)
-        .maybeSingle();
+        .ilike("nome", `%${nome}%`)
+        .limit(1);
+      existing = found1?.[0] || null;
+      if (!existing) {
+        const { data: found2 } = await supa()
+          .from("prodotti")
+          .select("id, nome, costo_medio, costo_ultimo")
+          .eq("azienda_id", aziendaId)
+          .ilike("nome_interno", `%${nome}%`)
+          .limit(1);
+        existing = found2?.[0] || null;
+      }
 
       let prodottoId, prodottoNome, prodottoCosto;
 
       if (existing) {
         prodottoId = existing.id;
         prodottoNome = existing.nome;
-        prodottoCosto = toNumber(existing.costo_medio);
+        prodottoCosto = toNumber(existing.costo_medio) || toNumber(existing.costo_ultimo) || 0;
         feedback.innerHTML = `<span style="color:#16a34a;">✅ Trovato in magazzino: ${prodottoNome}</span>`;
       } else {
         // Crea nuovo prodotto
