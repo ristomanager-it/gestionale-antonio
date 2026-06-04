@@ -1593,6 +1593,7 @@ function esc(s) {
   // ════════════════════════════════════════
   async function renderTabIdentita(box) {
     const supa = () => window.supabaseClient || window.supabase;
+    const aziendaId = window.state?.azienda?.id;
 
     // Carica identità esistente
     const { data: ident } = await supa()
