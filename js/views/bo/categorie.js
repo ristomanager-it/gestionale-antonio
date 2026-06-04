@@ -33,6 +33,13 @@ export async function render(container) {
       </div>
 
       <div id="categorie-list" style="margin-top:10px;"></div>
+      <style>
+        .cat-row { transition: background .15s; }
+        .cat-row.drag-over { background: #eff6ff !important; border-top: 2px solid #0E5A7A !important; }
+        .cat-row.dragging { opacity: 0.4; }
+        .drag-handle { cursor: grab; padding: 0 8px; color: #cbd5e1; font-size: 18px; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+      </style>
 
     </div>
 
@@ -132,47 +139,108 @@ export async function render(container) {
       return;
     }
 
-    qs("#categorie-list").innerHTML = categorie
-      .sort((a,b) => (a.ordine||0)-(b.ordine||0))
-      .map(c => `
-        <div data-id="${c.id}" style="
-          display:flex;align-items:center;justify-content:space-between;
-          padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;
-          opacity:${c.attiva !== false ? 1 : 0.45};
-          background:${c.attiva !== false ? 'white' : '#f8fafc'};
-        ">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:16px;">${c.immagine_url ? `<img src="${c.immagine_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">` : '📂'}</span>
-            <div>
-              <div style="font-weight:600;font-size:14px;">${c.nome}</div>
-              ${c.descrizione ? `<div style="font-size:11px;color:#94a3b8;">${c.descrizione}</div>` : ''}
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;background:${c.attiva!==false?'#dcfce7':'#fee2e2'};color:${c.attiva!==false?'#15803d':'#dc2626'};padding:2px 8px;border-radius:10px;font-weight:600;">
-              ${c.attiva!==false?'Attiva':'Non attiva'}
-            </span>
-            <button data-toggle="${c.id}" data-stato="${c.attiva!==false}" style="background:#f1f5f9;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;"
-              onclick="event.stopPropagation()">
-              ${c.attiva!==false?'Disattiva':'Attiva'}
-            </button>
+    const lista = qs("#categorie-list");
+    lista.innerHTML = '';
+
+    const sorted = [...categorie].sort((a,b) => (a.ordine||0)-(b.ordine||0));
+
+    sorted.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      row.dataset.id = c.id;
+      row.draggable = true;
+      row.style.cssText = `
+        display:flex;align-items:center;justify-content:space-between;
+        padding:10px 12px;border-bottom:1px solid #f1f5f9;
+        opacity:${c.attiva !== false ? 1 : 0.45};
+        background:${c.attiva !== false ? 'white' : '#f8fafc'};
+      `;
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="drag-handle" title="Trascina per riordinare">⠿</span>
+          <span style="font-size:16px;">${c.immagine_url ? `<img src="${c.immagine_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">` : '📂'}</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;">${c.nome}</div>
+            ${c.descrizione ? `<div style="font-size:11px;color:#94a3b8;">${c.descrizione}</div>` : ''}
           </div>
         </div>
-      `).join("")
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;background:${c.attiva!==false?'#dcfce7':'#fee2e2'};color:${c.attiva!==false?'#15803d':'#dc2626'};padding:2px 8px;border-radius:10px;font-weight:600;">
+            ${c.attiva!==false?'Attiva':'Non attiva'}
+          </span>
+          <button data-toggle="${c.id}" data-stato="${c.attiva!==false}" style="background:#f1f5f9;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;">
+            ${c.attiva!==false?'Disattiva':'Attiva'}
+          </button>
+        </div>
+      `;
 
-    qsa("[data-id]").forEach(el => {
-      el.onclick = () => { selectCategoria(el.dataset.id); openForm(); }
-    })
+      // Click per aprire form (non sul handle e non sul toggle)
+      row.onclick = (e) => {
+        if (e.target.classList.contains('drag-handle')) return;
+        if (e.target.dataset.toggle) return;
+        selectCategoria(c.id);
+        openForm();
+      };
 
-    qsa("[data-toggle]").forEach(btn => {
-      btn.onclick = async (e) => {
-        e.stopPropagation()
-        const id = btn.dataset.toggle
-        const statoAttuale = btn.dataset.stato === 'true'
-        await supabase.from("categorie_vendita").update({ attiva: !statoAttuale }).eq("id", id)
-        await loadAll()
-      }
-    })
+      // Toggle attiva
+      row.querySelector('[data-toggle]').onclick = async (e) => {
+        e.stopPropagation();
+        const statoAttuale = c.attiva !== false;
+        await supabase.from("categorie_vendita").update({ attiva: !statoAttuale }).eq("id", c.id);
+        await loadAll();
+      };
+
+      lista.appendChild(row);
+    });
+
+    // ── Drag & Drop ────────────────────────────────────────────
+    let dragSrc = null;
+
+    lista.querySelectorAll('.cat-row').forEach(row => {
+      row.addEventListener('dragstart', e => {
+        dragSrc = row;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        lista.querySelectorAll('.cat-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (row === dragSrc) return;
+        lista.querySelectorAll('.cat-row').forEach(r => r.classList.remove('drag-over'));
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('drop', async e => {
+        e.preventDefault();
+        if (!dragSrc || dragSrc === row) return;
+        row.classList.remove('drag-over');
+
+        // Riordina DOM
+        const rows = [...lista.querySelectorAll('.cat-row')];
+        const srcIdx = rows.indexOf(dragSrc);
+        const dstIdx = rows.indexOf(row);
+        if (srcIdx < dstIdx) lista.insertBefore(dragSrc, row.nextSibling);
+        else lista.insertBefore(dragSrc, row);
+
+        // Salva nuovo ordine nel DB
+        const newOrder = [...lista.querySelectorAll('.cat-row')].map((r, i) => ({
+          id: r.dataset.id, ordine: i + 1
+        }));
+
+        // Aggiorna ordine locale
+        newOrder.forEach(({id, ordine}) => {
+          const cat = categorie.find(c => c.id === id);
+          if (cat) cat.ordine = ordine;
+        });
+
+        // Salva su DB
+        await Promise.all(newOrder.map(({id, ordine}) =>
+          supabase.from("categorie_vendita").update({ ordine }).eq("id", id)
+        ));
+      });
+    });
   }
 
   function openForm() {
