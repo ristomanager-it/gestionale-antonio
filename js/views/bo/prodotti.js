@@ -4,6 +4,7 @@ import { openImportProdottiCSVModal } from "../../components/importProdottiCSVMo
 export async function render(container) {
   const azienda_id = window.state?.azienda?.id
   const sede_id = window.state?.sedeAttiva?.id || null
+  const sede_nome = window.state?.sedeAttiva?.nome || 'Tutte le sedi'
   const ruolo = window.state?.ruolo
 
   const STORAGE_BUCKET = "loghi-aziende"
@@ -240,6 +241,7 @@ export async function render(container) {
       .from("prodotti_vendita")
       .select("*")
       .eq("azienda_id", azienda_id)
+    if (sede_id) q = q.eq("sede_id", sede_id)
       .order("nome", { ascending: true })
 
     if (error) {
@@ -256,6 +258,7 @@ export async function render(container) {
       .from("categorie_vendita")
       .select("*")
       .eq("azienda_id", azienda_id)
+    if (sede_id) q = q.eq("sede_id", sede_id)
       .order("ordine", { ascending: true })
 
     if (error) {
