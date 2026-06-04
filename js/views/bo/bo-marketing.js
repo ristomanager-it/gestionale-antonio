@@ -346,7 +346,7 @@ export async function render(container) {
 
   async function caricaCampagne(accountId) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
         body: JSON.stringify({ endpoint: `${accountId}/campaigns`, params: {
@@ -549,7 +549,7 @@ export async function render(container) {
           btn.textContent = 'Aggiornamento...';
           btn.disabled = true;
           try {
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy`, {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
               body: JSON.stringify({ endpoint: btn.dataset.id, method: 'POST', params: { status: newStatus } })
@@ -575,7 +575,7 @@ export async function render(container) {
         esito.textContent = '⏳ Creazione in corso...'; esito.style.color='#64748b';
 
         try {
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy`, {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
             body: JSON.stringify({
