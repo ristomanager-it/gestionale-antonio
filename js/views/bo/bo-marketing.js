@@ -404,7 +404,7 @@ export async function render(container) {
         </style>
 
         <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:36px;height:36px;background:#1877f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📘</div>
             <div>
@@ -416,7 +416,7 @@ export async function render(container) {
         </div>
 
         <!-- Selettore pagina -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-bottom:16px;">
           ${pagine.map(p => `
             <button class="mk-btn btn-pagina ${p.pagina_id===paginaSelezionata.pagina_id?'sel':''}"
               data-pid="${p.pagina_id}" data-aid="${p.account_id}"
@@ -459,14 +459,14 @@ export async function render(container) {
             const insights = c.insights?.data?.[0] || {};
             return `
               <div class="mk-card">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
                   <div style="flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
                       <span style="font-weight:700;font-size:14px;">${c.name}</span>
                       <span style="background:${statusColor[c.status]||'#64748b'}20;color:${statusColor[c.status]||'#64748b'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${statusLabel[c.status]||c.status}</span>
                       ${c.objective?`<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:11px;">${c.objective}</span>`:''}
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:8px;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:8px;">
                       <div style="background:#f8fafc;border-radius:8px;padding:8px;text-align:center;">
                         <div style="font-size:16px;font-weight:700;">${insights.impressions?parseInt(insights.impressions).toLocaleString('it-IT'):'—'}</div>
                         <div style="font-size:10px;color:#64748b;">Impressioni</div>
@@ -493,7 +493,7 @@ export async function render(container) {
                       </div>
                     </div>
                   </div>
-                  <div style="display:flex;gap:6px;flex-shrink:0;flex-direction:column;">
+                  <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
                     <button class="mk-btn btn-toggle-status" data-id="${c.id}" data-status="${c.status}"
                       style="background:${c.status==='ACTIVE'?'#fef3c7':'#dcfce7'};color:${c.status==='ACTIVE'?'#92400e':'#15803d'};">
                       ${c.status==='ACTIVE'?'⏸ Pausa':'▶️ Attiva'}
