@@ -2,8 +2,6 @@
 // Control room del ristorante — configurazione centralizzata
 // Tab: Operativo | Sala | Menu & Comunicazione | Cassa | Integrazioni
 
-import { createPageLayout } from "../../utils/pageLayout.js";
-
 const supa = () => window.supabaseClient || window.supabase;
 
 async function waitForAuth(maxWait = 3000) {
@@ -30,10 +28,14 @@ export async function render(container) {
   let settori = [], postazioni = [], prodottiVendita = [], categorieVendita = [], ricette = [];
   let tavoli = [], sale = [];
 
-  container.innerHTML = createPageLayout({
-    title: "Configurazione",
-    subtitle: "Control room — impostazioni operative del ristorante",
-    content: `
+  container.innerHTML = `
+  <div style="min-height:100vh;background:#f8fafc;padding:16px;">
+    <div style="max-width:900px;margin:0 auto;">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
+        <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
+      </div>
+      
       <!-- Tab nav -->
       <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
         ${[
@@ -53,8 +55,10 @@ export async function render(container) {
       </div>
       <!-- Contenuto tab -->
       <div id="tab-content"></div>
-    `
-  });
+    
+    </div>
+  </div>
+`;
 
   // ════════════════════════════════════════
   // TAB NAVIGATION
