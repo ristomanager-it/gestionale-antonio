@@ -412,6 +412,24 @@ function hasPermission(area) {
   }
 
   // =====================================
+  // SOLO ADMIN (non manager, non operatore)
+  // =====================================
+
+  const ADMIN_ONLY_ROUTES = new Set([
+    // Marketing & CRM
+    "bo-tag",
+    "bo-template",
+    "bo-marketing",
+    // Personale — selezione e ascolto
+    "bo-candidature",
+    "bo-survey",
+  ]);
+
+  if (ADMIN_ONLY_ROUTES.has(area)) {
+    return ruolo === "admin";
+  }
+
+  // =====================================
   // ADMIN / MANAGER
   // =====================================
 
