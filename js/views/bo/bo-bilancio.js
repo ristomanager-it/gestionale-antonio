@@ -1,6 +1,5 @@
 // js/views/bo/bo-bilancio.js
 // Bilancio live — conto economico in tempo reale con export PDF
-import { createPageLayout, createCard } from "../utils/pageLayout.js";
 const supa = () => window.supabaseClient || window.supabase;
 
 export async function render(container) {
@@ -109,7 +108,7 @@ export async function render(container) {
         .bil-sezione { font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;padding:16px 12px 6px; }
         @media print {
           .no-print { display:none !important; }
-          body { background:white; }
+          body { background:white !important; }
         }
       </style>
 
@@ -269,12 +268,32 @@ export async function render(container) {
       renderBilancio();
     });
 
-    // ── PDF via print ──
+    // ── PDF via finestra separata ──
     container.querySelector('#btn-scarica-pdf')?.addEventListener('click', () => {
-      const titolo = document.title;
-      document.title = `Bilancio_${window.state?.azienda?.nome || ''}_${periodoLabel}`.replace(/\s+/g,'_');
-      window.print();
-      document.title = titolo;
+      const doc = container.querySelector('#documento-bilancio');
+      const kpi = container.querySelector('.no-print:last-of-type');
+      const aziendaNome = window.state?.azienda?.nome || '';
+
+      const html = `<!DOCTYPE html><html lang="it"><head>
+        <meta charset="UTF-8">
+        <title>Bilancio_${aziendaNome}_${periodoLabel}</title>
+        <style>
+          * { box-sizing:border-box; margin:0; padding:0; }
+          body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:white; padding:20px; color:#0f172a; }
+          .bil-row { display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:0.5px solid #f1f5f9;font-size:13px; }
+          .bil-totale { display:flex;justify-content:space-between;align-items:center;padding:12px;font-weight:700;font-size:14px;border-top:2px solid #0f172a; }
+          @page { margin:1cm; size:A4 landscape; }
+        </style>
+      </head><body>
+        <div style="font-size:11px;color:#64748b;margin-bottom:16px;">Situazione economica — ${aziendaNome} — ${periodoLabel} — Stampato il ${new Date().toLocaleDateString('it-IT')}</div>
+        ${doc ? doc.outerHTML : ''}
+      </body></html>`;
+
+      const w = window.open('','_blank','width=1000,height=700');
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => { w.print(); }, 500);
     });
 
     // ── CSV ──
