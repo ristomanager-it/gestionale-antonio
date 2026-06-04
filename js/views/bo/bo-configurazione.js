@@ -42,6 +42,7 @@ export async function render(container) {
           { id:'menu',         icon:'📋', label:'Menu'                 },
           { id:'cassa',        icon:'💳', label:'Cassa'                },
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
+          { id:'identita',    icon:'🎯', label:'Identità & Brand'      },
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
@@ -73,6 +74,7 @@ export async function render(container) {
       case 'menu':         renderTabMenu(box);         break;
       case 'cassa':        renderTabCassa(box); break;
       case 'integrazioni': renderTabIntegrazioni(box); break;
+      case 'identita':    renderTabIdentita(box);    break;
     }
   }
 
@@ -1580,4 +1582,153 @@ export async function render(container) {
 
 function esc(s) {
   return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+
+  // ════════════════════════════════════════
+  // TAB: IDENTITÀ & BRAND
+  // ════════════════════════════════════════
+  async function renderTabIdentita(box) {
+    const supa = () => window.supabaseClient || window.supabase;
+
+    // Carica identità esistente
+    const { data: ident } = await supa()
+      .from('azienda_identita')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+
+    const val = (campo) => ident?.[campo] || '';
+
+    box.innerHTML = `
+      <style>
+        .id-card { background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px; }
+        .id-label { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px; }
+        .id-desc { font-size:12px;color:#94a3b8;margin-bottom:8px;font-style:italic; }
+        .id-ta { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;resize:vertical;min-height:80px;line-height:1.6;box-sizing:border-box;transition:border .2s; }
+        .id-ta:focus { border-color:#0E5A7A; }
+        .id-input { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:border .2s; }
+        .id-input:focus { border-color:#0E5A7A; }
+      </style>
+
+      <div style="max-width:720px;">
+
+        <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:white;border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎯 Identità & Brand</div>
+          <div style="font-size:13px;opacity:.85;line-height:1.5;">
+            Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>
+            Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.
+          </div>
+        </div>
+
+        <!-- VISION & MISSION -->
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🌟 Vision & Mission</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Vision — Dove vogliamo arrivare</span>
+            <div class="id-desc">Il futuro che vogliamo costruire. Es. "Diventare il riferimento per la cucina laziale autentica nel Viterbese"</div>
+            <textarea id="id-vision" class="id-ta" placeholder="Scrivi la vision dell'azienda...">${val('vision')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">Mission — Perché esistiamo</span>
+            <div class="id-desc">Il motivo per cui siamo qui ogni giorno. Es. "Portare in tavola la tradizione laziale con ingredienti del territorio"</div>
+            <textarea id="id-mission" class="id-ta" placeholder="Scrivi la mission dell'azienda...">${val('mission')}</textarea>
+          </div>
+        </div>
+
+        <!-- POSIZIONAMENTO -->
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">📍 Posizionamento & Cliente ideale</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Posizionamento</span>
+            <div class="id-desc">Come vogliamo essere percepiti rispetto ai competitor. Es. "Il ristorante di territorio per famiglie e coppie che cercano autenticità"</div>
+            <textarea id="id-posizionamento" class="id-ta" placeholder="Come vogliamo essere percepiti...">${val('posizionamento')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Cliente ideale</span>
+            <div class="id-desc">Chi vogliamo attrarre. Es. "Coppie 35-55, famiglie con bambini, turisti che cercano cucina locale"</div>
+            <textarea id="id-cliente" class="id-ta" placeholder="Descrivi il cliente ideale...">${val('cliente_ideale')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">Differenziazione</span>
+            <div class="id-desc">Cosa ci distingue dai competitor. Es. "Selezione vini locali, orto proprio, servizio familiare"</div>
+            <textarea id="id-diff" class="id-ta" placeholder="Cosa ci rende unici...">${val('differenziazione')}</textarea>
+          </div>
+        </div>
+
+        <!-- VALORI & COMUNICAZIONE -->
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">💬 Valori & Comunicazione</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Valori aziendali</span>
+            <div class="id-desc">Cosa guida ogni decisione. Es. "Qualità, territorio, accoglienza, onestà"</div>
+            <textarea id="id-valori" class="id-ta" style="min-height:60px;" placeholder="I valori che ci guidano...">${val('valori')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Tone of voice</span>
+            <div class="id-desc">Come comunichiamo con i clienti. Es. "Caldo e familiare, mai formale — come se invitassimo amici a casa"</div>
+            <input id="id-tov" class="id-input" placeholder="Es. Caldo, familiare, autentico, mai troppo formale" value="${val('tone_of_voice')}">
+          </div>
+          <div>
+            <span class="id-label">Parole chiave del brand</span>
+            <div class="id-desc">Keywords che rappresentano il vostro brand. Usate nelle campagne AI.</div>
+            <input id="id-kw" class="id-input" placeholder="Es. tradizione, territorio, famiglia, vino, Lazio" value="${val('parole_chiave')}">
+          </div>
+        </div>
+
+        <!-- OBIETTIVI -->
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🚀 Obiettivi business</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <span class="id-label">Obiettivo breve termine (3-6 mesi)</span>
+              <textarea id="id-obj-breve" class="id-ta" style="min-height:70px;" placeholder="Es. Aumentare prenotazioni pranzo del 20%">${val('obiettivo_breve')}</textarea>
+            </div>
+            <div>
+              <span class="id-label">Obiettivo lungo termine (1-3 anni)</span>
+              <textarea id="id-obj-lungo" class="id-ta" style="min-height:70px;" placeholder="Es. Aprire una seconda sede a Viterbo">${val('obiettivo_lungo')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
+
+        <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">
+          💾 Salva identità aziendale
+        </button>
+
+      </div>
+    `;
+
+    box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
+      const esito = box.querySelector('#id-esito');
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        vision: box.querySelector('#id-vision').value.trim() || null,
+        mission: box.querySelector('#id-mission').value.trim() || null,
+        posizionamento: box.querySelector('#id-posizionamento').value.trim() || null,
+        cliente_ideale: box.querySelector('#id-cliente').value.trim() || null,
+        differenziazione: box.querySelector('#id-diff').value.trim() || null,
+        valori: box.querySelector('#id-valori').value.trim() || null,
+        tone_of_voice: box.querySelector('#id-tov').value.trim() || null,
+        parole_chiave: box.querySelector('#id-kw').value.trim() || null,
+        obiettivo_breve: box.querySelector('#id-obj-breve').value.trim() || null,
+        obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supa().from('azienda_identita').upsert(payload, { onConflict: 'azienda_id' });
+
+      if (error) {
+        esito.textContent = '❌ ' + error.message;
+        esito.style.color = '#dc2626';
+      } else {
+        esito.textContent = '✅ Identità salvata!';
+        esito.style.color = '#15803d';
+        setTimeout(() => { esito.textContent = ''; }, 3000);
+      }
+    });
+  }
+
 }
