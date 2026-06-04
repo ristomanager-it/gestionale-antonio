@@ -365,7 +365,7 @@ export function initMenu() {
 
     // ── PERSONALE ──
     sections.push({
-      title: "PERSONALE",
+      title: "IL MIO PROFILO",
       items: [
         { label: "👤 Profilo",            route: "completa-profilo" },
         { label: "🕒 Timbratura",         route: "timbrature"       },
