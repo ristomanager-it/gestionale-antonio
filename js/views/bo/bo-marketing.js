@@ -359,7 +359,6 @@ export async function render(container) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
         body: JSON.stringify({ endpoint: `${accountId}/campaigns`, params: {
           fields: `id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,insights.date_preset(${datePreset}){impressions,clicks,spend,reach,cpm,cpc}`,
-          effective_status: JSON.stringify(statusFilter),
           limit: 50
         }})
       });
