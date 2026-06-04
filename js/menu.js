@@ -284,7 +284,7 @@ export function initMenu() {
       title: "CUCINA",
       items: [
         { label: "📖 Ricettario",         route: "ricettario"         },
-        { label: "➕ Nuova ricetta",       route: "crea-ricetta-avanzata" },
+        { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
         { label: "🏭 Produzione",          route: "produzione"         },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
