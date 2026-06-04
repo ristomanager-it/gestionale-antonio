@@ -56,6 +56,7 @@ export async function render(container) {
         </div>
 
         <div class="bo-m-item" data-sec="campagne-meta">📣 Campagne Meta</div>
+        <div class="bo-m-item" data-sec="campagne-google">🎯 Campagne Google</div>
         <div class="bo-m-item" data-sec="promozioni">🎯 Promozioni</div>
         <div class="bo-m-item" data-sec="fidelity">💳 Fidelity</div>
         <div class="bo-m-item" data-sec="tags">🏷️ Tags</div>
@@ -592,12 +593,6 @@ export async function render(container) {
                 <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Zona geografica</label>
                 <input id="nc-zona" class="mk-input" placeholder="Es. Viterbo, Roma — lascia vuoto per Italia">
               </div>
-              <div style="margin-bottom:14px;">
-                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Testo annuncio</label>
-                <textarea id="nc-testo" class="mk-input" rows="5" placeholder="Scrivi il testo oppure clicca 🤖 Genera con AI..." style="resize:vertical;font-size:13px;line-height:1.6;box-sizing:border-box;width:100%;"></textarea>
-                <button id="btn-genera-aida" style="margin-top:6px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600;color:#0E5A7A;">🤖 Genera testo con AI (Tony)</button>
-                <div id="nc-aida-status" style="font-size:12px;color:#64748b;margin-top:4px;min-height:14px;"></div>
-              </div>
               <div id="nc-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
               <div style="display:flex;gap:8px;">
                 <button id="btn-crea-campagna" class="mk-btn" style="flex:1;background:#1877f2;color:white;padding:12px;">
@@ -631,66 +626,6 @@ export async function render(container) {
       content.querySelector('#filtro-stato')?.addEventListener('change', async function() {
         filtroStato = this.value;
         await renderContent();
-      });
-
-      // Genera testo AIDA con Tony
-      content.querySelector('#btn-genera-aida')?.addEventListener('click', async () => {
-        const status = content.querySelector('#nc-aida-status');
-        const textarea = content.querySelector('#nc-testo');
-        const paginaId = content.querySelector('#nc-pagina')?.value;
-        const pagina = pagine.find(p => p.pagina_id === paginaId);
-        const obiettivo = content.querySelector('#nc-obiettivo')?.value;
-        const obiettivoLabel = {
-          'OUTCOME_AWARENESS': 'visibilità e notorietà del locale',
-          'OUTCOME_TRAFFIC': 'portare persone al sito o alle prenotazioni',
-          'OUTCOME_ENGAGEMENT': 'aumentare interazioni sui social',
-          'OUTCOME_LEADS': 'raccogliere contatti e richieste'
-        }[obiettivo] || 'promozione del locale';
-
-        status.textContent = '🤖 Tony sta scrivendo...'; status.style.color = '#64748b';
-
-        const { data: identita } = await supa().from('azienda_identita')
-          .select('*').eq('azienda_id', window.state?.azienda?.id).maybeSingle();
-
-        const prompt = `Sei un esperto di marketing per la ristorazione. Scrivi un testo pubblicitario per Facebook/Instagram usando il metodo AIDA per ${pagina?.pagina_nome || 'questo locale'}.
-
-OBIETTIVO: ${obiettivoLabel}
-MISSION: ${identita?.mission || 'cucina di qualità e tradizione'}
-POSIZIONAMENTO: ${identita?.posizionamento || 'ristorante autentico del territorio'}
-CLIENTE IDEALE: ${identita?.cliente_ideale || 'famiglie e coppie'}
-TONE OF VOICE: ${identita?.tone_of_voice || 'caldo e familiare'}
-PAROLE CHIAVE: ${identita?.parole_chiave || 'tradizione, qualità, territorio'}
-DIFFERENZIAZIONE: ${identita?.differenziazione || 'cucina autentica'}
-
-STRUTTURA AIDA OBBLIGATORIA:
-🔥 ATTENZIONE: frase che cattura (provocazione o problema)
-💡 INTERESSE: dichiara la negatività comune e poi il contrasto positivo
-✨ DESIDERIO: spiega la proposta unica che risolve il problema
-📅 AZIONE: invito chiaro e urgente con call to action
-
-Max 150 parole, in italiano, pronto da copiare su Facebook/Instagram. Solo il testo, niente titoli o spiegazioni.`;
-
-        try {
-          const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0' },
-            body: JSON.stringify({
-              azienda_id: window.state?.azienda?.id,
-              messages: [{ role: 'user', content: prompt }]
-            })
-          });
-          const data = await res.json();
-          const testo = data?.reply || '';
-          if (testo) {
-            textarea.value = testo;
-            status.textContent = '✅ Testo generato — modificalo se vuoi';
-            status.style.color = '#15803d';
-          } else {
-            status.textContent = '❌ Errore generazione'; status.style.color = '#dc2626';
-          }
-        } catch(e) {
-          status.textContent = '❌ ' + e.message; status.style.color = '#dc2626';
-        }
       });
 
       content.querySelector('#btn-nuova-campagna')?.addEventListener('click', () => {
@@ -825,6 +760,244 @@ Max 150 parole, in italiano, pronto da copiare su Facebook/Instagram. Solo il te
     `
   }
 
+
+  // ─── CAMPAGNE GOOGLE ADS ───────────────────────────────────────────────────
+
+  async function renderCampagneGoogle(content) {
+    content.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
+
+    // Carica connessioni Google Ads
+    const { data: connessioni } = await supa()
+      .from('google_ads_connessioni')
+      .select('*')
+      .eq('azienda_id', window.state?.azienda?.id)
+      .eq('attivo', true);
+
+    if (!connessioni?.length) {
+      content.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🎯</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Nessun account Google Ads collegato</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Vai in Configurazione → Integrazioni → Google Ads per collegare il tuo account.</div>
+          <button onclick="window.location.hash='#/bo-configurazione'" style="background:#4285F4;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;">⚙️ Vai alle impostazioni</button>
+        </div>`;
+      return;
+    }
+
+    let connSelezionata = connessioni[0];
+    let campagne = [];
+    let periodoStats = 'LAST_30_DAYS';
+    let filtroStato = 'ALL';
+
+    async function caricaCampagne() {
+      // Per ora mostra placeholder — le API Google Ads richiedono Developer Token approvato
+      // In fase 2 integreremo la Google Ads API completa
+      campagne = [];
+    }
+
+    await caricaCampagne();
+
+    content.innerHTML = `
+      <style>
+        .gads-btn { border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600; }
+        .gads-card { background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px; }
+      </style>
+
+      <div style="max-width:860px;margin:0 auto;padding:16px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;background:#4285F4;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎯</div>
+            <div>
+              <div style="font-size:18px;font-weight:700;">Campagne Google Ads</div>
+              <div style="font-size:12px;color:#64748b;">Search, Display, Performance Max</div>
+            </div>
+          </div>
+          <button id="btn-nuova-campagna-google" class="gads-btn" style="background:#4285F4;color:white;">+ Nuova campagna</button>
+        </div>
+
+        <!-- Selettore account -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;">
+          ${connessioni.map(c => `
+            <button class="gads-btn btn-conn-google ${c.id === connSelezionata.id ? 'sel' : ''}"
+              data-id="${c.id}" data-customer="${c.customer_id}"
+              style="background:${c.id === connSelezionata.id ? '#4285F4' : '#f1f5f9'};color:${c.id === connSelezionata.id ? 'white' : '#374151'};">
+              🎯 ${c.customer_nome || c.customer_id}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Info account -->
+        <div class="gads-card" style="background:#f0f9ff;border-color:#bae6fd;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:#0E5A7A;">${connSelezionata.customer_nome || 'Account Google Ads'}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">
+                Customer ID: ${connSelezionata.customer_id} 
+                ${connSelezionata.refresh_token ? '· ✅ Autorizzato' : '· ⚠️ Non autorizzato'}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-sincronizza-google" class="gads-btn" style="background:#f1f5f9;color:#374151;">🔄 Sincronizza</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info sviluppo -->
+        <div class="gads-card" style="background:#fef3c7;border-color:#fde68a;">
+          <div style="font-size:13px;color:#92400e;">
+            <strong>⚠️ Integrazione Google Ads in sviluppo</strong><br>
+            <div style="margin-top:6px;line-height:1.6;">
+              Le API Google Ads richiedono un <strong>Developer Token</strong> approvato da Google (processo di approvazione 1-2 settimane). 
+              Nel frattempo puoi:<br>
+              • Gestire campagne direttamente su <a href="https://ads.google.com" target="_blank" style="color:#0E5A7A;">Google Ads →</a><br>
+              • Vedere le statistiche tramite Supermetrics (già connesso)<br>
+              • La creazione campagne dall'app sarà disponibile appena approvato il token
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistiche via Supermetrics -->
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;margin-top:20px;">📊 Performance (ultimi 30 giorni)</div>
+        <div id="google-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;">
+          <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">Impressioni</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
+          <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">Click</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
+          <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">Spesa</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
+          <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">CPC medio</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
+        </div>
+
+        <!-- Campagne -->
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;">📋 Campagne attive</div>
+        <div class="gads-card" style="text-align:center;color:#94a3b8;padding:32px;">
+          Campagne disponibili dopo approvazione Developer Token Google
+        </div>
+
+        <!-- Modal nuova campagna -->
+        <div id="modal-nuova-google" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+          <div style="background:white;border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;">
+            <div style="background:#4285F4;color:white;padding:20px 24px;border-radius:20px 20px 0 0;">
+              <div style="font-size:17px;font-weight:700;">🎯 Nuova campagna Google Ads</div>
+              <div style="font-size:12px;opacity:.8;margin-top:2px;">La campagna viene creata in pausa</div>
+            </div>
+            <div style="padding:20px;">
+              <div style="margin-bottom:14px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Nome campagna *</label>
+                <input id="gnc-nome" class="mk-input" placeholder="Es. Pranzo domenicale — Estate 2026">
+              </div>
+              <div style="margin-bottom:14px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Tipo campagna</label>
+                <select id="gnc-tipo" class="mk-input">
+                  <option value="SEARCH">🔍 Search — annunci testuali su Google</option>
+                  <option value="DISPLAY">🖼️ Display — banner su siti web</option>
+                  <option value="PERFORMANCE_MAX">⚡ Performance Max — automatica su tutti i canali</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Budget giornaliero (€)</label>
+                  <input id="gnc-budget" type="number" min="1" value="5" class="mk-input">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Data fine</label>
+                  <input id="gnc-datafine" type="date" class="mk-input">
+                </div>
+              </div>
+              <div style="margin-bottom:14px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Testo annuncio</label>
+                <textarea id="gnc-testo" class="mk-input" rows="4" placeholder="Scrivi il testo oppure clicca 🤖 Genera con AI..." style="resize:vertical;font-size:13px;"></textarea>
+                <button id="btn-genera-aida-google" style="margin-top:6px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600;color:#0E5A7A;">🤖 Genera testo con AI</button>
+                <div id="gnc-aida-status" style="font-size:12px;color:#64748b;margin-top:4px;min-height:14px;"></div>
+              </div>
+              <div id="gnc-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
+              <div style="display:flex;gap:8px;">
+                <button id="btn-salva-campagna-google" class="gads-btn" style="flex:1;background:#4285F4;color:white;padding:12px;">🎯 Salva campagna (bozza)</button>
+                <button id="btn-chiudi-modal-google" class="gads-btn" style="background:#f1f5f9;color:#374151;">Annulla</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Listeners
+    content.querySelector('#btn-nuova-campagna-google')?.addEventListener('click', () => {
+      content.querySelector('#modal-nuova-google').style.display = 'flex';
+    });
+    content.querySelector('#btn-chiudi-modal-google')?.addEventListener('click', () => {
+      content.querySelector('#modal-nuova-google').style.display = 'none';
+    });
+    content.querySelector('#btn-sincronizza-google')?.addEventListener('click', () => {
+      caricaCampagne().then(() => renderCampagneGoogle(content));
+    });
+
+    // Selettore account
+    content.querySelectorAll('.btn-conn-google').forEach(btn => {
+      btn.addEventListener('click', () => {
+        connSelezionata = connessioni.find(c => c.id === btn.dataset.id) || connSelezionata;
+        renderCampagneGoogle(content);
+      });
+    });
+
+    // Genera AIDA per Google
+    content.querySelector('#btn-genera-aida-google')?.addEventListener('click', async () => {
+      const status = content.querySelector('#gnc-aida-status');
+      const textarea = content.querySelector('#gnc-testo');
+      const tipo = content.querySelector('#gnc-tipo')?.value;
+      status.textContent = '🤖 Tony sta scrivendo...'; status.style.color = '#64748b';
+
+      const { data: identita } = await supa().from('azienda_identita')
+        .select('*').eq('azienda_id', window.state?.azienda?.id).maybeSingle();
+
+      const tipoLabel = { SEARCH: 'annunci testuali Google Search', DISPLAY: 'banner display', PERFORMANCE_MAX: 'campagna Performance Max multi-canale' }[tipo] || tipo;
+
+      const prompt = `Scrivi 3 headline e 2 descrizioni per un annuncio Google Ads (${tipoLabel}) per ${connSelezionata.customer_nome || 'questo ristorante'}.
+
+IDENTITÀ: ${identita?.posizionamento || 'ristorante autentico del territorio'}
+CLIENTE IDEALE: ${identita?.cliente_ideale || 'famiglie e coppie'}
+PAROLE CHIAVE: ${identita?.parole_chiave || 'tradizione, qualità, territorio'}
+
+Google Ads ha limiti: headline max 30 caratteri, descrizione max 90 caratteri.
+Usa il metodo AIDA adattato al formato Google.
+Formato risposta:
+HEADLINE 1: ...
+HEADLINE 2: ...
+HEADLINE 3: ...
+DESC 1: ...
+DESC 2: ...`;
+
+      try {
+        const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0' },
+          body: JSON.stringify({ azienda_id: window.state?.azienda?.id, messages: [{ role: 'user', content: prompt }] })
+        });
+        const data = await res.json();
+        if (data?.reply) {
+          textarea.value = data.reply;
+          status.textContent = '✅ Testo generato'; status.style.color = '#15803d';
+        }
+      } catch(e) { status.textContent = '❌ '+e.message; status.style.color = '#dc2626'; }
+    });
+
+    // Salva campagna come bozza nel DB
+    content.querySelector('#btn-salva-campagna-google')?.addEventListener('click', async () => {
+      const esito = content.querySelector('#gnc-esito');
+      const nome = content.querySelector('#gnc-nome')?.value.trim();
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color='#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      // Salva come bozza nel DB (in attesa di Developer Token approvato)
+      const { error } = await supa().from('google_ads_connessioni').update({
+        customer_nome: connSelezionata.customer_nome
+      }).eq('id', connSelezionata.id);
+
+      esito.textContent = '✅ Campagna salvata come bozza — attivazione disponibile dopo approvazione Developer Token';
+      esito.style.color = '#15803d';
+    });
+  }
+
   async function renderSection() {
 
     const content = container.querySelector("#bo-m-content")
@@ -847,6 +1020,7 @@ Max 150 parole, in italiano, pronto da copiare su Facebook/Instagram. Solo il te
       }
 
       if (currentSection === "campagne-meta") { await renderCampagneMeta(content); return; }
+      if (currentSection === "campagne-google") { await renderCampagneGoogle(content); return; }
       if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
       if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
       if (currentSection === "bozze") return renderPlaceholder(content, "Bozze")
