@@ -3,6 +3,8 @@ const supabase = window.supabase
 export async function render(container) {
 
   const azienda_id = window.state?.azienda?.id
+  const sede_id = window.state?.sedeAttiva?.id || null
+  const sede_nome = window.state?.sedeAttiva?.nome || 'Tutte le sedi'
   const ruolo = window.state?.ruolo
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
@@ -20,9 +22,14 @@ export async function render(container) {
 
     <div style="flex:1;" class="card">
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>Categorie</h3>
-        <button id="btn-new" class="app-button primary">+ Nuova</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <h3 style="margin:0;">Categorie vendita</h3>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">
+            ${sede_id ? `📍 ${sede_nome}` : '⚠️ Nessuna sede selezionata — seleziona una sede dal menu'}
+          </div>
+        </div>
+        ${sede_id ? `<button id="btn-new" class="app-button primary">+ Nuova categoria</button>` : ''}
       </div>
 
       <div id="categorie-list" style="margin-top:10px;"></div>
@@ -93,10 +100,9 @@ export async function render(container) {
 
   async function loadAll() {
 
-    const { data: c } = await supabase
-      .from("categorie_vendita")
-      .select("*")
-      .eq("azienda_id", azienda_id)
+    let q = supabase.from("categorie_vendita").select("*").eq("azienda_id", azienda_id)
+    if (sede_id) q = q.eq("sede_id", sede_id)
+    const { data: c } = await q
 
     categorie = c || []
 
@@ -117,17 +123,54 @@ export async function render(container) {
   }
 
   function renderLista() {
+    if (!sede_id) {
+      qs("#categorie-list").innerHTML = '<div style="color:#94a3b8;padding:20px;text-align:center;">Seleziona una sede dal menu per gestire le categorie.</div>';
+      return;
+    }
+    if (!categorie.length) {
+      qs("#categorie-list").innerHTML = '<div style="color:#94a3b8;padding:20px;text-align:center;">Nessuna categoria per questa sede. Creane una.</div>';
+      return;
+    }
 
-    qs("#categorie-list").innerHTML = categorie.map(c => `
-      <div data-id="${c.id}" style="padding:10px; border-bottom:1px solid #ddd; cursor:pointer;">
-        ${c.nome}
-      </div>
-    `).join("")
+    qs("#categorie-list").innerHTML = categorie
+      .sort((a,b) => (a.ordine||0)-(b.ordine||0))
+      .map(c => `
+        <div data-id="${c.id}" style="
+          display:flex;align-items:center;justify-content:space-between;
+          padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;
+          opacity:${c.attiva !== false ? 1 : 0.45};
+          background:${c.attiva !== false ? 'white' : '#f8fafc'};
+        ">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:16px;">${c.immagine_url ? `<img src="${c.immagine_url}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">` : '📂'}</span>
+            <div>
+              <div style="font-weight:600;font-size:14px;">${c.nome}</div>
+              ${c.descrizione ? `<div style="font-size:11px;color:#94a3b8;">${c.descrizione}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;background:${c.attiva!==false?'#dcfce7':'#fee2e2'};color:${c.attiva!==false?'#15803d':'#dc2626'};padding:2px 8px;border-radius:10px;font-weight:600;">
+              ${c.attiva!==false?'Attiva':'Non attiva'}
+            </span>
+            <button data-toggle="${c.id}" data-stato="${c.attiva!==false}" style="background:#f1f5f9;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;"
+              onclick="event.stopPropagation()">
+              ${c.attiva!==false?'Disattiva':'Attiva'}
+            </button>
+          </div>
+        </div>
+      `).join("")
 
     qsa("[data-id]").forEach(el => {
-      el.onclick = () => {
-        selectCategoria(el.dataset.id)
-        openForm()
+      el.onclick = () => { selectCategoria(el.dataset.id); openForm(); }
+    })
+
+    qsa("[data-toggle]").forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation()
+        const id = btn.dataset.toggle
+        const statoAttuale = btn.dataset.stato === 'true'
+        await supabase.from("categorie_vendita").update({ attiva: !statoAttuale }).eq("id", id)
+        await loadAll()
       }
     })
   }
@@ -201,8 +244,10 @@ export async function render(container) {
 
     } else {
 
+      if (!sede_id) return alert("Seleziona prima una sede")
       const insertPayload = {
         azienda_id,
+        sede_id,
         nome,
         descrizione: qs("#cat-descrizione").value || null,
         immagine_url: qs("#cat-img-url").value || null,
