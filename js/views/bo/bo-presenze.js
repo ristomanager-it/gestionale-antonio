@@ -1,391 +1,1339 @@
-// js/views/bo/bo-presenze.js
-// Schede presenze dipendenti — filtro per periodo e dipendente
-// Export CSV per consulente del lavoro
+import { supabase } from "./supabaseClient.js";
+import { initMenu } from "./menu.js";
+import { renderFooter, initFooter } from "./components/footer.js";
+/* =========================================================
+   SUPABASE EMAIL LINK HANDLER
+========================================================= */
 
-const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+(function fixSupabaseEmailLink() {
+  const hash = window.location.hash || "";
 
-const supa = () => window.supabaseClient || window.supabase;
+  if (hash.startsWith("#access_token=")) {
+    const tokens = hash.substring(1);
+    window.location.hash = "#/set-password?" + tokens;
+  }
+})();
 
-function esc(v) {
-  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+/* =========================================================
+   FIX SUPABASE HASH
+========================================================= */
 
-function fmt(ts) {
-  if (!ts) return '—';
-  return new Date(ts).toLocaleString('it-IT', {
-    day:'2-digit', month:'2-digit', year:'numeric',
-    hour:'2-digit', minute:'2-digit', timeZone:'Europe/Rome'
-  });
-}
+(function fixSupabaseHash() {
+  const h = window.location.hash || "";
 
-function fmtOre(minuti) {
-  if (!minuti || minuti <= 0) return '—';
-  const h = Math.floor(minuti / 60);
-  const m = minuti % 60;
-  return `${h}h ${m > 0 ? m + 'm' : ''}`.trim();
-}
-
-function primoGiornoMese(anno, mese) {
-  return `${anno}-${String(mese).padStart(2,'0')}-01`;
-}
-
-function ultimoGiornoMese(anno, mese) {
-  const d = new Date(anno, mese, 0);
-  return `${anno}-${String(mese).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-export async function render(container) {
-  const aziendaId = window.state?.azienda?.id;
-  if (!aziendaId) {
-    container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>';
+  if (h.startsWith("#/set-password#")) {
+    const tokens = h.split("#")[2];
+    window.location.hash = "#/set-password?" + tokens;
     return;
   }
 
-  const oggi = new Date();
-  let filtroMese = oggi.getMonth() + 1;
-  let filtroAnno = oggi.getFullYear();
-  let filtroDipId = '';
-  let dataInizio = primoGiornoMese(filtroAnno, filtroMese);
-  let dataFine = ultimoGiornoMese(filtroAnno, filtroMese);
-  let modalitaFiltro = 'mese'; // 'mese' o 'custom'
+  if (h.startsWith("#/activate#")) {
+    const tokens = h.split("#")[2];
+    window.location.hash = "#/activate?" + tokens;
+  }
+})();
 
-  // Carica lista dipendenti
-  const { data: dipendenti } = await supa()
-    .from('dipendenti')
-    .select('id, nome, cognome, mansione')
-    .eq('azienda_id', aziendaId)
-    .eq('attivo', true)
-    .order('cognome');
+let app = null;
 
-  container.innerHTML = `
-    <div style="min-height:100vh;background:#f8fafc;padding:16px;">
-      <div style="max-width:1000px;margin:0 auto;">
+/* =========================================================
+   ROUTES (PULITO + CAMPAGNE)
+========================================================= */
 
-        <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
-          <div>
-            <div style="font-size:20px;font-weight:700;color:#0f172a;">📋 Presenze & Timbrature</div>
-            <div style="font-size:13px;color:#64748b;">Schede per il consulente del lavoro</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="btn-export-csv" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">⬇️ Esporta CSV</button>
-            <button id="btn-export-csv-tutti" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">⬇️ CSV tutti i dipendenti</button>
-          </div>
-        </div>
+const routes = {
+  login: () => import("./views/login.js"),
+  home: () => import("./views/home.js"),
 
-        <!-- Filtri -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;">🔍 Filtri</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+  "home-admin": () => import("./views/home-admin.js"),
+  "home-manager": () => import("./views/home-manager.js"),
+  "home-operatore": () => import("./views/home-operatore.js"),
 
-            <!-- Dipendente -->
-            <div style="flex:1;min-width:180px;">
-              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Dipendente</label>
-              <select id="filtro-dip" style="width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:white;box-sizing:border-box;">
-                <option value="">— Tutti —</option>
-                ${(dipendenti || []).map(d => `<option value="${d.id}">${esc(d.cognome)} ${esc(d.nome)}${d.mansione ? ' — ' + esc(d.mansione) : ''}</option>`).join('')}
-              </select>
-            </div>
+  homePiattaforma: () => import("./views/home-piattaforma.js"),
 
-            <!-- Modalità filtro -->
-            <div>
-              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Periodo</label>
-              <div style="display:flex;gap:6px;">
-                <button id="btn-mode-mese" style="padding:7px 14px;border-radius:8px;border:1px solid #0E5A7A;background:#0E5A7A;color:white;cursor:pointer;font-size:12px;font-weight:600;">Per mese</button>
-                <button id="btn-mode-custom" style="padding:7px 14px;border-radius:8px;border:1px solid #e5e7eb;background:white;color:#374151;cursor:pointer;font-size:12px;">Personalizzato</button>
-              </div>
-            </div>
+  creaAzienda: () => import("./views/crea-azienda.js"),
+  gestioneAziende: () => import("./views/gestione-aziende.js"),
+  modificaAzienda: () => import("./views/modifica-azienda.js"),
+  gestionePiani: () => import("./views/gestione-piani.js"),
 
-            <!-- Selezione mese -->
-            <div id="filtro-mese-wrap" style="display:flex;gap:8px;align-items:flex-end;">
-              <div>
-                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Mese</label>
-                <select id="filtro-mese" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:white;">
-                  ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===filtroMese?'selected':''}>${new Date(2000,i,1).toLocaleString('it-IT',{month:'long'})}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Anno</label>
-                <select id="filtro-anno" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:white;">
-                  ${[2024,2025,2026,2027].map(a=>`<option value="${a}" ${a===filtroAnno?'selected':''}>${a}</option>`).join('')}
-                </select>
-              </div>
-            </div>
+  activate: () => import("./views/activate.js"),
 
-            <!-- Date personalizzate -->
-            <div id="filtro-custom-wrap" style="display:none;gap:8px;align-items:flex-end;">
-              <div>
-                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Dal</label>
-                <input type="date" id="filtro-dal" value="${dataInizio}" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;">
-              </div>
-              <div>
-                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Al</label>
-                <input type="date" id="filtro-al" value="${dataFine}" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;">
-              </div>
-            </div>
+  cliente: () => import("./views/cliente.js"),
 
-            <button id="btn-applica" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;align-self:flex-end;">Applica</button>
-          </div>
-        </div>
+  setPassword: () => import("./views/set-password.js"),
+  "set-password": () => import("./views/set-password.js"),
 
-        <!-- Riepilogo ore -->
-        <div id="riepilogo-ore" style="margin-bottom:16px;"></div>
+  sceltaAzienda: () => import("./views/scelta-azienda.js"),
 
-        <!-- Tabella timbrature -->
-        <div id="tabella-timbrature" style="background:white;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;"></div>
+  "gestione-sedi": () => import("./views/gestione-sedi.js"),
 
-      </div>
-    </div>
-  `;
+  operativo: () => import("./views/operativo.js"),
+  amministrazione: () => import("./views/amministrazione.js"),
+  gestione: () => import("./views/gestione.js"),
+  "ricette-semplici": () =>
+    import("./views/ricette-semplici.js"),
+  "permessi-operatore": () =>
+    import("./views/permessi-operatore/index.js"),
 
-  let timbratureCorrente = [];
+  // =========================
+  // MARKETING (globale - lettura)
+  // =========================
+  "bo-marketing": () => import("./views/bo/bo-marketing.js"),
 
-  async function caricaDati() {
-    const tbl = container.querySelector('#tabella-timbrature');
-    const riepilogo = container.querySelector('#riepilogo-ore');
-    tbl.innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center;">Caricamento...</div>';
-    riepilogo.innerHTML = '';
+  dipendenti: () => import("./views/dipendenti.js"),
+  dipendente: () => import("./views/dipendente.js"),
+  "crea-dipendente": () => import("./views/crea-dipendente.js"),
+  timbrature: () => import("./views/timbrature.js"),
+  "bo-presenze": () => import("./views/bo/bo-presenze.js"),
 
-    // Calcola date in base alla modalità
-    if (modalitaFiltro === 'mese') {
-      filtroMese = parseInt(container.querySelector('#filtro-mese').value);
-      filtroAnno = parseInt(container.querySelector('#filtro-anno').value);
-      dataInizio = primoGiornoMese(filtroAnno, filtroMese);
-      dataFine = ultimoGiornoMese(filtroAnno, filtroMese);
-    } else {
-      dataInizio = container.querySelector('#filtro-dal').value;
-      dataFine = container.querySelector('#filtro-al').value;
+  completaProfilo: () => import("./views/completa-profilo.js"),
+  profilo: () => import("./views/completa-profilo.js"),
+  completaAzienda: () => import("./views/completa-azienda.js"),
+"scegli-sede": () => import("./views/scegli-sede.js"),
+  acquisti: () => import("./views/acquisti/index.js"),
+  magazzino: () => import("./views/magazzino/magazzino.js"),
+
+  produzione: () => import("./views/produzione.js"),
+  storicoLotto: () => import("./views/storico-lotto.js"),
+  ricettario: () => import("./views/ricettario.js"),
+  "planner-produzione": () => import("./views/planner-produzione.js"),
+  creaRicetta: () => import("./views/ricette-semplici.js"),
+  "crea-ricetta":          () => import("./views/ricette-semplici.js"),
+  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js"),
+  preparazioni: () => import("./views/preparazioni.js"),
+  reparti: () => import("./views/reparti.js"),
+  venduto: () => import("./views/venduto.js"),
+  margini: () => import("./views/margini.js"),
+
+  preventivi: () => import("./views/preventivi.js"),
+  creaPreventivo: () => import("./views/crea-preventivo.js"),
+  ai: () => import("./views/ai.js"),
+
+  permessi: () => import("./views/permessi-ferie.js"),
+
+  // ── HR — Gestione personale ──
+  "hr-richieste":    () => import("./views/hr-richieste.js"),
+  "hr-admin":        () => import("./views/hr-admin.js"),
+  "hr-fascicolo":    () => import("./views/hr-fascicolo.js"),
+  "hr-documenti":    () => import("./views/hr-documenti.js"),
+  "hr-documenti-me": () => import("./views/hr-documenti.js"),
+  manuale: () => import("./views/manuale.js"),
+
+  sala: () => import("./views/sala.js"),
+
+  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
+  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js"),
+  "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
+  "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
+
+  prenotazioni: () => import("./views/prenotazioni/index.js"),
+  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
+
+  campagne: () => import("./views/campagne/index.js"),
+  "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
+
+  comanda: () => import("./views/comanda.js"),
+
+  // =========================
+  // BACK OFFICE (COSTRUZIONE)
+  // =========================
+  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
+  "bo-tag": () => import("./views/bo/bo-tag.js"),
+  "bo-template": () => import("./views/bo/bo-template.js"),
+  "bo-candidature": () => import("./views/bo/bo-candidature.js"),
+  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js"),
+  "bo-survey":      () => import("./views/bo/bo-survey.js"),
+
+  // MENU
+  "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
+  "bo-categorie": () => import("./views/bo/categorie.js"),
+  "bo-prodotti": () => import("./views/bo/prodotti.js"),
+
+  // PRODUZIONE
+  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
+  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
+  "bo-comande": () => import("./views/bo/bo-comande.js"),
+  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
+  "ricette-editor": () => import("./views/bo/ricette-editor.js"),
+  "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
+  "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
+
+
+    // =========================================================
+  // APP (OPERATIVO)
+  // =========================================================
+  "app-produzione": () => import("./views/app/app-produzione.js"),
+
+  // =========================
+  // DISPLAY (tablet fissi)
+  // =========================
+  "display-cucina": () => import("./views/display/display-cucina.js"),
+
+}; // 
+
+/* =========================================================
+   ROUTE SCOPE
+========================================================= */
+
+const PUBLIC_ROUTES = new Set([
+  "login",
+  "activate",
+  "setPassword",
+  "set-password",
+  "prenota",
+  "booking"
+]);
+
+const PLATFORM_ROUTES = new Set([
+  "homePiattaforma",
+  "gestioneAziende",
+  "creaAzienda",
+  "modificaAzienda",
+  "gestionePiani",
+]);
+
+const PREHOME_ROUTES = new Set([
+  "sceltaAzienda",
+  "gestione-sedi",
+  "scegli-sede",
+  "completaProfilo",
+  "completaAzienda",
+]);
+
+const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
+
+const BO_ROUTES = new Set([
+  "bo-dashboard",
+
+  // MARKETING
+  "bo-tag",
+  "bo-template",
+  "bo-candidature",
+  "bo-bilancio",
+  "bo-survey",
+
+  // MENU
+  "bo-menu",
+  "bo-categorie",
+  "bo-prodotti",
+
+  // PRODUZIONE
+  "bo-magazzino",
+  "bo-produzione",
+  "bo-comande",
+  "bo-ricette",
+  "bo-configurazione",
+  "bo-dispositivi",
+  "bo-presenze",
+]);
+
+// Display tablet — bypassano auth contesto operativo, hanno PIN proprio
+const DISPLAY_ROUTES = new Set([
+  "display-cucina",
+]);
+/* =========================================================
+   STORAGE KEYS
+========================================================= */
+
+const LS_KEYS = {
+  ACTIVE_AZIENDA_ID: "active_azienda_id",
+  ACTIVE_SEDE_ID: "active_sede_id",
+};
+
+/* =========================================================
+   PARSE HASH
+========================================================= */
+
+function parseHash() {
+  const raw = window.location.hash || "#/login";
+  const cleaned = raw.replace("#/", "");
+  const [path, queryString] = cleaned.split("?");
+
+  const params = {};
+  if (queryString) {
+    const searchParams = new URLSearchParams(queryString);
+    for (const [key, value] of searchParams.entries()) {
+      params[key] = value;
+    }
+  }
+
+  const segments = path.split("/").filter(Boolean);
+
+  return {
+    route: segments[0] || "login",
+    segments,
+    params,
+  };
+}
+
+/* =========================================================
+   RENDER VIEW
+========================================================= */
+
+async function renderView(routeName) {
+
+  if (!routes[routeName]) {
+    routeName = "home";
+  }
+
+  if (!app) return;
+
+  app.innerHTML = "";
+
+  const sub =
+    document.getElementById("page-subheader");
+
+  const foot =
+    document.getElementById("footer-root");
+
+  if (sub) sub.innerHTML = "";
+  if (foot) foot.innerHTML = "";
+
+  const module =
+    await routes[routeName]();
+
+  if (!module.render) {
+
+    throw new Error(
+      `La view ${routeName} non esporta render()`
+    );
+
+  }
+
+  await module.render(app);
+
+  // 🔥 FOOTER
+  try {
+
+    if (foot) {
+
+      const footerHTML =
+        await renderFooter();
+
+      foot.innerHTML =
+        footerHTML;
+
+      initFooter();
+
     }
 
-    filtroDipId = container.querySelector('#filtro-dip').value;
+  } catch (e) {
 
-    // Query timbrature
-    let q = supa()
-      .from('timbrature')
-      .select('id, dipendente_id, dip_nome, tipo, timestamp, ore_lavorate, sede_id, canale, geo_esito')
-      .eq('azienda_id', aziendaId)
-      .gte('timestamp', `${dataInizio}T00:00:00`)
-      .lte('timestamp', `${dataFine}T23:59:59`)
-      .order('timestamp', { ascending: true });
+    console.error(
+      "Errore render footer:",
+      e
+    );
 
-    if (filtroDipId) q = q.eq('dipendente_id', filtroDipId);
+  }
 
-    const { data: timbrature, error } = await q.limit(5000);
+}
+
+/* =========================================================
+   SUPERADMIN
+========================================================= */
+
+function isSuperadmin() {
+
+  return (
+
+    !window.state?.viewAs &&
+
+    (
+
+      window.state?.isSuperadmin === true ||
+
+      (
+
+        window.normalizeRuolo
+          ? window.normalizeRuolo(
+              window.state?.ruolo
+            )
+          : window.state?.ruolo
+
+      ) === "superadmin"
+
+    )
+
+  );
+
+}
+
+function hasPermission(area) {
+
+  if (!area || area === "home") {
+    return true;
+  }
+
+  const ruolo = window.normalizeRuolo
+    ? window.normalizeRuolo(
+        window.state?.viewAs ||
+        window.state?.ruolo
+      )
+    : (
+        window.state?.viewAs ||
+        window.state?.ruolo
+      );
+
+  const extra =
+    window.state?.permessiExtra || [];
+
+  // =====================================
+  // ROTTE PIATTAFORMA
+  // =====================================
+
+  if (PLATFORM_ROUTES.has(area)) {
+    return isSuperadmin();
+  }
+
+  // =====================================
+  // PREHOME
+  // =====================================
+
+  if (PREHOME_ROUTES.has(area)) {
+    return true;
+  }
+
+  // =====================================
+  // SUPERADMIN
+  // =====================================
+
+  if (isSuperadmin()) {
+    return true;
+  }
+
+  // =====================================
+  // TIMBRATURE GLOBALI
+  // =====================================
+
+  if (
+    area === "timbrature" &&
+    (
+      ruolo === "admin" ||
+      ruolo === "manager" ||
+      ruolo === "superadmin"
+    )
+  ) {
+
+    return true;
+
+  }
+
+  // =====================================
+  // SOLO ADMIN (non manager, non operatore)
+  // =====================================
+
+  const ADMIN_ONLY_ROUTES = new Set([
+    // Marketing & CRM
+    "bo-tag",
+    "bo-template",
+    "bo-marketing",
+    // Personale — selezione e ascolto
+    "bo-candidature",
+  "bo-bilancio",
+    "bo-survey",
+  ]);
+
+  if (ADMIN_ONLY_ROUTES.has(area)) {
+    return ruolo === "admin";
+  }
+
+  // =====================================
+  // ADMIN / MANAGER
+  // =====================================
+
+  if (
+    ruolo === "admin" ||
+    ruolo === "manager"
+  ) {
+
+    return true;
+
+  }
+
+  // =====================================
+  // OPERATORE BASE
+  // =====================================
+
+  if (ruolo === "operatore") {
+
+    const allowed = [
+
+      "home",
+      "home-operatore",
+
+      "sala",
+      "comanda",
+      "bo-comande",
+
+      // Cucina
+      "ricettario",
+      "crea-ricetta-avanzata",
+      "preparazioni",
+      "app-produzione",
+      "produzione",
+      "display-cucina",
+
+      // Timbrature e profilo
+      "timbrature",
+      "bo-presenze",
+      "profilo",
+      "completa-profilo",
+
+      // Prenotazioni
+      "prenotazioni",
+      "prenotazioni-dettaglio",
+      "prenotazioni-tavoli",
+
+      // HR personale
+      "hr-richieste",
+      "hr-documenti-me",
+
+      "ai"
+
+    ];
+
+    if (allowed.includes(area)) {
+      return true;
+    }
+
+  }
+
+  // =====================================
+  // PERMESSI EXTRA
+  // =====================================
+
+const routePermissions = {
+
+  "planner-produzione":
+    "planning.write",
+
+  "acquisti":
+    "acquisti.write",
+
+  "magazzino":
+    "magazzino.write",
+
+  "ricettario":
+    "ricette.write",
+
+  "creaRicetta":
+    "ricette.write",
+
+  "crea-ricetta-avanzata":
+    "ricette.write",
+
+  "dipendenti":
+    "dipendenti.read",
+
+  "crea-dipendente":
+    "dipendenti.write",
+
+  "ricette-semplici":
+    "ricette.write",
+
+};
+
+  const neededPermission =
+    routePermissions[area];
+
+  if (
+    neededPermission &&
+    extra.includes(neededPermission)
+  ) {
+
+    return true;
+
+  }
+
+  // =====================================
+  // FALLBACK LEGACY
+  // =====================================
+
+  const permessi =
+    window.state?.permessi || {};
+
+  return (
+    permessi[`${area}.read`] === true
+  );
+
+}
+  
+/* =========================================================
+   UI HELPERS
+========================================================= */
+
+function setHeaderVisible(visible) {
+  const header = document.querySelector(".app-header");
+  if (header) header.style.display = visible ? "flex" : "none";
+
+  const topbar = document.getElementById("topbar-info");
+  if (topbar) topbar.style.display = visible ? "flex" : "none";
+}
+
+function getStoredAziendaId() {
+  return localStorage.getItem(LS_KEYS.ACTIVE_AZIENDA_ID);
+}
+
+function setStoredAziendaId(id) {
+  if (!id) return;
+  localStorage.setItem(LS_KEYS.ACTIVE_AZIENDA_ID, String(id));
+}
+
+function clearStoredAziendaId() {
+  localStorage.removeItem(LS_KEYS.ACTIVE_AZIENDA_ID);
+}
+
+function getStoredSedeId() {
+  return localStorage.getItem(LS_KEYS.ACTIVE_SEDE_ID);
+}
+
+function setStoredSedeId(id) {
+  if (!id) return;
+  localStorage.setItem(LS_KEYS.ACTIVE_SEDE_ID, String(id));
+}
+
+function clearStoredSedeId() {
+  localStorage.removeItem(LS_KEYS.ACTIVE_SEDE_ID);
+}
+
+/* =========================================================
+   AUTH + CONTEXT HELPERS
+========================================================= */
+
+async function getValidSession() {
+  const { data } = await supabase.auth.getSession();
+  let session = data?.session || null;
+
+  if (!session) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed?.session || null;
+  }
+
+  return session;
+}
+
+async function loadAziendeForUser(userId) {
+  const { data: aziende, error } = await supabase
+    .from("utenti_aziende")
+    .select(
+      `
+      ruolo,
+      permessi_override,
+      aziende:azienda_id (
+        id,
+        nome,
+        codice,
+        stato,
+        attiva,
+        data_scadenza,
+        features,
+        logo_path,
+        logo_url,
+        piano_id,
+        stato_attivazione,
+        profilo_completato
+      )
+    `
+    )
+    .eq("user_id", userId)
+    .eq("attivo", true);
+
+  if (error) {
+    console.error("Errore caricamento aziende:", error);
+    return [];
+  }
+
+  return (aziende || []).filter((a) => a.aziende);
+}
+
+function pickActiveAzienda(aziendePulite) {
+  const storedId = getStoredAziendaId();
+
+  if (storedId) {
+    const match = aziendePulite.find(
+      (a) => String(a.aziende.id) === String(storedId)
+    );
+    if (match?.aziende) return match.aziende;
+  }
+
+  if (aziendePulite.length === 1) {
+    return aziendePulite[0].aziende;
+  }
+
+  return null;
+}
+
+function applyAziendaContextFromLink(aziendePulite, azienda) {
+  if (!azienda) return;
+
+  const recordAttivo = aziendePulite.find((a) => a.aziende?.id === azienda.id);
+
+  window.state.isSuperadmin = aziendePulite.some((a) => a.ruolo === "superadmin");
+
+  const ruoloEffettivoRaw = window.state.isSuperadmin
+    ? "superadmin"
+    : recordAttivo?.ruolo || "admin";
+
+  window.stateActions.setRuolo(ruoloEffettivoRaw);
+  window.state.ruoloRaw = ruoloEffettivoRaw;
+  window.state.ruolo = window.normalizeRuolo ? window.normalizeRuolo(ruoloEffettivoRaw) : ruoloEffettivoRaw;
+  window.state.permessiOverride = recordAttivo?.permessi_override || {};
+}
+
+function isAziendaBlockedForUser(azienda, routeName) {
+  if (!azienda) return true;
+  if (isSuperadmin()) return false;
+
+  if (PLATFORM_ROUTES.has(routeName)) return false;
+  if (routeName === "completaAzienda") return false;
+
+  if (azienda.stato === "piattaforma") return false;
+
+  if (azienda.stato !== "attiva") return true;
+
+  if (azienda.attiva === false) return true;
+
+  return false;
+}
+
+async function ensureAziendaContext(routeName) {
+  const user = window.state?.user;
+  if (!user) return { ok: false, reason: "no_user" };
+
+  const aziendePulite = await loadAziendeForUser(user.id);
+
+  window.stateActions.setAziende(aziendePulite);
+
+  if (aziendePulite.length === 0) {
+    window.stateActions.resetAzienda();
+    return { ok: false, reason: "no_aziende" };
+  }
+
+  const activeAzienda = pickActiveAzienda(aziendePulite);
+
+  if (!activeAzienda) {
+    window.stateActions.resetAzienda();
+    if (routeName !== "sceltaAzienda") {
+      window.location.hash = "#/sceltaAzienda";
+      return { ok: false, redirected: true };
+    }
+    return { ok: false, reason: "need_choice" };
+  }
+
+  setStoredAziendaId(activeAzienda.id);
+
+  if (!window.state.azienda || window.state.azienda.id !== activeAzienda.id) {
+    window.stateActions.setAzienda(activeAzienda);
+  } else {
+    window.state.azienda = activeAzienda;
+  }
+
+  applyAziendaContextFromLink(aziendePulite, activeAzienda);
+
+  return { ok: true, azienda: activeAzienda, aziendePulite };
+}
+
+async function loadPianoForAzienda(azienda) {
+  if (!azienda) {
+    window.state.piano = null;
+    return;
+  }
+
+  if (azienda.piano_id) {
+    const { data: piano, error } = await supabase
+      .from("piani_abbonamento")
+      .select("*")
+      .eq("id", azienda.piano_id)
+      .single();
 
     if (error) {
-      tbl.innerHTML = `<div style="padding:20px;color:#dc2626;">Errore: ${error.message}</div>`;
+      console.error("Errore caricamento piano:", error);
+      window.state.piano = null;
       return;
     }
 
-    timbratureCorrente = timbrature || [];
+    window.state.piano = piano || null;
+  } else {
+    window.state.piano = null;
+  }
 
-    if (!timbratureCorrente.length) {
-      tbl.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Nessuna timbratura nel periodo selezionato.</div>';
+  const pianoFeatures = window.state.piano?.features || {};
+  const aziendaOverride = azienda.features || {};
+
+  window.state.featuresEffettive = {
+    ...pianoFeatures,
+    ...aziendaOverride,
+  };
+}
+
+async function loadSediForAzienda(aziendaId) {
+  const { data, error } = await supabase
+    .from("sedi")
+    .select("id, nome, indirizzo, latitudine, longitudine")
+    .eq("azienda_id", aziendaId)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento sedi:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+function pickActiveSede(sedi) {
+  // 1. Ultima sede usata (localStorage)
+  const storedId = getStoredSedeId();
+  if (storedId) {
+    const match = sedi.find((s) => String(s.id) === String(storedId));
+    if (match) return match;
+  }
+
+  // 2. Sede principale del dipendente
+  const sedePrincipale = window.state?.dipendente?.sede_principale
+    || window.state?.dipendente?.sede_id;
+  if (sedePrincipale) {
+    const match = sedi.find((s) => String(s.id) === String(sedePrincipale));
+    if (match) {
+      setStoredSedeId(match.id);
+      return match;
+    }
+  }
+
+  // 3. Unica sede disponibile
+  if (sedi.length === 1) return sedi[0];
+
+  return null;
+}
+
+async function ensureSedeContext(routeName) {
+  const azienda = window.state?.azienda;
+  if (!azienda?.id) return { ok: false, reason: "no_azienda" };
+
+  const sedi = await loadSediForAzienda(azienda.id);
+
+  if (window.stateActions?.setSedi) {
+    window.stateActions.setSedi(sedi);
+  } else {
+    window.state.sedi = sedi;
+  }
+
+  if (sedi.length === 0) {
+    clearStoredSedeId();
+    window.state.sedeAttiva = null;
+
+    if (routeName !== "gestione-sedi") {
+      window.location.hash = "#/gestione-sedi?mode=first";
+      return { ok: false, redirected: true };
+    }
+    return { ok: false, reason: "no_sedi" };
+  }
+
+  const sede = pickActiveSede(sedi);
+
+  if (!sede) {
+    window.state.sedeAttiva = null;
+    clearStoredSedeId();
+
+    if (routeName !== "gestione-sedi") {
+      window.location.hash = "#/gestione-sedi?mode=select";
+      return { ok: false, redirected: true };
+    }
+    return { ok: false, reason: "need_sede_choice" };
+  }
+
+  window.state.sedeAttiva = sede;
+  setStoredSedeId(sede.id);
+
+  return { ok: true, sede };
+}
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function doLogout() {
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.error("Errore logout:", e);
+  }
+
+  clearStoredAziendaId();
+  clearStoredSedeId();
+
+  if (window.stateActions?.setUser) window.stateActions.setUser(null);
+  if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
+  if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+
+  window.state.piano = null;
+  window.state.featuresEffettive = {};
+  window.state.sedi = [];
+  window.state.sedeAttiva = null;
+  window.state.permessiOverride = {};
+  window.state.isSuperadmin = false;
+
+  setHeaderVisible(false);
+
+  window.location.hash = "#/login";
+}
+
+/* =========================================================
+   ROUTER CORE
+========================================================= */
+
+async function resolve() {
+  if (!app) return;
+
+  if (!window.location.hash) {
+    window.location.hash = "#/login";
+    return;
+  }
+
+  const { route, segments, params } = parseHash();
+  console.log("ROUTE:", route);
+  window.routeParams = params || {};
+  window.routeSegments = segments || [];
+
+  if (route === "booking") {
+
+    const slug = segments[1];
+
+    if (!slug) {
+      app.innerHTML = "Link non valido";
       return;
     }
 
-    // Calcola riepilogo ore per dipendente
-    const riepilogoMap = {};
-    const turniMap = {};
+    try {
 
-    for (const t of timbratureCorrente) {
-      const dipId = t.dipendente_id;
-      const nome = t.dip_nome || 'N/D';
-      if (!riepilogoMap[dipId]) riepilogoMap[dipId] = { nome, minutiTotali: 0, giorni: new Set(), turniCompleti: 0 };
-      if (!turniMap[dipId]) turniMap[dipId] = {};
+      const { data: link, error } = await supabase
+        .from("booking_links")
+        .select("form_id")
+        .eq("slug", slug)
+        .maybeSingle();
 
-      const giorno = t.timestamp?.slice(0, 10);
-      if (giorno) riepilogoMap[dipId].giorni.add(giorno);
+      if (error || !link) {
+        app.innerHTML = "Link non trovato";
+        return;
+      }
 
-      // Calcola ore dai turni
-      if (t.tipo === 'inizio_turno') {
-        turniMap[dipId][t.id] = { inizio: new Date(t.timestamp), fine: null };
-      } else if (t.tipo === 'fine_turno' && t.ore_lavorate) {
-        riepilogoMap[dipId].minutiTotali += Math.round(t.ore_lavorate * 60);
-        riepilogoMap[dipId].turniCompleti++;
+      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
+      return;
+
+    } catch (e) {
+      console.error("Errore booking route:", e);
+      app.innerHTML = "Errore";
+      return;
+    }
+  }
+
+  // ── Route menu pubblico (senza login) ──
+  if (route === "menu") {
+    const slug = segments[1];
+    if (!slug) { app.innerHTML = "Link non valido"; return; }
+    try {
+      const { renderMenuPubblico } = await import("./views/menu-pubblico.js");
+      await renderMenuPubblico(app, slug);
+      return;
+    } catch(e) {
+      console.error("Errore menu pubblico:", e);
+      app.innerHTML = "Menu non trovato";
+      return;
+    }
+  }
+
+  const session = await getValidSession();
+
+  if (!session) {
+    if (window.stateActions?.setUser) window.stateActions.setUser(null);
+    if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
+    if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
+
+    window.state.piano = null;
+    window.state.featuresEffettive = {};
+    window.state.sedi = [];
+    window.state.sedeAttiva = null;
+    window.state.permessiOverride = {};
+    window.state.isSuperadmin = false;
+
+    setHeaderVisible(false);
+
+    const target = PUBLIC_ROUTES.has(route) ? route : "login";
+    await renderView(target);
+    return;
+  }
+
+  window.stateActions.setUser(session.user);
+
+  if (
+    PUBLIC_ROUTES.has(route) &&
+    route !== "activate" &&
+    route !== "setPassword" &&
+    route !== "set-password"
+  ) {
+    const tmpAziende = await loadAziendeForUser(session.user.id);
+    const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
+    const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
+
+    if (route === "login") {
+      if (hasPlatform || isSa) {
+        window.location.hash = "#/homePiattaforma";
+        return;
+      }
+      window.location.hash = "#/home";
+      return;
+    }
+
+    setHeaderVisible(false);
+    await renderView(route);
+    return;
+  }
+
+  try {
+    const { data: dipCheck, error: dipCheckErr } = await supabase
+      .from("dipendenti")
+      .select("profilo_completato")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (!dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
+      if (route !== "completaProfilo") {
+        window.location.hash = "#/completaProfilo";
+        return;
       }
     }
+  } catch (e) {
+    console.warn("Check profilo dipendente fallito:", e);
+  }
 
-    // Render riepilogo
-    const dipRiepilogo = Object.values(riepilogoMap).sort((a, b) => a.nome.localeCompare(b.nome));
-    const periodoLabel = modalitaFiltro === 'mese'
-      ? `${new Date(filtroAnno, filtroMese-1, 1).toLocaleString('it-IT',{month:'long'})} ${filtroAnno}`
-      : `${dataInizio} → ${dataFine}`;
+  setHeaderVisible(true);
 
-    riepilogo.innerHTML = `
-      <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;">📊 Riepilogo ore — ${esc(periodoLabel)}</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px;">
-          ${dipRiepilogo.map(d => `
-            <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;">
-              <div style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:4px;">${esc(d.nome)}</div>
-              <div style="font-size:22px;font-weight:800;color:#0E5A7A;">${fmtOre(d.minutiTotali)}</div>
-              <div style="font-size:12px;color:#64748b;margin-top:2px;">${d.giorni.size} giorni lavorati · ${d.turniCompleti} turni</div>
-            </div>
-          `).join('')}
+  const aziendaRes = await ensureAziendaContext(route);
+  if (!aziendaRes.ok) {
+    if (aziendaRes.redirected) return;
+
+    if (aziendaRes.reason === "no_aziende") {
+      app.innerHTML = `
+        <div class="view" style="padding:40px; text-align:center;">
+          <h2 style="color:#dc2626;">Accesso non consentito</h2>
+          <p>Nessuna azienda associata al tuo utente.</p>
+          <button id="btn-logout-force" style="margin-top:18px; padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
+            Torna al login
+          </button>
+        </div>
+      `;
+      const b = document.getElementById("btn-logout-force");
+      if (b) b.onclick = doLogout;
+      return;
+    }
+
+    if (route !== "sceltaAzienda") {
+      window.location.hash = "#/sceltaAzienda";
+      return;
+    }
+
+    await renderView("sceltaAzienda");
+    return;
+  }
+
+  const azienda = window.state.azienda;
+
+  try {
+    if (
+      azienda &&
+      azienda.stato !== "piattaforma" &&
+      (azienda.profilo_completato === false || azienda.stato_attivazione === "bozza")
+    ) {
+      if (route !== "completaAzienda") {
+        window.location.hash = "#/completaAzienda";
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Check profilo azienda fallito:", e);
+  }
+
+  await loadPianoForAzienda(azienda);
+
+  await window.stateActions.caricaPermessiEffettivi();
+  await window.stateActions.caricaRuoloEReparti();
+
+  if (window.menuController?.refresh) {
+    window.menuController.refresh();
+  }
+
+  if (isAziendaBlockedForUser(azienda, route)) {
+    app.innerHTML = `
+      <div class="view" style="padding:40px; text-align:center;">
+        <h2 style="color:#dc2626;">Azienda non attiva</h2>
+        <p>L'accesso a questa azienda è bloccato (stato/stato_attivazione).</p>
+        <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <button id="btn-change-company" style="padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
+            Cambia azienda
+          </button>
+          <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
+            Logout
+          </button>
         </div>
       </div>
     `;
 
-    // Render tabella
-    tbl.innerHTML = `
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="background:#f8fafc;border-bottom:2px solid #e5e7eb;">
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">Dipendente</th>
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">Data e ora</th>
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">Tipo</th>
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">Ore turno</th>
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">Canale</th>
-              <th style="padding:12px 16px;text-align:left;font-weight:700;color:#374151;">GPS</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${timbratureCorrente.map((t, idx) => {
-              const tipoColor = t.tipo === 'inizio_turno' ? '#dcfce7' : t.tipo === 'fine_turno' ? '#fee2e2' : '#fef3c7';
-              const tipoText = t.tipo === 'inizio_turno' ? '#15803d' : t.tipo === 'fine_turno' ? '#dc2626' : '#92400e';
-              const tipoLabel = t.tipo === 'inizio_turno' ? '▶️ Inizio turno' : t.tipo === 'fine_turno' ? '⏹ Fine turno' : t.tipo === 'inizio_pausa' ? '⏸ Inizio pausa' : '▶️ Fine pausa';
-              return `
-                <tr style="border-bottom:1px solid #f1f5f9;${idx%2===0?'':'background:#fafafa'}">
-                  <td style="padding:10px 16px;font-weight:600;">${esc(t.dip_nome || 'N/D')}</td>
-                  <td style="padding:10px 16px;color:#374151;">${fmt(t.timestamp)}</td>
-                  <td style="padding:10px 16px;">
-                    <span style="background:${tipoColor};color:${tipoText};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">${tipoLabel}</span>
-                  </td>
-                  <td style="padding:10px 16px;font-weight:600;color:#0E5A7A;">${t.ore_lavorate ? fmtOre(Math.round(t.ore_lavorate * 60)) : '—'}</td>
-                  <td style="padding:10px 16px;color:#64748b;">${esc(t.canale || '—')}</td>
-                  <td style="padding:10px 16px;">
-                    <span style="font-size:11px;color:${t.geo_esito === 'ok' ? '#15803d' : '#94a3b8'};">
-                      ${t.geo_esito === 'ok' ? '✅ Ok' : t.geo_esito || '—'}
-                    </span>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div style="padding:12px 16px;font-size:12px;color:#94a3b8;border-top:1px solid #f1f5f9;">
-        ${timbratureCorrente.length} timbrature nel periodo
-      </div>
-    `;
+    const bc = document.getElementById("btn-change-company");
+    if (bc) {
+      bc.onclick = () => {
+        clearStoredAziendaId();
+        clearStoredSedeId();
+        window.stateActions.resetAzienda();
+        window.location.hash = "#/sceltaAzienda";
+      };
+    }
+
+    const bl = document.getElementById("btn-logout");
+    if (bl) bl.onclick = doLogout;
+
+    return;
   }
 
-  function generaCSV(timbrature, nomeFile) {
-    const dipendentiSelezionati = filtroDipId
-      ? (dipendenti || []).filter(d => d.id === filtroDipId)
-      : (dipendenti || []);
+  if (
+    !PLATFORM_ROUTES.has(route) &&
+    !BO_ROUTES.has(route) &&
+    !DISPLAY_ROUTES.has(route) &&
+    (!PREHOME_ROUTES.has(route) || route === "scegli-sede") &&
+    route !== "home" &&
+    route !== "booking-form-builder"
+  ) {
+   const contesto = await window.stateActions.caricaContestoOperativo();
 
-    // Riepilogo per dipendente
-    const riepilogoMap = {};
-    for (const t of timbrature) {
-      const dipId = t.dipendente_id;
-      if (!riepilogoMap[dipId]) riepilogoMap[dipId] = { nome: t.dip_nome || 'N/D', minutiTotali: 0, giorni: new Set(), turniCompleti: 0 };
-      const giorno = t.timestamp?.slice(0, 10);
-      if (giorno) riepilogoMap[dipId].giorni.add(giorno);
-      if (t.tipo === 'fine_turno' && t.ore_lavorate) {
-        riepilogoMap[dipId].minutiTotali += Math.round(t.ore_lavorate * 60);
-        riepilogoMap[dipId].turniCompleti++;
+console.log("CONTESTO OPERATIVO:", contesto);
+
+/* =========================================
+   CARICA PERMESSI EXTRA
+========================================= */
+
+try {
+
+  const dipendenteId =
+    window.state?.dipendente?.id;
+
+  const aziendaId =
+    window.state?.azienda?.id;
+
+  if (dipendenteId && aziendaId) {
+
+    const { data: permessiData } =
+      await supabase
+        .from("permessi_utenti")
+        .select("permesso")
+        .eq("azienda_id", aziendaId)
+        .eq("dipendente_id", dipendenteId)
+        .eq("attivo", true);
+
+    window.state.permessiExtra =
+      (permessiData || [])
+        .map(p => p.permesso);
+
+  } else {
+
+    window.state.permessiExtra = [];
+
+  }
+
+} catch (e) {
+
+  console.error(
+    "Errore caricamento permessi extra:",
+    e
+  );
+
+  window.state.permessiExtra = [];
+
+}
+
+if (!contesto.ok) {
+
+  if (contesto.motivo === "Dipendente non trovato") {
+    app.innerHTML = `
+      <div class="view" style="padding:40px;text-align:center;">
+        <h2 style="color:#dc2626;">Errore accesso</h2>
+        <p>Dipendente non associato.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (contesto.motivo === "Nessuna sede assegnata") {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+      return;
+    }
+  } else {
+    return;
+  }
+}
+
+// 👉 MULTI SEDE → usa sede_principale se disponibile
+if (contesto.tipo === "dipendente_multi_sede") {
+  const sedePrincipale = window.state?.dipendente?.sede_principale
+    || window.state?.dipendente?.sede_id;
+  const haSedeAttiva = window.state?.sedeAttiva?.id;
+
+  if (!haSedeAttiva && !sedePrincipale) {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+      return;
+    }
+  }
+}
+
+// Admin senza dipendente — se ha già una sede in localStorage non chiedere
+if (!window.state?.sedeAttiva?.id) {
+  const storedSedeId = localStorage.getItem("active_sede_id");
+  if (storedSedeId && Array.isArray(window.state?.sedi)) {
+    const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
+    if (sede) {
+      window.state.sedeAttiva = sede;
+    }
+  }
+}
+  }
+  if (
+    !PLATFORM_ROUTES.has(route) &&
+    !BO_ROUTES.has(route) &&
+    !DISPLAY_ROUTES.has(route) &&
+    !PREHOME_ROUTES.has(route) &&
+    route !== "home" &&
+    route !== "booking-form-builder" &&
+    Array.isArray(window.state?.sedi) &&
+    window.state.sedi.length > 1 &&
+    !window.state?.sedeAttiva?.id
+  ) {
+    if (route !== "scegli-sede") {
+      window.location.hash = "#/scegli-sede";
+    }
+    return;
+  }
+
+  if (route === "homePiattaforma") {
+    if (!isSuperadmin()) {
+      window.location.hash = "#/home";
+      return;
+    }
+    await renderView("homePiattaforma");
+    return;
+  }
+
+ if (route === "home") {
+
+const ruolo = window.normalizeRuolo
+    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+    : (window.state?.viewAs || window.state?.ruolo);
+
+  if (ruolo === "admin" || ruolo === "superadmin") {
+    await renderView("home-admin");
+    return;
+  }
+
+  if (ruolo === "manager") {
+    await renderView("home-manager");
+    return;
+  }
+
+  await renderView("home-operatore");
+  return;
+}
+
+  if (PLATFORM_ROUTES.has(route)) {
+    if (!isSuperadmin()) {
+      window.location.hash = "#/home";
+      return;
+    }
+    await renderView(route);
+    return;
+  }
+
+  if (route === "sceltaAzienda") {
+    await renderView("sceltaAzienda");
+    return;
+  }
+
+  if (route === "gestione-sedi") {
+    const ruoloSedi = window.normalizeRuolo
+      ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+      : (window.state?.viewAs || window.state?.ruolo);
+
+    if (["manager", "operatore"].includes(ruoloSedi)) {
+      const modeSedi = window.routeParams?.mode || "select";
+      if (modeSedi !== "select") {
+        window.location.hash = "#/gestione-sedi";
+        return;
       }
     }
 
-    const periodoLabel = modalitaFiltro === 'mese'
-      ? `${new Date(filtroAnno, filtroMese-1, 1).toLocaleString('it-IT',{month:'long'})} ${filtroAnno}`
-      : `${dataInizio} - ${dataFine}`;
-
-    let csv = `SCHEDA PRESENZE DIPENDENTI\n`;
-    csv += `Azienda;${window.state?.azienda?.nome || ''}\n`;
-    csv += `Periodo;${periodoLabel}\n`;
-    csv += `Estratto il;${new Date().toLocaleDateString('it-IT')}\n\n`;
-
-    // Sezione riepilogo
-    csv += `RIEPILOGO ORE\n`;
-    csv += `Dipendente;Ore totali;Giorni lavorati;Turni completati\n`;
-    for (const [, d] of Object.entries(riepilogoMap)) {
-      const h = Math.floor(d.minutiTotali / 60);
-      const m = d.minutiTotali % 60;
-      csv += `${d.nome};${h}:${String(m).padStart(2,'0')};${d.giorni.size};${d.turniCompleti}\n`;
-    }
-
-    csv += `\nDETTAGLIO TIMBRATURE\n`;
-    csv += `Dipendente;Data;Ora;Tipo;Ore turno;Canale;GPS\n`;
-
-    for (const t of timbrature) {
-      const dt = t.timestamp ? new Date(t.timestamp) : null;
-      const data = dt ? dt.toLocaleDateString('it-IT', {timeZone:'Europe/Rome'}) : '';
-      const ora = dt ? dt.toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}) : '';
-      const tipo = t.tipo === 'inizio_turno' ? 'Inizio turno' : t.tipo === 'fine_turno' ? 'Fine turno' : t.tipo === 'inizio_pausa' ? 'Inizio pausa' : 'Fine pausa';
-      const ore = t.ore_lavorate ? `${Math.floor(t.ore_lavorate)}:${String(Math.round((t.ore_lavorate % 1) * 60)).padStart(2,'0')}` : '';
-      csv += `${t.dip_nome || ''};${data};${ora};${tipo};${ore};${t.canale || ''};${t.geo_esito || ''}\n`;
-    }
-
-    // Download
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = nomeFile; a.click();
-    URL.revokeObjectURL(url);
+    await renderView("gestione-sedi");
+    return;
   }
 
-  // Bind filtri
-  container.querySelector('#btn-mode-mese').addEventListener('click', () => {
-    modalitaFiltro = 'mese';
-    container.querySelector('#filtro-mese-wrap').style.display = 'flex';
-    container.querySelector('#filtro-custom-wrap').style.display = 'none';
-    container.querySelector('#btn-mode-mese').style.background = '#0E5A7A';
-    container.querySelector('#btn-mode-mese').style.color = 'white';
-    container.querySelector('#btn-mode-mese').style.borderColor = '#0E5A7A';
-    container.querySelector('#btn-mode-custom').style.background = 'white';
-    container.querySelector('#btn-mode-custom').style.color = '#374151';
-    container.querySelector('#btn-mode-custom').style.borderColor = '#e5e7eb';
-  });
+  if (routes[route]) {
+    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
+      if (!hasPermission(route) && !isSuperadmin()) {
+        window.location.hash = "#/home";
+        return;
+      }
+    }
+    await renderView(route);
+    return;
+  }
 
-  container.querySelector('#btn-mode-custom').addEventListener('click', () => {
-    modalitaFiltro = 'custom';
-    container.querySelector('#filtro-mese-wrap').style.display = 'none';
-    container.querySelector('#filtro-custom-wrap').style.display = 'flex';
-    container.querySelector('#btn-mode-custom').style.background = '#0E5A7A';
-    container.querySelector('#btn-mode-custom').style.color = 'white';
-    container.querySelector('#btn-mode-custom').style.borderColor = '#0E5A7A';
-    container.querySelector('#btn-mode-mese').style.background = 'white';
-    container.querySelector('#btn-mode-mese').style.color = '#374151';
-    container.querySelector('#btn-mode-mese').style.borderColor = '#e5e7eb';
-  });
-
-  container.querySelector('#btn-applica').addEventListener('click', caricaDati);
-
-  container.querySelector('#btn-export-csv').addEventListener('click', () => {
-    if (!timbratureCorrente.length) { alert('Nessun dato da esportare. Applica i filtri prima.'); return; }
-    const dipNome = filtroDipId
-      ? (dipendenti || []).find(d => d.id === filtroDipId)?.cognome || 'dipendente'
-      : 'tutti';
-    const periodo = modalitaFiltro === 'mese' ? `${filtroAnno}-${String(filtroMese).padStart(2,'0')}` : `${dataInizio}_${dataFine}`;
-    generaCSV(timbratureCorrente, `presenze_${dipNome}_${periodo}.csv`);
-  });
-
-  container.querySelector('#btn-export-csv-tutti').addEventListener('click', async () => {
-    // Scarica tutti i dipendenti per il periodo corrente
-    const periodoInizio = modalitaFiltro === 'mese' ? primoGiornoMese(filtroAnno, filtroMese) : dataInizio;
-    const periodoFine = modalitaFiltro === 'mese' ? ultimoGiornoMese(filtroAnno, filtroMese) : dataFine;
-
-    const { data: tutti } = await supa()
-      .from('timbrature')
-      .select('id, dipendente_id, dip_nome, tipo, timestamp, ore_lavorate, sede_id, canale, geo_esito')
-      .eq('azienda_id', aziendaId)
-      .gte('timestamp', `${periodoInizio}T00:00:00`)
-      .lte('timestamp', `${periodoFine}T23:59:59`)
-      .order('dip_nome')
-      .order('timestamp')
-      .limit(10000);
-
-    if (!tutti?.length) { alert('Nessun dato nel periodo selezionato.'); return; }
-
-    const periodo = modalitaFiltro === 'mese' ? `${filtroAnno}-${String(filtroMese).padStart(2,'0')}` : `${periodoInizio}_${periodoFine}`;
-    generaCSV(tutti, `presenze_tutti_${periodo}.csv`);
-  });
-
-  // Carica dati iniziali
-  await caricaDati();
+  await renderView("home");
 }
+
+/* =========================================================
+   INIT
+========================================================= */
+
+window.hasPermission = hasPermission;
+
+window.router = {
+  reloadCurrentRoute() {
+    resolve();
+  },
+  logout() {
+    doLogout();
+  },
+};
+
+window.addEventListener("hashchange", resolve);
+
+window.addEventListener("DOMContentLoaded", () => {
+  app = document.getElementById("app");
+  initMenu();
+
+  // ✅ FIX: sync sessione Supabase
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log("AUTH CHANGE:", event, session);
+
+    if (session?.user) {
+      if (window.stateActions?.setUser) {
+        window.stateActions.setUser(session.user);
+      }
+    } else {
+      if (window.stateActions?.setUser) {
+        window.stateActions.setUser(null);
+      }
+    }
+  });
+
+  try {
+    const saved = localStorage.getItem("reparto_attivo");
+    if (saved) {
+      window.state.repartoAttivo = JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn("Errore restore reparto:", e);
+  }
+
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.onclick = () => doLogout();
+  }
+
+  resolve();
+});
