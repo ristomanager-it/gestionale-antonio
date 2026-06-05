@@ -82,6 +82,7 @@ const routes = {
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js"),
   timbrature: () => import("./views/timbrature.js"),
+  "bo-presenze": () => import("./views/bo/bo-presenze.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
   profilo: () => import("./views/completa-profilo.js"),
@@ -221,6 +222,7 @@ const BO_ROUTES = new Set([
   "bo-ricette",
   "bo-configurazione",
   "bo-dispositivi",
+  "bo-presenze",
 ]);
 
 // Display tablet — bypassano auth contesto operativo, hanno PIN proprio
@@ -471,6 +473,7 @@ function hasPermission(area) {
 
       // Timbrature e profilo
       "timbrature",
+      "bo-presenze",
       "profilo",
       "completa-profilo",
 
