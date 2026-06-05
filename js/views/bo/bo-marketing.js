@@ -17,7 +17,7 @@ export async function render(container) {
   let templates = []
   let campagne = []
   let connessioni = []
-  let periodoStats = 'last_30_days'
+  let periodoStats = 'last_30d'
   let filtroStato = 'ALL' 
 
   // ✅ FIX CRITICO: fallback supabase
@@ -432,8 +432,8 @@ export async function render(container) {
           <div style="font-size:12px;font-weight:600;color:#64748b;">Periodo:</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;" id="filtri-periodo">
             <button class="mk-btn btn-periodo ${periodoStats==='today'?'sel':''}" data-p="today" style="background:${'today'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'today'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">Oggi</button>
-            <button class="mk-btn btn-periodo" data-p="last_7_days" style="background:${'last_7_days'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'last_7_days'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">7 giorni</button>
-            <button class="mk-btn btn-periodo" data-p="last_30_days" style="background:${'last_30_days'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'last_30_days'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">30 giorni</button>
+            <button class="mk-btn btn-periodo" data-p="last_7d" style="background:${'last_7d'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'last_7d'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">7 giorni</button>
+            <button class="mk-btn btn-periodo" data-p="last_30d" style="background:${'last_30d'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'last_30d'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">30 giorni</button>
             <button class="mk-btn btn-periodo" data-p="this_month" style="background:${'this_month'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'this_month'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">Questo mese</button>
             <button class="mk-btn btn-periodo" data-p="last_month" style="background:${'last_month'===periodoStats?'#0E5A7A':'#f1f5f9'};color:${'last_month'===periodoStats?'white':'#374151'};padding:5px 10px;font-size:12px;">Mese scorso</button>
           </div>
