@@ -1787,6 +1787,37 @@ export async function render(container) {
             </div>
           </div>
         </div>
+        <!-- GOLDEN CIRCLE -->
+        <div class="id-card" style="border:2px solid #0E5A7A;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="width:40px;height:40px;background:#0E5A7A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎯</div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#0f172a;">Golden Circle — Simon Sinek</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">Le persone non comprano COSA fai. Comprano PERCHÉ lo fai.</div>
+            </div>
+          </div>
+          <div style="background:#f0f9ff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#0E5A7A;line-height:1.6;">
+            Apple non vende computer — vende la sfida allo status quo. Il tuo ristorante non vende cibo — vende un'emozione, un ricordo, un territorio. 
+            Definire il tuo <strong>WHY</strong> è il passo più importante: guiderà ogni campagna, ogni colloquio con i dipendenti, ogni scelta di comunicazione.
+            Tony userà questi dati per generare copy più autentico e potente.
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">❤️ WHY — Perché esistiamo</span>
+            <div class="id-desc">Il motivo profondo, la causa, la convinzione. Non il profitto — quello è il risultato. Es. "Crediamo che ogni pasto debba raccontare un territorio e creare un ricordo indelebile"</div>
+            <textarea id="id-why" class="id-ta" placeholder="Scrivi il vostro PERCHÉ profondo...">${val('gc_why')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">⚙️ HOW — Come lo facciamo</span>
+            <div class="id-desc">I valori operativi e i processi che vi distinguono. Es. "Ingredienti locali a km0, ricette tramandate, servizio come ospiti a casa"</div>
+            <textarea id="id-how" class="id-ta" placeholder="Scrivi come realizzate il vostro WHY...">${val('gc_how')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">🍽️ WHAT — Cosa offriamo</span>
+            <div class="id-desc">Il prodotto o servizio — la parte più superficiale ma necessaria. Es. "Ristorante, catering per eventi, sala ricevimenti"</div>
+            <textarea id="id-what" class="id-ta" placeholder="Scrivi cosa vendete concretamente...">${val('gc_what')}</textarea>
+          </div>
+        </div>
+
         <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
         <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">💾 Salva identità aziendale</button>
       </div>
