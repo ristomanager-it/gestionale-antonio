@@ -336,6 +336,38 @@ export async function render(container) {
               `}
             </div>
 
+            <!-- ─── PULSANTE CTA (opzionale) ─── -->
+            <div style="border-top:1px solid #f1f5f9;padding-top:16px;margin-bottom:16px;">
+              <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">🔘 Pulsante CTA <span style="font-weight:400;font-size:12px;color:#64748b;">(consigliato per link — Meta approva più facilmente)</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <input type="checkbox" id="tmpl-has-button" style="accent-color:#0E5A7A;width:16px;height:16px;">
+                <label for="tmpl-has-button" style="font-size:13px;cursor:pointer;">Aggiungi pulsante al template</label>
+              </div>
+              <div id="tmpl-button-wrap" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                  <div>
+                    <div class="sezione-label">Testo pulsante</div>
+                    <input id="tmpl-btn-text" class="input" placeholder="Es. Crea password, Prenota ora" style="width:100%;box-sizing:border-box;" value="Visita il sito">
+                  </div>
+                  <div>
+                    <div class="sezione-label">Tipo</div>
+                    <select id="tmpl-btn-type" class="input" style="width:100%;box-sizing:border-box;">
+                      <option value="URL">🔗 Visita sito web (URL)</option>
+                      <option value="PHONE_NUMBER">📞 Chiama numero</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="tmpl-btn-url-wrap">
+                  <div class="sezione-label">URL del pulsante</div>
+                  <input id="tmpl-btn-url" class="input" placeholder="https://ristoflow-ai.com/reset-password.html" style="width:100%;box-sizing:border-box;">
+                </div>
+                <div id="tmpl-btn-phone-wrap" style="display:none;">
+                  <div class="sezione-label">Numero di telefono</div>
+                  <input id="tmpl-btn-phone" class="input" placeholder="+39 333 1234567" style="width:100%;box-sizing:border-box;">
+                </div>
+              </div>
+            </div>
+
             <div id="tmpl-esito" style="font-size:13px;min-height:16px;margin-bottom:12px;"></div>
 
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1050,6 +1082,15 @@ export async function render(container) {
   });
 
   // ─── CREA TEMPLATE ────────────────────────────────────────────────────────
+  // ── Pulsante CTA binding ──
+  container.querySelector('#tmpl-has-button')?.addEventListener('change', (e) => {
+    container.querySelector('#tmpl-button-wrap').style.display = e.target.checked ? '' : 'none';
+  });
+  container.querySelector('#tmpl-btn-type')?.addEventListener('change', (e) => {
+    container.querySelector('#tmpl-btn-url-wrap').style.display = e.target.value === 'URL' ? '' : 'none';
+    container.querySelector('#tmpl-btn-phone-wrap').style.display = e.target.value === 'PHONE_NUMBER' ? '' : 'none';
+  });
+
   container.querySelector('#btn-crea-template').addEventListener('click', async () => {
     const esito = container.querySelector('#tmpl-esito');
     const nome = container.querySelector('#tmpl-nome').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -1107,9 +1148,23 @@ export async function render(container) {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-create-templates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+      // Costruisci payload con eventuale pulsante CTA
+      const hasButton = container.querySelector('#tmpl-has-button')?.checked;
+      const btnType = container.querySelector('#tmpl-btn-type')?.value;
+      const btnText = container.querySelector('#tmpl-btn-text')?.value.trim();
+      const btnUrl = container.querySelector('#tmpl-btn-url')?.value.trim();
+      const btnPhone = container.querySelector('#tmpl-btn-phone')?.value.trim();
+
+      const buttons = hasButton && btnText ? [{
+        type: btnType || 'URL',
+        text: btnText,
+        ...(btnType === 'URL' ? { url: btnUrl || 'https://ristoflow-ai.com' } : {}),
+        ...(btnType === 'PHONE_NUMBER' ? { phone_number: btnPhone || '' } : {}),
+      }] : [];
+
       body: JSON.stringify({
         azienda_id: aziendaId,
-        single: { name: nome, category: categoria, text: testoConvertito, example: esempi }
+        single: { name: nome, category: categoria, text: testoConvertito, example: esempi, buttons }
       })
     });
 
