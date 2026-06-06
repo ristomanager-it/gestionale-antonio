@@ -314,21 +314,32 @@ export async function render(container) {
         if (sedeId) qVend = qVend.eq('sede_id', sedeId);
         const { data: righe } = await qVend.limit(10000);
 
-        // Calcola IVA acquisti per aliquota
+        // Funzione per trovare aliquota standard più vicina (4, 10, 22, 0)
+        function aliquotaStandard(imponibile, totale) {
+          if (!imponibile || !totale || totale <= imponibile) return 0;
+          const ivaImporto = totale - imponibile;
+          const percCalcolata = (ivaImporto / imponibile) * 100;
+          // Trova l'aliquota standard più vicina
+          const aliquote = [0, 4, 10, 22];
+          return aliquote.reduce((a, b) => Math.abs(b - percCalcolata) < Math.abs(a - percCalcolata) ? b : a);
+        }
+
+        // Calcola IVA acquisti per aliquota standard
         const ivaAcqMap = {};
         let totImponibileAcq = 0, totIvaAcq = 0, totTotaleAcq = 0;
         for (const f of (fatture || [])) {
-          const aliquota = f.iva || 10;
+          const imp = parseFloat(f.imponibile) || 0;
+          const tot = parseFloat(f.totale) || 0;
+          const ivaImporto = Math.max(0, tot - imp);
+          // Usa aliquota_iva se presente, altrimenti deducila
+          const aliquota = f.aliquota_iva || aliquotaStandard(imp, tot);
           if (!ivaAcqMap[aliquota]) ivaAcqMap[aliquota] = { imponibile: 0, iva: 0, totale: 0 };
-          // iva nella fattura è importo o percentuale?
-          // Calcoliamo: iva_importo = totale - imponibile
-          const ivaImporto = (f.totale || 0) - (f.imponibile || 0);
-          ivaAcqMap[aliquota].imponibile += f.imponibile || 0;
-          ivaAcqMap[aliquota].iva += ivaImporto > 0 ? ivaImporto : (f.imponibile || 0) * (aliquota / 100);
-          ivaAcqMap[aliquota].totale += f.totale || 0;
-          totImponibileAcq += f.imponibile || 0;
-          totIvaAcq += ivaImporto > 0 ? ivaImporto : (f.imponibile || 0) * (aliquota / 100);
-          totTotaleAcq += f.totale || 0;
+          ivaAcqMap[aliquota].imponibile += imp;
+          ivaAcqMap[aliquota].iva += ivaImporto;
+          ivaAcqMap[aliquota].totale += tot;
+          totImponibileAcq += imp;
+          totIvaAcq += ivaImporto;
+          totTotaleAcq += tot;
         }
 
         // Calcola IVA vendite per aliquota
