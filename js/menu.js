@@ -323,6 +323,7 @@ export function initMenu() {
           { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
+          { label: "🎁 Promo",             route: "bo-promo"          },
         ]
       });
 
@@ -333,7 +334,6 @@ export function initMenu() {
           { label: "💬 Survey team",       route: "bo-survey"         },
           { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
-          { label: "📋 Presenze & Ore",   route: "bo-presenze"       },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
