@@ -1,1339 +1,2105 @@
-import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js";
-import { renderFooter, initFooter } from "./components/footer.js";
-/* =========================================================
-   SUPABASE EMAIL LINK HANDLER
-========================================================= */
+// js/views/bo/bo-configurazione.js
+// Control room del ristorante — configurazione centralizzata
+// Tab: Operativo | Sala | Menu & Comunicazione | Cassa | Integrazioni
 
-(function fixSupabaseEmailLink() {
-  const hash = window.location.hash || "";
 
-  if (hash.startsWith("#access_token=")) {
-    const tokens = hash.substring(1);
-    window.location.hash = "#/set-password?" + tokens;
+const supa = () => window.supabaseClient || window.supabase;
+
+async function waitForAuth(maxWait = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    const s = supa();
+    if (s) { const { data } = await s.auth.getSession(); if (data?.session) return true; }
+    await new Promise(r => setTimeout(r, 200));
   }
-})();
-
-/* =========================================================
-   FIX SUPABASE HASH
-========================================================= */
-
-(function fixSupabaseHash() {
-  const h = window.location.hash || "";
-
-  if (h.startsWith("#/set-password#")) {
-    const tokens = h.split("#")[2];
-    window.location.hash = "#/set-password?" + tokens;
-    return;
-  }
-
-  if (h.startsWith("#/activate#")) {
-    const tokens = h.split("#")[2];
-    window.location.hash = "#/activate?" + tokens;
-  }
-})();
-
-let app = null;
-
-/* =========================================================
-   ROUTES (PULITO + CAMPAGNE)
-========================================================= */
-
-const routes = {
-  login: () => import("./views/login.js"),
-  home: () => import("./views/home.js"),
-
-  "home-admin": () => import("./views/home-admin.js"),
-  "home-manager": () => import("./views/home-manager.js"),
-  "home-operatore": () => import("./views/home-operatore.js"),
-
-  homePiattaforma: () => import("./views/home-piattaforma.js"),
-
-  creaAzienda: () => import("./views/crea-azienda.js"),
-  gestioneAziende: () => import("./views/gestione-aziende.js"),
-  modificaAzienda: () => import("./views/modifica-azienda.js"),
-  gestionePiani: () => import("./views/gestione-piani.js"),
-
-  activate: () => import("./views/activate.js"),
-
-  cliente: () => import("./views/cliente.js"),
-
-  setPassword: () => import("./views/set-password.js"),
-  "set-password": () => import("./views/set-password.js"),
-
-  sceltaAzienda: () => import("./views/scelta-azienda.js"),
-
-  "gestione-sedi": () => import("./views/gestione-sedi.js"),
-
-  operativo: () => import("./views/operativo.js"),
-  amministrazione: () => import("./views/amministrazione.js"),
-  gestione: () => import("./views/gestione.js"),
-  "ricette-semplici": () =>
-    import("./views/ricette-semplici.js"),
-  "permessi-operatore": () =>
-    import("./views/permessi-operatore/index.js"),
-
-  // =========================
-  // MARKETING (globale - lettura)
-  // =========================
-  "bo-marketing": () => import("./views/bo/bo-marketing.js"),
-
-  dipendenti: () => import("./views/dipendenti.js"),
-  dipendente: () => import("./views/dipendente.js"),
-  "crea-dipendente": () => import("./views/crea-dipendente.js"),
-  timbrature: () => import("./views/timbrature.js"),
-  "bo-presenze": () => import("./views/bo/bo-presenze.js"),
-
-  completaProfilo: () => import("./views/completa-profilo.js"),
-  profilo: () => import("./views/completa-profilo.js"),
-  completaAzienda: () => import("./views/completa-azienda.js"),
-"scegli-sede": () => import("./views/scegli-sede.js"),
-  acquisti: () => import("./views/acquisti/index.js"),
-  magazzino: () => import("./views/magazzino/magazzino.js"),
-
-  produzione: () => import("./views/produzione.js"),
-  storicoLotto: () => import("./views/storico-lotto.js"),
-  ricettario: () => import("./views/ricettario.js"),
-  "planner-produzione": () => import("./views/planner-produzione.js"),
-  creaRicetta: () => import("./views/ricette-semplici.js"),
-  "crea-ricetta":          () => import("./views/ricette-semplici.js"),
-  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js"),
-  preparazioni: () => import("./views/preparazioni.js"),
-  reparti: () => import("./views/reparti.js"),
-  venduto: () => import("./views/venduto.js"),
-  margini: () => import("./views/margini.js"),
-
-  preventivi: () => import("./views/preventivi.js"),
-  creaPreventivo: () => import("./views/crea-preventivo.js"),
-  ai: () => import("./views/ai.js"),
-
-  permessi: () => import("./views/permessi-ferie.js"),
-
-  // ── HR — Gestione personale ──
-  "hr-richieste":    () => import("./views/hr-richieste.js"),
-  "hr-admin":        () => import("./views/hr-admin.js"),
-  "hr-fascicolo":    () => import("./views/hr-fascicolo.js"),
-  "hr-documenti":    () => import("./views/hr-documenti.js"),
-  "hr-documenti-me": () => import("./views/hr-documenti.js"),
-  manuale: () => import("./views/manuale.js"),
-
-  sala: () => import("./views/sala.js"),
-
-  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
-  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js"),
-  "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
-  "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
-
-  prenotazioni: () => import("./views/prenotazioni/index.js"),
-  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js"),
-
-  campagne: () => import("./views/campagne/index.js"),
-  "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
-
-  comanda: () => import("./views/comanda.js"),
-
-  // =========================
-  // BACK OFFICE (COSTRUZIONE)
-  // =========================
-  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
-  "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js"),
-  "bo-candidature": () => import("./views/bo/bo-candidature.js"),
-  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js"),
-  "bo-survey":      () => import("./views/bo/bo-survey.js"),
-
-  // MENU
-  "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
-  "bo-categorie": () => import("./views/bo/categorie.js"),
-  "bo-prodotti": () => import("./views/bo/prodotti.js"),
-
-  // PRODUZIONE
-  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js"),
-  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
-  "ricette-editor": () => import("./views/bo/ricette-editor.js"),
-  "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
-  "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
-
-
-    // =========================================================
-  // APP (OPERATIVO)
-  // =========================================================
-  "app-produzione": () => import("./views/app/app-produzione.js"),
-
-  // =========================
-  // DISPLAY (tablet fissi)
-  // =========================
-  "display-cucina": () => import("./views/display/display-cucina.js"),
-
-}; // 
-
-/* =========================================================
-   ROUTE SCOPE
-========================================================= */
-
-const PUBLIC_ROUTES = new Set([
-  "login",
-  "activate",
-  "setPassword",
-  "set-password",
-  "prenota",
-  "booking"
-]);
-
-const PLATFORM_ROUTES = new Set([
-  "homePiattaforma",
-  "gestioneAziende",
-  "creaAzienda",
-  "modificaAzienda",
-  "gestionePiani",
-]);
-
-const PREHOME_ROUTES = new Set([
-  "sceltaAzienda",
-  "gestione-sedi",
-  "scegli-sede",
-  "completaProfilo",
-  "completaAzienda",
-]);
-
-const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
-
-const BO_ROUTES = new Set([
-  "bo-dashboard",
-
-  // MARKETING
-  "bo-tag",
-  "bo-template",
-  "bo-candidature",
-  "bo-bilancio",
-  "bo-survey",
-
-  // MENU
-  "bo-menu",
-  "bo-categorie",
-  "bo-prodotti",
-
-  // PRODUZIONE
-  "bo-magazzino",
-  "bo-produzione",
-  "bo-comande",
-  "bo-ricette",
-  "bo-configurazione",
-  "bo-dispositivi",
-  "bo-presenze",
-]);
-
-// Display tablet — bypassano auth contesto operativo, hanno PIN proprio
-const DISPLAY_ROUTES = new Set([
-  "display-cucina",
-]);
-/* =========================================================
-   STORAGE KEYS
-========================================================= */
-
-const LS_KEYS = {
-  ACTIVE_AZIENDA_ID: "active_azienda_id",
-  ACTIVE_SEDE_ID: "active_sede_id",
-};
-
-/* =========================================================
-   PARSE HASH
-========================================================= */
-
-function parseHash() {
-  const raw = window.location.hash || "#/login";
-  const cleaned = raw.replace("#/", "");
-  const [path, queryString] = cleaned.split("?");
-
-  const params = {};
-  if (queryString) {
-    const searchParams = new URLSearchParams(queryString);
-    for (const [key, value] of searchParams.entries()) {
-      params[key] = value;
-    }
-  }
-
-  const segments = path.split("/").filter(Boolean);
-
-  return {
-    route: segments[0] || "login",
-    segments,
-    params,
-  };
-}
-
-/* =========================================================
-   RENDER VIEW
-========================================================= */
-
-async function renderView(routeName) {
-
-  if (!routes[routeName]) {
-    routeName = "home";
-  }
-
-  if (!app) return;
-
-  app.innerHTML = "";
-
-  const sub =
-    document.getElementById("page-subheader");
-
-  const foot =
-    document.getElementById("footer-root");
-
-  if (sub) sub.innerHTML = "";
-  if (foot) foot.innerHTML = "";
-
-  const module =
-    await routes[routeName]();
-
-  if (!module.render) {
-
-    throw new Error(
-      `La view ${routeName} non esporta render()`
-    );
-
-  }
-
-  await module.render(app);
-
-  // 🔥 FOOTER
-  try {
-
-    if (foot) {
-
-      const footerHTML =
-        await renderFooter();
-
-      foot.innerHTML =
-        footerHTML;
-
-      initFooter();
-
-    }
-
-  } catch (e) {
-
-    console.error(
-      "Errore render footer:",
-      e
-    );
-
-  }
-
-}
-
-/* =========================================================
-   SUPERADMIN
-========================================================= */
-
-function isSuperadmin() {
-
-  return (
-
-    !window.state?.viewAs &&
-
-    (
-
-      window.state?.isSuperadmin === true ||
-
-      (
-
-        window.normalizeRuolo
-          ? window.normalizeRuolo(
-              window.state?.ruolo
-            )
-          : window.state?.ruolo
-
-      ) === "superadmin"
-
-    )
-
-  );
-
-}
-
-function hasPermission(area) {
-
-  if (!area || area === "home") {
-    return true;
-  }
-
-  const ruolo = window.normalizeRuolo
-    ? window.normalizeRuolo(
-        window.state?.viewAs ||
-        window.state?.ruolo
-      )
-    : (
-        window.state?.viewAs ||
-        window.state?.ruolo
-      );
-
-  const extra =
-    window.state?.permessiExtra || [];
-
-  // =====================================
-  // ROTTE PIATTAFORMA
-  // =====================================
-
-  if (PLATFORM_ROUTES.has(area)) {
-    return isSuperadmin();
-  }
-
-  // =====================================
-  // PREHOME
-  // =====================================
-
-  if (PREHOME_ROUTES.has(area)) {
-    return true;
-  }
-
-  // =====================================
-  // SUPERADMIN
-  // =====================================
-
-  if (isSuperadmin()) {
-    return true;
-  }
-
-  // =====================================
-  // TIMBRATURE GLOBALI
-  // =====================================
-
-  if (
-    area === "timbrature" &&
-    (
-      ruolo === "admin" ||
-      ruolo === "manager" ||
-      ruolo === "superadmin"
-    )
-  ) {
-
-    return true;
-
-  }
-
-  // =====================================
-  // SOLO ADMIN (non manager, non operatore)
-  // =====================================
-
-  const ADMIN_ONLY_ROUTES = new Set([
-    // Marketing & CRM
-    "bo-tag",
-    "bo-template",
-    "bo-marketing",
-    // Personale — selezione e ascolto
-    "bo-candidature",
-  "bo-bilancio",
-    "bo-survey",
-  ]);
-
-  if (ADMIN_ONLY_ROUTES.has(area)) {
-    return ruolo === "admin";
-  }
-
-  // =====================================
-  // ADMIN / MANAGER
-  // =====================================
-
-  if (
-    ruolo === "admin" ||
-    ruolo === "manager"
-  ) {
-
-    return true;
-
-  }
-
-  // =====================================
-  // OPERATORE BASE
-  // =====================================
-
-  if (ruolo === "operatore") {
-
-    const allowed = [
-
-      "home",
-      "home-operatore",
-
-      "sala",
-      "comanda",
-      "bo-comande",
-
-      // Cucina
-      "ricettario",
-      "crea-ricetta-avanzata",
-      "preparazioni",
-      "app-produzione",
-      "produzione",
-      "display-cucina",
-
-      // Timbrature e profilo
-      "timbrature",
-      "bo-presenze",
-      "profilo",
-      "completa-profilo",
-
-      // Prenotazioni
-      "prenotazioni",
-      "prenotazioni-dettaglio",
-      "prenotazioni-tavoli",
-
-      // HR personale
-      "hr-richieste",
-      "hr-documenti-me",
-
-      "ai"
-
-    ];
-
-    if (allowed.includes(area)) {
-      return true;
-    }
-
-  }
-
-  // =====================================
-  // PERMESSI EXTRA
-  // =====================================
-
-const routePermissions = {
-
-  "planner-produzione":
-    "planning.write",
-
-  "acquisti":
-    "acquisti.write",
-
-  "magazzino":
-    "magazzino.write",
-
-  "ricettario":
-    "ricette.write",
-
-  "creaRicetta":
-    "ricette.write",
-
-  "crea-ricetta-avanzata":
-    "ricette.write",
-
-  "dipendenti":
-    "dipendenti.read",
-
-  "crea-dipendente":
-    "dipendenti.write",
-
-  "ricette-semplici":
-    "ricette.write",
-
-};
-
-  const neededPermission =
-    routePermissions[area];
-
-  if (
-    neededPermission &&
-    extra.includes(neededPermission)
-  ) {
-
-    return true;
-
-  }
-
-  // =====================================
-  // FALLBACK LEGACY
-  // =====================================
-
-  const permessi =
-    window.state?.permessi || {};
-
-  return (
-    permessi[`${area}.read`] === true
-  );
-
-}
-  
-/* =========================================================
-   UI HELPERS
-========================================================= */
-
-function setHeaderVisible(visible) {
-  const header = document.querySelector(".app-header");
-  if (header) header.style.display = visible ? "flex" : "none";
-
-  const topbar = document.getElementById("topbar-info");
-  if (topbar) topbar.style.display = visible ? "flex" : "none";
-}
-
-function getStoredAziendaId() {
-  return localStorage.getItem(LS_KEYS.ACTIVE_AZIENDA_ID);
-}
-
-function setStoredAziendaId(id) {
-  if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_AZIENDA_ID, String(id));
-}
-
-function clearStoredAziendaId() {
-  localStorage.removeItem(LS_KEYS.ACTIVE_AZIENDA_ID);
-}
-
-function getStoredSedeId() {
-  return localStorage.getItem(LS_KEYS.ACTIVE_SEDE_ID);
-}
-
-function setStoredSedeId(id) {
-  if (!id) return;
-  localStorage.setItem(LS_KEYS.ACTIVE_SEDE_ID, String(id));
-}
-
-function clearStoredSedeId() {
-  localStorage.removeItem(LS_KEYS.ACTIVE_SEDE_ID);
-}
-
-/* =========================================================
-   AUTH + CONTEXT HELPERS
-========================================================= */
-
-async function getValidSession() {
-  const { data } = await supabase.auth.getSession();
-  let session = data?.session || null;
-
-  if (!session) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
-    session = refreshed?.session || null;
-  }
-
-  return session;
-}
-
-async function loadAziendeForUser(userId) {
-  const { data: aziende, error } = await supabase
-    .from("utenti_aziende")
-    .select(
-      `
-      ruolo,
-      permessi_override,
-      aziende:azienda_id (
-        id,
-        nome,
-        codice,
-        stato,
-        attiva,
-        data_scadenza,
-        features,
-        logo_path,
-        logo_url,
-        piano_id,
-        stato_attivazione,
-        profilo_completato
-      )
-    `
-    )
-    .eq("user_id", userId)
-    .eq("attivo", true);
-
-  if (error) {
-    console.error("Errore caricamento aziende:", error);
-    return [];
-  }
-
-  return (aziende || []).filter((a) => a.aziende);
-}
-
-function pickActiveAzienda(aziendePulite) {
-  const storedId = getStoredAziendaId();
-
-  if (storedId) {
-    const match = aziendePulite.find(
-      (a) => String(a.aziende.id) === String(storedId)
-    );
-    if (match?.aziende) return match.aziende;
-  }
-
-  if (aziendePulite.length === 1) {
-    return aziendePulite[0].aziende;
-  }
-
-  return null;
-}
-
-function applyAziendaContextFromLink(aziendePulite, azienda) {
-  if (!azienda) return;
-
-  const recordAttivo = aziendePulite.find((a) => a.aziende?.id === azienda.id);
-
-  window.state.isSuperadmin = aziendePulite.some((a) => a.ruolo === "superadmin");
-
-  const ruoloEffettivoRaw = window.state.isSuperadmin
-    ? "superadmin"
-    : recordAttivo?.ruolo || "admin";
-
-  window.stateActions.setRuolo(ruoloEffettivoRaw);
-  window.state.ruoloRaw = ruoloEffettivoRaw;
-  window.state.ruolo = window.normalizeRuolo ? window.normalizeRuolo(ruoloEffettivoRaw) : ruoloEffettivoRaw;
-  window.state.permessiOverride = recordAttivo?.permessi_override || {};
-}
-
-function isAziendaBlockedForUser(azienda, routeName) {
-  if (!azienda) return true;
-  if (isSuperadmin()) return false;
-
-  if (PLATFORM_ROUTES.has(routeName)) return false;
-  if (routeName === "completaAzienda") return false;
-
-  if (azienda.stato === "piattaforma") return false;
-
-  if (azienda.stato !== "attiva") return true;
-
-  if (azienda.attiva === false) return true;
-
   return false;
 }
 
-async function ensureAziendaContext(routeName) {
-  const user = window.state?.user;
-  if (!user) return { ok: false, reason: "no_user" };
+const COLORI_SETTORI = ['#f59e0b','#16a34a','#0E5A7A','#7c3aed','#dc2626','#0891b2','#be185d','#84cc16'];
 
-  const aziendePulite = await loadAziendeForUser(user.id);
+export async function render(container) {
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId    = window.state?.sedeAttiva?.id;
 
-  window.stateActions.setAziende(aziendePulite);
+  if (!aziendaId) { container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>'; return; }
+  const authOk = await waitForAuth();
+  if (!authOk) { container.innerHTML = '<section class="view"><h2>Sessione non disponibile.</h2></section>'; return; }
 
-  if (aziendePulite.length === 0) {
-    window.stateActions.resetAzienda();
-    return { ok: false, reason: "no_aziende" };
-  }
+  let tabAttivo = 'operativo';
+  let settori = [], postazioni = [], prodottiVendita = [], categorieVendita = [], ricette = [];
+  let tavoli = [], sale = [];
 
-  const activeAzienda = pickActiveAzienda(aziendePulite);
+  container.innerHTML = `
+  <div style="min-height:100vh;background:#f8fafc;padding:16px;">
+    <div style="max-width:900px;margin:0 auto;">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
+        <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
+      </div>
+      
+      <!-- Tab nav -->
+      <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+        ${[
+          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'          },
+          { id:'sala',         icon:'🪑', label:'Sala'                 },
+          { id:'menu',         icon:'📋', label:'Menu'                 },
+          { id:'cassa',        icon:'💳', label:'Cassa'                },
+          { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
+          { id:'identita',     icon:'🎯', label:'Identità & Brand'      },
+          { id:'sondaggi',      icon:'📊', label:'Sondaggi'               },
+        ].map(t => `
+          <button data-tab="${t.id}" style="
+            padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
+            color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;
+            flex-shrink:0;
+          ">${t.icon} ${t.label}</button>
+        `).join('')}
+      </div>
+      <!-- Contenuto tab -->
+      <div id="tab-content"></div>
+    
+    </div>
+  </div>
+`;
 
-  if (!activeAzienda) {
-    window.stateActions.resetAzienda();
-    if (routeName !== "sceltaAzienda") {
-      window.location.hash = "#/sceltaAzienda";
-      return { ok: false, redirected: true };
-    }
-    return { ok: false, reason: "need_choice" };
-  }
-
-  setStoredAziendaId(activeAzienda.id);
-
-  if (!window.state.azienda || window.state.azienda.id !== activeAzienda.id) {
-    window.stateActions.setAzienda(activeAzienda);
-  } else {
-    window.state.azienda = activeAzienda;
-  }
-
-  applyAziendaContextFromLink(aziendePulite, activeAzienda);
-
-  return { ok: true, azienda: activeAzienda, aziendePulite };
-}
-
-async function loadPianoForAzienda(azienda) {
-  if (!azienda) {
-    window.state.piano = null;
-    return;
-  }
-
-  if (azienda.piano_id) {
-    const { data: piano, error } = await supabase
-      .from("piani_abbonamento")
-      .select("*")
-      .eq("id", azienda.piano_id)
-      .single();
-
-    if (error) {
-      console.error("Errore caricamento piano:", error);
-      window.state.piano = null;
-      return;
-    }
-
-    window.state.piano = piano || null;
-  } else {
-    window.state.piano = null;
-  }
-
-  const pianoFeatures = window.state.piano?.features || {};
-  const aziendaOverride = azienda.features || {};
-
-  window.state.featuresEffettive = {
-    ...pianoFeatures,
-    ...aziendaOverride,
-  };
-}
-
-async function loadSediForAzienda(aziendaId) {
-  const { data, error } = await supabase
-    .from("sedi")
-    .select("id, nome, indirizzo, latitudine, longitudine")
-    .eq("azienda_id", aziendaId)
-    .order("nome", { ascending: true });
-
-  if (error) {
-    console.error("Errore caricamento sedi:", error);
-    return [];
-  }
-
-  return data || [];
-}
-
-function pickActiveSede(sedi) {
-  // 1. Ultima sede usata (localStorage)
-  const storedId = getStoredSedeId();
-  if (storedId) {
-    const match = sedi.find((s) => String(s.id) === String(storedId));
-    if (match) return match;
-  }
-
-  // 2. Sede principale del dipendente
-  const sedePrincipale = window.state?.dipendente?.sede_principale
-    || window.state?.dipendente?.sede_id;
-  if (sedePrincipale) {
-    const match = sedi.find((s) => String(s.id) === String(sedePrincipale));
-    if (match) {
-      setStoredSedeId(match.id);
-      return match;
+  // ════════════════════════════════════════
+  // TAB NAVIGATION
+  // ════════════════════════════════════════
+  function switchTab(id) {
+    tabAttivo = id;
+    container.querySelectorAll('[data-tab]').forEach(btn => {
+      const att = btn.dataset.tab === id;
+      btn.style.color       = att ? '#0E5A7A' : '#64748b';
+      btn.style.borderBottomColor = att ? '#0E5A7A' : 'transparent';
+      btn.style.background  = att ? '#f0f9ff' : 'none';
+    });
+    const box = container.querySelector('#tab-content');
+    switch(id) {
+      case 'operativo':    renderTabOperativo(box);    break;
+      case 'sala':         renderTabSala(box);         break;
+      case 'menu':         renderTabMenu(box);         break;
+      case 'cassa':        renderTabCassa(box); break;
+      case 'integrazioni': renderTabIntegrazioni(box); break;
+      case 'identita':     renderTabIdentita(box);    break;
+      case 'sondaggi':     renderTabSondaggi(box);    break;
     }
   }
 
-  // 3. Unica sede disponibile
-  if (sedi.length === 1) return sedi[0];
+  container.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
 
-  return null;
-}
+  // ════════════════════════════════════════
+  // PRESTO DISPONIBILE (tab vuoti)
+  // ════════════════════════════════════════
+  // ════════════════════════════════════════
+  // TAB: CASSA & STAMPANTI FISCALI
+  // ════════════════════════════════════════
+  async function renderTabCassa(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
-async function ensureSedeContext(routeName) {
-  const azienda = window.state?.azienda;
-  if (!azienda?.id) return { ok: false, reason: "no_azienda" };
+    const { data: stampanti } = await supa()
+      .from('stampanti_fiscali')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .order('created_at', { ascending: true });
 
-  const sedi = await loadSediForAzienda(azienda.id);
+    const { data: sedi } = await supa()
+      .from('sedi')
+      .select('id, nome')
+      .eq('azienda_id', aziendaId)
+      .order('nome');
 
-  if (window.stateActions?.setSedi) {
-    window.stateActions.setSedi(sedi);
-  } else {
-    window.state.sedi = sedi;
-  }
+    const sediOpts = (sedi || []).map(s =>
+      `<option value="${s.id}">${esc(s.nome)}</option>`
+    ).join('');
 
-  if (sedi.length === 0) {
-    clearStoredSedeId();
-    window.state.sedeAttiva = null;
+    box.innerHTML = `
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#0f172a;">🖨️ Stampanti fiscali</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Registratori telematici collegati per sede</div>
+          </div>
+          <button id="btn-nuova-stampante" style="background:#0E5A7A;color:white;border:none;padding:9px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi stampante</button>
+        </div>
 
-    if (routeName !== "gestione-sedi") {
-      window.location.hash = "#/gestione-sedi?mode=first";
-      return { ok: false, redirected: true };
+        <div id="lista-stampanti"></div>
+
+        <!-- Form nuova/modifica stampante -->
+        <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-stampante-title">Nuova stampante</div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;">
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Nome</label>
+              <input id="sp-nome" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. Cassa principale">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+              <select id="sp-sede" class="input" style="margin-top:4px;">
+                <option value="">— Tutte le sedi —</option>
+                ${sediOpts}
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Modello</label>
+              <select id="sp-modello" class="input" style="margin-top:4px;">
+                <option value="Epson FP-81 II RT">Epson FP-81 II RT</option>
+                <option value="Epson FP-90III RT">Epson FP-90III RT</option>
+                <option value="Custom RT">Custom RT</option>
+                <option value="Ditron">Ditron</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Matricola</label>
+              <input id="sp-matricola" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. 99IEB040357">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Indirizzo IP</label>
+              <input id="sp-ip" class="input" style="width:100%;box-sizing:border-box;margin-top:4px;" placeholder="Es. 192.168.0.102">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Porta HTTP</label>
+              <input id="sp-porta" class="input" type="number" style="width:100%;box-sizing:border-box;margin-top:4px;" value="80">
+            </div>
+
+          </div>
+
+          <div style="margin-top:16px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Reparti IVA</label>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Configura i reparti come impostati sulla stampante</div>
+            <div id="reparti-wrap" style="margin-top:6px;"></div>
+            <button type="button" id="btn-add-reparto" style="margin-top:8px;background:#f1f5f9;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#374151;">+ Aggiungi reparto</button>
+          </div>
+
+          <div id="sp-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
+
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button id="btn-salva-stampante" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+            <button id="btn-test-stampante" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">🔌 Test connessione</button>
+            <button id="btn-annulla-stampante" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    let editingId = null;
+    let repartiRows = [
+      { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
+      { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+      { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
+    ];
+
+    function renderReparti() {
+      const wrap = box.querySelector('#reparti-wrap');
+      if (!wrap) return;
+      wrap.innerHTML = repartiRows.map((r, idx) => `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <input type="number" min="1" max="99" value="${r.reparto}" data-rep-idx="${idx}" data-field="reparto"
+            style="width:60px;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="#">
+          <input type="number" min="0" max="100" step="0.1" value="${r.iva}" data-rep-idx="${idx}" data-field="iva"
+            style="width:70px;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="IVA%">
+          <input type="text" value="${esc(r.descrizione)}" data-rep-idx="${idx}" data-field="descrizione"
+            style="flex:1;padding:6px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;" placeholder="Es. Alimenti">
+          <button data-del-rep="${idx}" style="background:#fee2e2;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;color:#dc2626;font-size:12px;">✕</button>
+        </div>
+      `).join('');
+
+      wrap.querySelectorAll('[data-rep-idx]').forEach(el => {
+        el.addEventListener('input', () => {
+          const idx = +el.dataset.repIdx;
+          const field = el.dataset.field;
+          repartiRows[idx][field] = field === 'descrizione' ? el.value : Number(el.value);
+        });
+      });
+      wrap.querySelectorAll('[data-del-rep]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          repartiRows.splice(+btn.dataset.delRep, 1);
+          renderReparti();
+        });
+      });
     }
-    return { ok: false, reason: "no_sedi" };
-  }
 
-  const sede = pickActiveSede(sedi);
-
-  if (!sede) {
-    window.state.sedeAttiva = null;
-    clearStoredSedeId();
-
-    if (routeName !== "gestione-sedi") {
-      window.location.hash = "#/gestione-sedi?mode=select";
-      return { ok: false, redirected: true };
-    }
-    return { ok: false, reason: "need_sede_choice" };
-  }
-
-  window.state.sedeAttiva = sede;
-  setStoredSedeId(sede.id);
-
-  return { ok: true, sede };
-}
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-async function doLogout() {
-  try {
-    await supabase.auth.signOut();
-  } catch (e) {
-    console.error("Errore logout:", e);
-  }
-
-  clearStoredAziendaId();
-  clearStoredSedeId();
-
-  if (window.stateActions?.setUser) window.stateActions.setUser(null);
-  if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
-  if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
-
-  window.state.piano = null;
-  window.state.featuresEffettive = {};
-  window.state.sedi = [];
-  window.state.sedeAttiva = null;
-  window.state.permessiOverride = {};
-  window.state.isSuperadmin = false;
-
-  setHeaderVisible(false);
-
-  window.location.hash = "#/login";
-}
-
-/* =========================================================
-   ROUTER CORE
-========================================================= */
-
-async function resolve() {
-  if (!app) return;
-
-  if (!window.location.hash) {
-    window.location.hash = "#/login";
-    return;
-  }
-
-  const { route, segments, params } = parseHash();
-  console.log("ROUTE:", route);
-  window.routeParams = params || {};
-  window.routeSegments = segments || [];
-
-  if (route === "booking") {
-
-    const slug = segments[1];
-
-    if (!slug) {
-      app.innerHTML = "Link non valido";
-      return;
-    }
-
-    try {
-
-      const { data: link, error } = await supabase
-        .from("booking_links")
-        .select("form_id")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (error || !link) {
-        app.innerHTML = "Link non trovato";
+    function renderListaStampanti(lista) {
+      const el = box.querySelector('#lista-stampanti');
+      if (!lista || !lista.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Nessuna stampante configurata.</div>';
         return;
       }
+      el.innerHTML = lista.map(s => {
+        const sedeName = (sedi || []).find(x => x.id === s.sede_id)?.nome || 'Tutte le sedi';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#0f172a;">${esc(s.nome)}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${esc(s.modello || '—')} · ${esc(s.matricola || '—')} · IP: <strong>${esc(s.ip)}</strong>:${s.porta || 80} · ${esc(sedeName)}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="background:${s.attiva ? '#dcfce7' : '#fee2e2'};color:${s.attiva ? '#15803d' : '#dc2626'};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">
+                ${s.attiva ? '✅ Attiva' : '⏸ Disattiva'}
+              </span>
+              <button data-edit="${s.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;font-weight:600;">✏️ Modifica</button>
+              <button data-toggle="${s.id}" data-attiva="${s.attiva}" style="background:#f1f5f9;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#374151;">
+                ${s.attiva ? '⏸ Disattiva' : '▶️ Attiva'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
 
-      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
-      return;
-
-    } catch (e) {
-      console.error("Errore booking route:", e);
-      app.innerHTML = "Errore";
-      return;
+      el.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => apriForm(lista.find(s => s.id === btn.dataset.edit)));
+      });
+      el.querySelectorAll('[data-toggle]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await supa().from('stampanti_fiscali')
+            .update({ attiva: btn.dataset.attiva !== 'true' })
+            .eq('id', btn.dataset.toggle);
+          renderTabCassa(box);
+        });
+      });
     }
-  }
 
-  // ── Route menu pubblico (senza login) ──
-  if (route === "menu") {
-    const slug = segments[1];
-    if (!slug) { app.innerHTML = "Link non valido"; return; }
-    try {
-      const { renderMenuPubblico } = await import("./views/menu-pubblico.js");
-      await renderMenuPubblico(app, slug);
-      return;
-    } catch(e) {
-      console.error("Errore menu pubblico:", e);
-      app.innerHTML = "Menu non trovato";
-      return;
+    function apriForm(stampante = null) {
+      editingId = stampante?.id || null;
+      box.querySelector('#form-stampante-title').textContent = stampante ? 'Modifica stampante' : 'Nuova stampante';
+      box.querySelector('#sp-nome').value = stampante?.nome || '';
+      box.querySelector('#sp-sede').value = stampante?.sede_id || '';
+      box.querySelector('#sp-modello').value = stampante?.modello || 'Epson FP-81 II RT';
+      box.querySelector('#sp-matricola').value = stampante?.matricola || '';
+      box.querySelector('#sp-ip').value = stampante?.ip || '';
+      box.querySelector('#sp-porta').value = stampante?.porta || 80;
+      repartiRows = stampante?.reparti_iva || [
+        { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
+        { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+        { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
+      ];
+      renderReparti();
+      box.querySelector('#form-stampante-wrap').style.display = '';
+      box.querySelector('#sp-esito').textContent = '';
     }
+
+    renderListaStampanti(stampanti || []);
+    renderReparti();
+
+    box.querySelector('#btn-nuova-stampante').onclick = () => apriForm(null);
+    box.querySelector('#btn-annulla-stampante').onclick = () => {
+      box.querySelector('#form-stampante-wrap').style.display = 'none';
+    };
+    box.querySelector('#btn-add-reparto').onclick = () => {
+      repartiRows.push({ reparto: repartiRows.length + 1, iva: 10, descrizione: '' });
+      renderReparti();
+    };
+
+    box.querySelector('#btn-test-stampante').onclick = async () => {
+      const ip = box.querySelector('#sp-ip').value.trim();
+      const porta = box.querySelector('#sp-porta').value || 80;
+      const esito = box.querySelector('#sp-esito');
+      if (!ip) { esito.textContent = '❌ Inserisci IP stampante'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '🔌 Test in corso...'; esito.style.color = '#64748b';
+      try {
+        const r = await fetch(`http://${ip}:${porta}/cgi-bin/fpmate.cgi`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/xml' },
+          body: '<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><printerCommand><queryPrinterStatus/></printerCommand></s:Body></s:Envelope>',
+          signal: AbortSignal.timeout(5000)
+        });
+        if (r.ok) { esito.textContent = '✅ Stampante raggiungibile!'; esito.style.color = '#16a34a'; }
+        else { esito.textContent = `⚠️ Risposta HTTP ${r.status}`; esito.style.color = '#f59e0b'; }
+      } catch (e) {
+        esito.textContent = '❌ Non raggiungibile — verifica IP e rete locale (il browser potrebbe bloccare chiamate HTTP locali)';
+        esito.style.color = '#dc2626';
+      }
+    };
+
+    box.querySelector('#btn-salva-stampante').onclick = async () => {
+      const esito = box.querySelector('#sp-esito');
+      const nome = box.querySelector('#sp-nome').value.trim();
+      const ip   = box.querySelector('#sp-ip').value.trim();
+      if (!nome || !ip) { esito.textContent = '❌ Nome e IP obbligatori'; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id:  aziendaId,
+        sede_id:     box.querySelector('#sp-sede').value || null,
+        nome,
+        modello:     box.querySelector('#sp-modello').value,
+        matricola:   box.querySelector('#sp-matricola').value.trim() || null,
+        ip,
+        porta:       Number(box.querySelector('#sp-porta').value) || 80,
+        attiva:      true,
+        reparti_iva: repartiRows
+      };
+
+      let error;
+      if (editingId) {
+        ({ error } = await supa().from('stampanti_fiscali').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supa().from('stampanti_fiscali').insert(payload));
+      }
+
+      if (error) { esito.textContent = '❌ Errore: ' + error.message; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      setTimeout(() => renderTabCassa(box), 800);
+    };
   }
 
-  const session = await getValidSession();
-
-  if (!session) {
-    if (window.stateActions?.setUser) window.stateActions.setUser(null);
-    if (window.stateActions?.setAziende) window.stateActions.setAziende([]);
-    if (window.stateActions?.resetAzienda) window.stateActions.resetAzienda();
-
-    window.state.piano = null;
-    window.state.featuresEffettive = {};
-    window.state.sedi = [];
-    window.state.sedeAttiva = null;
-    window.state.permessiOverride = {};
-    window.state.isSuperadmin = false;
-
-    setHeaderVisible(false);
-
-    const target = PUBLIC_ROUTES.has(route) ? route : "login";
-    await renderView(target);
-    return;
+  function esc(v) {
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  window.stateActions.setUser(session.user);
+  // ════════════════════════════════════════
+  // TAB: INTEGRAZIONI
+  // ════════════════════════════════════════
+  async function renderTabIntegrazioni(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
-  if (
-    PUBLIC_ROUTES.has(route) &&
-    route !== "activate" &&
-    route !== "setPassword" &&
-    route !== "set-password"
-  ) {
-    const tmpAziende = await loadAziendeForUser(session.user.id);
-    const hasPlatform = tmpAziende.some((a) => a.aziende?.stato === "piattaforma");
-    const isSa = tmpAziende.some((a) => a.ruolo === "superadmin");
+    const { data: connessioni } = await supa()
+      .from('whatsapp_connessioni')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .order('created_at');
 
-    if (route === "login") {
-      if (hasPlatform || isSa) {
-        window.location.hash = "#/homePiattaforma";
+    const { data: sedi } = await supa()
+      .from('sedi').select('id, nome')
+      .eq('azienda_id', aziendaId).order('nome');
+
+    const sediOpts = (sedi || []).map(s =>
+      `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`
+    ).join('');
+
+    box.innerHTML = `
+      <!-- WhatsApp -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">💬 WhatsApp Business</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega un numero WhatsApp per gestione personale e marketing</div>
+          </div>
+          <button id="btn-nuova-wa" style="background:#25D366;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Collega numero</button>
+        </div>
+
+        <div id="lista-wa"></div>
+
+        <!-- Form nuova connessione -->
+        <div id="form-wa-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:16px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;" id="form-wa-title">Nuova connessione WhatsApp</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div>
+
+          <!-- Scelta modalità -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px;">
+            <div id="card-meta" data-modalita="meta" style="border:2px solid #0E5A7A;border-radius:12px;padding:16px;cursor:pointer;background:#f0f9ff;">
+              <div style="font-size:20px;margin-bottom:6px;">🌐</div>
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">Meta Cloud API</div>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">Ufficiale, scalabile. Ideale per marketing e conferme automatiche. Richiede numero dedicato.</div>
+              <div style="margin-top:8px;font-size:11px;background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:20px;display:inline-block;">✅ Raccomandato</div>
+            </div>
+            <div id="card-qr" data-modalita="qr" style="border:2px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;background:white;">
+              <div style="font-size:20px;margin-bottom:6px;">📱</div>
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">WhatsApp Web (QR)</div>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">Colleghi il tuo telefono. Ideale per personale e invii informali. Richiede Raspberry Pi.</div>
+              <div style="margin-top:8px;font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;display:inline-block;">⚙️ Richiede bridge locale</div>
+            </div>
+          </div>
+
+          <input type="hidden" id="wa-modalita" value="meta">
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin-bottom:16px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Nome connessione</label>
+              <input id="wa-nome" class="input" placeholder="Es. WhatsApp Ristorante" style="margin-top:4px;width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+              <select id="wa-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+                <option value="">— Tutte le sedi —</option>
+                ${sediOpts}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono</label>
+              <input id="wa-numero" class="input" placeholder="+39 333 1234567" style="margin-top:4px;width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+
+          <!-- Campi Meta API -->
+          <div id="campi-meta">
+            <div style="background:#f0f9ff;border-radius:10px;padding:14px;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:10px;">🌐 Credenziali Meta Cloud API</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID</label>
+                  <input id="wa-phone-id" class="input" placeholder="Es. 1141494992381602" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">WhatsApp Business Account ID</label>
+                  <input id="wa-waba-id" class="input" placeholder="Es. 3242783175905717" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">App ID</label>
+                  <input id="wa-app-id" class="input" placeholder="Es. 924572413940466" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label style="font-size:12px;font-weight:600;color:#64748b;">Access Token</label>
+                  <textarea id="wa-token" class="input" rows="2" placeholder="EAANI5MpN..." style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campi QR Bridge -->
+          <div id="campi-qr" style="display:none;">
+            <div style="background:#fffbeb;border-radius:10px;padding:14px;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">📱 Configurazione Bridge Locale</div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#64748b;">URL Bridge (Raspberry Pi)</label>
+                <input id="wa-bridge-url" class="input" placeholder="http://192.168.1.x:3001" style="margin-top:4px;width:100%;box-sizing:border-box;font-family:monospace;">
+              </div>
+              <div style="margin-top:12px;font-size:12px;color:#64748b;">
+                Il bridge è il file <strong>whatsapp-bridge.js</strong> che gira sul Raspberry Pi. Assicurati che sia avviato prima di procedere.
+              </div>
+              <!-- QR Code display -->
+              <div id="qr-display" style="display:none;margin-top:16px;text-align:center;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Scansiona con WhatsApp sul telefono:</div>
+                <div id="qr-code-wrap" style="background:white;display:inline-block;padding:16px;border-radius:12px;border:1px solid #e5e7eb;"></div>
+              </div>
+              <button id="btn-mostra-qr" style="display:none;margin-top:12px;background:#25D366;color:white;border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;">📱 Mostra QR code</button>
+            </div>
+          </div>
+
+          <div id="wa-esito" style="font-size:13px;min-height:16px;margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="btn-salva-wa" style="background:#25D366;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+            <button id="btn-test-wa" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">📤 Invia messaggio test</button>
+            <button id="btn-annulla-wa" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Ads -->
+      <div style="margin-bottom:36px;margin-top:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🎯 Google Ads</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega il tuo account Google Ads per gestire campagne dall'app</div>
+          </div>
+          <button id="btn-collega-google" style="background:#4285F4;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔗 Collega Google Ads</button>
+        </div>
+        <div id="lista-google-ads" style="margin-bottom:16px;"></div>
+        <div id="form-google-ads" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-top:12px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Aggiungi account Google Ads</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Customer ID *</label>
+              <input id="gads-customer-id" class="input" placeholder="Es. 541-378-5462" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Nome account</label>
+              <input id="gads-nome" class="input" placeholder="Es. Campo Antico Ricevimenti" style="width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:12px;">
+            ⚠️ Dopo aver inserito il Customer ID, clicca "Autorizza Google" per collegare l'account. Si aprirà una finestra di autorizzazione Google.
+          </div>
+          <div id="gads-esito" style="font-size:13px;min-height:14px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-autorizza-google" style="background:#4285F4;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔐 Autorizza Google</button>
+            <button id="btn-salva-gads" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva solo Customer ID</button>
+            <button id="btn-annulla-gads" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Altre integrazioni — presto -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
+        ${[
+          { icon:'📦', titolo:'Delivery (Glovo/JustEat)', desc:'Presto disponibile' },
+          { icon:'📅', titolo:'Google Calendar', desc:'Presto disponibile' },
+          { icon:'⭐', titolo:'Google Reviews', desc:'Presto disponibile' },
+        ].map(c => `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+            <div style="font-size:24px;">${c.icon}</div>
+            <div style="font-weight:700;font-size:14px;margin-top:6px;">${c.titolo}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">${c.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    let editingWaId = null;
+
+    // Render lista connessioni
+    function renderListaWa() {
+      const el = box.querySelector('#lista-wa');
+      if (!connessioni?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun numero WhatsApp collegato.</div>';
         return;
       }
-      window.location.hash = "#/home";
-      return;
+      el.innerHTML = connessioni.map(c => {
+        const statoColor = { connesso:'#dcfce7', non_connesso:'#fee2e2', in_attesa:'#fef3c7', errore:'#fee2e2' };
+        const statoText = { connesso:'#15803d', non_connesso:'#dc2626', in_attesa:'#92400e', errore:'#dc2626' };
+        const sedeName = (sedi || []).find(s => s.id === c.sede_id)?.nome || 'Tutte le sedi';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:24px;">${c.modalita === 'meta' ? '🌐' : '📱'}</div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;">${esc(c.nome || c.numero_telefono || '—')}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${c.modalita === 'meta' ? 'Meta Cloud API' : 'WhatsApp Web'} · ${esc(sedeName)}
+                ${c.numero_telefono ? ` · ${esc(c.numero_telefono)}` : ''}
+              </div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                Messaggi inviati: ${c.messaggi_inviati || 0}
+                ${c.ultimo_messaggio_il ? ` · Ultimo: ${new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT')}` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="background:${statoColor[c.stato]||'#f1f5f9'};color:${statoText[c.stato]||'#374151'};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">${c.stato || 'non_connesso'}</span>
+              <button data-edit-wa="${c.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;">✏️</button>
+              <button data-del-wa="${c.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.querySelectorAll('[data-edit-wa]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const c = connessioni.find(x => x.id === btn.dataset.editWa);
+          if (c) apriFormWa(c);
+        });
+      });
+      el.querySelectorAll('[data-del-wa]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Eliminare questa connessione?')) return;
+          await supa().from('whatsapp_connessioni').delete().eq('id', btn.dataset.delWa);
+          const idx = connessioni.findIndex(x => x.id === btn.dataset.delWa);
+          if (idx >= 0) connessioni.splice(idx, 1);
+          renderListaWa();
+          mostraToast('Connessione eliminata', 'success');
+        });
+      });
     }
 
-    setHeaderVisible(false);
-    await renderView(route);
-    return;
-  }
+    function apriFormWa(c = null) {
+      editingWaId = c?.id || null;
+      const form = box.querySelector('#form-wa-wrap');
+      box.querySelector('#form-wa-title').textContent = c ? 'Modifica connessione' : 'Nuova connessione WhatsApp';
+      box.querySelector('#wa-nome').value = c?.nome || '';
+      box.querySelector('#wa-sede').value = c?.sede_id || sedeId || '';
+      box.querySelector('#wa-numero').value = c?.numero_telefono || '';
+      box.querySelector('#wa-modalita').value = c?.modalita || 'meta';
+      box.querySelector('#wa-phone-id').value = c?.meta_phone_number_id || '';
+      box.querySelector('#wa-waba-id').value = c?.meta_waba_id || '';
+      box.querySelector('#wa-app-id').value = c?.meta_app_id || '';
+      box.querySelector('#wa-token').value = c?.meta_access_token || '';
+      box.querySelector('#wa-bridge-url').value = c?.qr_bridge_url || '';
+      aggiornaVisibilitaCampi(c?.modalita || 'meta');
+      form.style.display = '';
+      box.querySelector('#wa-esito').textContent = '';
+    }
 
-  try {
-    const { data: dipCheck, error: dipCheckErr } = await supabase
-      .from("dipendenti")
-      .select("profilo_completato")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
+    function aggiornaVisibilitaCampi(modalita) {
+      box.querySelector('#campi-meta').style.display = modalita === 'meta' ? '' : 'none';
+      box.querySelector('#campi-qr').style.display = modalita === 'qr' ? '' : 'none';
+      box.querySelector('#card-meta').style.borderColor = modalita === 'meta' ? '#0E5A7A' : '#e5e7eb';
+      box.querySelector('#card-meta').style.background = modalita === 'meta' ? '#f0f9ff' : 'white';
+      box.querySelector('#card-qr').style.borderColor = modalita === 'qr' ? '#25D366' : '#e5e7eb';
+      box.querySelector('#card-qr').style.background = modalita === 'qr' ? '#f0fdf4' : 'white';
+      box.querySelector('#wa-modalita').value = modalita;
+    }
 
-    if (!dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
-      if (route !== "completaProfilo") {
-        window.location.hash = "#/completaProfilo";
+    renderListaWa();
+
+    // ── Google Ads ──
+    async function renderListaGoogleAds() {
+      const el = box.querySelector('#lista-google-ads');
+      if (!el) return;
+      const { data: gads } = await supa().from('google_ads_connessioni')
+        .select('*').eq('azienda_id', aziendaId).order('created_at');
+      if (!gads?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun account Google Ads collegato.</div>';
         return;
       }
+      el.innerHTML = gads.map(g => `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:24px;">🎯</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${esc(g.customer_nome || g.customer_id)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">Customer ID: ${esc(g.customer_id)} ${g.refresh_token ? '· ✅ Autorizzato' : '· ⚠️ Non autorizzato'}</div>
+          </div>
+          <button data-del-gads="${g.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-del-gads]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Rimuovere questo account Google Ads?')) return;
+          await supa().from('google_ads_connessioni').delete().eq('id', btn.dataset.delGads);
+          renderListaGoogleAds();
+        });
+      });
     }
-  } catch (e) {
-    console.warn("Check profilo dipendente fallito:", e);
+
+    renderListaGoogleAds();
+
+    box.querySelector('#btn-collega-google')?.addEventListener('click', () => {
+      box.querySelector('#form-google-ads').style.display = '';
+    });
+    box.querySelector('#btn-annulla-gads')?.addEventListener('click', () => {
+      box.querySelector('#form-google-ads').style.display = 'none';
+    });
+
+    // Autorizza Google — apre popup OAuth
+    box.querySelector('#btn-autorizza-google')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#gads-esito');
+      esito.textContent = 'Apertura autorizzazione Google...'; esito.style.color = '#64748b';
+      const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/google-ads-oauth?action=authorize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          body: JSON.stringify({ azienda_id: aziendaId, sede_id: sedeId || '' })
+        });
+        const { url } = await res.json();
+        const popup = window.open(url, 'google-auth', 'width=600,height=700,left=200,top=100');
+        window.addEventListener('message', async (e) => {
+          if (e.data?.success) {
+            esito.textContent = '✅ Google Ads autorizzato!'; esito.style.color = '#15803d';
+            // Salva anche customer_id se inserito
+            const customerId = box.querySelector('#gads-customer-id')?.value.replace(/-/g,'').trim();
+            const nome = box.querySelector('#gads-nome')?.value.trim();
+            if (customerId) {
+              await supa().from('google_ads_connessioni').update({
+                customer_id: customerId, customer_nome: nome || null
+              }).eq('azienda_id', aziendaId).is('customer_id', null);
+            }
+            renderListaGoogleAds();
+            setTimeout(() => { box.querySelector('#form-google-ads').style.display = 'none'; }, 1500);
+          }
+        }, { once: true });
+      } catch(e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
+
+    // Salva solo Customer ID (senza OAuth)
+    box.querySelector('#btn-salva-gads')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#gads-esito');
+      const customerId = box.querySelector('#gads-customer-id')?.value.replace(/-/g,'').trim();
+      const nome = box.querySelector('#gads-nome')?.value.trim();
+      if (!customerId) { esito.textContent = '❌ Customer ID obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const { error } = await supa().from('google_ads_connessioni').insert({
+        azienda_id: aziendaId, customer_id: customerId, customer_nome: nome || null, attivo: true
+      });
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '✅ Salvato — ora clicca "Autorizza Google" per completare';
+      esito.style.color = '#15803d';
+      renderListaGoogleAds();
+    });
+
+    // Bind scelta modalità
+    box.querySelector('#card-meta').addEventListener('click', () => aggiornaVisibilitaCampi('meta'));
+    box.querySelector('#card-qr').addEventListener('click', () => aggiornaVisibilitaCampi('qr'));
+    box.querySelector('#btn-nuova-wa').addEventListener('click', () => apriFormWa(null));
+    box.querySelector('#btn-annulla-wa').addEventListener('click', () => {
+      box.querySelector('#form-wa-wrap').style.display = 'none';
+    });
+
+    // Salva
+    box.querySelector('#btn-salva-wa').addEventListener('click', async () => {
+      const esito = box.querySelector('#wa-esito');
+      const nome = box.querySelector('#wa-nome').value.trim();
+      const modalita = box.querySelector('#wa-modalita').value;
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: box.querySelector('#wa-sede').value || null,
+        nome,
+        modalita,
+        numero_telefono: box.querySelector('#wa-numero').value.trim() || null,
+        meta_phone_number_id: box.querySelector('#wa-phone-id').value.trim() || null,
+        meta_waba_id: box.querySelector('#wa-waba-id').value.trim() || null,
+        meta_app_id: box.querySelector('#wa-app-id').value.trim() || null,
+        meta_access_token: box.querySelector('#wa-token').value.trim() || null,
+        qr_bridge_url: box.querySelector('#wa-bridge-url').value.trim() || null,
+        attivo: true,
+        stato: 'non_connesso',
+        updated_at: new Date().toISOString(),
+      };
+
+      let error;
+      if (editingWaId) {
+        ({ error } = await supa().from('whatsapp_connessioni').update(payload).eq('id', editingWaId));
+      } else {
+        const { data, error: insErr } = await supa().from('whatsapp_connessioni').insert(payload).select('*').single();
+        error = insErr;
+        if (data) connessioni.push(data);
+      }
+
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      renderListaWa();
+      setTimeout(() => { box.querySelector('#form-wa-wrap').style.display = 'none'; }, 600);
+      mostraToast('Connessione WhatsApp salvata ✅', 'success');
+    });
+
+    // Test invio messaggio
+    box.querySelector('#btn-test-wa').addEventListener('click', async () => {
+      const esito = box.querySelector('#wa-esito');
+      const numero = prompt('Numero destinatario test (es. +393331234567):');
+      if (!numero) return;
+      esito.textContent = 'Invio in corso...'; esito.style.color = '#64748b';
+      try {
+        const supabaseUrl = window.supabaseClient?.supabaseUrl || 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+        const supabaseKey = window.supabaseClient?.supabaseKey || window.SUPABASE_ANON_KEY || '';
+        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send-ts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+          body: JSON.stringify({
+            azienda_id: aziendaId,
+            sede_id: sedeId,
+            numero_dest: numero,
+            template_name: 'ristoflow_notifica',
+            contesto: 'test'
+          })
+        });
+        const data = await res.json();
+        if (data.success) { esito.textContent = '✅ Messaggio inviato!'; esito.style.color = '#16a34a'; }
+        else { esito.textContent = '❌ ' + (data.error || 'Errore'); esito.style.color = '#dc2626'; }
+      } catch (e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
   }
 
-  setHeaderVisible(true);
+  function renderTabPresto(box, icon, titolo, desc) {
+    box.innerHTML = `
+      <div style="text-align:center;padding:80px 40px;">
+        <div style="font-size:56px;margin-bottom:16px;">${icon}</div>
+        <div style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:8px;">${titolo}</div>
+        <div style="font-size:14px;color:#64748b;max-width:400px;margin:0 auto 24px;">${desc}</div>
+        <div style="display:inline-block;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:8px 20px;font-size:13px;color:#0E5A7A;font-weight:600;">🚧 In arrivo nella prossima versione</div>
+      </div>
+    `;
+  }
 
-  const aziendaRes = await ensureAziendaContext(route);
-  if (!aziendaRes.ok) {
-    if (aziendaRes.redirected) return;
+  // ════════════════════════════════════════
+  // TAB: OPERATIVO
+  // ════════════════════════════════════════
+  async function renderTabOperativo(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+    await Promise.all([loadSettori(), loadPostazioni(), loadProdotti(), loadCategorie(), loadRicette()]);
+    box.innerHTML = `
+      <!-- Sezione: Settori -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Reparti operativi — ogni tablet display mostra il suo settore</div>
+          </div>
+          <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo settore</button>
+        </div>
+        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:12px;"></div>
+        <!-- Form nuovo settore -->
+        <div id="form-settore" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuovo settore</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:160px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome *</label>
+              <input id="settore-nome" class="input" placeholder="es. Piscina, Antipasti, Pasticceria..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
+            </div>
+            <div style="min-width:120px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Colore</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;" id="colori-settore">
+                ${COLORI_SETTORI.map(c => `<button data-col="${c}" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:${c};cursor:pointer;"></button>`).join('')}
+              </div>
+            </div>
+            <div style="min-width:120px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Ordine</label>
+              <input id="settore-ordine" type="number" value="0" min="0" style="width:80px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-salva-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">Salva</button>
+              <button id="btn-annulla-settore" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    if (aziendaRes.reason === "no_aziende") {
-      app.innerHTML = `
-        <div class="view" style="padding:40px; text-align:center;">
-          <h2 style="color:#dc2626;">Accesso non consentito</h2>
-          <p>Nessuna azienda associata al tuo utente.</p>
-          <button id="btn-logout-force" style="margin-top:18px; padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
-            Torna al login
-          </button>
+      <!-- Sezione: Postazioni -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">📱 Postazioni display</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Tablet fissi — ogni postazione ha un URL dedicato e mostra il suo settore</div>
+          </div>
+          <button id="btn-nuova-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuova postazione</button>
+        </div>
+        <div id="lista-postazioni" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
+        <!-- Form nuova postazione -->
+        <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuova postazione</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome postazione *</label>
+              <input id="post-nome" class="input" placeholder="es. Tablet Cucina, Bar Piscina..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Settore (opzionale)</label>
+              <select id="post-settore" style="width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
+                <option value="">Tutti i settori</option>
+                ${settori.map(s => `<option value="${s.nome.toLowerCase()}">${s.nome}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="background:#f0f9ff;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#0E5A7A;" id="post-url-preview">
+            URL: <strong>#/display-cucina</strong>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-salva-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">Salva postazione</button>
+            <button id="btn-annulla-postazione" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sezione: Prodotti → Settore -->
+      <div style="margin-bottom:36px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Prodotti per settore</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Assegna ogni prodotto al settore che lo prepara — il display riceverà solo le sue portate</div>
+        </div>
+        <div id="lista-prodotti-settore" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Sezione: Tempi & Alert -->
+      <div style="margin-bottom:36px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">⏱️ Tempi di esecuzione & Alert</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Tempo medio di preparazione per ricetta — usato per il timer e l'alert ritardo sul display cucina</div>
+        </div>
+        <div id="lista-tempi" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    `;
+
+    renderListaSettori();
+    renderListaPostazioni();
+    renderListaProdottiSettore();
+    renderListaTempi();
+    bindOperativo();
+  }
+
+  function bindOperativo() {
+    // Settori
+    let coloreSelezionato = COLORI_SETTORI[0];
+    container.querySelector('#btn-nuovo-settore').onclick = () => {
+      container.querySelector('#form-settore').style.display = 'block';
+      container.querySelector('#settore-nome').focus();
+    };
+    container.querySelector('#btn-annulla-settore').onclick = () => container.querySelector('#form-settore').style.display = 'none';
+    container.querySelectorAll('[data-col]').forEach(btn => {
+      btn.onclick = () => {
+        coloreSelezionato = btn.dataset.col;
+        container.querySelectorAll('[data-col]').forEach(b => b.style.borderColor = b.dataset.col === coloreSelezionato ? '#0f172a' : 'transparent');
+      };
+    });
+    container.querySelector('#btn-salva-settore').onclick = async () => {
+      const nome = container.querySelector('#settore-nome').value.trim();
+      if (!nome) { mostraToast('Inserisci il nome del settore','warning'); return; }
+      const ordine = parseInt(container.querySelector('#settore-ordine').value)||0;
+      const { data, error } = await supa().from('settori').insert({ azienda_id:aziendaId, nome, colore:coloreSelezionato, ordine }).select('*').single();
+      if (error) { mostraToast('Errore salvataggio: '+error.message,'error'); return; }
+      settori.push(data);
+      container.querySelector('#settore-nome').value = '';
+      container.querySelector('#form-settore').style.display = 'none';
+      renderListaSettori();
+      mostraToast('Settore "'+nome+'" creato ✅','success');
+    };
+
+    // Postazioni — preview URL live
+    const postSettore = container.querySelector('#post-settore');
+    const postNome    = container.querySelector('#post-nome');
+    const urlPreview  = container.querySelector('#post-url-preview');
+    const aggiornaUrl = () => {
+      const s = postSettore?.value;
+      const url = s ? `#/display-cucina?settore=${s}` : '#/display-cucina';
+      if (urlPreview) urlPreview.innerHTML = `URL tablet: <strong>${url}</strong> — <a href="${url}" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda →</a>`;
+    };
+    postSettore?.addEventListener('change', aggiornaUrl);
+    container.querySelector('#btn-nuova-postazione').onclick = () => { container.querySelector('#form-postazione').style.display='block'; postNome?.focus(); };
+    container.querySelector('#btn-annulla-postazione').onclick = () => container.querySelector('#form-postazione').style.display='none';
+    container.querySelector('#btn-salva-postazione').onclick = async () => {
+      const nome = postNome?.value.trim();
+      if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
+      const settoreNome = postSettore?.value || null;
+      const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
+      const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:sedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
+      if (error) { mostraToast('Errore: '+error.message,'error'); return; }
+      postazioni.push(data);
+      if (postNome) postNome.value = '';
+      container.querySelector('#form-postazione').style.display = 'none';
+      renderListaPostazioni();
+      mostraToast('Postazione "'+nome+'" creata ✅','success');
+    };
+  }
+
+  function renderListaSettori() {
+    const box = container.querySelector('#lista-settori');
+    if (!box) return;
+    if (!settori.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun settore. Creane uno per iniziare.</div>'; return; }
+    box.innerHTML = settori.map((s,i) => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+        <div style="width:14px;height:14px;border-radius:50%;background:${s.colore||COLORI_SETTORI[i%COLORI_SETTORI.length]};flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(s.nome)}</div>
+          <div style="font-size:11px;color:#94a3b8;">Ordine: ${s.ordine||0}</div>
+        </div>
+        <button data-del-settore="${s.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;">Elimina</button>
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-del-settore]').forEach(btn => btn.onclick = async () => {
+      if (!confirm('Eliminare questo settore?')) return;
+      await supa().from('settori').delete().eq('id', btn.dataset.delSettore);
+      settori = settori.filter(s => s.id !== btn.dataset.delSettore);
+      renderListaSettori();
+    });
+  }
+
+  function renderListaPostazioni() {
+    const box = container.querySelector('#lista-postazioni');
+    if (!box) return;
+    if (!postazioni.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna postazione. Creane una per ogni tablet fisso.</div>'; return; }
+    box.innerHTML = postazioni.map(p => {
+      const url = p.url_display || '#/display-cucina';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:24px;">📱</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(p.nome)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.settore_nome ? `Settore: ${esc(p.settore_nome)}` : 'Tutti i settori'}</div>
+            <div style="font-size:12px;color:#0E5A7A;margin-top:2px;font-family:monospace;">${esc(url)}</div>
+          </div>
+          <a href="${url}" target="_blank" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Apri →</a>
+          <button data-del-post="${p.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
         </div>
       `;
-      const b = document.getElementById("btn-logout-force");
-      if (b) b.onclick = doLogout;
-      return;
-    }
-
-    if (route !== "sceltaAzienda") {
-      window.location.hash = "#/sceltaAzienda";
-      return;
-    }
-
-    await renderView("sceltaAzienda");
-    return;
+    }).join('');
+    box.querySelectorAll('[data-del-post]').forEach(btn => btn.onclick = async () => {
+      if (!confirm('Eliminare questa postazione?')) return;
+      await supa().from('postazioni').delete().eq('id', btn.dataset.delPost);
+      postazioni = postazioni.filter(p => p.id !== btn.dataset.delPost);
+      renderListaPostazioni();
+    });
   }
 
-  const azienda = window.state.azienda;
-
-  try {
-    if (
-      azienda &&
-      azienda.stato !== "piattaforma" &&
-      (azienda.profilo_completato === false || azienda.stato_attivazione === "bozza")
-    ) {
-      if (route !== "completaAzienda") {
-        window.location.hash = "#/completaAzienda";
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("Check profilo azienda fallito:", e);
+  function renderListaProdottiSettore() {
+    const box = container.querySelector('#lista-prodotti-settore');
+    if (!box) return;
+    if (!prodottiVendita.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessun prodotto trovato.</div>'; return; }
+    // Raggruppa per categoria
+    const catMap = {};
+    categorieVendita.forEach(c => catMap[c.id] = c.nome);
+    const perCat = {};
+    prodottiVendita.forEach(p => {
+      const cn = catMap[p.categoria_vendita_id] || 'Senza categoria';
+      if (!perCat[cn]) perCat[cn] = [];
+      perCat[cn].push(p);
+    });
+    box.innerHTML = Object.entries(perCat).map(([cat, prods]) => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">
+        <div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">${esc(cat)}</div>
+        ${prods.map(p => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">
+            <div style="flex:1;font-size:13px;color:#0f172a;">${esc(p.nome)}</div>
+            <select data-prod-settore="${p.id}" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">
+              <option value="">— Nessun settore —</option>
+              ${settori.map(s => `<option value="${s.id}" ${p.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-prod-settore]').forEach(sel => {
+      sel.onchange = async () => {
+        const pid = sel.dataset.prodSettore;
+        const sid = sel.value || null;
+        await supa().from('prodotti_vendita').update({ settore_id: sid }).eq('id', pid);
+        // Aggiorna comanda_righe: quando il prodotto viene aggiunto, usa il settore_id
+        mostraToast('Settore aggiornato ✅','success');
+      };
+    });
   }
 
-  await loadPianoForAzienda(azienda);
-
-  await window.stateActions.caricaPermessiEffettivi();
-  await window.stateActions.caricaRuoloEReparti();
-
-  if (window.menuController?.refresh) {
-    window.menuController.refresh();
+  function renderListaTempi() {
+    const box = container.querySelector('#lista-tempi');
+    if (!box) return;
+    if (!ricette.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessuna ricetta trovata. Aggiungi le ricette nel Ricettario per impostare i tempi.</div>'; return; }
+    box.innerHTML = ricette.map(r => {
+      const prodotto = prodottiVendita.find(p => String(p.id) === String(r.prodotto_vendita_id));
+      if (!prodotto) return '';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(prodotto.nome)}</div>
+            <div style="font-size:11px;color:#64748b;">Ricetta ID: ${String(r.id).slice(0,8)}...</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="number" data-ricetta-tempo="${r.id}" value="${r.tempo_esecuzione_min||15}" min="1" max="120"
+              style="width:64px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-weight:600;text-align:center;">
+            <span style="font-size:12px;color:#64748b;">min</span>
+            <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Alert oltre questo tempo</span>
+          </div>
+        </div>
+      `;
+    }).filter(Boolean).join('');
+    box.querySelectorAll('[data-ricetta-tempo]').forEach(inp => {
+      inp.onchange = async () => {
+        const rid = inp.dataset.ricettaTempo;
+        const val = parseInt(inp.value)||15;
+        await supa().from('ricette').update({ tempo_esecuzione_min: val }).eq('id', rid);
+        mostraToast('Tempo aggiornato ✅','success');
+      };
+    });
   }
 
-  if (isAziendaBlockedForUser(azienda, route)) {
-    app.innerHTML = `
-      <div class="view" style="padding:40px; text-align:center;">
-        <h2 style="color:#dc2626;">Azienda non attiva</h2>
-        <p>L'accesso a questa azienda è bloccato (stato/stato_attivazione).</p>
-        <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-          <button id="btn-change-company" style="padding:10px 14px; border-radius:12px; border:none; background:#0E5A7A; color:white; font-weight:600; cursor:pointer;">
-            Cambia azienda
-          </button>
-          <button id="btn-logout" style="padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:white; color:#111827; font-weight:600; cursor:pointer;">
-            Logout
-          </button>
+  // ════════════════════════════════════════
+  // TAB: SALA & TAVOLI
+  // ════════════════════════════════════════
+  async function renderTabSala(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    // Carica sale e tavoli
+    const { data: saleData } = await supa()
+      .from('sale').select('*')
+      .eq('azienda_id', aziendaId)
+      .order('nome');
+    sale = saleData || [];
+
+    const { data: tavoliData } = await supa()
+      .from('tavoli').select('*')
+      .eq('azienda_id', aziendaId)
+      .order('numero');
+    tavoli = tavoliData || [];
+
+    box.innerHTML = `
+      <!-- SALE -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🏠 Sale</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Crea le sale del locale (es. Sala interna, Terrazza, Giardino)</div>
+          </div>
+          <button id="btn-nuova-sala" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuova sala</button>
+        </div>
+
+        <div id="lista-sale" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+
+        <div id="form-sala" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-sala-title">Nuova sala</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome sala *</label>
+              <input id="sala-nome" class="input" placeholder="Es. Sala interna, Terrazza..." style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Capienza massima</label>
+              <input id="sala-capienza" type="number" min="1" class="input" placeholder="Es. 50" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Note</label>
+              <input id="sala-note" class="input" placeholder="Es. Solo su prenotazione, Accessibile..." style="width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <div id="sala-esito" style="font-size:13px;min-height:16px;margin-top:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button id="btn-salva-sala" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva</button>
+            <button id="btn-annulla-sala" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAVOLI -->
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🪑 Tavoli</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Aggiungi tavoli con numero, coperti minimi/massimi e sala di appartenenza</div>
+          </div>
+          <button id="btn-nuovo-tavolo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo tavolo</button>
+        </div>
+
+        <!-- Filtro per sala -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button data-filter-sala="" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #0E5A7A;background:#0E5A7A;color:white;font-size:12px;cursor:pointer;font-weight:600;">Tutti</button>
+          ${sale.map(s => `<button data-filter-sala="${s.id}" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">${esc(s.nome)}</button>`).join('')}
+        </div>
+
+        <div id="lista-tavoli-conf" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr));gap:10px;margin-bottom:12px;"></div>
+
+        <div id="form-tavolo" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;" id="form-tavolo-title">Nuovo tavolo</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Numero / Nome *</label>
+              <input id="tavolo-numero" class="input" placeholder="Es. 1, T1, Bar..." style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Sala</label>
+              <select id="tavolo-sala" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">— Nessuna sala —</option>
+                ${sale.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Coperti min</label>
+              <input id="tavolo-min" type="number" min="1" value="1" class="input" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Coperti max *</label>
+              <input id="tavolo-max" type="number" min="1" value="4" class="input" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Sedie (fisiche)</label>
+              <input id="tavolo-sedie" type="number" min="0" class="input" placeholder="Es. 4" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Posizione</label>
+              <select id="tavolo-posizione" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">—</option>
+                <option value="interno">Interno</option>
+                <option value="esterno">Esterno</option>
+                <option value="terrazza">Terrazza</option>
+                <option value="giardino">Giardino</option>
+                <option value="bar">Bar</option>
+              </select>
+            </div>
+          </div>
+          <div id="tavolo-esito" style="font-size:13px;min-height:16px;margin-top:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button id="btn-salva-tavolo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">💾 Salva</button>
+            <button id="btn-annulla-tavolo" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRENOTAZIONI link -->
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:12px;">📅 Prenotazioni e piantina</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
+          ${[
+            { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci le prenotazioni e conferma gli arrivi.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
+            { icon:'🗺️', titolo:'Piantina sala', desc:'Visualizza e assegna i tavoli graficamente.', link:'prenotazioni-tavoli', cta:'Vai alla Piantina' },
+          ].map(c => cardLink(c)).join('')}
         </div>
       </div>
     `;
 
-    const bc = document.getElementById("btn-change-company");
-    if (bc) {
-      bc.onclick = () => {
-        clearStoredAziendaId();
-        clearStoredSedeId();
-        window.stateActions.resetAzienda();
-        window.location.hash = "#/sceltaAzienda";
-      };
+    renderListaSale();
+    renderListaTavoliConf();
+    bindSala();
+  }
+
+  function renderListaSale() {
+    const box = container.querySelector('#lista-sale');
+    if (!box) return;
+    if (!sale.length) {
+      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna sala. Creane una per organizzare i tavoli.</div>';
+      return;
     }
+    box.innerHTML = sale.map(s => `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">🏠 ${esc(s.nome)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">
+            ${s.capienza_max ? `Capienza: ${s.capienza_max} posti` : ''}
+            ${s.note ? ` · ${esc(s.note)}` : ''}
+            · ${tavoli.filter(t => t.sala_id === s.id).length} tavoli
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button data-del-sala="${s.id}" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>
+      </div>
+    `).join('');
 
-    const bl = document.getElementById("btn-logout");
-    if (bl) bl.onclick = doLogout;
-
-    return;
+    box.querySelectorAll('[data-del-sala]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questa sala? I tavoli associati rimarranno.')) return;
+        await supa().from('sale').delete().eq('id', btn.dataset.delSala);
+        sale = sale.filter(s => s.id !== btn.dataset.delSala);
+        renderListaSale();
+        renderListaTavoliConf();
+      });
+    });
   }
 
-  if (
-    !PLATFORM_ROUTES.has(route) &&
-    !BO_ROUTES.has(route) &&
-    !DISPLAY_ROUTES.has(route) &&
-    (!PREHOME_ROUTES.has(route) || route === "scegli-sede") &&
-    route !== "home" &&
-    route !== "booking-form-builder"
-  ) {
-   const contesto = await window.stateActions.caricaContestoOperativo();
+  let filtroSalaAttivo = '';
+  function renderListaTavoliConf() {
+    const box = container.querySelector('#lista-tavoli-conf');
+    if (!box) return;
+    const filtered = filtroSalaAttivo
+      ? tavoli.filter(t => t.sala_id === filtroSalaAttivo)
+      : tavoli;
+    if (!filtered.length) {
+      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;grid-column:1/-1;">Nessun tavolo. Aggiungine uno.</div>';
+      return;
+    }
+    box.innerHTML = filtered.map(t => {
+      const salaNome = sale.find(s => s.id === t.sala_id)?.nome || '';
+      return `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative;">
+          <div style="font-size:20px;font-weight:700;color:#0E5A7A;margin-bottom:4px;">T${esc(String(t.numero || t.nome || '?'))}</div>
+          <div style="font-size:12px;color:#64748b;">${salaNome ? `🏠 ${esc(salaNome)}` : ''}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">👥 ${t.coperti_min||1}–${t.coperti_max||4} coperti${t.sedie ? ` · 🪑 ${t.sedie} sedie` : ''}</div>
+          ${t.posizione ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${esc(t.posizione)}</div>` : ''}
+          <button data-del-tavolo="${t.id}" style="position:absolute;top:8px;right:8px;background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">🗑</button>
+        </div>
+      `;
+    }).join('');
 
-console.log("CONTESTO OPERATIVO:", contesto);
-
-/* =========================================
-   CARICA PERMESSI EXTRA
-========================================= */
-
-try {
-
-  const dipendenteId =
-    window.state?.dipendente?.id;
-
-  const aziendaId =
-    window.state?.azienda?.id;
-
-  if (dipendenteId && aziendaId) {
-
-    const { data: permessiData } =
-      await supabase
-        .from("permessi_utenti")
-        .select("permesso")
-        .eq("azienda_id", aziendaId)
-        .eq("dipendente_id", dipendenteId)
-        .eq("attivo", true);
-
-    window.state.permessiExtra =
-      (permessiData || [])
-        .map(p => p.permesso);
-
-  } else {
-
-    window.state.permessiExtra = [];
-
+    box.querySelectorAll('[data-del-tavolo]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questo tavolo?')) return;
+        await supa().from('tavoli').delete().eq('id', btn.dataset.delTavolo);
+        tavoli = tavoli.filter(t => t.id !== btn.dataset.delTavolo);
+        renderListaTavoliConf();
+      });
+    });
   }
 
-} catch (e) {
+  function bindSala() {
+    // Sale
+    let editingSalaId = null;
+    container.querySelector('#btn-nuova-sala')?.addEventListener('click', () => {
+      editingSalaId = null;
+      container.querySelector('#form-sala-title').textContent = 'Nuova sala';
+      container.querySelector('#sala-nome').value = '';
+      container.querySelector('#sala-capienza').value = '';
+      container.querySelector('#sala-note').value = '';
+      container.querySelector('#form-sala').style.display = '';
+      container.querySelector('#sala-nome').focus();
+    });
+    container.querySelector('#btn-annulla-sala')?.addEventListener('click', () => {
+      container.querySelector('#form-sala').style.display = 'none';
+    });
+    container.querySelector('#btn-salva-sala')?.addEventListener('click', async () => {
+      const esito = container.querySelector('#sala-esito');
+      const nome = container.querySelector('#sala-nome').value.trim();
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: sedeId || null,
+        nome,
+        capienza_max: parseInt(container.querySelector('#sala-capienza').value) || null,
+        note: container.querySelector('#sala-note').value.trim() || null,
+      };
+      const { data, error } = await supa().from('sale').insert(payload).select('*').single();
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      sale.push(data);
+      container.querySelector('#form-sala').style.display = 'none';
+      renderListaSale();
+      mostraToast('Sala "' + nome + '" creata ✅', 'success');
+    });
 
-  console.error(
-    "Errore caricamento permessi extra:",
-    e
-  );
+    // Tavoli
+    container.querySelector('#btn-nuovo-tavolo')?.addEventListener('click', () => {
+      container.querySelector('#form-tavolo-title').textContent = 'Nuovo tavolo';
+      container.querySelector('#tavolo-numero').value = '';
+      container.querySelector('#tavolo-sala').value = '';
+      container.querySelector('#tavolo-min').value = '1';
+      container.querySelector('#tavolo-max').value = '4';
+      container.querySelector('#tavolo-sedie').value = '';
+      container.querySelector('#form-tavolo').style.display = '';
+      container.querySelector('#tavolo-numero').focus();
+    });
+    container.querySelector('#btn-annulla-tavolo')?.addEventListener('click', () => {
+      container.querySelector('#form-tavolo').style.display = 'none';
+    });
+    container.querySelector('#btn-salva-tavolo')?.addEventListener('click', async () => {
+      const esito = container.querySelector('#tavolo-esito');
+      const numero = container.querySelector('#tavolo-numero').value.trim();
+      const max = parseInt(container.querySelector('#tavolo-max').value);
+      if (!numero || !max) { esito.textContent = '❌ Numero e coperti max obbligatori'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: sedeId || null,
+        sala_id: container.querySelector('#tavolo-sala').value || null,
+        numero: isNaN(Number(numero)) ? null : Number(numero),
+        nome: numero,
+        coperti_min: parseInt(container.querySelector('#tavolo-min').value) || 1,
+        coperti_max: max,
+        sedie: parseInt(container.querySelector('#tavolo-sedie').value) || null,
+        posizione: container.querySelector('#tavolo-posizione').value || null,
+        attivo: true,
+      };
+      const { data, error } = await supa().from('tavoli').insert(payload).select('*').single();
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      tavoli.push(data);
+      container.querySelector('#form-tavolo').style.display = 'none';
+      renderListaTavoliConf();
+      mostraToast('Tavolo ' + numero + ' aggiunto ✅', 'success');
+    });
 
-  window.state.permessiExtra = [];
+    // Filtro sala
+    container.querySelectorAll('.btn-filter-sala').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filtroSalaAttivo = btn.dataset.filterSala;
+        container.querySelectorAll('.btn-filter-sala').forEach(b => {
+          const att = b.dataset.filterSala === filtroSalaAttivo;
+          b.style.background = att ? '#0E5A7A' : 'white';
+          b.style.color = att ? 'white' : '#374151';
+          b.style.borderColor = att ? '#0E5A7A' : '#e5e7eb';
+        });
+        renderListaTavoliConf();
+      });
+    });
 
-}
+    // Nav buttons
+    container.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => { window.location.hash = '#/' + btn.dataset.nav; });
+    });
+  }
 
-if (!contesto.ok) {
+  // ════════════════════════════════════════
+  // TAB: MENU & CATALOGO PRODOTTI
+  // ════════════════════════════════════════
+  async function renderTabMenu(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
-  if (contesto.motivo === "Dipendente non trovato") {
-    app.innerHTML = `
-      <div class="view" style="padding:40px;text-align:center;">
-        <h2 style="color:#dc2626;">Errore accesso</h2>
-        <p>Dipendente non associato.</p>
+    const { data: categorie } = await supa()
+      .from('categorie_vendita')
+      .select('id, nome')
+      .eq('azienda_id', aziendaId)
+      .eq('sede_id', sedeId)
+      .order('nome');
+
+    const { data: sedi } = await supa()
+      .from('sedi').select('id, nome')
+      .eq('azienda_id', aziendaId).order('nome');
+
+    let prodotti = [];
+    const caricaProdotti = async (filtroCanale = '', filtroTipo = '', filtroQ = '') => {
+      let q = supa().from('prodotti_vendita').select('*, categorie_vendita(nome)')
+        .eq('azienda_id', aziendaId);
+      if (sedeId) q = q.eq('sede_id', sedeId);
+      if (filtroCanale) q = q.eq('canale', filtroCanale);
+      if (filtroTipo) q = q.eq('tipo', filtroTipo);
+      if (filtroQ) q = q.ilike('nome', `%${filtroQ}%`);
+      const { data } = await q.order('ordinamento').order('nome');
+      prodotti = data || [];
+    };
+
+    await caricaProdotti();
+
+    const canaliOpts = ['tutti', 'evento', 'ristorante', 'trattoria', 'bar']
+      .map(c => `<option value="${c}">${c}</option>`).join('');
+    const tipiOpts = ['', 'portata', 'servizio', 'menu_fisso', 'bevanda', 'altro']
+      .map(t => `<option value="${t}">${t || '— tutti i tipi —'}</option>`).join('');
+    const catOpts = (categorie || []).map(c =>
+      `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+
+    box.innerHTML = `
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Catalogo prodotti</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px;">Portate, servizi e menu — usati da preventivi, comande e menu digitale</div>
+        </div>
+        <button id="btn-nuovo-prodotto" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi prodotto</button>
+      </div>
+
+      <!-- Filtri -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <input id="filtro-q" class="input" placeholder="🔍 Cerca..." style="flex:1;min-width:150px;max-width:220px;">
+        <select id="filtro-canale" class="input" style="min-width:120px;">${canaliOpts}</select>
+        <select id="filtro-tipo" class="input" style="min-width:130px;">${tipiOpts}</select>
+        <button id="btn-applica-filtri" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">Filtra</button>
+      </div>
+
+      <!-- Lista prodotti -->
+      <div id="lista-prodotti-cat"></div>
+
+      <!-- Form prodotto -->
+      <div id="form-prodotto-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-prodotto-title">Nuovo prodotto</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Nome *</label>
+            <input id="pv-nome" class="input" placeholder="Es. Risotto al tartufo" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Canale</label>
+            <select id="pv-canale" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="tutti">Tutti</option>
+              <option value="evento">Evento / Preventivi</option>
+              <option value="ristorante">Ristorante</option>
+              <option value="trattoria">Trattoria</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Tipo</label>
+            <select id="pv-tipo" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="portata">Portata</option>
+              <option value="servizio">Servizio</option>
+              <option value="menu_fisso">Menu fisso</option>
+              <option value="bevanda">Bevanda</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Categoria</label>
+            <select id="pv-categoria" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="">— Nessuna —</option>
+              ${catOpts}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Prezzo base (€)</label>
+            <input id="pv-prezzo" type="number" step="0.01" min="0" class="input" placeholder="Es. 15.00" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">IVA (%)</label>
+            <select id="pv-iva" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <option value="10">10% (Ristorazione)</option>
+              <option value="22">22% (Alcolici)</option>
+              <option value="4">4% (Prima necessità)</option>
+              <option value="0">Esente</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+            <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Ordinamento</label>
+            <input id="pv-ordine" type="number" min="0" class="input" value="0" style="margin-top:4px;width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Descrizione</label>
+          <textarea id="pv-descrizione" class="input" rows="2" placeholder="Descrizione breve per menu e preventivi..." style="margin-top:4px;width:100%;box-sizing:border-box;"></textarea>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-attivo" checked> Attivo
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-visibile" checked> Visibile nel menu
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="checkbox" id="pv-disponibile" checked> Disponibile oggi
+          </label>
+        </div>
+
+        <div id="pv-esito" style="font-size:13px;min-height:16px;margin-top:12px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button id="btn-salva-prodotto" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+          <button id="btn-annulla-prodotto" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+        </div>
+      </div>
+
+      <!-- Link utili -->
+      <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
+        ${[
+          { icon:'🏷️', titolo:'Categorie', link:'bo-categorie', cta:'Gestisci categorie' },
+          { icon:'📋', titolo:'Menu digitale', link:'bo-menu', cta:'Menu builder' },
+          { icon:'📣', titolo:'Marketing', link:'campagne', cta:'Campagne' },
+        ].map(c => cardLink({ ...c, desc: '' })).join('')}
       </div>
     `;
-    return;
-  }
 
-  if (contesto.motivo === "Nessuna sede assegnata") {
-    if (route !== "scegli-sede") {
-      window.location.hash = "#/scegli-sede";
-      return;
-    }
-  } else {
-    return;
-  }
-}
+    let editingProdId = null;
 
-// 👉 MULTI SEDE → usa sede_principale se disponibile
-if (contesto.tipo === "dipendente_multi_sede") {
-  const sedePrincipale = window.state?.dipendente?.sede_principale
-    || window.state?.dipendente?.sede_id;
-  const haSedeAttiva = window.state?.sedeAttiva?.id;
-
-  if (!haSedeAttiva && !sedePrincipale) {
-    if (route !== "scegli-sede") {
-      window.location.hash = "#/scegli-sede";
-      return;
-    }
-  }
-}
-
-// Admin senza dipendente — se ha già una sede in localStorage non chiedere
-if (!window.state?.sedeAttiva?.id) {
-  const storedSedeId = localStorage.getItem("active_sede_id");
-  if (storedSedeId && Array.isArray(window.state?.sedi)) {
-    const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
-    if (sede) {
-      window.state.sedeAttiva = sede;
-    }
-  }
-}
-  }
-  if (
-    !PLATFORM_ROUTES.has(route) &&
-    !BO_ROUTES.has(route) &&
-    !DISPLAY_ROUTES.has(route) &&
-    !PREHOME_ROUTES.has(route) &&
-    route !== "home" &&
-    route !== "booking-form-builder" &&
-    Array.isArray(window.state?.sedi) &&
-    window.state.sedi.length > 1 &&
-    !window.state?.sedeAttiva?.id
-  ) {
-    if (route !== "scegli-sede") {
-      window.location.hash = "#/scegli-sede";
-    }
-    return;
-  }
-
-  if (route === "homePiattaforma") {
-    if (!isSuperadmin()) {
-      window.location.hash = "#/home";
-      return;
-    }
-    await renderView("homePiattaforma");
-    return;
-  }
-
- if (route === "home") {
-
-const ruolo = window.normalizeRuolo
-    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
-    : (window.state?.viewAs || window.state?.ruolo);
-
-  if (ruolo === "admin" || ruolo === "superadmin") {
-    await renderView("home-admin");
-    return;
-  }
-
-  if (ruolo === "manager") {
-    await renderView("home-manager");
-    return;
-  }
-
-  await renderView("home-operatore");
-  return;
-}
-
-  if (PLATFORM_ROUTES.has(route)) {
-    if (!isSuperadmin()) {
-      window.location.hash = "#/home";
-      return;
-    }
-    await renderView(route);
-    return;
-  }
-
-  if (route === "sceltaAzienda") {
-    await renderView("sceltaAzienda");
-    return;
-  }
-
-  if (route === "gestione-sedi") {
-    const ruoloSedi = window.normalizeRuolo
-      ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
-      : (window.state?.viewAs || window.state?.ruolo);
-
-    if (["manager", "operatore"].includes(ruoloSedi)) {
-      const modeSedi = window.routeParams?.mode || "select";
-      if (modeSedi !== "select") {
-        window.location.hash = "#/gestione-sedi";
+    function renderListaProdotti() {
+      const el = box.querySelector('#lista-prodotti-cat');
+      if (!prodotti.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Nessun prodotto trovato.</div>';
         return;
       }
+
+      const CANALE_COLORS = { evento:'#dbeafe', ristorante:'#dcfce7', trattoria:'#fef3c7', bar:'#f3e8ff', tutti:'#f1f5f9' };
+      const CANALE_TEXT = { evento:'#1d4ed8', ristorante:'#15803d', trattoria:'#92400e', bar:'#7e22ce', tutti:'#374151' };
+
+      el.innerHTML = prodotti.map(p => {
+        const catNome = p.categorie_vendita?.nome || '';
+        return `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                ${catNome ? `${esc(catNome)} · ` : ''}${p.tipo || ''}
+                ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <span style="background:${CANALE_COLORS[p.canale]||'#f1f5f9'};color:${CANALE_TEXT[p.canale]||'#374151'};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">${p.canale || 'tutti'}</span>
+              ${!p.attivo ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;">Disattivo</span>' : ''}
+              ${!p.disponibile ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;">Non disponibile</span>' : ''}
+              <button data-edit-prod="${p.id}" style="background:#f0f9ff;border:1px solid #bae6fd;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;">✏️</button>
+              <button data-del-prod="${p.id}" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.querySelectorAll('[data-edit-prod]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = prodotti.find(x => x.id === btn.dataset.editProd);
+          if (p) apriFormProdotto(p);
+        });
+      });
+      el.querySelectorAll('[data-del-prod]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Eliminare questo prodotto?')) return;
+          await supa().from('prodotti_vendita').delete().eq('id', btn.dataset.delProd);
+          prodotti = prodotti.filter(x => x.id !== btn.dataset.delProd);
+          renderListaProdotti();
+          mostraToast('Prodotto eliminato', 'success');
+        });
+      });
     }
 
-    await renderView("gestione-sedi");
-    return;
+    function apriFormProdotto(p = null) {
+      editingProdId = p?.id || null;
+      box.querySelector('#form-prodotto-title').textContent = p ? 'Modifica prodotto' : 'Nuovo prodotto';
+      box.querySelector('#pv-nome').value = p?.nome || '';
+      box.querySelector('#pv-canale').value = p?.canale || 'tutti';
+      box.querySelector('#pv-tipo').value = p?.tipo || 'portata';
+      box.querySelector('#pv-categoria').value = p?.categoria_vendita_id || '';
+      box.querySelector('#pv-prezzo').value = p?.prezzo_base || '';
+      box.querySelector('#pv-iva').value = p?.iva || '10';
+      box.querySelector('#pv-sede').value = p?.sede_id || sedeId || '';
+      box.querySelector('#pv-ordine').value = p?.ordinamento || 0;
+      box.querySelector('#pv-descrizione').value = p?.descrizione || '';
+      box.querySelector('#pv-attivo').checked = p?.attivo ?? true;
+      box.querySelector('#pv-visibile').checked = p?.visibile ?? true;
+      box.querySelector('#pv-disponibile').checked = p?.disponibile ?? true;
+      box.querySelector('#pv-esito').textContent = '';
+      box.querySelector('#form-prodotto-wrap').style.display = '';
+      box.querySelector('#pv-nome').focus();
+    }
+
+    renderListaProdotti();
+
+    // Bind form
+    box.querySelector('#btn-nuovo-prodotto').addEventListener('click', () => apriFormProdotto(null));
+    box.querySelector('#btn-annulla-prodotto').addEventListener('click', () => {
+      box.querySelector('#form-prodotto-wrap').style.display = 'none';
+    });
+    box.querySelector('#btn-applica-filtri').addEventListener('click', async () => {
+      const q = box.querySelector('#filtro-q').value.trim();
+      const canale = box.querySelector('#filtro-canale').value;
+      const tipo = box.querySelector('#filtro-tipo').value;
+      await caricaProdotti(canale === 'tutti' ? '' : canale, tipo, q);
+      renderListaProdotti();
+    });
+    box.querySelector('#filtro-q').addEventListener('keydown', async e => {
+      if (e.key === 'Enter') box.querySelector('#btn-applica-filtri').click();
+    });
+
+    box.querySelector('#btn-salva-prodotto').addEventListener('click', async () => {
+      const esito = box.querySelector('#pv-esito');
+      const nome = box.querySelector('#pv-nome').value.trim();
+      if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: box.querySelector('#pv-sede').value || sedeId || null,
+        nome,
+        canale: box.querySelector('#pv-canale').value || 'tutti',
+        tipo: box.querySelector('#pv-tipo').value || 'portata',
+        categoria_vendita_id: box.querySelector('#pv-categoria').value || null,
+        prezzo_base: parseFloat(box.querySelector('#pv-prezzo').value) || null,
+        iva: parseFloat(box.querySelector('#pv-iva').value) || 10,
+        ordinamento: parseInt(box.querySelector('#pv-ordine').value) || 0,
+        descrizione: box.querySelector('#pv-descrizione').value.trim() || null,
+        attivo: box.querySelector('#pv-attivo').checked,
+        visibile: box.querySelector('#pv-visibile').checked,
+        disponibile: box.querySelector('#pv-disponibile').checked,
+      };
+
+      let error;
+      if (editingProdId) {
+        ({ error } = await supa().from('prodotti_vendita').update(payload).eq('id', editingProdId));
+      } else {
+        ({ error } = await supa().from('prodotti_vendita').insert(payload));
+      }
+
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+
+      esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
+      await caricaProdotti();
+      renderListaProdotti();
+      setTimeout(() => { box.querySelector('#form-prodotto-wrap').style.display = 'none'; }, 600);
+      mostraToast(`"${nome}" salvato ✅`, 'success');
+    });
+
+    box.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => { window.location.hash = '#/' + btn.dataset.nav; });
+    });
   }
 
-  if (routes[route]) {
-    if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
-      if (!hasPermission(route) && !isSuperadmin()) {
-        window.location.hash = "#/home";
+  function cardLink({ icon, titolo, desc, link, cta }) {
+    const disabled = !link;
+    return `
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;${disabled?'opacity:0.65;':''}">
+        <div style="font-size:28px;">${icon}</div>
+        <div style="font-size:15px;font-weight:700;color:#0f172a;">${titolo}</div>
+        <div style="font-size:13px;color:#64748b;flex:1;">${desc}</div>
+        <button ${link?`data-nav="${link}"`:'disabled'} style="
+          padding:8px 14px;border:none;border-radius:10px;cursor:${disabled?'default':'pointer'};font-size:13px;font-weight:600;
+          background:${disabled?'#f1f5f9':'#0E5A7A'};color:${disabled?'#94a3b8':'white'};
+          align-self:flex-start;
+        ">${cta}</button>
+      </div>
+    `;
+  }
+
+  // ════════════════════════════════════════
+  // CARICA DATI
+  // ════════════════════════════════════════
+  async function loadSettori() {
+    try { const{data}=await supa().from('settori').select('*').eq('azienda_id',aziendaId).order('ordine'); settori=data||[]; } catch(e){settori=[];}
+  }
+  async function loadPostazioni() {
+    try { const{data}=await supa().from('postazioni').select('*').eq('azienda_id',aziendaId).order('nome'); postazioni=data||[]; } catch(e){postazioni=[];}
+  }
+  async function loadProdotti() {
+    try { let q=supa().from('prodotti_vendita').select('*').eq('azienda_id',aziendaId); if(sedeId)q=q.eq('sede_id',sedeId); const{data}=await q.order('nome'); prodottiVendita=data||[]; } catch(e){prodottiVendita=[];}
+  }
+  async function loadCategorie() {
+    try { const{data}=await supa().from('categorie_vendita').select('*').eq('azienda_id',aziendaId).order('nome'); categorieVendita=data||[]; } catch(e){categorieVendita=[];}
+  }
+  async function loadRicette() {
+    try { const{data}=await supa().from('ricette').select('*').eq('azienda_id',aziendaId); ricette=data||[]; } catch(e){ricette=[];}
+  }
+
+  // ════════════════════════════════════════
+  // TOAST
+  // ════════════════════════════════════════
+  function mostraToast(msg, tipo='info') {
+    const c={success:'#16a34a',error:'#dc2626',warning:'#f59e0b',info:'#0E5A7A'};
+    const t=document.createElement('div');
+    t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${c[tipo]};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);`;
+    t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+  }
+
+
+
+  // ════════════════════════════════════════
+  // TAB: IDENTITÀ & BRAND
+  // ════════════════════════════════════════
+  async function renderTabIdentita(box) {
+    // Carica identità esistente
+    const { data: ident } = await supa()
+      .from('azienda_identita')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+
+    const val = (campo) => ident?.[campo] || '';
+
+    box.innerHTML = `
+      <style>
+        .id-card { background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px; }
+        .id-label { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px; }
+        .id-desc { font-size:12px;color:#94a3b8;margin-bottom:8px;font-style:italic; }
+        .id-ta { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;resize:vertical;min-height:80px;line-height:1.6;box-sizing:border-box; }
+        .id-ta:focus { border-color:#0E5A7A; }
+        .id-input { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box; }
+        .id-input:focus { border-color:#0E5A7A; }
+      </style>
+      <div style="max-width:720px;">
+        <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:white;border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎯 Identità & Brand</div>
+          <div style="font-size:13px;opacity:.85;line-height:1.5;">Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.</div>
+        </div>
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🌟 Vision & Mission</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Vision — Dove vogliamo arrivare</span>
+            <div class="id-desc">Es. "Diventare il riferimento per la cucina laziale autentica nel Viterbese"</div>
+            <textarea id="id-vision" class="id-ta" placeholder="Scrivi la vision...">${val('vision')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">Mission — Perché esistiamo</span>
+            <div class="id-desc">Es. "Portare in tavola la tradizione laziale con ingredienti del territorio"</div>
+            <textarea id="id-mission" class="id-ta" placeholder="Scrivi la mission...">${val('mission')}</textarea>
+          </div>
+        </div>
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">📍 Posizionamento & Cliente ideale</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Posizionamento</span>
+            <textarea id="id-posizionamento" class="id-ta" placeholder="Come vogliamo essere percepiti...">${val('posizionamento')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Cliente ideale</span>
+            <textarea id="id-cliente" class="id-ta" placeholder="Es. Coppie 35-55, famiglie, turisti...">${val('cliente_ideale')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">Differenziazione</span>
+            <textarea id="id-diff" class="id-ta" placeholder="Cosa ci rende unici...">${val('differenziazione')}</textarea>
+          </div>
+        </div>
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">💬 Valori & Comunicazione</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Valori aziendali</span>
+            <textarea id="id-valori" class="id-ta" style="min-height:60px;" placeholder="Es. Qualità, territorio, accoglienza...">${val('valori')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Tone of voice</span>
+            <input id="id-tov" class="id-input" placeholder="Es. Caldo, familiare, autentico" value="${val('tone_of_voice')}">
+          </div>
+          <div>
+            <span class="id-label">Parole chiave brand</span>
+            <input id="id-kw" class="id-input" placeholder="Es. tradizione, territorio, famiglia, vino" value="${val('parole_chiave')}">
+          </div>
+        </div>
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🚀 Obiettivi business</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <span class="id-label">Breve termine (3-6 mesi)</span>
+              <textarea id="id-obj-breve" class="id-ta" style="min-height:70px;" placeholder="Es. +20% prenotazioni pranzo">${val('obiettivo_breve')}</textarea>
+            </div>
+            <div>
+              <span class="id-label">Lungo termine (1-3 anni)</span>
+              <textarea id="id-obj-lungo" class="id-ta" style="min-height:70px;" placeholder="Es. Aprire seconda sede">${val('obiettivo_lungo')}</textarea>
+            </div>
+          </div>
+        </div>
+        <!-- GOLDEN CIRCLE -->
+        <div class="id-card" style="border:2px solid #0E5A7A;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="width:40px;height:40px;background:#0E5A7A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎯</div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#0f172a;">Golden Circle — Simon Sinek</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">Le persone non comprano COSA fai. Comprano PERCHÉ lo fai.</div>
+            </div>
+          </div>
+          <div style="background:#f0f9ff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#0E5A7A;line-height:1.6;">
+            Apple non vende computer — vende la sfida allo status quo. Il tuo ristorante non vende cibo — vende un'emozione, un ricordo, un territorio. 
+            Definire il tuo <strong>WHY</strong> è il passo più importante: guiderà ogni campagna, ogni colloquio con i dipendenti, ogni scelta di comunicazione.
+            Tony userà questi dati per generare copy più autentico e potente.
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">❤️ WHY — Perché esistiamo</span>
+            <div class="id-desc">Il motivo profondo, la causa, la convinzione. Non il profitto — quello è il risultato. Es. "Crediamo che ogni pasto debba raccontare un territorio e creare un ricordo indelebile"</div>
+            <textarea id="id-why" class="id-ta" placeholder="Scrivi il vostro PERCHÉ profondo...">${val('gc_why')}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">⚙️ HOW — Come lo facciamo</span>
+            <div class="id-desc">I valori operativi e i processi che vi distinguono. Es. "Ingredienti locali a km0, ricette tramandate, servizio come ospiti a casa"</div>
+            <textarea id="id-how" class="id-ta" placeholder="Scrivi come realizzate il vostro WHY...">${val('gc_how')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">🍽️ WHAT — Cosa offriamo</span>
+            <div class="id-desc">Il prodotto o servizio — la parte più superficiale ma necessaria. Es. "Ristorante, catering per eventi, sala ricevimenti"</div>
+            <textarea id="id-what" class="id-ta" placeholder="Scrivi cosa vendete concretamente...">${val('gc_what')}</textarea>
+          </div>
+        </div>
+
+        <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
+        <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">💾 Salva identità aziendale</button>
+      </div>
+    `;
+
+    box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
+      const esito = box.querySelector('#id-esito');
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const { error } = await supa().from('azienda_identita').upsert({
+        azienda_id: aziendaId,
+        vision: box.querySelector('#id-vision').value.trim() || null,
+        mission: box.querySelector('#id-mission').value.trim() || null,
+        posizionamento: box.querySelector('#id-posizionamento').value.trim() || null,
+        cliente_ideale: box.querySelector('#id-cliente').value.trim() || null,
+        differenziazione: box.querySelector('#id-diff').value.trim() || null,
+        valori: box.querySelector('#id-valori').value.trim() || null,
+        tone_of_voice: box.querySelector('#id-tov').value.trim() || null,
+        parole_chiave: box.querySelector('#id-kw').value.trim() || null,
+        obiettivo_breve: box.querySelector('#id-obj-breve').value.trim() || null,
+        obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'azienda_id' });
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; }
+      else { esito.textContent = '✅ Identità salvata!'; esito.style.color = '#15803d'; setTimeout(() => { esito.textContent = ''; }, 3000); }
+    });
+  }
+
+
+
+  // ════════════════════════════════════════
+  // TAB: SONDAGGI
+  // ════════════════════════════════════════
+  async function renderTabSondaggi(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: sondaggiList } = await supa()
+      .from('survey')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .order('created_at', { ascending: false });
+
+    const TIPI_DOM = [
+      { v:'scala',          l:'⭐ Valutazione (1-5)' },
+      { v:'testo',          l:'📝 Risposta testo' },
+      { v:'scelta_multipla',l:'☑️ Scelta multipla (con tag)' },
+      { v:'valutazione',    l:'🎯 Valutazione categoria' },
+    ];
+
+    let domande = [];
+    let sondaggioAttivo = null;
+
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">📊 Sondaggi</div>
+          <div style="font-size:13px;color:#64748b;">Crea sondaggi per raccogliere feedback e profilare i clienti</div>
+        </div>
+        <button id="btn-nuovo-sondaggio" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo sondaggio</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;">
+
+        <!-- Lista sondaggi -->
+        <div>
+          <div id="lista-sondaggi"></div>
+        </div>
+
+        <!-- Editor sondaggio -->
+        <div id="editor-sondaggio" style="display:none;">
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:12px;" id="editor-title">Nuovo sondaggio</div>
+            <input id="sond-titolo" class="input" placeholder="Titolo sondaggio *" style="width:100%;box-sizing:border-box;margin-bottom:8px;">
+            <textarea id="sond-desc" class="input" rows="2" placeholder="Descrizione (opzionale)" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="sond-nps" style="accent-color:#0E5A7A;">
+              <label for="sond-nps" style="font-size:13px;cursor:pointer;">Prima domanda NPS globale (valutazione generale 1-5) — obbligatoria</label>
+            </div>
+          </div>
+
+          <!-- Lista domande -->
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-size:14px;font-weight:700;">Domande</div>
+              <button id="btn-aggiungi-dom" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;">+ Aggiungi domanda</button>
+            </div>
+            <div id="lista-domande"></div>
+
+            <!-- Form domanda -->
+            <div id="form-domanda" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:10px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo domanda</label>
+                  <select id="dom-tipo" class="input" style="width:100%;box-sizing:border-box;">
+                    ${TIPI_DOM.map(t=>`<option value="${t.v}">${t.l}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Ordine</label>
+                  <input id="dom-ordine" type="number" value="${domande.length+1}" min="1" class="input" style="width:100%;box-sizing:border-box;">
+                </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Testo domanda *</label>
+                <input id="dom-testo" class="input" placeholder="Es. Come valuti la nostra cucina?" style="width:100%;box-sizing:border-box;">
+              </div>
+              <div id="dom-scala-wrap" style="margin-bottom:10px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Mostra campo testo se risposta ≤</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" id="dom-alert-attivo">
+                  <select id="dom-alert-val" class="input" style="width:80px;">
+                    <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option>
+                  </select>
+                  <span style="font-size:12px;color:#64748b;">→ Mostra campo "Cosa non ti è piaciuto?"</span>
+                </div>
+              </div>
+              <div id="dom-opzioni-wrap" style="display:none;margin-bottom:10px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Opzioni (una per riga) — aggiungi tag dopo | es: Vegetariano|vegetariano</label>
+                <textarea id="dom-opzioni" class="input" rows="4" placeholder="Sì, sono vegetariano|vegetariano\nSì, sono vegano|vegano\nSono celiaco|celiaco\nNessuna preferenza" style="width:100%;box-sizing:border-box;resize:vertical;font-size:12px;font-family:monospace;"></textarea>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button id="btn-salva-dom" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;">Aggiungi</button>
+                <button id="btn-annulla-dom" style="background:#f1f5f9;color:#374151;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="sond-esito" style="font-size:13px;min-height:14px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-salva-sondaggio" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva sondaggio</button>
+            <button id="btn-annulla-sondaggio" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;">Annulla</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    function renderListaSondaggi() {
+      const el = box.querySelector('#lista-sondaggi');
+      if (!sondaggiList?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun sondaggio. Creane uno.</div>';
         return;
       }
+      el.innerHTML = sondaggiList.map(s => `
+        <div data-sond="${s.id}" style="background:white;border:1px solid ${sondaggioAttivo?.id===s.id?'#0E5A7A':'#e5e7eb'};border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;">
+          <div style="font-weight:700;font-size:13px;">${esc(s.titolo)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">${s.nps_globale?'✅ NPS globale · ':''}<span style="background:${s.stato==='attivo'?'#dcfce7':'#f1f5f9'};color:${s.stato==='attivo'?'#15803d':'#374151'};padding:2px 8px;border-radius:20px;">${s.stato||'bozza'}</span></div>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-sond]').forEach(card => {
+        card.addEventListener('click', () => apriEditor(sondaggiList.find(s=>s.id===card.dataset.sond)));
+      });
     }
-    await renderView(route);
-    return;
+
+    async function apriEditor(sondaggio = null) {
+      sondaggioAttivo = sondaggio;
+      domande = [];
+      box.querySelector('#editor-sondaggio').style.display = '';
+      box.querySelector('#editor-title').textContent = sondaggio ? 'Modifica sondaggio' : 'Nuovo sondaggio';
+      box.querySelector('#sond-titolo').value = sondaggio?.titolo || '';
+      box.querySelector('#sond-desc').value = sondaggio?.descrizione || '';
+      box.querySelector('#sond-nps').checked = sondaggio?.nps_globale ?? true;
+
+      if (sondaggio) {
+        const { data: domDB } = await supa().from('survey_domande').select('*').eq('survey_id', sondaggio.id).order('ordine');
+        domande = domDB || [];
+      }
+      renderDomande();
+    }
+
+    function renderDomande() {
+      const el = box.querySelector('#lista-domande');
+      if (!domande.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Nessuna domanda aggiunta.</div>';
+        return;
+      }
+      el.innerHTML = domande.map((d, idx) => `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="font-size:18px;">${{scala:'⭐',testo:'📝',scelta_multipla:'☑️',valutazione:'🎯'}[d.tipo]||'❓'}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">${esc(d.testo)}</div>
+            <div style="font-size:11px;color:#64748b;">${TIPI_DOM.find(t=>t.v===d.tipo)?.l||d.tipo} · ordine ${d.ordine}</div>
+          </div>
+          <button data-del-dom="${idx}" style="background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-del-dom]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          domande.splice(parseInt(btn.dataset.delDom), 1);
+          renderDomande();
+        });
+      });
+    }
+
+    // Tipo domanda → mostra/nascondi campi
+    box.querySelector('#dom-tipo').addEventListener('change', (e) => {
+      const tipo = e.target.value;
+      box.querySelector('#dom-scala-wrap').style.display = tipo === 'scala' ? '' : 'none';
+      box.querySelector('#dom-opzioni-wrap').style.display = tipo === 'scelta_multipla' ? '' : 'none';
+    });
+
+    box.querySelector('#btn-aggiungi-dom').addEventListener('click', () => {
+      box.querySelector('#form-domanda').style.display = '';
+      box.querySelector('#dom-ordine').value = domande.length + 1;
+    });
+    box.querySelector('#btn-annulla-dom').addEventListener('click', () => {
+      box.querySelector('#form-domanda').style.display = 'none';
+    });
+    box.querySelector('#btn-salva-dom').addEventListener('click', () => {
+      const testo = box.querySelector('#dom-testo').value.trim();
+      if (!testo) { mostraToast('Inserisci il testo della domanda','warning'); return; }
+      const tipo = box.querySelector('#dom-tipo').value;
+      const alertAttivo = box.querySelector('#dom-alert-attivo').checked;
+      const alertVal = parseInt(box.querySelector('#dom-alert-val').value)||3;
+      const opzioniRaw = box.querySelector('#dom-opzioni').value.trim();
+      
+      const nuovaDom = {
+        testo,
+        tipo,
+        ordine: parseInt(box.querySelector('#dom-ordine').value)||domande.length+1,
+        scala_min: tipo==='scala' ? 1 : null,
+        scala_max: tipo==='scala' ? 5 : null,
+        alert_valori: tipo==='scala' && alertAttivo ? [alertVal] : null,
+        opzioni: tipo==='scelta_multipla' && opzioniRaw ? opzioniRaw.split('\n').map(r=>r.split('|')[0].trim()).filter(Boolean) : null,
+        tag_risposta: tipo==='scelta_multipla' && opzioniRaw
+          ? Object.fromEntries(opzioniRaw.split('\n').filter(r=>r.includes('|')).map(r=>[r.split('|')[0].trim(), r.split('|')[1]?.trim()]))
+          : null,
+      };
+      domande.push(nuovaDom);
+      domande.sort((a,b)=>a.ordine-b.ordine);
+      renderDomande();
+      box.querySelector('#form-domanda').style.display='none';
+      box.querySelector('#dom-testo').value='';
+    });
+
+    box.querySelector('#btn-nuovo-sondaggio').addEventListener('click', () => apriEditor(null));
+    box.querySelector('#btn-annulla-sondaggio').addEventListener('click', () => {
+      box.querySelector('#editor-sondaggio').style.display='none';
+    });
+
+    box.querySelector('#btn-salva-sondaggio').addEventListener('click', async () => {
+      const esito = box.querySelector('#sond-esito');
+      const titolo = box.querySelector('#sond-titolo').value.trim();
+      if (!titolo) { esito.textContent='❌ Titolo obbligatorio'; esito.style.color='#dc2626'; return; }
+      esito.textContent='Salvataggio...'; esito.style.color='#64748b';
+
+      const payload = {
+        azienda_id: aziendaId,
+        titolo,
+        descrizione: box.querySelector('#sond-desc').value.trim()||null,
+        nps_globale: box.querySelector('#sond-nps').checked,
+        stato: 'bozza',
+      };
+
+      let surveyId = sondaggioAttivo?.id;
+      if (surveyId) {
+        await supa().from('survey').update(payload).eq('id', surveyId);
+      } else {
+        const { data, error } = await supa().from('survey').insert(payload).select('*').single();
+        if (error) { esito.textContent='❌ '+error.message; esito.style.color='#dc2626'; return; }
+        surveyId = data.id;
+        sondaggiList.unshift(data);
+      }
+
+      // Salva domande
+      if (domande.length) {
+        await supa().from('survey_domande').delete().eq('survey_id', surveyId);
+        await supa().from('survey_domande').insert(domande.map(d=>({...d, survey_id: surveyId, azienda_id: aziendaId})));
+      }
+
+      esito.textContent='✅ Sondaggio salvato!'; esito.style.color='#15803d';
+      renderListaSondaggi();
+      mostraToast('Sondaggio salvato ✅','success');
+    });
+
+    renderListaSondaggi();
   }
 
-  await renderView("home");
+  // ── Init ──
+  switchTab('operativo');
 }
 
-/* =========================================================
-   INIT
-========================================================= */
-
-window.hasPermission = hasPermission;
-
-window.router = {
-  reloadCurrentRoute() {
-    resolve();
-  },
-  logout() {
-    doLogout();
-  },
-};
-
-window.addEventListener("hashchange", resolve);
-
-window.addEventListener("DOMContentLoaded", () => {
-  app = document.getElementById("app");
-  initMenu();
-
-  // ✅ FIX: sync sessione Supabase
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log("AUTH CHANGE:", event, session);
-
-    if (session?.user) {
-      if (window.stateActions?.setUser) {
-        window.stateActions.setUser(session.user);
-      }
-    } else {
-      if (window.stateActions?.setUser) {
-        window.stateActions.setUser(null);
-      }
-    }
-  });
-
-  try {
-    const saved = localStorage.getItem("reparto_attivo");
-    if (saved) {
-      window.state.repartoAttivo = JSON.parse(saved);
-    }
-  } catch (e) {
-    console.warn("Errore restore reparto:", e);
-  }
-
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn) {
-    logoutBtn.onclick = () => doLogout();
-  }
-
-  resolve();
-});
+function esc(s) {
+  return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
