@@ -124,6 +124,7 @@ export async function render(container) {
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-fascicolo-iva" style="background:#7c3aed;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">📋 Fascicolo IVA</button>
             <button id="btn-scarica-pdf" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">📥 Scarica PDF</button>
             <button id="btn-scarica-csv" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">📊 CSV</button>
           </div>
@@ -269,6 +270,200 @@ export async function render(container) {
     });
 
     // ── PDF via finestra separata ──
+    // ── MODAL FASCICOLO IVA ──
+    container.querySelector('#btn-fascicolo-iva')?.addEventListener('click', async () => {
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;box-sizing:border-box;';
+      
+      modal.innerHTML = '<div style="background:white;border-radius:20px;max-width:700px;width:100%;margin:auto;"><div style="padding:20px;text-align:center;color:#64748b;">⏳ Caricamento fascicolo IVA...</div></div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+      try {
+        const aziendaId = window.state?.azienda?.id;
+        const sedeId = window.state?.sedeAttiva?.id;
+        const anno = document.querySelector('#sel-anno')?.value || new Date().getFullYear();
+        const mese = document.querySelector('#sel-mese')?.value;
+        const periodo = document.querySelector('#sel-periodo')?.value;
+
+        let dataInizio = `${anno}-01-01`;
+        let dataFine = `${anno}-12-31`;
+        if (periodo === 'mese' && mese) {
+          dataInizio = `${anno}-${String(mese).padStart(2,'0')}-01`;
+          const lastDay = new Date(anno, mese, 0).getDate();
+          dataFine = `${anno}-${String(mese).padStart(2,'0')}-${lastDay}`;
+        }
+
+        // IVA ACQUISTI da fatture_acquisto
+        let qAcq = window.supabaseClient.from('fatture_acquisto')
+          .select('data_documento, imponibile, iva, totale')
+          .eq('azienda_id', aziendaId)
+          .gte('data_documento', dataInizio)
+          .lte('data_documento', dataFine)
+          .order('data_documento');
+        if (sedeId) qAcq = qAcq.eq('sede_id', sedeId);
+        const { data: fatture } = await qAcq.limit(5000);
+
+        // IVA VENDITE da comande_righe con iva su prodotto
+        // Raggruppiamo per aliquota usando il campo iva su comande_righe
+        let qVend = window.supabaseClient.from('comande_righe')
+          .select('quantita, prezzo, totale, iva, prodotto_id, prodotti_vendita(iva, nome)')
+          .eq('azienda_id', aziendaId)
+          .gte('created_at', dataInizio + 'T00:00:00')
+          .lte('created_at', dataFine + 'T23:59:59');
+        if (sedeId) qVend = qVend.eq('sede_id', sedeId);
+        const { data: righe } = await qVend.limit(10000);
+
+        // Calcola IVA acquisti per aliquota
+        const ivaAcqMap = {};
+        let totImponibileAcq = 0, totIvaAcq = 0, totTotaleAcq = 0;
+        for (const f of (fatture || [])) {
+          const aliquota = f.iva || 10;
+          if (!ivaAcqMap[aliquota]) ivaAcqMap[aliquota] = { imponibile: 0, iva: 0, totale: 0 };
+          // iva nella fattura è importo o percentuale?
+          // Calcoliamo: iva_importo = totale - imponibile
+          const ivaImporto = (f.totale || 0) - (f.imponibile || 0);
+          ivaAcqMap[aliquota].imponibile += f.imponibile || 0;
+          ivaAcqMap[aliquota].iva += ivaImporto > 0 ? ivaImporto : (f.imponibile || 0) * (aliquota / 100);
+          ivaAcqMap[aliquota].totale += f.totale || 0;
+          totImponibileAcq += f.imponibile || 0;
+          totIvaAcq += ivaImporto > 0 ? ivaImporto : (f.imponibile || 0) * (aliquota / 100);
+          totTotaleAcq += f.totale || 0;
+        }
+
+        // Calcola IVA vendite per aliquota
+        const ivaVendMap = {};
+        let totImponibileVend = 0, totIvaVend = 0, totTotaleVend = 0;
+        for (const r of (righe || [])) {
+          const aliquota = r.iva || r.prodotti_vendita?.iva || 10;
+          if (!ivaVendMap[aliquota]) ivaVendMap[aliquota] = { imponibile: 0, iva: 0, totale: 0 };
+          const totRiga = r.totale || (r.prezzo * r.quantita) || 0;
+          const imponibile = totRiga / (1 + aliquota / 100);
+          const ivaImporto = totRiga - imponibile;
+          ivaVendMap[aliquota].imponibile += imponibile;
+          ivaVendMap[aliquota].iva += ivaImporto;
+          ivaVendMap[aliquota].totale += totRiga;
+          totImponibileVend += imponibile;
+          totIvaVend += ivaImporto;
+          totTotaleVend += totRiga;
+        }
+
+        const ivaDovuta = totIvaVend - totIvaAcq;
+        const periodoLabel = periodo === 'mese' && mese
+          ? `${new Date(anno, mese-1, 1).toLocaleString('it-IT',{month:'long',year:'numeric'})}`
+          : `Anno ${anno}`;
+
+        const fmt = n => `€ ${Number(n).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+        const renderTabIva = (map, label) => {
+          const rows = Object.entries(map).sort((a,b) => Number(a[0]) - Number(b[0]));
+          if (!rows.length) return `<tr><td colspan="4" style="padding:10px;color:#94a3b8;text-align:center;">Nessun dato</td></tr>`;
+          return rows.map(([aliq, v]) => `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:9px 12px;font-weight:600;">${aliq}%</td>
+              <td style="padding:9px 12px;text-align:right;">${fmt(v.imponibile)}</td>
+              <td style="padding:9px 12px;text-align:right;font-weight:600;color:#dc2626;">${fmt(v.iva)}</td>
+              <td style="padding:9px 12px;text-align:right;">${fmt(v.totale)}</td>
+            </tr>
+          `).join('');
+        };
+
+        modal.innerHTML = `
+          <div style="background:white;border-radius:20px;max-width:700px;width:100%;margin:auto;">
+            <div style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:white;padding:20px 24px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:18px;font-weight:700;">📋 Fascicolo IVA</div>
+                <div style="font-size:13px;opacity:.85;">${periodoLabel} — ${window.state?.azienda?.nome || ''}</div>
+              </div>
+              <button id="btn-chiudi-iva" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;">✕ Chiudi</button>
+            </div>
+
+            <div style="padding:20px;">
+
+              <!-- IVA a debito (vendite) -->
+              <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">📤 IVA a debito — Vendite</div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+                <thead>
+                  <tr style="background:#fdf4ff;border-bottom:2px solid #e9d5ff;">
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;color:#7c3aed;">Aliquota</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#7c3aed;">Imponibile</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#7c3aed;">IVA</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#7c3aed;">Totale</th>
+                  </tr>
+                </thead>
+                <tbody>${renderTabIva(ivaVendMap, 'vendite')}</tbody>
+                <tfoot>
+                  <tr style="background:#fdf4ff;border-top:2px solid #e9d5ff;font-weight:700;">
+                    <td style="padding:9px 12px;">TOTALE</td>
+                    <td style="padding:9px 12px;text-align:right;">${fmt(totImponibileVend)}</td>
+                    <td style="padding:9px 12px;text-align:right;color:#dc2626;">${fmt(totIvaVend)}</td>
+                    <td style="padding:9px 12px;text-align:right;">${fmt(totTotaleVend)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <!-- IVA a credito (acquisti) -->
+              <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">📥 IVA a credito — Acquisti</div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+                <thead>
+                  <tr style="background:#f0fdf4;border-bottom:2px solid #bbf7d0;">
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;color:#15803d;">Aliquota</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#15803d;">Imponibile</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#15803d;">IVA</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;color:#15803d;">Totale</th>
+                  </tr>
+                </thead>
+                <tbody>${renderTabIva(ivaAcqMap, 'acquisti')}</tbody>
+                <tfoot>
+                  <tr style="background:#f0fdf4;border-top:2px solid #bbf7d0;font-weight:700;">
+                    <td style="padding:9px 12px;">TOTALE</td>
+                    <td style="padding:9px 12px;text-align:right;">${fmt(totImponibileAcq)}</td>
+                    <td style="padding:9px 12px;text-align:right;color:#15803d;">${fmt(totIvaAcq)}</td>
+                    <td style="padding:9px 12px;text-align:right;">${fmt(totTotaleAcq)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <!-- Riepilogo IVA dovuta -->
+              <div style="background:${ivaDovuta >= 0 ? '#fee2e2' : '#dcfce7'};border-radius:14px;padding:16px;text-align:center;">
+                <div style="font-size:13px;color:#64748b;margin-bottom:4px;">IVA a debito − IVA a credito</div>
+                <div style="font-size:28px;font-weight:800;color:${ivaDovuta >= 0 ? '#dc2626' : '#15803d'};">
+                  ${ivaDovuta >= 0 ? '▲' : '▼'} ${fmt(Math.abs(ivaDovuta))}
+                </div>
+                <div style="font-size:13px;font-weight:600;color:${ivaDovuta >= 0 ? '#dc2626' : '#15803d'};margin-top:4px;">
+                  ${ivaDovuta >= 0 ? 'IVA da versare' : 'IVA a credito'}
+                </div>
+              </div>
+
+              <div style="margin-top:12px;font-size:11px;color:#94a3b8;text-align:center;">
+                ⚠️ Dati indicativi — verificare sempre con il proprio commercialista.<br>
+                Le vendite sono calcolate dalle comande, gli acquisti dalle fatture registrate.
+              </div>
+
+              <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
+                <button id="btn-stampa-iva" style="background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Stampa</button>
+                <button id="btn-chiudi-iva2" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;">Chiudi</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        modal.querySelector('#btn-chiudi-iva')?.addEventListener('click', () => modal.remove());
+        modal.querySelector('#btn-chiudi-iva2')?.addEventListener('click', () => modal.remove());
+        modal.querySelector('#btn-stampa-iva')?.addEventListener('click', () => {
+          const w = window.open('','_blank','width=800,height=600');
+          w.document.write('<html><head><title>Fascicolo IVA</title><style>body{font-family:Arial,sans-serif;padding:24px;} table{width:100%;border-collapse:collapse;} th,td{padding:8px 12px;border:1px solid #e5e7eb;} th{background:#f8fafc;} </style></head><body>');
+          w.document.write(modal.querySelector('div').innerHTML.replace(/<button[^>]*>.*?<\/button>/gs,''));
+          w.document.write('</body></html>');
+          w.document.close();
+          w.print();
+        });
+
+      } catch(err) {
+        modal.innerHTML = `<div style="background:white;border-radius:20px;padding:24px;max-width:400px;margin:auto;text-align:center;"><div style="color:#dc2626;">❌ Errore: ${err.message}</div><button onclick="this.closest('[style*=fixed]').remove()" style="margin-top:12px;padding:8px 16px;border:none;border-radius:8px;background:#f1f5f9;cursor:pointer;">Chiudi</button></div>`;
+      }
+    });
+
     container.querySelector('#btn-scarica-pdf')?.addEventListener('click', () => {
       const doc = container.querySelector('#documento-bilancio');
       const kpi = container.querySelector('.no-print:last-of-type');
