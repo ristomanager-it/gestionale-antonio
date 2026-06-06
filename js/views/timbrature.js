@@ -1218,6 +1218,27 @@ const pinOk = await verificaPinTimbrature({
         user?.email ||
         "Dipendente";
 
+      // ── Calcola ore_lavorate per fine_turno ──
+      let oreLavorate = null;
+      if (tipo === 'fine_turno') {
+        try {
+          const { data: ultimoInizio } = await window.supabaseClient
+            .from('timbrature')
+            .select('timestamp')
+            .eq('azienda_id', azienda.id)
+            .eq('dipendente_id', dipendenteId)
+            .eq('tipo', 'inizio_turno')
+            .gte('timestamp', new Date().toISOString().slice(0, 10) + 'T00:00:00')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (ultimoInizio?.timestamp) {
+            const diffMs = new Date() - new Date(ultimoInizio.timestamp);
+            oreLavorate = Math.round((diffMs / 3600000) * 100) / 100;
+          }
+        } catch(e) { console.warn('Calcolo ore_lavorate fallito:', e); }
+      }
+
       const basePayload = {
         azienda_id: azienda.id,
         sede_id:
@@ -1229,6 +1250,7 @@ const pinOk = await verificaPinTimbrature({
         timestamp: new Date().toISOString(),
         device_info: navigator.userAgent || "unknown",
         geo_ts: new Date().toISOString(),
+        ...(oreLavorate !== null ? { ore_lavorate: oreLavorate } : {}),
       };
 
       let lat = null;
