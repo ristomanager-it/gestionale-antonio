@@ -15,6 +15,46 @@ const TIPI_PROMO = [
   { v:'2x1',         l:'2x1',       icon:'2×1' },
 ];
 
+// Blocchi landing
+const BLOCK_TYPES  = ['immagine','testo','box_offerta','valutazioni','form','cta_button'];
+const BLOCK_LABELS = ['🖼 Immagine','📝 Testo','🎁 Box offerta','⭐ Valutazioni','📋 Form','🔘 CTA Button'];
+
+// Giorni settimana
+const GIORNI_NOMI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+// Turni
+const TURNI_LIST = [
+  { v:'pranzo', l:'🌞 Pranzo' },
+  { v:'cena',   l:'🌙 Cena'   },
+];
+
+// Promo template "Benvenuto" globale (azienda_id = NULL lato DB)
+const PROMO_BENVENUTO_TEMPLATE = {
+  nome: '🎁 Benvenuto!',
+  tipo: 'sconto_perc',
+  valore: 10,
+  codice: 'BENVENUTO10',
+  descrizione: 'Sconto di benvenuto del 10% riservato ai nuovi clienti. Valido al primo ordine.',
+  validita_giorni: 30,
+  privacy_richiesta: true,
+  consenso_marketing: true,
+  referral_attivo: false,
+  messaggio_wa: "Ciao {{nome}}! 🎁 Hai uno sconto di benvenuto del 10% riservato a te!\nValido per 30 giorni.\n👉 Scaricalo qui: {{link_promo}}",
+  messaggio_reminder: "Ciao {{nome}}! Il tuo sconto {{promo_nome}} sta per scadere 😱\nHai ancora tempo fino al {{scadenza}}.\n👉 {{link_promo}}",
+  messaggio_scadenza: "Ciao {{nome}}, il tuo sconto di benvenuto è scaduto.\nMa abbiamo qualcosa di nuovo per te... resta sintonizzato! 🍽",
+  regolamento: "Promozione valida per i nuovi clienti al primo ordine. Non cumulabile con altre offerte. L'azienda si riserva il diritto di modificare o revocare la promozione in qualsiasi momento.",
+  landing_config: {
+    blocks: [
+      { tipo: 'immagine',    contenuto: '' },
+      { tipo: 'box_offerta', contenuto: '' },
+      { tipo: 'form',        contenuto: '' },
+      { tipo: 'cta_button',  contenuto: 'Scarica il tuo sconto' },
+    ]
+  },
+  giorni_disponibili: null,
+  turni: null,
+  attiva: true,
+};
+
 export async function renderPromo(container, aziendaId) {
   container.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
@@ -23,6 +63,9 @@ export async function renderPromo(container, aziendaId) {
     supa().from('tags').select('id,nome').eq('azienda_id', aziendaId).order('nome'),
   ]);
 
+  // Lista locale mutabile
+  const lista = promoList || [];
+
   container.innerHTML = `
     <style>
       .promo-input { padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;background:white;outline:none; }
@@ -30,6 +73,13 @@ export async function renderPromo(container, aziendaId) {
       .promo-label { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px; }
       .promo-card { background:white;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:12px;transition:box-shadow .15s; }
       .promo-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
+      .toggle-btn { border:none;border-radius:20px;padding:4px 14px;cursor:pointer;font-size:11px;font-weight:700;transition:all .2s; }
+      .toggle-btn.attiva  { background:#dcfce7;color:#15803d; }
+      .toggle-btn.inattiva{ background:#fee2e2;color:#dc2626; }
+      .giorno-chip { display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px solid #e5e7eb;cursor:pointer;font-size:11px;font-weight:700;color:#64748b;transition:all .15s;user-select:none; }
+      .giorno-chip.sel { background:#0E5A7A;border-color:#0E5A7A;color:white; }
+      .turno-chip { display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;border:2px solid #e5e7eb;cursor:pointer;font-size:12px;font-weight:600;color:#64748b;transition:all .15s;user-select:none; }
+      .turno-chip.sel { background:#0E5A7A;border-color:#0E5A7A;color:white; }
       @media(max-width:640px) { .promo-grid-2 { grid-template-columns:1fr!important; } }
     </style>
 
@@ -38,7 +88,10 @@ export async function renderPromo(container, aziendaId) {
         <div style="font-size:18px;font-weight:700;color:#0f172a;">🎁 Promo & Offerte</div>
         <div style="font-size:13px;color:#64748b;">Crea promo personalizzate — landing, tracking Meta, referral</div>
       </div>
-      <button id="btn-nuova-promo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:700;">+ Nuova promo</button>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-usa-template" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">✨ Usa template Benvenuto</button>
+        <button id="btn-nuova-promo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:700;">+ Nuova promo</button>
+      </div>
     </div>
 
     <!-- Lista promo -->
@@ -93,18 +146,34 @@ export async function renderPromo(container, aziendaId) {
               <label class="promo-label">Descrizione breve</label>
               <textarea id="p-desc" class="promo-input" rows="2" style="resize:vertical;" placeholder="Descrizione visibile al cliente nella landing..."></textarea>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;" class="promo-grid-2">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;" class="promo-grid-2">
               <div>
                 <label class="promo-label">Data scadenza</label>
                 <input id="p-data-scad" type="date" class="promo-input">
               </div>
               <div>
-                <label class="promo-label">Oppure: validità (giorni)</label>
+                <label class="promo-label">Validità (giorni)</label>
                 <input id="p-validita" type="number" min="1" value="30" class="promo-input">
               </div>
               <div>
-                <label class="promo-label">Nr. promo disponibili</label>
+                <label class="promo-label">Nr. disponibili</label>
                 <input id="p-nr-disp" type="number" min="0" class="promo-input" placeholder="Lascia vuoto = illimitato">
+              </div>
+            </div>
+
+            <!-- GIORNI DISPONIBILI -->
+            <div style="margin-bottom:16px;">
+              <label class="promo-label">📅 Giorni disponibili (lascia vuoto = tutti)</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;" id="p-giorni-chips">
+                ${GIORNI_NOMI.map((g,i)=>`<div class="giorno-chip" data-giorno="${i+1}" title="${g}">${g}</div>`).join('')}
+              </div>
+            </div>
+
+            <!-- TURNI -->
+            <div style="margin-bottom:4px;">
+              <label class="promo-label">🕐 Turni validi (lascia vuoto = tutti)</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;" id="p-turni-chips">
+                ${TURNI_LIST.map(t=>`<div class="turno-chip" data-turno="${t.v}">${t.l}</div>`).join('')}
               </div>
             </div>
           </div>
@@ -125,12 +194,12 @@ export async function renderPromo(container, aziendaId) {
               </div>
             </div>
             <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;">
-              <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🏗 Builder landing draggable</div>
-              <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Trascina i blocchi per costruire la landing della promo. I clienti vedranno questa pagina quando aprono il link WhatsApp.</div>
-              <div id="landing-builder" style="min-height:100px;border:2px dashed #e5e7eb;border-radius:10px;padding:12px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🏗 Builder landing</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Aggiungi blocchi per costruire la landing della promo. I clienti vedranno questa pagina quando aprono il link WhatsApp.</div>
+              <div id="landing-builder" style="min-height:80px;border:2px dashed #e5e7eb;border-radius:10px;padding:12px;">
                 <div id="landing-blocks" style="margin-bottom:10px;"></div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  ${['🖼 Immagine','📝 Testo','🎁 Box offerta','⭐ Valutazioni','📋 Form','🔘 CTA Button'].map((b,i)=>`<button data-add-block="${i}" style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;">${b}</button>`).join('')}
+                  ${BLOCK_LABELS.map((l,i)=>`<button data-add-block="${i}" style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;">${l}</button>`).join('')}
                 </div>
               </div>
               <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Il form include automaticamente: Nome, Telefono, Privacy policy e Consenso marketing (se abilitati)</div>
@@ -139,18 +208,9 @@ export async function renderPromo(container, aziendaId) {
 
           <!-- TAB: TRACKING -->
           <div data-tab-content-promo="tracking" style="display:none;">
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px;margin-bottom:16px;">
-              <div style="font-size:13px;font-weight:700;color:#ea580c;margin-bottom:8px;">📊 Meta Pixel & Tag Manager</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" class="promo-grid-2">
-                <div>
-                  <label class="promo-label">Meta Pixel ID</label>
-                  <input id="p-pixel-id" class="promo-input" placeholder="Es. 924572413940466">
-                </div>
-                <div>
-                  <label class="promo-label">Google Tag Manager ID</label>
-                  <input id="p-gtm-id" class="promo-input" placeholder="Es. GTM-XXXXXXX">
-                </div>
-              </div>
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;margin-bottom:16px;">
+              <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:6px;">📊 Meta Pixel & GTM</div>
+              <div style="font-size:12px;color:#64748b;">Il Pixel ID e GTM ID sono configurati globalmente in <strong>Impostazioni → Identità → Tracking</strong> e si applicano automaticamente a tutte le promo. Non è necessario inserirli qui.</div>
             </div>
             <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📌 Eventi tracciati automaticamente</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;" class="promo-grid-2">
@@ -175,7 +235,7 @@ export async function renderPromo(container, aziendaId) {
             </div>
             <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;">
               <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:8px;">🔗 Questi tag alimentano la catenaria</div>
-              <div style="font-size:12px;color:#64748b;">I tre eventi sopra vengono automaticamente aggiunti come tag al profilo cliente e possono triggerare step nelle catenarie automatiche. Es. "promo_scaduta" → attiva step reminder.</div>
+              <div style="font-size:12px;color:#64748b;">I tre eventi sopra vengono automaticamente aggiunti come tag al profilo cliente e possono triggerare step nelle catenarie automatiche.</div>
             </div>
           </div>
 
@@ -245,45 +305,84 @@ export async function renderPromo(container, aziendaId) {
     </div>
   `;
 
+  // ── Stato locale giorni/turni selezionati ────────────────
+  let giorniSel = [];   // int[] 1-7 (1=Lun)
+  let turniSel  = [];   // text[] 'pranzo','cena'
+
+  function syncGiorniChips() {
+    container.querySelectorAll('.giorno-chip').forEach(chip => {
+      const g = parseInt(chip.dataset.giorno);
+      chip.classList.toggle('sel', giorniSel.includes(g));
+    });
+  }
+  function syncTurniChips() {
+    container.querySelectorAll('.turno-chip').forEach(chip => {
+      chip.classList.toggle('sel', turniSel.includes(chip.dataset.turno));
+    });
+  }
+
+  container.querySelectorAll('.giorno-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const g = parseInt(chip.dataset.giorno);
+      giorniSel.includes(g) ? giorniSel.splice(giorniSel.indexOf(g),1) : giorniSel.push(g);
+      syncGiorniChips();
+    });
+  });
+  container.querySelectorAll('.turno-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = chip.dataset.turno;
+      turniSel.includes(t) ? turniSel.splice(turniSel.indexOf(t),1) : turniSel.push(t);
+      syncTurniChips();
+    });
+  });
+
   // ── Render lista promo ─────────────────────────────────────
   function renderLista() {
     const el = container.querySelector('#lista-promo');
-    if (!promoList?.length) {
+    if (!lista.length) {
       el.innerHTML = `
         <div style="text-align:center;padding:48px 24px;color:#94a3b8;background:white;border:2px dashed #e5e7eb;border-radius:14px;">
           <div style="font-size:40px;margin-bottom:12px;">🎁</div>
           <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Nessuna promo ancora</div>
-          <div style="font-size:13px;">Crea la tua prima promo per iniziare a fidelizzare i clienti</div>
+          <div style="font-size:13px;">Crea la tua prima promo o usa il template Benvenuto già pronto!</div>
         </div>`;
       return;
     }
-    el.innerHTML = promoList.map(p => {
+    el.innerHTML = lista.map(p => {
       const tipo = TIPI_PROMO.find(t=>t.v===p.tipo)||TIPI_PROMO[0];
       const valore = p.tipo==='sconto_perc' ? `${p.valore}%` : p.tipo==='sconto_euro' ? `€${p.valore}` : tipo.icon;
-      const landingUrl = `${window.location.origin}/promo.html?id=${p.id}`;
+      const landingUrl = `https://ristoflow-ai.com/promo.html?id=${p.id}`;
+      // Giorni/turni badge
+      const giorniLabel = p.giorni_disponibili?.length
+        ? p.giorni_disponibili.map(g=>GIORNI_NOMI[g-1]).join(', ')
+        : null;
+      const turniLabel = p.turni?.length ? p.turni.map(t=>t==='pranzo'?'Pranzo':'Cena').join(' + ') : null;
       return `
         <div class="promo-card">
           <div style="display:flex;gap:0;align-items:stretch;">
-            ${p.immagine_url ? `<img src="${esc(p.immagine_url)}" style="width:120px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">` : `<div style="width:120px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="font-size:36px;">${tipo.icon}</div></div>`}
+            ${p.immagine_url ? `<img src="${esc(p.immagine_url)}" style="width:110px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">` : `<div style="width:110px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="font-size:34px;">${tipo.icon}</div></div>`}
             <div style="flex:1;padding:14px 16px;">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
                 <div>
                   <div style="font-size:16px;font-weight:700;color:#0f172a;">${esc(p.nome)}</div>
-                  <div style="font-size:13px;color:#64748b;margin-top:2px;">${tipo.l} · <strong style="color:#0E5A7A;">${valore}</strong> · ${p.validita_giorni||30} giorni</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:2px;">${tipo.l} · <strong style="color:#0E5A7A;">${valore}</strong> · ${p.validita_giorni||30}gg</div>
                   ${p.descrizione ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px;">${esc(p.descrizione)}</div>` : ''}
+                  ${giorniLabel||turniLabel ? `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                    ${giorniLabel ? `<span style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;">📅 ${giorniLabel}</span>` : ''}
+                    ${turniLabel  ? `<span style="background:#fef3c7;border:1px solid #fde68a;color:#d97706;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;">🕐 ${turniLabel}</span>` : ''}
+                  </div>` : ''}
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                  <span style="background:${p.attiva?'#dcfce7':'#fee2e2'};color:${p.attiva?'#15803d':'#dc2626'};padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">${p.attiva?'✅ Attiva':'⏸ Disattiva'}</span>
+                  <button data-toggle-promo="${p.id}" class="toggle-btn ${p.attiva?'attiva':'inattiva'}">${p.attiva?'✅ Attiva':'⏸ Disattiva'}</button>
                   <button data-copy-url="${landingUrl}" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;">🔗 Link</button>
                   <button data-edit-promo="${p.id}" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;">✏️ Modifica</button>
                   <button data-del-promo="${p.id}" style="background:#fee2e2;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;color:#dc2626;">🗑</button>
                 </div>
               </div>
-              <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:#64748b;">
-                ${p.nr_disponibili ? `<span>📦 ${p.nr_disponibili - (p.nr_utilizzate||0)} rimaste su ${p.nr_disponibili}</span>` : ''}
+              <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:#64748b;flex-wrap:wrap;">
+                ${p.nr_disponibili ? `<span>📦 ${p.nr_disponibili-(p.nr_utilizzate||0)} rimaste su ${p.nr_disponibili}</span>` : ''}
                 ${p.data_scadenza ? `<span>📅 Scade: ${new Date(p.data_scadenza).toLocaleDateString('it-IT')}</span>` : ''}
                 ${p.referral_attivo ? `<span>🔗 Referral attivo</span>` : ''}
-                ${p.meta_pixel_id ? `<span>📊 Pixel: ${esc(p.meta_pixel_id)}</span>` : ''}
               </div>
             </div>
           </div>
@@ -297,22 +396,43 @@ export async function renderPromo(container, aziendaId) {
       });
     });
     el.querySelectorAll('[data-edit-promo]').forEach(btn => {
-      btn.addEventListener('click', () => apriModal(promoList.find(p=>p.id===btn.dataset.editPromo)));
+      btn.addEventListener('click', () => apriModal(lista.find(p=>p.id===btn.dataset.editPromo)));
     });
     el.querySelectorAll('[data-del-promo]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Eliminare questa promo?')) return;
         await supa().from('promo').delete().eq('id', btn.dataset.delPromo);
-        const idx = promoList.findIndex(p=>p.id===btn.dataset.delPromo);
-        if (idx>=0) promoList.splice(idx,1);
+        const idx = lista.findIndex(p=>p.id===btn.dataset.delPromo);
+        if (idx>=0) lista.splice(idx,1);
         renderLista();
         mostraToast('Promo eliminata','success');
+      });
+    });
+    // Toggle attiva/disattiva diretto
+    el.querySelectorAll('[data-toggle-promo]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.togglePromo;
+        const p = lista.find(x=>x.id===id);
+        if (!p) return;
+        const nuovoStato = !p.attiva;
+        const { error } = await supa().from('promo').update({ attiva: nuovoStato }).eq('id', id);
+        if (error) { mostraToast('Errore: '+error.message,'error'); return; }
+        p.attiva = nuovoStato;
+        // Aggiorna solo il bottone senza re-render completo
+        btn.textContent = nuovoStato ? '✅ Attiva' : '⏸ Disattiva';
+        btn.className = `toggle-btn ${nuovoStato?'attiva':'inattiva'}`;
+        mostraToast(nuovoStato ? 'Promo attivata ✅' : 'Promo disattivata ⏸', 'success');
       });
     });
   }
 
   // ── Tab interni modal ─────────────────────────────────────
   function initTabs() {
+    // Rimuovi listener precedenti clonando i bottoni
+    container.querySelectorAll('[data-tab-promo]').forEach(btn => {
+      const clone = btn.cloneNode(true);
+      btn.parentNode.replaceChild(clone, btn);
+    });
     const btns = container.querySelectorAll('[data-tab-promo]');
     const contents = container.querySelectorAll('[data-tab-content-promo]');
     btns.forEach(btn => {
@@ -323,7 +443,6 @@ export async function renderPromo(container, aziendaId) {
         container.querySelector(`[data-tab-content-promo="${btn.dataset.tabPromo}"]`).style.display='';
       });
     });
-    // Attiva primo tab
     if (btns.length) btns[0].click();
   }
 
@@ -331,36 +450,27 @@ export async function renderPromo(container, aziendaId) {
   container.querySelector('#p-immagine-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      // Upload su Supabase Storage
-      const fileName = `promo/${aziendaId}/${Date.now()}-${file.name}`;
-      const { data, error } = await supa().storage.from('immagini-promo').upload(fileName, file, { upsert: true });
-      if (error) { mostraToast('Errore upload: '+error.message,'error'); return; }
-      const { data: urlData } = supa().storage.from('immagini-promo').getPublicUrl(fileName);
-      container.querySelector('#p-immagine-url').value = urlData.publicUrl;
-      container.querySelector('#p-immagine-img').src = urlData.publicUrl;
-      container.querySelector('#p-immagine-preview').style.display='';
-    };
-    reader.readAsDataURL(file);
+    const fileName = `promo/${aziendaId}/${Date.now()}-${file.name}`;
+    const { data, error } = await supa().storage.from('immagini-promo').upload(fileName, file, { upsert: true });
+    if (error) { mostraToast('Errore upload: '+error.message,'error'); return; }
+    const { data: urlData } = supa().storage.from('immagini-promo').getPublicUrl(fileName);
+    container.querySelector('#p-immagine-url').value = urlData.publicUrl;
+    container.querySelector('#p-immagine-img').src = urlData.publicUrl;
+    container.querySelector('#p-immagine-preview').style.display='';
   });
 
   container.querySelector('#p-immagine-url').addEventListener('input', (e) => {
     const url = e.target.value.trim();
-    if (url) {
-      container.querySelector('#p-immagine-img').src = url;
-      container.querySelector('#p-immagine-preview').style.display='';
-    }
+    if (url) { container.querySelector('#p-immagine-img').src=url; container.querySelector('#p-immagine-preview').style.display=''; }
   });
 
   // ── Builder landing blocks ───────────────────────────────
   let landingBlocks = [];
-  const BLOCK_TYPES = ['immagine','testo','box_offerta','valutazioni','form','cta_button'];
-  
+
   container.querySelectorAll('[data-add-block]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const tipo = BLOCK_TYPES[parseInt(btn.dataset.addBlock)];
-      landingBlocks.push({ tipo, contenuto: '' });
+      const idx = parseInt(btn.dataset.addBlock);
+      landingBlocks.push({ tipo: BLOCK_TYPES[idx], label: BLOCK_LABELS[idx], contenuto: '' });
       renderLandingBlocks();
     });
   });
@@ -371,7 +481,7 @@ export async function renderPromo(container, aziendaId) {
     el.innerHTML = landingBlocks.map((b, idx) => `
       <div draggable="true" data-block-idx="${idx}" style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:grab;">
         <span style="color:#94a3b8;font-size:16px;">⠿</span>
-        <span style="flex:1;font-size:12px;font-weight:600;">${btn.textContent||b.tipo}</span>
+        <span style="flex:1;font-size:12px;font-weight:600;">${b.label || b.tipo}</span>
         <button data-del-block="${idx}" style="background:#fee2e2;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
       </div>
     `).join('');
@@ -385,38 +495,45 @@ export async function renderPromo(container, aziendaId) {
 
   function apriModal(promo = null) {
     promoAttiva = promo;
-    landingBlocks = promo?.landing_config?.blocks || [];
+    landingBlocks = (promo?.landing_config?.blocks || []).map(b => ({
+      ...b,
+      label: BLOCK_LABELS[BLOCK_TYPES.indexOf(b.tipo)] || b.tipo,
+    }));
+    // Giorni e turni
+    giorniSel = promo?.giorni_disponibili ? [...promo.giorni_disponibili] : [];
+    turniSel  = promo?.turni ? [...promo.turni] : [];
+
     container.querySelector('#modal-promo-title').textContent = promo ? 'Modifica promo' : 'Nuova promo';
-    container.querySelector('#p-nome').value = promo?.nome||'';
-    container.querySelector('#p-tipo').value = promo?.tipo||'sconto_perc';
-    container.querySelector('#p-valore').value = promo?.valore||'';
-    container.querySelector('#p-codice').value = promo?.codice||'';
-    container.querySelector('#p-desc').value = promo?.descrizione||'';
-    container.querySelector('#p-data-scad').value = promo?.data_scadenza||'';
-    container.querySelector('#p-validita').value = promo?.validita_giorni||30;
-    container.querySelector('#p-nr-disp').value = promo?.nr_disponibili||'';
-    container.querySelector('#p-immagine-url').value = promo?.immagine_url||'';
+    container.querySelector('#p-nome').value        = promo?.nome||'';
+    container.querySelector('#p-tipo').value        = promo?.tipo||'sconto_perc';
+    container.querySelector('#p-valore').value      = promo?.valore||'';
+    container.querySelector('#p-codice').value      = promo?.codice||'';
+    container.querySelector('#p-desc').value        = promo?.descrizione||'';
+    container.querySelector('#p-data-scad').value   = promo?.data_scadenza||'';
+    container.querySelector('#p-validita').value    = promo?.validita_giorni||30;
+    container.querySelector('#p-nr-disp').value     = promo?.nr_disponibili||'';
+    container.querySelector('#p-immagine-url').value= promo?.immagine_url||'';
     if (promo?.immagine_url) { container.querySelector('#p-immagine-img').src=promo.immagine_url; container.querySelector('#p-immagine-preview').style.display=''; }
     else container.querySelector('#p-immagine-preview').style.display='none';
-    container.querySelector('#p-pixel-id').value = promo?.meta_pixel_id||'';
-    container.querySelector('#p-gtm-id').value = promo?.landing_config?.gtm_id||'';
     container.querySelector('#p-tag-scaricamento').value = promo?.meta_pixel_evento_scaricamento||'Lead';
-    container.querySelector('#p-tag-utilizzata').value = promo?.meta_pixel_evento_uso||'Purchase';
-    container.querySelector('#p-tag-scaduta').value = promo?.meta_pixel_evento_scaduto||'PromoExpired';
-    container.querySelector('#p-msg-wa').value = promo?.messaggio_wa||'';
+    container.querySelector('#p-tag-utilizzata').value   = promo?.meta_pixel_evento_uso||'Purchase';
+    container.querySelector('#p-tag-scaduta').value      = promo?.meta_pixel_evento_scaduto||'PromoExpired';
+    container.querySelector('#p-msg-wa').value       = promo?.messaggio_wa||'';
     container.querySelector('#p-msg-reminder').value = promo?.messaggio_reminder||'';
     container.querySelector('#p-msg-scadenza').value = promo?.messaggio_scadenza||'';
-    container.querySelector('#p-regolamento').value = promo?.regolamento||'';
-    container.querySelector('#p-privacy').checked = promo?.privacy_richiesta ?? true;
-    container.querySelector('#p-consenso').checked = promo?.consenso_marketing ?? true;
-    container.querySelector('#p-referral').checked = promo?.referral_attivo ?? false;
-    // Tag
+    container.querySelector('#p-regolamento').value  = promo?.regolamento||'';
+    container.querySelector('#p-privacy').checked   = promo?.privacy_richiesta ?? true;
+    container.querySelector('#p-consenso').checked  = promo?.consenso_marketing ?? true;
+    container.querySelector('#p-referral').checked  = promo?.referral_attivo ?? false;
     container.querySelectorAll('.chk-incl').forEach(c => c.checked = (promo?.tag_inclusi||[]).includes(c.value));
     container.querySelectorAll('.chk-escl').forEach(c => c.checked = (promo?.tag_esclusi||[]).includes(c.value));
+
+    syncGiorniChips();
+    syncTurniChips();
     renderLandingBlocks();
     container.querySelector('#p-esito').textContent='';
     container.querySelector('#modal-promo').style.display='';
-    initTabs();
+    initTabs(); // chiamato qui DOPO aver impostato tutto
   }
 
   function chiudiModal() {
@@ -432,48 +549,48 @@ export async function renderPromo(container, aziendaId) {
 
     const tagInclusi = [...container.querySelectorAll('.chk-incl:checked')].map(c=>c.value);
     const tagEsclusi = [...container.querySelectorAll('.chk-escl:checked')].map(c=>c.value);
-    const gtmId = container.querySelector('#p-gtm-id').value.trim();
 
     const payload = {
       azienda_id: aziendaId,
       nome,
-      descrizione: container.querySelector('#p-desc').value.trim()||null,
-      tipo: container.querySelector('#p-tipo').value,
-      valore: parseFloat(container.querySelector('#p-valore').value)||null,
-      codice: container.querySelector('#p-codice').value.trim()||null,
-      data_scadenza: container.querySelector('#p-data-scad').value||null,
+      descrizione:  container.querySelector('#p-desc').value.trim()||null,
+      tipo:         container.querySelector('#p-tipo').value,
+      valore:       parseFloat(container.querySelector('#p-valore').value)||null,
+      codice:       container.querySelector('#p-codice').value.trim()||null,
+      data_scadenza:container.querySelector('#p-data-scad').value||null,
       validita_giorni: parseInt(container.querySelector('#p-validita').value)||30,
       nr_disponibili: parseInt(container.querySelector('#p-nr-disp').value)||null,
       immagine_url: container.querySelector('#p-immagine-url').value.trim()||null,
-      meta_pixel_id: container.querySelector('#p-pixel-id').value.trim()||null,
       meta_pixel_evento_scaricamento: container.querySelector('#p-tag-scaricamento').value.trim()||'Lead',
-      meta_pixel_evento_uso: container.querySelector('#p-tag-utilizzata').value.trim()||'Purchase',
-      meta_pixel_evento_scaduto: container.querySelector('#p-tag-scaduta').value.trim()||'PromoExpired',
+      meta_pixel_evento_uso:          container.querySelector('#p-tag-utilizzata').value.trim()||'Purchase',
+      meta_pixel_evento_scaduto:      container.querySelector('#p-tag-scaduta').value.trim()||'PromoExpired',
       tag_scaricamento: container.querySelector('#p-tag-scaricamento').value.trim()||'promo_scaricata',
-      tag_utilizzata: container.querySelector('#p-tag-utilizzata').value.trim()||'promo_usata',
-      tag_scaduta: container.querySelector('#p-tag-scaduta').value.trim()||'promo_scaduta',
-      messaggio_wa: container.querySelector('#p-msg-wa').value.trim()||null,
+      tag_utilizzata:   container.querySelector('#p-tag-utilizzata').value.trim()||'promo_usata',
+      tag_scaduta:      container.querySelector('#p-tag-scaduta').value.trim()||'promo_scaduta',
+      messaggio_wa:       container.querySelector('#p-msg-wa').value.trim()||null,
       messaggio_reminder: container.querySelector('#p-msg-reminder').value.trim()||null,
       messaggio_scadenza: container.querySelector('#p-msg-scadenza').value.trim()||null,
-      regolamento: container.querySelector('#p-regolamento').value.trim()||null,
-      privacy_richiesta: container.querySelector('#p-privacy').checked,
+      regolamento:  container.querySelector('#p-regolamento').value.trim()||null,
+      privacy_richiesta:  container.querySelector('#p-privacy').checked,
       consenso_marketing: container.querySelector('#p-consenso').checked,
-      referral_attivo: container.querySelector('#p-referral').checked,
+      referral_attivo:    container.querySelector('#p-referral').checked,
       tag_inclusi: tagInclusi.length ? tagInclusi : null,
       tag_esclusi: tagEsclusi.length ? tagEsclusi : null,
-      landing_config: { blocks: landingBlocks, gtm_id: gtmId||null },
-      attiva: true,
+      giorni_disponibili: giorniSel.length ? giorniSel : null,
+      turni: turniSel.length ? turniSel : null,
+      landing_config: { blocks: landingBlocks },
+      attiva: promoAttiva ? promoAttiva.attiva : true,
     };
 
     if (promoAttiva?.id) {
       const { error } = await supa().from('promo').update(payload).eq('id', promoAttiva.id);
       if (error) { esito.textContent='❌ '+error.message; esito.style.color='#dc2626'; return; }
-      const idx = promoList.findIndex(p=>p.id===promoAttiva.id);
-      if (idx>=0) promoList[idx] = { ...promoAttiva, ...payload };
+      const idx = lista.findIndex(p=>p.id===promoAttiva.id);
+      if (idx>=0) lista[idx] = { ...lista[idx], ...payload };
     } else {
       const { data, error } = await supa().from('promo').insert(payload).select('*').single();
       if (error) { esito.textContent='❌ '+error.message; esito.style.color='#dc2626'; return; }
-      promoList.unshift(data);
+      lista.unshift(data);
     }
 
     chiudiModal();
@@ -485,6 +602,12 @@ export async function renderPromo(container, aziendaId) {
   container.querySelector('#btn-chiudi-modal').addEventListener('click', chiudiModal);
   container.querySelector('#btn-annulla-promo').addEventListener('click', chiudiModal);
   container.querySelector('#modal-promo').addEventListener('click', e => { if(e.target===container.querySelector('#modal-promo')) chiudiModal(); });
+
+  // ── Template Benvenuto ───────────────────────────────────
+  container.querySelector('#btn-usa-template').addEventListener('click', () => {
+    if (!confirm('Creare la promo "Benvenuto 10%" preimpostata? Potrai personalizzarla dopo.')) return;
+    apriModal({ ...PROMO_BENVENUTO_TEMPLATE, id: null });
+  });
 
   renderLista();
 }
