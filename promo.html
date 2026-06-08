@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh;}
+  .wrap{max-width:480px;margin:0 auto;background:white;min-height:100vh;position:relative;overflow:hidden;}
+  .promo-img{width:100%;height:240px;object-fit:cover;display:block;}
+  .promo-img-placeholder{width:100%;height:240px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);display:flex;align-items:center;justify-content:center;font-size:64px;}
+  .box-offerta{margin:16px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);border-radius:18px;padding:24px;color:white;text-align:center;}
+  .box-offerta .valore{font-size:48px;font-weight:900;line-height:1;}
+  .box-offerta .label{font-size:14px;opacity:.85;margin-top:6px;}
+  .box-offerta .codice{margin-top:14px;background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.5);border-radius:10px;padding:8px 16px;font-size:15px;font-weight:800;letter-spacing:2px;}
+  .box-offerta .scadenza{font-size:11px;opacity:.7;margin-top:8px;}
+  .testo-block{padding:16px 20px;color:#374151;font-size:14px;line-height:1.7;}
+  .form-block{margin:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:20px;}
+  .form-block h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;}
+  .form-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;margin-bottom:10px;transition:border-color .2s;}
+  .form-input:focus{border-color:#0E5A7A;}
+  .form-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#64748b;margin-bottom:10px;cursor:pointer;}
+  .form-check input{margin-top:2px;accent-color:#0E5A7A;}
+  .btn-cta{width:100%;background:linear-gradient(135deg,#0E5A7A,#1a8aad);color:white;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 20px rgba(14,90,122,.3);}
+  .btn-cta:disabled{opacity:.6;cursor:not-allowed;}
+  .btn-cta-secondary{width:100%;background:#f1f5f9;color:#0E5A7A;border:2px solid #0E5A7A;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+  .valutazioni{padding:14px 20px;text-align:center;}
+  .stelle{color:#f59e0b;font-size:22px;letter-spacing:2px;}
+  .stelle-label{font-size:12px;color:#64748b;margin-top:4px;}
+  .accordion{margin:16px;}
+  .accordion-head{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#374151;}
+  .accordion-body{display:none;padding:12px 16px;font-size:12px;color:#64748b;line-height:1.8;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;}
+  .giorni-badge{display:inline-block;background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;margin:2px;}
+  /* Thank you overlay */
+  .thankyou{display:none;position:fixed;inset:0;background:white;z-index:999;overflow-y:auto;}
+  .thankyou.show{display:block;}
+  /* Loader */
+  .loader{text-align:center;padding:60px 20px;color:#64748b;}
+  .loader-spin{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#0E5A7A;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  /* Errore */
+  .error-box{padding:60px 24px;text-align:center;color:#64748b;}
+  /* Footer */
+  .footer{padding:20px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;}
+  .footer a{color:#0E5A7A;text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="wrap">
+  <div class="loader" id="loader">
+    <div class="loader-spin"></div>
+    Caricamento promo...
+  </div>
+</div>
+
+<!-- Thank you page overlay -->
+<div class="thankyou" id="thankyou-overlay">
+  <div class="wrap" id="thankyou-wrap"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+
+async function api(path, opts={}) {
+  const r = await fetch(SUPABASE_URL+'/rest/v1/'+path, {
+    headers:{ 'apikey': SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', ...opts.headers },
+    ...opts
+  });
+  return r.json();
+}
+
+function esc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const params = new URLSearchParams(location.search);
+const promoId = params.get('id');
+
+// ── Pixel Meta ────────────────────────────────────────────────
+function firePixel(event, pixelId) {
+  if (!pixelId || typeof fbq==='undefined') return;
+  fbq('trackSingle', pixelId, event);
+}
+function injectPixel(pixelId) {
+  if (!pixelId) return;
+  const s = document.createElement('script');
+  s.text = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');fbq('track','PageView');`;
+  document.head.appendChild(s);
+}
+
+// ── Render blocchi ────────────────────────────────────────────
+function renderValore(promo) {
+  if (promo.tipo==='sconto_perc') return promo.valore+'%';
+  if (promo.tipo==='sconto_euro') return '€'+promo.valore;
+  if (promo.tipo==='2x1') return '2×1';
+  return promo.tipo==='omaggio' ? '🎁' : (promo.valore||'');
+}
+
+function renderBlock(b, promo, azienda) {
+  if (b.tipo==='immagine') {
+    const src = promo.immagine_url;
+    return src
+      ? `<img class="promo-img" src="${esc(src)}" alt="${esc(promo.nome)}" onerror="this.style.display='none'">`
+      : `<div class="promo-img-placeholder">🍽</div>`;
+  }
+  if (b.tipo==='testo') {
+    const testo = b.contenuto || promo.descrizione || '';
+    return testo ? `<div class="testo-block">${esc(testo).replace(/\n/g,'<br>')}</div>` : '';
+  }
+  if (b.tipo==='box_offerta') {
+    const scad = promo.data_scadenza ? 'Valida fino al '+new Date(promo.data_scadenza).toLocaleDateString('it-IT') : (promo.validita_giorni ? 'Valida per '+promo.validita_giorni+' giorni' : '');
+    return `<div class="box-offerta">
+      <div class="valore">${esc(renderValore(promo))}</div>
+      <div class="label">${esc(promo.nome)}</div>
+      ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
+      ${scad ? `<div class="scadenza">⏰ ${scad}</div>` : ''}
+    </div>`;
+  }
+  if (b.tipo==='valutazioni') {
+    return `<div class="valutazioni">
+      <div class="stelle">★★★★★</div>
+      <div class="stelle-label">Valutazione media clienti</div>
+    </div>`;
+  }
+  if (b.tipo==='form') {
+    return `<div class="form-block" id="form-container">
+      <h3>📋 Scarica la tua promo</h3>
+      <input class="form-input" id="f-nome" type="text" placeholder="Il tuo nome *" autocomplete="given-name">
+      <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono *" autocomplete="tel">
+      <input class="form-input" id="f-email" type="email" placeholder="Email (opzionale)" autocomplete="email">
+      ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
+      ${promo.consenso_marketing ? `<label class="form-check"><input type="checkbox" id="f-consenso"> <span>Acconsento a ricevere comunicazioni commerciali e promozionali</span></label>` : ''}
+      <div id="form-error" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn-cta" id="btn-scarica">🎁 Voglio la mia promo!</button>
+    </div>`;
+  }
+  if (b.tipo==='cta_button') {
+    const label = b.contenuto || 'Scopri di più';
+    return `<div style="padding:0 16px 16px;"><button class="btn-cta" onclick="window.scrollTo({top:document.getElementById('form-container')?.offsetTop-20||0,behavior:'smooth'})">${esc(label)}</button></div>`;
+  }
+  return '';
+}
+
+function renderDefaultLayout(promo, azienda) {
+  // Layout fisso elegante quando non ci sono blocchi configurati
+  const scad = promo.data_scadenza ? 'Valida fino al '+new Date(promo.data_scadenza).toLocaleDateString('it-IT') : (promo.validita_giorni ? 'Valida per '+promo.validita_giorni+' giorni' : '');
+  return `
+    ${promo.immagine_url
+      ? `<img class="promo-img" src="${esc(promo.immagine_url)}" alt="${esc(promo.nome)}" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('div'),{className:'promo-img-placeholder',innerHTML:'🍽'}),this)">`
+      : `<div class="promo-img-placeholder">🍽</div>`}
+    <div class="box-offerta">
+      <div class="valore">${esc(renderValore(promo))}</div>
+      <div class="label">${esc(promo.nome)}</div>
+      ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
+      ${scad ? `<div class="scadenza">⏰ ${scad}</div>` : ''}
+    </div>
+    ${promo.descrizione ? `<div class="testo-block">${esc(promo.descrizione).replace(/\n/g,'<br>')}</div>` : ''}
+    <div class="form-block" id="form-container">
+      <h3>📋 Scarica la tua promo</h3>
+      <input class="form-input" id="f-nome" type="text" placeholder="Il tuo nome *" autocomplete="given-name">
+      <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono *" autocomplete="tel">
+      <input class="form-input" id="f-email" type="email" placeholder="Email (opzionale)" autocomplete="email">
+      ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
+      ${promo.consenso_marketing ? `<label class="form-check"><input type="checkbox" id="f-consenso"> <span>Acconsento a ricevere comunicazioni commerciali e promozionali</span></label>` : ''}
+      <div id="form-error" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn-cta" id="btn-scarica">🎁 Voglio la mia promo!</button>
+    </div>
+  `;
+}
+
+function renderThankyouDefault(promo) {
+  return `
+    <div style="text-align:center;padding:40px 24px 20px;">
+      <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+      <div style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:8px;">Perfetto! Ci sei!</div>
+      <div style="font-size:14px;color:#64748b;line-height:1.6;">La tua promo è confermata.<br>Ti abbiamo inviato il codice via WhatsApp.</div>
+    </div>
+    <div class="box-offerta" style="margin:0 16px 16px;">
+      <div class="valore">${esc(renderValore(promo))}</div>
+      <div class="label">${esc(promo.nome)}</div>
+      ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
+    </div>
+    <div style="padding:0 16px 16px;">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;font-size:13px;color:#15803d;line-height:1.7;">
+        📌 <strong>Come usare la promo:</strong><br>
+        Mostra questo codice al cameriere al momento dell'ordine. La promo è nominale e non cedibile.
+      </div>
+    </div>
+    <div style="padding:0 16px 24px;" id="qr-thankyou"></div>
+  `;
+}
+
+function renderGiorniInfo(promo) {
+  if (!promo.giorni_disponibili?.length && !promo.turni?.length) return '';
+  const giorni = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  return `<div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+    <span style="font-size:12px;color:#64748b;font-weight:600;">Disponibile:</span>
+    ${(promo.giorni_disponibili||[]).map(g=>`<span class="giorni-badge">${giorni[g-1]}</span>`).join('')}
+    ${(promo.turni||[]).map(t=>`<span class="giorni-badge">${t==='pranzo'?'🌞 Pranzo':'🌙 Cena'}</span>`).join('')}
+  </div>`;
+}
+
+// ── QR thankyou ───────────────────────────────────────────────
+function generaQRThankyou(promoId) {
+  const el = document.getElementById('qr-thankyou');
+  if (!el) return;
+  const url = location.href.split('?')[0]+'?id='+promoId;
+  const load = () => {
+    el.innerHTML = '<div style="text-align:center;margin-top:8px;"><div style="font-size:12px;color:#64748b;margin-bottom:8px;">📱 Mostra questo QR al cameriere</div><div id="qr-el" style="display:inline-block;background:white;padding:8px;border:1px solid #e5e7eb;border-radius:8px;"></div></div>';
+    new QRCode(document.getElementById('qr-el'), { text: url, width:120, height:120 });
+  };
+  if (window.QRCode) { load(); return; }
+  const s = document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload=load; document.head.appendChild(s);
+}
+
+// ── Main ──────────────────────────────────────────────────────
+async function init() {
+  if (!promoId) {
+    document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">🔍</div><div style="font-size:16px;font-weight:600;">Promo non trovata</div><div style="font-size:13px;margin-top:6px;">Il link non è valido.</div></div>';
+    return;
+  }
+
+  // Carica promo + azienda
+  let promo, azienda;
+  try {
+    const [pData, _] = await Promise.all([
+      api(`promo?id=eq.${promoId}&select=*&limit=1`),
+      Promise.resolve()
+    ]);
+    promo = Array.isArray(pData) ? pData[0] : null;
+    if (promo?.azienda_id) {
+      const aData = await api(`azienda_identita?id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
+      azienda = Array.isArray(aData) ? aData[0] : null;
+    }
+  } catch(e) { console.error(e); }
+
+  if (!promo || !promo.attiva) {
+    document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">⏰</div><div style="font-size:16px;font-weight:600;">Promo non disponibile</div><div style="font-size:13px;margin-top:6px;">Questa promo non è più attiva o è scaduta.</div></div>';
+    return;
+  }
+
+  // Controlla scadenza data
+  if (promo.data_scadenza && new Date(promo.data_scadenza) < new Date()) {
+    document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">📅</div><div style="font-size:16px;font-weight:600;">Promo scaduta</div></div>';
+    return;
+  }
+
+  // Inject Pixel
+  const pixelId = azienda?.meta_pixel_id || promo.meta_pixel_id;
+  if (pixelId) injectPixel(pixelId);
+
+  // GTM
+  if (azienda?.gtm_id) {
+    const s=document.createElement('script');
+    s.text=`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${azienda.gtm_id}');`;
+    document.head.appendChild(s);
+  }
+
+  // Titolo pagina
+  document.title = promo.nome + (azienda?.nome_azienda ? ' — '+azienda.nome_azienda : '');
+
+  // Render landing
+  const blocks = promo.landing_config?.blocks || [];
+  const wrap = document.getElementById('wrap');
+
+  let html = '';
+  // Header azienda
+  if (azienda?.nome_azienda || azienda?.logo_url) {
+    html += `<div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9;">
+      ${azienda.logo_url ? `<img src="${esc(azienda.logo_url)}" style="height:36px;width:auto;border-radius:6px;" onerror="this.style.display='none'">` : ''}
+      ${azienda.nome_azienda ? `<div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(azienda.nome_azienda)}</div>` : ''}
+    </div>`;
+  }
+
+  // Blocchi o default
+  if (blocks.length) {
+    html += blocks.map(b => renderBlock(b, promo, azienda)).join('');
+  } else {
+    html += renderDefaultLayout(promo, azienda);
+  }
+
+  // Giorni/turni
+  html += renderGiorniInfo(promo);
+
+  // Regolamento
+  if (promo.regolamento) {
+    html += `<div class="accordion">
+      <div class="accordion-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+        📜 Regolamento <span>▸</span>
+      </div>
+      <div class="accordion-body">${esc(promo.regolamento).replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }
+
+  html += `<div class="footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.AI</a></div>`;
+
+  wrap.innerHTML = html;
+
+  // ── Form submit ───────────────────────────────────────────
+  const btnScarica = document.getElementById('btn-scarica');
+  if (!btnScarica) return;
+
+  btnScarica.addEventListener('click', async () => {
+    const nome     = document.getElementById('f-nome')?.value.trim();
+    const telefono = document.getElementById('f-telefono')?.value.trim();
+    const email    = document.getElementById('f-email')?.value.trim()||null;
+    const privacy  = document.getElementById('f-privacy')?.checked ?? true;
+    const consenso = document.getElementById('f-consenso')?.checked ?? false;
+    const errEl    = document.getElementById('form-error');
+
+    errEl.style.display='none';
+    if (!nome) { errEl.textContent='Inserisci il tuo nome'; errEl.style.display=''; return; }
+    if (!telefono) { errEl.textContent='Inserisci il telefono'; errEl.style.display=''; return; }
+    if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; return; }
+
+    btnScarica.disabled = true;
+    btnScarica.textContent = 'Invio in corso...';
+
+    try {
+      // Salva lead in promo_lead
+      const leadPayload = {
+        promo_id: promoId,
+        azienda_id: promo.azienda_id,
+        nome, telefono, email,
+        consenso_marketing: consenso,
+        privacy_accettata: privacy,
+        ip: null,
+        user_agent: navigator.userAgent,
+        data_scaricamento: new Date().toISOString(),
+      };
+      await api('promo_lead?select=id', {
+        method:'POST',
+        headers:{ 'Prefer':'return=minimal' },
+        body: JSON.stringify(leadPayload)
+      });
+
+      // Fire pixel scaricamento
+      const evento = promo.meta_pixel_evento_scaricamento || 'Lead';
+      firePixel(evento, pixelId);
+
+      // GTM dataLayer
+      if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
+
+    } catch(e) { console.error('Lead save error:', e); }
+
+    // Mostra thank you
+    mostrarThankyou(promo);
+  });
+}
+
+function mostrarThankyou(promo) {
+  const overlay = document.getElementById('thankyou-overlay');
+  const wrap    = document.getElementById('thankyou-wrap');
+  const blocks  = promo.thankyou_config?.blocks || [];
+
+  let html = '';
+  if (blocks.length) {
+    html = blocks.map(b => renderBlock(b, promo, null)).join('');
+  } else {
+    html = renderThankyouDefault(promo);
+  }
+  html += `<div class="footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.AI</a></div>`;
+
+  wrap.innerHTML = html;
+  overlay.classList.add('show');
+  overlay.scrollTo(0,0);
+
+  // QR nella thank you (se non già nei blocchi)
+  if (!blocks.length) generaQRThankyou(promoId);
+
+  // Fire pixel thank you / Purchase
+  const pixelId = document.querySelector('meta[name="pixel-id"]')?.content;
+  firePixel(promo.meta_pixel_evento_uso || 'Purchase', pixelId);
+}
+
+init();
+</script>
+</body>
+</html>
