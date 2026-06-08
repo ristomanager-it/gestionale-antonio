@@ -76,6 +76,7 @@ function esc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 const params = new URLSearchParams(location.search);
 const promoId = params.get('id');
+const isTY    = params.get('ty') === '1';
 
 // ── Pixel Meta ────────────────────────────────────────────────
 function firePixel(event, pixelId) {
@@ -298,6 +299,12 @@ async function init() {
   html += `<div class="footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.AI</a></div>`;
 
   wrap.innerHTML = html;
+
+  // Se URL è ?ty=1 mostra direttamente la thank you page
+  if (isTY) {
+    mostrarThankyou(promo);
+    return;
+  }
 
   // ── Form submit ───────────────────────────────────────────
   const btnScarica = document.getElementById('btn-scarica');
