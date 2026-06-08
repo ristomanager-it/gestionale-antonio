@@ -78,6 +78,7 @@ const routes = {
   // =========================
   "bo-marketing": () => import("./views/bo/bo-marketing.js"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
+  "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -222,6 +223,7 @@ const BO_ROUTES = new Set([
   "bo-ricette",
   "bo-configurazione",
   "bo-promo",
+  "bo-catenarie",
   "bo-dispositivi",
 ]);
 
@@ -425,6 +427,7 @@ function hasPermission(area) {
     "bo-tag",
     "bo-template",
     "bo-marketing",
+    "bo-catenarie",
     // Personale — selezione e ascolto
     "bo-candidature",
   "bo-bilancio",
