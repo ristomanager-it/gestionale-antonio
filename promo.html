@@ -324,37 +324,162 @@ async function init() {
     if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; return; }
 
     btnScarica.disabled = true;
-    btnScarica.textContent = 'Invio in corso...';
+    btnScarica.textContent = '⏳ Invio in corso...';
 
     try {
-      // Salva lead in promo_lead
-      const leadPayload = {
-        promo_id: promoId,
-        azienda_id: promo.azienda_id,
-        nome, telefono, email,
-        consenso_marketing: consenso,
-        privacy_accettata: privacy,
-        ip: null,
-        user_agent: navigator.userAgent,
-        data_scaricamento: new Date().toISOString(),
-      };
+      // 1. Salva lead
       await api('promo_lead?select=id', {
         method:'POST',
         headers:{ 'Prefer':'return=minimal' },
-        body: JSON.stringify(leadPayload)
+        body: JSON.stringify({
+          promo_id: promoId,
+          azienda_id: promo.azienda_id,
+          nome, telefono, email,
+          consenso_marketing: consenso,
+          privacy_accettata: privacy,
+          user_agent: navigator.userAgent,
+          data_scaricamento: new Date().toISOString(),
+        })
       });
 
-      // Fire pixel scaricamento
+      // 2. Fire pixel
       const evento = promo.meta_pixel_evento_scaricamento || 'Lead';
       firePixel(evento, pixelId);
-
-      // GTM dataLayer
       if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
 
-    } catch(e) { console.error('Lead save error:', e); }
+      // 3. Invia WA — testo con link promo
+      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id });
 
-    // Mostra thank you
+    } catch(e) { console.error('Submit error:', e); }
+
     mostrarThankyou(promo);
+  });
+}
+
+// ── Invio WhatsApp promo ───────────────────────────────────────
+async function inviaPromoWA({ promo, nome, telefono, aziendaId }) {
+  const landingUrl = `${location.origin}${location.pathname}?id=${promoId}`;
+
+  // Componi testo sostituendo variabili
+  let testo = promo.messaggio_wa || '';
+  if (!testo) {
+    // Fallback testo di default
+    const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
+                      : promo.tipo==='sconto_euro' ? '€'+promo.valore
+                      : promo.tipo==='2x1' ? '2×1' : '🎁';
+    testo = `Ciao ${nome}! 🎁\n\nHai una promo esclusiva: *${promo.nome}*\n`
+          + (valoreLabel ? `Valore: *${valoreLabel}*\n` : '')
+          + (promo.codice ? `Codice: *${promo.codice}*\n` : '')
+          + `\n👉 Scaricala qui: ${landingUrl}`;
+  } else {
+    const scadenza = promo.data_scadenza
+      ? new Date(promo.data_scadenza).toLocaleDateString('it-IT')
+      : `${promo.validita_giorni||30} giorni`;
+    testo = testo
+      .replace(/{{nome}}/g, nome)
+      .replace(/{{promo_nome}}/g, promo.nome||'')
+      .replace(/{{promo_valore}}/g, promo.valore||'')
+      .replace(/{{scadenza}}/g, scadenza)
+      .replace(/{{codice}}/g, promo.codice||'')
+      .replace(/{{link_promo}}/g, landingUrl);
+  }
+
+  const WA_URL = `${SUPABASE_URL}/functions/v1/whatsapp-send-ts`;
+
+  // 3a. Invia messaggio testo
+  try {
+    await fetch(WA_URL, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+SUPABASE_KEY },
+      body: JSON.stringify({
+        azienda_id: aziendaId,
+        numero_dest: telefono,
+        testo,
+        contesto: 'promo_scaricata',
+      })
+    });
+  } catch(e) { console.error('WA testo error:', e); }
+
+  // 3b. Genera QR e invialo come immagine separata
+  try {
+    const qrUrl = await generaECaricaQR(promoId, landingUrl, aziendaId);
+    if (qrUrl) {
+      await fetch(WA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+SUPABASE_KEY },
+        body: JSON.stringify({
+          azienda_id: aziendaId,
+          numero_dest: telefono,
+          media_url: qrUrl,
+          media_type: 'image',
+          media_caption: '📱 Mostra questo QR al cameriere per riscattare la tua promo!',
+          contesto: 'promo_qr',
+        })
+      });
+    }
+  } catch(e) { console.error('WA QR error:', e); }
+}
+
+// ── Genera QR → carica su Storage → restituisce URL pubblico ──
+async function generaECaricaQR(promoId, landingUrl, aziendaId) {
+  return new Promise(resolve => {
+    const caricaLib = (cb) => {
+      if (window.QRCode) { cb(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      s.onload = cb; s.onerror = () => resolve(null);
+      document.head.appendChild(s);
+    };
+
+    caricaLib(async () => {
+      try {
+        // Genera QR in canvas hidden
+        const tmp = document.createElement('div');
+        tmp.style.cssText = 'position:absolute;left:-9999px;';
+        document.body.appendChild(tmp);
+        new QRCode(tmp, { text: landingUrl, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
+
+        await new Promise(r => setTimeout(r, 200)); // attendi render
+
+        const canvas = tmp.querySelector('canvas');
+        const imgEl  = tmp.querySelector('img');
+        document.body.removeChild(tmp);
+
+        let blob;
+        if (canvas) {
+          blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        } else if (imgEl?.src?.startsWith('data:')) {
+          const arr = imgEl.src.split(',');
+          const bstr = atob(arr[1]);
+          const u8 = new Uint8Array(bstr.length);
+          for (let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
+          blob = new Blob([u8], { type:'image/png' });
+        }
+
+        if (!blob) { resolve(null); return; }
+
+        // Carica su Supabase Storage
+        const fileName = `promo-qr/${aziendaId}/${promoId}-${Date.now()}.png`;
+        const uploadRes = await fetch(
+          `${SUPABASE_URL}/storage/v1/object/immagini-promo/${fileName}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer '+SUPABASE_KEY,
+              'Content-Type': 'image/png',
+              'x-upsert': 'true',
+            },
+            body: blob
+          }
+        );
+
+        if (!uploadRes.ok) { resolve(null); return; }
+
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/immagini-promo/${fileName}`;
+        resolve(publicUrl);
+
+      } catch(e) { console.error('QR gen error:', e); resolve(null); }
+    });
   });
 }
 
