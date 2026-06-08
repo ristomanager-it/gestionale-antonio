@@ -1220,7 +1220,7 @@ function renderDays() {
   async function updateStatoPrenotazione(id, stato) {
     const { error } = await window.supabaseClient
       .from("prenotazioni_tavoli")
-      .update({ stato })
+      .update({ stato, ...(stato === "arrivata" ? { arrivato_il: new Date().toISOString() } : {}) })
       .eq("id", id);
 
     if (error) {
@@ -1229,7 +1229,76 @@ function renderDays() {
       return;
     }
 
+    // Se il cliente è arrivato → iscrivilo alla catenaria "nuovo contatto"
+    if (stato === "arrivata") {
+      await iscriviACatenariaNuovoContatto(id);
+    }
+
     await load();
+  }
+
+  async function iscriviACatenariaNuovoContatto(prenId) {
+    try {
+      // Leggi la prenotazione per avere nome e telefono
+      const { data: pren } = await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .select("cliente_nome, cliente_telefono, cliente_email, azienda_id, sondaggio_inviato")
+        .eq("id", prenId)
+        .maybeSingle();
+
+      if (!pren || !pren.cliente_telefono || pren.sondaggio_inviato) return;
+
+      // Trova la catenaria "primo contatto" attiva per questa azienda
+      const { data: catenarie } = await window.supabaseClient
+        .from("catenarie")
+        .select("id, catenarie_step(*)")
+        .eq("azienda_id", pren.azienda_id)
+        .eq("trigger_tipo", "prima_visita")
+        .eq("attiva", true)
+        .limit(5);
+
+      if (!catenarie?.length) return;
+
+      for (const cat of catenarie) {
+        // Controlla se già iscritto
+        const { data: esistente } = await window.supabaseClient
+          .from("catenarie_iscritti")
+          .select("id")
+          .eq("catenaria_id", cat.id)
+          .eq("contatto_telefono", pren.cliente_telefono)
+          .maybeSingle();
+
+        if (esistente) continue;
+
+        // Primo step
+        const primoStep = (cat.catenarie_step || []).sort((a,b)=>a.ordine-b.ordine)[0];
+        const dataProssimoStep = primoStep
+          ? new Date(Date.now() + (primoStep.delay_giorni||1) * 86400000).toISOString()
+          : new Date(Date.now() + 86400000).toISOString();
+
+        await window.supabaseClient.from("catenarie_iscritti").insert({
+          catenaria_id:      cat.id,
+          azienda_id:        pren.azienda_id,
+          contatto_nome:     pren.cliente_nome || "",
+          contatto_telefono: pren.cliente_telefono,
+          contatto_email:    pren.cliente_email || null,
+          step_corrente:     0,
+          data_prossimo_step: dataProssimoStep,
+          trigger_fonte:     "prenotazione_arrivata",
+          completata:        false,
+          sospesa:           false,
+        });
+      }
+
+      // Marca la prenotazione come sondaggio_inviato per evitare duplicati
+      await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .update({ sondaggio_inviato: true })
+        .eq("id", prenId);
+
+    } catch(e) {
+      console.warn("Catenaria iscrizione error:", e);
+    }
   }
 
   async function openTavoli(prenId) {
