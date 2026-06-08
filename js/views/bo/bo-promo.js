@@ -182,6 +182,18 @@ export async function renderPromo(container, aziendaId) {
                 <label class="promo-label">Descrizione</label>
                 <textarea id="p-desc" class="promo-input" rows="2" style="resize:vertical;" placeholder="Visibile nella landing..."></textarea>
               </div>
+              <!-- Colore rapido + shortcut stile -->
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;">
+                <div style="flex:1;">
+                  <label class="promo-label">🎨 Colore primario (box offerta + bottoni)</label>
+                  <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+                    <input type="color" id="p-colore-rapido" value="#0E5A7A" style="width:40px;height:36px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;padding:2px;">
+                    <input id="p-colore-rapido-hex" class="promo-input" value="#0E5A7A" style="font-family:monospace;font-size:12px;max-width:90px;" maxlength="7">
+                    <span style="font-size:12px;color:#64748b;">← cambia il colore principale</span>
+                  </div>
+                </div>
+                <button data-tab-promo="stile" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;">🎨 Font & stile completo →</button>
+              </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;" class="promo-grid-2">
                 <div>
                   <label class="promo-label">Data scadenza</label>
@@ -213,11 +225,19 @@ export async function renderPromo(container, aziendaId) {
                 <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
                   <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔗 Link & QR Code</div>
                   <div style="margin-bottom:10px;">
-                    <label class="promo-label">Link landing</label>
+                    <label class="promo-label">📱 Link landing (form di acquisizione)</label>
                     <div style="display:flex;gap:8px;">
                       <input id="p-link-display" class="promo-input" readonly style="background:#f1f5f9;color:#0E5A7A;font-size:12px;cursor:pointer;" onclick="this.select()">
                       <button id="p-btn-copy-link" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">📋 Copia</button>
                     </div>
+                  </div>
+                  <div style="margin-bottom:12px;">
+                    <label class="promo-label">🎉 Link Thank you page (da usare come URL di conversione in Meta/Google Ads)</label>
+                    <div style="display:flex;gap:8px;">
+                      <input id="p-link-ty-display" class="promo-input" readonly style="background:#f0fdf4;color:#15803d;font-size:12px;cursor:pointer;border-color:#bbf7d0;" onclick="this.select()">
+                      <button id="p-btn-copy-ty-link" style="background:#15803d;color:white;border:none;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">📋 Copia</button>
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:4px;">Incolla questo URL nel campo "URL di conversione" delle campagne Meta Ads e Google Ads per tracciare i lead.</div>
                   </div>
                   <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
                     <div>
@@ -634,7 +654,28 @@ export async function renderPromo(container, aziendaId) {
       container.querySelector(`#s-${key}`).value     = s[key];
       container.querySelector(`#s-${key}-hex`).value = s[key];
     });
+    // Sync campo colore rapido in Info base
+    const rapido    = container.querySelector('#p-colore-rapido');
+    const rapidoHex = container.querySelector('#p-colore-rapido-hex');
+    if (rapido)    rapido.value    = s.colore_primario;
+    if (rapidoHex) rapidoHex.value = s.colore_primario;
   }
+
+  // Binding colore rapido (Info base) → aggiorna stile completo
+  const colRapido    = container.querySelector('#p-colore-rapido');
+  const colRapidoHex = container.querySelector('#p-colore-rapido-hex');
+  function syncColoreRapido(hex) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    stileCorrente.colore_primario = hex;
+    stileCorrente.colore_bottone  = hex;
+    container.querySelector('#s-colore-primario').value     = hex;
+    container.querySelector('#s-colore-primario-hex').value = hex;
+    container.querySelector('#s-colore-bottone').value      = hex;
+    container.querySelector('#s-colore-bottone-hex').value  = hex;
+    aggiornaPreview();
+  }
+  colRapido.addEventListener('input',    () => { colRapidoHex.value=colRapido.value; syncColoreRapido(colRapido.value); });
+  colRapidoHex.addEventListener('input', () => { if(/^#[0-9a-fA-F]{6}$/.test(colRapidoHex.value)){ colRapido.value=colRapidoHex.value; syncColoreRapido(colRapidoHex.value); } });
 
   // ── Live update da campi principali ──────────────────────────
   ['p-nome','p-desc','p-tipo','p-valore','p-codice'].forEach(id => {
@@ -854,11 +895,15 @@ export async function renderPromo(container, aziendaId) {
     const hasId = promo?.id && !promo._isTemplate;
     const linkSection = container.querySelector('#p-link-section');
     if (hasId) {
-      const url = `https://ristoflow-ai.com/promo.html?id=${promo.id}`;
+      const url   = `https://ristoflow-ai.com/promo.html?id=${promo.id}`;
+      const urlTY = `https://ristoflow-ai.com/promo.html?id=${promo.id}&ty=1`;
       linkSection.style.display='';
-      container.querySelector('#p-link-display').value = url;
+      container.querySelector('#p-link-display').value    = url;
+      container.querySelector('#p-link-ty-display').value = urlTY;
       container.querySelector('#p-btn-copy-link').onclick = () =>
         navigator.clipboard?.writeText(url).then(()=>mostraToast('Link copiato!','success'));
+      container.querySelector('#p-btn-copy-ty-link').onclick = () =>
+        navigator.clipboard?.writeText(urlTY).then(()=>mostraToast('Link Thank you copiato!','success'));
       const btnWA = container.querySelector('#p-btn-send-wa');
       if (btnWA) btnWA.onclick = () => inviaQRWhatsApp(promo.id, url);
       const btnMail = container.querySelector('#p-btn-dl-mail');
