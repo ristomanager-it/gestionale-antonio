@@ -324,6 +324,7 @@ export function initMenu() {
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
+          { label: "🔗 Catenarie",          route: "bo-catenarie"      },
         ]
       });
 
