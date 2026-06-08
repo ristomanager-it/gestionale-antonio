@@ -644,15 +644,22 @@ export async function renderPromo(container, aziendaId) {
   });
 
   function applicaStileAiCampi(s) {
-    container.querySelector('#s-font').value = s.font;
-    container.querySelector('#s-fontsize').value = s.font_size_base;
-    container.querySelector('#s-fontsize-label').textContent = s.font_size_base+'px';
-    container.querySelector('#s-radius').value = s.border_radius;
-    container.querySelector('#s-radius-label').textContent = s.border_radius+'px';
+    // Tutti con ?. perché la tab Stile potrebbe non essere ancora nel DOM
+    container.querySelector('#s-font')?.value != null && (container.querySelector('#s-font').value = s.font);
+    const fsEl = container.querySelector('#s-fontsize');
+    if (fsEl) { fsEl.value = s.font_size_base; }
+    const fsLbl = container.querySelector('#s-fontsize-label');
+    if (fsLbl) fsLbl.textContent = s.font_size_base+'px';
+    const radEl = container.querySelector('#s-radius');
+    if (radEl) { radEl.value = s.border_radius; }
+    const radLbl = container.querySelector('#s-radius-label');
+    if (radLbl) radLbl.textContent = s.border_radius+'px';
     ['primario','sfondo','testo','bottone'].forEach(k => {
       const key = 'colore_'+k;
-      container.querySelector(`#s-${key}`).value     = s[key];
-      container.querySelector(`#s-${key}-hex`).value = s[key];
+      const cEl  = container.querySelector(`#s-${key}`);
+      const hEl  = container.querySelector(`#s-${key}-hex`);
+      if (cEl && s[key]) cEl.value = s[key];
+      if (hEl && s[key]) hEl.value = s[key];
     });
     // Sync campo colore rapido in Info base
     const rapido    = container.querySelector('#p-colore-rapido');
@@ -668,14 +675,15 @@ export async function renderPromo(container, aziendaId) {
     if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
     stileCorrente.colore_primario = hex;
     stileCorrente.colore_bottone  = hex;
-    container.querySelector('#s-colore-primario').value     = hex;
-    container.querySelector('#s-colore-primario-hex').value = hex;
-    container.querySelector('#s-colore-bottone').value      = hex;
-    container.querySelector('#s-colore-bottone-hex').value  = hex;
+    // Aggiorna campi tab Stile solo se già nel DOM
+    container.querySelector('#s-colore-primario')?.value != null     && (container.querySelector('#s-colore-primario').value     = hex);
+    container.querySelector('#s-colore-primario-hex')?.value != null && (container.querySelector('#s-colore-primario-hex').value = hex);
+    container.querySelector('#s-colore-bottone')?.value != null      && (container.querySelector('#s-colore-bottone').value      = hex);
+    container.querySelector('#s-colore-bottone-hex')?.value != null  && (container.querySelector('#s-colore-bottone-hex').value  = hex);
     aggiornaPreview();
   }
-  colRapido.addEventListener('input',    () => { colRapidoHex.value=colRapido.value; syncColoreRapido(colRapido.value); });
-  colRapidoHex.addEventListener('input', () => { if(/^#[0-9a-fA-F]{6}$/.test(colRapidoHex.value)){ colRapido.value=colRapidoHex.value; syncColoreRapido(colRapidoHex.value); } });
+  colRapido?.addEventListener('input',    () => { if(colRapidoHex) colRapidoHex.value=colRapido.value; syncColoreRapido(colRapido.value); });
+  colRapidoHex?.addEventListener('input', () => { if(/^#[0-9a-fA-F]{6}$/.test(colRapidoHex.value)){ if(colRapido) colRapido.value=colRapidoHex.value; syncColoreRapido(colRapidoHex.value); } });
 
   // ── Live update da campi principali ──────────────────────────
   ['p-nome','p-desc','p-tipo','p-valore','p-codice'].forEach(id => {
