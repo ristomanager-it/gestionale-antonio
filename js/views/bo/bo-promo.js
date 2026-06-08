@@ -201,25 +201,31 @@ export async function renderPromo(container, aziendaId) {
               <div id="p-link-section" style="display:none;">
                 <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
                   <div style="font-size:13px;font-weight:700;margin-bottom:12px;">🔗 Link promo & QR Code</div>
-                  <div style="margin-bottom:10px;">
+                  <div style="margin-bottom:12px;">
                     <label class="promo-label">Link landing</label>
                     <div style="display:flex;gap:8px;align-items:center;">
                       <input id="p-link-display" class="promo-input" readonly style="background:#f1f5f9;color:#0E5A7A;font-size:12px;cursor:pointer;" onclick="this.select()">
                       <button id="p-btn-copy-link" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">📋 Copia</button>
                     </div>
                   </div>
-                  <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+                  <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
                     <div>
                       <label class="promo-label">QR Code</label>
-                      <div id="p-qr-container" style="background:white;padding:8px;border:1px solid #e5e7eb;border-radius:8px;display:inline-block;"></div>
+                      <div id="p-qr-container"></div>
                     </div>
-                    <div style="flex:1;min-width:160px;">
+                    <div style="flex:1;min-width:180px;">
                       <label class="promo-label">Short link</label>
-                      <div style="background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:8px;padding:10px;font-size:12px;color:#94a3b8;">
-                        🔜 Short link disponibile prossimamente
+                      <div style="background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:8px;padding:10px;font-size:12px;color:#94a3b8;margin-bottom:12px;">
+                        🔜 Disponibile prossimamente
+                      </div>
+                      <label class="promo-label">Invia QR</label>
+                      <div style="display:flex;flex-direction:column;gap:6px;">
+                        <button id="p-btn-send-wa" disabled style="background:#25D366;color:white;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;opacity:.5;">📲 Invia QR via WhatsApp</button>
+                        <button id="p-btn-dl-mail" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;">📧 Scarica QR per mail</button>
                       </div>
                     </div>
                   </div>
+                  <div style="font-size:11px;color:#94a3b8;">Il QR reindirizza alla landing della promo. Il cliente lo mostra al cameriere per il riscatto.</div>
                 </div>
               </div>
             </div>
@@ -459,12 +465,42 @@ export async function renderPromo(container, aziendaId) {
   });
 
   // ── QR Code ───────────────────────────────────────────────
-  let qrInstance = null;
+  let _qrDataUrl = null; // dataURL del QR corrente per invio WA/mail
+
   function generaQR(url) {
     const qrEl = container.querySelector('#p-qr-container');
+    if (!qrEl) return;
     qrEl.innerHTML = '';
     if (!url || !window.QRCode) return;
-    qrInstance = new window.QRCode(qrEl, { text: url, width: 120, height: 120, correctLevel: window.QRCode.CorrectLevel.M });
+    // Genera QR in canvas per ottenere dataURL
+    const tmp = document.createElement('div');
+    new window.QRCode(tmp, { text: url, width: 200, height: 200, correctLevel: window.QRCode.CorrectLevel.M });
+    // QRCode scrive un canvas o img; aspetta un tick
+    setTimeout(() => {
+      const canvas = tmp.querySelector('canvas');
+      const img    = tmp.querySelector('img');
+      if (canvas) _qrDataUrl = canvas.toDataURL('image/png');
+      else if (img) _qrDataUrl = img.src;
+      // Mostra QR piccolo nel box
+      const display = document.createElement('div');
+      display.style.cssText = 'background:white;padding:8px;border:1px solid #e5e7eb;border-radius:8px;display:inline-block;';
+      if (canvas) {
+        const c2 = document.createElement('canvas');
+        c2.width=120; c2.height=120;
+        c2.getContext('2d').drawImage(canvas,0,0,120,120);
+        display.appendChild(c2);
+      } else if (img) {
+        const i2 = document.createElement('img');
+        i2.src=img.src; i2.style.cssText='width:120px;height:120px;';
+        display.appendChild(i2);
+      }
+      qrEl.appendChild(display);
+      // Abilita pulsanti invio
+      const btnWA   = container.querySelector('#p-btn-send-wa');
+      const btnMail = container.querySelector('#p-btn-send-mail');
+      if (btnWA)   btnWA.disabled   = false;
+      if (btnMail) btnMail.disabled = false;
+    }, 100);
   }
 
   function caricaQRLib(url) {
@@ -473,6 +509,51 @@ export async function renderPromo(container, aziendaId) {
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
     s.onload = () => generaQR(url);
     document.head.appendChild(s);
+  }
+
+  // Invio QR via WhatsApp (media message tramite Edge Function)
+  async function inviaQRWhatsApp(promoId, landingUrl) {
+    if (!_qrDataUrl) { mostraToast('QR non ancora generato','error'); return; }
+    // Ottieni telefono azienda per il test o usa API WA
+    const btn = container.querySelector('#p-btn-send-wa');
+    btn.disabled=true; btn.textContent='⏳ Invio...';
+    try {
+      const { data: az } = await supa().from('azienda_identita').select('whatsapp_phone_id,whatsapp_token').eq('id', aziendaId).single();
+      if (!az?.whatsapp_phone_id) { mostraToast('WhatsApp non configurato in Impostazioni','error'); return; }
+      // Carica QR su Storage per avere URL pubblico
+      const blob = await (await fetch(_qrDataUrl)).blob();
+      const fileName = `promo-qr/${promoId}-${Date.now()}.png`;
+      const { error: upErr } = await supa().storage.from('immagini-promo').upload(fileName, blob, { contentType:'image/png', upsert:true });
+      if (upErr) { mostraToast('Errore upload QR: '+upErr.message,'error'); return; }
+      const { data: urlD } = supa().storage.from('immagini-promo').getPublicUrl(fileName);
+      const qrPublicUrl = urlD.publicUrl;
+      // Chiama Edge Function send-whatsapp con media
+      const { data: waRes, error: waErr } = await supa().functions.invoke('send-whatsapp', {
+        body: {
+          azienda_id: aziendaId,
+          tipo: 'media',
+          media_url: qrPublicUrl,
+          media_type: 'image',
+          caption: `🎁 Il tuo QR code per la promo!\n👉 ${landingUrl}`,
+          // numero destinatario: da specificare nel contesto di invio massivo
+          // qui è un test — in invio catenaria il numero arriva dal cliente
+          _test: true,
+        }
+      });
+      if (waErr) { mostraToast('Errore WA: '+waErr.message,'error'); return; }
+      mostraToast('QR inviato via WhatsApp ✅','success');
+    } catch(e) { mostraToast('Errore: '+e.message,'error'); }
+    finally { btn.disabled=false; btn.textContent='📲 Invia QR via WA'; }
+  }
+
+  // Download QR (per mail manuale o allegato)
+  function downloadQR(promoNome) {
+    if (!_qrDataUrl) { mostraToast('QR non ancora generato','error'); return; }
+    const a = document.createElement('a');
+    a.href = _qrDataUrl;
+    a.download = `qr-${promoNome.replace(/[^a-z0-9]/gi,'-').toLowerCase()}.png`;
+    a.click();
+    mostraToast('QR scaricato — allegalo alla mail ✅','success');
   }
 
   // ── Preview live ──────────────────────────────────────────
@@ -572,10 +653,16 @@ export async function renderPromo(container, aziendaId) {
       const url = `https://ristoflow-ai.com/promo.html?id=${promo.id}`;
       linkSection.style.display='';
       container.querySelector('#p-link-display').value = url;
-      container.querySelector('#p-btn-copy-link').onclick = () => {
-        navigator.clipboard?.writeText(url).then(()=>mostraToast('Link copiato!','success'));
-      };
       caricaQRLib(url);
+      // Pulsante copia link
+      container.querySelector('#p-btn-copy-link').onclick = () =>
+        navigator.clipboard?.writeText(url).then(()=>mostraToast('Link copiato!','success'));
+      // Pulsante invia QR via WA
+      const btnWA = container.querySelector('#p-btn-send-wa');
+      if (btnWA) btnWA.onclick = () => inviaQRWhatsApp(promo.id, url);
+      // Pulsante scarica QR per mail
+      const btnMail = container.querySelector('#p-btn-dl-mail');
+      if (btnMail) btnMail.onclick = () => downloadQR(promo.nome || 'promo');
     } else {
       linkSection.style.display='none';
     }
