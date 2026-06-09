@@ -30,7 +30,7 @@ export async function render(container) {
   let tavoli = [], sale = [];
 
   container.innerHTML = `
-  <div style="min-height:100vh;background:#f8fafc;padding:16px;">
+  <div style="min-height:100vh;background:#f8fafc;padding:16px;padding-bottom:32px;">
     <div style="max-width:900px;margin:0 auto;">
       <div style="margin-bottom:20px;">
         <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
@@ -38,20 +38,21 @@ export async function render(container) {
       </div>
       
       <!-- Tab nav -->
-      <div style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+      <div id="tab-nav-wrap" style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;">
+        <style>#tab-nav-wrap::-webkit-scrollbar{display:none}</style>
         ${[
-          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'          },
-          { id:'sala',         icon:'🪑', label:'Sala'                 },
-          { id:'menu',         icon:'📋', label:'Menu'                 },
-          { id:'cassa',        icon:'💳', label:'Cassa'                },
-          { id:'integrazioni', icon:'🔗', label:'Integrazioni'         },
-          { id:'identita',     icon:'🎯', label:'Identità & Brand'      },
-          { id:'sondaggi',      icon:'📊', label:'Sondaggi'               },
+          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'     },
+          { id:'sala',         icon:'🪑', label:'Sala'            },
+          { id:'menu',         icon:'📋', label:'Menu'            },
+          { id:'cassa',        icon:'💳', label:'Cassa'           },
+          { id:'integrazioni', icon:'🔗', label:'Integrazioni'    },
+          { id:'identita',     icon:'🎯', label:'Identità'        },
+          { id:'sondaggi',     icon:'📊', label:'Sondaggi'        },
         ].map(t => `
           <button data-tab="${t.id}" style="
-            padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
+            padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
             color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;
-            flex-shrink:0;
+            flex-shrink:0;min-height:44px;
           ">${t.icon} ${t.label}</button>
         `).join('')}
       </div>
@@ -397,7 +398,7 @@ export async function render(container) {
           <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div>
 
           <!-- Scelta modalità -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:20px;">
             <div id="card-meta" data-modalita="meta" style="border:2px solid #0E5A7A;border-radius:12px;padding:16px;cursor:pointer;background:#f0f9ff;">
               <div style="font-size:20px;margin-bottom:6px;">🌐</div>
               <div style="font-weight:700;font-size:14px;color:#0f172a;">Meta Cloud API</div>
@@ -499,7 +500,7 @@ export async function render(container) {
         <div id="lista-google-ads" style="margin-bottom:16px;"></div>
         <div id="form-google-ads" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-top:12px;">
           <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Aggiungi account Google Ads</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-bottom:12px;">
             <div>
               <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Customer ID *</label>
               <input id="gads-customer-id" class="input" placeholder="Es. 541-378-5462" style="width:100%;box-sizing:border-box;">
@@ -802,12 +803,12 @@ export async function render(container) {
     box.innerHTML = `
       <!-- Sezione: Settori -->
       <div style="margin-bottom:36px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
             <div style="font-size:13px;color:#64748b;margin-top:2px;">Reparti operativi — ogni tablet display mostra il suo settore</div>
           </div>
-          <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo settore</button>
+          <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">+ Nuovo settore</button>
         </div>
         <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:12px;"></div>
         <!-- Form nuovo settore -->
@@ -818,17 +819,17 @@ export async function render(container) {
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nome *</label>
               <input id="settore-nome" class="input" placeholder="es. Piscina, Antipasti, Pasticceria..." style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:14px;">
             </div>
-            <div style="min-width:120px;">
+            <div style="min-width:100px;">
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Colore</label>
               <div style="display:flex;gap:6px;flex-wrap:wrap;" id="colori-settore">
-                ${COLORI_SETTORI.map(c => `<button data-col="${c}" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:${c};cursor:pointer;"></button>`).join('')}
+                ${COLORI_SETTORI.map(c => `<button data-col="${c}" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:${c};cursor:pointer;flex-shrink:0;"></button>`).join('')}
               </div>
             </div>
-            <div style="min-width:120px;">
+            <div style="min-width:80px;">
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Ordine</label>
-              <input id="settore-ordine" type="number" value="0" min="0" style="width:80px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+              <input id="settore-ordine" type="number" value="0" min="0" style="width:72px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
             </div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button id="btn-salva-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">Salva</button>
               <button id="btn-annulla-settore" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
             </div>
@@ -838,12 +839,12 @@ export async function render(container) {
 
       <!-- Sezione: Postazioni -->
       <div style="margin-bottom:36px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">📱 Postazioni display</div>
             <div style="font-size:13px;color:#64748b;margin-top:2px;">Tablet fissi — ogni postazione ha un URL dedicato e mostra il suo settore</div>
           </div>
-          <button id="btn-nuova-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuova postazione</button>
+          <button id="btn-nuova-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">+ Nuova postazione</button>
         </div>
         <div id="lista-postazioni" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
         <!-- Form nuova postazione -->
@@ -1728,7 +1729,7 @@ export async function render(container) {
         .id-input { width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box; }
         .id-input:focus { border-color:#0E5A7A; }
       </style>
-      <div style="max-width:720px;">
+      <div style="max-width:720px;padding-bottom:20px;">
         <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:white;border-radius:14px;padding:20px;margin-bottom:20px;">
           <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎯 Identità & Brand</div>
           <div style="font-size:13px;opacity:.85;line-height:1.5;">Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.</div>
@@ -1778,7 +1779,7 @@ export async function render(container) {
         </div>
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🚀 Obiettivi business</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px;">
             <div>
               <span class="id-label">Breve termine (3-6 mesi)</span>
               <textarea id="id-obj-breve" class="id-ta" style="min-height:70px;" placeholder="Es. +20% prenotazioni pranzo">${val('obiettivo_breve')}</textarea>
@@ -1880,7 +1881,8 @@ export async function render(container) {
         <button id="btn-nuovo-sondaggio" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo sondaggio</button>
       </div>
 
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;" class="sond-grid" id="sond-grid">
+        <style>@media(max-width:640px){#sond-grid{grid-template-columns:1fr!important;}}</style>
 
         <!-- Lista sondaggi -->
         <div>
@@ -1909,7 +1911,7 @@ export async function render(container) {
 
             <!-- Form domanda -->
             <div id="form-domanda" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:10px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:10px;">
                 <div>
                   <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo domanda</label>
                   <select id="dom-tipo" class="input" style="width:100%;box-sizing:border-box;">
