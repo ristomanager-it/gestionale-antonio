@@ -2,7 +2,30 @@ import { supabase } from "../supabaseClient.js";
 
 export async function render(container) {
 
-  const azienda = window.state?.azienda;
+  // Carica azienda da DB se lo state non è ancora pronto
+  let azienda = window.state?.azienda;
+
+  if (!azienda) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: rel } = await supabase
+          .from("utenti_aziende")
+          .select("azienda_id, aziende(*)")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (rel?.aziende) {
+          azienda = rel.aziende;
+          // Aggiorna lo state globale
+          if (window.stateActions?.setAzienda) window.stateActions.setAzienda(azienda);
+        }
+      }
+    } catch (e) {
+      console.error("completa-azienda: errore caricamento azienda", e);
+    }
+  }
 
   if (!azienda) {
     container.innerHTML = `
@@ -29,11 +52,26 @@ export async function render(container) {
 
   const pianoNome = azienda.piano_nome || azienda.piano || "Starter";
 
+  const isTrial = azienda.stato_attivazione === "trial";
+  const trialScadenza = azienda.trial_scadenza
+    ? new Date(azienda.trial_scadenza).toLocaleDateString("it-IT")
+    : null;
+
   container.innerHTML = `
 
   <div class="view">
 
     <div style="max-width:820px;margin:auto;">
+
+      ${isTrial ? `
+      <div style="background:#e8f4f8;border:1px solid #0E5A7A;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:1.4rem;">🎁</span>
+        <div>
+          <strong style="color:#0E5A7A;">Trial gratuito attivo</strong>
+          <div style="font-size:0.85rem;color:#374151;">Hai accesso completo fino al ${trialScadenza ?? "30 giorni"}. Completa il profilo per sbloccare tutte le funzionalità.</div>
+        </div>
+      </div>
+      ` : ""}
 
       <div style="margin-bottom:18px;">
         <div style="font-size:13px;color:#6b7280;">Configurazione</div>
@@ -58,8 +96,8 @@ export async function render(container) {
         </div>
 
         <div class="form-group">
-          <label>Partita IVA *</label>
-          <input id="partita_iva" class="input" value="${azienda.partita_iva || ""}">
+          <label>Partita IVA <span style="color:#9ca3af;font-weight:400;font-size:0.8rem;">(opzionale in trial)</span></label>
+          <input id="partita_iva" class="input" value="${azienda.partita_iva || ""}" placeholder="IT00000000000">
         </div>
 
         <div class="form-group">
@@ -182,7 +220,6 @@ export async function render(container) {
 
     const required = [
       "ragione_sociale",
-      "partita_iva",
       "indirizzo",
       "citta",
       "telefono",
