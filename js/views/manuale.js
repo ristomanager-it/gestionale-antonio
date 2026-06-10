@@ -2,7 +2,7 @@
 import { createPageLayout } from "../utils/pageLayout.js";
 
 export async function render(container) {
-  const PDF_URL = "https://ristomanager-it.github.io/gestionale-antonio/Ristoflow_Manuale_Operativo%20(1).pdf";
+  const PDF_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/Ristoflow_Manuale_Operativo.pdf";
 
   container.innerHTML = createPageLayout({
     title: "📘 Manuale Operativo",
