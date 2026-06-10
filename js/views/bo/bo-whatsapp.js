@@ -336,13 +336,16 @@ export async function render(container) {
 
       if (!conn) throw new Error("Connessione WhatsApp non trovata");
 
+      const session = await supa().auth.getSession();
+      const token = session?.data?.session?.access_token || "";
+
       const res = await fetch(
-        `${window.SUPABASE_URL || "https://cuhcscpvhypoaplcmtjk.supabase.co"}/functions/v1/whatsapp-send-ts`,
+        `https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/whatsapp-send-ts`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${window.SUPABASE_ANON_KEY || ""}`,
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
             azienda_id: aziendaId,
