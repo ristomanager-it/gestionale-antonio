@@ -393,6 +393,7 @@ export function initMenu() {
           { label: "🎁 Promo",             route: "bo-promo"          },
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
+          { label: "🤖 Chatbot",             route: "bo-chatbot"        },
         ]
       });
 
