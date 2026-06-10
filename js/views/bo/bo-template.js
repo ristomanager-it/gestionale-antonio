@@ -359,7 +359,7 @@ export async function render(container) {
                 </div>
                 <div id="tmpl-btn-url-wrap">
                   <div class="sezione-label">URL pulsante</div>
-                  <input id="tmpl-btn-url" class="input" placeholder="https://ristoflow-ai.com/reset-password.html" style="width:100%;box-sizing:border-box;">
+                  <input id="tmpl-btn-url" class="input" placeholder="https://app.ristoflow-ai.com/reset-password.html" style="width:100%;box-sizing:border-box;">
                 </div>
                 <div id="tmpl-btn-phone-wrap" style="display:none;">
                   <div class="sezione-label">Numero di telefono</div>
@@ -1156,7 +1156,7 @@ export async function render(container) {
         const buttons = hasBtn && btnText ? [{
           type: btnType,
           text: btnText,
-          ...(btnType === 'URL' ? { url: btnUrl || 'https://ristoflow-ai.com' } : {}),
+          ...(btnType === 'URL' ? { url: btnUrl || 'https://app.ristoflow-ai.com' } : {}),
           ...(btnType === 'PHONE_NUMBER' ? { phone_number: btnPhone } : {}),
         }] : [];
         return JSON.stringify({
