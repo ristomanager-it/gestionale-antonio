@@ -72,6 +72,7 @@ export function initMenu() {
     setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
 
     // ── CAMPANELLA NOTIFICHE ─────────────────────────────────────────────
+    const bell = document.createElement("div");
     bell.id = "notif-bell";
     bell.style.position = "relative";
     bell.style.cursor = "pointer";
