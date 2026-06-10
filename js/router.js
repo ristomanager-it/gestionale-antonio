@@ -81,6 +81,7 @@ const routes = {
   "bo-promo": () => import("./views/bo/bo-promo.js"),
   "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
   "bo-whatsapp": () => import("./views/bo/bo-whatsapp.js"),
+  "bo-chatbot": () => import("./views/bo/bo-chatbot.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -228,6 +229,7 @@ const BO_ROUTES = new Set([
   "bo-catenarie",
   "bo-dispositivi",
   "bo-whatsapp",
+  "bo-chatbot",
 ]);
 
 // Display tablet — bypassano auth contesto operativo, hanno PIN proprio
