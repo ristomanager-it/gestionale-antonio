@@ -271,26 +271,11 @@ export async function render(container) {
 
     msgBox.innerHTML = msgOrdinati.map(msg => {
       const ora = new Date(msg.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-      const isRisposta = msg.risposta_inviata;
+      const isOperatore = msg.intent === "risposta_manuale" || msg.from_numero === aziendaId;
 
-      return `
-        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
-          <div style="
-            max-width:75%;
-            padding:10px 14px;
-            border-radius:${isRisposta ? "12px 12px 0 12px" : "12px 12px 12px 0"};
-            background:${isRisposta ? "#f3f4f6" : "white"};
-            border:1px solid #e5e7eb;
-            font-size:14px;
-            color:#111827;
-            align-self:flex-start;
-          ">
-            ${msg.testo || "[media]"}
-          </div>
-          <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${ora}</div>
-        </div>
-
-        ${msg.risposta_testo ? `
+      if (isOperatore) {
+        // Messaggio inviato dall'operatore — destra
+        return `
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
             <div style="
               max-width:75%;
@@ -300,10 +285,40 @@ export async function render(container) {
               color:white;
               font-size:14px;
               align-self:flex-end;
-            ">
-              ${msg.risposta_testo}
-            </div>
-            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">🤖 Risposta automatica</div>
+            ">${msg.testo || "[media]"}</div>
+            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">✓ ${ora} · Operatore</div>
+          </div>
+        `;
+      }
+
+      // Messaggio del cliente — sinistra
+      return `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+          <div style="
+            max-width:75%;
+            padding:10px 14px;
+            border-radius:12px 12px 12px 0;
+            background:white;
+            border:1px solid #e5e7eb;
+            font-size:14px;
+            color:#111827;
+          ">${msg.testo || "[media]"}</div>
+          <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${ora}</div>
+        </div>
+
+        ${msg.risposta_testo && msg.intent !== "risposta_manuale" ? `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <div style="
+              max-width:75%;
+              padding:10px 14px;
+              border-radius:12px 12px 0 12px;
+              background:#e8f5e9;
+              color:#1b5e20;
+              font-size:14px;
+              align-self:flex-end;
+              border:1px solid #c8e6c9;
+            ">${msg.risposta_testo}</div>
+            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">🤖 ${ora} · Risposta automatica</div>
           </div>
         ` : ""}
       `;
@@ -359,6 +374,23 @@ export async function render(container) {
 
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Errore invio");
+
+      // Salva messaggio inviato manualmente nel DB
+      await supa()
+        .from("whatsapp_messaggi")
+        .insert({
+          azienda_id: aziendaId,
+          phone_number_id: conn?.meta_phone_number_id || "",
+          from_numero: aziendaId, // mittente = azienda
+          from_nome: "Operatore",
+          message_id: `manual_${Date.now()}`,
+          tipo: "text",
+          testo,
+          intent: "risposta_manuale",
+          risposta_inviata: true,
+          risposta_testo: testo,
+          letto: true,
+        });
 
       document.getElementById("wa-reply-text").value = "";
       await caricaConversazioni();
