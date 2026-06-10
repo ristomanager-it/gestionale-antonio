@@ -409,7 +409,7 @@ function renderChart(chart) {
 
 // ── API Tony ───────────────────────────────────────────
 
-async function callTony(messages, audioBase64 = null) {
+async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   const body = {
     messages,
     azienda_id: window.state?.azienda?.id,
@@ -417,8 +417,10 @@ async function callTony(messages, audioBase64 = null) {
     sede_id: window.state?.sedeAttiva?.id || null,
     lat: window.state?.sedeAttiva?.latitudine,
     lon: window.state?.sedeAttiva?.longitudine,
+    ruolo: window.state?.ruolo || "operatore",
   };
   if (audioBase64) body.audio_base64 = audioBase64;
+  if (tipoMessaggio) body.tipo_messaggio = tipoMessaggio;
 
   // Fetch diretto con timeout 60s invece di supabase.functions.invoke
   const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
@@ -547,17 +549,51 @@ async function sendVoiceMessage() {
 
 // ── Init ───────────────────────────────────────────────
 
-async function loadInitialBriefing(ruolo) {
+// ── Messaggio iniziale dinamico ────────────────────────
+function getSaluto() {
+  const ora = new Date().getHours();
+  if (ora < 12) return "Buongiorno";
+  if (ora < 18) return "Buon pomeriggio";
+  return "Buonasera";
+}
+
+function getSeedDelGiorno() {
+  // Seed basato sul giorno — cambia ogni giorno, non ogni apertura
+  const oggi = new Date();
+  return `${oggi.getFullYear()}-${oggi.getMonth()}-${oggi.getDate()}`;
+}
+
+async function loadMessaggioIniziale(ruolo) {
+  const nome = window.state?.dipendente?.nome || window.state?.user?.email?.split("@")[0] || "";
+  const saluto = getSaluto();
+  const seed = getSeedDelGiorno();
+
   try {
-    setStatus("⏳ Caricamento...");
-    const prompt = getBriefingPrompt(ruolo);
-    const data = await callTony([{ role: "user", content: prompt }]);
-    const reply = data?.reply || "Ciao! Sono Tony.";
+    setStatus("⏳ Tony si sveglia...");
+
+    const prompt = `Genera il messaggio di benvenuto di Tony per oggi (${seed}).
+
+REGOLE PRECISE:
+- Inizia con "${saluto}${nome ? " " + nome : ""}!" — poi va a capo
+- Una frase motivazionale breve e carica di energia (max 2 righe) — deve sembrare scritta oggi, non generica
+- Usa UNA citazione dalle CITAZIONI & ANCORE EMOTIVE della knowledge base — integrata in modo naturale, senza citare la fonte, senza virgolette esplicite
+- Chiudi con una frase che invita all'azione: cosa può fare Tony oggi per lui/lei
+- Tono: caldo, diretto, energico — "vibrazioni emozione carica"
+- Max 5 righe totali
+- NON includere dati operativi, numeri o briefing — quello viene dopo a richiesta
+- Il messaggio deve essere DIVERSO ogni giorno grazie al seed: ${seed}
+- Ruolo utente: ${ruolo}`;
+
+    const data = await callTony([{ role: "user", content: prompt }], null, "messaggio_iniziale");
+    const reply = data?.reply || `${saluto}! Sono Tony, il tuo assistente operativo. Cosa possiamo fare di grande oggi?`;
+
     addMessage(reply, "ai");
     conversation.push({ role: "assistant", content: reply });
     setStatus("Assistente operativo");
   } catch {
-    addMessage("Ciao! Sono Tony. Come posso aiutarti oggi?", "ai");
+    const fallback = `${saluto}${nome ? " " + nome : ""}!\n\nSono Tony, pronto a darti una mano oggi. Scrivi "briefing" per il riepilogo completo, oppure dimmi direttamente cosa ti serve. 🚀`;
+    addMessage(fallback, "ai");
+    conversation.push({ role: "assistant", content: fallback });
     setStatus("Assistente operativo");
   }
 }
@@ -575,7 +611,7 @@ function initChat(ruolo) {
   const send = document.getElementById("chat-send");
   const mic = document.getElementById("chat-mic");
 
-  loadInitialBriefing(ruolo);
+  loadMessaggioIniziale(ruolo);
 
   async function sendMessage(prompt) {
     prompt = (prompt || input?.value || "").trim();
