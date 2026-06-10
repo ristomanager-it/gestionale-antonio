@@ -14,7 +14,17 @@ export async function render(container) {
     title: "💬 WhatsApp Inbox",
     subtitle: "Messaggi in arrivo dai clienti",
     content: `
-      <div id="wa-layout" style="display:flex;gap:16px;height:calc(100vh - 160px);overflow:hidden;">
+      <style>
+        #wa-layout { display:flex; gap:16px; height:calc(100vh - 160px); overflow:hidden; }
+        @media (max-width: 767px) {
+          #wa-layout { display:block; height:calc(100vh - 120px); }
+          #wa-sidebar { width:100% !important; min-width:unset !important; height:100%; }
+          #wa-chat { position:fixed !important; top:0; left:0; right:0; bottom:0; z-index:200; border-radius:0 !important; display:none !important; }
+          #wa-chat.mobile-open { display:flex !important; }
+          #wa-back-btn { display:flex !important; }
+        }
+      </style>
+      <div id="wa-layout">
 
         <!-- LISTA CONVERSAZIONI -->
         <div id="wa-sidebar" style="
@@ -63,7 +73,8 @@ export async function render(container) {
           overflow:hidden;
         ">
           <div id="wa-chat-header" style="padding:16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;">
-            <div style="color:#6b7280;font-size:14px;">← Seleziona una conversazione</div>
+            <button id="wa-back-btn" style="display:none;background:none;border:none;font-size:22px;cursor:pointer;padding:0 8px 0 0;color:#0E5A7A;">←</button>
+            <div style="color:#6b7280;font-size:14px;">Seleziona una conversazione</div>
           </div>
           <div id="wa-chat-messages" style="flex:1;overflow-y:auto;padding:16px;background:#f9fafb;display:flex;flex-direction:column;gap:8px;">
           </div>
@@ -209,6 +220,19 @@ export async function render(container) {
   // ── APRI CONVERSAZIONE ───────────────────────────────────────────────────
   async function apriConversazione(conv) {
     conversazioneAttiva = conv;
+
+    // Mobile: mostra chat a schermo intero
+    const chatEl = document.getElementById("wa-chat");
+    if (chatEl) chatEl.classList.add("mobile-open");
+
+    // Back button mobile
+    const backBtn = document.getElementById("wa-back-btn");
+    if (backBtn) {
+      backBtn.onclick = () => {
+        chatEl?.classList.remove("mobile-open");
+        conversazioneAttiva = null;
+      };
+    }
 
     // Marca come letti
     await supa()
