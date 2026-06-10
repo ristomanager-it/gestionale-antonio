@@ -1,317 +1,338 @@
 import { supabase } from "../supabaseClient.js";
 
-export async function render(container) {
+export async function render(container){
 
-  // Carica azienda da DB se lo state non è ancora pronto
-  let azienda = window.state?.azienda;
+document.querySelector(".app-header")?.style.setProperty("display","none")
+document.querySelector(".topbar-global")?.style.setProperty("display","none")
 
-  if (!azienda) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: rel } = await supabase
-          .from("utenti_aziende")
-          .select("azienda_id, aziende(*)")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle();
+container.innerHTML=`
 
-        if (rel?.aziende) {
-          azienda = rel.aziende;
-          // Aggiorna lo state globale
-          if (window.stateActions?.setAzienda) window.stateActions.setAzienda(azienda);
-        }
-      }
-    } catch (e) {
-      console.error("completa-azienda: errore caricamento azienda", e);
-    }
-  }
+<div class="login-page">
+  <div class="login-box">
 
-  if (!azienda) {
-    container.innerHTML = `
-      <div class="view">
-        <div class="login-wrapper">
-          <h2 class="login-title">Errore</h2>
-          <div class="login-subtitle">Azienda non trovata</div>
+    <div class="login-logo-wrap">
+      <img src="assets/favicon-192.png" class="login-logo">
+    </div>
+
+    <!-- TAB SWITCHER -->
+    <div style="display:flex;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
+      <button id="tab-login" style="
+        flex:1;padding:10px;border:none;background:none;
+        font-weight:700;font-size:0.95rem;cursor:pointer;
+        color:#0E5A7A;border-bottom:2px solid #0E5A7A;margin-bottom:-2px;
+      ">Accedi</button>
+      <button id="tab-register" style="
+        flex:1;padding:10px;border:none;background:none;
+        font-weight:700;font-size:0.95rem;cursor:pointer;
+        color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;
+      ">Registrati gratis</button>
+    </div>
+
+    <!-- FORM LOGIN -->
+    <div id="form-login" class="login-form">
+      <div class="form-group">
+        <input id="login-email" class="input" type="email" placeholder="Email">
+      </div>
+      <div class="form-group">
+        <div style="position:relative;">
+          <input id="login-password" class="input" type="password" placeholder="Password">
+          <span id="toggle-password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:#6b7280;">👁</span>
         </div>
       </div>
-    `;
-    return;
-  }
+      <button id="login-btn" class="app-button primary login-btn">Accedi</button>
+      <div id="login-msg" class="form-result"></div>
+      <div class="login-reset">
+        <button id="reset-btn" class="login-reset-btn">Recupera accesso</button>
+      </div>
+    </div>
 
-  const titolo = azienda.profilo_completato
-    ? "Modifica dati azienda"
-    : "Completa configurazione";
-
-  const btnText = azienda.profilo_completato
-    ? "Salva modifiche"
-    : "Attiva azienda";
-
-  const visione = azienda.visione_ai || {};
-  const social = visione.social || {};
-
-  const pianoNome = azienda.piano_nome || azienda.piano || "Starter";
-
-  const isTrial = azienda.stato_attivazione === "trial";
-  const trialScadenza = azienda.trial_scadenza
-    ? new Date(azienda.trial_scadenza).toLocaleDateString("it-IT")
-    : null;
-
-  container.innerHTML = `
-
-  <div class="view">
-
-    <div style="max-width:820px;margin:auto;">
-
-      ${isTrial ? `
-      <div style="background:#e8f4f8;border:1px solid #0E5A7A;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-        <span style="font-size:1.4rem;">🎁</span>
-        <div>
-          <strong style="color:#0E5A7A;">Trial gratuito attivo</strong>
-          <div style="font-size:0.85rem;color:#374151;">Hai accesso completo fino al ${trialScadenza ?? "30 giorni"}. Completa il profilo per sbloccare tutte le funzionalità.</div>
+    <!-- FORM REGISTRAZIONE -->
+    <div id="form-register" class="login-form" style="display:none;">
+      <div style="background:#e8f4f8;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.85rem;color:#0E5A7A;font-weight:500;">
+        🎁 30 giorni gratis — nessuna carta di credito richiesta
+      </div>
+      <div class="form-group">
+        <input id="reg-nome" class="input" type="text" placeholder="Nome e cognome">
+      </div>
+      <div class="form-group">
+        <input id="reg-locale" class="input" type="text" placeholder="Nome del ristorante / locale">
+      </div>
+      <div class="form-group">
+        <select id="reg-tipo" class="input" style="color:#374151;">
+          <option value="">Tipo di locale...</option>
+          <option value="ristorante">Ristorante</option>
+          <option value="pizzeria">Pizzeria</option>
+          <option value="trattoria">Trattoria</option>
+          <option value="bar_bistrot">Bar / Bistrot</option>
+          <option value="catering_eventi">Catering / Eventi</option>
+          <option value="fast_casual">Fast casual / Street food</option>
+          <option value="hotel_restaurant">Ristorante d'albergo</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input id="reg-email" class="input" type="email" placeholder="Email">
+      </div>
+      <div class="form-group">
+        <div style="position:relative;">
+          <input id="reg-password" class="input" type="password" placeholder="Password (min. 8 caratteri)">
+          <span id="toggle-reg-password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:#6b7280;">👁</span>
         </div>
       </div>
-      ` : ""}
-
-      <div style="margin-bottom:18px;">
-        <div style="font-size:13px;color:#6b7280;">Configurazione</div>
-        <h2 style="margin:4px 0 0 0;">${titolo}</h2>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;">
+        <input type="checkbox" id="reg-privacy" style="margin-top:3px;flex-shrink:0;">
+        <label for="reg-privacy" style="font-size:0.78rem;color:#6b7280;line-height:1.5;">
+          Accetto la <a href="https://ristoflow-ai.com/privacy.html" target="_blank" style="color:#0E5A7A;">Privacy Policy</a> e i <a href="https://ristoflow-ai.com/terms.html" target="_blank" style="color:#0E5A7A;">Termini di servizio</a>
+        </label>
       </div>
-
-      <!-- DATI AZIENDA -->
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Dati azienda
-        </div>
-
-        <div class="form-group">
-          <label>Piano attivo</label>
-          <input class="input" value="${pianoNome}" disabled>
-        </div>
-
-        <div class="form-group">
-          <label>Ragione sociale *</label>
-          <input id="ragione_sociale" class="input" value="${azienda.ragione_sociale || ""}">
-        </div>
-
-        <div class="form-group">
-          <label>Partita IVA <span style="color:#9ca3af;font-weight:400;font-size:0.8rem;">(opzionale in trial)</span></label>
-          <input id="partita_iva" class="input" value="${azienda.partita_iva || ""}" placeholder="IT00000000000">
-        </div>
-
-        <div class="form-group">
-          <label>Indirizzo *</label>
-          <input id="indirizzo" class="input" value="${azienda.indirizzo || ""}">
-        </div>
-
-        <div class="form-group">
-          <label>Città *</label>
-          <input id="citta" class="input" value="${azienda.citta || ""}">
-        </div>
-
-        <div class="form-group">
-          <label>Telefono *</label>
-          <input id="telefono" class="input" value="${azienda.telefono || ""}">
-        </div>
-
-      </div>
-
-      <!-- 🔥 NUOVA CARD SEDI -->
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Sedi operative
-        </div>
-
-        <div style="font-size:14px;color:#6b7280;margin-bottom:12px;">
-          Gestisci le sedi della tua azienda (punti vendita, cucine, laboratori).
-        </div>
-
-        <button id="btn-sedi" class="app-button" style="width:100%;">
-          🏢 Gestione sedi
-        </button>
-
-      </div>
-
-      <!-- VISION GUIDATA -->
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Vision aziendale
-        </div>
-
-        <div class="form-group">
-          <label>Tipo locale *</label>
-          <select id="tipo_locale" class="input">
-            <option value="">Seleziona</option>
-            <option ${visione.tipo_locale === "Ristorante" ? "selected" : ""}>Ristorante</option>
-            <option ${visione.tipo_locale === "Pizzeria" ? "selected" : ""}>Pizzeria</option>
-            <option ${visione.tipo_locale === "Bar" ? "selected" : ""}>Bar</option>
-            <option ${visione.tipo_locale === "Fast casual" ? "selected" : ""}>Fast casual</option>
-            <option ${visione.tipo_locale === "Gourmet" ? "selected" : ""}>Gourmet</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Esperienza cliente *</label>
-          <textarea id="esperienza" class="input" style="min-height:80px;">${visione.esperienza_cliente || ""}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Valori (separati da virgola)</label>
-          <input id="valori" class="input" value="${(visione.valori || []).join(", ")}">
-        </div>
-
-        <div class="form-group">
-          <label>Vision libera</label>
-          <textarea id="vision" class="input" style="min-height:80px;">${visione.vision_testo || ""}</textarea>
-        </div>
-
-      </div>
-
-      <!-- REGOLAMENTO -->
-      <div class="card">
-
-        <div style="font-weight:700;margin-bottom:12px;">
-          Regolamento aziendale
-        </div>
-
-        <div class="form-group">
-          <label>Regolamento (testo)</label>
-          <textarea id="regolamento" class="input" style="min-height:100px;">${visione.regolamento_testo || ""}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Carica file regolamento (PDF)</label>
-          <input type="file" id="file-regolamento" class="input">
-        </div>
-
-      </div>
-
-      <div style="margin-top:20px;">
-        <button id="salva-azienda" class="app-button primary" style="width:100%;">
-          ${btnText}
-        </button>
-      </div>
-
-      <div id="msg" style="margin-top:14px;"></div>
-
+      <button id="reg-btn" class="app-button primary login-btn">Crea account gratis →</button>
+      <div id="reg-msg" class="form-result"></div>
     </div>
 
   </div>
+</div>
+`;
 
-  `;
+initLogin();
+initRegister();
+initTabs();
+}
 
-  const btn = document.getElementById("salva-azienda");
-  const msg = document.getElementById("msg");
+/* ── TABS ──────────────────────────────────────────────── */
 
-  // 🔥 EVENTO SEDI
-  const btnSedi = document.getElementById("btn-sedi");
-  if(btnSedi){
-    btnSedi.onclick = () => {
-      window.location.hash = "#/gestione-sedi";
-    }
-  }
+function initTabs(){
+  const tabLogin = document.getElementById("tab-login");
+  const tabReg = document.getElementById("tab-register");
+  const formLogin = document.getElementById("form-login");
+  const formReg = document.getElementById("form-register");
 
-  btn.onclick = async () => {
-
-    msg.innerHTML = "";
-
-    const required = [
-      "ragione_sociale",
-      "indirizzo",
-      "citta",
-      "telefono",
-      "tipo_locale",
-      "esperienza"
-    ];
-
-    for (const id of required) {
-      if (!document.getElementById(id).value.trim()) {
-        msg.innerHTML = "<span style='color:#dc2626;'>Compila tutti i campi obbligatori</span>";
-        return;
-      }
-    }
-
-    btn.disabled = true;
-    btn.innerText = "Salvataggio...";
-
-    const valori = document.getElementById("valori").value
-      .split(",")
-      .map(v => v.trim())
-      .filter(Boolean);
-
-    let fileUrl = visione.regolamento_file_url || null;
-
-    const file = document.getElementById("file-regolamento").files[0];
-
-    if (file) {
-      const path = `${azienda.id}/regolamento-${Date.now()}.pdf`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("aziende-documenti")
-        .upload(path, file);
-
-      if (!uploadError) {
-        const { data } = supabase.storage
-          .from("aziende-documenti")
-          .getPublicUrl(path);
-
-        fileUrl = data.publicUrl;
-      }
-    }
-
-    const payload = {
-
-      ragione_sociale: document.getElementById("ragione_sociale").value,
-      partita_iva: document.getElementById("partita_iva").value,
-      indirizzo: document.getElementById("indirizzo").value,
-      citta: document.getElementById("citta").value,
-      telefono: document.getElementById("telefono").value,
-
-      visione_ai: {
-        tipo_locale: document.getElementById("tipo_locale").value,
-        esperienza_cliente: document.getElementById("esperienza").value,
-        valori,
-        vision_testo: document.getElementById("vision").value,
-        regolamento_testo: document.getElementById("regolamento").value,
-        regolamento_file_url: fileUrl,
-        social: {
-          instagram: social.instagram || "",
-          facebook: social.facebook || "",
-          tiktok: social.tiktok || ""
-        }
-      },
-
-      profilo_completato: true,
-      stato_attivazione: "attiva",
-      stato: "attiva"
-
-    };
-
-    const { data, error } = await supabase
-      .from("aziende")
-      .update(payload)
-      .eq("id", azienda.id)
-      .select();
-
-    if (error) {
-
-      msg.innerHTML = "<span style='color:#dc2626;'>" + error.message + "</span>";
-
-      btn.disabled = false;
-      btn.innerText = btnText;
-      return;
-
-    }
-
-    window.stateActions.setAzienda(data);
-
-    msg.innerHTML = "<span style='color:#16a34a;'>Salvato ✔</span>";
-
-    window.location.hash = "#/home";
-
+  tabLogin.onclick = () => {
+    formLogin.style.display = "";
+    formReg.style.display = "none";
+    tabLogin.style.color = "#0E5A7A";
+    tabLogin.style.borderBottomColor = "#0E5A7A";
+    tabReg.style.color = "#9ca3af";
+    tabReg.style.borderBottomColor = "transparent";
   };
 
+  tabReg.onclick = () => {
+    formLogin.style.display = "none";
+    formReg.style.display = "";
+    tabReg.style.color = "#0E5A7A";
+    tabReg.style.borderBottomColor = "#0E5A7A";
+    tabLogin.style.color = "#9ca3af";
+    tabLogin.style.borderBottomColor = "transparent";
+  };
+
+  // Se arriva da ?register=1 apre direttamente la tab registrazione
+  if (window.location.search.includes("register=1") || window.location.hash.includes("register")) {
+    tabReg.click();
+  }
+}
+
+/* ── LOGIN ─────────────────────────────────────────────── */
+
+function initLogin(){
+  const btn = document.getElementById("login-btn");
+  const reset = document.getElementById("reset-btn");
+  const toggle = document.getElementById("toggle-password");
+
+  btn.onclick = doLogin;
+  reset.onclick = resetPassword;
+
+  toggle.onclick = () => {
+    const input = document.getElementById("login-password");
+    if(input.type === "password"){ input.type = "text"; toggle.innerText = "🙈"; }
+    else { input.type = "password"; toggle.innerText = "👁"; }
+  };
+
+  document.getElementById("login-password").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") doLogin();
+  });
+}
+
+async function doLogin(){
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value.trim();
+  const msg = document.getElementById("login-msg");
+
+  msg.innerHTML = "Accesso in corso...";
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if(error){
+    msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
+    return;
+  }
+
+  if(window.stateActions?.setUser) window.stateActions.setUser(data.user);
+  document.querySelector(".app-header")?.style.removeProperty("display");
+  document.querySelector(".topbar-global")?.style.removeProperty("display");
+
+  // Redirect intelligente — controlla se il profilo azienda è completato
+  await redirectPostLogin(data.user);
+}
+
+async function redirectPostLogin(user) {
+  try {
+    const { data: rel } = await supabase
+      .from("utenti_aziende")
+      .select("azienda_id, ruolo, aziende(profilo_completato, stato_attivazione)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!rel) {
+      window.location.hash = "#/login";
+      return;
+    }
+
+    const azienda = rel.aziende;
+
+    // Profilo non completato → completa azienda
+    if (!azienda?.profilo_completato || azienda?.stato_attivazione === "bozza") {
+      window.location.hash = "#/completaAzienda";
+      return;
+    }
+
+    // Tutto ok → home
+    window.location.hash = "#/home";
+
+  } catch {
+    window.location.hash = "#/home";
+  }
+}
+
+async function resetPassword(){
+  const email = document.getElementById("login-email").value.trim();
+  const msg = document.getElementById("login-msg");
+
+  if(!email){
+    msg.innerHTML = "<span class='error-text'>Inserisci prima la tua email</span>";
+    return;
+  }
+
+  msg.innerHTML = "Invio email...";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + "#/set-password"
+  });
+
+  if(error){
+    msg.innerHTML = "<span class='error-text'>" + error.message + "</span>";
+    return;
+  }
+
+  msg.innerHTML = "<span class='success-text'>Email inviata ✔</span>";
+}
+
+/* ── REGISTRAZIONE ─────────────────────────────────────── */
+
+function initRegister(){
+  const toggle = document.getElementById("toggle-reg-password");
+  toggle.onclick = () => {
+    const input = document.getElementById("reg-password");
+    if(input.type === "password"){ input.type = "text"; toggle.innerText = "🙈"; }
+    else { input.type = "password"; toggle.innerText = "👁"; }
+  };
+
+  document.getElementById("reg-btn").onclick = doRegister;
+}
+
+async function doRegister(){
+  const nome = document.getElementById("reg-nome").value.trim();
+  const locale = document.getElementById("reg-locale").value.trim();
+  const tipo = document.getElementById("reg-tipo").value;
+  const email = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value.trim();
+  const privacy = document.getElementById("reg-privacy").checked;
+  const msg = document.getElementById("reg-msg");
+  const btn = document.getElementById("reg-btn");
+
+  // Validazione
+  if(!nome){ msg.innerHTML = "<span class='error-text'>Inserisci il tuo nome</span>"; return; }
+  if(!locale){ msg.innerHTML = "<span class='error-text'>Inserisci il nome del locale</span>"; return; }
+  if(!tipo){ msg.innerHTML = "<span class='error-text'>Seleziona il tipo di locale</span>"; return; }
+  if(!email){ msg.innerHTML = "<span class='error-text'>Inserisci l'email</span>"; return; }
+  if(password.length < 8){ msg.innerHTML = "<span class='error-text'>Password minimo 8 caratteri</span>"; return; }
+  if(!privacy){ msg.innerHTML = "<span class='error-text'>Accetta la privacy policy per continuare</span>"; return; }
+
+  btn.disabled = true;
+  btn.textContent = "Creazione account...";
+  msg.innerHTML = "";
+
+  try {
+    // 1. Crea utente Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { nome_completo: nome }
+      }
+    });
+
+    if(authError) throw new Error(authError.message);
+    if(!authData?.user) throw new Error("Errore creazione utente");
+
+    const userId = authData.user.id;
+
+    // 2. Crea azienda in trial
+    const trialScadenza = new Date();
+    trialScadenza.setDate(trialScadenza.getDate() + 30);
+
+    const { data: aziendaData, error: aziendaError } = await supabase
+      .from("aziende")
+      .insert({
+        nome: locale,
+        tipo_locale: tipo,
+        stato_attivazione: "trial",
+        trial_scadenza: trialScadenza.toISOString(),
+        profilo_completato: false
+      })
+      .select("id")
+      .single();
+
+    if(aziendaError) throw new Error("Errore creazione azienda: " + aziendaError.message);
+
+    const aziendaId = aziendaData.id;
+
+    // 3. Collega utente ad azienda
+    await supabase.from("utenti_aziende").insert({
+      user_id: userId,
+      azienda_id: aziendaId,
+      ruolo: "admin"
+    });
+
+    // 4. Salva lead in ristoflow_leads
+    await supabase.from("ristoflow_leads").upsert({
+      nome,
+      email,
+      tipo_locale: tipo,
+      stato: "demo",
+      fonte: "app_registrazione"
+    }, { onConflict: "email" });
+
+    // 5. Accedi automaticamente
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(loginError) {
+      // Account creato ma login fallito — manda alla verifica email
+      msg.innerHTML = "<span class='success-text'>✅ Account creato! Controlla la tua email per confermare.</span>";
+      btn.disabled = false;
+      btn.textContent = "Crea account gratis →";
+      return;
+    }
+
+    if(window.stateActions?.setUser) window.stateActions.setUser(loginData.user);
+    document.querySelector(".app-header")?.style.removeProperty("display");
+    document.querySelector(".topbar-global")?.style.removeProperty("display");
+
+    // Vai al completamento profilo
+    window.location.hash = "#/completaAzienda";
+
+  } catch(err) {
+    msg.innerHTML = "<span class='error-text'>" + (err.message || "Errore registrazione") + "</span>";
+    btn.disabled = false;
+    btn.textContent = "Crea account gratis →";
+  }
 }
