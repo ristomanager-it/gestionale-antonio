@@ -295,7 +295,10 @@ export async function render(container) {
           </div>
 
           <input type="date" id="data" class="input">
-          <input type="time" id="ora" class="input">
+          <select id="ora" class="input">
+            <option value="">-- Seleziona orario --</option>
+          </select>
+          <div id="slot-avviso" style="display:none;font-size:12px;color:#dc2626;padding:4px 0;">⚠️ Orario non disponibile</div>
           <input type="number" id="coperti" class="input" value="2" min="1">
 
           ${config.fields?.allergie ? `
@@ -328,6 +331,70 @@ export async function render(container) {
 
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
   document.getElementById("prefisso").value = defaultPrefix;
+
+  // Carica slot configurati
+  const { data: slotCfg } = await window.supabaseClient
+    .from("prenotazioni_slot_config")
+    .select("*")
+    .eq("azienda_id", aziendaId)
+    .maybeSingle();
+
+  const slotMinuti = slotCfg?.slot_minuti || 30;
+  const maxCoperti = slotCfg?.max_coperti_slot || 30;
+  const orariBase = slotCfg?.orari || ["12:00","12:30","13:00","13:30","19:00","19:30","20:00","20:30","21:00","21:30"];
+
+  async function aggiornaSlot() {
+    const data = document.getElementById("data").value;
+    const coperti = parseInt(document.getElementById("coperti").value) || 2;
+    const selectOra = document.getElementById("ora");
+    const valPrecedente = selectOra.value;
+
+    if (!data) return;
+
+    // Per ogni slot calcola coperti occupati
+    const oraFine = (ora) => {
+      const d = new Date(`${data}T${ora}`);
+      d.setMinutes(d.getMinutes() + slotMinuti);
+      return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    };
+
+    const { data: prenSlot } = await window.supabaseClient
+      .from("prenotazioni_tavoli")
+      .select("ora, coperti")
+      .eq("azienda_id", aziendaId)
+      .eq("data", data)
+      .in("stato", ["nuova","confermata","arrivata"]);
+
+    selectOra.innerHTML = `<option value="">-- Seleziona orario --</option>`;
+
+    for (const slot of orariBase) {
+      const fine = oraFine(slot);
+      const occupati = (prenSlot || [])
+        .filter(p => p.ora >= slot && p.ora < fine)
+        .reduce((s, p) => s + (Number(p.coperti) || 0), 0);
+      const liberi = maxCoperti - occupati;
+      const disponibile = liberi >= coperti;
+
+      const opt = document.createElement("option");
+      opt.value = slot;
+      if (disponibile) {
+        opt.textContent = `${slot} — ${liberi} posti liberi`;
+        opt.style.color = "#111827";
+      } else {
+        opt.textContent = `${slot} — Non disponibile`;
+        opt.disabled = true;
+        opt.style.color = "#9ca3af";
+      }
+      selectOra.appendChild(opt);
+    }
+
+    // Ripristina selezione precedente se ancora disponibile
+    if (valPrecedente) selectOra.value = valPrecedente;
+  }
+
+  document.getElementById("data").addEventListener("change", aggiornaSlot);
+  document.getElementById("coperti").addEventListener("change", aggiornaSlot);
+  aggiornaSlot();
 
   const btnInvia = document.getElementById("btn-invia");
   const policyModal = document.getElementById("policy-modal");
