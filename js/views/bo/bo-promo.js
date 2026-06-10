@@ -903,8 +903,8 @@ export async function renderPromo(container, aziendaId) {
     const hasId = promo?.id && !promo._isTemplate;
     const linkSection = container.querySelector('#p-link-section');
     if (hasId) {
-      const url   = `https://ristoflow-ai.com/promo.html?id=${promo.id}`;
-      const urlTY = `https://ristoflow-ai.com/promo.html?id=${promo.id}&ty=1`;
+      const url   = `https://app.ristoflow-ai.com/promo.html?id=${promo.id}`;
+      const urlTY = `https://app.ristoflow-ai.com/promo.html?id=${promo.id}&ty=1`;
       linkSection.style.display='';
       container.querySelector('#p-link-display').value    = url;
       container.querySelector('#p-link-ty-display').value = urlTY;
@@ -1029,7 +1029,7 @@ export async function renderPromo(container, aziendaId) {
               </div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <button data-toggle-promo="${p.id}" class="toggle-btn ${p.attiva?'attiva':'inattiva'}">${p.attiva?'✅ Attiva':'⏸ Disattiva'}</button>
-                <button data-copy-url="https://ristoflow-ai.com/promo.html?id=${p.id}" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;">🔗 Link</button>
+                <button data-copy-url="https://app.ristoflow-ai.com/promo.html?id=${p.id}" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;">🔗 Link</button>
                 <button data-edit-promo="${p.id}" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;">✏️</button>
                 <button data-del-promo="${p.id}" style="background:#fee2e2;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;color:#dc2626;">🗑</button>
               </div>
