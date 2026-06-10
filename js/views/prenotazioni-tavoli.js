@@ -1103,8 +1103,11 @@ function renderDays() {
     const tavoloText = p.tavolo_id ? `🪑 Tavolo assegnato` : `🪑 Non assegnato`;
     const telefono = p.cliente_telefono || p.telefono || "";
     const nome = p.cliente_nome || p.nome_cliente || "Cliente";
+    const cognome = p.cognome ? ` ${p.cognome}` : "";
     const note = p.note ? `<div class="pren-note">📝 ${escapeHtml(p.note)}</div>` : "";
     const coperti = Number(p.coperti) || 0;
+    const isChatbot = p.canale === "chatbot" || p.tag === "chatbot_wa";
+    const badgeChatbot = isChatbot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px;">🤖 Bot</span>` : "";
 
     return `
       <div class="pren-card">
@@ -1116,7 +1119,7 @@ function renderDays() {
 
           <div class="pren-main">
             <div class="pren-name-row">
-              <div class="pren-name">${escapeHtml(nome)}</div>
+              <div class="pren-name">${escapeHtml(nome + cognome)}${badgeChatbot}</div>
               <div class="pren-status" style="background:${stato.bg};color:${stato.color};">
                 <span>${stato.emoji}</span>
                 <span>${stato.label}</span>
