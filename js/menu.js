@@ -7,7 +7,71 @@ export function initMenu() {
   if (!menu || !toggle) return;
 
   if (headerRight && !document.getElementById("notif-bell")) {
-    const bell = document.createElement("div");
+    // ── ICONA WHATSAPP ───────────────────────────────────────────────────
+    if (!document.getElementById("wa-btn-header")) {
+      const waBtn = document.createElement("div");
+      waBtn.id = "wa-btn-header";
+      waBtn.title = "WhatsApp Inbox";
+      waBtn.style.cssText = `
+        position: relative;
+        cursor: pointer;
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #f0f7ff;
+      `;
+      waBtn.innerHTML = `
+        <span style="font-size:17px;">💬</span>
+        <div id="wa-badge" style="
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #ef4444;
+          color: white;
+          border-radius: 50%;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 5px;
+          display: none;
+          min-width: 16px;
+          text-align: center;
+        ">0</div>
+      `;
+      waBtn.onclick = () => {
+        window.location.hash = "#/bo-whatsapp";
+        closeMenu();
+      };
+      headerRight.appendChild(waBtn);
+    }
+
+    // ── POLLING BADGE WA ─────────────────────────────────────────────────
+    window.updateWaBadge = (count) => {
+      const badge = document.getElementById("wa-badge");
+      if (!badge) return;
+      badge.textContent = count;
+      badge.style.display = count > 0 ? "block" : "none";
+    };
+
+    async function pollWaBadge() {
+      const aziendaId = window.state?.azienda?.id;
+      if (!aziendaId) return;
+      try {
+        const { count } = await (window.supabaseClient || window.supabase)
+          .from("whatsapp_messaggi")
+          .select("id", { count: "exact", head: true })
+          .eq("azienda_id", aziendaId)
+          .eq("letto", false);
+        window.updateWaBadge(count || 0);
+      } catch {}
+    }
+
+    setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
+
+    // ── CAMPANELLA NOTIFICHE ─────────────────────────────────────────────
     bell.id = "notif-bell";
     bell.style.position = "relative";
     bell.style.cursor = "pointer";
@@ -325,6 +389,7 @@ export function initMenu() {
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
+          { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
         ]
       });
 
@@ -431,8 +496,29 @@ export function initMenu() {
         row.className =
           "menu-subitem";
 
-        row.innerText =
-          item.label;
+        if (item.badge === "wa") {
+          const badgeCount = document.getElementById("wa-badge")?.textContent || "0";
+          const badgeVisible = document.getElementById("wa-badge")?.style.display !== "none";
+          row.innerHTML = `
+            <span>${item.label}</span>
+            <span id="wa-menu-badge" style="
+              background:#ef4444;
+              color:white;
+              border-radius:50%;
+              font-size:10px;
+              font-weight:700;
+              padding:2px 6px;
+              min-width:16px;
+              text-align:center;
+              display:${badgeVisible ? "inline-block" : "none"};
+            ">${badgeCount}</span>
+          `;
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+        } else {
+          row.innerText = item.label;
+        }
 
         row.onclick =
           () => go(item.route);
