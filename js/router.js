@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
-import { renderFooter, initFooter } from "./components/footer.js";
+// Footer rimosso — import commentato
+// import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
    SUPABASE EMAIL LINK HANDLER
 ========================================================= */
@@ -79,6 +80,7 @@ const routes = {
   "bo-marketing": () => import("./views/bo/bo-marketing.js"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
   "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
+  "bo-whatsapp": () => import("./views/bo/bo-whatsapp.js"),
 
   dipendenti: () => import("./views/dipendenti.js"),
   dipendente: () => import("./views/dipendente.js"),
@@ -225,6 +227,7 @@ const BO_ROUTES = new Set([
   "bo-promo",
   "bo-catenarie",
   "bo-dispositivi",
+  "bo-whatsapp",
 ]);
 
 // Display tablet — bypassano auth contesto operativo, hanno PIN proprio
@@ -302,29 +305,7 @@ async function renderView(routeName) {
 
   await module.render(app);
 
-  // 🔥 FOOTER
-  try {
-
-    if (foot) {
-
-      const footerHTML =
-        await renderFooter();
-
-      foot.innerHTML =
-        footerHTML;
-
-      initFooter();
-
-    }
-
-  } catch (e) {
-
-    console.error(
-      "Errore render footer:",
-      e
-    );
-
-  }
+  // Footer rimosso intenzionalmente
 
 }
 
