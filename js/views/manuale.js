@@ -2,7 +2,7 @@
 import { createPageLayout } from "../utils/pageLayout.js";
 
 export async function render(container) {
-  const PDF_URL = "https://ristomanager-it.github.io/gestionale-antonio/docs/Ristoflow_Manuale_Operativo.pdf";
+  const PDF_URL = "https://ristomanager-it.github.io/gestionale-antonio/Ristoflow_Manuale_Operativo%20(1).pdf";
 
   container.innerHTML = createPageLayout({
     title: "📘 Manuale Operativo",
@@ -10,7 +10,7 @@ export async function render(container) {
     content: `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div style="font-size:13px;color:#6b7280;">Versione Giugno 2026 — aggiornato con tutte le funzioni attuali</div>
-        <a href="${PDF_URL}" download="Ristoflow_Manuale_Operativo.pdf"
+        <a href="${PDF_URL}" target="_blank"
           style="background:#0E5A7A;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           ⬇️ Scarica PDF
         </a>
