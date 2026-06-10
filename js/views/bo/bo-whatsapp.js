@@ -123,9 +123,30 @@ export async function render(container) {
 
     if (!data) return;
 
-    // Raggruppa per numero
+    // Raggruppa per numero — i messaggi operatore (from_numero = aziendaId)
+    // vengono associati alla conversazione tramite il campo risposta_testo
+    // oppure tramite un campo dedicato "numero_cliente" se presente
     const map = new Map();
+
     for (const msg of data) {
+      // Determina la chiave della conversazione
+      // Se è un messaggio dell'operatore, usa il numero nel testo o skip se non ha riferimento
+      const isOperatore = msg.intent === "risposta_manuale" || msg.from_numero === aziendaId;
+
+      // I messaggi operatore salvati con from_numero = aziendaId
+      // hanno bisogno di un numero_cliente per essere associati
+      // Se non c'è, skippa (verranno mostrati tramite risposta_testo)
+      if (isOperatore && msg.from_numero === aziendaId) {
+        // Associa al numero cliente tramite campo numero_dest se disponibile
+        const numeroCliente = msg.numero_dest || msg.numero_cliente;
+        if (!numeroCliente) continue;
+
+        if (map.has(numeroCliente)) {
+          map.get(numeroCliente).messaggi.push(msg);
+        }
+        continue;
+      }
+
       const key = msg.from_numero;
       if (!map.has(key)) {
         map.set(key, {
@@ -381,8 +402,10 @@ export async function render(container) {
         .insert({
           azienda_id: aziendaId,
           phone_number_id: conn?.meta_phone_number_id || "",
-          from_numero: aziendaId, // mittente = azienda
+          from_numero: aziendaId,
           from_nome: "Operatore",
+          numero_dest: conversazioneAttiva.numero,
+          numero_cliente: conversazioneAttiva.numero,
           message_id: `manual_${Date.now()}`,
           tipo: "text",
           testo,
