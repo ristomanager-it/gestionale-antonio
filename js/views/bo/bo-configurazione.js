@@ -2106,7 +2106,7 @@ export async function render(container) {
   async function renderTabPrenotazioni(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
     try {
-      const { render } = await import('./booking-form-builder.js');
+      const { render } = await import('../booking/booking-form-builder.js');
       box.innerHTML = '';
       await render(box);
     } catch (e) {
