@@ -575,27 +575,93 @@ export async function render(container) {
     lista.innerHTML = sessioni.map(s => {
       const [bg, color] = (statoColor[s.stato] || "#f3f4f6:#374151").split(":");
       const dati = s.dati_raccolti || {};
+      const ts = s.updated_at ? new Date(s.updated_at).toLocaleString("it-IT", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }) : "";
       return `
-        <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:#e8f4f8;color:#0E5A7A;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">
-            ${(s.numero_cliente || "?").slice(-2)}
+        <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:10px;overflow:hidden;">
+          <div style="padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="window._toggle_chat('${s.numero_cliente}')">
+            <div style="width:40px;height:40px;border-radius:50%;background:#e8f4f8;color:#0E5A7A;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">
+              ${(s.numero_cliente || "?").slice(-2)}
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;color:#111827;">+${s.numero_cliente}</div>
+              <div style="font-size:12px;color:#6b7280;">${s.chatbot_flussi?.nome || "Flusso sconosciuto"} · Step ${s.step_corrente} · ${ts}</div>
+              ${Object.keys(dati).length ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px;">${Object.entries(dati).filter(([k]) => k !== "tipo_sessione").map(([k,v]) => `${k}: ${v}`).join(" · ")}</div>` : ""}
+            </div>
+            <span style="background:${bg};color:${color};border-radius:100px;padding:3px 10px;font-size:12px;font-weight:600;flex-shrink:0;">${s.stato}</span>
+            ${s.stato === "attiva" ? `
+              <button class="cb-btn cb-btn-outline cb-btn-sm" onclick="event.stopPropagation();window._prendi_chat('${s.numero_cliente}')">Prendi chat</button>
+            ` : ""}
+            <span style="color:#9ca3af;font-size:16px;" id="arrow-${s.numero_cliente}">▾</span>
           </div>
-          <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:#111827;">+${s.numero_cliente}</div>
-            <div style="font-size:12px;color:#6b7280;">${s.chatbot_flussi?.nome || "Flusso sconosciuto"} · Step ${s.step_corrente}</div>
-            ${Object.keys(dati).length ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px;">${Object.entries(dati).map(([k,v]) => `${k}: ${v}`).join(" · ")}</div>` : ""}
+          <div id="chat-${s.numero_cliente}" style="display:none;border-top:1px solid #f3f4f6;background:#f8fafc;padding:12px;max-height:320px;overflow-y:auto;">
+            <div style="text-align:center;font-size:12px;color:#9ca3af;">Caricamento messaggi...</div>
           </div>
-          <span style="background:${bg};color:${color};border-radius:100px;padding:3px 10px;font-size:12px;font-weight:600;">${s.stato}</span>
-          ${s.stato === "attiva" ? `
-            <button class="cb-btn cb-btn-outline cb-btn-sm" onclick="window._prendi_chat('${s.numero_cliente}')">Prendi chat</button>
-          ` : ""}
         </div>`;
     }).join("");
   }
 
+  window._toggle_chat = async (numero) => {
+    const box = document.getElementById(`chat-${numero}`);
+    const arrow = document.getElementById(`arrow-${numero}`);
+    if (!box) return;
+    const isOpen = box.style.display !== "none";
+    box.style.display = isOpen ? "none" : "block";
+    if (arrow) arrow.textContent = isOpen ? "▾" : "▴";
+    if (!isOpen) {
+      // Carica messaggi
+      const { data: msgs } = await supa()
+        .from("whatsapp_messaggi")
+        .select("testo, intent, from_numero, created_at, risposta_testo")
+        .eq("azienda_id", aziendaId)
+        .or(`from_numero.eq.${numero},numero_cliente.eq.${numero}`)
+        .order("created_at", { ascending: true })
+        .limit(100);
+
+      if (!msgs || !msgs.length) {
+        box.innerHTML = `<div style="text-align:center;font-size:12px;color:#9ca3af;padding:12px;">Nessun messaggio trovato</div>`;
+        return;
+      }
+
+      box.innerHTML = msgs.map(m => {
+        const ora = new Date(m.created_at).toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+        const isBot = m.intent === "risposta_automatica";
+        const isOp = m.intent === "risposta_manuale";
+
+        let html = "";
+        // Messaggio cliente
+        if (!isBot && m.testo) {
+          html += `
+            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end;">
+              <div style="max-width:75%;background:white;border:1px solid #e5e7eb;border-radius:12px 12px 12px 0;padding:8px 12px;font-size:13px;color:#111827;">${m.testo}</div>
+              <span style="font-size:10px;color:#9ca3af;white-space:nowrap;">${ora}</span>
+            </div>`;
+        }
+        // Risposta bot
+        if (m.risposta_testo && !isOp) {
+          html += `
+            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end;flex-direction:row-reverse;">
+              <div style="max-width:75%;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:12px 12px 0 12px;padding:8px 12px;font-size:13px;color:#1b5e20;">${m.risposta_testo}</div>
+              <span style="font-size:10px;color:#9ca3af;white-space:nowrap;">🤖 ${ora}</span>
+            </div>`;
+        }
+        // Messaggio operatore
+        if (isOp && m.testo) {
+          html += `
+            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end;flex-direction:row-reverse;">
+              <div style="max-width:75%;background:#0E5A7A;border-radius:12px 12px 0 12px;padding:8px 12px;font-size:13px;color:white;">${m.testo}</div>
+              <span style="font-size:10px;color:#9ca3af;white-space:nowrap;">👤 ${ora}</span>
+            </div>`;
+        }
+        return html;
+      }).join("");
+
+      box.scrollTop = box.scrollHeight;
+    }
+  };
+
   window._prendi_chat = async (numero) => {
     await supa().from("chatbot_sessioni").update({ stato: "operatore" }).eq("azienda_id", aziendaId).eq("numero_cliente", numero);
-    window.location.hash = "#/bo-whatsapp";
+    window.location.hash = "#/whatsapp";
   };
 
   // ── INIT ──────────────────────────────────────────────────────────────────
