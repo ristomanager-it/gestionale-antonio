@@ -200,6 +200,7 @@ export async function render(container) {
                           c.intent === "info_orari" ? "⏰" :
                           c.intent === "info_menu" ? "🍽️" : "💬";
       const data = new Date(c.ultimaData).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+      const isBot = c.messaggi?.some(m => m.intent === "risposta_automatica");
 
       return `
         <div class="wa-conv-item" data-numero="${c.numero}"
@@ -215,6 +216,7 @@ export async function render(container) {
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:16px;">${intentLabel}</span>
               <span style="font-weight:600;font-size:14px;color:#111827;">${c.nome}</span>
+              ${isBot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;font-size:10px;font-weight:700;padding:2px 7px;">🤖 Bot</span>` : ""}
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:11px;color:#9ca3af;">${data}</span>
@@ -224,6 +226,7 @@ export async function render(container) {
           <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${c.ultimoMessaggio?.substring(0, 50) || "[media]"}
           </div>
+          ${isBot ? `<div style="margin-top:6px;"><a href="#/chatbot" style="font-size:11px;color:#0E5A7A;text-decoration:none;font-weight:600;">→ Vedi sessione chatbot</a></div>` : ""}
         </div>
       `;
     }).join("");
