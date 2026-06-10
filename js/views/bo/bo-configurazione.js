@@ -48,6 +48,7 @@ export async function render(container) {
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'    },
           { id:'identita',     icon:'🎯', label:'Identità'        },
           { id:'sondaggi',     icon:'📊', label:'Sondaggi'        },
+          { id:'profilo',      icon:'🌐', label:'Profilo Pubblico'},
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
@@ -83,6 +84,7 @@ export async function render(container) {
       case 'integrazioni': renderTabIntegrazioni(box); break;
       case 'identita':     renderTabIdentita(box);    break;
       case 'sondaggi':     renderTabSondaggi(box);    break;
+      case 'profilo':      renderTabProfilo(box);     break;
     }
   }
 
@@ -2096,6 +2098,268 @@ export async function render(container) {
     });
 
     renderListaSondaggi();
+  }
+
+  // ── TAB PROFILO PUBBLICO ─────────────────────────────────────────────────
+  async function renderTabProfilo(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: profilo } = await supa()
+      .from('azienda_profilo_pubblico')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+
+    const p = profilo || {};
+    const intolleranze = p.intolleranze_gestite || [];
+    const servizi = p.servizi || {};
+
+    const toggleItem = (key, label, icon) => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" data-servizio="${key}" ${servizi[key] ? 'checked' : ''}
+          style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;flex-shrink:0;">
+        <span style="font-size:14px;">${icon} ${label}</span>
+      </label>`;
+
+    const intolleranzaItem = (key, label) => `
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" data-intolleranza="${key}" ${intolleranze.includes(key) ? 'checked' : ''}
+          style="width:16px;height:16px;accent-color:#0E5A7A;cursor:pointer;">
+        <span style="font-size:13px;">${label}</span>
+      </label>`;
+
+    box.innerHTML = `
+      <div style="max-width:820px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">🌐 Profilo Pubblico</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:20px;">
+          Queste informazioni vengono usate dal chatbot WhatsApp per rispondere automaticamente ai clienti.
+        </div>
+
+        <!-- POSIZIONE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;">📍 Posizione e contatti</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Indirizzo completo</label>
+              <input id="pp-indirizzo" class="input" value="${esc(p.indirizzo || '')}" placeholder="Via Roma 1, 00100 Roma">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Città</label>
+              <input id="pp-citta" class="input" value="${esc(p.citta || '')}" placeholder="Roma">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Telefono principale</label>
+              <input id="pp-telefono" class="input" value="${esc(p.telefono || '')}" placeholder="+39 02 1234567">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Email pubblica</label>
+              <input id="pp-email" class="input" value="${esc(p.email || '')}" placeholder="info@mioristorante.it">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Link Google Maps</label>
+            <div style="display:flex;gap:8px;">
+              <input id="pp-gmaps" class="input" style="flex:1;" value="${esc(p.google_maps_url || '')}"
+                placeholder="https://maps.app.goo.gl/...">
+              <button id="btn-test-maps" style="background:#e8f4f8;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">
+                🗺️ Testa
+              </button>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Vai su Google Maps → cerca il tuo locale → Condividi → Copia link</div>
+          </div>
+          <div style="margin-top:12px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Info parcheggio</label>
+            <input id="pp-parcheggio" class="input" value="${esc(p.info_parcheggio || '')}"
+              placeholder="Es: Parcheggio gratuito nel cortile interno">
+          </div>
+        </div>
+
+        <!-- SERVIZI -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">✅ Servizi disponibili</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Il chatbot userà queste info per rispondere ai clienti</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            ${toggleItem('accessibile_disabili', 'Accessibile disabili (rampe, ascensore)', '♿')}
+            ${toggleItem('animali_ammessi', 'Animali ammessi', '🐾')}
+            ${toggleItem('wifi_disponibile', 'WiFi disponibile', '📶')}
+            ${toggleItem('area_esterna', 'Area esterna / giardino', '🌿')}
+            ${toggleItem('parcheggio_privato', 'Parcheggio privato', '🅿️')}
+            ${toggleItem('area_fumatori', 'Area fumatori', '🚬')}
+            ${toggleItem('asporto', 'Asporto disponibile', '🥡')}
+            ${toggleItem('delivery', 'Delivery / consegna a domicilio', '🛵')}
+            ${toggleItem('eventi_privati', 'Sale per eventi privati', '🎉')}
+            ${toggleItem('seggioloni', 'Seggioloni per bambini', '👶')}
+            ${toggleItem('menu_bambini', 'Menu bambini', '🧒')}
+            ${toggleItem('area_giochi', 'Area giochi bambini', '🎠')}
+          </div>
+        </div>
+
+        <!-- INTOLLERANZE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">🥗 Intolleranze e allergie gestite</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Spunta quelle che la cucina sa gestire — il chatbot lo comunica ai clienti</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+            ${intolleranzaItem('glutine', 'Senza glutine / Celiachia')}
+            ${intolleranzaItem('lattosio', 'Senza lattosio')}
+            ${intolleranzaItem('vegetariano', 'Vegetariano')}
+            ${intolleranzaItem('vegano', 'Vegano')}
+            ${intolleranzaItem('frutta_secca', 'Allergia frutta a guscio')}
+            ${intolleranzaItem('crostacei', 'Allergia crostacei')}
+            ${intolleranzaItem('uova', 'Allergia uova')}
+            ${intolleranzaItem('pesce', 'Allergia pesce')}
+            ${intolleranzaItem('soia', 'Allergia soia')}
+            ${intolleranzaItem('sedano', 'Allergia sedano')}
+            ${intolleranzaItem('senape', 'Allergia senape')}
+            ${intolleranzaItem('halal', 'Halal')}
+            ${intolleranzaItem('kosher', 'Kosher')}
+          </div>
+        </div>
+
+        <!-- DOMANDE POST-PRENOTAZIONE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">💬 Domande post-prenotazione WhatsApp</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Dopo la conferma prenotazione, il chatbot fa queste domande automaticamente</div>
+
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+            <input type="checkbox" id="pp-chiedi-intolleranze" ${p.chiedi_intolleranze ? 'checked' : ''}
+              style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;flex-shrink:0;">
+            <div>
+              <span style="font-size:14px;font-weight:500;">🥗 Chiedi intolleranze/allergie</span>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">"Ci sono intolleranze alimentari o allergie tra i tuoi ospiti che dovremmo sapere?"</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+            <input type="checkbox" id="pp-chiedi-bambini" ${p.chiedi_bambini ? 'checked' : ''}
+              style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;flex-shrink:0;">
+            <div>
+              <span style="font-size:14px;font-weight:500;">👶 Chiedi seggioloni/bambini</span>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">"Ci sono bambini nel gruppo? Vuoi che prepariamo un seggiolone?"</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+            <input type="checkbox" id="pp-chiedi-occasione" ${p.chiedi_occasione ? 'checked' : ''}
+              style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;flex-shrink:0;">
+            <div>
+              <span style="font-size:14px;font-weight:500;">🎉 Chiedi occasione speciale</span>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">"È una ricorrenza speciale? (compleanno, anniversario, ecc.) Possiamo preparare qualcosa!"</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;">
+            <input type="checkbox" id="pp-chiedi-preferenze" ${p.chiedi_preferenze ? 'checked' : ''}
+              style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;flex-shrink:0;">
+            <div>
+              <span style="font-size:14px;font-weight:500;">🪑 Chiedi preferenze tavolo</span>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">"Preferisci interno o esterno? Zona tranquilla o vivace?"</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- RISPOSTE PERSONALIZZATE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">✍️ Testi personalizzati per il chatbot</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Lascia vuoto per usare il testo default. Usa {nome_locale} come segnaposto.</div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">🕐 Risposta "Info orari"</label>
+              <textarea id="pp-txt-orari" class="input" rows="3" style="resize:none;"
+                placeholder="Ciao! ⏰ Ecco i nostri orari:\n🍽️ Pranzo: 12:00-14:30\n🌙 Cena: 19:30-22:30\nChiusi il martedì.">${esc(p.testo_orari || '')}</textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">📍 Risposta "Come raggiungerci"</label>
+              <textarea id="pp-txt-sede" class="input" rows="3" style="resize:none;"
+                placeholder="Ci trovi in Via Roma 1. Parcheggio gratuito nel cortile. 🗺️ [link maps]">${esc(p.testo_sede || '')}</textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">🍽️ Risposta "Piatto del giorno / cosa servite"</label>
+              <textarea id="pp-txt-menu" class="input" rows="3" style="resize:none;"
+                placeholder="Il nostro menu cambia stagionalmente con prodotti freschi e locali. Oggi il piatto forte è...">${esc(p.testo_menu || '')}</textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">🥗 Risposta "Intolleranze/allergie"</label>
+              <textarea id="pp-txt-intolleranze" class="input" rows="3" style="resize:none;"
+                placeholder="Gestiamo diverse intolleranze — avvisaci in anticipo e la cucina si organizza. 😊">${esc(p.testo_intolleranze || '')}</textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">♿ Risposta "Accessibilità disabili"</label>
+              <textarea id="pp-txt-accessibilita" class="input" rows="2" style="resize:none;"
+                placeholder="Sì, il locale è completamente accessibile con rampe e bagno attrezzato. ♿">${esc(p.testo_accessibilita || '')}</textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">🐾 Risposta "Animali ammessi"</label>
+              <textarea id="pp-txt-animali" class="input" rows="2" style="resize:none;"
+                placeholder="Sì, gli animali sono benvenuti nell'area esterna! 🐾">${esc(p.testo_animali || '')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-salva-profilo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">
+          💾 Salva profilo pubblico
+        </button>
+        <div id="msg-profilo" style="margin-top:12px;text-align:center;font-size:13px;"></div>
+      </div>
+    `;
+
+    // Test Google Maps
+    document.getElementById('btn-test-maps').onclick = () => {
+      const url = document.getElementById('pp-gmaps').value.trim();
+      if (url) window.open(url, '_blank');
+      else alert('Inserisci prima il link Google Maps');
+    };
+
+    // Salva
+    document.getElementById('btn-salva-profilo').onclick = async () => {
+      const msg = document.getElementById('msg-profilo');
+      msg.textContent = 'Salvataggio...';
+
+      // Raccoglie servizi
+      const serviziObj: Record<string, boolean> = {};
+      box.querySelectorAll('[data-servizio]').forEach((el: any) => {
+        serviziObj[el.dataset.servizio] = el.checked;
+      });
+
+      // Raccoglie intolleranze
+      const intolleranzeArr: string[] = [];
+      box.querySelectorAll('[data-intolleranza]').forEach((el: any) => {
+        if (el.checked) intolleranzeArr.push(el.dataset.intolleranza);
+      });
+
+      const payload = {
+        azienda_id: aziendaId,
+        indirizzo: (document.getElementById('pp-indirizzo') as HTMLInputElement).value.trim(),
+        citta: (document.getElementById('pp-citta') as HTMLInputElement).value.trim(),
+        telefono: (document.getElementById('pp-telefono') as HTMLInputElement).value.trim(),
+        email: (document.getElementById('pp-email') as HTMLInputElement).value.trim(),
+        google_maps_url: (document.getElementById('pp-gmaps') as HTMLInputElement).value.trim(),
+        info_parcheggio: (document.getElementById('pp-parcheggio') as HTMLInputElement).value.trim(),
+        servizi: serviziObj,
+        intolleranze_gestite: intolleranzeArr,
+        chiedi_intolleranze: (document.getElementById('pp-chiedi-intolleranze') as HTMLInputElement).checked,
+        chiedi_bambini: (document.getElementById('pp-chiedi-bambini') as HTMLInputElement).checked,
+        chiedi_occasione: (document.getElementById('pp-chiedi-occasione') as HTMLInputElement).checked,
+        chiedi_preferenze: (document.getElementById('pp-chiedi-preferenze') as HTMLInputElement).checked,
+        testo_orari: (document.getElementById('pp-txt-orari') as HTMLTextAreaElement).value.trim(),
+        testo_sede: (document.getElementById('pp-txt-sede') as HTMLTextAreaElement).value.trim(),
+        testo_menu: (document.getElementById('pp-txt-menu') as HTMLTextAreaElement).value.trim(),
+        testo_intolleranze: (document.getElementById('pp-txt-intolleranze') as HTMLTextAreaElement).value.trim(),
+        testo_accessibilita: (document.getElementById('pp-txt-accessibilita') as HTMLTextAreaElement).value.trim(),
+        testo_animali: (document.getElementById('pp-txt-animali') as HTMLTextAreaElement).value.trim(),
+      };
+
+      const { error } = await supa()
+        .from('azienda_profilo_pubblico')
+        .upsert(payload, { onConflict: 'azienda_id' });
+
+      if (error) {
+        msg.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`;
+      } else {
+        msg.innerHTML = `<span style="color:#059669;">✅ Profilo salvato correttamente</span>`;
+        setTimeout(() => msg.textContent = '', 3000);
+      }
+    };
   }
 
   // ── Init ──
