@@ -454,8 +454,21 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
 
 async function startRecording() {
   try {
+    // Verifica HTTPS
+    if (location.protocol !== "https:" && location.hostname !== "localhost") {
+      alert("Il microfono richiede una connessione sicura (HTTPS). Assicurati di aprire l'app su https://app.ristoflow-ai.com");
+      return;
+    }
+
+    // Verifica supporto API
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Il tuo browser non supporta il microfono. Prova con Chrome o Safari aggiornati.");
+      return;
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
+
     // Rileva il miglior formato supportato dal browser
     let mimeType = "audio/webm";
     if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
@@ -468,8 +481,9 @@ async function startRecording() {
       mimeType = "audio/ogg";
     }
 
+    console.log("TONY MIC: formato selezionato", mimeType);
+
     mediaRecorder = new MediaRecorder(stream, { mimeType });
-    // Salva il mimeType per usarlo nella conversione
     mediaRecorder._mimeType = mimeType;
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start(100);
@@ -477,9 +491,16 @@ async function startRecording() {
 
     const mic = document.getElementById("chat-mic");
     if (mic) { mic.classList.add("recording"); mic.textContent = "⏹"; }
-    setStatus("🔴 Registrazione...");
-  } catch {
-    alert("Impossibile accedere al microfono.");
+    setStatus("🔴 Registrazione in corso...");
+  } catch(err) {
+    console.error("TONY MIC ERROR:", err);
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      alert("Accesso al microfono negato.\n\nVai nelle impostazioni del browser e consenti l'accesso al microfono per app.ristoflow-ai.com");
+    } else if (err.name === "NotFoundError") {
+      alert("Nessun microfono trovato. Controlla che il dispositivo abbia un microfono funzionante.");
+    } else {
+      alert("Impossibile accedere al microfono: " + err.message);
+    }
   }
 }
 
