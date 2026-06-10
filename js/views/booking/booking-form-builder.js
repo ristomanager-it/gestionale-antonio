@@ -17,7 +17,7 @@ export async function render(container) {
   let fasceOrarie = [];
   let currentLink = null;
 
-  const BASE_PUBLIC_URL = "https://ristoflow-ai.com";
+  const BASE_PUBLIC_URL = "https://app.ristoflow-ai.com";
   const STORAGE_BUCKET = "loghi-aziende";
 
   container.innerHTML = `
