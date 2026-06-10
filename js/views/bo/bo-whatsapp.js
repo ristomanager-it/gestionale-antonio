@@ -337,7 +337,8 @@ export async function render(container) {
       if (!conn) throw new Error("Connessione WhatsApp non trovata");
 
       const session = await supa().auth.getSession();
-      const token = session?.data?.session?.access_token || "";
+      const token = session?.data?.session?.access_token
+        || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
 
       const res = await fetch(
         `https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/whatsapp-send-ts`,
