@@ -2316,37 +2316,37 @@ export async function render(container) {
       msg.textContent = 'Salvataggio...';
 
       // Raccoglie servizi
-      const serviziObj: Record<string, boolean> = {};
-      box.querySelectorAll('[data-servizio]').forEach((el: any) => {
+      const serviziObj = {};
+      box.querySelectorAll('[data-servizio]').forEach((el) => {
         serviziObj[el.dataset.servizio] = el.checked;
       });
 
       // Raccoglie intolleranze
-      const intolleranzeArr: string[] = [];
-      box.querySelectorAll('[data-intolleranza]').forEach((el: any) => {
+      const intolleranzeArr = [];
+      box.querySelectorAll('[data-intolleranza]').forEach((el) => {
         if (el.checked) intolleranzeArr.push(el.dataset.intolleranza);
       });
 
       const payload = {
         azienda_id: aziendaId,
-        indirizzo: (document.getElementById('pp-indirizzo') as HTMLInputElement).value.trim(),
-        citta: (document.getElementById('pp-citta') as HTMLInputElement).value.trim(),
-        telefono: (document.getElementById('pp-telefono') as HTMLInputElement).value.trim(),
-        email: (document.getElementById('pp-email') as HTMLInputElement).value.trim(),
-        google_maps_url: (document.getElementById('pp-gmaps') as HTMLInputElement).value.trim(),
-        info_parcheggio: (document.getElementById('pp-parcheggio') as HTMLInputElement).value.trim(),
+        indirizzo: (document.getElementById('pp-indirizzo')).value.trim(),
+        citta: (document.getElementById('pp-citta')).value.trim(),
+        telefono: (document.getElementById('pp-telefono')).value.trim(),
+        email: (document.getElementById('pp-email')).value.trim(),
+        google_maps_url: (document.getElementById('pp-gmaps')).value.trim(),
+        info_parcheggio: (document.getElementById('pp-parcheggio')).value.trim(),
         servizi: serviziObj,
         intolleranze_gestite: intolleranzeArr,
-        chiedi_intolleranze: (document.getElementById('pp-chiedi-intolleranze') as HTMLInputElement).checked,
-        chiedi_bambini: (document.getElementById('pp-chiedi-bambini') as HTMLInputElement).checked,
-        chiedi_occasione: (document.getElementById('pp-chiedi-occasione') as HTMLInputElement).checked,
-        chiedi_preferenze: (document.getElementById('pp-chiedi-preferenze') as HTMLInputElement).checked,
-        testo_orari: (document.getElementById('pp-txt-orari') as HTMLTextAreaElement).value.trim(),
-        testo_sede: (document.getElementById('pp-txt-sede') as HTMLTextAreaElement).value.trim(),
-        testo_menu: (document.getElementById('pp-txt-menu') as HTMLTextAreaElement).value.trim(),
-        testo_intolleranze: (document.getElementById('pp-txt-intolleranze') as HTMLTextAreaElement).value.trim(),
-        testo_accessibilita: (document.getElementById('pp-txt-accessibilita') as HTMLTextAreaElement).value.trim(),
-        testo_animali: (document.getElementById('pp-txt-animali') as HTMLTextAreaElement).value.trim(),
+        chiedi_intolleranze: (document.getElementById('pp-chiedi-intolleranze')).checked,
+        chiedi_bambini: (document.getElementById('pp-chiedi-bambini')).checked,
+        chiedi_occasione: (document.getElementById('pp-chiedi-occasione')).checked,
+        chiedi_preferenze: (document.getElementById('pp-chiedi-preferenze')).checked,
+        testo_orari: (document.getElementById('pp-txt-orari')).value.trim(),
+        testo_sede: (document.getElementById('pp-txt-sede')).value.trim(),
+        testo_menu: (document.getElementById('pp-txt-menu')).value.trim(),
+        testo_intolleranze: (document.getElementById('pp-txt-intolleranze')).value.trim(),
+        testo_accessibilita: (document.getElementById('pp-txt-accessibilita')).value.trim(),
+        testo_animali: (document.getElementById('pp-txt-animali')).value.trim(),
       };
 
       const { error } = await supa()
