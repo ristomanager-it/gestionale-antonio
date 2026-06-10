@@ -44,6 +44,7 @@ export async function render(container) {
           { id:'operativo',    icon:'👨‍🍳', label:'Operativo'     },
           { id:'sala',         icon:'🪑', label:'Sala'            },
           { id:'menu',         icon:'📋', label:'Menu'            },
+          { id:'prenotazioni', icon:'📅', label:'Form Prenotazioni'},
           { id:'cassa',        icon:'💳', label:'Cassa'           },
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'    },
           { id:'identita',     icon:'🎯', label:'Identità'        },
@@ -80,6 +81,7 @@ export async function render(container) {
       case 'operativo':    renderTabOperativo(box);    break;
       case 'sala':         renderTabSala(box);         break;
       case 'menu':         renderTabMenu(box);         break;
+      case 'prenotazioni': renderTabPrenotazioni(box); break;
       case 'cassa':        renderTabCassa(box); break;
       case 'integrazioni': renderTabIntegrazioni(box); break;
       case 'identita':     renderTabIdentita(box);    break;
@@ -2098,6 +2100,147 @@ export async function render(container) {
     });
 
     renderListaSondaggi();
+  }
+
+  // ── TAB FORM PRENOTAZIONI ────────────────────────────────────────────────
+  async function renderTabPrenotazioni(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    const { data: cfg } = await supa()
+      .from('prenotazioni_slot_config')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+
+    const orariAttuali = (cfg?.orari || ['12:00','12:30','13:00','13:30','14:00','19:00','19:30','20:00','20:30','21:00','21:30']).join('\n');
+
+    box.innerHTML = `
+      <div style="max-width:820px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">📅 Form Prenotazioni</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:20px;">
+          Configurazione valida per: form interno operatori, form online clienti e chatbot WhatsApp.
+        </div>
+
+        <!-- SLOT TEMPORALI -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;">⏱️ Slot temporali</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Durata slot (minuti)</label>
+              <select id="slot-minuti" class="input">
+                <option value="15" ${cfg?.slot_minuti === 15 ? 'selected' : ''}>15 minuti</option>
+                <option value="30" ${!cfg || cfg?.slot_minuti === 30 ? 'selected' : ''}>30 minuti</option>
+                <option value="60" ${cfg?.slot_minuti === 60 ? 'selected' : ''}>60 minuti</option>
+                <option value="90" ${cfg?.slot_minuti === 90 ? 'selected' : ''}>90 minuti</option>
+                <option value="120" ${cfg?.slot_minuti === 120 ? 'selected' : ''}>120 minuti</option>
+              </select>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Quanto dura mediamente un servizio</div>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Max coperti per slot</label>
+              <input type="number" id="max-coperti" class="input" value="${cfg?.max_coperti_slot || 30}" min="1" max="500">
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Oltre questo numero lo slot appare "Non disponibile"</div>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+              Orari disponibili <span style="font-weight:400;">(uno per riga, formato HH:MM)</span>
+            </label>
+            <textarea id="orari-lista" class="input" rows="8" style="font-family:monospace;font-size:13px;">${orariAttuali}</textarea>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Questi orari appaiono nel form online e nel form interno</div>
+          </div>
+        </div>
+
+        <!-- GIORNI CHIUSURA -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;">📆 Giorni di chiusura</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;">
+            ${['lunedi','martedi','mercoledi','giovedi','venerdi','sabato','domenica'].map(g => {
+              const chiuso = (cfg?.giorni_chiusura || ['martedi']).includes(g);
+              const label = g.charAt(0).toUpperCase() + g.slice(1);
+              return `
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:1px solid #e5e7eb;border-radius:8px;${chiuso ? 'background:#fee2e2;' : ''}">
+                  <input type="checkbox" data-giorno="${g}" ${chiuso ? 'checked' : ''}
+                    style="width:16px;height:16px;accent-color:#dc2626;cursor:pointer;">
+                  <span style="font-size:13px;">${label}</span>
+                </label>`;
+            }).join('')}
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Nei giorni di chiusura il form non accetta prenotazioni</div>
+        </div>
+
+        <!-- ANTEPRIMA SLOT -->
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;">👁️ Anteprima slot nel form online</div>
+          <div id="preview-slot" style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${(cfg?.orari || ['12:00','12:30','13:00','13:30','14:00','19:00','19:30','20:00','20:30','21:00','21:30']).map(o =>
+              `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;">${o}</span>`
+            ).join('')}
+          </div>
+        </div>
+
+        <button id="btn-salva-prenotazioni" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">
+          💾 Salva configurazione
+        </button>
+        <div id="msg-prenotazioni" style="margin-top:12px;text-align:center;font-size:13px;"></div>
+      </div>
+    `;
+
+    // Aggiorna preview orari in tempo reale
+    document.getElementById('orari-lista').addEventListener('input', () => {
+      const orari = document.getElementById('orari-lista').value
+        .split('\n').map(o => o.trim()).filter(o => /^\d{1,2}:\d{2}$/.test(o));
+      document.getElementById('preview-slot').innerHTML = orari.map(o =>
+        `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;">${o}</span>`
+      ).join('') || '<span style="color:#9ca3af;font-size:13px;">Nessun orario valido</span>';
+    });
+
+    // Colora giorni chiusura
+    box.querySelectorAll('[data-giorno]').forEach(el => {
+      el.addEventListener('change', () => {
+        el.closest('label').style.background = el.checked ? '#fee2e2' : '';
+      });
+    });
+
+    // Salva
+    document.getElementById('btn-salva-prenotazioni').onclick = async () => {
+      const msg = document.getElementById('msg-prenotazioni');
+      msg.textContent = 'Salvataggio...';
+
+      const orari = document.getElementById('orari-lista').value
+        .split('\n').map(o => o.trim()).filter(o => /^\d{1,2}:\d{2}$/.test(o));
+
+      if (!orari.length) {
+        msg.innerHTML = '<span style="color:#dc2626;">Inserisci almeno un orario valido (HH:MM)</span>';
+        return;
+      }
+
+      const giorniChiusura = [];
+      box.querySelectorAll('[data-giorno]').forEach(el => {
+        if (el.checked) giorniChiusura.push(el.dataset.giorno);
+      });
+
+      const payload = {
+        azienda_id: aziendaId,
+        slot_minuti: parseInt(document.getElementById('slot-minuti').value),
+        max_coperti_slot: parseInt(document.getElementById('max-coperti').value),
+        orari,
+        giorni_chiusura: giorniChiusura,
+      };
+
+      const { error } = await supa()
+        .from('prenotazioni_slot_config')
+        .upsert(payload, { onConflict: 'azienda_id' });
+
+      if (error) {
+        msg.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`;
+      } else {
+        msg.innerHTML = '<span style="color:#059669;">✅ Configurazione salvata — valida per form interno, online e chatbot</span>';
+        setTimeout(() => msg.textContent = '', 3000);
+      }
+    };
   }
 
   // ── TAB PROFILO PUBBLICO ─────────────────────────────────────────────────
