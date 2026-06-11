@@ -2,7 +2,7 @@
 import { createPageLayout } from "../utils/pageLayout.js";
 
 export async function render(container) {
-  const PDF_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/Ristoflow_Manuale_Operativo.pdf";
+  const PDF_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/Ristoflow_Manuale_Utente.pdf";
 
   container.innerHTML = createPageLayout({
     title: "📘 Manuale Operativo",
