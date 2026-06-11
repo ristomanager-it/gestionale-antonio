@@ -581,6 +581,26 @@ export function initMenu() {
 
     });
 
+    // Pulisci cache
+    const cacheBtn = document.createElement("div");
+    cacheBtn.className = "menu-logout";
+    cacheBtn.style.cssText = "background:#f3f4f6;color:#374151;margin-bottom:4px;font-size:12px;";
+    cacheBtn.innerText = "🔄 Aggiorna app";
+    cacheBtn.onclick = async () => {
+      try {
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch(e) {}
+      window.location.reload(true);
+    };
+    menu.appendChild(cacheBtn);
+
     // Manuale prima del logout
     const manualeBtn = document.createElement("div");
     manualeBtn.className = "menu-logout";
