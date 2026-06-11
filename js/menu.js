@@ -318,15 +318,16 @@ export function initMenu() {
     const sections = [];
     const ruolo = getRuoloAttivo();
 
-    // ── PIATTAFORMA (solo superadmin) ──
-    if (isSuperadmin()) {
+    // ── PIATTAFORMA (solo superadmin) — visibile anche con viewAs attivo ──
+    const isSa = window.state?.isSuperadmin === true || window.state?.ruolo === "superadmin";
+    if (isSa) {
       sections.push({
         title: "PIATTAFORMA",
         items: [
-          { label: "Dashboard SaaS",    route: "homePiattaforma" },
-          { label: "Gestione Aziende",  route: "gestioneAziende" },
-          { label: "Crea Azienda",      route: "creaAzienda"     },
-          { label: "Piani Abbonamento", route: "gestionePiani"   },
+          { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
+          { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
+          { label: "➕ Crea Azienda",      route: "creaAzienda"     },
+          { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
         ]
       });
     }
