@@ -1139,6 +1139,7 @@ function renderDays() {
     const coperti = Number(p.coperti) || 0;
     const isChatbot = p.canale === "chatbot" || p.tag === "chatbot_wa";
     const badgeChatbot = isChatbot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px;">🤖 Bot</span>` : "";
+    const badgeModifica = p.modificata_dal_cliente ? `<span style="background:#fef3c7;color:#92400e;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px;">🖊️ Modificata</span>` : "";
 
     const token = p.token_pubblico || "";
     const landingUrl = token ? `https://ristoflow-ai.com/prenotazione.html?t=${token}` : "";
@@ -1153,7 +1154,7 @@ function renderDays() {
 
           <div class="pren-main">
             <div class="pren-name-row">
-              <div class="pren-name">${escapeHtml(nome + cognome)}${badgeChatbot}</div>
+              <div class="pren-name">${escapeHtml(nome + cognome)}${badgeChatbot}${badgeModifica}</div>
               <div class="pren-status" style="background:${stato.bg};color:${stato.color};">
                 <span>${stato.emoji}</span>
                 <span>${stato.label}</span>
