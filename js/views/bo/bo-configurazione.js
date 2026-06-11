@@ -1417,10 +1417,19 @@ export async function render(container) {
       `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
 
     box.innerHTML = `
+      <!-- Banner Menu Builder -->
+      <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);border-radius:16px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#fff;">🍽️ Menu Builder</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px;">Crea menu digitali con categorie, foto, food cost live, QR code e link pubblico</div>
+        </div>
+        <button id="btn-apri-menu-builder" style="background:#fff;color:#0E5A7A;border:none;border-radius:12px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap;">🚀 Apri Menu Builder</button>
+      </div>
+
       <!-- Header -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
-          <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Catalogo prodotti</div>
+          <div style="font-size:17px;font-weight:700;color:#0f172a;">📦 Catalogo prodotti</div>
           <div style="font-size:13px;color:#64748b;margin-top:2px;">Portate, servizi e menu — usati da preventivi, comande e menu digitale</div>
         </div>
         <button id="btn-nuovo-prodotto" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi prodotto</button>
@@ -1607,6 +1616,7 @@ export async function render(container) {
     renderListaProdotti();
 
     // Bind form
+    box.querySelector('#btn-apri-menu-builder').addEventListener('click', () => { window.location.hash = '#/bo-menu'; });
     box.querySelector('#btn-nuovo-prodotto').addEventListener('click', () => apriFormProdotto(null));
     box.querySelector('#btn-annulla-prodotto').addEventListener('click', () => {
       box.querySelector('#form-prodotto-wrap').style.display = 'none';
