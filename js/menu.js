@@ -569,6 +569,17 @@ export function initMenu() {
 
     });
 
+    // Manuale prima del logout
+    const manualeBtn = document.createElement("div");
+    manualeBtn.className = "menu-logout";
+    manualeBtn.style.cssText = "background:#e8f4f8;color:#0E5A7A;margin-bottom:4px;";
+    manualeBtn.innerText = "📘 Manuale d'uso";
+    manualeBtn.onclick = () => {
+      window.location.hash = "#/manuale";
+      closeMenu();
+    };
+    menu.appendChild(manualeBtn);
+
     const logout =
       document.createElement("div");
 
