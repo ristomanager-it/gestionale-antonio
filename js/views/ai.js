@@ -246,6 +246,28 @@ export async function render(app) {
         <div class="chat-status" id="tony-status">Assistente operativo</div>
       </div>
     </div>
+    <div style="margin-left:auto;">
+      <button id="btn-memoria" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:600;">🧠 Memoria</button>
+    </div>
+  </div>
+
+  <!-- PANNELLO MEMORIA -->
+  <div id="memoria-panel" style="display:none;position:absolute;top:60px;left:0;right:0;bottom:0;background:white;z-index:100;overflow-y:auto;flex-direction:column;">
+    <div style="background:#0E5A7A;color:white;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <button id="btn-chiudi-memoria" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:4px 10px;cursor:pointer;">← Torna</button>
+      <span style="font-weight:700;font-size:15px;">🧠 Cosa sa Tony del tuo locale</span>
+    </div>
+    <div style="padding:16px;">
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:8px;">💡 Dettatura guidata</div>
+        <div style="font-size:12px;color:#374151;margin-bottom:12px;">Tony farà domande per conoscere meglio il tuo locale. Rispondi liberamente — salverà tutto automaticamente.</div>
+        <button id="btn-avvia-dettatura" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">🎙️ Avvia dettatura guidata</button>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;">📋 Ricordi salvati</div>
+      <div id="memoria-lista">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">Caricamento...</div>
+      </div>
+    </div>
   </div>
 
   <div id="chat-messages" class="chat-messages"></div>
@@ -627,12 +649,131 @@ function setVh() {
 setVh();
 window.addEventListener("resize", setVh);
 
+// ── MEMORIA TONY ──────────────────────────────────────────────────────────
+async function loadMemoria() {
+  const aziendaId = window.state?.azienda?.id;
+  const lista = document.getElementById("memoria-lista");
+  if (!lista) return;
+
+  const supabase = window.supabaseClient || window.supabase;
+  const { data } = await supabase
+    .from("tony_memoria")
+    .select("id, tipo, titolo, contenuto, created_at")
+    .eq("azienda_id", aziendaId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (!data?.length) {
+    lista.innerHTML = `<div style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">Nessun ricordo salvato ancora.<br>Avvia la dettatura guidata per iniziare!</div>`;
+    return;
+  }
+
+  lista.innerHTML = data.map(m => `
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-size:11px;color:#0E5A7A;font-weight:700;text-transform:uppercase;margin-bottom:2px;">${m.tipo || "nota"}</div>
+        ${m.titolo ? `<div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:2px;">${m.titolo}</div>` : ""}
+        <div style="font-size:13px;color:#374151;line-height:1.4;">${m.contenuto}</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:4px;">${new Date(m.created_at).toLocaleDateString("it-IT")}</div>
+      </div>
+      <button onclick="eliminaRicordo('${m.id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0;flex-shrink:0;">🗑</button>
+    </div>
+  `).join("");
+}
+
+window.eliminaRicordo = async (id) => {
+  if (!confirm("Eliminare questo ricordo?")) return;
+  const supabase = window.supabaseClient || window.supabase;
+  await supabase.from("tony_memoria").delete().eq("id", id);
+  loadMemoria();
+};
+
+const DETTATURA_DOMANDE = [
+  "Come si chiama il tuo locale e di che tipo si tratta? (ristorante, pizzeria, trattoria, catering...)",
+  "Qual è la tua filosofia in cucina? Cosa ti distingue dagli altri?",
+  "Chi è il tuo cliente ideale? Chi vuoi che venga da te?",
+  "Quali sono i tuoi 3 piatti simbolo — quelli che ti rappresentano di più?",
+  "Quali sono i tuoi obiettivi per i prossimi 6 mesi?",
+  "C'è qualcosa che Tony deve sapere sul tuo team o sulla gestione del personale?",
+  "Hai già usato campagne marketing? Cosa ha funzionato e cosa no?",
+  "C'è qualcosa di importante che vuoi che Tony ricordi sempre quando ti risponde?",
+];
+
+let dettaturaStep = 0;
+let dettaturaRisposte = [];
+
+async function avviaDettatura() {
+  const panel = document.getElementById("memoria-panel");
+  if (panel) panel.style.display = "none";
+
+  dettaturaStep = 0;
+  dettaturaRisposte = [];
+
+  // Torna alla chat e avvia il flusso
+  addMessage("🧠 Perfetto! Avvio la dettatura guidata. Ti farò alcune domande per conoscere meglio il tuo locale — rispondi liberamente, salvo tutto automaticamente.
+
+Puoi rispondere con testo o con la voce 🎤", "ai");
+
+  setTimeout(() => {
+    addMessage(DETTATURA_DOMANDE[0], "ai");
+    window._inDettatura = true;
+    window._dettaturaStep = 0;
+  }, 800);
+}
+
+async function gestisciRispostaDettatura(risposta) {
+  const step = window._dettaturaStep || 0;
+  const domanda = DETTATURA_DOMANDE[step];
+
+  // Salva in tony_memoria
+  const aziendaId = window.state?.azienda?.id;
+  const supabase = window.supabaseClient || window.supabase;
+  const tipi = ["identita", "filosofia", "cliente_ideale", "menu", "obiettivi", "personale", "marketing", "istruzione"];
+  await supabase.from("tony_memoria").insert({
+    azienda_id: aziendaId,
+    tipo: tipi[step] || "nota",
+    titolo: domanda.split("?")[0].replace(/^[^a-zA-Z]+/, ""),
+    contenuto: risposta,
+  });
+
+  const prossimoStep = step + 1;
+  window._dettaturaStep = prossimoStep;
+
+  if (prossimoStep < DETTATURA_DOMANDE.length) {
+    addMessage(`✅ Salvato! Prossima domanda:
+
+${DETTATURA_DOMANDE[prossimoStep]}`, "ai");
+  } else {
+    window._inDettatura = false;
+    window._dettaturaStep = 0;
+    addMessage("🎉 Dettatura completata! Tony ora conosce il tuo locale molto meglio e userà queste informazioni in ogni risposta.
+
+Puoi aggiornare o cancellare i ricordi in qualsiasi momento dal pannello 🧠 Memoria.", "ai");
+  }
+}
+
 function initChat(ruolo) {
   const input = document.getElementById("chat-input");
   const send = document.getElementById("chat-send");
   const mic = document.getElementById("chat-mic");
 
   loadMessaggioIniziale(ruolo);
+
+  // Memoria panel
+  const btnMemoria = document.getElementById("btn-memoria");
+  const memoriaPanel = document.getElementById("memoria-panel");
+  const btnChiudiMemoria = document.getElementById("btn-chiudi-memoria");
+  const btnAvviaDettatura = document.getElementById("btn-avvia-dettatura");
+
+  if (btnMemoria) btnMemoria.onclick = () => {
+    memoriaPanel.style.display = "flex";
+    memoriaPanel.style.flexDirection = "column";
+    loadMemoria();
+  };
+  if (btnChiudiMemoria) btnChiudiMemoria.onclick = () => {
+    memoriaPanel.style.display = "none";
+  };
+  if (btnAvviaDettatura) btnAvviaDettatura.onclick = avviaDettatura;
 
   async function sendMessage(prompt) {
     prompt = (prompt || input?.value || "").trim();
@@ -642,6 +783,14 @@ function initChat(ruolo) {
     conversation.push({ role: "user", content: prompt });
     if (input) input.value = "";
     if (send) send.disabled = true;
+
+    // Intercetta dettatura guidata
+    if (window._inDettatura) {
+      await gestisciRispostaDettatura(prompt);
+      if (send) send.disabled = false;
+      scrollBottom();
+      return;
+    }
 
     setStatus("⏳ Tony sta scrivendo...");
     const loading = addMessage("Tony sta scrivendo...", "ai");
