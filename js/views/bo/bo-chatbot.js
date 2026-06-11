@@ -353,7 +353,13 @@ export async function render(container) {
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
           <div class="cb-step-num">${i + 1}</div>
           <div style="flex:1;font-size:13px;font-weight:600;color:#374151;">Passaggio ${i + 1}</div>
-          <button class="cb-btn cb-btn-danger cb-btn-sm" onclick="window._removeStep(${i})">✕</button>
+          <div style="display:flex;gap:4px;">
+            <button class="cb-btn cb-btn-outline cb-btn-sm" title="Sposta su"
+              onclick="window._moveStep(${i}, -1)" ${i === 0 ? 'disabled style="opacity:0.3;"' : ''}>▲</button>
+            <button class="cb-btn cb-btn-outline cb-btn-sm" title="Sposta giù"
+              onclick="window._moveStep(${i}, 1)" ${i === steps.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>▼</button>
+            <button class="cb-btn cb-btn-danger cb-btn-sm" onclick="window._removeStep(${i})">✕</button>
+          </div>
         </div>
         <div style="margin-bottom:8px;">
           <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Messaggio del bot</label>
@@ -406,6 +412,14 @@ export async function render(container) {
 
   window._removeStep = (i) => {
     steps.splice(i, 1);
+    renderSteps();
+    renderPreview();
+  };
+
+  window._moveStep = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= steps.length) return;
+    [steps[i], steps[j]] = [steps[j], steps[i]];
     renderSteps();
     renderPreview();
   };
