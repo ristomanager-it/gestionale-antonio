@@ -250,36 +250,51 @@
 
   <!-- TAWK.TO LIVE CHAT -->
   <script type="text/javascript">
-    // Carica Tawk dopo il login — passa nome e azienda automaticamente
-    window.addEventListener("ristoflow:user-loaded", function () {
-      var Tawk_API = Tawk_API || {};
+    // Carica Tawk subito — nascosto su login, visibile dopo autenticazione
+    var Tawk_API = Tawk_API || {};
+    var Tawk_LoadStart = new Date();
 
-      // Identifica l'utente loggato a Tawk
-      Tawk_API.onLoad = function () {
+    // Nasconde il widget sulle pagine pre-login
+    Tawk_API.onLoad = function () {
+      var hash = window.location.hash;
+      var isPreLogin = !hash || hash === "#/" || hash.includes("login") || hash.includes("registrati");
+      if (isPreLogin) {
+        Tawk_API.hideWidget();
+      }
+
+      // Quando l'utente è loggato, mostra e identifica
+      function aggiornaStatoTawk() {
         var user = window.state?.user;
         var azienda = window.state?.azienda;
-        if (user?.email) {
+        var h = window.location.hash;
+        var preLogin = !h || h === "#/" || h.includes("login") || h.includes("registrati");
+
+        if (user?.email && !preLogin) {
+          Tawk_API.showWidget();
           Tawk_API.setAttributes({
             name: user.email.split("@")[0],
             email: user.email,
             azienda: azienda?.nome || "—",
-          }, function (error) {});
+          }, function () {});
+        } else if (preLogin) {
+          Tawk_API.hideWidget();
         }
-      };
-
-      // Inietta lo script Tawk solo una volta
-      if (!document.getElementById("tawk-script")) {
-        var Tawk_LoadStart = new Date();
-        var s1 = document.createElement("script");
-        var s0 = document.getElementsByTagName("script")[0];
-        s1.id = "tawk-script";
-        s1.async = true;
-        s1.src = "https://embed.tawk.to/6a2a7b7c0514041c3544c5e9/1jqqv4occ";
-        s1.charset = "UTF-8";
-        s1.setAttribute("crossorigin", "*");
-        s0.parentNode.insertBefore(s1, s0);
       }
-    });
+
+      // Controlla ogni volta che cambia la route
+      window.addEventListener("hashchange", aggiornaStatoTawk);
+      setInterval(aggiornaStatoTawk, 2000);
+    };
+
+    (function () {
+      var s1 = document.createElement("script");
+      var s0 = document.getElementsByTagName("script")[0];
+      s1.async = true;
+      s1.src = "https://embed.tawk.to/6a2a7b7c0514041c3544c5e9/1jqqv4occ";
+      s1.charset = "UTF-8";
+      s1.setAttribute("crossorigin", "*");
+      s0.parentNode.insertBefore(s1, s0);
+    })();
   </script>
 
 </body>
