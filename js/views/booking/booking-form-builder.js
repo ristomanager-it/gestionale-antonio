@@ -139,14 +139,103 @@ export async function render(container) {
 
     <hr>
 
-    <h3>Booking policy</h3>
+    <h3>📋 Booking Policy & Consensi</h3>
 
-    <label style="display:flex;align-items:center;gap:8px;">
-      <input type="checkbox" id="policy_enabled">
-      Attiva popup policy prima dell'invio
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;color:#0369a1;line-height:1.6;">
+      Questa sezione appare come <strong>ultima schermata prima del tasto Prenota</strong>, su tutti i form costruiti con questo builder.
+      Il cliente deve accettare policy e privacy per procedere. Il consenso marketing è libero.
+    </div>
+
+    <!-- POLICY ATTIVA -->
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="checkbox" id="policy_enabled" style="accent-color:#0E5A7A;width:18px;height:18px;">
+      <span style="font-size:14px;font-weight:600;">Mostra schermata policy prima dell'invio</span>
     </label>
 
-    <textarea id="policy_text" class="input" rows="6" placeholder="Scrivi qui condizioni, cancellazione, ritardi, caparra, privacy operativa..."></textarea>
+    <div id="policy-editor-wrap">
+      <!-- TIPO POLICY -->
+      <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Tipo documento</label>
+      <select id="policy_tipo" class="input" style="margin-bottom:12px;">
+        <option value="booking">📅 Booking policy (condizioni prenotazione)</option>
+        <option value="cancellazione">❌ Policy di cancellazione</option>
+        <option value="caparra">💳 Policy caparra / deposito</option>
+        <option value="evento">🎉 Condizioni evento speciale</option>
+        <option value="personalizzata">✏️ Testo personalizzato</option>
+      </select>
+
+      <!-- TESTO POLICY -->
+      <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Testo policy <span style="color:#94a3b8;font-weight:400;">(supporta a capo)</span></label>
+      <textarea id="policy_text" class="input" rows="8" style="font-size:13px;line-height:1.6;resize:vertical;"
+        placeholder="Es. La prenotazione si intende confermata solo dopo il pagamento della caparra...&#10;Cancellazioni entro 24 ore prima sono gratuite...&#10;Ritardi oltre 15 minuti comportano la perdita del tavolo..."></textarea>
+
+      <!-- PREVIEW POLICY -->
+      <div style="margin-top:8px;">
+        <button type="button" id="btn-preview-policy" class="app-button" style="font-size:12px;padding:6px 14px;">
+          👁️ Anteprima come la vede il cliente
+        </button>
+      </div>
+
+      <div id="policy-preview-box" style="display:none;margin-top:10px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-height:200px;overflow-y:auto;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;"></div>
+    </div>
+
+    <hr>
+
+    <!-- CONSENSI -->
+    <h3>✅ Consensi</h3>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Privacy GDPR — sempre obbligatorio -->
+      <div style="border-bottom:1px solid #f1f5f9;padding-bottom:14px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="background:#dcfce7;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:#15803d;white-space:nowrap;margin-top:2px;">OBBLIGATORIO</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🔒 Trattamento dati personali (GDPR)</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Il cliente deve spuntare per procedere. Testo del consenso:</div>
+            <textarea id="consenso_privacy_testo" class="input" rows="2" style="font-size:12px;resize:none;"
+              placeholder="Ho letto e accetto l'informativa sul trattamento dei dati personali ai sensi del GDPR (Reg. UE 2016/679)."></textarea>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;">
+              <input type="checkbox" id="consenso_privacy_link_enabled" style="accent-color:#0E5A7A;">
+              Aggiungi link all'informativa privacy
+            </label>
+            <input id="consenso_privacy_link" class="input" style="margin-top:6px;font-size:12px;"
+              placeholder="https://tuosito.it/privacy" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy prenotazione — obbligatorio se policy attiva -->
+      <div style="border-bottom:1px solid #f1f5f9;padding-bottom:14px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="background:#dbeafe;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:#1d4ed8;white-space:nowrap;margin-top:2px;">SE POLICY ATTIVA</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">📋 Accettazione booking policy</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Appare automaticamente se hai attivato la policy sopra. Testo del consenso:</div>
+            <textarea id="consenso_policy_testo" class="input" rows="2" style="font-size:12px;resize:none;"
+              placeholder="Ho letto e accetto le condizioni di prenotazione."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marketing — libero -->
+      <div>
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="background:#fef3c7;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:#92400e;white-space:nowrap;margin-top:2px;">LIBERO</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-size:14px;font-weight:700;">📣 Consenso marketing</span>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
+                <input type="checkbox" id="consenso_marketing_enabled" style="accent-color:#0E5A7A;"> Includi
+              </label>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Facoltativo. Il cliente può non spuntare e prenotare comunque.</div>
+            <textarea id="consenso_marketing_testo" class="input" rows="2" style="font-size:12px;resize:none;"
+              placeholder="Acconsento a ricevere comunicazioni promozionali, offerte e novità via WhatsApp e email. Potrò revocare il consenso in qualsiasi momento."></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div>
 
     <hr>
 
@@ -168,6 +257,23 @@ export async function render(container) {
   document.getElementById("add-fascia").onclick = addFascia;
   document.getElementById("upload-logo").onclick = uploadLogo;
   document.getElementById("upload-bg").onclick = uploadBackground;
+
+  // Preview policy
+  document.getElementById("btn-preview-policy").onclick = () => {
+    const box = document.getElementById("policy-preview-box");
+    const testo = document.getElementById("policy_text").value.trim();
+    if (!testo) { box.style.display = "none"; return; }
+    box.textContent = testo;
+    box.style.display = box.style.display === "none" ? "" : "none";
+  };
+
+  // Toggle visibilità editor policy
+  document.getElementById("policy_enabled").onchange = (e) => {
+    document.getElementById("policy-editor-wrap").style.display = e.target.checked ? "" : "none";
+  };
+  // Stato iniziale
+  document.getElementById("policy-editor-wrap").style.display =
+    document.getElementById("policy_enabled").checked ? "" : "none";
 
   document.getElementById("nome").addEventListener("input", () => {
     if (!currentForm && tempFormId) {
@@ -224,7 +330,14 @@ export async function render(container) {
 
     document.getElementById("tags").value = "";
     document.getElementById("policy_enabled").checked = false;
+    document.getElementById("policy_tipo").value = "booking";
     document.getElementById("policy_text").value = "";
+    document.getElementById("consenso_privacy_testo").value = "";
+    document.getElementById("consenso_privacy_link_enabled").checked = false;
+    document.getElementById("consenso_privacy_link").value = "";
+    document.getElementById("consenso_policy_testo").value = "";
+    document.getElementById("consenso_marketing_enabled").checked = false;
+    document.getElementById("consenso_marketing_testo").value = "";
 
     customFields = [];
     fasceOrarie = [
@@ -349,7 +462,17 @@ export async function render(container) {
 
     document.getElementById("tags").value = Array.isArray(config.tags) ? config.tags.join(", ") : "";
     document.getElementById("policy_enabled").checked = !!config.policy?.enabled;
+    document.getElementById("policy_tipo").value = config.policy?.tipo || "booking";
     document.getElementById("policy_text").value = config.policy?.text || "";
+
+    // Consensi
+    const c = config.consensi || {};
+    document.getElementById("consenso_privacy_testo").value = c.privacy?.testo || "";
+    document.getElementById("consenso_privacy_link_enabled").checked = !!c.privacy?.link_enabled;
+    document.getElementById("consenso_privacy_link").value = c.privacy?.link || "";
+    document.getElementById("consenso_policy_testo").value = c.policy?.testo || "";
+    document.getElementById("consenso_marketing_enabled").checked = !!c.marketing?.enabled;
+    document.getElementById("consenso_marketing_testo").value = c.marketing?.testo || "";
 
     customFields = Array.isArray(config.fields?.custom) ? config.fields.custom : [];
     fasceOrarie = Array.isArray(config.availability?.orari) ? config.availability.orari : [];
@@ -973,7 +1096,25 @@ export async function render(container) {
         .filter(Boolean),
       policy: {
         enabled: document.getElementById("policy_enabled").checked,
+        tipo: document.getElementById("policy_tipo").value || "booking",
         text: document.getElementById("policy_text").value || ""
+      },
+      consensi: {
+        privacy: {
+          testo: document.getElementById("consenso_privacy_testo").value.trim() ||
+            "Ho letto e accetto l'informativa sul trattamento dei dati personali ai sensi del GDPR (Reg. UE 2016/679).",
+          link_enabled: document.getElementById("consenso_privacy_link_enabled").checked,
+          link: document.getElementById("consenso_privacy_link").value.trim() || ""
+        },
+        policy: {
+          testo: document.getElementById("consenso_policy_testo").value.trim() ||
+            "Ho letto e accetto le condizioni di prenotazione."
+        },
+        marketing: {
+          enabled: document.getElementById("consenso_marketing_enabled").checked,
+          testo: document.getElementById("consenso_marketing_testo").value.trim() ||
+            "Acconsento a ricevere comunicazioni promozionali via WhatsApp e email."
+        }
       },
       emoji: document.getElementById("emoji").value || ""
     };
