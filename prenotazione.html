@@ -22,55 +22,110 @@
       color: #111827;
     }
 
-    /* ── HERO ── */
-    .hero {
-      background: var(--brand);
-      padding: 28px 20px 80px;
-      text-align: center;
+    /* ── HERO SOCIAL (Facebook style) ── */
+    .hero-social {
+      background: #fff;
+      margin-bottom: 0;
+    }
+
+    .social-cover {
       position: relative;
+      width: 100%;
+      height: 200px;
+      background: var(--brand);
       overflow: hidden;
     }
 
-    .hero::before {
-      content: "";
+    .social-cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .social-cover-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+    }
+
+    .social-cover-overlay {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 70% 0%, rgba(255,255,255,0.08) 0%, transparent 60%);
+      background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.18) 100%);
       pointer-events: none;
     }
 
-    .hero-logo {
-      width: 72px;
-      height: 72px;
-      border-radius: 20px;
+    .social-profile-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      padding: 0 16px 14px;
+      margin-top: -36px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .social-logo-wrap {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      overflow: hidden;
+      background: #e5e7eb;
+      flex-shrink: 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+
+    .social-logo-img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      border: 3px solid rgba(255,255,255,0.3);
-      margin-bottom: 14px;
-      background: rgba(255,255,255,0.15);
+      display: block;
     }
 
-    .hero-ristorante {
-      font-size: 22px;
+    .social-logo-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      background: var(--brand-light);
+    }
+
+    .social-profile-info {
+      padding-bottom: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .social-nome {
+      font-size: 20px;
       font-weight: 800;
-      color: #fff;
-      margin-bottom: 4px;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .hero-sub {
-      font-size: 13px;
-      color: rgba(255,255,255,0.75);
+    .social-sub {
+      font-size: 12px;
+      color: #6b7280;
       font-weight: 600;
+      margin-top: 2px;
     }
 
     /* ── CARD PRINCIPALE ── */
     .main-card {
       background: #fff;
-      border-radius: var(--radius) var(--radius) 0 0;
-      margin: -40px 12px 0;
-      padding: 24px 20px 20px;
-      box-shadow: var(--shadow);
-      position: relative;
-      z-index: 2;
+      border-top: 1px solid #f3f4f6;
+      margin: 0 0 12px;
+      padding: 20px 16px 20px;
+      box-shadow: none;
     }
 
     .pren-label {
@@ -519,12 +574,101 @@
       margin-bottom: 12px;
     }
 
+    /* ── GALLERIA ── */
+    .gallery-section {
+      margin: 0 12px 12px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    .gallery-grid-landing {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .gallery-landing-item {
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      cursor: pointer;
+    }
+
+    .gallery-landing-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .2s;
+    }
+
+    .gallery-landing-item:hover img { transform: scale(1.04); }
+
+    /* ── MENU BTN ── */
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 800;
+      width: calc(100% - 24px);
+      margin: 0 12px 12px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.92);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox.open { display: flex; }
+
+    .lightbox img {
+      max-width: 95vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255,255,255,.2);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
     @media (min-width: 480px) {
-      .main-card { margin: -40px auto 0; max-width: 480px; border-radius: var(--radius); }
-      .countdown-wrap, .section-card, .azioni-grid, .share-full { max-width: 480px; margin-left: auto; margin-right: auto; }
+      .main-card { margin: 0 auto 12px; max-width: 480px; }
+      .hero-social { max-width: 480px; width: 100%; }
+      .social-cover { height: 220px; }
+      .countdown-wrap, .section-card, .azioni-grid, .share-full,
+      .gallery-section, .menu-btn { max-width: 480px; margin-left: auto; margin-right: auto; }
+      .menu-btn { width: 480px; }
       .countdown-wrap { margin-bottom: 12px; }
       body { display: flex; flex-direction: column; align-items: center; }
-      .hero { width: 100%; }
     }
   </style>
 </head>
@@ -572,6 +716,12 @@
     </div>
   </div>
 
+  <!-- LIGHTBOX FOTO -->
+  <div id="lightbox" class="lightbox">
+    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (() => {
@@ -600,7 +750,7 @@
       async function init() {
         const { data, error } = await supa
           .from("prenotazioni_tavoli")
-          .select("*, aziende(nome, logo_url, telefono, indirizzo, citta, colore_brand)")
+          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id)")
           .eq("token_pubblico", token)
           .maybeSingle();
 
@@ -627,6 +777,7 @@
 
         renderLanding();
         initModals();
+        initLightbox();
       }
 
       // ── RENDER PRINCIPALE ─────────────────────────────────────────
@@ -642,14 +793,30 @@
         const occasioneLabel = getOccasioneLabel(p.occasione);
 
         root.innerHTML = `
-          <!-- HERO -->
-          <div class="hero">
-            ${az.logo_url
-              ? `<img class="hero-logo" src="${escHtml(az.logo_url)}" alt="Logo" />`
-              : `<div class="hero-logo" style="display:flex;align-items:center;justify-content:center;font-size:32px;">🍽️</div>`
-            }
-            <div class="hero-ristorante">${escHtml(az.nome || "Il tuo ristorante")}</div>
-            <div class="hero-sub">Conferma di prenotazione</div>
+          <!-- HERO SOCIAL -->
+          <div class="hero-social">
+            <!-- COVER -->
+            <div class="social-cover" id="social-cover-wrap">
+              ${az.cover_url
+                ? `<img class="social-cover-img" src="${escHtml(az.cover_url)}" alt="Cover">`
+                : `<div class="social-cover-empty" style="background:var(--brand)">🍽️</div>`
+              }
+              <!-- Overlay tema -->
+              <div class="social-cover-overlay"></div>
+            </div>
+            <!-- LOGO + INFO -->
+            <div class="social-profile-row">
+              <div class="social-logo-wrap">
+                ${az.logo_url
+                  ? `<img class="social-logo-img" src="${escHtml(az.logo_url)}" alt="Logo">`
+                  : `<div class="social-logo-empty">🍽️</div>`
+                }
+              </div>
+              <div class="social-profile-info">
+                <div class="social-nome">${escHtml(az.nome || "Il tuo ristorante")}</div>
+                <div class="social-sub">Conferma di prenotazione</div>
+              </div>
+            </div>
           </div>
 
           <!-- CARD PRINCIPALE -->
@@ -768,15 +935,30 @@
           ${indirizzo ? `
             <div class="section-card">
               <div class="section-title">📍 Come raggiungerci</div>
-              <iframe
-                class="map-frame"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=${mapsQuery}"
-              ></iframe>
               <a class="map-btn" href="https://maps.google.com/?q=${mapsQuery}" target="_blank">
                 🧭 Apri in Google Maps
               </a>
+            </div>
+          ` : ""}
+
+          <!-- MENU DIGITALE -->
+          ${az.link_menu ? `
+            <a class="menu-btn" href="${escHtml(az.link_menu)}" target="_blank">
+              📋 Vedi il menu
+            </a>
+          ` : ""}
+
+          <!-- GALLERIA FOTO -->
+          ${az.foto_galleria && az.foto_galleria.length ? `
+            <div class="gallery-section">
+              <div class="section-title">📸 Il locale</div>
+              <div class="gallery-grid-landing" id="gallery-landing">
+                ${az.foto_galleria.slice(0,6).map((url, i) => `
+                  <div class="gallery-landing-item" data-lightbox="${escHtml(url)}">
+                    <img src="${escHtml(url)}" alt="Foto ${i+1}" loading="lazy">
+                  </div>
+                `).join("")}
+              </div>
             </div>
           ` : ""}
 
@@ -921,6 +1103,24 @@
             <div class="error-sub">${escHtml(sub)}</div>
           </div>
         `;
+      }
+
+      // ── LIGHTBOX ──────────────────────────────────────────────────
+      function initLightbox() {
+        const lb = document.getElementById("lightbox");
+        const lbImg = document.getElementById("lightbox-img");
+        const lbClose = document.getElementById("lightbox-close");
+        if (!lb) return;
+
+        document.querySelectorAll("[data-lightbox]").forEach(el => {
+          el.onclick = () => {
+            lbImg.src = el.dataset.lightbox;
+            lb.classList.add("open");
+          };
+        });
+
+        lbClose.onclick = () => lb.classList.remove("open");
+        lb.onclick = (e) => { if (e.target === lb) lb.classList.remove("open"); };
       }
 
       // ── CONDIVIDI ─────────────────────────────────────────────────
