@@ -142,6 +142,12 @@ export function initMenu() {
   }
 
   function go(route) {
+    if (route === "__tawk__") {
+      if (window.Tawk_API?.toggle) window.Tawk_API.toggle();
+      else window.open("https://tawk.to", "_blank");
+      closeMenu();
+      return;
+    }
     if (!can(route)) return;
     window.location.hash = "#/" + route;
     closeMenu();
@@ -447,6 +453,7 @@ export function initMenu() {
         { label: "🕒 Timbratura",         route: "timbrature"       },
         { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
         { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
+        { label: "💬 Assistenza",           route: "__tawk__"          },
       ]
     });
 
