@@ -477,13 +477,14 @@
         const galleria = Array.isArray(az.foto_galleria) ? az.foto_galleria : [];
 
         // Nota: mostriamo solo se NON è del chatbot
-        const noteText = (p.note || p.richieste_speciali || "")
-          .replace(/🤖 Prenotazione via chatbot WhatsApp[^
-]*/g, "")
-          .replace(/📝 Chatbot WA[^
-]*/g, "")
-          .replace(/🤖 WhatsApp Bot[^
-]*/g, "")
+        const noteText = buildNoteText(p.note || p.richieste_speciali || "");
+            return l &&
+              !l.startsWith("🤖 Prenotazione via chatbot WhatsApp") &&
+              !l.startsWith("📝 Chatbot WA") &&
+              !l.startsWith("🤖 WhatsApp Bot");
+          })
+          .join("
+")
           .trim();
 
         root.innerHTML = `
@@ -686,14 +687,7 @@
             document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
             document.getElementById("mod-ora").value     = prenotazione.ora?.slice(0,5) || "";
             // Pulisci note dalle righe automatiche
-            const noteClean = (prenotazione.note || prenotazione.richieste_speciali || "")
-              .replace(/🤖 Prenotazione via chatbot WhatsApp[^
-]*/g, "")
-              .replace(/📝 Chatbot WA[^
-]*/g, "")
-              .replace(/🤖 WhatsApp Bot[^
-]*/g, "")
-              .trim();
+            const noteClean = buildNoteText(prenotazione.note || prenotazione.richieste_speciali || "");
             document.getElementById("mod-note").value = noteClean;
           }
         }
@@ -759,6 +753,21 @@
         });
         lbClose.onclick = () => lb.classList.remove("open");
         lb.onclick = (e) => { if (e.target === lb) lb.classList.remove("open"); };
+      }
+
+      function buildNoteText(raw) {
+        var skip = [
+          "\u{1F916} Prenotazione via chatbot WhatsApp",
+          "\u{1F4DD} Chatbot WA",
+          "\u{1F916} WhatsApp Bot"
+        ];
+        return raw.split(String.fromCharCode(10))
+          .filter(function(line) {
+            var l = line.trim();
+            if (!l) return false;
+            return !skip.some(function(p) { return l.indexOf(p) === 0; });
+          })
+          .join(String.fromCharCode(10)).trim();
       }
 
       function formatData(dateStr) {
