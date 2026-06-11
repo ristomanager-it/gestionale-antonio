@@ -1154,47 +1154,56 @@ if (!contesto.ok) {
   }
 }
 
-// 👉 MULTI SEDE → usa sede_principale se disponibile
+// 👉 MULTI SEDE → seleziona automaticamente se c'è sede principale o una sola sede
 if (contesto.tipo === "dipendente_multi_sede") {
   const sedePrincipale = window.state?.dipendente?.sede_principale
     || window.state?.dipendente?.sede_id;
   const haSedeAttiva = window.state?.sedeAttiva?.id;
+  const sedi = window.state?.sedi || [];
 
-  if (!haSedeAttiva && !sedePrincipale) {
-    if (route !== "scegli-sede") {
-      window.location.hash = "#/scegli-sede";
-      return;
+  if (!haSedeAttiva) {
+    if (sedePrincipale) {
+      // Seleziona sede principale automaticamente
+      const sede = sedi.find(s => String(s.id) === String(sedePrincipale));
+      if (sede) {
+        window.state.sedeAttiva = sede;
+        localStorage.setItem("active_sede_id", sede.id);
+      } else if (route !== "scegli-sede") {
+        window.location.hash = "#/scegli-sede";
+        return;
+      }
+    } else if (sedi.length === 1) {
+      // Una sola sede — seleziona automaticamente senza chiedere
+      window.state.sedeAttiva = sedi[0];
+      localStorage.setItem("active_sede_id", sedi[0].id);
+    } else if (sedi.length > 1) {
+      // Più sedi senza principale — chiedi
+      if (route !== "scegli-sede") {
+        window.location.hash = "#/scegli-sede";
+        return;
+      }
     }
   }
 }
 
-// Admin senza dipendente — se ha già una sede in localStorage non chiedere
+// Admin senza dipendente — recupera sede da localStorage o seleziona automaticamente se unica
 if (!window.state?.sedeAttiva?.id) {
   const storedSedeId = localStorage.getItem("active_sede_id");
-  if (storedSedeId && Array.isArray(window.state?.sedi)) {
-    const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
+  const sedi = window.state?.sedi || [];
+  if (storedSedeId && Array.isArray(sedi)) {
+    const sede = sedi.find(s => String(s.id) === String(storedSedeId));
     if (sede) {
       window.state.sedeAttiva = sede;
     }
   }
+  // Se c'è una sola sede disponibile selezionala automaticamente senza chiedere
+  if (!window.state?.sedeAttiva?.id && sedi.length === 1) {
+    window.state.sedeAttiva = sedi[0];
+    localStorage.setItem("active_sede_id", sedi[0].id);
+  }
 }
   }
-  if (
-    !PLATFORM_ROUTES.has(route) &&
-    !BO_ROUTES.has(route) &&
-    !DISPLAY_ROUTES.has(route) &&
-    !PREHOME_ROUTES.has(route) &&
-    route !== "home" &&
-    route !== "booking-form-builder" &&
-    Array.isArray(window.state?.sedi) &&
-    window.state.sedi.length > 1 &&
-    !window.state?.sedeAttiva?.id
-  ) {
-    if (route !== "scegli-sede") {
-      window.location.hash = "#/scegli-sede";
-    }
-    return;
-  }
+  // sede già gestita da caricaContestoOperativo sopra
 
   if (route === "homePiattaforma") {
     if (!isSuperadmin()) {
