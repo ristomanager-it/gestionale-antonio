@@ -384,6 +384,37 @@ export async function render(container) {
           color:#991b1b;
         }
 
+        .pren-action-btn.landing{
+          background:#f0fdf4;
+          color:#166534;
+        }
+
+        .pren-action-btn.wa-confirm{
+          background:#dcfce7;
+          color:#15803d;
+        }
+
+        .pren-landing-link{
+          display:flex;
+          align-items:center;
+          gap:6px;
+          margin-top:8px;
+          font-size:12px;
+          font-weight:700;
+          color:#0E5A7A;
+          text-decoration:none;
+          background:#e8f4f8;
+          border-radius:10px;
+          padding:7px 10px;
+          overflow:hidden;
+          white-space:nowrap;
+          text-overflow:ellipsis;
+        }
+
+        .pren-landing-link:hover{
+          background:#d1eaf5;
+        }
+
         .pren-status-select{
           width:100%;
           margin-top:10px;
@@ -1109,6 +1140,9 @@ function renderDays() {
     const isChatbot = p.canale === "chatbot" || p.tag === "chatbot_wa";
     const badgeChatbot = isChatbot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px;">🤖 Bot</span>` : "";
 
+    const token = p.token_pubblico || "";
+    const landingUrl = token ? `https://ristoflow-ai.com/p.html?t=${token}` : "";
+
     return `
       <div class="pren-card">
         <div class="pren-card-top">
@@ -1144,6 +1178,33 @@ function renderDays() {
           <button type="button" class="pren-action-btn arriva" data-id="${escapeAttribute(p.id)}">🙋</button>
           <button type="button" class="pren-action-btn danger no-show" data-id="${escapeAttribute(p.id)}">🚫</button>
         </div>
+
+        <!-- Riga WA conferma + landing -->
+        <div style="display:grid;grid-template-columns:1fr${landingUrl ? " auto" : ""};gap:8px;margin-top:8px;">
+          <button
+            type="button"
+            class="pren-action-btn wa-confirm"
+            data-id="${escapeAttribute(p.id)}"
+            data-phone="${escapeAttribute(telefono)}"
+            data-token="${escapeAttribute(token)}"
+            ${telefono ? "" : "disabled"}
+            style="height:40px;font-size:12px;"
+          >📤 Conferma & invia WA</button>
+          ${landingUrl ? `
+            <a
+              href="${escapeAttribute(landingUrl)}"
+              target="_blank"
+              class="pren-action-btn landing"
+              style="height:40px;font-size:12px;display:flex;align-items:center;justify-content:center;text-decoration:none;"
+            >🔗 Landing</a>
+          ` : ""}
+        </div>
+
+        ${landingUrl ? `
+          <a href="${escapeAttribute(landingUrl)}" target="_blank" class="pren-landing-link">
+            🔗 ${escapeHtml(landingUrl)}
+          </a>
+        ` : ""}
 
         <select class="pren-status-select change-stato" data-id="${escapeAttribute(p.id)}">
           ${statoOptions(p.stato)}
@@ -1216,6 +1277,97 @@ function renderDays() {
         );
 
         window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+      };
+    });
+
+    document.querySelectorAll(".wa-confirm").forEach((btn) => {
+      btn.onclick = async () => {
+        const id    = btn.dataset.id    || "";
+        const phone = btn.dataset.phone || "";
+        const token = btn.dataset.token || "";
+        if (!phone) return;
+
+        const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
+        if (!pren) return;
+
+        const nome     = pren.cliente_nome || pren.nome_cliente || "Cliente";
+        const data     = pren.data ? formatDateHuman(pren.data) : "";
+        const ora      = pren.ora ? pren.ora.slice(0, 5) : "";
+        const coperti  = pren.coperti || 1;
+        const landing  = token ? `https://ristoflow-ai.com/p.html?t=${token}` : "";
+        const nomeRist = window.state?.azienda?.nome || "il ristorante";
+
+        btn.disabled = true;
+        btn.textContent = "⏳ Invio...";
+
+        try {
+          // 1. Aggiorna stato a "confermata" se non già confermata
+          if (pren.stato === "nuova") {
+            await window.supabaseClient
+              .from("prenotazioni_tavoli")
+              .update({ stato: "confermata", link_landing: landing })
+              .eq("id", id);
+          } else if (landing) {
+            await window.supabaseClient
+              .from("prenotazioni_tavoli")
+              .update({ link_landing: landing })
+              .eq("id", id);
+          }
+
+          // 2. Invia WA via edge function
+          const SUPA_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+          const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+          const body = {
+            to: sanitizePhone(phone),
+            template: "ristoflow_notifica",
+            language: "it",
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: nome },
+                  { type: "text", text: `${data} alle ${ora}` },
+                  { type: "text", text: String(coperti) },
+                  { type: "text", text: nomeRist },
+                  { type: "text", text: landing || "ristoflow-ai.com" }
+                ]
+              }
+            ]
+          };
+
+          const res = await fetch(`${SUPA_URL}/functions/v1/whatsapp-send-ts`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${ANON_KEY}`
+            },
+            body: JSON.stringify(body)
+          });
+
+          const json = await res.json();
+
+          if (!res.ok) {
+            console.error("WA error:", json);
+            btn.disabled = false;
+            btn.textContent = "📤 Conferma & invia WA";
+            alert("WA inviato ma controlla console: " + (json?.error || "errore sconosciuto"));
+            return;
+          }
+
+          btn.textContent = "✅ Inviato!";
+          setTimeout(async () => {
+            btn.disabled = false;
+            btn.textContent = "📤 Conferma & invia WA";
+            await load();
+          }, 2000);
+
+        } catch (err) {
+          console.error("wa-confirm error:", err);
+          btn.disabled = false;
+          btn.textContent = "📤 Conferma & invia WA";
+          alert("Errore invio: " + err.message);
+        }
       };
     });
   }
