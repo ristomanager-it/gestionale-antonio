@@ -1141,7 +1141,7 @@ function renderDays() {
     const badgeChatbot = isChatbot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px;">🤖 Bot</span>` : "";
 
     const token = p.token_pubblico || "";
-    const landingUrl = token ? `https://ristoflow-ai.com/p.html?t=${token}` : "";
+    const landingUrl = token ? `https://ristoflow-ai.com/prenotazione.html?t=${token}` : "";
 
     return `
       <div class="pren-card">
