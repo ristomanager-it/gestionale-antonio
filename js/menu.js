@@ -80,20 +80,21 @@ export function initMenu() {
       tonyBtn.title = "Tony AI";
       tonyBtn.style.cssText = `
         cursor: pointer;
-        margin-left: 8px;
+        margin-left: 10px;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: #0E5A7A;
-        overflow: hidden;
         flex-shrink: 0;
+        gap: 2px;
       `;
-      tonyBtn.innerHTML = `<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-        style="width:34px;height:34px;border-radius:50%;object-fit:cover;"
-        onerror="this.style.display='none';this.parentElement.innerHTML='🤖';" />`;
+      tonyBtn.innerHTML = `
+        <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
+          style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);"
+          onerror="this.style.display='none';this.parentElement.querySelector('span.tony-emoji').style.display='flex';" />
+        <span class="tony-emoji" style="display:none;width:36px;height:36px;border-radius:50%;background:#0E5A7A;align-items:center;justify-content:center;font-size:18px;">🤖</span>
+        <span style="font-size:9px;font-weight:700;color:#0E5A7A;letter-spacing:0.3px;line-height:1;">Tony.AI</span>
+      `;
       tonyBtn.onclick = () => {
         window.location.hash = "#/ai";
         closeMenu();
