@@ -247,7 +247,7 @@ export async function render(app) {
       </div>
     </div>
     <div style="margin-left:auto;">
-      <button id="btn-memoria" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:600;">🧠 Memoria</button>
+      ${(ruolo === "admin" || ruolo === "manager") ? `<button id="btn-memoria" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:600;">🧠 Memoria</button>` : ""}
     </div>
   </div>
 
