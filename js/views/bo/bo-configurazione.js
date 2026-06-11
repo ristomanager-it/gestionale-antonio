@@ -48,6 +48,7 @@ export async function render(container) {
           { id:'cassa',        icon:'💳', label:'Cassa'           },
           { id:'integrazioni', icon:'🔗', label:'Integrazioni'    },
           { id:'identita',     icon:'🎯', label:'Identità'        },
+          { id:'media',        icon:'🖼️',  label:'Media & Landing'  },
           { id:'sondaggi',     icon:'📊', label:'Sondaggi'        },
           { id:'profilo',      icon:'🌐', label:'Profilo Pubblico'},
         ].map(t => `
@@ -85,6 +86,7 @@ export async function render(container) {
       case 'cassa':        renderTabCassa(box); break;
       case 'integrazioni': renderTabIntegrazioni(box); break;
       case 'identita':     renderTabIdentita(box);    break;
+      case 'media':        renderTabMedia(box);       break;
       case 'sondaggi':     renderTabSondaggi(box);    break;
       case 'profilo':      renderTabProfilo(box);     break;
     }
@@ -2375,6 +2377,403 @@ export async function render(container) {
         setTimeout(() => msg.textContent = '', 3000);
       }
     };
+  }
+
+
+  // ════════════════════════════════════════
+  // TAB: MEDIA & LANDING
+  // ════════════════════════════════════════
+  async function renderTabMedia(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    // Carica dati azienda
+    const { data: az } = await supa()
+      .from('aziende')
+      .select('nome, logo_url, cover_url, foto_galleria, link_menu, colore_brand, tema_landing_id')
+      .eq('id', aziendaId)
+      .maybeSingle();
+
+    const { data: temi } = await supa()
+      .from('landing_temi')
+      .select('*')
+      .order('nome');
+
+    const galleria = az?.foto_galleria || [];
+    const colore = az?.colore_brand || '#0E5A7A';
+
+    box.innerHTML = `
+      <style>
+        .media-card { background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px; }
+        .media-section-title { font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px; }
+        .media-section-sub { font-size:12px;color:#64748b;margin-bottom:16px; }
+        .upload-zone {
+          border:2px dashed #d1d5db;border-radius:14px;padding:28px 20px;text-align:center;
+          cursor:pointer;transition:all .15s;background:#fafafa;
+        }
+        .upload-zone:hover { border-color:#0E5A7A;background:#f0f9ff; }
+        .upload-zone-icon { font-size:32px;margin-bottom:8px; }
+        .upload-zone-label { font-size:13px;font-weight:600;color:#374151; }
+        .upload-zone-sub { font-size:11px;color:#94a3b8;margin-top:4px; }
+        .preview-cover {
+          width:100%;height:180px;border-radius:14px;object-fit:cover;
+          border:1px solid #e5e7eb;display:block;
+        }
+        .preview-logo {
+          width:90px;height:90px;border-radius:50%;object-fit:cover;
+          border:3px solid #0E5A7A;display:block;
+        }
+        .profile-preview {
+          position:relative;border-radius:16px;overflow:hidden;
+          border:1px solid #e5e7eb;margin-bottom:20px;background:#f0f6fa;
+        }
+        .profile-preview-cover {
+          width:100%;height:140px;object-fit:cover;display:block;background:#d1d5db;
+        }
+        .profile-preview-cover-empty {
+          width:100%;height:140px;background:linear-gradient(135deg,#0E5A7A,#1a8fb5);display:flex;align-items:center;justify-content:center;font-size:32px;
+        }
+        .profile-preview-logo-wrap {
+          position:absolute;left:16px;top:90px;
+          width:80px;height:80px;border-radius:50%;
+          border:4px solid white;overflow:hidden;background:#e5e7eb;
+          display:flex;align-items:center;justify-content:center;font-size:28px;
+        }
+        .profile-preview-logo-wrap img { width:100%;height:100%;object-fit:cover; }
+        .profile-preview-info {
+          padding:12px 16px 16px 108px;min-height:60px;
+        }
+        .profile-preview-nome { font-size:16px;font-weight:800;color:#111827; }
+        .profile-preview-sub { font-size:12px;color:#6b7280;margin-top:2px; }
+        .gallery-grid {
+          display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;
+        }
+        .gallery-item {
+          position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:#f3f4f6;
+        }
+        .gallery-item img { width:100%;height:100%;object-fit:cover;display:block; }
+        .gallery-item-del {
+          position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:white;
+          border:none;border-radius:6px;width:22px;height:22px;font-size:12px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+        }
+        .gallery-add {
+          border-radius:10px;aspect-ratio:1;background:#f8fafc;border:2px dashed #d1d5db;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          cursor:pointer;gap:4px;font-size:11px;font-weight:600;color:#94a3b8;
+        }
+        .gallery-add:hover { border-color:#0E5A7A;color:#0E5A7A;background:#f0f9ff; }
+        .tema-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px; }
+        .tema-card {
+          border:2px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center;cursor:pointer;
+          transition:all .15s;
+        }
+        .tema-card:hover { border-color:#0E5A7A; }
+        .tema-card.selected { border-color:#0E5A7A;background:#f0f9ff; }
+        .tema-emoji { font-size:28px;margin-bottom:6px; }
+        .tema-nome { font-size:12px;font-weight:700;color:#374151; }
+        .tema-date { font-size:10px;color:#94a3b8;margin-top:2px; }
+        .color-row { display:flex;align-items:center;gap:12px; }
+        .color-swatch {
+          width:42px;height:42px;border-radius:10px;border:2px solid #e5e7eb;cursor:pointer;flex-shrink:0;
+        }
+      </style>
+
+      <div style="max-width:720px;">
+
+        <!-- ANTEPRIMA PROFILO -->
+        <div class="media-card">
+          <div class="media-section-title">👁️ Anteprima landing</div>
+          <div class="media-section-sub">Così appare la tua pagina di prenotazione</div>
+          <div class="profile-preview" id="preview-box">
+            ${az?.cover_url
+              ? `<img class="profile-preview-cover" id="prev-cover-img" src="${esc(az.cover_url)}" alt="Cover">`
+              : `<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>`}
+            <div class="profile-preview-logo-wrap" id="prev-logo-wrap">
+              ${az?.logo_url
+                ? `<img src="${esc(az.logo_url)}" alt="Logo" id="prev-logo-img">`
+                : `<span style="font-size:28px;">🍽️</span>`}
+            </div>
+            <div class="profile-preview-info">
+              <div class="profile-preview-nome" id="prev-nome">${esc(az?.nome || 'Il tuo ristorante')}</div>
+              <div class="profile-preview-sub">Conferma di prenotazione</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COVER -->
+        <div class="media-card">
+          <div class="media-section-title">🖼️ Foto di copertina</div>
+          <div class="media-section-sub">Immagine orizzontale 1200×400px — come la cover di Facebook</div>
+          ${az?.cover_url ? `<img src="${esc(az.cover_url)}" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">` : ''}
+          <div class="upload-zone" id="cover-zone">
+            <input type="file" id="cover-input" accept="image/*" style="display:none;">
+            <div class="upload-zone-icon">🖼️</div>
+            <div class="upload-zone-label">${az?.cover_url ? 'Cambia copertina' : 'Carica foto copertina'}</div>
+            <div class="upload-zone-sub">JPG, PNG, WebP — max 5MB</div>
+          </div>
+          <div id="cover-progress" style="display:none;margin-top:8px;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
+        </div>
+
+        <!-- LOGO -->
+        <div class="media-card">
+          <div class="media-section-title">🔵 Logo (foto profilo)</div>
+          <div class="media-section-sub">Immagine quadrata o tonda — appare come foto profilo sulla landing</div>
+          <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
+            ${az?.logo_url ? `<img src="${esc(az.logo_url)}" class="preview-logo" id="logo-preview">` : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
+            <div style="flex:1;">
+              <div class="upload-zone" id="logo-zone">
+                <input type="file" id="logo-input" accept="image/*" style="display:none;">
+                <div class="upload-zone-icon">📷</div>
+                <div class="upload-zone-label">${az?.logo_url ? 'Cambia logo' : 'Carica logo'}</div>
+                <div class="upload-zone-sub">JPG, PNG — consigliato 400×400px</div>
+              </div>
+            </div>
+          </div>
+          <div id="logo-progress" style="display:none;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
+        </div>
+
+        <!-- GALLERIA FOTO -->
+        <div class="media-card">
+          <div class="media-section-title">📸 Galleria foto</div>
+          <div class="media-section-sub">Foto del locale, piatti, ambienti — visibili sulla landing. Trascina per riordinare.</div>
+          <div class="gallery-grid" id="gallery-grid"></div>
+          <input type="file" id="gallery-input" accept="image/*" multiple style="display:none;">
+          <div id="gallery-progress" style="display:none;margin-top:8px;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
+        </div>
+
+        <!-- LINK MENU -->
+        <div class="media-card">
+          <div class="media-section-title">📋 Link al menu</div>
+          <div class="media-section-sub">URL del tuo menu digitale — apparirà sulla landing come pulsante "Vedi il menu"</div>
+          <input id="link-menu" class="id-input" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;"
+            placeholder="https://..." value="${esc(az?.link_menu || '')}">
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Es. link al menu su TheFork, tuo sito, PDF Google Drive, ecc.</div>
+        </div>
+
+        <!-- COLORE BRAND -->
+        <div class="media-card">
+          <div class="media-section-title">🎨 Colore brand</div>
+          <div class="media-section-sub">Colore principale della tua landing — header, pulsanti, accenti</div>
+          <div class="color-row">
+            <input type="color" id="colore-brand" value="${esc(colore)}"
+              style="width:42px;height:42px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer;padding:2px;">
+            <input id="colore-hex" style="width:120px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:monospace;"
+              value="${esc(colore)}" placeholder="#0E5A7A">
+            <div id="colore-sample" style="flex:1;height:42px;border-radius:10px;background:${esc(colore)};"></div>
+          </div>
+        </div>
+
+        <!-- TEMA SERATA -->
+        <div class="media-card">
+          <div class="media-section-title">🎭 Tema serata</div>
+          <div class="media-section-sub">Attiva un tema stagionale per la landing — cambia colori e header automaticamente</div>
+          <div class="tema-grid" id="tema-grid">
+            ${(temi || []).map(t => `
+              <div class="tema-card ${az?.tema_landing_id === t.id ? 'selected' : ''}" data-tema="${esc(t.id)}">
+                <div class="tema-emoji">${esc(t.emoji || '🍽️')}</div>
+                <div class="tema-nome">${esc(t.nome)}</div>
+                ${t.data_inizio ? `<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
+              </div>
+            `).join('')}
+            <div class="tema-card ${!az?.tema_landing_id ? 'selected' : ''}" data-tema="">
+              <div class="tema-emoji">❌</div>
+              <div class="tema-nome">Nessun tema</div>
+              <div class="tema-date">Default</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="media-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;text-align:center;"></div>
+        <button id="btn-salva-media" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">
+          💾 Salva impostazioni landing
+        </button>
+      </div>
+    `;
+
+    // ── Stato locale ──────────────────────────────────────────────
+    let galleriaState = [...galleria];
+    let temaSelezionato = az?.tema_landing_id || null;
+
+    // ── Render galleria ───────────────────────────────────────────
+    function renderGalleria() {
+      const grid = box.querySelector('#gallery-grid');
+      grid.innerHTML = galleriaState.map((url, i) => `
+        <div class="gallery-item">
+          <img src="${esc(url)}" alt="Foto ${i+1}">
+          <button class="gallery-item-del" data-idx="${i}" title="Rimuovi">✕</button>
+        </div>
+      `).join('') + `
+        <div class="gallery-add" id="gallery-add-btn">
+          <span style="font-size:24px;">＋</span>
+          <span>Aggiungi</span>
+        </div>
+      `;
+      grid.querySelectorAll('.gallery-item-del').forEach(btn => {
+        btn.onclick = () => {
+          galleriaState.splice(parseInt(btn.dataset.idx), 1);
+          renderGalleria();
+        };
+      });
+      grid.querySelector('#gallery-add-btn').onclick = () => box.querySelector('#gallery-input').click();
+    }
+    renderGalleria();
+
+    // ── Upload cover ──────────────────────────────────────────────
+    const coverZone = box.querySelector('#cover-zone');
+    const coverInput = box.querySelector('#cover-input');
+    coverZone.onclick = () => coverInput.click();
+    coverZone.ondragover = (e) => { e.preventDefault(); coverZone.style.borderColor = '#0E5A7A'; };
+    coverZone.ondragleave = () => { coverZone.style.borderColor = '#d1d5db'; };
+    coverZone.ondrop = async (e) => {
+      e.preventDefault();
+      coverZone.style.borderColor = '#d1d5db';
+      const file = e.dataTransfer.files[0];
+      if (file) await uploadMedia(file, 'cover');
+    };
+    coverInput.onchange = async () => {
+      if (coverInput.files[0]) await uploadMedia(coverInput.files[0], 'cover');
+    };
+
+    // ── Upload logo ───────────────────────────────────────────────
+    const logoZone = box.querySelector('#logo-zone');
+    const logoInput = box.querySelector('#logo-input');
+    logoZone.onclick = () => logoInput.click();
+    logoInput.onchange = async () => {
+      if (logoInput.files[0]) await uploadMedia(logoInput.files[0], 'logo');
+    };
+
+    // ── Upload galleria ───────────────────────────────────────────
+    const galleryInput = box.querySelector('#gallery-input');
+    galleryInput.onchange = async () => {
+      const files = Array.from(galleryInput.files);
+      if (!files.length) return;
+      const prog = box.querySelector('#gallery-progress');
+      prog.style.display = '';
+      for (const file of files) {
+        const url = await uploadFile(file, 'galleria');
+        if (url) galleriaState.push(url);
+      }
+      prog.style.display = 'none';
+      renderGalleria();
+    };
+
+    // ── Colore brand ──────────────────────────────────────────────
+    const colorePicker = box.querySelector('#colore-brand');
+    const coloreHex = box.querySelector('#colore-hex');
+    const coloreSample = box.querySelector('#colore-sample');
+    colorePicker.oninput = () => {
+      coloreHex.value = colorePicker.value;
+      coloreSample.style.background = colorePicker.value;
+    };
+    coloreHex.oninput = () => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(coloreHex.value)) {
+        colorePicker.value = coloreHex.value;
+        coloreSample.style.background = coloreHex.value;
+      }
+    };
+
+    // ── Tema serata ───────────────────────────────────────────────
+    box.querySelectorAll('.tema-card').forEach(card => {
+      card.onclick = () => {
+        box.querySelectorAll('.tema-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        temaSelezionato = card.dataset.tema || null;
+        // Applica colore tema all'anteprima
+        const tema = (temi || []).find(t => t.id === temaSelezionato);
+        if (tema?.colore_primario) {
+          colorePicker.value = tema.colore_primario;
+          coloreHex.value = tema.colore_primario;
+          coloreSample.style.background = tema.colore_primario;
+        }
+      };
+    });
+
+    // ── Upload file su Supabase Storage ──────────────────────────
+    async function uploadFile(file, tipo) {
+      const ext = file.name.split('.').pop();
+      const path = `${aziendaId}/${tipo}-${Date.now()}.${ext}`;
+      const { error } = await supa().storage.from('media-aziende').upload(path, file, { upsert: true, contentType: file.type });
+      if (error) { console.error('Upload error:', error); return null; }
+      const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
+      return pub.publicUrl;
+    }
+
+    async function uploadMedia(file, tipo) {
+      const prog = box.querySelector('#' + tipo + '-progress');
+      prog.style.display = '';
+      const url = await uploadFile(file, tipo);
+      prog.style.display = 'none';
+      if (!url) { mostraToast('Errore upload ' + tipo, 'error'); return; }
+
+      if (tipo === 'cover') {
+        // Aggiorna anteprima cover
+        let prevImg = box.querySelector('#prev-cover-img');
+        const prevEmpty = box.querySelector('#prev-cover-empty');
+        if (prevEmpty) prevEmpty.remove();
+        if (!prevImg) {
+          prevImg = document.createElement('img');
+          prevImg.id = 'prev-cover-img';
+          prevImg.className = 'profile-preview-cover';
+          box.querySelector('#preview-box').prepend(prevImg);
+        }
+        prevImg.src = url;
+        // Anteprima grande
+        let bigPrev = box.querySelector('#cover-preview');
+        if (!bigPrev) {
+          bigPrev = document.createElement('img');
+          bigPrev.id = 'cover-preview';
+          bigPrev.className = 'preview-cover';
+          bigPrev.style.marginBottom = '12px';
+          coverZone.before(bigPrev);
+        }
+        bigPrev.src = url;
+        // Salva subito
+        await supa().from('aziende').update({ cover_url: url }).eq('id', aziendaId);
+        mostraToast('Cover salvata ✅', 'success');
+
+      } else if (tipo === 'logo') {
+        // Aggiorna anteprima logo
+        let prevImg = box.querySelector('#prev-logo-wrap img');
+        if (!prevImg) {
+          prevImg = document.createElement('img');
+          box.querySelector('#prev-logo-wrap').innerHTML = '';
+          box.querySelector('#prev-logo-wrap').appendChild(prevImg);
+        }
+        prevImg.src = url;
+        let logoPrev = box.querySelector('#logo-preview');
+        if (logoPrev) logoPrev.src = url;
+        // Salva subito
+        await supa().from('aziende').update({ logo_url: url }).eq('id', aziendaId);
+        mostraToast('Logo salvato ✅', 'success');
+      }
+    }
+
+    // ── Salva tutto ───────────────────────────────────────────────
+    box.querySelector('#btn-salva-media').onclick = async () => {
+      const esito = box.querySelector('#media-esito');
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      const { error } = await supa().from('aziende').update({
+        foto_galleria: galleriaState,
+        link_menu: box.querySelector('#link-menu').value.trim() || null,
+        colore_brand: box.querySelector('#colore-hex').value || '#0E5A7A',
+        tema_landing_id: temaSelezionato || null,
+      }).eq('id', aziendaId);
+
+      if (error) {
+        esito.innerHTML = '<span style="color:#dc2626;">❌ ' + error.message + '</span>';
+      } else {
+        esito.innerHTML = '<span style="color:#059669;">✅ Landing aggiornata!</span>';
+        mostraToast('Media & Landing salvati ✅', 'success');
+        setTimeout(() => esito.textContent = '', 3000);
+      }
+    };
+  }
+
+  function formatTemaDate(ini, fin) {
+    if (!ini) return 'Sempre';
+    const fmt = (d) => { const p = d.split('-'); return p[2]+'/'+p[1]; };
+    return fin ? fmt(ini)+' – '+fmt(fin) : 'Dal '+fmt(ini);
   }
 
   // ── Init ──
