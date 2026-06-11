@@ -73,7 +73,7 @@ export function initMenu() {
 
     setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
 
-    // ── PULSANTE TONY AI ─────────────────────────────────────────────────
+    // ── PULSANTE TONY AI — in header ─────────────────────────────────────
     if (!document.getElementById("tony-btn-header")) {
       const tonyBtn = document.createElement("div");
       tonyBtn.id = "tony-btn-header";
@@ -86,14 +86,12 @@ export function initMenu() {
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        gap: 2px;
+        gap: 3px;
       `;
       tonyBtn.innerHTML = `
         <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-          style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);"
-          onerror="this.style.display='none';this.parentElement.querySelector('span.tony-emoji').style.display='flex';" />
-        <span class="tony-emoji" style="display:none;width:36px;height:36px;border-radius:50%;background:#0E5A7A;align-items:center;justify-content:center;font-size:18px;">🤖</span>
-        <span style="font-size:9px;font-weight:700;color:#0E5A7A;letter-spacing:0.3px;line-height:1;">Tony.AI</span>
+          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
+        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
       `;
       tonyBtn.onclick = () => {
         window.location.hash = "#/ai";
@@ -143,12 +141,7 @@ export function initMenu() {
   }
 
   function go(route) {
-    if (route === "__tawk__") {
-      if (window.Tawk_API?.toggle) window.Tawk_API.toggle();
-      else window.open("https://tawk.to", "_blank");
-      closeMenu();
-      return;
-    }
+
     if (!can(route)) return;
     window.location.hash = "#/" + route;
     closeMenu();
@@ -454,7 +447,7 @@ export function initMenu() {
         { label: "🕒 Timbratura",         route: "timbrature"       },
         { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
         { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
-        { label: "💬 Assistenza",           route: "__tawk__"          },
+
       ]
     });
 
