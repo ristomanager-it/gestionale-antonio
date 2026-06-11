@@ -374,19 +374,28 @@
     <div class="modal-box">
       <div class="modal-handle"></div>
       <div class="modal-title">✏️ Modifica prenotazione</div>
-      <div class="modal-field">
-        <div class="modal-label">Numero persone</div>
-        <input id="mod-coperti" class="modal-input" type="number" min="1" max="100" />
+      <div id="mod-bloccato" style="display:none;background:#fee2e2;border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;font-weight:700;color:#991b1b;text-align:center;line-height:1.5;">
+        ⏰ Non è più possibile modificare la prenotazione.<br>Le modifiche devono essere effettuate almeno 2 ore prima.
       </div>
-      <div class="modal-field">
-        <div class="modal-label">Orario</div>
-        <input id="mod-ora" class="modal-input" type="time" />
+      <div id="mod-form">
+        <div class="modal-field">
+          <div class="modal-label">Data</div>
+          <input id="mod-data" class="modal-input" type="date" />
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">Numero persone</div>
+          <input id="mod-coperti" class="modal-input" type="number" min="1" max="100" />
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">Orario</div>
+          <input id="mod-ora" class="modal-input" type="time" />
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">Note o richieste speciali</div>
+          <textarea id="mod-note" class="modal-textarea" placeholder="Allergie, occasioni speciali, preferenze..."></textarea>
+        </div>
+        <button class="modal-btn primary" id="btn-salva-modifica">💾 Salva modifiche</button>
       </div>
-      <div class="modal-field">
-        <div class="modal-label">Note o richieste speciali</div>
-        <textarea id="mod-note" class="modal-textarea" placeholder="Allergie, occasioni speciali, preferenze..."></textarea>
-      </div>
-      <button class="modal-btn primary" id="btn-salva-modifica">💾 Salva modifiche</button>
       <button class="modal-btn ghost" id="btn-chiudi-modifica">Annulla</button>
     </div>
   </div>
@@ -468,7 +477,14 @@
         const galleria = Array.isArray(az.foto_galleria) ? az.foto_galleria : [];
 
         // Nota: mostriamo solo se NON è del chatbot
-        const noteText = (p.note || p.richieste_speciali || "").replace(/🤖 Prenotazione via chatbot WhatsApp[^\n]*/g, "").trim();
+        const noteText = (p.note || p.richieste_speciali || "")
+          .replace(/🤖 Prenotazione via chatbot WhatsApp[^
+]*/g, "")
+          .replace(/📝 Chatbot WA[^
+]*/g, "")
+          .replace(/🤖 WhatsApp Bot[^
+]*/g, "")
+          .trim();
 
         root.innerHTML = `
           <!-- HERO SOCIAL -->
@@ -617,6 +633,14 @@
         startCountdown(p.data, p.ora);
         document.getElementById("btn-modifica").onclick = () => openModal("modifica");
         document.getElementById("btn-cancella").onclick = () => openModal("cancella");
+
+        // Badge "modificata" se il cliente ha già modificato
+        if (p.modificata_dal_cliente) {
+          const badge = document.createElement("div");
+          badge.style.cssText = "background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin:0 12px 12px;text-align:center;";
+          badge.textContent = "✏️ Hai modificato questa prenotazione";
+          document.getElementById("countdown-wrap")?.after(badge);
+        }
       }
 
       function startCountdown(data, ora) {
@@ -646,11 +670,32 @@
         document.getElementById("btn-conferma-cancella").onclick = cancellaPrenotazione;
       }
 
+      function isModificabile() {
+        const dataEvento = new Date(prenotazione.data + "T" + (prenotazione.ora || "00:00"));
+        const diff = dataEvento - new Date();
+        return diff > 2 * 3600 * 1000; // più di 2 ore
+      }
+
       function openModal(type) {
         if (type === "modifica") {
-          document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
-          document.getElementById("mod-ora").value     = prenotazione.ora?.slice(0,5) || "";
-          document.getElementById("mod-note").value    = prenotazione.note || prenotazione.richieste_speciali || "";
+          const bloccato = !isModificabile();
+          document.getElementById("mod-bloccato").style.display = bloccato ? "" : "none";
+          document.getElementById("mod-form").style.display = bloccato ? "none" : "";
+          if (!bloccato) {
+            document.getElementById("mod-data").value    = prenotazione.data || "";
+            document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
+            document.getElementById("mod-ora").value     = prenotazione.ora?.slice(0,5) || "";
+            // Pulisci note dalle righe automatiche
+            const noteClean = (prenotazione.note || prenotazione.richieste_speciali || "")
+              .replace(/🤖 Prenotazione via chatbot WhatsApp[^
+]*/g, "")
+              .replace(/📝 Chatbot WA[^
+]*/g, "")
+              .replace(/🤖 WhatsApp Bot[^
+]*/g, "")
+              .trim();
+            document.getElementById("mod-note").value = noteClean;
+          }
         }
         document.getElementById(`modal-${type}`).classList.add("open");
       }
@@ -658,13 +703,23 @@
       function closeModal(type) { document.getElementById(`modal-${type}`).classList.remove("open"); }
 
       async function salvaModifica() {
+        if (!isModificabile()) return;
         const btn = document.getElementById("btn-salva-modifica");
         btn.disabled = true; btn.textContent = "Salvataggio...";
+        const data    = document.getElementById("mod-data").value || prenotazione.data;
         const coperti = parseInt(document.getElementById("mod-coperti").value) || prenotazione.coperti;
-        const ora  = document.getElementById("mod-ora").value || prenotazione.ora;
-        const note = document.getElementById("mod-note").value.trim();
+        const ora     = document.getElementById("mod-ora").value || prenotazione.ora;
+        const note    = document.getElementById("mod-note").value.trim();
         const { error } = await supa.from("prenotazioni_tavoli")
-          .update({ coperti, ora, note, richieste_speciali: note })
+          .update({
+            data,
+            coperti,
+            ora,
+            note,
+            richieste_speciali: note,
+            modificata_dal_cliente: true,
+            modificata_il: new Date().toISOString(),
+          })
           .eq("token_pubblico", token);
         if (error) { btn.disabled = false; btn.textContent = "💾 Salva modifiche"; alert("Errore nel salvataggio. Riprova."); return; }
         closeModal("modifica");
