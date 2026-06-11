@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>La tua prenotazione</title>
+  <link rel="icon" href="assets/favicon-192.png?v=9" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand: #0E5A7A;
+      --brand-light: #e8f4f8;
+      --radius: 20px;
+      --shadow: 0 8px 32px rgba(14,90,122,0.10);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f6fa;
+      min-height: 100vh;
+      color: #111827;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: var(--brand);
+      padding: 28px 20px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 70% 0%, rgba(255,255,255,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.3);
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .hero-ristorante {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .hero-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      font-weight: 600;
+    }
+
+    /* ── CARD PRINCIPALE ── */
+    .main-card {
+      background: #fff;
+      border-radius: var(--radius) var(--radius) 0 0;
+      margin: -40px 12px 0;
+      padding: 24px 20px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 2;
+    }
+
+    .pren-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--brand);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 4px;
+    }
+
+    .pren-nome {
+      font-size: 26px;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: var(--brand-light);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .info-box-icon {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .info-box-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--brand);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .info-box-value {
+      font-size: 17px;
+      font-weight: 800;
+      color: #111827;
+      margin-top: 2px;
+    }
+
+    .info-box-sub {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    /* STATUS BADGE */
+    .stato-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+
+    /* ── COUNTDOWN ── */
+    .countdown-card {
+      background: #111827;
+      border-radius: 18px;
+      padding: 18px;
+      margin: 0 12px 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .cd-unit {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .cd-num {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .cd-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .cd-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .countdown-wrap {
+      background: #111827;
+      border-radius: 18px;
+      padding: 16px 16px 14px;
+      margin: 0 12px 12px;
+    }
+
+    /* ── SECTION CARD ── */
+    .section-card {
+      background: #fff;
+      border-radius: 18px;
+      margin: 0 12px 12px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #374151;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── AZIONI ── */
+    .azioni-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 0 12px 12px;
+    }
+
+    .az-btn {
+      border: none;
+      border-radius: 16px;
+      padding: 16px 12px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: transform .12s;
+    }
+
+    .az-btn:active { transform: scale(.96); }
+
+    .az-btn .az-icon { font-size: 24px; }
+
+    .az-btn.primary   { background: var(--brand); color: #fff; }
+    .az-btn.secondary { background: #f3f4f6; color: #374151; }
+    .az-btn.danger    { background: #fee2e2; color: #991b1b; }
+    .az-btn.share     { background: #f0fdf4; color: #166534; }
+
+    /* ── NOTE / ALLERGIE ── */
+    .note-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      color: #92400e;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    /* ── MAPPA ── */
+    .map-frame {
+      width: 100%;
+      height: 180px;
+      border-radius: 14px;
+      border: none;
+    }
+
+    .map-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ── CONTATTI ── */
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .contact-row:last-child { border-bottom: none; }
+
+    .contact-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--brand-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .contact-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .contact-label {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .contact-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: #111827;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .contact-action {
+      border: none;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,.5);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: #d1d5db;
+      border-radius: 999px;
+      margin: 0 auto 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 16px;
+    }
+
+    .modal-field {
+      margin-bottom: 14px;
+    }
+
+    .modal-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .modal-input {
+      width: 100%;
+      height: 48px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      background: #f9fafb;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .modal-textarea {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      background: #f9fafb;
+      min-height: 90px;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .modal-btn {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .modal-btn.primary { background: var(--brand); color: #fff; }
+    .modal-btn.ghost   { background: #f3f4f6; color: #374151; }
+    .modal-btn.danger  { background: #fee2e2; color: #991b1b; }
+
+    /* ── LOADING / ERROR ── */
+    .page-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 16px;
+      background: #f0f6fa;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--brand-light);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6b7280;
+    }
+
+    .error-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 20px;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .error-icon { font-size: 56px; }
+    .error-title { font-size: 20px; font-weight: 800; color: #111827; }
+    .error-sub   { font-size: 14px; color: #6b7280; font-weight: 600; max-width: 280px; }
+
+    /* ── FOOTER ── */
+    .landing-footer {
+      text-align: center;
+      padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
+      font-size: 12px;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .landing-footer a {
+      color: var(--brand);
+      text-decoration: none;
+    }
+
+    /* ── CONDIVIDI BTN ── */
+    .share-full {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #f0fdf4;
+      color: #166534;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 800;
+      width: calc(100% - 24px);
+      margin: 0 12px 12px;
+      cursor: pointer;
+    }
+
+    .occasione-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    @media (min-width: 480px) {
+      .main-card { margin: -40px auto 0; max-width: 480px; border-radius: var(--radius); }
+      .countdown-wrap, .section-card, .azioni-grid, .share-full { max-width: 480px; margin-left: auto; margin-right: auto; }
+      .countdown-wrap { margin-bottom: 12px; }
+      body { display: flex; flex-direction: column; align-items: center; }
+      .hero { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="root">
+    <div class="page-loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Caricamento prenotazione...</div>
+    </div>
+  </div>
+
+  <!-- MODAL MODIFICA -->
+  <div id="modal-modifica" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✏️ Modifica prenotazione</div>
+      <div class="modal-field">
+        <div class="modal-label">Numero persone</div>
+        <input id="mod-coperti" class="modal-input" type="number" min="1" max="100" />
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Orario</div>
+        <input id="mod-ora" class="modal-input" type="time" />
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Note o richieste speciali</div>
+        <textarea id="mod-note" class="modal-textarea" placeholder="Allergie, occasioni speciali, preferenze..."></textarea>
+      </div>
+      <button class="modal-btn primary" id="btn-salva-modifica">💾 Salva modifiche</button>
+      <button class="modal-btn ghost"   id="btn-chiudi-modifica">Annulla</button>
+    </div>
+  </div>
+
+  <!-- MODAL CANCELLA -->
+  <div id="modal-cancella" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🗑️ Cancella prenotazione</div>
+      <p style="font-size:14px;color:#4b5563;font-weight:600;line-height:1.6;margin-bottom:20px;">
+        Sei sicuro di voler cancellare la tua prenotazione? Questa azione non può essere annullata.
+      </p>
+      <button class="modal-btn danger"  id="btn-conferma-cancella">❌ Sì, cancella</button>
+      <button class="modal-btn ghost"   id="btn-chiudi-cancella">Torna indietro</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (() => {
+      const SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+      const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      const root = document.getElementById("root");
+
+      // ── Leggi token dall'URL ───────────────────────────────────────
+      const params = new URLSearchParams(window.location.search);
+      const token  = params.get("t");
+
+      if (!token) {
+        showError("Token mancante", "Il link che hai usato non è valido o è incompleto.");
+        return;
+      }
+
+      let prenotazione = null;
+      let azienda      = null;
+      let cdInterval   = null;
+
+      init();
+
+      // ── INIT ──────────────────────────────────────────────────────
+      async function init() {
+        const { data, error } = await supa
+          .from("prenotazioni_tavoli")
+          .select("*, aziende(nome, logo_url, telefono, indirizzo, citta, colore_brand)")
+          .eq("token_pubblico", token)
+          .maybeSingle();
+
+        if (error || !data) {
+          showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido.");
+          return;
+        }
+
+        prenotazione = data;
+        azienda      = data.aziende || {};
+
+        // Controlla se la data è già passata
+        const dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
+        if (dataEvento < new Date()) {
+          renderScaduta();
+          return;
+        }
+
+        // Applica colore brand personalizzato
+        if (azienda.colore_brand) {
+          document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+          document.documentElement.style.setProperty("--brand-light", hexToLight(azienda.colore_brand));
+        }
+
+        renderLanding();
+        initModals();
+      }
+
+      // ── RENDER PRINCIPALE ─────────────────────────────────────────
+      function renderLanding() {
+        const p    = prenotazione;
+        const az   = azienda;
+        const nome = p.cliente_nome || "Ospite";
+        const data = formatData(p.data);
+        const ora  = p.ora ? p.ora.slice(0,5) : "";
+        const stato = getStatoMeta(p.stato);
+        const indirizzo = az.indirizzo ? `${az.indirizzo}${az.citta ? ", " + az.citta : ""}` : "";
+        const mapsQuery = encodeURIComponent(az.nome + (indirizzo ? " " + indirizzo : ""));
+        const occasioneLabel = getOccasioneLabel(p.occasione);
+
+        root.innerHTML = `
+          <!-- HERO -->
+          <div class="hero">
+            ${az.logo_url
+              ? `<img class="hero-logo" src="${escHtml(az.logo_url)}" alt="Logo" />`
+              : `<div class="hero-logo" style="display:flex;align-items:center;justify-content:center;font-size:32px;">🍽️</div>`
+            }
+            <div class="hero-ristorante">${escHtml(az.nome || "Il tuo ristorante")}</div>
+            <div class="hero-sub">Conferma di prenotazione</div>
+          </div>
+
+          <!-- CARD PRINCIPALE -->
+          <div class="main-card">
+            <div class="pren-label">Prenotazione confermata per</div>
+            <div class="pren-nome">${escHtml(nome)}</div>
+
+            <div class="stato-badge" style="background:${stato.bg};color:${stato.color};">
+              <span>${stato.emoji}</span> ${stato.label}
+            </div>
+
+            ${occasioneLabel ? `<div class="occasione-badge">🎉 ${escHtml(occasioneLabel)}</div>` : ""}
+
+            <div class="info-grid">
+              <div class="info-box">
+                <div class="info-box-icon">📅</div>
+                <div class="info-box-label">Data</div>
+                <div class="info-box-value">${data}</div>
+                <div class="info-box-sub">${getDayName(p.data)}</div>
+              </div>
+              <div class="info-box">
+                <div class="info-box-icon">🕐</div>
+                <div class="info-box-label">Orario</div>
+                <div class="info-box-value">${ora || "--"}</div>
+                <div class="info-box-sub">${getServizioLabel(p.servizio, ora)}</div>
+              </div>
+              <div class="info-box">
+                <div class="info-box-icon">👥</div>
+                <div class="info-box-label">Persone</div>
+                <div class="info-box-value">${p.coperti || 1}</div>
+                <div class="info-box-sub">coperti</div>
+              </div>
+              ${p.tavolo_id
+                ? `<div class="info-box">
+                    <div class="info-box-icon">🪑</div>
+                    <div class="info-box-label">Tavolo</div>
+                    <div class="info-box-value">Assegnato</div>
+                    <div class="info-box-sub">da noi</div>
+                   </div>`
+                : `<div class="info-box">
+                    <div class="info-box-icon">🎟️</div>
+                    <div class="info-box-label">Canale</div>
+                    <div class="info-box-value">${getCanalLabel(p.canale)}</div>
+                    <div class="info-box-sub">&nbsp;</div>
+                   </div>`
+              }
+            </div>
+
+            ${p.note || p.richieste_speciali ? `
+              <div class="note-box">
+                📝 ${escHtml(p.note || p.richieste_speciali)}
+              </div>
+            ` : ""}
+          </div>
+
+          <!-- COUNTDOWN -->
+          <div class="countdown-wrap" id="countdown-wrap">
+            <div class="cd-title">⏳ Manca ancora</div>
+            <div class="countdown-card" id="cd-cards">
+              <div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div>
+              <div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div>
+              <div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div>
+              <div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div>
+            </div>
+          </div>
+
+          <!-- AZIONI -->
+          <div class="azioni-grid">
+            <button class="az-btn primary" id="btn-modifica">
+              <span class="az-icon">✏️</span> Modifica
+            </button>
+            <button class="az-btn danger" id="btn-cancella">
+              <span class="az-icon">🗑️</span> Cancella
+            </button>
+          </div>
+
+          <!-- CONDIVIDI -->
+          <button class="share-full" id="btn-condividi">
+            🔗 Condividi questa prenotazione — porta un amico!
+          </button>
+
+          <!-- RISTORANTE -->
+          <div class="section-card">
+            <div class="section-title">🏠 Il ristorante</div>
+            ${az.telefono ? `
+              <div class="contact-row">
+                <div class="contact-icon">📞</div>
+                <div class="contact-text">
+                  <div class="contact-label">Telefono</div>
+                  <div class="contact-value">${escHtml(az.telefono)}</div>
+                </div>
+                <a class="contact-action" href="tel:${escHtml(az.telefono)}">Chiama</a>
+              </div>
+            ` : ""}
+            ${indirizzo ? `
+              <div class="contact-row">
+                <div class="contact-icon">📍</div>
+                <div class="contact-text">
+                  <div class="contact-label">Indirizzo</div>
+                  <div class="contact-value">${escHtml(indirizzo)}</div>
+                </div>
+              </div>
+            ` : ""}
+            ${p.dress_code ? `
+              <div class="contact-row">
+                <div class="contact-icon">👔</div>
+                <div class="contact-text">
+                  <div class="contact-label">Dress code</div>
+                  <div class="contact-value">${escHtml(p.dress_code)}</div>
+                </div>
+              </div>
+            ` : ""}
+          </div>
+
+          <!-- MAPPA -->
+          ${indirizzo ? `
+            <div class="section-card">
+              <div class="section-title">📍 Come raggiungerci</div>
+              <iframe
+                class="map-frame"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=${mapsQuery}"
+              ></iframe>
+              <a class="map-btn" href="https://maps.google.com/?q=${mapsQuery}" target="_blank">
+                🧭 Apri in Google Maps
+              </a>
+            </div>
+          ` : ""}
+
+          <div class="landing-footer">
+            Gestito con ❤️ da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow</a>
+          </div>
+        `;
+
+        startCountdown(p.data, p.ora);
+        document.getElementById("btn-modifica").onclick  = () => openModal("modifica");
+        document.getElementById("btn-cancella").onclick  = () => openModal("cancella");
+        document.getElementById("btn-condividi").onclick = condividi;
+      }
+
+      // ── COUNTDOWN ─────────────────────────────────────────────────
+      function startCountdown(data, ora) {
+        const target = new Date(data + "T" + (ora || "20:00"));
+
+        function tick() {
+          const diff = target - new Date();
+          if (diff <= 0) {
+            clearInterval(cdInterval);
+            document.getElementById("countdown-wrap")?.remove();
+            return;
+          }
+          const gg = Math.floor(diff / 86400000);
+          const hh = Math.floor((diff % 86400000) / 3600000);
+          const mm = Math.floor((diff % 3600000)  / 60000);
+          const ss = Math.floor((diff % 60000)    / 1000);
+
+          document.getElementById("cd-gg").textContent = String(gg).padStart(2,"0");
+          document.getElementById("cd-hh").textContent = String(hh).padStart(2,"0");
+          document.getElementById("cd-mm").textContent = String(mm).padStart(2,"0");
+          document.getElementById("cd-ss").textContent = String(ss).padStart(2,"0");
+        }
+
+        tick();
+        cdInterval = setInterval(tick, 1000);
+      }
+
+      // ── MODALS ────────────────────────────────────────────────────
+      function initModals() {
+        document.getElementById("btn-chiudi-modifica").onclick = () => closeModal("modifica");
+        document.getElementById("btn-chiudi-cancella").onclick = () => closeModal("cancella");
+
+        document.getElementById("modal-modifica").onclick = (e) => {
+          if (e.target === e.currentTarget) closeModal("modifica");
+        };
+        document.getElementById("modal-cancella").onclick = (e) => {
+          if (e.target === e.currentTarget) closeModal("cancella");
+        };
+
+        document.getElementById("btn-salva-modifica").onclick   = salvaModifica;
+        document.getElementById("btn-conferma-cancella").onclick = cancellaPrenotazione;
+      }
+
+      function openModal(type) {
+        if (type === "modifica") {
+          document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
+          document.getElementById("mod-ora").value     = prenotazione.ora?.slice(0,5) || "";
+          document.getElementById("mod-note").value    = prenotazione.note || prenotazione.richieste_speciali || "";
+        }
+        document.getElementById(`modal-${type}`).classList.add("open");
+      }
+
+      function closeModal(type) {
+        document.getElementById(`modal-${type}`).classList.remove("open");
+      }
+
+      async function salvaModifica() {
+        const btn = document.getElementById("btn-salva-modifica");
+        btn.disabled = true;
+        btn.textContent = "Salvataggio...";
+
+        const coperti = parseInt(document.getElementById("mod-coperti").value) || prenotazione.coperti;
+        const ora     = document.getElementById("mod-ora").value || prenotazione.ora;
+        const note    = document.getElementById("mod-note").value.trim();
+
+        const { error } = await supa
+          .from("prenotazioni_tavoli")
+          .update({ coperti, ora, note, richieste_speciali: note })
+          .eq("token_pubblico", token);
+
+        if (error) {
+          btn.disabled = false;
+          btn.textContent = "💾 Salva modifiche";
+          alert("Errore nel salvataggio. Riprova.");
+          return;
+        }
+
+        closeModal("modifica");
+        await init();
+      }
+
+      async function cancellaPrenotazione() {
+        const btn = document.getElementById("btn-conferma-cancella");
+        btn.disabled = true;
+        btn.textContent = "Cancellazione...";
+
+        const { error } = await supa
+          .from("prenotazioni_tavoli")
+          .update({ stato: "annullata" })
+          .eq("token_pubblico", token);
+
+        if (error) {
+          btn.disabled = false;
+          btn.textContent = "❌ Sì, cancella";
+          alert("Errore nella cancellazione. Riprova.");
+          return;
+        }
+
+        closeModal("cancella");
+        renderCancellata();
+      }
+
+      // ── RENDER STATI SPECIALI ──────────────────────────────────────
+      function renderScaduta() {
+        root.innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">📅</div>
+            <div class="error-title">Prenotazione passata</div>
+            <div class="error-sub">Questa prenotazione si riferisce a una data già trascorsa.</div>
+          </div>
+        `;
+      }
+
+      function renderCancellata() {
+        root.innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">✅</div>
+            <div class="error-title">Prenotazione cancellata</div>
+            <div class="error-sub">La tua prenotazione è stata cancellata con successo. Ci auguriamo di rivederti presto!</div>
+          </div>
+        `;
+      }
+
+      function showError(title, sub) {
+        root.innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">😕</div>
+            <div class="error-title">${escHtml(title)}</div>
+            <div class="error-sub">${escHtml(sub)}</div>
+          </div>
+        `;
+      }
+
+      // ── CONDIVIDI ─────────────────────────────────────────────────
+      function condividi() {
+        const url = window.location.href;
+        if (navigator.share) {
+          navigator.share({
+            title: `Prenotazione da ${azienda.nome || "il ristorante"}`,
+            text: `Ho prenotato al ${azienda.nome || "ristorante"}! Ecco i dettagli:`,
+            url
+          }).catch(() => {});
+        } else {
+          navigator.clipboard?.writeText(url).then(() => {
+            alert("Link copiato negli appunti!");
+          }).catch(() => {
+            prompt("Copia questo link:", url);
+          });
+        }
+      }
+
+      // ── HELPERS ───────────────────────────────────────────────────
+      function formatData(dateStr) {
+        if (!dateStr) return "--";
+        const [y, m, d] = dateStr.split("-");
+        return `${d}/${m}/${y}`;
+      }
+
+      function getDayName(dateStr) {
+        if (!dateStr) return "";
+        const giorni = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+        const [y, m, d] = dateStr.split("-").map(Number);
+        return giorni[new Date(y, m - 1, d).getDay()];
+      }
+
+      function getServizioLabel(servizio, ora) {
+        if (servizio) {
+          const map = { colazione:"Colazione", pranzo:"Pranzo", aperitivo:"Aperitivo", cena:"Cena" };
+          return map[servizio] || servizio;
+        }
+        if (!ora) return "";
+        if (ora >= "06:00" && ora < "11:00") return "Colazione";
+        if (ora >= "11:00" && ora < "15:30") return "Pranzo";
+        if (ora >= "15:30" && ora < "19:30") return "Aperitivo";
+        return "Cena";
+      }
+
+      function getCanalLabel(canale) {
+        const map = { manuale:"Manuale", chatbot:"Chat Bot", online:"Online", portale:"Portale" };
+        return map[canale] || "Diretto";
+      }
+
+      function getOccasioneLabel(occ) {
+        const map = {
+          compleanno: "Compleanno 🎂",
+          anniversario: "Anniversario 💍",
+          business: "Business 💼",
+          fidanzamento: "Fidanzamento 💍",
+          laurea: "Laurea 🎓",
+          altro: "Occasione speciale"
+        };
+        return occ ? (map[occ] || occ) : "";
+      }
+
+      function getStatoMeta(stato) {
+        switch(stato) {
+          case "nuova":      return { label:"In attesa",  emoji:"🟡", bg:"#FEF3C7", color:"#92400E" };
+          case "confermata": return { label:"Confermata", emoji:"🟢", bg:"#DCFCE7", color:"#166534" };
+          case "arrivata":   return { label:"Arrivata",   emoji:"✅", bg:"#DCFCE7", color:"#166534" };
+          case "annullata":  return { label:"Annullata",  emoji:"⚫", bg:"#E5E7EB", color:"#374151" };
+          case "no_show":    return { label:"No show",    emoji:"🔴", bg:"#FEE2E2", color:"#991B1B" };
+          default:           return { label:"In corso",   emoji:"🔵", bg:"#DBEAFE", color:"#1D4ED8" };
+        }
+      }
+
+      function hexToLight(hex) {
+        // Genera versione chiara del colore brand per i box
+        return hex + "1a";
+      }
+
+      function escHtml(v) {
+        return String(v ?? "")
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
+      }
+    })();
+  </script>
+</body>
+</html>
