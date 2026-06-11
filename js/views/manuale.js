@@ -2,10 +2,10 @@
 import { createPageLayout } from "../utils/pageLayout.js";
 
 export async function render(container) {
-  const PDF_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/Ristoflow_Manuale_Utente.pdf";
+  const PDF_URL = "https://app.ristoflow-ai.com/Ristoflow_Manuale_Utilizzo.pdf";
 
   container.innerHTML = createPageLayout({
-    title: "📘 Manuale Operativo",
+    title: "📘 Manuale d'uso",
     subtitle: "Guida completa a tutte le funzioni di Ristoflow.AI",
     content: `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
@@ -22,7 +22,7 @@ export async function render(container) {
           width="100%"
           height="820px"
           style="border:none;display:block;"
-          title="Manuale Operativo Ristoflow">
+          title="Manuale d'uso Ristoflow">
           <p style="padding:20px;color:#6b7280;">
             Il tuo browser non supporta la visualizzazione inline del PDF.
             <a href="${PDF_URL}" target="_blank" style="color:#0E5A7A;font-weight:700;">Apri il PDF</a>
