@@ -73,35 +73,35 @@ export function initMenu() {
 
     setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
 
-    // ── CAMPANELLA NOTIFICHE ─────────────────────────────────────────────
-    const bell = document.createElement("div");
-    bell.id = "notif-bell";
-    bell.style.position = "relative";
-    bell.style.cursor = "pointer";
-    bell.style.marginLeft = "10px";
+    // ── PULSANTE TONY AI ─────────────────────────────────────────────────
+    if (!document.getElementById("tony-btn-header")) {
+      const tonyBtn = document.createElement("div");
+      tonyBtn.id = "tony-btn-header";
+      tonyBtn.title = "Tony AI";
+      tonyBtn.style.cssText = `
+        cursor: pointer;
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #0E5A7A;
+        overflow: hidden;
+        flex-shrink: 0;
+      `;
+      tonyBtn.innerHTML = `<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
+        style="width:34px;height:34px;border-radius:50%;object-fit:cover;"
+        onerror="this.style.display='none';this.parentElement.innerHTML='🤖';" />`;
+      tonyBtn.onclick = () => {
+        window.location.hash = "#/ai";
+        closeMenu();
+      };
+      headerRight.appendChild(tonyBtn);
+    }
 
-    bell.innerHTML = `
-      <span style="font-size:20px;">🔔</span>
-      <div id="notif-badge" style="
-        position:absolute;
-        top:-6px;
-        right:-6px;
-        background:#ef4444;
-        color:white;
-        border-radius:50%;
-        font-size:10px;
-        padding:2px 6px;
-        display:none;
-      ">0</div>
-    `;
 
-    bell.onclick = () => {
-      if (window.toggleNotificheDropdown) {
-        window.toggleNotificheDropdown();
-      }
-    };
-
-    headerRight.appendChild(bell);
   }
 
   let overlay = document.querySelector(".menu-overlay");
