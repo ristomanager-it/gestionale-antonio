@@ -7,815 +7,383 @@
   <link rel="icon" href="assets/favicon-192.png?v=9" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --brand: #0E5A7A;
-      --brand-light: #e8f4f8;
-      --radius: 20px;
-      --shadow: 0 8px 32px rgba(14,90,122,0.10);
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f0f6fa;
-      min-height: 100vh;
-      color: #111827;
-    }
-
-    /* ── HERO SOCIAL ── */
+    :root { --brand: #0E5A7A; --brand-light: #e8f4f8; --radius: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f6fa; min-height: 100vh; color: #111827; }
     .hero-social { background: #fff; margin-bottom: 0; }
-
-    .social-cover {
-      position: relative;
-      width: 100%;
-      height: 200px;
-      background: var(--brand);
-      overflow: hidden;
-    }
-
+    .social-cover { position: relative; width: 100%; height: 200px; background: var(--brand); overflow: hidden; }
     .social-cover-img { width:100%;height:100%;object-fit:cover;display:block; }
-
-    .social-cover-empty {
-      width:100%;height:100%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:56px;
-    }
-
-    .social-cover-overlay {
-      position:absolute;inset:0;
-      background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.18) 100%);
-      pointer-events:none;
-    }
-
-    .social-profile-row {
-      display:flex;align-items:flex-end;gap:14px;
-      padding:0 16px 14px;
-      margin-top:-36px;
-      position:relative;z-index:2;
-    }
-
-    .social-logo-wrap {
-      width:88px;height:88px;border-radius:50%;
-      border:4px solid #fff;overflow:hidden;
-      background:#e5e7eb;flex-shrink:0;
-      box-shadow:0 2px 12px rgba(0,0,0,0.15);
-    }
-
+    .social-cover-empty { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:56px; }
+    .social-cover-overlay { position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.18) 100%);pointer-events:none; }
+    .social-profile-row { display:flex;align-items:flex-end;gap:14px;padding:0 16px 14px;margin-top:-36px;position:relative;z-index:2; }
+    .social-logo-wrap { width:88px;height:88px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:#e5e7eb;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,0.15); }
     .social-logo-img { width:100%;height:100%;object-fit:cover;display:block; }
-
-    .social-logo-empty {
-      width:100%;height:100%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:36px;background:var(--brand-light);
-    }
-
+    .social-logo-empty { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--brand-light); }
     .social-profile-info { padding-bottom:6px;flex:1;min-width:0; }
-
-    .social-nome {
-      font-size:20px;font-weight:800;color:#111827;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-
-    /* "Conferma di prenotazione" più grande e visibile */
-    .social-sub {
-      font-size:15px;
-      font-weight:700;
-      color:var(--brand);
-      margin-top:4px;
-    }
-
-    /* ── CARD PRINCIPALE ── */
-    .main-card {
-      background:#fff;
-      border-top:1px solid #f3f4f6;
-      margin:0 0 12px;
-      padding:20px 16px;
-    }
-
-    .pren-label {
-      font-size:11px;font-weight:800;color:var(--brand);
-      text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;
-    }
-
-    .pren-nome {
-      font-size:26px;font-weight:800;color:#111827;
-      line-height:1.1;margin-bottom:20px;
-    }
-
-    .info-grid {
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:10px;margin-bottom:20px;
-    }
-
+    .social-nome { font-size:20px;font-weight:800;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .social-sub { font-size:15px;font-weight:700;color:var(--brand);margin-top:4px; }
+    .main-card { background:#fff;border-top:1px solid #f3f4f6;margin:0 0 12px;padding:20px 16px; }
+    .pren-label { font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px; }
+    .pren-nome { font-size:26px;font-weight:800;color:#111827;line-height:1.1;margin-bottom:20px; }
+    .info-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px; }
     .info-box { background:var(--brand-light);border-radius:16px;padding:14px; }
     .info-box-icon { font-size:22px;margin-bottom:6px; }
     .info-box-label { font-size:10px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em; }
     .info-box-value { font-size:17px;font-weight:800;color:#111827;margin-top:2px; }
     .info-box-sub { font-size:11px;color:#6b7280;margin-top:2px;font-weight:600; }
-
-    .stato-badge {
-      display:inline-flex;align-items:center;gap:6px;
-      border-radius:999px;padding:6px 14px;
-      font-size:12px;font-weight:800;margin-bottom:20px;
-    }
-
-    /* ── COUNTDOWN ── */
-    .countdown-wrap {
-      background:var(--brand);border-radius:18px;
-      padding:16px 16px 14px;margin:0 12px 12px;
-    }
-
-    .cd-title {
-      font-size:11px;font-weight:800;color:rgba(255,255,255,0.7);
-      text-align:center;margin-bottom:10px;
-      text-transform:uppercase;letter-spacing:.08em;
-    }
-
-    .countdown-card {
-      display:flex;gap:8px;justify-content:center;
-    }
-
-    .cd-unit {
-      flex:1;background:rgba(255,255,255,0.08);
-      border-radius:14px;padding:12px 8px;text-align:center;
-    }
-
+    .stato-badge { display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:20px; }
+    .countdown-wrap { background:var(--brand);border-radius:18px;padding:16px 16px 14px;margin:0 12px 12px; }
+    .cd-title { font-size:11px;font-weight:800;color:rgba(255,255,255,0.7);text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em; }
+    .countdown-card { display:flex;gap:8px;justify-content:center; }
+    .cd-unit { flex:1;background:rgba(255,255,255,0.08);border-radius:14px;padding:12px 8px;text-align:center; }
     .cd-num { font-size:28px;font-weight:800;color:#fff;line-height:1; }
     .cd-label { font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;margin-top:4px; }
-
-    /* ── SECTION CARD ── */
-    .section-card {
-      background:#fff;border-radius:18px;
-      margin:0 12px 12px;padding:16px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.04);
-    }
-
-    .section-title {
-      font-size:13px;font-weight:800;color:#374151;
-      margin-bottom:12px;display:flex;align-items:center;gap:6px;
-    }
-
-    /* ── AZIONI ── */
-    .azioni-grid {
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:10px;margin:0 12px 12px;
-    }
-
-    .az-btn {
-      border:none;border-radius:16px;padding:16px 12px;
-      font-size:14px;font-weight:800;cursor:pointer;
-      display:flex;flex-direction:column;align-items:center;gap:6px;
-      transition:transform .12s;
-    }
-
+    .section-card { background:#fff;border-radius:18px;margin:0 12px 12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.04); }
+    .section-title { font-size:13px;font-weight:800;color:#374151;margin-bottom:12px;display:flex;align-items:center;gap:6px; }
+    .azioni-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 12px 12px; }
+    .az-btn { border:none;border-radius:16px;padding:16px 12px;font-size:14px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .12s; }
     .az-btn:active { transform:scale(.96); }
     .az-btn .az-icon { font-size:24px; }
     .az-btn.primary { background:var(--brand);color:#fff; }
-    .az-btn.danger  { background:#fee2e2;color:#991b1b; }
-
-    /* ── NOTE ── */
-    .note-box {
-      background:#fffbeb;border:1px solid #fde68a;
-      border-radius:14px;padding:12px;
-      font-size:13px;color:#92400e;font-weight:600;line-height:1.5;
-    }
-
-    /* ── CONTATTI ── */
-    .contact-row {
-      display:flex;align-items:center;gap:12px;
-      padding:10px 0;border-bottom:1px solid #f3f4f6;
-    }
-
+    .az-btn.danger { background:#fee2e2;color:#991b1b; }
+    .note-box { background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;font-size:13px;color:#92400e;font-weight:600;line-height:1.5; }
+    .contact-row { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f3f4f6; }
     .contact-row:last-child { border-bottom:none; }
-
-    .contact-icon {
-      width:40px;height:40px;border-radius:12px;
-      background:var(--brand-light);
-      display:flex;align-items:center;justify-content:center;
-      font-size:18px;flex-shrink:0;
-    }
-
+    .contact-icon { width:40px;height:40px;border-radius:12px;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
     .contact-text { flex:1;min-width:0; }
     .contact-label { font-size:11px;color:#6b7280;font-weight:700; }
     .contact-value { font-size:14px;font-weight:800;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-
-    .contact-action {
-      border:none;background:var(--brand);color:#fff;
-      border-radius:10px;padding:8px 12px;
-      font-size:12px;font-weight:800;cursor:pointer;
-      white-space:nowrap;text-decoration:none;
-    }
-
-    /* ── MENU BTN ── */
-    .menu-btn {
-      display:flex;align-items:center;justify-content:center;gap:10px;
-      background:var(--brand);color:#fff;
-      border:none;border-radius:16px;padding:18px;
-      font-size:16px;font-weight:800;
-      width:calc(100% - 24px);margin:0 12px 12px;
-      cursor:pointer;text-decoration:none;
-      box-shadow:0 4px 16px rgba(14,90,122,0.25);
-    }
-
-    /* ── MAPPA ── */
-    .map-btn {
-      display:flex;align-items:center;justify-content:center;gap:8px;
-      background:var(--brand);color:#fff;border:none;border-radius:14px;
-      padding:12px;font-size:14px;font-weight:800;
-      width:100%;margin-top:10px;cursor:pointer;text-decoration:none;
-    }
-
-    /* ── GALLERIA ── */
-    .gallery-section {
-      margin:0 12px 12px;background:#fff;
-      border-radius:18px;padding:16px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.04);
-    }
-
-    .gallery-grid-landing {
-      display:grid;grid-template-columns:repeat(3,1fr);
-      gap:6px;margin-top:10px;
-    }
-
-    .gallery-landing-item {
-      border-radius:10px;overflow:hidden;aspect-ratio:1;cursor:pointer;
-    }
-
-    .gallery-landing-item img {
-      width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s;
-    }
-
+    .contact-action { border:none;background:var(--brand);color:#fff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;text-decoration:none; }
+    .menu-btn { display:flex;align-items:center;justify-content:center;gap:10px;background:var(--brand);color:#fff;border:none;border-radius:16px;padding:18px;font-size:16px;font-weight:800;width:calc(100% - 24px);margin:0 12px 12px;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(14,90,122,0.25); }
+    .map-btn { display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;border:none;border-radius:14px;padding:12px;font-size:14px;font-weight:800;width:100%;margin-top:10px;cursor:pointer;text-decoration:none; }
+    .gallery-section { margin:0 12px 12px;background:#fff;border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.04); }
+    .gallery-grid-landing { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px; }
+    .gallery-landing-item { border-radius:10px;overflow:hidden;aspect-ratio:1;cursor:pointer; }
+    .gallery-landing-item img { width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s; }
     .gallery-landing-item:hover img { transform:scale(1.04); }
-
-    /* ── LIGHTBOX ── */
-    .lightbox {
-      position:fixed;inset:0;background:rgba(0,0,0,.92);
-      z-index:200;display:none;align-items:center;justify-content:center;
-    }
-
+    .lightbox { position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:none;align-items:center;justify-content:center; }
     .lightbox.open { display:flex; }
-
     .lightbox img { max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain; }
-
-    .lightbox-close {
-      position:absolute;top:16px;right:16px;
-      background:rgba(255,255,255,.2);border:none;color:#fff;
-      width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;
-    }
-
-    /* ── MODAL ── */
-    .modal-overlay {
-      position:fixed;inset:0;background:rgba(17,24,39,.5);
-      z-index:100;display:none;align-items:flex-end;
-    }
-
+    .lightbox-close { position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer; }
+    .modal-overlay { position:fixed;inset:0;background:rgba(17,24,39,.5);z-index:100;display:none;align-items:flex-end; }
     .modal-overlay.open { display:flex; }
-
-    .modal-box {
-      background:#fff;border-radius:24px 24px 0 0;
-      padding:20px 20px calc(24px + env(safe-area-inset-bottom));
-      width:100%;max-height:85vh;overflow-y:auto;
-    }
-
-    .modal-handle {
-      width:40px;height:4px;background:#d1d5db;
-      border-radius:999px;margin:0 auto 16px;
-    }
-
+    .modal-box { background:#fff;border-radius:24px 24px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-height:85vh;overflow-y:auto; }
+    .modal-handle { width:40px;height:4px;background:#d1d5db;border-radius:999px;margin:0 auto 16px; }
     .modal-title { font-size:18px;font-weight:800;color:#111827;margin-bottom:16px; }
     .modal-field { margin-bottom:14px; }
     .modal-label { font-size:12px;font-weight:800;color:#374151;margin-bottom:6px; }
-
-    .modal-input {
-      width:100%;height:48px;border:1px solid #e5e7eb;border-radius:14px;
-      padding:0 14px;font-size:15px;font-weight:600;color:#111827;background:#f9fafb;
-    }
-
+    .modal-input { width:100%;height:48px;border:1px solid #e5e7eb;border-radius:14px;padding:0 14px;font-size:15px;font-weight:600;color:#111827;background:#f9fafb; }
     .modal-input:focus { outline:none;border-color:var(--brand);background:#fff; }
-
-    .modal-textarea {
-      width:100%;border:1px solid #e5e7eb;border-radius:14px;
-      padding:12px 14px;font-size:15px;font-weight:600;color:#111827;
-      background:#f9fafb;min-height:90px;resize:none;font-family:inherit;
-    }
-
-    .modal-btn {
-      width:100%;height:52px;border:none;border-radius:16px;
-      font-size:16px;font-weight:800;cursor:pointer;margin-bottom:8px;
-    }
-
+    .modal-textarea { width:100%;border:1px solid #e5e7eb;border-radius:14px;padding:12px 14px;font-size:15px;font-weight:600;color:#111827;background:#f9fafb;min-height:90px;resize:none;font-family:inherit; }
+    .modal-btn { width:100%;height:52px;border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:8px; }
     .modal-btn.primary { background:var(--brand);color:#fff; }
-    .modal-btn.ghost   { background:#f3f4f6;color:#374151; }
-    .modal-btn.danger  { background:#fee2e2;color:#991b1b; }
-
-    /* ── OCCASIONE ── */
-    .occasione-badge {
-      display:inline-flex;align-items:center;gap:6px;
-      background:#fef3c7;color:#92400e;border-radius:999px;
-      padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:12px;
-    }
-
-    /* ── LOADING / ERROR ── */
-    .page-loader {
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      min-height:100vh;gap:16px;background:#f0f6fa;
-    }
-
-    .spinner {
-      width:48px;height:48px;
-      border:4px solid var(--brand-light);border-top-color:var(--brand);
-      border-radius:50%;animation:spin .8s linear infinite;
-    }
-
+    .modal-btn.ghost { background:#f3f4f6;color:#374151; }
+    .modal-btn.danger { background:#fee2e2;color:#991b1b; }
+    .occasione-badge { display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:12px; }
+    .page-loader { display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;background:#f0f6fa; }
+    .spinner { width:48px;height:48px;border:4px solid var(--brand-light);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-
     .loader-text { font-size:14px;font-weight:700;color:#6b7280; }
-
-    .error-page {
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      min-height:100vh;padding:32px 20px;text-align:center;gap:12px;
-    }
-
+    .error-page { display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px;text-align:center;gap:12px; }
     .error-icon { font-size:56px; }
     .error-title { font-size:20px;font-weight:800;color:#111827; }
     .error-sub { font-size:14px;color:#6b7280;font-weight:600;max-width:280px; }
-
-    /* ── FOOTER ── */
-    .landing-footer {
-      text-align:center;
-      padding:28px 20px calc(28px + env(safe-area-inset-bottom));
-      font-size:12px;color:#9ca3af;font-weight:600;
-    }
-
+    .landing-footer { text-align:center;padding:28px 20px calc(28px + env(safe-area-inset-bottom));font-size:12px;color:#9ca3af;font-weight:600; }
     .landing-footer a { color:var(--brand);text-decoration:none; }
-
     @media (min-width: 480px) {
       .main-card { margin:0 auto 12px;max-width:480px; }
       .hero-social { max-width:480px;width:100%; }
       .social-cover { height:220px; }
-      .countdown-wrap,.section-card,.azioni-grid,
-      .gallery-section,.menu-btn { max-width:480px;margin-left:auto;margin-right:auto; }
+      .countdown-wrap,.section-card,.azioni-grid,.gallery-section,.menu-btn { max-width:480px;margin-left:auto;margin-right:auto; }
       .menu-btn { width:480px; }
       body { display:flex;flex-direction:column;align-items:center; }
     }
   </style>
 </head>
 <body>
-
   <div id="root">
-    <div class="page-loader">
-      <div class="spinner"></div>
-      <div class="loader-text">Caricamento prenotazione...</div>
-    </div>
+    <div class="page-loader"><div class="spinner"></div><div class="loader-text">Caricamento prenotazione...</div></div>
   </div>
 
-  <!-- MODAL MODIFICA -->
   <div id="modal-modifica" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-handle"></div>
-      <div class="modal-title">✏️ Modifica prenotazione</div>
+      <div class="modal-title">&#x270F;&#xFE0F; Modifica prenotazione</div>
       <div id="mod-bloccato" style="display:none;background:#fee2e2;border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;font-weight:700;color:#991b1b;text-align:center;line-height:1.5;">
-        ⏰ Non è più possibile modificare la prenotazione.<br>Le modifiche devono essere effettuate almeno 2 ore prima.
+        &#x23F0; Non e' piu' possibile modificare la prenotazione.<br>Le modifiche devono essere effettuate almeno 2 ore prima.
       </div>
       <div id="mod-form">
-        <div class="modal-field">
-          <div class="modal-label">Data</div>
-          <input id="mod-data" class="modal-input" type="date" />
-        </div>
-        <div class="modal-field">
-          <div class="modal-label">Numero persone</div>
-          <input id="mod-coperti" class="modal-input" type="number" min="1" max="100" />
-        </div>
-        <div class="modal-field">
-          <div class="modal-label">Orario</div>
-          <input id="mod-ora" class="modal-input" type="time" />
-        </div>
-        <div class="modal-field">
-          <div class="modal-label">Note o richieste speciali</div>
-          <textarea id="mod-note" class="modal-textarea" placeholder="Allergie, occasioni speciali, preferenze..."></textarea>
-        </div>
-        <button class="modal-btn primary" id="btn-salva-modifica">💾 Salva modifiche</button>
+        <div class="modal-field"><div class="modal-label">Data</div><input id="mod-data" class="modal-input" type="date" /></div>
+        <div class="modal-field"><div class="modal-label">Numero persone</div><input id="mod-coperti" class="modal-input" type="number" min="1" max="100" /></div>
+        <div class="modal-field"><div class="modal-label">Orario</div><input id="mod-ora" class="modal-input" type="time" /></div>
+        <div class="modal-field"><div class="modal-label">Note o richieste speciali</div><textarea id="mod-note" class="modal-textarea" placeholder="Allergie, occasioni speciali, preferenze..."></textarea></div>
+        <button class="modal-btn primary" id="btn-salva-modifica">Salva modifiche</button>
       </div>
       <button class="modal-btn ghost" id="btn-chiudi-modifica">Annulla</button>
     </div>
   </div>
 
-  <!-- MODAL CANCELLA -->
   <div id="modal-cancella" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-handle"></div>
-      <div class="modal-title">🗑️ Cancella prenotazione</div>
-      <p style="font-size:14px;color:#4b5563;font-weight:600;line-height:1.6;margin-bottom:20px;">
-        Sei sicuro di voler cancellare la tua prenotazione? Questa azione non può essere annullata.
-      </p>
-      <button class="modal-btn danger" id="btn-conferma-cancella">❌ Sì, cancella</button>
+      <div class="modal-title">Cancella prenotazione</div>
+      <p style="font-size:14px;color:#4b5563;font-weight:600;line-height:1.6;margin-bottom:20px;">Sei sicuro di voler cancellare la tua prenotazione? Questa azione non puo' essere annullata.</p>
+      <button class="modal-btn danger" id="btn-conferma-cancella">Si', cancella</button>
       <button class="modal-btn ghost" id="btn-chiudi-cancella">Torna indietro</button>
     </div>
   </div>
 
-  <!-- LIGHTBOX -->
   <div id="lightbox" class="lightbox">
-    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <button class="lightbox-close" id="lightbox-close">X</button>
     <img id="lightbox-img" src="" alt="">
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    (() => {
-      const SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-      const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  (function() {
+    var SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var root = document.getElementById("root");
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get("t");
+    if (!token) { showError("Token mancante", "Il link che hai usato non e' valido."); return; }
+    var prenotazione = null;
+    var azienda = null;
+    var cdInterval = null;
 
-      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-      const root = document.getElementById("root");
+    init();
 
-      const params = new URLSearchParams(window.location.search);
-      const token  = params.get("t");
-
-      if (!token) { showError("Token mancante", "Il link che hai usato non è valido o è incompleto."); return; }
-
-      let prenotazione = null;
-      let azienda      = null;
-      let cdInterval   = null;
-
-      init();
-
-      async function init() {
-        const { data, error } = await supa
-          .from("prenotazioni_tavoli")
-          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id)")
-          .eq("token_pubblico", token)
-          .maybeSingle();
-
-        if (error || !data) { showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido."); return; }
-
-        prenotazione = data;
-        azienda      = data.aziende || {};
-
-        const dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
-        if (dataEvento < new Date()) { renderScaduta(); return; }
-
-        if (azienda.colore_brand) {
-          document.documentElement.style.setProperty("--brand", azienda.colore_brand);
-          document.documentElement.style.setProperty("--brand-light", hexToLight(azienda.colore_brand));
-        }
-
-        renderLanding();
-        initModals();
-        initLightbox();
-      }
-
-      function renderLanding() {
-        const p   = prenotazione;
-        const az  = azienda;
-        const nome = p.cliente_nome || "Ospite";
-        const data = formatData(p.data);
-        const ora  = p.ora ? p.ora.slice(0,5) : "";
-        const stato = getStatoMeta(p.stato);
-        const indirizzo = az.indirizzo ? `${az.indirizzo}${az.citta ? ", " + az.citta : ""}` : "";
-        const mapsQuery = encodeURIComponent(az.nome + (indirizzo ? " " + indirizzo : ""));
-        const occasioneLabel = getOccasioneLabel(p.occasione);
-        const galleria = Array.isArray(az.foto_galleria) ? az.foto_galleria : [];
-
-        // Nota: mostriamo solo se NON è del chatbot
-        const noteText = buildNoteText(p.note || p.richieste_speciali || "");
-            return l &&
-              !l.startsWith("🤖 Prenotazione via chatbot WhatsApp") &&
-              !l.startsWith("📝 Chatbot WA") &&
-              !l.startsWith("🤖 WhatsApp Bot");
-          })
-          .join("
-")
-          .trim();
-
-        root.innerHTML = `
-          <!-- HERO SOCIAL -->
-          <div class="hero-social">
-            <div class="social-cover">
-              ${az.cover_url
-                ? `<img class="social-cover-img" src="${escHtml(az.cover_url)}" alt="Cover">`
-                : `<div class="social-cover-empty" style="background:var(--brand)">🍽️</div>`}
-              <div class="social-cover-overlay"></div>
-            </div>
-            <div class="social-profile-row">
-              <div class="social-logo-wrap">
-                ${az.logo_url
-                  ? `<img class="social-logo-img" src="${escHtml(az.logo_url)}" alt="Logo">`
-                  : `<div class="social-logo-empty">🍽️</div>`}
-              </div>
-              <div class="social-profile-info">
-                <div class="social-nome">${escHtml(az.nome || "Il tuo ristorante")}</div>
-                <div class="social-sub">Conferma di prenotazione</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- CARD PRINCIPALE -->
-          <div class="main-card">
-            <div class="pren-label">Prenotazione confermata per</div>
-            <div class="pren-nome">${escHtml(nome)}</div>
-
-            <div class="stato-badge" style="background:${stato.bg};color:${stato.color};">
-              <span>${stato.emoji}</span> ${stato.label}
-            </div>
-
-            ${occasioneLabel ? `<div class="occasione-badge">🎉 ${escHtml(occasioneLabel)}</div>` : ""}
-
-            <div class="info-grid">
-              <div class="info-box">
-                <div class="info-box-icon">📅</div>
-                <div class="info-box-label">Data</div>
-                <div class="info-box-value">${data}</div>
-                <div class="info-box-sub">${getDayName(p.data)}</div>
-              </div>
-              <div class="info-box">
-                <div class="info-box-icon">🕐</div>
-                <div class="info-box-label">Orario</div>
-                <div class="info-box-value">${ora || "--"}</div>
-                <div class="info-box-sub">${getServizioLabel(p.servizio, ora)}</div>
-              </div>
-              <div class="info-box">
-                <div class="info-box-icon">👥</div>
-                <div class="info-box-label">Persone</div>
-                <div class="info-box-value">${p.coperti || 1}</div>
-                <div class="info-box-sub">coperti</div>
-              </div>
-              ${p.tavolo_id
-                ? `<div class="info-box"><div class="info-box-icon">🪑</div><div class="info-box-label">Tavolo</div><div class="info-box-value">Assegnato</div><div class="info-box-sub">da noi</div></div>`
-                : ""}
-            </div>
-
-            ${noteText ? `<div class="note-box">📝 ${escHtml(noteText)}</div>` : ""}
-          </div>
-
-          <!-- COUNTDOWN -->
-          <div class="countdown-wrap" id="countdown-wrap">
-            <div class="cd-title">⏳ Manca ancora</div>
-            <div class="countdown-card">
-              <div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div>
-              <div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div>
-              <div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div>
-              <div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div>
-            </div>
-          </div>
-
-          <!-- AZIONI -->
-          <div class="azioni-grid">
-            <button class="az-btn primary" id="btn-modifica">
-              <span class="az-icon">✏️</span> Modifica
-            </button>
-            <button class="az-btn danger" id="btn-cancella">
-              <span class="az-icon">🗑️</span> Cancella
-            </button>
-          </div>
-
-          <!-- MENU DIGITALE — subito visibile -->
-          ${az.link_menu ? `
-            <a class="menu-btn" href="${escHtml(az.link_menu)}" target="_blank">
-              📋 Vedi il menu
-            </a>
-          ` : ""}
-
-          <!-- RISTORANTE -->
-          <div class="section-card">
-            <div class="section-title">🏠 Il ristorante</div>
-            ${az.telefono ? `
-              <div class="contact-row">
-                <div class="contact-icon">📞</div>
-                <div class="contact-text">
-                  <div class="contact-label">Telefono</div>
-                  <div class="contact-value">${escHtml(az.telefono)}</div>
-                </div>
-                <a class="contact-action" href="tel:${escHtml(az.telefono)}">Chiama</a>
-              </div>` : ""}
-            ${indirizzo ? `
-              <div class="contact-row">
-                <div class="contact-icon">📍</div>
-                <div class="contact-text">
-                  <div class="contact-label">Indirizzo</div>
-                  <div class="contact-value">${escHtml(indirizzo)}</div>
-                </div>
-              </div>` : ""}
-            ${p.dress_code ? `
-              <div class="contact-row">
-                <div class="contact-icon">👔</div>
-                <div class="contact-text">
-                  <div class="contact-label">Dress code</div>
-                  <div class="contact-value">${escHtml(p.dress_code)}</div>
-                </div>
-              </div>` : ""}
-          </div>
-
-          <!-- MAPPA -->
-          ${indirizzo ? `
-            <div class="section-card">
-              <div class="section-title">📍 Come raggiungerci</div>
-              <a class="map-btn" href="https://maps.google.com/?q=${mapsQuery}" target="_blank">
-                🧭 Apri in Google Maps
-              </a>
-            </div>` : ""}
-
-          <!-- GALLERIA FOTO -->
-          ${galleria.length ? `
-            <div class="gallery-section">
-              <div class="section-title">📸 Il locale</div>
-              <div class="gallery-grid-landing">
-                ${galleria.slice(0,6).map((url, i) => `
-                  <div class="gallery-landing-item" data-lightbox="${escHtml(url)}">
-                    <img src="${escHtml(url)}" alt="Foto ${i+1}" loading="lazy">
-                  </div>`).join("")}
-              </div>
-            </div>` : ""}
-
-          <div class="landing-footer">
-            Gestito con ❤️ da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow.Ai</a>
-          </div>
-        `;
-
-        startCountdown(p.data, p.ora);
-        document.getElementById("btn-modifica").onclick = () => openModal("modifica");
-        document.getElementById("btn-cancella").onclick = () => openModal("cancella");
-
-        // Badge "modificata" se il cliente ha già modificato
-        if (p.modificata_dal_cliente) {
-          const badge = document.createElement("div");
-          badge.style.cssText = "background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin:0 12px 12px;text-align:center;";
-          badge.textContent = "✏️ Hai modificato questa prenotazione";
-          document.getElementById("countdown-wrap")?.after(badge);
-        }
-      }
-
-      function startCountdown(data, ora) {
-        const target = new Date(data + "T" + (ora || "20:00"));
-        function tick() {
-          const diff = target - new Date();
-          if (diff <= 0) { clearInterval(cdInterval); document.getElementById("countdown-wrap")?.remove(); return; }
-          const gg = Math.floor(diff / 86400000);
-          const hh = Math.floor((diff % 86400000) / 3600000);
-          const mm = Math.floor((diff % 3600000)  / 60000);
-          const ss = Math.floor((diff % 60000)    / 1000);
-          document.getElementById("cd-gg").textContent = String(gg).padStart(2,"0");
-          document.getElementById("cd-hh").textContent = String(hh).padStart(2,"0");
-          document.getElementById("cd-mm").textContent = String(mm).padStart(2,"0");
-          document.getElementById("cd-ss").textContent = String(ss).padStart(2,"0");
-        }
-        tick();
-        cdInterval = setInterval(tick, 1000);
-      }
-
-      function initModals() {
-        document.getElementById("btn-chiudi-modifica").onclick = () => closeModal("modifica");
-        document.getElementById("btn-chiudi-cancella").onclick = () => closeModal("cancella");
-        document.getElementById("modal-modifica").onclick = (e) => { if (e.target === e.currentTarget) closeModal("modifica"); };
-        document.getElementById("modal-cancella").onclick  = (e) => { if (e.target === e.currentTarget) closeModal("cancella"); };
-        document.getElementById("btn-salva-modifica").onclick    = salvaModifica;
-        document.getElementById("btn-conferma-cancella").onclick = cancellaPrenotazione;
-      }
-
-      function isModificabile() {
-        const dataEvento = new Date(prenotazione.data + "T" + (prenotazione.ora || "00:00"));
-        const diff = dataEvento - new Date();
-        return diff > 2 * 3600 * 1000; // più di 2 ore
-      }
-
-      function openModal(type) {
-        if (type === "modifica") {
-          const bloccato = !isModificabile();
-          document.getElementById("mod-bloccato").style.display = bloccato ? "" : "none";
-          document.getElementById("mod-form").style.display = bloccato ? "none" : "";
-          if (!bloccato) {
-            document.getElementById("mod-data").value    = prenotazione.data || "";
-            document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
-            document.getElementById("mod-ora").value     = prenotazione.ora?.slice(0,5) || "";
-            // Pulisci note dalle righe automatiche
-            const noteClean = buildNoteText(prenotazione.note || prenotazione.richieste_speciali || "");
-            document.getElementById("mod-note").value = noteClean;
+    function init() {
+      supa.from("prenotazioni_tavoli")
+        .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id)")
+        .eq("token_pubblico", token)
+        .maybeSingle()
+        .then(function(res) {
+          var data = res.data; var error = res.error;
+          if (error || !data) { showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido."); return; }
+          prenotazione = data;
+          azienda = data.aziende || {};
+          var dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
+          if (dataEvento < new Date()) { renderScaduta(); return; }
+          if (azienda.colore_brand) {
+            document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+            document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
           }
+          renderLanding();
+          initModals();
+          initLightbox();
+        });
+    }
+
+    function buildNoteText(raw) {
+      var skipPrefixes = [
+        "\u{1F916} Prenotazione via chatbot WhatsApp",
+        "\u{1F4DD} Chatbot WA",
+        "\u{1F916} WhatsApp Bot"
+      ];
+      if (!raw) return "";
+      return raw.split("\n").filter(function(line) {
+        var l = line.trim();
+        if (!l) return false;
+        for (var i = 0; i < skipPrefixes.length; i++) {
+          if (l.indexOf(skipPrefixes[i]) === 0) return false;
         }
-        document.getElementById(`modal-${type}`).classList.add("open");
+        return true;
+      }).join("\n").trim();
+    }
+
+    function renderLanding() {
+      var p = prenotazione;
+      var az = azienda;
+      var nome = p.cliente_nome || "Ospite";
+      var dataFmt = formatData(p.data);
+      var ora = p.ora ? p.ora.slice(0,5) : "";
+      var stato = getStatoMeta(p.stato);
+      var indirizzo = az.indirizzo ? az.indirizzo + (az.citta ? ", " + az.citta : "") : "";
+      var mapsQuery = encodeURIComponent(az.nome + (indirizzo ? " " + indirizzo : ""));
+      var occasioneLabel = getOccasioneLabel(p.occasione);
+      var galleria = Array.isArray(az.foto_galleria) ? az.foto_galleria : [];
+      var noteText = buildNoteText(p.note || p.richieste_speciali || "");
+
+      var html = "";
+
+      // HERO SOCIAL
+      html += '<div class="hero-social">';
+      html += '<div class="social-cover">';
+      if (az.cover_url) {
+        html += '<img class="social-cover-img" src="' + escHtml(az.cover_url) + '" alt="Cover">';
+      } else {
+        html += '<div class="social-cover-empty" style="background:var(--brand)">&#127374;</div>';
+      }
+      html += '<div class="social-cover-overlay"></div></div>';
+      html += '<div class="social-profile-row">';
+      html += '<div class="social-logo-wrap">';
+      if (az.logo_url) {
+        html += '<img class="social-logo-img" src="' + escHtml(az.logo_url) + '" alt="Logo">';
+      } else {
+        html += '<div class="social-logo-empty">&#127374;</div>';
+      }
+      html += '</div>';
+      html += '<div class="social-profile-info">';
+      html += '<div class="social-nome">' + escHtml(az.nome || "Il tuo ristorante") + '</div>';
+      html += '<div class="social-sub">Conferma di prenotazione</div>';
+      html += '</div></div></div>';
+
+      // CARD PRINCIPALE
+      html += '<div class="main-card">';
+      html += '<div class="pren-label">Prenotazione confermata per</div>';
+      html += '<div class="pren-nome">' + escHtml(nome) + '</div>';
+      html += '<div class="stato-badge" style="background:' + stato.bg + ';color:' + stato.color + ';">' + stato.emoji + ' ' + stato.label + '</div>';
+      if (occasioneLabel) html += '<div class="occasione-badge">&#127881; ' + escHtml(occasioneLabel) + '</div>';
+      html += '<div class="info-grid">';
+      html += '<div class="info-box"><div class="info-box-icon">&#128197;</div><div class="info-box-label">Data</div><div class="info-box-value">' + dataFmt + '</div><div class="info-box-sub">' + getDayName(p.data) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128336;</div><div class="info-box-label">Orario</div><div class="info-box-value">' + (ora || "--") + '</div><div class="info-box-sub">' + getServizioLabel(p.servizio, ora) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128101;</div><div class="info-box-label">Persone</div><div class="info-box-value">' + (p.coperti || 1) + '</div><div class="info-box-sub">coperti</div></div>';
+      if (p.tavolo_id) html += '<div class="info-box"><div class="info-box-icon">&#129681;</div><div class="info-box-label">Tavolo</div><div class="info-box-value">Assegnato</div><div class="info-box-sub">da noi</div></div>';
+      html += '</div>';
+      if (noteText) html += '<div class="note-box">&#128221; ' + escHtml(noteText) + '</div>';
+      html += '</div>';
+
+      // COUNTDOWN
+      html += '<div class="countdown-wrap" id="countdown-wrap"><div class="cd-title">Manca ancora</div><div class="countdown-card"><div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div><div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div><div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div><div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div></div></div>';
+
+      // AZIONI
+      html += '<div class="azioni-grid"><button class="az-btn primary" id="btn-modifica"><span class="az-icon">&#9999;&#65039;</span> Modifica</button><button class="az-btn danger" id="btn-cancella"><span class="az-icon">&#128465;&#65039;</span> Cancella</button></div>';
+
+      // MENU
+      if (az.link_menu) html += '<a class="menu-btn" href="' + escHtml(az.link_menu) + '" target="_blank">&#128203; Vedi il menu</a>';
+
+      // RISTORANTE
+      html += '<div class="section-card"><div class="section-title">&#127968; Il ristorante</div>';
+      if (az.telefono) html += '<div class="contact-row"><div class="contact-icon">&#128222;</div><div class="contact-text"><div class="contact-label">Telefono</div><div class="contact-value">' + escHtml(az.telefono) + '</div></div><a class="contact-action" href="tel:' + escHtml(az.telefono) + '">Chiama</a></div>';
+      if (indirizzo) html += '<div class="contact-row"><div class="contact-icon">&#128205;</div><div class="contact-text"><div class="contact-label">Indirizzo</div><div class="contact-value">' + escHtml(indirizzo) + '</div></div></div>';
+      if (p.dress_code) html += '<div class="contact-row"><div class="contact-icon">&#128084;</div><div class="contact-text"><div class="contact-label">Dress code</div><div class="contact-value">' + escHtml(p.dress_code) + '</div></div></div>';
+      html += '</div>';
+
+      // MAPPA
+      if (indirizzo) html += '<div class="section-card"><div class="section-title">&#128205; Come raggiungerci</div><a class="map-btn" href="https://maps.google.com/?q=' + mapsQuery + '" target="_blank">&#129522; Apri in Google Maps</a></div>';
+
+      // GALLERIA
+      if (galleria.length) {
+        html += '<div class="gallery-section"><div class="section-title">&#128248; Il locale</div><div class="gallery-grid-landing">';
+        for (var i = 0; i < Math.min(galleria.length, 6); i++) {
+          html += '<div class="gallery-landing-item" data-lightbox="' + escHtml(galleria[i]) + '"><img src="' + escHtml(galleria[i]) + '" alt="Foto" loading="lazy"></div>';
+        }
+        html += '</div></div>';
       }
 
-      function closeModal(type) { document.getElementById(`modal-${type}`).classList.remove("open"); }
+      // BADGE MODIFICATA
+      if (p.modificata_dal_cliente) {
+        html += '<div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin:0 12px 12px;text-align:center;">&#9999;&#65039; Hai modificato questa prenotazione</div>';
+      }
 
-      async function salvaModifica() {
-        if (!isModificabile()) return;
-        const btn = document.getElementById("btn-salva-modifica");
-        btn.disabled = true; btn.textContent = "Salvataggio...";
-        const data    = document.getElementById("mod-data").value || prenotazione.data;
-        const coperti = parseInt(document.getElementById("mod-coperti").value) || prenotazione.coperti;
-        const ora     = document.getElementById("mod-ora").value || prenotazione.ora;
-        const note    = document.getElementById("mod-note").value.trim();
-        const { error } = await supa.from("prenotazioni_tavoli")
-          .update({
-            data,
-            coperti,
-            ora,
-            note,
-            richieste_speciali: note,
-            modificata_dal_cliente: true,
-            modificata_il: new Date().toISOString(),
-          })
-          .eq("token_pubblico", token);
-        if (error) { btn.disabled = false; btn.textContent = "💾 Salva modifiche"; alert("Errore nel salvataggio. Riprova."); return; }
+      // FOOTER
+      html += '<div class="landing-footer">Gestito con &#10084;&#65039; da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow.Ai</a></div>';
+
+      root.innerHTML = html;
+
+      startCountdown(p.data, p.ora);
+      document.getElementById("btn-modifica").onclick = function() { openModal("modifica"); };
+      document.getElementById("btn-cancella").onclick = function() { openModal("cancella"); };
+    }
+
+    function startCountdown(data, ora) {
+      var target = new Date(data + "T" + (ora || "20:00"));
+      function tick() {
+        var diff = target - new Date();
+        if (diff <= 0) { clearInterval(cdInterval); var el = document.getElementById("countdown-wrap"); if (el) el.remove(); return; }
+        var gg = Math.floor(diff / 86400000);
+        var hh = Math.floor((diff % 86400000) / 3600000);
+        var mm = Math.floor((diff % 3600000) / 60000);
+        var ss = Math.floor((diff % 60000) / 1000);
+        document.getElementById("cd-gg").textContent = String(gg).padStart(2,"0");
+        document.getElementById("cd-hh").textContent = String(hh).padStart(2,"0");
+        document.getElementById("cd-mm").textContent = String(mm).padStart(2,"0");
+        document.getElementById("cd-ss").textContent = String(ss).padStart(2,"0");
+      }
+      tick();
+      cdInterval = setInterval(tick, 1000);
+    }
+
+    function isModificabile() {
+      var dataEvento = new Date(prenotazione.data + "T" + (prenotazione.ora || "00:00"));
+      return (dataEvento - new Date()) > 2 * 3600 * 1000;
+    }
+
+    function initModals() {
+      document.getElementById("btn-chiudi-modifica").onclick = function() { closeModal("modifica"); };
+      document.getElementById("btn-chiudi-cancella").onclick = function() { closeModal("cancella"); };
+      document.getElementById("modal-modifica").onclick = function(e) { if (e.target === e.currentTarget) closeModal("modifica"); };
+      document.getElementById("modal-cancella").onclick = function(e) { if (e.target === e.currentTarget) closeModal("cancella"); };
+      document.getElementById("btn-salva-modifica").onclick = salvaModifica;
+      document.getElementById("btn-conferma-cancella").onclick = cancellaPrenotazione;
+    }
+
+    function openModal(type) {
+      if (type === "modifica") {
+        var bloccato = !isModificabile();
+        document.getElementById("mod-bloccato").style.display = bloccato ? "" : "none";
+        document.getElementById("mod-form").style.display = bloccato ? "none" : "";
+        if (!bloccato) {
+          document.getElementById("mod-data").value = prenotazione.data || "";
+          document.getElementById("mod-coperti").value = prenotazione.coperti || 2;
+          document.getElementById("mod-ora").value = prenotazione.ora ? prenotazione.ora.slice(0,5) : "";
+          document.getElementById("mod-note").value = buildNoteText(prenotazione.note || prenotazione.richieste_speciali || "");
+        }
+      }
+      document.getElementById("modal-" + type).classList.add("open");
+    }
+
+    function closeModal(type) { document.getElementById("modal-" + type).classList.remove("open"); }
+
+    function salvaModifica() {
+      if (!isModificabile()) return;
+      var btn = document.getElementById("btn-salva-modifica");
+      btn.disabled = true; btn.textContent = "Salvataggio...";
+      var data = document.getElementById("mod-data").value || prenotazione.data;
+      var coperti = parseInt(document.getElementById("mod-coperti").value) || prenotazione.coperti;
+      var ora = document.getElementById("mod-ora").value || prenotazione.ora;
+      var note = document.getElementById("mod-note").value.trim();
+      supa.from("prenotazioni_tavoli").update({ data: data, coperti: coperti, ora: ora, note: note, richieste_speciali: note, modificata_dal_cliente: true, modificata_il: new Date().toISOString() }).eq("token_pubblico", token).then(function(res) {
+        if (res.error) { btn.disabled = false; btn.textContent = "Salva modifiche"; alert("Errore nel salvataggio. Riprova."); return; }
         closeModal("modifica");
-        await init();
-      }
+        init();
+      });
+    }
 
-      async function cancellaPrenotazione() {
-        const btn = document.getElementById("btn-conferma-cancella");
-        btn.disabled = true; btn.textContent = "Cancellazione...";
-        const { error } = await supa.from("prenotazioni_tavoli")
-          .update({ stato: "annullata" })
-          .eq("token_pubblico", token);
-        if (error) { btn.disabled = false; btn.textContent = "❌ Sì, cancella"; alert("Errore nella cancellazione. Riprova."); return; }
+    function cancellaPrenotazione() {
+      var btn = document.getElementById("btn-conferma-cancella");
+      btn.disabled = true; btn.textContent = "Cancellazione...";
+      supa.from("prenotazioni_tavoli").update({ stato: "annullata" }).eq("token_pubblico", token).then(function(res) {
+        if (res.error) { btn.disabled = false; btn.textContent = "Si', cancella"; alert("Errore nella cancellazione. Riprova."); return; }
         closeModal("cancella");
         renderCancellata();
-      }
+      });
+    }
 
-      function renderScaduta() {
-        root.innerHTML = `<div class="error-page"><div class="error-icon">📅</div><div class="error-title">Prenotazione passata</div><div class="error-sub">Questa prenotazione si riferisce a una data già trascorsa.</div></div>`;
-      }
+    function renderScaduta() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128197;</div><div class="error-title">Prenotazione passata</div><div class="error-sub">Questa prenotazione si riferisce a una data gia\' trascorsa.</div></div>'; }
+    function renderCancellata() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#9989;</div><div class="error-title">Prenotazione cancellata</div><div class="error-sub">La tua prenotazione e\' stata cancellata con successo.</div></div>'; }
+    function showError(title, sub) { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128533;</div><div class="error-title">' + escHtml(title) + '</div><div class="error-sub">' + escHtml(sub) + '</div></div>'; }
 
-      function renderCancellata() {
-        root.innerHTML = `<div class="error-page"><div class="error-icon">✅</div><div class="error-title">Prenotazione cancellata</div><div class="error-sub">La tua prenotazione è stata cancellata con successo. Ci auguriamo di rivederti presto!</div></div>`;
-      }
+    function initLightbox() {
+      var lb = document.getElementById("lightbox");
+      var lbImg = document.getElementById("lightbox-img");
+      var lbClose = document.getElementById("lightbox-close");
+      if (!lb) return;
+      document.querySelectorAll("[data-lightbox]").forEach(function(el) {
+        el.onclick = function() { lbImg.src = el.dataset.lightbox; lb.classList.add("open"); };
+      });
+      lbClose.onclick = function() { lb.classList.remove("open"); };
+      lb.onclick = function(e) { if (e.target === lb) lb.classList.remove("open"); };
+    }
 
-      function showError(title, sub) {
-        root.innerHTML = `<div class="error-page"><div class="error-icon">😕</div><div class="error-title">${escHtml(title)}</div><div class="error-sub">${escHtml(sub)}</div></div>`;
-      }
-
-      function initLightbox() {
-        const lb = document.getElementById("lightbox");
-        const lbImg = document.getElementById("lightbox-img");
-        const lbClose = document.getElementById("lightbox-close");
-        if (!lb) return;
-        document.querySelectorAll("[data-lightbox]").forEach(el => {
-          el.onclick = () => { lbImg.src = el.dataset.lightbox; lb.classList.add("open"); };
-        });
-        lbClose.onclick = () => lb.classList.remove("open");
-        lb.onclick = (e) => { if (e.target === lb) lb.classList.remove("open"); };
-      }
-
-      function buildNoteText(raw) {
-        var skip = [
-          "\u{1F916} Prenotazione via chatbot WhatsApp",
-          "\u{1F4DD} Chatbot WA",
-          "\u{1F916} WhatsApp Bot"
-        ];
-        return raw.split(String.fromCharCode(10))
-          .filter(function(line) {
-            var l = line.trim();
-            if (!l) return false;
-            return !skip.some(function(p) { return l.indexOf(p) === 0; });
-          })
-          .join(String.fromCharCode(10)).trim();
-      }
-
-      function formatData(dateStr) {
-        if (!dateStr) return "--";
-        const [y, m, d] = dateStr.split("-");
-        return `${d}/${m}/${y}`;
-      }
-
-      function getDayName(dateStr) {
-        if (!dateStr) return "";
-        const giorni = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
-        const [y, m, d] = dateStr.split("-").map(Number);
-        return giorni[new Date(y, m - 1, d).getDay()];
-      }
-
-      function getServizioLabel(servizio, ora) {
-        if (servizio) { const map={colazione:"Colazione",pranzo:"Pranzo",aperitivo:"Aperitivo",cena:"Cena"}; return map[servizio]||servizio; }
-        if (!ora) return "";
-        if (ora >= "06:00" && ora < "11:00") return "Colazione";
-        if (ora >= "11:00" && ora < "15:30") return "Pranzo";
-        if (ora >= "15:30" && ora < "19:30") return "Aperitivo";
-        return "Cena";
-      }
-
-      function getOccasioneLabel(occ) {
-        const map = { compleanno:"Compleanno 🎂", anniversario:"Anniversario 💍", business:"Business 💼", fidanzamento:"Fidanzamento 💍", laurea:"Laurea 🎓", altro:"Occasione speciale" };
-        return occ ? (map[occ] || occ) : "";
-      }
-
-      function getStatoMeta(stato) {
-        switch(stato) {
-          case "nuova":      return { label:"In attesa",  emoji:"🟡", bg:"#FEF3C7", color:"#92400E" };
-          case "confermata": return { label:"Confermata", emoji:"🟢", bg:"#DCFCE7", color:"#166534" };
-          case "arrivata":   return { label:"Arrivata",   emoji:"✅", bg:"#DCFCE7", color:"#166534" };
-          case "annullata":  return { label:"Annullata",  emoji:"⚫", bg:"#E5E7EB", color:"#374151" };
-          case "no_show":    return { label:"No show",    emoji:"🔴", bg:"#FEE2E2", color:"#991B1B" };
-          default:           return { label:"In corso",   emoji:"🔵", bg:"#DBEAFE", color:"#1D4ED8" };
-        }
-      }
-
-      function hexToLight(hex) { return hex + "1a"; }
-
-      function escHtml(v) {
-        return String(v ?? "")
-          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-          .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-      }
-    })();
+    function formatData(dateStr) { if (!dateStr) return "--"; var parts = dateStr.split("-"); return parts[2] + "/" + parts[1] + "/" + parts[0]; }
+    function getDayName(dateStr) { if (!dateStr) return ""; var giorni = ["Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato"]; var p = dateStr.split("-").map(Number); return giorni[new Date(p[0], p[1]-1, p[2]).getDay()]; }
+    function getServizioLabel(servizio, ora) { if (servizio) { var map = {colazione:"Colazione",pranzo:"Pranzo",aperitivo:"Aperitivo",cena:"Cena"}; return map[servizio]||servizio; } if (!ora) return ""; if (ora >= "06:00" && ora < "11:00") return "Colazione"; if (ora >= "11:00" && ora < "15:30") return "Pranzo"; if (ora >= "15:30" && ora < "19:30") return "Aperitivo"; return "Cena"; }
+    function getOccasioneLabel(occ) { var map = {compleanno:"Compleanno",anniversario:"Anniversario",business:"Business",fidanzamento:"Fidanzamento",laurea:"Laurea",altro:"Occasione speciale"}; return occ ? (map[occ]||occ) : ""; }
+    function getStatoMeta(stato) { switch(stato) { case "nuova": return {label:"In attesa",emoji:"&#x1F7E1;",bg:"#FEF3C7",color:"#92400E"}; case "confermata": return {label:"Confermata",emoji:"&#x1F7E2;",bg:"#DCFCE7",color:"#166534"}; case "arrivata": return {label:"Arrivata",emoji:"&#x2705;",bg:"#DCFCE7",color:"#166534"}; case "annullata": return {label:"Annullata",emoji:"&#x26AB;",bg:"#E5E7EB",color:"#374151"}; default: return {label:"In corso",emoji:"&#x1F535;",bg:"#DBEAFE",color:"#1D4ED8"}; } }
+    function escHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
+  })();
   </script>
 </body>
 </html>
