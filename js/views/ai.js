@@ -710,9 +710,7 @@ async function avviaDettatura() {
   dettaturaRisposte = [];
 
   // Torna alla chat e avvia il flusso
-  addMessage("🧠 Perfetto! Avvio la dettatura guidata. Ti farò alcune domande per conoscere meglio il tuo locale — rispondi liberamente, salvo tutto automaticamente.
-
-Puoi rispondere con testo o con la voce 🎤", "ai");
+  addMessage("🧠 Perfetto! Avvio la dettatura guidata. Ti farò alcune domande per conoscere meglio il tuo locale — rispondi liberamente, salvo tutto automaticamente.\n\nPuoi rispondere con testo o con la voce 🎤", "ai");
 
   setTimeout(() => {
     addMessage(DETTATURA_DOMANDE[0], "ai");
@@ -746,9 +744,7 @@ ${DETTATURA_DOMANDE[prossimoStep]}`, "ai");
   } else {
     window._inDettatura = false;
     window._dettaturaStep = 0;
-    addMessage("🎉 Dettatura completata! Tony ora conosce il tuo locale molto meglio e userà queste informazioni in ogni risposta.
-
-Puoi aggiornare o cancellare i ricordi in qualsiasi momento dal pannello 🧠 Memoria.", "ai");
+    addMessage("🎉 Dettatura completata! Tony ora conosce il tuo locale molto meglio e userà queste informazioni in ogni risposta.\n\nPuoi aggiornare o cancellare i ricordi in qualsiasi momento dal pannello 🧠 Memoria.", "ai");
   }
 }
 
