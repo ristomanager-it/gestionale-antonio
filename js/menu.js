@@ -319,7 +319,10 @@ export function initMenu() {
     const ruolo = getRuoloAttivo();
 
     // ── PIATTAFORMA (solo superadmin) — visibile anche con viewAs attivo ──
-    const isSa = window.state?.isSuperadmin === true || window.state?.ruolo === "superadmin";
+    const isSa = window.state?.isSuperadmin === true
+      || window.state?.ruolo === "superadmin"
+      || window.state?.ruoloRaw === "superadmin"
+      || (window.state?.aziende || []).some(a => a.ruolo === "superadmin");
     if (isSa) {
       sections.push({
         title: "PIATTAFORMA",
