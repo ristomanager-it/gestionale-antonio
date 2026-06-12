@@ -395,6 +395,7 @@ export function initMenu() {
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
+          { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
