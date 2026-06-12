@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cassa — Vista Cliente</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--brand:#0E5A7A;--brand-light:#e8f4f8;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f6fa;min-height:100vh;display:flex;flex-direction:column;}
+
+    /* HEADER */
+    .cc-header{background:var(--brand);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+    .cc-logo{width:48px;height:48px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,255,255,.3);}
+    .cc-locale{font-size:18px;font-weight:800;color:#fff;}
+    .cc-header-right{font-size:13px;color:rgba(255,255,255,.75);font-weight:600;}
+
+    /* MAIN */
+    .cc-main{flex:1;display:grid;grid-template-columns:1fr 380px;gap:0;overflow:hidden;}
+
+    /* SCONTRINO */
+    .cc-scontrino{padding:24px;overflow-y:auto;}
+    .cc-tavolo{font-size:14px;font-weight:700;color:#64748b;margin-bottom:16px;}
+    .cc-riga{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6;}
+    .cc-riga:last-child{border-bottom:none;}
+    .cc-riga-qty{width:32px;height:32px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;}
+    .cc-riga-nome{flex:1;font-size:15px;font-weight:700;color:#111827;}
+    .cc-riga-prezzo{font-size:16px;font-weight:800;color:var(--brand);}
+    .cc-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;gap:12px;text-align:center;}
+    .cc-empty-icon{font-size:56px;}
+
+    /* PANNELLO DX */
+    .cc-panel{background:#fff;border-left:1px solid #e5e7eb;display:flex;flex-direction:column;}
+
+    /* TOTALE */
+    .cc-totale-box{padding:24px;border-bottom:1px solid #e5e7eb;text-align:center;}
+    .cc-totale-label{font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+    .cc-totale{font-size:52px;font-weight:800;color:var(--brand);}
+
+    /* FIDELITY */
+    .cc-fidelity-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;text-align:center;}
+    .cc-fidelity-title{font-size:16px;font-weight:800;color:#111827;}
+    .cc-fidelity-sub{font-size:13px;color:#64748b;line-height:1.5;}
+    .cc-qr{width:160px;height:160px;border-radius:16px;border:2px solid #e5e7eb;}
+    .cc-sconto-badge{background:linear-gradient(135deg,#059669,#10b981);color:#fff;border-radius:14px;padding:12px 20px;font-size:18px;font-weight:800;}
+
+    /* STATO */
+    .cc-stato{padding:12px 16px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center;font-weight:600;}
+
+    /* PAGAMENTO COMPLETATO */
+    .cc-pagato{display:none;position:fixed;inset:0;background:#fff;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:40px;z-index:100;}
+    .cc-pagato.show{display:flex;}
+    .cc-pagato-icon{font-size:80px;animation:pop .4s ease;}
+    @keyframes pop{0%{transform:scale(.5);}80%{transform:scale(1.1);}100%{transform:scale(1);}}
+    .cc-pagato-title{font-size:28px;font-weight:800;color:#111827;}
+    .cc-pagato-sub{font-size:16px;color:#64748b;}
+    .cc-grazie{font-size:22px;font-weight:800;color:var(--brand);margin-top:8px;}
+
+    @media(max-width:768px){
+      .cc-main{grid-template-columns:1fr;grid-template-rows:1fr auto;}
+      .cc-panel{border-left:none;border-top:1px solid #e5e7eb;}
+      .cc-totale{font-size:36px;}
+      .cc-qr{width:120px;height:120px;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="cc-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img id="cc-logo" class="cc-logo" src="" alt="" style="display:none;">
+      <div class="cc-locale" id="cc-locale">Ristoflow</div>
+    </div>
+    <div class="cc-header-right" id="cc-ora"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="cc-main">
+
+    <!-- SCONTRINO -->
+    <div class="cc-scontrino" id="cc-scontrino">
+      <div class="cc-empty">
+        <div class="cc-empty-icon">🛒</div>
+        <div style="font-size:16px;font-weight:700;">In attesa ordine...</div>
+        <div style="font-size:13px;">Il tuo conto apparirà qui</div>
+      </div>
+    </div>
+
+    <!-- PANNELLO DX -->
+    <div class="cc-panel">
+      <div class="cc-totale-box">
+        <div class="cc-totale-label">Totale</div>
+        <div class="cc-totale" id="cc-totale">€ 0,00</div>
+      </div>
+      <div class="cc-fidelity-box" id="cc-fidelity-box">
+        <div class="cc-sconto-badge" id="cc-sconto-badge" style="display:none;">-10% SUBITO</div>
+        <div class="cc-qr-wrap" id="cc-qr-wrap">
+          <img class="cc-qr" id="cc-qr" src="" alt="QR Fidelity" style="display:none;">
+        </div>
+        <div class="cc-fidelity-title" id="cc-fidelity-title">🎁 Tessera Fidelity</div>
+        <div class="cc-fidelity-sub" id="cc-fidelity-sub">Inquadra il QR code per iscriverti e ottenere uno sconto immediato sul tuo conto!</div>
+      </div>
+      <div class="cc-stato" id="cc-stato">● In attesa</div>
+    </div>
+
+  </div>
+
+  <!-- OVERLAY PAGATO -->
+  <div class="cc-pagato" id="cc-pagato">
+    <div class="cc-pagato-icon">✅</div>
+    <div class="cc-pagato-title">Pagamento completato!</div>
+    <div class="cc-pagato-sub" id="cc-pagato-importo">€ 0,00</div>
+    <div class="cc-grazie">Grazie e arrivederci! 😊</div>
+    <div style="font-size:13px;color:#94a3b8;margin-top:8px;" id="cc-pagato-locale"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function() {
+    var SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    var params   = new URLSearchParams(window.location.search);
+    var aziendaId = params.get("a");
+    var sedeId    = params.get("s");
+
+    var statoCorrente = "attesa";
+    var comandaId     = null;
+
+    if (!aziendaId) {
+      document.getElementById("cc-locale").textContent = "Parametri mancanti";
+      return;
+    }
+
+    // Orologio
+    function aggiornaOra() {
+      var ora = new Date().toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+      document.getElementById("cc-ora").textContent = ora;
+    }
+    aggiornaOra();
+    setInterval(aggiornaOra, 10000);
+
+    // Carica info azienda
+    supa.from("aziende").select("nome,logo_url,colore_brand").eq("id", aziendaId).maybeSingle().then(function(res) {
+      var az = res.data || {};
+      if (az.nome) document.getElementById("cc-locale").textContent = az.nome;
+      if (az.logo_url) {
+        var img = document.getElementById("cc-logo");
+        img.src = az.logo_url;
+        img.style.display = "block";
+      }
+      if (az.colore_brand) {
+        document.documentElement.style.setProperty("--brand", az.colore_brand);
+        document.documentElement.style.setProperty("--brand-light", az.colore_brand + "1a");
+      }
+      document.getElementById("cc-pagato-locale").textContent = az.nome || "";
+    });
+
+    // Carica config fidelity
+    supa.from("fidelity_config").select("sconto_benvenuto_perc").eq("azienda_id", aziendaId).maybeSingle().then(function(res) {
+      var cfg = res.data;
+      var sconto = cfg?.sconto_benvenuto_perc || 10;
+      var badge = document.getElementById("cc-sconto-badge");
+      if (badge) { badge.textContent = "-" + sconto + "% SUBITO"; badge.style.display = "block"; }
+
+      // QR iscrizione fidelity
+      var linkFidelity = "https://app.ristoflow-ai.com/fidelity.html?a=" + aziendaId;
+      var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(linkFidelity);
+      var qrImg = document.getElementById("cc-qr");
+      if (qrImg) { qrImg.src = qrUrl; qrImg.style.display = "block"; }
+    });
+
+    // Ascolta comanda_display via Supabase Realtime
+    var channel = supa.channel("cassa-cliente-" + aziendaId)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "cassa_display",
+        filter: "azienda_id=eq." + aziendaId + (sedeId ? "&sede_id=eq." + sedeId : "")
+      }, function(payload) {
+        var row = payload.new || payload.old;
+        if (row) aggiornaDisplay(row);
+      })
+      .subscribe();
+
+    // Carica stato attuale
+    supa.from("cassa_display")
+      .select("*")
+      .eq("azienda_id", aziendaId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(function(res) {
+        if (res.data) aggiornaDisplay(res.data);
+      });
+
+    function aggiornaDisplay(row) {
+      var stato = row.stato || "attesa";
+      statoCorrente = stato;
+      comandaId = row.comanda_id;
+
+      if (stato === "pagato") {
+        mostraPagato(row.totale, row.metodo_pagamento);
+        return;
+      }
+
+      // Nascondi overlay pagato
+      document.getElementById("cc-pagato").classList.remove("show");
+
+      // Righe
+      var righe = [];
+      try { righe = typeof row.righe === "string" ? JSON.parse(row.righe) : (row.righe || []); } catch(e) {}
+      var totale = row.totale || 0;
+
+      renderScontrino(righe, row.tavolo, stato);
+      document.getElementById("cc-totale").textContent = "€ " + Number(totale).toFixed(2).replace(".",",");
+
+      // Stato
+      var statoLabel = stato === "aperta" ? "● Ordine in corso" : stato === "attesa" ? "● In attesa" : stato === "pagato" ? "● Pagato" : "● " + stato;
+      document.getElementById("cc-stato").textContent = statoLabel;
+    }
+
+    function renderScontrino(righe, tavolo, stato) {
+      var box = document.getElementById("cc-scontrino");
+      if (!righe || !righe.length) {
+        box.innerHTML = '<div class="cc-empty"><div class="cc-empty-icon">🛒</div><div style="font-size:16px;font-weight:700;">In attesa ordine...</div><div style="font-size:13px;">Il tuo conto apparirà qui</div></div>';
+        return;
+      }
+
+      var html = '';
+      if (tavolo) html += '<div class="cc-tavolo">🪑 ' + esc(tavolo) + '</div>';
+
+      righe.filter(function(r) { return r.stato !== "annullato"; }).forEach(function(r) {
+        html += '<div class="cc-riga">' +
+          '<div class="cc-riga-qty">' + (r.quantita||1) + '</div>' +
+          '<div class="cc-riga-nome">' + esc(r.nome_prodotto||r.nome||"") + '</div>' +
+          '<div class="cc-riga-prezzo">€ ' + Number((r.prezzo_snapshot||0)*(r.quantita||1)).toFixed(2).replace(".",",") + '</div>' +
+        '</div>';
+      });
+
+      box.innerHTML = html;
+    }
+
+    function mostraPagato(totale, metodo) {
+      document.getElementById("cc-pagato-importo").textContent =
+        "€ " + Number(totale||0).toFixed(2).replace(".",",") +
+        (metodo ? " · " + metodo : "");
+      document.getElementById("cc-pagato").classList.add("show");
+
+      // Dopo 8 secondi torna alla schermata iniziale
+      setTimeout(function() {
+        document.getElementById("cc-pagato").classList.remove("show");
+        document.getElementById("cc-scontrino").innerHTML =
+          '<div class="cc-empty"><div class="cc-empty-icon">🛒</div><div style="font-size:16px;font-weight:700;">In attesa ordine...</div><div style="font-size:13px;">Il tuo conto apparirà qui</div></div>';
+        document.getElementById("cc-totale").textContent = "€ 0,00";
+        document.getElementById("cc-stato").textContent = "● In attesa";
+      }, 8000);
+    }
+
+    function esc(v) {
+      return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+  })();
+  </script>
+</body>
+</html>
