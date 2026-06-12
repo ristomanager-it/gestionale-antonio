@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Tessera Fidelity</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0E5A7A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <link rel="apple-touch-icon" href="/assets/favicon-192.png"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--brand:#0E5A7A;--brand-light:#e8f4f8;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f6fa;min-height:100vh;color:#111827;}
+    .spinner{width:48px;height:48px;border:4px solid var(--brand-light);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .page-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;color:#64748b;font-size:14px;font-weight:600;}
+
+    /* CARD TESSERA */
+    .tessera-card{
+      background:linear-gradient(135deg,var(--brand),#1a8fb5);
+      border-radius:24px;margin:20px 16px 0;padding:24px;
+      color:#fff;position:relative;overflow:hidden;
+      box-shadow:0 8px 32px rgba(14,90,122,0.3);
+    }
+    .tessera-card::before{
+      content:"";position:absolute;top:-40px;right:-40px;
+      width:180px;height:180px;border-radius:50%;
+      background:rgba(255,255,255,0.08);
+    }
+    .tessera-card::after{
+      content:"";position:absolute;bottom:-60px;left:-20px;
+      width:200px;height:200px;border-radius:50%;
+      background:rgba(255,255,255,0.05);
+    }
+    .tessera-logo{width:52px;height:52px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,255,255,.3);margin-bottom:12px;}
+    .tessera-locale{font-size:13px;font-weight:700;opacity:.8;margin-bottom:2px;}
+    .tessera-nome{font-size:22px;font-weight:800;margin-bottom:16px;}
+    .tessera-punti-label{font-size:11px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.06em;}
+    .tessera-punti{font-size:42px;font-weight:800;line-height:1;}
+    .tessera-punti-sub{font-size:12px;opacity:.7;margin-top:4px;}
+    .tessera-livello{
+      position:absolute;top:20px;right:20px;
+      background:rgba(255,255,255,.2);border-radius:999px;
+      padding:6px 14px;font-size:12px;font-weight:800;
+    }
+    .tessera-network{
+      position:absolute;bottom:20px;right:20px;
+      font-size:10px;font-weight:700;opacity:.6;
+    }
+
+    /* SEZIONI */
+    .section{background:#fff;border-radius:18px;margin:12px 16px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.04);}
+    .section-title{font-size:13px;font-weight:800;color:#374151;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+
+    /* LIVELLI */
+    .livelli-bar{display:flex;gap:6px;margin-bottom:10px;}
+    .livello-step{flex:1;height:6px;border-radius:999px;background:#e5e7eb;}
+    .livello-step.active{background:var(--brand);}
+    .livelli-labels{display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;font-weight:700;}
+
+    /* OFFERTE NETWORK */
+    .offerta-card{border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+    .offerta-badge{background:var(--brand);color:#fff;border-radius:10px;padding:8px 10px;font-size:16px;font-weight:800;flex-shrink:0;min-width:48px;text-align:center;}
+    .offerta-nome{font-size:14px;font-weight:800;color:#111827;}
+    .offerta-desc{font-size:12px;color:#64748b;margin-top:2px;}
+    .offerta-locale{font-size:11px;color:var(--brand);font-weight:700;margin-top:4px;}
+    .offerta-dist{font-size:11px;color:#94a3b8;}
+
+    /* STORICO */
+    .mov-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;}
+    .mov-row:last-child{border-bottom:none;}
+    .mov-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+    .mov-text{flex:1;min-width:0;}
+    .mov-label{font-size:13px;font-weight:700;color:#111827;}
+    .mov-date{font-size:11px;color:#94a3b8;}
+    .mov-punti{font-size:15px;font-weight:800;}
+
+    /* MAPPA */
+    .map-container{border-radius:14px;overflow:hidden;height:220px;background:#e5e7eb;margin-bottom:10px;}
+
+    /* BTN */
+    .btn-full{width:100%;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;}
+    .btn-primary{background:var(--brand);color:#fff;}
+    .btn-sec{background:#f3f4f6;color:#374151;margin-top:8px;}
+    .btn-install{background:linear-gradient(135deg,#059669,#10b981);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+    /* FORM ISCRIZIONE */
+    .form-card{background:#fff;border-radius:24px;margin:20px 16px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.1);}
+    .form-title{font-size:20px;font-weight:800;color:#111827;margin-bottom:4px;}
+    .form-sub{font-size:13px;color:#64748b;margin-bottom:20px;line-height:1.5;}
+    .form-input{width:100%;box-sizing:border-box;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:15px;outline:none;margin-bottom:12px;font-family:inherit;}
+    .form-input:focus{border-color:var(--brand);}
+    .promo-box{background:linear-gradient(135deg,#059669,#10b981);border-radius:14px;padding:14px;margin-bottom:16px;color:#fff;text-align:center;}
+    .promo-box-title{font-size:22px;font-weight:800;}
+    .promo-box-sub{font-size:13px;opacity:.9;margin-top:2px;}
+
+    /* FOOTER */
+    .fidelity-footer{text-align:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));font-size:11px;color:#9ca3af;}
+    .fidelity-footer a{color:var(--brand);text-decoration:none;}
+
+    /* ERROR */
+    .error-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;gap:12px;}
+    .error-icon{font-size:56px;}
+    .error-title{font-size:20px;font-weight:800;}
+    .error-sub{font-size:13px;color:#64748b;max-width:280px;}
+
+    @media(min-width:480px){
+      .tessera-card,.section,.form-card{max-width:480px;margin-left:auto;margin-right:auto;}
+      body{display:flex;flex-direction:column;align-items:center;}
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="page-loader"><div class="spinner"></div>Caricamento tessera...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function() {
+    var SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var root = document.getElementById("root");
+    var params = new URLSearchParams(window.location.search);
+    var qrToken = params.get("t");
+    var aziendaId = params.get("a");  // azienda che ha emesso il QR
+    var deferredInstall = null;
+
+    // Cattura evento installazione PWA
+    window.addEventListener("beforeinstallprompt", function(e) {
+      e.preventDefault();
+      deferredInstall = e;
+    });
+
+    if (!aziendaId) { showError("Link non valido", "Manca il riferimento al locale."); return; }
+
+    init();
+
+    async function init() {
+      // Carica config azienda
+      var azRes = await supa.from("aziende")
+        .select("id,nome,logo_url,telefono,indirizzo,citta,colore_brand")
+        .eq("id", aziendaId).maybeSingle();
+      var azienda = azRes.data || {};
+
+      // Applica colore brand
+      if (azienda.colore_brand) {
+        document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+        document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
+      }
+
+      // Carica config fidelity
+      var cfgRes = await supa.from("fidelity_config")
+        .select("*").eq("azienda_id", aziendaId).maybeSingle();
+      var cfg = cfgRes.data || { punti_per_euro: 1, sconto_benvenuto_perc: 10, bonus_benvenuto_punti: 50, soglia_argento: 500, soglia_oro: 1500 };
+
+      if (!qrToken) {
+        // Nessun token → form iscrizione
+        renderFormIscrizione(azienda, cfg);
+        return;
+      }
+
+      // Cerca cliente per token
+      var clienteRes = await supa.from("fidelity_clienti")
+        .select("*").eq("qr_token", qrToken).maybeSingle();
+
+      if (!clienteRes.data) {
+        showError("Tessera non trovata", "Il QR code non è valido o è scaduto.");
+        return;
+      }
+
+      var cliente = clienteRes.data;
+
+      // Cerca tessera per questo locale
+      var tesseraRes = await supa.from("fidelity_tessere")
+        .select("*")
+        .eq("cliente_id", cliente.id)
+        .eq("azienda_id", aziendaId)
+        .maybeSingle();
+      var tessera = tesseraRes.data;
+
+      // Carica movimenti
+      var movRes = await supa.from("fidelity_movimenti")
+        .select("*")
+        .eq("cliente_id", cliente.id)
+        .eq("azienda_id", aziendaId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      var movimenti = movRes.data || [];
+
+      // Carica offerte network
+      var offerteRes = await supa.from("network_offerte")
+        .select("*, aziende(nome, logo_url, indirizzo, citta, colore_brand)")
+        .eq("attiva", true)
+        .neq("azienda_id", aziendaId);
+      var offerte = offerteRes.data || [];
+
+      renderTessera(cliente, tessera, azienda, cfg, movimenti, offerte);
+    }
+
+    // ── FORM ISCRIZIONE ──────────────────────────────────────────
+    function renderFormIscrizione(azienda, cfg) {
+      root.innerHTML =
+        '<div class="form-card">' +
+          (azienda.logo_url ? '<img src="' + esc(azienda.logo_url) + '" style="width:56px;height:56px;border-radius:14px;object-fit:cover;margin-bottom:12px;">' : '') +
+          '<div class="form-title">Benvenuto da ' + esc(azienda.nome || "noi") + '!</div>' +
+          '<div class="form-sub">Iscriviti alla tessera fidelity e ottieni subito uno sconto del ' + (cfg.sconto_benvenuto_perc || 10) + '% sul tuo conto, più ' + (cfg.bonus_benvenuto_punti || 50) + ' punti di benvenuto.</div>' +
+          '<div class="promo-box">' +
+            '<div class="promo-box-title">-' + (cfg.sconto_benvenuto_perc || 10) + '% SUBITO</div>' +
+            '<div class="promo-box-sub">Sul tuo conto di oggi</div>' +
+          '</div>' +
+          '<input id="reg-nome" class="form-input" placeholder="Nome *">' +
+          '<input id="reg-cognome" class="form-input" placeholder="Cognome">' +
+          '<input id="reg-telefono" class="form-input" type="tel" placeholder="Telefono *">' +
+          '<input id="reg-email" class="form-input" type="email" placeholder="Email (opzionale)">' +
+          '<input id="reg-nascita" class="form-input" type="date" placeholder="Data di nascita">' +
+          '<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;font-size:12px;color:#64748b;">' +
+            '<input type="checkbox" id="reg-privacy" style="margin-top:2px;accent-color:var(--brand);flex-shrink:0;">' +
+            'Accetto il trattamento dei dati personali per il programma fidelity.' +
+          '</label>' +
+          '<button class="btn-full btn-primary" id="btn-iscriviti">✅ Iscriviti e applica sconto</button>' +
+          '<div id="reg-msg" style="margin-top:10px;font-size:13px;text-align:center;"></div>' +
+        '</div>' +
+        '<div class="fidelity-footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
+
+      document.getElementById("btn-iscriviti").onclick = function() {
+        doIscrizione(azienda, cfg);
+      };
+    }
+
+    async function doIscrizione(azienda, cfg) {
+      var nome = (document.getElementById("reg-nome").value || "").trim();
+      var cognome = (document.getElementById("reg-cognome").value || "").trim();
+      var telefono = (document.getElementById("reg-telefono").value || "").trim();
+      var email = (document.getElementById("reg-email").value || "").trim();
+      var nascita = (document.getElementById("reg-nascita").value || "").trim();
+      var privacy = document.getElementById("reg-privacy").checked;
+      var msg = document.getElementById("reg-msg");
+
+      if (!nome) { msg.innerHTML = '<span style="color:#dc2626;">Nome obbligatorio</span>'; return; }
+      if (!telefono) { msg.innerHTML = '<span style="color:#dc2626;">Telefono obbligatorio</span>'; return; }
+      if (!privacy) { msg.innerHTML = '<span style="color:#dc2626;">Accetta la privacy per continuare</span>'; return; }
+
+      var btn = document.getElementById("btn-iscriviti");
+      btn.disabled = true; btn.textContent = "Iscrizione in corso...";
+
+      // Controlla se telefono già esistente
+      var esistente = await supa.from("fidelity_clienti")
+        .select("*").eq("telefono", telefono).maybeSingle();
+
+      var cliente;
+      if (esistente.data) {
+        cliente = esistente.data;
+      } else {
+        var insertRes = await supa.from("fidelity_clienti").insert({
+          nome: nome, cognome: cognome || null,
+          telefono: telefono,
+          email: email || null,
+          data_nascita: nascita || null,
+          punti_totali: cfg.bonus_benvenuto_punti || 50
+        }).select().single();
+        if (insertRes.error) {
+          msg.innerHTML = '<span style="color:#dc2626;">Errore: ' + insertRes.error.message + '</span>';
+          btn.disabled = false; btn.textContent = "✅ Iscriviti e applica sconto";
+          return;
+        }
+        cliente = insertRes.data;
+      }
+
+      // Crea tessera per questo locale
+      var tesseraEsistente = await supa.from("fidelity_tessere")
+        .select("id").eq("cliente_id", cliente.id).eq("azienda_id", aziendaId).maybeSingle();
+
+      if (!tesseraEsistente.data) {
+        await supa.from("fidelity_tessere").insert({
+          cliente_id: cliente.id,
+          azienda_id: aziendaId,
+          punti_locali: cfg.bonus_benvenuto_punti || 50,
+          livello: "bronzo"
+        });
+        // Movimento benvenuto
+        await supa.from("fidelity_movimenti").insert({
+          cliente_id: cliente.id,
+          azienda_id: aziendaId,
+          tipo: "benvenuto",
+          punti: cfg.bonus_benvenuto_punti || 50,
+          descrizione: "Bonus iscrizione"
+        });
+      }
+
+      // Redirect alla tessera
+      window.location.href = "fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
+    }
+
+    // ── RENDER TESSERA ───────────────────────────────────────────
+    function renderTessera(cliente, tessera, azienda, cfg, movimenti, offerte) {
+      var puntiLocali = tessera?.punti_locali || 0;
+      var livello = getLivello(puntiLocali, cfg);
+      var prossimaSoglia = getProssimaSoglia(puntiLocali, cfg);
+      var nomeCompleto = (cliente.nome || "") + (cliente.cognome ? " " + cliente.cognome : "");
+      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
+
+      var html = '';
+
+      // TESSERA CARD
+      html += '<div class="tessera-card">' +
+        '<div class="tessera-livello">' + livello.emoji + ' ' + livello.nome + '</div>' +
+        (azienda.logo_url ? '<img class="tessera-logo" src="' + esc(azienda.logo_url) + '" alt="Logo">' : '') +
+        '<div class="tessera-locale">' + esc(azienda.nome || "") + '</div>' +
+        '<div class="tessera-nome">' + esc(nomeCompleto) + '</div>' +
+        '<div class="tessera-punti-label">I tuoi punti</div>' +
+        '<div class="tessera-punti">' + puntiLocali.toLocaleString("it") + '</div>' +
+        '<div class="tessera-punti-sub">' + (prossimaSoglia ? 'Ancora ' + (prossimaSoglia - puntiLocali) + ' punti per il livello successivo' : '🏆 Livello massimo raggiunto!') + '</div>' +
+        '<div class="tessera-network">Ristoflow.Ai Network</div>' +
+      '</div>';
+
+      // PROGRESS LIVELLI
+      html += '<div class="section">' +
+        '<div class="section-title">🏅 Livello</div>' +
+        '<div class="livelli-bar">' +
+          '<div class="livello-step ' + (puntiLocali >= 0 ? "active" : "") + '"></div>' +
+          '<div class="livello-step ' + (puntiLocali >= (cfg.soglia_argento||500) ? "active" : "") + '"></div>' +
+          '<div class="livello-step ' + (puntiLocali >= (cfg.soglia_oro||1500) ? "active" : "") + '"></div>' +
+        '</div>' +
+        '<div class="livelli-labels">' +
+          '<span>🥉 Bronzo</span>' +
+          '<span>🥈 Argento (' + (cfg.soglia_argento||500) + 'pt)</span>' +
+          '<span>🥇 Oro (' + (cfg.soglia_oro||1500) + 'pt)</span>' +
+        '</div>' +
+      '</div>';
+
+      // INSTALLA / SALVA
+      html += '<div class="section">' +
+        '<div class="section-title">📱 Salva la tessera</div>' +
+        '<p style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.5;">Aggiungi questa pagina alla schermata home per avere sempre la tessera a portata di mano. Non serve registrarsi all\'app!</p>' +
+        '<button class="btn-full btn-install" id="btn-install">📲 Aggiungi alla schermata home</button>' +
+        '<button class="btn-full btn-sec" id="btn-condividi" style="margin-top:8px;">🔗 Condividi link tessera</button>' +
+      '</div>';
+
+      // STORICO MOVIMENTI
+      if (movimenti.length) {
+        html += '<div class="section">' +
+          '<div class="section-title">📋 Storico punti</div>';
+        movimenti.forEach(function(m) {
+          var icon = m.tipo === "acquisto" ? "🛍️" : m.tipo === "benvenuto" ? "🎁" : m.tipo === "compleanno" ? "🎂" : m.tipo === "sconto" ? "💸" : "⭐";
+          var bg = m.punti > 0 ? "#f0fdf4" : "#fef2f2";
+          var color = m.punti > 0 ? "#16a34a" : "#dc2626";
+          html += '<div class="mov-row">' +
+            '<div class="mov-icon" style="background:' + bg + ';">' + icon + '</div>' +
+            '<div class="mov-text">' +
+              '<div class="mov-label">' + esc(m.descrizione || m.tipo) + '</div>' +
+              '<div class="mov-date">' + formatData(m.created_at) + '</div>' +
+            '</div>' +
+            '<div class="mov-punti" style="color:' + color + ';">' + (m.punti > 0 ? "+" : "") + m.punti + 'pt</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
+
+      // OFFERTE NETWORK
+      if (offerte.length) {
+        html += '<div class="section">' +
+          '<div class="section-title">🌐 Offerte Ristoflow Network</div>' +
+          '<p style="font-size:12px;color:#64748b;margin-bottom:12px;">Con la tua tessera hai accesso a offerte esclusive in tutti i locali della rete.</p>';
+        offerte.slice(0,6).forEach(function(o) {
+          var az = o.aziende || {};
+          var valoreDisplay = o.tipo === "sconto_perc" ? "-" + o.valore + "%" : o.tipo === "sconto_fisso" ? "-€" + Number(o.valore).toFixed(2) : "Omaggio";
+          html += '<div class="offerta-card">' +
+            '<div class="offerta-badge">' + valoreDisplay + '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div class="offerta-nome">' + esc(o.titolo) + '</div>' +
+              (o.descrizione ? '<div class="offerta-desc">' + esc(o.descrizione) + '</div>' : '') +
+              '<div class="offerta-locale">📍 ' + esc(az.nome || "") + (az.citta ? " · " + az.citta : "") + '</div>' +
+              (o.valida_al ? '<div class="offerta-dist">Valida fino al ' + formatDataBreve(o.valida_al) + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+
+        // MAPPA NETWORK
+        html += '<div class="section">' +
+          '<div class="section-title">🗺️ Locali vicini a te</div>' +
+          '<div class="map-container" id="mappa-network">' +
+            '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;flex-direction:column;gap:8px;">' +
+              '<div style="font-size:24px;">📍</div>' +
+              '<div style="font-size:12px;font-weight:600;">Attiva la posizione per vedere i locali vicini</div>' +
+              '<button class="btn-full btn-primary" id="btn-posizione" style="width:auto;padding:8px 20px;font-size:13px;margin-top:4px;">📍 Attiva posizione</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+
+      html += '<div class="fidelity-footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
+
+      root.innerHTML = html;
+
+      // BIND
+      var btnInstall = document.getElementById("btn-install");
+      if (btnInstall) {
+        btnInstall.onclick = function() {
+          if (deferredInstall) {
+            deferredInstall.prompt();
+            deferredInstall.userChoice.then(function(r) {
+              if (r.outcome === "accepted") btnInstall.textContent = "✅ Aggiunta!";
+              deferredInstall = null;
+            });
+          } else {
+            // iOS: mostra istruzioni
+            alert("Su iPhone: tocca il pulsante Condividi (□↑) in basso e poi 'Aggiungi a schermata Home'.\n\nSu Android: tocca i tre puntini in alto e poi 'Aggiungi a schermata Home'.");
+          }
+        };
+      }
+
+      var btnCondividi = document.getElementById("btn-condividi");
+      if (btnCondividi) {
+        btnCondividi.onclick = function() {
+          if (navigator.share) {
+            navigator.share({ title: "La mia tessera " + (azienda.nome||""), url: linkTessera }).catch(function(){});
+          } else {
+            navigator.clipboard && navigator.clipboard.writeText(linkTessera).then(function() {
+              alert("Link copiato!");
+            });
+          }
+        };
+      }
+
+      var btnPos = document.getElementById("btn-posizione");
+      if (btnPos) {
+        btnPos.onclick = function() {
+          if (!navigator.geolocation) { alert("Posizione non supportata dal browser"); return; }
+          btnPos.textContent = "⏳ Rilevamento...";
+          navigator.geolocation.getCurrentPosition(
+            function(pos) { caricaMappa(pos.coords.latitude, pos.coords.longitude, offerte); },
+            function() { btnPos.textContent = "❌ Posizione non disponibile"; }
+          );
+        };
+      }
+    }
+
+    // ── MAPPA NETWORK ─────────────────────────────────────────────
+    function caricaMappa(lat, lng, offerte) {
+      var box = document.getElementById("mappa-network");
+      if (!box) return;
+
+      // Costruisci URL mappa con tutti i locali
+      var markers = offerte
+        .filter(function(o) { return o.aziende?.indirizzo; })
+        .slice(0, 8)
+        .map(function(o) {
+          var az = o.aziende;
+          return encodeURIComponent(az.nome + ", " + az.indirizzo + (az.citta ? " " + az.citta : ""));
+        });
+
+      // Usa Google Maps con la posizione attuale
+      var mapsUrl = "https://www.google.com/maps/search/ristorante+ristoflow/@" + lat + "," + lng + ",13z";
+
+      box.innerHTML =
+        '<iframe width="100%" height="220" frameborder="0" style="border:0;" loading="lazy" ' +
+        'src="https://www.google.com/maps/embed/v1/search?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=ristorante+bar+ristoflow&center=' + lat + ',' + lng + '&zoom=12">' +
+        '</iframe>' +
+        '<a href="' + mapsUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in Google Maps</a>';
+    }
+
+    // ── HELPERS ───────────────────────────────────────────────────
+    function getLivello(punti, cfg) {
+      if (punti >= (cfg.soglia_oro||1500)) return { nome:"Oro", emoji:"🥇" };
+      if (punti >= (cfg.soglia_argento||500)) return { nome:"Argento", emoji:"🥈" };
+      return { nome:"Bronzo", emoji:"🥉" };
+    }
+
+    function getProssimaSoglia(punti, cfg) {
+      if (punti < (cfg.soglia_argento||500)) return cfg.soglia_argento||500;
+      if (punti < (cfg.soglia_oro||1500)) return cfg.soglia_oro||1500;
+      return null;
+    }
+
+    function formatData(ts) {
+      if (!ts) return "";
+      var d = new Date(ts);
+      return d.toLocaleDateString("it-IT", { day:"2-digit", month:"short", year:"numeric" });
+    }
+
+    function formatDataBreve(s) {
+      if (!s) return "";
+      var p = s.split("-");
+      return p[2] + "/" + p[1] + "/" + p[0];
+    }
+
+    function showError(title, sub) {
+      root.innerHTML = '<div class="error-page"><div class="error-icon">😕</div><div class="error-title">' + esc(title) + '</div><div class="error-sub">' + esc(sub) + '</div></div>';
+    }
+
+    function esc(v) {
+      return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+  })();
+  </script>
+</body>
+</html>
