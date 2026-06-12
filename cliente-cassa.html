@@ -143,7 +143,7 @@
     setInterval(aggiornaOra, 10000);
 
     // Carica info azienda
-    supa.from("aziende").select("nome,logo_url,colore_brand").eq("id", aziendaId).maybeSingle().then(function(res) {
+    supa.from("aziende").select("nome,logo_url,colore_brand,font_family,font_size").eq("id", aziendaId).maybeSingle().then(function(res) {
       var az = res.data || {};
       if (az.nome) document.getElementById("cc-locale").textContent = az.nome;
       if (az.logo_url) {
@@ -155,6 +155,17 @@
         document.documentElement.style.setProperty("--brand", az.colore_brand);
         document.documentElement.style.setProperty("--brand-light", az.colore_brand + "1a");
       }
+      if (az.font_family) {
+        document.body.style.fontFamily = az.font_family;
+        // Carica Google Font
+        var fontName = az.font_family.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
+        var link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=" + fontName + ":wght@400;700;800&display=swap";
+        document.head.appendChild(link);
+      }
+      var sizeMap = {small:"14px",medium:"16px",large:"18px",xlarge:"20px"};
+      if (az.font_size && sizeMap[az.font_size]) document.body.style.fontSize = sizeMap[az.font_size];
       document.getElementById("cc-pagato-locale").textContent = az.nome || "";
     });
 
