@@ -98,6 +98,14 @@ export async function render(container) {
           <a id="cfg-link-pub" href="#" target="_blank" class="mb-btn mb-btn-primary" style="text-decoration:none;white-space:nowrap;">🔗 Apri</a>
           <button id="btn-qr" class="mb-btn mb-btn-sec">📷 QR</button>
         </div>
+        <!-- Link e QR live -->
+        <div id="link-qr-live" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:10px 14px;margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:10px;font-weight:800;color:#0369a1;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Link pubblico</div>
+            <a id="link-qr-url" href="#" target="_blank" style="font-size:12px;color:#0E5A7A;font-weight:700;word-break:break-all;text-decoration:none;"></a>
+          </div>
+          <img id="link-qr-img" src="" style="width:64px;height:64px;border-radius:8px;cursor:pointer;flex-shrink:0;" title="Clicca per ingrandire">
+        </div>
 
         <!-- ROW 2: colori, font, stato -->
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">
@@ -144,10 +152,34 @@ export async function render(container) {
             <input type="checkbox" id="cfg-tracking" style="accent-color:#0E5A7A;width:16px;height:16px;">
             📊 Tracking visite
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
-            <input type="checkbox" id="cfg-raccolta" style="accent-color:#0E5A7A;width:16px;height:16px;">
-            📋 Raccolta dati (nome/email/tavolo)
-          </label>
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+              <input type="checkbox" id="cfg-raccolta" style="accent-color:#0E5A7A;width:16px;height:16px;">
+              📋 Raccolta dati clienti
+            </label>
+            <div id="raccolta-campi-panel" style="display:none;margin-top:10px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
+              <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Campi da richiedere</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                ${[
+                  {id:"nome",label:"Nome"},
+                  {id:"cognome",label:"Cognome"},
+                  {id:"telefono",label:"Telefono"},
+                  {id:"email",label:"Email"},
+                  {id:"tavolo",label:"Numero tavolo"},
+                  {id:"data_nascita",label:"Data di nascita"},
+                  {id:"cap",label:"CAP"},
+                  {id:"citta",label:"Città"},
+                  {id:"note",label:"Note libere"},
+                  {id:"consenso_marketing",label:"Consenso marketing"}
+                ].map(f => `
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:4px 0;">
+                    <input type="checkbox" class="raccolta-campo" data-campo="${f.id}" style="accent-color:#0E5A7A;">
+                    ${f.label}
+                  </label>
+                `).join("")}
+              </div>
+            </div>
+          </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
             <input type="checkbox" id="cfg-caparra" style="accent-color:#0E5A7A;width:16px;height:16px;">
             💳 Caparra richiesta
@@ -299,6 +331,31 @@ export async function render(container) {
     document.getElementById("caparra-panel").style.display = e.target.checked ? "block" : "none";
   };
 
+  document.getElementById("cfg-raccolta").onchange = (e) => {
+    document.getElementById("raccolta-campi-panel").style.display = e.target.checked ? "block" : "none";
+  };
+
+  // Autogenera slug mentre digita il nome
+  document.getElementById("cfg-nome").oninput = () => {
+    const slug = document.getElementById("cfg-slug");
+    if (!slug.dataset.manuale) {
+      slug.value = makeSlug(document.getElementById("cfg-nome").value);
+      aggiornaLinkQRLive(slug.value);
+    }
+  };
+
+  // Aggiorna link/QR quando slug cambia manualmente
+  document.getElementById("cfg-slug").oninput = (e) => {
+    e.target.dataset.manuale = "1";
+    aggiornaLinkQRLive(e.target.value);
+  };
+
+  // Click sul QR piccolo → ingrandisce
+  document.getElementById("link-qr-img").onclick = () => {
+    const slug = document.getElementById("cfg-slug").value.trim();
+    if (slug) mostraQR(slug);
+  };
+
   document.getElementById("btn-gen-slug").onclick = () => {
     const nome = document.getElementById("cfg-nome").value.trim();
     if (nome) document.getElementById("cfg-slug").value = makeSlug(nome);
@@ -430,15 +487,22 @@ export async function render(container) {
     document.getElementById("caparra-importo").value   = caparra.importo || "";
     document.getElementById("caparra-note").value      = caparra.note || "";
 
-    const slug = m.slug;
-    const linkEl = document.getElementById("cfg-link-pub");
-    if (slug) {
-      linkEl.href = `${BASE_URL}/menu-pubblico.html?slug=${slug}`;
-      linkEl.style.opacity = "1";
-    } else {
-      linkEl.href = "#";
-      linkEl.style.opacity = ".4";
+    // Link e QR live
+    aggiornaLinkQRLive(m.slug || "");
+
+    // Raccolta dati — popola campi
+    const raccoltaPanel = document.getElementById("raccolta-campi-panel");
+    if (raccoltaPanel) {
+      raccoltaPanel.style.display = m.raccolta_dati ? "block" : "none";
+      const campiSalvati = m.raccolta_campi || ["nome","telefono"];
+      raccoltaPanel.querySelectorAll(".raccolta-campo").forEach(chk => {
+        chk.checked = Array.isArray(campiSalvati) && campiSalvati.includes(chk.dataset.campo);
+      });
     }
+
+    // Reset flag manuale slug
+    const slugEl = document.getElementById("cfg-slug");
+    if (slugEl) delete slugEl.dataset.manuale;
 
     document.getElementById("msg-cfg").textContent = "";
   }
@@ -465,6 +529,7 @@ export async function render(container) {
       attivo:          document.getElementById("cfg-attivo").checked,
       tracking_attivo: document.getElementById("cfg-tracking").checked,
       raccolta_dati:   document.getElementById("cfg-raccolta").checked,
+      raccolta_campi:  Array.from(document.querySelectorAll(".raccolta-campo:checked")).map(c => c.dataset.campo),
       caparra_attiva:  caparraAttiva,
       caparra_formula: caparraFormula
     }).eq("id", menuAttivo.id).eq("azienda_id", azienda_id);
@@ -962,6 +1027,7 @@ export async function render(container) {
     await loadMenus();
     renderTabsMenu();
     await selezionaMenu(data);
+    aggiornaLinkQRLive(data.slug || "");
   };
 
   // ── QR ───────────────────────────────────────────────────────
@@ -978,6 +1044,24 @@ export async function render(container) {
   }
 
   // ── UTILS ────────────────────────────────────────────────────
+  function aggiornaLinkQRLive(slug) {
+    const liveBox = document.getElementById("link-qr-live");
+    const liveUrl = document.getElementById("link-qr-url");
+    const liveImg = document.getElementById("link-qr-img");
+    const linkBtn = document.getElementById("cfg-link-pub");
+    if (!slug || !slug.trim()) {
+      if (liveBox) liveBox.style.display = "none";
+      if (linkBtn) { linkBtn.href = "#"; linkBtn.style.opacity = ".4"; }
+      return;
+    }
+    const url = BASE_URL + "/menu-pubblico.html?slug=" + encodeURIComponent(slug);
+    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(url);
+    if (liveBox) liveBox.style.display = "flex";
+    if (liveUrl) { liveUrl.href = url; liveUrl.textContent = url; }
+    if (liveImg) liveImg.src = qrUrl;
+    if (linkBtn) { linkBtn.href = url; linkBtn.style.opacity = "1"; }
+  }
+
   function makeSlug(v) {
     return String(v).toLowerCase()
       .replace(/[àáâã]/g,"a").replace(/[èéê]/g,"e").replace(/[ìíî]/g,"i")
