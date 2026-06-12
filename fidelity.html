@@ -9,6 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <link rel="apple-touch-icon" href="/assets/favicon-192.png"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{--brand:#0E5A7A;--brand-light:#e8f4f8;}
@@ -208,7 +210,7 @@
 
       // Carica offerte network
       var offerteRes = await supa.from("network_offerte")
-        .select("*, aziende(nome, logo_url, indirizzo, citta, colore_brand)")
+        .select("*, aziende(nome, logo_url, indirizzo, citta, colore_brand, lat, lng)")
         .eq("attiva", true)
         .neq("azienda_id", aziendaId);
       var offerte = offerteRes.data || [];
@@ -492,9 +494,17 @@
               var lat = pos.coords.latitude, lng = pos.coords.longitude;
               var box = document.getElementById("mappa-network-box");
               if (!box) return;
-              box.innerHTML = '<iframe width="100%" height="220" frameborder="0" style="border:0;" loading="lazy" ' +
-                'src="https://www.google.com/maps/embed/v1/search?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=ristorante+bar+ristoflow+network&center=' + lat + ',' + lng + '&zoom=13"></iframe>' +
-                '<a href="https://maps.google.com/?q=ristoflow+ristorante+bar&near=' + lat + ',' + lng + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in Google Maps</a>';
+              box.innerHTML = '<div id="leaflet-map2" style="width:100%;height:220px;border-radius:14px;overflow:hidden;"></div>' +
+                '<a href="https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '&zoom=13" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in OpenStreetMap</a>';
+              var map2 = L.map("leaflet-map2").setView([lat, lng], 13);
+              L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "© OpenStreetMap", maxZoom: 18
+              }).addTo(map2);
+              var ic2 = L.divIcon({
+                html: '<div style="background:var(--brand);border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+                iconSize:[16,16],iconAnchor:[8,8],className:""
+              });
+              L.marker([lat,lng],{icon:ic2}).addTo(map2).bindPopup("<strong>📍 Sei qui</strong>").openPopup();
             },
             function() { if(btnPos) btnPos.textContent = "❌ Posizione non disponibile"; }
           );
@@ -544,28 +554,75 @@
       }
     }
 
-    // ── MAPPA NETWORK ─────────────────────────────────────────────
+    // ── MAPPA NETWORK (Leaflet/OpenStreetMap) ─────────────────────
+    var leafletMap = null;
+
     function caricaMappa(lat, lng, offerte) {
       var box = document.getElementById("mappa-network");
       if (!box) return;
 
-      // Costruisci URL mappa con tutti i locali
-      var markers = offerte
-        .filter(function(o) { return o.aziende?.indirizzo; })
-        .slice(0, 8)
-        .map(function(o) {
-          var az = o.aziende;
-          return encodeURIComponent(az.nome + ", " + az.indirizzo + (az.citta ? " " + az.citta : ""));
-        });
+      box.innerHTML = '<div id="leaflet-map" style="width:100%;height:260px;border-radius:14px;overflow:hidden;"></div>' +
+        '<a href="https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '&zoom=13" target="_blank" ' +
+        'style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in OpenStreetMap</a>';
 
-      // Usa Google Maps con la posizione attuale
-      var mapsUrl = "https://www.google.com/maps/search/ristorante+ristoflow/@" + lat + "," + lng + ",13z";
+      // Init Leaflet
+      if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+      leafletMap = L.map("leaflet-map").setView([lat, lng], 13);
 
-      box.innerHTML =
-        '<iframe width="100%" height="220" frameborder="0" style="border:0;" loading="lazy" ' +
-        'src="https://www.google.com/maps/embed/v1/search?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=ristorante+bar+ristoflow&center=' + lat + ',' + lng + '&zoom=12">' +
-        '</iframe>' +
-        '<a href="' + mapsUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in Google Maps</a>';
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18
+      }).addTo(leafletMap);
+
+      // Marker posizione cliente
+      var iconaCliente = L.divIcon({
+        html: '<div style="background:var(--brand);border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+        iconSize: [18, 18], iconAnchor: [9, 9], className: ""
+      });
+      L.marker([lat, lng], { icon: iconaCliente })
+        .addTo(leafletMap)
+        .bindPopup("<strong>📍 Sei qui</strong>")
+        .openPopup();
+
+      // Marker locali network con geocoding approssimativo per città
+      var localiConCoord = offerte.filter(function(o) {
+        return o.aziende && (o.aziende.lat || o.aziende.indirizzo);
+      });
+
+      // Geocoding per città (approssimativo via Nominatim)
+      var localiDaGeocod = offerte.filter(function(o) {
+        return o.aziende && o.aziende.citta && !o.aziende.lat;
+      }).slice(0, 5);
+
+      localiDaGeocod.forEach(function(o) {
+        var az = o.aziende;
+        var query = encodeURIComponent((az.indirizzo||"") + " " + (az.citta||"") + " Italy");
+        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + "&limit=1", {
+          headers: { "User-Agent": "RistoflowApp/1.0" }
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (!data || !data[0]) return;
+          var locLat = parseFloat(data[0].lat);
+          var locLng = parseFloat(data[0].lon);
+
+          var val = o.tipo === "sconto_perc" ? "-" + o.valore + "%" :
+                    o.tipo === "sconto_fisso" ? "-€" + Number(o.valore).toFixed(2) : "🎁";
+
+          var iconaLocale = L.divIcon({
+            html: '<div style="background:#f59e0b;color:#fff;border:2px solid #fff;border-radius:10px;padding:2px 6px;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);">' + val + '</div>',
+            iconSize: [50, 24], iconAnchor: [25, 12], className: ""
+          });
+
+          L.marker([locLat, locLng], { icon: iconaLocale })
+            .addTo(leafletMap)
+            .bindPopup(
+              '<div style="min-width:140px;">' +
+              '<strong>' + esc(az.nome||"") + '</strong><br>' +
+              '<span style="font-size:12px;color:#64748b;">' + esc(az.indirizzo||"") + '</span><br>' +
+              '<span style="background:var(--brand);color:#fff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;">' + val + '</span>' +
+              '</div>'
+            );
+        }).catch(function(){});
+      });
     }
 
     // ── HELPERS ───────────────────────────────────────────────────
