@@ -155,7 +155,7 @@
 
     function init() {
       supa.from("prenotazioni_tavoli")
-        .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id)")
+        .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size)")
         .eq("token_pubblico", token)
         .maybeSingle()
         .then(function(res) {
@@ -169,6 +169,15 @@
             document.documentElement.style.setProperty("--brand", azienda.colore_brand);
             document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
           }
+          if (azienda.font_family) {
+            document.body.style.fontFamily = azienda.font_family;
+            var fontName = azienda.font_family.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
+            var lnk = document.createElement("link"); lnk.rel="stylesheet";
+            lnk.href = "https://fonts.googleapis.com/css2?family="+fontName+":wght@400;700;800&display=swap";
+            document.head.appendChild(lnk);
+          }
+          var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
+          if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
           renderLanding();
           initModals();
           initLightbox();
