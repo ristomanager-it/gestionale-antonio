@@ -142,7 +142,7 @@
     async function init() {
       // Carica config azienda
       var azRes = await supa.from("aziende")
-        .select("id,nome,logo_url,telefono,indirizzo,citta,colore_brand")
+        .select("id,nome,logo_url,telefono,indirizzo,citta,colore_brand,font_family,font_size")
         .eq("id", aziendaId).maybeSingle();
       var azienda = azRes.data || {};
 
@@ -151,6 +151,15 @@
         document.documentElement.style.setProperty("--brand", azienda.colore_brand);
         document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
       }
+      if (azienda.font_family) {
+        document.body.style.fontFamily = azienda.font_family;
+        var fn = azienda.font_family.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
+        var lnk = document.createElement("link"); lnk.rel="stylesheet";
+        lnk.href = "https://fonts.googleapis.com/css2?family="+fn+":wght@400;700;800&display=swap";
+        document.head.appendChild(lnk);
+      }
+      var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
+      if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
 
       // Carica config fidelity
       var cfgRes = await supa.from("fidelity_config")
