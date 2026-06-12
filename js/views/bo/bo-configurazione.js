@@ -2399,7 +2399,7 @@ export async function render(container) {
     // Carica dati azienda
     const { data: az } = await supa()
       .from('aziende')
-      .select('nome, logo_url, cover_url, foto_galleria, link_menu, colore_brand, tema_landing_id')
+      .select('nome, logo_url, cover_url, foto_galleria, link_menu, colore_brand, tema_landing_id, font_family, font_size')
       .eq('id', aziendaId)
       .maybeSingle();
 
@@ -2560,6 +2560,43 @@ export async function render(container) {
           <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Es. link al menu su TheFork, tuo sito, PDF Google Drive, ecc.</div>
         </div>
 
+        <!-- FONT GLOBALE -->
+        <div class="media-card">
+          <div class="media-section-title">🔤 Font globale</div>
+          <div class="media-section-sub">Applicato a landing prenotazione, menu digitale, tessera fidelity e schermo cassa cliente</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Famiglia font</label>
+              <select id="font-family" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                <option value="">Default sistema</option>
+                <option value="'Playfair Display',serif">Playfair Display (elegante)</option>
+                <option value="'Montserrat',sans-serif">Montserrat (moderno)</option>
+                <option value="'Lato',sans-serif">Lato (pulito)</option>
+                <option value="'Roboto',sans-serif">Roboto (digitale)</option>
+                <option value="'Georgia',serif">Georgia (classico)</option>
+                <option value="'Raleway',sans-serif">Raleway (sofisticato)</option>
+                <option value="'Oswald',sans-serif">Oswald (impatto)</option>
+                <option value="'Merriweather',serif">Merriweather (leggibile)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Dimensione testo</label>
+              <select id="font-size" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                <option value="small">Piccolo</option>
+                <option value="medium" selected>Medio (default)</option>
+                <option value="large">Grande</option>
+                <option value="xlarge">Molto grande</option>
+              </select>
+            </div>
+          </div>
+          <!-- Anteprima font -->
+          <div id="font-preview" style="border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;background:#fafafa;">
+            <div id="font-preview-text" style="font-size:18px;font-weight:700;margin-bottom:4px;">Campo Antico Ricevimenti</div>
+            <div id="font-preview-sub" style="font-size:14px;color:#64748b;">Prenotazione confermata per Mario Rossi</div>
+            <div id="font-preview-price" style="font-size:22px;font-weight:800;color:#0E5A7A;margin-top:8px;">€ 45,00</div>
+          </div>
+        </div>
+
         <!-- COLORE BRAND -->
         <div class="media-card">
           <div class="media-section-title">🎨 Colore brand</div>
@@ -2603,6 +2640,38 @@ export async function render(container) {
     // ── Stato locale ──────────────────────────────────────────────
     let galleriaState = [...galleria];
     let temaSelezionato = az?.tema_landing_id || null;
+
+    // Popola font
+    const fontFamilySel = box.querySelector('#font-family');
+    const fontSizeSel   = box.querySelector('#font-size');
+    if (fontFamilySel) fontFamilySel.value = az?.font_family || '';
+    if (fontSizeSel)   fontSizeSel.value   = az?.font_size || 'medium';
+
+    // Preview font live
+    function aggiornaPrevFont() {
+      const ff = fontFamilySel?.value || 'inherit';
+      const fs = fontSizeSel?.value || 'medium';
+      const sizeMap = { small:'14px', medium:'18px', large:'22px', xlarge:'26px' };
+      const subMap  = { small:'12px', medium:'14px', large:'16px', xlarge:'18px' };
+      const priceMap= { small:'18px', medium:'22px', large:'26px', xlarge:'30px' };
+      const pt = box.querySelector('#font-preview-text');
+      const ps = box.querySelector('#font-preview-sub');
+      const pp = box.querySelector('#font-preview-price');
+      if (pt) { pt.style.fontFamily = ff; pt.style.fontSize = sizeMap[fs]||'18px'; }
+      if (ps) { ps.style.fontFamily = ff; ps.style.fontSize = subMap[fs]||'14px'; }
+      if (pp) { pp.style.fontFamily = ff; pp.style.fontSize = priceMap[fs]||'22px'; }
+      // Carica Google Font se necessario
+      if (ff && ff !== 'inherit' && ff !== '') {
+        const fontName = ff.replace(/['"]/g,'').split(',')[0].trim().replace(/ /g,'+');
+        const linkId = 'gfont-preview';
+        let link = document.getElementById(linkId);
+        if (!link) { link = document.createElement('link'); link.id = linkId; link.rel = 'stylesheet'; document.head.appendChild(link); }
+        link.href = 'https://fonts.googleapis.com/css2?family=' + fontName + ':wght@400;700;800&display=swap';
+      }
+    }
+    if (fontFamilySel) fontFamilySel.oninput = aggiornaPrevFont;
+    if (fontSizeSel)   fontSizeSel.oninput   = aggiornaPrevFont;
+    aggiornaPrevFont();
 
     // ── Render galleria ───────────────────────────────────────────
     function renderGalleria() {
@@ -2768,6 +2837,8 @@ export async function render(container) {
         link_menu: box.querySelector('#link-menu').value.trim() || null,
         colore_brand: box.querySelector('#colore-hex').value || '#0E5A7A',
         tema_landing_id: temaSelezionato || null,
+        font_family: box.querySelector('#font-family').value || null,
+        font_size: box.querySelector('#font-size').value || 'medium',
       }).eq('id', aziendaId);
 
       if (error) {
