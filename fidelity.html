@@ -96,6 +96,12 @@
     .promo-box-title{font-size:22px;font-weight:800;}
     .promo-box-sub{font-size:13px;opacity:.9;margin-top:2px;}
 
+    /* ACCORDION */
+    .accordion-item{border-bottom:1px solid #f3f4f6;}
+    .accordion-item:last-child{border-bottom:none;}
+    .accordion-btn{width:100%;text-align:left;background:none;border:none;padding:12px 0;font-size:13px;font-weight:700;color:#374151;cursor:pointer;}
+    .accordion-btn:hover{color:var(--brand);}
+    .accordion-body{font-size:12px;color:#64748b;line-height:1.6;padding-bottom:12px;}
     /* FOOTER */
     .fidelity-footer{text-align:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));font-size:11px;color:#9ca3af;}
     .fidelity-footer a{color:var(--brand);text-decoration:none;}
@@ -300,6 +306,20 @@
         });
       }
 
+      // Invia WA con link tessera
+      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
+      var telWA = telefono.replace(/[^0-9]/g,"");
+      if (telWA.length >= 9) {
+        var testoWA = "Ciao " + nome + "! Benvenuto nel programma fidelity di " + (azienda.nome||"noi") + ". Hai guadagnato " + (cfg.bonus_benvenuto_punti||50) + " punti di benvenuto. Salva questo link per accedere sempre alla tua tessera: " + linkTessera;
+        // Invio WA via Supabase edge function
+        supa.functions.invoke("whatsapp-send-ts", {
+          body: {
+            to: "39" + telWA,
+            type: "text",
+            text: testoWA
+          }
+        }).catch(function(e) { console.warn("WA send:", e); });
+      }
       // Redirect alla tessera
       window.location.href = "fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
     }
@@ -402,9 +422,84 @@
         '</div>';
       }
 
+      // REGOLAMENTO
+      html += '<div class="section">' +
+        '<div class="section-title">📋 Regolamento Network</div>' +
+        '<div id="regolamento-accordion">' +
+          '<div class="accordion-item">' +
+            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come funziona la tessera? ▾</button>' +
+            '<div class="accordion-body" style="display:none;">La tessera Ristoflow è gratuita e digitale. Ogni volta che consumi in un locale aderente accumuli punti automaticamente in base alla spesa. I punti si trasformano in sconti e vantaggi.</div>' +
+          '</div>' +
+          '<div class="accordion-item">' +
+            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come si accumulano i punti? ▾</button>' +
+            '<div class="accordion-body" style="display:none;">Ogni locale aderente assegna punti in base al proprio programma. In genere si guadagnano punti per ogni euro speso. I moltiplicatori aumentano con il livello (Bronzo → Argento → Oro).</div>' +
+          '</div>' +
+          '<div class="accordion-item">' +
+            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Cosa è il Ristoflow Network? ▾</button>' +
+            '<div class="accordion-body" style="display:none;">Il Ristoflow Network è una rete di locali (ristoranti, bar, caffetterie) in tutta Italia che aderiscono al programma. Con la tua tessera puoi accedere a offerte esclusive in tutti i locali della rete, ovunque ti trovi.</div>' +
+          '</div>' +
+          '<div class="accordion-item">' +
+            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come salvo la tessera sul telefono? ▾</button>' +
+            '<div class="accordion-body" style="display:none;">Su iPhone: tocca il pulsante Condividi (□↑) e poi "Aggiungi a schermata Home". Su Android: tocca i tre puntini del browser e poi "Aggiungi a schermata Home". La tessera funziona senza app!</div>' +
+          '</div>' +
+          '<div class="accordion-item">' +
+            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Privacy e dati personali ▾</button>' +
+            '<div class="accordion-body" style="display:none;">I tuoi dati sono trattati nel rispetto del GDPR (Reg. UE 2016/679). Vengono utilizzati esclusivamente per il programma fidelity. Puoi richiedere la cancellazione in qualsiasi momento contattando il locale dove ti sei iscritto.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+      // MAPPA NETWORK (con pulsante attiva posizione)
+      if (offerte.length) {
+        html += '<div class="section">' +
+          '<div class="section-title">🗺️ Locali Ristoflow vicini a te</div>' +
+          '<p style="font-size:12px;color:#64748b;margin-bottom:12px;line-height:1.5;">Con la tua tessera hai accesso a offerte esclusive in tutti questi locali della rete.</p>' +
+          '<div id="mappa-network-box" style="background:#f3f4f6;border-radius:14px;overflow:hidden;margin-bottom:10px;">' +
+            '<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#94a3b8;">' +
+              '<div style="font-size:32px;">📍</div>' +
+              '<div style="font-size:13px;font-weight:600;">Attiva la posizione per vedere i locali vicini</div>' +
+              '<button id="btn-attiva-pos" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;">📍 Attiva posizione</button>' +
+            '</div>' +
+          '</div>' +
+          // Lista offerte scorrevole
+          '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;">' +
+          offerte.slice(0,8).map(function(o) {
+            var az2 = o.aziende || {};
+            var val = o.tipo==="sconto_perc" ? "-"+o.valore+"%" : o.tipo==="sconto_fisso" ? "-€"+Number(o.valore).toFixed(2) : "🎁";
+            return '<div style="flex-shrink:0;width:160px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px;">' +
+              '<div style="background:var(--brand);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:800;margin-bottom:8px;text-align:center;">' + esc(val) + '</div>' +
+              '<div style="font-size:13px;font-weight:700;margin-bottom:2px;">' + esc(o.titolo) + '</div>' +
+              '<div style="font-size:11px;color:#64748b;">📍 ' + esc(az2.nome||"") + '</div>' +
+              (az2.citta ? '<div style="font-size:11px;color:#94a3b8;">' + esc(az2.citta) + '</div>' : '') +
+            '</div>';
+          }).join("") +
+          '</div>' +
+        '</div>';
+      }
+
       html += '<div class="fidelity-footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
 
       root.innerHTML = html;
+
+      // Bind mappa
+      var btnPos = document.getElementById("btn-attiva-pos");
+      if (btnPos) {
+        btnPos.onclick = function() {
+          if (!navigator.geolocation) { alert("Posizione non supportata"); return; }
+          btnPos.textContent = "⏳ Rilevamento...";
+          navigator.geolocation.getCurrentPosition(
+            function(pos) {
+              var lat = pos.coords.latitude, lng = pos.coords.longitude;
+              var box = document.getElementById("mappa-network-box");
+              if (!box) return;
+              box.innerHTML = '<iframe width="100%" height="220" frameborder="0" style="border:0;" loading="lazy" ' +
+                'src="https://www.google.com/maps/embed/v1/search?key=AIzaSyAA4M0bQFSBxjdJnXmcO6kgQsHtE9jEYXg&q=ristorante+bar+ristoflow+network&center=' + lat + ',' + lng + '&zoom=13"></iframe>' +
+                '<a href="https://maps.google.com/?q=ristoflow+ristorante+bar&near=' + lat + ',' + lng + '" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in Google Maps</a>';
+            },
+            function() { if(btnPos) btnPos.textContent = "❌ Posizione non disponibile"; }
+          );
+        };
+      }
 
       // BIND
       var btnInstall = document.getElementById("btn-install");
