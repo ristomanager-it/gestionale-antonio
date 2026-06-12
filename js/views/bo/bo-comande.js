@@ -291,6 +291,39 @@ export async function render(container) {
       </div>
     </div>
 
+    <!-- ── MODAL: Fidelity post-conto ── -->
+    <div id="modal-fidelity" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1300;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:20px;padding:24px;width:min(440px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:800;">🎁 Tessera Fidelity</div>
+          <button id="fi-popup-chiudi" style="background:#f1f5f9;border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:18px;">✕</button>
+        </div>
+        <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:14px;padding:16px;margin-bottom:16px;color:#fff;text-align:center;">
+          <div style="font-size:24px;font-weight:800;" id="fi-popup-sconto">-10% SUBITO</div>
+          <div style="font-size:13px;opacity:.9;margin-top:4px;">sul conto di oggi</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Telefono cliente</div>
+          <div style="display:flex;gap:8px;">
+            <input id="fi-popup-tel" style="flex:1;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px;outline:none;" placeholder="Es. 3391234567" type="tel">
+            <button id="fi-popup-cerca" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;">🔍</button>
+          </div>
+          <div id="fi-popup-trovato" style="display:none;margin-top:8px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px;font-size:13px;"></div>
+        </div>
+        <div id="fi-popup-form-nuovo" style="display:none;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Nuovo cliente</div>
+          <input id="fi-popup-nome" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;margin-bottom:8px;" placeholder="Nome *">
+          <input id="fi-popup-cognome" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;" placeholder="Cognome">
+        </div>
+        <div id="fi-popup-calcolo" style="font-size:13px;color:#374151;background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:12px;display:none;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="fi-popup-emetti" style="flex:1;background:#0E5A7A;color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">✅ Emetti e applica sconto</button>
+          <button id="fi-popup-salta" style="background:#f1f5f9;color:#374151;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Salta</button>
+        </div>
+        <div id="fi-popup-msg" style="margin-top:10px;font-size:13px;text-align:center;"></div>
+      </div>
+    </div>
+
     <!-- ── MODAL: Chiusura conto ── -->
     <div id="modal-conto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;align-items:center;justify-content:center;">
       <div style="background:white;border-radius:24px;width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
@@ -1302,6 +1335,11 @@ export async function render(container) {
   function chiudiComanda()   { apriModalConto(); }
 
   function apriModalConto() {
+    // Aggiorna schermo cliente con righe correnti
+    const righeAttive = righeComanda.filter(r => r.stato !== 'annullato');
+    const totConto = righeAttive.reduce((s,r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
+    const nomeTavolo = comandaAttiva?.tavolo_nome || comandaAttiva?.tavolo_id || null;
+    aggiornaCassaDisplay('aperta', righeAttive, totConto, nomeTavolo, null);
     if (!comandaAttiva) return;
     _righeContoLocali = righeComanda.filter(r => r.stato !== 'annullato').map(r => ({ ...r }));
     _tipoDoc = 'preconto';
@@ -1622,6 +1660,23 @@ export async function render(container) {
     await eseguiChiusuraConto(metodoPrincipale, subConti);
   };
 
+  // ── CASSA DISPLAY (schermo cliente) ──────────────────────────
+  async function aggiornaCassaDisplay(stato, righe, totale, tavolo, metodoPagamento) {
+    try {
+      await supa().from('cassa_display').upsert({
+        azienda_id: aziendaId,
+        sede_id: sedeId || null,
+        comanda_id: comandaAttiva?.id || null,
+        stato,
+        righe: JSON.stringify(righe || []),
+        totale: totale || 0,
+        tavolo: tavolo || null,
+        metodo_pagamento: metodoPagamento || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'azienda_id,sede_id' });
+    } catch(e) { console.warn('cassa_display:', e); }
+  }
+
   async function eseguiChiusuraConto(metodoPagamento, subConti = null) {
     if (!comandaAttiva) return;
 
@@ -1654,6 +1709,10 @@ export async function render(container) {
 
     await supa().from('comande').update(aggiornamento).eq('id', comandaAttiva.id);
 
+    // Aggiorna schermo cliente → PAGATO
+    await aggiornaCassaDisplay('pagato', [], totaleFinale, null, metodoPagamento);
+
+    const comandaChiusaId = comandaAttiva.id;
     comande = comande.filter(c => String(c.id) !== String(comandaAttiva.id));
     comandaAttiva = null;
     righeComanda = [];
@@ -1665,6 +1724,155 @@ export async function render(container) {
     await loadComande();
     renderMapTavoli();
     mostraToast(`✅ Conto chiuso — €${totaleFinale.toFixed(2)} (${metodoPagamento})`, 'success');
+
+    // Popup fidelity
+    setTimeout(() => apriFidelityPopup(totaleFinale), 400);
+  }
+
+  // ══════════════════════════════════════════
+  // FIDELITY POPUP POST-CONTO
+  // ══════════════════════════════════════════
+  let _fiClienteSelezionato = null;
+  let _fiTotaleChiuso = 0;
+  let _fiCfg = null;
+
+  async function apriFidelityPopup(totale) {
+    _fiClienteSelezionato = null;
+    _fiTotaleChiuso = totale;
+
+    // Carica config fidelity
+    const { data: cfg } = await supa().from('fidelity_config')
+      .select('*').eq('azienda_id', aziendaId).maybeSingle();
+    _fiCfg = cfg || { punti_per_euro:1, sconto_benvenuto_perc:10, bonus_benvenuto_punti:50, soglia_argento:500, soglia_oro:1500, moltiplicatore_argento:1.5, moltiplicatore_oro:2 };
+
+    const modal = container.querySelector('#modal-fidelity');
+    container.querySelector('#fi-popup-tel').value = '';
+    container.querySelector('#fi-popup-nome').value = '';
+    container.querySelector('#fi-popup-cognome').value = '';
+    container.querySelector('#fi-popup-trovato').style.display = 'none';
+    container.querySelector('#fi-popup-form-nuovo').style.display = 'none';
+    container.querySelector('#fi-popup-calcolo').style.display = 'none';
+    container.querySelector('#fi-popup-msg').textContent = '';
+    container.querySelector('#fi-popup-sconto').textContent = `-${_fiCfg.sconto_benvenuto_perc||10}% SUBITO`;
+    modal.style.display = 'flex';
+  }
+
+  container.querySelector('#fi-popup-chiudi').onclick = () => {
+    container.querySelector('#modal-fidelity').style.display = 'none';
+  };
+  container.querySelector('#fi-popup-salta').onclick = () => {
+    container.querySelector('#modal-fidelity').style.display = 'none';
+  };
+  container.querySelector('#fi-popup-cerca').onclick = fiFindCliente;
+  container.querySelector('#fi-popup-tel').addEventListener('keydown', e => { if(e.key==='Enter') fiFindCliente(); });
+  container.querySelector('#fi-popup-tel').oninput = fiAggiornaCalcolo;
+  container.querySelector('#fi-popup-emetti').onclick = fiEmettiTessera;
+
+  async function fiFindCliente() {
+    const tel = container.querySelector('#fi-popup-tel').value.trim();
+    if (!tel) return;
+    const { data } = await supa().from('fidelity_clienti').select('*').eq('telefono', tel).maybeSingle();
+    const trovato = container.querySelector('#fi-popup-trovato');
+    const formNuovo = container.querySelector('#fi-popup-form-nuovo');
+    if (data) {
+      _fiClienteSelezionato = data;
+      trovato.style.display = 'block';
+      trovato.innerHTML = `✅ <strong>${data.nome||''} ${data.cognome||''}</strong> — ${data.punti_totali||0} punti`;
+      formNuovo.style.display = 'none';
+    } else {
+      _fiClienteSelezionato = null;
+      trovato.style.display = 'none';
+      formNuovo.style.display = 'block';
+    }
+    fiAggiornaCalcolo();
+  }
+
+  function fiAggiornaCalcolo() {
+    const sconto = _fiTotaleChiuso * (_fiCfg?.sconto_benvenuto_perc||10) / 100;
+    const totScontato = _fiTotaleChiuso - sconto;
+    const puntiBase = Math.round((_fiCfg?.punti_per_euro||1) * totScontato);
+    const calcolo = container.querySelector('#fi-popup-calcolo');
+    calcolo.style.display = 'block';
+    calcolo.innerHTML = `
+      💸 Sconto: <strong>€${sconto.toFixed(2)}</strong> →
+      Totale: <strong>€${totScontato.toFixed(2)}</strong><br>
+      ⭐ Punti guadagnati: <strong>${puntiBase}pt</strong>
+    `;
+  }
+
+  async function fiEmettiTessera() {
+    const btn = container.querySelector('#fi-popup-emetti');
+    const msg = container.querySelector('#fi-popup-msg');
+    btn.disabled = true; btn.textContent = 'Emissione...';
+
+    try {
+      let cliente = _fiClienteSelezionato;
+      const tel = container.querySelector('#fi-popup-tel').value.trim();
+
+      if (!cliente) {
+        const nome = container.querySelector('#fi-popup-nome').value.trim();
+        if (!nome || !tel) throw new Error('Nome e telefono obbligatori');
+        const { data, error } = await supa().from('fidelity_clienti').insert({
+          nome, cognome: container.querySelector('#fi-popup-cognome').value.trim()||null,
+          telefono: tel,
+          punti_totali: _fiCfg.bonus_benvenuto_punti||50
+        }).select().single();
+        if (error) throw new Error(error.message);
+        cliente = data;
+      }
+
+      // Crea/aggiorna tessera
+      const { data: tesseraEsistente } = await supa().from('fidelity_tessere')
+        .select('*').eq('cliente_id', cliente.id).eq('azienda_id', aziendaId).maybeSingle();
+
+      const sconto = _fiTotaleChiuso * (_fiCfg.sconto_benvenuto_perc||10) / 100;
+      const totScontato = _fiTotaleChiuso - sconto;
+      const puntiBonus = !tesseraEsistente ? (_fiCfg.bonus_benvenuto_punti||50) : 0;
+      const puntiAcquisto = Math.round((_fiCfg.punti_per_euro||1) * totScontato);
+      const nuoviPunti = (tesseraEsistente?.punti_locali||0) + puntiBonus + puntiAcquisto;
+      const nuovoLivello = nuoviPunti>=(_fiCfg.soglia_oro||1500)?'oro':nuoviPunti>=(_fiCfg.soglia_argento||500)?'argento':'bronzo';
+
+      if (!tesseraEsistente) {
+        await supa().from('fidelity_tessere').insert({
+          cliente_id: cliente.id, azienda_id,
+          punti_locali: nuoviPunti, livello: nuovoLivello
+        });
+        await supa().from('fidelity_movimenti').insert({
+          cliente_id: cliente.id, azienda_id,
+          tipo: 'benvenuto', punti: puntiBonus,
+          descrizione: 'Bonus iscrizione fidelity'
+        });
+      } else {
+        await supa().from('fidelity_tessere').update({
+          punti_locali: nuoviPunti, livello: nuovoLivello
+        }).eq('id', tesseraEsistente.id);
+      }
+
+      await supa().from('fidelity_movimenti').insert({
+        cliente_id: cliente.id, azienda_id,
+        tipo: 'acquisto', punti: puntiAcquisto,
+        importo_speso: totScontato,
+        descrizione: `Acquisto €${totScontato.toFixed(2)} (sconto ${_fiCfg.sconto_benvenuto_perc||10}%)`
+      });
+
+      await supa().from('fidelity_clienti').update({
+        punti_totali: (cliente.punti_totali||0) + puntiBonus + puntiAcquisto
+      }).eq('id', cliente.id);
+
+      msg.innerHTML = `<div style="background:#f0fdf4;border-radius:10px;padding:12px;text-align:left;">
+        <div style="font-weight:800;color:#16a34a;margin-bottom:6px;">✅ Tessera emessa!</div>
+        <div>💸 Sconto applicato: <strong>€${sconto.toFixed(2)}</strong></div>
+        <div>⭐ Punti: <strong>+${puntiBonus+puntiAcquisto}pt</strong> (totale ${nuoviPunti}pt)</div>
+        <div>🏅 Livello: <strong>${nuovoLivello.charAt(0).toUpperCase()+nuovoLivello.slice(1)}</strong></div>
+      </div>`;
+
+      btn.disabled = false; btn.textContent = '✅ Emetti e applica sconto';
+      setTimeout(() => container.querySelector('#modal-fidelity').style.display = 'none', 3000);
+
+    } catch(err) {
+      msg.innerHTML = `<span style="color:#dc2626;">${err.message}</span>`;
+      btn.disabled = false; btn.textContent = '✅ Emetti e applica sconto';
+    }
   }
 
   // ══════════════════════════════════════════
