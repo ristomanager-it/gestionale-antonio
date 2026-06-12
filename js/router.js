@@ -148,6 +148,7 @@ const routes = {
 
   // MENU
   "bo-menu": () => import("./views/bo/bo-menu-builder.js"),
+  "bo-fidelity": () => import("./views/bo/bo-fidelity.js"),
   "bo-categorie": () => import("./views/bo/categorie.js"),
   "bo-prodotti": () => import("./views/bo/prodotti.js"),
 
