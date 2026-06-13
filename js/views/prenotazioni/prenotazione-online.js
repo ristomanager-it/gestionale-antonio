@@ -314,6 +314,38 @@ export async function render(container) {
 
           ${customFields.map(renderCustomField).join("")}
 
+          <!-- CAPARRA -->
+          \${config.caparra?.attiva ? \`
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:800;color:#92400e;margin-bottom:6px;">💳 Caparra richiesta</div>
+            <div style="font-size:13px;color:#78350f;line-height:1.5;">
+              \${config.caparra.tipo === 'fisso' ? \`Importo: <strong>€\${Number(config.caparra.importo||0).toFixed(2)}</strong>\` :
+                config.caparra.tipo === 'persona' ? \`<strong>€\${Number(config.caparra.importo||0).toFixed(2)} a persona</strong>\` :
+                \`<strong>\${config.caparra.importo||0}%</strong> del totale stimato\`}
+              \${config.caparra.note ? \`<br><span style="font-size:12px;">\${config.caparra.note}</span>\` : ''}
+            </div>
+            <div style="font-size:12px;color:#92400e;margin-top:8px;padding:8px;background:#fef3c7;border-radius:8px;">
+              ℹ️ Il team ti contatterà per i dettagli del pagamento dopo la conferma.
+            </div>
+          </div>\` : ''}
+
+          <!-- CONSENSI -->
+          <div style="background:#f8fafc;border-radius:14px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:12px;">📋 Consensi</div>
+            <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;">
+              <input type="checkbox" id="consenso-gdpr" style="margin-top:2px;accent-color:#0E5A7A;flex-shrink:0;width:16px;height:16px;">
+              <span style="font-size:12px;color:#374151;line-height:1.5;">* Accetto il trattamento dei dati personali per la gestione della prenotazione (GDPR).</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;">
+              <input type="checkbox" id="consenso-network" style="margin-top:2px;accent-color:#0E5A7A;flex-shrink:0;width:16px;height:16px;">
+              <span style="font-size:12px;color:#374151;line-height:1.5;">Accetto di entrare nel <strong>Ristoflow Network</strong> e che i locali possano condividere valutazioni oggettive sul mio comportamento. <span style="color:#059669;font-weight:700;">🎁 Ottieni la tessera fidelity con punti bonus!</span></span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="consenso-marketing" style="margin-top:2px;accent-color:#0E5A7A;flex-shrink:0;width:16px;height:16px;">
+              <span style="font-size:12px;color:#64748b;line-height:1.5;">Acconsento a ricevere comunicazioni promozionali e offerte via WhatsApp/email.</span>
+            </label>
+          </div>
+
           <button id="btn-invia" class="app-button primary login-btn">
             ${escapeHtml(t[lang].invia)}
           </button>
@@ -463,7 +495,10 @@ export async function render(container) {
       custom: customValues,
       policy_accepted: !!config.policy?.enabled,
       form_name: form?.nome || null,
-      form_version: version?.versione || null
+      form_version: version?.versione || null,
+      consenso_gdpr: document.getElementById("consenso-gdpr")?.checked || false,
+      consenso_network: document.getElementById("consenso-network")?.checked || false,
+      consenso_marketing: document.getElementById("consenso-marketing")?.checked || false
     };
 
     const finalTag = [
@@ -505,7 +540,26 @@ export async function render(container) {
       return;
     }
 
-    msg.innerHTML = `<span class="success-text">${escapeHtml(t[lang].ok)}</span>`;
+    const consensoNetwork = document.getElementById("consenso-network")?.checked;
+    const telFidelity = (document.getElementById("prefisso")?.value || "+39") + (document.getElementById("telefono")?.value || "").trim();
+
+    // Se ha accettato network → proponi fidelity
+    if (consensoNetwork && aziendaId) {
+      const linkFidelity = \`https://app.ristoflow-ai.com/fidelity.html?a=\${aziendaId}\`;
+      msg.innerHTML = \`
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:16px;text-align:left;">
+          <div style="font-size:15px;font-weight:800;color:#15803d;margin-bottom:6px;">✅ Prenotazione inviata!</div>
+          <div style="font-size:13px;color:#166534;margin-bottom:12px;">Riceverai una conferma a breve.</div>
+          <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #d1fae5;">
+            <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:8px;">🎁 Ottieni la tessera fidelity!</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Iscriviti ora e ottieni punti bonus + sconti esclusivi.</div>
+            <a href="\${linkFidelity}" target="_blank" style="display:block;background:#059669;color:#fff;border-radius:10px;padding:10px;text-align:center;text-decoration:none;font-size:13px;font-weight:800;">📲 Attiva la tessera fidelity</a>
+          </div>
+        </div>
+      \`;
+    } else {
+      msg.innerHTML = \`<span class="success-text">\${escapeHtml(t[lang].ok)}</span>\`;
+    }
 
     clearFormAfterSuccess();
   }
@@ -518,6 +572,11 @@ export async function render(container) {
 
     if (!nome || !telefonoRaw || !data || !ora) {
       return { ok: false, message: t[lang].errore };
+    }
+
+    const gdpr = document.getElementById("consenso-gdpr");
+    if (gdpr && !gdpr.checked) {
+      return { ok: false, message: "Devi accettare il trattamento dei dati personali per procedere." };
     }
 
     if (!isDayBookable(data)) {
