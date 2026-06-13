@@ -110,8 +110,8 @@ export async function render(container) {
 
   container.innerHTML = `
   <div style="min-height:100vh;display:flex;flex-direction:column;${backgroundStyle}overflow-y:auto;">
-    <div style="padding:20px 16px 10px;text-align:center;">
-      ${logoEnabled ? `<img src="${escapeAttribute(logo)}" style="height:100px;object-fit:contain;margin-bottom:12px;">` : ""}
+    <div style="padding:20px 16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;">
+      ${logoEnabled ? `<img src="${escapeAttribute(logo)}" style="height:100px;object-fit:contain;margin-bottom:12px;display:block;">` : ""}
       <div style="font-weight:700;font-size:18px;color:#111;">${escapeHtml(nomeAzienda)}</div>
     </div>
     <div style="flex:1;padding:16px 16px 28px;max-width:480px;margin:0 auto;width:100%;">
@@ -160,6 +160,7 @@ export async function render(container) {
       </div>
     </div>
     ${renderPolicyModal()}
+    <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af;">Powered by <a href="https://ristoflow-ai.com" target="_blank" style="color:#0E5A7A;text-decoration:none;font-weight:700;">Ristoflow.Ai</a></div>
   </div>`;
 
   document.getElementById("data").value = new Date().toISOString().split("T")[0];
