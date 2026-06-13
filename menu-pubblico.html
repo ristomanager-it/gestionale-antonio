@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Menu</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0E5A7A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--brand:#0E5A7A;--brand-light:#e8f4f8;--sfondo:#f8fafc;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--sfondo);min-height:100vh;color:#111827;}
+
+    /* LOADER */
+    .page-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;color:#64748b;}
+    .spinner{width:44px;height:44px;border:4px solid var(--brand-light);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* HERO SOCIAL */
+    .menu-cover{position:relative;width:100%;height:200px;background:var(--brand);overflow:hidden;flex-shrink:0;}
+    .menu-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+    .menu-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.4) 100%);}
+    .menu-profile-row{display:flex;align-items:flex-end;gap:14px;padding:0 16px 16px;margin-top:-36px;position:relative;z-index:2;background:var(--sfondo);}
+    .menu-logo-wrap{width:84px;height:84px;border-radius:50%;border:4px solid var(--sfondo);overflow:hidden;background:#e5e7eb;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,0.15);}
+    .menu-logo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+    .menu-logo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--brand-light);}
+    .menu-info{padding-bottom:6px;flex:1;min-width:0;}
+    .menu-locale-nome{font-size:20px;font-weight:800;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .menu-locale-desc{font-size:12px;color:#64748b;margin-top:2px;}
+
+    /* NAV CATEGORIE */
+    .cat-nav{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:20;overflow-x:auto;display:flex;gap:0;padding:0 8px;scrollbar-width:none;}
+    .cat-nav::-webkit-scrollbar{display:none;}
+    .cat-nav-btn{padding:12px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0;}
+    .cat-nav-btn.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:800;}
+
+    /* FILTRI */
+    .filtri-bar{padding:10px 12px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;background:#fff;border-bottom:1px solid #f3f4f6;}
+    .filtri-bar::-webkit-scrollbar{display:none;}
+    .filtro-chip{border:1.5px solid #e5e7eb;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;background:#fff;color:#374151;transition:all .15s;flex-shrink:0;}
+    .filtro-chip.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+    /* SEZIONE CATEGORIA */
+    .cat-section{padding:16px 12px 4px;}
+    .cat-section-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .cat-section-img{width:48px;height:48px;border-radius:12px;object-fit:cover;flex-shrink:0;}
+    .cat-section-img-empty{width:48px;height:48px;border-radius:12px;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .cat-section-nome{font-size:18px;font-weight:800;color:#111827;}
+    .cat-section-desc{font-size:12px;color:#64748b;margin-top:2px;}
+    .cat-section-orario{font-size:11px;font-weight:700;color:var(--brand);margin-top:2px;}
+
+    /* CARD PRODOTTO */
+    .prodotto-card{background:#fff;border-radius:16px;margin-bottom:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:flex;gap:0;}
+    .prodotto-card.non-disp{opacity:.5;}
+    .prodotto-body{flex:1;padding:14px;min-width:0;}
+    .prodotto-nome{font-size:15px;font-weight:800;color:#111827;margin-bottom:4px;}
+    .prodotto-desc{font-size:12px;color:#64748b;line-height:1.5;margin-bottom:8px;}
+    .prodotto-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+    .prodotto-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--brand-light);color:var(--brand);}
+    .prodotto-tag.chef{background:#fef3c7;color:#92400e;}
+    .prodotto-tag.non-disp-tag{background:#fee2e2;color:#dc2626;}
+    .prodotto-prezzo{font-size:18px;font-weight:800;color:var(--brand);}
+    .prodotto-foto-wrap{width:96px;height:96px;flex-shrink:0;position:relative;}
+    .prodotto-foto{width:100%;height:100%;object-fit:cover;}
+    .prodotto-foto-empty{width:100%;height:100%;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:28px;}
+
+    /* RACCOLTA DATI */
+    .raccolta-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+    .raccolta-box{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .raccolta-handle{width:40px;height:4px;background:#d1d5db;border-radius:999px;margin:0 auto 16px;}
+    .raccolta-title{font-size:18px;font-weight:800;margin-bottom:4px;}
+    .raccolta-sub{font-size:13px;color:#64748b;margin-bottom:20px;line-height:1.5;}
+    .raccolta-input{width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:15px;outline:none;margin-bottom:10px;font-family:inherit;}
+    .raccolta-input:focus{border-color:var(--brand);}
+    .raccolta-btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;}
+
+    /* FIDELITY BOX */
+    .fidelity-promo{background:linear-gradient(135deg,#059669,#10b981);border-radius:18px;margin:12px 12px 0;padding:16px;color:#fff;display:flex;align-items:center;gap:14px;}
+    .fidelity-promo-qr{width:72px;height:72px;border-radius:10px;border:2px solid rgba(255,255,255,.3);flex-shrink:0;}
+    .fidelity-promo-title{font-size:15px;font-weight:800;margin-bottom:2px;}
+    .fidelity-promo-sub{font-size:12px;opacity:.9;line-height:1.4;}
+
+    /* LIGHTBOX */
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:none;align-items:center;justify-content:center;}
+    .lightbox.open{display:flex;}
+    .lightbox img{max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain;}
+    .lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;}
+
+    /* FOOTER */
+    .menu-footer{text-align:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));font-size:11px;color:#9ca3af;}
+    .menu-footer a{color:var(--brand);text-decoration:none;}
+
+    /* NON DISPONIBILE BADGE */
+    .non-disp-badge{position:absolute;top:8px;right:8px;background:rgba(220,38,38,.85);color:#fff;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700;}
+
+    @media(min-width:480px){
+      body{display:flex;flex-direction:column;align-items:center;}
+      .menu-cover,.menu-profile-row,.cat-nav,.filtri-bar,.cat-section,.fidelity-promo,.menu-footer{max-width:480px;width:100%;}
+      .raccolta-box{border-radius:20px;}
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="page-loader"><div class="spinner"></div><div>Caricamento menu...</div></div>
+  </div>
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lb-close">✕</button>
+    <img id="lb-img" src="" alt="">
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function() {
+    var SUPA_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    var SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    var supa = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+    var root = document.getElementById("root");
+    var params = new URLSearchParams(window.location.search);
+    var slug = params.get("slug");
+
+    if (!slug) { showError("Menu non trovato", "Il link non è valido."); return; }
+
+    var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set();
+
+    init();
+
+    async function init() {
+      // Carica menu
+      var mr = await supa.from("menu").select("*").eq("slug", slug).eq("attivo", true).maybeSingle();
+      if (!mr.data) { showError("Menu non disponibile", "Questo menu non è attivo o non esiste."); return; }
+      menu = mr.data;
+
+      // Carica azienda
+      var ar = await supa.from("aziende").select("id,nome,logo_url,cover_url,descrizione,telefono,indirizzo,citta,colore_brand,font_family,font_size").eq("id", menu.azienda_id).maybeSingle();
+      azienda = ar.data || {};
+
+      // Applica brand
+      if (azienda.colore_brand) {
+        document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+        document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
+      }
+      if (menu.colore_sfondo) document.documentElement.style.setProperty("--sfondo", menu.colore_sfondo);
+      if (azienda.font_family || menu.font_family) {
+        var ff = menu.font_family || azienda.font_family;
+        document.body.style.fontFamily = ff;
+        var fn = ff.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
+        var lnk = document.createElement("link"); lnk.rel = "stylesheet";
+        lnk.href = "https://fonts.googleapis.com/css2?family=" + fn + ":wght@400;700;800&display=swap";
+        document.head.appendChild(lnk);
+      }
+
+      // Tracking visita
+      if (menu.tracking_attivo) {
+        supa.from("menu_tracking_risposte").insert({
+          menu_id: menu.id, azienda_id: menu.azienda_id,
+          tipo: "visita", created_at: new Date().toISOString()
+        }).then(function(){});
+      }
+
+      // Raccolta dati?
+      if (menu.raccolta_dati) {
+        var campi = menu.raccolta_campi || ["nome","telefono"];
+        mostraRaccoltaDati(campi, function() { caricaMenuCompleto(); });
+      } else {
+        caricaMenuCompleto();
+      }
+    }
+
+    async function caricaMenuCompleto() {
+      // Carica categorie
+      var cr = await supa.from("menu_categorie")
+        .select("*").eq("menu_id", menu.id).eq("azienda_id", menu.azienda_id)
+        .eq("attivo", true).order("ordine");
+      categorie = cr.data || [];
+
+      // Filtra per orario
+      var ora = new Date();
+      var oraStr = ora.getHours().toString().padStart(2,"0") + ":" + ora.getMinutes().toString().padStart(2,"0");
+      categorie = categorie.filter(function(c) {
+        if (!c.ora_inizio || !c.ora_fine) return true;
+        return oraStr >= c.ora_inizio && oraStr <= c.ora_fine;
+      });
+
+      if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
+
+      // Carica tutte le voci
+      var vr = await supa.from("menu_voci")
+        .select("*").eq("menu_id", menu.id).eq("azienda_id", menu.azienda_id)
+        .eq("attivo", true).eq("visibile", true).order("ordine");
+      var tutteLeVoci = vr.data || [];
+      tutteLeVoci.forEach(function(v) {
+        if (!tutteVoci[v.categoria_id]) tutteVoci[v.categoria_id] = [];
+        tutteVoci[v.categoria_id].push(v);
+      });
+
+      renderMenu();
+    }
+
+    // ── RACCOLTA DATI ──────────────────────────────────────────────
+    function mostraRaccoltaDati(campi, onDone) {
+      var labelMap = {
+        nome:"Nome *", cognome:"Cognome", telefono:"Telefono *",
+        email:"Email", tavolo:"Numero tavolo", data_nascita:"Data di nascita",
+        cap:"CAP", citta:"Città", note:"Note", consenso_marketing:"Consenso marketing"
+      };
+
+      var overlay = document.createElement("div");
+      overlay.className = "raccolta-overlay";
+      overlay.innerHTML =
+        '<div class="raccolta-box">' +
+          '<div class="raccolta-handle"></div>' +
+          (azienda.logo_url ? '<img src="'+esc(azienda.logo_url)+'" style="width:48px;height:48px;border-radius:12px;object-fit:cover;margin-bottom:12px;">' : '') +
+          '<div class="raccolta-title">Benvenuto da ' + esc(azienda.nome||"noi") + '!</div>' +
+          '<div class="raccolta-sub">Prima di sfogliare il menu, lasciaci qualche informazione. Ci aiuta a migliorare il servizio.</div>' +
+          campi.filter(function(c){return c!=="consenso_marketing";}).map(function(c) {
+            var t = c==="data_nascita"?"date":c==="email"?"email":c==="telefono"?"tel":"text";
+            return '<input class="raccolta-input" id="rd-'+c+'" type="'+t+'" placeholder="'+esc(labelMap[c]||c)+'">';
+          }).join("") +
+          (campi.includes("consenso_marketing") ? '<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;font-size:12px;color:#64748b;"><input type="checkbox" id="rd-mkt" style="margin-top:2px;accent-color:var(--brand);flex-shrink:0;"> Acconsento a ricevere comunicazioni promozionali</label>' : '') +
+          '<button class="raccolta-btn" id="rd-btn">Entra nel menu →</button>' +
+          '<div id="rd-msg" style="margin-top:8px;font-size:12px;text-align:center;color:#dc2626;"></div>' +
+        '</div>';
+
+      document.body.appendChild(overlay);
+
+      document.getElementById("rd-btn").onclick = async function() {
+        var nome = campi.includes("nome") ? (document.getElementById("rd-nome")?.value||"").trim() : null;
+        var tel  = campi.includes("telefono") ? (document.getElementById("rd-telefono")?.value||"").trim() : null;
+        var msg  = document.getElementById("rd-msg");
+
+        if (campi.includes("nome") && !nome) { msg.textContent="Nome obbligatorio"; return; }
+        if (campi.includes("telefono") && !tel) { msg.textContent="Telefono obbligatorio"; return; }
+
+        // Salva risposta tracking
+        var dati = {};
+        campi.forEach(function(c) {
+          var el = document.getElementById("rd-"+c);
+          if (el && el.type!=="checkbox") dati[c] = el.value;
+        });
+        if (document.getElementById("rd-mkt")) dati.consenso_marketing = document.getElementById("rd-mkt").checked;
+
+        await supa.from("menu_tracking_risposte").insert({
+          menu_id: menu.id, azienda_id: menu.azienda_id,
+          tipo: "raccolta_dati", dati: dati, created_at: new Date().toISOString()
+        });
+
+        document.body.removeChild(overlay);
+        onDone();
+      };
+    }
+
+    // ── RENDER MENU ────────────────────────────────────────────────
+    function renderMenu() {
+      var colore = azienda.colore_brand || menu.colore_primario || "#0E5A7A";
+      var linkFidelity = "https://app.ristoflow-ai.com/fidelity.html?a=" + menu.azienda_id;
+      var qrFidelity = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(linkFidelity);
+
+      var html = "";
+
+      // COVER + LOGO
+      html += '<div class="menu-cover">';
+      if (menu.cover_url || azienda.cover_url) {
+        html += '<img src="' + esc(menu.cover_url||azienda.cover_url) + '" alt="Cover">';
+      } else {
+        html += '<div style="width:100%;height:100%;background:' + esc(colore) + ';display:flex;align-items:center;justify-content:center;font-size:56px;">🍽️</div>';
+      }
+      html += '<div class="menu-cover-overlay"></div></div>';
+
+      html += '<div class="menu-profile-row">';
+      html += '<div class="menu-logo-wrap">';
+      if (menu.logo_url || azienda.logo_url) {
+        html += '<img src="' + esc(menu.logo_url||azienda.logo_url) + '" alt="Logo">';
+      } else {
+        html += '<div class="menu-logo-empty">🍽️</div>';
+      }
+      html += '</div>';
+      html += '<div class="menu-info">';
+      html += '<div class="menu-locale-nome">' + esc(azienda.nome||"") + '</div>';
+      if (menu.descrizione) html += '<div class="menu-locale-desc">' + esc(menu.descrizione) + '</div>';
+      html += '</div></div>';
+
+      // NAV CATEGORIE
+      html += '<div class="cat-nav" id="cat-nav">';
+      categorie.forEach(function(c) {
+        html += '<button class="cat-nav-btn" data-cat-id="' + c.id + '">' + esc(c.nome) + '</button>';
+      });
+      html += '</div>';
+
+      // FILTRI ALLERGENI
+      html += '<div class="filtri-bar">';
+      html += '<span style="font-size:11px;font-weight:700;color:#94a3b8;padding:5px 4px;flex-shrink:0;">Filtri:</span>';
+      [
+        {id:"vegetariano",label:"🌱 Veg"},
+        {id:"vegano",label:"🥦 Vegano"},
+        {id:"senza_glutine",label:"🌾 Senza glutine"},
+        {id:"senza_lattosio",label:"🥛 Senza lattosio"},
+        {id:"chef",label:"⭐ Chef consiglia"}
+      ].forEach(function(f) {
+        html += '<button class="filtro-chip" data-filtro="' + f.id + '">' + f.label + '</button>';
+      });
+      html += '</div>';
+
+      // CATEGORIE + VOCI
+      html += '<div id="menu-body">';
+      categorie.forEach(function(cat) {
+        var voci = tutteVoci[cat.id] || [];
+        html += '<div class="cat-section" id="cat-' + cat.id + '">';
+        html += '<div class="cat-section-header">';
+        if (cat.immagine_url) {
+          html += '<img class="cat-section-img" src="' + esc(cat.immagine_url) + '" alt="' + esc(cat.nome) + '">';
+        } else {
+          html += '<div class="cat-section-img-empty">📂</div>';
+        }
+        html += '<div>';
+        html += '<div class="cat-section-nome">' + esc(cat.nome) + '</div>';
+        if (cat.descrizione) html += '<div class="cat-section-desc">' + esc(cat.descrizione) + '</div>';
+        if (cat.ora_inizio) html += '<div class="cat-section-orario">⏰ ' + cat.ora_inizio + ' – ' + cat.ora_fine + '</div>';
+        html += '</div></div>';
+
+        if (!voci.length) {
+          html += '<div style="color:#94a3b8;font-size:13px;padding:8px 0 16px;">Nessuna portata disponibile</div>';
+        } else {
+          voci.forEach(function(v) {
+            var tags = [];
+            if (v.alert_food_cost) {} // non mostrare food cost al cliente
+            var isNonDisp = v.disponibile === false;
+            var prezzo = v.prezzo_override || v.prezzo || 0;
+
+            html += '<div class="prodotto-card' + (isNonDisp?" non-disp":"") + '" data-voci-tags="' + esc(JSON.stringify(v.note_interne||"")) + '">';
+            html += '<div class="prodotto-body">';
+            html += '<div class="prodotto-nome">' + esc(v.nome) + '</div>';
+            if (v.descrizione) html += '<div class="prodotto-desc">' + esc(v.descrizione) + '</div>';
+            // Tags visivi
+            if (isNonDisp) html += '<span class="prodotto-tag non-disp-tag">Non disponibile</span> ';
+            html += '<div class="prodotto-prezzo">€ ' + Number(prezzo).toFixed(2) + '</div>';
+            html += '</div>';
+            if (v.foto_url) {
+              html += '<div class="prodotto-foto-wrap" data-lb="' + esc(v.foto_url) + '" style="cursor:pointer;">';
+              html += '<img class="prodotto-foto" src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" loading="lazy">';
+              if (isNonDisp) html += '<div class="non-disp-badge">Non disp.</div>';
+              html += '</div>';
+            } else {
+              html += '<div class="prodotto-foto-wrap"><div class="prodotto-foto-empty">🍽️</div></div>';
+            }
+            html += '</div>';
+          });
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // FIDELITY PROMO
+      html += '<div class="fidelity-promo">';
+      html += '<img class="fidelity-promo-qr" src="' + qrFidelity + '" alt="QR Fidelity">';
+      html += '<div>';
+      html += '<div class="fidelity-promo-title">🎁 Hai la tessera fidelity?</div>';
+      html += '<div class="fidelity-promo-sub">Scansiona il QR e iscriviti per accumulare punti e ottenere sconti immediati.</div>';
+      html += '</div></div>';
+
+      html += '<div class="menu-footer">Menu digitale by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
+
+      root.innerHTML = html;
+
+      // BIND NAV
+      var navBtns = document.querySelectorAll(".cat-nav-btn");
+      navBtns[0]?.classList.add("active");
+
+      navBtns.forEach(function(btn) {
+        btn.onclick = function() {
+          navBtns.forEach(function(b){ b.classList.remove("active"); });
+          btn.classList.add("active");
+          var el = document.getElementById("cat-" + btn.dataset.catId);
+          if (el) el.scrollIntoView({ behavior:"smooth", block:"start" });
+        };
+      });
+
+      // BIND FILTRI
+      document.querySelectorAll(".filtro-chip").forEach(function(chip) {
+        chip.onclick = function() {
+          var f = chip.dataset.filtro;
+          if (filtriAttivi.has(f)) { filtriAttivi.delete(f); chip.classList.remove("active"); }
+          else { filtriAttivi.add(f); chip.classList.add("active"); }
+          applicaFiltri();
+        };
+      });
+
+      // BIND LIGHTBOX foto
+      document.querySelectorAll("[data-lb]").forEach(function(el) {
+        el.onclick = function() {
+          document.getElementById("lb-img").src = el.dataset.lb;
+          document.getElementById("lightbox").classList.add("open");
+        };
+      });
+
+      // SCROLL → aggiorna nav attivo
+      window.addEventListener("scroll", aggiornaNavScroll, { passive:true });
+    }
+
+    function aggiornaNavScroll() {
+      var navBtns = document.querySelectorAll(".cat-nav-btn");
+      var scrollY = window.scrollY + 120;
+      var attivo = null;
+      categorie.forEach(function(c) {
+        var el = document.getElementById("cat-" + c.id);
+        if (el && el.offsetTop <= scrollY) attivo = c.id;
+      });
+      navBtns.forEach(function(btn) {
+        btn.classList.toggle("active", btn.dataset.catId === attivo);
+      });
+    }
+
+    function applicaFiltri() {
+      if (!filtriAttivi.size) {
+        document.querySelectorAll(".prodotto-card").forEach(function(el){ el.style.display=""; });
+        document.querySelectorAll(".cat-section").forEach(function(el){ el.style.display=""; });
+        return;
+      }
+      categorie.forEach(function(cat) {
+        var voci = tutteVoci[cat.id] || [];
+        var visibili = 0;
+        voci.forEach(function(v, i) {
+          var cards = document.querySelectorAll("#cat-" + cat.id + " .prodotto-card");
+          var card = cards[i];
+          if (!card) return;
+          var mostra = true;
+          if (filtriAttivi.has("chef") && !v.note_interne?.includes("chef")) mostra = false;
+          // Altri filtri basati su descrizione
+          if (mostra) {
+            card.style.display = "";
+            visibili++;
+          } else {
+            card.style.display = "none";
+          }
+        });
+        var sec = document.getElementById("cat-" + cat.id);
+        if (sec) sec.style.display = visibili === 0 ? "none" : "";
+      });
+    }
+
+    // LIGHTBOX
+    document.getElementById("lb-close").onclick = function() {
+      document.getElementById("lightbox").classList.remove("open");
+    };
+    document.getElementById("lightbox").onclick = function(e) {
+      if (e.target === e.currentTarget) document.getElementById("lightbox").classList.remove("open");
+    };
+
+    function showError(title, sub) {
+      root.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;gap:12px;"><div style="font-size:56px;">😕</div><div style="font-size:20px;font-weight:800;">' + esc(title) + '</div><div style="font-size:13px;color:#64748b;">' + esc(sub) + '</div></div>';
+    }
+
+    function esc(v) {
+      return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+  })();
+  </script>
+</body>
+</html>
