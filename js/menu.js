@@ -100,6 +100,46 @@ export function initMenu() {
       headerRight.appendChild(tonyBtn);
     }
 
+    // ── PULSANTE RISTOFLOWBOOK — in header ──────────────────────────────
+    if (!document.getElementById("rfbook-btn-header")) {
+      const rfbBtn = document.createElement("div");
+      rfbBtn.id = "rfbook-btn-header";
+      rfbBtn.title = "RistoflowBook";
+      rfbBtn.style.cssText = `
+        cursor: pointer;
+        margin-left: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        gap: 3px;
+      `;
+      rfbBtn.innerHTML = `
+        <div style="
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        ">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
+            <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Social</span>
+      `;
+      rfbBtn.onclick = () => {
+        window.open("https://social.ristoflow-ai.com", "_blank");
+      };
+      headerRight.appendChild(rfbBtn);
+    }
 
   }
 
@@ -605,6 +645,33 @@ export function initMenu() {
       closeMenu();
     };
     menu.appendChild(manualeBtn);
+
+    // ── RISTOFLOWBOOK BUTTON ──────────────────────────────────────────────
+    const rfbMenuBtn = document.createElement("div");
+    rfbMenuBtn.className = "menu-logout";
+    rfbMenuBtn.style.cssText = `
+      background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
+      color: white;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    `;
+    rfbMenuBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
+        <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      🌐 RistoflowBook
+    `;
+    rfbMenuBtn.onclick = () => {
+      window.open("https://social.ristoflow-ai.com", "_blank");
+      closeMenu();
+    };
+    menu.appendChild(rfbMenuBtn);
 
     const logout =
       document.createElement("div");
