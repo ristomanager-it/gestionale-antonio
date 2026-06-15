@@ -19,15 +19,26 @@ export async function render(container) {
     .from("demo_leads").select("id", { count: "exact", head: true })
     .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
 
-  // Utenti RistoflowBook
-  const { count: utentiSocial } = await supabase
-    .from("clienti_profilo").select("id", { count: "exact", head: true });
-  const { count: utentiSocial7gg } = await supabase
-    .from("clienti_profilo").select("id", { count: "exact", head: true })
-    .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
-  const { count: postSocial } = await supabase
-    .from("social_post").select("id", { count: "exact", head: true })
-    .eq("visibile", true);
+  // Utenti RistoflowBook — tutte le fonti
+  const [
+    { count: utentiSocial },
+    { count: utentiSocial7gg },
+    { count: postSocial },
+    { count: utentiDipendenti },
+    { count: utentiFidelity },
+    { data: utentiList }
+  ] = await Promise.all([
+    supabase.from("clienti_profilo").select("id", { count: "exact", head: true }),
+    supabase.from("clienti_profilo").select("id", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+    supabase.from("social_post").select("id", { count: "exact", head: true }).eq("visibile", true),
+    supabase.from("dipendenti").select("id", { count: "exact", head: true }),
+    supabase.from("clienti_profilo").select("id", { count: "exact", head: true }).eq("tipo_utente", "fidelity"),
+    supabase.from("clienti_profilo")
+      .select("nome_completo,email,citta,tipo_utente,punti_totali,punti_social,created_at,avatar_url")
+      .order("created_at", { ascending: false })
+      .limit(200)
+  ]);
 
   container.innerHTML = `
     <div class="view piattaforma">
@@ -81,23 +92,46 @@ export async function render(container) {
       </div>
 
       <!-- KPI BAR SOCIAL -->
-      <div class="kpi-section-label">&#127759; RistoflowBook</div>
-      <div class="kpi-bar">
-        <div class="kpi">
+      <div class="kpi-section-label">&#127759; RistoflowBook — Contatti</div>
+      <div class="kpi-bar" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi" style="cursor:pointer" onclick="filtraContatti('tutti')">
           <div class="kpi-val" style="color:#0E5A7A;">${utentiSocial || 0}</div>
-          <div class="kpi-label">Iscritti totali</div>
+          <div class="kpi-label">Iscritti social</div>
         </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#059669;">${utentiSocial7gg || 0}</div>
+        <div class="kpi" style="cursor:pointer" onclick="filtraContatti('nuovi')">
+          <div class="kpi-val" style="color:#059669;">+${utentiSocial7gg || 0}</div>
           <div class="kpi-label">Nuovi 7gg</div>
+        </div>
+        <div class="kpi" style="cursor:pointer" onclick="filtraContatti('fidelity')">
+          <div class="kpi-val" style="color:#d97706;">${utentiFidelity || 0}</div>
+          <div class="kpi-label">Fidelity</div>
         </div>
         <div class="kpi">
           <div class="kpi-val" style="color:#7c3aed;">${postSocial || 0}</div>
-          <div class="kpi-label">Post pubblicati</div>
+          <div class="kpi-label">Post</div>
         </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#f97316;">${utentiSocial ? Math.round((utentiSocial7gg||0)/(utentiSocial||1)*100) : 0}%</div>
-          <div class="kpi-label">Crescita sett.</div>
+      </div>
+
+      <!-- CONTATTI INLINE -->
+      <div class="contatti-section">
+        <div class="contatti-header">
+          <div style="font-size:15px;font-weight:800;color:#111827">Contatti RistoflowBook</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input id="contatti-search" placeholder="&#128269; Cerca..." class="contatti-search" oninput="filtraContatti()"/>
+            <select id="contatti-filtro-tipo" class="contatti-select" onchange="filtraContatti()">
+              <option value="">Tutti</option>
+              <option value="cliente">Clienti</option>
+              <option value="chef">Chef</option>
+              <option value="titolare">Titolari</option>
+              <option value="fidelity">Fidelity</option>
+              <option value="fornitore">Fornitori</option>
+            </select>
+            <button class="contatti-export-btn" onclick="esportaContatti()">&#11015; CSV</button>
+          </div>
+        </div>
+        <div id="contatti-list"></div>
+        <div id="contatti-more" style="text-align:center;padding:12px;display:none">
+          <button class="contatti-more-btn" onclick="mostraAltri()">Carica altri</button>
         </div>
       </div>
 
@@ -214,14 +248,40 @@ export async function render(container) {
       .list-item:hover { background:#f3f4f6; }
 
       .kpi-section-label { font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:4px; }
+      .contatti-section { background:white;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;margin-bottom:20px; }
+      .contatti-header { display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #f3f4f6;flex-wrap:wrap;gap:10px; }
+      .contatti-search { padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;outline:none;width:180px; }
+      .contatti-search:focus { border-color:#0E5A7A; }
+      .contatti-select { padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;outline:none;cursor:pointer; }
+      .contatti-export-btn { padding:8px 14px;background:#111827;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer; }
+      .contatto-row { display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f9fafb;transition:background .1s; }
+      .contatto-row:hover { background:#f9fafb; }
+      .contatto-av { width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e8f4f8,#1a8fb5);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0E5A7A;flex-shrink:0;overflow:hidden; }
+      .contatto-av img { width:100%;height:100%;object-fit:cover; }
+      .contatto-info { flex:1;min-width:0; }
+      .contatto-nome { font-size:14px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+      .contatto-sub { font-size:12px;color:#6b7280;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+      .contatto-badge { font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;flex-shrink:0; }
+      .contatto-badge.cliente { background:#e8f4f8;color:#0E5A7A; }
+      .contatto-badge.chef { background:#fef3c7;color:#d97706; }
+      .contatto-badge.titolare { background:#dcfce7;color:#16a34a; }
+      .contatto-badge.fidelity { background:#f5f3ff;color:#7c3aed; }
+      .contatto-badge.fornitore { background:#f3f4f6;color:#374151; }
+      .contatto-punti { font-size:12px;font-weight:800;color:#0E5A7A;flex-shrink:0; }
+      .contatto-data { font-size:11px;color:#9ca3af;flex-shrink:0; }
+      .contatti-more-btn { padding:8px 20px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#374151; }
+      .contatti-empty { text-align:center;padding:32px;color:#9ca3af;font-size:14px; }
       @media(max-width:600px) {
         .kpi-bar { grid-template-columns:repeat(2,1fr); }
+        .contatti-search { width:120px; }
+        .contatto-data,.contatto-punti { display:none; }
       }
     </style>
   `;
 
   bindEvents();
   initTawkStatus();
+  window.initContatti(utentiList || []);
 }
 
 // ── TAWK STATUS ───────────────────────────────────────────────────────────────
@@ -335,4 +395,117 @@ function selectAzienda(id) {
   window.state.azienda = { id: azienda.azienda_id, nome: azienda.aziende?.nome };
   localStorage.setItem("azienda_attiva", JSON.stringify(window.state.azienda));
   window.location.reload();
+}
+
+// ── CONTATTI RISTOFLOWBOOK ────────────────────────────────────────────────────
+let _contatti = [];
+let _contattiShown = 30;
+
+function getLivello(punti) {
+  if (punti >= 10000) return "💎";
+  if (punti >= 5000) return "🥇";
+  if (punti >= 2000) return "🥈";
+  return "🥉";
+}
+
+window.initContatti = function(lista) {
+  _contatti = lista || [];
+  filtraContatti();
+};
+
+window.filtraContatti = function(preset) {
+  const search = (document.getElementById("contatti-search")?.value || "").toLowerCase().trim();
+  const tipo = document.getElementById("contatti-filtro-tipo")?.value || "";
+
+  let filtered = _contatti.filter(u => {
+    if (tipo && (u.tipo_utente || "cliente") !== tipo) return false;
+    if (preset === "fidelity" && (u.tipo_utente || "") !== "fidelity") return false;
+    if (preset === "nuovi") {
+      const cutoff = new Date(Date.now() - 7 * 86400000);
+      if (new Date(u.created_at) < cutoff) return false;
+    }
+    if (search && !(
+      (u.nome_completo || "").toLowerCase().includes(search) ||
+      (u.email || "").toLowerCase().includes(search) ||
+      (u.citta || "").toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  _contattiShown = 30;
+  renderContatti(filtered);
+};
+
+function renderContatti(filtered) {
+  const el = document.getElementById("contatti-list");
+  const more = document.getElementById("contatti-more");
+  if (!el) return;
+
+  const slice = filtered.slice(0, _contattiShown);
+
+  if (slice.length === 0) {
+    el.innerHTML = `<div class="contatti-empty">Nessun contatto trovato</div>`;
+    if (more) more.style.display = "none";
+    return;
+  }
+
+  el.innerHTML = slice.map(u => {
+    const nome = u.nome_completo || "—";
+    const tipo = u.tipo_utente || "cliente";
+    const punti = (u.punti_totali || 0) + (u.punti_social || 0);
+    const lv = getLivello(punti);
+    const av = u.avatar_url
+      ? `<img src="${u.avatar_url}" />`
+      : `<span>${nome.charAt(0).toUpperCase()}</span>`;
+    const data = u.created_at
+      ? new Date(u.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "2-digit" })
+      : "";
+    const sub = [u.email, u.citta && u.citta.trim() ? u.citta : null].filter(Boolean).join(" · ");
+
+    return `<div class="contatto-row">
+      <div class="contatto-av">${av}</div>
+      <div class="contatto-info">
+        <div class="contatto-nome">${escHP(nome)}</div>
+        <div class="contatto-sub">${escHP(sub)}</div>
+      </div>
+      <span class="contatto-badge ${tipo}">${tipo}</span>
+      <div class="contatto-punti">${lv} ${punti > 0 ? punti.toLocaleString("it-IT") + " pt" : ""}</div>
+      <div class="contatto-data">${data}</div>
+    </div>`;
+  }).join("");
+
+  if (more) more.style.display = filtered.length > _contattiShown ? "block" : "none";
+  // salva filtered per "mostra altri"
+  el.dataset.filtered = JSON.stringify(filtered.map((u, i) => i));
+  window._contattiFiltered = filtered;
+}
+
+window.mostraAltri = function() {
+  _contattiShown += 30;
+  if (window._contattiFiltered) renderContatti(window._contattiFiltered);
+};
+
+window.esportaContatti = function() {
+  const lista = window._contattiFiltered || _contatti;
+  const header = ["Nome", "Email", "Città", "Tipo", "Punti", "Iscritto"];
+  const rows = lista.map(u => [
+    u.nome_completo || "",
+    u.email || "",
+    (u.citta || "").trim(),
+    u.tipo_utente || "cliente",
+    (u.punti_totali || 0) + (u.punti_social || 0),
+    u.created_at ? new Date(u.created_at).toLocaleDateString("it-IT") : ""
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `contatti-rfbook-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+};
+
+function escHP(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
