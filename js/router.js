@@ -49,6 +49,7 @@ const routes = {
   "home-operatore": () => import("./views/home-operatore.js"),
 
   homePiattaforma: () => import("./views/home-piattaforma.js"),
+  "social-utenti": () => import("./views/social-utenti.js"),
 
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
