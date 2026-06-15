@@ -19,6 +19,16 @@ export async function render(container) {
     .from("demo_leads").select("id", { count: "exact", head: true })
     .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
 
+  // Utenti RistoflowBook
+  const { count: utentiSocial } = await supabase
+    .from("clienti_profilo").select("id", { count: "exact", head: true });
+  const { count: utentiSocial7gg } = await supabase
+    .from("clienti_profilo").select("id", { count: "exact", head: true })
+    .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
+  const { count: postSocial } = await supabase
+    .from("social_post").select("id", { count: "exact", head: true })
+    .eq("visibile", true);
+
   container.innerHTML = `
     <div class="view piattaforma">
 
@@ -49,7 +59,8 @@ export async function render(container) {
         <button id="btn-switch-azienda" class="switch-btn">Cambia</button>
       </div>
 
-      <!-- KPI BAR -->
+      <!-- KPI BAR GESTIONALE -->
+      <div class="kpi-section-label">&#127979; Gestionale</div>
       <div class="kpi-bar">
         <div class="kpi">
           <div class="kpi-val">${totaleAziende || 0}</div>
@@ -66,6 +77,27 @@ export async function render(container) {
         <div class="kpi">
           <div class="kpi-val" style="color:#0E5A7A;">${leadDemo || 0}</div>
           <div class="kpi-label">Lead 7gg</div>
+        </div>
+      </div>
+
+      <!-- KPI BAR SOCIAL -->
+      <div class="kpi-section-label">&#127759; RistoflowBook</div>
+      <div class="kpi-bar">
+        <div class="kpi">
+          <div class="kpi-val" style="color:#0E5A7A;">${utentiSocial || 0}</div>
+          <div class="kpi-label">Iscritti totali</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" style="color:#059669;">${utentiSocial7gg || 0}</div>
+          <div class="kpi-label">Nuovi 7gg</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" style="color:#7c3aed;">${postSocial || 0}</div>
+          <div class="kpi-label">Post pubblicati</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" style="color:#f97316;">${utentiSocial ? Math.round((utentiSocial7gg||0)/(utentiSocial||1)*100) : 0}%</div>
+          <div class="kpi-label">Crescita sett.</div>
         </div>
       </div>
 
@@ -103,6 +135,15 @@ export async function render(container) {
             <div id="tawk-status" style="font-size:11px;color:#6b7280;margin-top:4px;">Caricamento...</div>
           </div>
           <div class="icon">💬</div>
+        </div>
+
+        <div class="card" id="card-social-users" onclick="window.location.hash='#/social-utenti'">
+          <div>
+            <div class="label">RistoflowBook</div>
+            <div class="title">Utenti Social</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">${utentiSocial || 0} iscritti</div>
+          </div>
+          <div class="icon">&#127759;</div>
         </div>
 
         <div class="card dark" id="enter-operativo">
@@ -172,6 +213,7 @@ export async function render(container) {
       .list-item { padding:10px; border-bottom:1px solid #eee; cursor:pointer; }
       .list-item:hover { background:#f3f4f6; }
 
+      .kpi-section-label { font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:4px; }
       @media(max-width:600px) {
         .kpi-bar { grid-template-columns:repeat(2,1fr); }
       }
