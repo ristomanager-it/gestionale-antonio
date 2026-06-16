@@ -161,6 +161,9 @@ const routes = {
   "ricette-editor": () => import("./views/bo/ricette-editor.js"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
+  "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
+  "home-consulente": () => import("./views/home-consulente.js"),
+  "home-commercialista": () => import("./views/home-commercialista.js"),
 
 
     // =========================================================
@@ -204,7 +207,7 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
-const ROOT_ROUTES = new Set(["home", "homePiattaforma"]);
+const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home-commercialista"]);
 
 const BO_ROUTES = new Set([
   "bo-dashboard",
@@ -510,8 +513,32 @@ const routePermissions = {
   "dipendenti":
     "dipendenti.read",
 
+  "dipendente":
+    "dipendenti.read",
+
   "crea-dipendente":
     "dipendenti.write",
+
+  "timbrature-consulente":
+    "dipendenti.read",
+
+  "hr-admin":
+    "dipendenti.read",
+
+  "hr-fascicolo":
+    "dipendenti.read",
+
+  "hr-documenti":
+    "dipendenti.read",
+
+  "hr-richieste":
+    "dipendenti.read",
+
+  "bo-bilancio-consulente":
+    "bilancio.read",
+
+  "acquisti-consulente":
+    "bilancio.read",
 
   "ricette-semplici":
     "ricette.write",
@@ -528,6 +555,43 @@ const routePermissions = {
 
     return true;
 
+  }
+
+  // =====================================
+  // CONSULENTE DEL LAVORO
+  // =====================================
+
+  if (ruolo === "consulente_lavoro") {
+    const allowed_consulente = [
+      "home",
+      "dipendenti",
+      "dipendente",
+      "crea-dipendente",
+      "timbrature",
+      "hr-admin",
+      "hr-fascicolo",
+      "hr-documenti",
+      "hr-documenti-me",
+      "hr-richieste",
+      "completa-profilo",
+      "profilo",
+    ];
+    return allowed_consulente.includes(area);
+  }
+
+  // =====================================
+  // COMMERCIALISTA
+  // =====================================
+
+  if (ruolo === "commercialista") {
+    const allowed_comm = [
+      "home",
+      "bo-bilancio",
+      "acquisti",
+      "completa-profilo",
+      "profilo",
+    ];
+    return allowed_comm.includes(area);
   }
 
   // =====================================
@@ -963,6 +1027,17 @@ async function resolve() {
     if (route === "login") {
       if (hasPlatform || isSa) {
         window.location.hash = "#/homePiattaforma";
+        return;
+      }
+      // Redirect consulenti alla loro home dedicata
+      const ruoloAttivo = tmpAziende.find(a => a.aziende?.id === window.state?.azienda?.id)?.ruolo
+                       || tmpAziende[0]?.ruolo || "";
+      if (ruoloAttivo === "consulente_lavoro") {
+        window.location.hash = "#/home-consulente";
+        return;
+      }
+      if (ruoloAttivo === "commercialista") {
+        window.location.hash = "#/home-commercialista";
         return;
       }
       window.location.hash = "#/home";
