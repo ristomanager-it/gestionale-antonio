@@ -99,7 +99,7 @@ async function loadData(supabase, aziendaId) {
     <!-- KPI -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px">
       ${kpis.map(k => `
-        <div class="card" style="border-left:4px solid ${k.color};cursor:pointer" onclick="window.navigate && window.navigate('${k.route}')">
+        <div class="card" style="border-left:4px solid ${k.color};cursor:pointer" onclick="location.hash='#/${k.route}'">
           <div class="card-body" style="display:flex;align-items:center;gap:14px">
             <div style="font-size:32px">${k.icon}</div>
             <div>
@@ -117,7 +117,7 @@ async function loadData(supabase, aziendaId) {
         <div class="card-header"><h3>⚡ Accesso rapido</h3></div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
           ${[{icon:"📈",label:"Bilancio live",route:"bo-bilancio"},{icon:"🛒",label:"Acquisti e fatture",route:"acquisti"}].map(a => `
-            <button onclick="window.navigate && window.navigate('${a.route}')"
+            <button onclick="location.hash='#/${a.route}'"
               style="display:flex;align-items:center;gap:10px;padding:13px 16px;
                      border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;
                      cursor:pointer;font-size:13px;font-weight:600;color:#374151;text-align:left;width:100%">
@@ -152,7 +152,7 @@ async function loadData(supabase, aziendaId) {
     <div class="card" style="margin-bottom:20px">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
         <h3>📅 Scadenze pagamento (30 gg) — ${fmt(totScadenze)}</h3>
-        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('acquisti')">Tutti</button>
+        <button class="btn btn-sm btn-primary" onclick="location.hash='#/acquisti'">Tutti</button>
       </div>
       <div class="card-body" style="padding:0">
         ${!scadenzeProssime || scadenzeProssime.length === 0
@@ -179,7 +179,7 @@ async function loadData(supabase, aziendaId) {
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
         <h3>⚠️ Fatture da pagare — ${fmt(totDaPagare)}</h3>
-        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('acquisti')">Gestisci</button>
+        <button class="btn btn-sm btn-primary" onclick="location.hash='#/acquisti'">Gestisci</button>
       </div>
       <div class="card-body" style="padding:0">
         ${!fattureDaPagare || fattureDaPagare.length === 0
