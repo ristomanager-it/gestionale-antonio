@@ -461,8 +461,51 @@ export function initMenu() {
         title: "CONFIGURAZIONE",
         items: [
           { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
+          { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
         ]
       });
+    }
+
+    // ── CONSULENTE DEL LAVORO ──
+    if (ruolo === "consulente_lavoro") {
+      sections.length = 0; // svuota tutto
+      sections.push({
+        title: "DIPENDENTI",
+        items: [
+          { label: "👨‍💼 Dipendenti",       route: "dipendenti"      },
+          { label: "➕ Nuovo dipendente",  route: "crea-dipendente" },
+          { label: "🕒 Timbrature",        route: "timbrature"      },
+          { label: "📆 Gestione ferie",    route: "hr-admin"        },
+          { label: "👤 Fascicolo HR",       route: "hr-fascicolo"    },
+          { label: "📁 Documenti HR",       route: "hr-documenti"    },
+        ]
+      });
+      sections.push({
+        title: "IL MIO PROFILO",
+        items: [
+          { label: "👤 Profilo", route: "completa-profilo" },
+        ]
+      });
+      return sections;
+    }
+
+    // ── COMMERCIALISTA ──
+    if (ruolo === "commercialista") {
+      sections.length = 0; // svuota tutto
+      sections.push({
+        title: "CONTABILITÀ",
+        items: [
+          { label: "📈 Bilancio live", route: "bo-bilancio" },
+          { label: "🛒 Acquisti",      route: "acquisti"    },
+        ]
+      });
+      sections.push({
+        title: "IL MIO PROFILO",
+        items: [
+          { label: "👤 Profilo", route: "completa-profilo" },
+        ]
+      });
+      return sections;
     }
 
     // ── SEDI ──
