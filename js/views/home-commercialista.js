@@ -57,15 +57,15 @@ async function loadData(supabase, aziendaId) {
   ] = await Promise.all([
     supabase.from("fatture_acquisto").select("imponibile,iva,totale,stato").eq("azienda_id", aziendaId).gte("data_documento", meseInizio).lte("data_documento", meseFine),
     supabase.from("fatture_acquisto_scadenze")
-      .select("importo_scadenza,data_scadenza,fatture_acquisto(numero_documento,fornitori(ragione_sociale))")
+      .select("importo_scadenza,data_scadenza")
       .eq("azienda_id", aziendaId).gte("data_scadenza", oggiStr).lte("data_scadenza", tra30)
       .order("data_scadenza", { ascending: true }).limit(10),
     supabase.from("fatture_acquisto")
-      .select("id,numero_documento,data_documento,totale,fornitori(ragione_sociale)")
+      .select("id,numero_documento,data_documento,totale,fornitore_id")
       .eq("azienda_id", aziendaId).eq("stato", "da_pagare")
       .order("data_documento", { ascending: false }).limit(10),
     supabase.from("fatture_acquisto")
-      .select("totale,categorie_bilancio(nome)")
+      .select("totale,categoria_bilancio_id")
       .eq("azienda_id", aziendaId).gte("data_documento", meseInizio),
   ]);
 
@@ -77,7 +77,7 @@ async function loadData(supabase, aziendaId) {
 
   const catMap = {};
   (acquistiBilancio || []).forEach(r => {
-    const cat = r.categorie_bilancio?.nome || "Non classificato";
+    const cat = r.categoria_bilancio_id ? "Cat. " + String(r.categoria_bilancio_id).substring(0,6) : "Non classificato";
     catMap[cat] = (catMap[cat] || 0) + (parseFloat(r.totale) || 0);
   });
   const catSorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -158,15 +158,11 @@ async function loadData(supabase, aziendaId) {
         ${!scadenzeProssime || scadenzeProssime.length === 0
           ? `<div style="padding:20px;text-align:center;color:#94a3b8">Nessuna scadenza nei prossimi 30 giorni ✅</div>`
           : `<div style="overflow-x:auto"><table class="table" style="margin:0;min-width:500px">
-              <thead><tr><th>Fornitore</th><th>N° Fattura</th><th>Scadenza</th><th>Importo</th></tr></thead>
+              <thead><tr><th>Scadenza</th><th>Importo</th></tr></thead>
               <tbody>${scadenzeProssime.map(s => {
-                const forn = s.fatture_acquisto?.fornitori?.ragione_sociale || "—";
-                const num = s.fatture_acquisto?.numero_documento || "—";
                 const giorni = Math.round((new Date(s.data_scadenza) - oggi) / 86400000);
                 const color = giorni <= 7 ? "#dc2626" : giorni <= 14 ? "#d97706" : "#374151";
                 return `<tr>
-                  <td><strong>${escHtml(forn)}</strong></td>
-                  <td style="font-size:12px;color:#64748b">${escHtml(num)}</td>
                   <td><span style="color:${color};font-weight:700">${s.data_scadenza} (${giorni}gg)</span></td>
                   <td><strong>${fmt(s.importo_scadenza)}</strong></td>
                 </tr>`;
@@ -185,9 +181,8 @@ async function loadData(supabase, aziendaId) {
         ${!fattureDaPagare || fattureDaPagare.length === 0
           ? `<div style="padding:20px;text-align:center;color:#94a3b8">Nessuna fattura da pagare ✅</div>`
           : `<div style="overflow-x:auto"><table class="table" style="margin:0;min-width:500px">
-              <thead><tr><th>Fornitore</th><th>N° Documento</th><th>Data</th><th>Totale</th></tr></thead>
+              <thead><tr><th>N° Documento</th><th>Data</th><th>Totale</th></tr></thead>
               <tbody>${fattureDaPagare.map(f => `<tr>
-                <td><strong>${escHtml(f.fornitori?.ragione_sociale || "—")}</strong></td>
                 <td style="font-size:12px;color:#64748b">${escHtml(f.numero_documento || "—")}</td>
                 <td>${f.data_documento || "—"}</td>
                 <td><strong style="color:#dc2626">${fmt(f.totale)}</strong></td>
