@@ -89,7 +89,7 @@ async function loadData(supabase, aziendaId) {
     <!-- KPI -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px">
       ${kpis.map(k => `
-        <div class="card" style="border-left:4px solid ${k.color};cursor:pointer" onclick="window.navigate && window.navigate('${k.route}')">
+        <div class="card" style="border-left:4px solid ${k.color};cursor:pointer" onclick="location.hash='#/${k.route}'">
           <div class="card-body" style="display:flex;align-items:center;gap:14px">
             <div style="font-size:32px">${k.icon}</div>
             <div>
@@ -106,7 +106,7 @@ async function loadData(supabase, aziendaId) {
       <div class="card-body">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
           ${accessi.map(a => `
-            <button onclick="window.navigate && window.navigate('${a.route}')"
+            <button onclick="location.hash='#/${a.route}'"
               style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;
                      border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;
                      font-size:12px;font-weight:600;color:#374151">
@@ -120,7 +120,7 @@ async function loadData(supabase, aziendaId) {
     <div class="card" style="margin-bottom:20px">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
         <h3>📆 Ferie / Permessi in attesa</h3>
-        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('hr-admin')">Gestisci</button>
+        <button class="btn btn-sm btn-primary" onclick="location.hash='#/hr-admin'">Gestisci</button>
       </div>
       <div class="card-body" style="padding:0">
         ${!ferieList || ferieList.length === 0
@@ -139,7 +139,7 @@ async function loadData(supabase, aziendaId) {
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
         <h3>📁 Documenti in scadenza (prossimi 30 gg)</h3>
-        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('hr-documenti')">Tutti</button>
+        <button class="btn btn-sm btn-primary" onclick="location.hash='#/hr-documenti'">Tutti</button>
       </div>
       <div class="card-body" style="padding:0">
         ${!docList || docList.length === 0
