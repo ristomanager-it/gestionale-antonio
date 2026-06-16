@@ -1,783 +1,170 @@
-export function initMenu() {
+// js/views/home-consulente.js
 
-  const menu = document.getElementById("global-menu");
-  const toggle = document.getElementById("menu-toggle");
-  const headerRight = document.getElementById("header-right");
+export async function render(container) {
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const aziendaNome = window.state?.azienda?.nome || "";
+  const user = window.state?.user;
+  const nomeUtente = window.state?.profilo?.nome_completo
+    || user?.user_metadata?.nome_completo
+    || user?.email
+    || "Consulente";
 
-  if (!menu || !toggle) return;
-
-  if (headerRight && !document.getElementById("notif-bell")) {
-    // ── ICONA WHATSAPP ───────────────────────────────────────────────────
-    if (!document.getElementById("wa-btn-header")) {
-      const waBtn = document.createElement("div");
-      waBtn.id = "wa-btn-header";
-      waBtn.title = "WhatsApp Inbox";
-      waBtn.style.cssText = `
-        position: relative;
-        cursor: pointer;
-        margin-left: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: #f0f7ff;
-      `;
-      waBtn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.964-1.418A9.954 9.954 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.073-1.115l-.292-.173-3.024.865.852-3.114-.19-.302A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.884c-.241-.121-1.428-.704-1.649-.785-.221-.08-.382-.12-.543.12-.16.242-.622.786-.763.947-.14.162-.281.182-.522.061-.241-.121-1.018-.375-1.939-1.197-.716-.64-1.2-1.43-1.341-1.671-.14-.242-.015-.372.106-.493.108-.108.241-.282.362-.422.12-.141.16-.242.241-.403.08-.161.04-.302-.02-.423-.06-.12-.543-1.309-.744-1.792-.196-.47-.395-.406-.543-.414l-.463-.008a.888.888 0 00-.643.302c-.221.242-.844.824-.844 2.01 0 1.186.864 2.332.984 2.493.121.16 1.7 2.596 4.12 3.641.576.248 1.025.396 1.374.507.577.184 1.103.158 1.518.096.463-.069 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.147-.06-.1-.221-.16-.462-.282z"/>
-        </svg>
-        <div id="wa-badge" style="
-          position: absolute;
-          top: -4px;
-          right: -4px;
-          background: #ef4444;
-          color: white;
-          border-radius: 50%;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 5px;
-          display: none;
-          min-width: 16px;
-          text-align: center;
-        ">0</div>
-      `;
-      waBtn.onclick = () => {
-        window.location.hash = "#/bo-whatsapp";
-        closeMenu();
-      };
-      headerRight.appendChild(waBtn);
-    }
-
-    // ── POLLING BADGE WA ─────────────────────────────────────────────────
-    window.updateWaBadge = (count) => {
-      const badge = document.getElementById("wa-badge");
-      if (!badge) return;
-      badge.textContent = count;
-      badge.style.display = count > 0 ? "block" : "none";
-    };
-
-    async function pollWaBadge() {
-      const aziendaId = window.state?.azienda?.id;
-      if (!aziendaId) return;
-      try {
-        const { count } = await (window.supabaseClient || window.supabase)
-          .from("whatsapp_messaggi")
-          .select("id", { count: "exact", head: true })
-          .eq("azienda_id", aziendaId)
-          .eq("letto", false);
-        window.updateWaBadge(count || 0);
-      } catch {}
-    }
-
-    setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
-
-    // ── PULSANTE TONY AI — in header ─────────────────────────────────────
-    if (!document.getElementById("tony-btn-header")) {
-      const tonyBtn = document.createElement("div");
-      tonyBtn.id = "tony-btn-header";
-      tonyBtn.title = "Tony AI";
-      tonyBtn.style.cssText = `
-        cursor: pointer;
-        margin-left: 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        gap: 3px;
-      `;
-      tonyBtn.innerHTML = `
-        <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
-        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
-      `;
-      tonyBtn.onclick = () => {
-        window.location.hash = "#/ai";
-        closeMenu();
-      };
-      headerRight.appendChild(tonyBtn);
-    }
-
-    // ── PULSANTE RISTOFLOWBOOK — in header ──────────────────────────────
-    if (!document.getElementById("rfbook-btn-header")) {
-      const rfbBtn = document.createElement("div");
-      rfbBtn.id = "rfbook-btn-header";
-      rfbBtn.title = "RistoflowBook";
-      rfbBtn.style.cssText = `
-        cursor: pointer;
-        margin-left: 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        gap: 3px;
-      `;
-      rfbBtn.innerHTML = `
-        <div style="
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2px solid #e5e7eb;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        ">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
-            <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-          </svg>
+  container.innerHTML = `
+    <div class="view" style="padding:24px;max-width:1100px;margin:0 auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div>
+          <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">👋 Ciao, ${escHtml(nomeUtente)}</h1>
+          <p style="color:#64748b;font-size:14px">Pannello Consulente del Lavoro — ${escHtml(aziendaNome)}</p>
         </div>
-        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Social</span>
-      `;
-      rfbBtn.onclick = () => {
-        window.open("https://social.ristoflow-ai.com", "_blank");
-      };
-      headerRight.appendChild(rfbBtn);
-    }
-
-  }
-
-  let overlay = document.querySelector(".menu-overlay");
-
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.className = "menu-overlay";
-    document.body.appendChild(overlay);
-  }
-
-  function getRuoloAttivo() {
-    const raw = window.state?.viewAs || window.state?.ruolo;
-    return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw;
-  }
-
-  function isSuperadmin() {
-    return !window.state?.viewAs && (
-      window.state?.isSuperadmin === true ||
-      getRuoloAttivo() === "superadmin"
-    );
-  }
-
-  function isAziendaRole() {
-    const r = getRuoloAttivo();
-    return ["admin", "manager", "operatore"].includes(r);
-  }
-
-  function can(route) {
-    if (!route) return true;
-    const cleanRoute = String(route).split("?")[0];
-
-    if (window.hasPermission) {
-      return window.hasPermission(cleanRoute);
-    }
-
-    if (isSuperadmin()) return true;
-    return isAziendaRole();
-  }
-
-  function go(route) {
-
-    if (!can(route)) return;
-    window.location.hash = "#/" + route;
-    closeMenu();
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-  }
-
-  function getProfiloUtente() {
-
-    const user = window.state?.user || {};
-    const meta = user.user_metadata || {};
-
-    const profile =
-      window.state?.userProfile ||
-      window.state?.profilo ||
-      window.state?.dipendente ||
-      {};
-
-    const nome =
-      profile.nome ||
-      meta.nome ||
-      meta.first_name ||
-      "";
-
-    const cognome =
-      profile.cognome ||
-      meta.cognome ||
-      meta.last_name ||
-      "";
-
-    const displayName =
-      [nome, cognome]
-        .filter(Boolean)
-        .join(" ")
-        .trim() || "Utente";
-
-    const foto =
-      profile.foto_url ||
-      profile.avatar_url ||
-      meta.foto_url ||
-      meta.avatar_url ||
-      "";
-
-    const ruolo =
-      getRuoloAttivo() || "";
-
-    return {
-      nome,
-      cognome,
-      displayName,
-      foto,
-      ruolo
-    };
-  }
-
-  async function loadMenuUserProfile() {
-
-    const user =
-      window.state?.user;
-
-    const aziendaId =
-      window.state?.azienda?.id;
-
-    if (
-      !user?.id ||
-      !aziendaId ||
-      window.state?.userProfile?.__loadedFor === user.id
-    ) return;
-
-    try {
-
-      const { data } =
-        await window.supabaseClient
-          .from("dipendenti")
-          .select(`
-            nome,
-            cognome,
-            telefono,
-            email,
-            foto_url,
-            avatar_url,
-            ruolo
-          `)
-          .eq("user_id", user.id)
-          .eq("azienda_id", aziendaId)
-          .maybeSingle();
-
-      if (data) {
-
-        window.state.userProfile = {
-          ...data,
-          __loadedFor: user.id
-        };
-
-      }
-
-    } catch (e) {
-
-      console.warn(
-        "Profilo menu non caricato:",
-        e
-      );
-
-    }
-  }
-
-  function renderMenuHeader() {
-
-    const azienda =
-      window.state?.azienda;
-
-    const sede =
-      window.state?.sedeAttiva;
-
-    const profilo =
-      getProfiloUtente();
-
-    const avatar =
-      profilo.foto ||
-      (
-        "https://ui-avatars.com/api/?name=" +
-        encodeURIComponent(profilo.displayName)
-      );
-
-    const header =
-      document.createElement("div");
-
-    header.className =
-      "menu-user-header";
-
-    header.innerHTML = `
-      <div class="menu-company-name">
-        ${escapeHtml(azienda?.nome || "Ristoflow")}
+        <span style="background:#e0f2fe;color:#0369a1;font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px">👨‍💼 Consulente del Lavoro</span>
       </div>
-
-      <div class="menu-company-site">
-        ${escapeHtml(sede?.nome || "Nessuna sede attiva")}
-      </div>
-
-      <div class="menu-user-row">
-
-        <img
-          class="menu-user-avatar"
-          src="${escapeHtml(avatar)}"
-          alt="Foto profilo"
-        />
-
-        <div class="menu-user-info">
-
-          <div class="menu-user-name">
-            ${escapeHtml(profilo.displayName)}
-          </div>
-
-          <div class="menu-user-role">
-            ${escapeHtml(profilo.ruolo)}
-          </div>
-
+      <div id="cons-content">
+        <div style="display:flex;align-items:center;justify-content:center;padding:60px">
+          <div class="spinner"></div>
         </div>
-
       </div>
-    `;
+    </div>
+  `;
 
-    return header;
+  if (!aziendaId || !supabase) {
+    document.getElementById("cons-content").innerHTML =
+      `<div class="alert alert-danger">Sessione non valida. Ricarica la pagina.</div>`;
+    return;
   }
 
-  function getMenu() {
-    const sections = [];
-    const ruolo = getRuoloAttivo();
-
-    // ── PIATTAFORMA (solo superadmin) — visibile anche con viewAs attivo ──
-    const isSa = window.state?.isSuperadmin === true
-      || window.state?.ruolo === "superadmin"
-      || window.state?.ruoloRaw === "superadmin"
-      || (window.state?.aziende || []).some(a => a.ruolo === "superadmin");
-    if (isSa) {
-      sections.push({
-        title: "PIATTAFORMA",
-        items: [
-          { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
-          { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
-          { label: "➕ Crea Azienda",      route: "creaAzienda"     },
-          { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
-        ]
-      });
-    }
-
-    // ── OPERATIVO ──
-    sections.push({
-      title: "OPERATIVO",
-      items: [
-        { label: "🏠 Home",             route: "home"                },
-        { label: "🪑 Comande",          route: "bo-comande"          },
-        { label: "📅 Prenotazioni",     route: "prenotazioni"        },
-        { label: "🗓️ Tavoli",          route: "prenotazioni-tavoli" },
-        { label: "📑 Preventivi",       route: "preventivi"          },
-        { label: "👨‍🍳 Display Cucina", route: "display-cucina"      },
-        { label: "📦 Magazzino",        route: "magazzino"           },
-        { label: "🕒 Timbratura",       route: "timbrature"          },
-      ]
-    });
-
-    // ── CUCINA ──
-    sections.push({
-      title: "CUCINA",
-      items: [
-        { label: "📖 Ricettario",         route: "ricettario"         },
-        { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
-        { label: "🏭 Produzione",          route: "produzione"         },
-        { label: "🧪 Preparazioni",        route: "preparazioni"       },
-        { label: "📋 Planning",            route: "planner-produzione" },
-        { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
-      ]
-    });
-
-    // ── GESTIONE ──
-    if (isAziendaRole() || isSuperadmin()) {
-      sections.push({
-        title: "GESTIONE",
-        items: [
-          { label: "📊 Dashboard",        route: "bo-dashboard"      },
-          { label: "📈 Bilancio live",     route: "bo-bilancio"       },
-          { label: "🛒 Acquisti",         route: "acquisti"          },
-          { label: "💰 Venduto",          route: "venduto"           },
-          { label: "📈 Margini",          route: "margini"           },
-        ]
-      });
-
-      sections.push({
-        title: "MENU & PRODOTTI",
-        items: [
-          { label: "📋 Menu Builder",     route: "bo-menu"           },
-          { label: "🧺 Prodotti",         route: "bo-prodotti"       },
-          { label: "📂 Categorie",        route: "bo-categorie"      },
-          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
-          { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
-          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
-        ]
-      });
-
-      sections.push({
-        title: "MARKETING & CRM",
-        items: [
-          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
-          { label: "💬 Template WhatsApp",route: "bo-template"       },
-          { label: "📣 Campagne",         route: "bo-marketing"      },
-          { label: "🎁 Promo",             route: "bo-promo"          },
-          { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
-          { label: "🔗 Catenarie",          route: "bo-catenarie"      },
-          { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
-          { label: "🤖 Chatbot",             route: "bo-chatbot"        },
-        ]
-      });
-
-      sections.push({
-        title: "PERSONALE",
-        items: [
-          { label: "👥 Candidature",      route: "bo-candidature"    },
-          { label: "💬 Survey team",       route: "bo-survey"         },
-          { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
-          { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
-          { label: "🔐 Permessi",         route: "permessi-operatore"},
-          { label: "📆 Gestione ferie",   route: "hr-admin"          },
-          { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
-          { label: "📁 Documenti HR",      route: "hr-documenti"      },
-          { label: "📘 Manuale",          route: "manuale"           },
-        ]
-      });
-
-      sections.push({
-        title: "CONFIGURAZIONE",
-        items: [
-          { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
-          { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
-        ]
-      });
-    }
-
-    // ── CONSULENTE DEL LAVORO ──
-    if (ruolo === "consulente_lavoro") {
-      sections.length = 0; // svuota tutto
-      sections.push({
-        title: "DIPENDENTI",
-        items: [
-          { label: "👨‍💼 Dipendenti",       route: "dipendenti"      },
-          { label: "➕ Nuovo dipendente",  route: "crea-dipendente" },
-          { label: "🕒 Timbrature",        route: "timbrature"      },
-          { label: "📆 Gestione ferie",    route: "hr-admin"        },
-          { label: "👤 Fascicolo HR",       route: "hr-fascicolo"    },
-          { label: "📁 Documenti HR",       route: "hr-documenti"    },
-        ]
-      });
-      sections.push({
-        title: "IL MIO PROFILO",
-        items: [
-          { label: "👤 Profilo", route: "completa-profilo" },
-        ]
-      });
-      return sections;
-    }
-
-    // ── COMMERCIALISTA ──
-    if (ruolo === "commercialista") {
-      sections.length = 0; // svuota tutto
-      sections.push({
-        title: "CONTABILITÀ",
-        items: [
-          { label: "📈 Bilancio live", route: "bo-bilancio" },
-          { label: "🛒 Acquisti",      route: "acquisti"    },
-        ]
-      });
-      sections.push({
-        title: "IL MIO PROFILO",
-        items: [
-          { label: "👤 Profilo", route: "completa-profilo" },
-        ]
-      });
-      return sections;
-    }
-
-    // ── SEDI ──
-    sections.push({
-      title: "SEDI",
-      items: (() => {
-        if (["manager","operatore"].includes(ruolo)) {
-          return [{ label: "🔄 Cambia sede", route: "gestione-sedi" }];
-        }
-        return [
-          { label: "🔄 Cambia sede",   route: "gestione-sedi"              },
-          { label: "➕ Crea sede",     route: "gestione-sedi?mode=first"   },
-          { label: "⚙️ Gestisci sedi", route: "gestione-sedi?mode=manage" },
-        ];
-      })()
-    });
-
-    // ── PERSONALE ──
-    sections.push({
-      title: "IL MIO PROFILO",
-      items: [
-        { label: "👤 Profilo",            route: "completa-profilo" },
-        { label: "🕒 Timbratura",         route: "timbrature"       },
-        { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
-        { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
-
-      ]
-    });
-
-    return sections;
+  try {
+    await loadData(supabase, aziendaId);
+  } catch(e) {
+    console.error("home-consulente error:", e);
+    document.getElementById("cons-content").innerHTML =
+      `<div class="alert alert-danger">Errore caricamento dati: ${e.message}</div>`;
   }
-
-  function renderMenu() {
-
-    menu.innerHTML = "";
-
-    menu.appendChild(
-      renderMenuHeader()
-    );
-
-    const struttura =
-      getMenu();
-
-    struttura.forEach(section => {
-
-      const items =
-        section.items.filter(
-          i => can(i.route)
-        );
-
-      if (items.length === 0) return;
-
-      const sectionBox =
-        document.createElement("div");
-
-      sectionBox.className =
-        "menu-section";
-
-      const title =
-        document.createElement("div");
-
-      title.className =
-        "menu-category";
-
-      title.innerHTML = `
-        <span>${section.title}</span>
-        <span class="menu-arrow">›</span>
-      `;
-
-      const itemsBox =
-        document.createElement("div");
-
-      itemsBox.className =
-        "menu-subitems";
-
-      items.forEach(item => {
-
-        const row =
-          document.createElement("div");
-
-        row.className =
-          "menu-subitem";
-
-        if (item.badge === "wa") {
-          const badgeCount = document.getElementById("wa-badge")?.textContent || "0";
-          const badgeVisible = document.getElementById("wa-badge")?.style.display !== "none";
-          row.innerHTML = `
-            <span>${item.label}</span>
-            <span id="wa-menu-badge" style="
-              background:#ef4444;
-              color:white;
-              border-radius:50%;
-              font-size:10px;
-              font-weight:700;
-              padding:2px 6px;
-              min-width:16px;
-              text-align:center;
-              display:${badgeVisible ? "inline-block" : "none"};
-            ">${badgeCount}</span>
-          `;
-          row.style.display = "flex";
-          row.style.justifyContent = "space-between";
-          row.style.alignItems = "center";
-        } else {
-          row.innerText = item.label;
-        }
-
-        row.onclick =
-          () => go(item.route);
-
-        itemsBox.appendChild(row);
-
-      });
-
-      title.onclick = () => {
-
-        const isOpen =
-          itemsBox.classList.contains("open");
-
-        document
-          .querySelectorAll(".menu-subitems")
-          .forEach(el => {
-            el.classList.remove("open");
-          });
-
-        document
-          .querySelectorAll(".menu-arrow")
-          .forEach(el => {
-            el.style.transform =
-              "rotate(0deg)";
-          });
-
-        if (!isOpen) {
-
-          itemsBox.classList.add("open");
-
-          title.querySelector(
-            ".menu-arrow"
-          ).style.transform =
-            "rotate(90deg)";
-
-        }
-
-      };
-
-      sectionBox.appendChild(title);
-      sectionBox.appendChild(itemsBox);
-
-      menu.appendChild(sectionBox);
-
-    });
-
-    // Pulisci cache
-    const cacheBtn = document.createElement("div");
-    cacheBtn.className = "menu-logout";
-    cacheBtn.style.cssText = "background:#f3f4f6;color:#374151;margin-bottom:4px;font-size:12px;";
-    cacheBtn.innerText = "🔄 Aggiorna app";
-    cacheBtn.onclick = async () => {
-      try {
-        if ("caches" in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
-        }
-        if ("serviceWorker" in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
-        }
-      } catch(e) {}
-      window.location.reload(true);
-    };
-    menu.appendChild(cacheBtn);
-
-    // Manuale prima del logout
-    const manualeBtn = document.createElement("div");
-    manualeBtn.className = "menu-logout";
-    manualeBtn.style.cssText = "background:#e8f4f8;color:#0E5A7A;margin-bottom:4px;";
-    manualeBtn.innerText = "📘 Manuale d'uso";
-    manualeBtn.onclick = () => {
-      window.location.hash = "#/manuale";
-      closeMenu();
-    };
-    menu.appendChild(manualeBtn);
-
-    // ── RISTOFLOWBOOK BUTTON ──────────────────────────────────────────────
-    const rfbMenuBtn = document.createElement("div");
-    rfbMenuBtn.className = "menu-logout";
-    rfbMenuBtn.style.cssText = `
-      background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
-      color: white;
-      font-weight: 700;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    `;
-    rfbMenuBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
-        <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-      </svg>
-      🌐 RistoflowBook
-    `;
-    rfbMenuBtn.onclick = () => {
-      window.open("https://social.ristoflow-ai.com", "_blank");
-      closeMenu();
-    };
-    menu.appendChild(rfbMenuBtn);
-
-    const logout =
-      document.createElement("div");
-
-    logout.className =
-      "menu-logout";
-
-    logout.innerText =
-      "Logout";
-
-    logout.onclick = () => {
-
-      if (window.router?.logout) {
-        window.router.logout();
-      }
-
-      closeMenu();
-
-    };
-
-    menu.appendChild(logout);
-  }
-
-  async function openMenu() {
-
-    await loadMenuUserProfile();
-
-    renderMenu();
-
-    menu.classList.add("open");
-    overlay.classList.add("open");
-  }
-
-  function closeMenu() {
-
-    menu.classList.remove("open");
-    overlay.classList.remove("open");
-
-  }
-
-  toggle.onclick = () => {
-
-    if (menu.classList.contains("open")) {
-
-      closeMenu();
-
-    } else {
-
-      openMenu();
-
-    }
-
-  };
-
-  overlay.onclick = closeMenu;
-
-  window.menuController = {
-
-    refresh: renderMenu,
-
-    open: openMenu,
-
-    close: closeMenu
-
-  };
+}
+
+async function loadData(supabase, aziendaId) {
+  const oggi = new Date();
+  const oggiStr = oggi.toISOString().split("T")[0];
+  const meseInizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1).toISOString().split("T")[0];
+  const tra30 = new Date(oggi.getTime() + 30 * 86400000).toISOString().split("T")[0];
+
+  const [
+    { count: totDip },
+    { count: ferieAtt },
+    { count: docScad },
+    { data: timb },
+    { data: ferieList },
+    { data: docList },
+  ] = await Promise.all([
+    supabase.from("dipendenti").select("*", { count: "exact", head: true }).eq("azienda_id", aziendaId).eq("attivo", true),
+    supabase.from("hr_richieste").select("*", { count: "exact", head: true }).eq("azienda_id", aziendaId).eq("stato", "in_attesa"),
+    supabase.from("hr_documenti").select("*", { count: "exact", head: true }).eq("azienda_id", aziendaId).gte("data_scadenza", oggiStr).lte("data_scadenza", tra30),
+    supabase.from("timbrature").select("ore_lavorate").eq("azienda_id", aziendaId).gte("timestamp", meseInizio + "T00:00:00"),
+    supabase.from("hr_richieste").select("id,tipo,data_inizio,data_fine,stato,dipendenti(nome,cognome)").eq("azienda_id", aziendaId).eq("stato", "in_attesa").order("created_at", { ascending: false }).limit(8),
+    supabase.from("hr_documenti").select("id,tipo,nome_file,data_scadenza,dipendenti(nome,cognome)").eq("azienda_id", aziendaId).gte("data_scadenza", oggiStr).lte("data_scadenza", tra30).order("data_scadenza", { ascending: true }).limit(8),
+  ]);
+
+  const oreMese = (timb || []).reduce((s, r) => s + (parseFloat(r.ore_lavorate) || 0), 0);
+
+  const kpis = [
+    { icon: "👨‍💼", label: "Dipendenti attivi", value: totDip ?? 0, color: "#0E5A7A", route: "dipendenti" },
+    { icon: "🕒", label: "Ore questo mese", value: oreMese.toFixed(1), color: "#0891b2", route: "timbrature" },
+    { icon: "📆", label: "Ferie in attesa", value: ferieAtt ?? 0, color: (ferieAtt ?? 0) > 0 ? "#d97706" : "#16a34a", route: "hr-admin" },
+    { icon: "📁", label: "Doc. in scadenza (30gg)", value: docScad ?? 0, color: (docScad ?? 0) > 0 ? "#dc2626" : "#16a34a", route: "hr-documenti" },
+  ];
+
+  const accessi = [
+    { icon: "👨‍💼", label: "Dipendenti", route: "dipendenti" },
+    { icon: "➕", label: "Nuovo dipendente", route: "crea-dipendente" },
+    { icon: "🕒", label: "Timbrature", route: "timbrature" },
+    { icon: "📆", label: "Gestione ferie", route: "hr-admin" },
+    { icon: "👤", label: "Fascicolo HR", route: "hr-fascicolo" },
+    { icon: "📁", label: "Documenti HR", route: "hr-documenti" },
+  ];
+
+  const el = document.getElementById("cons-content");
+  if (!el) return;
+
+  el.innerHTML = `
+    <!-- KPI -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px">
+      ${kpis.map(k => `
+        <div class="card" style="border-left:4px solid ${k.color};cursor:pointer" onclick="window.navigate && window.navigate('${k.route}')">
+          <div class="card-body" style="display:flex;align-items:center;gap:14px">
+            <div style="font-size:32px">${k.icon}</div>
+            <div>
+              <div style="font-size:26px;font-weight:800;color:${k.color};line-height:1">${k.value}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px">${k.label}</div>
+            </div>
+          </div>
+        </div>`).join("")}
+    </div>
+
+    <!-- ACCESSO RAPIDO -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3>⚡ Accesso rapido</h3></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+          ${accessi.map(a => `
+            <button onclick="window.navigate && window.navigate('${a.route}')"
+              style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;
+                     border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;
+                     font-size:12px;font-weight:600;color:#374151">
+              <span style="font-size:24px">${a.icon}</span>${a.label}
+            </button>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- FERIE IN ATTESA -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+        <h3>📆 Ferie / Permessi in attesa</h3>
+        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('hr-admin')">Gestisci</button>
+      </div>
+      <div class="card-body" style="padding:0">
+        ${!ferieList || ferieList.length === 0
+          ? `<div style="padding:20px;text-align:center;color:#94a3b8">Nessuna richiesta in attesa ✅</div>`
+          : `<div style="overflow-x:auto"><table class="table" style="margin:0;min-width:500px">
+              <thead><tr><th>Dipendente</th><th>Tipo</th><th>Dal</th><th>Al</th></tr></thead>
+              <tbody>${ferieList.map(r => {
+                const nome = r.dipendenti ? `${r.dipendenti.nome || ""} ${r.dipendenti.cognome || ""}`.trim() : "—";
+                return `<tr><td><strong>${escHtml(nome)}</strong></td><td>${escHtml(r.tipo || "—")}</td><td>${r.data_inizio || "—"}</td><td>${r.data_fine || "—"}</td></tr>`;
+              }).join("")}</tbody>
+            </table></div>`}
+      </div>
+    </div>
+
+    <!-- DOCUMENTI IN SCADENZA -->
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+        <h3>📁 Documenti in scadenza (prossimi 30 gg)</h3>
+        <button class="btn btn-sm btn-primary" onclick="window.navigate && window.navigate('hr-documenti')">Tutti</button>
+      </div>
+      <div class="card-body" style="padding:0">
+        ${!docList || docList.length === 0
+          ? `<div style="padding:20px;text-align:center;color:#94a3b8">Nessun documento in scadenza ✅</div>`
+          : `<div style="overflow-x:auto"><table class="table" style="margin:0;min-width:500px">
+              <thead><tr><th>Dipendente</th><th>Tipo</th><th>File</th><th>Scade il</th></tr></thead>
+              <tbody>${docList.map(d => {
+                const nome = d.dipendenti ? `${d.dipendenti.nome || ""} ${d.dipendenti.cognome || ""}`.trim() : "—";
+                const giorni = Math.round((new Date(d.data_scadenza) - oggi) / 86400000);
+                const color = giorni <= 7 ? "#dc2626" : giorni <= 14 ? "#d97706" : "#16a34a";
+                return `<tr>
+                  <td><strong>${escHtml(nome)}</strong></td>
+                  <td>${escHtml(d.tipo || "—")}</td>
+                  <td style="font-size:12px;color:#64748b">${escHtml(d.nome_file || "—")}</td>
+                  <td><span style="color:${color};font-weight:700">${d.data_scadenza} (${giorni}gg)</span></td>
+                </tr>`;
+              }).join("")}</tbody>
+            </table></div>`}
+      </div>
+    </div>
+  `;
+}
+
+function escHtml(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
