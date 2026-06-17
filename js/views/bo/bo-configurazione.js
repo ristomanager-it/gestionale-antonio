@@ -37,27 +37,35 @@ export async function render(container) {
         <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
       </div>
       
-      <!-- Tab nav -->
-      <div id="tab-nav-wrap" style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;">
-        <style>#tab-nav-wrap::-webkit-scrollbar{display:none} #tab-nav-wrap::after{content:'›';position:sticky;right:0;background:linear-gradient(to right,transparent,#f8fafc);padding:0 8px;color:#94a3b8;pointer-events:none;}</style>
+      <!-- Tab nav — due righe -->
+      <div style="border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
+        <div id="tab-nav-wrap" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
+        <style>#tab-nav-wrap button:hover{background:#f0f9ff!important;}</style>
         ${[
-          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'     },
-          { id:'sala',         icon:'🪑', label:'Sala'            },
-          { id:'menu',         icon:'📋', label:'Menu'            },
-          { id:'prenotazioni', icon:'📅', label:'Form Prenotazioni' },
-          { id:'cassa',        icon:'💳', label:'Cassa'           },
-          { id:'integrazioni', icon:'🔗', label:'Integrazioni'    },
-          { id:'identita',     icon:'🎯', label:'Identità'        },
+          { id:'operativo',    icon:'👨‍🍳', label:'Operativo'       },
+          { id:'sala',         icon:'🪑',  label:'Sala'             },
+          { id:'menu',         icon:'📋',  label:'Menu'             },
+          { id:'prenotazioni', icon:'📅',  label:'Prenotazioni'     },
+          { id:'cassa',        icon:'💳',  label:'Cassa'            },
+          { id:'integrazioni', icon:'🔗',  label:'Integrazioni'     },
+          { id:'identita',     icon:'🎯',  label:'Identità'         },
           { id:'media',        icon:'🖼️',  label:'Media & Landing'  },
-          { id:'sondaggi',     icon:'📊', label:'Sondaggi'        },
-          { id:'profilo',      icon:'📱', label:'RistoflowBook'},
+          { id:'sondaggi',     icon:'📊',  label:'Sondaggi'         },
+          { id:'profilo',      icon:'📱',  label:'RistoflowBook'    },
         ].map(t => `
           <button data-tab="${t.id}" style="
-            padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
-            color:#64748b;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;
-            flex-shrink:0;min-height:44px;
-          ">${t.icon} ${t.label}</button>
+            padding:10px 8px;border:none;background:none;cursor:pointer;
+            font-size:12px;font-weight:600;color:#64748b;
+            border-bottom:3px solid transparent;
+            white-space:nowrap;transition:all 0.15s;
+            display:flex;flex-direction:column;align-items:center;gap:4px;
+            min-height:54px;border-radius:8px 8px 0 0;
+          ">
+            <span style="font-size:18px;line-height:1">${t.icon}</span>
+            <span>${t.label}</span>
+          </button>
         `).join('')}
+        </div>
       </div>
       <!-- Contenuto tab -->
       <div id="tab-content"></div>
