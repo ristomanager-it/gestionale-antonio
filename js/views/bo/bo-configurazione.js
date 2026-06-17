@@ -2346,8 +2346,9 @@ export async function render(container) {
     };
 
     // ── SEZIONE RISTOFLOWBOOK ──────────────────────────────────────────────────
-    // Carica dati azienda per i campi social
-    const { data: azDati } = await supa().from('aziende').select('fascia_prezzo,tipo_cucina,tags,descrizione,sito_web,telefono,instagram,cover_url').eq('id', aziendaId).single();
+    const { data: azDati } = await supa().from('aziende')
+      .select('id,nome,logo_url,cover_url,fascia_prezzo,tipo_cucina,tags,descrizione,sito_web,telefono,instagram')
+      .eq('id', aziendaId).single();
     const az = azDati || {};
 
     const TIPI_CUCINA = [
@@ -2375,53 +2376,172 @@ export async function render(container) {
       {v:'delivery',l:'🛵 Delivery'},{v:'prenotazione_obbligatoria',l:'📅 Prenota obbligatorio'},
     ];
 
-    const tipoCucinaAttuali = az.tipo_cucina || [];
-    const tagsAttuali = az.tags || [];
-
-    // Inserisci HTML sezione dopo l'ultimo card esistente (prima del btn salva)
+    // ── Costruisci la sezione RistoflowBook con mockup live ──
     const rfSection = document.createElement('div');
     rfSection.style.cssText = 'background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;';
+
     (function(){
-      var tipoCucinaAttuali2 = az.tipo_cucina || [];
-      var tagsAttuali2 = az.tags || [];
+      var tc = az.tipo_cucina || [];
+      var tg = az.tags || [];
       var h = '';
-      h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">&#128241; Profilo RistoflowBook</div>';
-      h += '<div style="font-size:12px;color:#64748b;margin-bottom:16px;">Queste info compaiono nella scheda del tuo locale nell&apos;app RistoflowBook</div>';
-      h += '<div style="margin-bottom:14px;">';
-      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Descrizione breve (visibile nell\'app)</label>';
-      h += '<textarea id="rfb-descrizione" class="input" style="min-height:80px;resize:vertical;" placeholder="Descrivi il tuo locale in poche righe...">' + esc(az.descrizione || '') + '</textarea>';
+
+      // Header sezione
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+      h += '<div>';
+      h += '<div style="font-size:15px;font-weight:700;color:#0f172a;">📱 Profilo RistoflowBook</div>';
+      h += '<div style="font-size:12px;color:#64748b;margin-top:2px;">Configura come appare il tuo locale nell'app — il mockup si aggiorna in tempo reale</div>';
+      h += '</div></div>';
+
+      // Layout due colonne: form sx, mockup dx
+      h += '<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">';
+
+      // ── COLONNA SINISTRA: form ──
+      h += '<div>';
+
+      // Upload foto
+      h += '<div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;">';
+      h += '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;">📸 Foto del profilo</div>';
+
+      // Cover
+      h += '<div style="margin-bottom:12px;">';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:3px;">Foto di copertina</label>';
+      h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">📐 1200×400px · orizzontale 3:1 · JPG/PNG · max 5MB</div>';
+      if (az.cover_url) {
+        h += '<img src="' + esc(az.cover_url) + '" id="rfb-cover-preview" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;border:1px solid #e5e7eb;"/>';
+      } else {
+        h += '<div id="rfb-cover-preview" style="width:100%;height:80px;background:linear-gradient(135deg,#0E5A7A,#1a8fb5);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.7);">Nessuna cover</div>';
+      }
+      h += '<input type="file" id="rfb-cover-input" accept="image/*" style="display:none"/>';
+      h += '<button type="button" onclick="document.getElementById('rfb-cover-input').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.cover_url ? '🔄 Cambia cover' : '📤 Carica cover') + '</button>';
+      h += '<div id="rfb-cover-progress" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>';
       h += '</div>';
-      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">';
-      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Fascia di prezzo</label><select id="rfb-fascia" class="input">';
-      h += '<option value="">-- Seleziona --</option>';
-      ['&#8364;','&#8364;&#8364;','&#8364;&#8364;&#8364;','&#8364;&#8364;&#8364;&#8364;'].forEach(function(f,i){
-        var vals=['€','€€','€€€','€€€€'];
-        h += '<option value="'+vals[i]+'"'+(az.fascia_prezzo===vals[i]?' selected':'')+'>'+f+'</option>';
+
+      // Logo
+      h += '<div>';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:3px;">Logo / Foto profilo</label>';
+      h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">📐 400×400px · quadrato · JPG/PNG · max 2MB</div>';
+      h += '<div style="display:flex;align-items:center;gap:12px;">';
+      if (az.logo_url) {
+        h += '<img src="' + esc(az.logo_url) + '" id="rfb-logo-preview" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;flex-shrink:0;"/>';
+      } else {
+        h += '<div id="rfb-logo-preview" style="width:60px;height:60px;border-radius:50%;background:#e8f2f7;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🍽️</div>';
+      }
+      h += '<div>';
+      h += '<input type="file" id="rfb-logo-input" accept="image/*" style="display:none"/>';
+      h += '<button type="button" onclick="document.getElementById('rfb-logo-input').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.logo_url ? '🔄 Cambia logo' : '📤 Carica logo') + '</button>';
+      h += '<div id="rfb-logo-progress" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>';
+      h += '</div></div></div></div>';
+
+      // Descrizione
+      h += '<div style="margin-bottom:12px;">';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Descrizione breve</label>';
+      h += '<textarea id="rfb-descrizione" class="input" style="min-height:70px;resize:vertical;" placeholder="Descrivi il tuo locale in poche righe...">' + esc(az.descrizione || '') + '</textarea>';
+      h += '</div>';
+
+      // Fascia + Instagram
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">';
+      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Fascia di prezzo</label>';
+      h += '<select id="rfb-fascia" class="input"><option value="">-- Seleziona --</option>';
+      [['€','Economico'],['€€','Medio'],['€€€','Alto'],['€€€€','Fine dining']].forEach(function(f){
+        h += '<option value="'+f[0]+'"'+(az.fascia_prezzo===f[0]?' selected':'')+'>'+f[0]+' · '+f[1]+'</option>';
       });
       h += '</select></div>';
       h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Instagram</label>';
       h += '<input id="rfb-instagram" class="input" value="' + esc(az.instagram || '') + '" placeholder="@nomeprofilo"/></div>';
       h += '</div>';
-      h += '<div style="margin-bottom:14px;"><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Tipo di cucina</label>';
-      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-cucina-grid">';
+
+      // Tipo cucina
+      h += '<div style="margin-bottom:12px;">';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Tipo di cucina</label>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px;" id="rfb-cucina-grid">';
       TIPI_CUCINA.forEach(function(t){
-        var sel = tipoCucinaAttuali2.indexOf(t.v) >= 0;
-        h += '<label style="display:flex;align-items:center;gap:6px;background:' + (sel?'#e8f4f8':'#f8fafc') + ';border:1.5px solid ' + (sel?'#0E5A7A':'#e5e7eb') + ';border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:' + (sel?'#0E5A7A':'#374151') + ';">';
-        h += '<input type="checkbox" data-cucina="' + t.v + '"' + (sel?' checked':'') + ' style="display:none;">' + t.l + '</label>';
+        var sel = tc.indexOf(t.v) >= 0;
+        h += '<label style="display:flex;align-items:center;gap:5px;background:'+(sel?'#e8f4f8':'#f8fafc')+';border:1.5px solid '+(sel?'#0E5A7A':'#e5e7eb')+';border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12px;font-weight:600;color:'+(sel?'#0E5A7A':'#374151')+';">';
+        h += '<input type="checkbox" data-cucina="'+t.v+'"'+(sel?' checked':'')+' style="display:none;">'+t.l+'</label>';
       });
       h += '</div></div>';
-      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Caratteristiche e servizi</label>';
-      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-tags-grid">';
+
+      // Tags
+      h += '<div>';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Caratteristiche e servizi</label>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px;" id="rfb-tags-grid">';
       TAGS_DISPONIBILI.forEach(function(t){
-        var sel = tagsAttuali2.indexOf(t.v) >= 0;
-        h += '<label style="display:flex;align-items:center;gap:6px;background:' + (sel?'#e8f4f8':'#f8fafc') + ';border:1.5px solid ' + (sel?'#0E5A7A':'#e5e7eb') + ';border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:' + (sel?'#0E5A7A':'#374151') + ';">';
-        h += '<input type="checkbox" data-tag="' + t.v + '"' + (sel?' checked':'') + ' style="display:none;">' + t.l + '</label>';
+        var sel = tg.indexOf(t.v) >= 0;
+        h += '<label style="display:flex;align-items:center;gap:5px;background:'+(sel?'#e8f4f8':'#f8fafc')+';border:1.5px solid '+(sel?'#0E5A7A':'#e5e7eb')+';border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12px;font-weight:600;color:'+(sel?'#0E5A7A':'#374151')+';">';
+        h += '<input type="checkbox" data-tag="'+t.v+'"'+(sel?' checked':'')+' style="display:none;">'+t.l+'</label>';
       });
       h += '</div></div>';
+
+      h += '</div>'; // fine colonna sinistra
+
+      // ── COLONNA DESTRA: mockup live ──
+      h += '<div style="position:sticky;top:20px;">';
+      h += '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;text-align:center;">Anteprima RistoflowBook</div>';
+
+      // Phone frame
+      h += '<div style="border:2px solid #1f2937;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15);background:#f5f7f9;">';
+
+      // Barra status phone
+      h += '<div style="background:#0E5A7A;padding:8px 12px 6px;display:flex;align-items:center;gap:8px;">';
+      h += '<div style="font-size:10px;color:#fff;font-weight:600;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" id="mock-nome-topbar">' + esc(az.nome || 'Il tuo locale') + '</div>';
+      h += '<span style="font-size:14px;color:#fff">📞</span><span style="font-size:14px;color:#fff">🗺️</span>';
+      h += '</div>';
+
+      // Cover nel mockup
+      if (az.cover_url) {
+        h += '<div id="mock-cover" style="width:100%;height:90px;overflow:hidden;position:relative;background:#1a3a4a;">';
+        h += '<img src="' + esc(az.cover_url) + '" id="mock-cover-img" style="width:100%;height:100%;object-fit:cover;display:block;"/>';
+      } else {
+        h += '<div id="mock-cover" style="width:100%;height:90px;background:linear-gradient(135deg,#0E5A7A,#1a8fb5);position:relative;">';
+      }
+      // Logo circolare sovrapposto
+      h += '<div style="position:absolute;bottom:-20px;left:10px;width:44px;height:44px;border-radius:50%;border:2.5px solid #fff;background:#e8f2f7;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.15);">';
+      if (az.logo_url) {
+        h += '<img id="mock-logo-img" src="' + esc(az.logo_url) + '" style="width:100%;height:100%;object-fit:cover;"/>';
+      } else {
+        h += '<div id="mock-logo-img" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;">🍽️</div>';
+      }
+      h += '</div></div>';
+
+      // Spacer logo
+      h += '<div style="height:28px;background:#fff;"></div>';
+
+      // Info locale nel mockup
+      h += '<div style="background:#fff;padding:8px 10px 0;">';
+      h += '<div id="mock-nome" style="font-size:14px;font-weight:700;color:#0f172a;">' + esc(az.nome || 'Il tuo locale') + '</div>';
+      h += '<div id="mock-tipo" style="font-size:10px;color:#0E5A7A;font-weight:600;margin-top:2px;">' + (az.tipo_cucina && az.tipo_cucina.length ? az.tipo_cucina.slice(0,2).join(' · ') : 'Tipo cucina') + '</div>';
+      h += '<div id="mock-fascia" style="font-size:10px;color:#64748b;margin-top:1px;">' + esc(az.fascia_prezzo || '€€') + ' · ' + esc(az.descrizione ? az.descrizione.substring(0,40)+'...' : 'Descrizione del locale') + '</div>';
+      h += '<div style="display:flex;gap:5px;margin-top:6px;">';
+      h += '<div style="flex:2;padding:6px;background:#0E5A7A;color:#fff;border-radius:5px;font-size:10px;font-weight:700;text-align:center;">📅 Prenota</div>';
+      h += '<div style="flex:1;padding:6px;background:#f1f5f9;border-radius:5px;font-size:10px;text-align:center;">📷</div>';
+      h += '</div>';
+
+      // Tab bar mockup
+      h += '<div style="display:flex;border-bottom:1px solid #e5e7eb;margin-top:8px;">';
+      ['ℹ️ Info','⭐ Rec.','📢 News','📸 Foto'].forEach(function(t,i){
+        h += '<div style="flex:1;text-align:center;padding:5px 0;font-size:9px;font-weight:'+(i===0?'700':'500')+';color:'+(i===0?'#0E5A7A':'#94a3b8')+';border-bottom:'+(i===0?'2px solid #0E5A7A':'2px solid transparent')+';">'+t+'</div>';
+      });
+      h += '</div>';
+
+      // Tags nel mockup
+      h += '<div id="mock-tags" style="display:flex;flex-wrap:wrap;gap:3px;padding:8px 0 6px;">';
+      (az.tags||[]).slice(0,4).forEach(function(t){
+        h += '<span style="background:#e8f2f7;color:#0E5A7A;border-radius:3px;padding:2px 6px;font-size:9px;">'+esc(t)+'</span>';
+      });
+      if (!(az.tags||[]).length) h += '<span style="color:#94a3b8;font-size:9px;">I tag appariranno qui</span>';
+      h += '</div>';
+
+      h += '</div>'; // fine info locale
+      h += '</div>'; // fine phone frame
+      h += '<div style="text-align:center;margin-top:8px;font-size:10px;color:#94a3b8;">↑ Anteprima scheda locale</div>';
+      h += '</div>'; // fine colonna destra
+
+      h += '</div>'; // fine grid
+
       rfSection.innerHTML = h;
     })();
 
-    // Toggle visivo cucina
+    // ── Toggle visivo cucina ──
     rfSection.querySelectorAll('[data-cucina]').forEach(cb => {
       cb.parentElement.addEventListener('click', () => {
         cb.checked = !cb.checked;
@@ -2429,10 +2549,14 @@ export async function render(container) {
         label.style.background = cb.checked ? '#e8f4f8' : '#f8fafc';
         label.style.borderColor = cb.checked ? '#0E5A7A' : '#e5e7eb';
         label.style.color = cb.checked ? '#0E5A7A' : '#374151';
+        // Aggiorna mockup tipo cucina
+        const selCucina = Array.from(rfSection.querySelectorAll('[data-cucina]:checked')).map(el => el.dataset.cucina);
+        const mockTipo = rfSection.querySelector('#mock-tipo');
+        if (mockTipo) mockTipo.textContent = selCucina.slice(0,2).join(' · ') || 'Tipo cucina';
       });
     });
 
-    // Toggle visivo tags
+    // ── Toggle visivo tags ──
     rfSection.querySelectorAll('[data-tag]').forEach(cb => {
       cb.parentElement.addEventListener('click', () => {
         cb.checked = !cb.checked;
@@ -2440,7 +2564,78 @@ export async function render(container) {
         label.style.background = cb.checked ? '#e8f4f8' : '#f8fafc';
         label.style.borderColor = cb.checked ? '#0E5A7A' : '#e5e7eb';
         label.style.color = cb.checked ? '#0E5A7A' : '#374151';
+        // Aggiorna mockup tags
+        const selTags = Array.from(rfSection.querySelectorAll('[data-tag]:checked')).map(el => el.dataset.tag);
+        const mockTags = rfSection.querySelector('#mock-tags');
+        if (mockTags) {
+          mockTags.innerHTML = selTags.slice(0,4).map(t => '<span style="background:#e8f2f7;color:#0E5A7A;border-radius:3px;padding:2px 6px;font-size:9px;">'+t+'</span>').join('') || '<span style="color:#94a3b8;font-size:9px;">I tag appariranno qui</span>';
+        }
       });
+    });
+
+    // ── Aggiorna mockup live su input ──
+    rfSection.querySelector('#rfb-descrizione').addEventListener('input', function(){
+      const mockFascia = rfSection.querySelector('#mock-fascia');
+      const fascia = rfSection.querySelector('#rfb-fascia').value || '€€';
+      if (mockFascia) mockFascia.textContent = fascia + ' · ' + (this.value.substring(0,40) || 'Descrizione del locale') + (this.value.length > 40 ? '...' : '');
+    });
+
+    rfSection.querySelector('#rfb-fascia').addEventListener('change', function(){
+      const mockFascia = rfSection.querySelector('#mock-fascia');
+      const desc = rfSection.querySelector('#rfb-descrizione').value;
+      if (mockFascia) mockFascia.textContent = (this.value || '€€') + ' · ' + (desc.substring(0,40) || 'Descrizione del locale') + (desc.length > 40 ? '...' : '');
+    });
+
+    // ── Upload cover ──
+    rfSection.querySelector('#rfb-cover-input').addEventListener('change', async function(){
+      const file = this.files[0]; if (!file) return;
+      const prog = rfSection.querySelector('#rfb-cover-progress');
+      prog.style.display = '';
+      const ext = file.name.split('.').pop();
+      const path = aziendaId + '/cover-' + Date.now() + '.' + ext;
+      const { error } = await supa().storage.from('loghi-aziende').upload(path, file, { upsert: true });
+      prog.style.display = 'none';
+      if (error) { alert('Errore upload: ' + error.message); return; }
+      const { data: pub } = supa().storage.from('loghi-aziende').getPublicUrl(path);
+      const url = pub.publicUrl;
+      // Salva subito
+      await supa().from('aziende').update({ cover_url: url }).eq('id', aziendaId);
+      // Aggiorna preview form
+      const prev = rfSection.querySelector('#rfb-cover-preview');
+      if (prev.tagName === 'IMG') { prev.src = url; }
+      else { prev.outerHTML = '<img id="rfb-cover-preview" src="'+url+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;border:1px solid #e5e7eb;"/>'; }
+      // Aggiorna mockup
+      const mockCover = rfSection.querySelector('#mock-cover');
+      if (mockCover) mockCover.style.backgroundImage = 'url(' + url + ')';
+      const mockCoverImg = rfSection.querySelector('#mock-cover-img');
+      if (mockCoverImg) { mockCoverImg.src = url; }
+      else if (mockCover) { mockCover.innerHTML = '<img id="mock-cover-img" src="'+url+'" style="width:100%;height:100%;object-fit:cover;display:block;"/>' + mockCover.innerHTML.replace(/<img[^>]*>/,''); }
+      mostraToast('Cover aggiornata ✅', 'success');
+    });
+
+    // ── Upload logo ──
+    rfSection.querySelector('#rfb-logo-input').addEventListener('change', async function(){
+      const file = this.files[0]; if (!file) return;
+      const prog = rfSection.querySelector('#rfb-logo-progress');
+      prog.style.display = '';
+      const ext = file.name.split('.').pop();
+      const path = aziendaId + '/logo-' + Date.now() + '.' + ext;
+      const { error } = await supa().storage.from('loghi-aziende').upload(path, file, { upsert: true });
+      prog.style.display = 'none';
+      if (error) { alert('Errore upload: ' + error.message); return; }
+      const { data: pub } = supa().storage.from('loghi-aziende').getPublicUrl(path);
+      const url = pub.publicUrl;
+      // Salva subito su aziende
+      await supa().from('aziende').update({ logo_url: url }).eq('id', aziendaId);
+      // Aggiorna preview form
+      const prev = rfSection.querySelector('#rfb-logo-preview');
+      if (prev.tagName === 'IMG') { prev.src = url; }
+      else { prev.style.backgroundImage = 'url(' + url + ')'; prev.innerHTML = '<img style="width:100%;height:100%;object-fit:cover;border-radius:50%;" src="'+url+'"/>'; }
+      // Aggiorna mockup logo
+      const mockLogo = rfSection.querySelector('#mock-logo-img');
+      if (mockLogo && mockLogo.tagName === 'IMG') { mockLogo.src = url; }
+      else if (mockLogo) { mockLogo.outerHTML = '<img id="mock-logo-img" src="'+url+'" style="width:100%;height:100%;object-fit:cover;"/>'; }
+      mostraToast('Logo aggiornato ✅', 'success');
     });
 
     // Inserisci prima del btn salva
