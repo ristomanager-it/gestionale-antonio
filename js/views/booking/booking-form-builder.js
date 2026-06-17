@@ -52,6 +52,25 @@ export async function render(container) {
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <input type="checkbox" id="attivo" checked>
       Form attivo
+
+    <div style="margin-top:16px;">
+      <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">Sorgente / Canale</label>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Traccia da dove arrivano le prenotazioni di questo form</div>
+      <select id="sorgente" class="input" style="width:100%;">
+        <option value="gestionale">🖥️ Gestionale (interno)</option>
+        <option value="sito_web">🌐 Sito web</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+        <option value="rfbook">📱 RistoflowBook (social)</option>
+        <option value="qr_sala">📲 QR Code sala</option>
+        <option value="instagram">📷 Instagram</option>
+        <option value="google">🔍 Google</option>
+        <option value="telefono">📞 Telefono</option>
+        <option value="altro">➕ Altro</option>
+      </select>
+      <div id="rfbook-info" style="display:none;margin-top:8px;background:#e8f4f8;border-radius:8px;padding:10px 12px;font-size:12px;color:#0E5A7A;font-weight:600;">
+        📱 Questo form sarà collegato a RistoflowBook — gli utenti social vedranno questo form quando prenotano e riceveranno punti fidelity automaticamente.
+      </div>
+    </div>
     </label>
 
     <div id="link-box"></div>
@@ -275,6 +294,11 @@ export async function render(container) {
   document.getElementById("policy-editor-wrap").style.display =
     document.getElementById("policy_enabled").checked ? "" : "none";
 
+  document.getElementById('sorgente')?.addEventListener('change', function(){
+    const rfInfo = document.getElementById('rfbook-info');
+    if (rfInfo) rfInfo.style.display = this.value === 'rfbook' ? '' : 'none';
+  });
+
   document.getElementById("nome").addEventListener("input", () => {
     if (!currentForm && tempFormId) {
       if (!document.getElementById("slug").value.trim()) {
@@ -445,6 +469,9 @@ export async function render(container) {
 
     document.getElementById("nome").value = form.nome || "";
     document.getElementById("slug").value = "";
+    document.getElementById('sorgente').value = form.sorgente || 'gestionale';
+    const rfInfo = document.getElementById('rfbook-info');
+    if (rfInfo) rfInfo.style.display = form.sorgente === 'rfbook' ? '' : 'none';
     document.getElementById("emoji").value = config.emoji || "";
     document.getElementById("attivo").checked = form.attivo !== false;
 
@@ -933,6 +960,7 @@ export async function render(container) {
       return;
     }
 
+    const sorgente = document.getElementById('sorgente')?.value || 'gestionale';
     const config = collectConfig();
     const finalId = currentForm || tempFormId;
 
@@ -944,6 +972,8 @@ export async function render(container) {
           azienda_id: aziendaId,
           sede_id: sedeId,
           nome,
+          sorgente,
+          rfbook_attivo: sorgente === 'rfbook',
           attivo: document.getElementById("attivo").checked,
           config
         }])
@@ -962,6 +992,8 @@ export async function render(container) {
         .from("booking_forms")
         .update({
           nome,
+          sorgente,
+          rfbook_attivo: sorgente === 'rfbook',
           attivo: document.getElementById("attivo").checked,
           config
         })
