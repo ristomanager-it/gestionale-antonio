@@ -2412,7 +2412,7 @@ export async function render(container) {
         h += '<div id="rfb-cover-preview" style="width:100%;height:80px;background:linear-gradient(135deg,#0E5A7A,#1a8fb5);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.7);">Nessuna cover</div>';
       }
       h += '<input type="file" id="rfb-cover-input" accept="image/*" style="display:none"/>';
-      h += '<button type="button" onclick="document.getElementById('rfb-cover-input').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.cover_url ? '🔄 Cambia cover' : '📤 Carica cover') + '</button>';
+      h += '<button type="button" onclick="document.getElementById(\'rfb-cover-input\').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.cover_url ? '🔄 Cambia cover' : '📤 Carica cover') + '</button>';
       h += '<div id="rfb-cover-progress" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>';
       h += '</div>';
 
@@ -2428,7 +2428,7 @@ export async function render(container) {
       }
       h += '<div>';
       h += '<input type="file" id="rfb-logo-input" accept="image/*" style="display:none"/>';
-      h += '<button type="button" onclick="document.getElementById('rfb-logo-input').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.logo_url ? '🔄 Cambia logo' : '📤 Carica logo') + '</button>';
+      h += '<button type="button" onclick="document.getElementById(\'rfb-logo-input\').click()" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">' + (az.logo_url ? '🔄 Cambia logo' : '📤 Carica logo') + '</button>';
       h += '<div id="rfb-logo-progress" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>';
       h += '</div></div></div></div>';
 
