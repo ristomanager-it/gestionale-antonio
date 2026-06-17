@@ -2337,8 +2337,137 @@ export async function render(container) {
       else alert('Inserisci prima il link Google Maps');
     };
 
+    // ── SEZIONE RISTOFLOWBOOK ──────────────────────────────────────────────────
+    // Carica dati azienda per i campi social
+    const { data: azDati } = await supa().from('aziende').select('fascia_prezzo,tipo_cucina,tags,descrizione,sito_web,telefono,instagram,cover_url').eq('id', aziendaId).single();
+    const az = azDati || {};
+
+    const TIPI_CUCINA = [
+      {v:'italiana',l:'🍝 Italiana'},{v:'pizza',l:'🍕 Pizza'},{v:'pesce',l:'🐟 Pesce'},
+      {v:'carne',l:'🥩 Carne'},{v:'bbq',l:'🔥 BBQ/Grill'},{v:'giapponese',l:'🍣 Giapponese'},
+      {v:'cinese',l:'🥡 Cinese'},{v:'sushi',l:'🍱 Sushi'},{v:'argentina',l:'🥩 Argentina'},
+      {v:'messicana',l:'🌮 Messicana'},{v:'indiana',l:'🍛 Indiana'},{v:'greca',l:'🫒 Greca'},
+      {v:'mediterranea',l:'🌊 Mediterranea'},{v:'street_food',l:'🌯 Street Food'},
+      {v:'pasticceria',l:'🍰 Pasticceria'},{v:'gelateria',l:'🍦 Gelateria'},
+      {v:'cocktail_bar',l:'🍸 Cocktail Bar'},{v:'wine_bar',l:'🍷 Wine Bar'},
+      {v:'catering',l:'🎪 Catering/Ricevimenti'},{v:'fusion',l:'🌍 Fusion'},
+    ];
+
+    const TAGS_DISPONIBILI = [
+      {v:'vegano',l:'🌱 Vegano'},{v:'vegetariano',l:'🥗 Vegetariano'},
+      {v:'senza_glutine',l:'🌾 Senza Glutine'},{v:'bio',l:'🌿 Bio/Biologico'},
+      {v:'halal',l:'☪️ Halal'},{v:'kosher',l:'✡️ Kosher'},
+      {v:'vista_mare',l:'🌊 Vista Mare'},{v:'vista_lago',l:'💧 Vista Lago'},
+      {v:'giardino',l:'🌳 Giardino/Terrazza'},{v:'parcheggio',l:'🅿️ Parcheggio'},
+      {v:'wifi',l:'📶 WiFi'},{v:'animali',l:'🐕 Animali ammessi'},
+      {v:'bambini',l:'👶 Family/Bambini'},{v:'disabili',l:'♿ Accessibile'},
+      {v:'romantico',l:'💑 Romantico'},{v:'business',l:'💼 Business'},
+      {v:'musica_live',l:'🎵 Musica Live'},{v:'aperitivo',l:'🍹 Aperitivo'},
+      {v:'brunch',l:'🥞 Brunch'},{v:'asporto',l:'🛍️ Asporto'},
+      {v:'delivery',l:'🛵 Delivery'},{v:'prenotazione_obbligatoria',l:'📅 Prenota obbligatorio'},
+    ];
+
+    const tipoCucinaAttuali = az.tipo_cucina || [];
+    const tagsAttuali = az.tags || [];
+
+    // Inserisci HTML sezione dopo l'ultimo card esistente (prima del btn salva)
+    const rfSection = document.createElement('div');
+    rfSection.style.cssText = 'background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;';
+    rfSection.innerHTML = \`
+      <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">📱 Profilo RistoflowBook</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Queste info compaiono nella scheda del tuo locale nell'app RistoflowBook</div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Descrizione breve (visibile nell'app)</label>
+        <textarea id="rfb-descrizione" class="input" style="min-height:80px;resize:vertical;" placeholder="Descrivi il tuo locale in poche righe...">\${esc(az.descrizione || '')}</textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Fascia di prezzo</label>
+          <select id="rfb-fascia" class="input">
+            <option value="">-- Seleziona --</option>
+            \${['€','€€','€€€','€€€€'].map(f => \`<option value="\${f}" \${az.fascia_prezzo===f?'selected':''}>\${f} \${f==='€'?'(economico)':f==='€€'?'(medio)':f==='€€€'?'(alto)':'(lusso)'}</option>\`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Instagram</label>
+          <input id="rfb-instagram" class="input" value="\${esc(az.instagram || '')}" placeholder="@nomeprofilo"/>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Tipo di cucina (seleziona tutti)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-cucina-grid">
+          \${TIPI_CUCINA.map(t => \`
+            <label style="display:flex;align-items:center;gap:6px;background:\${tipoCucinaAttuali.includes(t.v)?'#e8f4f8':'#f8fafc'};border:1.5px solid \${tipoCucinaAttuali.includes(t.v)?'#0E5A7A':'#e5e7eb'};border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:\${tipoCucinaAttuali.includes(t.v)?'#0E5A7A':'#374151'};transition:all .15s;">
+              <input type="checkbox" data-cucina="\${t.v}" \${tipoCucinaAttuali.includes(t.v)?'checked':''} style="display:none;">
+              \${t.l}
+            </label>
+          \`).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom:4px;">
+        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Caratteristiche e servizi</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-tags-grid">
+          \${TAGS_DISPONIBILI.map(t => \`
+            <label style="display:flex;align-items:center;gap:6px;background:\${tagsAttuali.includes(t.v)?'#e8f4f8':'#f8fafc'};border:1.5px solid \${tagsAttuali.includes(t.v)?'#0E5A7A':'#e5e7eb'};border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:\${tagsAttuali.includes(t.v)?'#0E5A7A':'#374151'};transition:all .15s;">
+              <input type="checkbox" data-tag="\${t.v}" \${tagsAttuali.includes(t.v)?'checked':''} style="display:none;">
+              \${t.l}
+            </label>
+          \`).join('')}
+        </div>
+      </div>
+    \`;
+
+    // Toggle visivo cucina
+    rfSection.querySelectorAll('[data-cucina]').forEach(cb => {
+      cb.parentElement.addEventListener('click', () => {
+        cb.checked = !cb.checked;
+        const label = cb.parentElement;
+        label.style.background = cb.checked ? '#e8f4f8' : '#f8fafc';
+        label.style.borderColor = cb.checked ? '#0E5A7A' : '#e5e7eb';
+        label.style.color = cb.checked ? '#0E5A7A' : '#374151';
+      });
+    });
+
+    // Toggle visivo tags
+    rfSection.querySelectorAll('[data-tag]').forEach(cb => {
+      cb.parentElement.addEventListener('click', () => {
+        cb.checked = !cb.checked;
+        const label = cb.parentElement;
+        label.style.background = cb.checked ? '#e8f4f8' : '#f8fafc';
+        label.style.borderColor = cb.checked ? '#0E5A7A' : '#e5e7eb';
+        label.style.color = cb.checked ? '#0E5A7A' : '#374151';
+      });
+    });
+
+    // Inserisci prima del btn salva
+    const btnSalva = document.getElementById('btn-salva-profilo');
+    btnSalva.parentElement.insertBefore(rfSection, btnSalva);
+
+    // ── SALVA (estendi payload esistente) ──
     // Salva
     document.getElementById('btn-salva-profilo').onclick = async () => {
+      // Raccoglie tipo cucina
+      const tipoCucinaSelezionati = [];
+      rfSection.querySelectorAll('[data-cucina]:checked').forEach(el => tipoCucinaSelezionati.push(el.dataset.cucina));
+
+      // Raccoglie tags
+      const tagsSelezionati = [];
+      rfSection.querySelectorAll('[data-tag]:checked').forEach(el => tagsSelezionati.push(el.dataset.tag));
+
+      // Salva su aziende
+      await supa().from('aziende').update({
+        fascia_prezzo: document.getElementById('rfb-fascia').value || null,
+        descrizione: document.getElementById('rfb-descrizione').value.trim() || null,
+        instagram: document.getElementById('rfb-instagram').value.trim() || null,
+        tipo_cucina: tipoCucinaSelezionati,
+        tags: tagsSelezionati,
+      }).eq('id', aziendaId);
+
+
       const msg = document.getElementById('msg-profilo');
       msg.textContent = 'Salvataggio...';
 
