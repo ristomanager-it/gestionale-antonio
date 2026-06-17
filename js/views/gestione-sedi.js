@@ -353,7 +353,14 @@ function renderGestioneSedi(container, sedi){
           <div style="font-size:12px; opacity:0.7;">${escapeHtml(s.indirizzo || "")}</div>
           <div style="margin-top:4px;">${geofenceSummary(s)}</div>
 
-          ${s.logo_url ? `<img src="${s.logo_url}" style="height:40px; margin-top:6px;" />` : ""}
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+            ${s.logo_url
+              ? `<img src="${s.logo_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;" />`
+              : `<div style="width:40px;height:40px;border-radius:50%;background:#e8f2f7;display:flex;align-items:center;justify-content:center;font-size:18px;">🍽️</div>`}
+            ${s.cover_url
+              ? `<img src="${s.cover_url}" style="height:40px;border-radius:6px;object-fit:cover;max-width:120px;" />`
+              : `<div style="height:40px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;padding:0 10px;">Nessuna cover</div>`}
+          </div>
 
           <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <button class="app-button tiny" onclick="editSede('${s.id}')">Modifica</button>
@@ -506,8 +513,21 @@ window.editSede = async function(id){
           </div>
 
           <div class="form-group">
-            <label>Logo sede</label>
-            <input type="file" id="edit-logo" />
+            <label>
+              Logo / Foto profilo sede
+              <span style="display:block;font-size:11px;color:#64748b;font-weight:400;margin-top:2px;">📐 Consigliato: 400×400px · quadrato · JPG/PNG · max 2MB</span>
+            </label>
+            ${sede.logo_url ? `<img src="${sede.logo_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-bottom:8px;display:block;border:2px solid #e5e7eb;" />` : ''}
+            <input type="file" id="edit-logo" accept="image/*" />
+          </div>
+
+          <div class="form-group">
+            <label>
+              Foto di copertina sede
+              <span style="display:block;font-size:11px;color:#64748b;font-weight:400;margin-top:2px;">📐 Consigliato: 1200×400px · orizzontale 3:1 · JPG/PNG · max 5MB · stile Facebook cover</span>
+            </label>
+            ${sede.cover_url ? `<img src="${sede.cover_url}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block;border:1px solid #e5e7eb;" />` : ''}
+            <input type="file" id="edit-cover" accept="image/*" />
           </div>
           <div class="form-group" style="grid-column:1/-1;">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
@@ -542,9 +562,15 @@ window.editSede = async function(id){
     const file = document.getElementById("edit-logo").files[0];
 
     let logo_url = sede.logo_url;
+    let cover_url = sede.cover_url;
 
     if (file) {
       logo_url = await uploadLogo(file, sede.azienda_id);
+    }
+
+    const coverFile = document.getElementById("edit-cover").files[0];
+    if (coverFile) {
+      cover_url = await uploadCover(coverFile, sede.azienda_id);
     }
 
     const latitudine = toNumberOrNull(document.getElementById("edit-lat")?.value);
@@ -559,6 +585,7 @@ window.editSede = async function(id){
         nome,
         indirizzo,
         logo_url,
+        cover_url,
         latitudine,
         longitudine,
         raggio_geofence_m,
@@ -592,6 +619,18 @@ window.editSede = async function(id){
 /* =========================
 UPLOAD LOGO
 ========================= */
+
+async function uploadCover(file, aziendaId){
+  const fileExt = file.name.split(".").pop();
+  const fileName = `cover-${Date.now()}.${fileExt}`;
+  const filePath = `${aziendaId}/${fileName}`;
+  const { data, error } = await supabase.storage
+    .from("loghi-aziende")
+    .upload(filePath, file, { cacheControl: "3600", upsert: true });
+  if (error) { console.error("Cover upload error:", error); return null; }
+  const { data: pub } = supabase.storage.from("loghi-aziende").getPublicUrl(filePath);
+  return pub.publicUrl;
+}
 
 async function uploadLogo(file, aziendaId){
   const fileExt = file.name.split(".").pop();
