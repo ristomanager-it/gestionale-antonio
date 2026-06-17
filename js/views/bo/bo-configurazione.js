@@ -39,7 +39,7 @@ export async function render(container) {
       
       <!-- Tab nav -->
       <div id="tab-nav-wrap" style="display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e5e7eb;margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;">
-        <style>#tab-nav-wrap::-webkit-scrollbar{display:none}</style>
+        <style>#tab-nav-wrap::-webkit-scrollbar{display:none} #tab-nav-wrap::after{content:'›';position:sticky;right:0;background:linear-gradient(to right,transparent,#f8fafc);padding:0 8px;color:#94a3b8;pointer-events:none;}</style>
         ${[
           { id:'operativo',    icon:'👨‍🍳', label:'Operativo'     },
           { id:'sala',         icon:'🪑', label:'Sala'            },
@@ -50,7 +50,7 @@ export async function render(container) {
           { id:'identita',     icon:'🎯', label:'Identità'        },
           { id:'media',        icon:'🖼️',  label:'Media & Landing'  },
           { id:'sondaggi',     icon:'📊', label:'Sondaggi'        },
-          { id:'profilo',      icon:'🌐', label:'Profilo Pubblico'},
+          { id:'profilo',      icon:'📱', label:'RistoflowBook'},
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;
