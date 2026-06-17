@@ -2389,7 +2389,7 @@ export async function render(container) {
       h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
       h += '<div>';
       h += '<div style="font-size:15px;font-weight:700;color:#0f172a;">📱 Profilo RistoflowBook</div>';
-      h += '<div style="font-size:12px;color:#64748b;margin-top:2px;">Configura come appare il tuo locale nell'app — il mockup si aggiorna in tempo reale</div>';
+      h += '<div style="font-size:12px;color:#64748b;margin-top:2px;">Configura come appare il tuo locale nell\'app — il mockup si aggiorna in tempo reale</div>';
       h += '</div></div>';
 
       // Layout due colonne: form sx, mockup dx
