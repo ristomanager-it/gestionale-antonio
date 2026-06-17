@@ -2472,6 +2472,52 @@ export async function render(container) {
       });
       h += '</div></div>';
 
+      // ── ORARI DI APERTURA ──
+      h += '<div style="margin-top:14px;">';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">🕐 Orari di apertura</label>';
+      h += '<div id="rfb-orari-wrap">';
+      var GIORNI = [
+        {k:'lun',l:'Lunedì'},{k:'mar',l:'Martedì'},{k:'mer',l:'Mercoledì'},
+        {k:'gio',l:'Giovedì'},{k:'ven',l:'Venerdì'},{k:'sab',l:'Sabato'},{k:'dom',l:'Domenica'}
+      ];
+      var orariSalvati = az.orari_apertura || {};
+      GIORNI.forEach(function(g){
+        var o = orariSalvati[g.k] || {};
+        var aperto = o.aperto !== false;
+        var p1 = o.pranzo_inizio || '12:00';
+        var p2 = o.pranzo_fine || '14:30';
+        var c1 = o.cena_inizio || '19:30';
+        var c2 = o.cena_fine || '22:30';
+        var soloCena = o.solo_cena || false;
+        h += '<div data-giorno="'+g.k+'" style="display:grid;grid-template-columns:90px 1fr;gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid #f1f5f9;">';
+        h += '<label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding-top:4px;">';
+        h += '<input type="checkbox" data-aperto="'+g.k+'" '+(aperto?'checked':'')+' style="width:16px;height:16px;accent-color:#0E5A7A;cursor:pointer;">';
+        h += '<span style="font-size:13px;font-weight:600;color:'+(aperto?'#0f172a':'#94a3b8')+'">'+g.l+'</span>';
+        h += '</label>';
+        h += '<div data-slot="'+g.k+'" style="'+(aperto?'':'opacity:.3;pointer-events:none;')+'">';
+        // Pranzo
+        h += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;'+(soloCena?'opacity:.3;pointer-events:none;':'')+'">';
+        h += '<span style="font-size:10px;color:#94a3b8;width:36px;">Pranzo</span>';
+        h += '<input type="time" data-p1="'+g.k+'" value="'+p1+'" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit;"/>';
+        h += '<span style="font-size:11px;color:#94a3b8;">–</span>';
+        h += '<input type="time" data-p2="'+g.k+'" value="'+p2+'" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit;"/>';
+        h += '</div>';
+        // Cena
+        h += '<div style="display:flex;align-items:center;gap:5px;">';
+        h += '<span style="font-size:10px;color:#94a3b8;width:36px;">Cena</span>';
+        h += '<input type="time" data-c1="'+g.k+'" value="'+c1+'" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit;"/>';
+        h += '<span style="font-size:11px;color:#94a3b8;">–</span>';
+        h += '<input type="time" data-c2="'+g.k+'" value="'+c2+'" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit;"/>';
+        h += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px;">';
+        h += '<input type="checkbox" data-solocena="'+g.k+'" '+(soloCena?'checked':'')+' style="width:13px;height:13px;accent-color:#0E5A7A;"/>';
+        h += '<span style="font-size:10px;color:#64748b;">Solo cena</span>';
+        h += '</label>';
+        h += '</div>';
+        h += '</div>';
+        h += '</div>';
+      });
+      h += '</div></div>';
+
       h += '</div>'; // fine colonna sinistra
 
       // ── COLONNA DESTRA: mockup live ──
@@ -2531,6 +2577,27 @@ export async function render(container) {
       if (!(az.tags||[]).length) h += '<span style="color:#94a3b8;font-size:9px;">I tag appariranno qui</span>';
       h += '</div>';
 
+      // Orari nel mockup
+      h += '<div style="padding:4px 10px 8px;border-top:1px solid #f1f5f9;">';
+      h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Orari</div>';
+      var orariSalvatiMock = az.orari_apertura || {};
+      var GIORNI_MOCK = [{k:'lun',l:'Lun'},{k:'mar',l:'Mar'},{k:'mer',l:'Mer'},{k:'gio',l:'Gio'},{k:'ven',l:'Ven'},{k:'sab',l:'Sab'},{k:'dom',l:'Dom'}];
+      var righeOrari = '';
+      GIORNI_MOCK.forEach(function(g){
+        var o = orariSalvatiMock[g.k];
+        var aperto = !o || o.aperto !== false;
+        if (!aperto) {
+          righeOrari += '<div style="display:flex;justify-content:space-between;font-size:9px;padding:1px 0;"><span style="color:#94a3b8;">'+g.l+'</span><span style="color:#dc2626;">Chiuso</span></div>';
+        } else if (o) {
+          var slot = o.solo_cena ? (o.cena_inizio+'-'+o.cena_fine) : (o.pranzo_inizio+'-'+o.pranzo_fine+' / '+o.cena_inizio+'-'+o.cena_fine);
+          righeOrari += '<div style="display:flex;justify-content:space-between;font-size:9px;padding:1px 0;"><span style="color:#374151;font-weight:600;">'+g.l+'</span><span style="color:#64748b;">'+slot+'</span></div>';
+        } else {
+          righeOrari += '<div style="display:flex;justify-content:space-between;font-size:9px;padding:1px 0;"><span style="color:#374151;font-weight:600;">'+g.l+'</span><span style="color:#64748b;">12:00-14:30 / 19:30-22:30</span></div>';
+        }
+      });
+      h += '<div id="mock-orari-grid">'+righeOrari+'</div>';
+      h += '</div>';
+
       h += '</div>'; // fine info locale
       h += '</div>'; // fine phone frame
       h += '<div style="text-align:center;margin-top:8px;font-size:10px;color:#94a3b8;">↑ Anteprima scheda locale</div>';
@@ -2540,6 +2607,42 @@ export async function render(container) {
 
       rfSection.innerHTML = h;
     })();
+
+    // ── Bind orari: toggle aperto/chiuso + solo cena ──
+    setTimeout(function(){
+      var orariWrap = rfSection.querySelector('#rfb-orari-wrap');
+      if (!orariWrap) return;
+
+      // Toggle aperto/chiuso
+      orariWrap.querySelectorAll('[data-aperto]').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var g = this.dataset.aperto;
+          var slot = orariWrap.querySelector('[data-slot="'+g+'"]');
+          var label = this.parentElement.querySelector('span');
+          if (slot) { slot.style.opacity = this.checked ? '1' : '.3'; slot.style.pointerEvents = this.checked ? '' : 'none'; }
+          if (label) label.style.color = this.checked ? '#0f172a' : '#94a3b8';
+          aggiornaOrariMockup();
+        });
+      });
+
+      // Toggle solo cena
+      orariWrap.querySelectorAll('[data-solocena]').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var g = this.dataset.solocena;
+          var pranzoRow = orariWrap.querySelector('[data-p1="'+g+'"]')?.closest('div');
+          if (pranzoRow) { pranzoRow.style.opacity = this.checked ? '.3' : '1'; pranzoRow.style.pointerEvents = this.checked ? 'none' : ''; }
+        });
+      });
+
+      // Aggiorna mockup orari
+      function aggiornaOrariMockup(){
+        var mockOrari = rfSection.querySelector('#mock-orari');
+        if (!mockOrari) return;
+        var aperti = [];
+        orariWrap.querySelectorAll('[data-aperto]:checked').forEach(function(cb){ aperti.push(cb.dataset.aperto); });
+        mockOrari.textContent = aperti.length ? aperti.slice(0,3).join(', ')+(aperti.length>3?'...':'') : 'Nessun giorno';
+      }
+    }, 100);
 
     // ── Toggle visivo cucina ──
     rfSection.querySelectorAll('[data-cucina]').forEach(cb => {
@@ -2653,6 +2756,22 @@ export async function render(container) {
       const tagsSelezionati = [];
       rfSection.querySelectorAll('[data-tag]:checked').forEach(el => tagsSelezionati.push(el.dataset.tag));
 
+      // Raccoglie orari
+      var orariObj = {};
+      var GIORNI_KEYS = ['lun','mar','mer','gio','ven','sab','dom'];
+      var orariWrap2 = rfSection.querySelector('#rfb-orari-wrap');
+      if (orariWrap2) {
+        GIORNI_KEYS.forEach(function(g){
+          var aperto = orariWrap2.querySelector('[data-aperto="'+g+'"]')?.checked || false;
+          var p1 = orariWrap2.querySelector('[data-p1="'+g+'"]')?.value || '12:00';
+          var p2 = orariWrap2.querySelector('[data-p2="'+g+'"]')?.value || '14:30';
+          var c1 = orariWrap2.querySelector('[data-c1="'+g+'"]')?.value || '19:30';
+          var c2 = orariWrap2.querySelector('[data-c2="'+g+'"]')?.value || '22:30';
+          var soloCena = orariWrap2.querySelector('[data-solocena="'+g+'"]')?.checked || false;
+          orariObj[g] = { aperto, pranzo_inizio:p1, pranzo_fine:p2, cena_inizio:c1, cena_fine:c2, solo_cena:soloCena };
+        });
+      }
+
       // Salva su aziende
       await supa().from('aziende').update({
         fascia_prezzo: document.getElementById('rfb-fascia').value || null,
@@ -2660,6 +2779,7 @@ export async function render(container) {
         instagram: document.getElementById('rfb-instagram').value.trim() || null,
         tipo_cucina: tipoCucinaSelezionati,
         tags: tagsSelezionati,
+        orari_apertura: orariObj,
       }).eq('id', aziendaId);
 
 
