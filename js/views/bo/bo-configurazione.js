@@ -2373,53 +2373,45 @@ export async function render(container) {
     // Inserisci HTML sezione dopo l'ultimo card esistente (prima del btn salva)
     const rfSection = document.createElement('div');
     rfSection.style.cssText = 'background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;';
-    rfSection.innerHTML = \`
-      <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">📱 Profilo RistoflowBook</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Queste info compaiono nella scheda del tuo locale nell'app RistoflowBook</div>
-
-      <div style="margin-bottom:14px;">
-        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Descrizione breve (visibile nell'app)</label>
-        <textarea id="rfb-descrizione" class="input" style="min-height:80px;resize:vertical;" placeholder="Descrivi il tuo locale in poche righe...">\${esc(az.descrizione || '')}</textarea>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div>
-          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Fascia di prezzo</label>
-          <select id="rfb-fascia" class="input">
-            <option value="">-- Seleziona --</option>
-            \${['€','€€','€€€','€€€€'].map(f => \`<option value="\${f}" \${az.fascia_prezzo===f?'selected':''}>\${f} \${f==='€'?'(economico)':f==='€€'?'(medio)':f==='€€€'?'(alto)':'(lusso)'}</option>\`).join('')}
-          </select>
-        </div>
-        <div>
-          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Instagram</label>
-          <input id="rfb-instagram" class="input" value="\${esc(az.instagram || '')}" placeholder="@nomeprofilo"/>
-        </div>
-      </div>
-
-      <div style="margin-bottom:14px;">
-        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Tipo di cucina (seleziona tutti)</label>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-cucina-grid">
-          \${TIPI_CUCINA.map(t => \`
-            <label style="display:flex;align-items:center;gap:6px;background:\${tipoCucinaAttuali.includes(t.v)?'#e8f4f8':'#f8fafc'};border:1.5px solid \${tipoCucinaAttuali.includes(t.v)?'#0E5A7A':'#e5e7eb'};border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:\${tipoCucinaAttuali.includes(t.v)?'#0E5A7A':'#374151'};transition:all .15s;">
-              <input type="checkbox" data-cucina="\${t.v}" \${tipoCucinaAttuali.includes(t.v)?'checked':''} style="display:none;">
-              \${t.l}
-            </label>
-          \`).join('')}
-        </div>
-      </div>
-
-      <div style="margin-bottom:4px;">
-        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Caratteristiche e servizi</label>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-tags-grid">
-          \${TAGS_DISPONIBILI.map(t => \`
-            <label style="display:flex;align-items:center;gap:6px;background:\${tagsAttuali.includes(t.v)?'#e8f4f8':'#f8fafc'};border:1.5px solid \${tagsAttuali.includes(t.v)?'#0E5A7A':'#e5e7eb'};border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:\${tagsAttuali.includes(t.v)?'#0E5A7A':'#374151'};transition:all .15s;">
-              <input type="checkbox" data-tag="\${t.v}" \${tagsAttuali.includes(t.v)?'checked':''} style="display:none;">
-              \${t.l}
-            </label>
-          \`).join('')}
-        </div>
-      </div>
-    \`;
+    (function(){
+      var tipoCucinaAttuali2 = az.tipo_cucina || [];
+      var tagsAttuali2 = az.tags || [];
+      var h = '';
+      h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">&#128241; Profilo RistoflowBook</div>';
+      h += '<div style="font-size:12px;color:#64748b;margin-bottom:16px;">Queste info compaiono nella scheda del tuo locale nell&apos;app RistoflowBook</div>';
+      h += '<div style="margin-bottom:14px;">';
+      h += '<label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Descrizione breve (visibile nell\'app)</label>';
+      h += '<textarea id="rfb-descrizione" class="input" style="min-height:80px;resize:vertical;" placeholder="Descrivi il tuo locale in poche righe...">' + esc(az.descrizione || '') + '</textarea>';
+      h += '</div>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">';
+      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Fascia di prezzo</label><select id="rfb-fascia" class="input">';
+      h += '<option value="">-- Seleziona --</option>';
+      ['&#8364;','&#8364;&#8364;','&#8364;&#8364;&#8364;','&#8364;&#8364;&#8364;&#8364;'].forEach(function(f,i){
+        var vals=['€','€€','€€€','€€€€'];
+        h += '<option value="'+vals[i]+'"'+(az.fascia_prezzo===vals[i]?' selected':'')+'>'+f+'</option>';
+      });
+      h += '</select></div>';
+      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Instagram</label>';
+      h += '<input id="rfb-instagram" class="input" value="' + esc(az.instagram || '') + '" placeholder="@nomeprofilo"/></div>';
+      h += '</div>';
+      h += '<div style="margin-bottom:14px;"><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Tipo di cucina</label>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-cucina-grid">';
+      TIPI_CUCINA.forEach(function(t){
+        var sel = tipoCucinaAttuali2.indexOf(t.v) >= 0;
+        h += '<label style="display:flex;align-items:center;gap:6px;background:' + (sel?'#e8f4f8':'#f8fafc') + ';border:1.5px solid ' + (sel?'#0E5A7A':'#e5e7eb') + ';border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:' + (sel?'#0E5A7A':'#374151') + ';">';
+        h += '<input type="checkbox" data-cucina="' + t.v + '"' + (sel?' checked':'') + ' style="display:none;">' + t.l + '</label>';
+      });
+      h += '</div></div>';
+      h += '<div><label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:8px;">Caratteristiche e servizi</label>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;" id="rfb-tags-grid">';
+      TAGS_DISPONIBILI.forEach(function(t){
+        var sel = tagsAttuali2.indexOf(t.v) >= 0;
+        h += '<label style="display:flex;align-items:center;gap:6px;background:' + (sel?'#e8f4f8':'#f8fafc') + ';border:1.5px solid ' + (sel?'#0E5A7A':'#e5e7eb') + ';border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:' + (sel?'#0E5A7A':'#374151') + ';">';
+        h += '<input type="checkbox" data-tag="' + t.v + '"' + (sel?' checked':'') + ' style="display:none;">' + t.l + '</label>';
+      });
+      h += '</div></div>';
+      rfSection.innerHTML = h;
+    })();
 
     // Toggle visivo cucina
     rfSection.querySelectorAll('[data-cucina]').forEach(cb => {
