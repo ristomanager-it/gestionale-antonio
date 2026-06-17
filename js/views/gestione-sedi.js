@@ -355,9 +355,15 @@ function renderGestioneSedi(container, sedi){
 
           ${s.logo_url ? `<img src="${s.logo_url}" style="height:40px; margin-top:6px;" />` : ""}
 
-          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <button class="app-button tiny" onclick="editSede('${s.id}')">Modifica</button>
             <button class="app-button tiny red" onclick="disattivaSede('${s.id}')">Disattiva</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#0E5A7A;cursor:pointer;margin-left:4px;">
+              <input type="checkbox" ${s.visibile_in_book !== false ? 'checked' : ''}
+                onchange="toggleVisibileInBook('${s.id}', this.checked)"
+                style="width:16px;height:16px;accent-color:#0E5A7A;cursor:pointer;">
+              Visibile in RistoflowBook
+            </label>
           </div>
 
         </div>
@@ -503,6 +509,16 @@ window.editSede = async function(id){
             <label>Logo sede</label>
             <input type="file" id="edit-logo" />
           </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="edit-visibile-book" ${sede.visibile_in_book !== false ? 'checked' : ''}
+                style="width:18px;height:18px;accent-color:#0E5A7A;cursor:pointer;">
+              <span>
+                <strong>Visibile in RistoflowBook</strong>
+                <div style="font-size:12px;color:#64748b;margin-top:2px;">Se deselezionato, questa sede non appare nel social (es. magazzini, centri cottura interni)</div>
+              </span>
+            </label>
+          </div>
         </div>
 
         ${sede.logo_url ? `<img src="${sede.logo_url}" style="height:48px; margin-top:10px;" />` : ""}
@@ -535,6 +551,8 @@ window.editSede = async function(id){
     const longitudine = toNumberOrNull(document.getElementById("edit-lon")?.value);
     const raggio_geofence_m = toNumberOrNull(document.getElementById("edit-raggio")?.value) || 120;
 
+    const visibile_in_book = document.getElementById("edit-visibile-book")?.checked ?? true;
+
     const { error } = await supabase
       .from("sedi")
       .update({
@@ -543,7 +561,8 @@ window.editSede = async function(id){
         logo_url,
         latitudine,
         longitudine,
-        raggio_geofence_m
+        raggio_geofence_m,
+        visibile_in_book
       })
       .eq("id", id);
 
@@ -601,6 +620,15 @@ async function uploadLogo(file, aziendaId){
 /* =========================
 DISATTIVA
 ========================= */
+
+
+window.toggleVisibileInBook = async function(id, visibile) {
+  const supa = window.supabaseClient || window.supabase;
+  const { error } = await supa.from("sedi").update({ visibile_in_book: visibile }).eq("id", id);
+  if (error) {
+    alert("Errore aggiornamento: " + error.message);
+  }
+};
 
 window.disattivaSede = async function(id){
   if (!puoGestireSedi()) {
