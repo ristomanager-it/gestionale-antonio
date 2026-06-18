@@ -971,7 +971,7 @@ export async function render(container) {
     if (!nome) { msg.innerHTML = `<span style="color:#dc2626;">Nome obbligatorio</span>`; return; }
     btn.disabled = true; btn.textContent = "Creazione...";
     const { data, error } = await supa().from("menu").insert({
-      azienda_id, currentSedeId, nome,
+      azienda_id, sede_id: currentSedeId, nome,
       descrizione: qs("#nuovo-desc").value.trim() || null,
       slug: makeSlug(nome), attivo: true
     }).select().single();
