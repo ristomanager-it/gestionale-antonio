@@ -348,7 +348,7 @@ export async function render(container) {
           signal: AbortSignal.timeout(5000)
         });
         if (r.ok) { esito.textContent = '✅ Stampante raggiungibile!'; esito.style.color = '#16a34a'; }
-        else { esito.textContent = `⚠️ Risposta HTTP ${r.status}`; esito.style.color = '#f59e0b'; }
+        else { esito.textContent = '⚠️ Risposta HTTP ' + r.status; esito.style.color = '#f59e0b'; }
       } catch (e) {
         esito.textContent = '❌ Non raggiungibile — verifica IP e rete locale (il browser potrebbe bloccare chiamate HTTP locali)';
         esito.style.color = '#dc2626';
@@ -572,7 +572,7 @@ export async function render(container) {
               </div>
               <div style="font-size:11px;color:#64748b;margin-top:2px;">
                 Messaggi inviati: ${c.messaggi_inviati || 0}
-                ${c.ultimo_messaggio_il ? ` · Ultimo: ${new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT')}` : ''}
+                ${c.ultimo_messaggio_il ? ' · Ultimo: ' + new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT') : ''}
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -927,7 +927,7 @@ export async function render(container) {
     const urlPreview  = container.querySelector('#post-url-preview');
     const aggiornaUrl = () => {
       const s = postSettore?.value;
-      const url = s ? `#/display-cucina?settore=${s}` : '#/display-cucina';
+      const url = s ? '#/display-cucina?settore=' + s : '#/display-cucina';
       if (urlPreview) urlPreview.innerHTML = 'URL tablet: <strong>' + url + '</strong> - <a href="' + url + '" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri</a>';
     };
     postSettore?.addEventListener('change', aggiornaUrl);
@@ -937,7 +937,7 @@ export async function render(container) {
       const nome = postNome?.value.trim();
       if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
       const settoreNome = postSettore?.value || null;
-      const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
+      const url = settoreNome ? '#/display-cucina?settore=' + settoreNome : '#/display-cucina';
       const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:currentSedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
       if (error) { mostraToast('Errore: '+error.message,'error'); return; }
       postazioni.push(data);
@@ -1665,7 +1665,7 @@ export async function render(container) {
               <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
                 ${catNome ? esc(catNome) + ' · ' : ''}${p.tipo || ''}
-                ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
+                ${p.prezzo_base ? ' · <strong>€' + Number(p.prezzo_base).toFixed(2) + '</strong>' : ''}
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -1770,7 +1770,7 @@ export async function render(container) {
       await caricaProdotti();
       renderListaProdotti();
       setTimeout(() => { box.querySelector('#form-prodotto-wrap').style.display = 'none'; }, 600);
-      mostraToast(`"${nome}" salvato ✅`, 'success');
+      mostraToast('"' + nome + '" salvato', 'success');
     });
 
     box.querySelectorAll('[data-nav]').forEach(btn => {
@@ -2212,7 +2212,7 @@ export async function render(container) {
       await render(box);
     } catch (e) {
       console.error('Errore caricamento booking-form-builder:', e);
-      box.innerHTML = `<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ${e.message}</div>`;
+      box.innerHTML = '<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ' + e.message + '</div>';
     }
   }
 
@@ -2993,13 +2993,13 @@ export async function render(container) {
           <div class="media-section-title">👁️ Anteprima landing</div>
           <div class="media-section-sub">Così appare la tua pagina di prenotazione</div>
           <div class="profile-preview" id="preview-box">
-            ${az?.cover_url
-              ? `<img class="profile-preview-cover" id="prev-cover-img" src="${esc(az.cover_url)}" alt="Cover">`
-              : `<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>`}
+            ${az && az.cover_url
+              ? '<img class="profile-preview-cover" id="prev-cover-img" src="' + esc(az.cover_url) + '" alt="Cover">'
+              : '<div class="profile-preview-cover-empty" id="prev-cover-empty">&#127869;</div>'}
             <div class="profile-preview-logo-wrap" id="prev-logo-wrap">
-              ${az?.logo_url
-                ? `<img src="${esc(az.logo_url)}" alt="Logo" id="prev-logo-img">`
-                : `<span style="font-size:28px;">🍽️</span>`}
+              ${az && az.logo_url
+                ? '<img src="' + esc(az.logo_url) + '" alt="Logo" id="prev-logo-img">'
+                : '<span style="font-size:28px;">&#127869;</span>'}
             </div>
             <div class="profile-preview-info">
               <div class="profile-preview-nome" id="prev-nome">${esc(az?.nome || 'Il tuo ristorante')}</div>
@@ -3009,7 +3009,7 @@ export async function render(container) {
         </div> <div class="media-card">
           <div class="media-section-title">🖼️ Foto di copertina</div>
           <div class="media-section-sub">Immagine orizzontale 1200×400px — come la cover di Facebook</div>
-          ${az?.cover_url ? `<img src="${esc(az.cover_url)}" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">` : ''}
+          ${az && az.cover_url ? '<img src="' + esc(az.cover_url) + '" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">' : ''}
           <div class="upload-zone" id="cover-zone">
             <input type="file" id="cover-input" accept="image/*" style="display:none;">
             <div class="upload-zone-icon">🖼️</div>
@@ -3021,7 +3021,7 @@ export async function render(container) {
           <div class="media-section-title">🔵 Logo (foto profilo)</div>
           <div class="media-section-sub">Immagine quadrata o tonda — appare come foto profilo sulla landing</div>
           <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
-            ${az?.logo_url ? `<img src="${esc(az.logo_url)}" class="preview-logo" id="logo-preview">` : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
+            ${az && az.logo_url ? '<img src="' + esc(az.logo_url) + '" class="preview-logo" id="logo-preview">' : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">&#127869;</div>'}
             <div style="flex:1;">
               <div class="upload-zone" id="logo-zone">
                 <input type="file" id="logo-input" accept="image/*" style="display:none;">
@@ -3094,7 +3094,7 @@ export async function render(container) {
               <div class="tema-card ${az?.tema_landing_id === t.id ? 'selected' : ''}" data-tema="${esc(t.id)}">
                 <div class="tema-emoji">${esc(t.emoji || '🍽️')}</div>
                 <div class="tema-nome">${esc(t.nome)}</div>
-                ${t.data_inizio ? `<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
+                ${t.data_inizio ? '<div class="tema-date">' + formatTemaDate(t.data_inizio, t.data_fine) + '</div>' : '<div class="tema-date">Sempre</div>'}
               </div>
             `).join('')}
             <div class="tema-card ${!az?.tema_landing_id ? 'selected' : ''}" data-tema="">
@@ -3156,12 +3156,10 @@ export async function render(container) {
           <img src="${esc(url)}" alt="Foto ${i+1}">
           <button class="gallery-item-del" data-idx="${i}" title="Rimuovi">✕</button>
         </div>
-      `).join('') + `
-        <div class="gallery-add" id="gallery-add-btn">
+      ').join('') + '<div class="gallery-add" id="gallery-add-btn">'
           <span style="font-size:24px;">＋</span>
           <span>Aggiungi</span>
-        </div>
-      `;
+        </div>';
       grid.querySelectorAll('.gallery-item-del').forEach(btn => {
         btn.onclick = () => {
           galleriaState.splice(parseInt(btn.dataset.idx), 1);
@@ -3245,7 +3243,7 @@ export async function render(container) {
     // ── Upload file su Supabase Storage ──────────────────────────
     async function uploadFile(file, tipo) {
       const ext = file.name.split('.').pop();
-      const path = `${aziendaId}/${tipo}-${Date.now()}.${ext}`;
+      const path = aziendaId + '/' + tipo + '-' + Date.now() + '.' + ext;
       const { error } = await supa().storage.from('media-aziende').upload(path, file, { upsert: true, contentType: file.type });
       if (error) { console.error('Upload error:', error); return null; }
       const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
