@@ -375,14 +375,14 @@ export async function render(container) {
   // ── LOAD ─────────────────────────────────────────────────────
   async function loadMenus() {
     let q = supa().from("menu").select("*").eq("azienda_id", azienda_id).order("created_at");
-    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
+    if (currentSedeId) q = q.eq("sede_id", currentSedeId);
     const { data } = await q;
     menus = data || [];
   }
 
   async function loadCatVendita() {
     let q = supa().from("categorie_vendita").select("*").eq("azienda_id", azienda_id).order("ordine").order("nome");
-    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
+    if (currentSedeId) q = q.eq("sede_id", currentSedeId);
     const { data } = await q;
     catVendita = data || [];
   }
@@ -404,7 +404,7 @@ export async function render(container) {
       .eq("azienda_id", azienda_id)
       .eq("categoria_vendita_id", catVenditaId)
       .eq("attivo", true);
-    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
+    if (currentSedeId) q = q.eq("sede_id", currentSedeId);
     const { data } = await q.order("ordinamento").order("nome");
     prodottiVendita = data || [];
   }
