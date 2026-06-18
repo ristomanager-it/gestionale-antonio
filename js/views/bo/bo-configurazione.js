@@ -620,11 +620,11 @@ export async function render(container) {
               <div style="font-weight:700;font-size:14px;">${esc(c.nome || c.numero_telefono || '—')}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
                 ${c.modalita === 'meta' ? 'Meta Cloud API' : 'WhatsApp Web'} · ${esc(sedeName)}
-                ${c.numero_telefono ? ` · ${esc(c.numero_telefono)}` : ''}
+                ${c.numero_telefono ? ' · ' + esc(c.numero_telefono) : ''}
               </div>
               <div style="font-size:11px;color:#64748b;margin-top:2px;">
                 Messaggi inviati: ${c.messaggi_inviati || 0}
-                ${c.ultimo_messaggio_il ? ` · Ultimo: ${new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT')}` : ''}
+                ${c.ultimo_messaggio_il ? ' · Ultimo: ' + new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT') : ''}
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -884,7 +884,7 @@ export async function render(container) {
             <div style="min-width:100px;">
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Colore</label>
               <div style="display:flex;gap:6px;flex-wrap:wrap;" id="colori-settore">
-                ${COLORI_SETTORI.map(c => `<button data-col="${c}" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:${c};cursor:pointer;flex-shrink:0;"></button>`).join('')}
+                ${COLORI_SETTORI.map(function(c){ return '<button data-col="' + c + '" style="width:28px;height:28px;border-radius:8px;border:2px solid transparent;background:' + c + ';cursor:pointer;flex-shrink:0;"></button>'; }).join('')}
               </div>
             </div>
             <div style="min-width:80px;">
@@ -921,7 +921,7 @@ export async function render(container) {
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Settore (opzionale)</label>
               <select id="post-settore" style="width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;background:white;">
                 <option value="">Tutti i settori</option>
-                ${settori.map(s => `<option value="${s.nome.toLowerCase()}">${s.nome}</option>`).join('')}
+                ${settori.map(function(s){ return '<option value="' + s.nome.toLowerCase() + '">' + s.nome + '</option>'; }).join('')}
               </select>
             </div>
           </div>
@@ -1048,7 +1048,7 @@ export async function render(container) {
           <div style="font-size:24px;">📱</div>
           <div style="flex:1;">
             <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(p.nome)}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.settore_nome ? `Settore: ${esc(p.settore_nome)}` : 'Tutti i settori'}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.settore_nome ? 'Settore: ' + esc(p.settore_nome) : 'Tutti i settori'}</div>
             <div style="font-size:12px;color:#0E5A7A;margin-top:2px;font-family:monospace;">${esc(url)}</div>
           </div>
           <a href="${url}" target="_blank" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Apri →</a>
@@ -1080,12 +1080,12 @@ export async function render(container) {
     box.innerHTML = Object.entries(perCat).map(([cat, prods]) => `
       <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">
         <div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">${esc(cat)}</div>
-        ${prods.map(p => `
+        ${rods.map(p => '
           <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">
-            <div style="flex:1;font-size:13px;color:#0f172a;">${esc(p.nome)}</div>
-            <select data-prod-settore="${p.id}" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">
+            <div style="flex:1;font-size:13px;color:#0f172a;">' + esc(p.nome) + '</div>
+            <select data-prod-settore="' + p.id + '" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">
               <option value="">— Nessun settore —</option>
-              ${settori.map(s => `<option value="${s.id}" ${p.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
+              ' + settori.map(s => '<option value="${s.id}" ${p.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
             </select>
           </div>
         `).join('')}
@@ -1204,7 +1204,7 @@ export async function render(container) {
         <!-- Filtro per sala -->
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button data-filter-sala="" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #0E5A7A;background:#0E5A7A;color:white;font-size:12px;cursor:pointer;font-weight:600;">Tutti</button>
-          ${sale.map(s => `<button data-filter-sala="${s.id}" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">${esc(s.nome)}</button>`).join('')}
+          ${sale.map(function(s){ return '<button data-filter-sala="' + s.id + '" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">' + esc(s.nome) + '</button>'; }).join('')}
         </div>
 
         <div id="lista-tavoli-conf" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr));gap:10px;margin-bottom:12px;"></div>
@@ -1220,7 +1220,7 @@ export async function render(container) {
               <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Sala</label>
               <select id="tavolo-sala" class="input" style="width:100%;box-sizing:border-box;">
                 <option value="">— Nessuna sala —</option>
-                ${sale.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('')}
+                ${sale.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('')}
               </select>
             </div>
             <div>
@@ -1469,7 +1469,7 @@ export async function render(container) {
       const salaSelect = container.querySelector('#tavolo-sala');
       if (salaSelect) {
         salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
-          sale.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+          sale.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('');
         salaSelect.value = '';
       }
       container.querySelector('#form-tavolo').style.display = '';
@@ -1850,7 +1850,7 @@ export async function render(container) {
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
             <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
-              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
+              ${sedi || []).map(s => '<option value="' + s.id + '" ' + s.id === currentSedeId ? \'selected\' : \'\' + '>' + esc(s.nome) + '</option>').join('')}
             </select>
           </div>
           <div>
@@ -1913,8 +1913,8 @@ export async function render(container) {
             <div style="flex:1;min-width:180px;">
               <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
-                ${catNome ? `${esc(catNome)} · ` : ''}${p.tipo || ''}
-                ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
+                ${atNome ? '' + esc(catNome) + ' · ' : ''}${p.tipo || ''}
+                ${.prezzo_base ? ' · <strong>€' + Number(p.prezzo_base).toFixed(2) + '</strong>' : ''}
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -2034,7 +2034,7 @@ export async function render(container) {
         <div style="font-size:28px;">${icon}</div>
         <div style="font-size:15px;font-weight:700;color:#0f172a;">${titolo}</div>
         <div style="font-size:13px;color:#64748b;flex:1;">${desc}</div>
-        <button ${link?`data-nav="${link}"`:'disabled'} style="
+        <button ${ink?'data-nav="' + link + '"':'disabled'} style="
           padding:8px 14px;border:none;border-radius:10px;cursor:${disabled?'default':'pointer'};font-size:13px;font-weight:600;
           background:${disabled?'#f1f5f9':'#0E5A7A'};color:${disabled?'#94a3b8':'white'};
           align-self:flex-start;
@@ -2283,7 +2283,7 @@ export async function render(container) {
                 <div>
                   <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo domanda</label>
                   <select id="dom-tipo" class="input" style="width:100%;box-sizing:border-box;">
-                    ${TIPI_DOM.map(t=>`<option value="${t.v}">${t.l}</option>`).join('')}
+                    ${IPI_DOM.map(t=>'<option value="' + t.v + '">' + t.l + '</option>').join('')}
                   </select>
                 </div>
                 <div>
@@ -3274,13 +3274,13 @@ export async function render(container) {
           <div class="media-section-title">👁️ Anteprima landing</div>
           <div class="media-section-sub">Così appare la tua pagina di prenotazione</div>
           <div class="profile-preview" id="preview-box">
-            ${az?.cover_url
-              ? `<img class="profile-preview-cover" id="prev-cover-img" src="${esc(az.cover_url)}" alt="Cover">`
-              : `<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>`}
+            ${z?.cover_url
+              ? '<img class="profile-preview-cover" id="prev-cover-img" src="' + esc(az.cover_url) + '" alt="Cover">'
+              : '<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>'}
             <div class="profile-preview-logo-wrap" id="prev-logo-wrap">
-              ${az?.logo_url
-                ? `<img src="${esc(az.logo_url)}" alt="Logo" id="prev-logo-img">`
-                : `<span style="font-size:28px;">🍽️</span>`}
+              ${z?.logo_url
+                ? '<img src="' + esc(az.logo_url) + '" alt="Logo" id="prev-logo-img">'
+                : '<span style="font-size:28px;">🍽️</span>'}
             </div>
             <div class="profile-preview-info">
               <div class="profile-preview-nome" id="prev-nome">${esc(az?.nome || 'Il tuo ristorante')}</div>
@@ -3293,7 +3293,7 @@ export async function render(container) {
         <div class="media-card">
           <div class="media-section-title">🖼️ Foto di copertina</div>
           <div class="media-section-sub">Immagine orizzontale 1200×400px — come la cover di Facebook</div>
-          ${az?.cover_url ? `<img src="${esc(az.cover_url)}" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">` : ''}
+          ${z?.cover_url ? '<img src="' + esc(az.cover_url) + '" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">' : ''}
           <div class="upload-zone" id="cover-zone">
             <input type="file" id="cover-input" accept="image/*" style="display:none;">
             <div class="upload-zone-icon">🖼️</div>
@@ -3308,7 +3308,7 @@ export async function render(container) {
           <div class="media-section-title">🔵 Logo (foto profilo)</div>
           <div class="media-section-sub">Immagine quadrata o tonda — appare come foto profilo sulla landing</div>
           <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
-            ${az?.logo_url ? `<img src="${esc(az.logo_url)}" class="preview-logo" id="logo-preview">` : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
+            ${z?.logo_url ? '<img src="' + esc(az.logo_url) + '" class="preview-logo" id="logo-preview">' : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
             <div style="flex:1;">
               <div class="upload-zone" id="logo-zone">
                 <input type="file" id="logo-input" accept="image/*" style="display:none;">
@@ -3394,11 +3394,11 @@ export async function render(container) {
           <div class="media-section-title">🎭 Tema serata</div>
           <div class="media-section-sub">Attiva un tema stagionale per la landing — cambia colori e header automaticamente</div>
           <div class="tema-grid" id="tema-grid">
-            ${(temi || []).map(t => `
-              <div class="tema-card ${az?.tema_landing_id === t.id ? 'selected' : ''}" data-tema="${esc(t.id)}">
-                <div class="tema-emoji">${esc(t.emoji || '🍽️')}</div>
-                <div class="tema-nome">${esc(t.nome)}</div>
-                ${t.data_inizio ? `<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
+            ${temi || []).map(t => '
+              <div class="tema-card ' + az?.tema_landing_id === t.id ? \'selected\' : \'\' + '" data-tema="' + esc(t.id) + '">
+                <div class="tema-emoji">' + esc(t.emoji || \'🍽️\') + '</div>
+                <div class="tema-nome">' + esc(t.nome) + '</div>
+                ' + t.data_inizio ? '<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
               </div>
             `).join('')}
             <div class="tema-card ${!az?.tema_landing_id ? 'selected' : ''}" data-tema="">
