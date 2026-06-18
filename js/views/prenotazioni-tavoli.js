@@ -853,7 +853,7 @@ export async function render(container) {
     load();
   };
   document.getElementById("tab-piantina").onclick = () => {
-    window.location.hash = "#/sala";
+    window.location.hash = "#/bo-configurazione?tab=sala&subtab=piantina";
   };
 
   document.getElementById("pren-menu-trigger").onclick = () => toggleDrawer("menu");
@@ -1464,17 +1464,14 @@ function renderDays() {
 
     let query = window.supabaseClient
       .from("tavoli")
-      .select("*");
-
-    if (aziendaId) {
-      query = query.eq("azienda_id", aziendaId);
-    }
+      .select("id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("numero");
 
     if (sedeId) {
       query = query.eq("sede_id", sedeId);
     }
-
-    query = query.eq("attivo", true);
 
     const { data, error } = await query;
 
