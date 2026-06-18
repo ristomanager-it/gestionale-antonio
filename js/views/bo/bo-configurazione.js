@@ -19,7 +19,7 @@ const COLORI_SETTORI = ['#f59e0b','#16a34a','#0E5A7A','#7c3aed','#dc2626','#0891
 
 export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
-  const sedeId    = window.state?.sedeAttiva?.id;
+  let currentSedeId = window.state?.sedeAttiva?.id || null; // mutabile — aggiornato dal selettore globale
 
   if (!aziendaId) { container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>'; return; }
   const authOk = await waitForAuth();
@@ -37,6 +37,15 @@ export async function render(container) {
         <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
       </div>
       
+      <!-- Selettore sede globale — visibile in tutte le tab -->
+      <div id="cfg-sede-banner" style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:13px;font-weight:600;color:#64748b;white-space:nowrap;">📍 Sede:</div>
+        <select id="cfg-sede-sel" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff;font-weight:600;color:#0f172a;">
+          <option value="">— Seleziona sede —</option>
+        </select>
+        <div id="cfg-sede-label" style="font-size:12px;color:#94a3b8;">Cambia sede per configurare un altro locale</div>
+      </div>
+
       <!-- Tab nav — due righe -->
       <div style="border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
         <div id="tab-nav-wrap" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
@@ -101,6 +110,45 @@ export async function render(container) {
   }
 
   container.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+
+  // ── Inizializza selettore sede globale ──────────────────────────────
+  (async function initSedeBanner() {
+    const { data: sediList } = await supa()
+      .from('sedi').select('id,nome')
+      .eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
+
+    const sel = container.querySelector('#cfg-sede-sel');
+    if (!sel) return;
+
+    (sediList || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nome;
+      if (s.id === currentSedeId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    // Se nessuna sede selezionata e ce ne sono disponibili, prendi la prima
+    if (!currentSedeId && sediList && sediList.length > 0) {
+      currentSedeId = sediList[0].id;
+      sel.value = currentSedeId;
+    }
+
+    const updateLabel = () => {
+      const nome = (sediList || []).find(s => s.id === currentSedeId)?.nome || '';
+      const lbl = container.querySelector('#cfg-sede-label');
+      if (lbl) lbl.textContent = nome ? '✅ ' + nome : 'Cambia sede per configurare un altro locale';
+    };
+    updateLabel();
+
+    sel.addEventListener('change', function() {
+      currentSedeId = this.value || null;
+      updateLabel();
+      // Ricarica il tab corrente con la nuova sede
+      const box = container.querySelector('#tab-content');
+      if (box) switchTab(tabAttivo);
+    });
+  })();
 
   // ════════════════════════════════════════
   // PRESTO DISPONIBILE (tab vuoti)
@@ -390,7 +438,7 @@ export async function render(container) {
       .eq('azienda_id', aziendaId).order('nome');
 
     const sediOpts = (sedi || []).map(s =>
-      `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`
+      `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`
     ).join('');
 
     box.innerHTML = `
@@ -611,7 +659,7 @@ export async function render(container) {
       const form = box.querySelector('#form-wa-wrap');
       box.querySelector('#form-wa-title').textContent = c ? 'Modifica connessione' : 'Nuova connessione WhatsApp';
       box.querySelector('#wa-nome').value = c?.nome || '';
-      box.querySelector('#wa-sede').value = c?.sede_id || sedeId || '';
+      box.querySelector('#wa-sede').value = c?.sede_id || currentSedeId || '';
       box.querySelector('#wa-numero').value = c?.numero_telefono || '';
       box.querySelector('#wa-modalita').value = c?.modalita || 'meta';
       box.querySelector('#wa-phone-id').value = c?.meta_phone_number_id || '';
@@ -684,7 +732,7 @@ export async function render(container) {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/google-ads-oauth?action=authorize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-          body: JSON.stringify({ azienda_id: aziendaId, sede_id: sedeId || '' })
+          body: JSON.stringify({ azienda_id: aziendaId, sede_id: currentSedeId || '' })
         });
         const { url } = await res.json();
         const popup = window.open(url, 'google-auth', 'width=600,height=700,left=200,top=100');
@@ -784,7 +832,7 @@ export async function render(container) {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
           body: JSON.stringify({
             azienda_id: aziendaId,
-            sede_id: sedeId,
+            sede_id: currentSedeId,
             numero_dest: numero,
             template_name: 'ristoflow_notifica',
             contesto: 'test'
@@ -957,7 +1005,7 @@ export async function render(container) {
       if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
       const settoreNome = postSettore?.value || null;
       const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
-      const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:sedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
+      const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:currentSedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
       if (error) { mostraToast('Errore: '+error.message,'error'); return; }
       postazioni.push(data);
       if (postNome) postNome.value = '';
@@ -1092,60 +1140,16 @@ export async function render(container) {
   async function renderTabSala(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
-    if (!sedeId) {
-      // Carica sedi disponibili per selettore inline
-      const { data: sediDisp } = await supa().from('sedi')
-        .select('id,nome').eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
-      
-      if (!sediDisp || sediDisp.length === 0) {
-        box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:20px;color:#92400e;font-size:14px;">⚠️ Nessuna sede attiva trovata. Crea prima una sede in Gestione Sedi.</div>';
-        return;
-      }
-
-      box.innerHTML = '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;max-width:500px;">' +
-        '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px;">🪑 Seleziona sede</div>' +
-        '<div style="font-size:13px;color:#64748b;margin-bottom:16px;">Non hai selezionato una sede. Scegli qui oppure cambiala dalla barra in alto.</div>' +
-        '<select id="sede-inline-sel" style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none;margin-bottom:14px;">' +
-        sediDisp.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('') +
-        '</select>' +
-        '<button id="btn-usa-sede-inline" style="width:100%;padding:11px;background:#0E5A7A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Usa questa sede →</button>' +
-        '</div>';
-      
-      box.querySelector('#btn-usa-sede-inline').addEventListener('click', async () => {
-        const sidSel = box.querySelector('#sede-inline-sel').value;
-        if (!sidSel) return;
-        // Imposta la sede nello state e ricarica il tab
-        if (window.stateActions?.setSedeAttiva) {
-          const sedeSel = sediDisp.find(s => s.id === sidSel);
-          if (sedeSel) window.stateActions.setSedeAttiva(sedeSel);
-        }
-        // Ricarica il tab con la nuova sede
-        const newSedeId = sidSel;
-        const { data: saleData } = await supa().from('sale')
-          .select('id,nome,capienza_max,capienza_min,note,sede_id,attiva')
-          .eq('azienda_id', aziendaId).eq('sede_id', newSedeId).order('nome');
-        sale = saleData || [];
-        const { data: tavoliData } = await supa().from('tavoli')
-          .select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo')
-          .eq('azienda_id', aziendaId).eq('sede_id', newSedeId).order('numero');
-        tavoli = tavoliData || [];
-        renderTabSala(box);
-      });
-      return;
-    }
-
     // Carica sale e tavoli
     const { data: saleData } = await supa()
-      .from('sale').select('id,nome,capienza_max,capienza_min,note,sede_id,attiva')
+      .from('sale').select('*')
       .eq('azienda_id', aziendaId)
-      .eq('sede_id', sedeId)
       .order('nome');
     sale = saleData || [];
 
     const { data: tavoliData } = await supa()
-      .from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo')
+      .from('tavoli').select('*')
       .eq('azienda_id', aziendaId)
-      .eq('sede_id', sedeId)
       .order('numero');
     tavoli = tavoliData || [];
 
@@ -1282,7 +1286,6 @@ export async function render(container) {
             ${s.capienza_max ? `Capienza: ${s.capienza_max} posti` : ''}
             ${s.note ? ` · ${esc(s.note)}` : ''}
             · ${tavoli.filter(t => t.sala_id === s.id).length} tavoli
-            · ${s.sede_id ? '' : '<span style="color:#dc2626;font-size:11px;">⚠️ sede non associata</span>'}
           </div>
         </div>
         <div style="display:flex;gap:6px;">
@@ -1358,7 +1361,7 @@ export async function render(container) {
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
       const payload = {
         azienda_id: aziendaId,
-        sede_id: sedeId || null,
+        sede_id: currentSedeId || null,
         nome,
         capienza_max: parseInt(container.querySelector('#sala-capienza').value) || null,
         note: container.querySelector('#sala-note').value.trim() || null,
@@ -1378,7 +1381,7 @@ export async function render(container) {
       container.querySelector('#tavolo-min').value = '1';
       container.querySelector('#tavolo-max').value = '4';
       container.querySelector('#tavolo-sedie').value = '';
-      // Aggiorna la tendina sale con quelle correntemente caricate
+      // Aggiorna tendina sale con quelle correntemente caricate
       const salaSelect = container.querySelector('#tavolo-sala');
       if (salaSelect) {
         salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
@@ -1399,7 +1402,7 @@ export async function render(container) {
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
       const payload = {
         azienda_id: aziendaId,
-        sede_id: sedeId || null,
+        sede_id: currentSedeId || null,
         sala_id: container.querySelector('#tavolo-sala').value || null,
         numero: isNaN(Number(numero)) ? null : Number(numero),
         nome: numero,
@@ -1443,11 +1446,16 @@ export async function render(container) {
   async function renderTabMenu(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
+    if (!currentSedeId) {
+      box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px;color:#92400e;font-size:14px;">⚠️ Seleziona una sede dal menu in alto per gestire il catalogo prodotti.</div>';
+      return;
+    }
+
     const { data: categorie } = await supa()
       .from('categorie_vendita')
       .select('id, nome')
       .eq('azienda_id', aziendaId)
-      .eq('sede_id', sedeId)
+      .eq('sede_id', currentSedeId)
       .order('nome');
 
     const { data: sedi } = await supa()
@@ -1458,7 +1466,7 @@ export async function render(container) {
     const caricaProdotti = async (filtroCanale = '', filtroTipo = '', filtroQ = '') => {
       let q = supa().from('prodotti_vendita').select('*, categorie_vendita(nome)')
         .eq('azienda_id', aziendaId);
-      if (sedeId) q = q.eq('sede_id', sedeId);
+      if (currentSedeId) q = q.eq('sede_id', currentSedeId);
       if (filtroCanale) q = q.eq('canale', filtroCanale);
       if (filtroTipo) q = q.eq('tipo', filtroTipo);
       if (filtroQ) q = q.ilike('nome', `%${filtroQ}%`);
@@ -1557,7 +1565,7 @@ export async function render(container) {
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
             <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
-              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === sedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
+              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -1661,7 +1669,7 @@ export async function render(container) {
       box.querySelector('#pv-categoria').value = p?.categoria_vendita_id || '';
       box.querySelector('#pv-prezzo').value = p?.prezzo_base || '';
       box.querySelector('#pv-iva').value = p?.iva || '10';
-      box.querySelector('#pv-sede').value = p?.sede_id || sedeId || '';
+      box.querySelector('#pv-sede').value = p?.sede_id || currentSedeId || '';
       box.querySelector('#pv-ordine').value = p?.ordinamento || 0;
       box.querySelector('#pv-descrizione').value = p?.descrizione || '';
       box.querySelector('#pv-attivo').checked = p?.attivo ?? true;
@@ -1699,7 +1707,7 @@ export async function render(container) {
 
       const payload = {
         azienda_id: aziendaId,
-        sede_id: box.querySelector('#pv-sede').value || sedeId || null,
+        sede_id: box.querySelector('#pv-sede').value || currentSedeId || null,
         nome,
         canale: box.querySelector('#pv-canale').value || 'tutti',
         tipo: box.querySelector('#pv-tipo').value || 'portata',
@@ -1760,7 +1768,7 @@ export async function render(container) {
     try { const{data}=await supa().from('postazioni').select('*').eq('azienda_id',aziendaId).order('nome'); postazioni=data||[]; } catch(e){postazioni=[];}
   }
   async function loadProdotti() {
-    try { let q=supa().from('prodotti_vendita').select('*').eq('azienda_id',aziendaId); if(sedeId)q=q.eq('sede_id',sedeId); const{data}=await q.order('nome'); prodottiVendita=data||[]; } catch(e){prodottiVendita=[];}
+    try { let q=supa().from('prodotti_vendita').select('*').eq('azienda_id',aziendaId); if(currentSedeId)q=q.eq('sede_id',currentSedeId); const{data}=await q.order('nome'); prodottiVendita=data||[]; } catch(e){prodottiVendita=[];}
   }
   async function loadCategorie() {
     try { const{data}=await supa().from('categorie_vendita').select('*').eq('azienda_id',aziendaId).order('nome'); categorieVendita=data||[]; } catch(e){categorieVendita=[];}
@@ -2404,8 +2412,8 @@ export async function render(container) {
       .eq('attiva', true)
       .order('nome');
 
-    // Sede selezionata: usa sedeId corrente o prima sede disponibile
-    let rfSedeId = sedeId || (sediRf && sediRf[0]?.id) || null;
+    // Sede selezionata: usa currentSedeId corrente o prima sede disponibile
+    let rfSedeId = currentSedeId || (sediRf && sediRf[0]?.id) || null;
 
     // Funzione per caricare e renderizzare dati sede
     async function caricaRfSede(sid) {
