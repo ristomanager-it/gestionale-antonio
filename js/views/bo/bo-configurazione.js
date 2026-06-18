@@ -1200,7 +1200,7 @@ export async function render(container) {
           ${[{ icon:'📅', titolo:'Prenotazioni', desc:'Gestisci arrivi e tavoli.', link:'prenotazioni', cta:'Vai a Prenotazioni' }].map(c => cardLink(c)).join('')}
         </div>
       </div>
-    \`;
+    `;
 
     renderListaSale();
     renderListaTavoliConf();
@@ -1604,7 +1604,7 @@ export async function render(container) {
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
             <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
-              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
+              ${(sedi || []).map(function(s){ return '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('')}
             </select>
           </div>
           <div>
@@ -3021,7 +3021,7 @@ export async function render(container) {
           <div class="media-section-title">🔵 Logo (foto profilo)</div>
           <div class="media-section-sub">Immagine quadrata o tonda — appare come foto profilo sulla landing</div>
           <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
-            ${az && az.logo_url ? '<img src="' + esc(az.logo_url) + '" class="preview-logo" id="logo-preview">' : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">&#127869;</div>'}
+            ${az?.logo_url ? '<img src="' + esc(az.logo_url) + '" class="preview-logo" id="logo-preview">' : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
             <div style="flex:1;">
               <div class="upload-zone" id="logo-zone">
                 <input type="file" id="logo-input" accept="image/*" style="display:none;">
@@ -3090,13 +3090,7 @@ export async function render(container) {
           <div class="media-section-title">🎭 Tema serata</div>
           <div class="media-section-sub">Attiva un tema stagionale per la landing — cambia colori e header automaticamente</div>
           <div class="tema-grid" id="tema-grid">
-            ${(temi || []).map(t => `
-              <div class="tema-card ${az?.tema_landing_id === t.id ? 'selected' : ''}" data-tema="${esc(t.id)}">
-                <div class="tema-emoji">${esc(t.emoji || '🍽️')}</div>
-                <div class="tema-nome">${esc(t.nome)}</div>
-                ${t.data_inizio ? '<div class="tema-date">' + formatTemaDate(t.data_inizio, t.data_fine) + '</div>' : '<div class="tema-date">Sempre</div>'}
-              </div>
-            `).join('')}
+            ${(temi || []).map(function(t) { return '<div class="tema-card ' + (az && az.tema_landing_id === t.id ? 'selected' : '') + '" data-tema="' + esc(t.id) + '"><div class="tema-emoji">' + esc(t.emoji || '&#127869;') + '</div><div class="tema-nome">' + esc(t.nome) + '</div>' + (t.data_inizio ? '<div class="tema-date">' + formatTemaDate(t.data_inizio, t.data_fine) + '</div>' : '<div class="tema-date">Sempre</div>') + '</div>'; }).join('')}
             <div class="tema-card ${!az?.tema_landing_id ? 'selected' : ''}" data-tema="">
               <div class="tema-emoji">❌</div>
               <div class="tema-nome">Nessun tema</div>
@@ -3151,15 +3145,9 @@ export async function render(container) {
     // ── Render galleria ───────────────────────────────────────────
     function renderGalleria() {
       const grid = box.querySelector('#gallery-grid');
-      grid.innerHTML = galleriaState.map((url, i) => `
-        <div class="gallery-item">
-          <img src="${esc(url)}" alt="Foto ${i+1}">
-          <button class="gallery-item-del" data-idx="${i}" title="Rimuovi">✕</button>
-        </div>
-      ').join('') + '<div class="gallery-add" id="gallery-add-btn">'
-          <span style="font-size:24px;">＋</span>
-          <span>Aggiungi</span>
-        </div>';
+      grid.innerHTML = galleriaState.map(function(url, i) {
+        return '<div class="gallery-item"><img src="' + esc(url) + '" alt="Foto ' + (i+1) + '"><button class="gallery-item-del" data-idx="' + i + '" title="Rimuovi">✕</button></div>';
+      }).join('') + '<div class="gallery-add" id="gallery-add-btn"><span style="font-size:24px;">＋</span><span>Aggiungi</span></div>';
       grid.querySelectorAll('.gallery-item-del').forEach(btn => {
         btn.onclick = () => {
           galleriaState.splice(parseInt(btn.dataset.idx), 1);
