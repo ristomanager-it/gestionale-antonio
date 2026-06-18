@@ -1,3 +1,4 @@
+// VERSIONE: 1781802092
 // js/views/bo/bo-configurazione.js
 // Control room del ristorante — configurazione centralizzata
 // Tab: Operativo | Sala | Menu & Comunicazione | Cassa | Integrazioni
