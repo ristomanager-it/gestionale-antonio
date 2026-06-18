@@ -369,14 +369,14 @@ export async function render(container) {
       if (!ip) { esito.textContent = '❌ Inserisci IP stampante'; esito.style.color = '#dc2626'; return; }
       esito.textContent = '🔌 Test in corso...'; esito.style.color = '#64748b';
       try {
-        const r = await fetch(`http://${ip}:${porta}/cgi-bin/fpmate.cgi`, {
+        const r = await fetch('http://' + ip + ':' + porta + '/cgi-bin/fpmate.cgi', {
           method: 'POST',
           headers: { 'Content-Type': 'text/xml' },
           body: '<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><printerCommand><queryPrinterStatus/></printerCommand></s:Body></s:Envelope>',
           signal: AbortSignal.timeout(5000)
         });
         if (r.ok) { esito.textContent = '✅ Stampante raggiungibile!'; esito.style.color = '#16a34a'; }
-        else { esito.textContent = `⚠️ Risposta HTTP ${r.status}`; esito.style.color = '#f59e0b'; }
+        else { esito.textContent = '⚠️ Risposta HTTP ' + r.status; esito.style.color = '#f59e0b'; }
       } catch (e) {
         esito.textContent = '❌ Non raggiungibile — verifica IP e rete locale (il browser potrebbe bloccare chiamate HTTP locali)';
         esito.style.color = '#dc2626';
@@ -729,9 +729,9 @@ export async function render(container) {
       const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/google-ads-oauth?action=authorize`, {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/google-ads-oauth?action=authorize', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY },
           body: JSON.stringify({ azienda_id: aziendaId, sede_id: currentSedeId || '' })
         });
         const { url } = await res.json();
@@ -827,9 +827,9 @@ export async function render(container) {
       try {
         const supabaseUrl = window.supabaseClient?.supabaseUrl || 'https://cuhcscpvhypoaplcmtjk.supabase.co';
         const supabaseKey = window.supabaseClient?.supabaseKey || window.SUPABASE_ANON_KEY || '';
-        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send-ts`, {
+        const res = await fetch(supabaseUrl + '/functions/v1/whatsapp-send-ts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseKey },
           body: JSON.stringify({
             azienda_id: aziendaId,
             sede_id: currentSedeId,
@@ -995,7 +995,7 @@ export async function render(container) {
     const aggiornaUrl = () => {
       const s = postSettore?.value;
       const url = s ? '#/display-cucina?settore=' + s : '#/display-cucina';
-      if (urlPreview) urlPreview.innerHTML = `URL tablet: <strong>${url}</strong> — <a href="${url}" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda →</a>`;
+      if (urlPreview) urlPreview.innerHTML = 'URL tablet: <strong>' + url + '</strong> — <a href="' + url + '" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda &rarr;</a>';
     };
     postSettore?.addEventListener('change', aggiornaUrl);
     container.querySelector('#btn-nuova-postazione').onclick = () => { container.querySelector('#form-postazione').style.display='block'; postNome?.focus(); };
@@ -1761,11 +1761,11 @@ export async function render(container) {
     await caricaProdotti();
 
     const canaliOpts = ['tutti', 'evento', 'ristorante', 'trattoria', 'bar']
-      .map(c => `<option value="${c}">${c}</option>`).join('');
+      .map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
     const tipiOpts = ['', 'portata', 'servizio', 'menu_fisso', 'bevanda', 'altro']
-      .map(t => `<option value="${t}">${t || '— tutti i tipi —'}</option>`).join('');
-    const catOpts = (categorie || []).map(c =>
-      `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      .map(function(t){ return '<option value="' + t + '">' + (t || '— tutti i tipi —') + '</option>'; }).join('');
+    const catOpts = (categorie || []).map(function(c){
+      return '<option value="' + c.id + '">' + esc(c.nome) + '</option>';}).join('');
 
     box.innerHTML = `
       <!-- Banner Menu Builder -->
@@ -2018,7 +2018,7 @@ export async function render(container) {
       await caricaProdotti();
       renderListaProdotti();
       setTimeout(() => { box.querySelector('#form-prodotto-wrap').style.display = 'none'; }, 600);
-      mostraToast(`"${nome}" salvato ✅`, 'success');
+      mostraToast('"' + nome + '" salvato ✅', 'success');
     });
 
     box.querySelectorAll('[data-nav]').forEach(btn => {
@@ -2067,7 +2067,7 @@ export async function render(container) {
   function mostraToast(msg, tipo='info') {
     const c={success:'#16a34a',error:'#dc2626',warning:'#f59e0b',info:'#0E5A7A'};
     const t=document.createElement('div');
-    t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${c[tipo]};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);`;
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + c[tipo] + ';color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
     t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
   }
 
@@ -2474,7 +2474,7 @@ export async function render(container) {
       await render(box);
     } catch (e) {
       console.error('Errore caricamento booking-form-builder:', e);
-      box.innerHTML = `<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ${e.message}</div>`;
+      box.innerHTML = '<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ' + e.message + '</div>';
     }
   }
 
@@ -3548,7 +3548,7 @@ export async function render(container) {
     // ── Upload file su Supabase Storage ──────────────────────────
     async function uploadFile(file, tipo) {
       const ext = file.name.split('.').pop();
-      const path = `${aziendaId}/${tipo}-${Date.now()}.${ext}`;
+      const path = aziendaId + '/' + tipo + '-' + Date.now() + '.' + ext;
       const { error } = await supa().storage.from('media-aziende').upload(path, file, { upsert: true, contentType: file.type });
       if (error) { console.error('Upload error:', error); return null; }
       const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
