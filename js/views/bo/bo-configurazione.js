@@ -1092,16 +1092,23 @@ export async function render(container) {
   async function renderTabSala(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
+    if (!sedeId) {
+      box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:20px;color:#92400e;font-size:14px;">⚠️ Seleziona prima una sede dalla barra in alto per gestire sale e tavoli.</div>';
+      return;
+    }
+
     // Carica sale e tavoli
     const { data: saleData } = await supa()
-      .from('sale').select('*')
+      .from('sale').select('id,nome,capienza_max,capienza_min,note,sede_id,attiva')
       .eq('azienda_id', aziendaId)
+      .eq('sede_id', sedeId)
       .order('nome');
     sale = saleData || [];
 
     const { data: tavoliData } = await supa()
-      .from('tavoli').select('*')
+      .from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo')
       .eq('azienda_id', aziendaId)
+      .eq('sede_id', sedeId)
       .order('numero');
     tavoli = tavoliData || [];
 
@@ -1238,6 +1245,7 @@ export async function render(container) {
             ${s.capienza_max ? `Capienza: ${s.capienza_max} posti` : ''}
             ${s.note ? ` · ${esc(s.note)}` : ''}
             · ${tavoli.filter(t => t.sala_id === s.id).length} tavoli
+            · ${s.sede_id ? '' : '<span style="color:#dc2626;font-size:11px;">⚠️ sede non associata</span>'}
           </div>
         </div>
         <div style="display:flex;gap:6px;">
