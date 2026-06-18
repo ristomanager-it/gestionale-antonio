@@ -5,7 +5,7 @@ const BASE_URL = "https://app.ristoflow-ai.com";
 
 export async function render(container) {
   const azienda_id = window.state?.azienda?.id;
-  const sede_id    = window.state?.sedeAttiva?.id || null;
+  let currentSedeId = window.state?.sedeAttiva?.id || null;
   const ruolo      = window.state?.ruolo;
 
   if (ruolo !== "admin" && ruolo !== "superadmin") {
@@ -62,6 +62,8 @@ export async function render(container) {
     <div style="background:#0E5A7A;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0;">
       <button id="btn-back" class="mb-btn" style="background:rgba(255,255,255,.15);color:#fff;border:none;">← Indietro</button>
       <div style="font-size:17px;font-weight:800;color:#fff;flex:1;">🍽️ Menu Builder</div>
+      <select id="mb-sede-sel" style="padding:7px 12px;border:none;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:none;">
+      </select>
       <button id="btn-nuovo-menu" class="mb-btn" style="background:#fff;color:#0E5A7A;font-weight:800;">+ Nuovo menu</button>
     </div>
 
@@ -344,20 +346,43 @@ export async function render(container) {
   // ── INIT ─────────────────────────────────────────────────────
   await loadMenus();
   await loadCatVendita();
+  // Carica sedi — mostra selettore solo se azienda ha più sedi
+  (async function initSedeSel() {
+    const { data: sediList } = await supa().from('sedi').select('id,nome').eq('azienda_id', azienda_id).eq('attiva', true).order('nome');
+    const sel = qs('#mb-sede-sel');
+    if (!sel || !sediList || sediList.length <= 1) return;
+    sel.style.display = '';
+    sediList.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.nome;
+      if (s.id === currentSedeId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if (!currentSedeId && sediList.length > 0) { currentSedeId = sediList[0].id; sel.value = currentSedeId; }
+    sel.addEventListener('change', async function() {
+      currentSedeId = this.value || null;
+      await caricaDati();
+      renderTabsMenu();
+      renderCatSx();
+      renderCatCentro();
+      renderDxPlaceholder();
+    });
+  })();
+
   renderTabsMenu();
   if (menus.length > 0) await selezionaMenu(menus[0]);
 
   // ── LOAD ─────────────────────────────────────────────────────
   async function loadMenus() {
     let q = supa().from("menu").select("*").eq("azienda_id", azienda_id).order("created_at");
-    if (sede_id) q = q.eq("sede_id", sede_id);
+    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
     const { data } = await q;
     menus = data || [];
   }
 
   async function loadCatVendita() {
     let q = supa().from("categorie_vendita").select("*").eq("azienda_id", azienda_id).order("ordine").order("nome");
-    if (sede_id) q = q.eq("sede_id", sede_id);
+    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
     const { data } = await q;
     catVendita = data || [];
   }
@@ -379,7 +404,7 @@ export async function render(container) {
       .eq("azienda_id", azienda_id)
       .eq("categoria_vendita_id", catVenditaId)
       .eq("attivo", true);
-    if (sede_id) q = q.eq("sede_id", sede_id);
+    if (currentSedeId) q = q.eq("currentSedeId", currentSedeId);
     const { data } = await q.order("ordinamento").order("nome");
     prodottiVendita = data || [];
   }
@@ -819,7 +844,7 @@ export async function render(container) {
   function chiudiModalVoce() { qs("#modal-voce").style.display = "none"; }
 
   // ── MODAL CFG CATEGORIA ───────────────────────────────────────
-  function aprireModalCfgCat(mc) {
+  async function aprireModalCfgCat(mc) {
     qs("#modal-voce-title").textContent = `⚙️ ${mc.nome}`;
     // Carica settori per il selettore display
     const { data: settoriDisp } = await supa().from("settori").select("id,nome,colore").eq("azienda_id", azienda_id).order("ordine");
@@ -946,7 +971,7 @@ export async function render(container) {
     if (!nome) { msg.innerHTML = `<span style="color:#dc2626;">Nome obbligatorio</span>`; return; }
     btn.disabled = true; btn.textContent = "Creazione...";
     const { data, error } = await supa().from("menu").insert({
-      azienda_id, sede_id, nome,
+      azienda_id, currentSedeId, nome,
       descrizione: qs("#nuovo-desc").value.trim() || null,
       slug: makeSlug(nome), attivo: true
     }).select().single();
