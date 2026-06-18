@@ -1068,39 +1068,38 @@ export async function render(container) {
     const box = container.querySelector('#lista-prodotti-settore');
     if (!box) return;
     if (!prodottiVendita.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessun prodotto trovato.</div>'; return; }
-    // Raggruppa per categoria
     const catMap = {};
-    categorieVendita.forEach(c => catMap[c.id] = c.nome);
+    categorieVendita.forEach(function(c){ catMap[c.id] = c.nome; });
     const perCat = {};
-    prodottiVendita.forEach(p => {
+    prodottiVendita.forEach(function(p) {
       const cn = catMap[p.categoria_vendita_id] || 'Senza categoria';
       if (!perCat[cn]) perCat[cn] = [];
       perCat[cn].push(p);
     });
-    box.innerHTML = Object.entries(perCat).map(([cat, prods]) => `
-      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">
-        <div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">${esc(cat)}</div>
-        ${rods.map(p => '
-          <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">
-            <div style="flex:1;font-size:13px;color:#0f172a;">' + esc(p.nome) + '</div>
-            <select data-prod-settore="' + p.id + '" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">
-              <option value="">— Nessun settore —</option>
-              ' + settori.map(s => '<option value="${s.id}" ${p.settore_id===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}
-            </select>
-          </div>
-        `).join('')}
-      </div>
-    `).join('');
-    box.querySelectorAll('[data-prod-settore]').forEach(sel => {
-      sel.onchange = async () => {
+    var html = '';
+    Object.entries(perCat).forEach(function([cat, prods]) {
+      html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">';
+      html += '<div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">' + esc(cat) + '</div>';
+      prods.forEach(function(p) {
+        var opts = '<option value="">— Nessun settore —</option>' +
+          settori.map(function(s){ return '<option value="' + s.id + '"' + (p.settore_id === s.id ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">';
+        html += '<div style="flex:1;font-size:13px;color:#0f172a;">' + esc(p.nome) + '</div>';
+        html += '<select data-prod-settore="' + p.id + '" style="padding:5px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;background:white;min-width:140px;">' + opts + '</select>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('[data-prod-settore]').forEach(function(sel) {
+      sel.onchange = async function() {
         const pid = sel.dataset.prodSettore;
         const sid = sel.value || null;
         await supa().from('prodotti_vendita').update({ settore_id: sid }).eq('id', pid);
-        // Aggiorna comanda_righe: quando il prodotto viene aggiunto, usa il settore_id
         mostraToast('Settore aggiornato ✅','success');
       };
     });
-  }
+  }}
 
   function renderListaTempi() {
     const box = container.querySelector('#lista-tempi');
