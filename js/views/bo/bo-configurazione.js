@@ -172,7 +172,7 @@ export async function render(container) {
       .order('nome');
 
     const sediOpts = (sedi || []).map(s =>
-      `<option value="${s.id}">${esc(s.nome)}</option>`
+      '<option value="' + s.id + '">' + esc(s.nome) + '</option>'
     ).join('');
 
     box.innerHTML = `
@@ -438,7 +438,7 @@ export async function render(container) {
       .eq('azienda_id', aziendaId).order('nome');
 
     const sediOpts = (sedi || []).map(s =>
-      `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`
+      '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'
     ).join('');
 
     box.innerHTML = `
@@ -994,7 +994,7 @@ export async function render(container) {
     const urlPreview  = container.querySelector('#post-url-preview');
     const aggiornaUrl = () => {
       const s = postSettore?.value;
-      const url = s ? `#/display-cucina?settore=${s}` : '#/display-cucina';
+      const url = s ? '#/display-cucina?settore=' + s : '#/display-cucina';
       if (urlPreview) urlPreview.innerHTML = `URL tablet: <strong>${url}</strong> — <a href="${url}" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda →</a>`;
     };
     postSettore?.addEventListener('change', aggiornaUrl);
@@ -1004,7 +1004,7 @@ export async function render(container) {
       const nome = postNome?.value.trim();
       if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
       const settoreNome = postSettore?.value || null;
-      const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
+      const url = settoreNome ? '#/display-cucina?settore=' + settoreNome : '#/display-cucina';
       const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:currentSedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
       if (error) { mostraToast('Errore: '+error.message,'error'); return; }
       postazioni.push(data);
@@ -1753,7 +1753,7 @@ export async function render(container) {
       if (currentSedeId) q = q.eq('sede_id', currentSedeId);
       if (filtroCanale) q = q.eq('canale', filtroCanale);
       if (filtroTipo) q = q.eq('tipo', filtroTipo);
-      if (filtroQ) q = q.ilike('nome', `%${filtroQ}%`);
+      if (filtroQ) q = q.ilike('nome', '%' + filtroQ + '%');
       const { data } = await q.order('ordinamento').order('nome');
       prodotti = data || [];
     };
