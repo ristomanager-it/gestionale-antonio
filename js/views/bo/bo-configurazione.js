@@ -568,7 +568,7 @@ export async function render(container) {
               <div style="font-weight:700;font-size:14px;">${esc(c.nome || c.numero_telefono || '—')}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
                 ${c.modalita === 'meta' ? 'Meta Cloud API' : 'WhatsApp Web'} · ${esc(sedeName)}
-                ${c.numero_telefono ? ` · ${esc(c.numero_telefono)}` : ''}
+                ${c.numero_telefono ? ' · ' + esc(c.numero_telefono) : ''}
               </div>
               <div style="font-size:11px;color:#64748b;margin-top:2px;">
                 Messaggi inviati: ${c.messaggi_inviati || 0}
@@ -1664,7 +1664,7 @@ export async function render(container) {
             <div style="flex:1;min-width:180px;">
               <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
-                ${catNome ? `${esc(catNome)} · ` : ''}${p.tipo || ''}
+                ${catNome ? esc(catNome) + ' · ' : ''}${p.tipo || ''}
                 ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
               </div>
             </div>
@@ -1785,7 +1785,7 @@ export async function render(container) {
         <div style="font-size:28px;">${icon}</div>
         <div style="font-size:15px;font-weight:700;color:#0f172a;">${titolo}</div>
         <div style="font-size:13px;color:#64748b;flex:1;">${desc}</div>
-        <button ${link?`data-nav="${link}"`:'disabled'} style="
+        <button ${link ? 'data-nav="' + link + '"' : 'disabled'} style="
           padding:8px 14px;border:none;border-radius:10px;cursor:${disabled?'default':'pointer'};font-size:13px;font-weight:600;
           background:${disabled?'#f1f5f9':'#0E5A7A'};color:${disabled?'#94a3b8':'white'};
           align-self:flex-start;
@@ -2020,7 +2020,7 @@ export async function render(container) {
                 <div>
                   <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo domanda</label>
                   <select id="dom-tipo" class="input" style="width:100%;box-sizing:border-box;">
-                    ${TIPI_DOM.map(t=>`<option value="${t.v}">${t.l}</option>`).join('')}
+                    ${TIPI_DOM.map(function(t){ return '<option value="' + t.v + '">' + t.l + '</option>'; }).join('')}
                   </select>
                 </div>
                 <div>
