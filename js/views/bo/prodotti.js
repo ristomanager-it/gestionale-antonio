@@ -244,12 +244,13 @@ export async function render(container) {
   }
 
   async function loadProdotti() {
-    const { data, error } = await supabase
+    let q = supabase
       .from("prodotti_vendita")
       .select("*")
       .eq("azienda_id", azienda_id)
     if (sede_id) q = q.eq("sede_id", sede_id)
-      .order("nome", { ascending: true })
+    q = q.order("nome", { ascending: true })
+    const { data, error } = await q
 
     if (error) {
       console.error("Errore prodotti_vendita:", error)
@@ -261,12 +262,13 @@ export async function render(container) {
   }
 
   async function loadCategorie() {
-    const { data, error } = await supabase
+    let q = supabase
       .from("categorie_vendita")
       .select("*")
       .eq("azienda_id", azienda_id)
     if (sede_id) q = q.eq("sede_id", sede_id)
-      .order("ordine", { ascending: true })
+    q = q.order("ordine", { ascending: true })
+    const { data, error } = await q
 
     if (error) {
       console.error("Errore categorie_vendita:", error)
