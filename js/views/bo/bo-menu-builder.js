@@ -181,6 +181,34 @@ export async function render(container) {
             </div>
           </div>
 
+          <!-- Cover e Logo menu -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div>
+              <label class="mb-label">🖼️ Foto copertina (URL)</label>
+              <div style="display:flex;gap:6px;">
+                <input id="cfg-cover-url" class="mb-input" placeholder="https://... oppure carica ↓">
+                <label style="cursor:pointer;" title="Carica immagine">
+                  <input type="file" id="cfg-cover-file" accept="image/*" style="display:none;">
+                  <span class="mb-btn mb-btn-sec" style="padding:9px 10px;">📁</span>
+                </label>
+              </div>
+              <div id="cfg-cover-prev" style="margin-top:6px;"></div>
+              <div id="cfg-cover-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
+            </div>
+            <div>
+              <label class="mb-label">🔵 Logo menu (URL)</label>
+              <div style="display:flex;gap:6px;">
+                <input id="cfg-logo-url" class="mb-input" placeholder="https://... oppure carica ↓">
+                <label style="cursor:pointer;" title="Carica logo">
+                  <input type="file" id="cfg-logo-file" accept="image/*" style="display:none;">
+                  <span class="mb-btn mb-btn-sec" style="padding:9px 10px;">📁</span>
+                </label>
+              </div>
+              <div id="cfg-logo-prev" style="margin-top:6px;"></div>
+              <div id="cfg-logo-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
+            </div>
+          </div>
+
           <button id="btn-salva-cfg" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva configurazione</button>
           <div id="msg-cfg" style="margin-top:8px;font-size:12px;text-align:center;"></div>
         </div>
@@ -313,6 +341,44 @@ export async function render(container) {
   qs("#link-qr-img").onclick = () => { const s = qs("#cfg-slug").value.trim(); if(s) mostraQR(s); };
   qs("#btn-qr").onclick = () => { const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug; if(s) mostraQR(s); else alert("Imposta prima uno slug"); };
   qs("#btn-salva-cfg").onclick = salvaConfigMenu;
+
+  // Upload cover menu
+  const coverFileInput = qs("#cfg-cover-file");
+  if (coverFileInput) {
+    coverFileInput.onchange = async function() {
+      const file = this.files[0]; if (!file) return;
+      const prog = qs("#cfg-cover-prog"); if (prog) prog.style.display = "";
+      const ext = file.name.split(".").pop();
+      const path = azienda_id + "/menu-cover-" + Date.now() + "." + ext;
+      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      if (prog) prog.style.display = "none";
+      if (error) { alert("Errore upload: " + error.message); return; }
+      const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+      const url = pub.publicUrl;
+      if (qs("#cfg-cover-url")) qs("#cfg-cover-url").value = url;
+      const prev = qs("#cfg-cover-prev");
+      if (prev) prev.innerHTML = '<img src="' + url + '" style="width:100%;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">';
+    };
+  }
+
+  // Upload logo menu
+  const logoFileInput = qs("#cfg-logo-file");
+  if (logoFileInput) {
+    logoFileInput.onchange = async function() {
+      const file = this.files[0]; if (!file) return;
+      const prog = qs("#cfg-logo-prog"); if (prog) prog.style.display = "";
+      const ext = file.name.split(".").pop();
+      const path = azienda_id + "/menu-logo-" + Date.now() + "." + ext;
+      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      if (prog) prog.style.display = "none";
+      if (error) { alert("Errore upload: " + error.message); return; }
+      const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+      const url = pub.publicUrl;
+      if (qs("#cfg-logo-url")) qs("#cfg-logo-url").value = url;
+      const prev = qs("#cfg-logo-prev");
+      if (prev) prev.innerHTML = '<img src="' + url + '" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid #0E5A7A;">';
+    };
+  }
   qs("#search-cat-sx").oninput = (e) => renderCatSx(e.target.value);
   qs("#search-prodotti").oninput = (e) => renderProdottiDx(e.target.value);
 
@@ -501,6 +567,17 @@ export async function render(container) {
     qs("#caparra-tipo").value = caparra.tipo || "fisso";
     qs("#caparra-importo").value = caparra.importo || "";
     qs("#caparra-note").value = caparra.note || "";
+    // Cover e logo
+    if (qs("#cfg-cover-url")) {
+      qs("#cfg-cover-url").value = m.cover_url || "";
+      const prevC = qs("#cfg-cover-prev");
+      if (prevC) prevC.innerHTML = m.cover_url ? '<img src="' + esc(m.cover_url) + '" style="width:100%;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">' : "";
+    }
+    if (qs("#cfg-logo-url")) {
+      qs("#cfg-logo-url").value = m.logo_url || "";
+      const prevL = qs("#cfg-logo-prev");
+      if (prevL) prevL.innerHTML = m.logo_url ? '<img src="' + esc(m.logo_url) + '" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid #0E5A7A;">' : "";
+    }
 
     aggiornaLinkQR(m.slug || "");
     const slugEl = qs("#cfg-slug");
@@ -521,6 +598,8 @@ export async function render(container) {
       colore_sfondo:   qs("#cfg-sfondo-hex").value || null,
       font_family:     qs("#cfg-font").value || null,
       attivo:          qs("#cfg-attivo").checked,
+      cover_url:       qs("#cfg-cover-url")?.value.trim() || null,
+      logo_url:        qs("#cfg-logo-url")?.value.trim() || null,
       tracking_attivo: qs("#cfg-tracking").checked,
       raccolta_dati:   qs("#cfg-raccolta").checked,
       raccolta_campi:  Array.from(container.querySelectorAll(".raccolta-campo:checked")).map(c => c.dataset.campo),
@@ -780,7 +859,8 @@ export async function render(container) {
 
   async function rimuoviVoce(voceId) {
     if (!confirm("Rimuovere dal menu?")) return;
-    await supa().from("menu_voci").delete().eq("id", voceId).eq("azienda_id", azienda_id);
+    const { error: rmErr } = await supa().from("menu_voci").delete().eq("id", voceId);
+    if (rmErr) { console.error("Errore rimozione voce:", rmErr); alert("Errore: " + rmErr.message); return; }
     await loadMenuVoci(catSelezionata.id);
     await loadTutteLeVoci();
     renderProdottiDx(qs("#search-prodotti").value);
