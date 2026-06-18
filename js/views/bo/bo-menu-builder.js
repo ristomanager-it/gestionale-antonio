@@ -373,14 +373,14 @@ export async function render(container) {
   }
 
   async function loadProdottiVendita(catVenditaId) {
-    const { data } = await supa()
+    let q = supa()
       .from("prodotti_vendita")
       .select("*")
       .eq("azienda_id", azienda_id)
-      .eq("categoria_id", catVenditaId)
-      .eq("attivo", true)
-      .order("ordinamento")
-      .order("nome");
+      .eq("categoria_vendita_id", catVenditaId)
+      .eq("attivo", true);
+    if (sede_id) q = q.eq("sede_id", sede_id);
+    const { data } = await q.order("ordinamento").order("nome");
     prodottiVendita = data || [];
   }
 
@@ -821,6 +821,10 @@ export async function render(container) {
   // ── MODAL CFG CATEGORIA ───────────────────────────────────────
   function aprireModalCfgCat(mc) {
     qs("#modal-voce-title").textContent = `⚙️ ${mc.nome}`;
+    // Carica settori per il selettore display
+    const { data: settoriDisp } = await supa().from("settori").select("id,nome,colore").eq("azienda_id", azienda_id).order("ordine");
+    const settoriOpts = (settoriDisp || []).map(s => `<option value="${s.id}" ${mc.settore_id === s.id ? "selected" : ""}>${esc(s.nome)}</option>`).join("");
+
     qs("#modal-voce-body").innerHTML = `
       <div style="margin-bottom:12px;"><label class="mb-label">Nome</label><input id="cfg-cat-nome" class="mb-input" value="${esc(mc.nome)}"></div>
       <div style="margin-bottom:12px;"><label class="mb-label">Descrizione</label><input id="cfg-cat-desc" class="mb-input" value="${esc(mc.descrizione||"")}"></div>
@@ -829,15 +833,25 @@ export async function render(container) {
         <div><label class="mb-label">Fino alle ore</label><input id="cfg-cat-ora-fin" type="time" class="mb-input" value="${mc.ora_fine||""}"></div>
       </div>
       <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Lascia vuoto per mostrarla sempre</div>
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:12px;">
+        <label class="mb-label">🖥️ Invia al display/settore cucina</label>
+        <div style="font-size:11px;color:#64748b;margin-bottom:6px;">Tutte le portate di questa categoria vengono inviate al display del settore selezionato — più flessibile che assegnare il display prodotto per prodotto</div>
+        <select id="cfg-cat-settore" class="mb-input" style="width:100%;">
+          <option value="">— Nessun display specifico —</option>
+          ${settoriOpts}
+        </select>
+      </div>
       <button id="btn-salva-cfg-cat" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva</button>
       <div id="msg-cfg-cat" style="margin-top:8px;font-size:12px;text-align:center;"></div>
     `;
     qs("#btn-salva-cfg-cat").onclick = async () => {
+      const settoreId = qs("#cfg-cat-settore").value || null;
       const { error } = await supa().from("menu_categorie").update({
         nome: qs("#cfg-cat-nome").value.trim(),
         descrizione: qs("#cfg-cat-desc").value.trim()||null,
         ora_inizio: qs("#cfg-cat-ora-ini").value||null,
-        ora_fine: qs("#cfg-cat-ora-fin").value||null
+        ora_fine: qs("#cfg-cat-ora-fin").value||null,
+        settore_id: settoreId,
       }).eq("id", mc.id).eq("azienda_id", azienda_id);
       const msg = qs("#msg-cfg-cat");
       if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
