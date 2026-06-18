@@ -1148,8 +1148,9 @@ export async function render(container) {
     sale = saleData || [];
 
     const { data: tavoliData } = await supa()
-      .from('tavoli').select('*')
+      .from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y')
       .eq('azienda_id', aziendaId)
+      .eq('sede_id', currentSedeId)
       .order('numero');
     tavoli = tavoliData || [];
 
@@ -1317,27 +1318,39 @@ export async function render(container) {
       box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna sala. Creane una per organizzare i tavoli.</div>';
       return;
     }
-    box.innerHTML = sale.map(s => `
-      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:600;color:#0f172a;">🏠 ${esc(s.nome)}</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px;">
-            ${s.capienza_max ? `Capienza: ${s.capienza_max} posti` : ''}
-            ${s.note ? ` · ${esc(s.note)}` : ''}
-            · ${tavoli.filter(t => t.sala_id === s.id).length} tavoli
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button data-del-sala="${s.id}" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
-        </div>
-      </div>
-    `).join('');
+    box.innerHTML = sale.map(function(s) {
+      var nTavoli = tavoli.filter(function(t){ return t.sala_id === s.id; }).length;
+      var info = (s.capienza_max ? 'Capienza: ' + s.capienza_max + ' posti' : '') +
+                 (s.note ? ' \u00b7 ' + esc(s.note) : '') + ' \u00b7 ' + nTavoli + ' tavoli';
+      return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:14px;font-weight:600;color:#0f172a;">\uD83C\uDFE0 ' + esc(s.nome) + '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + info + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button data-edit-sala="' + s.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;font-weight:600;">&#9999;&#65039;</button>' +
+          '<button data-del-sala="' + s.id + '" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">&#128465;</button>' +
+        '</div></div>';
+    }).join('');
 
-    box.querySelectorAll('[data-del-sala]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+    box.querySelectorAll('[data-edit-sala]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var s = sale.find(function(x){ return x.id === btn.dataset.editSala; });
+        if (!s) return;
+        container.querySelector('#form-sala-title').textContent = 'Modifica sala';
+        container.querySelector('#sala-nome').value = s.nome || '';
+        container.querySelector('#sala-capienza').value = s.capienza_max || '';
+        container.querySelector('#sala-note').value = s.note || '';
+        container.querySelector('#form-sala').dataset.editId = s.id;
+        container.querySelector('#form-sala').style.display = '';
+        container.querySelector('#sala-nome').focus();
+      });
+    });
+    box.querySelectorAll('[data-del-sala]').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
         if (!confirm('Eliminare questa sala? I tavoli associati rimarranno.')) return;
         await supa().from('sale').delete().eq('id', btn.dataset.delSala);
-        sale = sale.filter(s => s.id !== btn.dataset.delSala);
+        sale = sale.filter(function(s){ return s.id !== btn.dataset.delSala; });
         renderListaSale();
         renderListaTavoliConf();
       });
@@ -1355,24 +1368,48 @@ export async function render(container) {
       box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;grid-column:1/-1;">Nessun tavolo. Aggiungine uno.</div>';
       return;
     }
-    box.innerHTML = filtered.map(t => {
-      const salaNome = sale.find(s => s.id === t.sala_id)?.nome || '';
-      return `
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative;">
-          <div style="font-size:20px;font-weight:700;color:#0E5A7A;margin-bottom:4px;">T${esc(String(t.numero || t.nome || '?'))}</div>
-          <div style="font-size:12px;color:#64748b;">${salaNome ? `🏠 ${esc(salaNome)}` : ''}</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px;">👥 ${t.coperti_min||1}–${t.coperti_max||4} coperti${t.sedie ? ` · 🪑 ${t.sedie} sedie` : ''}</div>
-          ${t.posizione ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${esc(t.posizione)}</div>` : ''}
-          <button data-del-tavolo="${t.id}" style="position:absolute;top:8px;right:8px;background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">🗑</button>
-        </div>
-      `;
+    box.innerHTML = filtered.map(function(t) {
+      var salaNome = '';
+      var salaObj = sale.find(function(s){ return s.id === t.sala_id; });
+      if (salaObj) salaNome = salaObj.nome;
+      var nLabel = 'T' + esc(String(t.numero || t.nome || '?'));
+      var coperti = (t.coperti_min||1) + '-' + (t.coperti_max||4) + ' coperti' + (t.sedie ? ' \u00b7 ' + t.sedie + ' sedie' : '');
+      return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative;">' +
+        '<div style="font-size:20px;font-weight:700;color:#0E5A7A;margin-bottom:4px;">' + nLabel + '</div>' +
+        (salaNome ? '<div style="font-size:12px;color:#64748b;">' + esc(salaNome) + '</div>' : '') +
+        '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + coperti + '</div>' +
+        (t.posizione ? '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + esc(t.posizione) + '</div>' : '') +
+        '<div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;">' +
+          '<button data-edit-tavolo="' + t.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#0E5A7A;">&#9999;&#65039;</button>' +
+          '<button data-del-tavolo="' + t.id + '" style="background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">&#128465;</button>' +
+        '</div></div>';
     }).join('');
 
-    box.querySelectorAll('[data-del-tavolo]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+    box.querySelectorAll('[data-edit-tavolo]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var t = tavoli.find(function(x){ return x.id === btn.dataset.editTavolo; });
+        if (!t) return;
+        container.querySelector('#form-tavolo-title').textContent = 'Modifica tavolo';
+        container.querySelector('#tavolo-numero').value = t.numero || t.nome || '';
+        container.querySelector('#tavolo-min').value = t.coperti_min || 1;
+        container.querySelector('#tavolo-max').value = t.coperti_max || 4;
+        container.querySelector('#tavolo-sedie').value = t.sedie || '';
+        container.querySelector('#tavolo-posizione').value = t.posizione || '';
+        var salaSelect = container.querySelector('#tavolo-sala');
+        if (salaSelect) {
+          salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
+            sale.map(function(s){ return '<option value="' + s.id + '"' + (s.id === t.sala_id ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
+        }
+        container.querySelector('#form-tavolo').dataset.editId = t.id;
+        container.querySelector('#form-tavolo').style.display = '';
+        container.querySelector('#tavolo-numero').focus();
+      });
+    });
+    box.querySelectorAll('[data-del-tavolo]').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
         if (!confirm('Eliminare questo tavolo?')) return;
         await supa().from('tavoli').delete().eq('id', btn.dataset.delTavolo);
-        tavoli = tavoli.filter(t => t.id !== btn.dataset.delTavolo);
+        tavoli = tavoli.filter(function(t){ return t.id !== btn.dataset.delTavolo; });
         renderListaTavoliConf();
       });
     });
@@ -1382,11 +1419,11 @@ export async function render(container) {
     // Sale
     let editingSalaId = null;
     container.querySelector('#btn-nuova-sala')?.addEventListener('click', () => {
-      editingSalaId = null;
       container.querySelector('#form-sala-title').textContent = 'Nuova sala';
       container.querySelector('#sala-nome').value = '';
       container.querySelector('#sala-capienza').value = '';
       container.querySelector('#sala-note').value = '';
+      container.querySelector('#form-sala').dataset.editId = '';
       container.querySelector('#form-sala').style.display = '';
       container.querySelector('#sala-nome').focus();
     });
@@ -1405,12 +1442,20 @@ export async function render(container) {
         capienza_max: parseInt(container.querySelector('#sala-capienza').value) || null,
         note: container.querySelector('#sala-note').value.trim() || null,
       };
-      const { data, error } = await supa().from('sale').insert(payload).select('*').single();
+      const editId = container.querySelector('#form-sala').dataset.editId || null;
+      let data, error;
+      if (editId) {
+        ({ data, error } = await supa().from('sale').update(payload).eq('id', editId).select('*').single());
+        if (!error) { sale = sale.map(function(s){ return s.id === editId ? data : s; }); }
+      } else {
+        ({ data, error } = await supa().from('sale').insert(payload).select('*').single());
+        if (!error) { sale.push(data); }
+      }
       if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
-      sale.push(data);
+      container.querySelector('#form-sala').dataset.editId = '';
       container.querySelector('#form-sala').style.display = 'none';
       renderListaSale();
-      mostraToast('Sala "' + nome + '" creata ✅', 'success');
+      mostraToast('Sala "' + nome + (editId ? '" modificata' : '" creata') + ' ✅', 'success');
     });
 
     // Tavoli
@@ -1451,12 +1496,20 @@ export async function render(container) {
         posizione: container.querySelector('#tavolo-posizione').value || null,
         attivo: true,
       };
-      const { data, error } = await supa().from('tavoli').insert(payload).select('*').single();
-      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
-      tavoli.push(data);
+      const editIdTav = container.querySelector('#form-tavolo').dataset.editId || null;
+      let dataTav, errorTav;
+      if (editIdTav) {
+        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').update(payload).eq('id', editIdTav).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y').single());
+        if (!errorTav) { tavoli = tavoli.map(function(t){ return t.id === editIdTav ? dataTav : t; }); }
+      } else {
+        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').insert(payload).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y').single());
+        if (!errorTav) { tavoli.push(dataTav); }
+      }
+      if (errorTav) { esito.textContent = '❌ ' + errorTav.message; esito.style.color = '#dc2626'; return; }
+      container.querySelector('#form-tavolo').dataset.editId = '';
       container.querySelector('#form-tavolo').style.display = 'none';
       renderListaTavoliConf();
-      mostraToast('Tavolo ' + numero + ' aggiunto ✅', 'success');
+      mostraToast('Tavolo ' + numero + (editIdTav ? ' modificato' : ' aggiunto') + ' ✅', 'success');
     });
 
     // Filtro sala
