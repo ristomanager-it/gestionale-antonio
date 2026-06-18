@@ -1093,7 +1093,44 @@ export async function render(container) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
     if (!sedeId) {
-      box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:20px;color:#92400e;font-size:14px;">⚠️ Seleziona prima una sede dalla barra in alto per gestire sale e tavoli.</div>';
+      // Carica sedi disponibili per selettore inline
+      const { data: sediDisp } = await supa().from('sedi')
+        .select('id,nome').eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
+      
+      if (!sediDisp || sediDisp.length === 0) {
+        box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:20px;color:#92400e;font-size:14px;">⚠️ Nessuna sede attiva trovata. Crea prima una sede in Gestione Sedi.</div>';
+        return;
+      }
+
+      box.innerHTML = '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;max-width:500px;">' +
+        '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px;">🪑 Seleziona sede</div>' +
+        '<div style="font-size:13px;color:#64748b;margin-bottom:16px;">Non hai selezionato una sede. Scegli qui oppure cambiala dalla barra in alto.</div>' +
+        '<select id="sede-inline-sel" style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none;margin-bottom:14px;">' +
+        sediDisp.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('') +
+        '</select>' +
+        '<button id="btn-usa-sede-inline" style="width:100%;padding:11px;background:#0E5A7A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Usa questa sede →</button>' +
+        '</div>';
+      
+      box.querySelector('#btn-usa-sede-inline').addEventListener('click', async () => {
+        const sidSel = box.querySelector('#sede-inline-sel').value;
+        if (!sidSel) return;
+        // Imposta la sede nello state e ricarica il tab
+        if (window.stateActions?.setSedeAttiva) {
+          const sedeSel = sediDisp.find(s => s.id === sidSel);
+          if (sedeSel) window.stateActions.setSedeAttiva(sedeSel);
+        }
+        // Ricarica il tab con la nuova sede
+        const newSedeId = sidSel;
+        const { data: saleData } = await supa().from('sale')
+          .select('id,nome,capienza_max,capienza_min,note,sede_id,attiva')
+          .eq('azienda_id', aziendaId).eq('sede_id', newSedeId).order('nome');
+        sale = saleData || [];
+        const { data: tavoliData } = await supa().from('tavoli')
+          .select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo')
+          .eq('azienda_id', aziendaId).eq('sede_id', newSedeId).order('numero');
+        tavoli = tavoliData || [];
+        renderTabSala(box);
+      });
       return;
     }
 
@@ -1338,10 +1375,16 @@ export async function render(container) {
     container.querySelector('#btn-nuovo-tavolo')?.addEventListener('click', () => {
       container.querySelector('#form-tavolo-title').textContent = 'Nuovo tavolo';
       container.querySelector('#tavolo-numero').value = '';
-      container.querySelector('#tavolo-sala').value = '';
       container.querySelector('#tavolo-min').value = '1';
       container.querySelector('#tavolo-max').value = '4';
       container.querySelector('#tavolo-sedie').value = '';
+      // Aggiorna la tendina sale con quelle correntemente caricate
+      const salaSelect = container.querySelector('#tavolo-sala');
+      if (salaSelect) {
+        salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
+          sale.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+        salaSelect.value = '';
+      }
       container.querySelector('#form-tavolo').style.display = '';
       container.querySelector('#tavolo-numero').focus();
     });
