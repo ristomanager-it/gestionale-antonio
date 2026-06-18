@@ -19,7 +19,7 @@ const COLORI_SETTORI = ['#f59e0b','#16a34a','#0E5A7A','#7c3aed','#dc2626','#0891
 
 export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
-  let currentSedeId = window.state?.sedeAttiva?.id || null; // mutabile — aggiornato dal selettore globale
+  let currentSedeId = window.state?.sedeAttiva?.id || null;
 
   if (!aziendaId) { container.innerHTML = '<section class="view"><h2>Azienda non selezionata</h2></section>'; return; }
   const authOk = await waitForAuth();
@@ -35,19 +35,13 @@ export async function render(container) {
       <div style="margin-bottom:20px;">
         <div style="font-size:20px;font-weight:700;color:#0f172a;">Configurazione</div>
         <div style="font-size:13px;color:#64748b;">Control room — impostazioni operative del ristorante</div>
-      </div>
-      
-      <!-- Selettore sede globale — visibile in tutte le tab -->
-      <div id="cfg-sede-banner" style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div style="font-size:13px;font-weight:600;color:#64748b;white-space:nowrap;">📍 Sede:</div>
+      </div> <div id="cfg-sede-banner" style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:13px;font-weight:600;color:#64748b;white-space:nowrap;">Sede:</div>
         <select id="cfg-sede-sel" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff;font-weight:600;color:#0f172a;">
-          <option value="">— Seleziona sede —</option>
+          <option value="">Seleziona sede</option>
         </select>
         <div id="cfg-sede-label" style="font-size:12px;color:#94a3b8;">Cambia sede per configurare un altro locale</div>
-      </div>
-
-      <!-- Tab nav — due righe -->
-      <div style="border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
+      </div> <div style="border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
         <div id="tab-nav-wrap" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
         <style>#tab-nav-wrap button:hover{background:#f0f9ff!important;}</style>
         ${[
@@ -75,9 +69,7 @@ export async function render(container) {
           </button>
         `).join('')}
         </div>
-      </div>
-      <!-- Contenuto tab -->
-      <div id="tab-content"></div>
+      </div> <div id="tab-content"></div>
     
     </div>
   </div>
@@ -111,40 +103,25 @@ export async function render(container) {
 
   container.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
 
-  // ── Inizializza selettore sede globale ──────────────────────────────
   (async function initSedeBanner() {
-    const { data: sediList } = await supa()
-      .from('sedi').select('id,nome')
-      .eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
-
+    const { data: sediList } = await supa().from('sedi').select('id,nome').eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
     const sel = container.querySelector('#cfg-sede-sel');
     if (!sel) return;
-
     (sediList || []).forEach(s => {
       const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = s.nome;
+      opt.value = s.id; opt.textContent = s.nome;
       if (s.id === currentSedeId) opt.selected = true;
       sel.appendChild(opt);
     });
-
-    // Se nessuna sede selezionata e ce ne sono disponibili, prendi la prima
-    if (!currentSedeId && sediList && sediList.length > 0) {
-      currentSedeId = sediList[0].id;
-      sel.value = currentSedeId;
-    }
-
+    if (!currentSedeId && sediList && sediList.length > 0) { currentSedeId = sediList[0].id; sel.value = currentSedeId; }
     const updateLabel = () => {
       const nome = (sediList || []).find(s => s.id === currentSedeId)?.nome || '';
       const lbl = container.querySelector('#cfg-sede-label');
-      if (lbl) lbl.textContent = nome ? '✅ ' + nome : 'Cambia sede per configurare un altro locale';
+      if (lbl) lbl.textContent = nome ? 'Sede: ' + nome : 'Cambia sede per configurare un altro locale';
     };
     updateLabel();
-
     sel.addEventListener('change', function() {
-      currentSedeId = this.value || null;
-      updateLabel();
-      // Ricarica il tab corrente con la nuova sede
+      currentSedeId = this.value || null; updateLabel();
       const box = container.querySelector('#tab-content');
       if (box) switchTab(tabAttivo);
     });
@@ -171,9 +148,7 @@ export async function render(container) {
       .eq('azienda_id', aziendaId)
       .order('nome');
 
-    const sediOpts = (sedi || []).map(s =>
-      '<option value="' + s.id + '">' + esc(s.nome) + '</option>'
-    ).join('');
+    const sediOpts = (sedi || []).map(function(s){ return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('');
 
     box.innerHTML = `
       <div style="margin-bottom:36px;">
@@ -185,10 +160,7 @@ export async function render(container) {
           <button id="btn-nuova-stampante" style="background:#0E5A7A;color:white;border:none;padding:9px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi stampante</button>
         </div>
 
-        <div id="lista-stampanti"></div>
-
-        <!-- Form nuova/modifica stampante -->
-        <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+        <div id="lista-stampanti"></div> <div id="form-stampante-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
           <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-stampante-title">Nuova stampante</div>
 
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;">
@@ -376,7 +348,7 @@ export async function render(container) {
           signal: AbortSignal.timeout(5000)
         });
         if (r.ok) { esito.textContent = '✅ Stampante raggiungibile!'; esito.style.color = '#16a34a'; }
-        else { esito.textContent = '⚠️ Risposta HTTP ' + r.status; esito.style.color = '#f59e0b'; }
+        else { esito.textContent = `⚠️ Risposta HTTP ${r.status}`; esito.style.color = '#f59e0b'; }
       } catch (e) {
         esito.textContent = '❌ Non raggiungibile — verifica IP e rete locale (il browser potrebbe bloccare chiamate HTTP locali)';
         esito.style.color = '#dc2626';
@@ -437,13 +409,9 @@ export async function render(container) {
       .from('sedi').select('id, nome')
       .eq('azienda_id', aziendaId).order('nome');
 
-    const sediOpts = (sedi || []).map(s =>
-      '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'
-    ).join('');
+    const sediOpts = (sedi || []).map(function(s){ return '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
 
-    box.innerHTML = `
-      <!-- WhatsApp -->
-      <div style="margin-bottom:36px;">
+    box.innerHTML = ` <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">💬 WhatsApp Business</div>
@@ -452,15 +420,9 @@ export async function render(container) {
           <button id="btn-nuova-wa" style="background:#25D366;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Collega numero</button>
         </div>
 
-        <div id="lista-wa"></div>
-
-        <!-- Form nuova connessione -->
-        <div id="form-wa-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:16px;">
+        <div id="lista-wa"></div> <div id="form-wa-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:16px;">
           <div style="font-size:16px;font-weight:700;margin-bottom:4px;" id="form-wa-title">Nuova connessione WhatsApp</div>
-          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div>
-
-          <!-- Scelta modalità -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:20px;">
+          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div> <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:20px;">
             <div id="card-meta" data-modalita="meta" style="border:2px solid #0E5A7A;border-radius:12px;padding:16px;cursor:pointer;background:#f0f9ff;">
               <div style="font-size:20px;margin-bottom:6px;">🌐</div>
               <div style="font-weight:700;font-size:14px;color:#0f172a;">Meta Cloud API</div>
@@ -493,10 +455,7 @@ export async function render(container) {
               <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono</label>
               <input id="wa-numero" class="input" placeholder="+39 333 1234567" style="margin-top:4px;width:100%;box-sizing:border-box;">
             </div>
-          </div>
-
-          <!-- Campi Meta API -->
-          <div id="campi-meta">
+          </div> <div id="campi-meta">
             <div style="background:#f0f9ff;border-radius:10px;padding:14px;margin-bottom:14px;">
               <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:10px;">🌐 Credenziali Meta Cloud API</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
@@ -518,10 +477,7 @@ export async function render(container) {
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Campi QR Bridge -->
-          <div id="campi-qr" style="display:none;">
+          </div> <div id="campi-qr" style="display:none;">
             <div style="background:#fffbeb;border-radius:10px;padding:14px;margin-bottom:14px;">
               <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">📱 Configurazione Bridge Locale</div>
               <div>
@@ -530,9 +486,7 @@ export async function render(container) {
               </div>
               <div style="margin-top:12px;font-size:12px;color:#64748b;">
                 Il bridge è il file <strong>whatsapp-bridge.js</strong> che gira sul Raspberry Pi. Assicurati che sia avviato prima di procedere.
-              </div>
-              <!-- QR Code display -->
-              <div id="qr-display" style="display:none;margin-top:16px;text-align:center;">
+              </div> <div id="qr-display" style="display:none;margin-top:16px;text-align:center;">
                 <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Scansiona con WhatsApp sul telefono:</div>
                 <div id="qr-code-wrap" style="background:white;display:inline-block;padding:16px;border-radius:12px;border:1px solid #e5e7eb;"></div>
               </div>
@@ -548,10 +502,7 @@ export async function render(container) {
             <button id="btn-annulla-wa" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
           </div>
         </div>
-      </div>
-
-      <!-- Google Ads -->
-      <div style="margin-bottom:36px;margin-top:36px;">
+      </div> <div style="margin-bottom:36px;margin-top:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🎯 Google Ads</div>
@@ -582,10 +533,7 @@ export async function render(container) {
             <button id="btn-annulla-gads" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
-      </div>
-
-      <!-- Altre integrazioni — presto -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
+      </div> <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
         ${[
           { icon:'📦', titolo:'Delivery (Glovo/JustEat)', desc:'Presto disponibile' },
           { icon:'📅', titolo:'Google Calendar', desc:'Presto disponibile' },
@@ -620,11 +568,11 @@ export async function render(container) {
               <div style="font-weight:700;font-size:14px;">${esc(c.nome || c.numero_telefono || '—')}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
                 ${c.modalita === 'meta' ? 'Meta Cloud API' : 'WhatsApp Web'} · ${esc(sedeName)}
-                ${c.numero_telefono ? ' · ' + esc(c.numero_telefono) : ''}
+                ${c.numero_telefono ? ` · ${esc(c.numero_telefono)}` : ''}
               </div>
               <div style="font-size:11px;color:#64748b;margin-top:2px;">
                 Messaggi inviati: ${c.messaggi_inviati || 0}
-                ${c.ultimo_messaggio_il ? ' · Ultimo: ' + new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT') : ''}
+                ${c.ultimo_messaggio_il ? ` · Ultimo: ${new Date(c.ultimo_messaggio_il).toLocaleDateString('it-IT')}` : ''}
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -862,9 +810,7 @@ export async function render(container) {
   async function renderTabOperativo(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
     await Promise.all([loadSettori(), loadPostazioni(), loadProdotti(), loadCategorie(), loadRicette()]);
-    box.innerHTML = `
-      <!-- Sezione: Settori -->
-      <div style="margin-bottom:36px;">
+    box.innerHTML = ` <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
@@ -872,9 +818,7 @@ export async function render(container) {
           </div>
           <button id="btn-nuovo-settore" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">+ Nuovo settore</button>
         </div>
-        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:12px;"></div>
-        <!-- Form nuovo settore -->
-        <div id="form-settore" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+        <div id="lista-settori" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:12px;"></div> <div id="form-settore" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuovo settore</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:1;min-width:160px;">
@@ -897,10 +841,7 @@ export async function render(container) {
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Sezione: Postazioni -->
-      <div style="margin-bottom:36px;">
+      </div> <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">📱 Postazioni display</div>
@@ -908,9 +849,7 @@ export async function render(container) {
           </div>
           <button id="btn-nuova-postazione" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">+ Nuova postazione</button>
         </div>
-        <div id="lista-postazioni" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
-        <!-- Form nuova postazione -->
-        <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
+        <div id="lista-postazioni" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div> <div id="form-postazione" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px;">
           <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Nuova postazione</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:12px;">
             <div>
@@ -933,19 +872,13 @@ export async function render(container) {
             <button id="btn-annulla-postazione" style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
-      </div>
-
-      <!-- Sezione: Prodotti → Settore -->
-      <div style="margin-bottom:36px;">
+      </div> <div style="margin-bottom:36px;">
         <div style="margin-bottom:16px;">
           <div style="font-size:17px;font-weight:700;color:#0f172a;">🍽️ Prodotti per settore</div>
           <div style="font-size:13px;color:#64748b;margin-top:2px;">Assegna ogni prodotto al settore che lo prepara — il display riceverà solo le sue portate</div>
         </div>
         <div id="lista-prodotti-settore" style="display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
-
-      <!-- Sezione: Tempi & Alert -->
-      <div style="margin-bottom:36px;">
+      </div> <div style="margin-bottom:36px;">
         <div style="margin-bottom:16px;">
           <div style="font-size:17px;font-weight:700;color:#0f172a;">⏱️ Tempi di esecuzione & Alert</div>
           <div style="font-size:13px;color:#64748b;margin-top:2px;">Tempo medio di preparazione per ricetta — usato per il timer e l'alert ritardo sul display cucina</div>
@@ -994,8 +927,8 @@ export async function render(container) {
     const urlPreview  = container.querySelector('#post-url-preview');
     const aggiornaUrl = () => {
       const s = postSettore?.value;
-      const url = s ? '#/display-cucina?settore=' + s : '#/display-cucina';
-      if (urlPreview) urlPreview.innerHTML = 'URL tablet: <strong>' + url + '</strong> — <a href="' + url + '" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri in nuova scheda &rarr;</a>';
+      const url = s ? `#/display-cucina?settore=${s}` : '#/display-cucina';
+      if (urlPreview) urlPreview.innerHTML = 'URL tablet: <strong>' + url + '</strong> - <a href="' + url + '" target="_blank" style="color:#0E5A7A;font-size:12px;">Apri</a>';
     };
     postSettore?.addEventListener('change', aggiornaUrl);
     container.querySelector('#btn-nuova-postazione').onclick = () => { container.querySelector('#form-postazione').style.display='block'; postNome?.focus(); };
@@ -1004,7 +937,7 @@ export async function render(container) {
       const nome = postNome?.value.trim();
       if (!nome) { mostraToast('Inserisci il nome della postazione','warning'); return; }
       const settoreNome = postSettore?.value || null;
-      const url = settoreNome ? '#/display-cucina?settore=' + settoreNome : '#/display-cucina';
+      const url = settoreNome ? `#/display-cucina?settore=${settoreNome}` : '#/display-cucina';
       const { data, error } = await supa().from('postazioni').insert({ azienda_id:aziendaId, sede_id:currentSedeId||null, nome, settore_nome:settoreNome, url_display:url }).select('*').single();
       if (error) { mostraToast('Errore: '+error.message,'error'); return; }
       postazioni.push(data);
@@ -1019,42 +952,39 @@ export async function render(container) {
     const box = container.querySelector('#lista-settori');
     if (!box) return;
     if (!settori.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun settore. Creane uno per iniziare.</div>'; return; }
-    box.innerHTML = settori.map((s,i) => `
-      <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <div style="width:14px;height:14px;border-radius:50%;background:${s.colore||COLORI_SETTORI[i%COLORI_SETTORI.length]};flex-shrink:0;"></div>
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(s.nome)}</div>
-          <div style="font-size:11px;color:#94a3b8;">Ordine: ${s.ordine||0}</div>
-        </div>
-        <button data-del-settore="${s.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;">Elimina</button>
-      </div>
-    `).join('');
+    box.innerHTML = settori.map(function(s,i) {
+      var col = s.colore || COLORI_SETTORI[i % COLORI_SETTORI.length];
+      return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">' +
+        '<div style="width:14px;height:14px;border-radius:50%;background:' + col + ';flex-shrink:0;"></div>' +
+        '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#0f172a;">' + esc(s.nome) + '</div>' +
+        '<div style="font-size:11px;color:#94a3b8;">Ordine: ' + (s.ordine||0) + '</div></div>' +
+        '<button data-del-settore="' + s.id + '" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;">Elimina</button>' +
+        '</div>';
+    }).join('');
     box.querySelectorAll('[data-del-settore]').forEach(btn => btn.onclick = async () => {
       if (!confirm('Eliminare questo settore?')) return;
       await supa().from('settori').delete().eq('id', btn.dataset.delSettore);
       settori = settori.filter(s => s.id !== btn.dataset.delSettore);
       renderListaSettori();
     });
-  }
+  }}
 
   function renderListaPostazioni() {
     const box = container.querySelector('#lista-postazioni');
     if (!box) return;
     if (!postazioni.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna postazione. Creane una per ogni tablet fisso.</div>'; return; }
-    box.innerHTML = postazioni.map(p => {
-      const url = p.url_display || '#/display-cucina';
-      return `
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-          <div style="font-size:24px;">📱</div>
-          <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:#0f172a;">${esc(p.nome)}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.settore_nome ? 'Settore: ' + esc(p.settore_nome) : 'Tutti i settori'}</div>
-            <div style="font-size:12px;color:#0E5A7A;margin-top:2px;font-family:monospace;">${esc(url)}</div>
-          </div>
-          <a href="${url}" target="_blank" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Apri →</a>
-          <button data-del-post="${p.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
-        </div>
-      `;
+    box.innerHTML = postazioni.map(function(p) {
+      var url = p.url_display || '#/display-cucina';
+      return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">' +
+        '<div style="font-size:24px;">&#x1F4F1;</div>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:14px;font-weight:600;color:#0f172a;">' + esc(p.nome) + '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + (p.settore_nome ? 'Settore: ' + esc(p.settore_nome) : 'Tutti i settori') + '</div>' +
+          '<div style="font-size:12px;color:#0E5A7A;margin-top:2px;font-family:monospace;">' + esc(url) + '</div>' +
+        '</div>' +
+        '<a href="' + url + '" target="_blank" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Apri</a>' +
+        '<button data-del-post="' + p.id + '" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;">X</button>' +
+        '</div>';
     }).join('');
     box.querySelectorAll('[data-del-post]').forEach(btn => btn.onclick = async () => {
       if (!confirm('Eliminare questa postazione?')) return;
@@ -1062,7 +992,7 @@ export async function render(container) {
       postazioni = postazioni.filter(p => p.id !== btn.dataset.delPost);
       renderListaPostazioni();
     });
-  }
+  }}
 
   function renderListaProdottiSettore() {
     const box = container.querySelector('#lista-prodotti-settore');
@@ -1077,11 +1007,12 @@ export async function render(container) {
       perCat[cn].push(p);
     });
     var html = '';
-    Object.entries(perCat).forEach(function([cat, prods]) {
+    Object.entries(perCat).forEach(function(entry) {
+      var cat = entry[0], prods = entry[1];
       html += '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:4px;">';
       html += '<div style="padding:10px 16px;background:#f8fafc;font-size:13px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;">' + esc(cat) + '</div>';
       prods.forEach(function(p) {
-        var opts = '<option value="">— Nessun settore —</option>' +
+        var opts = '<option value="">Nessun settore</option>' +
           settori.map(function(s){ return '<option value="' + s.id + '"' + (p.settore_id === s.id ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
         html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;">';
         html += '<div style="flex:1;font-size:13px;color:#0f172a;">' + esc(p.nome) + '</div>';
@@ -1093,10 +1024,8 @@ export async function render(container) {
     box.innerHTML = html;
     box.querySelectorAll('[data-prod-settore]').forEach(function(sel) {
       sel.onchange = async function() {
-        const pid = sel.dataset.prodSettore;
-        const sid = sel.value || null;
-        await supa().from('prodotti_vendita').update({ settore_id: sid }).eq('id', pid);
-        mostraToast('Settore aggiornato ✅','success');
+        await supa().from('prodotti_vendita').update({ settore_id: sel.value || null }).eq('id', sel.dataset.prodSettore);
+        mostraToast('Settore aggiornato','success');
       };
     });
   }}
@@ -1148,14 +1077,10 @@ export async function render(container) {
 
     const { data: tavoliData } = await supa()
       .from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y')
-      .eq('azienda_id', aziendaId)
-      .eq('sede_id', currentSedeId)
-      .order('numero');
+      .eq('azienda_id', aziendaId).eq('sede_id', currentSedeId).order('numero');
     tavoli = tavoliData || [];
 
-    box.innerHTML = `
-      <!-- SALE -->
-      <div style="margin-bottom:36px;">
+    box.innerHTML = ` <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🏠 Sale</div>
@@ -1188,20 +1113,14 @@ export async function render(container) {
             <button id="btn-annulla-sala" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
-      </div>
-
-      <!-- TAVOLI -->
-      <div style="margin-bottom:36px;">
+      </div> <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🪑 Tavoli</div>
             <div style="font-size:13px;color:#64748b;margin-top:2px;">Aggiungi tavoli con numero, coperti minimi/massimi e sala di appartenenza</div>
           </div>
           <button id="btn-nuovo-tavolo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Nuovo tavolo</button>
-        </div>
-
-        <!-- Filtro per sala -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        </div> <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button data-filter-sala="" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #0E5A7A;background:#0E5A7A;color:white;font-size:12px;cursor:pointer;font-weight:600;">Tutti</button>
           ${sale.map(function(s){ return '<button data-filter-sala="' + s.id + '" class="btn-filter-sala" style="padding:5px 14px;border-radius:20px;border:1px solid #e5e7eb;background:white;color:#374151;font-size:12px;cursor:pointer;">' + esc(s.nome) + '</button>'; }).join('')}
         </div>
@@ -1252,54 +1171,33 @@ export async function render(container) {
             <button id="btn-annulla-tavolo" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
-      </div>
-
-      <!-- PIANTINA SALA -->
-      <div style="margin-top:8px;">
-        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">🗺️ Piantina sala</div>
+      </div> <div style="margin-top:8px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">Piantina sala</div>
         <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Trascina i tavoli per creare la pianta esatta del tuo locale</div>
-
-        <!-- Toolbar piantina -->
         <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:12px 16px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <select id="piantina-sala-sel" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;">
-            <option value="">— Seleziona sala —</option>
-            \${sale.map(s => '<option value="'+s.id+'">'+esc(s.nome)+'</option>').join('')}
+            <option value="">Seleziona sala</option>
+            ${sale.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('')}
           </select>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
-            Larghezza:
-            <input id="piantina-w" type="number" min="2" max="50" value="10" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
+            Larghezza: <input id="piantina-w" type="number" min="2" max="50" value="10" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
           </div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
-            Altezza:
-            <input id="piantina-h" type="number" min="2" max="50" value="8" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
+            Altezza: <input id="piantina-h" type="number" min="2" max="50" value="8" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
           </div>
-          <button id="btn-piantina-griglia" style="padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc;font-size:12px;cursor:pointer;color:#374151;">📐 Griglia</button>
-          <button id="btn-piantina-salva" style="padding:7px 16px;border:none;border-radius:8px;background:#0E5A7A;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">💾 Salva piantina</button>
+          <button id="btn-piantina-griglia" style="padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc;font-size:12px;cursor:pointer;color:#374151;">Griglia ON/OFF</button>
+          <button id="btn-piantina-salva" style="padding:7px 16px;border:none;border-radius:8px;background:#0E5A7A;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">Salva piantina</button>
           <div id="piantina-esito" style="font-size:12px;min-height:14px;"></div>
         </div>
-
-        <!-- Canvas piantina -->
         <div id="piantina-wrap" style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative;user-select:none;">
           <div id="piantina-canvas" style="position:relative;background:#f8fafc;width:100%;min-height:400px;overflow:hidden;">
             <div id="piantina-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#94a3b8;font-size:14px;">
-              <div style="font-size:40px;">🗺️</div>
               <div>Seleziona una sala per iniziare</div>
             </div>
           </div>
         </div>
-
-        <!-- Legenda -->
-        <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><div style="width:16px;height:16px;background:#e8f4f8;border:1.5px solid #0E5A7A;border-radius:4px;"></div> Tavolo rotondo</div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><div style="width:16px;height:16px;background:#e8f4f8;border:1.5px solid #0E5A7A;border-radius:2px;"></div> Tavolo quadrato/rettangolare</div>
-          <div style="font-size:11px;color:#94a3b8;margin-left:auto;">💡 Trascina per posizionare · doppio clic per modificare</div>
-        </div>
-
-        <!-- Link prenotazioni -->
-        <div style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;">
-          \${[
-            { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci arrivi e tavoli.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
-          ].map(c => cardLink(c)).join('')}
+        <div style="margin-top:20px;">
+          ${[{ icon:'📅', titolo:'Prenotazioni', desc:'Gestisci arrivi e tavoli.', link:'prenotazioni', cta:'Vai a Prenotazioni' }].map(c => cardLink(c)).join('')}
         </div>
       </div>
     \`;
@@ -1313,25 +1211,18 @@ export async function render(container) {
   function renderListaSale() {
     const box = container.querySelector('#lista-sale');
     if (!box) return;
-    if (!sale.length) {
-      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna sala. Creane una per organizzare i tavoli.</div>';
-      return;
-    }
+    if (!sale.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna sala. Creane una per organizzare i tavoli.</div>'; return; }
     box.innerHTML = sale.map(function(s) {
       var nTavoli = tavoli.filter(function(t){ return t.sala_id === s.id; }).length;
-      var info = (s.capienza_max ? 'Capienza: ' + s.capienza_max + ' posti' : '') +
-                 (s.note ? ' \u00b7 ' + esc(s.note) : '') + ' \u00b7 ' + nTavoli + ' tavoli';
+      var info = (s.capienza_max ? 'Capienza: ' + s.capienza_max + ' posti' : '') + (s.note ? ' - ' + esc(s.note) : '') + ' - ' + nTavoli + ' tavoli';
       return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-        '<div style="flex:1;">' +
-          '<div style="font-size:14px;font-weight:600;color:#0f172a;">\uD83C\uDFE0 ' + esc(s.nome) + '</div>' +
-          '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + info + '</div>' +
-        '</div>' +
+        '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#0f172a;">' + esc(s.nome) + '</div>' +
+        '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + info + '</div></div>' +
         '<div style="display:flex;gap:6px;">' +
-          '<button data-edit-sala="' + s.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;font-weight:600;">&#9999;&#65039;</button>' +
-          '<button data-del-sala="' + s.id + '" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">&#128465;</button>' +
+          '<button data-edit-sala="' + s.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#0E5A7A;font-weight:600;">Modifica</button>' +
+          '<button data-del-sala="' + s.id + '" style="background:#fee2e2;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">Elimina</button>' +
         '</div></div>';
     }).join('');
-
     box.querySelectorAll('[data-edit-sala]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var s = sale.find(function(x){ return x.id === btn.dataset.editSala; });
@@ -1350,40 +1241,32 @@ export async function render(container) {
         if (!confirm('Eliminare questa sala? I tavoli associati rimarranno.')) return;
         await supa().from('sale').delete().eq('id', btn.dataset.delSala);
         sale = sale.filter(function(s){ return s.id !== btn.dataset.delSala; });
-        renderListaSale();
-        renderListaTavoliConf();
+        renderListaSale(); renderListaTavoliConf();
       });
     });
-  }
+  }}
 
   let filtroSalaAttivo = '';
   function renderListaTavoliConf() {
     const box = container.querySelector('#lista-tavoli-conf');
     if (!box) return;
-    const filtered = filtroSalaAttivo
-      ? tavoli.filter(t => t.sala_id === filtroSalaAttivo)
-      : tavoli;
-    if (!filtered.length) {
-      box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;grid-column:1/-1;">Nessun tavolo. Aggiungine uno.</div>';
-      return;
-    }
+    const filtered = filtroSalaAttivo ? tavoli.filter(t => t.sala_id === filtroSalaAttivo) : tavoli;
+    if (!filtered.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;grid-column:1/-1;">Nessun tavolo. Aggiungine uno.</div>'; return; }
     box.innerHTML = filtered.map(function(t) {
-      var salaNome = '';
       var salaObj = sale.find(function(s){ return s.id === t.sala_id; });
-      if (salaObj) salaNome = salaObj.nome;
+      var salaNome = salaObj ? salaObj.nome : '';
       var nLabel = 'T' + esc(String(t.numero || t.nome || '?'));
-      var coperti = (t.coperti_min||1) + '-' + (t.coperti_max||4) + ' coperti' + (t.sedie ? ' \u00b7 ' + t.sedie + ' sedie' : '');
+      var coperti = (t.coperti_min||1) + '-' + (t.coperti_max||4) + ' coperti' + (t.sedie ? ' - ' + t.sedie + ' sedie' : '');
       return '<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative;">' +
         '<div style="font-size:20px;font-weight:700;color:#0E5A7A;margin-bottom:4px;">' + nLabel + '</div>' +
         (salaNome ? '<div style="font-size:12px;color:#64748b;">' + esc(salaNome) + '</div>' : '') +
         '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + coperti + '</div>' +
         (t.posizione ? '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + esc(t.posizione) + '</div>' : '') +
         '<div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;">' +
-          '<button data-edit-tavolo="' + t.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#0E5A7A;">&#9999;&#65039;</button>' +
-          '<button data-del-tavolo="' + t.id + '" style="background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">&#128465;</button>' +
+          '<button data-edit-tavolo="' + t.id + '" style="background:#f0f9ff;border:1px solid #bae6fd;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#0E5A7A;">Mod</button>' +
+          '<button data-del-tavolo="' + t.id + '" style="background:#fee2e2;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#dc2626;">Del</button>' +
         '</div></div>';
     }).join('');
-
     box.querySelectorAll('[data-edit-tavolo]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var t = tavoli.find(function(x){ return x.id === btn.dataset.editTavolo; });
@@ -1396,7 +1279,7 @@ export async function render(container) {
         container.querySelector('#tavolo-posizione').value = t.posizione || '';
         var salaSelect = container.querySelector('#tavolo-sala');
         if (salaSelect) {
-          salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
+          salaSelect.innerHTML = '<option value="">Nessuna sala</option>' +
             sale.map(function(s){ return '<option value="' + s.id + '"' + (s.id === t.sala_id ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
         }
         container.querySelector('#form-tavolo').dataset.editId = t.id;
@@ -1412,7 +1295,7 @@ export async function render(container) {
         renderListaTavoliConf();
       });
     });
-  }
+  }}
 
   function bindSala() {
     // Sale
@@ -1450,11 +1333,11 @@ export async function render(container) {
         ({ data, error } = await supa().from('sale').insert(payload).select('*').single());
         if (!error) { sale.push(data); }
       }
-      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; return; }
+      if (error) { esito.textContent = 'Errore: ' + error.message; esito.style.color = '#dc2626'; return; }
       container.querySelector('#form-sala').dataset.editId = '';
       container.querySelector('#form-sala').style.display = 'none';
       renderListaSale();
-      mostraToast('Sala "' + nome + (editId ? '" modificata' : '" creata') + ' ✅', 'success');
+      mostraToast('Sala ' + (editId ? 'modificata' : 'creata'), 'success');
     });
 
     // Tavoli
@@ -1464,13 +1347,13 @@ export async function render(container) {
       container.querySelector('#tavolo-min').value = '1';
       container.querySelector('#tavolo-max').value = '4';
       container.querySelector('#tavolo-sedie').value = '';
-      // Aggiorna tendina sale con quelle correntemente caricate
       const salaSelect = container.querySelector('#tavolo-sala');
       if (salaSelect) {
-        salaSelect.innerHTML = '<option value="">— Nessuna sala —</option>' +
+        salaSelect.innerHTML = '<option value="">Nessuna sala</option>' +
           sale.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('');
         salaSelect.value = '';
       }
+      container.querySelector('#form-tavolo').dataset.editId = '';
       container.querySelector('#form-tavolo').style.display = '';
       container.querySelector('#tavolo-numero').focus();
     });
@@ -1504,11 +1387,11 @@ export async function render(container) {
         ({ data: dataTav, error: errorTav } = await supa().from('tavoli').insert(payload).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y').single());
         if (!errorTav) { tavoli.push(dataTav); }
       }
-      if (errorTav) { esito.textContent = '❌ ' + errorTav.message; esito.style.color = '#dc2626'; return; }
+      if (errorTav) { esito.textContent = 'Errore: ' + errorTav.message; esito.style.color = '#dc2626'; return; }
       container.querySelector('#form-tavolo').dataset.editId = '';
       container.querySelector('#form-tavolo').style.display = 'none';
       renderListaTavoliConf();
-      mostraToast('Tavolo ' + numero + (editIdTav ? ' modificato' : ' aggiunto') + ' ✅', 'success');
+      mostraToast('Tavolo ' + numero + (editIdTav ? ' modificato' : ' aggiunto'), 'success');
     });
 
     // Filtro sala
@@ -1544,182 +1427,74 @@ export async function render(container) {
     const btnSalva = container.querySelector('#btn-piantina-salva');
     const esito = container.querySelector('#piantina-esito');
     if (!canvas || !salaSel) return;
-
-    let grigliaOn = true;
-    let salaSelId = '';
-    let tavoliPiantina = []; // { ...tavolo, px, py } posizioni in percentuale
-    let dragEl = null, dragOffX = 0, dragOffY = 0;
-
-    const CELL = 5; // snap a griglia 5%
-
+    let grigliaOn = true, salaSelId = '', tavoliPiantina = [], dragEl = null, dragOffX = 0, dragOffY = 0;
+    const CELL = 5;
     function snap(v) { return grigliaOn ? Math.round(v / CELL) * CELL : v; }
-
     function renderPiantina() {
       const tavoliSala = tavoliPiantina.filter(t => !salaSelId || t.sala_id === salaSelId);
-      // Calcola aspect ratio
-      const w = parseFloat(wInput.value) || 10;
-      const h = parseFloat(hInput.value) || 8;
-      const ratio = (h / w * 100).toFixed(2);
-      canvas.style.paddingBottom = ratio + '%';
-      canvas.style.height = '0';
-      canvas.style.minHeight = '';
-
-      // Sfondo griglia
-      canvas.style.background = grigliaOn
-        ? 'repeating-linear-gradient(#e5e7eb 0 1px, transparent 1px 5%) repeating-linear-gradient(90deg, #e5e7eb 0 1px, transparent 1px 5%), #f8fafc'
-        : '#f8fafc';
-
-      // Rimuovi vecchi tavoli dal canvas
+      const w = parseFloat(wInput.value) || 10, h = parseFloat(hInput.value) || 8;
+      canvas.style.paddingBottom = (h / w * 100).toFixed(2) + '%';
+      canvas.style.height = '0'; canvas.style.minHeight = '';
+      canvas.style.background = grigliaOn ? 'repeating-linear-gradient(#e5e7eb 0 1px, transparent 1px 5%) repeating-linear-gradient(90deg, #e5e7eb 0 1px, transparent 1px 5%), #f8fafc' : '#f8fafc';
       canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove());
       if (empty) empty.style.display = tavoliSala.length ? 'none' : '';
-
       tavoliSala.forEach(t => {
         const el = document.createElement('div');
-        el.className = 'piantina-tavolo';
-        el.dataset.id = t.id;
-        const px = t.px ?? 10;
-        const py = t.py ?? 10;
+        el.className = 'piantina-tavolo'; el.dataset.id = t.id;
+        const px = t.px ?? 10, py = t.py ?? 10;
         const isRound = t.posizione === 'esterno' || (t.coperti_max && t.coperti_max <= 4);
-        el.style.cssText = [
-          'position:absolute',
-          'left:' + px + '%',
-          'top:' + py + '%',
-          'width:8%',
-          'aspect-ratio:1',
-          'background:#e8f4f8',
-          'border:2px solid #0E5A7A',
-          'border-radius:' + (isRound ? '50%' : '8px'),
-          'display:flex',
-          'align-items:center',
-          'justify-content:center',
-          'flex-direction:column',
-          'cursor:grab',
-          'font-size:10px',
-          'font-weight:700',
-          'color:#0E5A7A',
-          'box-shadow:0 2px 6px rgba(0,0,0,.1)',
-          'transition:box-shadow .15s',
-          'user-select:none',
-          'z-index:10',
-        ].join(';');
-        el.innerHTML = '<div style="font-size:11px;font-weight:800;">' + esc(String(t.numero || t.nome || '?')) + '</div>' +
-          '<div style="font-size:9px;opacity:.7;">' + (t.coperti_max || '') + (t.coperti_max ? 'p' : '') + '</div>';
-
-        // Drag
+        el.style.cssText = 'position:absolute;left:' + px + '%;top:' + py + '%;width:8%;aspect-ratio:1;background:#e8f4f8;border:2px solid #0E5A7A;border-radius:' + (isRound ? '50%' : '8px') + ';display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:grab;font-size:10px;font-weight:700;color:#0E5A7A;box-shadow:0 2px 6px rgba(0,0,0,.1);user-select:none;z-index:10;';
+        el.innerHTML = '<div style="font-size:11px;font-weight:800;">' + esc(String(t.numero || t.nome || '?')) + '</div><div style="font-size:9px;opacity:.7;">' + (t.coperti_max ? t.coperti_max + 'p' : '') + '</div>';
         el.addEventListener('mousedown', function(e) {
-          e.preventDefault();
-          dragEl = el;
+          e.preventDefault(); dragEl = el;
           const rect = canvas.getBoundingClientRect();
           dragOffX = (e.clientX - rect.left) / rect.width * 100 - px;
           dragOffY = (e.clientY - rect.top) / rect.height * 100 - py;
-          el.style.cursor = 'grabbing';
-          el.style.boxShadow = '0 6px 20px rgba(14,90,122,.3)';
-          el.style.zIndex = '100';
+          el.style.cursor = 'grabbing'; el.style.zIndex = '100';
         });
-
-        // Touch drag
         el.addEventListener('touchstart', function(e) {
-          e.preventDefault();
-          dragEl = el;
-          const rect = canvas.getBoundingClientRect();
-          const touch = e.touches[0];
+          e.preventDefault(); dragEl = el;
+          const rect = canvas.getBoundingClientRect(), touch = e.touches[0];
           dragOffX = (touch.clientX - rect.left) / rect.width * 100 - px;
           dragOffY = (touch.clientY - rect.top) / rect.height * 100 - py;
         }, { passive: false });
-
         canvas.appendChild(el);
       });
     }
-
-    // Mouse move sul canvas
     canvas.addEventListener('mousemove', function(e) {
       if (!dragEl) return;
       const rect = canvas.getBoundingClientRect();
-      let nx = snap((e.clientX - rect.left) / rect.width * 100 - dragOffX);
-      let ny = snap((e.clientY - rect.top) / rect.height * 100 - dragOffY);
-      nx = Math.max(0, Math.min(90, nx));
-      ny = Math.max(0, Math.min(90, ny));
-      dragEl.style.left = nx + '%';
-      dragEl.style.top = ny + '%';
-      const tid = dragEl.dataset.id;
-      const t = tavoliPiantina.find(x => x.id === tid);
+      let nx = Math.max(0, Math.min(90, snap((e.clientX - rect.left) / rect.width * 100 - dragOffX)));
+      let ny = Math.max(0, Math.min(90, snap((e.clientY - rect.top) / rect.height * 100 - dragOffY)));
+      dragEl.style.left = nx + '%'; dragEl.style.top = ny + '%';
+      const t = tavoliPiantina.find(x => x.id === dragEl.dataset.id);
       if (t) { t.px = nx; t.py = ny; }
     });
-
     canvas.addEventListener('touchmove', function(e) {
-      if (!dragEl) return;
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      let nx = snap((touch.clientX - rect.left) / rect.width * 100 - dragOffX);
-      let ny = snap((touch.clientY - rect.top) / rect.height * 100 - dragOffY);
-      nx = Math.max(0, Math.min(90, nx));
-      ny = Math.max(0, Math.min(90, ny));
-      dragEl.style.left = nx + '%';
-      dragEl.style.top = ny + '%';
-      const tid = dragEl.dataset.id;
-      const t = tavoliPiantina.find(x => x.id === tid);
+      if (!dragEl) return; e.preventDefault();
+      const rect = canvas.getBoundingClientRect(), touch = e.touches[0];
+      let nx = Math.max(0, Math.min(90, snap((touch.clientX - rect.left) / rect.width * 100 - dragOffX)));
+      let ny = Math.max(0, Math.min(90, snap((touch.clientY - rect.top) / rect.height * 100 - dragOffY)));
+      dragEl.style.left = nx + '%'; dragEl.style.top = ny + '%';
+      const t = tavoliPiantina.find(x => x.id === dragEl.dataset.id);
       if (t) { t.px = nx; t.py = ny; }
     }, { passive: false });
-
-    function stopDrag() {
-      if (dragEl) {
-        dragEl.style.cursor = 'grab';
-        dragEl.style.boxShadow = '0 2px 6px rgba(0,0,0,.1)';
-        dragEl.style.zIndex = '10';
-        dragEl = null;
-      }
-    }
-    canvas.addEventListener('mouseup', stopDrag);
-    canvas.addEventListener('mouseleave', stopDrag);
-    canvas.addEventListener('touchend', stopDrag);
-
-    // Cambio sala
+    function stopDrag() { if (dragEl) { dragEl.style.cursor = 'grab'; dragEl.style.zIndex = '10'; dragEl = null; } }
+    canvas.addEventListener('mouseup', stopDrag); canvas.addEventListener('mouseleave', stopDrag); canvas.addEventListener('touchend', stopDrag);
     salaSel.addEventListener('change', async function() {
       salaSelId = this.value;
-      if (!salaSelId) {
-        if (empty) empty.style.display = '';
-        canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove());
-        return;
-      }
-      // Carica tavoli della sala con posizioni salvate
-      const { data } = await supa().from('tavoli')
-        .select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo')
-        .eq('azienda_id', aziendaId)
-        .eq('sala_id', salaSelId)
-        .eq('attivo', true)
-        .order('numero');
-      // Posiziona tavoli: usa pos_x/pos_y salvati, oppure disponi in griglia
-      tavoliPiantina = (data || []).map((t, i) => ({
-        ...t,
-        px: t.pos_x != null ? t.pos_x : (i % 5) * 18 + 5,
-        py: t.pos_y != null ? t.pos_y : Math.floor(i / 5) * 20 + 5,
-      }));
+      if (!salaSelId) { if (empty) empty.style.display = ''; canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove()); return; }
+      const { data } = await supa().from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo').eq('azienda_id', aziendaId).eq('sala_id', salaSelId).eq('attivo', true).order('numero');
+      tavoliPiantina = (data || []).map((t, i) => ({ ...t, px: t.pos_x != null ? t.pos_x : (i % 5) * 18 + 5, py: t.pos_y != null ? t.pos_y : Math.floor(i / 5) * 20 + 5 }));
       renderPiantina();
     });
-
-    // Griglia toggle
-    btnGriglia.addEventListener('click', () => {
-      grigliaOn = !grigliaOn;
-      btnGriglia.style.background = grigliaOn ? '#e8f4f8' : '#f8fafc';
-      btnGriglia.style.borderColor = grigliaOn ? '#0E5A7A' : '#e5e7eb';
-      btnGriglia.style.color = grigliaOn ? '#0E5A7A' : '#374151';
-      renderPiantina();
-    });
-
-    // Dimensioni cambio
-    wInput.addEventListener('change', renderPiantina);
-    hInput.addEventListener('change', renderPiantina);
-
-    // Salva posizioni
+    btnGriglia.addEventListener('click', () => { grigliaOn = !grigliaOn; btnGriglia.style.background = grigliaOn ? '#e8f4f8' : '#f8fafc'; renderPiantina(); });
+    wInput.addEventListener('change', renderPiantina); hInput.addEventListener('change', renderPiantina);
     btnSalva.addEventListener('click', async () => {
-      if (!salaSelId) { esito.textContent = '⚠️ Seleziona una sala'; esito.style.color = '#f59e0b'; return; }
+      if (!salaSelId) { esito.textContent = 'Seleziona una sala prima'; esito.style.color = '#f59e0b'; return; }
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
-      const promises = tavoliPiantina.filter(t => t.sala_id === salaSelId).map(t =>
-        supa().from('tavoli').update({ pos_x: t.px, pos_y: t.py }).eq('id', t.id)
-      );
-      await Promise.all(promises);
-      esito.textContent = '✅ Piantina salvata!'; esito.style.color = '#15803d';
+      await Promise.all(tavoliPiantina.filter(t => t.sala_id === salaSelId).map(t => supa().from('tavoli').update({ pos_x: t.px, pos_y: t.py }).eq('id', t.id)));
+      esito.textContent = 'Piantina salvata!'; esito.style.color = '#15803d';
       setTimeout(() => { esito.textContent = ''; }, 3000);
     });
   }
@@ -1729,11 +1504,6 @@ export async function render(container) {
   // ════════════════════════════════════════
   async function renderTabMenu(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
-
-    if (!currentSedeId) {
-      box.innerHTML = '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px;color:#92400e;font-size:14px;">⚠️ Seleziona una sede dal menu in alto per gestire il catalogo prodotti.</div>';
-      return;
-    }
 
     const { data: categorie } = await supa()
       .from('categorie_vendita')
@@ -1764,41 +1534,26 @@ export async function render(container) {
       .map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
     const tipiOpts = ['', 'portata', 'servizio', 'menu_fisso', 'bevanda', 'altro']
       .map(function(t){ return '<option value="' + t + '">' + (t || '— tutti i tipi —') + '</option>'; }).join('');
-    const catOpts = (categorie || []).map(function(c){
-      return '<option value="' + c.id + '">' + esc(c.nome) + '</option>';}).join('');
+    const catOpts = (categorie || []).map(function(c){ return '<option value="' + c.id + '">' + esc(c.nome) + '</option>'; }).join('');
 
-    box.innerHTML = `
-      <!-- Banner Menu Builder -->
-      <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);border-radius:16px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    box.innerHTML = ` <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);border-radius:16px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
           <div style="font-size:17px;font-weight:800;color:#fff;">🍽️ Menu Builder</div>
           <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px;">Crea menu digitali con categorie, foto, food cost live, QR code e link pubblico</div>
         </div>
         <button id="btn-apri-menu-builder" style="background:#fff;color:#0E5A7A;border:none;border-radius:12px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap;">🚀 Apri Menu Builder</button>
-      </div>
-
-      <!-- Header -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      </div> <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
           <div style="font-size:17px;font-weight:700;color:#0f172a;">📦 Catalogo prodotti</div>
           <div style="font-size:13px;color:#64748b;margin-top:2px;">Portate, servizi e menu — usati da preventivi, comande e menu digitale</div>
         </div>
         <button id="btn-nuovo-prodotto" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi prodotto</button>
-      </div>
-
-      <!-- Filtri -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      </div> <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
         <input id="filtro-q" class="input" placeholder="🔍 Cerca..." style="flex:1;min-width:150px;max-width:220px;">
         <select id="filtro-canale" class="input" style="min-width:120px;">${canaliOpts}</select>
         <select id="filtro-tipo" class="input" style="min-width:130px;">${tipiOpts}</select>
         <button id="btn-applica-filtri" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">Filtra</button>
-      </div>
-
-      <!-- Lista prodotti -->
-      <div id="lista-prodotti-cat"></div>
-
-      <!-- Form prodotto -->
-      <div id="form-prodotto-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
+      </div> <div id="lista-prodotti-cat"></div> <div id="form-prodotto-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:20px;">
         <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="form-prodotto-title">Nuovo prodotto</div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;">
@@ -1849,7 +1604,7 @@ export async function render(container) {
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
             <select id="pv-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
-              ${sedi || []).map(s => '<option value="' + s.id + '" ' + s.id === currentSedeId ? \'selected\' : \'\' + '>' + esc(s.nome) + '</option>').join('')}
+              ${(sedi || []).map(s => `<option value="${s.id}" ${s.id === currentSedeId ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -1881,10 +1636,7 @@ export async function render(container) {
           <button id="btn-salva-prodotto" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
           <button id="btn-annulla-prodotto" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
         </div>
-      </div>
-
-      <!-- Link utili -->
-      <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
+      </div> <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;">
         ${[
           { icon:'🏷️', titolo:'Categorie', link:'bo-categorie', cta:'Gestisci categorie' },
           { icon:'📋', titolo:'Menu digitale', link:'bo-menu', cta:'Menu builder' },
@@ -1912,8 +1664,8 @@ export async function render(container) {
             <div style="flex:1;min-width:180px;">
               <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(p.nome)}</div>
               <div style="font-size:12px;color:#64748b;margin-top:3px;">
-                ${atNome ? '' + esc(catNome) + ' · ' : ''}${p.tipo || ''}
-                ${.prezzo_base ? ' · <strong>€' + Number(p.prezzo_base).toFixed(2) + '</strong>' : ''}
+                ${catNome ? `${esc(catNome)} · ` : ''}${p.tipo || ''}
+                ${p.prezzo_base ? ` · <strong>€${Number(p.prezzo_base).toFixed(2)}</strong>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -2018,7 +1770,7 @@ export async function render(container) {
       await caricaProdotti();
       renderListaProdotti();
       setTimeout(() => { box.querySelector('#form-prodotto-wrap').style.display = 'none'; }, 600);
-      mostraToast('"' + nome + '" salvato ✅', 'success');
+      mostraToast(`"${nome}" salvato ✅`, 'success');
     });
 
     box.querySelectorAll('[data-nav]').forEach(btn => {
@@ -2033,7 +1785,7 @@ export async function render(container) {
         <div style="font-size:28px;">${icon}</div>
         <div style="font-size:15px;font-weight:700;color:#0f172a;">${titolo}</div>
         <div style="font-size:13px;color:#64748b;flex:1;">${desc}</div>
-        <button ${ink?'data-nav="' + link + '"':'disabled'} style="
+        <button ${link?`data-nav="${link}"`:'disabled'} style="
           padding:8px 14px;border:none;border-radius:10px;cursor:${disabled?'default':'pointer'};font-size:13px;font-weight:600;
           background:${disabled?'#f1f5f9':'#0E5A7A'};color:${disabled?'#94a3b8':'white'};
           align-self:flex-start;
@@ -2156,9 +1908,7 @@ export async function render(container) {
               <textarea id="id-obj-lungo" class="id-ta" style="min-height:70px;" placeholder="Es. Aprire seconda sede">${val('obiettivo_lungo')}</textarea>
             </div>
           </div>
-        </div>
-        <!-- GOLDEN CIRCLE -->
-        <div class="id-card" style="border:2px solid #0E5A7A;">
+        </div> <div class="id-card" style="border:2px solid #0E5A7A;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
             <div style="width:40px;height:40px;background:#0E5A7A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎯</div>
             <div>
@@ -2249,15 +1999,9 @@ export async function render(container) {
       </div>
 
       <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;" class="sond-grid" id="sond-grid">
-        <style>@media(max-width:640px){#sond-grid{grid-template-columns:1fr!important;}}</style>
-
-        <!-- Lista sondaggi -->
-        <div>
+        <style>@media(max-width:640px){#sond-grid{grid-template-columns:1fr!important;}}</style> <div>
           <div id="lista-sondaggi"></div>
-        </div>
-
-        <!-- Editor sondaggio -->
-        <div id="editor-sondaggio" style="display:none;">
+        </div> <div id="editor-sondaggio" style="display:none;">
           <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
             <div style="font-size:15px;font-weight:700;margin-bottom:12px;" id="editor-title">Nuovo sondaggio</div>
             <input id="sond-titolo" class="input" placeholder="Titolo sondaggio *" style="width:100%;box-sizing:border-box;margin-bottom:8px;">
@@ -2266,23 +2010,17 @@ export async function render(container) {
               <input type="checkbox" id="sond-nps" style="accent-color:#0E5A7A;">
               <label for="sond-nps" style="font-size:13px;cursor:pointer;">Prima domanda NPS globale (valutazione generale 1-5) — obbligatoria</label>
             </div>
-          </div>
-
-          <!-- Lista domande -->
-          <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
+          </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div style="font-size:14px;font-weight:700;">Domande</div>
               <button id="btn-aggiungi-dom" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;">+ Aggiungi domanda</button>
             </div>
-            <div id="lista-domande"></div>
-
-            <!-- Form domanda -->
-            <div id="form-domanda" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:10px;">
+            <div id="lista-domande"></div> <div id="form-domanda" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:10px;">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;margin-bottom:10px;">
                 <div>
                   <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo domanda</label>
                   <select id="dom-tipo" class="input" style="width:100%;box-sizing:border-box;">
-                    ${IPI_DOM.map(t=>'<option value="' + t.v + '">' + t.l + '</option>').join('')}
+                    ${TIPI_DOM.map(t=>`<option value="${t.v}">${t.l}</option>`).join('')}
                   </select>
                 </div>
                 <div>
@@ -2474,7 +2212,7 @@ export async function render(container) {
       await render(box);
     } catch (e) {
       console.error('Errore caricamento booking-form-builder:', e);
-      box.innerHTML = '<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ' + e.message + '</div>';
+      box.innerHTML = `<div style="color:#dc2626;padding:20px;">Errore caricamento form builder: ${e.message}</div>`;
     }
   }
 
@@ -2511,10 +2249,7 @@ export async function render(container) {
         <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">🌐 Profilo Pubblico</div>
         <div style="font-size:13px;color:#64748b;margin-bottom:20px;">
           Queste informazioni vengono usate dal chatbot WhatsApp per rispondere automaticamente ai clienti.
-        </div>
-
-        <!-- POSIZIONE -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+        </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;">📍 Posizione e contatti</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
@@ -2550,10 +2285,7 @@ export async function render(container) {
             <input id="pp-parcheggio" class="input" value="${esc(p.info_parcheggio || '')}"
               placeholder="Es: Parcheggio gratuito nel cortile interno">
           </div>
-        </div>
-
-        <!-- SERVIZI -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+        </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">✅ Servizi disponibili</div>
           <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Il chatbot userà queste info per rispondere ai clienti</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
@@ -2570,10 +2302,7 @@ export async function render(container) {
             ${toggleItem('menu_bambini', 'Menu bambini', '🧒')}
             ${toggleItem('area_giochi', 'Area giochi bambini', '🎠')}
           </div>
-        </div>
-
-        <!-- INTOLLERANZE -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+        </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">🥗 Intolleranze e allergie gestite</div>
           <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Spunta quelle che la cucina sa gestire — il chatbot lo comunica ai clienti</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
@@ -2591,10 +2320,7 @@ export async function render(container) {
             ${intolleranzaItem('halal', 'Halal')}
             ${intolleranzaItem('kosher', 'Kosher')}
           </div>
-        </div>
-
-        <!-- DOMANDE POST-PRENOTAZIONE -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+        </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">💬 Domande post-prenotazione WhatsApp</div>
           <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Dopo la conferma prenotazione, il chatbot fa queste domande automaticamente</div>
 
@@ -2633,10 +2359,7 @@ export async function render(container) {
               <div style="font-size:12px;color:#64748b;margin-top:2px;">"Preferisci interno o esterno? Zona tranquilla o vivace?"</div>
             </div>
           </label>
-        </div>
-
-        <!-- RISPOSTE PERSONALIZZATE -->
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
+        </div> <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">✍️ Testi personalizzati per il chatbot</div>
           <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Lascia vuoto per usare il testo default. Usa {nome_locale} come segnaposto.</div>
 
@@ -3266,33 +2989,27 @@ export async function render(container) {
         }
       </style>
 
-      <div style="max-width:720px;">
-
-        <!-- ANTEPRIMA PROFILO -->
-        <div class="media-card">
+      <div style="max-width:720px;"> <div class="media-card">
           <div class="media-section-title">👁️ Anteprima landing</div>
           <div class="media-section-sub">Così appare la tua pagina di prenotazione</div>
           <div class="profile-preview" id="preview-box">
-            ${z?.cover_url
-              ? '<img class="profile-preview-cover" id="prev-cover-img" src="' + esc(az.cover_url) + '" alt="Cover">'
-              : '<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>'}
+            ${az?.cover_url
+              ? `<img class="profile-preview-cover" id="prev-cover-img" src="${esc(az.cover_url)}" alt="Cover">`
+              : `<div class="profile-preview-cover-empty" id="prev-cover-empty">🍽️</div>`}
             <div class="profile-preview-logo-wrap" id="prev-logo-wrap">
-              ${z?.logo_url
-                ? '<img src="' + esc(az.logo_url) + '" alt="Logo" id="prev-logo-img">'
-                : '<span style="font-size:28px;">🍽️</span>'}
+              ${az?.logo_url
+                ? `<img src="${esc(az.logo_url)}" alt="Logo" id="prev-logo-img">`
+                : `<span style="font-size:28px;">🍽️</span>`}
             </div>
             <div class="profile-preview-info">
               <div class="profile-preview-nome" id="prev-nome">${esc(az?.nome || 'Il tuo ristorante')}</div>
               <div class="profile-preview-sub">Conferma di prenotazione</div>
             </div>
           </div>
-        </div>
-
-        <!-- COVER -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">🖼️ Foto di copertina</div>
           <div class="media-section-sub">Immagine orizzontale 1200×400px — come la cover di Facebook</div>
-          ${z?.cover_url ? '<img src="' + esc(az.cover_url) + '" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">' : ''}
+          ${az?.cover_url ? `<img src="${esc(az.cover_url)}" class="preview-cover" id="cover-preview" style="margin-bottom:12px;">` : ''}
           <div class="upload-zone" id="cover-zone">
             <input type="file" id="cover-input" accept="image/*" style="display:none;">
             <div class="upload-zone-icon">🖼️</div>
@@ -3300,14 +3017,11 @@ export async function render(container) {
             <div class="upload-zone-sub">JPG, PNG, WebP — max 5MB</div>
           </div>
           <div id="cover-progress" style="display:none;margin-top:8px;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
-        </div>
-
-        <!-- LOGO -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">🔵 Logo (foto profilo)</div>
           <div class="media-section-sub">Immagine quadrata o tonda — appare come foto profilo sulla landing</div>
           <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
-            ${z?.logo_url ? '<img src="' + esc(az.logo_url) + '" class="preview-logo" id="logo-preview">' : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
+            ${az?.logo_url ? `<img src="${esc(az.logo_url)}" class="preview-logo" id="logo-preview">` : '<div style="width:90px;height:90px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:32px;" id="logo-preview-empty">🍽️</div>'}
             <div style="flex:1;">
               <div class="upload-zone" id="logo-zone">
                 <input type="file" id="logo-input" accept="image/*" style="display:none;">
@@ -3318,28 +3032,19 @@ export async function render(container) {
             </div>
           </div>
           <div id="logo-progress" style="display:none;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
-        </div>
-
-        <!-- GALLERIA FOTO -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">📸 Galleria foto</div>
           <div class="media-section-sub">Foto del locale, piatti, ambienti — visibili sulla landing. Trascina per riordinare.</div>
           <div class="gallery-grid" id="gallery-grid"></div>
           <input type="file" id="gallery-input" accept="image/*" multiple style="display:none;">
           <div id="gallery-progress" style="display:none;margin-top:8px;font-size:12px;color:#0E5A7A;font-weight:600;">⏳ Caricamento...</div>
-        </div>
-
-        <!-- LINK MENU -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">📋 Link al menu</div>
           <div class="media-section-sub">URL del tuo menu digitale — apparirà sulla landing come pulsante "Vedi il menu"</div>
           <input id="link-menu" class="id-input" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;"
             placeholder="https://..." value="${esc(az?.link_menu || '')}">
           <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Es. link al menu su TheFork, tuo sito, PDF Google Drive, ecc.</div>
-        </div>
-
-        <!-- FONT GLOBALE -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">🔤 Font globale</div>
           <div class="media-section-sub">Applicato a landing prenotazione, menu digitale, tessera fidelity e schermo cassa cliente</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -3366,17 +3071,12 @@ export async function render(container) {
                 <option value="xlarge">Molto grande</option>
               </select>
             </div>
-          </div>
-          <!-- Anteprima font -->
-          <div id="font-preview" style="border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;background:#fafafa;">
+          </div> <div id="font-preview" style="border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;background:#fafafa;">
             <div id="font-preview-text" style="font-size:18px;font-weight:700;margin-bottom:4px;">Campo Antico Ricevimenti</div>
             <div id="font-preview-sub" style="font-size:14px;color:#64748b;">Prenotazione confermata per Mario Rossi</div>
             <div id="font-preview-price" style="font-size:22px;font-weight:800;color:#0E5A7A;margin-top:8px;">€ 45,00</div>
           </div>
-        </div>
-
-        <!-- COLORE BRAND -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">🎨 Colore brand</div>
           <div class="media-section-sub">Colore principale della tua landing — header, pulsanti, accenti</div>
           <div class="color-row">
@@ -3386,18 +3086,15 @@ export async function render(container) {
               value="${esc(colore)}" placeholder="#0E5A7A">
             <div id="colore-sample" style="flex:1;height:42px;border-radius:10px;background:${esc(colore)};"></div>
           </div>
-        </div>
-
-        <!-- TEMA SERATA -->
-        <div class="media-card">
+        </div> <div class="media-card">
           <div class="media-section-title">🎭 Tema serata</div>
           <div class="media-section-sub">Attiva un tema stagionale per la landing — cambia colori e header automaticamente</div>
           <div class="tema-grid" id="tema-grid">
-            ${temi || []).map(t => '
-              <div class="tema-card ' + az?.tema_landing_id === t.id ? \'selected\' : \'\' + '" data-tema="' + esc(t.id) + '">
-                <div class="tema-emoji">' + esc(t.emoji || \'🍽️\') + '</div>
-                <div class="tema-nome">' + esc(t.nome) + '</div>
-                ' + t.data_inizio ? '<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
+            ${(temi || []).map(t => `
+              <div class="tema-card ${az?.tema_landing_id === t.id ? 'selected' : ''}" data-tema="${esc(t.id)}">
+                <div class="tema-emoji">${esc(t.emoji || '🍽️')}</div>
+                <div class="tema-nome">${esc(t.nome)}</div>
+                ${t.data_inizio ? `<div class="tema-date">${formatTemaDate(t.data_inizio, t.data_fine)}</div>` : '<div class="tema-date">Sempre</div>'}
               </div>
             `).join('')}
             <div class="tema-card ${!az?.tema_landing_id ? 'selected' : ''}" data-tema="">
@@ -3548,7 +3245,7 @@ export async function render(container) {
     // ── Upload file su Supabase Storage ──────────────────────────
     async function uploadFile(file, tipo) {
       const ext = file.name.split('.').pop();
-      const path = aziendaId + '/' + tipo + '-' + Date.now() + '.' + ext;
+      const path = `${aziendaId}/${tipo}-${Date.now()}.${ext}`;
       const { error } = await supa().storage.from('media-aziende').upload(path, file, { upsert: true, contentType: file.type });
       if (error) { console.error('Upload error:', error); return null; }
       const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
