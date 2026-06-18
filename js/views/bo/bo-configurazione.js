@@ -1254,21 +1254,60 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- PRENOTAZIONI link -->
-      <div>
-        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:12px;">📅 Prenotazioni e piantina</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;">
-          ${[
-            { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci le prenotazioni e conferma gli arrivi.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
-            { icon:'🗺️', titolo:'Piantina sala', desc:'Visualizza e assegna i tavoli graficamente.', link:'prenotazioni-tavoli', cta:'Vai alla Piantina' },
+      <!-- PIANTINA SALA -->
+      <div style="margin-top:8px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">🗺️ Piantina sala</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Trascina i tavoli per creare la pianta esatta del tuo locale</div>
+
+        <!-- Toolbar piantina -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:12px 16px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <select id="piantina-sala-sel" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;">
+            <option value="">— Seleziona sala —</option>
+            \${sale.map(s => '<option value="'+s.id+'">'+esc(s.nome)+'</option>').join('')}
+          </select>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
+            Larghezza:
+            <input id="piantina-w" type="number" min="2" max="50" value="10" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
+            Altezza:
+            <input id="piantina-h" type="number" min="2" max="50" value="8" style="width:56px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;text-align:center;"> m
+          </div>
+          <button id="btn-piantina-griglia" style="padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc;font-size:12px;cursor:pointer;color:#374151;">📐 Griglia</button>
+          <button id="btn-piantina-salva" style="padding:7px 16px;border:none;border-radius:8px;background:#0E5A7A;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">💾 Salva piantina</button>
+          <div id="piantina-esito" style="font-size:12px;min-height:14px;"></div>
+        </div>
+
+        <!-- Canvas piantina -->
+        <div id="piantina-wrap" style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:relative;user-select:none;">
+          <div id="piantina-canvas" style="position:relative;background:#f8fafc;width:100%;min-height:400px;overflow:hidden;">
+            <div id="piantina-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#94a3b8;font-size:14px;">
+              <div style="font-size:40px;">🗺️</div>
+              <div>Seleziona una sala per iniziare</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legenda -->
+        <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><div style="width:16px;height:16px;background:#e8f4f8;border:1.5px solid #0E5A7A;border-radius:4px;"></div> Tavolo rotondo</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><div style="width:16px;height:16px;background:#e8f4f8;border:1.5px solid #0E5A7A;border-radius:2px;"></div> Tavolo quadrato/rettangolare</div>
+          <div style="font-size:11px;color:#94a3b8;margin-left:auto;">💡 Trascina per posizionare · doppio clic per modificare</div>
+        </div>
+
+        <!-- Link prenotazioni -->
+        <div style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;">
+          \${[
+            { icon:'📅', titolo:'Prenotazioni', desc:'Gestisci arrivi e tavoli.', link:'prenotazioni', cta:'Vai a Prenotazioni' },
           ].map(c => cardLink(c)).join('')}
         </div>
       </div>
-    `;
+    \`;
 
     renderListaSale();
     renderListaTavoliConf();
     bindSala();
+    bindPiantina();
   }
 
   function renderListaSale() {
@@ -1437,6 +1476,199 @@ export async function render(container) {
     // Nav buttons
     container.querySelectorAll('[data-nav]').forEach(btn => {
       btn.addEventListener('click', () => { window.location.hash = '#/' + btn.dataset.nav; });
+    });
+  }
+
+  // ════════════════════════════════════════
+  // PIANTINA SALA
+  // ════════════════════════════════════════
+  function bindPiantina() {
+    const canvas = container.querySelector('#piantina-canvas');
+    const empty = container.querySelector('#piantina-empty');
+    const salaSel = container.querySelector('#piantina-sala-sel');
+    const wInput = container.querySelector('#piantina-w');
+    const hInput = container.querySelector('#piantina-h');
+    const btnGriglia = container.querySelector('#btn-piantina-griglia');
+    const btnSalva = container.querySelector('#btn-piantina-salva');
+    const esito = container.querySelector('#piantina-esito');
+    if (!canvas || !salaSel) return;
+
+    let grigliaOn = true;
+    let salaSelId = '';
+    let tavoliPiantina = []; // { ...tavolo, px, py } posizioni in percentuale
+    let dragEl = null, dragOffX = 0, dragOffY = 0;
+
+    const CELL = 5; // snap a griglia 5%
+
+    function snap(v) { return grigliaOn ? Math.round(v / CELL) * CELL : v; }
+
+    function renderPiantina() {
+      const tavoliSala = tavoliPiantina.filter(t => !salaSelId || t.sala_id === salaSelId);
+      // Calcola aspect ratio
+      const w = parseFloat(wInput.value) || 10;
+      const h = parseFloat(hInput.value) || 8;
+      const ratio = (h / w * 100).toFixed(2);
+      canvas.style.paddingBottom = ratio + '%';
+      canvas.style.height = '0';
+      canvas.style.minHeight = '';
+
+      // Sfondo griglia
+      canvas.style.background = grigliaOn
+        ? 'repeating-linear-gradient(#e5e7eb 0 1px, transparent 1px 5%) repeating-linear-gradient(90deg, #e5e7eb 0 1px, transparent 1px 5%), #f8fafc'
+        : '#f8fafc';
+
+      // Rimuovi vecchi tavoli dal canvas
+      canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove());
+      if (empty) empty.style.display = tavoliSala.length ? 'none' : '';
+
+      tavoliSala.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'piantina-tavolo';
+        el.dataset.id = t.id;
+        const px = t.px ?? 10;
+        const py = t.py ?? 10;
+        const isRound = t.posizione === 'esterno' || (t.coperti_max && t.coperti_max <= 4);
+        el.style.cssText = [
+          'position:absolute',
+          'left:' + px + '%',
+          'top:' + py + '%',
+          'width:8%',
+          'aspect-ratio:1',
+          'background:#e8f4f8',
+          'border:2px solid #0E5A7A',
+          'border-radius:' + (isRound ? '50%' : '8px'),
+          'display:flex',
+          'align-items:center',
+          'justify-content:center',
+          'flex-direction:column',
+          'cursor:grab',
+          'font-size:10px',
+          'font-weight:700',
+          'color:#0E5A7A',
+          'box-shadow:0 2px 6px rgba(0,0,0,.1)',
+          'transition:box-shadow .15s',
+          'user-select:none',
+          'z-index:10',
+        ].join(';');
+        el.innerHTML = '<div style="font-size:11px;font-weight:800;">' + esc(String(t.numero || t.nome || '?')) + '</div>' +
+          '<div style="font-size:9px;opacity:.7;">' + (t.coperti_max || '') + (t.coperti_max ? 'p' : '') + '</div>';
+
+        // Drag
+        el.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          dragEl = el;
+          const rect = canvas.getBoundingClientRect();
+          dragOffX = (e.clientX - rect.left) / rect.width * 100 - px;
+          dragOffY = (e.clientY - rect.top) / rect.height * 100 - py;
+          el.style.cursor = 'grabbing';
+          el.style.boxShadow = '0 6px 20px rgba(14,90,122,.3)';
+          el.style.zIndex = '100';
+        });
+
+        // Touch drag
+        el.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          dragEl = el;
+          const rect = canvas.getBoundingClientRect();
+          const touch = e.touches[0];
+          dragOffX = (touch.clientX - rect.left) / rect.width * 100 - px;
+          dragOffY = (touch.clientY - rect.top) / rect.height * 100 - py;
+        }, { passive: false });
+
+        canvas.appendChild(el);
+      });
+    }
+
+    // Mouse move sul canvas
+    canvas.addEventListener('mousemove', function(e) {
+      if (!dragEl) return;
+      const rect = canvas.getBoundingClientRect();
+      let nx = snap((e.clientX - rect.left) / rect.width * 100 - dragOffX);
+      let ny = snap((e.clientY - rect.top) / rect.height * 100 - dragOffY);
+      nx = Math.max(0, Math.min(90, nx));
+      ny = Math.max(0, Math.min(90, ny));
+      dragEl.style.left = nx + '%';
+      dragEl.style.top = ny + '%';
+      const tid = dragEl.dataset.id;
+      const t = tavoliPiantina.find(x => x.id === tid);
+      if (t) { t.px = nx; t.py = ny; }
+    });
+
+    canvas.addEventListener('touchmove', function(e) {
+      if (!dragEl) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      let nx = snap((touch.clientX - rect.left) / rect.width * 100 - dragOffX);
+      let ny = snap((touch.clientY - rect.top) / rect.height * 100 - dragOffY);
+      nx = Math.max(0, Math.min(90, nx));
+      ny = Math.max(0, Math.min(90, ny));
+      dragEl.style.left = nx + '%';
+      dragEl.style.top = ny + '%';
+      const tid = dragEl.dataset.id;
+      const t = tavoliPiantina.find(x => x.id === tid);
+      if (t) { t.px = nx; t.py = ny; }
+    }, { passive: false });
+
+    function stopDrag() {
+      if (dragEl) {
+        dragEl.style.cursor = 'grab';
+        dragEl.style.boxShadow = '0 2px 6px rgba(0,0,0,.1)';
+        dragEl.style.zIndex = '10';
+        dragEl = null;
+      }
+    }
+    canvas.addEventListener('mouseup', stopDrag);
+    canvas.addEventListener('mouseleave', stopDrag);
+    canvas.addEventListener('touchend', stopDrag);
+
+    // Cambio sala
+    salaSel.addEventListener('change', async function() {
+      salaSelId = this.value;
+      if (!salaSelId) {
+        if (empty) empty.style.display = '';
+        canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove());
+        return;
+      }
+      // Carica tavoli della sala con posizioni salvate
+      const { data } = await supa().from('tavoli')
+        .select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo')
+        .eq('azienda_id', aziendaId)
+        .eq('sala_id', salaSelId)
+        .eq('attivo', true)
+        .order('numero');
+      // Posiziona tavoli: usa pos_x/pos_y salvati, oppure disponi in griglia
+      tavoliPiantina = (data || []).map((t, i) => ({
+        ...t,
+        px: t.pos_x != null ? t.pos_x : (i % 5) * 18 + 5,
+        py: t.pos_y != null ? t.pos_y : Math.floor(i / 5) * 20 + 5,
+      }));
+      renderPiantina();
+    });
+
+    // Griglia toggle
+    btnGriglia.addEventListener('click', () => {
+      grigliaOn = !grigliaOn;
+      btnGriglia.style.background = grigliaOn ? '#e8f4f8' : '#f8fafc';
+      btnGriglia.style.borderColor = grigliaOn ? '#0E5A7A' : '#e5e7eb';
+      btnGriglia.style.color = grigliaOn ? '#0E5A7A' : '#374151';
+      renderPiantina();
+    });
+
+    // Dimensioni cambio
+    wInput.addEventListener('change', renderPiantina);
+    hInput.addEventListener('change', renderPiantina);
+
+    // Salva posizioni
+    btnSalva.addEventListener('click', async () => {
+      if (!salaSelId) { esito.textContent = '⚠️ Seleziona una sala'; esito.style.color = '#f59e0b'; return; }
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const promises = tavoliPiantina.filter(t => t.sala_id === salaSelId).map(t =>
+        supa().from('tavoli').update({ pos_x: t.px, pos_y: t.py }).eq('id', t.id)
+      );
+      await Promise.all(promises);
+      esito.textContent = '✅ Piantina salvata!'; esito.style.color = '#15803d';
+      setTimeout(() => { esito.textContent = ''; }, 3000);
     });
   }
 
