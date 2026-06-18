@@ -967,7 +967,7 @@ export async function render(container) {
       settori = settori.filter(s => s.id !== btn.dataset.delSettore);
       renderListaSettori();
     });
-  }}
+  }
 
   function renderListaPostazioni() {
     const box = container.querySelector('#lista-postazioni');
@@ -992,7 +992,7 @@ export async function render(container) {
       postazioni = postazioni.filter(p => p.id !== btn.dataset.delPost);
       renderListaPostazioni();
     });
-  }}
+  }
 
   function renderListaProdottiSettore() {
     const box = container.querySelector('#lista-prodotti-settore');
@@ -1028,7 +1028,7 @@ export async function render(container) {
         mostraToast('Settore aggiornato','success');
       };
     });
-  }}
+  }
 
   function renderListaTempi() {
     const box = container.querySelector('#lista-tempi');
@@ -1244,7 +1244,7 @@ export async function render(container) {
         renderListaSale(); renderListaTavoliConf();
       });
     });
-  }}
+  }
 
   let filtroSalaAttivo = '';
   function renderListaTavoliConf() {
@@ -1295,7 +1295,7 @@ export async function render(container) {
         renderListaTavoliConf();
       });
     });
-  }}
+  }
 
   function bindSala() {
     // Sale
