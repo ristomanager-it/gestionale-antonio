@@ -464,6 +464,18 @@ export function initMenu() {
           { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
         ]
       });
+
+      // ── HOTEL (solo se modulo attivo) ──
+      const moduliAz = window.state?.azienda?.moduli || [];
+      const hasHotel = moduliAz.some(m => m.startsWith("hotel"));
+      if (hasHotel) {
+        sections.push({
+          title: "🏨 HOTEL",
+          items: [
+            { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
+          ]
+        });
+      }
     }
 
     // ── CONSULENTE DEL LAVORO ──
@@ -613,8 +625,13 @@ export function initMenu() {
           row.innerText = item.label;
         }
 
-        row.onclick =
-          () => go(item.route);
+        row.onclick = () => {
+          if (item.url) {
+            window.open(item.url, "_blank");
+          } else {
+            go(item.route);
+          }
+        };
 
         itemsBox.appendChild(row);
 
