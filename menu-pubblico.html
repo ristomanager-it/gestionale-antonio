@@ -151,13 +151,15 @@
       if (menu.sede_id) {
         var sr = await supa.from("sedi").select("id,nome,logo_url,cover_url,descrizione").eq("id", menu.sede_id).maybeSingle();
         sede = sr.data || null;
+        console.log("Sede caricata:", sede, "Errore:", sr.error);
+      } else {
+        console.log("menu.sede_id non presente:", menu.sede_id);
       }
 
       // Applica brand
-      if (azienda.colore_brand) {
-        document.documentElement.style.setProperty("--brand", azienda.colore_brand);
-        document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
-      }
+      var brandColore = menu.colore_primario || azienda.colore_brand || "#0E5A7A";
+      document.documentElement.style.setProperty("--brand", brandColore);
+      document.documentElement.style.setProperty("--brand-light", brandColore + "1a");
       if (menu.colore_sfondo) document.documentElement.style.setProperty("--sfondo", menu.colore_sfondo);
       if (azienda.font_family || menu.font_family) {
         var ff = menu.font_family || azienda.font_family;
