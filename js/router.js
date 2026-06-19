@@ -769,6 +769,11 @@ async function ensureAziendaContext(routeName) {
   const preferBozza = routeName === "completaAzienda";
   const activeAzienda = pickActiveAzienda(aziendePulite, preferBozza);
 
+  // Se abbiamo trovato una bozza, aggiorna il localStorage così i resolve() successivi la mantengono
+  if (preferBozza && activeAzienda) {
+    setStoredAziendaId(activeAzienda.id);
+  }
+
   if (!activeAzienda) {
     window.stateActions.resetAzienda();
     if (routeName !== "sceltaAzienda") {
