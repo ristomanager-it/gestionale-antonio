@@ -695,7 +695,15 @@ async function loadAziendeForUser(userId) {
   return (aziende || []).filter((a) => a.aziende);
 }
 
-function pickActiveAzienda(aziendePulite) {
+function pickActiveAzienda(aziendePulite, preferBozza = false) {
+  // Se cerchiamo la bozza (es. route completaAzienda), priorità assoluta
+  if (preferBozza) {
+    const bozza = aziendePulite.find(
+      (a) => a.aziende && (!a.aziende.profilo_completato || a.aziende.stato_attivazione === "bozza")
+    );
+    if (bozza?.aziende) return bozza.aziende;
+  }
+
   const storedId = getStoredAziendaId();
 
   if (storedId) {
@@ -758,7 +766,8 @@ async function ensureAziendaContext(routeName) {
     return { ok: false, reason: "no_aziende" };
   }
 
-  const activeAzienda = pickActiveAzienda(aziendePulite);
+  const preferBozza = routeName === "completaAzienda";
+  const activeAzienda = pickActiveAzienda(aziendePulite, preferBozza);
 
   if (!activeAzienda) {
     window.stateActions.resetAzienda();
