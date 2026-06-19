@@ -465,17 +465,13 @@ export function initMenu() {
         ]
       });
 
-      // ── HOTEL (solo se modulo attivo) ──
-      const moduliAz = window.state?.azienda?.moduli || [];
-      const hasHotel = moduliAz.some(m => m.startsWith("hotel"));
-      if (hasHotel) {
-        sections.push({
-          title: "🏨 HOTEL",
-          items: [
-            { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
-          ]
-        });
-      }
+      // ── HOTEL ──
+      sections.push({
+        title: "🏨 HOTEL",
+        items: [
+          { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
+        ]
+      });
     }
 
     // ── CONSULENTE DEL LAVORO ──
