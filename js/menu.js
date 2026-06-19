@@ -623,7 +623,20 @@ export function initMenu() {
 
         row.onclick = () => {
           if (item.url) {
-            window.open(item.url, "_blank");
+            // SSO: passa il token Supabase all'app hotel
+            if (item.url && item.url.includes("hotel.ristoflow-ai.com")) {
+              (async () => {
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (session?.access_token) {
+                  const url = item.url + "#access_token=" + session.access_token + "&refresh_token=" + session.refresh_token + "&type=sso";
+                  window.open(url, "_blank");
+                } else {
+                  window.open(item.url, "_blank");
+                }
+              })();
+            } else {
+              window.open(item.url, "_blank");
+            }
           } else {
             go(item.route);
           }
