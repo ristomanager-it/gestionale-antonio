@@ -175,27 +175,33 @@ async function doLogin(){
 
 async function redirectPostLogin(user) {
   try {
-    const { data: rel } = await supabase
+    // Carica TUTTE le aziende dell'utente
+    const { data: rels } = await supabase
       .from("utenti_aziende")
-      .select("azienda_id, ruolo, aziende(profilo_completato, stato_attivazione)")
+      .select("azienda_id, ruolo, aziende(id, profilo_completato, stato_attivazione)")
       .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
+      .eq("attivo", true);
 
-    if (!rel) {
+    if (!rels || rels.length === 0) {
       window.location.hash = "#/login";
       return;
     }
 
-    const azienda = rel.aziende;
+    // Priorità: se esiste una bozza da completare, vai lì prima
+    const bozza = rels.find(r =>
+      !r.aziende?.profilo_completato || r.aziende?.stato_attivazione === "bozza"
+    );
 
-    // Profilo non completato → completa azienda
-    if (!azienda?.profilo_completato || azienda?.stato_attivazione === "bozza") {
+    if (bozza) {
+      // Imposta l'azienda bozza nello state così completaAzienda la trova
+      if (window.stateActions?.setAzienda) {
+        window.stateActions.setAzienda({ id: bozza.azienda_id, ...bozza.aziende });
+      }
       window.location.hash = "#/completaAzienda";
       return;
     }
 
-    // Tutto ok → home
+    // Nessuna bozza → home (il router sceglie l'azienda attiva)
     window.location.hash = "#/home";
 
   } catch {
