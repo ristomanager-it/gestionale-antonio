@@ -146,6 +146,13 @@
       var ar = await supa.from("aziende").select("id,nome,logo_url,cover_url,descrizione,telefono,indirizzo,citta,colore_brand,font_family,font_size").eq("id", menu.azienda_id).maybeSingle();
       azienda = ar.data || {};
 
+      // Carica sede associata al menu (per cover/logo/nome specifici)
+      var sede = null;
+      if (menu.sede_id) {
+        var sr = await supa.from("sedi").select("id,nome,logo_url,cover_url,descrizione").eq("id", menu.sede_id).maybeSingle();
+        sede = sr.data || null;
+      }
+
       // Applica brand
       if (azienda.colore_brand) {
         document.documentElement.style.setProperty("--brand", azienda.colore_brand);
@@ -271,8 +278,9 @@
 
       // COVER + LOGO
       html += '<div class="menu-cover">';
-      if (menu.cover_url || azienda.cover_url) {
-        html += '<img src="' + esc(menu.cover_url||azienda.cover_url) + '" alt="Cover">';
+      var coverSrc = menu.cover_url || (sede && sede.cover_url) || azienda.cover_url || null;
+      if (coverSrc) {
+        html += '<img src="' + esc(coverSrc) + '" alt="Cover">';
       } else {
         html += '<div style="width:100%;height:100%;background:' + esc(colore) + ';display:flex;align-items:center;justify-content:center;font-size:56px;">🍽️</div>';
       }
@@ -280,15 +288,19 @@
 
       html += '<div class="menu-profile-row">';
       html += '<div class="menu-logo-wrap">';
-      if (menu.logo_url || azienda.logo_url) {
-        html += '<img src="' + esc(menu.logo_url||azienda.logo_url) + '" alt="Logo">';
+      var logoSrc = menu.logo_url || (sede && sede.logo_url) || azienda.logo_url || null;
+      if (logoSrc) {
+        html += '<img src="' + esc(logoSrc) + '" alt="Logo">';
       } else {
         html += '<div class="menu-logo-empty">🍽️</div>';
       }
       html += '</div>';
       html += '<div class="menu-info">';
-      html += '<div class="menu-locale-nome">' + esc(azienda.nome||"") + '</div>';
-      if (menu.descrizione) html += '<div class="menu-locale-desc">' + esc(menu.descrizione) + '</div>';
+      var nomeLocale = (sede && sede.nome) ? sede.nome : (azienda.nome || "");
+      var nomeMenu = menu.nome || "";
+      html += '<div class="menu-locale-nome">' + esc(nomeLocale) + ' · ' + esc(nomeMenu) + '</div>';
+      var descLocale = (sede && sede.descrizione) || menu.descrizione || "";
+      if (descLocale) html += '<div class="menu-locale-desc">' + esc(descLocale) + '</div>';
       html += '</div></div>';
 
       // NAV CATEGORIE
