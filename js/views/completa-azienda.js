@@ -193,7 +193,8 @@ async function redirectPostLogin(user) {
     );
 
     if (bozza) {
-      // Imposta l'azienda bozza nello state così completaAzienda la trova
+      // Salva la bozza in localStorage così ensureAziendaContext nel router la trova
+      localStorage.setItem("active_azienda_id", bozza.azienda_id);
       if (window.stateActions?.setAzienda) {
         window.stateActions.setAzienda({ id: bozza.azienda_id, ...bozza.aziende });
       }
