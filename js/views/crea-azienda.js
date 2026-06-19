@@ -228,7 +228,18 @@ export async function render(container) {
     } catch (err) {
 
       console.error("❌ ERRORE:", err);
-      errorBox.textContent = err.message || "Errore creazione";
+
+      // Leggi il body raw restituito dalla Edge Function
+      let messaggio = err.message || "Errore creazione";
+      try {
+        if (err?.context) {
+          const raw = await err.context.json();
+          console.error("❌ BODY ERRORE EDGE FUNCTION:", raw);
+          messaggio = raw?.error || messaggio;
+        }
+      } catch (_) {}
+
+      errorBox.textContent = messaggio;
 
     } finally {
 
