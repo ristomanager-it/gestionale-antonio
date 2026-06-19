@@ -299,12 +299,16 @@
       }
       html += '</div>';
       html += '<div class="menu-info">';
+      // Titolo: nome sede (o azienda) come intestazione principale
+      // Sottotitolo: nome menu specifico
+      // Payoff: descrizione menu
       var nomeLocale = (sede && sede.nome) ? sede.nome : (azienda.nome || "");
+      var nomeMenu = menu.nome || "";
+      var payoff = menu.descrizione || "";
+      // Mostra solo nome sede/locale — non nome azienda se sede disponibile
       html += '<div class="menu-locale-nome">' + esc(nomeLocale) + '</div>';
-      var sottoTitolo = menu.nome || "";
-      if (sottoTitolo) html += '<div class="menu-locale-sottotitolo">' + esc(sottoTitolo) + '</div>';
-      var descLocale = menu.descrizione || (sede && sede.descrizione) || "";
-      if (descLocale) html += '<div class="menu-locale-desc">' + esc(descLocale) + '</div>';
+      if (nomeMenu && nomeMenu !== nomeLocale) html += '<div class="menu-locale-sottotitolo">' + esc(nomeMenu) + '</div>';
+      if (payoff) html += '<div class="menu-locale-desc">' + esc(payoff) + '</div>';
       html += '</div></div>';
 
       // NAV CATEGORIE
