@@ -16,15 +16,14 @@ const FEATURE_KEYS = [
   "preventivi",
   "ocr_fatture",
   "whatsapp",
+  "tony_ai",
+  "prenotazioni",
+  "fidelity",
+  "catenarie",
 ];
 
-function safeText(v) {
-  return String(v ?? "");
-}
-
-function toBool(v) {
-  return v === true;
-}
+function safeText(v) { return String(v ?? ""); }
+function toBool(v) { return v === true; }
 
 function getEnabledFeatures(featuresObj) {
   const f = featuresObj && typeof featuresObj === "object" ? featuresObj : {};
@@ -38,29 +37,23 @@ export async function render(container) {
   if (!user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
     container.innerHTML = createPageLayout({
       title: "Accesso negato",
-      content: createCard({
-        body: `<p>Sezione riservata alla piattaforma.</p>`,
-      }),
+      content: createCard({ body: `<p>Sezione riservata alla piattaforma.</p>` }),
     });
     return;
   }
 
   const content = `
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
       <div>
-        <div style="font-size:14px; color:#6b7280;">SaaS</div>
-        <div style="margin-top:4px; font-weight:800; font-size:18px;">Piani abbonamento</div>
-        <div style="margin-top:6px; font-size:13px; color:#6b7280;">
-          Gestisci prezzi, limiti sedi e feature incluse.
-        </div>
+        <div style="font-size:14px;color:#6b7280;">SaaS</div>
+        <div style="margin-top:4px;font-weight:800;font-size:18px;">Piani abbonamento</div>
+        <div style="margin-top:6px;font-size:13px;color:#6b7280;">Gestisci prezzi, limiti sedi e feature incluse.</div>
       </div>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="app-button green" id="btn-nuovo-piano">➕ Nuovo Piano</button>
         <button class="app-button small gray" id="btn-home">⬅ Dashboard</button>
       </div>
     </div>
-
     <div id="piani-list" style="margin-top:16px;"></div>
     <div id="piano-editor" style="margin-top:16px;"></div>
   `;
@@ -71,13 +64,8 @@ export async function render(container) {
     content: createCard({ body: content }),
   });
 
-  document.getElementById("btn-home").onclick = () => {
-    window.location.hash = "#/homePiattaforma";
-  };
-
-  document.getElementById("btn-nuovo-piano").onclick = () => {
-    renderEditor(null);
-  };
+  document.getElementById("btn-home").onclick = () => { window.location.hash = "#/homePiattaforma"; };
+  document.getElementById("btn-nuovo-piano").onclick = () => { renderEditor(null); };
 
   await caricaPiani();
 }
@@ -85,14 +73,14 @@ export async function render(container) {
 async function caricaPiani() {
   const { data, error } = await supabase
     .from("piani_abbonamento")
-    .select("id, nome, prezzo_mensile, sedi_max, features")
+    .select("id,nome,prezzo_mensile,sedi_max,features,tipo")
     .order("prezzo_mensile", { ascending: true });
 
   const container = document.getElementById("piani-list");
   container.innerHTML = "";
 
   if (error) {
-    container.innerHTML = `<div style="color:#dc2626;">Errore caricamento piani: ${safeText(error.message)}</div>`;
+    container.innerHTML = `<div style="color:#dc2626;">Errore: ${safeText(error.message)}</div>`;
     return;
   }
 
@@ -101,54 +89,60 @@ async function caricaPiani() {
     return;
   }
 
+  // Conta aziende per piano
+  const { data: aziende } = await supabase
+    .from("aziende")
+    .select("piano_id")
+    .neq("stato", "piattaforma");
+
+  const conteggioPerPiano = {};
+  (aziende || []).forEach(a => {
+    if (a.piano_id) conteggioPerPiano[a.piano_id] = (conteggioPerPiano[a.piano_id] || 0) + 1;
+  });
+
   data.forEach((p) => {
     const div = document.createElement("div");
-    div.style.background = "white";
-    div.style.border = "1px solid #e5e7eb";
-    div.style.borderRadius = "18px";
-    div.style.padding = "16px";
-    div.style.marginBottom = "12px";
-    div.style.boxShadow = "0 10px 26px rgba(0,0,0,0.04)";
+    div.style.cssText = "background:white;border:1px solid #e5e7eb;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 10px 26px rgba(0,0,0,0.04);";
 
     const enabled = getEnabledFeatures(p.features);
+    const nAziende = conteggioPerPiano[p.id] || 0;
+    // sedi_max dal campo dedicato o da features (retrocompatibilità)
+    const sediMax = p.sedi_max ?? p.features?.sedi_max ?? 1;
 
     div.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div style="min-width:220px;">
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div style="font-weight:900; font-size:16px;">${safeText(p.nome).toUpperCase()}</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="font-weight:900;font-size:16px;">${safeText(p.nome).toUpperCase()}</div>
+            <span style="font-size:11px;padding:3px 8px;border-radius:999px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">
+              ${nAziende} client${nAziende !== 1 ? "i" : "e"}
+            </span>
           </div>
-
-          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-            <span style="font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#f9fafb;">
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;">
               € <strong>${safeText(p.prezzo_mensile)}</strong> / mese
             </span>
-            <span style="font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#f9fafb;">
-              Sedi max: <strong>${safeText(p.sedi_max)}</strong>
+            <span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;">
+              Sedi max: <strong>${sediMax}</strong>
             </span>
-            <span style="font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#f9fafb;">
-              Feature attive: <strong>${enabled.length}</strong>
+            <span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;">
+              Tipo: <strong>${p.tipo || "mensile"}</strong>
+            </span>
+            <span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;">
+              Feature: <strong>${enabled.length}</strong>
             </span>
           </div>
-
-          ${
-            enabled.length
-              ? `
-                <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
-                  ${enabled.slice(0, 10).map((k) => `
-                    <span style="font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#ffffff;">
-                      ${k}
-                    </span>
-                  `).join("")}
-                  ${enabled.length > 10 ? `<span style="font-size:12px; color:#6b7280;">+${enabled.length - 10}</span>` : ""}
-                </div>
-              `
-              : `<div style="margin-top:10px; font-size:12px; color:#6b7280;">Nessuna feature attiva.</div>`
+          ${enabled.length
+            ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+                ${enabled.slice(0,12).map(k => `<span style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;">${k}</span>`).join("")}
+                ${enabled.length > 12 ? `<span style="font-size:11px;color:#6b7280;">+${enabled.length - 12}</span>` : ""}
+              </div>`
+            : `<div style="margin-top:10px;font-size:12px;color:#6b7280;">Nessuna feature attiva.</div>`
           }
         </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="app-button small gray" data-edit="${p.id}">Modifica</button>
+          <button class="app-button small red" data-delete="${p.id}" data-nome="${safeText(p.nome)}" data-clienti="${nAziende}">Elimina</button>
         </div>
       </div>
     `;
@@ -159,18 +153,31 @@ async function caricaPiani() {
   container.querySelectorAll("[data-edit]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-edit");
-      const { data: piano, error: e } = await supabase
+      const { data: piano } = await supabase
         .from("piani_abbonamento")
-        .select("id, nome, prezzo_mensile, sedi_max, features")
+        .select("id,nome,prezzo_mensile,sedi_max,features,tipo")
         .eq("id", id)
         .single();
+      if (piano) renderEditor(piano);
+    });
+  });
 
-      if (e) {
-        alert("Errore caricamento piano: " + safeText(e.message));
+  container.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-delete");
+      const nome = btn.getAttribute("data-nome");
+      const nClienti = parseInt(btn.getAttribute("data-clienti") || "0");
+
+      if (nClienti > 0) {
+        alert(`Impossibile eliminare "${nome}": ha ${nClienti} client${nClienti !== 1 ? "i" : "e"} attiv${nClienti !== 1 ? "i" : "o"}. Sposta prima i clienti su un altro piano.`);
         return;
       }
 
-      renderEditor(piano || null);
+      if (!confirm(`Elimina piano "${nome}"? Questa azione non è reversibile.`)) return;
+
+      const { error } = await supabase.from("piani_abbonamento").delete().eq("id", id);
+      if (error) { alert("Errore: " + error.message); return; }
+      window.router.reloadCurrentRoute();
     });
   });
 }
@@ -178,75 +185,75 @@ async function caricaPiani() {
 function renderEditor(piano) {
   const editor = document.getElementById("piano-editor");
   const isEdit = !!piano?.id;
-
   const currentFeatures = piano?.features && typeof piano.features === "object" ? piano.features : {};
+  const sediMax = piano?.sedi_max ?? currentFeatures?.sedi_max ?? 1;
 
   const featureChecks = FEATURE_KEYS.map((key) => {
     const checked = toBool(currentFeatures[key]) ? "checked" : "";
     return `
-      <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:14px; background:#ffffff;">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;cursor:pointer;">
         <input type="checkbox" data-feature="${key}" ${checked} />
-        <span style="font-weight:600;">${key}</span>
+        <span style="font-weight:600;font-size:13px;">${key}</span>
       </label>
     `;
   }).join("");
 
   editor.innerHTML = `
-    <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:22px; padding:16px;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:22px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
-          <div style="font-size:14px; color:#6b7280;">Editor piano</div>
-          <div style="margin-top:4px; font-weight:900; font-size:16px;">
+          <div style="font-size:14px;color:#6b7280;">Editor piano</div>
+          <div style="margin-top:4px;font-weight:900;font-size:16px;">
             ${isEdit ? `Modifica: ${safeText(piano?.nome).toUpperCase()}` : "Nuovo piano"}
           </div>
         </div>
-
         <button class="app-button small gray" id="btn-cancel-editor">Chiudi</button>
       </div>
 
-      <div style="margin-top:14px; display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+      <div style="margin-top:14px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
 
-        <div style="background:white; border:1px solid #e5e7eb; border-radius:18px; padding:14px;">
-          <label>
-            Nome
-            <input id="p-nome" class="input-pill" value="${safeText(piano?.nome)}" placeholder="Es. Business" />
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:18px;padding:14px;display:grid;gap:10px;">
+          <label style="font-size:13px;font-weight:600;">
+            Nome piano
+            <input id="p-nome" class="input" value="${safeText(piano?.nome)}" placeholder="Es. Business" style="margin-top:4px;" />
           </label>
-
-          <label>
-            Prezzo mensile
-            <input id="p-prezzo" type="number" class="input-pill" value="${safeText(piano?.prezzo_mensile ?? 0)}" />
+          <label style="font-size:13px;font-weight:600;">
+            Prezzo mensile (€)
+            <input id="p-prezzo" type="number" class="input" value="${safeText(piano?.prezzo_mensile ?? 0)}" style="margin-top:4px;" />
           </label>
-
-          <label>
+          <label style="font-size:13px;font-weight:600;">
             Sedi max
-            <input id="p-sedi" type="number" class="input-pill" value="${safeText(piano?.sedi_max ?? 1)}" />
+            <input id="p-sedi" type="number" class="input" value="${safeText(sediMax)}" style="margin-top:4px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Tipo
+            <select id="p-tipo" class="input" style="margin-top:4px;">
+              <option value="mensile" ${(piano?.tipo || "mensile") === "mensile" ? "selected" : ""}>Mensile</option>
+              <option value="annuale" ${piano?.tipo === "annuale" ? "selected" : ""}>Annuale</option>
+            </select>
           </label>
         </div>
 
-        <div style="background:white; border:1px solid #e5e7eb; border-radius:18px; padding:14px;">
-          <div style="font-weight:800; margin-bottom:10px;">Feature incluse</div>
-          <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:18px;padding:14px;">
+          <div style="font-weight:800;margin-bottom:10px;">Feature incluse</div>
+          <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
             ${featureChecks}
-          </div>
-          <div style="margin-top:10px; font-size:12px; color:#6b7280;">
-            Suggerimento: usa il piano come base e l’azienda come override solo per eccezioni.
           </div>
         </div>
 
       </div>
 
-      <div id="piano-editor-error" style="margin-top:12px; color:#dc2626;"></div>
+      <div id="piano-editor-error" style="margin-top:12px;color:#dc2626;font-size:13px;"></div>
 
-      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="app-button green" id="btn-save-piano">${isEdit ? "Salva modifiche" : "Crea piano"}</button>
-        ${isEdit ? `<button class="app-button small red" id="btn-delete-piano">Elimina</button>` : ""}
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="app-button primary" id="btn-save-piano">
+          ${isEdit ? "Salva modifiche" : "Crea piano"}
+        </button>
       </div>
     </div>
   `;
 
-  document.getElementById("btn-cancel-editor").onclick = () => {
-    editor.innerHTML = "";
-  };
+  document.getElementById("btn-cancel-editor").onclick = () => { editor.innerHTML = ""; };
 
   const errorEl = document.getElementById("piano-editor-error");
 
@@ -256,65 +263,25 @@ function renderEditor(piano) {
     const nome = document.getElementById("p-nome").value.trim();
     const prezzo = Number(document.getElementById("p-prezzo").value || 0);
     const sedi = Number(document.getElementById("p-sedi").value || 1);
+    const tipo = document.getElementById("p-tipo").value;
 
-    if (!nome) {
-      errorEl.textContent = "Inserisci un nome piano.";
-      return;
-    }
+    if (!nome) { errorEl.textContent = "Inserisci un nome piano."; return; }
 
     const featureInputs = editor.querySelectorAll("[data-feature]");
     const features = {};
     featureInputs.forEach((input) => {
-      const key = input.getAttribute("data-feature");
-      features[key] = input.checked === true;
+      features[input.getAttribute("data-feature")] = input.checked === true;
     });
 
-    const payload = {
-      nome,
-      prezzo_mensile: prezzo,
-      sedi_max: sedi,
-      features,
-    };
+    const payload = { nome, prezzo_mensile: prezzo, sedi_max: sedi, tipo, features };
 
-    let res;
-    if (isEdit) {
-      res = await supabase
-        .from("piani_abbonamento")
-        .update(payload)
-        .eq("id", piano.id)
-        .select();
-    } else {
-      res = await supabase
-        .from("piani_abbonamento")
-        .insert(payload)
-        .select();
-    }
+    const res = isEdit
+      ? await supabase.from("piani_abbonamento").update(payload).eq("id", piano.id).select()
+      : await supabase.from("piani_abbonamento").insert(payload).select();
 
-    if (res.error) {
-      errorEl.textContent = res.error.message || "Errore salvataggio piano.";
-      return;
-    }
+    if (res.error) { errorEl.textContent = res.error.message || "Errore salvataggio."; return; }
 
+    editor.innerHTML = "";
     window.router.reloadCurrentRoute();
   };
-
-  const btnDelete = document.getElementById("btn-delete-piano");
-  if (btnDelete) {
-    btnDelete.onclick = async () => {
-      const ok = confirm("Confermi eliminazione piano? Questa azione non è reversibile.");
-      if (!ok) return;
-
-      const { error } = await supabase
-        .from("piani_abbonamento")
-        .delete()
-        .eq("id", piano.id);
-
-      if (error) {
-        errorEl.textContent = error.message || "Errore eliminazione piano.";
-        return;
-      }
-
-      window.router.reloadCurrentRoute();
-    };
-  }
 }
