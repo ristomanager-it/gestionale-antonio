@@ -26,7 +26,8 @@
     .menu-logo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
     .menu-logo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--brand-light);}
     .menu-info{padding-bottom:6px;flex:1;min-width:0;}
-    .menu-locale-nome{font-size:20px;font-weight:800;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .menu-locale-nome{font-size:16px;font-weight:800;color:#111827;line-height:1.3;word-break:break-word;}
+    .menu-locale-sottotitolo{font-size:12px;font-weight:600;color:var(--brand);margin-top:1px;letter-spacing:.3px;}
     .menu-locale-desc{font-size:12px;color:#64748b;margin-top:2px;}
 
     /* NAV CATEGORIE */
@@ -149,17 +150,17 @@
       // Carica sede associata al menu (per cover/logo/nome specifici)
       var sede = null;
       if (menu.sede_id) {
-        var sr = await supa.from("sedi").select("id,nome,logo_url,cover_url,descrizione").eq("id", menu.sede_id).maybeSingle();
-        sede = sr.data || null;
-        console.log("Sede caricata:", sede, "Errore:", sr.error);
-      } else {
-        console.log("menu.sede_id non presente:", menu.sede_id);
+        try {
+          var sr = await supa.from("sedi").select("id,nome,logo_url,cover_url,descrizione").eq("id", menu.sede_id).maybeSingle();
+          if (!sr.error) sede = sr.data || null;
+        } catch(e) { sede = null; }
       }
 
       // Applica brand
-      var brandColore = menu.colore_primario || azienda.colore_brand || "#0E5A7A";
-      document.documentElement.style.setProperty("--brand", brandColore);
-      document.documentElement.style.setProperty("--brand-light", brandColore + "1a");
+      if (azienda.colore_brand) {
+        document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+        document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
+      }
       if (menu.colore_sfondo) document.documentElement.style.setProperty("--sfondo", menu.colore_sfondo);
       if (azienda.font_family || menu.font_family) {
         var ff = menu.font_family || azienda.font_family;
@@ -299,9 +300,10 @@
       html += '</div>';
       html += '<div class="menu-info">';
       var nomeLocale = (sede && sede.nome) ? sede.nome : (azienda.nome || "");
-      var nomeMenu = menu.nome || "";
-      html += '<div class="menu-locale-nome">' + esc(nomeLocale) + ' · ' + esc(nomeMenu) + '</div>';
-      var descLocale = (sede && sede.descrizione) || menu.descrizione || "";
+      html += '<div class="menu-locale-nome">' + esc(nomeLocale) + '</div>';
+      var sottoTitolo = menu.nome || "";
+      if (sottoTitolo) html += '<div class="menu-locale-sottotitolo">' + esc(sottoTitolo) + '</div>';
+      var descLocale = menu.descrizione || (sede && sede.descrizione) || "";
       if (descLocale) html += '<div class="menu-locale-desc">' + esc(descLocale) + '</div>';
       html += '</div></div>';
 
