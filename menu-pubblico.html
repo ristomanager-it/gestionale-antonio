@@ -299,15 +299,10 @@
       }
       html += '</div>';
       html += '<div class="menu-info">';
-      // Titolo: nome sede (o azienda) come intestazione principale
-      // Sottotitolo: nome menu specifico
-      // Payoff: descrizione menu
-      var nomeLocale = (sede && sede.nome) ? sede.nome : (azienda.nome || "");
-      var nomeMenu = menu.nome || "";
+      // Titolo = nome menu, payoff = descrizione menu
+      var nomeMenu = menu.nome || (sede && sede.nome) || (azienda.nome || "");
       var payoff = menu.descrizione || "";
-      // Mostra solo nome sede/locale — non nome azienda se sede disponibile
-      html += '<div class="menu-locale-nome">' + esc(nomeLocale) + '</div>';
-      if (nomeMenu && nomeMenu !== nomeLocale) html += '<div class="menu-locale-sottotitolo">' + esc(nomeMenu) + '</div>';
+      html += '<div class="menu-locale-nome">' + esc(nomeMenu) + '</div>';
       if (payoff) html += '<div class="menu-locale-desc">' + esc(payoff) + '</div>';
       html += '</div></div>';
 
