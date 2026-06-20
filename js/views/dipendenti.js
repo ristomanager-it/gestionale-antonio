@@ -593,7 +593,43 @@ async function renderForm(dip) {
         </label>
 
         <label>Mansione
-          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" />
+          <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" list="dip-mansioni-list" placeholder="Es. Cameriere, Cuoco, Receptionist..." />
+          <datalist id="dip-mansioni-list">
+            <!-- Ristorazione -->
+            <option value="Chef">
+            <option value="Sous chef">
+            <option value="Cuoco">
+            <option value="Aiuto cuoco">
+            <option value="Pizzaiolo">
+            <option value="Pasticcere">
+            <option value="Cameriere">
+            <option value="Cameriere di sala">
+            <option value="Barista">
+            <option value="Sommelier">
+            <option value="Hostess">
+            <option value="Lavapiatti">
+            <!-- Hotel -->
+            <option value="Receptionist">
+            <option value="Addetto front desk">
+            <option value="Concierge">
+            <option value="Cameriera ai piani">
+            <option value="Addetto pulizie">
+            <option value="Governante">
+            <option value="Manutentore">
+            <option value="Addetto manutenzione">
+            <option value="Giardiniere">
+            <option value="Portiere">
+            <option value="Facchino">
+            <option value="Addetto colazione">
+            <option value="Addetto minibar">
+            <!-- Comuni -->
+            <option value="Responsabile di sala">
+            <option value="Direttore">
+            <option value="Amministrativo">
+            <option value="Responsabile HR">
+            <option value="Magazziniere">
+            <option value="Guardarobiere">
+          </datalist>
         </label>
 
         <label>Telefono
@@ -623,11 +659,22 @@ async function renderForm(dip) {
 
         <label>Ruolo
           <select id="dip-ruolo-app" class="input-pill">
-            <option value="operatore">Operatore</option>
-            <option value="manager_cucina">Manager cucina</option>
-            <option value="manager_sala">Manager sala</option>
-            <option value="segreteria">Segreteria</option>
-            <option value="admin">Admin</option>
+            <optgroup label="Ristorazione">
+              <option value="operatore">Operatore</option>
+              <option value="manager_cucina">Manager cucina</option>
+              <option value="manager_sala">Manager sala</option>
+            </optgroup>
+            <optgroup label="Hotel">
+              <option value="receptionist">Receptionist</option>
+              <option value="cameriera_piani">Cameriera ai piani</option>
+              <option value="manutentore">Manutentore</option>
+              <option value="addetto_colazione">Addetto colazione</option>
+              <option value="portiere">Portiere</option>
+            </optgroup>
+            <optgroup label="Gestionale">
+              <option value="segreteria">Segreteria</option>
+              <option value="admin">Admin</option>
+            </optgroup>
           </select>
         </label>
 
