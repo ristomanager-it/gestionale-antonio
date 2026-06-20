@@ -3348,6 +3348,9 @@ export async function render(container) {
             <div style="font-size:13px;color:#64748b;margin-top:2px;">
               Configura i pagamenti online per prenotazioni hotel, booking e ticketing
             </div>
+            <button id="btn-guida-stripe" style="margin-top:8px;background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;">
+              ❓ Come collegare Stripe
+            </button>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="stripe-stato-badge" style="
@@ -3539,6 +3542,103 @@ export async function render(container) {
 
       </div>
     `;
+
+    // ── Modale guida Stripe ────────────────────────────────────────
+    box.querySelector('#btn-guida-stripe').addEventListener('click', () => {
+      // Rimuovi eventuale modale già aperto
+      document.getElementById('stripe-guida-modal')?.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'stripe-guida-modal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      modal.innerHTML = `
+        <div style="background:white;border-radius:18px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <div style="padding:24px 24px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <div style="font-size:18px;font-weight:800;color:#0f172a;">Come collegare Stripe 💳</div>
+              <button id="chiudi-guida-stripe" style="background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+          </div>
+
+          <div style="padding:0 24px 24px;font-size:13px;color:#374151;line-height:1.6;">
+
+            <div style="background:#f0f9ff;border-left:4px solid #0E5A7A;border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#0f172a;">
+              Stripe è il sistema di pagamento online più usato al mondo. È gratuito da attivare — paghi solo una commissione del <strong>1,5% + 0,25€</strong> per ogni transazione (carte europee).
+            </div>
+
+            <!-- STEP 1 -->
+            <div style="display:flex;gap:14px;margin-bottom:18px;">
+              <div style="flex-shrink:0;width:32px;height:32px;background:#0E5A7A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">1</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Crea un account Stripe gratuito</div>
+                <div style="color:#64748b;">Vai su <a href="https://dashboard.stripe.com/register" target="_blank" style="color:#0E5A7A;font-weight:600;">dashboard.stripe.com/register</a> e registrati con la tua email aziendale. Ci vogliono 5 minuti.</div>
+              </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div style="display:flex;gap:14px;margin-bottom:18px;">
+              <div style="flex-shrink:0;width:32px;height:32px;background:#0E5A7A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">2</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Completa la verifica dell'account</div>
+                <div style="color:#64748b;">Stripe richiede i dati dell'azienda (P.IVA, codice fiscale, IBAN) per poter ricevere i pagamenti. Senza verifica i pagamenti restano bloccati.</div>
+              </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div style="display:flex;gap:14px;margin-bottom:18px;">
+              <div style="flex-shrink:0;width:32px;height:32px;background:#0E5A7A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">3</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Copia le chiavi API</div>
+                <div style="color:#64748b;margin-bottom:8px;">
+                  Dalla dashboard Stripe vai su <strong>Sviluppatori → Chiavi API</strong>.<br>
+                  Trovi due chiavi:
+                </div>
+                <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;font-size:12px;">
+                  <div style="margin-bottom:6px;"><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:4px;font-family:monospace;font-weight:600;">pk_live_…</span> <span style="color:#64748b;margin-left:6px;">→ Chiave pubblicabile (non è segreta)</span></div>
+                  <div><span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:4px;font-family:monospace;font-weight:600;">sk_live_…</span> <span style="color:#64748b;margin-left:6px;">→ Chiave segreta (non condividere mai)</span></div>
+                </div>
+                <div style="margin-top:8px;background:#fef3c7;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400e;">
+                  💡 Inizia in modalità <strong>Test</strong> con le chiavi <code>pk_test_…</code> e <code>sk_test_…</code> per provare senza addebiti reali.
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div style="display:flex;gap:14px;margin-bottom:18px;">
+              <div style="flex-shrink:0;width:32px;height:32px;background:#0E5A7A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">4</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Configura il Webhook</div>
+                <div style="color:#64748b;margin-bottom:8px;">
+                  Vai su <strong>Sviluppatori → Webhook</strong> e aggiungi un nuovo endpoint con questo URL:
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:11px;color:#86efac;word-break:break-all;">
+                  https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-webhook
+                </div>
+                <div style="margin-top:8px;color:#64748b;">Seleziona gli eventi: <strong>checkout.session.completed</strong>, <strong>payment_intent.payment_failed</strong>.<br>Poi copia il <strong>Signing secret</strong> (whsec_…) nel campo apposito qui sotto.</div>
+              </div>
+            </div>
+
+            <!-- STEP 5 -->
+            <div style="display:flex;gap:14px;margin-bottom:24px;">
+              <div style="flex-shrink:0;width:32px;height:32px;background:#059669;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">✓</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Incolla le chiavi in Ristoflow e salva</div>
+                <div style="color:#64748b;">Usa il pulsante <strong>"Verifica connessione"</strong> per confermare che tutto funzioni, poi attiva i pagamenti con il toggle.</div>
+              </div>
+            </div>
+
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;font-size:12px;color:#15803d;text-align:center;">
+              🙋 Hai bisogno di aiuto? Scrivi a <strong>supporto@ristoflow-ai.com</strong>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+      modal.querySelector('#chiudi-guida-stripe').addEventListener('click', () => modal.remove());
+    });
 
     // ── Toggle on/off ──────────────────────────────────────────────
     const toggle = box.querySelector('#stripe-toggle');
