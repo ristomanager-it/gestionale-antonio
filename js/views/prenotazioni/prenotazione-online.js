@@ -95,8 +95,20 @@ export async function render(container) {
   const tags = Array.isArray(config.tags) ? config.tags : [];
   const backgroundStyle = backgroundImage ? `background:${backgroundColor} url('${escapeAttribute(backgroundImage)}') center/cover no-repeat;` : `background:${backgroundColor};`;
 
-  // Caparra HTML
-  const caparraHtml = config.caparra?.attiva ? (() => {
+  // Caparra HTML — aggiornato per flusso pagamento reale
+  const caparraHtml = config.pagamento?.attivo ? (() => {
+    const pag = config.pagamento;
+    const importoTesto = pag.tipo === 'fisso'
+      ? `Importo: <strong>€${Number(pag.importo||0).toFixed(2)}</strong>`
+      : pag.tipo === 'persona'
+        ? `<strong>€${Number(pag.importo||0).toFixed(2)} a persona</strong>`
+        : `<strong>${pag.importo||0}%</strong> del totale stimato`;
+    return `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:4px;">
+      <div style="font-size:14px;font-weight:800;color:#92400e;margin-bottom:6px;">💳 Pagamento richiesto</div>
+      <div style="font-size:13px;color:#78350f;line-height:1.5;">${importoTesto}${pag.note ? `<br><span style="font-size:12px;">${escapeHtml(pag.note)}</span>` : ''}</div>
+      <div style="font-size:12px;color:#92400e;margin-top:8px;padding:8px;background:#fef3c7;border-radius:8px;">ℹ️ Dopo aver inviato il form verrai reindirizzato al pagamento sicuro. La prenotazione sarà confermata solo dopo l'avvenuto pagamento.</div>
+    </div>`;
+  })() : config.caparra?.attiva ? (() => {
     const cap = config.caparra;
     const importoTesto = cap.tipo === 'fisso' ? `Importo: <strong>€${Number(cap.importo||0).toFixed(2)}</strong>` :
       cap.tipo === 'persona' ? `<strong>€${Number(cap.importo||0).toFixed(2)} a persona</strong>` :
@@ -154,7 +166,7 @@ export async function render(container) {
               <span style="font-size:12px;color:#64748b;line-height:1.5;">Acconsento a ricevere comunicazioni promozionali e offerte via WhatsApp/email.</span>
             </label>
           </div>
-          <button id="btn-invia" class="app-button primary login-btn">${escapeHtml(t[lang].invia)}</button>
+          <button id="btn-invia" class="app-button primary login-btn">${config.pagamento?.attivo ? escapeHtml(config.pagamento?.label_btn || 'Paga e conferma prenotazione') : escapeHtml(t[lang].invia)}</button>
           <div id="msg" class="form-result"></div>
         </div>
       </div>
@@ -251,20 +263,107 @@ export async function render(container) {
     const finalTag = [tagParam, ...tags].filter(Boolean).join(",");
     btn.disabled = true; btn.textContent = "...";
 
-    const { error } = await window.supabaseClient.from("prenotazioni_tavoli").insert([{
+    // ── Determina se è richiesto il pagamento ───────────────────
+    const pag = config.pagamento || {};
+    const pagamentoRichiesto = !!pag.attivo && pag.importo > 0;
+
+    // Calcola importo in centesimi
+    let importoCentesimi = 0;
+    if (pagamentoRichiesto) {
+      if (pag.tipo === "fisso") {
+        importoCentesimi = Math.round((pag.importo || 0) * 100);
+      } else if (pag.tipo === "persona") {
+        importoCentesimi = Math.round((pag.importo || 0) * coperti * 100);
+      } else if (pag.tipo === "percentuale") {
+        // percentuale su totale stimato (non calcolabile qui — usiamo fisso come fallback)
+        importoCentesimi = Math.round((pag.importo || 0) * 100);
+      }
+    }
+
+    // ── Salva la prenotazione ────────────────────────────────────
+    const statoIniziale = pagamentoRichiesto ? "in_attesa_pagamento" : "in_attesa";
+
+    const { data: pren, error } = await window.supabaseClient.from("prenotazioni_tavoli").insert([{
       azienda_id: aziendaId, sede_id: sedeId,
       form_id: form?.id || formId || null, form_version_id: version?.id || null,
       cliente_nome: `${nome} ${cognome}`.trim(), cliente_telefono: telefono,
-      data, ora, coperti, stato: "in_attesa", canale: "online",
+      data, ora, coperti, stato: statoIniziale, canale: "online",
       source, riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
-    }]);
+    }]).select().single();
 
     btn.disabled = false; btn.textContent = t[lang].invia;
 
     if (error) { msg.innerHTML = `<span class="error-text">${escapeHtml(error.message)}</span>`; return; }
 
+    // ── Se pagamento non richiesto → flusso normale ──────────────
+    if (!pagamentoRichiesto) {
+      _mostraSuccesso(consensoNetwork, msg);
+      clearFormAfterSuccess();
+      return;
+    }
+
+    // ── Richiedi Stripe Checkout Session ────────────────────────
+    msg.innerHTML = `<div style="text-align:center;padding:16px;color:#64748b;font-size:13px;">⏳ Reindirizzamento al pagamento...</div>`;
+
+    try {
+      const descrizione = pag.descrizione ||
+        `Caparra prenotazione — ${new Date(data).toLocaleDateString("it-IT")} ore ${ora} · ${coperti} coperti`;
+
+      const res = await fetch(
+        "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create_session",
+            azienda_id: aziendaId,
+            tipo: "tavolo",
+            riferimento_id: pren.id,
+            importo_centesimi: importoCentesimi,
+            descrizione,
+            cliente_email: null,
+            cliente_nome: `${nome} ${cognome}`.trim(),
+            metadata: {
+              form_id: form?.id || formId || "",
+              data,
+              ora,
+              coperti: String(coperti)
+            }
+          })
+        }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok || !result.checkout_url) {
+        // Stripe non disponibile — conferma comunque la prenotazione
+        console.warn("Stripe non disponibile:", result.error);
+        await window.supabaseClient
+          .from("prenotazioni_tavoli")
+          .update({ stato: "in_attesa" })
+          .eq("id", pren.id);
+        _mostraSuccesso(consensoNetwork, msg);
+        clearFormAfterSuccess();
+        return;
+      }
+
+      // ── Redirect su Stripe ────────────────────────────────────
+      window.location.href = result.checkout_url;
+
+    } catch (e) {
+      console.error("Errore Stripe checkout:", e);
+      // Fallback: conferma senza pagamento
+      await window.supabaseClient
+        .from("prenotazioni_tavoli")
+        .update({ stato: "in_attesa" })
+        .eq("id", pren.id);
+      _mostraSuccesso(consensoNetwork, msg);
+      clearFormAfterSuccess();
+    }
+  }
+
+  function _mostraSuccesso(consensoNetwork, msg) {
     if (consensoNetwork && aziendaId) {
-      const linkFidelity = "https://app.ristoflow-ai.com/fidelity.html?a=" + aziendaId;
       msg.innerHTML = `
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:16px;text-align:left;">
           <div style="font-size:15px;font-weight:800;color:#15803d;margin-bottom:6px;">✅ Prenotazione inviata!</div>
@@ -278,8 +377,6 @@ export async function render(container) {
     } else {
       msg.innerHTML = `<span class="success-text">${escapeHtml(t[lang].ok)}</span>`;
     }
-
-    clearFormAfterSuccess();
   }
 
   function validateBooking() {
