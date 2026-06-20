@@ -1,3 +1,5 @@
+import { supabase } from "../supabaseClient.js";
+
 export async function render(container) {
 
   const user = window.state.user;
@@ -9,15 +11,34 @@ export async function render(container) {
     return;
   }
 
-  // Carica stats aziende
-  const supabase = window.supabaseClient;
+  // MRR e abbonamenti
+  const { data: abbonamenti } = await supabase
+    .from("abbonamenti")
+    .select("stato, intervallo, importo_pagato, piano_id, piani_abbonamento(nome,icona,colore)")
+    .eq("stato", "attivo");
+
+  const mrr = (abbonamenti||[]).reduce((s, a) => {
+    const imp = Number(a.importo_pagato || 0);
+    return s + (a.intervallo === 'annuale' ? imp/12 : a.intervallo === 'lifetime' ? 0 : imp);
+  }, 0);
+  const arr = mrr * 12;
+
+  // Clienti per piano
+  const perPiano = {};
+  (abbonamenti||[]).forEach(a => {
+    const nome = a.piani_abbonamento?.nome || 'Senza piano';
+    const icona = a.piani_abbonamento?.icona || '📋';
+    if (!perPiano[nome]) perPiano[nome] = { count:0, icona };
+    perPiano[nome].count++;
+  });
+
   const { count: totaleAziende } = await supabase
-    .from("aziende").select("id", { count: "exact", head: true });
+    .from("aziende").select("id", { count: "exact", head: true }).neq("stato","piattaforma");
   const { count: aziendeTrial } = await supabase
     .from("aziende").select("id", { count: "exact", head: true }).eq("piano", "trial");
   const { count: leadDemo } = await supabase
     .from("demo_leads").select("id", { count: "exact", head: true })
-    .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString());
+    .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()).catch(()=>({count:0}));
 
   // Utenti RistoflowBook — tutte le fonti
   const [
@@ -68,6 +89,29 @@ export async function render(container) {
           <div class="title">${azienda?.nome || "Nessuna"}</div>
         </div>
         <button id="btn-switch-azienda" class="switch-btn">Cambia</button>
+      </div>
+
+      <!-- KPI MRR -->
+      <div class="kpi-section-label">💶 Revenue</div>
+      <div class="kpi-bar" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+        <div class="kpi">
+          <div class="kpi-val" style="color:#059669;">€${Math.round(mrr).toLocaleString('it-IT')}</div>
+          <div class="kpi-label">MRR</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" style="color:#0E5A7A;">€${Math.round(arr).toLocaleString('it-IT')}</div>
+          <div class="kpi-label">ARR</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" style="color:#7c3aed;">${(abbonamenti||[]).length}</div>
+          <div class="kpi-label">Abbonati attivi</div>
+        </div>
+        ${Object.entries(perPiano).map(([nome,v])=>`
+          <div class="kpi">
+            <div class="kpi-val" style="font-size:18px;">${v.count}</div>
+            <div class="kpi-label">${v.icona} ${nome}</div>
+          </div>
+        `).join('')}
       </div>
 
       <!-- KPI BAR GESTIONALE -->
@@ -328,7 +372,7 @@ function bindEvents() {
   });
 
   document.getElementById("btn-logout").onclick = async () => {
-    await window.supabaseClient.auth.signOut();
+    await supabase.auth.signOut();
     window.state = {};
     localStorage.removeItem("viewAs");
     window.location.hash = "#/login";
@@ -366,7 +410,7 @@ function closeModal() { document.getElementById("azienda-modal").classList.add("
 let aziendeCache = [];
 
 async function loadAziende() {
-  const { data } = await window.supabaseClient
+  const { data } = await supabase
     .from("utenti_aziende")
     .select("azienda_id, aziende(nome)")
     .eq("user_id", window.state.user.id);
