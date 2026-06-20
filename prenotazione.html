@@ -168,7 +168,7 @@
       var res;
       if (tipo === "hotel") {
         res = await supa
-          .from("prenotazioni_hotel")
+          .from("hotel_prenotazioni")
           .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, font_family, font_size)")
           .eq("token_pubblico", token)
           .maybeSingle();
@@ -211,7 +211,7 @@
         await aggiornaStatoPagamento(sessionId);
         // Ricarica per avere stato aggiornato
         var res2 = await supa
-          .from(tipo === "hotel" ? "prenotazioni_hotel" : "prenotazioni_tavoli")
+          .from(tipo === "hotel" ? "hotel_prenotazioni" : "prenotazioni_tavoli")
           .select("*")
           .eq("token_pubblico", token)
           .maybeSingle();
@@ -541,7 +541,7 @@
     function cancellaPrenotazione() {
       var btn = document.getElementById("btn-conferma-cancella");
       btn.disabled = true; btn.textContent = "Cancellazione...";
-      var tabella = tipo === "hotel" ? "prenotazioni_hotel" : "prenotazioni_tavoli";
+      var tabella = tipo === "hotel" ? "hotel_prenotazioni" : "prenotazioni_tavoli";
       supa.from(tabella).update({ stato: "annullata" }).eq("token_pubblico", token).then(function(res) {
         if (res.error) { btn.disabled = false; btn.textContent = "Sì, cancella"; alert("Errore nella cancellazione. Riprova."); return; }
         closeModal("cancella"); renderCancellata();
