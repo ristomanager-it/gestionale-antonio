@@ -423,7 +423,7 @@ async function eliminaAzienda(aziendaId, nome) {
     await supabase.from("utenti_aziende").delete().eq("azienda_id", aziendaId);
 
     // 3. Rimuovi sedi
-    await supabase.from("sedi").delete().eq("azienda_id", aziendaId).catch(()=>{});
+    try { await supabase.from("sedi").delete().eq("azienda_id", aziendaId); } catch {}
 
     // 4. Rimuovi l'azienda
     const { error } = await supabase.from("aziende").delete().eq("id", aziendaId);
