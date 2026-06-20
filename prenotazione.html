@@ -89,6 +89,14 @@
     .error-sub { font-size:14px;color:#6b7280;font-weight:600;max-width:280px; }
     .landing-footer { text-align:center;padding:28px 20px calc(28px + env(safe-area-inset-bottom));font-size:12px;color:#9ca3af;font-weight:600; }
     .landing-footer a { color:var(--brand);text-decoration:none; }
+    /* Pagamento */
+    .pag-banner { border-radius:16px;padding:14px 16px;margin:0 12px 12px;display:flex;align-items:center;gap:12px; }
+    .pag-icon { font-size:28px;flex-shrink:0; }
+    .pag-title { font-size:14px;font-weight:800; }
+    .pag-sub { font-size:12px;margin-top:2px;font-weight:600;opacity:.8; }
+    .pag-btn { display:block;text-align:center;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none;margin:0 12px 12px;width:calc(100% - 24px); }
+    /* Hotel extra */
+    .hotel-room-badge { display:inline-flex;align-items:center;gap:6px;background:#e8f4f8;color:#0E5A7A;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;margin-bottom:12px; }
     @media (min-width: 480px) {
       .main-card { margin:0 auto 12px;max-width:480px; }
       .hero-social { max-width:480px;width:100%; }
@@ -146,61 +154,96 @@
     var root = document.getElementById("root");
     var params = new URLSearchParams(window.location.search);
     var token = params.get("t");
-    if (!token) { showError("Token mancante", "Il link che hai usato non e' valido."); return; }
+    var tipo  = params.get("tipo") || "tavolo"; // "tavolo" | "hotel"
+    var sessionId = params.get("session_id") || null; // da Stripe redirect
+    if (!token) { showError("Token mancante", "Il link che hai usato non è valido."); return; }
     var prenotazione = null;
     var azienda = null;
     var cdInterval = null;
 
     init();
 
-    function init() {
-      supa.from("prenotazioni_tavoli")
-        .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size)")
-        .eq("token_pubblico", token)
-        .maybeSingle()
-        .then(function(res) {
-          var data = res.data; var error = res.error;
-          if (error || !data) { showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido."); return; }
-          prenotazione = data;
-          azienda = data.aziende || {};
-          var dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
-          if (dataEvento < new Date()) { renderScaduta(); return; }
-          if (azienda.colore_brand) {
-            document.documentElement.style.setProperty("--brand", azienda.colore_brand);
-            document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
-          }
-          if (azienda.font_family) {
-            document.body.style.fontFamily = azienda.font_family;
-            var fontName = azienda.font_family.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
-            var lnk = document.createElement("link"); lnk.rel="stylesheet";
-            lnk.href = "https://fonts.googleapis.com/css2?family="+fontName+":wght@400;700;800&display=swap";
-            document.head.appendChild(lnk);
-          }
-          var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
-          if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
-          renderLanding();
-          initModals();
-          initLightbox();
-        });
+    async function init() {
+      // ── Carica prenotazione in base al tipo ──────────────────────
+      var res;
+      if (tipo === "hotel") {
+        res = await supa
+          .from("prenotazioni_hotel")
+          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, font_family, font_size)")
+          .eq("token_pubblico", token)
+          .maybeSingle();
+      } else {
+        res = await supa
+          .from("prenotazioni_tavoli")
+          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size)")
+          .eq("token_pubblico", token)
+          .maybeSingle();
+      }
+
+      var data = res.data; var error = res.error;
+      if (error || !data) { showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido."); return; }
+      prenotazione = data;
+      azienda = data.aziende || {};
+
+      // ── Controlla se prenotazione passata (solo tavoli) ─────────
+      if (tipo === "tavolo") {
+        var dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
+        if (dataEvento < new Date()) { renderScaduta(); return; }
+      }
+
+      // ── Branding dinamico ────────────────────────────────────────
+      if (azienda.colore_brand) {
+        document.documentElement.style.setProperty("--brand", azienda.colore_brand);
+        document.documentElement.style.setProperty("--brand-light", azienda.colore_brand + "1a");
+      }
+      if (azienda.font_family) {
+        document.body.style.fontFamily = azienda.font_family;
+        var fontName = azienda.font_family.replace(/['"]/g,"").split(",")[0].trim().replace(/ /g,"+");
+        var lnk = document.createElement("link"); lnk.rel="stylesheet";
+        lnk.href = "https://fonts.googleapis.com/css2?family="+fontName+":wght@400;700;800&display=swap";
+        document.head.appendChild(lnk);
+      }
+      var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
+      if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
+
+      // ── Se arriva da Stripe, aggiorna stato pagamento ────────────
+      if (sessionId) {
+        await aggiornaStatoPagamento(sessionId);
+        // Ricarica per avere stato aggiornato
+        var res2 = await supa
+          .from(tipo === "hotel" ? "prenotazioni_hotel" : "prenotazioni_tavoli")
+          .select("*")
+          .eq("token_pubblico", token)
+          .maybeSingle();
+        if (res2.data) prenotazione = Object.assign(prenotazione, res2.data);
+      }
+
+      // ── Render ───────────────────────────────────────────────────
+      if (tipo === "hotel") {
+        renderHotel();
+      } else {
+        renderLanding();
+        initModals();
+        initLightbox();
+      }
     }
 
-    function buildNoteText(raw) {
-      var skipPrefixes = [
-        "\u{1F916} Prenotazione via chatbot WhatsApp",
-        "\u{1F4DD} Chatbot WA",
-        "\u{1F916} WhatsApp Bot"
-      ];
-      if (!raw) return "";
-      return raw.split("\n").filter(function(line) {
-        var l = line.trim();
-        if (!l) return false;
-        for (var i = 0; i < skipPrefixes.length; i++) {
-          if (l.indexOf(skipPrefixes[i]) === 0) return false;
-        }
-        return true;
-      }).join("\n").trim();
+    // ── Aggiorna stato pagamento da session_id Stripe ────────────
+    async function aggiornaStatoPagamento(sid) {
+      try {
+        var res = await supa
+          .from("stripe_pagamenti")
+          .select("stato")
+          .eq("stripe_session_id", sid)
+          .maybeSingle();
+        // Lo stato viene aggiornato dal webhook — qui mostriamo solo
+        console.log("Stripe session stato:", res.data?.stato);
+      } catch(e) { console.warn("Stripe status check:", e); }
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // RENDER TAVOLO (esistente + sezione pagamento)
+    // ════════════════════════════════════════════════════════════════
     function renderLanding() {
       var p = prenotazione;
       var az = azienda;
@@ -216,8 +259,146 @@
 
       var html = "";
 
-      // HERO SOCIAL
-      html += '<div class="hero-social">';
+      // HERO
+      html += buildHero(az, "Conferma di prenotazione");
+
+      // CARD PRINCIPALE
+      html += '<div class="main-card">';
+      html += '<div class="pren-label">Prenotazione per</div>';
+      html += '<div class="pren-nome">' + escHtml(nome) + '</div>';
+      html += '<div class="stato-badge" style="background:' + stato.bg + ';color:' + stato.color + ';">' + stato.emoji + ' ' + stato.label + '</div>';
+      if (occasioneLabel) html += '<div class="occasione-badge">&#127881; ' + escHtml(occasioneLabel) + '</div>';
+      html += '<div class="info-grid">';
+      html += '<div class="info-box"><div class="info-box-icon">&#128197;</div><div class="info-box-label">Data</div><div class="info-box-value">' + dataFmt + '</div><div class="info-box-sub">' + getDayName(p.data) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128336;</div><div class="info-box-label">Orario</div><div class="info-box-value">' + (ora || "--") + '</div><div class="info-box-sub">' + getServizioLabel(p.servizio, ora) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128101;</div><div class="info-box-label">Persone</div><div class="info-box-value">' + (p.coperti || 1) + '</div><div class="info-box-sub">coperti</div></div>';
+      if (p.tavolo_id) html += '<div class="info-box"><div class="info-box-icon">&#129681;</div><div class="info-box-label">Tavolo</div><div class="info-box-value">Assegnato</div><div class="info-box-sub">da noi</div></div>';
+      html += '</div>';
+      if (noteText) html += '<div class="note-box">&#128221; ' + escHtml(noteText) + '</div>';
+      html += '</div>';
+
+      // BANNER PAGAMENTO
+      html += buildPagamentoBanner(p);
+
+      // COUNTDOWN
+      html += '<div class="countdown-wrap" id="countdown-wrap"><div class="cd-title">Manca ancora</div><div class="countdown-card"><div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div><div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div><div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div><div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div></div></div>';
+
+      // AZIONI (solo se non in attesa pagamento)
+      if (p.stato !== "in_attesa_pagamento") {
+        html += '<div class="azioni-grid">';
+        html += '<button class="az-btn primary" id="btn-modifica"><span class="az-icon">&#9999;&#65039;</span> Modifica</button>';
+        html += '<button class="az-btn danger" id="btn-cancella"><span class="az-icon">&#128465;&#65039;</span> Cancella</button>';
+        html += '</div>';
+        // AGGIUNGI A CALENDARIO
+        html += buildCalendarBtn(az.nome, p.data, p.ora, 120, "Prenotazione " + az.nome);
+      }
+
+      // MENU
+      if (az.link_menu) html += '<a class="menu-btn" href="' + escHtml(az.link_menu) + '" target="_blank">&#128203; Vedi il menu</a>';
+
+      html += buildInfoRistorante(az, indirizzo, mapsQuery, p);
+      html += buildGalleria(galleria);
+
+      if (p.modificata_dal_cliente) {
+        html += '<div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin:0 12px 12px;text-align:center;">&#9999;&#65039; Hai modificato questa prenotazione</div>';
+      }
+      html += '<div class="landing-footer">Gestito con &#10084;&#65039; da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow.Ai</a></div>';
+
+      root.innerHTML = html;
+      startCountdown(p.data, p.ora);
+      if (p.stato !== "in_attesa_pagamento") {
+        document.getElementById("btn-modifica").onclick = function() { openModal("modifica"); };
+        document.getElementById("btn-cancella").onclick = function() { openModal("cancella"); };
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // RENDER HOTEL
+    // ════════════════════════════════════════════════════════════════
+    function renderHotel() {
+      var p = prenotazione;
+      var az = azienda;
+      var nome = p.cliente_nome || "Ospite";
+      var checkin  = formatData(p.data_checkin || p.data);
+      var checkout = formatData(p.data_checkout);
+      var notti = calcolaNotti(p.data_checkin || p.data, p.data_checkout);
+      var indirizzo = az.indirizzo ? az.indirizzo + (az.citta ? ", " + az.citta : "") : "";
+      var mapsQuery = encodeURIComponent(az.nome + (indirizzo ? " " + indirizzo : ""));
+      var galleria = Array.isArray(az.foto_galleria) ? az.foto_galleria : [];
+      var stato = getStatoMetaHotel(p.stato);
+
+      var html = "";
+
+      // HERO
+      html += buildHero(az, "Prenotazione hotel");
+
+      // CARD PRINCIPALE
+      html += '<div class="main-card">';
+      html += '<div class="pren-label">Prenotazione camera per</div>';
+      html += '<div class="pren-nome">' + escHtml(nome) + '</div>';
+      html += '<div class="stato-badge" style="background:' + stato.bg + ';color:' + stato.color + ';">' + stato.emoji + ' ' + stato.label + '</div>';
+      if (p.camera_nome || p.tipo_camera) {
+        html += '<div class="hotel-room-badge">&#127968; ' + escHtml(p.camera_nome || p.tipo_camera) + '</div>';
+      }
+      html += '<div class="info-grid">';
+      html += '<div class="info-box"><div class="info-box-icon">&#128197;</div><div class="info-box-label">Check-in</div><div class="info-box-value">' + checkin + '</div><div class="info-box-sub">' + getDayName(p.data_checkin || p.data) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128198;</div><div class="info-box-label">Check-out</div><div class="info-box-value">' + checkout + '</div><div class="info-box-sub">' + getDayName(p.data_checkout) + '</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#127769;</div><div class="info-box-label">Notti</div><div class="info-box-value">' + (notti || "--") + '</div><div class="info-box-sub">notti</div></div>';
+      html += '<div class="info-box"><div class="info-box-icon">&#128101;</div><div class="info-box-label">Ospiti</div><div class="info-box-value">' + (p.ospiti || p.adulti || 1) + '</div><div class="info-box-sub">persone</div></div>';
+      html += '</div>';
+
+      // Importo totale
+      if (p.importo_totale) {
+        html += '<div style="background:#f0f9ff;border-radius:14px;padding:14px;margin-bottom:12px;">';
+        html += '<div style="font-size:11px;font-weight:800;color:#0E5A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Totale soggiorno</div>';
+        html += '<div style="font-size:28px;font-weight:800;color:#111827;">€' + Number(p.importo_totale).toFixed(2) + '</div>';
+        if (p.colazione_inclusa) html += '<div style="font-size:12px;color:#059669;font-weight:700;margin-top:4px;">✅ Colazione inclusa</div>';
+        html += '</div>';
+      }
+
+      if (p.richieste_speciali) {
+        html += '<div class="note-box">&#128221; ' + escHtml(p.richieste_speciali) + '</div>';
+      }
+      html += '</div>';
+
+      // BANNER PAGAMENTO
+      html += buildPagamentoBanner(p);
+
+      // COUNTDOWN CHECK-IN
+      if (p.data_checkin || p.data) {
+        html += '<div class="countdown-wrap" id="countdown-wrap"><div class="cd-title">Al check-in manca</div><div class="countdown-card"><div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div><div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div><div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div><div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div></div></div>';
+      }
+
+      // AZIONI
+      if (p.stato !== "in_attesa_pagamento") {
+        html += '<div class="azioni-grid">';
+        html += '<button class="az-btn danger" id="btn-cancella"><span class="az-icon">&#128465;&#65039;</span> Cancella</button>';
+        html += '<button class="az-btn primary" id="btn-contatta"><span class="az-icon">&#128222;</span> Contatta</button>';
+        html += '</div>';
+        html += buildCalendarBtn(az.nome + " — Check-in", p.data_checkin || p.data, "14:00", 60 * 24 * notti, "Soggiorno " + az.nome);
+      }
+
+      html += buildInfoRistorante(az, indirizzo, mapsQuery, p);
+      html += buildGalleria(galleria);
+      html += '<div class="landing-footer">Gestito con &#10084;&#65039; da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow.Ai</a></div>';
+
+      root.innerHTML = html;
+
+      startCountdown(p.data_checkin || p.data, "14:00");
+
+      if (p.stato !== "in_attesa_pagamento") {
+        document.getElementById("btn-cancella").onclick = function() { openModal("cancella"); };
+        document.getElementById("btn-contatta") && (document.getElementById("btn-contatta").onclick = function() {
+          if (az.telefono) window.location.href = "tel:" + az.telefono;
+        });
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // COMPONENTI CONDIVISI
+    // ════════════════════════════════════════════════════════════════
+    function buildHero(az, subtitle) {
+      var html = '<div class="hero-social">';
       html += '<div class="social-cover">';
       if (az.cover_url) {
         html += '<img class="social-cover-img" src="' + escHtml(az.cover_url) + '" alt="Cover">';
@@ -234,91 +415,89 @@
       }
       html += '</div>';
       html += '<div class="social-profile-info">';
-      html += '<div class="social-nome">' + escHtml(az.nome || "Il tuo ristorante") + '</div>';
-      html += '<div class="social-sub">Conferma di prenotazione</div>';
+      html += '<div class="social-nome">' + escHtml(az.nome || "Il tuo locale") + '</div>';
+      html += '<div class="social-sub">' + subtitle + '</div>';
       html += '</div></div></div>';
+      return html;
+    }
 
-      // CARD PRINCIPALE
-      html += '<div class="main-card">';
-      html += '<div class="pren-label">Prenotazione confermata per</div>';
-      html += '<div class="pren-nome">' + escHtml(nome) + '</div>';
-      html += '<div class="stato-badge" style="background:' + stato.bg + ';color:' + stato.color + ';">' + stato.emoji + ' ' + stato.label + '</div>';
-      if (occasioneLabel) html += '<div class="occasione-badge">&#127881; ' + escHtml(occasioneLabel) + '</div>';
-      html += '<div class="info-grid">';
-      html += '<div class="info-box"><div class="info-box-icon">&#128197;</div><div class="info-box-label">Data</div><div class="info-box-value">' + dataFmt + '</div><div class="info-box-sub">' + getDayName(p.data) + '</div></div>';
-      html += '<div class="info-box"><div class="info-box-icon">&#128336;</div><div class="info-box-label">Orario</div><div class="info-box-value">' + (ora || "--") + '</div><div class="info-box-sub">' + getServizioLabel(p.servizio, ora) + '</div></div>';
-      html += '<div class="info-box"><div class="info-box-icon">&#128101;</div><div class="info-box-label">Persone</div><div class="info-box-value">' + (p.coperti || 1) + '</div><div class="info-box-sub">coperti</div></div>';
-      if (p.tavolo_id) html += '<div class="info-box"><div class="info-box-icon">&#129681;</div><div class="info-box-label">Tavolo</div><div class="info-box-value">Assegnato</div><div class="info-box-sub">da noi</div></div>';
+    function buildPagamentoBanner(p) {
+      var stato_pag = p.stato_pagamento || (p.stato === "in_attesa_pagamento" ? "pending" : null);
+      if (!stato_pag && p.stato !== "in_attesa_pagamento") return "";
+
+      var cfg = {
+        pending:  { bg:"#fffbeb", color:"#92400e", icon:"⏳", title:"Pagamento in attesa",   sub:"Completa il pagamento per confermare la prenotazione." },
+        paid:     { bg:"#f0fdf4", color:"#166534", icon:"✅", title:"Pagamento ricevuto",     sub:"Il tuo pagamento è stato confermato." },
+        failed:   { bg:"#fee2e2", color:"#991b1b", icon:"❌", title:"Pagamento fallito",      sub:"Il pagamento non è andato a buon fine. Riprova." },
+        expired:  { bg:"#f3f4f6", color:"#374151", icon:"⏰", title:"Sessione scaduta",       sub:"Il tempo per pagare è scaduto. Contatta il locale." },
+        refunded: { bg:"#f0f9ff", color:"#0369a1", icon:"↩️", title:"Rimborso effettuato",   sub:"Il pagamento è stato rimborsato." },
+      }[stato_pag] || { bg:"#fffbeb", color:"#92400e", icon:"💳", title:"Pagamento richiesto", sub:"Procedi al pagamento per confermare." };
+
+      var html = '<div class="pag-banner" style="background:' + cfg.bg + ';border:1px solid ' + cfg.color + '33;">';
+      html += '<div class="pag-icon">' + cfg.icon + '</div>';
+      html += '<div><div class="pag-title" style="color:' + cfg.color + ';">' + cfg.title + '</div>';
+      html += '<div class="pag-sub" style="color:' + cfg.color + ';">' + cfg.sub + '</div></div>';
       html += '</div>';
-      if (noteText) html += '<div class="note-box">&#128221; ' + escHtml(noteText) + '</div>';
-      html += '</div>';
 
-      // COUNTDOWN
-      html += '<div class="countdown-wrap" id="countdown-wrap"><div class="cd-title">Manca ancora</div><div class="countdown-card"><div class="cd-unit"><div class="cd-num" id="cd-gg">--</div><div class="cd-label">giorni</div></div><div class="cd-unit"><div class="cd-num" id="cd-hh">--</div><div class="cd-label">ore</div></div><div class="cd-unit"><div class="cd-num" id="cd-mm">--</div><div class="cd-label">min</div></div><div class="cd-unit"><div class="cd-num" id="cd-ss">--</div><div class="cd-label">sec</div></div></div></div>';
+      // Se in attesa pagamento e abbiamo session → bottone riprova
+      if ((stato_pag === "pending" || stato_pag === "failed") && p.checkout_url) {
+        html += '<a class="pag-btn" href="' + escHtml(p.checkout_url) + '" style="background:var(--brand);color:#fff;">💳 Vai al pagamento</a>';
+      }
+      return html;
+    }
 
-      // AZIONI
-      html += '<div class="azioni-grid"><button class="az-btn primary" id="btn-modifica"><span class="az-icon">&#9999;&#65039;</span> Modifica</button><button class="az-btn danger" id="btn-cancella"><span class="az-icon">&#128465;&#65039;</span> Cancella</button></div>';
+    function buildCalendarBtn(titolo, data, ora, durataMin, descrizione) {
+      if (!data) return "";
+      var start = (data + "T" + (ora || "20:00")).replace(/[-:]/g,"").slice(0,15) + "00";
+      var end = new Date(data + "T" + (ora || "20:00"));
+      end.setMinutes(end.getMinutes() + (durataMin || 120));
+      var endStr = end.toISOString().replace(/[-:]/g,"").slice(0,15) + "00";
+      var gcUrl = "https://www.google.com/calendar/render?action=TEMPLATE" +
+        "&text=" + encodeURIComponent(titolo) +
+        "&dates=" + start + "/" + endStr +
+        "&details=" + encodeURIComponent(descrizione || "");
+      return '<a class="menu-btn" href="' + gcUrl + '" target="_blank" style="background:#4285F4;">&#128197; Aggiungi a Google Calendar</a>';
+    }
 
-      // MENU
-      if (az.link_menu) html += '<a class="menu-btn" href="' + escHtml(az.link_menu) + '" target="_blank">&#128203; Vedi il menu</a>';
-
-      // RISTORANTE
-      html += '<div class="section-card"><div class="section-title">&#127968; Il ristorante</div>';
+    function buildInfoRistorante(az, indirizzo, mapsQuery, p) {
+      var html = '<div class="section-card"><div class="section-title">&#127968; ' + (tipo === "hotel" ? "L\'hotel" : "Il ristorante") + '</div>';
       if (az.telefono) html += '<div class="contact-row"><div class="contact-icon">&#128222;</div><div class="contact-text"><div class="contact-label">Telefono</div><div class="contact-value">' + escHtml(az.telefono) + '</div></div><a class="contact-action" href="tel:' + escHtml(az.telefono) + '">Chiama</a></div>';
       if (indirizzo) html += '<div class="contact-row"><div class="contact-icon">&#128205;</div><div class="contact-text"><div class="contact-label">Indirizzo</div><div class="contact-value">' + escHtml(indirizzo) + '</div></div></div>';
-      if (p.dress_code) html += '<div class="contact-row"><div class="contact-icon">&#128084;</div><div class="contact-text"><div class="contact-label">Dress code</div><div class="contact-value">' + escHtml(p.dress_code) + '</div></div></div>';
+      if (p && p.dress_code) html += '<div class="contact-row"><div class="contact-icon">&#128084;</div><div class="contact-text"><div class="contact-label">Dress code</div><div class="contact-value">' + escHtml(p.dress_code) + '</div></div></div>';
       html += '</div>';
-
-      // MAPPA
       if (indirizzo) html += '<div class="section-card"><div class="section-title">&#128205; Come raggiungerci</div><a class="map-btn" href="https://maps.google.com/?q=' + mapsQuery + '" target="_blank">&#129522; Apri in Google Maps</a></div>';
-
-      // GALLERIA
-      if (galleria.length) {
-        html += '<div class="gallery-section"><div class="section-title">&#128248; Il locale</div><div class="gallery-grid-landing">';
-        for (var i = 0; i < Math.min(galleria.length, 6); i++) {
-          html += '<div class="gallery-landing-item" data-lightbox="' + escHtml(galleria[i]) + '"><img src="' + escHtml(galleria[i]) + '" alt="Foto" loading="lazy"></div>';
-        }
-        html += '</div></div>';
-      }
-
-      // BADGE MODIFICATA
-      if (p.modificata_dal_cliente) {
-        html += '<div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin:0 12px 12px;text-align:center;">&#9999;&#65039; Hai modificato questa prenotazione</div>';
-      }
-
-      // FOOTER
-      html += '<div class="landing-footer">Gestito con &#10084;&#65039; da <a href="https://ristoflow-ai.com" target="_blank">Ristoflow.Ai</a></div>';
-
-      root.innerHTML = html;
-
-      startCountdown(p.data, p.ora);
-      document.getElementById("btn-modifica").onclick = function() { openModal("modifica"); };
-      document.getElementById("btn-cancella").onclick = function() { openModal("cancella"); };
+      return html;
     }
 
-    function startCountdown(data, ora) {
-      var target = new Date(data + "T" + (ora || "20:00"));
-      function tick() {
-        var diff = target - new Date();
-        if (diff <= 0) { clearInterval(cdInterval); var el = document.getElementById("countdown-wrap"); if (el) el.remove(); return; }
-        var gg = Math.floor(diff / 86400000);
-        var hh = Math.floor((diff % 86400000) / 3600000);
-        var mm = Math.floor((diff % 3600000) / 60000);
-        var ss = Math.floor((diff % 60000) / 1000);
-        document.getElementById("cd-gg").textContent = String(gg).padStart(2,"0");
-        document.getElementById("cd-hh").textContent = String(hh).padStart(2,"0");
-        document.getElementById("cd-mm").textContent = String(mm).padStart(2,"0");
-        document.getElementById("cd-ss").textContent = String(ss).padStart(2,"0");
+    function buildGalleria(galleria) {
+      if (!galleria.length) return "";
+      var html = '<div class="gallery-section"><div class="section-title">&#128248; Il locale</div><div class="gallery-grid-landing">';
+      for (var i = 0; i < Math.min(galleria.length, 6); i++) {
+        html += '<div class="gallery-landing-item" data-lightbox="' + escHtml(galleria[i]) + '"><img src="' + escHtml(galleria[i]) + '" alt="Foto" loading="lazy"></div>';
       }
-      tick();
-      cdInterval = setInterval(tick, 1000);
+      html += '</div></div>';
+      return html;
     }
 
-    function isModificabile() {
-      var dataEvento = new Date(prenotazione.data + "T" + (prenotazione.ora || "00:00"));
-      return (dataEvento - new Date()) > 2 * 3600 * 1000;
+    function buildNoteText(raw) {
+      var skipPrefixes = ["\u{1F916} Prenotazione via chatbot WhatsApp","\u{1F4DD} Chatbot WA","\u{1F916} WhatsApp Bot"];
+      if (!raw) return "";
+      return raw.split("\n").filter(function(line) {
+        var l = line.trim(); if (!l) return false;
+        for (var i = 0; i < skipPrefixes.length; i++) { if (l.indexOf(skipPrefixes[i]) === 0) return false; }
+        return true;
+      }).join("\n").trim();
     }
 
+    function calcolaNotti(checkin, checkout) {
+      if (!checkin || !checkout) return 0;
+      var diff = new Date(checkout) - new Date(checkin);
+      return Math.round(diff / 86400000);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // MODALI (tavolo + hotel cancella)
+    // ════════════════════════════════════════════════════════════════
     function initModals() {
       document.getElementById("btn-chiudi-modifica").onclick = function() { closeModal("modifica"); };
       document.getElementById("btn-chiudi-cancella").onclick = function() { closeModal("cancella"); };
@@ -355,25 +534,48 @@
       var note = document.getElementById("mod-note").value.trim();
       supa.from("prenotazioni_tavoli").update({ data: data, coperti: coperti, ora: ora, note: note, richieste_speciali: note, modificata_dal_cliente: true, modificata_il: new Date().toISOString() }).eq("token_pubblico", token).then(function(res) {
         if (res.error) { btn.disabled = false; btn.textContent = "Salva modifiche"; alert("Errore nel salvataggio. Riprova."); return; }
-        closeModal("modifica");
-        init();
+        closeModal("modifica"); init();
       });
     }
 
     function cancellaPrenotazione() {
       var btn = document.getElementById("btn-conferma-cancella");
       btn.disabled = true; btn.textContent = "Cancellazione...";
-      supa.from("prenotazioni_tavoli").update({ stato: "annullata" }).eq("token_pubblico", token).then(function(res) {
-        if (res.error) { btn.disabled = false; btn.textContent = "Si', cancella"; alert("Errore nella cancellazione. Riprova."); return; }
-        closeModal("cancella");
-        renderCancellata();
+      var tabella = tipo === "hotel" ? "prenotazioni_hotel" : "prenotazioni_tavoli";
+      supa.from(tabella).update({ stato: "annullata" }).eq("token_pubblico", token).then(function(res) {
+        if (res.error) { btn.disabled = false; btn.textContent = "Sì, cancella"; alert("Errore nella cancellazione. Riprova."); return; }
+        closeModal("cancella"); renderCancellata();
       });
     }
 
-    function renderScaduta() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128197;</div><div class="error-title">Prenotazione passata</div><div class="error-sub">Questa prenotazione si riferisce a una data gia\' trascorsa.</div></div>'; }
-    function renderCancellata() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#9989;</div><div class="error-title">Prenotazione cancellata</div><div class="error-sub">La tua prenotazione e\' stata cancellata con successo.</div></div>'; }
-    function showError(title, sub) { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128533;</div><div class="error-title">' + escHtml(title) + '</div><div class="error-sub">' + escHtml(sub) + '</div></div>'; }
+    // ════════════════════════════════════════════════════════════════
+    // COUNTDOWN
+    // ════════════════════════════════════════════════════════════════
+    function startCountdown(data, ora) {
+      var target = new Date(data + "T" + (ora || "20:00"));
+      function tick() {
+        var diff = target - new Date();
+        if (diff <= 0) { clearInterval(cdInterval); var el = document.getElementById("countdown-wrap"); if (el) el.remove(); return; }
+        var gg = Math.floor(diff / 86400000);
+        var hh = Math.floor((diff % 86400000) / 3600000);
+        var mm = Math.floor((diff % 3600000) / 60000);
+        var ss = Math.floor((diff % 60000) / 1000);
+        document.getElementById("cd-gg").textContent = String(gg).padStart(2,"0");
+        document.getElementById("cd-hh").textContent = String(hh).padStart(2,"0");
+        document.getElementById("cd-mm").textContent = String(mm).padStart(2,"0");
+        document.getElementById("cd-ss").textContent = String(ss).padStart(2,"0");
+      }
+      tick(); cdInterval = setInterval(tick, 1000);
+    }
 
+    function isModificabile() {
+      var dataEvento = new Date(prenotazione.data + "T" + (prenotazione.ora || "00:00"));
+      return (dataEvento - new Date()) > 2 * 3600 * 1000;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // LIGHTBOX
+    // ════════════════════════════════════════════════════════════════
     function initLightbox() {
       var lb = document.getElementById("lightbox");
       var lbImg = document.getElementById("lightbox-img");
@@ -386,13 +588,41 @@
       lb.onclick = function(e) { if (e.target === lb) lb.classList.remove("open"); };
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // STATI & UTILS
+    // ════════════════════════════════════════════════════════════════
+    function renderScaduta() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128197;</div><div class="error-title">Prenotazione passata</div><div class="error-sub">Questa prenotazione si riferisce a una data già trascorsa.</div></div>'; }
+    function renderCancellata() { root.innerHTML = '<div class="error-page"><div class="error-icon">&#9989;</div><div class="error-title">Prenotazione cancellata</div><div class="error-sub">La tua prenotazione è stata cancellata con successo.</div></div>'; }
+    function showError(title, sub) { root.innerHTML = '<div class="error-page"><div class="error-icon">&#128533;</div><div class="error-title">' + escHtml(title) + '</div><div class="error-sub">' + escHtml(sub) + '</div></div>'; }
+
     function formatData(dateStr) { if (!dateStr) return "--"; var parts = dateStr.split("-"); return parts[2] + "/" + parts[1] + "/" + parts[0]; }
-    function getDayName(dateStr) { if (!dateStr) return ""; var giorni = ["Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato"]; var p = dateStr.split("-").map(Number); return giorni[new Date(p[0], p[1]-1, p[2]).getDay()]; }
+    function getDayName(dateStr) { if (!dateStr) return ""; var giorni = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"]; var p = dateStr.split("-").map(Number); return giorni[new Date(p[0], p[1]-1, p[2]).getDay()]; }
     function getServizioLabel(servizio, ora) { if (servizio) { var map = {colazione:"Colazione",pranzo:"Pranzo",aperitivo:"Aperitivo",cena:"Cena"}; return map[servizio]||servizio; } if (!ora) return ""; if (ora >= "06:00" && ora < "11:00") return "Colazione"; if (ora >= "11:00" && ora < "15:30") return "Pranzo"; if (ora >= "15:30" && ora < "19:30") return "Aperitivo"; return "Cena"; }
     function getOccasioneLabel(occ) { var map = {compleanno:"Compleanno",anniversario:"Anniversario",business:"Business",fidanzamento:"Fidanzamento",laurea:"Laurea",altro:"Occasione speciale"}; return occ ? (map[occ]||occ) : ""; }
-    function getStatoMeta(stato) { switch(stato) { case "nuova": return {label:"In attesa",emoji:"&#x1F7E1;",bg:"#FEF3C7",color:"#92400E"}; case "confermata": return {label:"Confermata",emoji:"&#x1F7E2;",bg:"#DCFCE7",color:"#166534"}; case "arrivata": return {label:"Arrivata",emoji:"&#x2705;",bg:"#DCFCE7",color:"#166534"}; case "annullata": return {label:"Annullata",emoji:"&#x26AB;",bg:"#E5E7EB",color:"#374151"}; default: return {label:"In corso",emoji:"&#x1F535;",bg:"#DBEAFE",color:"#1D4ED8"}; } }
+
+    function getStatoMeta(stato) {
+      switch(stato) {
+        case "nuova":               return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
+        case "in_attesa_pagamento": return {label:"In attesa pagamento", emoji:"💳", bg:"#FFF7ED", color:"#C2410C"};
+        case "confermata":          return {label:"Confermata",          emoji:"🟢", bg:"#DCFCE7", color:"#166534"};
+        case "arrivata":            return {label:"Arrivata",            emoji:"✅", bg:"#DCFCE7", color:"#166534"};
+        case "annullata":           return {label:"Annullata",           emoji:"⚫", bg:"#E5E7EB", color:"#374151"};
+        default:                    return {label:"In corso",            emoji:"🔵", bg:"#DBEAFE", color:"#1D4ED8"};
+      }
+    }
+    function getStatoMetaHotel(stato) {
+      switch(stato) {
+        case "in_attesa_pagamento": return {label:"In attesa pagamento", emoji:"💳", bg:"#FFF7ED", color:"#C2410C"};
+        case "confermata":          return {label:"Confermata",          emoji:"🟢", bg:"#DCFCE7", color:"#166534"};
+        case "checkin":             return {label:"Check-in effettuato", emoji:"✅", bg:"#DCFCE7", color:"#166534"};
+        case "checkout":            return {label:"Check-out effettuato",emoji:"🏁", bg:"#E5E7EB", color:"#374151"};
+        case "annullata":           return {label:"Annullata",           emoji:"⚫", bg:"#E5E7EB", color:"#374151"};
+        default:                    return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
+      }
+    }
     function escHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
   })();
+  </script>
   </script>
 </body>
 </html>
