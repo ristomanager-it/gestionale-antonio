@@ -56,6 +56,7 @@ export async function render(container) {
           { id:'media',        icon:'🖼️',  label:'Media & Landing'  },
           { id:'sondaggi',     icon:'📊',  label:'Sondaggi'         },
           { id:'profilo',      icon:'📱',  label:'RistoflowBook'    },
+          { id:'pagamenti',    icon:'💳',  label:'Pagamenti'        },
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 8px;border:none;background:none;cursor:pointer;
@@ -99,6 +100,7 @@ export async function render(container) {
       case 'media':        renderTabMedia(box);       break;
       case 'sondaggi':     renderTabSondaggi(box);    break;
       case 'profilo':      renderTabProfilo(box);     break;
+      case 'pagamenti':    renderTabPagamenti(box);   break;
     }
   }
 
@@ -3317,6 +3319,336 @@ export async function render(container) {
     if (!ini) return 'Sempre';
     const fmt = (d) => { const p = d.split('-'); return p[2]+'/'+p[1]; };
     return fin ? fmt(ini)+' – '+fmt(fin) : 'Dal '+fmt(ini);
+  }
+
+  // ════════════════════════════════════════
+  // TAB: PAGAMENTI STRIPE
+  // ════════════════════════════════════════
+  async function renderTabPagamenti(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
+
+    // Carica config stripe per questa azienda
+    const { data: cfg } = await supa()
+      .from('stripe_config')
+      .select('*')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+
+    const c = cfg || {};
+    const isAttivo = c.attivo === true;
+    const isLive   = c.modalita === 'live';
+
+    box.innerHTML = `
+      <div style="max-width:720px;">
+
+        <!-- HEADER -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#0f172a;">💳 Pagamenti Stripe</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">
+              Configura i pagamenti online per prenotazioni hotel, booking e ticketing
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="stripe-stato-badge" style="
+              background:${isAttivo ? '#dcfce7' : '#fee2e2'};
+              color:${isAttivo ? '#15803d' : '#dc2626'};
+              padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;
+            ">${isAttivo ? '✅ Attivo' : '⏸ Non attivo'}</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <div style="position:relative;width:44px;height:24px;">
+                <input type="checkbox" id="stripe-toggle" ${isAttivo ? 'checked' : ''} style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0;z-index:2;">
+                <div id="stripe-toggle-track" style="
+                  position:absolute;inset:0;border-radius:12px;transition:background 0.2s;
+                  background:${isAttivo ? '#0E5A7A' : '#d1d5db'};
+                "></div>
+                <div id="stripe-toggle-thumb" style="
+                  position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:white;
+                  transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2);
+                  left:${isAttivo ? '23px' : '3px'};
+                "></div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- MODALITÀ TEST/LIVE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;">🔧 Modalità</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <label id="mode-test-lbl" style="
+              flex:1;min-width:140px;cursor:pointer;border-radius:10px;padding:14px;
+              border:2px solid ${!isLive ? '#0E5A7A' : '#e5e7eb'};
+              background:${!isLive ? '#f0f9ff' : '#fff'};transition:all 0.15s;
+            ">
+              <input type="radio" name="stripe-mode" value="test" ${!isLive ? 'checked' : ''} style="display:none;">
+              <div style="font-size:15px;">🧪</div>
+              <div style="font-weight:700;font-size:13px;margin-top:4px;color:${!isLive ? '#0E5A7A' : '#374151'};">Test</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Nessun addebito reale. Usa le card di test Stripe.</div>
+            </label>
+            <label id="mode-live-lbl" style="
+              flex:1;min-width:140px;cursor:pointer;border-radius:10px;padding:14px;
+              border:2px solid ${isLive ? '#0E5A7A' : '#e5e7eb'};
+              background:${isLive ? '#f0f9ff' : '#fff'};transition:all 0.15s;
+            ">
+              <input type="radio" name="stripe-mode" value="live" ${isLive ? 'checked' : ''} style="display:none;">
+              <div style="font-size:15px;">🟢</div>
+              <div style="font-weight:700;font-size:13px;margin-top:4px;color:${isLive ? '#0E5A7A' : '#374151'};">Live</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Pagamenti reali. Assicurati che le chiavi siano quelle di produzione.</div>
+            </label>
+          </div>
+          <div id="live-warning" style="display:${isLive ? 'flex' : 'none'};align-items:center;gap:8px;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-top:12px;font-size:12px;color:#92400e;">
+            ⚠️ Modalità LIVE attiva — i pagamenti sono reali. Verifica le chiavi prima di salvare.
+          </div>
+        </div>
+
+        <!-- CHIAVI API -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">🔑 Chiavi API</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">
+            Trovale su <a href="https://dashboard.stripe.com/apikeys" target="_blank" style="color:#0E5A7A;">dashboard.stripe.com/apikeys</a>
+          </div>
+
+          <div style="display:grid;gap:14px;">
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+                Chiave pubblicabile (pk_…)
+              </label>
+              <input id="stripe-pk" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;"
+                placeholder="pk_test_…  oppure  pk_live_…"
+                value="${esc(c.stripe_publishable_key || '')}">
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+                Chiave segreta (sk_…)
+              </label>
+              <div style="position:relative;">
+                <input id="stripe-sk" type="password" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
+                  placeholder="sk_test_…  oppure  sk_live_…"
+                  value="${esc(c.stripe_secret_key || '')}">
+                <button id="btn-mostra-sk" type="button" style="
+                  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+                  background:#f1f5f9;border:none;border-radius:6px;padding:4px 10px;
+                  font-size:11px;cursor:pointer;color:#374151;font-weight:600;
+                ">Mostra</button>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                ⚠️ Non condividere mai questa chiave. Viene salvata in modo sicuro.
+              </div>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+                Webhook Secret (whsec_…)
+              </label>
+              <div style="position:relative;">
+                <input id="stripe-wh" type="password" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
+                  placeholder="whsec_…"
+                  value="${esc(c.stripe_webhook_secret || '')}">
+                <button id="btn-mostra-wh" type="button" style="
+                  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+                  background:#f1f5f9;border:none;border-radius:6px;padding:4px 10px;
+                  font-size:11px;cursor:pointer;color:#374151;font-weight:600;
+                ">Mostra</button>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                Endpoint webhook Ristoflow:
+                <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:11px;">
+                  https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-webhook
+                </code>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- IMPOSTAZIONI -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px;">⚙️ Impostazioni</div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px;">
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Valuta</label>
+              <select id="stripe-valuta" class="input" style="width:100%;">
+                <option value="eur" ${(c.valuta||'eur')==='eur' ? 'selected' : ''}>EUR — Euro</option>
+                <option value="usd" ${c.valuta==='usd' ? 'selected' : ''}>USD — Dollaro</option>
+                <option value="gbp" ${c.valuta==='gbp' ? 'selected' : ''}>GBP — Sterlina</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Acconto minimo (%)</label>
+              <input id="stripe-acconto" type="number" min="0" max="100" step="1" class="input" style="width:100%;"
+                placeholder="Es. 30"
+                value="${c.acconto_percentuale != null ? c.acconto_percentuale : ''}">
+              <div style="font-size:11px;color:#94a3b8;margin-top:3px;">0 = pagamento completo</div>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Scadenza pagamento (ore)</label>
+              <input id="stripe-scadenza" type="number" min="1" max="168" class="input" style="width:100%;"
+                placeholder="Es. 24"
+                value="${c.scadenza_ore != null ? c.scadenza_ore : ''}">
+              <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Ore entro cui il cliente deve pagare</div>
+            </div>
+
+          </div>
+
+          <div style="margin-top:14px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+              URL di redirect dopo pagamento riuscito
+            </label>
+            <input id="stripe-success-url" class="input" style="width:100%;box-sizing:border-box;"
+              placeholder="https://…/grazie.html"
+              value="${esc(c.success_url || '')}">
+          </div>
+
+          <div style="margin-top:14px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
+              URL di redirect dopo annullamento
+            </label>
+            <input id="stripe-cancel-url" class="input" style="width:100%;box-sizing:border-box;"
+              placeholder="https://…/prenotazione-annullata.html"
+              value="${esc(c.cancel_url || '')}">
+          </div>
+
+        </div>
+
+        <!-- STATO CONNESSIONE -->
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:24px;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;">🔌 Stato connessione</div>
+          <div id="stripe-ping-wrap">
+            <div style="font-size:13px;color:#94a3b8;">Clicca "Verifica connessione" per testare le chiavi.</div>
+          </div>
+          <button id="btn-ping-stripe" style="
+            margin-top:12px;background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;
+            padding:9px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;
+          ">🔍 Verifica connessione</button>
+        </div>
+
+        <!-- ESITO + SALVA -->
+        <div id="stripe-esito" style="font-size:13px;min-height:16px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="btn-salva-stripe" style="background:#0E5A7A;color:white;border:none;padding:11px 28px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">
+            💾 Salva configurazione Stripe
+          </button>
+        </div>
+
+      </div>
+    `;
+
+    // ── Toggle on/off ──────────────────────────────────────────────
+    const toggle = box.querySelector('#stripe-toggle');
+    const track  = box.querySelector('#stripe-toggle-track');
+    const thumb  = box.querySelector('#stripe-toggle-thumb');
+    const badge  = box.querySelector('#stripe-stato-badge');
+    toggle.addEventListener('change', () => {
+      const on = toggle.checked;
+      track.style.background  = on ? '#0E5A7A' : '#d1d5db';
+      thumb.style.left        = on ? '23px' : '3px';
+      badge.textContent       = on ? '✅ Attivo' : '⏸ Non attivo';
+      badge.style.background  = on ? '#dcfce7' : '#fee2e2';
+      badge.style.color       = on ? '#15803d' : '#dc2626';
+    });
+
+    // ── Modalità test/live ─────────────────────────────────────────
+    box.querySelectorAll('input[name="stripe-mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const live = radio.value === 'live';
+        box.querySelector('#mode-test-lbl').style.borderColor = !live ? '#0E5A7A' : '#e5e7eb';
+        box.querySelector('#mode-test-lbl').style.background  = !live ? '#f0f9ff' : '#fff';
+        box.querySelector('#mode-live-lbl').style.borderColor = live  ? '#0E5A7A' : '#e5e7eb';
+        box.querySelector('#mode-live-lbl').style.background  = live  ? '#f0f9ff' : '#fff';
+        box.querySelector('#live-warning').style.display = live ? 'flex' : 'none';
+      });
+    });
+
+    // ── Mostra/nascondi chiave segreta ─────────────────────────────
+    box.querySelector('#btn-mostra-sk').addEventListener('click', function() {
+      const inp = box.querySelector('#stripe-sk');
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      this.textContent = show ? 'Nascondi' : 'Mostra';
+    });
+    box.querySelector('#btn-mostra-wh').addEventListener('click', function() {
+      const inp = box.querySelector('#stripe-wh');
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      this.textContent = show ? 'Nascondi' : 'Mostra';
+    });
+
+    // ── Verifica connessione (ping tramite Edge Function) ──────────
+    box.querySelector('#btn-ping-stripe').addEventListener('click', async () => {
+      const wrap = box.querySelector('#stripe-ping-wrap');
+      const sk   = box.querySelector('#stripe-sk').value.trim();
+      wrap.innerHTML = '<div style="color:#64748b;font-size:13px;">⏳ Verifica in corso...</div>';
+      if (!sk) {
+        wrap.innerHTML = '<div style="color:#dc2626;font-size:13px;">⚠️ Inserisci prima la chiave segreta.</div>';
+        return;
+      }
+      try {
+        // Chiamata all'Edge Function stripe-checkout per un ping
+        const res = await fetch(
+          'https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await supa().auth.getSession()).data.session?.access_token },
+            body: JSON.stringify({ action: 'ping', azienda_id: aziendaId })
+          }
+        );
+        if (res.ok) {
+          wrap.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;color:#15803d;font-size:13px;font-weight:600;">
+              ✅ Connessione Stripe OK
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">Le chiavi sono valide e l'account è raggiungibile.</div>
+          `;
+        } else {
+          const err = await res.json().catch(() => ({}));
+          wrap.innerHTML = `<div style="color:#dc2626;font-size:13px;">❌ Errore: ${esc(err.error || res.statusText)}</div>`;
+        }
+      } catch(e) {
+        wrap.innerHTML = `<div style="color:#dc2626;font-size:13px;">❌ Errore di rete: ${esc(e.message)}</div>`;
+      }
+    });
+
+    // ── Salva ──────────────────────────────────────────────────────
+    box.querySelector('#btn-salva-stripe').addEventListener('click', async () => {
+      const esito = box.querySelector('#stripe-esito');
+      esito.innerHTML = '<span style="color:#64748b;">⏳ Salvataggio...</span>';
+
+      const modalita = box.querySelector('input[name="stripe-mode"]:checked')?.value || 'test';
+      const payload = {
+        azienda_id:             aziendaId,
+        attivo:                 box.querySelector('#stripe-toggle').checked,
+        modalita,
+        stripe_publishable_key: box.querySelector('#stripe-pk').value.trim() || null,
+        stripe_secret_key:      box.querySelector('#stripe-sk').value.trim() || null,
+        stripe_webhook_secret:  box.querySelector('#stripe-wh').value.trim() || null,
+        valuta:                 box.querySelector('#stripe-valuta').value || 'eur',
+        acconto_percentuale:    parseInt(box.querySelector('#stripe-acconto').value) || 0,
+        scadenza_ore:           parseInt(box.querySelector('#stripe-scadenza').value) || 24,
+        success_url:            box.querySelector('#stripe-success-url').value.trim() || null,
+        cancel_url:             box.querySelector('#stripe-cancel-url').value.trim() || null,
+        aggiornato_il:          new Date().toISOString(),
+      };
+
+      // Upsert su stripe_config
+      const { error } = await supa()
+        .from('stripe_config')
+        .upsert(payload, { onConflict: 'azienda_id' });
+
+      if (error) {
+        esito.innerHTML = '<span style="color:#dc2626;">❌ ' + esc(error.message) + '</span>';
+      } else {
+        esito.innerHTML = '<span style="color:#059669;">✅ Configurazione Stripe salvata!</span>';
+        mostraToast('Stripe configurato ✅', 'success');
+        setTimeout(() => esito.textContent = '', 3000);
+      }
+    });
   }
 
   // ── Init ──
