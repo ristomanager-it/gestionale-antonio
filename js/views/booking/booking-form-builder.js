@@ -258,6 +258,73 @@ export async function render(container) {
 
     <hr>
 
+    <hr>
+
+    <!-- ════════════════════════════════════════
+         SEZIONE PAGAMENTO STRIPE
+         ════════════════════════════════════════ -->
+    <h3>💳 Pagamento online</h3>
+
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;color:#0369a1;line-height:1.6;">
+      Se attivato, il cliente deve pagare la caparra o il saldo <strong>prima</strong> che la prenotazione venga confermata.
+      Richiede Stripe configurato nella sezione <strong>Pagamenti</strong> del gestionale.
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <input type="checkbox" id="pagamento_attivo" style="accent-color:#0E5A7A;width:18px;height:18px;">
+      <span style="font-size:14px;font-weight:600;">Richiedi pagamento prima della conferma</span>
+    </label>
+
+    <div id="pagamento-editor-wrap" style="display:none;">
+
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Tipo importo</label>
+          <select id="pagamento_tipo" class="input" style="width:100%;">
+            <option value="fisso">💶 Importo fisso (es. €50 caparra totale)</option>
+            <option value="persona">👥 Per persona (es. €20 a testa)</option>
+            <option value="percentuale">📊 Percentuale sul totale stimato</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;" id="pagamento_importo_label">Importo (€)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="pagamento_importo" class="input" style="max-width:160px;" min="0" step="0.01" placeholder="Es. 30">
+            <span id="pagamento_importo_suffix" style="font-size:13px;color:#64748b;">€</span>
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px;" id="pagamento_importo_hint">
+            Importo fisso che il cliente pagherà indipendentemente dal numero di coperti.
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Etichetta pulsante pagamento</label>
+          <input id="pagamento_label_btn" class="input" placeholder="Es. Paga caparra e conferma · Completa il pagamento" value="Paga la caparra e conferma">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Descrizione visibile al cliente</label>
+          <input id="pagamento_descrizione" class="input" placeholder="Es. Caparra prenotazione — Campo Antico Ricevimenti">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Note aggiuntive (opzionale)</label>
+          <textarea id="pagamento_note" class="input" rows="2" placeholder="Es. La caparra verrà scalata dal conto finale. Non rimborsabile in caso di no-show."></textarea>
+        </div>
+
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400e;">
+          ⚠️ Assicurati che Stripe sia configurato e attivo nella sezione <strong>Configurazione → Pagamenti</strong>.
+          Se Stripe non è attivo, il form tornerà al flusso senza pagamento.
+        </div>
+
+      </div>
+
+    </div>
+
+    <hr>
+
     <button id="save" class="app-button primary" type="button">SALVA FORM</button>
 
     <div id="msg" style="margin-top:12px;"></div>
@@ -294,7 +361,37 @@ export async function render(container) {
   document.getElementById("policy-editor-wrap").style.display =
     document.getElementById("policy_enabled").checked ? "" : "none";
 
-  document.getElementById('sorgente')?.addEventListener('change', function(){
+  // Toggle visibilità editor pagamento
+  document.getElementById("pagamento_attivo").onchange = (e) => {
+    document.getElementById("pagamento-editor-wrap").style.display = e.target.checked ? "" : "none";
+  };
+  document.getElementById("pagamento-editor-wrap").style.display =
+    document.getElementById("pagamento_attivo").checked ? "" : "none";
+
+  // Aggiorna label/hint in base al tipo
+  document.getElementById("pagamento_tipo").addEventListener("change", aggiornaPagamentoUI);
+
+  function aggiornaPagamentoUI() {
+    const tipo = document.getElementById("pagamento_tipo").value;
+    const label = document.getElementById("pagamento_importo_label");
+    const suffix = document.getElementById("pagamento_importo_suffix");
+    const hint = document.getElementById("pagamento_importo_hint");
+    if (tipo === "fisso") {
+      label.textContent = "Importo fisso (€)";
+      suffix.textContent = "€";
+      hint.textContent = "Importo fisso che il cliente pagherà indipendentemente dal numero di coperti.";
+    } else if (tipo === "persona") {
+      label.textContent = "Importo per persona (€)";
+      suffix.textContent = "€ / persona";
+      hint.textContent = "Verrà moltiplicato per il numero di coperti indicato nel form.";
+    } else {
+      label.textContent = "Percentuale (%)";
+      suffix.textContent = "%";
+      hint.textContent = "Percentuale applicata al totale stimato (coperti × prezzo medio configurato).";
+    }
+  }
+
+  document.getElementById("sorgente")?.addEventListener("change", function(){
     const rfInfo = document.getElementById('rfbook-info');
     if (rfInfo) rfInfo.style.display = this.value === 'rfbook' ? '' : 'none';
   });
@@ -362,6 +459,15 @@ export async function render(container) {
     document.getElementById("consenso_policy_testo").value = "";
     document.getElementById("consenso_marketing_enabled").checked = false;
     document.getElementById("consenso_marketing_testo").value = "";
+
+    // Reset pagamento
+    document.getElementById("pagamento_attivo").checked = false;
+    document.getElementById("pagamento-editor-wrap").style.display = "none";
+    document.getElementById("pagamento_tipo").value = "fisso";
+    document.getElementById("pagamento_importo").value = "";
+    document.getElementById("pagamento_label_btn").value = "Paga la caparra e conferma";
+    document.getElementById("pagamento_descrizione").value = "";
+    document.getElementById("pagamento_note").value = "";
 
     customFields = [];
     fasceOrarie = [
@@ -503,6 +609,17 @@ export async function render(container) {
 
     customFields = Array.isArray(config.fields?.custom) ? config.fields.custom : [];
     fasceOrarie = Array.isArray(config.availability?.orari) ? config.availability.orari : [];
+
+    // Pagamento
+    const pag = config.pagamento || {};
+    document.getElementById("pagamento_attivo").checked = !!pag.attivo;
+    document.getElementById("pagamento-editor-wrap").style.display = pag.attivo ? "" : "none";
+    document.getElementById("pagamento_tipo").value = pag.tipo || "fisso";
+    document.getElementById("pagamento_importo").value = pag.importo != null ? pag.importo : "";
+    document.getElementById("pagamento_label_btn").value = pag.label_btn || "Paga la caparra e conferma";
+    document.getElementById("pagamento_descrizione").value = pag.descrizione || "";
+    document.getElementById("pagamento_note").value = pag.note || "";
+    aggiornaPagamentoUI();
 
     renderGiorni(config.availability?.giorni || [1, 2, 3, 4, 5, 6]);
     renderCustom();
@@ -1148,7 +1265,15 @@ export async function render(container) {
             "Acconsento a ricevere comunicazioni promozionali via WhatsApp e email."
         }
       },
-      emoji: document.getElementById("emoji").value || ""
+      emoji: document.getElementById("emoji").value || "",
+      pagamento: {
+        attivo: document.getElementById("pagamento_attivo").checked,
+        tipo: document.getElementById("pagamento_tipo").value || "fisso",
+        importo: parseFloat(document.getElementById("pagamento_importo").value) || 0,
+        label_btn: document.getElementById("pagamento_label_btn").value.trim() || "Paga la caparra e conferma",
+        descrizione: document.getElementById("pagamento_descrizione").value.trim() || "",
+        note: document.getElementById("pagamento_note").value.trim() || ""
+      }
     };
   }
 
