@@ -416,19 +416,21 @@ function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 
 async function eliminaAzienda(aziendaId, nome) {
   try {
-    // 1. Rimuovi link utenti
+    // 1. Rimuovi abbonamenti
+    await supabase.from("abbonamenti").delete().eq("azienda_id", aziendaId);
+
+    // 2. Rimuovi link utenti
     await supabase.from("utenti_aziende").delete().eq("azienda_id", aziendaId);
 
-    // 2. Rimuovi sedi
-    await supabase.from("sedi").delete().eq("azienda_id", aziendaId);
+    // 3. Rimuovi sedi
+    await supabase.from("sedi").delete().eq("azienda_id", aziendaId).catch(()=>{});
 
-    // 3. Rimuovi l'azienda
+    // 4. Rimuovi l'azienda
     const { error } = await supabase.from("aziende").delete().eq("id", aziendaId);
-
     if (error) throw error;
 
-    alert(`Azienda "${nome}" eliminata.`);
-    window.router.reloadCurrentRoute();
+    mostraToast(`✅ "${nome}" eliminata`);
+    setTimeout(() => window.location.reload(), 1500);
 
   } catch (err) {
     alert("Errore eliminazione: " + (err.message || err));
