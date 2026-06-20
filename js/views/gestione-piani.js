@@ -3,23 +3,21 @@ import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
 const FEATURE_KEYS = [
-  "dipendenti",
-  "timbrature",
-  "magazzino",
-  "acquisti",
-  "ricettario",
-  "produzione",
-  "preparazioni",
-  "venduto",
-  "margini",
-  "report",
-  "preventivi",
-  "ocr_fatture",
-  "whatsapp",
-  "tony_ai",
-  "prenotazioni",
-  "fidelity",
-  "catenarie",
+  // Ristorante
+  "cassa", "menu_digitale", "prenotazioni_base", "prenotazioni_avanzate",
+  "ricettario", "food_cost", "produzione", "preparazioni",
+  "magazzino", "acquisti", "venduto", "margini",
+  "dipendenti", "hr_timbrature", "report_kpi",
+  "marketing", "promo", "fidelity", "catenarie",
+  "whatsapp_notifiche", "chatbot_whatsapp",
+  "multi_sede", "social", "api",
+  "tony_ai", "preventivi", "ocr_fatture",
+  // Hotel
+  "hotel_planning", "hotel_prenotazioni", "hotel_checkin",
+  "hotel_operations", "hotel_colazione", "hotel_minibar",
+  "hotel_report", "tony_hotel", "booking_online",
+  // Fondatore
+  "fondatore_badge", "priority_support", "future_features",
 ];
 
 function safeText(v) { return String(v ?? ""); }
@@ -218,19 +216,51 @@ function renderEditor(piano) {
             <input id="p-nome" class="input" value="${safeText(piano?.nome)}" placeholder="Es. Business" style="margin-top:4px;" />
           </label>
           <label style="font-size:13px;font-weight:600;">
+            Slug (URL)
+            <input id="p-slug" class="input" value="${safeText(piano?.slug)}" placeholder="Es. business" style="margin-top:4px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Descrizione
+            <input id="p-desc" class="input" value="${safeText(piano?.descrizione)}" placeholder="Descrizione breve" style="margin-top:4px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
             Prezzo mensile (€)
             <input id="p-prezzo" type="number" class="input" value="${safeText(piano?.prezzo_mensile ?? 0)}" style="margin-top:4px;" />
           </label>
           <label style="font-size:13px;font-weight:600;">
-            Sedi max
-            <input id="p-sedi" type="number" class="input" value="${safeText(sediMax)}" style="margin-top:4px;" />
+            Prezzo annuale (€)
+            <input id="p-prezzo-annuale" type="number" class="input" value="${safeText(piano?.prezzo_annuale ?? 0)}" style="margin-top:4px;" />
           </label>
           <label style="font-size:13px;font-weight:600;">
-            Tipo
+            Sedi max
+            <input id="p-sedi" type="number" class="input" value="${safeText(piano?.sedi_max ?? 1)}" style="margin-top:4px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Utenti max
+            <input id="p-utenti" type="number" class="input" value="${safeText(piano?.utenti_max ?? 10)}" style="margin-top:4px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Tipo piano
             <select id="p-tipo" class="input" style="margin-top:4px;">
-              <option value="mensile" ${(piano?.tipo || "mensile") === "mensile" ? "selected" : ""}>Mensile</option>
-              <option value="annuale" ${piano?.tipo === "annuale" ? "selected" : ""}>Annuale</option>
+              <option value="ristorante" ${(piano?.tipo||'ristorante')==='ristorante'?'selected':''}>🍽️ Ristorante</option>
+              <option value="hotel" ${piano?.tipo==='hotel'?'selected':''}>🏨 Hotel</option>
+              <option value="full" ${piano?.tipo==='full'?'selected':''}>⭐ Full</option>
+              <option value="fondatore" ${piano?.tipo==='fondatore'?'selected':''}>👑 Fondatore</option>
             </select>
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Icona emoji
+            <input id="p-icona" class="input" value="${safeText(piano?.icona ?? '🍽️')}" style="margin-top:4px;max-width:80px;" />
+          </label>
+          <label style="font-size:13px;font-weight:600;">
+            Colore (hex)
+            <input id="p-colore" type="color" value="${safeText(piano?.colore ?? '#0E5A7A')}" style="margin-top:4px;height:36px;width:60px;" />
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="p-popolare" ${piano?.popolare?'checked':''} style="accent-color:#0E5A7A;"> Piano popolare
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="p-attivo" ${piano?.attivo!==false?'checked':''} style="accent-color:#0E5A7A;"> Attivo
           </label>
         </div>
 
@@ -260,10 +290,18 @@ function renderEditor(piano) {
   document.getElementById("btn-save-piano").onclick = async () => {
     errorEl.textContent = "";
 
-    const nome = document.getElementById("p-nome").value.trim();
-    const prezzo = Number(document.getElementById("p-prezzo").value || 0);
-    const sedi = Number(document.getElementById("p-sedi").value || 1);
-    const tipo = document.getElementById("p-tipo").value;
+    const nome     = document.getElementById("p-nome").value.trim();
+    const slug     = document.getElementById("p-slug").value.trim().toLowerCase().replace(/\s+/g,'-');
+    const desc     = document.getElementById("p-desc").value.trim();
+    const prezzo   = Number(document.getElementById("p-prezzo").value || 0);
+    const prezzoA  = Number(document.getElementById("p-prezzo-annuale").value || 0);
+    const sedi     = Number(document.getElementById("p-sedi").value || 1);
+    const utenti   = Number(document.getElementById("p-utenti").value || 10);
+    const tipo     = document.getElementById("p-tipo").value;
+    const icona    = document.getElementById("p-icona").value.trim();
+    const colore   = document.getElementById("p-colore").value;
+    const popolare = document.getElementById("p-popolare").checked;
+    const attivo   = document.getElementById("p-attivo").checked;
 
     if (!nome) { errorEl.textContent = "Inserisci un nome piano."; return; }
 
@@ -273,7 +311,13 @@ function renderEditor(piano) {
       features[input.getAttribute("data-feature")] = input.checked === true;
     });
 
-    const payload = { nome, prezzo_mensile: prezzo, sedi_max: sedi, tipo, features };
+    const payload = {
+      nome, slug, descrizione: desc,
+      prezzo_mensile: prezzo, prezzo_annuale: prezzoA,
+      sedi_max: sedi, utenti_max: utenti,
+      tipo, icona, colore, popolare, attivo,
+      features,
+    };
 
     const res = isEdit
       ? await supabase.from("piani_abbonamento").update(payload).eq("id", piano.id).select()
