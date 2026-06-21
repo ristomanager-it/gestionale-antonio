@@ -316,8 +316,8 @@ function renderRigaAzienda(az, parent) {
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
         <button class="btn-attiva-wa app-button small primary">✅ Attiva numero</button>
         <button class="btn-notifica-wa app-button small gray">📧 Notifica attivazione al cliente</button>
-        <a href="https://business.facebook.com/settings/whatsapp-business-accounts" target="_blank"
-          class="app-button small gray" style="text-decoration:none;">🌐 Apri Meta Business</a>
+        <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers/?business_id=1592588934535117&tab=phone-numbers&asset_id=969232959308152" target="_blank"
+          class="app-button small gray" style="text-decoration:none;">🌐 Apri WhatsApp Manager</a>
       </div>
     </div>
   `;
