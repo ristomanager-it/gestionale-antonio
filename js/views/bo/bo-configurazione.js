@@ -772,11 +772,11 @@ export async function render(container) {
       if (!numero) { esito.textContent = '❌ Numero telefono obbligatorio'; esito.style.color = '#dc2626'; return; }
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
 
-      // Carica credenziali Meta default da stripe_config (tabella configurazione globale)
+      // Carica credenziali Meta default da ristoflow_config (tabella configurazione globale)
       const { data: metaCfg } = await supa()
-        .from('stripe_config')
+        .from('ristoflow_config')
         .select('wa_phone_number_id, wa_waba_id, wa_app_id, wa_access_token')
-        .eq('app', 'ristoflow')
+        .limit(1)
         .maybeSingle();
 
       const payload = {
@@ -791,7 +791,7 @@ export async function render(container) {
         meta_app_id:          metaCfg?.wa_app_id || null,
         meta_access_token:    metaCfg?.wa_access_token || null,
         attivo: true,
-        stato: metaCfg?.wa_phone_number_id ? 'connesso' : 'in_attivazione',
+        stato: metaCfg?.wa_phone_number_id ? 'connesso' : 'in_attesa',
         updated_at: new Date().toISOString(),
       };
 
