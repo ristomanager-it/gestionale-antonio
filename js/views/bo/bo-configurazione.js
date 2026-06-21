@@ -424,8 +424,42 @@ export async function render(container) {
         </div>
 
         <div id="lista-wa"></div> <div id="form-wa-wrap" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-top:16px;">
-          <div style="font-size:16px;font-weight:700;margin-bottom:4px;" id="form-wa-title">Nuova connessione WhatsApp</div>
-          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Scegli la modalità di connessione</div> <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:20px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;" id="form-wa-title">Collega numero WhatsApp</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Inserisci il numero WhatsApp Business da collegare. Le credenziali vengono configurate automaticamente da Ristoflow.</div>
+
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#15803d;">
+            ✅ <strong>Servizio incluso nel tuo piano Ristoflow.</strong> Il numero verrà attivato entro 24 ore dalla richiesta.
+          </div>
+
+          <input type="hidden" id="wa-modalita" value="meta">
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin-bottom:16px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Nome connessione</label>
+              <input id="wa-nome" class="input" placeholder="Es. WhatsApp Ristorante" style="margin-top:4px;width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+              <select id="wa-sede" class="input" style="margin-top:4px;width:100%;box-sizing:border-box;">
+                <option value="">— Tutte le sedi —</option>
+                ${sediOpts}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#64748b;">Numero WhatsApp Business *</label>
+              <input id="wa-numero" class="input" placeholder="+39 333 1234567" style="margin-top:4px;width:100%;box-sizing:border-box;">
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Deve essere un numero WhatsApp Business verificato</div>
+            </div>
+          </div>
+
+          <div id="wa-esito" style="font-size:13px;min-height:16px;margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="btn-salva-wa" style="background:#25D366;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>
+            <button id="btn-test-wa" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">📤 Invia messaggio test</button>
+            <button id="btn-annulla-wa" style="background:#f1f5f9;color:#374151;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;">Annulla</button>
+          </div>
+        </div>
             <div id="card-meta" data-modalita="meta" style="border:2px solid #0E5A7A;border-radius:12px;padding:16px;cursor:pointer;background:#f0f9ff;">
               <div style="font-size:20px;margin-bottom:6px;">🌐</div>
               <div style="font-weight:700;font-size:14px;color:#0f172a;">Meta Cloud API</div>
@@ -733,23 +767,31 @@ export async function render(container) {
     box.querySelector('#btn-salva-wa').addEventListener('click', async () => {
       const esito = box.querySelector('#wa-esito');
       const nome = box.querySelector('#wa-nome').value.trim();
-      const modalita = box.querySelector('#wa-modalita').value;
+      const numero = box.querySelector('#wa-numero').value.trim();
       if (!nome) { esito.textContent = '❌ Nome obbligatorio'; esito.style.color = '#dc2626'; return; }
+      if (!numero) { esito.textContent = '❌ Numero telefono obbligatorio'; esito.style.color = '#dc2626'; return; }
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+
+      // Carica credenziali Meta default da stripe_config (tabella configurazione globale)
+      const { data: metaCfg } = await supa()
+        .from('stripe_config')
+        .select('wa_phone_number_id, wa_waba_id, wa_app_id, wa_access_token')
+        .eq('app', 'ristoflow')
+        .maybeSingle();
 
       const payload = {
         azienda_id: aziendaId,
         sede_id: box.querySelector('#wa-sede').value || null,
         nome,
-        modalita,
-        numero_telefono: box.querySelector('#wa-numero').value.trim() || null,
-        meta_phone_number_id: box.querySelector('#wa-phone-id').value.trim() || null,
-        meta_waba_id: box.querySelector('#wa-waba-id').value.trim() || null,
-        meta_app_id: box.querySelector('#wa-app-id').value.trim() || null,
-        meta_access_token: box.querySelector('#wa-token').value.trim() || null,
-        qr_bridge_url: box.querySelector('#wa-bridge-url').value.trim() || null,
+        modalita: 'meta',
+        numero_telefono: numero,
+        // Credenziali Meta di Ristoflow — non visibili al cliente
+        meta_phone_number_id: metaCfg?.wa_phone_number_id || null,
+        meta_waba_id:         metaCfg?.wa_waba_id || null,
+        meta_app_id:          metaCfg?.wa_app_id || null,
+        meta_access_token:    metaCfg?.wa_access_token || null,
         attivo: true,
-        stato: 'non_connesso',
+        stato: metaCfg?.wa_phone_number_id ? 'connesso' : 'in_attivazione',
         updated_at: new Date().toISOString(),
       };
 
