@@ -240,6 +240,7 @@ function renderRigaAzienda(az, parent) {
         <button class="btn-mini btn-open">Apri</button>
         <button class="btn-mini btn-piano">💳 Piano</button>
         <button class="btn-mini btn-moduli">🧩 Moduli</button>
+        <button class="btn-mini btn-wa">📱 WhatsApp</button>
         <button class="btn-mini ${az.stato==='sospesa'?'btn-green':'btn-yellow'}">${az.stato==='sospesa'?'Riattiva':'Sospendi'}</button>
         <button class="btn-mini btn-red btn-elimina">🗑</button>
       </div>
@@ -292,6 +293,32 @@ function renderRigaAzienda(az, parent) {
         `).join('')}
       </div>
       <button class="btn-salva-moduli app-button small primary">Salva moduli</button>
+    </div>
+
+    <!-- PANEL WHATSAPP -->
+    <div class="panel-wa" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📱 Attivazione WhatsApp Business</div>
+      <div id="wa-stato-${az.id}" style="margin-bottom:12px;"></div>
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono cliente</label>
+          <input id="wa-numero-${az.id}" class="input" placeholder="+39 333 1234567" style="margin-top:4px;"
+            value="${az.wa_numero||''}">
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Numero WhatsApp Business del cliente da aggiungere al WABA</div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID <span style="color:#94a3b8;">(da Meta Business Manager)</span></label>
+          <input id="wa-phoneid-${az.id}" class="input" placeholder="Es. 1079292468608484" style="margin-top:4px;font-family:monospace;"
+            value="${az.wa_phone_number_id||''}">
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Inserisci dopo aver aggiunto il numero al WABA Meta</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <button class="btn-attiva-wa app-button small primary">✅ Attiva numero</button>
+        <button class="btn-notifica-wa app-button small gray">📧 Notifica attivazione al cliente</button>
+        <a href="https://business.facebook.com/settings/whatsapp-business-accounts" target="_blank"
+          class="app-button small gray" style="text-decoration:none;">🌐 Apri Meta Business</a>
+      </div>
     </div>
   `;
 
@@ -379,7 +406,83 @@ function renderRigaAzienda(az, parent) {
     mostraToast('Moduli aggiornati ✅');
   };
 
-  // Sospendi/riattiva
+  // Panel WhatsApp
+  riga.querySelector('.btn-wa').onclick = async () => {
+    const w = riga.querySelector('.panel-wa');
+    const p = riga.querySelector('.panel-piano');
+    const m = riga.querySelector('.panel-moduli');
+    w.style.display = w.style.display==='none' ? '' : 'none';
+    p.style.display = 'none'; m.style.display = 'none';
+
+    // Carica stato connessione WA esistente
+    if (w.style.display !== 'none') {
+      const { data: waConn } = await supabase
+        .from('whatsapp_connessioni')
+        .select('id,numero_telefono,meta_phone_number_id,stato')
+        .eq('azienda_id', az.id)
+        .maybeSingle();
+
+      const statoEl = document.getElementById(`wa-stato-${az.id}`);
+      if (waConn) {
+        const statoColor = { connesso:'#059669', non_connesso:'#dc2626', in_attesa:'#d97706', errore:'#dc2626' }[waConn.stato] || '#64748b';
+        statoEl.innerHTML = `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${statoColor};flex-shrink:0;"></span>
+            <div style="font-size:13px;">
+              <strong>${waConn.numero_telefono||'—'}</strong>
+              <span style="color:${statoColor};font-weight:700;margin-left:8px;">${waConn.stato}</span>
+              ${waConn.meta_phone_number_id ? `<br><span style="font-size:11px;color:#94a3b8;font-family:monospace;">ID: ${waConn.meta_phone_number_id}</span>` : ''}
+            </div>
+          </div>`;
+        document.getElementById(`wa-numero-${az.id}`).value = waConn.numero_telefono||'';
+        document.getElementById(`wa-phoneid-${az.id}`).value = waConn.meta_phone_number_id||'';
+      } else {
+        statoEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessun numero configurato</div>';
+      }
+    }
+  };
+
+  // Attiva numero
+  riga.querySelector('.btn-attiva-wa').onclick = async () => {
+    const numero  = document.getElementById(`wa-numero-${az.id}`).value.trim();
+    const phoneId = document.getElementById(`wa-phoneid-${az.id}`).value.trim();
+    if (!numero) { alert('Inserisci il numero telefono'); return; }
+
+    // Carica token default da secrets (via Edge Function)
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/attiva-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token}` },
+      body: JSON.stringify({ azienda_id: az.id, numero, phone_number_id: phoneId || null }),
+    });
+    const data = await res.json();
+    if (data.error) { alert('Errore: ' + data.error); return; }
+    mostraToast(phoneId ? '✅ Numero attivato!' : '⏳ Numero salvato — in attesa di attivazione');
+    riga.querySelector('.btn-wa').click(); // Ricarica stato
+    riga.querySelector('.btn-wa').click();
+  };
+
+  // Notifica cliente
+  riga.querySelector('.btn-notifica-wa').onclick = async () => {
+    const { data: waConn } = await supabase
+      .from('whatsapp_connessioni')
+      .select('numero_telefono,meta_phone_number_id,stato')
+      .eq('azienda_id', az.id).maybeSingle();
+    if (!waConn?.meta_phone_number_id) { alert('Attiva prima il numero'); return; }
+    // Invia WA di conferma al cliente
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/whatsapp-send-ts', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token}` },
+      body: JSON.stringify({
+        azienda_id: az.id,
+        to: waConn.numero_telefono,
+        type: 'text',
+        text: { body: `✅ Il tuo numero WhatsApp Business è ora attivo su Ristoflow!\n\nI tuoi clienti possono già scriverti e il chatbot risponde automaticamente.\n\nBenvenuto! 🎉` }
+      }),
+    });
+    mostraToast('📱 Notifica inviata al cliente');
+  };
   riga.querySelector('.btn-yellow, .btn-green') && riga.querySelector('.btn-yellow, .btn-green').addEventListener('click', async () => {
     const nuovoStato = az.stato==='sospesa' ? 'attiva' : 'sospesa';
     if (!confirm(`Imposta azienda come "${nuovoStato}"?`)) return;
