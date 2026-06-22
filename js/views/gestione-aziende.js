@@ -241,6 +241,7 @@ function renderRigaAzienda(az, parent) {
         <button class="btn-mini btn-piano">💳 Piano</button>
         <button class="btn-mini btn-moduli">🧩 Moduli</button>
         <button class="btn-mini btn-wa">📱 WhatsApp</button>
+        <button class="btn-mini btn-stripe">💳 Stripe</button>
         <button class="btn-mini ${az.stato==='sospesa'?'btn-green':'btn-yellow'}">${az.stato==='sospesa'?'Riattiva':'Sospendi'}</button>
         <button class="btn-mini btn-red btn-elimina">🗑</button>
       </div>
@@ -318,6 +319,37 @@ function renderRigaAzienda(az, parent) {
         <button class="btn-notifica-wa app-button small gray">📧 Notifica attivazione al cliente</button>
         <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers/?business_id=1592588934535117&tab=phone-numbers&asset_id=969232959308152" target="_blank"
           class="app-button small gray" style="text-decoration:none;">🌐 Apri WhatsApp Manager</a>
+      </div>
+    </div>
+
+    <!-- PANEL STRIPE -->
+    <div class="panel-stripe" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">💳 Configurazione Stripe</div>
+      <div id="stripe-stato-${az.id}" style="margin-bottom:12px;"></div>
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Publishable Key</label>
+          <input id="stripe-pub-${az.id}" class="input" placeholder="pk_live_..." style="margin-top:4px;font-family:monospace;font-size:12px;"
+            value="${az.stripe_publishable_key||''}">
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Chiave pubblica dal pannello Stripe → Developers → API Keys</div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#64748b;">Secret Key</label>
+          <input id="stripe-sec-${az.id}" class="input" placeholder="sk_live_..." type="password" style="margin-top:4px;font-family:monospace;font-size:12px;"
+            value="${az.stripe_secret_key||''}">
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Chiave segreta — non condividere mai</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="stripe-attivo-${az.id}" ${az.stripe_attivo ? 'checked' : ''}> Pagamenti attivi
+          </label>
+          <span style="font-size:11px;color:#94a3b8;">Se disattivato i pagamenti non vengono elaborati</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <button class="btn-salva-stripe app-button small primary">✅ Salva configurazione</button>
+        <button class="btn-test-stripe app-button small gray">🧪 Testa connessione</button>
+        <a href="https://dashboard.stripe.com/apikeys" target="_blank" class="app-button small gray" style="text-decoration:none;">🌐 Apri Stripe Dashboard</a>
       </div>
     </div>
   `;
@@ -406,13 +438,68 @@ function renderRigaAzienda(az, parent) {
     mostraToast('Moduli aggiornati ✅');
   };
 
+  // Panel Stripe
+  riga.querySelector('.btn-stripe').onclick = async () => {
+    const s = riga.querySelector('.panel-stripe');
+    const w = riga.querySelector('.panel-wa');
+    const p = riga.querySelector('.panel-piano');
+    const m = riga.querySelector('.panel-moduli');
+    s.style.display = s.style.display==='none' ? '' : 'none';
+    w.style.display = 'none'; p.style.display = 'none'; m.style.display = 'none';
+
+    if (s.style.display !== 'none') {
+      const statoEl = document.getElementById(`stripe-stato-${az.id}`);
+      const haKeys = az.stripe_publishable_key && az.stripe_secret_key;
+      statoEl.innerHTML = haKeys
+        ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${az.stripe_attivo ? '#059669' : '#d97706'};flex-shrink:0;"></span>
+            <span style="font-size:13px;font-weight:600;">Stripe configurato — pagamenti ${az.stripe_attivo ? 'attivi' : 'disattivati'}</span>
+           </div>`
+        : `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:13px;color:#c2410c;">
+            ⚠️ Stripe non configurato — inserisci le chiavi API
+           </div>`;
+    }
+
+    // Salva
+    s.querySelector('.btn-salva-stripe').onclick = async () => {
+      const pub = document.getElementById(`stripe-pub-${az.id}`).value.trim();
+      const sec = document.getElementById(`stripe-sec-${az.id}`).value.trim();
+      const attivo = document.getElementById(`stripe-attivo-${az.id}`).checked;
+      if (!pub || !sec) { alert('Inserisci entrambe le chiavi'); return; }
+      await supabase.from('aziende').update({
+        stripe_publishable_key: pub,
+        stripe_secret_key: sec,
+        stripe_attivo: attivo,
+      }).eq('id', az.id);
+      az.stripe_publishable_key = pub;
+      az.stripe_secret_key = sec;
+      az.stripe_attivo = attivo;
+      mostraToast('Stripe configurato ✅');
+      s.style.display = 'none';
+    };
+
+    // Test connessione
+    s.querySelector('.btn-test-stripe').onclick = async () => {
+      const pub = document.getElementById(`stripe-pub-${az.id}`).value.trim();
+      if (!pub) { alert('Inserisci prima la publishable key'); return; }
+      const isLive = pub.startsWith('pk_live_');
+      const isTest = pub.startsWith('pk_test_');
+      if (isLive || isTest) {
+        mostraToast(isLive ? '✅ Chiave LIVE valida' : '⚠️ Chiave TEST — non usare in produzione');
+      } else {
+        mostraToast('❌ Formato chiave non valido');
+      }
+    };
+  };
+
   // Panel WhatsApp
   riga.querySelector('.btn-wa').onclick = async () => {
     const w = riga.querySelector('.panel-wa');
     const p = riga.querySelector('.panel-piano');
     const m = riga.querySelector('.panel-moduli');
+    const s = riga.querySelector('.panel-stripe');
     w.style.display = w.style.display==='none' ? '' : 'none';
-    p.style.display = 'none'; m.style.display = 'none';
+    p.style.display = 'none'; m.style.display = 'none'; if(s) s.style.display = 'none';
 
     // Carica stato connessione WA esistente
     if (w.style.display !== 'none') {
