@@ -1070,7 +1070,12 @@ async function resolve() {
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (!dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
+    // Superadmin bypassa sempre il completamento profilo
+    const isSuperadmin = window.state?.isSuperadmin
+      || window.state?.ruolo === "superadmin"
+      || window.state?.ruoloRaw === "superadmin";
+
+    if (!isSuperadmin && !dipCheckErr && dipCheck && dipCheck.profilo_completato === false) {
       if (route !== "completaProfilo") {
         window.location.hash = "#/completaProfilo";
         return;
@@ -1113,7 +1118,13 @@ async function resolve() {
   const azienda = window.state.azienda;
 
   try {
+    // Superadmin bypassa il completamento azienda
+    const _isSa = window.state?.isSuperadmin
+      || window.state?.ruolo === "superadmin"
+      || window.state?.ruoloRaw === "superadmin";
+
     if (
+      !_isSa &&
       azienda &&
       azienda.stato !== "piattaforma" &&
       (azienda.profilo_completato === false || azienda.stato_attivazione === "bozza")
