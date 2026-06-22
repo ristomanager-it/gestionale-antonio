@@ -141,6 +141,50 @@ export function initMenu() {
       headerRight.appendChild(rfbBtn);
     }
 
+    // ── PULSANTE TASTING — in header ──────────────────────────────
+    if (!document.getElementById("tasting-btn-header")) {
+      const tastingBtn = document.createElement("div");
+      tastingBtn.id = "tasting-btn-header";
+      tastingBtn.title = "Tasting";
+      tastingBtn.style.cssText = `
+        cursor: pointer;
+        margin-left: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        gap: 3px;
+      `;
+      tastingBtn.innerHTML = `
+        <div style="
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #7C3AED 0%, #B45309 50%, #0D9488 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+        ">
+          <span style="font-size:20px;line-height:1">🍷</span>
+        </div>
+        <span style="font-size:9px;font-weight:800;color:#7C3AED;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tasting</span>
+      `;
+      tastingBtn.onclick = async () => {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        const baseUrl = "https://tasting.ristoflow-ai.com";
+        if (session?.access_token) {
+          const url = baseUrl + "#access_token=" + session.access_token + "&refresh_token=" + session.refresh_token + "&type=sso";
+          window.open(url, "_blank");
+        } else {
+          window.open(baseUrl, "_blank");
+        }
+      };
+      headerRight.appendChild(tastingBtn);
+    }
+
   }
 
   let overlay = document.querySelector(".menu-overlay");
@@ -474,6 +518,14 @@ export function initMenu() {
       });
     }
 
+    // ── TASTING — sempre visibile ──
+    sections.push({
+      title: "🍷 TASTING",
+      items: [
+        { label: "🍷 Vai a Tasting", url: "https://tasting.ristoflow-ai.com", external: true },
+      ]
+    });
+
     // ── CONSULENTE DEL LAVORO ──
     if (ruolo === "consulente_lavoro") {
       sections.length = 0; // svuota tutto
@@ -624,7 +676,7 @@ export function initMenu() {
         row.onclick = () => {
           if (item.url) {
             // SSO: passa il token Supabase all'app hotel
-            if (item.url && item.url.includes("hotel.ristoflow-ai.com")) {
+            if (item.url && (item.url.includes("hotel.ristoflow-ai.com") || item.url.includes("tasting.ristoflow-ai.com"))) {
               (async () => {
                 const { data: { session } } = await window.supabaseClient.auth.getSession();
                 if (session?.access_token) {
