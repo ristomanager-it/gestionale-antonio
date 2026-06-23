@@ -187,7 +187,7 @@ function creaCardStato(gruppi, percentuali) {
 async function cercaAziende(q) {
   const { data, error } = await supabase
     .from("aziende")
-    .select("id,nome,stato,stato_attivazione,profilo_completato,data_scadenza,piano_id,piano_nome,email,citta,moduli,tipo_app")
+    .select("id,nome,stato,stato_attivazione,profilo_completato,data_scadenza,piano_id,piano_nome,email,citta,moduli,tipo_app,abbonamento_stato,abbonamento_scade_il,stripe_customer_id,stripe_subscription_id")
     .ilike("nome", `%${q}%`)
     .order("nome")
     .limit(20);
@@ -233,6 +233,9 @@ function renderRigaAzienda(az, parent) {
         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <span style="background:${statoColor(az.stato)};color:white;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${az.stato||'—'}</span>
           ${piano ? `<span style="background:${pianoColor}20;color:${pianoColor};border:1px solid ${pianoColor}40;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${piano.icona||''} ${piano.nome}</span>` : '<span style="color:#94a3b8;font-size:11px;">Nessun piano</span>'}
+          ${az.abbonamento_stato === 'attivo' ? '<span style="background:#dcfce7;color:#166534;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">✅ Attivo</span>' : ''}
+          ${az.abbonamento_stato === 'pagamento_fallito' ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">⚠️ Pagamento fallito</span>' : ''}
+          ${az.abbonamento_stato === 'in_attesa_pagamento' ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">⏳ In attesa</span>' : ''}
           ${az.tipo_app?.length ? az.tipo_app.map(t=>`<span style="background:#f1f5f9;color:#374151;padding:2px 8px;border-radius:20px;font-size:10px;">${t}</span>`).join('') : ''}
         </div>
       </div>
@@ -270,7 +273,11 @@ function renderRigaAzienda(az, parent) {
         </select>
         <input type="date" class="input inp-scadenza" value="${az.data_scadenza||''}" placeholder="Scadenza" style="max-width:160px;">
         <button class="btn-salva-piano app-button small primary">Salva piano</button>
+        <button class="btn-attiva-stripe app-button small" style="background:#635bff;color:#fff;">⚡ Attiva con Stripe</button>
+        <button class="btn-portale-stripe app-button small" style="background:#f1f5f9;color:#374151;">🔗 Portale cliente</button>
+        <button class="btn-attiva-manuale app-button small" style="background:#059669;color:#fff;">✅ Attiva manualmente</button>
       </div>
+      <div id="abbonamento-stato-${az.id}" style="margin-top:10px;font-size:12px;"></div>
     </div>
 
     <!-- PANEL MODULI (nascosto) -->
@@ -426,6 +433,72 @@ function renderRigaAzienda(az, parent) {
     riga.querySelector('.panel-piano').style.display = 'none';
     mostraToast('Piano aggiornato ✅');
   };
+
+  // Attiva abbonamento con Stripe Checkout
+  riga.querySelector('.btn-attiva-stripe').onclick = async () => {
+    const pianoId = riga.querySelector(`input[name="piano-${az.id}"]:checked`)?.value;
+    if (!pianoId) { alert('Seleziona prima un piano'); return; }
+    const btn = riga.querySelector('.btn-attiva-stripe');
+    btn.disabled = true; btn.textContent = 'Caricamento...';
+    try {
+      const { data, error } = await supabase.functions.invoke('ristoflow-crea-abbonamento', {
+        body: { azienda_id: az.id, piano_id: pianoId }
+      });
+      if (error || !data?.url) throw new Error(error?.message || 'Errore creazione checkout');
+      window.open(data.url, '_blank');
+      mostraToast('Checkout Stripe aperto! ✅');
+    } catch(e) {
+      alert('Errore: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '⚡ Attiva con Stripe';
+    }
+  };
+
+  // Portale cliente Stripe
+  riga.querySelector('.btn-portale-stripe').onclick = async () => {
+    if (!az.stripe_customer_id) { alert('Nessun cliente Stripe associato. Attiva prima un abbonamento.'); return; }
+    const btn = riga.querySelector('.btn-portale-stripe');
+    btn.disabled = true; btn.textContent = 'Caricamento...';
+    try {
+      const { data, error } = await supabase.functions.invoke('ristoflow-portale-cliente', {
+        body: { azienda_id: az.id }
+      });
+      if (error || !data?.url) throw new Error(error?.message || 'Errore portale');
+      window.open(data.url, '_blank');
+    } catch(e) {
+      alert('Errore: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '🔗 Portale cliente';
+    }
+  };
+
+  // Attiva manualmente (es. Fondatore, accordo speciale)
+  riga.querySelector('.btn-attiva-manuale').onclick = async () => {
+    const pianoId = riga.querySelector(`input[name="piano-${az.id}"]:checked`)?.value;
+    if (!pianoId) { alert('Seleziona prima un piano'); return; }
+    const scadenza = riga.querySelector('.inp-scadenza').value;
+    if (!scadenza) { alert('Inserisci la data di scadenza'); return; }
+    if (!confirm(`Attivare manualmente il piano per ${az.nome}? Scadenza: ${scadenza}`)) return;
+    await supabase.from('aziende').update({
+      piano_id: pianoId,
+      abbonamento_stato: 'attivo',
+      abbonamento_scade_il: scadenza,
+    }).eq('id', az.id);
+    mostraToast('Abbonamento attivato manualmente ✅');
+    // Aggiorna badge
+    const statoDiv = document.getElementById(`abbonamento-stato-${az.id}`);
+    if (statoDiv) statoDiv.innerHTML = '<span style="color:#166534;font-weight:700;">✅ Attivo fino al '+scadenza+'</span>';
+  };
+
+  // Mostra stato abbonamento corrente
+  const statoDiv = document.getElementById(`abbonamento-stato-${az.id}`);
+  if (statoDiv && az.abbonamento_stato) {
+    const colori = { attivo:'#166534', in_attesa_pagamento:'#92400e', pagamento_fallito:'#991b1b', cancellato:'#6b7280' };
+    const labels = { attivo:'✅ Attivo', in_attesa_pagamento:'⏳ In attesa pagamento', pagamento_fallito:'⚠️ Pagamento fallito', cancellato:'❌ Cancellato' };
+    const col = colori[az.abbonamento_stato] || '#6b7280';
+    const lab = labels[az.abbonamento_stato] || az.abbonamento_stato;
+    statoDiv.innerHTML = `<span style="color:${col};font-weight:700;">${lab}</span>${az.abbonamento_scade_il ? ` · scade <strong>${az.abbonamento_scade_il}</strong>` : ''}`;
+  }
 
   // Salva moduli
   riga.querySelector('.btn-salva-moduli').onclick = async () => {
