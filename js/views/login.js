@@ -245,52 +245,16 @@ async function doRegister(){
     const userId = authData.user.id;
 
     // 2. Crea azienda in trial
-    const trialScadeIl = new Date();
-    trialScadeIl.setDate(trialScadeIl.getDate() + 30);
-
-    const { data: aziendaData, error: aziendaError } = await supabase
-      .from("aziende")
-      .insert({
-        nome: locale,
-        tipo_locale: tipo,
-        abbonamento_stato: "trial",
-        trial_scade_il: trialScadeIl.toISOString(),
-        trial_tipo: tipo,
-        profilo_completato: false
-      })
-      .select("id")
-      .single();
-
-    if(aziendaError) throw new Error("Errore creazione azienda: " + aziendaError.message);
-
-    const aziendaId = aziendaData.id;
-
-    // 3. Collega utente ad azienda
-    await supabase.from("utenti_aziende").insert({
-      user_id: userId,
-      azienda_id: aziendaId,
-      ruolo: "admin",
-      email: email,
-      stato_invito: "attivo"
+    // 2-5. Crea azienda + collega utente + notifica Antonio via Edge Function (service role)
+    const { data: regData, error: regError } = await supabase.functions.invoke("ristoflow-registra-utente", {
+      body: { user_id: userId, nome, locale, tipo, email }
     });
 
-    // 4. Salva lead in ristoflow_leads
-    await supabase.from("ristoflow_leads").upsert({
-      nome,
-      email,
-      tipo_locale: tipo,
-      stato: "demo",
-      fonte: "app_registrazione"
-    }, { onConflict: "email" });
-
-    // 4b. Notifica WA al superadmin
-    try {
-      await supabase.functions.invoke("ristoflow-notifica-trial", {
-        body: { nome, email, locale, tipo, azienda_id: aziendaId }
-      });
-    } catch(e) {
-      console.warn("Notifica trial non inviata:", e);
+    if(regError || !regData?.ok) {
+      throw new Error(regData?.error || regError?.message || "Errore registrazione azienda");
     }
+
+    const aziendaId = regData.azienda_id;
 
     // 5. Accedi automaticamente
     const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
