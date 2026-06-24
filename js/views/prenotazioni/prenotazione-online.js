@@ -124,12 +124,12 @@ export async function render(container) {
   <div style="min-height:100vh;display:flex;flex-direction:column;${backgroundStyle}overflow-y:auto;">
     <div style="padding:20px 16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;">
       ${logoEnabled ? `<img src="${escapeAttribute(logo)}" style="height:100px;object-fit:contain;margin-bottom:12px;display:block;">` : ""}
-      <div style="font-weight:700;font-size:18px;color:#111;">${escapeHtml(nomeAzienda)}</div>
+      ${title ? `<div style="font-weight:700;font-size:22px;color:#111;margin-bottom:2px;">${escapeHtml(title)}</div>` : ""}
+      ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : `<div style="font-size:13px;color:#6b7280;">${escapeHtml(nomeAzienda)}</div>`}
     </div>
     <div style="flex:1;padding:16px 16px 28px;max-width:480px;margin:0 auto;width:100%;">
       <div style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.08);">
-        <h2 style="text-align:center;margin:0 0 8px;">${escapeHtml(title)}</h2>
-        ${subtitle ? `<p style="text-align:center;margin:0 0 16px;color:#6b7280;font-size:13px;">${escapeHtml(subtitle)}</p>` : ""}
+
         <div style="display:flex;flex-direction:column;gap:10px;">
           <input id="nome" class="input" placeholder="${escapeAttribute(t[lang].nome)}">
           <input id="cognome" class="input" placeholder="${escapeAttribute(t[lang].cognome)}">
@@ -206,9 +206,10 @@ export async function render(container) {
       const disponibile = liberi >= coperti;
       const opt = document.createElement("option");
       opt.value = slot;
-      opt.textContent = disponibile ? `${slot} — ${liberi} posti liberi` : `${slot} — Non disponibile`;
+      opt.textContent = disponibile ? `${slot}  ·  ${liberi} posti` : `${slot} — Non disponibile`;
       opt.disabled = !disponibile;
       opt.style.color = disponibile ? "#111827" : "#9ca3af";
+      opt.style.fontSize = "13px";
       selectOra.appendChild(opt);
     }
     if (valPrecedente) selectOra.value = valPrecedente;
