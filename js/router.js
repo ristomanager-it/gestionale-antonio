@@ -1140,6 +1140,30 @@ async function resolve() {
 
   await loadPianoForAzienda(azienda);
 
+  // ── Carica sede per BO_ROUTES (che saltano caricaContestoOperativo) ──
+  if (!window.state?.sedeAttiva?.id) {
+    let sedi = window.state?.sedi || [];
+    if (!sedi.length) {
+      sedi = await loadSediForAzienda(azienda.id);
+      if (window.stateActions?.setSedi) {
+        window.stateActions.setSedi(sedi);
+      } else {
+        window.state.sedi = sedi;
+      }
+    }
+    const storedSedeId = getStoredSedeId();
+    if (storedSedeId) {
+      const sede = sedi.find(s => String(s.id) === String(storedSedeId));
+      if (sede) {
+        window.state.sedeAttiva = sede;
+      }
+    }
+    if (!window.state?.sedeAttiva?.id && sedi.length === 1) {
+      window.state.sedeAttiva = sedi[0];
+      setStoredSedeId(sedi[0].id);
+    }
+  }
+
   await window.stateActions.caricaPermessiEffettivi();
   await window.stateActions.caricaRuoloEReparti();
 
