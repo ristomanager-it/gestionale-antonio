@@ -1,3 +1,27 @@
+// ── Tracking: inietta Meta Pixel e GTM dinamicamente ──
+async function injectTracking(aziendaId) {
+  try {
+    const { data } = await window.supabaseClient
+      .from('azienda_identita')
+      .select('meta_pixel_id, gtm_id')
+      .eq('azienda_id', aziendaId)
+      .maybeSingle();
+    if (!data) return;
+    if (data.meta_pixel_id) {
+      const pid = data.meta_pixel_id.trim();
+      const s = document.createElement('script');
+      s.textContent = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pid}');fbq('track','PageView');`;
+      document.head.appendChild(s);
+    }
+    if (data.gtm_id) {
+      const gid = data.gtm_id.trim();
+      const s = document.createElement('script');
+      s.textContent = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gid}');`;
+      document.head.appendChild(s);
+    }
+  } catch(e) { console.warn('Tracking init error:', e); }
+}
+
 export async function render(container) {
   document.querySelector(".app-header")?.style.setProperty("display", "none");
   document.querySelector(".topbar-global")?.style.setProperty("display", "none");
