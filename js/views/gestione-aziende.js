@@ -445,8 +445,31 @@ function renderRigaAzienda(az, parent) {
         body: { azienda_id: az.id, piano_id: pianoId }
       });
       if (error || !data?.url) throw new Error(error?.message || 'Errore creazione checkout');
-      window.open(data.url, '_blank');
-      mostraToast('Checkout Stripe aperto! ✅');
+      // Mostra modal con link da inviare al cliente
+      const tel = az.telefono ? az.telefono.replace(/\D/g,'') : '';
+      const waUrl = tel
+        ? `https://wa.me/39${tel}?text=${encodeURIComponent(`Ciao ${az.nome}! 👋\n\nEcco il link per attivare il tuo abbonamento Ristoflow:\n\n${data.url}\n\nSe hai bisogno di aiuto siamo qui!`)}`
+        : null;
+      // Crea modal
+      let m = document.getElementById('modal-link-checkout');
+      if (m) m.remove();
+      m = document.createElement('div');
+      m.id = 'modal-link-checkout';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      m.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px;">💳 Link pagamento generato</div>
+          <div style="font-size:13px;color:#6b7280;margin-bottom:16px;">Invia questo link a <strong>${az.nome}</strong> per completare l'abbonamento</div>
+          <div style="background:#f1f5f9;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:16px;border:1px solid #e2e8f0;">${data.url}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="navigator.clipboard.writeText('${data.url}');this.textContent='✅ Copiato!';setTimeout(()=>this.textContent='📋 Copia link',2000);" style="flex:1;padding:10px;background:#0E5A7A;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">📋 Copia link</button>
+            ${waUrl ? `<button onclick="window.open('${waUrl}','_blank')" style="flex:1;padding:10px;background:#25d366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">💬 Invia via WhatsApp</button>` : ''}
+            <button onclick="document.getElementById('modal-link-checkout').remove()" style="padding:10px 16px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;font-weight:600;cursor:pointer;">✕</button>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:#9ca3af;">⏱️ Il link scade dopo 24h. Il cliente inserisce la carta direttamente su Stripe.</div>
+        </div>`;
+      document.body.appendChild(m);
+      m.onclick = (e) => { if(e.target === m) m.remove(); };
     } catch(e) {
       alert('Errore: ' + e.message);
     } finally {
