@@ -245,16 +245,17 @@ async function doRegister(){
     const userId = authData.user.id;
 
     // 2. Crea azienda in trial
-    const trialScadenza = new Date();
-    trialScadenza.setDate(trialScadenza.getDate() + 30);
+    const trialScadeIl = new Date();
+    trialScadeIl.setDate(trialScadeIl.getDate() + 30);
 
     const { data: aziendaData, error: aziendaError } = await supabase
       .from("aziende")
       .insert({
         nome: locale,
         tipo_locale: tipo,
-        stato_attivazione: "trial",
-        trial_scadenza: trialScadenza.toISOString(),
+        abbonamento_stato: "trial",
+        trial_scade_il: trialScadeIl.toISOString(),
+        trial_tipo: tipo,
         profilo_completato: false
       })
       .select("id")
@@ -268,7 +269,9 @@ async function doRegister(){
     await supabase.from("utenti_aziende").insert({
       user_id: userId,
       azienda_id: aziendaId,
-      ruolo: "admin"
+      ruolo: "admin",
+      email: email,
+      stato_invito: "attivo"
     });
 
     // 4. Salva lead in ristoflow_leads
@@ -279,6 +282,15 @@ async function doRegister(){
       stato: "demo",
       fonte: "app_registrazione"
     }, { onConflict: "email" });
+
+    // 4b. Notifica WA al superadmin
+    try {
+      await supabase.functions.invoke("ristoflow-notifica-trial", {
+        body: { nome, email, locale, tipo, azienda_id: aziendaId }
+      });
+    } catch(e) {
+      console.warn("Notifica trial non inviata:", e);
+    }
 
     // 5. Accedi automaticamente
     const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
