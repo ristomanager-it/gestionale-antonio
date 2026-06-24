@@ -125,7 +125,7 @@ export async function render(container) {
     <div style="padding:20px 16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;">
       ${logoEnabled ? `<img src="${escapeAttribute(logo)}" style="height:100px;object-fit:contain;margin-bottom:12px;display:block;">` : ""}
       ${title ? `<div style="font-weight:700;font-size:22px;color:#111;margin-bottom:2px;">${escapeHtml(title)}</div>` : ""}
-      ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : `<div style="font-size:13px;color:#6b7280;">${escapeHtml(nomeAzienda)}</div>`}
+      ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : ""}
     </div>
     <div style="flex:1;padding:16px 16px 28px;max-width:480px;margin:0 auto;width:100%;">
       <div style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.08);">
@@ -206,7 +206,7 @@ export async function render(container) {
       const disponibile = liberi >= coperti;
       const opt = document.createElement("option");
       opt.value = slot;
-      opt.textContent = disponibile ? `${slot}  ·  ${liberi} posti` : `${slot} — Non disponibile`;
+      opt.textContent = disponibile ? slot : `${slot} — Non disponibile`;
       opt.disabled = !disponibile;
       opt.style.color = disponibile ? "#111827" : "#9ca3af";
       opt.style.fontSize = "13px";
@@ -296,10 +296,18 @@ export async function render(container) {
 
     if (error) { msg.innerHTML = `<span class="error-text">${escapeHtml(error.message)}</span>`; return; }
 
-    // ── Se pagamento non richiesto → flusso normale ──────────────
+    // ── Se pagamento non richiesto → redirect a pagina prenotazione ──
     if (!pagamentoRichiesto) {
-      _mostraSuccesso(consensoNetwork, msg);
-      clearFormAfterSuccess();
+      const tokenPub = pren?.token_pubblico || pren?.id;
+      if (tokenPub) {
+        setTimeout(() => {
+          window.location.href = `/prenotazione.html?token=${encodeURIComponent(tokenPub)}`;
+        }, 600);
+        msg.innerHTML = `<div style="text-align:center;padding:16px;color:#15803d;font-size:13px;">✅ Prenotazione inviata! Reindirizzamento...</div>`;
+      } else {
+        _mostraSuccesso(consensoNetwork, msg);
+        clearFormAfterSuccess();
+      }
       return;
     }
 
