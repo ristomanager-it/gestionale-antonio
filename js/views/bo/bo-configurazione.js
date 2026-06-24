@@ -1983,6 +1983,27 @@ export async function render(container) {
           </div>
         </div>
 
+        <!-- ── TRACKING ── -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <span style="font-size:22px;">📊</span>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#0f172a;">Tracking & Analytics</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">Inserisci gli ID per tracciare le prenotazioni e le conversioni</div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <span class="id-label">📘 Meta Pixel ID</span>
+            <div class="id-desc">Trovi l'ID nel pannello Meta Business → Gestione eventi. Es. 1234567890123456</div>
+            <input id="id-meta-pixel" class="id-input" placeholder="Es. 1234567890123456" value="${val('meta_pixel_id')}">
+          </div>
+          <div>
+            <span class="id-label">🏷️ Google Tag Manager ID</span>
+            <div class="id-desc">Trovi il Container ID in GTM → Admin. Formato GTM-XXXXXXX</div>
+            <input id="id-gtm" class="id-input" placeholder="Es. GTM-XXXXXXX" value="${val('gtm_id')}">
+          </div>
+        </div>
+
         <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
         <button id="btn-salva-identita" style="background:#0E5A7A;color:white;border:none;border-radius:12px;padding:13px 28px;cursor:pointer;font-size:15px;font-weight:700;width:100%;">💾 Salva identità aziendale</button>
       </div>
@@ -2003,6 +2024,8 @@ export async function render(container) {
         parole_chiave: box.querySelector('#id-kw').value.trim() || null,
         obiettivo_breve: box.querySelector('#id-obj-breve').value.trim() || null,
         obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
+        meta_pixel_id: box.querySelector('#id-meta-pixel').value.trim() || null,
+        gtm_id: box.querySelector('#id-gtm').value.trim() || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'azienda_id' });
       if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; }
