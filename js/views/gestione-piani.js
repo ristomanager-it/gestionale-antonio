@@ -71,7 +71,7 @@ export async function render(container) {
 async function caricaPiani() {
   const { data, error } = await supabase
     .from("piani_abbonamento")
-    .select("id,nome,prezzo_mensile,sedi_max,features,tipo")
+    .select("id,nome,prezzo_mensile,sedi_max,features,tipo,stripe_price_id_mensile,stripe_price_id_annuale")
     .order("prezzo_mensile", { ascending: true });
 
   const container = document.getElementById("piani-list");
@@ -129,6 +129,8 @@ async function caricaPiani() {
             <span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;">
               Feature: <strong>${enabled.length}</strong>
             </span>
+            ${p.stripe_price_id_mensile ? `<span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #d1fae5;background:#f0fdf4;color:#065f46;">✅ Stripe mensile</span>` : `<span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #fee2e2;background:#fef2f2;color:#991b1b;">⚠️ No Stripe ID</span>`}
+            ${p.stripe_price_id_annuale ? `<span style="font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #d1fae5;background:#f0fdf4;color:#065f46;">✅ Stripe annuale</span>` : ''}
           </div>
           ${enabled.length
             ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
@@ -153,7 +155,7 @@ async function caricaPiani() {
       const id = btn.getAttribute("data-edit");
       const { data: piano } = await supabase
         .from("piani_abbonamento")
-        .select("id,nome,prezzo_mensile,sedi_max,features,tipo")
+        .select("id,nome,prezzo_mensile,sedi_max,features,tipo,stripe_price_id_mensile,stripe_price_id_annuale")
         .eq("id", id)
         .single();
       if (piano) renderEditor(piano);
@@ -262,6 +264,18 @@ function renderEditor(piano) {
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
             <input type="checkbox" id="p-attivo" ${piano?.attivo!==false?'checked':''} style="accent-color:#0E5A7A;"> Attivo
           </label>
+          <div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:4px;">
+            <div style="font-size:12px;color:#6b7280;font-weight:700;margin-bottom:8px;">💳 STRIPE PRICE IDs</div>
+            <label style="font-size:13px;font-weight:600;">
+              Price ID mensile
+              <input id="p-stripe-mensile" class="input" value="${safeText(piano?.stripe_price_id_mensile)}" placeholder="price_live_..." style="margin-top:4px;font-family:monospace;font-size:11px;" />
+            </label>
+            <label style="font-size:13px;font-weight:600;margin-top:8px;display:block;">
+              Price ID annuale
+              <input id="p-stripe-annuale" class="input" value="${safeText(piano?.stripe_price_id_annuale)}" placeholder="price_live_..." style="margin-top:4px;font-family:monospace;font-size:11px;" />
+            </label>
+            <div style="margin-top:6px;font-size:11px;color:#9ca3af;">Trovi gli ID su <a href="https://dashboard.stripe.com/products" target="_blank" style="color:#0E5A7A;">Stripe Dashboard → Prodotti</a></div>
+          </div>
         </div>
 
         <div style="background:white;border:1px solid #e5e7eb;border-radius:18px;padding:14px;">
@@ -317,6 +331,8 @@ function renderEditor(piano) {
       sedi_max: sedi, utenti_max: utenti,
       tipo, icona, colore, popolare, attivo,
       features,
+      stripe_price_id_mensile: document.getElementById("p-stripe-mensile").value.trim() || null,
+      stripe_price_id_annuale: document.getElementById("p-stripe-annuale").value.trim() || null,
     };
 
     const res = isEdit
