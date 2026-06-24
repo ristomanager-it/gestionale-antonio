@@ -185,6 +185,27 @@
       prenotazione = data;
       azienda = data.aziende || {};
 
+      // ── Tracking: inietta pixel e spara CompleteRegistration ────
+      if (data.azienda_id) {
+        injectTracking(data.azienda_id).then(function() {
+          if (window.fbq) {
+            fbq('track', 'CompleteRegistration', {
+              content_name: 'Prenotazione',
+              currency: 'EUR',
+              status: data.stato || 'nuova'
+            });
+          }
+          if (window.dataLayer) {
+            dataLayer.push({
+              event: 'prenotazione_confermata',
+              prenotazione_stato: data.stato,
+              prenotazione_data: data.data,
+              prenotazione_coperti: data.coperti
+            });
+          }
+        });
+      }
+
       // ── Controlla se prenotazione passata (solo tavoli) ─────────
       if (tipo === "tavolo") {
         var dataEvento = new Date(data.data + "T" + (data.ora || "00:00"));
