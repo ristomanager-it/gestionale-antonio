@@ -724,18 +724,38 @@ export async function render(container) {
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
           <button type="button" class="app-button" id="copy-live-link">Copia link</button>
-          <a class="app-button" href="${qrUrl(url, 300)}" download="qr-booking.png" target="_blank">Scarica QR</a>
+          <button type="button" class="app-button" id="btn-download-qr">⬇️ Scarica QR</button>
           <a class="app-button primary" href="${escapeAttribute(url)}" target="_blank">Apri</a>
         </div>
 
         <div style="margin-top:10px;">
-          <img src="${qrUrl(url, 180)}" style="width:180px;height:180px;border-radius:12px;background:#fff;">
+          <img id="qr-img-preview" src="${qrUrl(url, 300)}" style="width:180px;height:180px;border-radius:12px;background:#fff;" crossorigin="anonymous">
         </div>
       </div>
     `;
 
     const copyBtn = document.getElementById("copy-live-link");
     if (copyBtn) copyBtn.onclick = () => copyText(url);
+
+    const dlBtn = document.getElementById("btn-download-qr");
+    if (dlBtn) dlBtn.onclick = async () => {
+      try {
+        const qrSrc = qrUrl(url, 600);
+        const resp = await fetch(qrSrc);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = "qr-prenotazione.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch(e) {
+        console.error("Errore download QR:", e);
+        window.open(qrUrl(url, 600), "_blank");
+      }
+    };
   }
 
   function renderPalette() {
