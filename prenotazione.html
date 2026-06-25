@@ -153,7 +153,7 @@
     var supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     var root = document.getElementById("root");
     var params = new URLSearchParams(window.location.search);
-    var token = params.get("t");
+    var token = params.get("t") || params.get("token");
     var tipo  = params.get("tipo") || "tavolo"; // "tavolo" | "hotel"
     var sessionId = params.get("session_id") || null; // da Stripe redirect
     if (!token) { showError("Token mancante", "Il link che hai usato non è valido."); return; }
