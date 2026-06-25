@@ -109,6 +109,14 @@ export async function render(container) {
     <input id="bg_image" class="input" placeholder="URL immagine sfondo generato" readonly>
     <div id="bg-preview" style="margin-top:8px;"></div>
 
+    <h4 style="margin-top:16px;">📸 Foto di copertina <span style="font-size:11px;color:#94a3b8;font-weight:400;">(appare in cima al form)</span></h4>
+    <div style="margin-top:8px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+      <input type="file" id="cover_file" accept="image/png,image/jpeg,image/jpg" class="input">
+      <button id="upload-cover" class="app-button" type="button">Carica cover</button>
+    </div>
+    <input id="cover_url" class="input" placeholder="URL cover generato" readonly style="margin-top:8px;">
+    <div id="cover-preview" style="margin-top:8px;"></div>
+
     <hr>
 
     <h3>Testi</h3>
@@ -343,6 +351,7 @@ export async function render(container) {
   document.getElementById("add-fascia").onclick = addFascia;
   document.getElementById("upload-logo").onclick = uploadLogo;
   document.getElementById("upload-bg").onclick = uploadBackground;
+  document.getElementById("upload-cover").onclick = uploadCover;
 
   // Preview policy
   document.getElementById("btn-preview-policy").onclick = () => {
@@ -586,6 +595,12 @@ export async function render(container) {
     document.getElementById("bg_color").value = config.branding?.background_color || "#f7f9fc";
     document.getElementById("bg_color_picker").value = config.branding?.background_color || "#f7f9fc";
     document.getElementById("bg_image").value = config.branding?.background_image || "";
+    document.getElementById("cover_url").value = config.branding?.cover_url || "";
+    // Preview cover
+    const coverPreview = document.getElementById("cover-preview");
+    if (config.branding?.cover_url && coverPreview) {
+      coverPreview.innerHTML = `<img src="${config.branding.cover_url}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-top:4px;">`;
+    }
 
     document.getElementById("title").value = config.text?.title || "";
     document.getElementById("subtitle").value = config.text?.subtitle || "";
@@ -1013,6 +1028,23 @@ export async function render(container) {
     renderPreviews();
   }
 
+  async function uploadCover() {
+    const file = document.getElementById("cover_file").files?.[0];
+
+    if (!file) {
+      alert("Seleziona un file cover");
+      return;
+    }
+
+    const url = await uploadImage(file, "booking-cover");
+
+    if (!url) return;
+
+    document.getElementById("cover_url").value = url;
+    const preview = document.getElementById("cover-preview");
+    if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-top:4px;">`;
+  }
+
   async function uploadImage(file, prefix) {
     if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
       alert("Formato non valido. Usa PNG o JPG.");
@@ -1244,7 +1276,8 @@ export async function render(container) {
         logo_enabled: document.getElementById("logo_enabled").checked,
         logo_url: document.getElementById("logo_url").value || null,
         background_color: document.getElementById("bg_color").value || "#f7f9fc",
-        background_image: document.getElementById("bg_image").value || null
+        background_image: document.getElementById("bg_image").value || null,
+        cover_url: document.getElementById("cover_url").value || null
       },
       text: {
         title: document.getElementById("title").value || "Prenota il tuo tavolo",
