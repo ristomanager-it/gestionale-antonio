@@ -146,10 +146,17 @@ export async function render(container) {
 
   container.innerHTML = `
   <div style="min-height:100vh;display:flex;flex-direction:column;${backgroundStyle}overflow-y:auto;">
-    <div style="padding:20px 16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;">
-      ${logoEnabled ? `<img src="${escapeAttribute(logo)}" style="height:100px;object-fit:contain;margin-bottom:12px;display:block;">` : ""}
-      ${title ? `<div style="font-weight:700;font-size:22px;color:#111;margin-bottom:2px;">${escapeHtml(title)}</div>` : ""}
-      ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : ""}
+    <div style="text-align:center;display:flex;flex-direction:column;align-items:center;padding:0 0 12px;">
+      ${logoEnabled ? `
+      <div style="width:100%;background:white;padding:24px 16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.07);margin-bottom:12px;">
+        <img src="${escapeAttribute(logo)}" style="height:80px;object-fit:contain;display:block;margin:0 auto 14px;">
+        ${title ? `<div style="font-weight:800;font-size:22px;color:#111;margin-bottom:4px;">${escapeHtml(title)}</div>` : ""}
+        ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : ""}
+      </div>` : `
+      <div style="padding:20px 16px 0;">
+        ${title ? `<div style="font-weight:800;font-size:22px;color:#111;margin-bottom:4px;">${escapeHtml(title)}</div>` : ""}
+        ${subtitle ? `<p style="font-size:13px;color:#6b7280;margin:0;">${escapeHtml(subtitle)}</p>` : ""}
+      </div>`}
     </div>
     <div style="flex:1;padding:16px 16px 28px;max-width:480px;margin:0 auto;width:100%;">
       <div style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.08);">
@@ -167,6 +174,7 @@ export async function render(container) {
             </select>
             <input id="telefono" class="input" placeholder="${escapeAttribute(t[lang].telefono)}">
           </div>
+          <input type="email" id="email" class="input" placeholder="Email (opzionale)">
           <input type="date" id="data" class="input">
           <select id="ora" class="input"><option value="">-- Seleziona orario --</option></select>
           <div id="slot-avviso" style="display:none;font-size:12px;color:#dc2626;padding:4px 0;">⚠️ Orario non disponibile</div>
@@ -312,9 +320,10 @@ export async function render(container) {
       azienda_id: aziendaId, sede_id: sedeId,
       form_id: form?.id || formId || null, form_version_id: version?.id || null,
       cliente_nome: `${nome} ${cognome}`.trim(), cliente_telefono: telefono,
+      cliente_email: document.getElementById("email")?.value.trim() || null,
       data, ora, coperti, stato: statoIniziale, canale: "online",
       source, riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
-    }]).select().single();
+    }]).select("id").single();
 
     btn.disabled = false; btn.textContent = t[lang].invia;
 
@@ -322,12 +331,21 @@ export async function render(container) {
 
     // ── Se pagamento non richiesto → redirect a pagina prenotazione ──
     if (!pagamentoRichiesto) {
-      const tokenPub = pren?.token_pubblico || pren?.id;
+      // Rilegge la prenotazione per ottenere il token_pubblico generato dal DB
+      let tokenPub = null;
+      if (pren?.id) {
+        const { data: prenConToken } = await window.supabaseClient
+          .from("prenotazioni_tavoli")
+          .select("token_pubblico")
+          .eq("id", pren.id)
+          .single();
+        tokenPub = prenConToken?.token_pubblico;
+      }
       if (tokenPub) {
+        msg.innerHTML = `<div style="text-align:center;padding:16px;color:#15803d;font-size:13px;">✅ Prenotazione inviata! Reindirizzamento...</div>`;
         setTimeout(() => {
           window.location.href = `/prenotazione.html?token=${encodeURIComponent(tokenPub)}`;
         }, 600);
-        msg.innerHTML = `<div style="text-align:center;padding:16px;color:#15803d;font-size:13px;">✅ Prenotazione inviata! Reindirizzamento...</div>`;
       } else {
         _mostraSuccesso(consensoNetwork, msg);
         clearFormAfterSuccess();
@@ -493,6 +511,7 @@ export async function render(container) {
     document.getElementById("nome").value = "";
     document.getElementById("cognome").value = "";
     document.getElementById("telefono").value = "";
+    document.getElementById("email").value = "";
     document.getElementById("coperti").value = "2";
     const note = document.getElementById("note_cliente");
     if (note) note.value = "";
