@@ -329,6 +329,15 @@ export async function render(container) {
 
     if (error) { msg.innerHTML = `<span class="error-text">${escapeHtml(error.message)}</span>`; return; }
 
+    // ── Notifica WhatsApp (fire & forget) ────────────────────────
+    if (pren?.id) {
+      fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/prenotazione-notifica-tavolo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0" },
+        body: JSON.stringify({ prenotazione_id: pren.id })
+      }).catch(e => console.warn("Notifica WA:", e));
+    }
+
     // ── Se pagamento non richiesto → redirect a pagina prenotazione ──
     if (!pagamentoRichiesto) {
       const tokenPub = pren?.token_pubblico;
