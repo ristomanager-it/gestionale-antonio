@@ -293,6 +293,12 @@ export async function render(container) {
       consenso_marketing: document.getElementById("consenso-marketing")?.checked || false
     };
 
+    const emailVal = document.getElementById("email")?.value.trim() || "";
+    if (!emailVal || !emailVal.includes("@")) {
+      msg.innerHTML = `<span class="error-text">Email obbligatoria</span>`;
+      return;
+    }
+
     const finalTag = [tagParam, ...tags].filter(Boolean).join(",");
     btn.disabled = true; btn.textContent = "...";
 
