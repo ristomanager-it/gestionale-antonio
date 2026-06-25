@@ -305,34 +305,40 @@ function renderRigaAzienda(az, parent) {
 
     <!-- PANEL WHATSAPP -->
     <div class="panel-wa" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📱 Attivazione WhatsApp Business</div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
-        <select id="wa-sede-${az.id}" class="input" style="margin-top:4px;">
-          <option value="">— Azienda (tutti) —</option>
-        </select>
-        <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Assegna il numero a una sede specifica, o lascia "Azienda" per usarlo su tutte</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;">📱 WhatsApp Business</div>
+        <button class="btn-aggiungi-wa app-button small primary">+ Aggiungi numero</button>
       </div>
-      <div id="wa-stato-${az.id}" style="margin-bottom:12px;"></div>
-      <div style="display:grid;gap:10px;">
-        <div>
-          <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono cliente</label>
-          <input id="wa-numero-${az.id}" class="input" placeholder="+39 333 1234567" style="margin-top:4px;"
-            value="${az.wa_numero||''}">
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Numero WhatsApp Business del cliente da aggiungere al WABA</div>
+
+      <!-- Lista connessioni esistenti -->
+      <div id="wa-lista-${az.id}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+
+      <!-- Form aggiungi/modifica -->
+      <div id="wa-form-${az.id}" style="display:none;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;" id="wa-form-title-${az.id}">Nuovo numero</div>
+        <input type="hidden" id="wa-conn-id-${az.id}">
+        <div style="display:grid;gap:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+            <select id="wa-sede-${az.id}" class="input" style="margin-top:4px;">
+              <option value="">— Azienda (tutti) —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Numero telefono</label>
+            <input id="wa-numero-${az.id}" class="input" placeholder="+39 333 1234567" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID</label>
+            <input id="wa-phoneid-${az.id}" class="input" placeholder="Es. 1079292468608484" style="margin-top:4px;font-family:monospace;">
+          </div>
         </div>
-        <div>
-          <label style="font-size:12px;font-weight:600;color:#64748b;">Phone Number ID <span style="color:#94a3b8;">(da Meta Business Manager)</span></label>
-          <input id="wa-phoneid-${az.id}" class="input" placeholder="Es. 1079292468608484" style="margin-top:4px;font-family:monospace;"
-            value="${az.wa_phone_number_id||''}">
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Inserisci dopo aver aggiunto il numero al WABA Meta</div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn-attiva-wa app-button small primary">✅ Salva e attiva</button>
+          <button class="btn-cancel-wa app-button small gray">Annulla</button>
+          <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers/?business_id=1592588934535117&tab=phone-numbers&asset_id=969232959308152" target="_blank"
+            class="app-button small gray" style="text-decoration:none;">🌐 WhatsApp Manager</a>
         </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        <button class="btn-attiva-wa app-button small primary">✅ Attiva numero</button>
-        <button class="btn-notifica-wa app-button small gray">📧 Notifica attivazione al cliente</button>
-        <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers/?business_id=1592588934535117&tab=phone-numbers&asset_id=969232959308152" target="_blank"
-          class="app-button small gray" style="text-decoration:none;">🌐 Apri WhatsApp Manager</a>
       </div>
     </div>
 
@@ -603,101 +609,121 @@ function renderRigaAzienda(az, parent) {
     const s = riga.querySelector('.panel-stripe');
     w.style.display = w.style.display==='none' ? '' : 'none';
     p.style.display = 'none'; m.style.display = 'none'; if(s) s.style.display = 'none';
-
-    if (w.style.display !== 'none') {
-      // Carica sedi con window.supabaseClient per bypassare RLS
-      const sc = window.supabaseClient || supabase;
-      const { data: sedi } = await sc
-        .from('sedi')
-        .select('id, nome')
-        .eq('azienda_id', az.id)
-        .order('nome');
-
-      const sedeSelect = document.getElementById(`wa-sede-${az.id}`);
-      sedeSelect.innerHTML = '<option value="">— Azienda (tutti) —</option>';
-      (sedi || []).forEach(sede => {
-        const opt = document.createElement('option');
-        opt.value = sede.id;
-        opt.textContent = sede.nome;
-        sedeSelect.appendChild(opt);
-      });
-
-      // Funzione per caricare connessione per sede selezionata
-      const caricaConnessione = async (sedeId) => {
-        let q = sc.from('whatsapp_connessioni')
-          .select('id,numero_telefono,meta_phone_number_id,stato,sede_id')
-          .eq('azienda_id', az.id);
-        if (sedeId) q = q.eq('sede_id', sedeId);
-        else q = q.is('sede_id', null);
-        const { data: waConn } = await q.maybeSingle();
-
-        const statoEl = document.getElementById(`wa-stato-${az.id}`);
-        if (waConn) {
-          const statoColor = { connesso:'#059669', non_connesso:'#dc2626', in_attesa:'#d97706', errore:'#dc2626' }[waConn.stato] || '#64748b';
-          statoEl.innerHTML = `
-            <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
-              <span style="width:10px;height:10px;border-radius:50%;background:${statoColor};flex-shrink:0;"></span>
-              <div style="font-size:13px;">
-                <strong>${waConn.numero_telefono||'—'}</strong>
-                <span style="color:${statoColor};font-weight:700;margin-left:8px;">${waConn.stato}</span>
-                ${waConn.meta_phone_number_id ? `<br><span style="font-size:11px;color:#94a3b8;font-family:monospace;">ID: ${waConn.meta_phone_number_id}</span>` : ''}
-              </div>
-            </div>`;
-          document.getElementById(`wa-numero-${az.id}`).value = waConn.numero_telefono||'';
-          document.getElementById(`wa-phoneid-${az.id}`).value = waConn.meta_phone_number_id||'';
-        } else {
-          statoEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessun numero configurato per questa sede</div>';
-          document.getElementById(`wa-numero-${az.id}`).value = '';
-          document.getElementById(`wa-phoneid-${az.id}`).value = '';
-        }
-      };
-
-      sedeSelect.onchange = () => caricaConnessione(sedeSelect.value || null);
-      await caricaConnessione(null);
-    }
+    if (w.style.display !== 'none') await caricaListaWA();
   };
 
-  // Attiva numero
+  const sc = window.supabaseClient || supabase;
+
+  async function caricaListaWA() {
+    // Carica sedi
+    const { data: sedi } = await sc.from('sedi').select('id,nome').eq('azienda_id', az.id).order('nome');
+    const sedeMap = {};
+    (sedi || []).forEach(s => sedeMap[s.id] = s.nome);
+
+    // Popola select sedi nel form
+    const sedeSelect = document.getElementById(`wa-sede-${az.id}`);
+    sedeSelect.innerHTML = '<option value="">— Azienda (tutti) —</option>';
+    (sedi || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.nome;
+      sedeSelect.appendChild(opt);
+    });
+
+    // Carica tutte le connessioni
+    const { data: conns } = await sc
+      .from('whatsapp_connessioni')
+      .select('id,numero_telefono,meta_phone_number_id,stato,sede_id,attivo')
+      .eq('azienda_id', az.id)
+      .order('created_at');
+
+    const lista = document.getElementById(`wa-lista-${az.id}`);
+    if (!conns || !conns.length) {
+      lista.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessun numero configurato</div>';
+      return;
+    }
+
+    lista.innerHTML = conns.map(c => {
+      const statoColor = { connesso:'#059669', non_connesso:'#dc2626', in_attesa:'#d97706', errore:'#dc2626' }[c.stato] || '#64748b';
+      const nomeSedeLabel = c.sede_id ? (sedeMap[c.sede_id] || 'Sede sconosciuta') : 'Tutte le sedi';
+      return `
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${statoColor};flex-shrink:0;"></span>
+            <div style="min-width:0;">
+              <div style="font-size:13px;font-weight:700;">${c.numero_telefono||'—'} <span style="color:${statoColor};font-size:11px;">${c.stato}</span></div>
+              <div style="font-size:11px;color:#94a3b8;">📍 ${nomeSedeLabel}</div>
+              ${c.meta_phone_number_id ? `<div style="font-size:10px;color:#cbd5e1;font-family:monospace;">ID: ${c.meta_phone_number_id}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="app-button small gray btn-edit-wa" data-id="${c.id}" data-numero="${c.numero_telefono||''}" data-phoneid="${c.meta_phone_number_id||''}" data-sede="${c.sede_id||''}">✏️</button>
+            <button class="app-button small gray btn-del-wa" data-id="${c.id}" style="color:#dc2626;">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Handlers edit
+    lista.querySelectorAll('.btn-edit-wa').forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById(`wa-conn-id-${az.id}`).value = btn.dataset.id;
+        document.getElementById(`wa-numero-${az.id}`).value = btn.dataset.numero;
+        document.getElementById(`wa-phoneid-${az.id}`).value = btn.dataset.phoneid;
+        document.getElementById(`wa-sede-${az.id}`).value = btn.dataset.sede || '';
+        document.getElementById(`wa-form-title-${az.id}`).textContent = 'Modifica numero';
+        document.getElementById(`wa-form-${az.id}`).style.display = '';
+      };
+    });
+
+    // Handlers delete
+    lista.querySelectorAll('.btn-del-wa').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Eliminare questa connessione WhatsApp?')) return;
+        await sc.from('whatsapp_connessioni').delete().eq('id', btn.dataset.id);
+        await caricaListaWA();
+      };
+    });
+  }
+
+  // Aggiungi nuovo
+  riga.querySelector('.btn-aggiungi-wa').onclick = () => {
+    document.getElementById(`wa-conn-id-${az.id}`).value = '';
+    document.getElementById(`wa-numero-${az.id}`).value = '';
+    document.getElementById(`wa-phoneid-${az.id}`).value = '';
+    document.getElementById(`wa-sede-${az.id}`).value = '';
+    document.getElementById(`wa-form-title-${az.id}`).textContent = 'Nuovo numero';
+    document.getElementById(`wa-form-${az.id}`).style.display = '';
+  };
+
+  // Annulla
+  riga.querySelector('.btn-cancel-wa').onclick = () => {
+    document.getElementById(`wa-form-${az.id}`).style.display = 'none';
+  };
+
+  // Salva e attiva numero (insert o update)
   riga.querySelector('.btn-attiva-wa').onclick = async () => {
     const numero  = document.getElementById(`wa-numero-${az.id}`).value.trim();
     const phoneId = document.getElementById(`wa-phoneid-${az.id}`).value.trim();
     const sedeId  = document.getElementById(`wa-sede-${az.id}`)?.value || null;
+    const connId  = document.getElementById(`wa-conn-id-${az.id}`).value.trim();
     if (!numero) { alert('Inserisci il numero telefono'); return; }
 
-    // Carica token default da secrets (via Edge Function)
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/attiva-whatsapp', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token}` },
-      body: JSON.stringify({ azienda_id: az.id, sede_id: sedeId || null, numero, phone_number_id: phoneId || null }),
+      body: JSON.stringify({
+        azienda_id: az.id,
+        sede_id: sedeId || null,
+        numero,
+        phone_number_id: phoneId || null,
+        conn_id: connId || null
+      }),
     });
     const data = await res.json();
     if (data.error) { alert('Errore: ' + data.error); return; }
     mostraToast(phoneId ? '✅ Numero attivato!' : '⏳ Numero salvato — in attesa di attivazione');
-    riga.querySelector('.btn-wa').click(); // Ricarica stato
-    riga.querySelector('.btn-wa').click();
-  };
-
-  // Notifica cliente
-  riga.querySelector('.btn-notifica-wa').onclick = async () => {
-    const { data: waConn } = await supabase
-      .from('whatsapp_connessioni')
-      .select('numero_telefono,meta_phone_number_id,stato')
-      .eq('azienda_id', az.id).maybeSingle();
-    if (!waConn?.meta_phone_number_id) { alert('Attiva prima il numero'); return; }
-    // Invia WA di conferma al cliente
-    const { data: { session } } = await supabase.auth.getSession();
-    await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/whatsapp-send-ts', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token}` },
-      body: JSON.stringify({
-        azienda_id: az.id,
-        to: waConn.numero_telefono,
-        type: 'text',
-        text: { body: `✅ Il tuo numero WhatsApp Business è ora attivo su Ristoflow!\n\nI tuoi clienti possono già scriverti e il chatbot risponde automaticamente.\n\nBenvenuto! 🎉` }
-      }),
-    });
-    mostraToast('📱 Notifica inviata al cliente');
+    document.getElementById(`wa-form-${az.id}`).style.display = 'none';
+    await caricaListaWA();
   };
   riga.querySelector('.btn-yellow, .btn-green') && riga.querySelector('.btn-yellow, .btn-green').addEventListener('click', async () => {
     const nuovoStato = az.stato==='sospesa' ? 'attiva' : 'sospesa';
