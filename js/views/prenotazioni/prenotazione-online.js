@@ -99,7 +99,8 @@ export async function render(container) {
   } catch(e) { console.warn("Errore branding:", e); }
 
   if (config.branding?.logo_url)  logo  = config.branding.logo_url;
-  if (config.branding?.background_image) cover = config.branding.background_image;
+  if (config.branding?.cover_url) cover = config.branding.cover_url;
+  else if (config.branding?.background_image) cover = config.branding.background_image;
 
   const lang   = navigator.language.startsWith("it") ? "it" : "en";
   const title  = config.text?.title    || (lang === "it" ? "Prenota il tuo tavolo" : "Book your table");
