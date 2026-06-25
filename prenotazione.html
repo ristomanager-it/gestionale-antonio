@@ -175,7 +175,7 @@
       } else {
         res = await supa
           .from("prenotazioni_tavoli")
-          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size)")
+          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size), sedi(nome, logo_url, cover_url, indirizzo, citta, telefono)")
           .eq("token_pubblico", token)
           .maybeSingle();
       }
@@ -184,6 +184,14 @@
       if (error || !data) { showError("Prenotazione non trovata", "Il link potrebbe essere scaduto o non valido."); return; }
       prenotazione = data;
       azienda = data.aziende || {};
+      // Sovrascrive con dati sede se disponibili
+      var sede = data.sedi || {};
+      if (sede.logo_url) azienda.logo_url = sede.logo_url;
+      if (sede.cover_url) azienda.cover_url = sede.cover_url;
+      if (sede.nome) azienda.nome = sede.nome;
+      if (sede.indirizzo) azienda.indirizzo = sede.indirizzo;
+      if (sede.citta) azienda.citta = sede.citta;
+      if (sede.telefono) azienda.telefono = sede.telefono;
 
       // ── Controlla se prenotazione passata (solo tavoli) ─────────
       if (tipo === "tavolo") {
@@ -423,7 +431,8 @@
 
     function buildPagamentoBanner(p) {
       var stato_pag = p.stato_pagamento || (p.stato === "in_attesa_pagamento" ? "pending" : null);
-      if (!stato_pag && p.stato !== "in_attesa_pagamento") return "";
+      if (!stato_pag || stato_pag === "non_richiesto") return "";
+      if (p.stato !== "in_attesa_pagamento" && !["pending","paid","failed","expired","refunded"].includes(stato_pag)) return "";
 
       var cfg = {
         pending:  { bg:"#fffbeb", color:"#92400e", icon:"⏳", title:"Pagamento in attesa",   sub:"Completa il pagamento per confermare la prenotazione." },
@@ -602,12 +611,13 @@
 
     function getStatoMeta(stato) {
       switch(stato) {
-        case "nuova":               return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
+        case "nuova":
+        case "in_attesa":           return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
         case "in_attesa_pagamento": return {label:"In attesa pagamento", emoji:"💳", bg:"#FFF7ED", color:"#C2410C"};
         case "confermata":          return {label:"Confermata",          emoji:"🟢", bg:"#DCFCE7", color:"#166534"};
         case "arrivata":            return {label:"Arrivata",            emoji:"✅", bg:"#DCFCE7", color:"#166534"};
         case "annullata":           return {label:"Annullata",           emoji:"⚫", bg:"#E5E7EB", color:"#374151"};
-        default:                    return {label:"In corso",            emoji:"🔵", bg:"#DBEAFE", color:"#1D4ED8"};
+        default:                    return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
       }
     }
     function getStatoMetaHotel(stato) {
