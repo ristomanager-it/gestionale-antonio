@@ -335,7 +335,7 @@ export async function render(container) {
       if (tokenPub) {
         msg.innerHTML = `<div style="text-align:center;padding:16px;color:#15803d;font-size:13px;">✅ Prenotazione inviata! Reindirizzamento...</div>`;
         setTimeout(() => {
-          window.location.href = `/prenotazione.html?token=${encodeURIComponent(tokenPub)}`;
+          window.location.href = `/prenotazione.html?t=${encodeURIComponent(tokenPub)}`;
         }, 600);
       } else {
         _mostraSuccesso(consensoNetwork, msg);
