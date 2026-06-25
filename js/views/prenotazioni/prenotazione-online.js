@@ -134,17 +134,16 @@ export async function render(container) {
   container.innerHTML = `
   <style>
     .pren-page { min-height:100vh; display:flex; flex-direction:column; background:#f4f6f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
-    .pren-hero { position:relative; width:100%; height:240px; overflow:hidden; background:${colore}; }
+    .pren-hero { position:relative; width:100%; height:220px; overflow:hidden; background:${colore}; }
     .pren-hero img.cover { width:100%; height:100%; object-fit:cover; display:block; }
-    .pren-hero .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%); }
-    .pren-logo-wrap { position:absolute; bottom:-36px; left:50%; transform:translateX(-50%); z-index:2; }
-    .pren-logo { width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid white; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
-    .pren-logo-placeholder { width:72px; height:72px; border-radius:50%; background:${colore}; border:3px solid white; display:flex; align-items:center; justify-content:center; font-size:28px; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
-    .pren-header { text-align:center; padding:48px 20px 12px; }
-    .pren-header h1 { margin:0 0 6px; font-size:22px; font-weight:800; color:#111827; }
-    .pren-header p { margin:0; font-size:13px; color:#64748b; }
-    .pren-header .pren-meta { margin-top:8px; display:flex; justify-content:center; gap:16px; flex-wrap:wrap; }
-    .pren-header .pren-meta span { font-size:12px; color:#64748b; }
+    .pren-hero .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.45) 100%); }
+    .pren-logo-wrap { position:absolute; bottom:-44px; left:50%; transform:translateX(-50%); z-index:2; }
+    .pren-logo { width:88px; height:88px; border-radius:50%; object-fit:cover; border:4px solid white; background:white; box-shadow:0 4px 16px rgba(0,0,0,0.18); }
+    .pren-logo-placeholder { width:88px; height:88px; border-radius:50%; background:${colore}; border:4px solid white; display:flex; align-items:center; justify-content:center; font-size:32px; box-shadow:0 4px 16px rgba(0,0,0,0.18); }
+    .pren-header { text-align:center; padding:60px 20px 16px; }
+    .pren-header h1 { margin:0 0 4px; font-size:24px; font-weight:800; color:#111827; }
+    .pren-header .pren-title { font-size:16px; font-weight:600; color:#374151; margin:6px 0 4px; }
+    .pren-header .pren-subtitle { font-size:13px; color:#64748b; margin:0; line-height:1.5; }
     .pren-card { background:white; border-radius:20px; padding:24px; margin:0 16px 16px; box-shadow:0 4px 20px rgba(0,0,0,0.07); }
     .pren-section-title { font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin:0 0 12px; }
     .pren-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -196,12 +195,8 @@ export async function render(container) {
     <!-- HEADER -->
     <div class="pren-header">
       <h1>${escapeHtml(nomeLocale)}</h1>
-      ${title !== nomeLocale ? `<p style="font-size:15px;color:#374151;font-weight:600;margin:4px 0 0;">${escapeHtml(title)}</p>` : ""}
-      ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ""}
-      <div class="pren-meta">
-        ${indirizzo ? `<span>📍 ${escapeHtml(indirizzo)}</span>` : ""}
-        ${telefono  ? `<span>📞 <a href="tel:${escapeAttribute(telefono)}" style="color:${colore};text-decoration:none;">${escapeHtml(telefono)}</a></span>` : ""}
-      </div>
+      ${title ? `<div class="pren-title">${escapeHtml(title)}</div>` : ""}
+      ${subtitle ? `<p class="pren-subtitle">${escapeHtml(subtitle)}</p>` : ""}
     </div>
 
     <!-- FORM CARD -->
