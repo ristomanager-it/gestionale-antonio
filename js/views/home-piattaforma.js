@@ -183,6 +183,34 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- LEAD WHATSAPP -->
+      <div class="kpi-section-label">📱 Lead WhatsApp Chatbot</div>
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;color:#64748b;">Lead raccolti dal chatbot commerciale</div>
+          <div style="display:flex;gap:8px;">
+            <select id="lead-filtro-tipo" class="contatti-select" onchange="caricaLeadWA()">
+              <option value="">Tutti</option>
+              <option value="prova_gratuita">Prova gratuita</option>
+              <option value="demo">Demo</option>
+              <option value="consulente">Consulente</option>
+            </select>
+            <button onclick="esportaLeadWA()" class="contatti-export-btn">⬇️ CSV</button>
+          </div>
+        </div>
+        <div id="lead-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
+      </div>
+
+      <!-- CONVERSAZIONI WHATSAPP -->
+      <div class="kpi-section-label">💬 Conversazioni WhatsApp</div>
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;color:#64748b;">Messaggi in entrata al numero Ristoflow</div>
+          <input id="conv-search" placeholder="🔍 Cerca numero..." class="contatti-search" style="max-width:180px;" oninput="filtraConversazioni()"/>
+        </div>
+        <div id="conv-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
+      </div>
+
       <!-- GRID -->
       <div class="grid">
 
@@ -330,6 +358,8 @@ export async function render(container) {
   bindEvents();
   initTawkStatus();
   window.initContatti(utentiList || []);
+  window.caricaLeadWA();
+  caricaConversazioniWA();
 }
 
 // ── TAWK STATUS ───────────────────────────────────────────────────────────────
@@ -551,6 +581,168 @@ window.esportaContatti = function() {
   const a = document.createElement("a");
   a.href = url; a.download = `contatti-rfbook-${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
+};
+
+// ── LEAD WHATSAPP ────────────────────────────────────────────
+let _leadWA = [];
+
+window.caricaLeadWA = async function() {
+  const tipo = document.getElementById("lead-filtro-tipo")?.value || "";
+  const el = document.getElementById("lead-wa-list");
+  if (!el) return;
+
+  let q = (window.supabaseClient || supabase)
+    .from("ristoflow_leads")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (tipo) q = q.eq("tipo", tipo);
+
+  const { data, error } = await q;
+  _leadWA = data || [];
+
+  if (!_leadWA.length) {
+    el.innerHTML = `<div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Nessun lead ancora</div>`;
+    return;
+  }
+
+  const tipoColor = { prova_gratuita: "#059669", demo: "#0E5A7A", consulente: "#7c3aed" };
+  const tipoLabel = { prova_gratuita: "🎁 Prova gratuita", demo: "📅 Demo", consulente: "👤 Consulente" };
+
+  el.innerHTML = _leadWA.map(l => {
+    const data = l.created_at ? new Date(l.created_at).toLocaleDateString("it-IT") : "—";
+    const colore = tipoColor[l.tipo] || "#64748b";
+    const label = tipoLabel[l.tipo] || l.tipo || "—";
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#111827;">${escHP(l.nome || "—")}</div>
+          <div style="font-size:11px;color:#64748b;">${escHP(l.email || "—")} · ${escHP(l.telefono || "—")}</div>
+          ${l.tipo_locale ? `<div style="font-size:11px;color:#94a3b8;">🏠 ${escHP(l.tipo_locale)}</div>` : ""}
+          ${l.note ? `<div style="font-size:11px;color:#94a3b8;">📝 ${escHP(l.note)}</div>` : ""}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:700;color:${colore};">${label}</div>
+          <div style="font-size:11px;color:#94a3b8;">${data}</div>
+          <a href="https://wa.me/${(l.telefono||'').replace(/\D/g,'')}" target="_blank"
+            style="font-size:11px;color:#25d366;text-decoration:none;">💬 Scrivi</a>
+        </div>
+      </div>`;
+  }).join("");
+};
+
+window.esportaLeadWA = function() {
+  const header = ["Nome","Email","Telefono","Tipo locale","Tipo","Note","Data"];
+  const rows = _leadWA.map(l => [
+    l.nome||"", l.email||"", l.telefono||"", l.tipo_locale||"", l.tipo||"", l.note||"",
+    l.created_at ? new Date(l.created_at).toLocaleDateString("it-IT") : ""
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `lead-wa-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+};
+
+// ── CONVERSAZIONI WHATSAPP ───────────────────────────────────
+let _convWA = [];
+
+async function caricaConversazioniWA() {
+  const el = document.getElementById("conv-wa-list");
+  if (!el) return;
+
+  const RISTOFLOW_AZ = "a43d41b5-f4ac-494f-8144-6574347a754f";
+  const { data } = await (window.supabaseClient || supabase)
+    .from("whatsapp_messaggi")
+    .select("from_numero, from_nome, testo, intent, created_at, risposta_inviata, risposta_testo")
+    .eq("azienda_id", RISTOFLOW_AZ)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  // Raggruppa per numero
+  const byNum = {};
+  (data || []).forEach(function(m) { {
+    if (!byNum[m.from_numero]) {
+      byNum[m.from_numero] = { nome: m.from_nome, numero: m.from_numero, messaggi: [], ultimo: m.created_at };
+    }
+    byNum[m.from_numero].messaggi.push(m);
+  });
+
+  _convWA = Object.values(byNum);
+
+  if (!_convWA.length) {
+    el.innerHTML = `<div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Nessuna conversazione</div>`;
+    return;
+  }
+
+  renderConversazioni(_convWA);
+}
+
+function renderConversazioni(lista) {
+  const el = document.getElementById("conv-wa-list");
+  if (!el) return;
+  el.innerHTML = lista.map(c => {
+    const ultimo = c.messaggi[0];
+    const data = c.ultimo ? new Date(c.ultimo).toLocaleDateString("it-IT") : "—";
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;"
+        onclick="apriConversazione('${escHP(c.numero)}')">
+        <div style="width:36px;height:36px;border-radius:50%;background:#f0f9ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">💬</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#111827;">${escHP(c.nome || c.numero)}</div>
+          <div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHP(ultimo?.testo || "—")}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:#94a3b8;">${data}</div>
+          <div style="font-size:11px;color:#64748b;">${c.messaggi.length} msg</div>
+          <a href="https://wa.me/${c.numero.replace(/\D/g,'')}" target="_blank"
+            style="font-size:11px;color:#25d366;text-decoration:none;" onclick="event.stopPropagation()">📤 Scrivi</a>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+window.filtraConversazioni = function() {
+  const q = (document.getElementById("conv-search") )?.value.toLowerCase() || "";
+  const filtrate = _convWA.filter(c =>
+    (c.nome||"").toLowerCase().includes(q) || c.numero.includes(q)
+  );
+  renderConversazioni(filtrate);
+};
+
+window.apriConversazione = function(numero) {
+  const conv = _convWA.find(c => c.numero === numero);
+  if (!conv) return;
+  const modal = document.createElement("div");
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;";
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;">${escHP(conv.nome || conv.numero)}</div>
+          <div style="font-size:12px;color:#64748b;">${conv.numero}</div>
+        </div>
+        <button onclick="this.closest('.conv-modal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;">
+        ${conv.messaggi.slice().reverse().map(m => `
+          <div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;">
+            <div style="color:#0E5A7A;font-weight:600;margin-bottom:4px;">👤 ${escHP(m.testo || "—")}</div>
+            ${m.risposta_testo ? `<div style="color:#059669;margin-top:6px;padding-top:6px;border-top:1px solid #e5e7eb;">🤖 ${escHP(m.risposta_testo)}</div>` : ""}
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">${new Date(m.created_at).toLocaleString("it-IT")}</div>
+          </div>`).join("")}
+      </div>
+      <div style="padding:12px;border-top:1px solid #e5e7eb;">
+        <a href="https://wa.me/${conv.numero.replace(/\D/g,'')}" target="_blank"
+          style="display:block;text-align:center;background:#25d366;color:white;padding:10px;border-radius:8px;text-decoration:none;font-weight:700;">
+          💬 Apri su WhatsApp
+        </a>
+      </div>
+    </div>`;
+  modal.className = "conv-modal";
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
 };
 
 function escHP(v) {
