@@ -306,6 +306,13 @@ function renderRigaAzienda(az, parent) {
     <!-- PANEL WHATSAPP -->
     <div class="panel-wa" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📱 Attivazione WhatsApp Business</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;font-weight:600;color:#64748b;">Sede</label>
+        <select id="wa-sede-${az.id}" class="input" style="margin-top:4px;">
+          <option value="">— Azienda (tutti) —</option>
+        </select>
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Assegna il numero a una sede specifica, o lascia "Azienda" per usarlo su tutte</div>
+      </div>
       <div id="wa-stato-${az.id}" style="margin-bottom:12px;"></div>
       <div style="display:grid;gap:10px;">
         <div>
@@ -629,6 +636,7 @@ function renderRigaAzienda(az, parent) {
   riga.querySelector('.btn-attiva-wa').onclick = async () => {
     const numero  = document.getElementById(`wa-numero-${az.id}`).value.trim();
     const phoneId = document.getElementById(`wa-phoneid-${az.id}`).value.trim();
+    const sedeId  = document.getElementById(`wa-sede-${az.id}`)?.value || null;
     if (!numero) { alert('Inserisci il numero telefono'); return; }
 
     // Carica token default da secrets (via Edge Function)
@@ -636,7 +644,7 @@ function renderRigaAzienda(az, parent) {
     const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/attiva-whatsapp', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token}` },
-      body: JSON.stringify({ azienda_id: az.id, numero, phone_number_id: phoneId || null }),
+      body: JSON.stringify({ azienda_id: az.id, sede_id: sedeId || null, numero, phone_number_id: phoneId || null }),
     });
     const data = await res.json();
     if (data.error) { alert('Errore: ' + data.error); return; }
