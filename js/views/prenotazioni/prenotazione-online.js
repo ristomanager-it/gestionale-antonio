@@ -174,7 +174,7 @@ export async function render(container) {
             </select>
             <input id="telefono" class="input" placeholder="${escapeAttribute(t[lang].telefono)}">
           </div>
-          <input type="email" id="email" class="input" placeholder="Email (opzionale)">
+          <input type="email" id="email" class="input" placeholder="Email *" required>
           <input type="date" id="data" class="input">
           <select id="ora" class="input"><option value="">-- Seleziona orario --</option></select>
           <div id="slot-avviso" style="display:none;font-size:12px;color:#dc2626;padding:4px 0;">⚠️ Orario non disponibile</div>
@@ -320,7 +320,7 @@ export async function render(container) {
       azienda_id: aziendaId, sede_id: sedeId,
       form_id: form?.id || formId || null, form_version_id: version?.id || null,
       cliente_nome: `${nome} ${cognome}`.trim(), cliente_telefono: telefono,
-      cliente_email: document.getElementById("email")?.value.trim() || null,
+      cliente_email: emailVal || null,
       data, ora, coperti, stato: statoIniziale, canale: "online",
       source, riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
     }]).select("id, token_pubblico").single();
