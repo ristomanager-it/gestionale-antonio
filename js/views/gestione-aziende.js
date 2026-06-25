@@ -604,31 +604,56 @@ function renderRigaAzienda(az, parent) {
     w.style.display = w.style.display==='none' ? '' : 'none';
     p.style.display = 'none'; m.style.display = 'none'; if(s) s.style.display = 'none';
 
-    // Carica stato connessione WA esistente
     if (w.style.display !== 'none') {
-      const { data: waConn } = await supabase
-        .from('whatsapp_connessioni')
-        .select('id,numero_telefono,meta_phone_number_id,stato')
+      // Carica sedi con window.supabaseClient per bypassare RLS
+      const sc = window.supabaseClient || supabase;
+      const { data: sedi } = await sc
+        .from('sedi')
+        .select('id, nome')
         .eq('azienda_id', az.id)
-        .maybeSingle();
+        .order('nome');
 
-      const statoEl = document.getElementById(`wa-stato-${az.id}`);
-      if (waConn) {
-        const statoColor = { connesso:'#059669', non_connesso:'#dc2626', in_attesa:'#d97706', errore:'#dc2626' }[waConn.stato] || '#64748b';
-        statoEl.innerHTML = `
-          <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
-            <span style="width:10px;height:10px;border-radius:50%;background:${statoColor};flex-shrink:0;"></span>
-            <div style="font-size:13px;">
-              <strong>${waConn.numero_telefono||'—'}</strong>
-              <span style="color:${statoColor};font-weight:700;margin-left:8px;">${waConn.stato}</span>
-              ${waConn.meta_phone_number_id ? `<br><span style="font-size:11px;color:#94a3b8;font-family:monospace;">ID: ${waConn.meta_phone_number_id}</span>` : ''}
-            </div>
-          </div>`;
-        document.getElementById(`wa-numero-${az.id}`).value = waConn.numero_telefono||'';
-        document.getElementById(`wa-phoneid-${az.id}`).value = waConn.meta_phone_number_id||'';
-      } else {
-        statoEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessun numero configurato</div>';
-      }
+      const sedeSelect = document.getElementById(`wa-sede-${az.id}`);
+      sedeSelect.innerHTML = '<option value="">— Azienda (tutti) —</option>';
+      (sedi || []).forEach(sede => {
+        const opt = document.createElement('option');
+        opt.value = sede.id;
+        opt.textContent = sede.nome;
+        sedeSelect.appendChild(opt);
+      });
+
+      // Funzione per caricare connessione per sede selezionata
+      const caricaConnessione = async (sedeId) => {
+        let q = sc.from('whatsapp_connessioni')
+          .select('id,numero_telefono,meta_phone_number_id,stato,sede_id')
+          .eq('azienda_id', az.id);
+        if (sedeId) q = q.eq('sede_id', sedeId);
+        else q = q.is('sede_id', null);
+        const { data: waConn } = await q.maybeSingle();
+
+        const statoEl = document.getElementById(`wa-stato-${az.id}`);
+        if (waConn) {
+          const statoColor = { connesso:'#059669', non_connesso:'#dc2626', in_attesa:'#d97706', errore:'#dc2626' }[waConn.stato] || '#64748b';
+          statoEl.innerHTML = `
+            <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${statoColor};flex-shrink:0;"></span>
+              <div style="font-size:13px;">
+                <strong>${waConn.numero_telefono||'—'}</strong>
+                <span style="color:${statoColor};font-weight:700;margin-left:8px;">${waConn.stato}</span>
+                ${waConn.meta_phone_number_id ? `<br><span style="font-size:11px;color:#94a3b8;font-family:monospace;">ID: ${waConn.meta_phone_number_id}</span>` : ''}
+              </div>
+            </div>`;
+          document.getElementById(`wa-numero-${az.id}`).value = waConn.numero_telefono||'';
+          document.getElementById(`wa-phoneid-${az.id}`).value = waConn.meta_phone_number_id||'';
+        } else {
+          statoEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessun numero configurato per questa sede</div>';
+          document.getElementById(`wa-numero-${az.id}`).value = '';
+          document.getElementById(`wa-phoneid-${az.id}`).value = '';
+        }
+      };
+
+      sedeSelect.onchange = () => caricaConnessione(sedeSelect.value || null);
+      await caricaConnessione(null);
     }
   };
 
