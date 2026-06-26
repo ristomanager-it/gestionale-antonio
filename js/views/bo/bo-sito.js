@@ -472,9 +472,12 @@ Estrai queste informazioni in formato JSON:
 }
 Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
 
+      const session = window.supabaseClient?.auth ? (await window.supabaseClient.auth.getSession())?.data?.session : null;
+      const authHeader = session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {};
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/assistente-ai`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": ANON_KEY },
+        headers: { "Content-Type": "application/json", "apikey": ANON_KEY, ...authHeader },
         body: JSON.stringify({ messages: [{ role: "user", content: prompt }], azienda_id: aziendaId })
       });
       const data = await res.json();
@@ -519,9 +522,12 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
     const prompt = prompts[sezione];
     if (!prompt) return;
 
+    const session = window.supabaseClient?.auth ? (await window.supabaseClient.auth.getSession())?.data?.session : null;
+    const authHeader = session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {};
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assistente-ai`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": ANON_KEY },
+      headers: { "Content-Type": "application/json", "apikey": ANON_KEY, ...authHeader },
       body: JSON.stringify({ messages: [{ role: "user", content: prompt }], azienda_id: aziendaId })
     });
     const data = await res.json();
