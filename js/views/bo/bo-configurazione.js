@@ -1209,6 +1209,26 @@ export async function render(container) {
                 <option value="bar">Bar</option>
               </select>
             </div>
+            <div>
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Forma tavolo</label>
+              <select id="tavolo-forma" class="input" style="width:100%;box-sizing:border-box;" onchange="aggiornaFormaCampi(this.value)">
+                <option value="rettangolo">⬛ Rettangolare</option>
+                <option value="quadrato">🟦 Quadrato</option>
+                <option value="tondo">🔵 Tondo</option>
+              </select>
+            </div>
+            <div id="campo-larghezza">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Larghezza (cm)</label>
+              <input id="tavolo-larghezza" type="number" min="20" max="500" class="input" placeholder="Es. 80" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div id="campo-lunghezza">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Lunghezza (cm)</label>
+              <input id="tavolo-lunghezza" type="number" min="20" max="500" class="input" placeholder="Es. 120" style="width:100%;box-sizing:border-box;">
+            </div>
+            <div id="campo-diametro" style="display:none;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Diametro (cm)</label>
+              <input id="tavolo-diametro" type="number" min="40" max="300" class="input" placeholder="Es. 90" style="width:100%;box-sizing:border-box;">
+            </div>
           </div>
           <div id="tavolo-esito" style="font-size:13px;min-height:16px;margin-top:10px;"></div>
           <div style="display:flex;gap:8px;margin-top:12px;">
@@ -1322,6 +1342,12 @@ export async function render(container) {
         container.querySelector('#tavolo-max').value = t.coperti_max || 4;
         container.querySelector('#tavolo-sedie').value = t.sedie || '';
         container.querySelector('#tavolo-posizione').value = t.posizione || '';
+        const formaV = t.forma || 'rettangolo';
+        const formaEl = container.querySelector('#tavolo-forma');
+        if (formaEl) { formaEl.value = formaV; window.aggiornaFormaCampi(formaV); }
+        if (container.querySelector('#tavolo-larghezza')) container.querySelector('#tavolo-larghezza').value = t.larghezza_cm || '';
+        if (container.querySelector('#tavolo-lunghezza')) container.querySelector('#tavolo-lunghezza').value = t.lunghezza_cm || '';
+        if (container.querySelector('#tavolo-diametro')) container.querySelector('#tavolo-diametro').value = t.diametro_cm || '';
         var salaSelect = container.querySelector('#tavolo-sala');
         if (salaSelect) {
           salaSelect.innerHTML = '<option value="">Nessuna sala</option>' +
@@ -1405,6 +1431,23 @@ export async function render(container) {
     container.querySelector('#btn-annulla-tavolo')?.addEventListener('click', () => {
       container.querySelector('#form-tavolo').style.display = 'none';
     });
+    // Forma tavolo — mostra/nasconde campi misure
+    window.aggiornaFormaCampi = function(forma) {
+      const cL = container.querySelector('#campo-larghezza');
+      const cLu = container.querySelector('#campo-lunghezza');
+      const cD = container.querySelector('#campo-diametro');
+      if (!cL || !cLu || !cD) return;
+      if (forma === 'tondo') {
+        cL.style.display = 'none'; cLu.style.display = 'none'; cD.style.display = '';
+      } else if (forma === 'quadrato') {
+        cL.style.display = ''; cLu.style.display = 'none'; cD.style.display = 'none';
+        cL.querySelector('label').textContent = 'Lato (cm)';
+      } else {
+        cL.style.display = ''; cLu.style.display = ''; cD.style.display = 'none';
+        cL.querySelector('label').textContent = 'Larghezza (cm)';
+      }
+    };
+
     container.querySelector('#btn-salva-tavolo')?.addEventListener('click', async () => {
       const esito = container.querySelector('#tavolo-esito');
       const numero = container.querySelector('#tavolo-numero').value.trim();
@@ -1421,15 +1464,19 @@ export async function render(container) {
         coperti_max: max,
         sedie: parseInt(container.querySelector('#tavolo-sedie').value) || null,
         posizione: container.querySelector('#tavolo-posizione').value || null,
+        forma: container.querySelector('#tavolo-forma').value || 'rettangolo',
+        larghezza_cm: parseInt(container.querySelector('#tavolo-larghezza').value) || null,
+        lunghezza_cm: parseInt(container.querySelector('#tavolo-lunghezza').value) || null,
+        diametro_cm: parseInt(container.querySelector('#tavolo-diametro').value) || null,
         attivo: true,
       };
       const editIdTav = container.querySelector('#form-tavolo').dataset.editId || null;
       let dataTav, errorTav;
       if (editIdTav) {
-        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').update(payload).eq('id', editIdTav).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y').single());
+        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').update(payload).eq('id', editIdTav).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y,forma,larghezza_cm,lunghezza_cm,diametro_cm').single());
         if (!errorTav) { tavoli = tavoli.map(function(t){ return t.id === editIdTav ? dataTav : t; }); }
       } else {
-        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').insert(payload).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y').single());
+        ({ data: dataTav, error: errorTav } = await supa().from('tavoli').insert(payload).select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,sedie,posizione,attivo,pos_x,pos_y,forma,larghezza_cm,lunghezza_cm,diametro_cm').single());
         if (!errorTav) { tavoli.push(dataTav); }
       }
       if (errorTav) { esito.textContent = 'Errore: ' + errorTav.message; esito.style.color = '#dc2626'; return; }
@@ -1487,8 +1534,34 @@ export async function render(container) {
         const el = document.createElement('div');
         el.className = 'piantina-tavolo'; el.dataset.id = t.id;
         const px = t.px ?? 10, py = t.py ?? 10;
-        const isRound = t.posizione === 'esterno' || (t.coperti_max && t.coperti_max <= 4);
-        el.style.cssText = 'position:absolute;left:' + px + '%;top:' + py + '%;width:8%;aspect-ratio:1;background:#e8f4f8;border:2px solid #0E5A7A;border-radius:' + (isRound ? '50%' : '8px') + ';display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:grab;font-size:10px;font-weight:700;color:#0E5A7A;box-shadow:0 2px 6px rgba(0,0,0,.1);user-select:none;z-index:10;';
+        const forma = t.forma || 'rettangolo';
+        const isTondo = forma === 'tondo';
+        const isQuadrato = forma === 'quadrato';
+
+        // Calcola dimensioni in % relative alla sala
+        const salaW = parseFloat(wInput.value) || 10;
+        const salaH = parseFloat(hInput.value) || 8;
+        let tw, th;
+        if (isTondo) {
+          const d = (t.diametro_cm || 80) / 100; // in metri
+          tw = (d / salaW * 100).toFixed(1);
+          th = null; // aspect-ratio 1
+        } else if (isQuadrato) {
+          const lato = (t.larghezza_cm || 80) / 100;
+          tw = (lato / salaW * 100).toFixed(1);
+          th = null;
+        } else {
+          const larg = (t.larghezza_cm || 80) / 100;
+          const lung = (t.lunghezza_cm || 120) / 100;
+          tw = (larg / salaW * 100).toFixed(1);
+          th = (lung / salaH * 100).toFixed(1);
+        }
+
+        const borderRadius = isTondo ? '50%' : '8px';
+        const aspectRatio = (!th) ? '1' : 'auto';
+        const heightStyle = th ? `height:${th}%;` : `aspect-ratio:${aspectRatio};`;
+
+        el.style.cssText = `position:absolute;left:${px}%;top:${py}%;width:${tw}%;${heightStyle}background:#e8f4f8;border:2px solid #0E5A7A;border-radius:${borderRadius};display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:grab;font-size:10px;font-weight:700;color:#0E5A7A;box-shadow:0 2px 6px rgba(0,0,0,.1);user-select:none;z-index:10;`;
         el.innerHTML = '<div style="font-size:11px;font-weight:800;">' + esc(String(t.numero || t.nome || '?')) + '</div><div style="font-size:9px;opacity:.7;">' + (t.coperti_max ? t.coperti_max + 'p' : '') + '</div>';
         el.addEventListener('mousedown', function(e) {
           e.preventDefault(); dragEl = el;
@@ -1529,7 +1602,7 @@ export async function render(container) {
     salaSel.addEventListener('change', async function() {
       salaSelId = this.value;
       if (!salaSelId) { if (empty) empty.style.display = ''; canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove()); return; }
-      const { data } = await supa().from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo').eq('azienda_id', aziendaId).eq('sala_id', salaSelId).eq('attivo', true).order('numero');
+      const { data } = await supa().from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo,forma,larghezza_cm,lunghezza_cm,diametro_cm').eq('azienda_id', aziendaId).eq('sala_id', salaSelId).eq('attivo', true).order('numero');
       tavoliPiantina = (data || []).map((t, i) => ({ ...t, px: t.pos_x != null ? t.pos_x : (i % 5) * 18 + 5, py: t.pos_y != null ? t.pos_y : Math.floor(i / 5) * 20 + 5 }));
       renderPiantina();
     });
