@@ -189,6 +189,23 @@ export async function render(container) {
       <!-- TAB PUBBLICA -->
       <div class="sito-panel" id="panel-pubblica">
         <div class="sito-card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">🌐 Dominio</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:12px;">Il sito è pubblicato gratuitamente su GitHub Pages. Puoi usare il link di default o collegare un dominio personalizzato.</div>
+          
+          <div class="sito-field">
+            <label class="sito-label">Dominio personalizzato <span style="color:#94a3b8;font-weight:400;">(opzionale)</span></label>
+            <input id="sito-dominio" class="sito-input" placeholder="Es. trattoriadellaquila.it oppure trattoria.ristoflow-ai.com">
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Lascia vuoto per usare il link GitHub Pages</div>
+          </div>
+
+          <div id="dns-istruzioni" style="display:none;background:#f0f9ff;border-radius:12px;padding:16px;margin-top:12px;">
+            <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:10px;">📋 Istruzioni DNS</div>
+            <div id="dns-content" style="font-size:12px;color:#374151;line-height:1.8;font-family:monospace;"></div>
+            <div style="margin-top:12px;font-size:12px;color:#64748b;">Dopo aver configurato il DNS, clicca <strong>Pubblica</strong> — GitHub aggiornerà automaticamente il sito sul tuo dominio entro 24-48 ore.</div>
+          </div>
+        </div>
+
+        <div class="sito-card">
           <div style="font-size:14px;font-weight:700;margin-bottom:8px;">🚀 Pubblica il sito</div>
           <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Il sito verrà aggiornato su GitHub Pages entro 1-2 minuti dalla pubblicazione.</div>
           <div id="sito-url-box" style="background:#f8fafc;border-radius:10px;padding:12px 16px;margin-bottom:16px;">
@@ -219,6 +236,48 @@ export async function render(container) {
   });
 
   // ── SLUG AUTO ───────────────────────────────────────────────
+  // ── LOGICA DOMINIO DNS ───────────────────────────────────────
+  document.getElementById("sito-dominio")?.addEventListener("input", function() {
+    const dominio = this.value.trim();
+    const box = document.getElementById("dns-istruzioni");
+    const content = document.getElementById("dns-content");
+    if (!dominio) { box.style.display = "none"; return; }
+
+    const isSubdominio = dominio.includes("ristoflow-ai.com");
+    const isSottodominio = dominio.split(".").length > 2 && !isSubdominio;
+
+    let html = "";
+    if (isSubdominio) {
+      html = `<strong>Sottodominio Ristoflow</strong> — nessuna configurazione necessaria.<br>
+Sarà attivo automaticamente dopo la pubblicazione: <strong>${dominio}</strong>`;
+    } else if (isSottodominio) {
+      // es. www.trattoriadellaquila.it
+      html = `<strong>Aggiungi questo record DNS</strong> dal pannello del tuo provider (Serverplan, Aruba, ecc.):<br><br>
+<span style="background:#e8f4f8;padding:6px 10px;border-radius:6px;display:inline-block;margin:4px 0;">
+Tipo: <strong>CNAME</strong><br>
+Nome: <strong>${dominio.split(".")[0]}</strong><br>
+Valore: <strong>ristomanager-it.github.io</strong>
+</span>`;
+    } else {
+      // dominio apex es. trattoriadellaquila.it
+      html = `<strong>Aggiungi questi record DNS</strong> dal pannello del tuo provider:<br><br>
+<span style="background:#e8f4f8;padding:6px 10px;border-radius:6px;display:inline-block;margin:4px 0;width:100%;">
+Tipo: <strong>A</strong> · Nome: <strong>@</strong><br>
+Valori: <strong>185.199.108.153</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>185.199.109.153</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>185.199.110.153</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>185.199.111.153</strong>
+</span><br>
+<span style="background:#e8f4f8;padding:6px 10px;border-radius:6px;display:inline-block;margin:4px 0;width:100%;">
+Tipo: <strong>CNAME</strong> · Nome: <strong>www</strong><br>
+Valore: <strong>ristomanager-it.github.io</strong>
+</span>`;
+    }
+
+    content.innerHTML = html;
+    box.style.display = "";
+  });
+
   document.getElementById("sito-slug").addEventListener("input", function() {
     const slug = this.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
     this.value = slug;
@@ -375,6 +434,7 @@ export async function render(container) {
       orari_cena:    document.getElementById("sito-orari-cena").value.trim(),
       piva:          document.getElementById("sito-piva").value.trim(),
       nome:          document.getElementById("sito-nome").value.trim(),
+      dominio:       document.getElementById("sito-dominio")?.value.trim() || null,
       foto_cover:    fotoSel.cover,
       foto_reel_terra: fotoSel.reelTerra,
       foto_reel_mare:  fotoSel.reelMare,
@@ -672,7 +732,7 @@ function filtraMenu(catId, btn) {
         "Content-Type": "application/json",
         "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"
       },
-      body: JSON.stringify({ html, slug, nome: conf.nome })
+      body: JSON.stringify({ html, slug, nome: conf.nome, dominio: conf.dominio || null })
     });
 
     const data = await res.json();
