@@ -12,10 +12,8 @@ const ACCEPT_TYPES = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/
 
 export async function render(container) {
   const sc = window.supabaseClient || window.supabase?.createClient(SUPABASE_URL, ANON_KEY);
-  const aziendaId = window.state?.azienda?.id || window.state?.aziendaId || window.state?.azienda_id;
+  const aziendaId = window.state?.azienda?.id || window.state?.aziendaId;
   const sedeId    = window.state?.sedeAttiva?.id || null;
-  
-  console.log("bo-media state:", { aziendaId, sedeId, state: window.state });
 
   // ── CSS ────────────────────────────────────────────────────
   const style = document.createElement("style");
@@ -51,13 +49,11 @@ export async function render(container) {
     .media-drop-zone .drop-title { font-size:15px; font-weight:700; color:#374151; margin-bottom:6px; }
     .media-drop-zone .drop-sub { font-size:12px; color:#94a3b8; }
     .media-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; }
-    .media-modal-inner { background:white; border-radius:16px; max-width:520px; width:100%; max-height:90vh; overflow-y:auto; }
-    .media-modal-header { padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; }
-    .media-modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; }
-    .media-modal-body { padding:20px; }
-    .media-modal-preview { width:100%; max-height:300px; object-fit:contain; border-radius:10px; margin-bottom:16px; background:#f8fafc; }
-    .media-modal-url { width:100%; padding:10px 14px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:12px; font-family:monospace; color:#374151; background:#f8fafc; cursor:text; margin-bottom:12px; word-break:break-all; }
-    .media-modal-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .media-modal-inner { background:white; border-radius:16px; max-width:400px; width:100%; }
+    .media-modal-header { padding:14px 16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .media-modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; flex-shrink:0; }
+    .media-modal-body { padding:16px; }
+    .media-modal-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
     .media-modal-btn { flex:1; padding:10px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer; }
     .media-modal-btn.copy { background:#0E5A7A; color:white; }
     .media-modal-btn.copy:hover { background:#0a4a64; }
@@ -105,13 +101,10 @@ export async function render(container) {
     <div class="media-modal" id="media-modal" style="display:none;">
       <div class="media-modal-inner">
         <div class="media-modal-header">
-          <span id="modal-nome" style="font-weight:700;font-size:14px;"></span>
+          <input id="modal-nome-input" style="flex:1;border:none;font-size:14px;font-weight:700;color:#111827;outline:none;background:transparent;" placeholder="Nome file">
           <button class="media-modal-close" onclick="chiudiModal()">✕</button>
         </div>
         <div class="media-modal-body">
-          <div id="modal-preview-wrap"></div>
-          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px;">URL pubblico</div>
-          <div class="media-modal-url" id="modal-url" onclick="this.select()"></div>
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Tag</label>
             <select class="media-tag-select" id="modal-tag-select" onchange="salvaTag()">
@@ -120,6 +113,7 @@ export async function render(container) {
           </div>
           <div class="media-modal-actions">
             <button class="media-modal-btn copy" onclick="copiaUrl()">📋 Copia URL</button>
+            <button class="media-modal-btn" onclick="salvaNome()" style="background:#f0fdf4;color:#15803d;">💾 Salva nome</button>
             <button class="media-modal-btn delete" onclick="eliminaMedia()">🗑️ Elimina</button>
           </div>
         </div>
@@ -149,14 +143,12 @@ export async function render(container) {
 
   // ── CARICA MEDIA ─────────────────────────────────────────────
   async function caricaMedia() {
-    if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Seleziona un'azienda dal menu.</div>`; return; }
+    if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Azienda non trovata.</div>`; return; }
 
     let q = sc.from("media_library")
       .select("*")
       .eq("azienda_id", aziendaId)
       .order("created_at", { ascending: false });
-
-    if (sedeId) q = q.eq("sede_id", sedeId);
 
     const { data, error } = await q;
 
@@ -281,15 +273,28 @@ export async function render(container) {
     mediaSelezionato = allMedia.find(m => m.id === id);
     if (!mediaSelezionato) return;
     const m = mediaSelezionato;
-    document.getElementById("modal-nome").textContent = m.nome;
-    document.getElementById("modal-url").textContent  = m.url;
-    const isVideo = m.tipo === "video";
-    document.getElementById("modal-preview-wrap").innerHTML = isVideo
-      ? `<video class="media-modal-preview" src="${escHtml(m.url)}" controls muted></video>`
-      : `<img class="media-modal-preview" src="${escHtml(m.url)}" alt="${escHtml(m.nome)}">`;
+    document.getElementById("modal-nome-input").value = m.nome;
     document.getElementById("modal-tag-select").value = m.tag || "Altro";
     document.getElementById("media-modal").style.display = "flex";
+    setTimeout(() => document.getElementById("modal-nome-input").focus(), 100);
   };
+
+  window.salvaNome = async function() {
+    if (!mediaSelezionato) return;
+    const nuovoNome = document.getElementById("modal-nome-input").value.trim();
+    if (!nuovoNome) return;
+    await sc.from("media_library").update({ nome: nuovoNome }).eq("id", mediaSelezionato.id);
+    mediaSelezionato.nome = nuovoNome;
+    const idx = allMedia.findIndex(m => m.id === mediaSelezionato.id);
+    if (idx >= 0) allMedia[idx].nome = nuovoNome;
+    chiudiModal();
+    renderGriglia();
+  };
+
+  // Salva nome anche con Invio
+  document.getElementById("modal-nome-input")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") window.salvaNome();
+  });
 
   window.chiudiModal = function() {
     document.getElementById("media-modal").style.display = "none";
