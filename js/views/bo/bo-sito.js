@@ -376,21 +376,6 @@ export async function render(container) {
 
   // ── FORM PRENOTAZIONE ───────────────────────────────────────
   async function caricaForms() { return; }
-    if (!aziendaId) return;
-    const { data: forms } = await sc.from("booking_forms")
-      .select("id,nome,sede_id,attivo").eq("azienda_id", aziendaId).order("nome");
-    const sel = document.getElementById("sw-form-id");
-    sel.innerHTML = '<option value="">— Nessun form —</option>' +
-      (forms || []).filter(f => f.attivo).map(f =>
-        `<option value="${f.id}">${f.nome}</option>`
-      ).join("");
-    sel.onchange = () => {
-      const urlEl = document.getElementById("sw-form-url");
-      urlEl.textContent = sel.value
-        ? `→ https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${sel.value}`
-        : "";
-    };
-  }
 
   // ── SEDI ────────────────────────────────────────────────────
   async function caricaSedi() {
