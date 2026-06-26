@@ -1575,31 +1575,75 @@ export async function render(container) {
           if (Math.abs(parseFloat(el.style.left) - px) > 1 || Math.abs(parseFloat(el.style.top) - py) > 1) return; // era un drag
           const tav = tavoliPiantina.find(x => x.id === el.dataset.id);
           if (!tav) return;
-          // Scrolla al form tavolo
-          const formTavolo = container.querySelector('#form-tavolo');
-          const formTitle  = container.querySelector('#form-tavolo-title');
-          if (!formTavolo) return;
-          formTitle.textContent = 'Modifica tavolo';
-          container.querySelector('#tavolo-numero').value  = tav.numero || tav.nome || '';
-          container.querySelector('#tavolo-min').value     = tav.coperti_min || 1;
-          container.querySelector('#tavolo-max').value     = tav.coperti_max || 4;
-          container.querySelector('#tavolo-sedie').value   = tav.sedie || '';
-          container.querySelector('#tavolo-posizione').value = tav.posizione || '';
-          const salaSelect = container.querySelector('#tavolo-sala');
-          if (salaSelect) salaSelect.value = tav.sala_id || '';
-          const formaV = tav.forma || 'rettangolo';
-          const formaEl = container.querySelector('#tavolo-forma');
-          if (formaEl) { formaEl.value = formaV; window.aggiornaFormaCampi(formaV); }
-          if (container.querySelector('#tavolo-larghezza')) container.querySelector('#tavolo-larghezza').value = tav.larghezza_cm || '';
-          if (container.querySelector('#tavolo-lunghezza')) container.querySelector('#tavolo-lunghezza').value = tav.lunghezza_cm || '';
-          if (container.querySelector('#tavolo-diametro')) container.querySelector('#tavolo-diametro').value = tav.diametro_cm || '';
-          formTavolo.dataset.editId = tav.id;
-          formTavolo.style.display = '';
-          formTavolo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Evidenzia tavolo selezionato
-          canvas.querySelectorAll('.piantina-tavolo').forEach(x => x.style.border = '2px solid #0E5A7A');
+
+          // Rimuovi popup precedenti
+          container.querySelectorAll('.tavolo-popup').forEach(p => p.remove());
+
+          // Crea popup contestuale
+          const popup = document.createElement('div');
+          popup.className = 'tavolo-popup';
+          popup.style.cssText = `position:absolute;left:${parseFloat(el.style.left) + 10}%;top:${parseFloat(el.style.top)}%;background:white;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:12px;z-index:200;min-width:140px;border:1px solid #e5e7eb;`;
+          popup.innerHTML = `
+            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:8px;">Tavolo ${esc(String(tav.numero || tav.nome || '?'))}</div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:10px;">${tav.coperti_max || '?'} posti · ${tav.forma || 'rettangolo'}</div>
+            <button class="popup-btn-modifica" style="width:100%;padding:7px;background:#0E5A7A;color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">✏️ Modifica</button>
+            <button class="popup-btn-elimina" style="width:100%;padding:7px;background:#fef2f2;color:#dc2626;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">🗑️ Elimina</button>
+          `;
+          canvas.appendChild(popup);
+
+          // Evidenzia
+          canvas.querySelectorAll('.piantina-tavolo').forEach(x => { x.style.border = '2px solid #0E5A7A'; x.style.background = '#e8f4f8'; });
           el.style.border = '2.5px solid #f59e0b';
           el.style.background = '#fef3c7';
+
+          // Chiudi popup cliccando altrove
+          setTimeout(() => {
+            document.addEventListener('click', function closePopup(ev) {
+              if (!popup.contains(ev.target) && ev.target !== el) {
+                popup.remove();
+                el.style.border = '2px solid #0E5A7A';
+                el.style.background = '#e8f4f8';
+                document.removeEventListener('click', closePopup);
+              }
+            });
+          }, 100);
+
+          // Modifica
+          popup.querySelector('.popup-btn-modifica').onclick = function() {
+            popup.remove();
+            const formTavolo = container.querySelector('#form-tavolo');
+            const formTitle  = container.querySelector('#form-tavolo-title');
+            if (!formTavolo) return;
+            formTitle.textContent = 'Modifica tavolo';
+            container.querySelector('#tavolo-numero').value  = tav.numero || tav.nome || '';
+            container.querySelector('#tavolo-min').value     = tav.coperti_min || 1;
+            container.querySelector('#tavolo-max').value     = tav.coperti_max || 4;
+            container.querySelector('#tavolo-sedie').value   = tav.sedie || '';
+            container.querySelector('#tavolo-posizione').value = tav.posizione || '';
+            const salaSelect = container.querySelector('#tavolo-sala');
+            if (salaSelect) salaSelect.value = tav.sala_id || '';
+            const formaV = tav.forma || 'rettangolo';
+            const formaEl = container.querySelector('#tavolo-forma');
+            if (formaEl) { formaEl.value = formaV; window.aggiornaFormaCampi(formaV); }
+            if (container.querySelector('#tavolo-larghezza')) container.querySelector('#tavolo-larghezza').value = tav.larghezza_cm || '';
+            if (container.querySelector('#tavolo-lunghezza')) container.querySelector('#tavolo-lunghezza').value = tav.lunghezza_cm || '';
+            if (container.querySelector('#tavolo-diametro')) container.querySelector('#tavolo-diametro').value = tav.diametro_cm || '';
+            formTavolo.dataset.editId = tav.id;
+            formTavolo.style.display = '';
+            formTavolo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          };
+
+          // Elimina
+          popup.querySelector('.popup-btn-elimina').onclick = async function() {
+            if (!confirm('Eliminare il tavolo ' + (tav.numero || tav.nome) + '?')) return;
+            await supa().from('tavoli').delete().eq('id', tav.id);
+            tavoliPiantina = tavoliPiantina.filter(x => x.id !== tav.id);
+            tavoli = tavoli.filter(x => x.id !== tav.id);
+            popup.remove();
+            renderPiantina();
+            renderListaTavoliConf();
+            mostraToast('Tavolo eliminato', 'success');
+          };
         });
         el.addEventListener('touchstart', function(e) {
           e.preventDefault(); dragEl = el;
@@ -1633,6 +1677,7 @@ export async function render(container) {
     salaSel.addEventListener('change', async function() {
       salaSelId = this.value;
       if (!salaSelId) { if (empty) empty.style.display = ''; canvas.querySelectorAll('.piantina-tavolo').forEach(el => el.remove()); return; }
+      tavoliPiantina = [];
       const { data } = await supa().from('tavoli').select('id,nome,numero,sala_id,sede_id,coperti_min,coperti_max,posizione,pos_x,pos_y,attivo,forma,larghezza_cm,lunghezza_cm,diametro_cm').eq('azienda_id', aziendaId).eq('sala_id', salaSelId).eq('attivo', true).order('numero');
       tavoliPiantina = (data || []).map((t, i) => ({ ...t, px: t.pos_x != null ? t.pos_x : (i % 5) * 18 + 5, py: t.pos_y != null ? t.pos_y : Math.floor(i / 5) * 20 + 5 }));
       renderPiantina();
