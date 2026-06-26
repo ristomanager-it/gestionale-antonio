@@ -830,7 +830,7 @@ Rispondi con il testo diretto, no JSON.`,
 
     const [{ data: az }, { data: profilo }, { data: conf }] = await Promise.all([
       sc.from("aziende").select("nome,telefono,indirizzo,citta,email_pubblica").eq("id", aziendaId).maybeSingle(),
-      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari").eq("azienda_id", aziendaId).maybeSingle(),
+      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari,indirizzo,citta,telefono,email,cover_url,foto_galleria,google_maps_url,lat,lng").eq("azienda_id", aziendaId).maybeSingle(),
       sedeIdCorrente
         ? sc.from("sito_config").select("*").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).maybeSingle()
         : sc.from("sito_config").select("*").eq("azienda_id", aziendaId).is("sede_id", null).maybeSingle(),
@@ -847,13 +847,24 @@ Rispondi con il testo diretto, no JSON.`,
 
     // Precompila da dati Ristoflow
     if (az) {
-      // Nome: usa sede se disponibile, altrimenti azienda
       set("sw-nome", conf?.nome || sedeSelezionata?.nome || az.nome);
-      set("sw-telefono", conf?.telefono || sedeSelezionata?.telefono || az.telefono);
-      set("sw-indirizzo", conf?.indirizzo || [sedeSelezionata?.indirizzo || az.indirizzo, sedeSelezionata?.citta || az.citta].filter(Boolean).join(", "));
-      set("sw-email", conf?.email || az.email_pubblica);
+      set("sw-telefono", conf?.telefono || profilo?.telefono || sedeSelezionata?.telefono || az.telefono);
+      set("sw-indirizzo", conf?.indirizzo || [profilo?.indirizzo || sedeSelezionata?.indirizzo || az.indirizzo, profilo?.citta || sedeSelezionata?.citta || az.citta].filter(Boolean).join(", "));
+      set("sw-email", conf?.email || profilo?.email || az.email_pubblica);
     }
     if (profilo?.testo_sede && !conf?.chisiamo_1) set("sw-chisiamo-1", profilo.testo_sede);
+    if (profilo?.testo_orari && !conf?.orari_pranzo) {
+      // Prova a estrarre orari dal testo libero
+      const testo = profilo.testo_orari || "";
+      const pranzoMatch = testo.match(/pranzo[:\s]+([0-9:]+\s*[-–]\s*[0-9:]+)/i);
+      const cenaMatch   = testo.match(/cena[:\s]+([0-9:]+\s*[-–]\s*[0-9:]+)/i);
+      if (pranzoMatch) set("sw-pranzo", pranzoMatch[1].trim());
+      if (cenaMatch)   set("sw-cena", cenaMatch[1].trim());
+    }
+    // Usa cover dal profilo pubblico se non c'è foto cover nel config
+    if (profilo?.cover_url && !conf?.foto_cover && !fotoSel.cover) {
+      fotoSel.cover = profilo.cover_url;
+    }
 
     // Carica config sito salvata
     if (conf) {
@@ -975,14 +986,21 @@ Rispondi con il testo diretto, no JSON.`,
       ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${formId}`
       : "#";
 
-    // Dati sede — priorità: config form > sede selezionata > profilo pubblico
+    // Dati sede — priorità: config form > sede > profilo pubblico
     const { data: sedeDati } = sedeIdCorrente
       ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,email,logo_url").eq("id", sedeIdCorrente).maybeSingle()
       : { data: null };
 
-    const telefono = telefono || sedeDati?.telefono || "";
-    const email    = email    || sedeDati?.email    || "";
-    const indirizzo = indirizzo || [sedeDati?.indirizzo, sedeDati?.citta].filter(Boolean).join(", ") || "";
+    const { data: profiloPub } = await sc.from("azienda_profilo_pubblico")
+      .select("indirizzo,citta,telefono,email,google_maps_url,lat,lng,cover_url")
+      .eq("azienda_id", aziendaId).maybeSingle();
+
+    const telefono  = conf.telefono  || sedeDati?.telefono  || profiloPub?.telefono  || "";
+    const email     = conf.email     || sedeDati?.email     || profiloPub?.email     || "";
+    const indirizzo = conf.indirizzo || [sedeDati?.indirizzo || profiloPub?.indirizzo, sedeDati?.citta || profiloPub?.citta].filter(Boolean).join(", ") || "";
+    const mapsUrl   = profiloPub?.google_maps_url || `https://maps.google.com/?q=${encodeURIComponent(indirizzo)}`;
+    const lat       = profiloPub?.lat || 42.4597;
+    const lng       = profiloPub?.lng || 12.3857;
 
     // Menu filtrato per sede
     let menuCats = [], menuVoci = [];
@@ -1277,7 +1295,7 @@ ${sezioniState.mappa ? `
   <div class="map-inner">
     <div class="eyebrow" style="color:var(--oro)">Come raggiungerci</div>
     <h2 class="h2" style="color:#fff;">A pochi minuti<br><em>dall'autostrada</em></h2>
-    <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2954.5!2d12.3857!3d42.4597!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0!2zNDLCsDI3JzM0LjkiTiAxMsKwMjMnMDguNSJF!5e0!3m2!1sit!2sit!4v1" allowfullscreen loading="lazy"></iframe>
+    <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
       ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
@@ -1353,7 +1371,7 @@ ${nav}
   <div class="map-inner">
     <div class="eyebrow" style="color:var(--oro)">Contatti</div>
     <h1 class="h2" style="color:#fff;">Come<br><em>raggiungerci</em></h1>
-    <iframe style="width:100%;height:220px;border-radius:12px;border:none;margin:24px 0;opacity:.8" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2954.5!2d12.3857!3d42.4597!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0!2zNDLCsDI3JzM0LjkiTiAxMsKwMjMnMDguNSJF!5e0!3m2!1sit!2sit!4v1" allowfullscreen loading="lazy"></iframe>
+    <iframe style="width:100%;height:220px;border-radius:12px;border:none;margin:24px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
       ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
