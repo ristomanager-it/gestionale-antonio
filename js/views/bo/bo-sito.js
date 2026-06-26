@@ -127,12 +127,12 @@ export async function render(container) {
       </div>
 
       <div class="sw-card">
-        <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🗓️ Form prenotazione</div>
-        <label class="sw-label">Seleziona il form da collegare al sito</label>
-        <select id="sw-form-id" class="sw-input">
-          <option value="">— Caricamento... —</option>
-        </select>
-        <div id="sw-form-url" style="font-size:11px;color:#0E5A7A;margin-top:6px;"></div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🗓️ Link prenotazione</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Incolla il link del form dal Booking Builder (il link del QR code).</div>
+        <div class="sw-field">
+          <label class="sw-label">Link form prenotazione</label>
+          <input id="sw-form-link" class="sw-input" placeholder="https://app.ristoflow-ai.com/#/booking/social">
+        </div>
       </div>
 
       <div class="sw-card">
@@ -375,7 +375,8 @@ export async function render(container) {
   });
 
   // ── FORM PRENOTAZIONE ───────────────────────────────────────
-  async function caricaForms() {
+  async function caricaForms() { return; // sostituito da link diretto
+  /*
     if (!aziendaId) return;
     const { data: forms } = await sc.from("booking_forms")
       .select("id,nome,sede_id,attivo").eq("azienda_id", aziendaId).order("nome");
@@ -425,7 +426,7 @@ export async function render(container) {
       nome:         g("sw-nome"),
       slug:         g("sw-slug"),
       dominio:      g("sw-dominio") || null,
-      form_id:      g("sw-form-id") || null,
+      form_link:    g("sw-form-link") || null,
       hero_titolo:  g("sw-hero-titolo"),
       hero_sub:     g("sw-hero-sub"),
       hero_cta:     g("sw-hero-cta") || "Prenota un tavolo",
@@ -505,7 +506,7 @@ export async function render(container) {
       if (conf.foto_reel_terra) fotoSel.reelTerra = conf.foto_reel_terra;
       if (conf.foto_reel_mare)  fotoSel.reelMare  = conf.foto_reel_mare;
       if (conf.foto_locale)     fotoSel.locale     = conf.foto_locale;
-      if (conf.form_id) { document.getElementById("sw-form-id").value = conf.form_id; document.getElementById("sw-form-id").dispatchEvent(new Event("change")); }
+      if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
       if (conf.colore_brand)      { set("sw-colore-btn-hex", conf.colore_brand);      document.getElementById("sw-colore-btn").value = conf.colore_brand; }
       if (conf.colore_secondario) { set("sw-colore-acc-hex", conf.colore_secondario); document.getElementById("sw-colore-acc").value = conf.colore_secondario; }
@@ -542,7 +543,7 @@ export async function render(container) {
       slug:            conf.slug,
       nome:            conf.nome,
       dominio:         conf.dominio,
-      form_id:         conf.form_id || null,
+      form_link:       conf.form_link || null,
       hero_titolo:     conf.hero_titolo,
       hero_sub:        conf.hero_sub,
       hero_cta:        conf.hero_cta,
@@ -745,9 +746,9 @@ export async function render(container) {
     const lng     = sede?.lng || profilo?.lng || 12.3857;
     const nome    = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const cta     = conf.hero_cta || "Prenota un tavolo";
-    const formUrl = conf.form_id
+    const formUrl = conf.form_link || (conf.form_id
       ? `https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${conf.form_id}`
-      : "#";
+      : "#");
 
     // Menu per sede
     let menuCats = [], menuVoci = [];
@@ -1133,5 +1134,5 @@ ${ctaBar}${footer}
 
   // ── INIT ─────────────────────────────────────────────────────
   await caricaSedi();
-  await Promise.all([caricaConfig(), caricaForms()]);
+  await caricaConfig();
 }
