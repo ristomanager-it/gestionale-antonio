@@ -535,7 +535,6 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
         .then(r => r.data || []),
       sc.from("vendite_giornaliere").select("nome_articolo,quantita,categoria_id")
         .eq("azienda_id", aziendaId)
-        .eq("sede_id", sedeIdCorrente)
         .gte("data_vendita", new Date(Date.now() - 30*86400000).toISOString().split("T")[0])
         .limit(2000).then(r => r.data || []),
     ]);
@@ -831,7 +830,7 @@ Rispondi con il testo diretto, no JSON.`,
 
     const [{ data: az }, { data: profilo }, { data: conf }] = await Promise.all([
       sc.from("aziende").select("nome,telefono,indirizzo,citta,email_pubblica").eq("id", aziendaId).maybeSingle(),
-      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari,orari_pranzo,orari_cena,indirizzo,telefono").eq("azienda_id", aziendaId).maybeSingle(),
+      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari").eq("azienda_id", aziendaId).maybeSingle(),
       sedeIdCorrente
         ? sc.from("sito_config").select("*").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).maybeSingle()
         : sc.from("sito_config").select("*").eq("azienda_id", aziendaId).is("sede_id", null).maybeSingle(),
@@ -839,7 +838,7 @@ Rispondi con il testo diretto, no JSON.`,
 
     // Carica identita per Tony
     const { data: identita } = await sc.from("azienda_identita")
-      .select("gc_why,gc_how,gc_what,tone_of_voice,posizionamento,cliente_ideale,differenziazione,valori")
+      .select("gc_why,gc_how,gc_what,tone_of_voice,posizionamento,cliente_ideale,differenziazione")
       .eq("azienda_id", aziendaId).maybeSingle();
     _identita = identita || null;
     _profilo  = profilo || null;
@@ -958,7 +957,7 @@ Rispondi con il testo diretto, no JSON.`,
     const sedeIdCorrente = sedeSelezionata?.id || null;
 
     const { data: identita } = await sc.from("azienda_identita")
-      .select("logo_url,colore_brand").eq("azienda_id", aziendaId).maybeSingle();
+      .select("logo_url,colore_brand,gc_why").eq("azienda_id", aziendaId).maybeSingle();
 
     // Booking form — cerca per sede specifica
     let formId = null;
@@ -1416,9 +1415,11 @@ ${footer}
       const pagine = await generaHTML(conf);
 
       statusEl.textContent = "⏳ Pubblicazione su GitHub Pages...";
+      const session2 = window.supabaseClient?.auth ? (await window.supabaseClient.auth.getSession())?.data?.session : null;
+      const token2 = session2?.access_token || ANON_KEY;
       const res = await fetch(`${SUPABASE_URL}/functions/v1/github-deploy`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": ANON_KEY },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token2}`, "apikey": token2 },
         body: JSON.stringify({
           slug: conf.slug,
           nome: conf.nome,
