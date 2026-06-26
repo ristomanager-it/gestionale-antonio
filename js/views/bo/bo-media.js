@@ -12,8 +12,10 @@ const ACCEPT_TYPES = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/
 
 export async function render(container) {
   const sc = window.supabaseClient || window.supabase?.createClient(SUPABASE_URL, ANON_KEY);
-  const aziendaId = window.state?.aziendaId || window.state?.azienda?.id;
+  const aziendaId = window.state?.azienda?.id || window.state?.aziendaId || window.state?.azienda_id;
   const sedeId    = window.state?.sedeAttiva?.id || null;
+  
+  console.log("bo-media state:", { aziendaId, sedeId, state: window.state });
 
   // ── CSS ────────────────────────────────────────────────────
   const style = document.createElement("style");
