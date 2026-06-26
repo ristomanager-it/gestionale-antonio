@@ -417,7 +417,7 @@ export async function render(container) {
     if (conf?.form_id) sel.value = conf.form_id;
     sel.onchange = () => {
       const preview = document.getElementById("sw-form-preview");
-      if (preview && sel.value) preview.textContent = `URL: https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${sel.value}`;
+      if (preview && sel.value) preview.textContent = `URL: https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${sel.value}`;
       else if (preview) preview.textContent = "";
     };
     sel.dispatchEvent(new Event("change"));
@@ -1016,7 +1016,7 @@ Rispondi con il testo diretto, no JSON.`,
       formId = formAny?.id;
     }
     const formUrl = formId
-      ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${formId}`
+      ? `https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${formId}`
       : "#";
 
     // Dati sede — priorità: config form > sede > profilo pubblico
