@@ -239,22 +239,6 @@ const BO_ROUTES = new Set([
   "bo-media",
 ]);
 
-// Route che non richiedono sede selezionata
-const NO_SEDE_ROUTES = new Set([
-  "bo-media",
-  "bo-chatbot",
-  "bo-whatsapp",
-  "bo-promo",
-  "bo-catenarie",
-  "bo-marketing",
-  "bo-tag",
-  "bo-template",
-  "bo-fidelity",
-  "bo-candidature",
-  "bo-survey",
-  "bo-bilancio",
-]);
-
 // Display tablet — bypassano auth contesto operativo, hanno PIN proprio
 const DISPLAY_ROUTES = new Set([
   "display-cucina",
@@ -1289,9 +1273,7 @@ if (!contesto.ok) {
   }
 
   if (contesto.motivo === "Nessuna sede assegnata") {
-    if (NO_SEDE_ROUTES.has(route)) {
-      // Route che non richiedono sede — procedi comunque
-    } else if (route !== "scegli-sede") {
+    if (route !== "scegli-sede") {
       window.location.hash = "#/scegli-sede";
       return;
     }
@@ -1309,19 +1291,22 @@ if (contesto.tipo === "dipendente_multi_sede") {
 
   if (!haSedeAttiva) {
     if (sedePrincipale) {
+      // Seleziona sede principale automaticamente
       const sede = sedi.find(s => String(s.id) === String(sedePrincipale));
       if (sede) {
         window.state.sedeAttiva = sede;
         localStorage.setItem("active_sede_id", sede.id);
-      } else if (!NO_SEDE_ROUTES.has(route) && route !== "scegli-sede") {
+      } else if (route !== "scegli-sede") {
         window.location.hash = "#/scegli-sede";
         return;
       }
     } else if (sedi.length === 1) {
+      // Una sola sede — seleziona automaticamente senza chiedere
       window.state.sedeAttiva = sedi[0];
       localStorage.setItem("active_sede_id", sedi[0].id);
     } else if (sedi.length > 1) {
-      if (!NO_SEDE_ROUTES.has(route) && route !== "scegli-sede") {
+      // Più sedi senza principale — chiedi
+      if (route !== "scegli-sede") {
         window.location.hash = "#/scegli-sede";
         return;
       }
