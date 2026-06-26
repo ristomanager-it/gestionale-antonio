@@ -13,7 +13,9 @@ const ACCEPT_TYPES = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/
 export async function render(container) {
   const sc = window.supabaseClient || window.supabase?.createClient(SUPABASE_URL, ANON_KEY);
   const aziendaId = window.state?.azienda?.id || window.state?.aziendaId;
-  const sedeId    = window.state?.sedeAttiva?.id || null;
+  
+  // sedeId letto dinamicamente ad ogni operazione
+  const getSedeId = () => window.state?.sedeAttiva?.id || null;
 
   // ── CSS ────────────────────────────────────────────────────
   const style = document.createElement("style");
@@ -145,6 +147,7 @@ export async function render(container) {
   async function caricaMedia() {
     if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Azienda non trovata.</div>`; return; }
 
+    const sedeId = getSedeId();
     if (!sedeId) {
       document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">🏠</div>Seleziona una sede per vedere i media.</div>`;
       allMedia = [];
@@ -154,7 +157,7 @@ export async function render(container) {
     let q = sc.from("media_library")
       .select("*")
       .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
+      .eq("sede_id", getSedeId())
       .order("created_at", { ascending: false });
 
     const { data, error } = await q;
@@ -254,7 +257,7 @@ export async function render(container) {
       // Salva in media_library
       await sc.from("media_library").insert({
         azienda_id: aziendaId,
-        sede_id: sedeId || null,
+        sede_id: getSedeId() || null,
         nome,
         url: publicUrl,
         path,
