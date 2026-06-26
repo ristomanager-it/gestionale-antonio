@@ -1570,6 +1570,37 @@ export async function render(container) {
           dragOffY = (e.clientY - rect.top) / rect.height * 100 - py;
           el.style.cursor = 'grabbing'; el.style.zIndex = '100';
         });
+        // Click singolo su tavolo → apre form modifica
+        el.addEventListener('click', function(e) {
+          if (Math.abs(parseFloat(el.style.left) - px) > 1 || Math.abs(parseFloat(el.style.top) - py) > 1) return; // era un drag
+          const tav = tavoliPiantina.find(x => x.id === el.dataset.id);
+          if (!tav) return;
+          // Scrolla al form tavolo
+          const formTavolo = container.querySelector('#form-tavolo');
+          const formTitle  = container.querySelector('#form-tavolo-title');
+          if (!formTavolo) return;
+          formTitle.textContent = 'Modifica tavolo';
+          container.querySelector('#tavolo-numero').value  = tav.numero || tav.nome || '';
+          container.querySelector('#tavolo-min').value     = tav.coperti_min || 1;
+          container.querySelector('#tavolo-max').value     = tav.coperti_max || 4;
+          container.querySelector('#tavolo-sedie').value   = tav.sedie || '';
+          container.querySelector('#tavolo-posizione').value = tav.posizione || '';
+          const salaSelect = container.querySelector('#tavolo-sala');
+          if (salaSelect) salaSelect.value = tav.sala_id || '';
+          const formaV = tav.forma || 'rettangolo';
+          const formaEl = container.querySelector('#tavolo-forma');
+          if (formaEl) { formaEl.value = formaV; window.aggiornaFormaCampi(formaV); }
+          if (container.querySelector('#tavolo-larghezza')) container.querySelector('#tavolo-larghezza').value = tav.larghezza_cm || '';
+          if (container.querySelector('#tavolo-lunghezza')) container.querySelector('#tavolo-lunghezza').value = tav.lunghezza_cm || '';
+          if (container.querySelector('#tavolo-diametro')) container.querySelector('#tavolo-diametro').value = tav.diametro_cm || '';
+          formTavolo.dataset.editId = tav.id;
+          formTavolo.style.display = '';
+          formTavolo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Evidenzia tavolo selezionato
+          canvas.querySelectorAll('.piantina-tavolo').forEach(x => x.style.border = '2px solid #0E5A7A');
+          el.style.border = '2.5px solid #f59e0b';
+          el.style.background = '#fef3c7';
+        });
         el.addEventListener('touchstart', function(e) {
           e.preventDefault(); dragEl = el;
           const rect = canvas.getBoundingClientRect(), touch = e.touches[0];
