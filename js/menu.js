@@ -441,6 +441,7 @@ export function initMenu() {
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
         ]
       });
 
@@ -463,6 +464,7 @@ export function initMenu() {
         title: "CONFIGURAZIONE",
         items: [
           { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
           { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
         ]
       });
