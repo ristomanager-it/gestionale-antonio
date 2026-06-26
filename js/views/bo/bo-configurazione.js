@@ -2158,6 +2158,85 @@ export async function render(container) {
       </div>
     `;
 
+    // Carica colori sede
+    const { data: sedeBrand } = await supa().from('sedi')
+      .select('colore_brand,colore_secondario')
+      .eq('id', currentSedeId || sedeId).maybeSingle();
+
+    // Aggiungi card colori dopo il contenuto principale
+    const colorCard = document.createElement('div');
+    colorCard.style.cssText = 'max-width:720px;padding-bottom:20px;margin-top:-8px;';
+    colorCard.innerHTML = `
+      <div class="id-card" style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🎨 Colori brand sede</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:16px;line-height:1.5;">
+          I colori vengono usati nel sito web, nel menu digitale e nel form prenotazione di questa sede.
+          Puoi cambiarli per eventi speciali o stagioni.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <span class="id-label">Colore principale</span>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+              <input type="color" id="id-colore-brand" value="${sedeBrand?.colore_brand || '#794d01'}"
+                style="width:48px;height:40px;border:none;border-radius:8px;cursor:pointer;padding:2px;">
+              <input type="text" id="id-colore-brand-hex" class="id-input" style="flex:1;"
+                value="${sedeBrand?.colore_brand || '#794d01'}" placeholder="#794d01">
+            </div>
+            <div style="margin-top:8px;height:32px;border-radius:8px;background:${sedeBrand?.colore_brand || '#794d01'};display:flex;align-items:center;justify-content:center;">
+              <span style="color:white;font-size:12px;font-weight:700;" id="preview-btn-brand">Prenota ora</span>
+            </div>
+          </div>
+          <div>
+            <span class="id-label">Colore secondario / accenti</span>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+              <input type="color" id="id-colore-sec" value="${sedeBrand?.colore_secondario || '#c4892a'}"
+                style="width:48px;height:40px;border:none;border-radius:8px;cursor:pointer;padding:2px;">
+              <input type="text" id="id-colore-sec-hex" class="id-input" style="flex:1;"
+                value="${sedeBrand?.colore_secondario || '#c4892a'}" placeholder="#c4892a">
+            </div>
+            <div style="margin-top:8px;height:32px;border-radius:8px;background:#f5efe4;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:12px;font-weight:700;color:" id="preview-accent-brand"
+                style="color:${sedeBrand?.colore_secondario || '#c4892a'};">Testo accento</span>
+            </div>
+          </div>
+        </div>
+        <div id="colori-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
+        <button id="btn-salva-colori" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:700;">🎨 Salva colori sede</button>
+      </div>`;
+    box.querySelector('div[style*="max-width:720px"]').after(colorCard);
+
+    // Sync color picker ↔ hex input
+    const syncColor = (pickerId, hexId, previewId, isBrand) => {
+      const picker = box.querySelector('#' + pickerId);
+      const hex    = box.querySelector('#' + hexId);
+      const prev   = box.querySelector('#' + previewId);
+      picker.oninput = () => {
+        hex.value = picker.value;
+        if (prev) isBrand ? prev.parentElement.style.background = picker.value : prev.style.color = picker.value;
+      };
+      hex.oninput = () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) {
+          picker.value = hex.value;
+          if (prev) isBrand ? prev.parentElement.style.background = hex.value : prev.style.color = hex.value;
+        }
+      };
+    };
+    syncColor('id-colore-brand', 'id-colore-brand-hex', 'preview-btn-brand', true);
+    syncColor('id-colore-sec', 'id-colore-sec-hex', 'preview-accent-brand', false);
+
+    // Salva colori
+    box.querySelector('#btn-salva-colori').addEventListener('click', async () => {
+      const esito = box.querySelector('#colori-esito');
+      esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      const colore_brand      = box.querySelector('#id-colore-brand-hex').value.trim();
+      const colore_secondario = box.querySelector('#id-colore-sec-hex').value.trim();
+      const sedeTarget = currentSedeId || sedeId;
+      if (!sedeTarget) { esito.textContent = '❌ Nessuna sede selezionata'; esito.style.color = '#dc2626'; return; }
+      const { error } = await supa().from('sedi').update({ colore_brand, colore_secondario }).eq('id', sedeTarget);
+      if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; }
+      else { esito.textContent = '✅ Colori salvati!'; esito.style.color = '#15803d'; setTimeout(() => esito.textContent = '', 3000); }
+    });
+
     box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
       const esito = box.querySelector('#id-esito');
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
