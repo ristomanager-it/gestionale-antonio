@@ -12,7 +12,8 @@ const ACCEPT_TYPES = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/
 
 export async function render(container) {
   const sc = window.supabaseClient || window.supabase?.createClient(SUPABASE_URL, ANON_KEY);
-  const aziendaId = window.state?.aziendaId;
+  const aziendaId = window.state?.aziendaId || window.state?.azienda?.id;
+  const sedeId    = window.state?.sedeAttiva?.id || null;
 
   // ── CSS ────────────────────────────────────────────────────
   const style = document.createElement("style");
@@ -148,8 +149,14 @@ export async function render(container) {
   async function caricaMedia() {
     if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Seleziona un'azienda dal menu.</div>`; return; }
 
-    const { data, error } = await sc.from("media_library")
-      .select("*").eq("azienda_id", aziendaId).order("created_at", { ascending: false });
+    let q = sc.from("media_library")
+      .select("*")
+      .eq("azienda_id", aziendaId)
+      .order("created_at", { ascending: false });
+
+    if (sedeId) q = q.eq("sede_id", sedeId);
+
+    const { data, error } = await q;
 
     if (error) {
       // Tabella non esiste ancora — mostra messaggio setup
@@ -247,6 +254,7 @@ export async function render(container) {
       // Salva in media_library
       await sc.from("media_library").insert({
         azienda_id: aziendaId,
+        sede_id: sedeId || null,
         nome,
         url: publicUrl,
         path,
