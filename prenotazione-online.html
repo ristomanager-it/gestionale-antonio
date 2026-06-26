@@ -20,7 +20,7 @@
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, ANON_KEY);
     window.state = {};
 
-    const { render } = await import('./js/views/prenotazione-online.js');
+    const { render } = await import('https://app.ristoflow-ai.com/js/views/prenotazione-online.js');
     render(document.getElementById('app'));
   </script>
 </body>
