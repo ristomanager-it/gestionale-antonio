@@ -506,18 +506,77 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
     }
   };
 
+  // ── STATO DATI AZIENDA (popolato da caricaConfig) ────────────
+  let _identita = null;
+  let _profilo   = null;
+
   // ── TONY AI ─────────────────────────────────────────────────
   async function chiamaTony(sezione) {
     const conf = leggiForm();
     const nomeLocale = conf.nome || window.state?.azienda?.nome || "il locale";
 
+    // Contesto reale dal locale
+    const ctx = [
+      nomeLocale ? `Nome: ${nomeLocale}` : "",
+      _identita?.gc_why       ? `WHY: ${_identita.gc_why}` : "",
+      _identita?.gc_how       ? `HOW: ${_identita.gc_how}` : "",
+      _identita?.gc_what      ? `WHAT: ${_identita.gc_what}` : "",
+      _identita?.tone_of_voice? `Tone of voice: ${_identita.tone_of_voice}` : "",
+      _identita?.posizionamento? `Posizionamento: ${_identita.posizionamento}` : "",
+      _identita?.cliente_ideale? `Cliente ideale: ${_identita.cliente_ideale}` : "",
+      _profilo?.testo_sede    ? `Descrizione: ${_profilo.testo_sede}` : "",
+      conf.chisiamo_1         ? `Chi siamo (già scritto): ${conf.chisiamo_1}` : "",
+      conf.telefono           ? `Telefono: ${conf.telefono}` : "",
+      conf.indirizzo          ? `Indirizzo: ${conf.indirizzo}` : "",
+      conf.orari_pranzo       ? `Orari pranzo: ${conf.orari_pranzo}` : "",
+      conf.orari_cena         ? `Orari cena: ${conf.orari_cena}` : "",
+      sedeSelezionata?.nome   ? `Sede: ${sedeSelezionata.nome}` : "",
+    ].filter(Boolean).join("\n");
+
     const prompts = {
-      hero: `Sei un esperto di marketing per ristoranti. Scrivi per ${nomeLocale} un titolo hero (max 8 parole, evocativo, non banale) e un sottotitolo (max 15 parole). Tono elegante, concreto. Rispondi SOLO con JSON: {"hero_titolo":"...","hero_sub":"..."}`,
-      highlights: `Scrivi 3 punti di forza per ${nomeLocale}. Concisi e concreti. Rispondi SOLO con JSON: {"hl1":{"titolo":"...","testo":"..."},"hl2":{"titolo":"...","testo":"..."},"hl3":{"titolo":"...","testo":"..."}}`,
-      chisiamo: `Scrivi 2 paragrafi "chi siamo" per ${nomeLocale}. Tono caldo e autentico, non commerciale. Max 60 parole ciascuno. Rispondi SOLO con JSON: {"p1":"...","p2":"..."}`,
-      mare: `Scrivi una citazione filosofica sul mare/pesce per ${nomeLocale} (max 2 righe, elegante) e un paragrafo di approfondimento (max 40 parole). Rispondi SOLO con JSON: {"quote":"...","testo":"..."}`,
-      "pagina-chisiamo": `Scrivi il testo completo della pagina "Chi siamo" per ${nomeLocale}. 3-4 paragrafi, tono autentico, racconta storia e valori. Rispondi con il testo diretto, no JSON.`,
-      "pagina-eventi": `Scrivi il testo introduttivo della pagina "Eventi" per ${nomeLocale}. 2 paragrafi che invitano a scoprire serate speciali e degustazioni. Rispondi con il testo diretto, no JSON.`,
+      hero: `Sei un esperto di marketing per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi UN titolo hero (max 8 parole, evocativo, specifico per questo locale, non generico) e UN sottotitolo (max 15 parole).
+Usa i dati reali — non inventare. Tono elegante e concreto.
+Rispondi SOLO con JSON: {"hero_titolo":"...","hero_sub":"..."}`,
+
+      highlights: `Sei un esperto di marketing per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi 3 punti di forza REALI e specifici per questo locale (non generici). Usa i dati forniti.
+Rispondi SOLO con JSON: {"hl1":{"titolo":"...","testo":"..."},"hl2":{"titolo":"...","testo":"..."},"hl3":{"titolo":"...","testo":"..."}}`,
+
+      chisiamo: `Sei un esperto di copywriting per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi 2 paragrafi "chi siamo" BASATI SUI DATI REALI — non inventare. Tono caldo, autentico. Max 60 parole ciascuno.
+Rispondi SOLO con JSON: {"p1":"...","p2":"..."}`,
+
+      mare: `Sei un esperto di copywriting per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi una citazione filosofica sul mare/pesce (max 2 righe, elegante, in linea con il tone of voice) e un paragrafo (max 40 parole).
+Usa lo stile e i valori del locale — non inventare.
+Rispondi SOLO con JSON: {"quote":"...","testo":"..."}`,
+
+      "pagina-chisiamo": `Sei un esperto di copywriting per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi il testo completo della pagina "Chi siamo" BASATO SUI DATI REALI. 3-4 paragrafi, tono autentico. Non inventare informazioni non presenti nei dati.
+Rispondi con il testo diretto, no JSON.`,
+
+      "pagina-eventi": `Sei un esperto di copywriting per ristoranti italiani.
+Dati reali del locale:
+${ctx}
+
+Scrivi il testo introduttivo della pagina "Eventi" in linea con il tone of voice e i valori del locale. 2 paragrafi.
+Rispondi con il testo diretto, no JSON.`,
     };
 
     const prompt = prompts[sezione];
@@ -692,6 +751,13 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
       sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari").eq("azienda_id", aziendaId).maybeSingle(),
       sc.from("sito_config").select("*").eq("azienda_id", aziendaId).maybeSingle(),
     ]);
+
+    // Carica identita per Tony
+    const { data: identita } = await sc.from("azienda_identita")
+      .select("gc_why,gc_how,gc_what,tone_of_voice,posizionamento,cliente_ideale,differenziazione,valori")
+      .eq("azienda_id", aziendaId).maybeSingle();
+    _identita = identita || null;
+    _profilo  = profilo || null;
 
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
 
