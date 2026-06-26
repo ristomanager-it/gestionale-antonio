@@ -465,8 +465,8 @@ export function initMenu() {
         title: "CONFIGURAZIONE",
         items: [
           { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
-          { label: "🖼️ Media Library",       route: "bo-media"          },
           { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
         ]
       });
 
