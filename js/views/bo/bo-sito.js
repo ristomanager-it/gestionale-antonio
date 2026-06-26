@@ -95,6 +95,7 @@ export async function render(container) {
       <div class="sw-title">🌐 Sito Web</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button id="sw-btn-preview" class="sw-tony-btn" style="background:#f8fafc;color:#374151;border:1.5px solid #e5e7eb;">👁 Anteprima</button>
+        <button id="sw-btn-salva" class="sw-tony-btn" style="background:#f0fdf4;color:#15803d;border:1.5px solid #86efac;">💾 Salva bozza</button>
         <button id="sw-btn-tony-all" class="sw-tony-btn">✨ Tony genera tutto</button>
         <button id="sw-btn-pubblica" class="sw-pub-btn" style="width:auto;padding:10px 24px;font-size:14px;">🚀 Pubblica</button>
       </div>
@@ -959,18 +960,30 @@ Rispondi con il testo diretto, no JSON.`,
     const { data: identita } = await sc.from("azienda_identita")
       .select("logo_url,colore_brand").eq("azienda_id", aziendaId).maybeSingle();
 
-    // Booking form filtrato per sede
-    const { data: form } = await sc.from("booking_forms")
-      .select("id")
-      .eq("azienda_id", aziendaId)
-      .eq("attivo", true)
-      .then(async r => {
-        if (sedeIdCorrente && r.data?.length) {
-          const bySede = r.data.find(f => f.sede_id === sedeIdCorrente);
-          return { data: bySede || r.data[0] };
-        }
-        return { data: r.data?.[0] };
-      });
+    // Booking form — cerca per sede specifica
+    let formId = null;
+    if (sedeIdCorrente) {
+      const { data: formSede } = await sc.from("booking_forms")
+        .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).eq("attivo", true).limit(1).maybeSingle();
+      formId = formSede?.id;
+    }
+    if (!formId) {
+      const { data: formAny } = await sc.from("booking_forms")
+        .select("id").eq("azienda_id", aziendaId).eq("attivo", true).limit(1).maybeSingle();
+      formId = formAny?.id;
+    }
+    const formUrl = formId
+      ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${formId}`
+      : "#";
+
+    // Dati sede — priorità: config form > sede selezionata > profilo pubblico
+    const { data: sedeDati } = sedeIdCorrente
+      ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,email,logo_url").eq("id", sedeIdCorrente).maybeSingle()
+      : { data: null };
+
+    const telefono = telefono || sedeDati?.telefono || "";
+    const email    = email    || sedeDati?.email    || "";
+    const indirizzo = indirizzo || [sedeDati?.indirizzo, sedeDati?.citta].filter(Boolean).join(", ") || "";
 
     // Menu filtrato per sede
     let menuCats = [], menuVoci = [];
@@ -1000,15 +1013,8 @@ Rispondi con il testo diretto, no JSON.`,
       menuVoci = voci || [];
     }
 
-    // Logo: sede > identita azienda
-    const logo   = sedeSelezionata?.logo_url || identita?.logo_url || "";
+    const logo   = sedeDati?.logo_url || identita?.logo_url || "";
     const colore = identita?.colore_brand || "#B8892A";
-
-    // URL form prenotazione PUBBLICO (non hash route app)
-    const formUrl = form?.id
-      ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${form.id}`
-      : "#";
-
     const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const nome = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const ctaTesto = conf.hero_cta || "Prenota un tavolo";
@@ -1133,7 +1139,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 
     const ctaBar = `<div class="cta-bar">
   <a class="cta-prenota" href="${esc(formUrl)}">🗓 ${esc(ctaTesto)}</a>
-  ${conf.telefono ? `<a class="cta-chiama" href="tel:${esc(conf.telefono)}">📞 Chiama</a>` : ""}
+  ${telefono ? `<a class="cta-chiama" href="tel:${esc(telefono)}">📞 Chiama</a>` : ""}
   <a class="cta-menu-link" href="menu.html">📋 Menu</a>
 </div>`;
 
@@ -1184,7 +1190,7 @@ ${nav}
     <h1 class="h2" style="color:#fff;font-size:clamp(38px,8vw,72px);margin-bottom:16px;">${esc(conf.hero_titolo||nome)}</h1>
     ${conf.hero_sub ? `<p style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto;">${esc(conf.hero_sub)}</p>` : ""}
     <a class="cta-inline" href="${esc(formUrl)}" style="font-size:16px;padding:16px 36px;">🗓 ${esc(ctaTesto)}</a>
-    ${conf.telefono ? `<a class="cta-inline-ghost" href="tel:${esc(conf.telefono)}">📞 Chiama</a>` : ""}
+    ${telefono ? `<a class="cta-inline-ghost" href="tel:${esc(telefono)}">📞 Chiama</a>` : ""}
   </div>
 </div>
 
@@ -1274,14 +1280,14 @@ ${sezioniState.mappa ? `
     <h2 class="h2" style="color:#fff;">A pochi minuti<br><em>dall'autostrada</em></h2>
     <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2954.5!2d12.3857!3d42.4597!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0!2zNDLCsDI3JzM0LjkiTiAxMsKwMjMnMDguNSJF!5e0!3m2!1sit!2sit!4v1" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${conf.indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(conf.indirizzo)}</div></div>` : ""}
+      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${conf.telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(conf.telefono)}">${esc(conf.telefono)}</a></div></div>` : ""}
-      ${conf.email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(conf.email)}">${esc(conf.email)}</a></div></div>` : ""}
+      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(telefono)}">${esc(telefono)}</a></div></div>` : ""}
+      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(email)}">${esc(email)}</a></div></div>` : ""}
     </div>
     <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
       <a class="cta-inline" href="${esc(formUrl)}" style="flex:1;min-width:180px;text-align:center;">🗓 ${esc(ctaTesto)}</a>
-      ${conf.telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(conf.telefono)}">📞 Chiama ora</a>` : ""}
+      ${telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(telefono)}">📞 Chiama ora</a>` : ""}
     </div>
   </div>
 </div>` : ""}
@@ -1350,10 +1356,10 @@ ${nav}
     <h1 class="h2" style="color:#fff;">Come<br><em>raggiungerci</em></h1>
     <iframe style="width:100%;height:220px;border-radius:12px;border:none;margin:24px 0;opacity:.8" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2954.5!2d12.3857!3d42.4597!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0!2zNDLCsDI3JzM0LjkiTiAxMsKwMjMnMDguNSJF!5e0!3m2!1sit!2sit!4v1" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${conf.indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(conf.indirizzo)}</div></div>` : ""}
+      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${conf.telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(conf.telefono)}">${esc(conf.telefono)}</a></div></div>` : ""}
-      ${conf.email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(conf.email)}">${esc(conf.email)}</a></div></div>` : ""}
+      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(telefono)}">${esc(telefono)}</a></div></div>` : ""}
+      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(email)}">${esc(email)}</a></div></div>` : ""}
     </div>
     <a class="cta-inline" href="${esc(formUrl)}" style="margin-top:28px;">🗓 ${esc(ctaTesto)}</a>
   </div>
@@ -1443,6 +1449,16 @@ ${footer}
   }
 
   document.getElementById("sw-btn-preview").onclick = () => pubblica(true);
+  document.getElementById("sw-btn-salva").onclick = async function() {
+    this.textContent = "⏳..."; this.disabled = true;
+    try {
+      await salvaConfig();
+      this.textContent = "✅ Salvato!";
+      setTimeout(() => { this.textContent = "💾 Salva bozza"; this.disabled = false; }, 2000);
+    } catch(e) {
+      this.textContent = "❌ Errore"; this.disabled = false;
+    }
+  };
   document.getElementById("sw-btn-pubblica").onclick = () => {
     container.querySelector('[data-tab="pubblica"]').click();
     pubblica(false);
@@ -1456,7 +1472,7 @@ ${footer}
       { label:"Slug URL",     ok:!!conf.slug },
       { label:"Titolo hero",  ok:!!conf.hero_titolo },
       { label:"Chi siamo",    ok:!!conf.chisiamo_1 },
-      { label:"Telefono",     ok:!!conf.telefono },
+      { label:"Telefono",     ok:!!telefono },
       { label:"Foto cover",   ok:!!conf.foto_cover },
       { label:"Orari",        ok:!!(conf.orari_pranzo||conf.orari_cena) },
     ];
