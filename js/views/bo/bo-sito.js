@@ -99,9 +99,8 @@ export async function render(container) {
     </div>
 
     <!-- SELEZIONE SEDE -->
-    <div id="sw-sedi-wrap" style="display:none;" class="sw-card">
-      <div class="sw-card-title">🏠 Seleziona la sede</div>
-      <div id="sw-sedi-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
+    <div id="sw-sedi-wrap" style="display:none;margin-bottom:16px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="sw-sedi-bar"></div>
     </div>
 
     <!-- IMPORT SITO ESISTENTE -->
@@ -370,23 +369,21 @@ export async function render(container) {
       document.getElementById("sw-sedi-wrap").style.display = "none";
     } else {
       document.getElementById("sw-sedi-wrap").style.display = "";
-      const grid = document.getElementById("sw-sedi-grid");
-      grid.innerHTML = sedi.map(s => `
-        <div class="sw-sede-card" data-sede-id="${s.id}">
-          <h4>${s.nome}</h4>
-          <p>${s.indirizzo || s.citta || "—"}</p>
-        </div>`).join("");
-      grid.querySelectorAll(".sw-sede-card").forEach(card => {
-        card.onclick = () => {
-          grid.querySelectorAll(".sw-sede-card").forEach(c => c.classList.remove("selected"));
-          card.classList.add("selected");
-          sedeSelezionata = sedi.find(s => s.id === card.dataset.sedeId);
+      const bar = document.getElementById("sw-sedi-bar");
+      bar.innerHTML = sedi.map((s, i) => `
+        <button class="sw-tab${i===0?' active':''}" data-sede-id="${s.id}" style="border-radius:20px;padding:7px 16px;">
+          🏠 ${s.nome}
+        </button>`).join("");
+      bar.querySelectorAll("button").forEach(btn => {
+        btn.onclick = () => {
+          bar.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          sedeSelezionata = sedi.find(s => s.id === btn.dataset.sedeId);
           caricaConfig();
         };
       });
-      // Seleziona prima sede di default
-      grid.querySelector(".sw-sede-card")?.click();
-      return;
+      sedeSelezionata = sedi[0];
+      bar.querySelector("button")?.classList.add("active");
     }
     await caricaConfig();
   }
@@ -473,11 +470,15 @@ Estrai queste informazioni in formato JSON:
 Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
 
       const session = window.supabaseClient?.auth ? (await window.supabaseClient.auth.getSession())?.data?.session : null;
-      const authHeader = session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {};
+      const token = session?.access_token || ANON_KEY;
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/assistente-ai`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": ANON_KEY, ...authHeader },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "apikey": token,
+        },
         body: JSON.stringify({ messages: [{ role: "user", content: prompt }], azienda_id: aziendaId })
       });
       const data = await res.json();
@@ -523,11 +524,15 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
     if (!prompt) return;
 
     const session = window.supabaseClient?.auth ? (await window.supabaseClient.auth.getSession())?.data?.session : null;
-    const authHeader = session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {};
+    const token = session?.access_token || ANON_KEY;
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assistente-ai`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": ANON_KEY, ...authHeader },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": token,
+      },
       body: JSON.stringify({ messages: [{ role: "user", content: prompt }], azienda_id: aziendaId })
     });
     const data = await res.json();
