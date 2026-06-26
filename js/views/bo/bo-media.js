@@ -145,15 +145,21 @@ export async function render(container) {
   async function caricaMedia() {
     if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Azienda non trovata.</div>`; return; }
 
+    if (!sedeId) {
+      document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">🏠</div>Seleziona una sede per vedere i media.</div>`;
+      allMedia = [];
+      return;
+    }
+
     let q = sc.from("media_library")
       .select("*")
       .eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeId)
       .order("created_at", { ascending: false });
 
     const { data, error } = await q;
 
     if (error) {
-      // Tabella non esiste ancora — mostra messaggio setup
       document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">🔧</div>Prima configurazione: carica il tuo primo file!</div>`;
       allMedia = [];
     } else {
